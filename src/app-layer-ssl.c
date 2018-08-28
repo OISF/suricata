@@ -262,6 +262,80 @@ static void SSLSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
     }
 }
 
+void SSLVersionToString(uint16_t version, char *buffer)
+{
+    buffer[0] = '\0';
+
+    switch (version) {
+        case TLS_VERSION_UNKNOWN:
+            strlcat(buffer, "UNDETERMINED", 13);
+            break;
+        case SSL_VERSION_2:
+            strlcat(buffer, "SSLv2", 6);
+            break;
+        case SSL_VERSION_3:
+            strlcat(buffer, "SSLv3", 6);
+            break;
+        case TLS_VERSION_10:
+            strlcat(buffer, "TLSv1", 6);
+            break;
+        case TLS_VERSION_11:
+            strlcat(buffer, "TLS 1.1", 8);
+            break;
+        case TLS_VERSION_12:
+            strlcat(buffer, "TLS 1.2", 8);
+            break;
+        case TLS_VERSION_13:
+            strlcat(buffer, "TLS 1.3", 8);
+            break;
+        case TLS_VERSION_13_DRAFT28:
+            strlcat(buffer, "TLS 1.3 (draft 28)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT27:
+            strlcat(buffer, "TLS 1.3 (draft 27)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT26:
+            strlcat(buffer, "TLS 1.3 (draft 26)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT25:
+            strlcat(buffer, "TLS 1.3 (draft 25)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT24:
+            strlcat(buffer, "TLS 1.3 (draft 24)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT23:
+            strlcat(buffer, "TLS 1.3 (draft 23)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT22:
+            strlcat(buffer, "TLS 1.3 (draft 22)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT21:
+            strlcat(buffer, "TLS 1.3 (draft 21)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT20:
+            strlcat(buffer, "TLS 1.3 (draft 20)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT19:
+            strlcat(buffer, "TLS 1.3 (draft 19)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT18:
+            strlcat(buffer, "TLS 1.3 (draft 18)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT17:
+            strlcat(buffer, "TLS 1.3 (draft 17)", 19);
+            break;
+        case TLS_VERSION_13_DRAFT16:
+            strlcat(buffer, "TLS 1.3 (draft 16)", 19);
+            break;
+        case TLS_VERSION_13_PRE_DRAFT16:
+            strlcat(buffer, "TLS 1.3 (draft <16)", 20);
+            break;
+        default:
+            snprintf(buffer, 7, "0x%04x", version);
+            break;
+    }
+}
+
 static void TlsDecodeHSCertificateErrSetEvent(SSLState *ssl_state, uint32_t err)
 {
     switch (err) {
