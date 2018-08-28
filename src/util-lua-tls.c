@@ -187,6 +187,37 @@ static int TlsGetCertInfo(lua_State *luastate)
     return r;
 }
 
+static int GetVersion(lua_State *luastate, const Flow *f)
+{
+    void *state = FlowGetAppState(f);
+    if (state == NULL)
+        return LuaCallbackError(luastate, "error: no app layer state");
+
+    SSLState *ssl_state = (SSLState *)state;
+
+    char ssl_version[SSL_VERSION_MAX_STRLEN];
+    SSLVersionToString(ssl_state->server_connp.version, ssl_version);
+
+    return LuaPushStringBuffer(luastate, (uint8_t *)ssl_version,
+                               strlen(ssl_version));
+}
+
+static int TlsGetVersion(lua_State *luastate)
+{
+    int r;
+
+    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
+        return LuaCallbackError(luastate, "error: protocol not tls");
+
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    r = GetVersion(luastate, f);
+
+    return r;
+}
+
 static int GetSNI(lua_State *luastate, const Flow *f)
 {
     void *state = FlowGetAppState(f);
@@ -315,6 +346,9 @@ int LuaRegisterTlsFunctions(lua_State *luastate)
 
     lua_pushcfunction(luastate, TlsGetCertNotAfter);
     lua_setglobal(luastate, "TlsGetCertNotAfter");
+
+    lua_pushcfunction(luastate, TlsGetVersion);
+    lua_setglobal(luastate, "TlsGetVersion");
 
     lua_pushcfunction(luastate, TlsGetCertInfo);
     lua_setglobal(luastate, "TlsGetCertInfo");
