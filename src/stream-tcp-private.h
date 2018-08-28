@@ -84,6 +84,13 @@ RB_PROTOTYPE(TCPSEG, TcpSegment, rb, TcpSegmentCompare);
 
 #define SEG_SEQ_RIGHT_EDGE(seg) ((seg)->seq + TCP_SEG_LEN((seg)))
 
+/* get right edge of sequence space of seen segments.
+ * Only use if STREAM_HAS_SEEN_DATA is true. */
+#define STREAM_SEQ_RIGHT_EDGE(stream)   (stream)->segs_right_edge
+#define STREAM_RIGHT_EDGE(stream)       (STREAM_BASE_OFFSET((stream)) + (STREAM_SEQ_RIGHT_EDGE((stream)) - (stream)->base_seq))
+/* return true if we have seen data segments. */
+#define STREAM_HAS_SEEN_DATA(stream)    (!RB_EMPTY(&(stream)->sb.sbb_tree) || (stream)->sb.stream_offset)
+
 typedef struct TcpStream_ {
     uint16_t flags:12;              /**< Flag specific to the stream e.g. Timestamp */
     /* coccinelle: TcpStream:flags:STREAMTCP_STREAM_FLAG_ */
@@ -110,6 +117,7 @@ typedef struct TcpStream_ {
 
     StreamingBuffer sb;
     struct TCPSEG seg_tree;         /**< red black tree of TCP segments. Data is stored in TcpStream::sb */
+    uint32_t segs_right_edge;
 
     uint32_t sack_size;             /**< combined size of the SACK ranges currently in our tree. Updated
                                      *   at INSERT/REMOVE time. */
