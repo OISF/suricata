@@ -2399,9 +2399,8 @@ static inline uint32_t StreamTcpResetGetMaxAck(TcpStream *stream, uint32_t seq)
 {
     uint32_t ack = seq;
 
-    const TcpSegment *seg = RB_MAX(TCPSEG, &stream->seg_tree);
-    if (seg != NULL) {
-        const uint32_t tail_seq = seg->seq + TCP_SEG_LEN(seg);
+    if (STREAM_HAS_SEEN_DATA(stream)) {
+        const uint32_t tail_seq = STREAM_SEQ_RIGHT_EDGE(stream);
         if (SEQ_GT(tail_seq, ack)) {
             ack = tail_seq;
         }

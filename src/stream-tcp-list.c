@@ -175,6 +175,7 @@ static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, TcpSegment **dup
         SCLogDebug("empty tree, inserting seg %p seq %" PRIu32 ", "
                    "len %" PRIu32 "", seg, seg->seq, TCP_SEG_LEN(seg));
         TCPSEG_RB_INSERT(&stream->seg_tree, seg);
+        stream->segs_right_edge = SEG_SEQ_RIGHT_EDGE(seg);
         return 0;
     }
 
@@ -187,6 +188,9 @@ static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, TcpSegment **dup
         *dup_seg = res;
         return 2; // duplicate has overlap by definition.
     } else {
+        if (SEQ_GT(SEG_SEQ_RIGHT_EDGE(seg), stream->segs_right_edge))
+            stream->segs_right_edge = SEG_SEQ_RIGHT_EDGE(seg);
+
         /* insert succeeded, now check if we overlap with someone */
         if (CheckOverlap(&stream->seg_tree, seg) == true) {
             SCLogDebug("seg %u has overlap in the tree", seg->seq);
