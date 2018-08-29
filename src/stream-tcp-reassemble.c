@@ -941,12 +941,12 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
 
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
         /* get window of data that is acked */
-        uint32_t delta = stream->last_ack - stream->base_seq;
+        const uint32_t delta = stream->last_ack - stream->base_seq;
         DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
         /* get max absolute offset */
         last_ack_abs += delta;
 
-        int ackadded = (ssn->state >= TCP_FIN_WAIT1) ? 1 : 0;
+        const int ackadded = (ssn->state >= TCP_FIN_WAIT1) ? 1 : 0;
         last_ack_abs -= ackadded;
 
         SCLogDebug("last_ack %u abs %"PRIu64, stream->last_ack, last_ack_abs);
@@ -965,7 +965,7 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
                             p->pcap_cnt, stream->next_seq, stream->last_ack);
                     return false;
                 } else {
-                    uint64_t next_seq_abs = STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
+                    const uint64_t next_seq_abs = STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
                     StreamingBufferBlock *blk = stream->sb.block_list;
                     if (blk->offset > next_seq_abs && blk->offset < last_ack_abs) {
                         /* ack'd data after the gap */
