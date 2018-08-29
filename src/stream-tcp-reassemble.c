@@ -898,7 +898,7 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
         *data = mydata;
         *data_len = mydata_len;
     } else {
-        StreamingBufferBlock *blk = RB_MIN(SBB, &stream->sb.sbb_tree);
+        const StreamingBufferBlock *blk = stream->sb.head;
 
         if (blk->offset > offset) {
             SCLogDebug("gap, want data at offset %"PRIu64", "
@@ -955,7 +955,7 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
                     return false;
                 } else {
                     const uint64_t next_seq_abs = STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
-                    StreamingBufferBlock *blk = RB_MIN(SBB, &stream->sb.sbb_tree);
+                    const StreamingBufferBlock *blk = stream->sb.head;
                     if (blk->offset > next_seq_abs && blk->offset < last_ack_abs) {
                         /* ack'd data after the gap */
                         SCLogDebug("packet %"PRIu64": GAP. "
