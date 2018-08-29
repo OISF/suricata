@@ -1245,12 +1245,17 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_DNS_TS);
         CASE_CODE (LOGGER_DNS_TC);
         CASE_CODE (LOGGER_JSON_SMB);
+        CASE_CODE (LOGGER_JSON_NFS);
         CASE_CODE (LOGGER_HTTP);
         CASE_CODE (LOGGER_JSON_DNS_TS);
         CASE_CODE (LOGGER_JSON_DNS_TC);
         CASE_CODE (LOGGER_JSON_DNP3_TS);
         CASE_CODE (LOGGER_JSON_DNP3_TC);
         CASE_CODE (LOGGER_JSON_HTTP);
+        CASE_CODE (LOGGER_JSON_DHCP);
+        CASE_CODE (LOGGER_JSON_KRB5);
+        CASE_CODE (LOGGER_JSON_IKEV2);
+        CASE_CODE (LOGGER_JSON_TFTP);
         CASE_CODE (LOGGER_JSON_SMTP);
         CASE_CODE (LOGGER_JSON_TLS);
         CASE_CODE (LOGGER_JSON_TEMPLATE);
@@ -1267,9 +1272,10 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_PRELUDE);
         CASE_CODE (LOGGER_PCAP);
         CASE_CODE (LOGGER_JSON_METADATA);
-        default:
+        case LOGGER_SIZE:
             return "UNKNOWN";
     }
+    return "UNKNOWN";
 }
 
 #ifdef UNITTESTS
