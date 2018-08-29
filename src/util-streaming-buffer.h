@@ -101,15 +101,16 @@ typedef struct StreamingBuffer_ {
     uint32_t buf_offset;    /**< how far we are in buf_size */
 
     struct SBB sbb_tree;    /**< red black tree of Stream Buffer Blocks */
+    StreamingBufferBlock *head; /**< head, should always be the same as RB_MIN */
 #ifdef DEBUG
     uint32_t buf_size_max;
 #endif
 } StreamingBuffer;
 
 #ifndef DEBUG
-#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, { NULL }, };
+#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, { NULL }, NULL, };
 #else
-#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, { NULL }, 0 };
+#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, { NULL }, NULL, 0 };
 #endif
 
 typedef struct StreamingBufferSegment_ {
