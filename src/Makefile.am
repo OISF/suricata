@@ -334,6 +334,7 @@ output-json-ikev2.c output-json-ikev2.h \
 output-json-krb5.c output-json-krb5.h \
 output-json-dhcp.c output-json-dhcp.h \
 output-json-template.c output-json-template.h \
+output-json-template-rust.c output-json-template-rust.h \
 output-json-metadata.c output-json-metadata.h \
 output-lua.c output-lua.h \
 output-packet.c output-packet.h \
