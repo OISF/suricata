@@ -294,22 +294,30 @@ void SigTableList(const char *keyword)
     if (keyword == NULL) {
         printf("=====Supported keywords=====\n");
         for (i = 0; i < size; i++) {
-            if (sigmatch_table[i].name != NULL) {
+            const char *name = sigmatch_table[i].name;
+            if (name != NULL && strlen(name) > 0) {
+                if (name[0] == '_')
+                    continue;
+
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-                    printf("- %s (not built-in)\n", sigmatch_table[i].name);
+                    printf("- %s (not built-in)\n", name);
                 } else {
-                    printf("- %s\n", sigmatch_table[i].name);
+                    printf("- %s\n", name);
                 }
             }
         }
     } else if (strcmp("csv", keyword) == 0) {
         printf("name;description;app layer;features;documentation\n");
         for (i = 0; i < size; i++) {
-            if (sigmatch_table[i].name != NULL) {
+            const char *name = sigmatch_table[i].name;
+            if (name != NULL && strlen(name) > 0) {
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
                     continue;
                 }
-                printf("%s;", sigmatch_table[i].name);
+                if (name[0] == '_')
+                    continue;
+
+                printf("%s;", name);
                 if (sigmatch_table[i].desc) {
                     printf("%s", sigmatch_table[i].desc);
                 }
@@ -326,7 +334,10 @@ void SigTableList(const char *keyword)
         }
     } else if (strcmp("all", keyword) == 0) {
         for (i = 0; i < size; i++) {
-            if (sigmatch_table[i].name != NULL) {
+            const char *name = sigmatch_table[i].name;
+            if (name != NULL && strlen(name) > 0) {
+                if (name[0] == '_')
+                    continue;
                 printf("%s:\n", sigmatch_table[i].name);
                 SigMultilinePrint(i, "\t");
             }
