@@ -62,9 +62,9 @@ typedef struct TcpSegment {
     PoolThreadReserved res;
     uint16_t payload_len;       /**< actual size of the payload */
     uint32_t seq;
+    RB_ENTRY(TcpSegment) __attribute__((__packed__)) rb;
     StreamingBufferSegment sbseg;
-    RB_ENTRY(TcpSegment) rb;
-} TcpSegment;
+} __attribute__((__packed__)) TcpSegment;
 
 /** \brief compare function for the Segment tree
  *
