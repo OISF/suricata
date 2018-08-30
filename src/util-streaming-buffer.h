@@ -114,8 +114,8 @@ typedef struct StreamingBuffer_ {
 #endif
 
 typedef struct StreamingBufferSegment_ {
-    uint64_t stream_offset;
     uint32_t segment_len;
+    uint64_t stream_offset;
 } __attribute__((__packed__)) StreamingBufferSegment;
 
 StreamingBuffer *StreamingBufferInit(const StreamingBufferConfig *cfg);
