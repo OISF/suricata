@@ -886,7 +886,18 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
             *data = NULL;
             *data_len = blk->offset - offset;
 
-        } else if (offset > blk->offset && offset <= (blk->offset + blk->len)) {
+        } else if (offset >= (blk->offset + blk->len)) {
+
+            *data = NULL;
+            StreamingBufferBlock *nblk = blk->next;
+            *data_len = nblk ? nblk->offset - offset : 0;
+            if (nblk) {
+                SCLogDebug("gap, want data at offset %"PRIu64", "
+                        "got data at %"PRIu64". GAP of size %"PRIu64,
+                        offset, nblk->offset, nblk->offset - offset);
+            }
+
+        } else if (offset > blk->offset && offset < (blk->offset + blk->len)) {
             SCLogDebug("get data from offset %"PRIu64". SBB %"PRIu64"/%u",
                     offset, blk->offset, blk->len);
             StreamingBufferSBBGetDataAtOffset(&stream->sb, blk, data, data_len, offset);
