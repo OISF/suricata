@@ -296,7 +296,7 @@ void SigTableList(const char *keyword)
         for (i = 0; i < size; i++) {
             const char *name = sigmatch_table[i].name;
             if (name != NULL && strlen(name) > 0) {
-                if (name[0] == '_')
+                if (name[0] == '_' || strcmp(name, "template") == 0)
                     continue;
 
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
@@ -314,7 +314,7 @@ void SigTableList(const char *keyword)
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
                     continue;
                 }
-                if (name[0] == '_')
+                if (name[0] == '_' || strcmp(name, "template") == 0)
                     continue;
 
                 printf("%s;", name);
@@ -336,7 +336,7 @@ void SigTableList(const char *keyword)
         for (i = 0; i < size; i++) {
             const char *name = sigmatch_table[i].name;
             if (name != NULL && strlen(name) > 0) {
-                if (name[0] == '_')
+                if (name[0] == '_' || strcmp(name, "template") == 0)
                     continue;
                 printf("%s:\n", sigmatch_table[i].name);
                 SigMultilinePrint(i, "\t");
