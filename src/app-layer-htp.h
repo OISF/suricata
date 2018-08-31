@@ -151,8 +151,8 @@ typedef struct HTPCfgRec_ {
 /** Struct used to hold chunks of a body on a request */
 struct HtpBodyChunk_ {
     struct HtpBodyChunk_ *next; /**< Pointer to the next chunk */
-    StreamingBufferSegment sbseg;
     int logged;
+    StreamingBufferSegment sbseg;
 } __attribute__((__packed__));
 typedef struct HtpBodyChunk_ HtpBodyChunk;
 
