@@ -215,16 +215,20 @@ static int TemplateParseRequest(Flow *f, void *state,
 
     SCLogNotice("Parsing echo request: len=%"PRIu32, input_len);
 
-    /* Likely connection closed, we can just return here. */
-    if ((input == NULL || input_len == 0) &&
-        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        return 0;
-    }
-
-    /* Probably don't want to create a transaction in this case
-     * either. */
-    if (input == NULL || input_len == 0) {
-        return 0;
+    if (input == NULL) {
+        if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+            /* This is a signal that the stream is done. Do any
+             * cleanup if needed. Usually nothing is required here. */
+            return 0;
+        } else if (flags & STREAM_GAP) {
+            /* This is a signal that there has been a gap in the
+             * stream. This only needs to be handled if gaps were
+             * enabled during protocol registration. The input_len
+             * contain the size of the gap. */
+            return 0;
+        }
+        /* This should not happen. */
+        return -1;
     }
 
     /* Normally you would parse out data here and store it in the
@@ -537,6 +541,11 @@ void RegisterTemplateParsers(void)
             TemplateStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateGetEvents);
+
+        /* Leave this is if you parser can handle gaps, otherwise
+         * remove. */
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_TEMPLATE,
+            APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
     }
     else {
         SCLogNotice("Template protocol parsing disabled.");
