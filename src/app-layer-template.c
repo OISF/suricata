@@ -41,7 +41,7 @@
 #include "app-layer-template.h"
 
 #include "util-unittest.h"
-
+#include "util-validate.h"
 
 /* The default port to probe for echo traffic if not provided in the
  * configuration file. */
@@ -245,16 +245,22 @@ static AppLayerResult TemplateParseRequest(Flow *f, void *statev,
 
     SCLogNotice("Parsing template request: len=%"PRIu32, input_len);
 
-    /* Likely connection closed, we can just return here. */
-    if ((input == NULL || input_len == 0) &&
-        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnStruct(APP_LAYER_OK);
-    }
-
-    /* Probably don't want to create a transaction in this case
-     * either. */
-    if (input == NULL || input_len == 0) {
-        SCReturnStruct(APP_LAYER_OK);
+    if (input == NULL) {
+        if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+            /* This is a signal that the stream is done. Do any
+             * cleanup if needed. Usually nothing is required here. */
+            SCReturnStruct(APP_LAYER_OK);
+        } else if (flags & STREAM_GAP) {
+            /* This is a signal that there has been a gap in the
+             * stream. This only needs to be handled if gaps were
+             * enabled during protocol registration. The input_len
+             * contains the size of the gap. */
+            SCReturnStruct(APP_LAYER_OK);
+        }
+        /* This should not happen. If input is NULL, one of the above should be
+         * true. */
+        DEBUG_VALIDATE_BUG_ON(true);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
 
     /* Normally you would parse out data here and store it in the
@@ -564,6 +570,11 @@ void RegisterTemplateParsers(void)
             TemplateStateGetEventInfoById);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateGetEvents);
+
+        /* Leave this is if you parser can handle gaps, otherwise
+         * remove. */
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_TEMPLATE,
+            APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
     }
     else {
         SCLogNotice("Template protocol parsing disabled.");
