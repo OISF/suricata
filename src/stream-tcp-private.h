@@ -186,6 +186,8 @@ enum
 #define STREAMTCP_FLAG_APP_LAYER_DISABLED           0x2000
 /** Stream can be bypass */
 #define STREAMTCP_FLAG_BYPASS                       0x4000
+/** SSN uses TCP Fast Open */
+#define STREAMTCP_FLAG_TCP_FAST_OPEN                0x8000
 
 /*
  * Per STREAM flags
