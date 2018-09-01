@@ -151,6 +151,39 @@ static void DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t pktlen)
                         }
                     }
                     break;
+                case TCP_OPT_TFO:
+                    SCLogDebug("TFO option, len %u", olen);
+                    if (olen < TCP_OPT_TFO_MIN_LEN ||
+                            olen > TCP_OPT_TFO_MAX_LEN ||
+                            !((olen - 2) % 8 == 0))
+                    {
+                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                    } else {
+                        if (p->tcpvars.tfo.type != 0) {
+                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                        } else {
+                            SET_OPTS(p->tcpvars.tfo, tcp_opts[tcp_opt_cnt]);
+                        }
+                    }
+                    break;
+                /* experimental options, could be TFO */
+                case TCP_OPT_EXP1:
+                case TCP_OPT_EXP2:
+                    SCLogDebug("TCP EXP option, len %u", olen);
+                    if (olen == 4 || olen == 12) {
+                        uint16_t magic = SCNtohs(*(uint16_t *)tcp_opts[tcp_opt_cnt].data);
+                        if (magic == 0xf989) {
+                            if (p->tcpvars.tfo.type != 0) {
+                                ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            } else {
+                                SET_OPTS(p->tcpvars.tfo, tcp_opts[tcp_opt_cnt]);
+                                p->tcpvars.tfo.type = TCP_OPT_TFO; // treat as regular TFO
+                            }
+                        }
+                    } else {
+                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                    }
+                    break;
             }
 
             pkt += olen;
@@ -207,11 +240,11 @@ int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
     }
 
 #ifdef DEBUG
-    SCLogDebug("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s%s",
+    SCLogDebug("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s%s%s",
         GET_TCP_SRC_PORT(p), GET_TCP_DST_PORT(p), TCP_GET_HLEN(p), len,
         TCP_HAS_SACKOK(p) ? "SACKOK " : "", TCP_HAS_SACK(p) ? "SACK " : "",
         TCP_HAS_WSCALE(p) ? "WS " : "", TCP_HAS_TS(p) ? "TS " : "",
-        TCP_HAS_MSS(p) ? "MSS " : "");
+        TCP_HAS_MSS(p) ? "MSS " : "", TCP_HAS_TFO(p) ? "TFO " : "");
 #endif
 
     FlowSetupPacket(p);
