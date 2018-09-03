@@ -137,7 +137,6 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p)
     dt->remove = 0;
     dt->seen_last = 0;
 
-    TAILQ_INIT(&dt->frags);
     (void) DefragTrackerIncrUsecnt(dt);
 }
 
