@@ -24,6 +24,7 @@
 #ifndef __DEFRAG_H__
 #define __DEFRAG_H__
 
+#include "tree.h"
 #include "util-pool.h"
 
 /**
@@ -68,8 +69,13 @@ typedef struct Frag_ {
     uint64_t pcap_cnt;          /**< pcap_cnt of original packet */
 #endif
 
-    TAILQ_ENTRY(Frag_) next;    /**< Pointer to next fragment for tailq. */
+    RB_ENTRY(Frag_) rb;
 } Frag;
+
+int DefragRbFragCompare(struct Frag_ *a, struct Frag_ *b);
+
+RB_HEAD(IP_FRAGMENTS, Frag_);
+RB_PROTOTYPE(IP_FRAGMENTS, Frag_, rb, DefragRbFragCompare);
 
 /**
  * A defragmentation tracker.  Used to track fragments that make up a
@@ -104,7 +110,7 @@ typedef struct DefragTracker_ {
     /** use cnt, reference counter */
     SC_ATOMIC_DECLARE(unsigned int, use_cnt);
 
-    TAILQ_HEAD(frag_tailq, Frag_) frags; /**< Head of list of fragments. */
+    struct IP_FRAGMENTS fragment_tree;
 
     /** hash pointers, protected by hash row mutex/spin */
     struct DefragTracker_ *hnext;
