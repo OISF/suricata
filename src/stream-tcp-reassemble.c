@@ -304,8 +304,6 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg)
     if (seg == NULL)
         return;
 
-    seg->next = NULL;
-    seg->prev = NULL;
     PoolThreadReturn(segment_thread_pool, seg);
 }
 
@@ -316,22 +314,15 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg)
  */
 void StreamTcpReturnStreamSegments (TcpStream *stream)
 {
-    TcpSegment *seg = stream->seg_list;
-    TcpSegment *next_seg;
-
-    if (seg == NULL)
-        return;
-
-    while (seg != NULL) {
-        next_seg = seg->next;
+    TcpSegment *seg = NULL, *safe = NULL;
+    RB_FOREACH_SAFE(seg, TCPSEG, &stream->seg_tree, safe)
+    {
+        RB_REMOVE(TCPSEG, &stream->seg_tree, seg);
         StreamTcpSegmentReturntoPool(seg);
-        seg = next_seg;
     }
-
-    stream->seg_list = NULL;
-    stream->seg_list_tail = NULL;
 }
 
+#ifdef UNITTESTS
 /** \internal
  *  \brief check if segments falls before stream 'offset' */
 static inline int SEGMENT_BEFORE_OFFSET(TcpStream *stream, TcpSegment *seg, uint64_t offset)
@@ -340,6 +331,7 @@ static inline int SEGMENT_BEFORE_OFFSET(TcpStream *stream, TcpSegment *seg, uint
         return 1;
     return 0;
 }
+#endif
 
 /** \param f locked flow */
 void StreamTcpDisableAppLayer(Flow *f)
@@ -656,7 +648,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     seg->seq = TCP_GET_SEQ(p);
 
     /* proto detection skipped, but now we do get data. Set event. */
-    if (stream->seg_list == NULL &&
+    if (RB_EMPTY(&stream->seg_tree) &&
         stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED) {
 
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
@@ -832,9 +824,8 @@ int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
 
     uint64_t right_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
 
-    SCLogDebug("%s: list %p app %"PRIu64" (use: %s), raw %"PRIu64" (use: %s). Stream right edge: %"PRIu64,
+    SCLogDebug("%s: app %"PRIu64" (use: %s), raw %"PRIu64" (use: %s). Stream right edge: %"PRIu64,
             dirstr,
-            stream->seg_list,
             STREAM_APP_PROGRESS(stream), use_app ? "yes" : "no",
             STREAM_RAW_PROGRESS(stream), use_raw ? "yes" : "no",
             right_edge);
@@ -862,12 +853,10 @@ static uint64_t GetStreamSize(TcpStream *stream)
         uint64_t size = 0;
         uint32_t cnt = 0;
 
-        TcpSegment *seg = stream->seg_list;
-        while (seg) {
+        TcpSegment *seg;
+        RB_FOREACH(seg, TCPSEG, &stream->seg_tree) {
             cnt++;
             size += (uint64_t)TCP_SEG_LEN(seg);
-
-            seg = seg->next;
         }
 
         SCLogDebug("size %"PRIu64", cnt %"PRIu32, size, cnt);
@@ -901,7 +890,7 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
     const uint8_t *mydata;
     uint32_t mydata_len;
 
-    if (stream->sb.block_list == NULL) {
+    if (RB_EMPTY(&stream->sb.sbb_tree)) {
         SCLogDebug("getting one blob");
 
         StreamingBufferGetDataAtOffset(&stream->sb, &mydata, &mydata_len, offset);
@@ -909,7 +898,7 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
         *data = mydata;
         *data_len = mydata_len;
     } else {
-        StreamingBufferBlock *blk = stream->sb.block_list;
+        const StreamingBufferBlock *blk = stream->sb.head;
 
         if (blk->offset > offset) {
             SCLogDebug("gap, want data at offset %"PRIu64", "
@@ -959,14 +948,14 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
              * is beyond next_seq, we only consider it a gap now if we do
              * already have data beyond the gap. */
             if (SEQ_GT(stream->last_ack, stream->next_seq)) {
-                if (stream->sb.block_list == NULL) {
+                if (RB_EMPTY(&stream->sb.sbb_tree)) {
                     SCLogDebug("packet %"PRIu64": no GAP. "
                             "next_seq %u < last_ack %u, but no data in list",
                             p->pcap_cnt, stream->next_seq, stream->last_ack);
                     return false;
                 } else {
                     const uint64_t next_seq_abs = STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
-                    StreamingBufferBlock *blk = stream->sb.block_list;
+                    const StreamingBufferBlock *blk = stream->sb.head;
                     if (blk->offset > next_seq_abs && blk->offset < last_ack_abs) {
                         /* ack'd data after the gap */
                         SCLogDebug("packet %"PRIu64": GAP. "
@@ -1112,16 +1101,13 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         SCReturnInt(0);
     }
 
-    SCLogDebug("stream->seg_list %p", stream->seg_list);
 #ifdef DEBUG
-    PrintList(stream->seg_list);
+    SCLogDebug("stream->seg_tree RB_MIN %p", RB_MIN(TCPSEG, &stream->seg_tree));
     GetSessionSize(ssn, p);
 #endif
     /* if no segments are in the list or all are already processed,
      * and state is beyond established, we send an empty msg */
-    TcpSegment *seg_tail = stream->seg_list_tail;
-    if (seg_tail == NULL ||
-            SEGMENT_BEFORE_OFFSET(stream, seg_tail, STREAM_APP_PROGRESS(stream)))
+    if (STREAM_HAS_SEEN_DATA(stream) && STREAM_RIGHT_EDGE(stream) <= STREAM_APP_PROGRESS(stream))
     {
         /* send an empty EOF msg if we have no segments but TCP state
          * is beyond ESTABLISHED */
@@ -1149,8 +1135,8 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
 {
     const uint8_t *mydata;
     uint32_t mydata_len;
-    if (stream->sb.block_list == NULL) {
-        SCLogDebug("getting one blob");
+    if (RB_EMPTY(&stream->sb.sbb_tree)) {
+        SCLogDebug("getting one blob for offset %"PRIu64, offset);
 
         uint64_t roffset = offset;
         if (offset)
@@ -1163,29 +1149,24 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
         *data_len = mydata_len;
         *data_offset = roffset;
     } else {
-        if (*iter == NULL)
-            *iter = stream->sb.block_list;
+        SCLogDebug("multiblob %s. Want offset %"PRIu64,
+                *iter == NULL ? "starting" : "continuing", offset);
         if (*iter == NULL) {
+            StreamingBufferBlock key = { .offset = offset, .len = 0 };
+            *iter = SBB_RB_FIND_INCLUSIVE(&stream->sb.sbb_tree, &key);
+            SCLogDebug("*iter %p", *iter);
+        }
+        if (*iter == NULL) {
+            SCLogDebug("no data");
             *data = NULL;
             *data_len = 0;
             *data_offset = 0;
             return 0;
         }
-
-        if (offset) {
-            while (*iter && ((*iter)->offset + (*iter)->len < offset))
-                *iter = (*iter)->next;
-            if (*iter == NULL) {
-                *data = NULL;
-                *data_len = 0;
-                *data_offset = 0;
-                return 0;
-            }
-        }
-
-        SCLogDebug("getting multiple blobs. Iter %p, %"PRIu64"/%u (next? %s)", *iter, (*iter)->offset, (*iter)->len, (*iter)->next ? "yes":"no");
+        SCLogDebug("getting multiple blobs. Iter %p, %"PRIu64"/%u", *iter, (*iter)->offset, (*iter)->len);
 
         StreamingBufferSBBGetData(&stream->sb, (*iter), &mydata, &mydata_len);
+        SCLogDebug("mydata %p", mydata);
 
         if ((*iter)->offset < offset) {
             uint64_t delta = offset - (*iter)->offset;
@@ -1194,6 +1175,7 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
                 *data_len = mydata_len - delta;
                 *data_offset = offset;
             } else {
+                SCLogDebug("no data (yet)");
                 *data = NULL;
                 *data_len = 0;
                 *data_offset = 0;
@@ -1205,7 +1187,8 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
             *data_offset = (*iter)->offset;
         }
 
-        *iter = (*iter)->next;
+        *iter = SBB_RB_NEXT(*iter);
+        SCLogDebug("*iter %p", *iter);
     }
     return 0;
 }
@@ -1226,7 +1209,7 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
         stream = &ssn->server;
     }
 
-    if (stream->seg_list == NULL) {
+    if (RB_EMPTY(&stream->seg_tree)) {
         return false;
     }
 
@@ -1388,25 +1371,20 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
     /* simply return progress from the block we inspected. */
     bool return_progress = false;
 
-    if (stream->sb.block_list == NULL) {
+    if (RB_EMPTY(&stream->sb.sbb_tree)) {
         /* continues block */
         StreamingBufferGetData(&stream->sb, &mydata, &mydata_len, &mydata_offset);
         return_progress = true;
 
     } else {
+        SCLogDebug("finding our SBB from offset %"PRIu64, packet_leftedge_abs);
         /* find our block */
-        StreamingBufferBlock *iter = stream->sb.block_list;
-        for ( ; iter != NULL; iter = iter->next) {
-            uint64_t iter_re_abs = iter->offset + iter->len;
-            DEBUG_VALIDATE_BUG_ON(packet_leftedge_abs < iter->offset &&
-                    packet_rightedge_abs > iter->offset &&
-                    packet_rightedge_abs < iter_re_abs);
-
-            if (iter->offset <= packet_leftedge_abs && iter_re_abs >= packet_rightedge_abs) {
-                StreamingBufferSBBGetData(&stream->sb, iter, &mydata, &mydata_len);
-                mydata_offset = iter->offset;
-                break;
-            }
+        StreamingBufferBlock key = { .offset = packet_leftedge_abs, .len = p->payload_len };
+        StreamingBufferBlock *sbb = SBB_RB_FIND_INCLUSIVE(&stream->sb.sbb_tree, &key);
+        if (sbb) {
+            SCLogDebug("found %p offset %"PRIu64" len %u", sbb, sbb->offset, sbb->len);
+            StreamingBufferSBBGetData(&stream->sb, sbb, &mydata, &mydata_len);
+            mydata_offset = sbb->offset;
         }
     }
 
@@ -1684,14 +1662,11 @@ static int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
         TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream, Packet *p)
 {
     SCEnter();
-    SCLogDebug("stream->seg_list %p", stream->seg_list);
 
-    int r = 0;
     if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p, UPDATE_DIR_OPPOSING) < 0)
-        r = -1;
+        SCReturnInt(-1);
 
-    SCLogDebug("stream->seg_list %p", stream->seg_list);
-    SCReturnInt(r);
+    SCReturnInt(0);
 }
 
 int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -1798,9 +1773,6 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
            segment request due to memcap limit */
         StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
     } else {
-        seg->next = NULL;
-        seg->prev = NULL;
-
         memset(&seg->sbseg, 0, sizeof(seg->sbseg));
     }
 
@@ -2210,16 +2182,12 @@ static int StreamTcpReassembleTest39 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (stt));
     memset(&tcph, 0, sizeof (TCPHdr));
-    TcpSession *ssn = NULL;
 
     FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
     p->tcph = &tcph;
-
-    FLOWLOCK_WRLOCK(&f);
-    int ret = 0;
 
     StreamTcpUTInit(&stt.ra_ctx);
 
@@ -2229,25 +2197,24 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
-    ssn = (TcpSession *)f.protoctx;
+    TcpSession *ssn = (TcpSession *)f.protoctx;
+    FAIL_IF_NULL(ssn);
 
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list != NULL ||
-        ssn->server.seg_list != NULL ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 1\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(!RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(!RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(ssn->data_first_seen_dir != 0);
 
     /* handshake */
     p->tcph->th_ack = htonl(1);
@@ -2255,22 +2222,20 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list != NULL ||
-        ssn->server.seg_list != NULL ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 2\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(!RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(!RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(ssn->data_first_seen_dir != 0);
 
     /* handshake */
     p->tcph->th_ack = htonl(1);
@@ -2279,22 +2244,20 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list != NULL ||
-        ssn->server.seg_list != NULL ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 3\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(!RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(!RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(ssn->data_first_seen_dir != 0);
 
     /* partial request */
     uint8_t request1[] = { 0x47, 0x45, };
@@ -2304,24 +2267,21 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request1);
     p->payload = request1;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next != NULL ||
-        ssn->server.seg_list != NULL ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 4\n");
-        goto end;
-    }
-
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(!RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response ack against partial request */
     p->tcph->th_ack = htonl(3);
@@ -2330,23 +2290,21 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next != NULL ||
-        ssn->server.seg_list != NULL ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 5\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(!RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* complete partial request */
     uint8_t request2[] = {
@@ -2367,24 +2325,22 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request2);
     p->payload = request2;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_UNKNOWN ||
-        f.alproto_ts != ALPROTO_UNKNOWN ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next == NULL ||
-        ssn->client.seg_list->next->next != NULL ||
-        ssn->server.seg_list != NULL ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 6\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(!TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree))));
+    FAIL_IF(!RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response - request ack */
     uint8_t response[] = {
@@ -2436,25 +2392,22 @@ static int StreamTcpReassembleTest39 (void)
     p->payload_len = sizeof(response);
     p->payload = response;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_UNKNOWN ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next == NULL ||
-        ssn->client.seg_list->next->next != NULL ||
-        ssn->server.seg_list == NULL ||
-        ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 7\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(!TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree))));
 
     /* response ack from request */
     p->tcph->th_ack = htonl(328);
@@ -2463,25 +2416,23 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next == NULL ||
-        ssn->client.seg_list->next->next != NULL ||
-        ssn->server.seg_list == NULL ||
-        ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 8\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(!TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree))));
+    FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response - acking */
     p->tcph->th_ack = htonl(88);
@@ -2490,24 +2441,23 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next == NULL ||
-        ssn->server.seg_list == NULL ||
-        ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 9\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(!TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree))));
+    FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response ack from request */
     p->tcph->th_ack = htonl(328);
@@ -2516,24 +2466,22 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next == NULL ||
-        ssn->server.seg_list == NULL ||
-        ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 10\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(!TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response - acking the request again*/
     p->tcph->th_ack = htonl(88);
@@ -2542,24 +2490,22 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next == NULL ||
-        ssn->server.seg_list == NULL ||
-        ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 11\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(!TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /*** New Request ***/
 
@@ -2570,26 +2516,23 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request1);
     p->payload = request1;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next == NULL ||
-        ssn->client.seg_list->next->next == NULL ||
-        ssn->server.seg_list == NULL ||
-        ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 12\n");
-        goto end;
-    }
-
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(!TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(!TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree))));
+    FAIL_IF(RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response ack against partial request */
     p->tcph->th_ack = htonl(90);
@@ -2598,25 +2541,24 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next == NULL ||
-        ssn->client.seg_list->next->next == NULL ||
-        ssn->server.seg_list == NULL ||
-        ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 13\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(!TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(!TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree))));
+    FAIL_IF(RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* complete request */
     p->tcph->th_ack = htonl(328);
@@ -2625,26 +2567,24 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request2);
     p->payload = request2;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list == NULL ||
-        ssn->client.seg_list->next == NULL ||
-        ssn->client.seg_list->next->next == NULL ||
-        ssn->client.seg_list->next->next->next == NULL ||
-        ssn->server.seg_list == NULL ||
-        ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 14\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(!TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(!TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree))));
+    FAIL_IF(!TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)))));
+    FAIL_IF(RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
 
     /* response ack against second partial request */
     p->tcph->th_ack = htonl(175);
@@ -2653,25 +2593,26 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP ||
-        ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list->next == NULL ||
-        ssn->client.seg_list->next->next == NULL ||
-        ssn->client.seg_list->next->next->next == NULL ||
-        ssn->server.seg_list == NULL ||
-        ssn->server.seg_list->next != NULL ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 15\n");
-        goto end;
-    }
+
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
+    FAIL_IF(RB_EMPTY(&ssn->client.seg_tree));
+    FAIL_IF(!TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)));
+    FAIL_IF(!TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree))));
+    FAIL_IF(!TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->client.seg_tree)))));
+    FAIL_IF(RB_EMPTY(&ssn->server.seg_tree));
+    FAIL_IF(TCPSEG_RB_NEXT(RB_MIN(TCPSEG, &ssn->server.seg_tree)));
+
     /* response acking a request */
     p->tcph->th_ack = htonl(175);
     p->tcph->th_seq = htonl(328);
@@ -2679,32 +2620,12 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-
-    SCLogDebug("StreamTcpIsSetStreamFlagAppProtoDetectionCompleted %s, "
-            "StreamTcpIsSetStreamFlagAppProtoDetectionCompleted %s, "
-            "f.alproto %u f.alproto_ts %u f.alproto_tc %u",
-            StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ? "true" : "false",
-            StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ? "true" : "false",
-            f.alproto, f.alproto_ts, f.alproto_tc);
-
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        f.alproto != ALPROTO_HTTP ||
-        f.alproto_ts != ALPROTO_HTTP ||
-        f.alproto_tc != ALPROTO_HTTP)// ||
-        //ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)// ||
-        //!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        //!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        //ssn->client.seg_list != NULL ||
-        //ssn->server.seg_list == NULL ||
-        //ssn->server.seg_list->next != NULL ||
-        //ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER)
-    {
-        printf("failure 15\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
 
     StreamTcpPruneSession(&f, STREAM_TOSERVER);
     StreamTcpPruneSession(&f, STREAM_TOCLIENT);
@@ -2716,34 +2637,12 @@ static int StreamTcpReassembleTest39 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
-#if 0
-    if (//!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        //!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-        //f.alproto != ALPROTO_HTTP ||
-        //f.alproto_ts != ALPROTO_HTTP ||
-        //f.alproto_tc != ALPROTO_HTTP ||
-        //ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->client.seg_list != NULL ||
-        ssn->server.seg_list != NULL ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER
-        ) {
-        printf("failure 16\n");
-        abort();
-        goto end;
-    }
-#endif
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
-    ret = 1;
-end:
     StreamTcpSessionClear(ssn);
     StreamTcpUTDeinit(stt.ra_ctx);
     SCFree(p);
-    FLOWLOCK_UNLOCK(&f);
-    return ret;
+    PASS;
 }
 
 /**
@@ -2856,12 +2755,9 @@ static int StreamTcpReassembleTest40 (void)
     }
 
     /* check is have the segment in the list and flagged or not */
-    if (ssn.client.seg_list == NULL ||
-        SEGMENT_BEFORE_OFFSET(&ssn.client, ssn.client.seg_list, STREAM_APP_PROGRESS(&ssn.client)))
-    {
-        printf("the list is NULL or the processed segment has not been flaged (7): ");
-        goto end;
-    }
+    TcpSegment *seg = RB_MIN(TCPSEG, &ssn.client.seg_tree);
+    FAIL_IF_NULL(seg);
+    FAIL_IF(SEGMENT_BEFORE_OFFSET(&ssn.client, seg, STREAM_APP_PROGRESS(&ssn.client)));
 
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = httpbuf4;
@@ -3380,7 +3276,9 @@ static int StreamTcpReassembleInlineTest08(void)
     p->tcph->th_seq = htonl(17);
     StreamTcpPruneSession(&f, STREAM_TOSERVER);
 
-    FAIL_IF (ssn.client.seg_list->seq != 2);
+    TcpSegment *seg = RB_MIN(TCPSEG, &ssn.client.seg_tree);
+    FAIL_IF_NULL(seg);
+    FAIL_IF_NOT(seg->seq == 2);
 
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
@@ -3448,10 +3346,9 @@ static int StreamTcpReassembleInlineTest09(void)
 
     p->tcph->th_seq = htonl(12);
 
-    if (ssn.client.seg_list->seq != 2) {
-        printf("expected segment 1 (seq 2) to be first in the list, got seq %"PRIu32": ", ssn.client.seg_list->seq);
-        goto end;
-    }
+    TcpSegment *seg = RB_MIN(TCPSEG, &ssn.client.seg_tree);
+    FAIL_IF_NULL(seg);
+    FAIL_IF_NOT(seg->seq == 2);
 
     ret = 1;
 end:
