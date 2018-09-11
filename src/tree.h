@@ -32,6 +32,12 @@
 #ifndef	_SYS_TREE_H_
 #define	_SYS_TREE_H_
 
+#if defined(__clang_analyzer__)
+#define _T_ASSERT(a) assert((a))
+#else
+#define _T_ASSERT(a)
+#endif
+
 /*
  * This file defines data structures for different types of trees:
  * splay trees and red-black trees.
@@ -437,6 +443,7 @@ name##_RB_INSERT_COLOR(struct name *head, struct type *elm)		\
 	while ((parent = RB_PARENT(elm, field)) != NULL &&		\
 	    RB_COLOR(parent, field) == RB_RED) {			\
 		gparent = RB_PARENT(parent, field);			\
+		_T_ASSERT(gparent);					\
 		if (parent == RB_LEFT(gparent, field)) {		\
 			tmp = RB_RIGHT(gparent, field);			\
 			if (tmp && RB_COLOR(tmp, field) == RB_RED) {	\
@@ -488,6 +495,7 @@ name##_RB_REMOVE_COLOR(struct name *head, struct type *parent, struct type *elm)
 				RB_ROTATE_LEFT(head, parent, tmp, field);\
 				tmp = RB_RIGHT(parent, field);		\
 			}						\
+			_T_ASSERT(tmp);					\
 			if ((RB_LEFT(tmp, field) == NULL ||		\
 			    RB_COLOR(RB_LEFT(tmp, field), field) == RB_BLACK) &&\
 			    (RB_RIGHT(tmp, field) == NULL ||		\
@@ -521,6 +529,7 @@ name##_RB_REMOVE_COLOR(struct name *head, struct type *parent, struct type *elm)
 				RB_ROTATE_RIGHT(head, parent, tmp, field);\
 				tmp = RB_LEFT(parent, field);		\
 			}						\
+			_T_ASSERT(tmp);					\
 			if ((RB_LEFT(tmp, field) == NULL ||		\
 			    RB_COLOR(RB_LEFT(tmp, field), field) == RB_BLACK) &&\
 			    (RB_RIGHT(tmp, field) == NULL ||		\
@@ -583,6 +592,7 @@ name##_RB_REMOVE(struct name *head, struct type *elm)			\
 			RB_ROOT(head) = child;				\
 		if (RB_PARENT(elm, field) == old)			\
 			parent = elm;					\
+		_T_ASSERT((old));					\
 		(elm)->field = (old)->field;				\
 		if (RB_PARENT(old, field)) {				\
 			if (RB_LEFT(RB_PARENT(old, field), field) == old)\
@@ -592,6 +602,8 @@ name##_RB_REMOVE(struct name *head, struct type *elm)			\
 			RB_AUGMENT(RB_PARENT(old, field));		\
 		} else							\
 			RB_ROOT(head) = elm;				\
+		_T_ASSERT(old);						\
+		_T_ASSERT(RB_LEFT(old, field));				\
 		RB_PARENT(RB_LEFT(old, field), field) = elm;		\
 		if (RB_RIGHT(old, field))				\
 			RB_PARENT(RB_RIGHT(old, field), field) = elm;	\
