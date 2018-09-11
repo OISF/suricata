@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,8 +19,9 @@
  * \file
  *
  * \author Eileen Donlon <emdonlo@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
- * Rule analyzer for the detection engine
+ * Rule analyzers for the detection engine
  */
 
 #include "suricata-common.h"
@@ -474,7 +475,46 @@ void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
 #include "util-buffer.h"
 #include "output-json.h"
 
-static void DumpMatches(json_t *js, const SigMatchData *smd)
+typedef struct RuleAnalyzer {
+    json_t *js; /* document root */
+
+    json_t *js_warnings;
+    json_t *js_notes;
+} RuleAnalyzer;
+
+static void __attribute__ ((format (printf, 2, 3)))
+AnalyzerNote(RuleAnalyzer *ctx, char *fmt, ...)
+{
+    va_list ap;
+    char str[1024];
+
+    va_start(ap, fmt);
+    vsnprintf(str, sizeof(str), fmt, ap);
+    va_end(ap);
+
+    if (!ctx->js_notes)
+        ctx->js_notes = json_array();
+    if (ctx->js_notes)
+        json_array_append_new(ctx->js_notes, json_string(str));
+}
+#if 0
+static void __attribute__ ((format (printf, 2, 3)))
+AnalyzerWarning(RuleAnalyzer *ctx, char *fmt, ...)
+{
+    va_list ap;
+    char str[1024];
+
+    va_start(ap, fmt);
+    vsnprintf(str, sizeof(str), fmt, ap);
+    va_end(ap);
+
+    if (!ctx->js_warnings)
+        ctx->js_warnings = json_array();
+    if (ctx->js_warnings)
+        json_array_append_new(ctx->js_warnings, json_string(str));
+}
+#endif
+static void DumpMatches(RuleAnalyzer *ctx, json_t *js, const SigMatchData *smd)
 {
     json_t *js_matches = json_array();
     if (js_matches == NULL) {
@@ -518,6 +558,11 @@ static void DumpMatches(json_t *js, const SigMatchData *smd)
                             json_object_set_new(js_match_content, "within", json_integer(cd->within));
                         }
 
+                        json_object_set_new(js_match_content, "fast_pattern", json_boolean(cd->flags & DETECT_CONTENT_FAST_PATTERN));
+                        if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                            AnalyzerNote(ctx, (char *)"'fast_pattern:only' option is silently ignored and is intepreted as regular 'fast_pattern'");
+                        }
+
                         json_object_set_new(js_match, "content", js_match_content);
                     }
                     SCFree(pat);
@@ -537,18 +582,20 @@ static void DumpMatches(json_t *js, const SigMatchData *smd)
 SCMutex g_rules_analyzer_write_m = SCMUTEX_INITIALIZER;
 void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 {
-    json_t *js = json_object();
-    if (js == NULL)
+    RuleAnalyzer ctx = { NULL, NULL, NULL };
+
+    ctx.js = json_object();
+    if (ctx.js == NULL)
         return;
 
-    json_object_set_new(js, "raw", json_string(s->sig_str));
-    json_object_set_new(js, "id", json_integer(s->id));
-    json_object_set_new(js, "gid", json_integer(s->gid));
-    json_object_set_new(js, "rev", json_integer(s->rev));
-    json_object_set_new(js, "msg", json_string(s->msg));
+    json_object_set_new(ctx.js, "raw", json_string(s->sig_str));
+    json_object_set_new(ctx.js, "id", json_integer(s->id));
+    json_object_set_new(ctx.js, "gid", json_integer(s->gid));
+    json_object_set_new(ctx.js, "rev", json_integer(s->rev));
+    json_object_set_new(ctx.js, "msg", json_string(s->msg));
 
     const char *alproto = AppProtoToString(s->alproto);
-    json_object_set_new(js, "app_proto", json_string(alproto));
+    json_object_set_new(ctx.js, "app_proto", json_string(alproto));
 
     json_t *js_flags = json_array();
     if (js_flags != NULL) {
@@ -573,7 +620,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         if (s->mask & SIG_MASK_REQUIRE_ENGINE_EVENT) {
             json_array_append_new(js_flags, json_string("engine_event"));
         }
-        json_object_set_new(js, "requirements", js_flags);
+        json_object_set_new(ctx.js, "requirements", js_flags);
     }
 
     js_flags = json_array();
@@ -644,10 +691,14 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         if (s->flags & SIG_FLAG_DEST_IS_TARGET) {
             json_array_append_new(js_flags, json_string("dst_is_target"));
         }
-        json_object_set_new(js, "flags", js_flags);
+        json_object_set_new(ctx.js, "flags", js_flags);
     }
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) {
+        bool has_stream = false;
+        bool has_client_body_mpm = false;
+        bool has_file_data_mpm = false;
+
         json_t *js_array = json_array();
         const DetectEngineAppInspectionEngine *app = s->app_inspect;
         for ( ; app != NULL; app = app->next) {
@@ -661,6 +712,15 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
                         break;
                 }
             }
+
+            if (app->sm_list == DETECT_SM_LIST_PMATCH && !app->mpm) {
+                has_stream = true;
+            } else if (app->mpm && strcmp(name, "http_client_body") == 0) {
+                has_client_body_mpm = true;
+            } else if (app->mpm && strcmp(name, "file_data") == 0) {
+                has_file_data_mpm = true;
+            }
+
             json_t *js_engine = json_object();
             if (js_engine != NULL) {
                 json_object_set_new(js_engine, "name", json_string(name));
@@ -671,12 +731,17 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
                 json_object_set_new(js_engine, "app_proto", json_string(AppProtoToString(app->alproto)));
                 json_object_set_new(js_engine, "progress", json_integer(app->progress));
 
-                DumpMatches(js_engine, app->smd);
+                DumpMatches(&ctx, js_engine, app->smd);
 
                 json_array_append_new(js_array, js_engine);
             }
         }
-        json_object_set_new(js, "engines", js_array);
+        json_object_set_new(ctx.js, "engines", js_array);
+
+        if (has_stream && has_client_body_mpm)
+            AnalyzerNote(&ctx, (char *)"mpm in http_client_body combined with stream match leads to stream buffering");
+        if (has_stream && has_file_data_mpm)
+            AnalyzerNote(&ctx, (char *)"mpm in file_data combined with stream match leads to stream buffering");
     }
 
     json_t *js_lists = json_object();
@@ -684,46 +749,52 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         if (s->sm_arrays[i] != NULL) {
             json_t *js_list = json_object();
             if (js_list != NULL) {
-                DumpMatches(js_list, s->sm_arrays[i]);
+                DumpMatches(&ctx, js_list, s->sm_arrays[i]);
                 json_object_set_new(js_lists, DetectSigmatchListEnumToString(i), js_list);
             }
         }
     }
-    json_object_set_new(js, "lists", js_lists);
+    json_object_set_new(ctx.js, "lists", js_lists);
+
+    if (ctx.js_warnings) {
+        json_object_set_new(ctx.js, "warnings", ctx.js_warnings);
+    }
+    if (ctx.js_notes) {
+        json_object_set_new(ctx.js, "notes", ctx.js_notes);
+    }
 
     const char *filename = "rules.json";
     const char *log_dir = ConfigGetLogDirectory();
     char json_path[PATH_MAX] = "";
     snprintf(json_path, sizeof(json_path), "%s/%s", log_dir, filename);
 
-    MemBuffer *mbuf = NULL;
-    mbuf = MemBufferCreateNew(4096);
-    BUG_ON(mbuf == NULL);
+    MemBuffer *mbuf = MemBufferCreateNew(4096);
+    if (mbuf != NULL) {
+        OutputJSONMemBufferWrapper wrapper = {
+            .buffer = &mbuf,
+            .expand_by = 4096,
+        };
 
-    OutputJSONMemBufferWrapper wrapper = {
-        .buffer = &mbuf,
-        .expand_by = 4096,
-    };
-
-    int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
-            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-            JSON_ESCAPE_SLASH);
-    if (r != 0) {
-        SCLogWarning(SC_ERR_SOCKET, "unable to serialize JSON object");
-    } else {
-        MemBufferWriteString(mbuf, "\n");
-        SCMutexLock(&g_rules_analyzer_write_m);
-        FILE *fp = fopen(json_path, "a");
-        if (fp != NULL) {
-            MemBufferPrintToFPAsString(mbuf, fp);
-            fclose(fp);
+        int r = json_dump_callback(ctx.js, OutputJSONMemBufferCallback, &wrapper,
+                JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
+                JSON_ESCAPE_SLASH);
+        if (r != 0) {
+            SCLogWarning(SC_ERR_SOCKET, "unable to serialize JSON object");
+        } else {
+            MemBufferWriteString(mbuf, "\n");
+            SCMutexLock(&g_rules_analyzer_write_m);
+            FILE *fp = fopen(json_path, "a");
+            if (fp != NULL) {
+                MemBufferPrintToFPAsString(mbuf, fp);
+                fclose(fp);
+            }
+            SCMutexUnlock(&g_rules_analyzer_write_m);
         }
-        SCMutexUnlock(&g_rules_analyzer_write_m);
-    }
 
-    MemBufferFree(mbuf);
-    json_object_clear(js);
-    json_decref(js);
+        MemBufferFree(mbuf);
+    }
+    json_object_clear(ctx.js);
+    json_decref(ctx.js);
     return;
 }
 #endif /* HAVE_LIBJANSSON */
