@@ -147,6 +147,7 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                 memcpy(name, filename->name, filename->len);
                 name[filename->len] = '\0';
                 SCLogDebug("will look for filename %s", name);
+                SCFree(name);
             }
         }
 #endif
@@ -208,6 +209,7 @@ static DetectFilenameData *DetectFilenameParse (const char *str, bool negate)
             memcpy(name, filename->name, filename->len);
             name[filename->len] = '\0';
             SCLogDebug("will look for filename %s", name);
+            SCFree(name);
         }
     }
 #endif
