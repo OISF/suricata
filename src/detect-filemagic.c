@@ -211,6 +211,7 @@ static int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                     memcpy(name, filemagic->name, filemagic->len);
                     name[filemagic->len] = '\0';
                     SCLogDebug("will look for filemagic %s", name);
+                    SCFree(name);
                 }
             }
 #endif
@@ -271,6 +272,7 @@ static DetectFilemagicData *DetectFilemagicParse (const char *str, bool negate)
             memcpy(name, filemagic->name, filemagic->len);
             name[filemagic->len] = '\0';
             SCLogDebug("will look for filemagic %s", name);
+            SCFree(name);
         }
     }
 #endif
