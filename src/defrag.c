@@ -298,7 +298,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
 
         if (frag->skip)
             continue;
-        if (frag->data_len - frag->ltrim <= 0)
+        if (frag->ltrim >= frag->data_len)
             continue;
         if (frag->offset == 0) {
 
@@ -779,10 +779,21 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             if (next != NULL) {
                 next = IP_FRAGMENTS_RB_NEXT(next);
             }
+            continue;
+
+        insert:
+            /* If existing fragment has been trimmed up completely
+             * (complete overlap), remove it now instead of holding
+             * onto it. */
+            if (prev->skip || prev->ltrim >= prev->data_len) {
+                RB_REMOVE(IP_FRAGMENTS, &tracker->fragment_tree, prev);
+                DefragFragReset(prev);
+                PoolReturn(defrag_context->frag_pool, prev);
+            }
+            break;
         }
     }
 
-insert:
     if (ltrim > data_len) {
         /* Full packet has been trimmed due to the overlap policy. Overlap
          * already set. */
