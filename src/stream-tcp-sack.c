@@ -29,17 +29,35 @@
 #include "stream-tcp-sack.h"
 #include "util-unittest.h"
 
+RB_GENERATE(TCPSACK, StreamTcpSackRecord, rb, TcpSackCompare);
+
+int TcpSackCompare(struct StreamTcpSackRecord *a, struct StreamTcpSackRecord *b)
+{
+    if (SEQ_GT(a->le, b->le))
+        return 1;
+    else if (SEQ_LT(a->le, b->le))
+        return -1;
+    else {
+        if (SEQ_EQ(a->re, b->re))
+            return 0;
+        else if (SEQ_GT(a->re, b->re))
+            return 1;
+        else
+            return -1;
+    }
+}
 #ifdef DEBUG
 static void StreamTcpSackPrintList(TcpStream *stream)
 {
-    StreamTcpSackRecord *rec = stream->sack_head;
-    for (; rec != NULL; rec = rec->next) {
-        SCLogDebug("record %8u - %8u", rec->le, rec->re);
+    SCLogDebug("size %u", stream->sack_size);
+    StreamTcpSackRecord *rec = NULL;
+    RB_FOREACH(rec, TCPSACK, &stream->sack_tree) {
+        SCLogDebug("- record %8u - %8u", rec->le, rec->re);
     }
 }
 #endif /* DEBUG */
 
-static StreamTcpSackRecord *StreamTcpSackRecordAlloc(void)
+static inline StreamTcpSackRecord *StreamTcpSackRecordAlloc(void)
 {
     if (StreamTcpCheckMemcap((uint32_t)sizeof(StreamTcpSackRecord)) == 0)
         return NULL;
@@ -52,10 +70,138 @@ static StreamTcpSackRecord *StreamTcpSackRecordAlloc(void)
     return rec;
 }
 
-static void StreamTcpSackRecordFree(StreamTcpSackRecord *rec)
+static inline void StreamTcpSackRecordFree(StreamTcpSackRecord *rec)
 {
     SCFree(rec);
     StreamTcpDecrMemuse((uint64_t)sizeof(*rec));
+}
+
+static inline void ConsolidateFwd(TcpStream *stream, struct TCPSACK *tree, struct StreamTcpSackRecord *sa)
+{
+    struct StreamTcpSackRecord *tr, *s = sa;
+    RB_FOREACH_FROM(tr, TCPSACK, s) {
+        if (sa == tr)
+            continue;
+        SCLogDebug("-> (fwd) tr %p %u/%u", tr, tr->le, tr->re);
+
+        if (SEQ_LT(sa->re, tr->le))
+            break; // entirely before
+
+        if (SEQ_GEQ(sa->le, tr->le) && SEQ_LEQ(sa->re, tr->re)) {
+            stream->sack_size -= (tr->re - tr->le);
+            stream->sack_size -= (sa->re - sa->le);
+            sa->re = tr->re;
+            sa->le = tr->le;
+            stream->sack_size += (sa->re - sa->le);
+            SCLogDebug("-> (fwd) tr %p %u/%u REMOVED ECLIPSED2", tr, tr->le, tr->re);
+            TCPSACK_RB_REMOVE(tree, tr);
+            StreamTcpSackRecordFree(tr);
+        /*
+            sa: [         ]
+            tr: [         ]
+            sa: [         ]
+            tr:    [      ]
+            sa: [         ]
+            tr:    [   ]
+        */
+        } else if (SEQ_LEQ(sa->le, tr->le) && SEQ_GEQ(sa->re, tr->re)) {
+            SCLogDebug("-> (fwd) tr %p %u/%u REMOVED ECLIPSED", tr, tr->le, tr->re);
+            stream->sack_size -= (tr->re - tr->le);
+            TCPSACK_RB_REMOVE(tree, tr);
+            StreamTcpSackRecordFree(tr);
+        /*
+            sa: [         ]
+            tr:      [         ]
+            sa: [       ]
+            tr:         [       ]
+        */
+        } else if (SEQ_LT(sa->le, tr->le) && // starts before
+                   SEQ_GEQ(sa->re, tr->le) && SEQ_LT(sa->re, tr->re) // ends inside
+            ) {
+            // merge
+            stream->sack_size -= (tr->re - tr->le);
+            stream->sack_size -= (sa->re - sa->le);
+            sa->re = tr->re;
+            stream->sack_size += (sa->re - sa->le);
+            SCLogDebug("-> (fwd) tr %p %u/%u REMOVED MERGED", tr, tr->le, tr->re);
+            TCPSACK_RB_REMOVE(tree, tr);
+            StreamTcpSackRecordFree(tr);
+        }
+    }
+}
+
+static inline void ConsolidateBackward(TcpStream *stream,
+        struct TCPSACK *tree, struct StreamTcpSackRecord *sa)
+{
+    struct StreamTcpSackRecord *tr, *s = sa;
+    RB_FOREACH_REVERSE_FROM(tr, TCPSACK, s) {
+        if (sa == tr)
+            continue;
+        SCLogDebug("-> (bwd) tr %p %u/%u", tr, tr->le, tr->re);
+
+        if (SEQ_GT(sa->le, tr->re))
+            break; // entirely after
+        if (SEQ_GEQ(sa->le, tr->le) && SEQ_LEQ(sa->re, tr->re)) {
+            stream->sack_size -= (tr->re - tr->le);
+            stream->sack_size -= (sa->re - sa->le);
+            sa->re = tr->re;
+            sa->le = tr->le;
+            stream->sack_size += (sa->re - sa->le);
+            SCLogDebug("-> (bwd) tr %p %u/%u REMOVED ECLIPSED2", tr, tr->le, tr->re);
+            TCPSACK_RB_REMOVE(tree, tr);
+            StreamTcpSackRecordFree(tr);
+        /*
+            sa: [         ]
+            tr: [         ]
+            sa:    [      ]
+            tr: [         ]
+            sa:    [   ]
+            tr: [         ]
+        */
+        } else if (SEQ_LEQ(sa->le, tr->le) && SEQ_GEQ(sa->re, tr->re)) {
+            SCLogDebug("-> (bwd) tr %p %u/%u REMOVED ECLIPSED", tr, tr->le, tr->re);
+            stream->sack_size -= (tr->re - tr->le);
+            TCPSACK_RB_REMOVE(tree, tr);
+            StreamTcpSackRecordFree(tr);
+        /*
+            sa:     [   ]
+            tr: [   ]
+            sa:    [    ]
+            tr: [   ]
+        */
+        } else if (SEQ_GT(sa->le, tr->le) && SEQ_GT(sa->re, tr->re) && SEQ_LEQ(sa->le,tr->re)) {
+            // merge
+            stream->sack_size -= (tr->re - tr->le);
+            stream->sack_size -= (sa->re - sa->le);
+            sa->le = tr->le;
+            stream->sack_size += (sa->re - sa->le);
+            SCLogDebug("-> (bwd) tr %p %u/%u REMOVED MERGED", tr, tr->le, tr->re);
+            TCPSACK_RB_REMOVE(tree, tr);
+            StreamTcpSackRecordFree(tr);
+        }
+    }
+}
+
+static int Insert(TcpStream *stream, struct TCPSACK *tree, uint32_t le, uint32_t re)
+{
+    SCLogDebug("* inserting: %u/%u\n", le, re);
+
+    struct StreamTcpSackRecord *sa = StreamTcpSackRecordAlloc();
+    if (unlikely(sa == NULL))
+        return -1;
+    sa->le = le;
+    sa->re = re;
+    struct StreamTcpSackRecord *res = TCPSACK_RB_INSERT(tree, sa);
+    if (res) {
+        // exact overlap
+        SCLogDebug("* insert failed: exact match in tree with %p %u/%u", res, res->le, res->re);
+        StreamTcpSackRecordFree(sa);
+        return 0;
+    }
+    stream->sack_size += (re - le);
+    ConsolidateBackward(stream, tree, sa);
+    ConsolidateFwd(stream, tree, sa);
+    return 0;
 }
 
 /**
@@ -77,167 +223,17 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
     /* if to the left of last_ack then ignore */
     if (SEQ_LT(re, stream->last_ack)) {
         SCLogDebug("too far left. discarding");
-        goto end;
+        SCReturnInt(0);
     }
     /* if to the right of the tcp window then ignore */
     if (SEQ_GT(le, (stream->last_ack + stream->window))) {
         SCLogDebug("too far right. discarding");
-        goto end;
-    }
-    if (stream->sack_head != NULL) {
-        StreamTcpSackRecord *rec;
-
-        for (rec = stream->sack_head; rec != NULL; rec = rec->next) {
-            SCLogDebug("rec %p, le %u, re %u", rec, rec->le, rec->re);
-
-            if (SEQ_LT(le, rec->le)) {
-                SCLogDebug("SEQ_LT(le, rec->le)");
-                if (SEQ_LT(re, rec->le)) {
-                    SCLogDebug("SEQ_LT(re, rec->le)");
-                    // entirely before, prepend
-                    StreamTcpSackRecord *stsr = StreamTcpSackRecordAlloc();
-                    if (unlikely(stsr == NULL)) {
-                        SCReturnInt(-1);
-                    }
-                    stsr->le = le;
-                    stsr->re = re;
-
-                    stsr->next = stream->sack_head;
-                    stream->sack_head = stsr;
-                    goto end;
-                } else if (SEQ_EQ(re, rec->le)) {
-                    SCLogDebug("SEQ_EQ(re, rec->le)");
-                    // starts before, ends on rec->le, expand
-                    rec->le = le;
-                } else if (SEQ_GT(re, rec->le)) {
-                    SCLogDebug("SEQ_GT(re, rec->le)");
-                    // starts before, ends beyond rec->le
-                    if (SEQ_LEQ(re, rec->re)) {
-                        SCLogDebug("SEQ_LEQ(re, rec->re)");
-                        // ends before rec->re, expand
-                        rec->le = le;
-                    } else { // implied if (re > rec->re)
-                        SCLogDebug("implied if (re > rec->re), le set to %u", rec->re);
-                        le = rec->re;
-                        continue;
-                    }
-                }
-            } else if (SEQ_EQ(le, rec->le)) {
-                SCLogDebug("SEQ_EQ(le, rec->le)");
-                if (SEQ_LEQ(re, rec->re)) {
-                    SCLogDebug("SEQ_LEQ(re, rec->re)");
-                    // new record fully overlapped
-                    SCReturnInt(0);
-                } else { // implied re > rec->re
-                    SCLogDebug("implied re > rec->re");
-                    if (rec->next != NULL) {
-                        if (SEQ_LEQ(re, rec->next->le)) {
-                            rec->re = re;
-                            goto end;
-                        } else {
-                            rec->re = rec->next->le;
-                            le = rec->next->le;
-                            SCLogDebug("le is now %u", le);
-                            continue;
-                        }
-                    } else {
-                        rec->re = re;
-                        goto end;
-                    }
-                }
-            } else { // implied (le > rec->le)
-                SCLogDebug("implied (le > rec->le)");
-                if (SEQ_LT(le, rec->re)) {
-                    SCLogDebug("SEQ_LT(le, rec->re))");
-                    // new record fully overlapped
-                    if (SEQ_GT(re, rec->re)) {
-                        SCLogDebug("SEQ_GT(re, rec->re)");
-
-                        if (rec->next != NULL) {
-                            if (SEQ_LEQ(re, rec->next->le)) {
-                                rec->re = re;
-                                goto end;
-                            } else {
-                                rec->re = rec->next->le;
-                                le = rec->next->le;
-                                continue;
-                            }
-                        } else {
-                            rec->re = re;
-                            goto end;
-                        }
-                    }
-
-                    SCLogDebug("new range fully overlapped");
-                    SCReturnInt(0);
-                } else if (SEQ_EQ(le, rec->re)) {
-                    SCLogDebug("here");
-                    // new record fully overlapped
-                    //int r = StreamTcpSackInsertRange(stream, rec->re+1, re);
-                    //SCReturnInt(r);
-                    le = rec->re;
-                    continue;
-                } else { /* implied le > rec->re */
-                    SCLogDebug("implied le > rec->re");
-                    if (rec->next == NULL) {
-                        SCLogDebug("rec->next == NULL");
-                        StreamTcpSackRecord *stsr = StreamTcpSackRecordAlloc();
-                        if (unlikely(stsr == NULL)) {
-                            SCReturnInt(-1);
-                        }
-                        stsr->le = le;
-                        stsr->re = re;
-                        stsr->next = NULL;
-
-                        stream->sack_tail->next = stsr;
-                        stream->sack_tail = stsr;
-                        goto end;
-                    } else {
-                        SCLogDebug("implied rec->next != NULL");
-                        if (SEQ_LT(le, rec->next->le) && SEQ_LT(re, rec->next->le)) {
-                            SCLogDebug("SEQ_LT(le, rec->next->le) && SEQ_LT(re, rec->next->le)");
-                            StreamTcpSackRecord *stsr = StreamTcpSackRecordAlloc();
-                            if (unlikely(stsr == NULL)) {
-                                SCReturnInt(-1);
-                            }
-                            stsr->le = le;
-                            stsr->re = re;
-                            stsr->next = rec->next;
-                            rec->next = stsr;
-
-                        } else if (SEQ_LT(le, rec->next->le) && SEQ_GEQ(re, rec->next->le)) {
-                            SCLogDebug("SEQ_LT(le, rec->next->le) && SEQ_GEQ(re, rec->next->le)");
-                            StreamTcpSackRecord *stsr = StreamTcpSackRecordAlloc();
-                            if (unlikely(stsr == NULL)) {
-                                SCReturnInt(-1);
-                            }
-                            stsr->le = le;
-                            stsr->re = rec->next->le;
-                            stsr->next = rec->next;
-                            rec->next = stsr;
-
-                            le = rec->next->le;
-                        }
-                    }
-                }
-            }
-        }
-    } else {
-        SCLogDebug("implied empty list");
-        StreamTcpSackRecord *stsr = StreamTcpSackRecordAlloc();
-        if (unlikely(stsr == NULL)) {
-            SCReturnInt(-1);
-        }
-        stsr->le = le;
-        stsr->re = re;
-        stsr->next = NULL;
-
-        stream->sack_head = stsr;
-        stream->sack_tail = stsr;
+        SCReturnInt(0);
     }
 
-    StreamTcpSackPruneList(stream);
-end:
+    if (Insert(stream, &stream->sack_tree, le, re) < 0)
+        SCReturnInt(-1);
+
     SCReturnInt(0);
 }
 
@@ -252,8 +248,7 @@ end:
  */
 int StreamTcpSackUpdatePacket(TcpStream *stream, Packet *p)
 {
-    int records = TCP_GET_SACK_CNT(p);
-    int record = 0;
+    const int records = TCP_GET_SACK_CNT(p);
     const uint8_t *data = TCP_GET_SACK_PTR(p);
 
     if (records == 0 || data == NULL)
@@ -262,35 +257,37 @@ int StreamTcpSackUpdatePacket(TcpStream *stream, Packet *p)
     TCPOptSackRecord rec[records], *sack_rec = rec;
     memcpy(&rec, data, sizeof(TCPOptSackRecord) * records);
 
-    for (record = 0; record < records; record++) {
-        SCLogDebug("%p last_ack %u, left edge %u, right edge %u", sack_rec,
-            stream->last_ack, SCNtohl(sack_rec->le), SCNtohl(sack_rec->re));
+    for (int record = 0; record < records; record++) {
+        const uint32_t le = SCNtohl(sack_rec->le);
+        const uint32_t re = SCNtohl(sack_rec->re);
 
-        if (SEQ_LEQ(SCNtohl(sack_rec->re), stream->last_ack)) {
+        SCLogDebug("%p last_ack %u, left edge %u, right edge %u", sack_rec,
+            stream->last_ack, le, re);
+
+        if (SEQ_LEQ(re, stream->last_ack)) {
             SCLogDebug("record before last_ack");
             goto next;
         }
 
-        if (SEQ_GT(SCNtohl(sack_rec->re), stream->next_win)) {
+        if (SEQ_GT(re, stream->next_win)) {
             SCLogDebug("record %u:%u beyond next_win %u",
-                    SCNtohl(sack_rec->le), SCNtohl(sack_rec->re), stream->next_win);
+                    le, re, stream->next_win);
             goto next;
         }
 
-        if (SEQ_GEQ(SCNtohl(sack_rec->le), SCNtohl(sack_rec->re))) {
+        if (SEQ_GEQ(le, re)) {
             SCLogDebug("invalid record: le >= re");
             goto next;
         }
 
-        if (StreamTcpSackInsertRange(stream, SCNtohl(sack_rec->le),
-                    SCNtohl(sack_rec->re)) == -1)
-        {
+        if (StreamTcpSackInsertRange(stream, le, re) == -1) {
             SCReturnInt(-1);
         }
 
     next:
         sack_rec++;
     }
+    StreamTcpSackPruneList(stream);
 #ifdef DEBUG
     StreamTcpSackPrintList(stream);
 #endif
@@ -301,27 +298,20 @@ void StreamTcpSackPruneList(TcpStream *stream)
 {
     SCEnter();
 
-    StreamTcpSackRecord *rec = stream->sack_head;
-
-    while (rec != NULL) {
+    StreamTcpSackRecord *rec = NULL, *safe = NULL;
+    RB_FOREACH_SAFE(rec, TCPSACK, &stream->sack_tree, safe) {
         if (SEQ_LT(rec->re, stream->last_ack)) {
             SCLogDebug("removing le %u re %u", rec->le, rec->re);
+            stream->sack_size -= (rec->re - rec->le);
+            TCPSACK_RB_REMOVE(&stream->sack_tree, rec);
+            StreamTcpSackRecordFree(rec);
 
-            if (rec->next != NULL) {
-                stream->sack_head = rec->next;
-                StreamTcpSackRecordFree(rec);
-                rec = stream->sack_head;
-                continue;
-            } else {
-                stream->sack_head = NULL;
-                stream->sack_tail = NULL;
-                StreamTcpSackRecordFree(rec);
-                break;
-            }
         } else if (SEQ_LT(rec->le, stream->last_ack)) {
             SCLogDebug("adjusting record to le %u re %u", rec->le, rec->re);
             /* last ack inside this record, update */
+            stream->sack_size -= (rec->re - rec->le);
             rec->le = stream->last_ack;
+            stream->sack_size += (rec->re - rec->le);
             break;
         } else {
             SCLogDebug("record beyond last_ack, nothing to do. Bailing out.");
@@ -335,7 +325,7 @@ void StreamTcpSackPruneList(TcpStream *stream)
 }
 
 /**
- *  \brief Free SACK list from a stream
+ *  \brief Free SACK tree from a stream
  *
  *  \param stream Stream to cleanup
  */
@@ -343,17 +333,13 @@ void StreamTcpSackFreeList(TcpStream *stream)
 {
     SCEnter();
 
-    StreamTcpSackRecord *rec = stream->sack_head;
-    StreamTcpSackRecord *next = NULL;
-
-    while (rec != NULL) {
-        next = rec->next;
+    StreamTcpSackRecord *rec = NULL, *safe = NULL;
+    RB_FOREACH_SAFE(rec, TCPSACK, &stream->sack_tree, safe) {
+        stream->sack_size -= (rec->re - rec->le);
+        TCPSACK_RB_REMOVE(&stream->sack_tree, rec);
         StreamTcpSackRecordFree(rec);
-        rec = next;
     }
 
-    stream->sack_head = NULL;
-    stream->sack_tail = NULL;
     SCReturn;
 }
 
@@ -369,34 +355,30 @@ void StreamTcpSackFreeList(TcpStream *stream)
 static int StreamTcpSackTest01 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 1, 10);
+    FAIL_IF_NOT(stream.sack_size == 9);
     StreamTcpSackInsertRange(&stream, 10, 20);
+    FAIL_IF_NOT(stream.sack_size == 19);
     StreamTcpSackInsertRange(&stream, 10, 20);
+    FAIL_IF_NOT(stream.sack_size == 19);
     StreamTcpSackInsertRange(&stream, 1, 20);
+    FAIL_IF_NOT(stream.sack_size == 19);
 #ifdef DEBUG
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 1 || stream.sack_head->re != 20) {
-        printf("list in weird state, head le %u, re %u: ",
-                stream.sack_head->le, stream.sack_head->re);
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
 
-    if (StreamTcpSackedSize(&stream) != 19) {
-        printf("size should be 19, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    FAIL_IF(rec->le != 1);
+    FAIL_IF(rec->re != 20);
 
-    retval = 1;
-end:
+    FAIL_IF(StreamTcpSackedSize(&stream) != 19);
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -408,8 +390,6 @@ end:
 static int StreamTcpSackTest02 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
@@ -419,21 +399,15 @@ static int StreamTcpSackTest02 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 1 || stream.sack_head->re != 20) {
-        printf("list in weird state, head le %u, re %u: ",
-                stream.sack_head->le, stream.sack_head->re);
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
 
-    if (StreamTcpSackedSize(&stream) != 19) {
-        printf("size should be 19, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    FAIL_IF(rec->le != 1);
+    FAIL_IF(rec->re != 20);
 
-    retval = 1;
-end:
+    FAIL_IF(StreamTcpSackedSize(&stream) != 19);
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -445,8 +419,6 @@ end:
 static int StreamTcpSackTest03 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
@@ -460,19 +432,15 @@ static int StreamTcpSackTest03 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 5) {
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
 
-    if (StreamTcpSackedSize(&stream) != 20) {
-        printf("size should be 20, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    FAIL_IF(rec->le != 5);
+    FAIL_IF(rec->re != 25);
 
-    retval = 1;
-end:
+    FAIL_IF(StreamTcpSackedSize(&stream) != 20);
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -484,8 +452,6 @@ end:
 static int StreamTcpSackTest04 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
@@ -496,19 +462,15 @@ static int StreamTcpSackTest04 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 0) {
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
 
-    if (StreamTcpSackedSize(&stream) != 45) {
-        printf("size should be 45, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    FAIL_IF(rec->le != 0);
+    FAIL_IF(rec->re != 25);
 
-    retval = 1;
-end:
+    FAIL_IF(StreamTcpSackedSize(&stream) != 45);
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -520,8 +482,6 @@ end:
 static int StreamTcpSackTest05 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
@@ -532,19 +492,15 @@ static int StreamTcpSackTest05 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 0) {
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
 
-    if (StreamTcpSackedSize(&stream) != 50) {
-        printf("size should be 50, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    FAIL_IF(rec->le != 0);
+    FAIL_IF(rec->re != 50);
 
-    retval = 1;
-end:
+    FAIL_IF(StreamTcpSackedSize(&stream) != 50);
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -556,8 +512,6 @@ end:
 static int StreamTcpSackTest06 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
@@ -570,19 +524,15 @@ static int StreamTcpSackTest06 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 0) {
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
 
-    if (StreamTcpSackedSize(&stream) != 40) {
-        printf("size should be 40, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    FAIL_IF(rec->le != 0);
+    FAIL_IF(rec->re != 40);
 
-    retval = 1;
-end:
+    FAIL_IF(StreamTcpSackedSize(&stream) != 40);
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -594,8 +544,6 @@ end:
 static int StreamTcpSackTest07 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
@@ -608,28 +556,18 @@ static int StreamTcpSackTest07 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 0) {
-        goto end;
-    }
-
-    if (StreamTcpSackedSize(&stream) != 40) {
-        printf("size should be 40, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
+    FAIL_IF(rec->le != 0);
+    FAIL_IF(rec->re != 40);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 40);
 
     stream.last_ack = 10;
-
     StreamTcpSackPruneList(&stream);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 30);
 
-    if (StreamTcpSackedSize(&stream) != 30) {
-        printf("size should be 30, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
-
-    retval = 1;
-end:
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -641,8 +579,6 @@ end:
 static int StreamTcpSackTest08 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
@@ -655,28 +591,18 @@ static int StreamTcpSackTest08 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 0) {
-        goto end;
-    }
-
-    if (StreamTcpSackedSize(&stream) != 40) {
-        printf("size should be 40, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
+    FAIL_IF(rec->le != 0);
+    FAIL_IF(rec->re != 40);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 40);
 
     stream.last_ack = 41;
-
     StreamTcpSackPruneList(&stream);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 0);
 
-    if (StreamTcpSackedSize(&stream) != 0) {
-        printf("size should be 0, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
-
-    retval = 1;
-end:
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -688,8 +614,6 @@ end:
 static int StreamTcpSackTest09 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
@@ -703,28 +627,18 @@ static int StreamTcpSackTest09 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 0) {
-        goto end;
-    }
-
-    if (StreamTcpSackedSize(&stream) != 40) {
-        printf("size should be 40, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
+    FAIL_IF(rec->le != 0);
+    FAIL_IF(rec->re != 40);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 40);
 
     stream.last_ack = 39;
-
     StreamTcpSackPruneList(&stream);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 1);
 
-    if (StreamTcpSackedSize(&stream) != 1) {
-        printf("size should be 1, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
-
-    retval = 1;
-end:
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -736,8 +650,6 @@ end:
 static int StreamTcpSackTest10 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 1000;
 
@@ -750,28 +662,18 @@ static int StreamTcpSackTest10 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 100) {
-        goto end;
-    }
-
-    if (StreamTcpSackedSize(&stream) != 40) {
-        printf("size should be 40, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
+    FAIL_IF(rec->le != 100);
+    FAIL_IF(rec->re != 140);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 40);
 
     stream.last_ack = 99;
-
     StreamTcpSackPruneList(&stream);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 40);
 
-    if (StreamTcpSackedSize(&stream) != 40) {
-        printf("size should be 40, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
-
-    retval = 1;
-end:
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -783,8 +685,6 @@ end:
 static int StreamTcpSackTest11 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 1000;
 
@@ -797,28 +697,18 @@ static int StreamTcpSackTest11 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 100) {
-        goto end;
-    }
-
-    if (StreamTcpSackedSize(&stream) != 40) {
-        printf("size should be 40, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
+    FAIL_IF(rec->le != 100);
+    FAIL_IF(rec->re != 140);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 40);
 
     stream.last_ack = 99;
-
     StreamTcpSackPruneList(&stream);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 40);
 
-    if (StreamTcpSackedSize(&stream) != 40) {
-        printf("size should be 40, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
-
-    retval = 1;
-end:
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -830,8 +720,6 @@ end:
 static int StreamTcpSackTest12 (void)
 {
     TcpStream stream;
-    int retval = 0;
-
     memset(&stream, 0, sizeof(stream));
     stream.window = 2000;
 
@@ -844,35 +732,21 @@ static int StreamTcpSackTest12 (void)
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (stream.sack_head->le != 100) {
-        goto end;
-    }
-
-    if (StreamTcpSackedSize(&stream) != 900) {
-        printf("size should be 900, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    StreamTcpSackRecord *rec = RB_MIN(TCPSACK, &stream.sack_tree);
+    FAIL_IF_NULL(rec);
+    FAIL_IF(rec->le != 100);
+    FAIL_IF(rec->re != 1000);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 900);
 
     StreamTcpSackInsertRange(&stream, 0, 1000);
-
-    if (StreamTcpSackedSize(&stream) != 1000) {
-        printf("size should be 1000, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    FAIL_IF(StreamTcpSackedSize(&stream) != 1000);
 
     stream.last_ack = 500;
-
     StreamTcpSackPruneList(&stream);
+    FAIL_IF(StreamTcpSackedSize(&stream) != 500);
 
-    if (StreamTcpSackedSize(&stream) != 500) {
-        printf("size should be 500, is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
-
-    retval = 1;
-end:
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -883,29 +757,21 @@ end:
 
 static int StreamTcpSackTest13 (void) {
     TcpStream stream;
-    int retval = 0;
-    int i;
-
     memset(&stream, 0, sizeof(stream));
     stream.last_ack = 10000;
     stream.window = 2000;
 
-    for (i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         StreamTcpSackInsertRange(&stream, 100+(20*i), 110+(20*i));
     }
 #ifdef DEBUG
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (StreamTcpSackedSize(&stream) != 0) {
-        printf("Sacked size is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    FAIL_IF(StreamTcpSackedSize(&stream) != 0);
 
-    retval = 1;
-end:
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 /**
@@ -916,29 +782,21 @@ end:
 
 static int StreamTcpSackTest14 (void) {
     TcpStream stream;
-    int retval = 0;
-    int i;
-
     memset(&stream, 0, sizeof(stream));
     stream.last_ack = 1000;
     stream.window = 2000;
 
-    for (i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         StreamTcpSackInsertRange(&stream, 4000+(20*i), 4010+(20*i));
     }
 #ifdef DEBUG
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
 
-    if (StreamTcpSackedSize(&stream) != 0) {
-        printf("Sacked size is %u: ", StreamTcpSackedSize(&stream));
-        goto end;
-    }
+    FAIL_IF(StreamTcpSackedSize(&stream) != 0);
 
-    retval = 1;
-end:
     StreamTcpSackFreeList(&stream);
-    SCReturnInt(retval);
+    PASS;
 }
 
 #endif /* UNITTESTS */
