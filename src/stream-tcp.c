@@ -2399,10 +2399,10 @@ static inline uint32_t StreamTcpResetGetMaxAck(TcpStream *stream, uint32_t seq)
 {
     uint32_t ack = seq;
 
-    if (stream->seg_list_tail != NULL) {
-        if (SEQ_GT((stream->seg_list_tail->seq + TCP_SEG_LEN(stream->seg_list_tail)), ack))
-        {
-            ack = stream->seg_list_tail->seq + TCP_SEG_LEN(stream->seg_list_tail);
+    if (STREAM_HAS_SEEN_DATA(stream)) {
+        const uint32_t tail_seq = STREAM_SEQ_RIGHT_EDGE(stream);
+        if (SEQ_GT(tail_seq, ack)) {
+            ack = tail_seq;
         }
     }
 
@@ -3999,6 +3999,7 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
 
     } else if (p->tcph->th_flags & TH_FIN) {
         /** \todo */
+        SCLogDebug("ssn (%p): FIN pkt on LastAck", ssn);
 
     } else if (p->tcph->th_flags & TH_SYN) {
         SCLogDebug("ssn (%p): SYN pkt on LastAck", ssn);
@@ -4022,14 +4023,6 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
                 retransmission = 1;
             }
 
-            if (TCP_GET_SEQ(p) != ssn->client.next_seq && TCP_GET_SEQ(p) != ssn->client.next_seq + 1) {
-                SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
-                        " != %" PRIu32 " from stream", ssn,
-                        TCP_GET_SEQ(p), ssn->client.next_seq);
-                StreamTcpSetEvent(p, STREAM_LASTACK_ACK_WRONG_SEQ);
-                return -1;
-            }
-
             if (StreamTcpValidateAck(ssn, &ssn->server, p) == -1) {
                 SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                 StreamTcpSetEvent(p, STREAM_LASTACK_INVALID_ACK);
@@ -4037,9 +4030,19 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
             }
 
             if (!retransmission) {
-                StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-                SCLogDebug("ssn %p: state changed to TCP_CLOSED", ssn);
+                if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq)) {
+                    SCLogDebug("ssn %p: not updating state as packet is before next_seq", ssn);
+                } else if (TCP_GET_SEQ(p) != ssn->client.next_seq && TCP_GET_SEQ(p) != ssn->client.next_seq + 1) {
+                    SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
+                            " != %" PRIu32 " from stream", ssn,
+                            TCP_GET_SEQ(p), ssn->client.next_seq);
+                    StreamTcpSetEvent(p, STREAM_LASTACK_ACK_WRONG_SEQ);
+                    return -1;
+                } else {
+                    StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
+                    SCLogDebug("ssn %p: state changed to TCP_CLOSED", ssn);
 
+                }
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
             }
 
@@ -4594,6 +4597,7 @@ static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
         StreamTcpThread *stt, TcpSession *ssn, PacketQueue *pq,
         const uint8_t state)
 {
+    SCLogDebug("ssn: %p", ssn);
     switch (state) {
         case TCP_SYN_SENT:
             if (StreamTcpPacketStateSynSent(tv, p, stt, ssn, pq)) {
@@ -4611,31 +4615,37 @@ static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
             }
             break;
         case TCP_FIN_WAIT1:
+            SCLogDebug("packet received on TCP_FIN_WAIT1 state");
             if (StreamTcpPacketStateFinWait1(tv, p, stt, ssn, pq)) {
                 return -1;
             }
             break;
         case TCP_FIN_WAIT2:
+            SCLogDebug("packet received on TCP_FIN_WAIT2 state");
             if (StreamTcpPacketStateFinWait2(tv, p, stt, ssn, pq)) {
                 return -1;
             }
             break;
         case TCP_CLOSING:
+            SCLogDebug("packet received on TCP_CLOSING state");
             if (StreamTcpPacketStateClosing(tv, p, stt, ssn, pq)) {
                 return -1;
             }
             break;
         case TCP_CLOSE_WAIT:
+            SCLogDebug("packet received on TCP_CLOSE_WAIT state");
             if (StreamTcpPacketStateCloseWait(tv, p, stt, ssn, pq)) {
                 return -1;
             }
             break;
         case TCP_LAST_ACK:
+            SCLogDebug("packet received on TCP_LAST_ACK state");
             if (StreamTcpPacketStateLastAck(tv, p, stt, ssn, pq)) {
                 return -1;
             }
             break;
         case TCP_TIME_WAIT:
+            SCLogDebug("packet received on TCP_TIME_WAIT state");
             if (StreamTcpPacketStateTimeWait(tv, p, stt, ssn, pq)) {
                 return -1;
             }
@@ -4814,7 +4824,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         if (p->flags & PKT_STREAM_MODIFIED) {
             ReCalculateChecksum(p);
         }
-
         /* check for conditions that may make us not want to log this packet */
 
         /* streams that hit depth */
@@ -5932,7 +5941,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
     }
 
     /* no need for a pseudo packet if there is nothing left to reassemble */
-    if (ssn->server.seg_list == NULL && ssn->client.seg_list == NULL) {
+    if (RB_EMPTY(&ssn->server.seg_tree) && RB_EMPTY(&ssn->client.seg_tree)) {
         SCReturn;
     }
 
@@ -6224,11 +6233,12 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     }
 
     /* for IDS, return ack'd segments. For IPS all. */
-    TcpSegment *seg = stream->seg_list;
-    for (; seg != NULL &&
-            ((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)
-             || SEQ_LT(seg->seq, stream->last_ack));)
-    {
+    TcpSegment *seg;
+    RB_FOREACH(seg, TCPSEG, &stream->seg_tree) {
+        if (!((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)
+                    || SEQ_LT(seg->seq, stream->last_ack)))
+            break;
+
         const uint8_t *seg_data;
         uint32_t seg_datalen;
         StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
@@ -6238,7 +6248,7 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
             SCLogDebug("Callback function has failed");
             return -1;
         }
-        seg = seg->next;
+
         cnt++;
     }
     return cnt;
@@ -6904,7 +6914,11 @@ static int StreamTcpTest09 (void)
 
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
-    FAIL_IF(((TcpSession *) (p->flow->protoctx))->client.seg_list->next != NULL);
+    TcpSession *ssn = p->flow->protoctx;
+    FAIL_IF_NULL(ssn);
+    TcpSegment *seg = RB_MIN(TCPSEG, &ssn->client.seg_tree);
+    FAIL_IF_NULL(seg);
+    FAIL_IF(TCPSEG_RB_NEXT(seg) != NULL);
 
     StreamTcpSessionClear(p->flow->protoctx);
     SCFree(p);
@@ -8586,8 +8600,9 @@ static int StreamTcpTest23(void)
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, stt.ra_ctx, &ssn, &ssn.client, p, &pq) == -1);
 
-    FAIL_IF(ssn.client.seg_list_tail == NULL);
-    FAIL_IF(TCP_SEG_LEN(ssn.client.seg_list_tail) != 2);
+    TcpSegment *seg = RB_MAX(TCPSEG, &ssn.client.seg_tree);
+    FAIL_IF_NULL(seg);
+    FAIL_IF(TCP_SEG_LEN(seg) != 2);
 
     StreamTcpUTClearSession(&ssn);
     SCFree(p);
@@ -8651,8 +8666,9 @@ static int StreamTcpTest24(void)
 
     FAIL_IF(StreamTcpReassembleHandleSegment(&tv, stt.ra_ctx, &ssn, &ssn.client, p, &pq) == -1);
 
-    FAIL_IF(ssn.client.seg_list_tail == NULL);
-    FAIL_IF(TCP_SEG_LEN(ssn.client.seg_list_tail) != 4);
+    TcpSegment *seg = RB_MAX(TCPSEG, &ssn.client.seg_tree);
+    FAIL_IF_NULL(seg);
+    FAIL_IF(TCP_SEG_LEN(seg) != 4);
 
     StreamTcpUTClearSession(&ssn);
     SCFree(p);

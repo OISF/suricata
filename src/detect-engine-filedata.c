@@ -44,12 +44,13 @@ static InspectionBuffer *GetBuffer(InspectionBufferMultipleForList *fb, uint32_t
         uint32_t grow_by = new_size - old_size;
         SCLogDebug("size is %u, need %u, so growing by %u", old_size, new_size, grow_by);
 
+        SCLogDebug("fb->inspection_buffers %p", fb->inspection_buffers);
         void *ptr = SCRealloc(fb->inspection_buffers, (id + 1) * sizeof(InspectionBuffer));
         if (ptr == NULL)
             return NULL;
 
         InspectionBuffer *to_zero = (InspectionBuffer *)ptr + old_size;
-        SCLogDebug("fb->inspection_buffers %p ptr %p to_zero %p", fb->inspection_buffers, ptr, to_zero);
+        SCLogDebug("ptr %p to_zero %p", ptr, to_zero);
         memset((uint8_t *)to_zero, 0, (grow_by * sizeof(InspectionBuffer)));
         fb->inspection_buffers = ptr;
         fb->size = new_size;

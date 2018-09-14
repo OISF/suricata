@@ -166,6 +166,7 @@ static DetectFileextData *DetectFileextParse (const char *str, bool negate)
             memcpy(ext, fileext->ext, fileext->len);
             ext[fileext->len] = '\0';
             SCLogDebug("will look for fileext %s", ext);
+            SCFree(ext);
         }
     }
 #endif
