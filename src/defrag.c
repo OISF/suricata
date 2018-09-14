@@ -679,6 +679,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                         frag_end > prev->offset + prev->ltrim) {
                     prev->ltrim += frag_end - (prev->offset + prev->ltrim);
                     overlap++;
+                    goto insert;
                 }
 
                 /* If the new fragment completely overlaps the
@@ -689,7 +690,9 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 if (frag_offset + ltrim <= prev->offset + prev->ltrim &&
                         frag_end >= prev->offset + prev->data_len) {
                     prev->skip = 1;
+                    goto insert;
                 }
+
                 break;
             case DEFRAG_POLICY_WINDOWS:
                 /* If new fragment fits inside a previous fragment, drop it. */
