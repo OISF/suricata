@@ -125,8 +125,8 @@ static int DetectEngineInspectTemplateBuffer(ThreadVars *tv,
 static int DetectTemplateBufferTest(void)
 {
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-    DetectEngineThreadCtx *det_ctx = NULL;
-    DetectEngineCtx *de_ctx = NULL;
+    FAIL_IF_NULL(alp_tctx);
+
     Flow f;
     Packet *p;
     TcpSession tcp;
@@ -150,7 +150,7 @@ static int DetectTemplateBufferTest(void)
     p->flowflags |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
     StreamTcpInitConfig(TRUE);
 
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     /* This rule should match. */
@@ -170,7 +170,10 @@ static int DetectTemplateBufferTest(void)
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
+
+    DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF_NULL(det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
     AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TEMPLATE,
@@ -185,14 +188,9 @@ static int DetectTemplateBufferTest(void)
     FAIL_IF(PacketAlertCheck(p, 2));
 
     /* Cleanup. */
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
