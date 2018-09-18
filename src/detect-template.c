@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2017 Open Information Security Foundation
+/* Copyright (C) 2015-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -43,7 +43,9 @@ static int DetectTemplateMatch (ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTemplateSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTemplateFree (void *);
+#ifdef UNITTESTS
 static void DetectTemplateRegisterTests (void);
+#endif
 
 /**
  * \brief Registration function for template: keyword
@@ -65,9 +67,10 @@ void DetectTemplateRegister(void) {
     /* free function is called when the detect engine is freed. Normally at
      * shutdown, but also during rule reloads. */
     sigmatch_table[DETECT_TEMPLATE].Free = DetectTemplateFree;
+#ifdef UNITTESTS
     /* registers unittests into the system */
     sigmatch_table[DETECT_TEMPLATE].RegisterTests = DetectTemplateRegisterTests;
-
+#endif
     /* set up the PCRE for keyword parsing */
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
@@ -124,50 +127,41 @@ static int DetectTemplateMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, P
  */
 static DetectTemplateData *DetectTemplateParse (const char *templatestr)
 {
-    DetectTemplateData *templated = NULL;
     char arg1[4] = "";
     char arg2[4] = "";
 #define MAX_SUBSTRINGS 30
-    int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study,
+    int ret = pcre_exec(parse_regex, parse_regex_study,
                     templatestr, strlen(templatestr),
                     0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
-        goto error;
+        return NULL;
     }
 
-    res = pcre_copy_substring((char *) templatestr, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
-    if (res < 0) {
+    ret = pcre_copy_substring((char *) templatestr, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
+    if (ret < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-        goto error;
+        return NULL;
     }
     SCLogDebug("Arg1 \"%s\"", arg1);
 
-    if (ret >= 3) {
-        res = pcre_copy_substring((char *) templatestr, ov, MAX_SUBSTRINGS, 2, arg2, sizeof(arg2));
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-            goto error;
-        }
-        SCLogDebug("Arg2 \"%s\"", arg2);
-
+    ret = pcre_copy_substring((char *) templatestr, ov, MAX_SUBSTRINGS, 2, arg2, sizeof(arg2));
+    if (ret < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        return NULL;
     }
+    SCLogDebug("Arg2 \"%s\"", arg2);
 
-    templated = SCMalloc(sizeof (DetectTemplateData));
+    DetectTemplateData *templated = SCMalloc(sizeof (DetectTemplateData));
     if (unlikely(templated == NULL))
-        goto error;
+        return NULL;
+
     templated->arg1 = (uint8_t)atoi(arg1);
     templated->arg2 = (uint8_t)atoi(arg2);
 
     return templated;
-
-error:
-    if (templated)
-        SCFree(templated);
-    return NULL;
 }
 
 /**
@@ -183,16 +177,15 @@ error:
  */
 static int DetectTemplateSetup (DetectEngineCtx *de_ctx, Signature *s, const char *templatestr)
 {
-    DetectTemplateData *templated = NULL;
-    SigMatch *sm = NULL;
-
-    templated = DetectTemplateParse(templatestr);
+    DetectTemplateData *templated = DetectTemplateParse(templatestr);
     if (templated == NULL)
-        goto error;
+        return -1;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectTemplateFree(templated);
+        return -1;
+    }
 
     sm->type = DETECT_TEMPLATE;
     sm->ctx = (void *)templated;
@@ -201,13 +194,6 @@ static int DetectTemplateSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
-
-error:
-    if (templated != NULL)
-        DetectTemplateFree(templated);
-    if (sm != NULL)
-        SCFree(sm);
-    return -1;
 }
 
 /**
@@ -215,7 +201,8 @@ error:
  *
  * \param ptr pointer to DetectTemplateData
  */
-static void DetectTemplateFree(void *ptr) {
+static void DetectTemplateFree(void *ptr)
+{
     DetectTemplateData *templated = (DetectTemplateData *)ptr;
 
     /* do more specific cleanup here, if needed */
@@ -224,41 +211,5 @@ static void DetectTemplateFree(void *ptr) {
 }
 
 #ifdef UNITTESTS
-
-/**
- * \test description of the test
- */
-
-static int DetectTemplateParseTest01 (void)
-{
-    DetectTemplateData *templated = DetectTemplateParse("1,10");
-    FAIL_IF_NULL(templated);
-    FAIL_IF(!(templated->arg1 == 1 && templated->arg2 == 10));
-    DetectTemplateFree(templated);
-    PASS;
-}
-
-static int DetectTemplateSignatureTest01 (void)
-{
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (template:1,10; sid:1; rev:1;)");
-    FAIL_IF_NULL(sig);
-
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-#endif /* UNITTESTS */
-
-/**
- * \brief this function registers unit tests for DetectTemplate
- */
-void DetectTemplateRegisterTests(void) {
-#ifdef UNITTESTS
-    UtRegisterTest("DetectTemplateParseTest01", DetectTemplateParseTest01);
-    UtRegisterTest("DetectTemplateSignatureTest01",
-                   DetectTemplateSignatureTest01);
-#endif /* UNITTESTS */
-}
+#include "tests/detect-template.c"
+#endif
