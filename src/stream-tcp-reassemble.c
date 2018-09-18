@@ -1526,11 +1526,17 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
  *  \param[in] progress_in progress to work from
  *  \param[out] progress_out absolute progress value of the data this
  *                           call handled.
+ *  \param eof we're wrapping up so inspect all data we have, incl unACKd
+ *  \param respect_inspect_depth use Stream::min_inspect_depth if set
+ *
+ *  `respect_inspect_depth` is used to avoid useless inspection of too
+ *  much data.
  */
 static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
                         StreamReassembleRawFunc Callback, void *cb_data,
                         const uint64_t progress_in,
-                        uint64_t *progress_out, bool eof)
+                        uint64_t *progress_out, bool eof,
+                        bool respect_inspect_depth)
 {
     SCEnter();
     int r = 0;
@@ -1538,6 +1544,27 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
     StreamingBufferBlock *iter = NULL;
     uint64_t progress = progress_in;
     uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream); /* absolute right edge of ack'd data */
+
+    /* if the app layer triggered a flush, and we're supposed to
+     * use a minimal inspect depth, we actually take the app progress
+     * as that is the right edge of the data. Then we take the window
+     * of 'min_inspect_depth' before that. */
+    if (respect_inspect_depth &&
+        (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW)
+        && stream->min_inspect_depth)
+    {
+        progress = STREAM_APP_PROGRESS(stream);
+        if (stream->min_inspect_depth >= progress) {
+            progress = 0;
+        } else {
+            progress -= stream->min_inspect_depth;
+        }
+        SCLogDebug("applied min inspect depth due to STREAMTCP_STREAM_FLAG_TRIGGER_RAW: progress %"PRIu64, progress);
+
+        SCLogDebug("stream app %"PRIu64", raw %"PRIu64, STREAM_APP_PROGRESS(stream), STREAM_RAW_PROGRESS(stream));
+    }
+
+    SCLogDebug("progress %"PRIu64", min inspect depth %u %s", progress, stream->min_inspect_depth, stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW ? "STREAMTCP_STREAM_FLAG_TRIGGER_RAW":"(no trigger)");
 
     /* get window of data that is acked */
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
@@ -1626,7 +1653,7 @@ end:
 
 int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
                         StreamReassembleRawFunc Callback, void *cb_data,
-                        uint64_t *progress_out)
+                        uint64_t *progress_out, bool respect_inspect_depth)
 {
     /* handle inline seperately as the logic is very different */
     if (StreamTcpInlineMode() == TRUE) {
@@ -1649,7 +1676,7 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
 
     return StreamReassembleRawDo(ssn, stream, Callback, cb_data,
             STREAM_RAW_PROGRESS(stream), progress_out,
-            (p->flags & PKT_PSEUDO_STREAM_END));
+            (p->flags & PKT_PSEUDO_STREAM_END), respect_inspect_depth);
 }
 
 int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
@@ -1661,7 +1688,7 @@ int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
         return 0;
 
     return StreamReassembleRawDo(ssn, stream, Callback, cb_data,
-            progress_in, progress_out, eof);
+            progress_in, progress_out, eof, false);
 }
 
 /** \internal
@@ -1816,6 +1843,23 @@ void StreamTcpReassembleTriggerRawReassembly(TcpSession *ssn, int direction)
         }
 
         SCLogDebug("flagged ssn %p for immediate raw reassembly", ssn);
+    }
+}
+
+void StreamTcpReassemblySetMinInspectDepth(TcpSession *ssn, int direction, uint32_t depth)
+{
+#ifdef DEBUG
+    BUG_ON(ssn == NULL);
+#endif
+
+    if (ssn != NULL) {
+        if (direction == STREAM_TOSERVER) {
+            ssn->client.min_inspect_depth = depth;
+            SCLogDebug("ssn %p: set client.min_inspect_depth to %u", ssn, depth);
+        } else {
+            ssn->server.min_inspect_depth = depth;
+            SCLogDebug("ssn %p: set server.min_inspect_depth to %u", ssn, depth);
+        }
     }
 }
 

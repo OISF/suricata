@@ -695,6 +695,10 @@ static int Setup(Flow *f, HtpState *hstate)
 
     htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, &f->startts);
 
+    StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER,
+            htp_cfg_rec->request.inspect_min_size);
+    StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOCLIENT,
+            htp_cfg_rec->response.inspect_min_size);
     return 0;
 error:
     return -1;
@@ -1769,6 +1773,32 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     }
 
 end:
+    if (hstate->conn != NULL) {
+        SCLogDebug("checking body size %"PRIu64" against inspect limit %u (cur %"PRIu64", last %"PRIu64")",
+                tx_ud->request_body.content_len_so_far,
+                hstate->cfg->request.inspect_min_size,
+                (uint64_t)hstate->conn->in_data_counter, hstate->last_request_data_stamp);
+
+        /* if we reach the inspect_min_size we'll trigger inspection,
+         * so make sure that raw stream is also inspected. Set the
+         * data to be used to the ammount of raw bytes we've seen to
+         * get here. */
+        if (tx_ud->request_body.body_inspected == 0 &&
+            tx_ud->request_body.content_len_so_far >= hstate->cfg->request.inspect_min_size) {
+            if ((uint64_t)hstate->conn->in_data_counter > hstate->last_request_data_stamp &&
+                (uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp < (uint64_t)UINT_MAX)
+            {
+                uint32_t x = (uint32_t)((uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp);
+
+                /* body still in progress, but due to min inspect size we need to inspect now */
+                StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, x);
+                AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
+            }
+        /* after the start of the body, disable the depth logic */
+        } else if (tx_ud->request_body.body_inspected > 0) {
+            StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, 0);
+        }
+    }
     SCReturnInt(HTP_OK);
 }
 
@@ -1840,6 +1870,31 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         }
     }
 
+    if (hstate->conn != NULL) {
+        SCLogDebug("checking body size %"PRIu64" against inspect limit %u (cur %"PRIu64", last %"PRIu64")",
+                tx_ud->response_body.content_len_so_far,
+                hstate->cfg->response.inspect_min_size,
+                (uint64_t)hstate->conn->in_data_counter, hstate->last_response_data_stamp);
+        /* if we reach the inspect_min_size we'll trigger inspection,
+         * so make sure that raw stream is also inspected. Set the
+         * data to be used to the ammount of raw bytes we've seen to
+         * get here. */
+        if (tx_ud->response_body.body_inspected == 0 &&
+            tx_ud->response_body.content_len_so_far >= hstate->cfg->response.inspect_min_size) {
+            if ((uint64_t)hstate->conn->out_data_counter > hstate->last_response_data_stamp &&
+                (uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp < (uint64_t)UINT_MAX)
+            {
+                uint32_t x = (uint32_t)((uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp);
+
+                /* body still in progress, but due to min inspect size we need to inspect now */
+                StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, x);
+                AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOCLIENT);
+            }
+        /* after the start of the body, disable the depth logic */
+        } else if (tx_ud->response_body.body_inspected > 0) {
+            StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, 0);
+        }
+    }
     SCReturnInt(HTP_OK);
 }
 
@@ -1902,6 +1957,41 @@ static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
     return HTP_OK;
 }
 
+/**\internal
+ * \brief called at start of request
+ * Set min inspect size.
+ */
+static int HTPCallbackRequestStart(htp_tx_t *tx)
+{
+    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    if (hstate == NULL) {
+        SCReturnInt(HTP_ERROR);
+    }
+
+    if (hstate->cfg)
+        StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
+                hstate->cfg->request.inspect_min_size);
+    SCReturnInt(HTP_OK);
+}
+
+/**\internal
+ * \brief called at start of response
+ * Set min inspect size.
+ */
+static int HTPCallbackResponseStart(htp_tx_t *tx)
+{
+    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    if (hstate == NULL) {
+        SCReturnInt(HTP_ERROR);
+    }
+
+    if (hstate->cfg)
+        StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT,
+                hstate->cfg->response.inspect_min_size);
+    SCReturnInt(HTP_OK);
+}
+
+
 /**
  *  \brief  callback for request to store the recent incoming request
             in to the recent_in_tx for the given htp state
@@ -1934,9 +2024,12 @@ static int HTPCallbackRequest(htp_tx_t *tx)
             SCLogDebug("closing file that was being stored");
             (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER);
             htud->tsflags &= ~HTP_FILENAME_SET;
+            StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
+                    (uint32_t)hstate->conn->in_data_counter);
         }
     }
 
+    hstate->last_request_data_stamp = (uint64_t)hstate->conn->in_data_counter;
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
     AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
@@ -1992,6 +2085,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
         }
     }
 
+    hstate->last_response_data_stamp = (uint64_t)hstate->conn->out_data_counter;
     SCReturnInt(HTP_OK);
 }
 
@@ -2149,7 +2243,10 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_register_request_body_data(cfg_prec->cfg, HTPCallbackRequestBodyData);
     htp_config_register_response_body_data(cfg_prec->cfg, HTPCallbackResponseBodyData);
 
+    htp_config_register_request_start(cfg_prec->cfg, HTPCallbackRequestStart);
     htp_config_register_request_complete(cfg_prec->cfg, HTPCallbackRequest);
+
+    htp_config_register_response_start(cfg_prec->cfg, HTPCallbackResponseStart);
     htp_config_register_response_complete(cfg_prec->cfg, HTPCallbackResponse);
 
     htp_config_set_parse_request_cookies(cfg_prec->cfg, 0);
