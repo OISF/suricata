@@ -183,7 +183,7 @@ def gen_headers(filename):
         fnName = fn[1]
 
         for arg in fn[2].split(","):
-            if not arg:
+            if not arg.strip():
                 continue
             arg_name, rs_type = arg.split(":", 1)
             arg_name = arg_name.strip()
