@@ -2025,8 +2025,18 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 PrintUsage(argv[0]);
                 return TM_ECODE_FAILED;
             }
+#ifdef OS_WIN32
+            struct _stat buf;
+            if(_stat(optarg, &buf) != 0) {
+#else
+            struct stat buf;
+            if (stat(optarg, &buf) != 0) {
+#endif /* OS_WIN32 */
+                SCLogError(SC_ERR_INITIALIZATION, "ERROR: Pcap file does not exist\n");
+                return TM_ECODE_FAILED;
+            }
             if (ConfSetFinal("pcap-file.file", optarg) != 1) {
-                fprintf(stderr, "ERROR: Failed to set pcap-file.file\n");
+                SCLogError(SC_ERR_INITIALIZATION, "ERROR: Failed to set pcap-file.file\n");
                 return TM_ECODE_FAILED;
             }
 
