@@ -1,0 +1,2 @@
+# Rust default is 100. Use 80 to bring in line with Suricata C code.
+max_width = 80

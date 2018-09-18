@@ -51,6 +51,7 @@ app-layer-ikev2.c app-layer-ikev2.h \
 app-layer-krb5.c app-layer-krb5.h \
 app-layer-dhcp.c app-layer-dhcp.h \
 app-layer-template.c app-layer-template.h \
+app-layer-template-rust.c app-layer-template-rust.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
 conf.c conf.h \

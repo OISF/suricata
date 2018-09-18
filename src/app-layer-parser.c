@@ -68,6 +68,7 @@
 #include "app-layer-krb5.h"
 #include "app-layer-dhcp.h"
 #include "app-layer-template.h"
+#include "app-layer-template-rust.h"
 
 #include "conf.h"
 #include "util-spm.h"
@@ -1466,6 +1467,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterIKEV2Parsers();
     RegisterKRB5Parsers();
     RegisterDHCPParsers();
+    RegisterTemplateRustParsers();
     RegisterTemplateParsers();
 
     /** IMAP */
