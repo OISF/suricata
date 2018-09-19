@@ -459,6 +459,51 @@ pub extern "C" fn rs_template_state_get_tx_iterator(
     }
 }
 
+/// Get the request buffer for a transaction from C.
+///
+/// No required for parsing, but an example function for retrieving a
+/// pointer to the request buffer from C for detection.
+#[no_mangle]
+pub extern "C" fn rs_template_get_request_buffer(
+    tx: *mut libc::c_void,
+    buf: *mut *const libc::uint8_t,
+    len: *mut libc::uint32_t,
+) -> libc::uint8_t
+{
+    let tx = cast_pointer!(tx, TemplateTransaction);
+    if let Some(ref request) = tx.request {
+        if request.len() > 0 {
+            unsafe {
+                *len = request.len() as libc::uint32_t;
+                *buf = request.as_ptr();
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/// Get the response buffer for a transaction from C.
+#[no_mangle]
+pub extern "C" fn rs_template_get_response_buffer(
+    tx: *mut libc::c_void,
+    buf: *mut *const libc::uint8_t,
+    len: *mut libc::uint32_t,
+) -> libc::uint8_t
+{
+    let tx = cast_pointer!(tx, TemplateTransaction);
+    if let Some(ref response) = tx.response {
+        if response.len() > 0 {
+            unsafe {
+                *len = response.len() as libc::uint32_t;
+                *buf = response.as_ptr();
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
+
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"template-rust\0";
 
