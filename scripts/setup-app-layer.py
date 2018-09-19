@@ -22,7 +22,7 @@ def fail_if_exists(filename):
     if os.path.exists(filename):
         raise SetupError("%s already exists" % (filename))
 
-def common_copy_templates(proto, pairs):
+def common_copy_templates(proto, pairs, replacements=()):
     upper = proto.upper()
     lower = proto.lower()
 
@@ -48,6 +48,9 @@ def common_copy_templates(proto, pairs):
                 if skip:
                     continue
 
+                for (old, new) in replacements:
+                    line = line.replace(old, new)
+
                 line = re.sub("TEMPLATE(_RUST)?", upper, line)
                 line = re.sub("template(-rust)?", lower, line)
                 line = re.sub("Template(Rust)?", proto, line)
@@ -67,6 +70,8 @@ def copy_app_layer_templates(proto, rust):
              "src/app-layer-%s.h" % (lower)),
             ("rust/src/applayertemplate/mod.rs",
              "rust/src/applayer%s/mod.rs" % (lower)),
+            ("rust/src/applayertemplate/template.rs",
+             "rust/src/applayer%s/gopher.rs" % (lower)),
             ("rust/src/applayertemplate/parser.rs",
              "rust/src/applayer%s/parser.rs" % (lower)),
         )
@@ -288,6 +293,90 @@ def logger_patch_util_profiling_c(proto):
             output.write(line)
     open(filename, "w").write(output.getvalue())
 
+def detect_copy_templates(proto, buffername, rust):
+    lower = proto.lower()
+    buffername_lower = buffername.lower()
+
+    if rust:
+        pairs = (
+            ("src/detect-template-rust-buffer.h",
+             "src/detect-%s-%s.h" % (lower, buffername_lower)),
+            ("src/detect-template-rust-buffer.c",
+             "src/detect-%s-%s.c" % (lower, buffername_lower)),
+        )
+        replacements = (
+            ("TEMPLATE_RUST_BUFFER", "%s_%s" % (
+                proto.upper(), buffername.upper())),
+            ("template-rust-buffer", "%s-%s" % (
+                proto.lower(), buffername.lower())),
+            ("template_rust_buffer", "%s_%s" % (
+                proto.lower(), buffername.lower())),
+            ("TemplateRustBuffer", "%s%s" % (proto, buffername)),
+        )
+    else:
+        pairs = (
+            ("src/detect-template-buffer.h",
+             "src/detect-%s-%s.h" % (lower, buffername_lower)),
+            ("src/detect-template-buffer.c",
+             "src/detect-%s-%s.c" % (lower, buffername_lower)),
+        )
+        replacements = (
+            ("TEMPLATE_BUFFER", "%s_%s" % (proto.upper(), buffername.upper())),
+            ("template-buffer", "%s-%s" % (proto.lower(), buffername.lower())),
+            ("template_buffer", "%s_%s" % (proto.lower(), buffername.lower())),
+            ("TemplateBuffer", "%s%s" % (proto, buffername)),
+        )
+
+    common_copy_templates(proto, pairs, replacements)
+
+def detect_patch_makefile_am(protoname, buffername):
+    filename = "src/Makefile.am"
+    print("Patching %s." % (filename))
+    output = io.StringIO()
+    with open(filename) as infile:
+        for line in infile:
+            if line.startswith("detect-template-buffer.c"):
+                new = line.replace("template-buffer", "%s-%s" % (
+                    protoname.lower(), buffername.lower()))
+                output.write(new)
+            output.write(line)
+    open(filename, "w").write(output.getvalue())
+
+def detect_patch_detect_enginer_register_c(protoname, buffername):
+    filename = "src/detect-engine-register.c"
+    print("Patching %s." % (filename))
+    output = io.StringIO()
+    with open(filename) as infile:
+        for line in infile:
+
+            if line.find("detect-template-buffer.h") > -1:
+                new = line.replace("template-buffer", "%s-%s" % (
+                    protoname.lower(), buffername.lower()))
+                output.write(new)
+
+            if line.find("DetectTemplateBufferRegister") > -1:
+                new = line.replace("TemplateBuffer", "%s%s" % (
+                    protoname, buffername))
+                output.write(new)
+
+            output.write(line)
+    open(filename, "w").write(output.getvalue())
+
+def detect_patch_detect_enginer_register_h(protoname, buffername):
+    filename = "src/detect-engine-register.h"
+    print("Patching %s." % (filename))
+    output = io.StringIO()
+    with open(filename) as infile:
+        for line in infile:
+
+            if line.find("DETECT_AL_TEMPLATE_BUFFER") > -1:
+                new = line.replace("TEMPLATE_BUFFER", "%s_%s" % (
+                    protoname.upper(), buffername.upper()))
+                output.write(new)
+
+            output.write(line)
+    open(filename, "w").write(output.getvalue())
+
 def proto_exists(proto):
     upper = proto.upper()
     for line in open("src/app-layer-protos.h"):
@@ -308,6 +397,13 @@ Examples:
 
     %(progname)s DNP3
     %(progname)s Gopher
+
+This script can also setup a detect buffer. This is a separate
+operation that must be done after creating the parser.
+
+Examples:
+
+    %(progname)s --detect Gopher Request
 """ % { "progname": progname, }
 
 def main():
@@ -320,7 +416,11 @@ def main():
                         help="Generate logger.")
     parser.add_argument("--parser", action="store_true", default=False,
                         help="Generate parser.")
+    parser.add_argument("--detect", action="store_true", default=False,
+                        help="Generate detect module.")
     parser.add_argument("proto", help="Name of protocol")
+    parser.add_argument("buffer", help="Name of buffer (for --detect)",
+                        nargs="?")
     args = parser.parse_args()
 
     proto = args.proto
@@ -332,14 +432,20 @@ def main():
     # Determine what to generate.
     parser = False
     logger = False
+    detect = False
 
     # If no --parser or no --logger, generate both.
-    if not args.parser and not args.logger:
+    if not args.parser and not args.logger and not args.detect:
         parser = True
         logger = True
     else:
         parser = args.parser
         logger = args.logger
+        detect = args.detect
+
+    if detect:
+        if args.buffer is None:
+            raise SetupError("--detect requires a buffer name")
 
     # Make sure we are in the correct directory.
     if os.path.exists("./suricata.c"):
@@ -372,6 +478,14 @@ def main():
         logger_patch_output_c(proto)
         logger_patch_suricata_yaml_in(proto)
         logger_patch_util_profiling_c(proto)
+
+    if detect:
+        if not proto_exists(proto):
+            raise SetupError("no app-layer parser exists for %s" % (proto))
+        detect_copy_templates(proto, args.buffer, args.rust)
+        detect_patch_makefile_am(proto, args.buffer)
+        detect_patch_detect_enginer_register_c(proto, args.buffer)
+        detect_patch_detect_enginer_register_h(proto, args.buffer)
 
     if parser:
         if args.rust:
@@ -415,6 +529,17 @@ A JSON application layer transaction logger for the protocol
             "proto": proto,
             "proto_lower": proto.lower(),
         })
+
+    if detect:
+        print("""
+The following files have been created and linked into the build:
+
+    detect-%(protoname_lower)s-%(buffername_lower)s.h
+    detect-%(protoname_lower)s-%(buffername_lower)s.c
+""" % {
+    "protoname_lower": proto.lower(),
+    "buffername_lower": args.buffer.lower(),
+})
 
     if parser or logger:
         print("""
