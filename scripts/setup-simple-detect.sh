@@ -64,8 +64,6 @@ NR=${LC^}
 
 FILE_C="detect-${LC}.c"
 FILE_H="detect-${LC}.h"
-#echo $FILE_C
-#echo $FILE_H
 
 set_dir
 
@@ -80,6 +78,20 @@ if [ -e $FILE_C ] || [ -e $FILE_H ]; then
     exit 1
 fi
 
+FILE_C="tests/detect-${LC}.c"
+if [ ! -e tests/detect-template.c ]; then
+    Usage
+    echo "ERROR: input file tests/detect-template.c is missing"
+    exit 1
+fi
+if [ -e $FILE_C ]; then
+    Usage
+    echo "ERROR: file $FILE_C already exist, won't overwrite"
+    exit 1
+fi
+
+FILE_C="detect-${LC}.c"
+FILE_H="detect-${LC}.h"
 cp detect-template.c $FILE_C
 cp detect-template.h $FILE_H
 
@@ -101,6 +113,15 @@ sed -i "s/#include \"detect-template.h\"/#include \"detect-template.h\"\\n#inclu
 
 # add reg func to detect-engine-register.c
 sed -i "s/DetectTemplateRegister();/DetectTemplateRegister();\\n    Detect${NR}Register();/g" detect-engine-register.c
+
+# tests file
+FILE_C="tests/detect-${LC}.c"
+cp tests/detect-template.c $FILE_C
+
+# search and replaces
+sed -i "s/TEMPLATE/${UC}/g" $FILE_C
+sed -i "s/Template/${NR}/g" $FILE_C
+sed -i "s/template/${LC}/g" $FILE_C
 
 Done
 exit 0
