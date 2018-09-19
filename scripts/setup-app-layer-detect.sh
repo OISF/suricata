@@ -67,12 +67,15 @@ function copy_template_file() {
 function copy_templates() {
     detect_h_dst="src/detect-${protoname_lower}-${buffername_lower}.h"
     detect_c_dst="src/detect-${protoname_lower}-${buffername_lower}.c"
+    tests_detect_c_dst="src/tests/detect-${protoname_lower}-${buffername_lower}.c"
 
     fail_if_exists ${detect_h_dst}
     fail_if_exists ${detect_c_dst}
+    fail_if_exists ${tests_detect_c_dst}
 
     copy_template_file "src/detect-template-buffer.h" ${detect_h_dst}
     copy_template_file "src/detect-template-buffer.c" ${detect_c_dst}
+    copy_template_file "src/tests/detect-template-buffer.c" ${tests_detect_c_dst}
 }
 
 function patch() {
