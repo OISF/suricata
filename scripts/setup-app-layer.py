@@ -341,6 +341,13 @@ def main():
         parser = args.parser
         logger = args.logger
 
+    # Make sure we are in the correct directory.
+    if os.path.exists("./suricata.c"):
+        os.chdir("..")
+    elif not os.path.exists("./src/suricata.c"):
+        raise SetupError(
+            "this does not appear to be a Suricata source directory.")
+
     if parser:
         if proto_exists(proto):
             raise SetupError("protocol already exists: %s" % (proto))
