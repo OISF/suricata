@@ -258,6 +258,7 @@ detect-target.c detect-target.h \
 detect-template.c detect-template.h \
 detect-template2.c detect-template2.h \
 detect-ftpdata.c detect-ftpdata.h \
+detect-template-rust-buffer.c detect-template-rust-buffer.h \
 detect-template-buffer.c detect-template-buffer.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \
