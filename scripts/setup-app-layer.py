@@ -319,6 +319,8 @@ def detect_copy_templates(proto, buffername, rust):
              "src/detect-%s-%s.h" % (lower, buffername_lower)),
             ("src/detect-template-buffer.c",
              "src/detect-%s-%s.c" % (lower, buffername_lower)),
+            ("src/tests/detect-template-buffer.c",
+             "src/tests/detect-%s-%s.c" % (lower, buffername_lower)),
         )
         replacements = (
             ("TEMPLATE_BUFFER", "%s_%s" % (proto.upper(), buffername.upper())),
