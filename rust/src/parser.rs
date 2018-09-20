@@ -171,5 +171,6 @@ pub const APP_LAYER_PARSER_BYPASS_READY : u8 = 0b1000;
 
 extern {
     pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u8);
+    pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u8) -> c_int;
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
 }

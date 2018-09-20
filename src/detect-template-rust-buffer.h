@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2015-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,46 +15,17 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+/**
+ * \file
+ *
+ * \author FirstName LastName <yourname@domain>
+ */
 
-extern crate libc;
+#ifndef __DETECT_TEMPLATE_RUST_BUFFER_H__
+#define __DETECT_TEMPLATE_RUST_BUFFER_H__
 
-#[macro_use]
-extern crate nom;
+#include "app-layer-template.h"
 
-extern crate crc;
+void DetectTemplateRustBufferRegister(void);
 
-extern crate der_parser;
-extern crate kerberos_parser;
-
-#[macro_use]
-pub mod log;
-
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-#[macro_use]
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-#[macro_use]
-pub mod parser;
-pub mod kerberos;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-pub mod smb;
-pub mod krb;
-
-pub mod ikev2;
-
-pub mod ntp;
-pub mod tftp;
-pub mod dhcp;
-pub mod applayertemplate;
+#endif /* __DETECT_TEMPLATE_RUST_BUFFER_H__ */
