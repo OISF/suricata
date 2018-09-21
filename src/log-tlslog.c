@@ -475,6 +475,7 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                been seen. */
             if ((ssl_state->server_connp.cert0_issuerdn == NULL) &&
                     (ssl_state->server_connp.cert0_subject == NULL) &&
+                    (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
                     ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
                 MemBufferWriteString(aft->buffer, " Session='resumed'");
             }
