@@ -135,6 +135,7 @@ static void JsonTlsLogSessionResumed(json_t *js, SSLState *ssl_state)
            been seen, and the session is not TLSv1.3 or later. */
         if ((ssl_state->server_connp.cert0_issuerdn == NULL &&
                ssl_state->server_connp.cert0_subject == NULL) &&
+               (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
                ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
             json_object_set_new(js, "session_resumed", json_boolean(true));
         }
