@@ -21,6 +21,7 @@
 # and the git step will fail.
 
 import urllib, urllib2, cookielib
+import requests
 try:
     import simplejson as json
 except:
@@ -336,6 +337,8 @@ if not args.branch:
     print "You need to specify a branch for this mode"
     sys.exit(-1)
 
+buildids = {}
+
 # submit buildbot form to build current branch on the devel builder
 if not args.check:
     if not args.docker:
@@ -343,32 +346,47 @@ if not args.check:
         if cookie == None:
             print "Unable to connect to buildbot with provided credentials"
             sys.exit(-1)
-    for build in BUILDERS_LIST:
-        res = SubmitBuild(args.branch, builder_name = build)
-        if res == -1:
-            print "Unable to start build. Check command line parameters"
+        for build in BUILDERS_LIST:
+            res = SubmitBuild(args.branch, builder_name = build)
+            if res == -1:
+                print "Unable to start build. Check command line parameters"
+                sys.exit(-1)
+    else:
+        data = {"jsonrpc": "2.0", "method": "force", "id": 1, "params": {"revision": "HEAD", "branch": args.branch}}
+        url = BASE_URI + "api/v2/forceschedulers/userbuild"
+        r = requests.post(url, json = data, headers = {'Content-Type': 'application/json'})
+        res = json.loads(r.text)
+        try:
+            build_tasks = res['result'][1]
+            url = BASE_URI + "api/v2/builders"
+            r = requests.get(url, headers = {'Content-Type': 'application/json'})
+            builders = json.loads(r.text)['builders']
+            for builder in builders:
+                builder['buildrequestid'] = build_tasks[str(builder['builderid'])]
+            buildids = builders
+        except IOError:
+            print "Invalid return: %s" % (res)
             sys.exit(-1)
 
-buildids = {}
 
 if args.docker:
-    time.sleep(2)
-
-# get build number and exit if we don't have
-for build in BUILDERS_LIST:
-    buildid = FindBuild(args.branch, builder_name = build)
-    if buildid == -1:
-        print "Pending build tracking is not supported. Follow build by browsing " + BUILDERS_URI + build
-    elif buildid == -2:
-        print "No build found for " + BUILDERS_URI + build
-        sys.exit(0)
-    else:
-        if not args.docker:
-            print "You can watch build progress at " + BUILDERS_URI + build + "/builds/" + str(buildid)
-        buildids[build] = buildid
+    time.sleep(3)
+else:
+    # get build number and exit if we don't have
+    for build in BUILDERS_LIST:
+        buildid = FindBuild(args.branch, builder_name = build)
+        if buildid == -1:
+            print "Pending build tracking is not supported. Follow build by browsing " + BUILDERS_URI + build
+        elif buildid == -2:
+            print "No build found for " + BUILDERS_URI + build
+            sys.exit(0)
+        else:
+            if not args.docker:
+                print "You can watch build progress at " + BUILDERS_URI + build + "/builds/" + str(buildid)
+            buildids[build] = buildid
 
 if args.docker:
-    print "You can watch build progress at " + BASE_URI + "waterfall"
+    print "You can watch build progress at " + BASE_URI
 
 if len(buildids):
     print "Waiting for build completion"
@@ -380,25 +398,34 @@ if args.docker:
     while len(buildids):
         up_buildids = copy.copy(buildids)
         for build in buildids:
-            ret = GetBuildStatus(build, buildids[build], builder_name = build)
+            url = "%sapi/v2/builders/%d/builds?buildrequestid=%d" % (BASE_URI, build['builderid'], build['buildrequestid'])
+            r = requests.get(url, headers = {'Content-Type': 'application/json'})
+            try:
+                res = json.loads(r.text)['builds'][0]
+            except IndexError:
+                print "not task yet: (%s) at %s" % (r.text, url)
+                continue
+            ret = 1
+            if res['complete']:
+                ret = res['results']
             if ret == -1:
                 buildres = -1
-                up_buildids.pop(build, None)
+                up_buildids.remove(build)
                 if len(up_buildids):
-                    remains = " (remaining builds: " + ', '.join(up_buildids.keys()) + ")"
+                    remains = " (remaining builds: " + ', '.join([b['name'] for b in up_buildids]) + ")"
                 else:
                     remains = ""
-                print "Build failure for " + build + ": " + BUILDERS_URI + build + '/builds/' + str(buildids[build]) + remains
+                print "Build failure for " + build['name'] + remains
             elif ret == 0:
-                up_buildids.pop(build, None)
+                up_buildids.remove(build)
                 if len(up_buildids):
-                    remains = " (remaining builds: " + ', '.join(up_buildids.keys()) + ")"
+                    remains = " (remaining builds: " + ', '.join([b['name'] for b in up_buildids]) + ")"
                 else:
                     remains = ""
-                print "Build successful for " + build + remains
+                print "Build successful for " + build['name'] + remains
         time.sleep(5)
         buildids = up_buildids
-    if res == -1:
+    if buildres == -1:
         SendNotification("PRscript failure", "Some builds have failed. Check <a href='" + BASE_URI + "waterfall'>waterfall</a> for results.")
         sys.exit(-1)
     else:
