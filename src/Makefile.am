@@ -329,6 +329,7 @@ output-json-ssh.c output-json-ssh.h \
 output-json-stats.c output-json-stats.h \
 output-json-tls.c output-json-tls.h \
 output-json-nfs.c output-json-nfs.h \
+output-json-template-packet.c output-json-template-packet.h \
 output-json-tftp.c output-json-tftp.h \
 output-json-smb.c output-json-smb.h \
 output-json-ikev2.c output-json-ikev2.h \
