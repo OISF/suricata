@@ -1578,6 +1578,7 @@
 	        [ enable_ebpf="yes"],
 	        [ enable_ebpf="no"])
 
+    have_xdp="no"
     if test "$enable_ebpf" = "yes"; then
         AC_CHECK_LIB(elf,elf_begin,,LIBELF="no")
         if test "$LIBELF" = "no"; then
@@ -1601,7 +1602,7 @@
             AC_DEFINE([HAVE_PACKET_EBPF],[1],[Recent ebpf fanout support is available]),
             [],
             [[#include <linux/if_packet.h>]])
-        AC_CHECK_LIB(bpf, bpf_set_link_xdp_fd,have_xdp="yes",have_xdp="no")
+        AC_CHECK_LIB(bpf, bpf_set_link_xdp_fd,have_xdp="yes")
         if test "$have_xdp" = "yes"; then
             AC_DEFINE([HAVE_PACKET_XDP],[1],[XDP support is available])
         fi
@@ -1646,6 +1647,7 @@
     fi
 
   # libnspr
+    enable_nspr="no"
     AC_ARG_ENABLE(nspr,
             AS_HELP_STRING([--disable-nspr],[Disable libnspr support]))
     AC_ARG_WITH(libnspr_includes,
@@ -1691,6 +1693,7 @@
     fi
 
   # libnss
+    enable_nss="no"
     AC_ARG_ENABLE(nss,
             AS_HELP_STRING([--disable-nss],[Disable libnss support]))
     AC_ARG_WITH(libnss_includes,
