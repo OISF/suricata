@@ -33,6 +33,11 @@
 # define __section(x)  __attribute__((section(x), used))
 #endif
 
+struct vlan_hdr {
+    __u16 h_vlan_TCI;
+    __u16 h_vlan_encapsulated_proto;
+};
+
 static __always_inline int ipv4_hash(struct __sk_buff *skb)
 {
     __u32 nhoff;
@@ -43,63 +48,98 @@ static __always_inline int ipv4_hash(struct __sk_buff *skb)
     dst = load_word(skb, nhoff + offsetof(struct iphdr, daddr));
 
 #if 0
-    char fmt[] = "Got addr: %u -> %u\n";
-    bpf_trace_printk(fmt, sizeof(fmt), src, dst);
-    char fmt2[] = "Got hash %u\n";
-    bpf_trace_printk(fmt2, sizeof(fmt2), src + dst);
+    char fmt[] = "Got addr: %x -> %x at %d\n";
+    bpf_trace_printk(fmt, sizeof(fmt), src, dst, nhoff);
+    //char fmt2[] = "Got hash %u\n";
+    //bpf_trace_printk(fmt2, sizeof(fmt2), src + dst);
 #endif
     return  src + dst;
+}
+
+static inline __u32 ipv6_addr_hash(struct __sk_buff *ctx, __u64 off)
+{
+    __u64 w0 = load_word(ctx, off);
+    __u64 w1 = load_word(ctx, off + 4);
+    __u64 w2 = load_word(ctx, off + 8);
+    __u64 w3 = load_word(ctx, off + 12);
+
+    return (__u32)(w0 ^ w1 ^ w2 ^ w3);
 }
 
 static __always_inline int ipv6_hash(struct __sk_buff *skb)
 {
     __u32 nhoff;
-    __u32 src, dst, hash;
+    __u32 src_hash, dst_hash;
 
     nhoff = skb->cb[0];
-    hash = 0;
-    src = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr) + 4 * 0 );
-    dst = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr) + 4 * 0 );
-    hash += src + dst;
+    src_hash = ipv6_addr_hash(skb,
+                              nhoff + offsetof(struct ipv6hdr, saddr));
+    dst_hash = ipv6_addr_hash(skb,
+                              nhoff + offsetof(struct ipv6hdr, daddr));
 
-    src = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr) + 4 * 1 );
-    dst = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr) + 4 * 1 );
-    hash += src + dst;
-
-    src = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr) + 4 * 2 );
-    dst = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr) + 4 * 2 );
-    hash += src + dst;
-
-    src = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr) + 4 * 3 );
-    dst = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr) + 4 * 3 );
-    hash += src + dst;
-
-    return hash;
+    return src_hash + dst_hash;
 }
 
 int  __section("loadbalancer") lb(struct __sk_buff *skb) {
-    __u32 nhoff = BPF_LL_OFF + ETH_HLEN;
+    __u64 nhoff = ETH_HLEN;
+    __u16 proto = load_half(skb, ETH_HLEN - ETH_TLEN);
+    __u16 ret = proto;
+    switch (proto) {
+        case ETH_P_8021Q:
+        case ETH_P_8021AD:
+            {
+                __u16 vproto = load_half(skb, nhoff +  offsetof(struct vlan_hdr, h_vlan_encapsulated_proto));
+                switch(vproto) {
+                    case ETH_P_8021AD:
+                    case ETH_P_8021Q:
+                        nhoff += sizeof(struct vlan_hdr);
+                        proto = load_half(skb, nhoff + offsetof(struct vlan_hdr, h_vlan_encapsulated_proto));
+                        break;
+                    default:
+                        proto = vproto;
+                }
 
-    skb->cb[0] = nhoff;
-
-    switch (skb->protocol) {
-        case __constant_htons(ETH_P_IP):
-            return ipv4_hash(skb);
-        case __constant_htons(ETH_P_IPV6):
-            return ipv6_hash(skb);
+                nhoff += sizeof(struct vlan_hdr);
+                skb->cb[0] = nhoff;
+                switch (proto) {
+                    case ETH_P_IP:
+                        { char fmt[] = "ipv4\n"; bpf_trace_printk(fmt, sizeof(fmt));}
+                        ret = ipv4_hash(skb);
+                        break;
+                    case ETH_P_IPV6:
+                        ret = ipv6_hash(skb);
+                        break;
+                    default:
+#if 0
+                        {
+                            char fmt[] = "Dflt VLAN proto %u\n";
+                            bpf_trace_printk(fmt, sizeof(fmt), proto);
+                            break;
+                        }
+#else
+                        break;
+#endif
+                }
+            }
+            break;
+        case ETH_P_IP:
+            ret = ipv4_hash(skb);
+            break;
+        case ETH_P_IPV6:
+            ret = ipv6_hash(skb);
+            break;
         default:
 #if 0
             {
-                char fmt[] = "Got proto %u\n";
-                bpf_trace_printk(fmt, sizeof(fmt), h_proto);
+                char fmt[] = "Got proto %x\n";
+                bpf_trace_printk(fmt, sizeof(fmt), proto);
                 break;
             }
 #else
             break;
 #endif
     }
-    /* hash on proto by default */
-    return skb->protocol;
+    return ret;
 }
 
 char __license[] __section("license") = "GPL";
