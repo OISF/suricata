@@ -35,6 +35,8 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-template-rust-buffer.h"
 #include "app-layer-parser.h"
@@ -51,10 +53,10 @@ void DetectTemplateRustBufferRegister(void)
 
 static int DetectTemplateRustBufferSetup(DetectEngineCtx *, Signature *,
     const char *);
-static int DetectEngineInspectTemplateRustBuffer(ThreadVars *tv,
-    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-    const Signature *s, const SigMatchData *smd,
-    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t flow_flags,
+        void *txv, const int list_id);
 static void DetectTemplateRustBufferRegisterTests(void);
 static int g_template_rust_id = 0;
 
@@ -76,13 +78,21 @@ void DetectTemplateRustBufferRegister(void)
 
     sigmatch_table[DETECT_AL_TEMPLATE_RUST_BUFFER].flags |= SIGMATCH_NOOPT;
 
-    /* register inspect engines */
-    DetectAppLayerInspectEngineRegister("template_rust_buffer",
+    /* register inspect engines - these are called per signature */
+    DetectAppLayerInspectEngineRegister2("template_rust_buffer",
             ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectTemplateRustBuffer);
-    DetectAppLayerInspectEngineRegister("template_rust_buffer",
+            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2("template_rust_buffer",
             ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectTemplateRustBuffer);
+            DetectEngineInspectBufferGeneric, GetData);
+
+    /* register mpm engines - these are called in the prefilter stage */
+    DetectAppLayerMpmRegister2("template_rust_buffer", SIG_FLAG_TOSERVER, 0,
+            PrefilterGenericMpmRegister, GetData,
+            ALPROTO_TEMPLATE, 0);
+    DetectAppLayerMpmRegister2("template_rust_buffer", SIG_FLAG_TOCLIENT, 0,
+            PrefilterGenericMpmRegister, GetData,
+            ALPROTO_TEMPLATE, 0);
 
     g_template_rust_id = DetectBufferTypeGetByName("template_rust_buffer");
 
@@ -100,29 +110,38 @@ static int DetectTemplateRustBufferSetup(DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 }
 
-static int DetectEngineInspectTemplateRustBuffer(ThreadVars *tv,
-    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-    const Signature *s, const SigMatchData *smd,
-    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+/** \internal
+ *  \brief get the data to inspect from the transaction.
+ *  This function gets the data, sets up the InspectionBuffer object
+ *  and applies transformations (if any).
+ *
+ *  \retval buffer or NULL in case of error
+ */
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t flow_flags,
+        void *txv, const int list_id)
 {
-    int ret = 0;
     const uint8_t *data = NULL;
     uint32_t data_len = 0;
 
-    if (flags & STREAM_TOSERVER) {
-        rs_template_get_request_buffer(txv, (uint8_t **)&data, &data_len);
-    } else if (flags & STREAM_TOCLIENT) {
-        rs_template_get_response_buffer(txv, (uint8_t **)&data, &data_len);
+    BUG_ON(det_ctx->inspect_buffers == NULL);
+
+    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
+    if (buffer->inspect == NULL) {
+        if (flow_flags & STREAM_TOSERVER) {
+            rs_template_get_request_buffer(txv, (uint8_t **)&data, &data_len);
+        } else if (flow_flags & STREAM_TOCLIENT) {
+            rs_template_get_response_buffer(txv, (uint8_t **)&data, &data_len);
+        } else {
+            return NULL;
+        }
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
     }
 
-    if (data != NULL) {
-        ret = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, (uint8_t *)data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-    }
-
-    SCLogNotice("Returning %d.", ret);
-    return ret;
+    return buffer;
 }
 
 #ifdef UNITTESTS
