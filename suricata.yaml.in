@@ -1646,12 +1646,12 @@ nflog:
 
 # general settings affecting packet capture
 capture:
-  # disable NIC offloading. It's restored when Suricata exists.
-  # Enabled by default
+  # disable NIC offloading. It's restored when Suricata exits.
+  # Enabled by default.
   #disable-offloading: false
   #
   # disable checksum validation. Same as setting '-k none' on the
-  # commandline
+  # commandline.
   #checksum-validation: none
 
 # Netmap support
