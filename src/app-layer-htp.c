@@ -1781,7 +1781,7 @@ end:
 
         /* if we reach the inspect_min_size we'll trigger inspection,
          * so make sure that raw stream is also inspected. Set the
-         * data to be used to the ammount of raw bytes we've seen to
+         * data to be used to the amount of raw bytes we've seen to
          * get here. */
         if (tx_ud->request_body.body_inspected == 0 &&
             tx_ud->request_body.content_len_so_far >= hstate->cfg->request.inspect_min_size) {
@@ -1877,7 +1877,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
                 (uint64_t)hstate->conn->in_data_counter, hstate->last_response_data_stamp);
         /* if we reach the inspect_min_size we'll trigger inspection,
          * so make sure that raw stream is also inspected. Set the
-         * data to be used to the ammount of raw bytes we've seen to
+         * data to be used to the amount of raw bytes we've seen to
          * get here. */
         if (tx_ud->response_body.body_inspected == 0 &&
             tx_ud->response_body.content_len_so_far >= hstate->cfg->response.inspect_min_size) {
