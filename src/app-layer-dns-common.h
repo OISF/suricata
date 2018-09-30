@@ -238,9 +238,9 @@ typedef struct DNSState_ {
     /* used by TCP only */
     uint16_t offset;
     uint16_t record_len;
-    uint8_t *buffer;
     uint8_t gap_ts;               /**< Flag set when a gap has occurred. */
     uint8_t gap_tc;               /**< Flag set when a gap has occurred. */
+    uint8_t *buffer;
 } DNSState;
 
 #define DNS_CONFIG_DEFAULT_REQUEST_FLOOD 500
