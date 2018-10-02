@@ -6028,6 +6028,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     np->flags |= PKT_HAS_FLOW;
     np->flags |= PKT_IGNORE_CHECKSUM;
     np->flags |= PKT_PSEUDO_DETECTLOG_FLUSH;
+    np->livedev = f->livedev;
 
     if (f->vlan_id[0]) {
         np->vlan_id[0] = f->vlan_id[0];
