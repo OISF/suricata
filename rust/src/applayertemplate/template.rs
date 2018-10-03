@@ -301,7 +301,7 @@ pub extern "C" fn rs_template_parse_request(
     input_len: u32,
     _data: *const libc::c_void,
     _flags: u8,
-) -> i8 {
+) -> i32 {
     let eof = unsafe {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
             true
@@ -331,7 +331,7 @@ pub extern "C" fn rs_template_parse_response(
     input_len: u32,
     _data: *const libc::c_void,
     _flags: u8,
-) -> i8 {
+) -> i32 {
     let _eof = unsafe {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
             true

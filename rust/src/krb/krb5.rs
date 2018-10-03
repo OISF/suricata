@@ -105,7 +105,7 @@ impl KRB5State {
     /// Parse a Kerberos request message
     ///
     /// Returns The number of messages parsed, or -1 on error
-    fn parse(&mut self, i: &[u8], _direction: u8) -> i8 {
+    fn parse(&mut self, i: &[u8], _direction: u8) -> i32 {
         match der_read_element_header(i) {
             IResult::Done(_rem,hdr) => {
                 // Kerberos messages start with an APPLICATION header
@@ -462,7 +462,7 @@ pub extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
                                        _data: *const libc::c_void,
-                                       _flags: u8) -> i8 {
+                                       _flags: u8) -> i32 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
     state.parse(buf, STREAM_TOSERVER)
@@ -475,7 +475,7 @@ pub extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
                                        _data: *const libc::c_void,
-                                       _flags: u8) -> i8 {
+                                       _flags: u8) -> i32 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
     state.parse(buf, STREAM_TOCLIENT)
@@ -488,7 +488,7 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
                                        _data: *const libc::c_void,
-                                       _flags: u8) -> i8 {
+                                       _flags: u8) -> i32 {
     if input_len < 4 { return -1; }
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
@@ -546,7 +546,7 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
                                        _data: *const libc::c_void,
-                                       _flags: u8) -> i8 {
+                                       _flags: u8) -> i32 {
     if input_len < 4 { return -1; }
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);

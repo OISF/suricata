@@ -278,7 +278,7 @@ pub extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
                                 input: *const libc::uint8_t,
                                 input_len: u32,
                                 _data: *const libc::c_void,
-                                _flags: u8) -> i8 {
+                                _flags: u8) -> i32 {
     let state = cast_pointer!(state, DHCPState);
     let buf = build_slice!(input, input_len as usize);
     if state.parse(buf) {
