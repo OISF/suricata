@@ -1119,6 +1119,7 @@ impl SMBState {
                     Ok("lsarpc") => ("lsarpc", true),
                     Ok("samr") => ("samr", true),
                     Ok("spoolss") => ("spoolss", true),
+                    Ok("suricata::dcerpc") => ("unknown", true),
                     Err(_) => ("MALFORMED", false),
                     Ok(&_) => {
                         SCLogDebug!("don't know {}", String::from_utf8_lossy(&n));

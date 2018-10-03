@@ -869,9 +869,9 @@ pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
             // if we get status 'BUFFER_OVERFLOW' this is only a part of
             // the data. Store it in the ssn/tree for later use.
             if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
-                state.ssnguid2vec_map.insert(SMBHashKeyHdrGuid::new(
-                            SMBCommonHdr::from1(r, SMBHDR_TYPE_TRANS_FRAG), fid),
-                        rd.data.to_vec());
+                let key = SMBHashKeyHdrGuid::new(SMBCommonHdr::from1(r, SMBHDR_TYPE_TRANS_FRAG), fid);
+                SCLogDebug!("SMBv1/TRANS: queueing data for len {} key {:?}", rd.data.len(), key);
+                state.ssnguid2vec_map.insert(key, rd.data.to_vec());
             } else if is_dcerpc {
                 SCLogDebug!("SMBv1 TRANS TO PIPE");
                 let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
