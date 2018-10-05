@@ -4679,10 +4679,9 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
     /* assign the thread id to the flow */
     if (unlikely(p->flow->thread_id == 0)) {
         p->flow->thread_id = (FlowThreadId)tv->id;
-#ifdef DEBUG
     } else if (unlikely((FlowThreadId)tv->id != p->flow->thread_id)) {
         SCLogDebug("wrong thread: flow has %u, we are %d", p->flow->thread_id, tv->id);
-#endif
+        StatsIncr(tv, stt->counter_tcp_wrong_thread);
     }
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
@@ -5144,6 +5143,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_synack = StatsRegisterCounter("tcp.synack", tv);
     stt->counter_tcp_rst = StatsRegisterCounter("tcp.rst", tv);
     stt->counter_tcp_midstream_pickups = StatsRegisterCounter("tcp.midstream_pickups", tv);
+    stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.wrong_thread", tv);
 
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx(tv);
