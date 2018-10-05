@@ -274,6 +274,8 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
             json_string(reason));
 
     json_object_set_new(hjs, "alerted", json_boolean(FlowHasAlerts(f)));
+    if (f->flags & FLOW_WRONG_THREAD)
+        json_object_set_new(hjs, "wrong_thread", json_true());
 
     json_object_set_new(js, "flow", hjs);
 

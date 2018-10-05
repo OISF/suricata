@@ -240,6 +240,7 @@ const struct DecodeEvents_ DEvents[] = {
     { "stream.pkt_bad_window_update", STREAM_PKT_BAD_WINDOW_UPDATE, },
 
     { "stream.suspected_rst_inject", STREAM_SUSPECTED_RST_INJECT, },
+    { "stream.wrong_thread", STREAM_WRONG_THREAD, },
 
     { "stream.reassembly_segment_before_base_seq", STREAM_REASSEMBLY_SEGMENT_BEFORE_BASE_SEQ, },
     { "stream.reassembly_no_segment", STREAM_REASSEMBLY_NO_SEGMENT, },

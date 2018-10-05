@@ -88,6 +88,8 @@ alert tcp any any -> any any (msg:"SURICATA STREAM reassembly segment before bas
 alert tcp any any -> any any (msg:"SURICATA STREAM Packet is retransmission"; stream-event:pkt_retransmission; flowint:tcp.retransmission.count,+,1; noalert; classtype:protocol-command-decode; sid:2210053; rev:1;)
 # rule to alert if a stream has excessive retransmissions
 alert tcp any any -> any any (msg:"SURICATA STREAM excessive retransmissions"; flowbits:isnotset,tcp.retransmission.alerted; flowint:tcp.retransmission.count,>=,10; flowbits:set,tcp.retransmission.alerted; classtype:protocol-command-decode; sid:2210054; rev:1;)
+# Packet on wrong thread. Fires at most once per flow.
+alert tcp any any -> any any (msg:"SURICATA STREAM pkt seen on wrong thread"; stream-event:wrong_thread; sid:2210059; rev:1;)
 
-# next sid 2210059
+# next sid 2210060
 

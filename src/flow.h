@@ -100,6 +100,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** Indicate that alproto detection for flow should be done again */
 #define FLOW_CHANGE_PROTO               BIT_U32(24)
 
+#define FLOW_WRONG_THREAD               BIT_U32(25)
+
 /* File flags */
 
 /** no magic on files in this flow */
