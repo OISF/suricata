@@ -19,7 +19,6 @@ use core::*;
 use log::*;
 use nom::IResult;
 
-use smb;
 use smb::smb::*;
 use smb::smb2_records::*;
 use smb::smb2_session::*;
@@ -164,34 +163,31 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     Some(n) => (n.name.to_vec(), n.is_pipe),
                     _ => { (Vec::new(), false) },
                 };
-                let mut is_dcerpc = is_pipe && match state.get_service_for_guid(&file_guid) {
-                    (_, x) => x,
+                let mut is_dcerpc = if is_pipe || (share_name.len() == 0 && !is_pipe) {
+                    match state.get_service_for_guid(&file_guid) {
+                        (_, x) => x,
+                    }
+                } else {
+                    false
                 };
-                SCLogDebug!("SMBv2/READ: share_name {:?} is_pipe {} is_dcerpc {}", share_name, is_pipe, is_dcerpc);
+                SCLogDebug!("SMBv2/READ: share_name {:?} is_pipe {} is_dcerpc {}",
+                        share_name, is_pipe, is_dcerpc);
 
                 if share_name.len() == 0 && !is_pipe {
                     SCLogDebug!("SMBv2/READ: no tree connect seen, we don't know if we are a pipe");
 
-                    match smb::dcerpc_records::parse_dcerpc_record(rd.data) {
-                        IResult::Done(_, recr) => {
-                            SCLogDebug!("SMBv2/READ: could be DCERPC {:?}", recr);
-                            if recr.version_major == 5 && recr.version_minor < 3 &&
-                               recr.frag_len > 0 && recr.packet_type <= 20 {
-                                SCLogDebug!("SMBv2/READ: looks like dcerpc");
-                                // insert fake tree to assist in follow up lookups
-                                let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
-                                state.ssn2tree_map.insert(tree_key, tree);
-                                state.guid2name_map.insert(file_guid.to_vec(), b"suricata::dcerpc".to_vec());
-
-                                is_pipe = true;
-                                is_dcerpc = true;
-                            } else {
-                                SCLogDebug!("SMBv2/READ: not DCERPC");
-                            }
-                        },
-                        _ => {
-                            SCLogDebug!("SMBv2/READ: not DCERPC");
-                        },
+                    if smb_dcerpc_probe(rd.data) == true {
+                        SCLogDebug!("SMBv2/READ: looks like dcerpc");
+                        // insert fake tree to assist in follow up lookups
+                        let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
+                        state.ssn2tree_map.insert(tree_key, tree);
+                        if !is_dcerpc {
+                            state.guid2name_map.insert(file_guid.to_vec(), b"suricata::dcerpc".to_vec());
+                        }
+                        is_pipe = true;
+                        is_dcerpc = true;
+                    } else {
+                        SCLogDebug!("SMBv2/READ: not DCERPC");
                     }
                 }
 
@@ -276,34 +272,26 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 } else {
                     false
                 };
-                SCLogDebug!("share_name {:?} is_pipe {} is_dcerpc {}", share_name, is_pipe, is_dcerpc);
+                SCLogDebug!("SMBv2/WRITE: share_name {:?} is_pipe {} is_dcerpc {}",
+                        share_name, is_pipe, is_dcerpc);
 
                 // if we missed the TREE connect we can't be sure if 'is_dcerpc' is correct
                 if share_name.len() == 0 && !is_pipe {
                     SCLogDebug!("SMBv2/WRITE: no tree connect seen, we don't know if we are a pipe");
 
-                    match smb::dcerpc_records::parse_dcerpc_record(wr.data) {
-                        IResult::Done(_, recr) => {
-                            SCLogDebug!("SMBv2/WRITE: could be DCERPC {:?}", recr);
-                            if recr.version_major == 5 && recr.version_minor < 3 &&
-                               recr.frag_len > 0 && recr.packet_type <= 20 {
-                                SCLogDebug!("SMBv2/WRITE: looks like we have dcerpc");
+                    if smb_dcerpc_probe(wr.data) == true {
+                        SCLogDebug!("SMBv2/WRITE: looks like we have dcerpc");
 
-                                let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
-                                state.ssn2tree_map.insert(tree_key, tree);
-                                if !is_dcerpc {
-                                    state.guid2name_map.insert(file_guid.to_vec(),
-                                            b"suricata::dcerpc".to_vec());
-                                }
-                                is_pipe = true;
-                                is_dcerpc = true;
-                            } else {
-                                SCLogDebug!("SMBv2/WRITE: not DCERPC");
-                            }
-                        },
-                        _ => {
-                            SCLogDebug!("SMBv2/WRITE: not DCERPC");
-                        },
+                        let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
+                        state.ssn2tree_map.insert(tree_key, tree);
+                        if !is_dcerpc {
+                            state.guid2name_map.insert(file_guid.to_vec(),
+                                    b"suricata::dcerpc".to_vec());
+                        }
+                        is_pipe = true;
+                        is_dcerpc = true;
+                    } else {
+                        SCLogDebug!("SMBv2/WRITE: not DCERPC");
                     }
                 }
                 if is_pipe && is_dcerpc {

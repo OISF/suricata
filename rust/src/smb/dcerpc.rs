@@ -577,3 +577,21 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
 
     return true;
 }
+
+/// Try to find out if the input data looks like DCERPC
+pub fn smb_dcerpc_probe<'b>(data: &[u8]) -> bool
+{
+    match parse_dcerpc_record(data) {
+        IResult::Done(_, recr) => {
+            SCLogDebug!("SMB: could be DCERPC {:?}", recr);
+            if recr.version_major == 5 && recr.version_minor < 3 &&
+               recr.frag_len > 0 && recr.packet_type <= 20
+            {
+                SCLogDebug!("SMB: looks like we have dcerpc");
+                return true;
+            }
+        },
+        _ => { },
+    }
+    return false;
+}
