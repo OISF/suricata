@@ -817,17 +817,6 @@ pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
             }
 
             if pipe_dcerpc {
-                // trans request will tell us the max size of the response
-                // if there is more response data, it will first give a
-                // TRANS with 'max data cnt' worth of data, and the rest
-                // will be pulled by a 'READ'. So we setup an expectation
-                // here.
-                if rd.params.max_data_cnt > 0 {
-                    // expect max max_data_cnt for this fid in the other dir
-                    let ehdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_MAX_SIZE);
-                    state.ssn2maxsize_map.insert(ehdr, rd.params.max_data_cnt);
-                }
-
                 SCLogDebug!("SMBv1 TRANS TO PIPE");
                 let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
                 let vercmd = SMBVerCmdStat::new1(r.command);
