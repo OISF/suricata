@@ -1000,7 +1000,7 @@ app-layer:
         dp: 44818
         sp: 44818
 
-    # Note: parser depends on experimental Rust support
+    # Note: parser depends on Rust support
     ntp:
       enabled: @rust_config_enabled@
 
