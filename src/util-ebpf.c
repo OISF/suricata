@@ -675,6 +675,18 @@ void EBPFBuildCPUSet(ConfNode *node, char *iface)
                         BPF_ANY);
 }
 
+/**
+ * Setup peer interface in XDP system
+ *
+ * Ths function set up the peer interface in the XDP maps used by the
+ * bypass filter. The first map tx_peer has  type device map and is
+ * used to store the peer. The second map tx_peer_int is used by the
+ * code to check if we have a peer defined for this interface.
+ *
+ * As the map are per device we just need maps with one single element.
+ * In both case, we use the key 0 to enter element so XDP kernel code
+ * is using the same key.
+ */
 int EBPFSetPeerIface(const char *iface, const char *out_iface)
 {
     int mapfd = EBPFGetMapFDByName(iface, "tx_peer");
