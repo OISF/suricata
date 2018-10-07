@@ -56,8 +56,8 @@ struct flowv6_keys {
 };
 
 struct pair {
-    uint64_t packets;
-    uint64_t bytes;
+    uint32_t packets;
+    uint32_t bytes;
     uint32_t hash;
 };
 
