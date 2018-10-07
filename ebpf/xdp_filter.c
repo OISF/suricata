@@ -123,6 +123,9 @@ struct bpf_map_def SEC("maps") cpus_count = {
 };
 #endif
 
+/* Map has only one element as we don't handle any sort of
+ * routing for now. Key value set by user space is 0 and
+ * value is the peer interface. */
 struct bpf_map_def SEC("maps") tx_peer = {
 	.type = BPF_MAP_TYPE_DEVMAP,
 	.key_size = sizeof(int),
@@ -130,6 +133,9 @@ struct bpf_map_def SEC("maps") tx_peer = {
 	.max_entries = 1,
 };
 
+/* single entry to indicate if we have peer, key value
+ * set in user space is 0. It is only used to see if
+ * a interface has a peer we need to send the information to */
 struct bpf_map_def SEC("maps") tx_peer_int = {
 	.type = BPF_MAP_TYPE_ARRAY,
 	.key_size = sizeof(int),
