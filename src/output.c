@@ -73,6 +73,7 @@
 #include "output-json-ikev2.h"
 #include "output-json-krb5.h"
 #include "output-json-dhcp.h"
+#include "output-json-snmp.h"
 #include "output-json-template.h"
 #include "output-json-template-rust.h"
 #include "output-lua.h"
@@ -1103,6 +1104,8 @@ void OutputRegisterLoggers(void)
     JsonKRB5LogRegister();
     /* DHCP JSON logger. */
     JsonDHCPLogRegister();
+    /* SNMP JSON logger. */
+    JsonSNMPLogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
     /* Template Rust JSON logger. */
