@@ -183,7 +183,8 @@ static SCMutex afpacket_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 enum {
     AFP_READ_OK,
     AFP_READ_FAILURE,
-    AFP_FAILURE,
+    /** Error during treatment by other functions of Suricata */
+    AFP_SURI_FAILURE,
     AFP_KERNEL_DROP,
 };
 
@@ -237,6 +238,7 @@ typedef struct AFPThreadVars_
     /* references to packet and drop counters */
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
+    uint16_t capture_errors;
 
     /* handle state */
     uint8_t afp_state;
@@ -628,7 +630,7 @@ static int AFPRead(AFPThreadVars *ptv)
 
     p = PacketGetFromQueueOrAlloc();
     if (p == NULL) {
-        SCReturnInt(AFP_FAILURE);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
     if (ptv->flags & AFP_BYPASS) {
@@ -668,7 +670,7 @@ static int AFPRead(AFPThreadVars *ptv)
     SET_PKT_LEN(p, caplen + offset);
     if (PacketCopyData(p, ptv->data, GET_PKT_LEN(p)) == -1) {
         TmqhOutputPacketpool(ptv->tv, p);
-        SCReturnInt(AFP_FAILURE);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
     SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
                GET_PKT_LEN(p), p, GET_PKT_DATA(p));
@@ -708,7 +710,7 @@ static int AFPRead(AFPThreadVars *ptv)
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
         TmqhOutputPacketpool(ptv->tv, p);
-        SCReturnInt(AFP_FAILURE);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
     SCReturnInt(AFP_READ_OK);
 }
@@ -872,8 +874,10 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
 
         /* Read packet from ring */
         h.raw = (((union thdr **)ptv->ring_v2)[ptv->frame_offset]);
-        if (h.raw == NULL) {
-            SCReturnInt(AFP_FAILURE);
+        if (unlikely(h.raw == NULL)) {
+            /* Impossible we reach this point in normal condition, so trigger
+             * a failure in reading */
+            SCReturnInt(AFP_READ_FAILURE);
         }
 
         if ((! h.h2->tp_status) || (h.h2->tp_status & TP_STATUS_USER_BUSY)) {
@@ -911,7 +915,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
 
         p = PacketGetFromQueueOrAlloc();
         if (p == NULL) {
-            SCReturnInt(AFP_FAILURE);
+            SCReturnInt(AFP_SURI_FAILURE);
         }
         PKT_SET_SRC(p, PKT_SRC_WIRE);
         if (ptv->flags & AFP_BYPASS) {
@@ -954,7 +958,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         if (ptv->flags & AFP_ZERO_COPY) {
             if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
                 TmqhOutputPacketpool(ptv->tv, p);
-                SCReturnInt(AFP_FAILURE);
+                SCReturnInt(AFP_SURI_FAILURE);
             } else {
                 p->afp_v.relptr = h.raw;
                 p->ReleasePacket = AFPReleasePacket;
@@ -970,8 +974,15 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             }
         } else {
             if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
+                /* As we can possibly fail to copy the data due to invalid data, let's
+                 * skip this packet and switch to the next one.
+                 */
+                h.h2->tp_status = TP_STATUS_KERNEL;
+                if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+                    ptv->frame_offset = 0;
+                }
                 TmqhOutputPacketpool(ptv->tv, p);
-                SCReturnInt(AFP_FAILURE);
+                SCReturnInt(AFP_SURI_FAILURE);
             }
         }
 
@@ -1014,7 +1025,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
                 ptv->frame_offset = 0;
             }
             TmqhOutputPacketpool(ptv->tv, p);
-            SCReturnInt(AFP_FAILURE);
+            SCReturnInt(AFP_SURI_FAILURE);
         }
 
 next_frame:
@@ -1038,7 +1049,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
 {
     Packet *p = PacketGetFromQueueOrAlloc();
     if (p == NULL) {
-        SCReturnInt(AFP_FAILURE);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
     if (ptv->flags & AFP_BYPASS) {
@@ -1070,7 +1081,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     if (ptv->flags & AFP_ZERO_COPY) {
         if (PacketSetData(p, (unsigned char*)ppd + ppd->tp_mac, ppd->tp_snaplen) == -1) {
             TmqhOutputPacketpool(ptv->tv, p);
-            SCReturnInt(AFP_FAILURE);
+            SCReturnInt(AFP_SURI_FAILURE);
         }
         p->afp_v.relptr = ppd;
         p->ReleasePacket = AFPReleasePacketV3;
@@ -1086,7 +1097,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     } else {
         if (PacketCopyData(p, (unsigned char*)ppd + ppd->tp_mac, ppd->tp_snaplen) == -1) {
             TmqhOutputPacketpool(ptv->tv, p);
-            SCReturnInt(AFP_FAILURE);
+            SCReturnInt(AFP_SURI_FAILURE);
         }
     }
     /* Timestamp */
@@ -1115,7 +1126,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
         TmqhOutputPacketpool(ptv->tv, p);
-        SCReturnInt(AFP_FAILURE);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
 
     SCReturnInt(AFP_READ_OK);
@@ -1125,12 +1136,23 @@ static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pb
 {
     int num_pkts = pbd->hdr.bh1.num_pkts, i;
     uint8_t *ppd;
+    int ret = 0;
 
     ppd = (uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt;
     for (i = 0; i < num_pkts; ++i) {
-        if (unlikely(AFPParsePacketV3(ptv, pbd,
-                             (struct tpacket3_hdr *)ppd) == AFP_FAILURE)) {
-            SCReturnInt(AFP_READ_FAILURE);
+        ret = AFPParsePacketV3(ptv, pbd,
+                               (struct tpacket3_hdr *)ppd);
+        switch (ret) {
+            case AFP_READ_OK:
+                break;
+            case AFP_SURI_FAILURE:
+                /* Internal error but let's just continue and
+                 * treat thenext packet */
+                break;
+            case AFP_READ_FAILURE:
+                SCReturnInt(AFP_READ_FAILURE);
+            default:
+                SCReturnInt(ret);
         }
         ppd = ppd + ((struct tpacket3_hdr *)ppd)->tp_next_offset;
     }
@@ -1152,6 +1174,7 @@ static int AFPReadFromRingV3(AFPThreadVars *ptv)
 {
 #ifdef HAVE_TPACKET_V3
     struct tpacket_block_desc *pbd;
+    int ret = 0;
 
     /* Loop till we have packets available */
     while (1) {
@@ -1167,9 +1190,10 @@ static int AFPReadFromRingV3(AFPThreadVars *ptv)
             SCReturnInt(AFP_READ_OK);
         }
 
-        if (unlikely(AFPWalkBlock(ptv, pbd) != AFP_READ_OK)) {
+        ret = AFPWalkBlock(ptv, pbd);
+        if (unlikely(ret != AFP_READ_OK)) {
             AFPFlushBlock(pbd);
-            SCReturnInt(AFP_READ_FAILURE);
+            SCReturnInt(ret);
         }
 
         AFPFlushBlock(pbd);
@@ -1573,9 +1597,8 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                            ptv->iface, errno, strerror(errno));
                     AFPSwitchState(ptv, AFP_STATE_DOWN);
                     continue;
-                case AFP_FAILURE:
-                    AFPSwitchState(ptv, AFP_STATE_DOWN);
-                    SCReturnInt(TM_ECODE_FAILED);
+                case AFP_SURI_FAILURE:
+                    StatsIncr(ptv->tv, ptv->capture_errors);
                     break;
                 case AFP_KERNEL_DROP:
                     AFPDumpCounters(ptv);
@@ -2584,6 +2607,8 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
             ptv->tv);
     ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
+            ptv->tv);
+    ptv->capture_errors = StatsRegisterCounter("capture.errors",
             ptv->tv);
 #endif
 
