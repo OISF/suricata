@@ -206,7 +206,7 @@ impl SNMPState {
     }
 
     fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SNMPTransaction> {
-        self.transactions.iter().find(|&tx| tx.id == tx_id + 1)
+        self.transactions.iter().rev().find(|&tx| tx.id == tx_id + 1)
     }
 
     fn free_tx(&mut self, tx_id: u64) {
