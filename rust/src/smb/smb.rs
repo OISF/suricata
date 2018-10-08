@@ -750,8 +750,8 @@ pub struct SMBState<> {
 
     pub ssn2tree_map: HashMap<SMBCommonHdr, SMBTree>,
 
-    // track the max size we expect for TRANS responses
-    pub ssn2maxsize_map: HashMap<SMBCommonHdr, u16>,
+    // store partial data records that are transfered in multiple
+    // requests for DCERPC.
     pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
 
     /// TCP segments defragmentation buffer
@@ -801,7 +801,6 @@ impl SMBState {
             guid2name_map:HashMap::new(),
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
-            ssn2maxsize_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
             tcp_buffer_ts:Vec::new(),
             tcp_buffer_tc:Vec::new(),
@@ -1119,6 +1118,7 @@ impl SMBState {
                     Ok("lsarpc") => ("lsarpc", true),
                     Ok("samr") => ("samr", true),
                     Ok("spoolss") => ("spoolss", true),
+                    Ok("suricata::dcerpc") => ("unknown", true),
                     Err(_) => ("MALFORMED", false),
                     Ok(&_) => {
                         SCLogDebug!("don't know {}", String::from_utf8_lossy(&n));
