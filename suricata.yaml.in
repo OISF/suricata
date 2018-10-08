@@ -222,6 +222,7 @@ outputs:
         @rust_config_comment@- tftp
         @rust_config_comment@- ikev2
         @rust_config_comment@- krb5
+        @rust_config_comment@- snmp
         - dhcp:
             # DHCP logging requires Rust.
             enabled: @rust_config_enabled@

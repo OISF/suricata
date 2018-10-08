@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,9 +15,15 @@
  * 02110-1301, USA.
  */
 
-// written by Pierre Chifflier  <chifflier@wzdftpd.net>
+/**
+ * \file
+ *
+ * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ */
 
-extern crate snmp_parser;
+#ifndef __OUTPUT_JSON_SNMP_H__
+#define __OUTPUT_JSON_SNMP_H__
 
-pub mod snmp;
-pub mod log;
+void JsonSNMPLogRegister(void);
+
+#endif /* __OUTPUT_JSON_SNMP_H__ */
