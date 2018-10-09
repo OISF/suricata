@@ -865,8 +865,10 @@ static inline void DetectRulePacketRules(
                     SCLogDebug("no match in stream, fall back to packet payload");
 
                     /* skip if we don't have to inspect the packet and segment was
-                     * added to stream */
-                    if (!(sflags & SIG_FLAG_REQUIRE_PACKET) && (p->flags & PKT_STREAM_ADD)) {
+                     * added to stream or packets wants flow and comes from zero copy. */
+                    if ((!(sflags & SIG_FLAG_REQUIRE_PACKET) && ((p->flags & PKT_STREAM_ADD)
+                         || ((p->flags & PKT_HAS_FLOW) && (p->flags & PKT_WANTS_FLOW) && (p->flags & PKT_ZERO_COPY)))
+                         )) {
                         goto next;
                     }
 
