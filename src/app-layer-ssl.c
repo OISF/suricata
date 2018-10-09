@@ -463,20 +463,15 @@ static inline int TlsDecodeHSCertificateFingerprint(SSLState *ssl_state,
     if (ssl_state->server_connp.cert0_fingerprint == NULL)
         return -1;
 
-    uint8_t *hash = ComputeSHA1((uint8_t *)input, cert_len);
-    if (hash == NULL)
-        return 0;
-
-    int i, x;
-    for (i = 0, x = 0; x < SHA1_LENGTH; x++)
-    {
-        i += snprintf(ssl_state->server_connp.cert0_fingerprint + i,
-                      SHA1_STRING_LENGTH - i, i == 0 ? "%02x" : ":%02x",
-                      *(hash + x));
+    uint8_t hash[SHA1_LENGTH];
+    if (ComputeSHA1(input, cert_len, hash, sizeof(hash)) == 1) {
+        for (int i = 0, x = 0; x < SHA1_LENGTH; x++)
+        {
+            i += snprintf(ssl_state->server_connp.cert0_fingerprint + i,
+                    SHA1_STRING_LENGTH - i, i == 0 ? "%02x" : ":%02x",
+                    hash[x]);
+        }
     }
-
-    SCFree(hash);
-
     return 0;
 }
 
