@@ -104,7 +104,7 @@ typedef struct AlertJsonOutputCtx_ {
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
     HttpXFFCfg *parent_xff_cfg;
-    bool include_metadata;
+    OutputJsonCommonSettings cfg;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
@@ -424,7 +424,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    if (json_output_ctx->include_metadata) {
+    if (json_output_ctx->cfg.include_metadata) {
         JsonAddMetadata(p, p->flow, js);
     }
 
@@ -980,7 +980,7 @@ static OutputInitResult JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent
     memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
 
     json_output_ctx->file_ctx = ajt->file_ctx;
-    json_output_ctx->include_metadata = ajt->include_metadata;
+    json_output_ctx->cfg = ajt->cfg;
 
     JsonAlertLogSetupMetadata(json_output_ctx, conf);
     json_output_ctx->xff_cfg = JsonAlertLogGetXffCfg(conf);

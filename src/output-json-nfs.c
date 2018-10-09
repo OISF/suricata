@@ -91,7 +91,7 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    if (thread->ctx->include_metadata) {
+    if (thread->ctx->cfg.include_metadata) {
         JsonAddMetadata(p, f, js);
     }
 

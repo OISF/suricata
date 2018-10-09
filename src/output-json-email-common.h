@@ -28,7 +28,7 @@ typedef struct OutputJsonEmailCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
     uint64_t fields;/** Store fields */
-    bool     include_metadata;
+    OutputJsonCommonSettings cfg;
 } OutputJsonEmailCtx;
 
 

@@ -55,13 +55,11 @@
 
 typedef struct LogKRB5FileCtx_ {
     LogFileCtx *file_ctx;
-    uint32_t    flags;
-    bool        include_metadata;
+    OutputJsonCommonSettings cfg;
 } LogKRB5FileCtx;
 
 typedef struct LogKRB5LogThread_ {
     LogKRB5FileCtx *krb5log_ctx;
-    uint32_t            count;
     MemBuffer          *buffer;
 } LogKRB5LogThread;
 
@@ -77,7 +75,7 @@ static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    if (thread->krb5log_ctx->include_metadata) {
+    if (thread->krb5log_ctx->cfg.include_metadata) {
         JsonAddMetadata(p, f, js);
     }
 
@@ -116,7 +114,7 @@ static OutputInitResult OutputKRB5LogInitSub(ConfNode *conf,
         return result;
     }
     krb5log_ctx->file_ctx = ajt->file_ctx;
-    krb5log_ctx->include_metadata = ajt->include_metadata;
+    krb5log_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {

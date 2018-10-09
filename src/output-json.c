@@ -872,9 +872,9 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         const ConfNode *metadata = ConfNodeLookupChild(conf, "metadata");
         if (metadata && metadata->val && ConfValIsFalse(metadata->val)) {
             SCLogConfig("Disabling eve metadata logging.");
-            json_ctx->include_metadata = false;
+            json_ctx->cfg.include_metadata = false;
         } else {
-            json_ctx->include_metadata = true;
+            json_ctx->cfg.include_metadata = true;
         }
 
         /* Do we have a global eve xff configuration? */

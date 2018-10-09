@@ -65,13 +65,17 @@ OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);
 TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
 TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
 
+typedef struct OutputJsonCommonSettings_ {
+    bool include_metadata;
+} OutputJsonCommonSettings;
+
 /*
  * Global configuration context data
  */
 typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
     enum LogFileType json_out;
-    bool include_metadata;
+    OutputJsonCommonSettings cfg;
     HttpXFFCfg *xff_cfg;
 } OutputJsonCtx;
 

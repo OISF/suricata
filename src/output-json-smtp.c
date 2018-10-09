@@ -95,7 +95,7 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     /* reset */
     MemBufferReset(jhl->buffer);
 
-    if (jhl->emaillog_ctx->include_metadata) {
+    if (jhl->emaillog_ctx->cfg.include_metadata) {
         JsonAddMetadata(p, f, js);
     }
 
@@ -210,7 +210,7 @@ static OutputInitResult OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_c
     }
 
     email_ctx->file_ctx = ojc->file_ctx;
-    email_ctx->include_metadata = ojc->include_metadata;
+    email_ctx->cfg = ojc->cfg;
 
     OutputEmailInitConf(conf, email_ctx);
 

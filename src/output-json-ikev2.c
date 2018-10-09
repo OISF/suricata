@@ -55,13 +55,11 @@
 
 typedef struct LogIKEv2FileCtx_ {
     LogFileCtx *file_ctx;
-    uint32_t    flags;
-    bool        include_metadata;
+    OutputJsonCommonSettings cfg;
 } LogIKEv2FileCtx;
 
 typedef struct LogIKEv2LogThread_ {
     LogIKEv2FileCtx *ikev2log_ctx;
-    uint32_t            count;
     MemBuffer          *buffer;
 } LogIKEv2LogThread;
 
@@ -77,7 +75,7 @@ static int JsonIKEv2Logger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    if (thread->ikev2log_ctx->include_metadata) {
+    if (thread->ikev2log_ctx->cfg.include_metadata) {
         JsonAddMetadata(p, f, js);
     }
 
@@ -116,7 +114,7 @@ static OutputInitResult OutputIKEv2LogInitSub(ConfNode *conf,
         return result;
     }
     ikev2log_ctx->file_ctx = ajt->file_ctx;
-    ikev2log_ctx->include_metadata = ajt->include_metadata;
+    ikev2log_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
