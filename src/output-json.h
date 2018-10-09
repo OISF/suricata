@@ -61,6 +61,10 @@ json_t *CreateJSONHeaderWithTxId(const Packet *p,
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputInitResult OutputJsonInitCtx(ConfNode *);
 
+OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);
+TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
+TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
+
 /*
  * Global configuration context data
  */
@@ -70,6 +74,11 @@ typedef struct OutputJsonCtx_ {
     bool include_metadata;
     HttpXFFCfg *xff_cfg;
 } OutputJsonCtx;
+
+typedef struct OutputJsonThreadCtx_ {
+    OutputJsonCtx *ctx;
+    MemBuffer *buffer;
+} OutputJsonThreadCtx;
 
 json_t *SCJsonBool(int val);
 json_t *SCJsonString(const char *val);
