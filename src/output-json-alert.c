@@ -424,9 +424,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    if (json_output_ctx->cfg.include_metadata) {
-        JsonAddMetadata(p, p->flow, js);
-    }
+    JsonAddCommonOptions(&json_output_ctx->cfg, p, p->flow, js);
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];

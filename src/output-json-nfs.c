@@ -91,9 +91,7 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    if (thread->ctx->cfg.include_metadata) {
-        JsonAddMetadata(p, f, js);
-    }
+    JsonAddCommonOptions(&thread->ctx->cfg, p, f, js);
 
     json_t *rpcjs = rs_rpc_log_json_response(tx);
     if (unlikely(rpcjs == NULL)) {

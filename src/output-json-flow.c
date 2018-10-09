@@ -277,9 +277,7 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
 
     json_object_set_new(js, "flow", hjs);
 
-    if (flow_ctx->cfg.include_metadata) {
-        JsonAddMetadata(NULL, f, js);
-    }
+    JsonAddCommonOptions(&flow_ctx->cfg, NULL, f, js);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {

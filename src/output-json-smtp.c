@@ -95,9 +95,7 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     /* reset */
     MemBufferReset(jhl->buffer);
 
-    if (jhl->emaillog_ctx->cfg.include_metadata) {
-        JsonAddMetadata(p, f, js);
-    }
+    JsonAddCommonOptions(&jhl->emaillog_ctx->cfg, p, f, js);
 
     json_t *sjs = JsonSmtpDataLogger(f, state, tx, tx_id);
     if (sjs) {

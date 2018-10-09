@@ -75,9 +75,7 @@ static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    if (thread->krb5log_ctx->cfg.include_metadata) {
-        JsonAddMetadata(p, f, js);
-    }
+    JsonAddCommonOptions(&thread->krb5log_ctx->cfg, p, f, js);
 
     krb5js = rs_krb5_log_json_response(state, krb5tx);
     if (unlikely(krb5js == NULL)) {

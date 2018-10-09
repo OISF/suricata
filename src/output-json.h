@@ -50,7 +50,6 @@ typedef struct OutputJSONMemBufferWrapper_ {
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
-void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js);
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
 void JsonFiveTuple(const Packet *, enum OutputJsonLogDirection, json_t *);
@@ -87,6 +86,9 @@ typedef struct OutputJsonThreadCtx_ {
 json_t *SCJsonBool(int val);
 json_t *SCJsonString(const char *val);
 void SCJsonDecref(json_t *js);
+
+void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
+        const Packet *p, const Flow *f, json_t *js);
 
 #endif /* HAVE_LIBJANSSON */
 

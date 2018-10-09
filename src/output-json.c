@@ -364,7 +364,7 @@ static void JsonAddFlowVars(const Flow *f, json_t *js_root, json_t **js_traffic)
 /**
  * \brief Add top-level metadata to the eve json object.
  */
-void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
+static void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
 {
     if ((p && p->pktvar) || (f && f->flowvar)) {
         json_t *js_vars = json_object();
@@ -382,6 +382,14 @@ void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
 
             json_object_set_new(js, "metadata", js_vars);
         }
+    }
+}
+
+void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
+        const Packet *p, const Flow *f, json_t *js)
+{
+    if (cfg->include_metadata) {
+        JsonAddMetadata(p, f, js);
     }
 }
 

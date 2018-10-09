@@ -93,9 +93,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    if (drop_ctx->cfg.include_metadata) {
-        JsonAddMetadata(p, p->flow, js);
-    }
+    JsonAddCommonOptions(&drop_ctx->cfg, p, p->flow, js);
 
     json_t *djs = json_object();
     if (unlikely(djs == NULL)) {

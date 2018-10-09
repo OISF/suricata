@@ -1029,9 +1029,8 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
-        if (dnslog_ctx->cfg.include_metadata) {
-            JsonAddMetadata(p, f, js);
-        }
+        JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
+
         json_t *dns = rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags);
         if (unlikely(dns == NULL)) {
             json_decref(js);
@@ -1049,9 +1048,8 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         js = CreateJSONHeader(p, LOG_DIR_PACKET, "dns");
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
-        if (dnslog_ctx->include_metadata) {
-            JsonAddMetadata(p, f, js);
-        }
+
+        JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
 
         LogQuery(td, js, tx, tx_id, query);
 
@@ -1078,9 +1076,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    if (dnslog_ctx->cfg.include_metadata) {
-        JsonAddMetadata(p, f, js);
-    }
+    JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
 
 #if HAVE_RUST
     if (td->dnslog_ctx->version == DNS_VERSION_2) {

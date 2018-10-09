@@ -382,9 +382,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    if (tls_ctx->cfg.include_metadata) {
-        JsonAddMetadata(p, f, js);
-    }
+    JsonAddCommonOptions(&tls_ctx->cfg, p, f, js);
 
     json_t *tjs = json_object();
     if (tjs == NULL) {

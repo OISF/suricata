@@ -109,9 +109,7 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     if (unlikely(js == NULL))
         return 0;
 
-    if (ssh_ctx->cfg.include_metadata) {
-        JsonAddMetadata(p, f, js);
-    }
+    JsonAddCommonOptions(&ssh_ctx->cfg, p, f, js);
 
     json_t *tjs = json_object();
     if (tjs == NULL) {

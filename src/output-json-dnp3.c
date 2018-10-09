@@ -316,9 +316,9 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
-        if (thread->dnp3log_ctx->cfg.include_metadata) {
-            JsonAddMetadata(p, f, js);
-        }
+
+        JsonAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
+
         json_t *dnp3js = JsonDNP3LogRequest(tx);
         if (dnp3js != NULL) {
             json_object_set_new(js, "dnp3", dnp3js);
@@ -345,9 +345,9 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
-        if (thread->dnp3log_ctx->cfg.include_metadata) {
-            JsonAddMetadata(p, f, js);
-        }
+
+        JsonAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
+
         json_t *dnp3js = JsonDNP3LogResponse(tx);
         if (dnp3js != NULL) {
             json_object_set_new(js, "dnp3", dnp3js);
