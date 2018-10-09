@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -87,7 +87,7 @@ void OutputJsonRegister (void)
 #define MODULE_NAME "OutputJSON"
 
 #define OUTPUT_BUFFER_SIZE 65536
-#define MAX_JSON_SIZE 2048 
+#define MAX_JSON_SIZE 2048
 
 static void OutputJsonDeInitCtx(OutputCtx *);
 
@@ -417,12 +417,9 @@ void JsonTcpFlags(uint8_t flags, json_t *js)
  */
 void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
 {
-    char srcip[46], dstip[46];
+    char srcip[46] = "", dstip[46] = "";
     Port sp, dp;
     char proto[16];
-
-    srcip[0] = '\0';
-    dstip[0] = '\0';
 
     switch (dir) {
         case LOG_DIR_PACKET:
@@ -700,7 +697,12 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
 OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
-    OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));;
+
+    OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_ctx == NULL)) {
+        SCLogDebug("could not create new OutputJsonCtx");
+        return result;
+    }
 
     /* First lookup a sensor-name value in this outputs configuration
      * node (deprecated). If that fails, lookup the global one. */
@@ -712,11 +714,6 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
     }
     else {
         (void)ConfGet("sensor-name", &sensor_name);
-    }
-
-    if (unlikely(json_ctx == NULL)) {
-        SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");
-        return result;
     }
 
     json_ctx->file_ctx = LogFileNewCtx();
@@ -866,7 +863,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             if (ByteExtractStringUint64((uint64_t *)&sensor_id, 10, 0, sensor_id_s) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Failed to initialize JSON output, "
-                           "invalid sensor-is: %s", sensor_id_s);
+                           "invalid sensor-id: %s", sensor_id_s);
                 exit(EXIT_FAILURE);
             }
         }
