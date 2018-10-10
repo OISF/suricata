@@ -30,6 +30,10 @@
 *
 */
 
+
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
+#define SC_PCAP_DONT_INCLUDE_PCAP_H 1
+
 #include "suricata-common.h"
 #include "config.h"
 #include "suricata.h"
@@ -42,6 +46,7 @@
 #include "tm-threads.h"
 #include "tm-threads-common.h"
 #include "conf.h"
+#include "util-bpf.h"
 #include "util-debug.h"
 #include "util-device.h"
 #include "util-error.h"
@@ -616,7 +621,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
     if (aconf->in.bpf_filter) {
         SCLogConfig("Using BPF '%s' on iface '%s'",
                   aconf->in.bpf_filter, ntv->ifsrc->ifname);
-        if (pcap_compile_nopcap(default_packet_size,  /* snaplen_arg */
+        if (SCBPFCompile(default_packet_size,  /* snaplen_arg */
                     LINKTYPE_ETHERNET,    /* linktype_arg */
                     &ntv->bpf_prog,       /* program */
                     aconf->in.bpf_filter, /* const char *buf */
@@ -952,7 +957,7 @@ static TmEcode ReceiveNetmapThreadDeinit(ThreadVars *tv, void *data)
         ntv->ifdst = NULL;
     }
     if (ntv->bpf_prog.bf_insns) {
-        pcap_freecode(&ntv->bpf_prog);
+        SCBPFFree(&ntv->bpf_prog);
     }
 
     SCReturnInt(TM_ECODE_OK);
