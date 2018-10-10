@@ -85,6 +85,8 @@ struct bpf_program {
 #include <pcap/pcap.h>
 #endif
 
+#include "util-bpf.h"
+
 #if HAVE_LINUX_IF_ETHER_H
 #include <linux/if_ether.h>
 #endif
@@ -2254,7 +2256,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     SCLogInfo("Using BPF '%s' on iface '%s'",
               ptv->bpf_filter,
               ptv->iface);
-    if (pcap_compile_nopcap(default_packet_size,  /* snaplen_arg */
+    if (SCBPFCompile(default_packet_size,  /* snaplen_arg */
                 ptv->datalink,    /* linktype_arg */
                 &filter,       /* program */
                 ptv->bpf_filter, /* const char *buf */
@@ -2269,7 +2271,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 
     if (filter.bf_insns == NULL) {
         SCLogError(SC_ERR_AFP_CREATE, "Filter badly setup.");
-        pcap_freecode(&filter);
+        SCBPFFree(&filter);
         return TM_ECODE_FAILED;
     }
 
@@ -2278,7 +2280,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 
     rc = setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_FILTER, &fcode, sizeof(fcode));
 
-    pcap_freecode(&filter);
+    SCBPFFree(&filter);
     if(rc == -1) {
         SCLogError(SC_ERR_AFP_CREATE, "Failed to attach filter: %s", strerror(errno));
         return TM_ECODE_FAILED;
