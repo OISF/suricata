@@ -85,6 +85,8 @@ struct bpf_program {
 #include <pcap/pcap.h>
 #endif
 
+#include "util-bpf.h"
+
 #if HAVE_LINUX_IF_ETHER_H
 #include <linux/if_ether.h>
 #endif
@@ -176,9 +178,6 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #ifndef TP_STATUS_VLAN_VALID
 #define TP_STATUS_VLAN_VALID (1 << 4)
 #endif
-
-/** protect pfring_set_bpf_filter, as it is not thread safe */
-static SCMutex afpacket_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 
 enum {
     AFP_READ_OK,
@@ -2206,7 +2205,6 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 
     TmEcode rc = AFPSetBPFFilter(ptv);
     if (rc == TM_ECODE_FAILED) {
-        SCLogError(SC_ERR_AFP_CREATE, "Set AF_PACKET bpf filter \"%s\" failed.", ptv->bpf_filter);
         ret = AFP_FATAL_ERROR;
         goto socket_err;
     }
@@ -2249,27 +2247,22 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     if (!ptv->bpf_filter)
         return TM_ECODE_OK;
 
-    SCMutexLock(&afpacket_bpf_set_filter_lock);
-
     SCLogInfo("Using BPF '%s' on iface '%s'",
               ptv->bpf_filter,
               ptv->iface);
-    if (pcap_compile_nopcap(default_packet_size,  /* snaplen_arg */
+
+    char errbuf[PCAP_ERRBUF_SIZE];
+    if (SCBPFCompile(default_packet_size,  /* snaplen_arg */
                 ptv->datalink,    /* linktype_arg */
                 &filter,       /* program */
                 ptv->bpf_filter, /* const char *buf */
                 1,             /* optimize */
-                0              /* mask */
-                ) == -1) {
-        SCLogError(SC_ERR_AFP_CREATE, "Filter compilation failed.");
-        SCMutexUnlock(&afpacket_bpf_set_filter_lock);
-        return TM_ECODE_FAILED;
-    }
-    SCMutexUnlock(&afpacket_bpf_set_filter_lock);
-
-    if (filter.bf_insns == NULL) {
-        SCLogError(SC_ERR_AFP_CREATE, "Filter badly setup.");
-        pcap_freecode(&filter);
+                0,              /* mask */
+                errbuf,
+                sizeof(errbuf)) == -1) {
+        SCLogError(SC_ERR_AFP_CREATE, "Failed to compile BPF \"%s\": %s",
+                   ptv->bpf_filter,
+                   errbuf);
         return TM_ECODE_FAILED;
     }
 
@@ -2278,7 +2271,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 
     rc = setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_FILTER, &fcode, sizeof(fcode));
 
-    pcap_freecode(&filter);
+    SCBPFFree(&filter);
     if(rc == -1) {
         SCLogError(SC_ERR_AFP_CREATE, "Failed to attach filter: %s", strerror(errno));
         return TM_ECODE_FAILED;
