@@ -65,7 +65,7 @@
 typedef struct JsonDropOutputCtx_ {
     LogFileCtx *file_ctx;
     uint8_t flags;
-    bool include_metadata;
+    OutputJsonCommonSettings cfg;
 } JsonDropOutputCtx;
 
 typedef struct JsonDropLogThread_ {
@@ -93,9 +93,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    if (drop_ctx->include_metadata) {
-        JsonAddMetadata(p, p->flow, js);
-    }
+    JsonAddCommonOptions(&drop_ctx->cfg, p, p->flow, js);
 
     json_t *djs = json_object();
     if (unlikely(djs == NULL)) {
@@ -357,7 +355,7 @@ static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_
     }
 
     drop_ctx->file_ctx = ajt->file_ctx;
-    drop_ctx->include_metadata = ajt->include_metadata;
+    drop_ctx->cfg = ajt->cfg;
 
     output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtxSub;

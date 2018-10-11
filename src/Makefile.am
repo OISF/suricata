@@ -343,6 +343,7 @@ output-stats.c output-stats.h \
 output-streaming.c output-streaming.h \
 output-tx.c output-tx.h \
 output-json.c output-json.h \
+output-json-common.c \
 packet-queue.c packet-queue.h \
 pkt-var.c pkt-var.h \
 reputation.c reputation.h \
