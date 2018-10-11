@@ -81,7 +81,9 @@ include = [
 # default: []
 exclude = [
     "AppLayerDecoderEvents",
+    "AppLayerEventType",
     "AppLayerParserState",
+    "AppProto",
     "CLuaState",
     "DetectEngineState",
     "Flow",
@@ -93,6 +95,7 @@ exclude = [
     "KRB5Transaction",
     "NTPState",
     "NTPTransaction",
+    "Packet",
     "SNMPState",
     "SNMPTransaction",
     "SuricataContext",
@@ -115,7 +118,7 @@ exclude = [
 # * "functions":
 #
 # default: []
-item_types = ["enums","structs","opaque","functions"]
+item_types = ["enums","structs","opaque","functions","typedefs"]
 
 # Whether applying rules in export.rename prevents export.prefix from applying.
 #

@@ -72,7 +72,7 @@ void TmqhOutputPacketpool(ThreadVars *, Packet *);
 void TmqhReleasePacketsToPacketPool(PacketQueue *);
 void TmqhPacketpoolRegister(void);
 Packet *PacketPoolGetPacket(void);
-void PacketPoolWait(void);
+int PacketPoolWait(void);
 void PacketPoolWaitForN(int n);
 void PacketPoolReturnPacket(Packet *p);
 void PacketPoolInit(void);

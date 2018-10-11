@@ -112,6 +112,8 @@ static TAILQ_HEAD(, OutputFreeList_) output_free_list =
 static const char *RunModeTranslateModeToName(int runmode)
 {
     switch (runmode) {
+        case RUNMODE_IPC:
+            return "IPC";
         case RUNMODE_PCAP_DEV:
             return "PCAP_DEV";
         case RUNMODE_PCAP_FILE:
@@ -210,6 +212,7 @@ void RunModeRegisterRunModes(void)
 {
     memset(runmodes, 0, sizeof(runmodes));
 
+    RunModeIpcRegister();
     RunModeIdsPcapRegister();
     RunModeFilePcapRegister();
     RunModeIdsPfringRegister();
@@ -290,6 +293,9 @@ void RunModeDispatch(int runmode, const char *custom_mode)
 
     if (custom_mode == NULL || strcmp(custom_mode, "auto") == 0) {
         switch (runmode) {
+            case RUNMODE_IPC:
+                custom_mode = RunModeIpcGetDefaultMode();
+                break;
             case RUNMODE_PCAP_DEV:
                 custom_mode = RunModeIdsGetDefaultMode();
                 break;
@@ -501,6 +507,17 @@ bool IsRunModeSystem(enum RunModes run_mode_to_check)
     }
 }
 
+bool RunModeBlockingWrites(enum RunModes run_mode_to_check)
+{
+    switch(run_mode_to_check) {
+        case RUNMODE_IPC:
+            return true;
+            break;
+        default:
+            return !IsRunModeOffline(run_mode_to_check);
+    }
+}
+
 bool IsRunModeOffline(enum RunModes run_mode_to_check)
 {
     switch(run_mode_to_check) {
@@ -509,6 +526,7 @@ bool IsRunModeOffline(enum RunModes run_mode_to_check)
         case RUNMODE_ERF_FILE:
         case RUNMODE_ENGINE_ANALYSIS:
         case RUNMODE_UNIX_SOCKET:
+        case RUNMODE_IPC:
             return true;
             break;
         default:

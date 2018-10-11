@@ -391,6 +391,7 @@ typedef struct PktProfiling_ {
 /* forward declaration since Packet struct definition requires this */
 struct PacketQueue_;
 
+typedef void (*OnExtPacketRelease)(void *user);
 /* sizes of the members:
  * src: 17 bytes
  * dst: 17 bytes
@@ -550,7 +551,9 @@ typedef struct Packet_
 
     /* storage: set to pointer to heap and extended via allocation if necessary */
     uint32_t pktlen;
-    uint8_t *ext_pkt;
+    const uint8_t *ext_pkt;
+    OnExtPacketRelease on_ext_pkt_release;
+    void *ext_pkt_user_data;
 
     /* Incoming interface */
     struct LiveDevice_ *livedev;
@@ -709,13 +712,19 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
     } while (0)
 
 /* if p uses extended data, free them */
-#define PACKET_FREE_EXTDATA(p) do {                 \
-        if ((p)->ext_pkt) {                         \
-            if (!((p)->flags & PKT_ZERO_COPY)) {    \
-                SCFree((p)->ext_pkt);               \
-            }                                       \
-            (p)->ext_pkt = NULL;                    \
-        }                                           \
+#define PACKET_FREE_EXTDATA(p) do {                                 \
+        if ((p)->ext_pkt) {                                         \
+            if((p)->on_ext_pkt_release && (p)->ext_pkt_user_data) { \
+                (p)->on_ext_pkt_release((p)->ext_pkt_user_data);    \
+                (p)->on_ext_pkt_release = NULL;                     \
+                (p)->ext_pkt_user_data = NULL;                      \
+            }                                                       \
+            if (!((p)->flags & PKT_ZERO_COPY)) {                    \
+                SCLogInfo("Freeing ext packet");                    \
+                SCFree((p)->ext_pkt);                               \
+            }                                                       \
+            (p)->ext_pkt = NULL;                                    \
+        }                                                           \
     } while(0)
 
 /**
@@ -905,6 +914,9 @@ void PacketFreeOrRelease(Packet *p);
 int PacketCallocExtPkt(Packet *p, int datalen);
 int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen);
 int PacketSetData(Packet *p, const uint8_t *pktdata, uint32_t pktlen);
+int PacketSetDataWithRelease(Packet *p, uint8_t *pktdata, uint32_t pktlen,
+        uint32_t linktype, uint32_t ts_sec, uint32_t ts_usec, OnExtPacketRelease on_release,
+        uint8_t *userdata);
 int PacketCopyDataOffset(Packet *p, uint32_t offset, const uint8_t *data, uint32_t datalen);
 const char *PktSrcToString(enum PktSrcEnum pkt_src);
 void PacketBypassCallback(Packet *p);

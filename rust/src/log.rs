@@ -78,8 +78,8 @@ macro_rules!function {
 macro_rules!do_log {
     ($level:expr, $file:expr, $line:expr, $function:expr, $code:expr,
      $($arg:tt)*) => {
-        if get_log_level() >= $level as i32 {
-            sclog($level, $file, $line, $function, $code,
+        if crate::log::get_log_level() >= $level as i32 {
+            crate::log::sclog($level, $file, $line, $function, $code,
                   &(format!($($arg)*)));
         }
     }
@@ -88,28 +88,28 @@ macro_rules!do_log {
 #[macro_export]
 macro_rules!SCLogNotice {
     ($($arg:tt)*) => {
-        do_log!(Level::Notice, file!(), line!(), function!(), 0, $($arg)*);
+        do_log!(crate::log::Level::Notice, file!(), line!(), function!(), 0, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogInfo {
     ($($arg:tt)*) => {
-        do_log!(Level::Info, file!(), line!(), function!(), 0, $($arg)*);
+        do_log!(crate::log::Level::Info, file!(), line!(), function!(), 0, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogPerf {
     ($($arg:tt)*) => {
-        do_log!(Level::Perf, file!(), line!(), function!(), 0, $($arg)*);
+        do_log!(crate::log::Level::Perf, file!(), line!(), function!(), 0, $($arg)*);
     }
 }
 
 #[macro_export]
 macro_rules!SCLogConfig {
     ($($arg:tt)*) => {
-        do_log!(Level::Config, file!(), line!(), function!(), 0, $($arg)*);
+        do_log!(crate::log::Level::Config, file!(), line!(), function!(), 0, $($arg)*);
     }
 }
 
@@ -118,7 +118,7 @@ macro_rules!SCLogConfig {
 #[macro_export]
 macro_rules!SCLogDebug {
     ($($arg:tt)*) => {
-        do_log!(Level::Debug, file!(), line!(), function!(), 0, $($arg)*);
+        do_log!(crate::log::Level::Debug, file!(), line!(), function!(), 0, $($arg)*);
     }
 }
 
@@ -127,7 +127,7 @@ macro_rules!SCLogDebug {
 #[cfg(not(feature = "debug"))]
 #[macro_export]
 macro_rules!SCLogDebug {
-    ($last:expr) => { let _ = &$last; let _ = Level::Debug; };
+    ($last:expr) => { let _ = &$last; let _ = crate::log::Level::Debug; };
     ($one:expr, $($arg:tt)*) => { let _ = &$one; SCLogDebug!($($arg)*); };
 }
 

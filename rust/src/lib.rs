@@ -41,6 +41,8 @@ extern crate kerberos_parser;
 extern crate tls_parser;
 extern crate x509_parser;
 
+extern crate packet_ipc;
+
 #[macro_use]
 pub mod log;
 
@@ -80,3 +82,4 @@ pub mod applayertemplate;
 pub mod rdp;
 pub mod x509;
 pub mod ssh;
+pub mod ipc;
