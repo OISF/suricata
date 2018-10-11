@@ -54,7 +54,7 @@
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
-    bool include_metadata;
+    OutputJsonCommonSettings cfg;
 } LogJsonFileCtx;
 
 typedef struct JsonFlowLogThread_ {
@@ -277,9 +277,7 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
 
     json_object_set_new(js, "flow", hjs);
 
-    if (flow_ctx->include_metadata) {
-        JsonAddMetadata(NULL, f, js);
-    }
+    JsonAddCommonOptions(&flow_ctx->cfg, NULL, f, js);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {
@@ -444,7 +442,7 @@ static OutputInitResult OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_c
     }
 
     flow_ctx->file_ctx = ojc->file_ctx;
-    flow_ctx->include_metadata = ojc->include_metadata;
+    flow_ctx->cfg = ojc->cfg;
 
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputFlowLogDeinitSub;

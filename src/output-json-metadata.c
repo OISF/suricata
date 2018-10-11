@@ -71,6 +71,7 @@
 
 typedef struct MetadataJsonOutputCtx_ {
     LogFileCtx* file_ctx;
+    OutputJsonCommonSettings cfg;
 } MetadataJsonOutputCtx;
 
 typedef struct JsonMetadataLogThread_ {
@@ -86,7 +87,7 @@ static int MetadataJson(ThreadVars *tv, JsonMetadataLogThread *aft, const Packet
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    JsonAddMetadata(p, p->flow, js);
+    JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
     OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
     json_object_del(js, "metadata");
     json_object_clear(js);
@@ -214,6 +215,7 @@ static OutputInitResult JsonMetadataLogInitCtx(ConfNode *conf)
     memset(json_output_ctx, 0, sizeof(MetadataJsonOutputCtx));
 
     json_output_ctx->file_ctx = logfile_ctx;
+    json_output_ctx->cfg.include_metadata = true;
 
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonMetadataLogDeInitCtx;
@@ -245,6 +247,9 @@ static OutputInitResult JsonMetadataLogInitCtxSub(ConfNode *conf, OutputCtx *par
     memset(json_output_ctx, 0, sizeof(MetadataJsonOutputCtx));
 
     json_output_ctx->file_ctx = ajt->file_ctx;
+    json_output_ctx->cfg = ajt->cfg;
+    /* override config setting as this logger is about metadata */
+    json_output_ctx->cfg.include_metadata = true;
 
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonMetadataLogDeInitCtxSub;
