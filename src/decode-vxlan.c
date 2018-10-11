@@ -28,6 +28,9 @@
 #include "decode-vxlan.h"
 #include "decode-events.h"
 #include "decode-udp.h"
+
+#include "decode-ethernet.h"
+
 #include "flow.h"
 
 #include "util-unittest.h"
@@ -39,22 +42,7 @@
 
 
 
-#define VXLAN_HEADER_LEN         4
-#define VXLAN_PW_LEN             4
-#define VXLAN_MAX_RESERVED_LABEL 15
-
-#define VXLAN_LABEL_IPV4         0
-#define VXLAN_LABEL_ROUTER_ALERT 1
-#define VXLAN_LABEL_IPV6         2
-#define VXLAN_LABEL_NULL         3
-
-#define VXLAN_LABEL(shim)        SCNtohl(shim) >> 12
-#define VXLAN_BOTTOM(shim)       ((SCNtohl(shim) >> 8) & 0x1)
-
-/* Inner protocol guessing values. */
-#define VXLAN_PROTO_ETHERNET_PW  0
-#define VXLAN_PROTO_IPV4         4
-#define VXLAN_PROTO_IPV6         6
+#define VXLAN_HEADER_LEN         8
 
 static bool g_vxlan_enabled = true;
 
@@ -79,16 +67,11 @@ static int DecodeVXLANPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t le
 
     p->udph = (UDPHdr *)pkt;
 
-    SCLogDebug("VXLAN testing length %" PRIu16 " length %" PRIu16, len, UDP_GET_LEN(p));
-
     SET_UDP_SRC_PORT(p,&p->sp);
     SET_UDP_DST_PORT(p,&p->dp);
 
-    SCLogDebug("VXLAN testing src port %" PRIu16 " -> dst port: %" PRIu16 , p->sp, p->dp );
-
     p->payload = pkt + UDP_HEADER_LEN;
     p->payload_len = len - UDP_HEADER_LEN;
-
     p->proto = IPPROTO_UDP;
 
     return 0;
@@ -109,39 +92,42 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
 
     int event = 0;
 
-    StatsIncr(tv, dtv->counter_vxlan);
-
-
-    SCLogDebug("letshitgo on the decode!");
 
     if (unlikely(DecodeVXLANPacket(tv, p,pkt,len) < 0)) {
         p->udph = NULL;
         return TM_ECODE_FAILED;
     }
+    StatsIncr(tv, dtv->counter_vxlan);
 
-        SCLogDebug("VXLAN UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "",
+    SCLogDebug("VXLAN UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "",
             UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
 
     /* VXLAN encapsulate Layer 2 in UDP, most likely IPv4 and IPv6  */
 
-
+    p->ethh = (EthernetHdr *)(pkt + UDP_HEADER_LEN + VXLAN_HEADER_LEN);
+    SCLogDebug("VXLAN Ethertype 0x%04x", SCNtohs(p->ethh->eth_type));
     /* Best guess at inner packet. */
-/*    switch (pkt[0] >> 4) {
-    case VXLAN_PROTO_IPV4:
-        DecodeIPV4(tv, dtv, p, pkt, len, pq);
+    switch (SCNtohs(p->ethh->eth_type)) {
+    case ETHERNET_TYPE_ARP:
+        SCLogDebug("VXLAN found ARP");
         break;
-    case VXLAN_PROTO_IPV6:
-        DecodeIPV6(tv, dtv, p, pkt, len, pq);
+    case ETHERNET_TYPE_IP:
+        SCLogDebug("VXLAN found IPv4");
+        /* DecodeIPV4(tv, dtv, p, pkt, len, pq); */
         break;
-    case VXLAN_PROTO_ETHERNET_PW:
-        DecodeEthernet(tv, dtv, p, pkt + VXLAN_PW_LEN, len - VXLAN_PW_LEN,
-            pq);
+    case ETHERNET_TYPE_IPV6:
+        SCLogDebug("VXLAN found IPv6");
+        /* DecodeIPV6(tv, dtv, p, pkt, len, pq); */
         break;
     default:
-        ENGINE_SET_INVALID_EVENT(p, VXLAN_UNKNOWN_PAYLOAD_TYPE);
-        return TM_ECODE_OK;
+        SCLogDebug("VXLAN found no known Ethertype - only checks for IPv4, IPv6, ARP");
+        /* ENGINE_SET_INVALID_EVENT(p, VXLAN_UNKNOWN_PAYLOAD_TYPE);*/
+        /* return TM_ECODE_OK; */
     }
-*/
+
+    SCLogDebug("VXLAN trying to decode with Ethernet");
+    DecodeEthernet(tv, dtv, p, pkt + UDP_HEADER_LEN + VXLAN_HEADER_LEN,
+      len - UDP_HEADER_LEN - VXLAN_HEADER_LEN, pq);
 
 end:
     if (event) {
@@ -186,7 +172,6 @@ static int DecodeVXLANtest01 (void)
     memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    SCLogDebug("VXLAN testing packet length %" PRIu64, sizeof(raw_vxlan));
     FlowInitConfig(FLOW_QUIET);
     DecodeVXLAN(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan), NULL);
 
