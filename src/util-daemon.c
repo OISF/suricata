@@ -175,6 +175,9 @@ int CheckValidDaemonModes (int daemon, int mode)
 {
     if (daemon) {
         switch (mode) {
+            case RUNMODE_IPC:
+                SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: ipc mode cannot run as daemon");
+                return 0;
             case RUNMODE_PCAP_FILE:
                 SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: pcap offline mode cannot run as daemon");
                 return 0;

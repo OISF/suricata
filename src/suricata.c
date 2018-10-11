@@ -83,6 +83,8 @@
 
 #include "source-nflog.h"
 
+#include "source-ipc.h"
+
 #include "source-ipfw.h"
 
 #include "source-pcap.h"
@@ -597,6 +599,7 @@ static void PrintUsage(const char *progname)
     printf("\t--dump-config                        : show the running configuration\n");
     printf("\t--dump-features                      : display provided features\n");
     printf("\t--build-info                         : display build information\n");
+    printf("\t--ipc=<ipc-server-name>              : run in ipc mode, using named ipc server\n");
     printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces from suricata.yaml\n");
     printf("\t--pcap-file-continuous               : when running in pcap mode with a directory, continue checking directory for pcaps until interrupted\n");
     printf("\t--pcap-file-delete                   : when running in replay mode (-r with directory or file), will delete pcap files that have been processed when done\n");
@@ -850,6 +853,9 @@ void RegisterAllModules(void)
     TmModuleReceiveIPFWRegister();
     TmModuleVerdictIPFWRegister();
     TmModuleDecodeIPFWRegister();
+    /* ipc mode */
+    TmModuleReceiveIpcRegister();
+    TmModuleDecodeIpcRegister();
     /* pcap live */
     TmModuleReceivePcapRegister();
     TmModuleDecodePcapRegister();
@@ -1191,6 +1197,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"pfring-cluster-type", required_argument, 0, 0},
         {"af-packet", optional_argument, 0, 0},
         {"netmap", optional_argument, 0, 0},
+        {"ipc", required_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
         {"pcap-file-continuous", 0, 0, 0},
         {"pcap-file-delete", 0, 0, 0},
@@ -1329,7 +1336,24 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 SCLogError(SC_ERR_NFLOG_NOSUPPORT, "NFLOG not enabled.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_NFLOG */
-            } else if (strcmp((long_opts[option_index]).name , "pcap") == 0) {
+            } else if (strcmp((long_opts[option_index]).name , "ipc") == 0) {
+                if (optarg) {
+                    SCLogInfo("Using ipc server %s", optarg);
+                    if (ConfSetFinal("ipc.server", optarg) != 1) {
+                        fprintf(stderr, "ERROR: Failed to set ipc.server\n");
+                        return TM_ECODE_FAILED;
+                    }
+                }
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_IPC;
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                     "has been specified");
+                    PrintUsage(suri->progname);
+                    return TM_ECODE_FAILED;
+                }
+                return TM_ECODE_OK;
+            }  else if (strcmp((long_opts[option_index]).name , "pcap") == 0) {
                 if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
@@ -2642,6 +2666,8 @@ int InitGlobal(void) {
     context.FileContainerRecycle = FileContainerRecycle;
     context.FilePrune = FilePrune;
     context.FileSetTx = FileContainerSetTx;
+
+    context.SetPacketData = PacketSetDataWithRelease;
 
     rs_init(&context);
 

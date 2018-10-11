@@ -316,7 +316,6 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
 
     /* process all pseudo packets the flow timeout may throw at us */
     TmThreadTimeoutLoop(tv, s);
-
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
@@ -330,6 +329,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
         if (slot->SlotThreadDeinit != NULL) {
             r = slot->SlotThreadDeinit(tv, SC_ATOMIC_GET(slot->slot_data));
             if (r != TM_ECODE_OK) {
+                SCLogInfo("%s was not ok", tv->name);
                 TmThreadsSetFlag(tv, THV_CLOSED);
                 goto error;
             }

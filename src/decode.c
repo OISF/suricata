@@ -166,8 +166,12 @@ void PacketFreeOrRelease(Packet *p)
 {
     if (p->flags & PKT_ALLOC)
         PacketFree(p);
-    else
+    else {
+        if (p->flags & PKT_ZERO_COPY) {
+            PACKET_FREE_EXTDATA((p));
+        }
         PacketPoolReturnPacket(p);
+    }
 }
 
 /**
@@ -200,6 +204,8 @@ inline int PacketCallocExtPkt(Packet *p, int datalen)
             SET_PKT_LEN(p, 0);
             return -1;
         }
+        p->on_ext_pkt_release = NULL;
+        p->ext_pkt_user_data = NULL;
     }
     return 0;
 }
@@ -647,6 +653,10 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
     }
 }
 
+static void DefaultOnExtPacketRelease(void * packet_data) {
+
+}
+
 /**
  * \brief Set data for Packet and set length when zero copy is used
  *
@@ -654,15 +664,41 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
  *  \param Pointer to the data
  *  \param Length of the data
  */
-inline int PacketSetData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
-{
+inline int PacketSetData(Packet *p, const uint8_t *pktdata, uint32_t pktlen) {
+    return PacketSetDataWithRelease(
+            p,
+            pktdata,
+            pktlen,
+            LINKTYPE_ETHERNET,
+            0,
+            0,
+            DefaultOnExtPacketRelease,
+            NULL
+            );
+}
+
+inline int32_t PacketSetDataWithRelease(
+        Packet *p,
+        uint8_t *pktdata,
+        uint32_t pktlen,
+        uint32_t linktype,
+        uint32_t ts_sec,
+        uint32_t ts_usec,
+        OnExtPacketRelease on_release,
+        uint8_t *userdata
+) {
     SET_PKT_LEN(p, (size_t)pktlen);
     if (unlikely(!pktdata)) {
         return -1;
     }
-    // ext_pkt cannot be const (because we sometimes copy)
-    p->ext_pkt = (uint8_t *) pktdata;
+    memset(&p->ts, 0, sizeof(struct timeval));
+    p->datalink = linktype;
+    p->ts.tv_sec = ts_sec;
+    p->ts.tv_usec = ts_usec;
+    p->ext_pkt = (uint8_t *)pktdata;
     p->flags |= PKT_ZERO_COPY;
+    p->on_ext_pkt_release = on_release;
+    p->ext_pkt_user_data = userdata;
 
     return 0;
 }

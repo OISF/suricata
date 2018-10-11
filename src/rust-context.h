@@ -46,6 +46,17 @@ typedef struct SuricataContext_ {
     void (*FilePrune)(FileContainer *ffc);
     void (*FileSetTx)(FileContainer *, uint64_t);
 
+    int32_t (*SetPacketData)(
+            Packet *, //packet pointer
+            uint8_t *, //packet data
+            uint32_t,  //packet data length
+            uint32_t, //linktype
+            uint32_t, //ts_sec
+            uint32_t, //ts_usec
+            OnExtPacketRelease, //release function
+            uint8_t * //user data
+            );
+
 } SuricataContext;
 
 typedef struct SuricataFileContext_ {
