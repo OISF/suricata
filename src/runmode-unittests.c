@@ -162,6 +162,7 @@ static void RegisterUnittests(void)
     DecodeEthernetRegisterTests();
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
+    DecodeVXLANRegisterTests();
     DecodeRawRegisterTests();
     DecodePPPOERegisterTests();
     DecodeICMPV4RegisterTests();
@@ -336,4 +337,3 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     exit(EXIT_FAILURE);
 #endif /* UNITTESTS */
 }
-
