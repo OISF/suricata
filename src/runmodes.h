@@ -41,6 +41,7 @@ enum RunModes {
     RUNMODE_UNIX_SOCKET,
     RUNMODE_WINDIVERT,
     RUNMODE_PLUGIN,
+    RUNMODE_IPC,
     RUNMODE_USER_MAX, /* Last standard running mode */
     RUNMODE_LIST_KEYWORDS,
     RUNMODE_LIST_APP_LAYERS,
@@ -101,6 +102,7 @@ int RunModeNeedsBypassManager(void);
 #include "runmode-pcap-file.h"
 #include "runmode-pfring.h"
 #include "runmode-nfq.h"
+#include "runmode-ipc.h"
 #include "runmode-ipfw.h"
 #include "runmode-erf-file.h"
 #include "runmode-erf-dag.h"

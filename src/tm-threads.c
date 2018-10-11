@@ -328,7 +328,6 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
 
     /* process all pseudo packets the flow timeout may throw at us */
     TmThreadTimeoutLoop(tv, s);
-
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
