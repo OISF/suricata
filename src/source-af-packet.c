@@ -28,8 +28,6 @@
  *
  * AF_PACKET socket acquisition support
  *
- * \todo watch other interface event to detect suppression of the monitored
- *       interface
  */
 
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
