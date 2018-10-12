@@ -104,7 +104,7 @@ recommended.
       enabled: yes      # set to yes to enable
       log-dir: files    # directory to store the files
       force-magic: no   # force logging magic on all stored files
-      force-md5: no     # force logging of md5 checksums
+      force-hash: [md5] # force logging of md5 checksums
       stream-depth: 1mb # reassemble 1mb into a stream, set to no to disable
       waldo: file.waldo # waldo file to store the file_id across runs
       max-open-files: 0 # how many files to keep open (O means none)
@@ -129,7 +129,7 @@ output.
         append: yes
         #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
         force-magic: no   # force logging magic on all logged files
-        force-md5: no     # force logging of md5 checksums
+        force-hash: [md5] # force logging of md5 checksums
 
 
 Rules
