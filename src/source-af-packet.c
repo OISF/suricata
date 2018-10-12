@@ -28,8 +28,6 @@
  *
  * AF_PACKET socket acquisition support
  *
- * \todo watch other interface event to detect suppression of the monitored
- *       interface
  */
 
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
@@ -133,7 +131,6 @@ void TmModuleReceiveAFPRegister (void)
 
 /**
  * \brief Registration Function for DecodeAFP.
- * \todo Unit tests are needed for this module.
  */
 void TmModuleDecodeAFPRegister (void)
 {
