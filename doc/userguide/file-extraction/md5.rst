@@ -16,7 +16,7 @@ In the suricata yaml:
          enabled: yes       # set to yes to enable
          log-dir: files     # directory to store the files
          force-magic: yes   # force logging magic on all stored files
-         force-md5: yes     # force logging of md5 checksums
+         force-hash: [md5]  # force logging of md5 checksums
          #waldo: file.waldo # waldo file to store the file_id across runs
 
 Optionally, for JSON output:
@@ -128,7 +128,7 @@ If you would like to log MD5s for everything and anything that passes through th
       enabled: no       # set to yes to enable
       log-dir: files    # directory to store the files
       force-magic: yes   # force logging magic on all stored files
-      force-md5: yes     # force logging of md5 checksums
+      force-hash: [md5]  # force logging of md5 checksums
       #waldo: file.waldo # waldo file to store the file_id across runs
 
   - file-log:
@@ -137,5 +137,4 @@ If you would like to log MD5s for everything and anything that passes through th
       append: no
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
       force-magic: yes   # force logging magic on all logged files
-      force-md5: yes     # force logging of md5 checksums
-
+      force-hash: [md5]  # force logging of md5 checksums
