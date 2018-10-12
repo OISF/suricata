@@ -131,7 +131,6 @@ void TmModuleReceiveAFPRegister (void)
 
 /**
  * \brief Registration Function for DecodeAFP.
- * \todo Unit tests are needed for this module.
  */
 void TmModuleDecodeAFPRegister (void)
 {
