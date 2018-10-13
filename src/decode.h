@@ -386,6 +386,8 @@ typedef struct PktProfiling_ {
 /* forward declartion since Packet struct definition requires this */
 struct PacketQueue_;
 
+enum PktMode {PKT_MODE_IDS, PKT_MODE_IPS, PKT_MODE_AUTO};
+
 /* sizes of the members:
  * src: 17 bytes
  * dst: 17 bytes
@@ -447,6 +449,8 @@ typedef struct Packet_
     uint32_t flow_hash;
 
     struct timeval ts;
+
+    enum PktMode pkt_mode;
 
     union {
         /* nfq stuff */
@@ -918,6 +922,8 @@ int PacketCopyDataOffset(Packet *p, uint32_t offset, uint8_t *data, uint32_t dat
 const char *PktSrcToString(enum PktSrcEnum pkt_src);
 void PacketBypassCallback(Packet *p);
 void PacketSwap(Packet *p);
+int PacketModeIsIPS(const Packet *p);
+int PacketModeIsIDS(const Packet *p);
 
 DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *);
 void DecodeThreadVarsFree(ThreadVars *, DecodeThreadVars *);

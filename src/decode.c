@@ -261,6 +261,16 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
 }
 
+int PacketModeIsIPS(const Packet *p)
+{
+    return (p->pkt_mode == PKT_MODE_IPS);
+}
+
+int PacketModeIsIDS(const Packet *p)
+{
+    return (p->pkt_mode == PKT_MODE_IDS);
+}
+
 /**
  *  \brief Setup a pseudo packet (tunnel)
  *
@@ -292,6 +302,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
+    p->pkt_mode = parent->pkt_mode;
 
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL)
@@ -370,6 +381,8 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint32_t len, uint8_t
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
+    p->pkt_mode = parent->pkt_mode;
+
     /* tell new packet it's part of a tunnel */
     SET_TUNNEL_PKT(p);
     p->vlan_id[0] = parent->vlan_id[0];
