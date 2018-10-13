@@ -4728,11 +4728,13 @@ static int SigTestDropFlow03(void)
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
     p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->pkt_mode = PKT_MODE_IPS;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->pkt_mode = PKT_MODE_IPS;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);

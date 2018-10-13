@@ -160,7 +160,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
                 continue;
             }
             if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
-               ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
+               ((pa->action & ACTION_DROP) && PacketModeIsIPS(p)))
             {
                 AlertJsonHeader(NULL, p, pa, js, 0);
                 logged = 1;
@@ -406,8 +406,8 @@ static int JsonDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
  */
 static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
 {
-    if (!EngineModeIsIPS()) {
-        SCLogDebug("engine is not running in inline mode, so returning");
+    if (!PacketModeIsIPS(p)) {
+        SCLogDebug("packet is not running in inline mode, so returning");
         return FALSE;
     }
     if (PKT_IS_PSEUDOPKT(p)) {

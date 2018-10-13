@@ -308,7 +308,7 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, json_t *
     } else {
         if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
             action = "blocked";
-        } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
+        } else if ((pa->action & ACTION_DROP) && PacketModeIsIPS(p)) {
             action = "blocked";
         }
     }
@@ -658,7 +658,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
         const char *action = "allowed";
         if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
             action = "blocked";
-        } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
+        } else if ((pa->action & ACTION_DROP) && PacketModeIsIPS(p)) {
             action = "blocked";
         }
 

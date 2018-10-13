@@ -157,6 +157,7 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
 
+    p->pkt_mode = PKT_MODE_IDS;
     ph = nflog_get_msg_packet_hdr(nfa);
     if (ph != NULL) {
         p->nflog_v.hw_protocol = ph->hw_protocol;
