@@ -289,7 +289,7 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
         SCLogDebug("NFLOG netlink queue timeout can't be set to %d",
                     ntv->qtimeout);
 
-    ntv->livedev = LiveGetDevice(nflconfig->numgroup);
+    ntv->livedev = LiveGetDevice(nflconfig->numgroup, RUNMODE_NFLOG);
     if (ntv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
 	    SCFree(ntv);

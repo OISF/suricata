@@ -743,7 +743,7 @@ int IPFWRegisterQueue(char *queue)
     nq->port_num = port_num;
     receive_port_num++;
     SCMutexUnlock(&ipfw_init_lock);
-    LiveRegisterDeviceName(queue);
+    LiveRegisterDeviceName(queue, RUNMODE_IPFW);
 
     SCLogDebug("Queue \"%s\" registered.", queue);
     return 0;

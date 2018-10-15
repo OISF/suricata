@@ -212,7 +212,7 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
         exit(EXIT_FAILURE);
     }
 
-    ewtn->livedev = LiveGetDevice(initdata);
+    ewtn->livedev = LiveGetDevice(initdata, RUNMODE_ERF_DAG);
     if (ewtn->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to get %s live device",
             (char *)initdata);
