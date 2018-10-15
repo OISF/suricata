@@ -34,35 +34,37 @@ int RunModeSetLiveCaptureAuto(ConfigIfaceParserFunc configparser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               const char *recv_mod_name,
                               const char *decode_mod_name, const char *thread_name,
-                              const char *live_dev);
+                              const char *live_dev, enum RunModes runmode);
 
 int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc configparser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               const char *recv_mod_name,
                               const char *decode_mod_name, const char *thread_name,
-                              const char *live_dev);
+                              const char *live_dev, enum RunModes runmode);
 
 int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc configparser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               const char *recv_mod_name,
                               const char *decode_mod_name, const char *thread_name,
-                              const char *live_dev);
+                              const char *live_dev, enum RunModes runmode);
 
 int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc configparser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               const char *recv_mod_name,
                               const char *decode_mod_name, const char *thread_name,
-                              const char *live_dev);
+                              const char *live_dev, enum RunModes runmode);
 
 int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
                         const char *recv_mod_name,
                         const char *verdict_mod_name,
-                        const char *decode_mod_name);
+                        const char *decode_mod_name,
+                        enum RunModes runmode);
 
 int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
                         const char *recv_mod_name,
                         const char *verdict_mod_name,
-                        const char *decode_mod_name);
+                        const char *decode_mod_name,
+                        enum RunModes runmode);
 
 char *RunmodeAutoFpCreatePickupQueuesString(int n);
 
