@@ -268,7 +268,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *pr
     if (p->flow != NULL && p->proto == IPPROTO_TCP) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
         StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
-                STREAM_TOSERVER : STREAM_TOCLIENT);
+                STREAM_TOSERVER : STREAM_TOCLIENT, p);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_TCPPRUNE);
     }
 
