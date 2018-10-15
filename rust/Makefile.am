@@ -32,12 +32,12 @@ endif
 all-local:
 if HAVE_PYTHON
 	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) build $(RELEASE) $(FROZEN) \
-		--features "$(RUST_FEATURES)"
-else
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) build $(RELEASE) $(FROZEN) \
-		--features "$(RUST_FEATURES)"
 endif
+	cd $(top_srcdir)/rust && \
+		CARGO_HOME=$(CARGO_HOME) \
+		CARGO_TARGET_DIR=$(abs_top_builddir)/rust/target \
+		$(CARGO) build $(RELEASE) $(FROZEN) \
+			--features "$(RUST_FEATURES)"
 
 clean-local:
 	-rm -rf target
