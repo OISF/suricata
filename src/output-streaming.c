@@ -323,7 +323,7 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCReturnInt(TM_ECODE_OK);
     }
 
-    if (!(StreamTcpInlineMode())) {
+    if (!(StreamTcpInlineMode(p))) {
         if (PKT_IS_TOCLIENT(p)) {
             flags |= OUTPUT_STREAMING_FLAG_TOSERVER;
         } else {

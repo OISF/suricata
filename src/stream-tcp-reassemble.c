@@ -378,7 +378,9 @@ static int StreamTcpReassemblyConfig(char quiet)
     if (overlap_diff_data) {
         StreamTcpReassembleConfigEnableOverlapCheck();
     }
-    if (StreamTcpInlineMode() == TRUE) {
+    int stream_inline = 0;
+    ConfGetBool("stream.inline", &stream_inline);
+    if (stream_inline) {
         StreamTcpReassembleConfigEnableOverlapCheck();
     }
 
@@ -1042,7 +1044,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             stream, &stream->sb, mydata_len, app_progress);
 
     /* get window of data that is acked */
-    if (StreamTcpInlineMode() == FALSE) {
+    if (StreamTcpInlineMode(p) == FALSE) {
         if (p->flags & PKT_PSEUDO_STREAM_END) {
             // fall through, we use all available data
         } else {
@@ -1230,7 +1232,7 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
                          STREAMTCP_STREAM_FLAG_DISABLE_RAW))
         return false;
 
-    if (StreamTcpInlineMode() == FALSE) {
+    if (StreamTcpInlineMode(p) == FALSE) {
         if ((STREAM_RAW_PROGRESS(stream) == STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset)) {
             return false;
         }
@@ -1658,7 +1660,7 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
                         uint64_t *progress_out, bool respect_inspect_depth)
 {
     /* handle inline seperately as the logic is very different */
-    if (StreamTcpInlineMode() == TRUE) {
+    if (StreamTcpInlineMode(p) == TRUE) {
         return StreamReassembleRawInline(ssn, p, Callback, cb_data, progress_out);
     }
 
@@ -1732,7 +1734,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     /* default IDS: update opposing side (triggered by ACK) */
     enum StreamUpdateDir dir = UPDATE_DIR_OPPOSING;
     /* inline and stream end and flow timeout packets trigger same dir handling */
-    if (StreamTcpInlineMode()) {
+    if (StreamTcpInlineMode(p)) {
         dir = UPDATE_DIR_PACKET;
     } else if (p->flags & PKT_PSEUDO_STREAM_END) {
         dir = UPDATE_DIR_PACKET;
@@ -1792,7 +1794,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
      * functions to handle EOF */
     if (dir == UPDATE_DIR_PACKET || dir == UPDATE_DIR_BOTH) {
         SCLogDebug("inline (%s) or PKT_PSEUDO_STREAM_END (%s)",
-                StreamTcpInlineMode()?"true":"false",
+                StreamTcpInlineMode(p)?"true":"false",
                 (p->flags & PKT_PSEUDO_STREAM_END) ?"true":"false");
         if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p, dir) < 0) {
             SCReturnInt(-1);
@@ -2688,8 +2690,8 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
     FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
 
-    StreamTcpPruneSession(&f, STREAM_TOSERVER);
-    StreamTcpPruneSession(&f, STREAM_TOCLIENT);
+    StreamTcpPruneSession(&f, STREAM_TOSERVER, p);
+    StreamTcpPruneSession(&f, STREAM_TOCLIENT, p);
 
     /* request acking a response */
     p->tcph->th_ack = htonl(328);
@@ -3300,7 +3302,7 @@ static int StreamTcpReassembleInlineTest08(void)
     FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1);
     ssn.client.next_seq = 22;
     p->tcph->th_seq = htonl(17);
-    StreamTcpPruneSession(&f, STREAM_TOSERVER);
+    StreamTcpPruneSession(&f, STREAM_TOSERVER, p);
 
     TcpSegment *seg = RB_MIN(TCPSEG, &ssn.client.seg_tree);
     FAIL_IF_NULL(seg);
@@ -3426,6 +3428,7 @@ static int StreamTcpReassembleInlineTest10(void)
     p->tcph->th_seq = htonl(7);
     p->flow = f;
     p->flowflags = FLOW_PKT_TOSERVER;
+    p->pkt_mode = PKT_MODE_IPS;
 
     FLOWLOCK_WRLOCK(f);
     if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client,  2, stream_payload1, 2) == -1) {

@@ -230,7 +230,7 @@ static int DoHandleDataOverlap(TcpStream *stream, const TcpSegment *list,
     int data_is_different = 0;
     int use_new_data = 0;
 
-    if (StreamTcpInlineMode()) {
+    if (StreamTcpInlineMode(p)) {
         SCLogDebug("inline mode");
         if (StreamTcpInlineSegmentCompare(stream, p, list) != 0) {
             SCLogDebug("already accepted data not the same as packet data, rewrite packet");
@@ -665,7 +665,7 @@ static inline bool StreamTcpReturnSegmentCheck(const TcpStream *stream, const Tc
     SCReturnInt(true);
 }
 
-static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
+static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream, const Packet *p)
 {
     bool use_app = true;
     bool use_raw = true;
@@ -688,7 +688,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
     if (use_raw) {
         uint64_t raw_progress = STREAM_RAW_PROGRESS(stream);
 
-        if (StreamTcpInlineMode() == TRUE) {
+        if (StreamTcpInlineMode(p) == TRUE) {
             uint32_t chunk_size = (stream == &ssn->client) ?
                 stream_config.reassembly_toserver_chunk_size :
                 stream_config.reassembly_toclient_chunk_size;
@@ -738,7 +738,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
     }
 
     /* in inline mode keep at least unack'd segments so we can check for overlaps */
-    if (StreamTcpInlineMode() == TRUE) {
+    if (StreamTcpInlineMode(p) == TRUE) {
         uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
         if (STREAM_LASTACK_GT_BASESEQ(stream)) {
             /* get window of data that is acked */
@@ -798,7 +798,7 @@ static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
  *  \param f flow
  *  \param flags direction flags
  */
-void StreamTcpPruneSession(Flow *f, uint8_t flags)
+void StreamTcpPruneSession(Flow *f, uint8_t flags, const Packet *p)
 {
     SCEnter();
 
@@ -841,7 +841,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         return;
     }
 
-    const uint64_t left_edge = GetLeftEdge(ssn, stream);
+    const uint64_t left_edge = GetLeftEdge(ssn, stream, p);
     if (left_edge && left_edge > STREAM_BASE_OFFSET(stream)) {
         uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
         SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
