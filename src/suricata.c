@@ -947,7 +947,7 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
     /* run the selected runmode */
     if (runmode == RUNMODE_PCAP_DEV) {
         if (strlen(pcap_dev) == 0) {
-            int ret = LiveBuildDeviceList("pcap");
+            int ret = LiveBuildDeviceList("pcap", RUNMODE_PCAP_DEV);
             if (ret == 0) {
                 SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for pcap");
                 SCReturnInt(TM_ECODE_FAILED);
@@ -963,7 +963,7 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
             }
         } else {
             /* not an error condition if we have a 1.0 config */
-            LiveBuildDeviceList("pfring");
+            LiveBuildDeviceList("pfring", RUNMODE_PFRING);
         }
 #ifdef HAVE_AF_PACKET
     } else if (runmode == RUNMODE_AFP_DEV) {
@@ -974,7 +974,7 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
                 SCReturnInt(TM_ECODE_FAILED);
             }
         } else {
-            int ret = LiveBuildDeviceList("af-packet");
+            int ret = LiveBuildDeviceList("af-packet", RUNMODE_AFP_DEV);
             if (ret == 0) {
                 SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for af-packet");
                 SCReturnInt(TM_ECODE_FAILED);
@@ -990,7 +990,7 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
                 SCReturnInt(TM_ECODE_FAILED);
             }
         } else {
-            int ret = LiveBuildDeviceList("netmap");
+            int ret = LiveBuildDeviceList("netmap", RUNMODE_NETMAP);
             if (ret == 0) {
                 SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for netmap");
                 SCReturnInt(TM_ECODE_FAILED);
@@ -999,7 +999,7 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
 #endif
 #ifdef HAVE_NFLOG
     } else if (runmode == RUNMODE_NFLOG) {
-        int ret = LiveBuildDeviceListCustom("nflog", "group");
+        int ret = LiveBuildDeviceListCustom("nflog", "group", RUNMODE_NFLOG);
         if (ret == 0) {
             SCLogError(SC_ERR_INITIALIZATION, "No group found in config for nflog");
             SCReturnInt(TM_ECODE_FAILED);
@@ -1098,13 +1098,13 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
     if (suri->run_mode == RUNMODE_UNKNOWN) {
         suri->run_mode = RUNMODE_AFP_DEV;
         if (in_arg) {
-            LiveRegisterDeviceName(in_arg);
+            LiveRegisterDeviceName(in_arg, RUNMODE_AFP_DEV);
             memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
             strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
         }
     } else if (suri->run_mode == RUNMODE_AFP_DEV) {
         if (in_arg) {
-            LiveRegisterDeviceName(in_arg);
+            LiveRegisterDeviceName(in_arg, RUNMODE_AFP_DEV);
         } else {
             SCLogInfo("Multiple af-packet option without interface on each is useless");
         }
@@ -1148,10 +1148,10 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
     if (suri->run_mode == RUNMODE_UNKNOWN) {
         suri->run_mode = RUNMODE_PCAP_DEV;
         if (in_arg) {
-            LiveRegisterDeviceName(suri->pcap_dev);
+            LiveRegisterDeviceName(suri->pcap_dev, RUNMODE_PCAP_DEV);
         }
     } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
-        LiveRegisterDeviceName(suri->pcap_dev);
+        LiveRegisterDeviceName(suri->pcap_dev, RUNMODE_PCAP_DEV);
     } else {
         SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                 "has been specified");
@@ -1544,7 +1544,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     strlcpy(suri->pcap_dev, optarg,
                             ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                              (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    LiveRegisterDeviceName(optarg);
+                    LiveRegisterDeviceName(optarg, RUNMODE_PFRING);
                 }
 #else
                 SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
@@ -1586,7 +1586,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_NETMAP;
                     if (optarg) {
-                        LiveRegisterDeviceName(optarg);
+                        LiveRegisterDeviceName(optarg, RUNMODE_NETMAP);
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                         strlcpy(suri->pcap_dev, optarg,
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
@@ -1594,7 +1594,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     }
                 } else if (suri->run_mode == RUNMODE_NETMAP) {
                     if (optarg) {
-                        LiveRegisterDeviceName(optarg);
+                        LiveRegisterDeviceName(optarg, RUNMODE_NETMAP);
                     } else {
                         SCLogInfo("Multiple netmap option without interface on each is useless");
                         break;
@@ -1613,7 +1613,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NFLOG
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_NFLOG;
-                    LiveBuildDeviceListCustom("nflog", "group");
+                    LiveBuildDeviceListCustom("nflog", "group", RUNMODE_NFLOG);
                 }
 #else
                 SCLogError(SC_ERR_NFLOG_NOSUPPORT, "NFLOG not enabled.");
@@ -1747,7 +1747,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     PrintUsage(argv[0]);
                     return TM_ECODE_FAILED;
                 }
-                LiveRegisterDeviceName(optarg);
+                LiveRegisterDeviceName(optarg, RUNMODE_DAG);
 #else
                 SCLogError(SC_ERR_DAG_REQUIRED, "libdag and a DAG card are required"
 						" to receive packets using --dag.");
@@ -2472,9 +2472,9 @@ static int ConfigGetCaptureValue(SCInstance *suri)
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
             case RUNMODE_PFRING:
-                nlive = LiveGetDeviceCount();
+                nlive = LiveGetDeviceCount(RUNMODE_PFRING);
                 for (lthread = 0; lthread < nlive; lthread++) {
-                    const char *live_dev = LiveGetDeviceName(lthread);
+                    const char *live_dev = LiveGetDeviceName(lthread, RUNMODE_PFRING);
                     char dev[128]; /* need to be able to support GUID names on Windows */
                     (void)strlcpy(dev, live_dev, sizeof(dev));
 

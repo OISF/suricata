@@ -331,7 +331,7 @@ unlock:
         wd_num_str[sizeof(wd_num_str) - 1] = 0;
         snprintf(wd_num_str, sizeof(wd_num_str), "%" PRId16 "", g_wd_num);
 
-        LiveRegisterDevice(wd_num_str);
+        LiveRegisterDevice(wd_num_str, RUNMODE_WINDIVERT);
 
         SCLogDebug("Queue %" PRId16 " registered", wd_qv->queue_num);
     }
