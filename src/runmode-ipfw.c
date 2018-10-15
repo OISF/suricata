@@ -78,7 +78,8 @@ int RunModeIpsIPFWAutoFp(void)
     ret = RunModeSetIPSAutoFp(IPFWGetThread,
             "ReceiveIPFW",
             "VerdictIPFW",
-            "DecodeIPFW");
+            "DecodeIPFW",
+            RUNMODE_IPFW);
 #endif /* IPFW */
     return ret;
 }
@@ -98,7 +99,8 @@ int RunModeIpsIPFWWorker(void)
     ret = RunModeSetIPSWorker(IPFWGetThread,
             "ReceiveIPFW",
             "VerdictIPFW",
-            "DecodeIPFW");
+            "DecodeIPFW",
+            RUNMODE_IPFW);
 #endif /* IPFW */
     return ret;
 }
