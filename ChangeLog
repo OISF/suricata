@@ -1,3 +1,29 @@
+4.1.0-rc2 -- 2018-10-16
+
+Feature #2279: TLS 1.3 decoding, SNI extraction and logging
+Feature #2562: Add http_port in http eve-log if specified in the hostname
+Feature #2567: multi-tenancy: add 'device' selector
+Feature #2638: community flow id
+Optimization #2579: tcp: SegmentSmack
+Optimization #2580: ip: FragmentSmack
+Bug #2212: profiling: app-layer profiling shows time spent in HTTP on UDP
+Bug #2419: Increase size of length of Decoder handlers from uint16 to uint32
+Bug #2491: async-oneside and midstream not working as expected
+Bug #2522: The cross-effects of rules on each other, without the use of flowbits.
+Bug #2541: detect-parse: missing space in error message
+Bug #2552: "Drop" action is logged as "allowed" in af_packet and netmap modes
+Bug #2554: suricata does not detect a web-attack
+Bug #2555: Ensure strings in eve-log are json-encodable
+Bug #2558: negated fileext and filename do not work as expected
+Bug #2559: DCE based rule false positives
+Bug #2566: memleak: applayer dhcp with 4.1.0-dev (rev 9370805)
+Bug #2570: Signature affecting another's ability to detect and alert
+Bug #2571: coredump: liballoc/vec.rs dhcp
+Bug #2573: prefilter keyword doesn't work when detect.prefilter.default=mpm
+Bug #2574: prefilter keyword as alias for fast_pattern is broken
+Bug #2603: memleak/coredump: Ja3BufferInit
+Bug #2606: File descriptor leak in af-packet mode
+
 4.1.0-rc1 -- 2018-07-20
 
 Feature #2292: flow: add icmpv4 and improve icmpv6 flow handling
