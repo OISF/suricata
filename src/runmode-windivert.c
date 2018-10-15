@@ -65,7 +65,8 @@ int RunModeIpsWinDivertAutoFp(void)
     LiveDeviceHasNoStats();
 
     ret = RunModeSetIPSAutoFp(WinDivertGetThread, "ReceiveWinDivert",
-                              "VerdictWinDivert", "DecodeWinDivert");
+                              "VerdictWinDivert", "DecodeWinDivert",
+                              RUNMODE_WINDIVERT);
 #endif /* WINDIVERT */
     return ret;
 }

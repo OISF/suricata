@@ -228,7 +228,7 @@ static int NapatechInit(int runmode)
             status = RunModeSetLiveCaptureWorkers(NapatechConfigParser,
                     NapatechGetThreadsCount,
                     "NapatechStream", "NapatechDecode",
-                    thread_name_workers, NULL);
+                    thread_name_workers, NULL, RUNMODE_NAPATECH);
             break;
         default:
             status = -1;
