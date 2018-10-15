@@ -172,7 +172,7 @@ int RunModeTileMpipeWorkers(void)
     ReceiveMpipeInit();
 
     char *mpipe_dev = NULL;
-    int nlive = LiveGetDeviceCount();
+    int nlive = LiveGetDeviceCount(RUNMODE_TILERA_MPIPE);
     if (nlive > 0) {
         SCLogInfo("Using %d live device(s).", nlive);
         /*mpipe_dev = LiveGetDevice(0);*/

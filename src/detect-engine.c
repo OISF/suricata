@@ -2970,7 +2970,7 @@ static int DetectEngineMultiTenantSetupLoadLivedevMappings(const ConfNode *mappi
             }
 
             const char *dev = device_node->val;
-            LiveDevice *ld = LiveGetDevice(dev);
+            LiveDevice *ld = LiveGetDevice(dev, LiveGetDeviceRunmode(dev));
             if (ld == NULL) {
                 SCLogWarning(SC_ERR_MT_NO_MAPPING, "device %s not found", dev);
                 goto bad_mapping;

@@ -211,7 +211,7 @@ finalize:
     if (LiveGetOffload() == 0) {
         (void)GetIfaceOffloading(ns->iface, 1, 1);
     } else {
-        DisableIfaceOffloading(LiveGetDevice(ns->iface), 1, 1);
+        DisableIfaceOffloading(LiveGetDevice(ns->iface, RUNMODE_NETMAP), 1, 1);
     }
 
     return 0;
@@ -287,7 +287,7 @@ static int NetmapConfigGeThreadsCount(void *conf)
 
 int NetmapRunModeIsIPS()
 {
-    int nlive = LiveGetDeviceCount();
+    int nlive = LiveGetDeviceCount(RUNMODE_NETMAP);
     int ldev;
     ConfNode *if_root;
     ConfNode *if_default = NULL;
@@ -304,7 +304,7 @@ int NetmapRunModeIsIPS()
     if_default = ConfNodeLookupKeyValue(netmap_node, "interface", "default");
 
     for (ldev = 0; ldev < nlive; ldev++) {
-        const char *live_dev = LiveGetDeviceName(ldev);
+        const char *live_dev = LiveGetDeviceName(ldev, RUNMODE_NETMAP);
         if (live_dev == NULL) {
             SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
             return 0;
@@ -334,7 +334,7 @@ int NetmapRunModeIsIPS()
     if (has_ids && has_ips) {
         SCLogInfo("Netmap mode using IPS and IDS mode");
         for (ldev = 0; ldev < nlive; ldev++) {
-            const char *live_dev = LiveGetDeviceName(ldev);
+            const char *live_dev = LiveGetDeviceName(ldev, RUNMODE_NETMAP);
             if (live_dev == NULL) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
                 return 0;

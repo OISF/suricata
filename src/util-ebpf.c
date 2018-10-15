@@ -107,7 +107,7 @@ static void EBPFDeleteKey(int fd, void *key)
 
 static struct bpf_maps_info *EBPFGetBpfMap(const char *iface)
 {
-    LiveDevice *livedev = LiveGetDevice(iface);
+    LiveDevice *livedev = LiveGetDevice(iface, LiveGetDeviceRunmode(iface));
     if (livedev == NULL)
         return NULL;
     void *data = LiveDevGetStorageById(livedev, g_livedev_storage_id);
@@ -166,7 +166,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
 
     if (iface == NULL)
         return -1;
-    LiveDevice *livedev = LiveGetDevice(iface);
+    LiveDevice *livedev = LiveGetDevice(iface, LiveGetDeviceRunmode(iface));
     if (livedev == NULL)
         return -1;
 

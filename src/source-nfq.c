@@ -857,7 +857,7 @@ int NFQRegisterQueue(char *queue)
     nq->queue_num = queue_num;
     receive_queue_num++;
     SCMutexUnlock(&nfq_init_lock);
-    LiveRegisterDeviceName(queue);
+    LiveRegisterDeviceName(queue, RUNMODE_NFQ);
 
     SCLogDebug("Queue \"%s\" registered.", queue);
     return 0;

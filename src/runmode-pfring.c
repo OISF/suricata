@@ -385,7 +385,7 @@ static void *ParsePfringConfig(const char *iface)
                     "Using PF_RING with offloading activated leads to capture problems");
         }
     } else {
-        DisableIfaceOffloading(LiveGetDevice(iface), 0, 1);
+        DisableIfaceOffloading(LiveGetDevice(iface, RUNMODE_PFRING), 0, 1);
     }
     return pfconf;
 }
@@ -421,7 +421,7 @@ static int GetDevAndParser(const char **live_dev, ConfigIfaceParserFunc *parser)
         if (*live_dev == NULL) {
             if (ConfGet("pfring.interface", live_dev) == 1) {
                 SCLogInfo("Using interface %s", *live_dev);
-                LiveRegisterDevice(*live_dev);
+                LiveRegisterDevice(*live_dev, RUNMODE_PFRING);
             } else {
                 SCLogInfo("No interface found, problem incoming");
                 *live_dev = NULL;

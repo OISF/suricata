@@ -332,7 +332,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
 
     ptv->tv = tv;
 
-    ptv->livedev = LiveGetDevice(pcapconfig->iface);
+    ptv->livedev = LiveGetDevice(pcapconfig->iface, RUNMODE_PCAP_DEV);
     if (ptv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
         SCFree(ptv);

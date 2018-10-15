@@ -813,7 +813,7 @@ static int MpipeReceiveOpenEgress(char *out_iface, int iface_idx,
                                   MpipeIfaceConfig *mpipe_conf[])
 {
     int channel;
-    int nlive = LiveGetDeviceCount();
+    int nlive = LiveGetDeviceCount(RUNMODE_TILERA_MPIPE);
     int result;
 
     /* Initialize an equeue */
@@ -908,10 +908,10 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* Initialize and configure mPIPE, which is only done by one core. */
 
     if (strcmp(link_name, "multi") == 0) {
-        int nlive = LiveGetDeviceCount();
-        int instance = gxio_mpipe_link_instance(LiveGetDeviceName(0));
+        int nlive = LiveGetDeviceCount(RUNMODE_TILERA_MPIPE);
+        int instance = gxio_mpipe_link_instance(LiveGetDeviceName(0, RUNMODE_TILERA_MPIPE));
         for (int i = 1; i < nlive; i++) {
-            link_name = LiveGetDeviceName(i);
+            link_name = LiveGetDeviceName(i, RUNMODE_TILERA_MPIPE);
             if (gxio_mpipe_link_instance(link_name) != instance) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, 
                            "All interfaces not on same mpipe instance");
@@ -922,7 +922,7 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
         VERIFY(result, "gxio_mpipe_init()");
         /* open ingress interfaces */
         for (int i = 0; i < nlive; i++) {
-            link_name = LiveGetDeviceName(i);
+            link_name = LiveGetDeviceName(i, RUNMODE_TILERA_MPIPE);
             SCLogInfo("opening interface %s", link_name);
             result = gxio_mpipe_link_open(&mpipe_link[i], context,
                                           link_name, 0);
