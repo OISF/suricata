@@ -406,6 +406,9 @@ impl IKEV2Transaction {
         if self.events != std::ptr::null_mut() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
+        if let Some(state) = self.de_state {
+            core::sc_detect_engine_state_free(state);
+        }
     }
 }
 
