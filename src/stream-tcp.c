@@ -454,9 +454,7 @@ void StreamTcpInitConfig(char quiet)
         /* checking for "auto" and falling back to boolean to provide
          * backward compatibility */
         if (strcmp(temp_stream_inline_str, "auto") == 0) {
-            if (EngineModeIsIPS()) {
-                stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
-            }
+            stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE_AUTO;
         } else if (ConfGetBool("stream.inline", &inl) == 1) {
             if (inl) {
                 stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
@@ -464,9 +462,7 @@ void StreamTcpInitConfig(char quiet)
         }
     } else {
         /* default to 'auto' */
-        if (EngineModeIsIPS()) {
-            stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
-        }
+        stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE_AUTO;
     }
 
     if (!quiet) {
@@ -1864,7 +1860,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                  * pattern for MOTS/MITM injection attacks, we need to be
                  * careful.
                  */
-                if (StreamTcpInlineMode()) {
+                if (StreamTcpInlineMode(p)) {
                     if (p->payload_len > 0 &&
                             SEQ_EQ(TCP_GET_ACK(p), ssn->client.last_ack) &&
                             SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq)) {
@@ -6200,7 +6196,7 @@ void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Pack
     ssn->client.flags |= STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
     ssn->server.flags |= STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
     bool ts = PKT_IS_TOSERVER(p) ? true : false;
-    ts ^= StreamTcpInlineMode();
+    ts ^= StreamTcpInlineMode(p);
     StreamTcpPseudoPacketCreateDetectLogFlush(tv, stt, p, ssn, pq, ts^0);
     StreamTcpPseudoPacketCreateDetectLogFlush(tv, stt, p, ssn, pq, ts^1);
 }
@@ -6271,10 +6267,18 @@ int StreamTcpBypassEnabled(void)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int StreamTcpInlineMode(void)
+int StreamTcpInlineMode(const Packet *p)
 {
-    return (stream_config.flags & STREAMTCP_INIT_FLAG_INLINE) ? 1 : 0;
+    if (stream_config.flags & STREAMTCP_INIT_FLAG_INLINE) {
+        return PKT_MODE_IPS;
+    } else if (stream_config.flags & STREAMTCP_INIT_FLAG_INLINE_AUTO) {
+        /* implied PKT_MODE_AUTO */
+      return PacketModeIsIPS(p);
+    } else {
+      return PKT_MODE_IDS;
+    }
 }
+
 
 
 void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size)

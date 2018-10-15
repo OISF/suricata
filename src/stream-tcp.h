@@ -37,6 +37,7 @@
 #define STREAMTCP_INIT_FLAG_DROP_INVALID           BIT_U8(1)
 #define STREAMTCP_INIT_FLAG_BYPASS                 BIT_U8(2)
 #define STREAMTCP_INIT_FLAG_INLINE                 BIT_U8(3)
+#define STREAMTCP_INIT_FLAG_INLINE_AUTO            BIT_U8(8)
 
 /*global flow data*/
 typedef struct TcpStreamCnf_ {
@@ -158,7 +159,7 @@ static inline int StreamTcpCheckFlowDrops(Packet *p)
      * the IP only module, or from a reassembled msg and/or from an
      * applayer detection, then drop the rest of the packets of the
      * same stream and avoid inspecting it any further */
-    if (EngineModeIsIPS() && (p->flow->flags & FLOW_ACTION_DROP))
+    if (PacketModeIsIPS(p) && (p->flow->flags & FLOW_ACTION_DROP))
         return 1;
 
     return 0;
@@ -221,7 +222,7 @@ void StreamTcpStreamCleanup(TcpStream *stream);
 /* check if bypass is enabled */
 int StreamTcpBypassEnabled(void);
 int StreamTcpInlineDropInvalid(void);
-int StreamTcpInlineMode(void);
+int StreamTcpInlineMode(const Packet *p);
 
 int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn);
 

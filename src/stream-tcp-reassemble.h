@@ -110,7 +110,7 @@ void StreamTcpSegmentReturntoPool(TcpSegment *);
 
 void StreamTcpReassembleTriggerRawReassembly(TcpSession *, int direction);
 
-void StreamTcpPruneSession(Flow *, uint8_t);
+void StreamTcpPruneSession(Flow *, uint8_t, Packet *p);
 int StreamTcpReassembleDepthReached(Packet *p);
 
 void StreamTcpReassembleIncrMemuse(uint64_t size);
