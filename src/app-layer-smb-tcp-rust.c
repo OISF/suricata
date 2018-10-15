@@ -49,7 +49,7 @@ static int RustSMBTCPParseRequest(Flow *f, void *state,
             local_data, flags);
     }
     if (res != 1) {
-        SCLogNotice("SMB request%s of %u bytes, retval %d",
+        SCLogDebug("SMB request%s of %u bytes, retval %d",
                 (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res);
     }
     return res;
@@ -72,7 +72,7 @@ static int RustSMBTCPParseResponse(Flow *f, void *state,
             local_data, flags);
     }
     if (res != 1) {
-        SCLogNotice("SMB response%s of %u bytes, retval %d",
+        SCLogDebug("SMB response%s of %u bytes, retval %d",
                 (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res);
     }
     return res;
