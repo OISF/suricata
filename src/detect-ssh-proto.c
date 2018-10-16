@@ -48,7 +48,7 @@
 #include "detect-ssh-proto.h"
 
 #define KEYWORD_NAME "ssh_proto"
-#define KEYWORD_DOC "ssh-keywords#ssh-protocol"
+#define KEYWORD_DOC "ssh-keywords.html#ssh-proto"
 #define BUFFER_NAME "ssh_protocol"
 #define BUFFER_DESC "ssh protocol field"
 static int g_buffer_id = 0;
