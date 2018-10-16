@@ -48,7 +48,7 @@
 #include "detect-ssh-software.h"
 
 #define KEYWORD_NAME "ssh_software"
-#define KEYWORD_DOC "ssh-keywords#ssh-software"
+#define KEYWORD_DOC "ssh-keywords.html#ssh-software"
 #define BUFFER_NAME "ssh_software"
 #define BUFFER_DESC "ssh software"
 static int g_buffer_id = 0;
