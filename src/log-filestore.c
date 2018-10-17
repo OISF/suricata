@@ -216,6 +216,25 @@ static int FileIncludePid(void)
     return g_file_store_include_pid;
 }
 
+static void CreateSIDString(const Packet *p, char *str, size_t size) {
+    unsigned int i;
+    str[0]='\0';
+    for (i = 0; i < p->alerts.cnt && i < PACKET_ALERT_MAX; i++) {
+        char tmp[size];
+        const struct Signature_ *s;
+        unsigned int sid;
+
+        if (i) {
+            strlcat(str, ",", size);
+        }
+
+        s = p->alerts.alerts[i].s;
+        sid = (s == NULL ? 0xffffffff : s->id);
+        snprintf(tmp, sizeof(tmp), "%u", sid);
+        strlcat(str, tmp, size);
+    }
+}
+
 static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char *base_filename, int ipver) {
     if (!FileWriteMeta())
         return;
@@ -228,10 +247,16 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
     FILE *fp = fopen(metafilename, "w+");
     if (fp != NULL) {
         char timebuf[64];
+        char sidbuf[64*PACKET_ALERT_MAX];
 
         CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
         fprintf(fp, "TIME:              %s\n", timebuf);
+
+        CreateSIDString(p, sidbuf, sizeof(sidbuf));
+
+        fprintf(fp, "SID:               %s\n", sidbuf);
+
         if (p->pcap_cnt > 0) {
             fprintf(fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
         }
