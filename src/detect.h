@@ -1147,6 +1147,7 @@ typedef struct SigTableElmt_ {
     void (*RegisterTests)(void);
 
     uint8_t flags;
+    /* coccinelle: SigTableElmt:flags:SIGMATCH_ */
 
     const char *name;     /**< keyword name alias */
     const char *alias;    /**< name alias */
