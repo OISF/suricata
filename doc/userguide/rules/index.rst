@@ -7,6 +7,7 @@ Suricata Rules
    meta
    header-keywords
    payload-keywords
+   transforms
    prefilter-keywords
    flow-keywords
    http-keywords
