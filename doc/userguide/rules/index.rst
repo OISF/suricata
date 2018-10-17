@@ -10,6 +10,7 @@ Suricata Rules
    transforms
    prefilter-keywords
    flow-keywords
+   bypass-keyword
    http-keywords
    file-keywords
    dns-keywords
