@@ -264,6 +264,12 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("compatible with decoder event only rule");
         prev = 1;
     }
+    if (e->Transform) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("transform");
+        prev = 1;
+    }
     if (e->SupportsPrefilter) {
         if (prev == 1)
             printf("%c", sep);
