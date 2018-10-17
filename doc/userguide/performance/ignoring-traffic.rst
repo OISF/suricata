@@ -4,8 +4,6 @@ Ignoring Traffic
 In some cases there are reasons to ignore certain traffic. Certain hosts
 may be trusted, or perhaps a backup stream should be ignored.
 
-This document lists some strategies for ignoring traffic.
-
 capture filters (BPF)
 ---------------------
 
@@ -66,10 +64,24 @@ Example:
   suppress gen_id 0, sig_id 0, track by_src, ip 1.2.3.4
 
 
-Encrypted traffic
+encrypted traffic
 -----------------
 
 The TLS app layer parser has the ability to stop processing encrypted traffic
 after the initial handshake. By setting the `app-layer.protocols.tls.encryption-handling`
 option to `bypass` the rest of this flow is ignored. If flow bypass is enabled,
 the bypass is done in the kernel or in hardware.
+
+bypassing traffic
+-----------------
+
+Aside from using the ``bypass`` keyword in rules, there are three other ways to bypass traffic.
+
+- Within suricata (local bypass). Suricata reads a packet, decodes it, checks it in the flow table. If the corresponding flow is local bypassed then it simply skips all streaming, detection and output and the packet goes directly out in IDS mode and to verdict in IPS mode.
+- Within the kernel (capture bypass). When Suricata decides to bypass it calls a function provided by the capture method to declare the bypass in the capture. For NFQ this is a simple mark that will be used by the ruleset. For AF_PACKET this will be a call to add an element in an eBPF hash table stored in kernel.
+- Within the nic driver. This method relies upon XDP, XDP can process the traffic prior to reaching the kernel.
+
+Additional bypass documentation:
+
+https://suricon.net/wp-content/uploads/2017/12/SuriCon17-Manev_Purzynski.pdf
+https://www.stamus-networks.com/2016/09/28/suricata-bypass-feature/
