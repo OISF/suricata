@@ -582,11 +582,13 @@ static void DumpMatches(RuleAnalyzer *ctx, json_t *js, const SigMatchData *smd)
 SCMutex g_rules_analyzer_write_m = SCMUTEX_INITIALIZER;
 void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 {
+    SCEnter();
+
     RuleAnalyzer ctx = { NULL, NULL, NULL };
 
     ctx.js = json_object();
     if (ctx.js == NULL)
-        return;
+        SCReturn;
 
     json_object_set_new(ctx.js, "raw", json_string(s->sig_str));
     json_object_set_new(ctx.js, "id", json_integer(s->id));
@@ -796,7 +798,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     json_object_clear(ctx.js);
     json_decref(ctx.js);
-    return;
+    SCReturn;
 }
 #endif /* HAVE_LIBJANSSON */
 
