@@ -50,7 +50,7 @@
 extern int rule_reload;
 extern int engine_analysis;
 static int fp_engine_analysis_set = 0;
-static int rule_engine_analysis_set = 0;
+int rule_engine_analysis_set = 0;
 
 /**
  *  \brief Create the path if default-rule-path was specified
@@ -175,9 +175,6 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
                 }
                 if (rule_engine_analysis_set) {
                     EngineAnalysisRules(de_ctx, sig, line);
-#ifdef HAVE_LIBJANSSON
-                    EngineAnalysisRules2(de_ctx, sig);
-#endif
                 }
             }
             SCLogDebug("signature %"PRIu32" loaded", sig->id);

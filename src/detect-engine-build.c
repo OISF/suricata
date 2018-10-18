@@ -1830,6 +1830,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
+extern int rule_engine_analysis_set;
 /** \internal
  *  \brief perform final per signature setup tasks
  *
@@ -1854,6 +1855,11 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
                 continue;
             SigMatch *sm = s->init_data->smlists[type];
             s->sm_arrays[type] = SigMatchList2DataArray(sm);
+        }
+        if (rule_engine_analysis_set) {
+#ifdef HAVE_LIBJANSSON
+            EngineAnalysisRules2(de_ctx, s);
+#endif
         }
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
         uint32_t i;
