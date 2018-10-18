@@ -242,6 +242,12 @@ static int DetectStreamEventSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 {
     char srawstr[64] = "stream.";
 
+    if (strcmp(rawstr, "est_synack_resend_with_different_ack") == 0) {
+        rawstr = "est_synack_resend_with_diff_ack";
+    } else if (strcmp(rawstr, "3whs_synack_resend_with_different_ack") == 0) {
+        rawstr = "3whs_synack_resend_with_diff_ack";
+    }
+
     /* stream:$EVENT alias command develop as decode-event:stream.$EVENT */
     strlcat(srawstr, rawstr, sizeof(srawstr));
 
