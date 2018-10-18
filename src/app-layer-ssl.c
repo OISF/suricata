@@ -628,7 +628,8 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
         return -1;
     }
 
-    ssl_state->curr_connp->version = *input << 8 | *(input + 1);
+    uint16_t version = *input << 8 | *(input + 1);
+    ssl_state->curr_connp->version = version;
 
     /* TLSv1.3 draft1 to draft21 use the version field as earlier TLS
        versions, instead of using the supported versions extension. */
@@ -659,8 +660,7 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
         if (ssl_state->ja3_str == NULL)
             return -1;
 
-        int rc = Ja3BufferAddValue(&ssl_state->ja3_str,
-                                   ssl_state->curr_connp->version);
+        int rc = Ja3BufferAddValue(&ssl_state->ja3_str, version);
         if (rc != 0)
             return -1;
     }
