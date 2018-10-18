@@ -497,7 +497,7 @@ AnalyzerNote(RuleAnalyzer *ctx, char *fmt, ...)
     if (ctx->js_notes)
         json_array_append_new(ctx->js_notes, json_string(str));
 }
-#if 0
+
 static void __attribute__ ((format (printf, 2, 3)))
 AnalyzerWarning(RuleAnalyzer *ctx, char *fmt, ...)
 {
@@ -513,7 +513,25 @@ AnalyzerWarning(RuleAnalyzer *ctx, char *fmt, ...)
     if (ctx->js_warnings)
         json_array_append_new(ctx->js_warnings, json_string(str));
 }
-#endif
+
+#define CHECK(pat) if (strlen((pat)) <= len && memcmp((pat), buf, MIN(len, strlen((pat)))) == 0) return true;
+
+static bool LooksLikeHTTPMethod(const uint8_t *buf, uint16_t len)
+{
+    CHECK("GET /");
+    CHECK("POST /");
+    CHECK("HEAD /");
+    CHECK("PUT /");
+    return false;
+}
+
+static bool LooksLikeHTTPUA(const uint8_t *buf, uint16_t len)
+{
+    CHECK("User-Agent: ");
+    CHECK("\nUser-Agent: ");
+    return false;
+}
+
 static void DumpMatches(RuleAnalyzer *ctx, json_t *js, const SigMatchData *smd)
 {
     json_t *js_matches = json_array();
@@ -565,6 +583,14 @@ static void DumpMatches(RuleAnalyzer *ctx, json_t *js, const SigMatchData *smd)
 
                         json_object_set_new(js_match, "content", js_match_content);
                     }
+
+                    if (LooksLikeHTTPMethod(cd->content, cd->content_len)) {
+                        AnalyzerWarning(ctx, (char *)"pattern looks like it inspects HTTP, use http_request_line or http_method and http_uri instead for improved performance");
+                    }
+                    if (LooksLikeHTTPUA(cd->content, cd->content_len)) {
+                        AnalyzerWarning(ctx, (char *)"pattern looks like it inspects HTTP, use http_user_agent or http_header for improved performance");
+                    }
+
                     SCFree(pat);
                     break;
                 }
