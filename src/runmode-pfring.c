@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -375,7 +375,7 @@ static void *ParsePfringConfig(const char *iface)
     return pfconf;
 }
 
-static int PfringConfigGeThreadsCount(void *conf)
+static int PfringConfigGetThreadsCount(void *conf)
 {
     PfringIfaceConfig *pfp = (PfringIfaceConfig *)conf;
     return pfp->threads;
@@ -383,14 +383,13 @@ static int PfringConfigGeThreadsCount(void *conf)
 
 static int PfringConfLevel(void)
 {
-    const char *def_dev;
+    const char *def_dev = NULL;
     /* 1.0 config should return a string */
     if (ConfGet("pfring.interface", &def_dev) != 1) {
         return PFRING_CONF_V2;
     } else {
         return PFRING_CONF_V1;
     }
-    return PFRING_CONF_V2;
 }
 
 static int GetDevAndParser(const char **live_dev, ConfigIfaceParserFunc *parser)
@@ -441,7 +440,7 @@ int RunModeIdsPfringAutoFp(void)
     }
 
     ret = RunModeSetLiveCaptureAutoFp(tparser,
-                              PfringConfigGeThreadsCount,
+                              PfringConfigGetThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", thread_name_autofp,
                               live_dev);
@@ -478,7 +477,7 @@ int RunModeIdsPfringSingle(void)
     }
 
     ret = RunModeSetLiveCaptureSingle(tparser,
-                              PfringConfigGeThreadsCount,
+                              PfringConfigGetThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", thread_name_single,
                               live_dev);
@@ -515,7 +514,7 @@ int RunModeIdsPfringWorkers(void)
     }
 
     ret = RunModeSetLiveCaptureWorkers(tparser,
-                              PfringConfigGeThreadsCount,
+                              PfringConfigGetThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", thread_name_workers,
                               live_dev);
