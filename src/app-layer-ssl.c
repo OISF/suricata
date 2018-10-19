@@ -1197,6 +1197,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
             }
         }
 
+next:
         if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
                 ssl_config.enable_ja3) {
             if (TLSDecodeValueIsGREASE(ext_type) != 1) {
@@ -1206,7 +1207,6 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
             }
         }
 
-next:
         processed_len += ext_len + 4;
     }
 
