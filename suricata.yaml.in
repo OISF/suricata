@@ -1725,8 +1725,7 @@ netmap:
 # for more info see http://www.ntop.org/products/pf_ring/
 pfring:
   - interface: eth0
-    # Number of receive threads (>1 will enable experimental flow pinned
-    # runmode)
+    # Number of receive threads.
     threads: 1
 
     # Default clusterid.  PF_RING will load balance packets based on flow.
