@@ -662,6 +662,22 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
         /* Error is no registered loggers with this name
          * were found .*/
         if (!sub_count) {
+#ifndef HAVE_RUST
+            const char *rust_types[] = { "eve-log.smb", "eve-log.nfs",
+                "eve-log.dhcp", "eve-log.krb5", "eve-log.ikev2",
+                "eve-log.tftp", NULL, };
+            const char **iter = rust_types;
+            bool is_rust = false;
+            while (*iter) {
+                is_rust |= (strcmp(*iter, subname) == 0);
+                iter++;
+            }
+            if (is_rust) {
+                SCLogWarning(SC_WARN_RUST_NOT_AVAILABLE, "output "
+                    "module '%s' depends on Rust support", subname);
+                continue;
+            }
+#endif
             FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
                     "No output module named %s", subname);
             continue;
