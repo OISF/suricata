@@ -60,6 +60,10 @@ stats:
   # The interval field (in seconds) controls at what interval
   # the loggers are invoked.
   interval: 8
+  # Add decode events as stats.
+  #decoder-events: true
+  # Add stream events as stats.
+  #stream-events: false
 
 # Configure the type of alert (and other) logging you would like.
 outputs:

@@ -67,6 +67,9 @@
 #include "output.h"
 #include "output-flow.h"
 
+extern bool stats_decoder_events;
+extern bool stats_stream_events;
+
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         uint8_t *pkt, uint32_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
 {
@@ -117,7 +120,13 @@ void PacketUpdateEngineEventCounters(ThreadVars *tv,
         DecodeThreadVars *dtv, Packet *p)
 {
     for (uint8_t i = 0; i < p->events.cnt; i++) {
-        StatsIncr(tv, dtv->counter_engine_events[p->events.events[i]]);
+        const uint8_t e = p->events.events[i];
+
+        if (e <= DECODE_EVENT_PACKET_MAX && !stats_decoder_events)
+            continue;
+        if (e > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
+            continue;
+        StatsIncr(tv, dtv->counter_engine_events[e]);
     }
 }
 
@@ -453,6 +462,12 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 
     for (int i = 0; i < DECODE_EVENT_MAX; i++) {
         BUG_ON(i != (int)DEvents[i].code);
+
+        if (i <= DECODE_EVENT_PACKET_MAX && !stats_decoder_events)
+            continue;
+        if (i > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
+            continue;
+
         dtv->counter_engine_events[i] = StatsRegisterCounter(
                 DEvents[i].event_name, tv);
     }
