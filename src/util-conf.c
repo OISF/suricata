@@ -96,6 +96,7 @@ ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface)
 int ConfUnixSocketIsEnable(void)
 {
     const char *value;
+    extern Runmodes run_modes;
 
     if (ConfGet("unix-command.enabled", &value) != 1) {
         return 0;
@@ -111,7 +112,7 @@ int ConfUnixSocketIsEnable(void)
 #ifdef OS_WIN32
         return 0;
 #else
-        if (!IsRunModeOffline(RunmodeGetCurrent())) {
+        if (!IsRunModeOffline(RunmodesGetPrimary(&run_modes))) {
             SCLogInfo("Running in live mode, activating unix socket");
             return 1;
         } else {

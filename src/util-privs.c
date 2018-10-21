@@ -48,7 +48,7 @@
 extern int sc_set_caps;
 
 /** our current runmode */
-extern int run_mode;
+extern Runmodes run_modes;
 
 /**
  * \brief   Drop the previliges of the main thread
@@ -60,26 +60,21 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 
     capng_clear(CAPNG_SELECT_BOTH);
 
-    switch (run_mode) {
-        case RUNMODE_PCAP_DEV:
-        case RUNMODE_AFP_DEV:
-            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
-                    CAP_NET_RAW,            /* needed for pcap live mode */
-                    CAP_SYS_NICE,
-                    CAP_NET_ADMIN,
-                    -1);
-            break;
-        case RUNMODE_PFRING:
-            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
-                    CAP_NET_ADMIN, CAP_NET_RAW, CAP_SYS_NICE,
-                    -1);
-            break;
-        case RUNMODE_NFQ:
-            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
-                    CAP_NET_ADMIN,          /* needed for nfqueue inline mode */
-                    CAP_SYS_NICE,
-                    -1);
-            break;
+    if (RunmodeIsSet(&run_modes, RUNMODE_PCAP_DEV) || RunmodeIsSet(&run_modes, RUNMODE_AFP_DEV)) {
+        capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
+                CAP_NET_RAW,            /* needed for pcap live mode */
+                CAP_SYS_NICE,
+                CAP_NET_ADMIN,
+                -1);
+    } else if (RunmodeIsSet(&run_modes, RUNMODE_PFRING)) {
+        capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
+                CAP_NET_ADMIN, CAP_NET_RAW, CAP_SYS_NICE,
+                -1);
+    } else if (RunmodeIsSet(&run_modes, RUNMODE_NFQ)) {
+        capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
+                CAP_NET_ADMIN,          /* needed for nfqueue inline mode */
+                CAP_SYS_NICE,
+                -1);
     }
 
     if (capng_change_id(userid, groupid, CAPNG_DROP_SUPP_GRP |

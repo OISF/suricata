@@ -312,6 +312,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
     char log_path[PATH_MAX];
     const char *log_dir;
     const char *filename, *filetype;
+    extern Runmodes run_modes;
 
     // Arg check
     if (conf == NULL || log_ctx == NULL || default_filename == NULL) {
@@ -469,7 +470,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
 
 #ifdef BUILD_WITH_UNIXSOCKET
     /* If a socket and running live, do non-blocking writes. */
-    if (log_ctx->is_sock && !IsRunModeOffline(RunmodeGetCurrent())) {
+    if (log_ctx->is_sock && !IsRunModeOffline(RunmodesGetPrimary(&run_modes))) {
         SCLogInfo("Setting logging socket of non-blocking in live mode.");
         log_ctx->send_flags |= MSG_DONTWAIT;
     }
