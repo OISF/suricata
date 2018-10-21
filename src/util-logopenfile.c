@@ -32,6 +32,7 @@
 #include "util-path.h"
 #include "util-logopenfile.h"
 #include "util-logopenfile-tile.h"
+#include "util-runmodes-slots.h"
 
 #if defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_SOCKET_H) && defined(HAVE_SYS_TYPES_H)
 #define BUILD_WITH_UNIXSOCKET
@@ -331,6 +332,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
     char log_path[PATH_MAX];
     const char *log_dir;
     const char *filename, *filetype;
+    extern RunmodesSlots runmodesslots;
 
     // Arg check
     if (conf == NULL || log_ctx == NULL || default_filename == NULL) {
@@ -492,7 +494,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
 
 #ifdef BUILD_WITH_UNIXSOCKET
     /* If a socket and running live, do non-blocking writes. */
-    if (log_ctx->is_sock && !IsRunModeOffline(RunmodeGetCurrent())) {
+    if (log_ctx->is_sock && !IsRunModeOffline(RunmodesSlotsGetRunmode(&runmodesslots, 0))) {
         SCLogInfo("Setting logging socket of non-blocking in live mode.");
         log_ctx->send_flags |= MSG_DONTWAIT;
     }

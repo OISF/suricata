@@ -42,6 +42,5 @@ int RunmodesSlotsRunmodeIsInSlot(const RunmodesSlots *runmodes, const enum RunMo
 bool RunmodesSlotsMaxSlotsReached(const RunmodesSlots *runmodes);
 int RunmodesSlotsRunmodeIsUnknown(const RunmodesSlots *runmodes);
 int RunmodeIsUnittests(void);
-int RunmodeGetCurrent(void);
 
 #endif /* __RUNMODES_SLOTS_H__ */

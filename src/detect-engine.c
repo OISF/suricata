@@ -1770,7 +1770,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         }
     }
 
-    if (run_mode == RUNMODE_UNITTEST) {
+    if (RunmodeIsUnittests()) {
         de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
     }
 

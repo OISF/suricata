@@ -27,6 +27,7 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "util-conf.h"
+#include "util-runmodes-slots.h"
 
 TmEcode ConfigSetLogDirectory(char *name)
 {
@@ -96,6 +97,7 @@ ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface)
 int ConfUnixSocketIsEnable(void)
 {
     const char *value;
+    extern RunmodesSlots runmodesslots;
 
     if (ConfGet("unix-command.enabled", &value) != 1) {
         return 0;
@@ -111,7 +113,7 @@ int ConfUnixSocketIsEnable(void)
 #ifdef OS_WIN32
         return 0;
 #else
-        if (!IsRunModeOffline(RunmodeGetCurrent())) {
+        if (!IsRunModeOffline(RunmodesSlotsGetRunmode(&runmodesslots, 0))) {
             SCLogInfo("Running in live mode, activating unix socket");
             return 1;
         } else {

@@ -73,7 +73,7 @@ extern const char *thread_name_counter_stats;
 extern const char *thread_name_counter_wakeup;
 
 char *RunmodeGetActive(void);
-const char *RunModeGetMainMode(void);
+const char *RunModeGetMainMode(int index);
 
 void RunModeListRunmodes(void);
 void RunModeDispatch(int, const char *);

@@ -48,7 +48,7 @@
 extern int sc_set_caps;
 
 /** our current runmode */
-extern int run_mode;
+extern RunmodesSlots runmodesslots;
 
 /**
  * \brief   Drop the previliges of the main thread
@@ -60,7 +60,7 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 
     capng_clear(CAPNG_SELECT_BOTH);
 
-    switch (run_mode) {
+    switch (RunmodesSlotsGetFirstSlot(&runmodesslots)) {
         case RUNMODE_PCAP_DEV:
         case RUNMODE_AFP_DEV:
             capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,

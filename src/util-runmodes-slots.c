@@ -20,11 +20,6 @@
 
 extern RunmodesSlots runmodesslots;
 
-int RunmodeGetCurrent(void)
-{
-  return RunmodesSlotsGetFirstSlot(&runmodesslots);
-}
-
 int RunmodeIsUnittests(void)
 {
     if (RunmodesSlotsGetFirstSlot(&runmodesslots) == RUNMODE_UNITTEST) {
