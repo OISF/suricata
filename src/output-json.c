@@ -828,6 +828,7 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
 OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
+    extern Runmodes run_modes;
 
     OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
     if (unlikely(json_ctx == NULL)) {
@@ -1040,7 +1041,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         const char *pcapfile_s = ConfNodeLookupChildValue(conf, "pcap-file");
         if (pcapfile_s != NULL && ConfValIsTrue(pcapfile_s)) {
             json_ctx->file_ctx->is_pcap_offline =
-                (RunmodeGetCurrent() == RUNMODE_PCAP_FILE);
+                (RunmodesGetPrimary(&run_modes) == RUNMODE_PCAP_FILE);
         }
 
         json_ctx->file_ctx->type = json_ctx->json_out;

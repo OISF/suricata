@@ -30,7 +30,7 @@
 
 #include "runmodes.h"
 
-extern int run_mode;
+extern Runmodes run_modes;
 
 #include "decode.h"
 
@@ -98,16 +98,13 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
         return -1;
     }
 
-    switch (run_mode) {
-        case RUNMODE_NFQ:
-        case RUNMODE_IPFW:
-            break;
-        default:
-            SCLogWarning(SC_ERR_RUNMODE,
-                         "Can't use 'replace' keyword in non IPS mode: %s",
-                         s->sig_str);
-            /* this is a success, having the alert is interesting */
-            return 0;
+    if (!RunmodeIsSet(&run_modes, RUNMODE_NFQ) && !RunmodeIsSet(&run_modes, RUNMODE_IPFW)) {
+        SCLogWarning(SC_ERR_RUNMODE,
+                     "Can't use 'replace' keyword in non IPS mode: %s",
+                     s->sig_str);
+        /* this is a success, having the alert is interesting */
+        return 0;
+
     }
 
     int ret = DetectContentDataParse("replace", replacestr, &content, &len);
@@ -233,6 +230,13 @@ void DetectReplaceFreeInternal(DetectReplaceList *replist)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
+
+static void RunmodesReplace(Runmodes *runmodes, int index, enum RunModes runmode)
+{
+    if (index < RUNMODES_MAX) {
+        runmodes->run_mode[index] = runmode;
+    }
+}
 
 /**
  * \test Test packet Matches
@@ -362,15 +366,15 @@ static int DetectReplaceLongPatternMatchTestWrp(const char *sig, uint32_t sid, c
     uint16_t psize = sizeof(raw_eth_pkt);
 
     /* would be unittest */
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = RunmodesGet(&run_modes, 0);
+    RunmodesReplace(&run_modes, 0, RUNMODE_NFQ);
     ret = DetectReplaceLongPatternMatchTest(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
                              sig, sid, p, &psize);
     if (ret == 1) {
         SCLogDebug("replace: test1 phase1");
         ret = DetectReplaceLongPatternMatchTest(p, psize, sig_rep, sid_rep, NULL, NULL);
     }
-    run_mode = run_mode_backup;
+    RunmodesReplace(&run_modes, 0, run_mode_backup);
     return ret;
 }
 
@@ -397,15 +401,15 @@ static int DetectReplaceLongPatternMatchTestUDPWrp(const char *sig, uint32_t sid
     uint8_t p[sizeof(raw_eth_pkt)];
     uint16_t psize = sizeof(raw_eth_pkt);
 
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = RunmodesGet(&run_modes, 0);
+    RunmodesReplace(&run_modes, 0, RUNMODE_NFQ);
     ret = DetectReplaceLongPatternMatchTest(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
                              sig, sid, p, &psize);
     if (ret == 1) {
         SCLogDebug("replace: test1 phase1 ok: %" PRIuMAX" vs %d",(uintmax_t)sizeof(raw_eth_pkt),psize);
         ret = DetectReplaceLongPatternMatchTest(p, psize, sig_rep, sid_rep, NULL, NULL);
     }
-    run_mode = run_mode_backup;
+    RunmodesReplace(&run_modes, 0, run_mode_backup);
     return ret;
 }
 
@@ -596,8 +600,8 @@ static int DetectReplaceMatchTest15(void)
  */
 static int DetectReplaceParseTest01(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = RunmodesGet(&run_modes, 0);
+    RunmodesReplace(&run_modes, 0, RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -616,7 +620,7 @@ static int DetectReplaceParseTest01(void)
     }
 
  end:
-    run_mode = run_mode_backup;
+    RunmodesReplace(&run_modes, 0, run_mode_backup);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -630,8 +634,8 @@ static int DetectReplaceParseTest01(void)
  */
 static int DetectReplaceParseTest02(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = RunmodesGet(&run_modes, 0);
+    RunmodesReplace(&run_modes, 0, RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -650,7 +654,7 @@ static int DetectReplaceParseTest02(void)
     }
 
  end:
-    run_mode = run_mode_backup;
+    RunmodesReplace(&run_modes, 0, run_mode_backup);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -665,8 +669,8 @@ static int DetectReplaceParseTest02(void)
  */
 static int DetectReplaceParseTest03(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = RunmodesGet(&run_modes, 0);
+    RunmodesReplace(&run_modes, 0, RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -685,7 +689,7 @@ static int DetectReplaceParseTest03(void)
     }
 
  end:
-    run_mode = run_mode_backup;
+    RunmodesReplace(&run_modes, 0, run_mode_backup);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -699,8 +703,8 @@ static int DetectReplaceParseTest03(void)
  */
 static int DetectReplaceParseTest04(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = RunmodesGet(&run_modes, 0);
+    RunmodesReplace(&run_modes, 0, RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -719,7 +723,7 @@ static int DetectReplaceParseTest04(void)
     }
 
  end:
-    run_mode = run_mode_backup;
+    RunmodesReplace(&run_modes, 0, run_mode_backup);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -733,8 +737,8 @@ static int DetectReplaceParseTest04(void)
  */
 static int DetectReplaceParseTest05(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = RunmodesGet(&run_modes, 0);
+    RunmodesReplace(&run_modes, 0, RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -753,7 +757,7 @@ static int DetectReplaceParseTest05(void)
     }
 
  end:
-    run_mode = run_mode_backup;
+    RunmodesReplace(&run_modes, 0, run_mode_backup);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -767,8 +771,8 @@ static int DetectReplaceParseTest05(void)
  */
 static int DetectReplaceParseTest06(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = RunmodesGet(&run_modes, 0);
+    RunmodesReplace(&run_modes, 0, RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -787,7 +791,7 @@ static int DetectReplaceParseTest06(void)
     }
 
  end:
-    run_mode = run_mode_backup;
+    RunmodesReplace(&run_modes, 0, run_mode_backup);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -801,8 +805,8 @@ static int DetectReplaceParseTest06(void)
  */
 static int DetectReplaceParseTest07(void)
 {
-    int run_mode_backup = run_mode;
-    run_mode = RUNMODE_NFQ;
+    int run_mode_backup = RunmodesGet(&run_modes, 0);
+    RunmodesReplace(&run_modes, 0, RUNMODE_NFQ);
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -821,7 +825,7 @@ static int DetectReplaceParseTest07(void)
     }
 
  end:
-    run_mode = run_mode_backup;
+    RunmodesReplace(&run_modes, 0, run_mode_backup);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
