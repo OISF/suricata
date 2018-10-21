@@ -202,6 +202,7 @@ volatile uint8_t suricata_ctl_flags = 0;
 
 /** Run mode selected */
 int run_mode = RUNMODE_UNKNOWN;
+RunmodesSlots runmodesslots = { {RUNMODE_UNKNOWN, RUNMODE_UNKNOWN}, 0};
 
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
@@ -256,19 +257,6 @@ void EngineModeSetIPS(void)
 void EngineModeSetIDS(void)
 {
     g_engine_mode = ENGINE_MODE_IDS;
-}
-
-int RunmodeIsUnittests(void)
-{
-    if (run_mode == RUNMODE_UNITTEST)
-        return 1;
-
-    return 0;
-}
-
-int RunmodeGetCurrent(void)
-{
-    return run_mode;
 }
 
 /** signal handlers

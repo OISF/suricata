@@ -66,6 +66,7 @@
 
 #include "suricata-common.h"
 #include "packet-queue.h"
+#include "util-runmodes-slots.h"
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
@@ -177,8 +178,6 @@ extern int g_disable_randomness;
 void EngineStop(void);
 void EngineDone(void);
 
-int RunmodeIsUnittests(void);
-int RunmodeGetCurrent(void);
 int IsRuleReloadSet(int quiet);
 
 int SuriHasSigFile(void);
