@@ -1745,7 +1745,6 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
         case 1:
             if (!skip_version) {
                 ssl_state->curr_connp->version = *(input++) << 8;
-                printf("%d\n", ssl_state->curr_connp->version);
             } else {
                 input++;
             }
@@ -1756,7 +1755,6 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
         case 2:
             if (!skip_version) {
                 ssl_state->curr_connp->version |= *(input++);
-                printf("%d\n", ssl_state->curr_connp->version);
             } else {
                 input++;
             }
