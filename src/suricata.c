@@ -1119,8 +1119,6 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
             strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
         }
     } else if (suri->run_mode == RUNMODE_AFP_DEV) {
-        SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                "multiple devices to get packets is experimental.");
         if (in_arg) {
             LiveRegisterDeviceName(in_arg);
         } else {
@@ -1174,8 +1172,6 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
                 "support is not (yet) supported on Windows.");
         return TM_ECODE_FAILED;
 #else
-        SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                "multiple pcap devices to get packets is experimental.");
         LiveRegisterDeviceName(suri->pcap_dev);
 #endif
     } else {
@@ -1623,8 +1619,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                                  (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
                     }
                 } else if (suri->run_mode == RUNMODE_NETMAP) {
-                    SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                            "multiple devices to get packets is experimental.");
                     if (optarg) {
                         LiveRegisterDeviceName(optarg);
                     } else {
