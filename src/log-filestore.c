@@ -216,22 +216,24 @@ static int FileIncludePid(void)
     return g_file_store_include_pid;
 }
 
-static void CreateSIDString(const Packet *p, char *str, size_t size) {
-    unsigned int i;
+static void CreateSIDString(const Packet *p, char *str, size_t size)
+{
+    uint16_t i;
     str[0]='\0';
-    for (i = 0; i < p->alerts.cnt && i < PACKET_ALERT_MAX; i++) {
+    for (i = 0; i < p->alerts.cnt; i++) {
         char tmp[size];
-        const struct Signature_ *s;
-        unsigned int sid;
+        const struct Signature_ *s = p->alerts.alerts[i].s;
+        uint32_t sid;
 
         if (i) {
             strlcat(str, ",", size);
         }
 
-        s = p->alerts.alerts[i].s;
-        sid = (s == NULL ? 0xffffffff : s->id);
-        snprintf(tmp, sizeof(tmp), "%u", sid);
-        strlcat(str, tmp, size);
+        if(s) {
+            sid = s->id;
+            snprintf(tmp, sizeof(tmp), "%u", sid);
+            strlcat(str, tmp, size);
+        }
     }
 }
 
@@ -247,7 +249,7 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
     FILE *fp = fopen(metafilename, "w+");
     if (fp != NULL) {
         char timebuf[64];
-        char sidbuf[64*PACKET_ALERT_MAX];
+        char sidbuf[10*PACKET_ALERT_MAX];
 
         CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
