@@ -706,6 +706,20 @@ json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
         json_object_set_new(js, "in_iface", json_string(p->livedev->dev));
     }
 
+    /* 
+     * Stream direction based on TO_CLIENT|TO_SERVER, will in most cases describe 
+     * what direction the first packet was seen.
+     * NB: This might have some weird results in IPS mode
+     * so we disable this if we are in IPS mode
+    */
+
+    if (!EngineModeIsIPS()) {
+        if (p->flowflags & FLOW_PKT_TOCLIENT) {
+            json_object_set_new(js, "flow_direction", json_string("to_client"));
+        } else if (p->flowflags & FLOW_PKT_TOSERVER) {
+            json_object_set_new(js, "flow_direction", json_string("to_server"));
+        }
+    }
     /* pcap_cnt */
     if (p->pcap_cnt != 0) {
         json_object_set_new(js, "pcap_cnt", json_integer(p->pcap_cnt));
