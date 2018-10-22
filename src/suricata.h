@@ -139,8 +139,8 @@ typedef struct Runmodes_ {
 PacketQueue trans_q[256];
 
 typedef struct SCInstance_ {
-    enum RunModes run_mode;
-    enum RunModes aux_run_mode;
+    Runmodes run_modes;
+    Runmodes aux_run_modes;
 
     char pcap_dev[128];
     char *sig_file;
