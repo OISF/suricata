@@ -54,6 +54,7 @@
 #include "app-layer-dns-udp-rust.h"
 #endif
 
+#ifndef HAVE_RUST
 /** \internal
  *  \brief Parse DNS request packet
  */
@@ -385,15 +386,14 @@ static void DNSUDPConfigure(void)
     SCLogConfig("DNS global memcap: %"PRIu64, global_memcap);
     DNSConfigSetGlobalMemcap(global_memcap);
 }
+#endif /* HAVE_RUST */
 
 void RegisterDNSUDPParsers(void)
 {
-    const char *proto_name = "dns";
-
 #ifdef HAVE_RUST
     return RegisterRustDNSUDPParsers();
-#endif
-
+#else
+    const char *proto_name = "dns";
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNS, proto_name);
@@ -466,9 +466,11 @@ void RegisterDNSUDPParsers(void)
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_DNS, DNSUDPParserRegisterTests);
 #endif
+#endif /* HAVE_RUST */
 }
 
 /* UNITTESTS */
+#ifndef HAVE_RUST
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 
@@ -870,3 +872,4 @@ void DNSUDPParserRegisterTests(void)
         DNSUDPParserTestLostResponse);
 }
 #endif
+#endif /* HAVE_RUST */
