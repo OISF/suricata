@@ -1332,7 +1332,7 @@ void SCLogLoadConfig(int daemon, int verbose)
     if (ConfGet("logging.default-log-format", &sc_lid->global_log_format) != 1)
         sc_lid->global_log_format = SC_LOG_DEF_LOG_FORMAT;
 
-    ConfGet("logging.default-output-filter", &sc_lid->op_filter);
+    (void)ConfGet("logging.default-output-filter", &sc_lid->op_filter);
 
     ConfNode *seq_node, *output;
     TAILQ_FOREACH(seq_node, &outputs->head, next) {
