@@ -433,12 +433,11 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 {
     SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
-    DetectBytetestData *data = NULL;
     char *value = NULL;
     char *offset = NULL;
     int ret = -1;
 
-    data = DetectBytetestParse(optstr, &value, &offset);
+    DetectBytetestData *data = DetectBytetestParse(optstr, &value, &offset);
     if (data == NULL)
         goto error;
 
@@ -510,6 +509,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         data->value = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         data->flags |= DETECT_BYTETEST_VALUE_BE;
         SCFree(value);
+        value = NULL;
     }
 
     if (offset != NULL) {
@@ -522,6 +522,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         data->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         data->flags |= DETECT_BYTETEST_OFFSET_BE;
         SCFree(offset);
+        offset = NULL;
     }
 
     sm = SigMatchAlloc();
@@ -548,6 +549,10 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     ret = 0;
     return ret;
  error:
+    if (offset)
+        SCFree(offset);
+    if (value)
+        SCFree(value);
     DetectBytetestFree(data);
     return ret;
 }
