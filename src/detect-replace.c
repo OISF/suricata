@@ -76,18 +76,16 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
 {
     uint8_t *content = NULL;
     uint16_t len = 0;
-    SigMatch *pm = NULL;
-    DetectContentData *ud = NULL;
 
     if (s->init_data->negated) {
         SCLogError(SC_ERR_INVALID_VALUE, "Can't negate replacement string: %s",
                    replacestr);
-        goto error;
+        return -1;
     }
 
     int ret = DetectContentDataParse("replace", replacestr, &content, &len);
     if (ret == -1)
-        goto error;
+        return -1;
 
     switch (run_mode) {
         case RUNMODE_NFQ:
@@ -102,7 +100,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
     }
 
     /* add to the latest "content" keyword from pmatch */
-    pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH,
+    const SigMatch *pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH,
             DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "replace needs"
@@ -112,7 +110,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
     }
 
     /* we can remove this switch now with the unified structure */
-    ud = (DetectContentData *)pm->ctx;
+    DetectContentData *ud = (DetectContentData *)pm->ctx;
     if (ud == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
         SCFree(content);
@@ -145,6 +143,8 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
     return 0;
 
 error:
+    SCFree(ud->replace);
+    ud->replace = NULL;
     SCFree(content);
     return -1;
 }
