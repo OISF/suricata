@@ -109,6 +109,7 @@ int SCPidfileTestRunning(const char *pid_filename)
         pid_t pidv;
         FILE *pf;
 
+        // coverity[toctou : FALSE]
         pf = fopen(pid_filename, "r");
         if (pf == NULL) {
             SCLogError(SC_ERR_INITIALIZATION,
