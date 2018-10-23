@@ -184,12 +184,11 @@ static int DetectIPProtoTypePresentForOP(Signature *s, uint8_t op)
 static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
     SigMatch *sm = NULL;
-    DetectIPProtoData *data = NULL;
     int i;
 
-    data = DetectIPProtoParse(optstr);
+    DetectIPProtoData *data = DetectIPProtoParse(optstr);
     if (data == NULL) {
-        goto error;
+        return -1;
     }
 
     /* Reset our "any" (or "ip") state: for ipv4, ipv6 and ip cases, the bitfield
@@ -422,6 +421,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 
  error:
 
+    DetectIPProtoFree(data);
     return -1;
 }
 
