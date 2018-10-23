@@ -126,7 +126,8 @@ static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
 
     OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
-        SCLogDebug("AlertSyslogInitCtx: Could not create new OutputCtx");
+        SCLogDebug("could not create new OutputCtx");
+        LogFileFreeCtx(logfile_ctx);
         return result;
     }
     memset(output_ctx, 0x00, sizeof(OutputCtx));
