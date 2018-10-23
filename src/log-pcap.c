@@ -1401,14 +1401,14 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             SCLogError(SC_ERR_INVALID_ARGUMENT, "lz4 compression was selected "
                     "in pcap-log, but suricata was not compiled with lz4 "
                     "support.");
+            PcapLogDataFree(pl);
             return result;
 #endif /* HAVE_LIBLZ4 */
         }
         else {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Unsupported pcap-log "
                     "compression format: %s", compression_str);
-            SCFree(pl->h);
-            SCFree(pl);
+            PcapLogDataFree(pl);
             return result;
         }
 
