@@ -450,6 +450,7 @@ typedef struct LogLuaScriptOptions_ {
 static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
     int status;
 
+    printf("Lua filename %s \n", filename);
     lua_State *luastate = LuaGetState();
     if (luastate == NULL)
         goto error;
@@ -665,9 +666,10 @@ static void LogLuaSubFree(OutputCtx *oc) {
 static OutputInitResult OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
-    if (conf == NULL)
+    if (conf == NULL) {
+        printf("Is conf NULL?");
         return result;
-
+    }
     LogLuaCtx *lua_ctx = SCMalloc(sizeof(LogLuaCtx));
     if (unlikely(lua_ctx == NULL))
         return result;
@@ -687,6 +689,7 @@ static OutputInitResult OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ct
         dir = mc->path;
     }
 
+    printf("Lua dir: %s \n", dir);
     char path[PATH_MAX] = "";
     int ret = snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", conf->val);
     if (ret < 0 || ret == sizeof(path)) {
@@ -739,8 +742,16 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
     const char *dir = ConfNodeLookupChildValue(conf, "scripts-dir");
-    if (dir == NULL)
-        dir = "";
+
+    /* If scripts-dir is not specified in the config we will fall
+     * back to the default rule directory 
+     */
+
+    if (dir == NULL) {
+        ConfNode *ruledir = ConfGetNode("default-rule-path");
+        SCLogNotice("Lua scripts fallback to default rule path: %s", ruledir->val);
+        dir = ruledir->val;
+    }
 
     ConfNode *scripts = ConfNodeLookupChild(conf, "scripts");
     if (scripts == NULL) {
