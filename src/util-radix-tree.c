@@ -525,8 +525,10 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
             return NULL;
         }
         node = SCRadixCreateNode();
-        if (node == NULL)
+        if (node == NULL) {
+            SCRadixReleasePrefix(prefix, tree);
             return NULL;
+        }
         node->prefix = prefix;
         node->bit = prefix->bitlen;
         tree->head = node;
