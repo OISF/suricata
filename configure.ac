@@ -416,26 +416,40 @@
     if test "x$enable_ebpf_build" = "xyes"; then
         if echo $CC | grep clang; then
             if test "x$CC" = "xclang"; then
-                AC_MSG_CHECKING([llc binary])
-                AC_PATH_PROG(HAVE_LLC, llc, "yes", "no")
-                if test "$HAVE_LLC" = "yes"; then
+                AC_PATH_PROG(HAVE_LLC, llc, "no")
+                if test "$HAVE_LLC" != "no"; then
                     LLC="llc"
                     AC_SUBST(LLC)
                 else
-                    AC_MSG_CHECKING([llc binary for clang version])
                     llc_version_line=$($CC --version|$GREP version)
                     llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
-                    AC_MSG_RESULT($llc_version)
-                    LLC="llc-$llc_version"
-                    AC_SUBST(LLC)
+                    AC_PATH_PROG(HAVE_LLC, "llc-$llc_version", "no")
+                    if test "$HAVE_LLC" != "no"; then
+                        LLC="llc-$llc_version"
+                        AC_SUBST(LLC)
+		    else
+                        echo "unable to find llc needed to build ebpf files"
+                        exit 1
+                    fi
                 fi
             else
-                AC_MSG_CHECKING([llc binary for clang version])
-                llc_version_line=$($CC --version|$GREP version)
-                llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
-                AC_MSG_RESULT($llc_version)
-                LLC="llc-$llc_version"
-                AC_SUBST(LLC)
+                llc_version=$(echo $CC | cut -d '-' -f 2)
+                AC_PATH_PROG(HAVE_LLC, "llc-$llc_version", "no")
+                if test "$HAVE_LLC" != "no"; then
+                    LLC="llc-$llc_version"
+                    AC_SUBST(LLC)
+                else
+                    llc_version_line=$($CC --version|$GREP version)
+                    llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
+                    AC_PATH_PROG(HAVE_LLC, "llc-$llc_version", "no")
+                    if test "$HAVE_LLC" != "no"; then
+                        LLC="llc-$llc_version"
+                        AC_SUBST(LLC)
+                    else
+                        echo "unable to find llc needed to build ebpf files"
+                        exit 1
+                    fi
+                fi
             fi
         else
             echo "clang needed to build ebpf files"
