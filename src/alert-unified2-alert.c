@@ -1222,15 +1222,14 @@ error:
 OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
 {
     int ret = 0;
-    LogFileCtx* file_ctx = NULL;
     OutputCtx* output_ctx = NULL;
     HttpXFFCfg *xff_cfg = NULL;
     int nostamp = 0;
 
-    file_ctx = LogFileNewCtx();
+    LogFileCtx* file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
         SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC, "Couldn't create new file_ctx");
-        goto error;
+        return NULL;
     }
 
     const char *filename = NULL;
@@ -1345,6 +1344,8 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     return output_ctx;
 
 error:
+    LogFileFreeCtx(file_ctx);
+
     if (xff_cfg != NULL) {
         SCFree(xff_cfg);
     }
