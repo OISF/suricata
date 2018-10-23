@@ -223,6 +223,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
             if (FileGetMaxOpenFiles() > 0) {
                 StatsIncr(tv, aft->counter_max_hits);
             }
+            ff->fd = -1;
         }
     /* we can get called with a NULL ffd when we need to close */
     } else if (data != NULL) {
