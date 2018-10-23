@@ -902,9 +902,6 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                 goto error;
             }
             break;
-        default:
-            SCLogError(SC_ERR_PCRE_MATCH, "unable to find rule type for string %s", rawstr);
-            goto error;
     }
 
     switch (rule_type) {
