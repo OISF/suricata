@@ -1873,6 +1873,8 @@ void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos)
 
 #ifdef UNITTESTS
 
+#include "app-layer-htp.h"
+
 static AppLayerProtoDetectCtx alpd_ctx_ut;
 
 void AppLayerProtoDetectUnittestCtxBackup(void)

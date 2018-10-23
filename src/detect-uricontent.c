@@ -98,50 +98,6 @@ void DetectUricontentFree(void *ptr)
 }
 
 /**
- * \brief Helper function to print a DetectContentData
- */
-void DetectUricontentPrint(DetectContentData *cd)
-{
-    int i = 0;
-    if (cd == NULL) {
-        SCLogDebug("Detect UricontentData \"cd\" is NULL");
-        return;
-    }
-    char *tmpstr = SCMalloc(sizeof(char) * cd->content_len + 1);
-    if (unlikely(tmpstr == NULL))
-        return;
-
-    if (tmpstr != NULL) {
-        for (i = 0; i < cd->content_len; i++) {
-            if (isprint(cd->content[i]))
-                tmpstr[i] = cd->content[i];
-            else
-                tmpstr[i] = '.';
-        }
-        tmpstr[i] = '\0';
-        SCLogDebug("Uricontent: \"%s\"", tmpstr);
-        SCFree(tmpstr);
-    } else {
-        SCLogDebug("Uricontent: ");
-        for (i = 0; i < cd->content_len; i++)
-            SCLogDebug("%c", cd->content[i]);
-    }
-
-    SCLogDebug("Uricontent_id: %"PRIu32, cd->id);
-    SCLogDebug("Uricontent_len: %"PRIu16, cd->content_len);
-    SCLogDebug("Depth: %"PRIu16, cd->depth);
-    SCLogDebug("Offset: %"PRIu16, cd->offset);
-    SCLogDebug("Within: %"PRIi32, cd->within);
-    SCLogDebug("Distance: %"PRIi32, cd->distance);
-    SCLogDebug("flags: %u ", cd->flags);
-    SCLogDebug("negated: %s ",
-            cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
-    SCLogDebug("relative match next: %s ",
-            cd->flags & DETECT_CONTENT_RELATIVE_NEXT ? "true" : "false");
-    SCLogDebug("-----------");
-}
-
-/**
  * \brief Creates a SigMatch for the uricontent keyword being sent as argument,
  *        and appends it to the Signature(s).
  *
@@ -194,6 +150,50 @@ error:
 
 #include "detect-isdataat.h"
 #include "stream-tcp-reassemble.h"
+
+/**
+ * \brief Helper function to print a DetectContentData
+ */
+static void DetectUricontentPrint(DetectContentData *cd)
+{
+    int i = 0;
+    if (cd == NULL) {
+        SCLogDebug("Detect UricontentData \"cd\" is NULL");
+        return;
+    }
+    char *tmpstr = SCMalloc(sizeof(char) * cd->content_len + 1);
+    if (unlikely(tmpstr == NULL))
+        return;
+
+    if (tmpstr != NULL) {
+        for (i = 0; i < cd->content_len; i++) {
+            if (isprint(cd->content[i]))
+                tmpstr[i] = cd->content[i];
+            else
+                tmpstr[i] = '.';
+        }
+        tmpstr[i] = '\0';
+        SCLogDebug("Uricontent: \"%s\"", tmpstr);
+        SCFree(tmpstr);
+    } else {
+        SCLogDebug("Uricontent: ");
+        for (i = 0; i < cd->content_len; i++)
+            SCLogDebug("%c", cd->content[i]);
+    }
+
+    SCLogDebug("Uricontent_id: %"PRIu32, cd->id);
+    SCLogDebug("Uricontent_len: %"PRIu16, cd->content_len);
+    SCLogDebug("Depth: %"PRIu16, cd->depth);
+    SCLogDebug("Offset: %"PRIu16, cd->offset);
+    SCLogDebug("Within: %"PRIi32, cd->within);
+    SCLogDebug("Distance: %"PRIi32, cd->distance);
+    SCLogDebug("flags: %u ", cd->flags);
+    SCLogDebug("negated: %s ",
+            cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
+    SCLogDebug("relative match next: %s ",
+            cd->flags & DETECT_CONTENT_RELATIVE_NEXT ? "true" : "false");
+    SCLogDebug("-----------");
+}
 
 /** \test Test case where path traversal has been sent as a path string in the
  *        HTTP URL and normalized path string is checked */
