@@ -51,6 +51,7 @@
 #include "app-layer-dns-tcp-rust.h"
 #endif
 
+#ifndef HAVE_RUST
 struct DNSTcpHeader_ {
     uint16_t len;
     uint16_t tx_id;
@@ -692,14 +693,15 @@ static uint16_t DNSTcpProbeResponse(Flow *f, uint8_t *input, uint32_t len)
 
     return ALPROTO_DNS;
 }
+#endif /* HAVE_RUST */
 
 void RegisterDNSTCPParsers(void)
 {
-    const char *proto_name = "dns";
 #ifdef HAVE_RUST
     RegisterRustDNSTCPParsers();
     return;
-#endif
+#else
+    const char *proto_name = "dns";
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNS, proto_name);
@@ -768,16 +770,16 @@ void RegisterDNSTCPParsers(void)
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
-
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_DNS,
         DNSTCPParserRegisterTests);
 #endif
-
     return;
+#endif /* HAVE_RUST */
 }
 
 /* UNITTESTS */
+#ifndef HAVE_RUST
 #ifdef UNITTESTS
 
 #include "util-unittest-helper.h"
@@ -897,3 +899,4 @@ void DNSTCPParserRegisterTests(void)
 }
 
 #endif /* UNITTESTS */
+#endif /* HAVE_RUST */
