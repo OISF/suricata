@@ -509,6 +509,7 @@ static void SetBpfStringFromFile(char *filename)
     }
     bpf_len = st.st_size + 1;
 
+    // coverity[toctou : FALSE]
     fp = fopen(filename,"r");
     if (fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "Failed to open file %s", filename);
