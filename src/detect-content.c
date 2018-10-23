@@ -350,7 +350,7 @@ error:
 /**
  * \brief this function will SCFree memory associated with DetectContentData
  *
- * \param cd pointer to DetectCotentData
+ * \param cd pointer to DetectContentData
  */
 void DetectContentFree(void *ptr)
 {
