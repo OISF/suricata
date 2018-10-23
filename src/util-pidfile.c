@@ -108,6 +108,7 @@ int SCPidfileTestRunning(const char *pid_filename)
         /* Check if the existing process is still alive. */
         FILE *pf;
 
+        // coverity[toctou : FALSE]
         pf = fopen(pid_filename, "r");
         if (pf == NULL) {
             SCLogError(SC_ERR_INITIALIZATION,
