@@ -261,6 +261,7 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id)
     StorageMapping *map = &storage_map[type][id];
     Storage *store = *storage;
     if (store == NULL) {
+        // coverity[suspicious_sizeof : FALSE]
         store = SCMalloc(sizeof(void *) * storage_max_id[type]);
         if (unlikely(store == NULL))
         return NULL;
