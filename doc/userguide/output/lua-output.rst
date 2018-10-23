@@ -92,8 +92,7 @@ scripts like so:
           - flow.lua
 
 The scripts-dir option is optional. It makes Suricata load the scripts
-from this directory. Otherwise scripts will be loaded from the current
-workdir.
+from this directory. Otherwise scripts will be loaded from the rules folder.
 
 Developing lua output script
 -----------------------------
