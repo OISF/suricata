@@ -251,6 +251,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         idad->flags |= ISDATAAT_OFFSET_BE;
         SCLogDebug("isdataat uses byte_extract with local id %u", idad->dataat);
         SCFree(offset);
+        offset = NULL;
     }
 
     /* 'ends with' scenario */
@@ -293,6 +294,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
     ret = 0;
 
 end:
+    if (offset)
+        SCFree(offset);
     if (ret != 0)
         DetectIsdataatFree(idad);
     return ret;
