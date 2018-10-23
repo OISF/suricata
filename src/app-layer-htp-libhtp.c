@@ -127,7 +127,7 @@ bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, int uri_include_a
                 bstr_add_noex(r, uri->username);
             }
 
-            bstr_add_c(r, ":");
+            bstr_add_c_noex(r, ":");
 
             if (uri->password != NULL) {
                 bstr_add_noex(r, uri->password);
@@ -141,7 +141,7 @@ bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, int uri_include_a
         }
 
         if (uri->port != NULL) {
-            bstr_add_c(r, ":");
+            bstr_add_c_noex(r, ":");
             bstr_add_noex(r, uri->port);
         }
     }
