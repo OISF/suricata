@@ -99,8 +99,14 @@ static void *ParsePcapConfig(const char *iface)
     aconf->buffer_size = 0;
     /* If set command line option has precedence over config */
     if ((ConfGetInt("pcap.buffer-size", &value)) == 1) {
-        SCLogInfo("Pcap will use %d buffer size", (int)value);
-        aconf->buffer_size = value;
+        if (value >= 0 && value <= INT_MAX) {
+            SCLogInfo("Pcap will use %d buffer size", (int)value);
+            aconf->buffer_size = value;
+        } else {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "pcap.buffer-size "
+                    "value of %"PRIiMAX" is invalid. Valid range is "
+                    "0-2147483647", value);
+        }
     }
 
     aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;

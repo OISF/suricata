@@ -420,9 +420,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
     }
 #ifdef HAVE_PCAP_SET_BUFF
     ptv->pcap_buffer_size = pcapconfig->buffer_size;
-    if (ptv->pcap_buffer_size >= 0 && ptv->pcap_buffer_size <= INT_MAX) {
-        if (ptv->pcap_buffer_size > 0)
-            SCLogInfo("Going to use pcap buffer size of %" PRId32 "", ptv->pcap_buffer_size);
+    if (ptv->pcap_buffer_size > 0) {
+        SCLogInfo("Going to use pcap buffer size of %" PRId32 "", ptv->pcap_buffer_size);
 
         int pcap_set_buffer_size_r = pcap_set_buffer_size(ptv->pcap_handle,ptv->pcap_buffer_size);
         //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_buffer_size_r);
