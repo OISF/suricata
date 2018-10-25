@@ -9,7 +9,8 @@ Syntax:
 
   lua:[!]<scriptfilename>;
 
-The script filename will be appended to your default rules location.
+The script filename will be appended to either you default rules location, or if it is not found there
+it will be appended to the directory where the rule is.
 
 The script has 2 parts, an init function and a match function. First, the init.
 
