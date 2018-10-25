@@ -197,6 +197,7 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
                 SCLogError(SC_ERR_POOL_INIT, "init error");
                 if (p->Cleanup)
                     p->Cleanup(pb->data);
+                pb->data = NULL;
                 goto error;
             }
 
