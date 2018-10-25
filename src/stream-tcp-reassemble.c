@@ -1712,6 +1712,9 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
                                      Packet *p, PacketQueue *pq)
 {
     SCEnter();
+
+    DEBUG_VALIDATE_BUG_ON(p->tcph == NULL);
+
     SCLogDebug("ssn %p, stream %p, p %p, p->payload_len %"PRIu16"",
                 ssn, stream, p, p->payload_len);
 
@@ -1731,9 +1734,9 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         dir = UPDATE_DIR_PACKET;
     } else if (p->flags & PKT_PSEUDO_STREAM_END) {
         dir = UPDATE_DIR_PACKET;
-    } else if (p->tcph && (p->tcph->th_flags & TH_RST)) { // accepted rst
+    } else if (p->tcph->th_flags & TH_RST) { // accepted rst
         dir = UPDATE_DIR_PACKET;
-    } else if (p->tcph && (p->tcph->th_flags & TH_FIN) && ssn->state > TCP_TIME_WAIT) {
+    } else if ((p->tcph->th_flags & TH_FIN) && ssn->state > TCP_TIME_WAIT) {
         dir = UPDATE_DIR_PACKET;
     } else if (ssn->state == TCP_CLOSED) {
         dir = UPDATE_DIR_BOTH;
