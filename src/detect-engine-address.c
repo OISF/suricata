@@ -746,31 +746,26 @@ error:
  */
 static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
 {
-    DetectAddress *ad = NULL;
-    DetectAddress *ad2 = NULL;
-    int r = 0;
-    char any = FALSE;
-
     SCLogDebug("gh %p, s %s", gh, s);
 
     /* parse the address */
-    ad = DetectAddressParseSingle(s);
+    DetectAddress *ad = DetectAddressParseSingle(s);
     if (ad == NULL) {
         SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
                 "failed to parse address \"%s\"", s);
         return -1;
     }
 
-    if (ad->flags & ADDRESS_FLAG_ANY)
-        any = TRUE;
+    char any = (ad->flags & ADDRESS_FLAG_ANY);
 
     /* handle the not case, we apply the negation then insert the part(s) */
     if (ad->flags & ADDRESS_FLAG_NOT) {
-        ad2 = NULL;
+        DetectAddress *ad2 = NULL;
 
         if (DetectAddressCutNot(ad, &ad2) < 0) {
             SCLogDebug("DetectAddressCutNot failed");
-            goto error;
+            DetectAddressFree(ad);
+            return -1;
         }
 
         /* normally a 'not' will result in two ad's unless the 'not' is on the start or end
@@ -778,15 +773,18 @@ static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
         if (ad2 != NULL) {
             if (DetectAddressInsert(NULL, gh, ad2) < 0) {
                 SCLogDebug("DetectAddressInsert failed");
-                goto error;
+                DetectAddressFree(ad);
+                DetectAddressFree(ad2);
+                return -1;
             }
         }
     }
 
-    r = DetectAddressInsert(NULL, gh, ad);
+    int r = DetectAddressInsert(NULL, gh, ad);
     if (r < 0) {
         SCLogDebug("DetectAddressInsert failed");
-        goto error;
+        DetectAddressFree(ad);
+        return -1;
     }
     SCLogDebug("r %d",r);
 
