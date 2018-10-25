@@ -96,6 +96,13 @@
 
 #define DEBUG_VALIDATE_BUG_ON(exp) BUG_ON((exp))
 
+#elif defined(__clang_analyzer__)
+
+#define DEBUG_ASSERT_FLOW_LOCKED(f)
+#define DEBUG_VALIDATE_FLOW(f)
+#define DEBUG_VALIDATE_PACKET(p)
+#define DEBUG_VALIDATE_BUG_ON(exp) BUG_ON((exp))
+
 #else /* DEBUG_VALIDATE */
 
 #define DEBUG_ASSERT_FLOW_LOCKED(f)
