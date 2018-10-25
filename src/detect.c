@@ -596,6 +596,8 @@ static inline int DetectRunInspectRuleHeader(
      * and if so, if we actually have any in the flow. If not, the sig
      * can't match and we skip it. */
     if ((p->flags & PKT_HAS_FLOW) && (sflags & SIG_FLAG_REQUIRE_FLOWVAR)) {
+        DEBUG_VALIDATE_BUG_ON(f == NULL);
+
         int m  = f->flowvar ? 1 : 0;
 
         /* no flowvars? skip this sig */
@@ -934,6 +936,8 @@ static DetectRunScratchpad DetectRunSetup(
 
     /* grab the protocol state we will detect on */
     if (p->flags & PKT_HAS_FLOW) {
+        DEBUG_VALIDATE_BUG_ON(pflow == NULL);
+
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             flow_flags = STREAM_TOSERVER;
             SCLogDebug("flag STREAM_TOSERVER set");
