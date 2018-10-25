@@ -942,6 +942,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
 
     /* grab the protocol state we will detect on */
     if (p->flags & PKT_HAS_FLOW) {
+        DEBUG_VALIDATE_BUG_ON(pflow == NULL);
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             flow_flags = STREAM_TOSERVER;
             SCLogDebug("flag STREAM_TOSERVER set");
@@ -1088,6 +1089,8 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL_CONT);
     /* stateful app layer detection */
     if ((p->flags & PKT_HAS_FLOW) && has_state) {
+        DEBUG_VALIDATE_BUG_ON(pflow == NULL);
+
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
         int has_inspectable_state = DeStateFlowHasInspectableState(pflow, flow_flags);
         if (has_inspectable_state == 1) {
@@ -1210,6 +1213,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
          * and if so, if we actually have any in the flow. If not, the sig
          * can't match and we skip it. */
         if ((p->flags & PKT_HAS_FLOW) && (sflags & SIG_FLAG_REQUIRE_FLOWVAR)) {
+            DEBUG_VALIDATE_BUG_ON(pflow == NULL);
             int m  = pflow->flowvar ? 1 : 0;
 
             /* no flowvars? skip this sig */
@@ -1427,6 +1431,8 @@ end:
      * up again for the next packet. Also return any stream chunk we processed
      * to the pool. */
     if (p->flags & PKT_HAS_FLOW) {
+        DEBUG_VALIDATE_BUG_ON(pflow == NULL);
+
         /* HACK: prevent the wrong sgh (or NULL) from being stored in the
          * flow's sgh pointers */
         if (PKT_IS_ICMPV4(p) && ICMPV4_DEST_UNREACH_IS_VALID(p)) {
@@ -1986,6 +1992,7 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
     }
 
     if (p->flags & PKT_HAS_FLOW) {
+        DEBUG_VALIDATE_BUG_ON(p->flow == NULL);
         SCLogDebug("packet has flow");
         (*mask) |= SIG_MASK_REQUIRE_FLOW;
 
