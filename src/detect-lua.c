@@ -709,8 +709,21 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
         }
     } else {
 #endif
+        /* luaL_loadfile returns 0 on success, and > 0 if the file is not found */
         status = luaL_loadfile(luastate, ld->filename);
-        if (status) {
+    #ifdef HAVE_LIBGEN_H
+        /** Try to load the lua script from the same folder as the rule file **/
+        if (status && de_ctx->rule_file != NULL) {
+            char new_path[PATH_MAX];
+            char *dir = dirname(de_ctx->rule_file);
+            char *file = basename(ld->filename);
+            snprintf(new_path, sizeof(new_path), "%s/%s", dir, file);
+            SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s, will try to load %s",
+                       lua_tostring(luastate, -1), new_path);
+            status = luaL_loadfile(luastate, new_path);
+        }
+    #endif
+        if(status) {
             SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(luastate, -1));
             goto error;
         }
