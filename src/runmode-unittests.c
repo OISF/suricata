@@ -261,13 +261,13 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     MpmTableSetup();
     SpmTableSetup();
 
+    StorageInit();
     AppLayerSetup();
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
-    StorageInit();
     CIDRInit();
 
 #ifdef DBG_MEM_ALLOC
