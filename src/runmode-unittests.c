@@ -251,13 +251,13 @@ void RunUnittests(int list_unittests, const char *regex_arg)
 #endif
     SpmTableSetup();
 
+    StorageInit();
     AppLayerSetup();
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
-    StorageInit();
     CIDRInit();
     SigParsePrepare();
 
