@@ -104,6 +104,7 @@ static TAILQ_HEAD(, OutputFreeList_) output_free_list =
 // runmodes which are actually running
 extern Runmodes run_modes;
 
+static bool already_started = false;
 /**
  * \internal
  * \brief Translate a runmode mode to a printale string.
@@ -387,7 +388,7 @@ void RunModeDispatch(int runmode, const char *custom_mode)
     /* Check if the alloted queues have at least 1 reader and writer */
     TmValidateQueueState();
 
-    if (runmode != RUNMODE_UNIX_SOCKET) {
+    if (runmode != RUNMODE_UNIX_SOCKET && !already_started) {
         /* spawn management threads */
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
@@ -395,6 +396,7 @@ void RunModeDispatch(int runmode, const char *custom_mode)
             BypassedFlowManagerThreadSpawn();
         }
         StatsSpawnThreads();
+        already_started = true;
     }
 }
 
