@@ -35,16 +35,13 @@
 #include <pfring.h>
 #endif
 
-static const char *default_mode_autofp = NULL;
-
-
 #define PFRING_CONF_V1 1
 #define PFRING_CONF_V2 2
 
 const char *RunModeIdsPfringGetDefaultMode(void)
 {
 #ifdef HAVE_PFRING
-    return default_mode_autofp;
+    return "workers";
 #else
     return NULL;
 #endif
@@ -52,7 +49,6 @@ const char *RunModeIdsPfringGetDefaultMode(void)
 
 void RunModeIdsPfringRegister(void)
 {
-    default_mode_autofp = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_PFRING, "autofp",
                               "Multi threaded pfring mode.  Packets from "
                               "each flow are assigned to a single detect "
