@@ -198,18 +198,17 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
          * to the interface counter */
         uint64_t th_pkts = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_packets);
         uint64_t th_drops = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops);
-#ifdef HAVE_PF_RING_FLOW_OFFLOAD
-        uint64_t th_bypassed = StatsGetLocalCounterValue(ptv->tv, ptv->capture_bypassed);
-#endif
         SC_ATOMIC_ADD(ptv->livedev->pkts, pfring_s.recv - th_pkts);
         SC_ATOMIC_ADD(ptv->livedev->drop, pfring_s.drop - th_drops);
-#ifdef HAVE_PF_RING_FLOW_OFFLOAD
-        SC_ATOMIC_ADD(ptv->livedev->bypassed, pfring_s.shunt - th_bypassed);
-#endif
         StatsSetUI64(ptv->tv, ptv->capture_kernel_packets, pfring_s.recv);
         StatsSetUI64(ptv->tv, ptv->capture_kernel_drops, pfring_s.drop);
+
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
-        StatsSetUI64(ptv->tv, ptv->capture_bypassed, pfring_s.shunt);
+        if (ptv->flags & PFRING_FLAGS_BYPASS) {
+            uint64_t th_bypassed = StatsGetLocalCounterValue(ptv->tv, ptv->capture_bypassed);
+            SC_ATOMIC_ADD(ptv->livedev->bypassed, pfring_s.shunt - th_bypassed);
+            StatsSetUI64(ptv->tv, ptv->capture_bypassed, pfring_s.shunt);
+        }
 #endif
     }
 }
