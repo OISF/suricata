@@ -946,7 +946,7 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
         uint16_t ver = *input << 8 | *(input + 1);
 
         if ((ssl_state->flags & SSL_AL_FLAG_CH_VERSION_EXTENSION) &&
-            ((ver == TLS_VERSION_13) || (((ver >> 8) & 0xff) == 0x7f))) {
+                (ver > TLS_VERSION_12)) {
             ssl_state->flags |= SSL_AL_FLAG_LOG_WITHOUT_CERT;
         }
 
