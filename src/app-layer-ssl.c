@@ -1174,6 +1174,19 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
                 break;
             }
 
+            case SSL_EXTENSION_EARLY_DATA:
+            {
+                if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+                    /* Used by 0-RTT to indicate that encrypted data will
+                       be sent right after the ClientHello record. */
+                    ssl_state->flags |= SSL_AL_FLAG_EARLY_DATA;
+                }
+
+                input += ext_len;
+
+                break;
+            }
+
             case SSL_EXTENSION_SUPPORTED_VERSIONS:
             {
                 ret = TLSDecodeHSHelloExtensionSupportedVersions(ssl_state, input,
