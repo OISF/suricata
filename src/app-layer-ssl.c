@@ -842,6 +842,10 @@ static inline int TLSDecodeHSHelloExtensionSni(SSLState *ssl_state,
 {
     uint8_t *input = (uint8_t *)initial_input;
 
+    /* Empty extension */
+    if (input_len == 0)
+        return 0;
+
     if (!(HAS_SPACE(2)))
         goto invalid_length;
 
@@ -920,6 +924,10 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
 {
     uint8_t *input = (uint8_t *)initial_input;
 
+    /* Empty extension */
+    if (input_len == 0)
+        return 0;
+
     if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
         if (!(HAS_SPACE(1)))
             goto invalid_length;
@@ -971,6 +979,10 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
 {
     uint8_t *input = (uint8_t *)initial_input;
 
+    /* Empty extension */
+    if (input_len == 0)
+        return 0;
+
     if (!(HAS_SPACE(2)))
         goto invalid_length;
 
@@ -1020,6 +1032,10 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurvePF(SSLState *ssl_state,
                                             JA3Buffer *ja3_elliptic_curves_pf)
 {
     uint8_t *input = (uint8_t *)initial_input;
+
+    /* Empty extension */
+    if (input_len == 0)
+        return 0;
 
     if (!(HAS_SPACE(1)))
         goto invalid_length;
@@ -1072,7 +1088,6 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
 
     int ret;
     int rc;
-    uint32_t parsed = 0;
 
     JA3Buffer *ja3_extensions = NULL;
     JA3Buffer *ja3_elliptic_curves = NULL;
@@ -1117,18 +1132,12 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
         if (!(HAS_SPACE(ext_len)))
             goto invalid_length;
 
-        /* Don't decode empty extensions */
-        if (ext_len == 0)
-            goto next;
-
-        parsed = input - initial_input;
-
         switch (ext_type) {
             case SSL_EXTENSION_SNI:
             {
                 /* coverity[tainted_data] */
                 ret = TLSDecodeHSHelloExtensionSni(ssl_state, input,
-                                                   input_len - parsed);
+                                                   ext_len);
                 if (ret < 0)
                     goto end;
 
@@ -1141,7 +1150,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
             {
                 /* coverity[tainted_data] */
                 ret = TLSDecodeHSHelloExtensionEllipticCurves(ssl_state, input,
-                                                              input_len - parsed,
+                                                              ext_len,
                                                               ja3_elliptic_curves);
                 if (ret < 0)
                     goto end;
@@ -1155,7 +1164,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
             {
                 /* coverity[tainted_data] */
                 ret = TLSDecodeHSHelloExtensionEllipticCurvePF(ssl_state, input,
-                                                               input_len - parsed,
+                                                               ext_len,
                                                                ja3_elliptic_curves_pf);
                 if (ret < 0)
                     goto end;
@@ -1168,7 +1177,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
             case SSL_EXTENSION_SUPPORTED_VERSIONS:
             {
                 ret = TLSDecodeHSHelloExtensionSupportedVersions(ssl_state, input,
-                                                                 input_len - parsed);
+                                                                 ext_len);
                 if (ret < 0)
                     goto end;
 
@@ -1197,7 +1206,6 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
             }
         }
 
-next:
         if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
                 ssl_config.enable_ja3) {
             if (TLSDecodeValueIsGREASE(ext_type) != 1) {
