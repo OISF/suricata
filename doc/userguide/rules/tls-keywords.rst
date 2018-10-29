@@ -133,6 +133,25 @@ Examples::
 The first example matches TLSv1.2, whilst the last example matches TLSv1.3
 draft 16.
 
+ssl_version
+-----------
+
+Match version of SSL/TLS record.
+
+Supported values "sslv2", "sslv3", "tls1.0", "tls1.1", "tls1.2", "tls1.3"
+
+Example::
+
+  alert tls any any -> any any (msg:"match TLSv1.2"; \
+    ssl_version:tls1.2; sid:200030;)
+
+It is also possible to match on several versions at the same time.
+
+Example::
+
+  alert tls any any -> any any (msg:"match SSLv2 and SSLv3"; \
+    ssl_version:sslv2,sslv3; sid:200031;)
+
 tls.subject
 -----------
 
