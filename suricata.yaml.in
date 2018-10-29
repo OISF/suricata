@@ -1725,8 +1725,9 @@ netmap:
 # for more info see http://www.ntop.org/products/pf_ring/
 pfring:
   - interface: eth0
-    # Number of receive threads.
-    threads: 1
+    # Number of receive threads. If set to 'auto' Suricata will first try
+    # to use CPU (core) count and otherwise RSS queue count.
+    threads: auto
 
     # Default clusterid.  PF_RING will load balance packets based on flow.
     # All threads/processes that will participate need to have the same
@@ -1736,6 +1737,7 @@ pfring:
     # Default PF_RING cluster type. PF_RING can load balance per flow.
     # Possible values are cluster_flow or cluster_round_robin.
     cluster-type: cluster_flow
+
     # bpf filter for this interface
     #bpf-filter: tcp
 

@@ -247,12 +247,22 @@ static void *ParsePfringConfig(const char *iface)
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         pfconf->threads = 1;
-    } else {
-        if (threadsstr != NULL) {
+    } else if (threadsstr != NULL) {
+        if (strcmp(threadsstr, "auto") == 0) {
+            pfconf->threads = (int)UtilCpuGetNumProcessorsOnline();
+            if (pfconf->threads > 0) {
+                SCLogPerf("%u cores, so using %u threads", pfconf->threads, pfconf->threads);
+            } else {
+                pfconf->threads = GetIfaceRSSQueuesNum(iface);
+                if (pfconf->threads > 0) {
+                    SCLogPerf("%d RSS queues, so using %u threads", pfconf->threads, pfconf->threads);
+                }
+            }
+        } else {
             pfconf->threads = atoi(threadsstr);
         }
     }
-    if (pfconf->threads == 0) {
+    if (pfconf->threads <= 0) {
         pfconf->threads = 1;
     }
 
