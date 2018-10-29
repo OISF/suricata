@@ -2208,6 +2208,14 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             break;
 
         case SSLV3_APPLICATION_PROTOCOL:
+            /* In TLSv1.3 early data (0-RTT) could be sent before the
+               handshake is complete (rfc8446, section 2.3). We should
+               therefore not mark the handshake as done before we have
+               seen the ServerHello record. */
+            if ((ssl_state->flags & SSL_AL_FLAG_EARLY_DATA) &&
+                    ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0))
+                break;
+
             if ((ssl_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) &&
                 (ssl_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC)) {
 
@@ -2234,8 +2242,16 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             break;
 
         case SSLV3_HANDSHAKE_PROTOCOL:
-            if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC)
-                break;
+            if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) {
+                /* In TLSv1.3, ChangeCipherSpec is only used for middlebox
+                   compability (rfc8446, appendix D.4). */
+                if ((ssl_state->client_connp.version > TLS_VERSION_12) &&
+                       ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0)) {
+                    /* do nothing */
+                } else {
+                    break;
+                }
+            }
 
             if (ssl_state->curr_connp->record_length < 4) {
                 SSLParserReset(ssl_state);
