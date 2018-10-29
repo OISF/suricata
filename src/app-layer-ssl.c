@@ -2216,27 +2216,26 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                     ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0))
                 break;
 
-            if ((ssl_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) &&
-                (ssl_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC)) {
-
-                if (ssl_config.encrypt_mode != SSL_CNF_ENC_HANDLE_FULL) {
-                    SCLogDebug("setting APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD");
-                    AppLayerParserStateSetFlag(pstate,
-                            APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD);
-                }
-            }
-
             /* if we see (encrypted) aplication data, then this means the
                handshake must be done */
             ssl_state->flags |= SSL_AL_FLAG_HANDSHAKE_DONE;
+
+            if (ssl_config.encrypt_mode != SSL_CNF_ENC_HANDLE_FULL) {
+                SCLogDebug("setting APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD");
+                AppLayerParserStateSetFlag(pstate,
+                        APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD);
+            }
 
             /* Encrypted data, reassembly not asked, bypass asked, let's sacrifice
              * heartbeat lke inspection to be able to be able to bypass the flow */
             if (ssl_config.encrypt_mode == SSL_CNF_ENC_HANDLE_BYPASS) {
                 SCLogDebug("setting APP_LAYER_PARSER_NO_REASSEMBLY");
-                AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
-                AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
-                AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
+                AppLayerParserStateSetFlag(pstate,
+                        APP_LAYER_PARSER_NO_REASSEMBLY);
+                AppLayerParserStateSetFlag(pstate,
+                        APP_LAYER_PARSER_NO_INSPECTION);
+                AppLayerParserStateSetFlag(pstate,
+                        APP_LAYER_PARSER_BYPASS_READY);
             }
 
             break;
