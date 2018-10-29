@@ -29,6 +29,7 @@
 #include "util-affinity.h"
 #include "util-runmodes.h"
 #include "util-device.h"
+#include "util-ioctl.h"
 
 #ifdef HAVE_PFRING
 #include <pfring.h>
@@ -372,6 +373,14 @@ static void *ParsePfringConfig(const char *iface)
         }
     }
 
+    if (LiveGetOffload() == 0) {
+        if (GetIfaceOffloading(iface, 0, 1) == 1) {
+            SCLogWarning(SC_ERR_NIC_OFFLOADING,
+                    "Using PF_RING with offloading activated leads to capture problems");
+        }
+    } else {
+        DisableIfaceOffloading(LiveGetDevice(iface), 0, 1);
+    }
     return pfconf;
 }
 
