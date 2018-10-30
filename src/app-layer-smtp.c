@@ -799,6 +799,44 @@ static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
     SCReturnInt(0);
 }
 
+static void SetMimeEvents(SMTPState *state)
+{
+    if (state->curr_tx->mime_state->msg == NULL) {
+        return;
+    }
+
+    /* Generate decoder events */
+    MimeDecEntity *msg = state->curr_tx->mime_state->msg;
+    if (msg->anomaly_flags & ANOM_INVALID_BASE64) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_BASE64);
+    }
+    if (msg->anomaly_flags & ANOM_INVALID_QP) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_QP);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_LINE) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_LINE);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_ENC_LINE) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_ENC_LINE);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_HEADER_NAME) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_HEADER_VALUE) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE);
+    }
+    if (msg->anomaly_flags & ANOM_MALFORMED_MSG) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_BOUNDARY) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
+    }
+}
+
+/**
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
 static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
                                   AppLayerParserState *pstate)
 {
@@ -821,37 +859,12 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
             /* Complete parsing task */
             int ret = MimeDecParseComplete(state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
-
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_PARSE_FAILED);
                 SCLogDebug("MimeDecParseComplete() function failed");
             }
 
             /* Generate decoder events */
-            MimeDecEntity *msg = state->curr_tx->mime_state->msg;
-            if (msg->anomaly_flags & ANOM_INVALID_BASE64) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_BASE64);
-            }
-            if (msg->anomaly_flags & ANOM_INVALID_QP) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_QP);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_LINE) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_LINE);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_ENC_LINE) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_ENC_LINE);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_HEADER_NAME) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_HEADER_VALUE) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE);
-            }
-            if (msg->anomaly_flags & ANOM_MALFORMED_MSG) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_BOUNDARY) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
-            }
+            SetMimeEvents(state);
         }
         state->curr_tx->done = 1;
         SCLogDebug("marked tx as done");
@@ -861,12 +874,20 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
     if (state->current_command == SMTP_COMMAND_DATA &&
             (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
-        if (smtp_config.decode_mime && state->curr_tx->mime_state) {
+        if (smtp_config.decode_mime && state->curr_tx->mime_state != NULL) {
             int ret = MimeDecParseLine((const uint8_t *) state->current_line,
                     state->current_line_len, state->current_line_delimiter_len,
                     state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
-                SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);
+                if (ret != MIME_DEC_ERR_STATE) {
+                    /* Generate decoder events */
+                    SetMimeEvents(state);
+
+                    SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);
+                    SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_PARSE_FAILED);
+                }
+                /* keep the parser in its error state so we can log that,
+                 * the parser will reject new data */
             }
         }
     }
