@@ -2325,6 +2325,11 @@ static int ProcessMimeEntity(const uint8_t *buf, uint32_t len,
 
     SCLogDebug("START FLAG: %s", StateFlags[state->state_flag]);
 
+    if (state->state_flag == PARSE_ERROR) {
+        SCLogDebug("START FLAG: PARSE_ERROR, bail");
+        return MIME_DEC_ERR_STATE;
+    }
+
     /* Track long line */
     if (len > MAX_LINE_LEN) {
         state->stack->top->data->anomaly_flags |= ANOM_LONG_LINE;
@@ -2471,6 +2476,11 @@ int MimeDecParseComplete(MimeDecParseState *state)
     int ret = MIME_DEC_OK;
 
     SCLogDebug("Parsing flagged as completed");
+
+    if (state->state_flag == PARSE_ERROR) {
+        SCLogDebug("parser in error state: PARSE_ERROR");
+        return MIME_DEC_ERR_STATE;
+    }
 
     /* Store the header value */
     ret = StoreMimeHeader(state);
