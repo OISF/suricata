@@ -330,6 +330,21 @@ void SSLVersionToString(uint16_t version, char *buffer)
         case TLS_VERSION_13_PRE_DRAFT16:
             strlcat(buffer, "TLS 1.3 draft-<16", 18);
             break;
+        case TLS_VERSION_13_DRAFT20_FB:
+            strlcat(buffer, "TLS 1.3 draft-20-fb", 20);
+            break;
+        case TLS_VERSION_13_DRAFT21_FB:
+            strlcat(buffer, "TLS 1.3 draft-21-fb", 20);
+            break;
+        case TLS_VERSION_13_DRAFT22_FB:
+            strlcat(buffer, "TLS 1.3 draft-22-fb", 20);
+            break;
+        case TLS_VERSION_13_DRAFT23_FB:
+            strlcat(buffer, "TLS 1.3 draft-23-fb", 20);
+            break;
+        case TLS_VERSION_13_DRAFT26_FB:
+            strlcat(buffer, "TLS 1.3 draft-26-fb", 20);
+            break;
         default:
             snprintf(buffer, 7, "0x%04x", version);
             break;
