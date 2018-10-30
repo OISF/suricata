@@ -289,46 +289,46 @@ void SSLVersionToString(uint16_t version, char *buffer)
             strlcat(buffer, "TLS 1.3", 8);
             break;
         case TLS_VERSION_13_DRAFT28:
-            strlcat(buffer, "TLS 1.3 (draft 28)", 19);
+            strlcat(buffer, "TLS 1.3 draft-28", 17);
             break;
         case TLS_VERSION_13_DRAFT27:
-            strlcat(buffer, "TLS 1.3 (draft 27)", 19);
+            strlcat(buffer, "TLS 1.3 draft-27", 17);
             break;
         case TLS_VERSION_13_DRAFT26:
-            strlcat(buffer, "TLS 1.3 (draft 26)", 19);
+            strlcat(buffer, "TLS 1.3 draft-26", 17);
             break;
         case TLS_VERSION_13_DRAFT25:
-            strlcat(buffer, "TLS 1.3 (draft 25)", 19);
+            strlcat(buffer, "TLS 1.3 draft-25", 17);
             break;
         case TLS_VERSION_13_DRAFT24:
-            strlcat(buffer, "TLS 1.3 (draft 24)", 19);
+            strlcat(buffer, "TLS 1.3 draft-24", 17);
             break;
         case TLS_VERSION_13_DRAFT23:
-            strlcat(buffer, "TLS 1.3 (draft 23)", 19);
+            strlcat(buffer, "TLS 1.3 draft-23", 17);
             break;
         case TLS_VERSION_13_DRAFT22:
-            strlcat(buffer, "TLS 1.3 (draft 22)", 19);
+            strlcat(buffer, "TLS 1.3 draft-22", 17);
             break;
         case TLS_VERSION_13_DRAFT21:
-            strlcat(buffer, "TLS 1.3 (draft 21)", 19);
+            strlcat(buffer, "TLS 1.3 draft-21", 17);
             break;
         case TLS_VERSION_13_DRAFT20:
-            strlcat(buffer, "TLS 1.3 (draft 20)", 19);
+            strlcat(buffer, "TLS 1.3 draft-20", 17);
             break;
         case TLS_VERSION_13_DRAFT19:
-            strlcat(buffer, "TLS 1.3 (draft 19)", 19);
+            strlcat(buffer, "TLS 1.3 draft-19", 17);
             break;
         case TLS_VERSION_13_DRAFT18:
-            strlcat(buffer, "TLS 1.3 (draft 18)", 19);
+            strlcat(buffer, "TLS 1.3 draft-18", 17);
             break;
         case TLS_VERSION_13_DRAFT17:
-            strlcat(buffer, "TLS 1.3 (draft 17)", 19);
+            strlcat(buffer, "TLS 1.3 draft-17", 17);
             break;
         case TLS_VERSION_13_DRAFT16:
-            strlcat(buffer, "TLS 1.3 (draft 16)", 19);
+            strlcat(buffer, "TLS 1.3 draft-16", 17);
             break;
         case TLS_VERSION_13_PRE_DRAFT16:
-            strlcat(buffer, "TLS 1.3 (draft <16)", 20);
+            strlcat(buffer, "TLS 1.3 draft-<16", 18);
             break;
         default:
             snprintf(buffer, 7, "0x%04x", version);
