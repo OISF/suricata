@@ -354,7 +354,13 @@ static bool InitFilestoreDirectory(const char *dir)
 
     for (int i = 0; i <= dir_count; i++) {
         char leaf[PATH_MAX];
-        snprintf(leaf, sizeof(leaf) - 1, "%s/%02x", dir, i);
+        int n = snprintf(leaf, sizeof(leaf), "%s/%02x", dir, i);
+        if (n < 0 || n >= PATH_MAX) {
+            SCLogError(SC_ERR_CREATE_DIRECTORY,
+                    "Filestore (v2) failed to create leaf directory: "
+                    "path too long");
+            return false;
+        }
         if (!SCPathExists(leaf)) {
             SCLogInfo("Filestore (v2) creating directory %s", leaf);
             if (SCDefaultMkDir(leaf) != 0) {
@@ -368,7 +374,12 @@ static bool InitFilestoreDirectory(const char *dir)
 
     /* Make sure the tmp directory exists. */
     char tmpdir[PATH_MAX];
-    snprintf(tmpdir, sizeof(tmpdir) - 1, "%s/tmp", dir);
+    int n = snprintf(tmpdir, sizeof(tmpdir), "%s/tmp", dir);
+    if (n < 0 || n >= PATH_MAX) {
+        SCLogError(SC_ERR_CREATE_DIRECTORY,
+                "Filestore (v2) failed to create tmp directory: path too long");
+        return false;
+    }
     if (!SCPathExists(tmpdir)) {
         SCLogInfo("Filestore (v2) creating directory %s", tmpdir);
         if (SCDefaultMkDir(tmpdir) != 0) {
