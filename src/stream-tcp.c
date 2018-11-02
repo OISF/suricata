@@ -4765,6 +4765,14 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             goto skip;
         }
 
+        if (p->flow->flags & FLOW_WRONG_THREAD ||
+            ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP ||
+            ssn->server.flags & STREAMTCP_STREAM_FLAG_GAP)
+        {
+            // stream and/or session in known bad condition. Block events
+            p->flags |= PKT_STREAM_BAD;
+        }
+
         /* check if the packet is in right direction, when we missed the
            SYN packet and picked up midstream session. */
         if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)
