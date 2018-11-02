@@ -1131,6 +1131,9 @@ void DecodeUnregisterCounters(void);
 
 #define PKT_PSEUDO_DETECTLOG_FLUSH      (1<<27)     /**< Detect/log flush for protocol upgrade */
 
+/** Packet is part of stream in known bad condition (loss, wrong thread),
+ *  so flag it for not setting stream events */
+#define PKT_STREAM_NO_EVENTS            (1<<28)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) \
