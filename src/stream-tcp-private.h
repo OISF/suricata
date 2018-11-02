@@ -243,9 +243,15 @@ enum
     } while(0); \
 }
 
-#define StreamTcpSetEvent(p, e) { \
-    SCLogDebug("setting event %"PRIu8" on pkt %p (%"PRIu64")", (e), p, (p)->pcap_cnt); \
-    ENGINE_SET_EVENT((p), (e)); \
+#define StreamTcpSetEvent(p, e) {                                           \
+    if ((p)->flags & PKT_STREAM_NO_EVENTS) {                                \
+        SCLogDebug("not setting event %"PRIu8" on pkt %p (%"PRIu64"), "     \
+                   "stream in known bad condition", (e), p, (p)->pcap_cnt); \
+    } else {                                                                \
+        SCLogDebug("setting event %"PRIu8" on pkt %p (%"PRIu64")",          \
+                    (e), p, (p)->pcap_cnt);                                 \
+        ENGINE_SET_EVENT((p), (e));                                         \
+    }                                                                       \
 }
 
 typedef struct TcpSession_ {
