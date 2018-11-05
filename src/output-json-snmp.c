@@ -55,8 +55,7 @@
 
 typedef struct LogSNMPFileCtx_ {
     LogFileCtx *file_ctx;
-    uint32_t    flags;
-    bool        include_metadata;
+    OutputJsonCommonSettings cfg;
 } LogSNMPFileCtx;
 
 typedef struct LogSNMPLogThread_ {
@@ -77,9 +76,7 @@ static int JsonSNMPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    if (thread->snmplog_ctx->include_metadata) {
-        JsonAddMetadata(p, f, js);
-    }
+    JsonAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, js);
 
     snmpjs = rs_snmp_log_json_response(state, snmptx);
     if (unlikely(snmpjs == NULL)) {
@@ -116,7 +113,7 @@ static OutputInitResult OutputSNMPLogInitSub(ConfNode *conf,
         return result;
     }
     snmplog_ctx->file_ctx = ajt->file_ctx;
-    snmplog_ctx->include_metadata = ajt->include_metadata;
+    snmplog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
