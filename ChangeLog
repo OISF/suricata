@@ -1,3 +1,14 @@
+4.0.6 -- 2018-11-06
+
+Bug #2658: smtp segmentation fault (4.0.x)
+Bug #2568: negated fileext and filename do not work as expected (4.0.x)
+Bug #2576: filemd5 is not fired in some cases when there are invalid packets
+Bug #2607: File descriptor leak in af-packet mode (4.0.x)
+Bug #2634: Improve errors handling in AF_PACKET (4.0.x)
+Bug #2664: libhtp 0.5.28 (4.0.x)
+Support #2512: http events - Weird unicode characters and truncation in some of http_method/http_user_agent fields
+Support #2546: Suricata 4.0.x blocking issues
+
 4.0.5 -- 2018-07-18
 
 Bug #2480: http eve log data source/dest flip (4.0.x)
@@ -7,8 +18,10 @@ Bug #2532: memleak: when using app-layer event rules without rust
 Bug #2533: Suricata gzip unpacker bypass (4.0.x)
 Bug #2534: Private Suricata stops inspecting TCP stream if a TCP RST was met (4.0.x)
 Bug #2535: Messages with SC_LOG_CONFIG level are logged to syslog with EMERG priority (4.0.x)
-Bug #2540: getrandom prevents any suricata start commands on more later OS's (4.0.x)
 Bug #2537: libhtp 0.5.27 (4.0.x)
+Bug #2540: getrandom prevents any suricata start commands on more later OS's (4.0.x)
+Bug #2544: ssh out of bounds read (4.0.x)
+Bug #2545: enip out of bounds read (4.0.x)
 
 4.0.4 -- 2018-02-14
 
