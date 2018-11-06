@@ -89,7 +89,8 @@ typedef struct NFQGlobalVars_
 } NFQGlobalVars;
 
 void NFQInitConfig(char quiet);
-int NFQRegisterQueue(char *queue);
+int NFQRegisterQueue(const char *queue);
+int NFQParseAndRegisterQueues(const char *queues);
 int NFQGetQueueCount(void);
 void *NFQGetQueue(int number);
 int NFQGetQueueNum(int number);
