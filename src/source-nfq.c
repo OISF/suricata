@@ -816,14 +816,14 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data)
 }
 
 /**
- *  \brief Add a Netfilter queue
+ *  \brief Add a single Netfilter queue
  *
- *  \param string with the queue name
+ *  \param string with the queue number
  *
  *  \retval 0 on success.
  *  \retval -1 on failure.
  */
-int NFQRegisterQueue(char *queue)
+int NFQRegisterQueue(const char *queue)
 {
     NFQThreadVars *ntv = NULL;
     NFQQueueVars *nq = NULL;
@@ -858,11 +858,68 @@ int NFQRegisterQueue(char *queue)
     SCMutexUnlock(&nfq_init_lock);
     LiveRegisterDeviceName(queue);
 
-    SCLogDebug("Queue \"%s\" registered.", queue);
+    SCLogDebug("Queue %d registered.", queue_num);
     return 0;
 }
 
+/**
+ *  \brief Parses and adds Netfilter queue(s).
+ *
+ *  \param string with the queue number or range
+ *
+ *  \retval 0 on success.
+ *  \retval -1 on failure.
+ */
+int NFQParseAndRegisterQueues(const char *queues)
+{
+    char *queue2 = NULL;
+    uint16_t queue_start = 0;
+    uint16_t queue_end = 0;
 
+    if ((queue2 = strchr(queues, ':')) != NULL)  {
+        // "Start:end" format (e.g. "0:5")
+        queue2[0] = '\0';
+        queue2++;
+
+        if ((ByteExtractStringUint16(&queue_start, 10, strlen(queues), queues)) < 0) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "specified start queue '%s' is not "
+                                        "valid", queues);
+            return -1;
+        }
+
+        if (strcmp(queue2, "") != 0) {
+            if ((ByteExtractStringUint16(&queue_end, 10, strlen(queue2), queue2)) < 0) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "specified end queue '%s' is not "
+                                            "valid", queue2);
+                return -1;
+            }
+        } else {
+            queue_end = 65535;
+        }
+
+        // Sanity check
+        if (queue_start > queue_end) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "start queue's number %d is greater than "
+                                            "ending number %d", queue_start, queue_end);
+            return -1;
+        }
+
+        for (uint16_t i = queue_start; i <= queue_end; ++i) {
+            char q[6];
+            snprintf(q, sizeof(q), "%hu", i);
+
+            if (NFQRegisterQueue(q) != 0) {
+                return -1;
+            }
+        }
+    } else if (NFQRegisterQueue(queues) != 0) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "queue(s) argument '%s' is not "
+                                        "valid", queues);
+        return -1;
+    }
+
+    return 0;
+}
 
 /**
  *  \brief Get a pointer to the NFQ queue at index
