@@ -30,7 +30,8 @@
 #include <linux/netfilter.h>		/* for NF_ACCEPT */
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
-#define NFQ_MAX_QUEUE 16
+// Not a Netfilter's limit, it's just for sanity
+#define NFQ_MAX_QUEUE 128
 
 /* idea: set the recv-thread id in the packet to
  * select an verdict-queue */
