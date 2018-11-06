@@ -582,7 +582,7 @@ static void PrintUsage(const char *progname)
     printf("\t-F <bpf filter file>                 : bpf filter file\n");
     printf("\t-r <path>                            : run in pcap file/offline mode\n");
 #ifdef NFQ
-    printf("\t-q <qid>                             : run in inline nfqueue mode\n");
+    printf("\t-q <qid[:qid]>                       : run in inline nfqueue mode (use colon to specify a range of queues)\n");
 #endif /* NFQ */
 #ifdef IPFW
     printf("\t-d <divert port>                     : run in inline ipfw divert mode\n");
@@ -1974,10 +1974,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             if (suri->run_mode == RUNMODE_UNKNOWN) {
                 suri->run_mode = RUNMODE_NFQ;
                 EngineModeSetIPS();
-                if (NFQRegisterQueue(optarg) == -1)
+                if (NFQParseAndRegisterQueues(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else if (suri->run_mode == RUNMODE_NFQ) {
-                if (NFQRegisterQueue(optarg) == -1)
+                if (NFQParseAndRegisterQueues(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
