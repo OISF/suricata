@@ -172,15 +172,12 @@ int LiveGetDeviceCount(enum RunModes runmode)
  */
 const char *LiveGetDeviceName(int number, enum RunModes runmode)
 {
-    int i = 0;
     LiveDevice *pd;
 
     TAILQ_FOREACH(pd, &live_devices, next) {
-        if (i == number && pd->runmode == runmode) {
+        if (pd->id == number && pd->runmode == runmode) {
             return pd->dev;
         }
-
-        i++;
     }
 
     return NULL;
