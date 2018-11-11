@@ -71,7 +71,7 @@ void DetectFtpbounceRegister(void)
     sigmatch_table[DETECT_FTPBOUNCE].Setup = DetectFtpbounceSetup;
     sigmatch_table[DETECT_FTPBOUNCE].AppLayerTxMatch = DetectFtpbounceALMatch;
     sigmatch_table[DETECT_FTPBOUNCE].RegisterTests = DetectFtpbounceRegisterTests;
-    sigmatch_table[DETECT_FTPBOUNCE].url = DOC_URL DOC_VERSION "/rules/ftp-keywords#ftpbounce";
+    sigmatch_table[DETECT_FTPBOUNCE].url = DOC_URL DOC_VERSION "/rules/ftp-keywords.html#ftpbounce";
     sigmatch_table[DETECT_FTPBOUNCE].flags = SIGMATCH_NOOPT;
 
     g_ftp_request_list_id = DetectBufferTypeRegister("ftp_request");

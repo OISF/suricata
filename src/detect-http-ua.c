@@ -71,7 +71,7 @@ void DetectHttpUARegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].name = "http_user_agent";
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].desc = "content modifier to match only on the HTTP User-Agent header";
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_user-agent";
+    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-user-agent";
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].Setup = DetectHttpUASetup;
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].Free  = DetectHttpUAFree;
