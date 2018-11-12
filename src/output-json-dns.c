@@ -1241,7 +1241,7 @@ static DnsVersion JsonDnsParseVersion(ConfNode *conf)
         }
     } else {
         SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                "version not found, forcing it to version %u",
+                "eve-log dns version not found, forcing it to version %u",
                 DNS_VERSION_DEFAULT);
         version = DNS_VERSION_DEFAULT;
     }
