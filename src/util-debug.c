@@ -224,6 +224,14 @@ static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_si
 
     json_object_set_new(js, "event_type", json_string("engine"));
 
+    const char *s = NULL;
+    s = SCMapEnumValueToName(log_level, sc_log_level_map);
+    if (s != NULL) {
+        json_object_set_new(js, "log_level", json_string(s));
+    } else {
+        json_object_set_new(js, "log_level", json_string("INVALID"));
+    }
+
     if (error_code > 0) {
         json_object_set_new(ejs, "error_code", json_integer(error_code));
         json_object_set_new(ejs, "error", json_string(SCErrorToString(error_code)));
