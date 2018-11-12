@@ -55,7 +55,7 @@ void DetectDepthRegister (void)
     sigmatch_table[DETECT_DEPTH].RegisterTests = NULL;
 
     sigmatch_table[DETECT_STARTS_WITH].name = "startswith";
-    sigmatch_table[DETECT_STARTS_WITH].desc = "pattern must be at the start of a buffer (same as 'depth:<pattern len>';)";
+    sigmatch_table[DETECT_STARTS_WITH].desc = "pattern must be at the start of a buffer (same as 'depth:<pattern len>')";
     sigmatch_table[DETECT_STARTS_WITH].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#startswith";
     sigmatch_table[DETECT_STARTS_WITH].Setup = DetectStartsWithSetup;
     sigmatch_table[DETECT_STARTS_WITH].flags |= SIGMATCH_NOOPT;
