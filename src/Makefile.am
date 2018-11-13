@@ -112,6 +112,7 @@ detect-tls-cert-issuer.c detect-tls-cert-issuer.h \
 detect-tls-cert-subject.c detect-tls-cert-subject.h \
 detect-tls-cert-serial.c detect-tls-cert-serial.h \
 detect-tls-cert-fingerprint.c detect-tls-cert-fingerprint.h \
+detect-tls-cert.c detect-tls-cert.h \
 detect-dsize.c detect-dsize.h \
 detect-engine.c detect-engine.h \
 detect-engine-address.c detect-engine-address.h \
