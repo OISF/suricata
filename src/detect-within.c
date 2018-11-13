@@ -39,6 +39,7 @@
 
 #include "flow-var.h"
 
+#include "util-byte.h"
 #include "util-debug.h"
 #include "detect-pcre.h"
 #include "detect-within.h"
@@ -112,7 +113,12 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
         cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         cd->flags |= DETECT_CONTENT_WITHIN_BE;
     } else {
-        cd->within = strtol(str, NULL, 10);
+        if (ByteExtractStringInt32(&cd->within, 0, 0, str) != (int)strlen(str)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                      "invalid value for within: %s", str);
+            goto end;
+        }
+
         if (cd->within < (int32_t)cd->content_len) {
             SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
                        "less than the content length \"%"PRIu32"\" which is invalid, since "
