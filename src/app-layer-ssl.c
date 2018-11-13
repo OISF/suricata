@@ -1115,7 +1115,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
         ja3_elliptic_curves_pf = Ja3BufferInit();
         if (ja3_extensions == NULL || ja3_elliptic_curves == NULL ||
                 ja3_elliptic_curves_pf == NULL)
-            return -1;
+            goto error;
     }
 
     /* Extensions are optional (RFC5246 section 7.4.1.2) */
