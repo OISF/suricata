@@ -41,6 +41,7 @@
 
 #include "flow-var.h"
 
+#include "util-byte.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "detect-bytejump.h"
@@ -112,7 +113,11 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         cd->flags |= DETECT_CONTENT_DISTANCE_BE;
     } else {
-        cd->distance = strtol(str, NULL, 10);
+        if (ByteExtractStringInt32(&cd->distance, 0, 0, str) != (int)strlen(str)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                      "invalid value for distance: %s", str);
+            goto end;
+        }
     }
     cd->flags |= DETECT_CONTENT_DISTANCE;
 
