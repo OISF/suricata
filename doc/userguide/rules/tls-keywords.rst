@@ -116,6 +116,21 @@ Usage::
 
   tls_cert_valid;
 
+tls_cert
+--------
+
+Do a "raw" match on the TLS certificate. This keyword only matches on the
+first certificate in the certificate chain.
+
+Example::
+
+  alert tls any any -> any any (msg:"match bytes in TLS cert"; tls_cert; \
+    content:"|06 09 2a 86|"; sid:200070;)
+
+``tls_cert`` is a 'Sticky buffer'.
+
+``tls_cert`` can be used as ``fast_pattern``.
+
 tls.version
 -----------
 
