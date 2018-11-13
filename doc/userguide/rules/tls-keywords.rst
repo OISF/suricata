@@ -136,6 +136,20 @@ Usage::
 
   tls_cert_valid;
 
+tls.certs
+---------
+
+Do a "raw" match on each of the certificates in the TLS certificate chain.
+
+Example::
+
+  alert tls any any -> any any (msg:"match bytes in TLS cert"; tls.certs; \
+    content:"|06 09 2a 86|"; sid:200070;)
+
+``tls.certs`` is a 'sticky buffer'.
+
+``tls.certs`` can be used as ``fast_pattern``.
+
 tls.version
 -----------
 
