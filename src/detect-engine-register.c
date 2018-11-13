@@ -47,6 +47,7 @@
 #include "detect-engine-dcepayload.h"
 #include "detect-dns-query.h"
 #include "detect-tls-sni.h"
+#include "detect-tls-certs.h"
 #include "detect-tls-cert-fingerprint.h"
 #include "detect-tls-cert-issuer.h"
 #include "detect-tls-cert-subject.h"
@@ -432,6 +433,7 @@ void SigTableSetup(void)
     DetectTlsSubjectRegister();
     DetectTlsSerialRegister();
     DetectTlsFingerprintRegister();
+    DetectTlsCertsRegister();
 
     DetectTlsJa3HashRegister();
     DetectTlsJa3StringRegister();
