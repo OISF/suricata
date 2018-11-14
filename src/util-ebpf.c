@@ -63,6 +63,7 @@ static int g_livedev_storage_id = -1;
 static int g_flow_storage_id = -1;
 
 struct bpf_map_item {
+    char iface[IFNAMSIZ];
     char * name;
     int fd;
 };
@@ -85,6 +86,13 @@ static void BpfMapsInfoFree(void *bpf)
     int i;
     for (i = 0; i < bpfinfo->last; i ++) {
         if (bpfinfo->array[i].name) {
+            char pinnedpath[1024];
+            snprintf(pinnedpath, sizeof(pinnedpath),
+                     "/sys/fs/bpf/suricata-%s-%s",
+                     bpfinfo->array[i].iface,
+                     bpfinfo->array[i].name);
+            /* Unlink the pinned entry */
+            unlink(pinnedpath);
             SCFree(bpfinfo->array[i].name);
         }
     }
@@ -260,10 +268,22 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         SCLogDebug("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
         bpf_map_data->array[bpf_map_data->last].fd = bpf_map__fd(map);
         bpf_map_data->array[bpf_map_data->last].name = SCStrdup(bpf_map__name(map));
+        snprintf(bpf_map_data->array[bpf_map_data->last].iface, IFNAMSIZ,
+                 "%s", iface);
         if (!bpf_map_data->array[bpf_map_data->last].name) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to duplicate map name");
             BpfMapsInfoFree(bpf_map_data);
             return -1;
+        }
+        /* TODO pin */
+        SCLogNotice("Pinning: %d to %s", bpf_map_data->array[bpf_map_data->last].fd,
+                    bpf_map_data->array[bpf_map_data->last].name);
+        char buf[1024];
+        snprintf(buf, sizeof(buf), "/sys/fs/bpf/suricata-%s-%s", iface,
+                 bpf_map_data->array[bpf_map_data->last].name);
+        int ret = bpf_obj_pin(bpf_map_data->array[bpf_map_data->last].fd, buf);
+        if (ret != 0) {
+            SCLogError(SC_ERR_AFP_CREATE, "Can not pin: %s", strerror(errno));
         }
         bpf_map_data->last++;
     }
