@@ -159,9 +159,9 @@ void DetectTlsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX_FINGERPRINT,
             &fingerprint_parse_regex, &fingerprint_parse_regex_study);
 
-    g_tls_cert_list_id = DetectBufferTypeRegister("tls_cert");
+    g_tls_cert_list_id = DetectBufferTypeRegister("tls_keywords_old");
 
-    DetectAppLayerInspectEngineRegister("tls_cert",
+    DetectAppLayerInspectEngineRegister("tls_keywords_old",
             ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             InspectTlsCert);
 }
