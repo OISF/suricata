@@ -679,7 +679,7 @@ void SCProfilingDumpPacketStats(void)
     total = 0;
     for (m = 0; m < LOGGER_SIZE; m++) {
         int p;
-        for (p = 0; p < 257; p++) {
+        for (p = 0; p < 256; p++) {
             SCProfilePacketData *pd = &packet_profile_log_data4[m][p];
             total += pd->tot;
             pd = &packet_profile_log_data6[m][p];
@@ -693,7 +693,7 @@ void SCProfilingDumpPacketStats(void)
             "------------------------", "------", "-----", "----------", "------------", "------------", "-----------", "-----------");
     for (m = 0; m < LOGGER_SIZE; m++) {
         int p;
-        for (p = 0; p < 257; p++) {
+        for (p = 0; p < 256; p++) {
             SCProfilePacketData *pd = &packet_profile_log_data4[m][p];
 
             if (pd->cnt == 0) {
@@ -710,7 +710,7 @@ void SCProfilingDumpPacketStats(void)
     }
     for (m = 0; m < LOGGER_SIZE; m++) {
         int p;
-        for (p = 0; p < 257; p++) {
+        for (p = 0; p < 256; p++) {
             SCProfilePacketData *pd = &packet_profile_log_data6[m][p];
 
             if (pd->cnt == 0) {
