@@ -199,17 +199,18 @@ static void JsonTlsLogNotAfter(json_t *js, SSLState *ssl_state)
 
 static void JsonTlsLogJa3Hash(json_t *js, SSLState *ssl_state)
 {
-    if (ssl_state->ja3_hash != NULL) {
-        json_object_set_new(js, "hash", json_string(ssl_state->ja3_hash));
+    if (ssl_state->client_connp.ja3_hash != NULL) {
+        json_object_set_new(js, "hash",
+                            json_string(ssl_state->client_connp.ja3_hash));
     }
 }
 
 static void JsonTlsLogJa3String(json_t *js, SSLState *ssl_state)
 {
-    if ((ssl_state->ja3_str != NULL) &&
-            ssl_state->ja3_str->data != NULL) {
+    if ((ssl_state->client_connp.ja3_str != NULL) &&
+            ssl_state->client_connp.ja3_str->data != NULL) {
         json_object_set_new(js, "string",
-                            json_string(ssl_state->ja3_str->data));
+                            json_string(ssl_state->client_connp.ja3_str->data));
     }
 }
 
