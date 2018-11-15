@@ -42,3 +42,18 @@ Example::
 ``ja3.string`` replaces the previous keyword name: ``ja3_string``. You may continue
 to use the previous name, but it's recommended that rules be converted to use
 the new name.
+
+ja3s.hash
+---------
+
+Match on JA3S hash (md5).
+
+Example::
+
+  alert tls any any -> any any (msg:"match JA3S hash"; \
+      ja3s.hash; content:"b26c652e0a402a24b5ca2a660e84f9d5"; \
+      sid:100003;)
+
+``ja3s.hash`` is a 'sticky buffer'.
+
+``ja3s.hash`` can be used as ``fast_pattern``.
