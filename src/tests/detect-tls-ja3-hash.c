@@ -106,7 +106,7 @@ static int DetectTlsJa3HashTest01(void)
     ssl_state = f.alstate;
     FAIL_IF_NULL(ssl_state);
 
-    FAIL_IF_NULL(ssl_state->ja3_hash);
+    FAIL_IF_NULL(ssl_state->client_connp.ja3_hash);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
@@ -202,7 +202,7 @@ static int DetectTlsJa3HashTest02(void)
     ssl_state = f.alstate;
     FAIL_IF_NULL(ssl_state);
 
-    FAIL_IF_NULL(ssl_state->ja3_hash);
+    FAIL_IF_NULL(ssl_state->client_connp.ja3_hash);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 

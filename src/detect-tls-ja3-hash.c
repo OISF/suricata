@@ -138,12 +138,12 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         const SSLState *ssl_state = (SSLState *)f->alstate;
 
-        if (ssl_state->ja3_hash == NULL) {
+        if (ssl_state->client_connp.ja3_hash == NULL) {
             return NULL;
         }
 
-        const uint32_t data_len = strlen(ssl_state->ja3_hash);
-        const uint8_t *data = (uint8_t *)ssl_state->ja3_hash;
+        const uint32_t data_len = strlen(ssl_state->client_connp.ja3_hash);
+        const uint8_t *data = (uint8_t *)ssl_state->client_connp.ja3_hash;
 
         InspectionBufferSetup(buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);

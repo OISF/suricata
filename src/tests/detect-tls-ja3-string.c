@@ -105,8 +105,8 @@ static int DetectTlsJa3StringTest01(void)
     ssl_state = f.alstate;
     FAIL_IF_NULL(ssl_state);
 
-    FAIL_IF_NULL(ssl_state->ja3_str);
-    FAIL_IF_NULL(ssl_state->ja3_str->data);
+    FAIL_IF_NULL(ssl_state->client_connp.ja3_str);
+    FAIL_IF_NULL(ssl_state->client_connp.ja3_str->data);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 

@@ -208,6 +208,9 @@ typedef struct SSLStateConnp_ {
 
     uint32_t cert_log_flag;
 
+    JA3Buffer *ja3_str;
+    char *ja3_hash;
+
     /* buffer for the tls record.
      * We use a malloced buffer, if the record is fragmented */
     uint8_t *trec;
@@ -239,9 +242,6 @@ typedef struct SSLState_ {
     uint16_t events;
 
     uint32_t current_flags;
-
-    JA3Buffer *ja3_str;
-    char *ja3_hash;
 
     SSLStateConnp *curr_connp;
 
