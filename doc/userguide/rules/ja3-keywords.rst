@@ -34,3 +34,18 @@ Example::
 ``ja3_string`` is a 'Sticky buffer'.
 
 ``ja3_string`` can be used as ``fast_pattern``.
+
+ja3s_hash
+---------
+
+Match on JA3S hash (md5).
+
+Example::
+
+  alert tls any any -> any any (msg:"match JA3S hash"; \
+      ja3s_hash; content:"b26c652e0a402a24b5ca2a660e84f9d5"; \
+      sid:100003;)
+
+``ja3s_hash`` is a 'Sticky buffer'.
+
+``ja3s_hash`` can be used as ``fast_pattern``.
