@@ -561,6 +561,21 @@ Example:
       end
   end
 
+Ja3SGetHash
+~~~~~~~~~~~
+
+Get the JA3S hash (md5sum of JA3S string) through JA3SGetHash.
+
+Example:
+
+::
+
+  function log (args)
+      hash = Ja3SGetHash()
+      if hash == nil then
+          return
+      end
+  end
 
 SSH
 ---
