@@ -436,6 +436,7 @@ If extended logging is enabled the following fields are also included:
 * "not_before": The NotBefore field from the TLS certificate
 * "not_after": The NotAfter field from the TLS certificate
 * "ja3": The JA3 fingerprint consisting of both a JA3 hash and a JA3 string
+* "ja3s": The JA3S fingerprint consisting of both a JA3 hash and a JA3 string
 
 JA3 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints' to 'yes').
 

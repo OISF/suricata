@@ -188,7 +188,7 @@ YAML::
             extended: yes     # enable this for extended logging information
             # custom allows to control which tls fields that are included
             # in eve-log
-            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3]
+            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3, ja3s]
 
 The default is to log certificate subject and issuer. If ``extended`` is
 enabled, then the log gets more verbose.
