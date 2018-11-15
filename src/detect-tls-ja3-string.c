@@ -126,13 +126,13 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         SSLState *ssl_state = (SSLState *)_f->alstate;
 
-        if (ssl_state->ja3_str == NULL ||
-                ssl_state->ja3_str->data == NULL) {
+        if (ssl_state->client_connp.ja3_str == NULL ||
+                ssl_state->client_connp.ja3_str->data == NULL) {
             return NULL;
         }
 
-        const uint32_t data_len = strlen(ssl_state->ja3_str->data);
-        const uint8_t *data = (uint8_t *)ssl_state->ja3_str->data;
+        const uint32_t data_len = strlen(ssl_state->client_connp.ja3_str->data);
+        const uint8_t *data = (uint8_t *)ssl_state->client_connp.ja3_str->data;
 
         InspectionBufferSetup(buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
@@ -230,8 +230,8 @@ static int DetectTlsJa3StringTest01(void)
     ssl_state = f.alstate;
     FAIL_IF_NULL(ssl_state);
 
-    FAIL_IF_NULL(ssl_state->ja3_str);
-    FAIL_IF_NULL(ssl_state->ja3_str->data);
+    FAIL_IF_NULL(ssl_state->client_connp.ja3_str);
+    FAIL_IF_NULL(ssl_state->client_connp.ja3_str->data);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 

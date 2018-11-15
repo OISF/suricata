@@ -73,11 +73,12 @@ static int Ja3GetHash(lua_State *luastate)
 
     SSLState *ssl_state = (SSLState *)state;
 
-    if (ssl_state->ja3_hash == NULL)
+    if (ssl_state->client_connp.ja3_hash == NULL)
         return LuaCallbackError(luastate, "error: no JA3 hash");
 
-    return LuaPushStringBuffer(luastate, (uint8_t *)ssl_state->ja3_hash,
-                               strlen(ssl_state->ja3_hash));
+    return LuaPushStringBuffer(luastate,
+                               (uint8_t *)ssl_state->client_connp.ja3_hash,
+                               strlen(ssl_state->client_connp.ja3_hash));
 }
 
 static int Ja3GetString(lua_State *luastate)
@@ -95,11 +96,13 @@ static int Ja3GetString(lua_State *luastate)
 
     SSLState *ssl_state = (SSLState *)state;
 
-    if (ssl_state->ja3_str == NULL || ssl_state->ja3_str->data == NULL)
+    if (ssl_state->client_connp.ja3_str == NULL ||
+            ssl_state->client_connp.ja3_str->data == NULL)
         return LuaCallbackError(luastate, "error: no JA3 str");
 
-    return LuaPushStringBuffer(luastate, (uint8_t *)ssl_state->ja3_str->data,
-                               ssl_state->ja3_str->used);
+    return LuaPushStringBuffer(luastate,
+                               (uint8_t *)ssl_state->client_connp.ja3_str->data,
+                               ssl_state->client_connp.ja3_str->used);
 }
 
 /** *\brief Register JA3 Lua extensions */
