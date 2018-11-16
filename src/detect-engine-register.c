@@ -55,6 +55,7 @@
 #include "detect-tls-ja3-hash.h"
 #include "detect-tls-ja3-string.h"
 #include "detect-tls-ja3s-hash.h"
+#include "detect-tls-ja3s-string.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
 
@@ -439,6 +440,7 @@ void SigTableSetup(void)
     DetectTlsJa3HashRegister();
     DetectTlsJa3StringRegister();
     DetectTlsJa3SHashRegister();
+    DetectTlsJa3SStringRegister();
 
     DetectAppLayerEventRegister();
     /* end of order dependent regs */
