@@ -12,7 +12,7 @@ The content keyword is very important in signatures. Between the
 quotation marks you can write on what you would like the signature to
 match. The most simple format of content is::
 
-  content: ”............”;
+  content: "............";
 
 It is possible to use several contents in a signature.
 
@@ -38,7 +38,7 @@ There are characters you can not use in the content because they are
 already important in the signature. For matching on these characters
 you should use the heximal notation. These are::
 
-  “	|22|
+  "	|22|
   ;	|3B|
   :	|3A|
   |	|7C|
@@ -46,16 +46,16 @@ you should use the heximal notation. These are::
 It is a convention to write the heximal notation in upper case characters.
 
 To write for instance ``http://`` in the content of a signature, you
-should write it like this: ``content: “http|3A|//”;`` If you use a
+should write it like this: ``content: "http|3A|//";`` If you use a
 heximal notation in a signature, make sure you always place it between
 pipes. Otherwise the notation will be taken literally as part of the
 content.
 
 A few examples::
 
-  content:“a|0D|bc”;
-  content:”|61 0D 62 63|";
-  content:”a|0D|b|63|”;
+  content:"a|0D|bc";
+  content:"|61 0D 62 63|";
+  content:"a|0D|b|63|";
 
 It is possible to let a signature check the whole payload for a match with the content or to let it check specific parts of the payload. We come to that later.
 If you add nothing special to the signature, it will try to find a match in all the bytes of the payload.
@@ -83,7 +83,7 @@ For example::
   content:"Firefox/3."; distance:0; content:!"Firefox/3.6.13";
   distance:-10; sid:9000000; rev:1;)
 
-You see ``content:!”Firefox/3.6.13”;``. This means an alert will be
+You see ``content:!"Firefox/3.6.13";``. This means an alert will be
 generated if the the used version of Firefox is not 3.6.13.
 
 .. note:: The following characters must be escaped inside the content:
@@ -102,7 +102,7 @@ The format of this keyword is::
 
 You have to place it after the content you want to modify, like::
 
-  content: “abc”; nocase;
+  content: "abc"; nocase;
 
 Example nocase:
 
@@ -157,7 +157,7 @@ The keywords offset and depth can be combined and are often used together.
 
 For example::
 
-  content:“def”; offset:3; depth:3;
+  content:"def"; offset:3; depth:3;
 
 If this was used in a signature, it would check the payload from the
 third byte till the sixth byte.
@@ -353,7 +353,7 @@ These qualities can be modified with the following characters::
 These options are perl compatible modifiers. To use these modifiers,
 you should add them to pcre, behind regex. Like this::
 
-  pcre: “/<regex>/i”;
+  pcre: "/<regex>/i";
 
 *Pcre compatible modifiers*
 
