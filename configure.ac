@@ -2387,9 +2387,11 @@ AC_SUBST(no_suricata_update_comment)
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
 EXPAND_VARIABLE(sysconfdir, CONFIGURE_SYSCONDIR)
 EXPAND_VARIABLE(localstatedir, CONFIGURE_LOCALSTATEDIR)
+EXPAND_VARIABLE(datadir, CONFIGURE_DATAROOTDIR)
 AC_SUBST(CONFIGURE_PREFIX)
 AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
+AC_SUBST(CONFIGURE_DATAROOTDIR)
 AC_SUBST(PACKAGE_VERSION)
 
 AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service python/Makefile python/suricata/config/defaults.py ebpf/Makefile)
@@ -2453,6 +2455,7 @@ Generic build parameters:
   --prefix                                 ${CONFIGURE_PREFIX}
   --sysconfdir                             ${CONFIGURE_SYSCONDIR}
   --localstatedir                          ${CONFIGURE_LOCALSTATEDIR}
+  --datarootdir                            ${CONFIGURE_DATAROOTDIR}
 
   Host:                                    ${host}
   Compiler:                                ${CC} (exec name) / ${compiler} (real)
