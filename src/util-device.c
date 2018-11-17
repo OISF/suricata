@@ -181,6 +181,26 @@ const char *LiveGetDeviceName(int number)
     return NULL;
 }
 
+/**
+ *  \brief Get the runmode id associated to the iface
+ *
+ *  \param  name  interface's name
+ *
+ *  \retval runmode runmode id
+ *  \retval RUNMODE_UNKNOWN if not found
+ */
+int LiveGetDeviceRunmode(const char *name)
+{
+    LiveDevice *pd;
+
+    TAILQ_FOREACH(pd, &live_devices, next) {
+        if (!strcmp(name, pd->dev)) {
+            return pd->runmode;
+        }
+    }
+
+  return RUNMODE_UNKNOWN;
+}
 /** \internal
  *  \brief Shorten a device name that is to long
  *
