@@ -48,6 +48,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-byte.h"
+#include "util-cpu.h"
 #include "util-privs.h"
 #include "util-device.h"
 
@@ -136,8 +137,8 @@ typedef struct NFQThreadVars_
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
 
-static NFQThreadVars g_nfq_t[NFQ_MAX_QUEUE];
-static NFQQueueVars g_nfq_q[NFQ_MAX_QUEUE];
+static NFQThreadVars *g_nfq_t;
+static NFQQueueVars *g_nfq_q;
 static uint16_t receive_queue_num = 0;
 static SCMutex nfq_init_lock;
 
@@ -765,6 +766,22 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
+static void NFQDestroyQueue(NFQQueueVars *nq)
+{
+    if (unlikely(nq == NULL)) {
+        return;
+    }
+
+    SCLogDebug("starting... will close queuenum %" PRIu32 "", nq->queue_num);
+    NFQMutexLock(nq);
+    if (nq->qh != NULL) {
+        nfq_destroy_queue(nq->qh);
+        nq->qh = NULL;
+        nfq_close(nq->h);
+        nq->h = NULL;
+    }
+    NFQMutexUnlock(nq);
+}
 
 TmEcode ReceiveNFQThreadDeinit(ThreadVars *t, void *data)
 {
@@ -777,17 +794,18 @@ TmEcode ReceiveNFQThreadDeinit(ThreadVars *t, void *data)
     }
     ntv->datalen = 0;
 
-    NFQMutexLock(nq);
-    SCLogDebug("starting... will close queuenum %" PRIu32 "", nq->queue_num);
-    if (nq->qh) {
-        nfq_destroy_queue(nq->qh);
-        nq->qh = NULL;
+    NFQDestroyQueue(nq);
+
+    SCMutexLock(&nfq_init_lock);
+    if (--receive_queue_num == 0) {
+        // No more active queues, we may now free global contexts
+        SCFree(g_nfq_t);
+        SCFree(g_nfq_q);
     }
-    NFQMutexUnlock(nq);
+    SCMutexUnlock(&nfq_init_lock);
 
     return TM_ECODE_OK;
 }
-
 
 TmEcode VerdictNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
@@ -804,13 +822,7 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data)
     NFQThreadVars *ntv = (NFQThreadVars *)data;
     NFQQueueVars *nq = NFQGetQueue(ntv->nfq_index);
 
-    SCLogDebug("starting... will close queuenum %" PRIu32 "", nq->queue_num);
-    NFQMutexLock(nq);
-    if (nq->qh) {
-        nfq_destroy_queue(nq->qh);
-        nq->qh = NULL;
-    }
-    NFQMutexUnlock(nq);
+    NFQDestroyQueue(nq);
 
     return TM_ECODE_OK;
 }
@@ -828,18 +840,28 @@ int NFQRegisterQueue(const uint16_t number)
     NFQThreadVars *ntv = NULL;
     NFQQueueVars *nq = NULL;
     char queue[6] = { 0 };
+    static bool many_queues_warned = false;
+    uint16_t num_cpus = UtilCpuGetNumProcessorsOnline();
 
-    SCMutexLock(&nfq_init_lock);
-    if (receive_queue_num >= NFQ_MAX_QUEUE) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "too much Netfilter queue registered (%d)",
-                   receive_queue_num);
-        SCMutexUnlock(&nfq_init_lock);
+    if (g_nfq_t == NULL || g_nfq_q == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "NFQ context is not initialized");
         return -1;
     }
-    if (receive_queue_num == 0) {
-        memset(&g_nfq_t, 0, sizeof(g_nfq_t));
-        memset(&g_nfq_q, 0, sizeof(g_nfq_q));
+
+    SCMutexLock(&nfq_init_lock);
+    if (!many_queues_warned && (receive_queue_num >= num_cpus)) {
+        SCLogWarning(SC_WARN_UNCOMMON,
+                     "using more Netfilter queues than %hu available CPU core(s) "
+                     "may degrade performance",
+                     num_cpus);
+        many_queues_warned = true;
+    }
+    if (receive_queue_num >= NFQ_MAX_QUEUE) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT,
+                   "can not register more than %d Netfilter queues",
+                   NFQ_MAX_QUEUE);
+        SCMutexUnlock(&nfq_init_lock);
+        return -1;
     }
 
     ntv = &g_nfq_t[receive_queue_num];
@@ -868,6 +890,7 @@ int NFQParseAndRegisterQueues(const char *queues)
 {
     uint16_t queue_start = 0;
     uint16_t queue_end = 0;
+    uint16_t num_queues = 1;    // if argument is correct, at least one queue will be created
 
     // Either "id" or "start:end" format (e.g., "12" or "0:5")
     int count = sscanf(queues, "%hu:%hu", &queue_start, &queue_end);
@@ -887,16 +910,29 @@ int NFQParseAndRegisterQueues(const char *queues)
             return -1;
         }
 
-        for (uint16_t i = queue_start; i <= queue_end; i++) {
-            if (NFQRegisterQueue(i) != 0) {
-                return -1;
-            }
-        }
-    } else if (NFQRegisterQueue(queue_start) != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "queue(s) argument '%s' is not "
-                                        "valid", queues);
-        return -1;
+        num_queues = queue_end - queue_start + 1; // +1 due to inclusive range
     }
+
+    g_nfq_t = (NFQThreadVars *)SCCalloc(num_queues, sizeof(NFQThreadVars));
+
+    if (g_nfq_t == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate NFQThreadVars");
+        exit(EXIT_FAILURE);
+    }
+
+    g_nfq_q = (NFQQueueVars *)SCCalloc(num_queues, sizeof(NFQQueueVars));
+
+    if (g_nfq_q == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate NFQQueueVars");
+        SCFree(g_nfq_t);
+        exit(EXIT_FAILURE);
+    }
+
+    do {
+        if (NFQRegisterQueue(queue_start) != 0) {
+            return -1;
+        }
+    } while (++queue_start <= queue_end);
 
     return 0;
 }
@@ -1002,12 +1038,7 @@ TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot)
 
     while(1) {
         if (suricata_ctl_flags != 0) {
-            NFQMutexLock(nq);
-            if (nq->qh) {
-                nfq_destroy_queue(nq->qh);
-                nq->qh = NULL;
-            }
-            NFQMutexUnlock(nq);
+            NFQDestroyQueue(nq);
             break;
         }
         NFQRecvPkt(nq, ntv);
@@ -1269,4 +1300,3 @@ TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data)
 }
 
 #endif /* NFQ */
-
