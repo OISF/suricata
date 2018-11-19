@@ -48,6 +48,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-byte.h"
+#include "util-cpu.h"
 #include "util-privs.h"
 #include "util-device.h"
 
@@ -827,6 +828,8 @@ int NFQRegisterQueue(const char *queue)
 {
     NFQThreadVars *ntv = NULL;
     NFQQueueVars *nq = NULL;
+    static bool many_queues_warned = false;
+    uint16_t num_cpus = UtilCpuGetNumProcessorsOnline();
     /* Extract the queue number from the specified command line argument */
     uint16_t queue_num = 0;
     if ((ByteExtractStringUint16(&queue_num, 10, strlen(queue), queue)) < 0)
@@ -837,10 +840,17 @@ int NFQRegisterQueue(const char *queue)
     }
 
     SCMutexLock(&nfq_init_lock);
+    if (!many_queues_warned && (receive_queue_num >= num_cpus)) {
+        SCLogWarning(SC_WARN_UNCOMMON,
+                     "using more Netfilter queues than %hu available CPU core(s) "
+                     "may degrade performance",
+                     num_cpus);
+        many_queues_warned = true;
+    }
     if (receive_queue_num >= NFQ_MAX_QUEUE) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "too much Netfilter queue registered (%d)",
-                   receive_queue_num);
+                   "can not register more than %d Netfilter queues",
+                   NFQ_MAX_QUEUE);
         SCMutexUnlock(&nfq_init_lock);
         return -1;
     }
