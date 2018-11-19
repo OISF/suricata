@@ -89,8 +89,8 @@ void DetectFilestoreRegister(void)
 /**
  *  \brief apply the post match filestore with options
  */
-static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilestoreData *filestore, FileContainer *fc,
-        uint16_t file_id, uint16_t tx_id)
+static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilestoreData *filestore,
+        FileContainer *fc, uint32_t file_id, uint64_t tx_id)
 {
     if (filestore == NULL) {
         SCReturnInt(0);
@@ -252,7 +252,7 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
 static int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
         uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
-    uint16_t file_id = 0;
+    uint32_t file_id = 0;
 
     SCEnter();
 

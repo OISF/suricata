@@ -1074,7 +1074,7 @@ typedef struct DetectEngineThreadCtx_ {
      * full signature matches, these are processed by a post-match filestore
      * function to finalize the store. */
     struct {
-        uint16_t file_id;
+        uint32_t file_id;
         uint64_t tx_id;
     } filestore[DETECT_FILESTORE_MAX];
 
