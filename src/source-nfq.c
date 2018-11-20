@@ -137,8 +137,8 @@ typedef struct NFQThreadVars_
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
 
-static NFQThreadVars g_nfq_t[NFQ_MAX_QUEUE];
-static NFQQueueVars g_nfq_q[NFQ_MAX_QUEUE];
+static NFQThreadVars *g_nfq_t;
+static NFQQueueVars *g_nfq_q;
 static uint16_t receive_queue_num = 0;
 static SCMutex nfq_init_lock;
 
@@ -854,10 +854,6 @@ int NFQRegisterQueue(const char *queue)
         SCMutexUnlock(&nfq_init_lock);
         return -1;
     }
-    if (receive_queue_num == 0) {
-        memset(&g_nfq_t, 0, sizeof(g_nfq_t));
-        memset(&g_nfq_q, 0, sizeof(g_nfq_q));
-    }
 
     ntv = &g_nfq_t[receive_queue_num];
     ntv->nfq_index = receive_queue_num;
@@ -885,6 +881,7 @@ int NFQParseAndRegisterQueues(const char *queues)
     char *queue2 = NULL;
     uint16_t queue_start = 0;
     uint16_t queue_end = 0;
+    uint16_t num_queues = 1;    // if argument is correct, at least one queue will be created
 
     if ((queue2 = strchr(queues, ':')) != NULL)  {
         // "Start:end" format (e.g. "0:5")
@@ -913,19 +910,36 @@ int NFQParseAndRegisterQueues(const char *queues)
             return -1;
         }
 
-        for (uint16_t i = queue_start; i <= queue_end; ++i) {
-            char q[6];
-            snprintf(q, sizeof(q), "%hu", i);
-
-            if (NFQRegisterQueue(q) != 0) {
-                return -1;
-            }
-        }
-    } else if (NFQRegisterQueue(queues) != 0) {
+        num_queues = queue_start - queue_end;
+    } else if ((ByteExtractStringUint16(&queue_start, 10, strlen(queues), queues)) < 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "queue(s) argument '%s' is not "
                                         "valid", queues);
         return -1;
     }
+
+    g_nfq_t = (NFQThreadVars *)SCCalloc(num_queues, sizeof(NFQThreadVars));
+
+    if (g_nfq_t == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate NFQThreadVars");
+        exit(EXIT_FAILURE);
+    }
+
+    g_nfq_q = (NFQQueueVars *)SCCalloc(num_queues, sizeof(NFQQueueVars));
+
+    if (g_nfq_q == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate NFQQueueVars");
+        SCFree(g_nfq_t);
+        exit(EXIT_FAILURE);
+    }
+
+    do {
+        char q[6];
+        snprintf(q, sizeof(q), "%hu", queue_start);
+
+        if (NFQRegisterQueue(q) != 0) {
+            return -1;
+        }
+    } while (++queue_start <= queue_end);
 
     return 0;
 }
@@ -1295,4 +1309,3 @@ TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data)
 }
 
 #endif /* NFQ */
-
