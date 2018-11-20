@@ -278,6 +278,8 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
             break;
 
+        // suppress coverity warning as scan-build-7 warns w/o this.
+        // coverity[deadcode : FALSE]
         default:
             goto error;
     }
