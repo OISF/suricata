@@ -83,10 +83,6 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
         return -1;
     }
 
-    int ret = DetectContentDataParse("replace", replacestr, &content, &len);
-    if (ret == -1)
-        return -1;
-
     switch (run_mode) {
         case RUNMODE_NFQ:
         case RUNMODE_IPFW:
@@ -98,6 +94,10 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
             /* this is a success, having the alert is interesting */
             return 0;
     }
+
+    int ret = DetectContentDataParse("replace", replacestr, &content, &len);
+    if (ret == -1)
+        return -1;
 
     /* add to the latest "content" keyword from pmatch */
     const SigMatch *pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH,
