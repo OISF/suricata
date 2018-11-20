@@ -522,6 +522,7 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, const void *initdata, vo
     struct stat stat_buf;
     if (stat(g_logfile_base_dir, &stat_buf) != 0) {
         int ret;
+        // coverity[toctou : FALSE]
         ret = SCMkDir(g_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
         if (ret != 0) {
             int err = errno;
