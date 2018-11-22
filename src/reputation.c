@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -265,7 +265,7 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
 /**
  *  \retval 0 valid
  *  \retval 1 header
- *  \retval -1 boo
+ *  \retval -1 bad line
  */
 static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_t *cat, uint8_t *value)
 {
@@ -553,7 +553,7 @@ static char *SRepCompleteFilePath(char *file)
                 strlcat(path, "/", path_len);
 #endif
             strlcat(path, file, path_len);
-       } else {
+        } else {
             path = SCStrdup(file);
             if (unlikely(path == NULL))
                 return NULL;
