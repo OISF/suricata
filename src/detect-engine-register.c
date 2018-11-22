@@ -192,6 +192,7 @@
 
 #include "detect-transform-compress-whitespace.h"
 #include "detect-transform-strip-whitespace.h"
+#include "detect-transform-md5.h"
 #include "detect-transform-sha256.h"
 
 #include "util-rule-vars.h"
@@ -525,6 +526,7 @@ void SigTableSetup(void)
 
     DetectTransformCompressWhitespaceRegister();
     DetectTransformStripWhitespaceRegister();
+    DetectTransformMd5Register();
     DetectTransformSha256Register();
 
     /* close keyword registration */
