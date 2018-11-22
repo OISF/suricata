@@ -267,6 +267,7 @@ detect-tls-version.c detect-tls-version.h \
 detect-tos.c detect-tos.h \
 detect-transform-compress-whitespace.c detect-transform-compress-whitespace.h \
 detect-transform-strip-whitespace.c detect-transform-strip-whitespace.h \
+detect-transform-md5.c detect-transform-md5.h \
 detect-transform-sha256.c detect-transform-sha256.h \
 detect-ttl.c detect-ttl.h \
 detect-uricontent.c detect-uricontent.h \
