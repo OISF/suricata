@@ -580,8 +580,6 @@ int SRepInit(DetectEngineCtx *de_ctx)
 {
     ConfNode *files;
     ConfNode *file = NULL;
-    int r = 0;
-    char *sfile = NULL;
     const char *filename = NULL;
     int init = 0;
     int i = 0;
@@ -633,19 +631,21 @@ int SRepInit(DetectEngineCtx *de_ctx)
     de_ctx->srep_version = SRepIncrVersion();
     SCLogDebug("Reputation version %u", de_ctx->srep_version);
 
-    /* ok, let's load signature files from the general config */
+    /* ok, let's load reputation files from the general config */
     if (files != NULL) {
         TAILQ_FOREACH(file, &files->head, next) {
-            sfile = SRepCompleteFilePath(file->val);
-            SCLogInfo("Loading reputation file: %s", sfile);
+            char *sfile = SRepCompleteFilePath(file->val);
+            if (sfile) {
+                SCLogInfo("Loading reputation file: %s", sfile);
 
-            r = SRepLoadFile(cidr_ctx, sfile);
-            if (r < 0){
-                if (de_ctx->failure_fatal == 1) {
-                    exit(EXIT_FAILURE);
+                int r = SRepLoadFile(cidr_ctx, sfile);
+                if (r < 0){
+                    if (de_ctx->failure_fatal == 1) {
+                        exit(EXIT_FAILURE);
+                    }
                 }
+                SCFree(sfile);
             }
-            SCFree(sfile);
         }
     }
 
