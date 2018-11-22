@@ -49,6 +49,19 @@ Example::
 
 .. note:: depends on libnss being compiled into Suricata
 
+to_sha1
+---------
+
+Takes the buffer, calculates the SHA-1 hash and passes the raw hash value
+on.
+
+Example::
+
+    alert http any any -> any any (http_request_line; to_sha1; \
+        content:"|54A9 7A8A B09C 1B81 3725 2214 51D3 F997 F015 9DD7|"; sid:1;)
+
+.. note:: depends on libnss being compiled into Suricata
+
 to_sha256
 ---------
 
