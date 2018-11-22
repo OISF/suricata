@@ -292,8 +292,6 @@ typedef struct AFPThreadVars_
 
     uint8_t xdp_mode;
 
-    int map_fd[MAX_MAPS];
-
 } AFPThreadVars;
 
 TmEcode ReceiveAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
