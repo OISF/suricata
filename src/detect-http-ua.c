@@ -163,8 +163,6 @@ static int DetectHttpUATest01(void)
     }
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -191,8 +189,6 @@ static int DetectHttpUATest02(void)
         result = 1;
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -219,8 +215,6 @@ static int DetectHttpUATest03(void)
         result = 1;
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -247,8 +241,6 @@ static int DetectHttpUATest04(void)
         result = 1;
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -274,8 +266,6 @@ static int DetectHttpUATest05(void)
         result = 1;
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -369,10 +359,6 @@ static int DetectHttpUATest06(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -493,10 +479,6 @@ static int DetectHttpUATest07(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -621,10 +603,6 @@ static int DetectHttpUATest08(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -754,10 +732,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -886,10 +860,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -988,10 +958,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1087,10 +1053,6 @@ static int DetectHttpUATest12(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1188,10 +1150,6 @@ static int DetectHttpUATest13(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1397,7 +1355,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
@@ -1406,20 +1363,6 @@ end:
     UTHFreePacket(p);
     return result;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static int DetectHttpUATest22(void)
 {
@@ -1471,7 +1414,6 @@ static int DetectHttpUATest22(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1525,7 +1467,6 @@ static int DetectHttpUATest23(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1579,7 +1520,6 @@ static int DetectHttpUATest24(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1635,7 +1575,6 @@ static int DetectHttpUATest25(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1692,7 +1631,6 @@ static int DetectHttpUATest26(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1718,7 +1656,6 @@ static int DetectHttpUATest27(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1774,7 +1711,6 @@ static int DetectHttpUATest28(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1818,7 +1754,6 @@ static int DetectHttpUATest29(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1862,7 +1797,6 @@ static int DetectHttpUATest30(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1886,7 +1820,6 @@ static int DetectHttpUATest31(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1910,7 +1843,6 @@ static int DetectHttpUATest32(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1934,7 +1866,6 @@ static int DetectHttpUATest33(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1985,7 +1916,6 @@ static int DetectHttpUATest34(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2036,7 +1966,6 @@ static int DetectHttpUATest35(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2087,7 +2016,6 @@ static int DetectHttpUATest36(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
