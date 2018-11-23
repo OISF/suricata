@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -61,7 +61,6 @@
 
 static int DetectHttpUASetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpUARegisterTests(void);
-static void DetectHttpUAFree(void *);
 static int g_http_ua_buffer_id = 0;
 
 /**
@@ -72,9 +71,7 @@ void DetectHttpUARegister(void)
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].name = "http_user_agent";
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].desc = "content modifier to match only on the HTTP User-Agent header";
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-user-agent";
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].Setup = DetectHttpUASetup;
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].Free  = DetectHttpUAFree;
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].RegisterTests = DetectHttpUARegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_NOOPT;
@@ -111,26 +108,6 @@ int DetectHttpUASetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
                                                   DETECT_AL_HTTP_USER_AGENT,
                                                   g_http_ua_buffer_id,
                                                   ALPROTO_HTTP);
-}
-
-/**
- * \brief The function to free the http_user_agent data.
- *
- * \param ptr Pointer to the http_user_agent.
- */
-void DetectHttpUAFree(void *ptr)
-{
-    DetectContentData *huad = (DetectContentData *)ptr;
-    if (huad == NULL)
-        return;
-
-    if (huad->content != NULL)
-        SCFree(huad->content);
-
-    SpmDestroyCtx(huad->spm_ctx);
-    SCFree(huad);
-
-    return;
 }
 
 /************************************Unittests*********************************/
