@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -61,7 +61,6 @@
 
 static int DetectHttpHHSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHHRegisterTests(void);
-static void DetectHttpHHFree(void *);
 static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror);
 static int g_http_host_buffer_id = 0;
 
@@ -72,9 +71,7 @@ void DetectHttpHHRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_HOST].name = "http_host";
     sigmatch_table[DETECT_AL_HTTP_HOST].desc = "content modifier to match only on the HTTP hostname";
-    sigmatch_table[DETECT_AL_HTTP_HOST].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_HOST].Setup = DetectHttpHHSetup;
-    sigmatch_table[DETECT_AL_HTTP_HOST].Free  = DetectHttpHHFree;
     sigmatch_table[DETECT_AL_HTTP_HOST].RegisterTests = DetectHttpHHRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT ;
@@ -152,26 +149,6 @@ static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sig
     return TRUE;
 }
 
-/**
- * \brief The function to free the http_host data.
- *
- * \param ptr Pointer to the http_host.
- */
-void DetectHttpHHFree(void *ptr)
-{
-    DetectContentData *hhhd = (DetectContentData *)ptr;
-    if (hhhd == NULL)
-        return;
-
-    if (hhhd->content != NULL)
-        SCFree(hhhd->content);
-
-    SpmDestroyCtx(hhhd->spm_ctx);
-    SCFree(hhhd);
-
-    return;
-}
-
 /************************************Unittests*********************************/
 
 #ifdef UNITTESTS
@@ -202,8 +179,6 @@ static int DetectHttpHHTest01(void)
     }
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -230,8 +205,6 @@ static int DetectHttpHHTest02(void)
         result = 1;
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -258,8 +231,6 @@ static int DetectHttpHHTest03(void)
         result = 1;
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -286,8 +257,6 @@ static int DetectHttpHHTest04(void)
         result = 1;
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -313,8 +282,6 @@ static int DetectHttpHHTest05(void)
         result = 1;
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -424,10 +391,6 @@ static int DetectHttpHHTest06(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -548,10 +511,6 @@ static int DetectHttpHHTest07(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -676,10 +635,6 @@ static int DetectHttpHHTest08(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -808,10 +763,6 @@ static int DetectHttpHHTest09(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -942,10 +893,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1044,10 +991,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1143,10 +1086,6 @@ static int DetectHttpHHTest12(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1244,10 +1183,6 @@ static int DetectHttpHHTest13(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1453,7 +1388,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
@@ -1513,7 +1447,6 @@ static int DetectHttpHHTest22(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1567,7 +1500,6 @@ static int DetectHttpHHTest23(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1621,7 +1553,6 @@ static int DetectHttpHHTest24(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1677,7 +1608,6 @@ static int DetectHttpHHTest25(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1734,7 +1664,6 @@ static int DetectHttpHHTest26(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1760,7 +1689,6 @@ static int DetectHttpHHTest27(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1816,7 +1744,6 @@ static int DetectHttpHHTest28(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1860,7 +1787,6 @@ static int DetectHttpHHTest29(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1904,7 +1830,6 @@ static int DetectHttpHHTest30(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1928,7 +1853,6 @@ static int DetectHttpHHTest31(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1952,7 +1876,6 @@ static int DetectHttpHHTest32(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1976,7 +1899,6 @@ static int DetectHttpHHTest33(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2027,7 +1949,6 @@ static int DetectHttpHHTest34(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2078,7 +1999,6 @@ static int DetectHttpHHTest35(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2129,7 +2049,6 @@ static int DetectHttpHHTest36(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
