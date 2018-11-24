@@ -38,7 +38,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
+#include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
@@ -62,6 +62,11 @@
 static int DetectHttpHHSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHHRegisterTests(void);
 static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror);
+static int DetectHttpHostSetup(DetectEngineCtx *, Signature *, const char *);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id);
 static int g_http_host_buffer_id = 0;
 
 /**
@@ -69,25 +74,33 @@ static int g_http_host_buffer_id = 0;
  */
 void DetectHttpHHRegister(void)
 {
+    /* http_host content modifier */
     sigmatch_table[DETECT_AL_HTTP_HOST].name = "http_host";
     sigmatch_table[DETECT_AL_HTTP_HOST].desc = "content modifier to match only on the HTTP hostname";
     sigmatch_table[DETECT_AL_HTTP_HOST].Setup = DetectHttpHHSetup;
     sigmatch_table[DETECT_AL_HTTP_HOST].RegisterTests = DetectHttpHHRegisterTests;
-
     sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT ;
 
-    DetectAppLayerMpmRegister("http_host", SIG_FLAG_TOSERVER, 2,
-            PrefilterTxHostnameRegister);
+    /* http.host sticky buffer */
+    sigmatch_table[DETECT_HTTP_HOST].name = "http.host";
+    sigmatch_table[DETECT_HTTP_HOST].desc = "sticky buffer to match specifically and only on the HTTP Host buffer";
+    sigmatch_table[DETECT_HTTP_HOST].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-host";
+    sigmatch_table[DETECT_HTTP_HOST].Setup = DetectHttpHostSetup;
+    sigmatch_table[DETECT_HTTP_HOST].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister("http_host",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
-            DetectEngineInspectHttpHH);
+    DetectAppLayerInspectEngineRegister2("http_host", ALPROTO_HTTP,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
+            DetectEngineInspectBufferGeneric, GetData);
 
-    DetectBufferTypeSetDescriptionByName("http_host",
-            "http host header");
+    DetectAppLayerMpmRegister2("http_host", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
+            HTP_REQUEST_HEADERS);
 
     DetectBufferTypeRegisterValidateCallback("http_host",
             DetectHttpHostValidateCallback);
+
+    DetectBufferTypeSetDescriptionByName("http_host",
+            "http host");
 
     g_http_host_buffer_id = DetectBufferTypeGetByName("http_host");
 }
@@ -147,6 +160,43 @@ static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sig
     }
 
     return TRUE;
+}
+
+/**
+ * \brief this function setup the http.host keyword used in the rule
+ *
+ * \param de_ctx   Pointer to the Detection Engine Context
+ * \param s        Pointer to the Signature to which the current keyword belongs
+ * \param str      Should hold an empty string always
+ *
+ * \retval 0       On success
+ */
+static int DetectHttpHostSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    DetectBufferSetActiveList(s, g_http_host_buffer_id);
+    s->alproto = ALPROTO_HTTP;
+    return 0;
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+
+        if (tx->request_hostname == NULL)
+            return NULL;
+
+        const uint32_t data_len = bstr_len(tx->request_hostname);
+        const uint8_t *data = bstr_ptr(tx->request_hostname);
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
 }
 
 /************************************Unittests*********************************/
