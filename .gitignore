@@ -47,3 +47,4 @@ qa/log/
 
 /suricata-update/*
 !/suricata-update/Makefile.am
+!/suricata-update/bundle.sh
