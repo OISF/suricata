@@ -104,6 +104,19 @@
     fi
     AM_CONDITIONAL([HAVE_PYTHON], [test "x$enable_python" = "xyes"])
 
+    # Check for python-yaml.
+    have_python_yaml="no"
+    if test "x$enable_python" = "xyes"; then
+        AC_MSG_CHECKING([for python-yaml])
+	if $HAVE_PYTHON -c "import yaml" 2>/dev/null; then
+	   have_python_yaml="yes"
+	   AC_MSG_RESULT([yes])
+	else
+	   AC_MSG_RESULT([no])
+	fi
+    fi
+    AM_CONDITIONAL([HAVE_PYTHON_YAML], [test "x$have_python_yaml" = "xyes"])
+
     AC_PATH_PROG(HAVE_WGET, wget, "no")
     if test "$HAVE_WGET" = "no"; then
         AC_PATH_PROG(HAVE_CURL, curl, "no")
