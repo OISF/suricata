@@ -39,6 +39,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
+#include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
@@ -62,26 +63,39 @@
 static int DetectHttpUASetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpUARegisterTests(void);
 static int g_http_ua_buffer_id = 0;
+static int DetectHttpUserAgentSetup(DetectEngineCtx *, Signature *, const char *);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id);
 
 /**
  * \brief Registers the keyword handlers for the "http_user_agent" keyword.
  */
 void DetectHttpUARegister(void)
 {
+    /* http_user_agent content modifier */
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].name = "http_user_agent";
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].desc = "content modifier to match only on the HTTP User-Agent header";
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-user-agent";
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].Setup = DetectHttpUASetup;
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].RegisterTests = DetectHttpUARegisterTests;
-
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("http_user_agent", SIG_FLAG_TOSERVER, 2,
-            PrefilterTxUARegister);
+    /* http.user_agent sticky buffer */
+    sigmatch_table[DETECT_HTTP_UA].name = "http.user_agent";
+    sigmatch_table[DETECT_HTTP_UA].desc = "sticky buffer to match specifically and only on the HTTP User Agent buffer";
+    sigmatch_table[DETECT_HTTP_UA].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-user-agent";
+    sigmatch_table[DETECT_HTTP_UA].Setup = DetectHttpUserAgentSetup;
+    sigmatch_table[DETECT_HTTP_UA].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister("http_user_agent",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
-            DetectEngineInspectHttpUA);
+    DetectAppLayerInspectEngineRegister2("http_user_agent", ALPROTO_HTTP,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
+            DetectEngineInspectBufferGeneric, GetData);
+
+    DetectAppLayerMpmRegister2("http_user_agent", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
+            HTP_REQUEST_HEADERS);
 
     DetectBufferTypeSetDescriptionByName("http_user_agent",
             "http user agent");
@@ -110,6 +124,51 @@ int DetectHttpUASetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
                                                   ALPROTO_HTTP);
 }
 
+/**
+ * \brief this function setup the http.user_agent keyword used in the rule
+ *
+ * \param de_ctx   Pointer to the Detection Engine Context
+ * \param s        Pointer to the Signature to which the current keyword belongs
+ * \param str      Should hold an empty string always
+ *
+ * \retval 0       On success
+ */
+static int DetectHttpUserAgentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectBufferSetActiveList(s, g_http_ua_buffer_id) < 0)
+        return -1;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
+    return 0;
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+
+        if (tx->request_headers == NULL)
+            return NULL;
+
+        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                "User-Agent");
+        if (h == NULL || h->value == NULL) {
+            SCLogDebug("HTTP UA header not present in this request");
+            return NULL;
+        }
+
+        const uint32_t data_len = bstr_len(h->value);
+        const uint8_t *data = bstr_ptr(h->value);
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
 /************************************Unittests*********************************/
 
 #ifdef UNITTESTS
