@@ -460,13 +460,18 @@ static int SetBpfString(int argc, char *argv[])
     tmpindex = optind;
     while(argv[tmpindex] != NULL) {
         strlcat(bpf_filter, argv[tmpindex],bpf_len);
-        if(argv[tmpindex + 1] != NULL) {
+	if (*bpf_filter == '-') {
+	    SCLogError(SC_ERR_FATAL, "Bad bpf filter specified.");
+	    SCFree(bpf_filter);
+	    return TM_ECODE_FAILED;
+	}
+        if (argv[tmpindex + 1] != NULL) {
             strlcat(bpf_filter," ", bpf_len);
         }
         tmpindex++;
     }
 
-    if(strlen(bpf_filter) > 0) {
+    if (strlen(bpf_filter) > 0) {
         if (ConfSetFinal("bpf-filter", bpf_filter) != 1) {
             SCLogError(SC_ERR_FATAL, "Failed to set bpf filter.");
             SCFree(bpf_filter);
