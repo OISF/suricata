@@ -71,9 +71,7 @@ void DetectHttpRawUriRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].name = "http_raw_uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].desc = "content modifier to match on HTTP uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-uri-and-http-raw-uri";
-    sigmatch_table[DETECT_AL_HTTP_RAW_URI].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].Setup = DetectHttpRawUriSetup;
-    sigmatch_table[DETECT_AL_HTTP_RAW_URI].Free = NULL;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].RegisterTests = DetectHttpRawUriRegisterTests;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_NOOPT;
 
@@ -250,8 +248,6 @@ static int DetectHttpRawUriTest04(void)
 
  end:
     if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -299,8 +295,6 @@ static int DetectHttpRawUriTest05(void)
 
 end:
     if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     return result;
 }
@@ -347,7 +341,6 @@ static int DetectHttpRawUriTest12(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -394,7 +387,6 @@ static int DetectHttpRawUriTest13(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -418,7 +410,6 @@ static int DetectHttpRawUriTest14(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -442,7 +433,6 @@ static int DetectHttpRawUriTest15(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -466,7 +456,6 @@ static int DetectHttpRawUriTest16(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -513,7 +502,6 @@ static int DetectHttpRawUriTest17(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -561,7 +549,6 @@ static int DetectHttpRawUriTest18(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
