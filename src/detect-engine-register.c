@@ -61,7 +61,6 @@
 #include "detect-http-method.h"
 #include "detect-http-ua.h"
 #include "detect-http-hh.h"
-#include "detect-http-hrh.h"
 
 #include "detect-nfs-procedure.h"
 #include "detect-nfs-version.h"
@@ -160,7 +159,6 @@
 #include "detect-engine-hcd.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
-#include "detect-engine-hrhhd.h"
 #include "detect-byte-extract.h"
 #include "detect-file-data.h"
 #include "detect-pkt-data.h"
@@ -426,7 +424,6 @@ void SigTableSetup(void)
 
     DetectHttpUARegister();
     DetectHttpHHRegister();
-    DetectHttpHRHRegister();
 
     DetectHttpStatMsgRegister();
     DetectHttpStatCodeRegister();

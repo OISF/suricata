@@ -134,7 +134,6 @@ detect-engine-filedata.c detect-engine-filedata.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \
 detect-engine-hcd.c detect-engine-hcd.h \
 detect-engine-hrhd.c detect-engine-hrhd.h \
-detect-engine-hrhhd.c detect-engine-hrhhd.h \
 detect-engine-hsbd.c detect-engine-hsbd.h \
 detect-engine-hscd.c detect-engine-hscd.h \
 detect-engine-hsmd.c detect-engine-hsmd.h \
@@ -188,7 +187,6 @@ detect-http-headers.c detect-http-headers.h detect-http-headers-stub.h \
 detect-http-header-common.c detect-http-header-common.h \
 detect-http-header-names.c detect-http-header-names.h \
 detect-http-hh.c detect-http-hh.h \
-detect-http-hrh.c detect-http-hrh.h \
 detect-http-method.c detect-http-method.h \
 detect-http-protocol.c detect-http-protocol.h \
 detect-http-raw-header.c detect-http-raw-header.h \

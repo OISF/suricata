@@ -68,6 +68,11 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
+static int DetectHttpHRHSetup(DetectEngineCtx *, Signature *, const char *);
+static int g_http_raw_host_buffer_id = 0;
+static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id);
 static int g_http_host_buffer_id = 0;
 
 /**
@@ -106,6 +111,25 @@ void DetectHttpHHRegister(void)
             "http host");
 
     g_http_host_buffer_id = DetectBufferTypeGetByName("http_host");
+
+    /* http_raw_host content modifier */
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].name = "http_raw_host";
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].desc = "content modifier to match only on the HTTP host header or the raw hostname from the HTTP uri";
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].Setup = DetectHttpHRHSetup;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT ;
+
+    DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
+            DetectEngineInspectBufferGeneric, GetRawData);
+
+    DetectAppLayerMpmRegister2("http_raw_host", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetRawData, ALPROTO_HTTP,
+            HTP_REQUEST_HEADERS);
+
+    DetectBufferTypeSetDescriptionByName("http_raw_host",
+            "http raw host header");
+
+    g_http_raw_host_buffer_id = DetectBufferTypeGetByName("http_raw_host");
 }
 
 /**
@@ -194,6 +218,61 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
         const uint32_t data_len = bstr_len(tx->request_hostname);
         const uint8_t *data = bstr_ptr(tx->request_hostname);
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+/**
+ * \brief The setup function for the http_raw_host keyword for a signature.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ * \param s      Pointer to the signature for the current Signature being
+ *               parsed from the rules.
+ * \param m      Pointer to the head of the SigMatch for the current rule
+ *               being parsed.
+ * \param arg    Pointer to the string holding the keyword value.
+ *
+ * \retval  0 On success
+ * \retval -1 On failure
+ */
+int DetectHttpHRHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
+                                                  DETECT_AL_HTTP_RAW_HOST,
+                                                  g_http_raw_host_buffer_id,
+                                                  ALPROTO_HTTP);
+}
+
+static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+
+        const uint8_t *data = NULL;
+        uint32_t data_len = 0;
+
+        if (tx->parsed_uri == NULL || tx->parsed_uri->hostname == NULL) {
+            if (tx->request_headers == NULL)
+                return NULL;
+
+            htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                    "Host");
+            if (h == NULL || h->value == NULL)
+                return NULL;
+
+            data = (const uint8_t *)bstr_ptr(h->value);
+            data_len = bstr_len(h->value);
+        } else {
+            data = (const uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
+            data_len = bstr_len(tx->parsed_uri->hostname);
+        }
 
         InspectionBufferSetup(buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
