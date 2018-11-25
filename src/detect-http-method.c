@@ -76,7 +76,6 @@ void DetectHttpMethodRegister(void)
     sigmatch_table[DETECT_AL_HTTP_METHOD].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-method";
     sigmatch_table[DETECT_AL_HTTP_METHOD].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_METHOD].Setup = DetectHttpMethodSetup;
-    sigmatch_table[DETECT_AL_HTTP_METHOD].Free  = DetectHttpMethodFree;
     sigmatch_table[DETECT_AL_HTTP_METHOD].RegisterTests = DetectHttpMethodRegisterTests;
     sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_NOOPT;
 
@@ -115,20 +114,6 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
                                                   DETECT_AL_HTTP_METHOD,
                                                   g_http_method_buffer_id,
                                                   ALPROTO_HTTP);
-}
-
-/**
- * \brief this function will free memory associated with DetectContentData
- *
- * \param id_d pointer to DetectContentData
- */
-void DetectHttpMethodFree(void *ptr)
-{
-    DetectContentData *data = (DetectContentData *)ptr;
-
-    if (data->content != NULL)
-        SCFree(data->content);
-    SCFree(data);
 }
 
 /**
@@ -194,8 +179,6 @@ static int DetectHttpMethodTest01(void)
 
  end:
     if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -220,8 +203,6 @@ static int DetectHttpMethodTest02(void)
     }
 
  end:
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -248,8 +229,6 @@ static int DetectHttpMethodTest03(void)
     }
 
  end:
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -278,8 +257,6 @@ static int DetectHttpMethodTest04(void)
 
  end:
     if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -306,8 +283,6 @@ static int DetectHttpMethodTest05(void)
     }
 
  end:
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -355,7 +330,6 @@ static int DetectHttpMethodTest12(void)
     result = 1;
 
  end:
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -382,8 +356,6 @@ static int DetectHttpMethodTest13(void)
     }
 
  end:
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -412,8 +384,6 @@ static int DetectHttpMethodTest14(void)
 
  end:
     if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -440,8 +410,6 @@ static int DetectHttpMethodTest15(void)
     }
 
  end:
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -540,9 +508,8 @@ static int DetectHttpMethodSigTest01(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
@@ -644,10 +611,10 @@ static int DetectHttpMethodSigTest02(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, (void *) det_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *) det_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
@@ -736,9 +703,8 @@ static int DetectHttpMethodSigTest03(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
@@ -838,10 +804,6 @@ static int DetectHttpMethodSigTest04(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-    }
     if (det_ctx != NULL) {
         DetectEngineThreadCtxDeinit(&th_v, (void *) det_ctx);
     }
