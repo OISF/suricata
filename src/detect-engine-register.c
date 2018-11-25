@@ -151,7 +151,6 @@
 #include "detect-http-uri.h"
 #include "detect-http-protocol.h"
 #include "detect-http-start.h"
-#include "detect-http-raw-uri.h"
 #include "detect-http-stat-msg.h"
 #include "detect-http-request-line.h"
 #include "detect-http-response-line.h"
@@ -160,7 +159,6 @@
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
-#include "detect-engine-hrud.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
 #include "detect-engine-hhhd.h"
@@ -418,7 +416,6 @@ void SigTableSetup(void)
     DetectHttpRawHeaderRegister();
     DetectHttpMethodRegister();
     DetectHttpCookieRegister();
-    DetectHttpRawUriRegister();
 
     DetectFilenameRegister();
     DetectFileextRegister();

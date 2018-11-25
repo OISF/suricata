@@ -41,7 +41,6 @@
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
-#include "detect-engine-hrud.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
 #include "detect-engine-hhhd.h"
@@ -203,7 +202,6 @@ static void RegisterUnittests(void)
     DetectEngineHttpRawHeaderRegisterTests();
     DetectEngineHttpMethodRegisterTests();
     DetectEngineHttpCookieRegisterTests();
-    DetectEngineHttpRawUriRegisterTests();
     DetectEngineHttpStatMsgRegisterTests();
     DetectEngineHttpStatCodeRegisterTests();
     DetectEngineHttpHHRegisterTests();
