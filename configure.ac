@@ -1436,23 +1436,46 @@
         AC_CHECK_HEADER(net/netmap_user.h,,[AC_ERROR(net/netmap_user.h not found ...)],)
   ])
 
-  # suricata-update
-  have_suricata_update="no"
-  ruledirprefix="$sysconfdir"
-  suricata_update_rule_files="suricata-update-rule-files"
-  AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
-      SURICATA_UPDATE_DIR="suricata-update"
-      AC_SUBST(SURICATA_UPDATE_DIR)
-      AC_OUTPUT(suricata-update/Makefile)
-      have_suricata_update="yes"
-      ruledirprefix="$localstatedir/lib"
-      no_suricata_update_comment=""
-      has_suricata_update_comment="#"
-  ], [
-      no_suricata_update_comment="#"
-      has_suricata_update_comment=""
-  ])
-  AM_CONDITIONAL([HAVE_SURICATA_UPDATE], [test "x$have_suricata_update" != "xno"])
+  # Suricata-Update.
+    AC_ARG_ENABLE([suricata-update], AS_HELP_STRING([--disable-suricata-update],
+        [Disable suricata-update]), [enable_suricata_update=$enableval],
+      [enable_suricata_update="yes"])
+
+    # Assume suircata-update will not be installed.
+    have_suricata_update="no"
+    ruledirprefix="$sysconfdir"
+    no_suricata_update_comment="#"
+    has_suricata_update_comment=""
+    suricata_update_rule_files="suricata-update-rule-files"
+
+    if test "$enable_suricata_update" = "yes"; then
+      AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
+          have_suricata_update="yes"], [])
+    fi
+    AM_CONDITIONAL([HAVE_SURICATA_UPDATE],
+        [test "x$have_suricata_update" != "xno"])
+
+    install_suricata_update="no"
+    if test "$have_suricata_update" = "yes"; then
+        if test "$have_python_yaml" != "yes"; then
+	    echo ""
+	    echo "    Warning: suricata-update will not be installed as the"
+	    echo "        depedency python-yaml is not installed."
+	    echo ""
+	    echo "    Debian/Ubuntu: apt install python-yaml"
+	    echo "    Fedora: dnf install python-yaml"
+	    echo "    CentOS/RHEL: yum install python-yaml"
+	    echo ""
+	else
+	    install_suricata_update="yes"
+            SURICATA_UPDATE_DIR="suricata-update"
+            AC_SUBST(SURICATA_UPDATE_DIR)
+            AC_OUTPUT(suricata-update/Makefile)
+            ruledirprefix="$localstatedir/lib"
+            no_suricata_update_comment=""
+            has_suricata_update_comment="#"
+	fi
+    fi
 
   # libhtp
     AC_ARG_ENABLE(non-bundled-htp,
@@ -2449,7 +2472,8 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Rust compiler:                           ${rust_compiler_version}
   Rust cargo:                              ${rust_cargo_version}
 
-  Suricatasc install:                      ${enable_python}
+  Install suricatasc:                      ${enable_python}
+  Install suricata-update:                 ${install_suricata_update}
 
   Profiling enabled:                       ${enable_profiling}
   Profiling locks enabled:                 ${enable_profiling_locks}
