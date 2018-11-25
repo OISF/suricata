@@ -32,7 +32,6 @@
 
 #include "detect-filestore.h"
 
-#include "detect-engine-uri.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hmd.h"
