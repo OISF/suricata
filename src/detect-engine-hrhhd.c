@@ -260,10 +260,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -358,10 +354,6 @@ static int DetectEngineHttpHRHTest02(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -458,10 +450,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -556,10 +544,6 @@ static int DetectEngineHttpHRHTest04(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -656,10 +640,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -754,10 +734,6 @@ static int DetectEngineHttpHRHTest06(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -854,10 +830,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -953,10 +925,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1051,10 +1019,6 @@ static int DetectEngineHttpHRHTest09(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1152,10 +1116,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1251,10 +1211,6 @@ static int DetectEngineHttpHRHTest11(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1352,10 +1308,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1451,10 +1403,6 @@ static int DetectEngineHttpHRHTest13(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1552,10 +1500,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1651,10 +1595,6 @@ static int DetectEngineHttpHRHTest15(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1752,10 +1692,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1852,10 +1788,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1946,10 +1878,6 @@ static int DetectEngineHttpHRHTest18(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -2042,10 +1970,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -2137,10 +2061,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -2230,10 +2150,6 @@ static int DetectEngineHttpHRHTest21(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -2325,10 +2241,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -2418,10 +2330,6 @@ static int DetectEngineHttpHRHTest23(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -2514,10 +2422,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -2608,10 +2512,6 @@ static int DetectEngineHttpHRHTest25(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
