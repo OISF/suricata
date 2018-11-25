@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,41 +19,20 @@
  *
  *  \author Victor Julien <victor@inliniac.net>
  *  \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
- *
- *  Based on detect-engine-uri.c
  */
 
-#include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
+#include "../suricata-common.h"
+#include "../app-layer.h"
+#include "../app-layer-parser.h"
+#include "../app-layer-htp.h"
+#include "../util-unittest.h"
+#include "../util-unittest-helper.h"
 
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-parse.h"
-#include "detect-engine-state.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-uri.h"
+#include "../flow.h"
+#include "../flow-util.h"
 
-#include "flow-util.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "flow.h"
+#include "../detect-isdataat.h"
 
-#include "stream-tcp.h"
-
-#include "app-layer-parser.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "app-layer.h"
-#include "app-layer-htp.h"
-#include "app-layer-protos.h"
-#include "util-validate.h"
-
-/***********************************Unittests**********************************/
-
-#ifdef UNITTESTS
 /** \test Test a simple uricontent option */
 static int UriTestSig01(void)
 {
@@ -3823,12 +3802,459 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
-void UriRegisterTests(void)
+/**
+ * \test Checks if a http_uri is registered in a Signature, if content is not
+ *       specified in the signature
+ */
+static int DetectHttpUriTest01(void)
 {
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
 
-#ifdef UNITTESTS
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing http_uri\"; http_uri;sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        result = 1;
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Checks if a http_uri is registered in a Signature, if some parameter
+ *       is specified with http_uri in the signature
+ */
+static int DetectHttpUriTest02(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing http_uri\"; content:\"one\"; "
+                               "http_cookie:wrong; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        result = 1;
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Checks if a http_uri is registered in a Signature
+ */
+static int DetectHttpUriTest03(void)
+{
+    SigMatch *sm = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing http_uri\"; content:\"one\"; "
+                               "http_uri; content:\"two\"; http_uri; "
+                               "content:\"three\"; http_uri; "
+                               "sid:1;)");
+
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    sm = de_ctx->sig_list->sm_lists[g_http_uri_buffer_id];
+    if (sm == NULL) {
+        printf("no sigmatch(es): ");
+        goto end;
+    }
+
+    while (sm != NULL) {
+        if (sm->type == DETECT_CONTENT) {
+            result = 1;
+        } else {
+            printf("expected DETECT_AL_HTTP_URI, got %d: ", sm->type);
+            goto end;
+        }
+        sm = sm->next;
+    }
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Checks if a http_uri is registered in a Signature, when rawbytes is
+ *       also specified in the signature
+ */
+static int DetectHttpUriTest04(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing http_uri\"; content:\"one\"; "
+                               "rawbytes; http_uri; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        result = 1;
+
+ end:
+    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Checks if a http_uri is successfully converted to a uricontent
+ *
+ */
+static int DetectHttpUriTest05(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    Signature *s = NULL;
+    int result = 0;
+
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    s = SigInit(de_ctx, "alert tcp any any -> any any "
+                    "(msg:\"Testing http_uri\"; "
+                    "content:\"we are testing http_uri keyword\"; "
+                    "http_uri; sid:1;)");
+    if (s == NULL) {
+        printf("sig failed to parse\n");
+        goto end;
+    }
+    if (s->sm_lists[g_http_uri_buffer_id] == NULL)
+        goto end;
+    if (s->sm_lists[g_http_uri_buffer_id]->type != DETECT_CONTENT) {
+        printf("wrong type\n");
+        goto end;
+    }
+
+    const char *str = "we are testing http_uri keyword";
+    int uricomp = memcmp((const char *)((DetectContentData*) s->sm_lists[g_http_uri_buffer_id]->ctx)->content, str, strlen(str)-1);
+    int urilen = ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->content_len;
+    if (uricomp != 0 ||
+        urilen != strlen("we are testing http_uri keyword")) {
+        printf("sig failed to parse, content not setup properly\n");
+        goto end;
+    }
+    result = 1;
+
+end:
+    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
+    return result;
+}
+
+static int DetectHttpUriTest12(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_uri; "
+                               "content:\"two\"; distance:0; http_uri; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->ctx;
+    if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(ud1->content, "one", ud1->content_len) != 0 ||
+        ud2->flags != DETECT_CONTENT_DISTANCE ||
+        memcmp(ud2->content, "two", ud1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpUriTest13(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_uri; "
+                               "content:\"two\"; within:5; http_uri; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->ctx;
+    if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(ud1->content, "one", ud1->content_len) != 0 ||
+        ud2->flags != DETECT_CONTENT_WITHIN ||
+        memcmp(ud2->content, "two", ud1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpUriTest14(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; within:5; http_uri; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpUriTest15(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_uri; within:5; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->ctx;
+    if (memcmp(cd->content, "one", cd->content_len) != 0 ||
+        cd->flags != DETECT_CONTENT_WITHIN) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpUriTest16(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                                "(content:\"one\"; within:5; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpUriTest17(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(uricontent:\"one\"; "
+                               "content:\"two\"; distance:0; http_uri; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->ctx;
+    if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(ud1->content, "one", ud1->content_len) != 0 ||
+        ud2->flags != DETECT_CONTENT_DISTANCE ||
+        memcmp(ud2->content, "two", ud1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpUriTest18(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(uricontent:\"one\"; "
+                               "content:\"two\"; within:5; http_uri; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->ctx;
+    if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(ud1->content, "one", ud1->content_len) != 0 ||
+        ud2->flags != DETECT_CONTENT_WITHIN ||
+        memcmp(ud2->content, "two", ud1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpUriIsdataatParseTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any ("
+            "content:\"one\"; http_uri; "
+            "isdataat:!4,relative; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigMatch *sm = s->init_data->smlists_tail[g_http_uri_buffer_id];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
+
+    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
+ * \brief   Register the UNITTESTS for the http_uri keyword
+ */
+static void DetectHttpUriRegisterTests (void)
+{
     UtRegisterTest("UriTestSig01", UriTestSig01);
     UtRegisterTest("UriTestSig02", UriTestSig02);
     UtRegisterTest("UriTestSig03", UriTestSig03);
@@ -3866,7 +4292,20 @@ void UriRegisterTests(void)
     UtRegisterTest("UriTestSig36", UriTestSig36);
     UtRegisterTest("UriTestSig37", UriTestSig37);
     UtRegisterTest("UriTestSig38", UriTestSig38);
-#endif /* UNITTESTS */
 
-    return;
+    UtRegisterTest("DetectHttpUriTest01", DetectHttpUriTest01);
+    UtRegisterTest("DetectHttpUriTest02", DetectHttpUriTest02);
+    UtRegisterTest("DetectHttpUriTest03", DetectHttpUriTest03);
+    UtRegisterTest("DetectHttpUriTest04", DetectHttpUriTest04);
+    UtRegisterTest("DetectHttpUriTest05", DetectHttpUriTest05);
+    UtRegisterTest("DetectHttpUriTest12", DetectHttpUriTest12);
+    UtRegisterTest("DetectHttpUriTest13", DetectHttpUriTest13);
+    UtRegisterTest("DetectHttpUriTest14", DetectHttpUriTest14);
+    UtRegisterTest("DetectHttpUriTest15", DetectHttpUriTest15);
+    UtRegisterTest("DetectHttpUriTest16", DetectHttpUriTest16);
+    UtRegisterTest("DetectHttpUriTest17", DetectHttpUriTest17);
+    UtRegisterTest("DetectHttpUriTest18", DetectHttpUriTest18);
+
+    UtRegisterTest("DetectHttpUriIsdataatParseTest",
+            DetectHttpUriIsdataatParseTest);
 }

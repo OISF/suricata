@@ -36,7 +36,6 @@
 #include "detect-engine-sigorder.h"
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
-#include "detect-engine-uri.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
 #include "detect-engine-hrhd.h"
@@ -194,7 +193,6 @@ static void RegisterUnittests(void)
     SCRConfRegisterTests();
     PayloadRegisterTests();
     DcePayloadRegisterTests();
-    UriRegisterTests();
 #ifdef PROFILING
     SCProfilingRegisterTests();
 #endif

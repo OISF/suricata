@@ -45,7 +45,6 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
-#include "detect-engine-uri.h"
 #include "detect-dns-query.h"
 #include "detect-tls-sni.h"
 #include "detect-tls-cert-fingerprint.h"
