@@ -34,7 +34,6 @@
 
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hrhd.h"
-#include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-file.h"

@@ -157,7 +157,6 @@
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
 #include "detect-engine-hrhd.h"
-#include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"

@@ -134,7 +134,6 @@ detect-engine-filedata.c detect-engine-filedata.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \
 detect-engine-hcd.c detect-engine-hcd.h \
 detect-engine-hhhd.c detect-engine-hhhd.h \
-detect-engine-hmd.c detect-engine-hmd.h \
 detect-engine-hrhd.c detect-engine-hrhd.h \
 detect-engine-hrhhd.c detect-engine-hrhhd.h \
 detect-engine-hsbd.c detect-engine-hsbd.h \
