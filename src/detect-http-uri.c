@@ -69,6 +69,16 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
 static int DetectHttpUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
+static int DetectHttpRawUriSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx,
+                                          Signature *s);
+static bool DetectHttpRawUriValidateCallback(const Signature *s, const char **);
+static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id);
+
+static int g_http_raw_uri_buffer_id = 0;
 static int g_http_uri_buffer_id = 0;
 
 /**
@@ -112,6 +122,32 @@ void DetectHttpUriRegister (void)
             DetectHttpUriValidateCallback);
 
     g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
+
+    /* http_raw_uri content modifier */
+    sigmatch_table[DETECT_AL_HTTP_RAW_URI].name = "http_raw_uri";
+    sigmatch_table[DETECT_AL_HTTP_RAW_URI].desc = "content modifier to match on the raw HTTP uri";
+    sigmatch_table[DETECT_AL_HTTP_RAW_URI].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_uri-and-http_raw-uri";
+    sigmatch_table[DETECT_AL_HTTP_RAW_URI].Setup = DetectHttpRawUriSetup;
+    sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_NOOPT;
+
+    DetectAppLayerInspectEngineRegister2("http_raw_uri", ALPROTO_HTTP,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
+            DetectEngineInspectBufferGeneric, GetRawData);
+
+    DetectAppLayerMpmRegister2("http_raw_uri", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetRawData, ALPROTO_HTTP,
+            HTP_REQUEST_LINE);
+
+    DetectBufferTypeSetDescriptionByName("http_raw_uri",
+            "raw http uri");
+
+    DetectBufferTypeRegisterSetupCallback("http_raw_uri",
+            DetectHttpRawUriSetupCallback);
+
+    DetectBufferTypeRegisterValidateCallback("http_raw_uri",
+            DetectHttpRawUriValidateCallback);
+
+    g_http_raw_uri_buffer_id = DetectBufferTypeGetByName("http_raw_uri");
 }
 
 /**
@@ -179,6 +215,58 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
         const uint32_t data_len = bstr_len(tx_ud->request_uri_normalized);
         const uint8_t *data = bstr_ptr(tx_ud->request_uri_normalized);
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+/**
+ * \brief Sets up the http_raw_uri modifier keyword.
+ *
+ * \param de_ctx Pointer to the Detection Engine Context.
+ * \param s      Pointer to the Signature to which the current keyword belongs.
+ * \param arg    Should hold an empty string always.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+{
+    return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
+                                                  DETECT_AL_HTTP_RAW_URI,
+                                                  g_http_raw_uri_buffer_id,
+                                                  ALPROTO_HTTP);
+}
+
+static bool DetectHttpRawUriValidateCallback(const Signature *s, const char **sigerror)
+{
+    return DetectUrilenValidateContent(s, g_http_raw_uri_buffer_id, sigerror);
+}
+
+static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx,
+                                          Signature *s)
+{
+    SCLogDebug("callback invoked by %u", s->id);
+    DetectUrilenApplyToContent(s, g_http_raw_uri_buffer_id);
+}
+
+static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+        if (unlikely(tx->request_uri == NULL)) {
+            return NULL;
+        }
+        const uint32_t data_len = bstr_len(tx->request_uri);
+        const uint8_t *data = bstr_ptr(tx->request_uri);
 
         InspectionBufferSetup(buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);

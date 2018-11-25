@@ -50,7 +50,6 @@
 #include "detect-content.h"
 
 #include "detect-engine-payload.h"
-#include "detect-engine-hrud.h"
 #include "detect-engine-hmd.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hcd.h"
