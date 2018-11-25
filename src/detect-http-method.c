@@ -39,7 +39,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
+#include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
@@ -65,6 +65,9 @@ static int DetectHttpMethodSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectHttpMethodRegisterTests(void);
 void DetectHttpMethodFree(void *);
 static _Bool DetectHttpMethodValidateCallback(const Signature *s, const char **sigerror);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id);
 
 /**
  * \brief Registration function for keyword: http_method
@@ -79,12 +82,13 @@ void DetectHttpMethodRegister(void)
     sigmatch_table[DETECT_AL_HTTP_METHOD].RegisterTests = DetectHttpMethodRegisterTests;
     sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("http_method", SIG_FLAG_TOSERVER, 4,
-            PrefilterTxMethodRegister);
+    DetectAppLayerInspectEngineRegister2("http_method", ALPROTO_HTTP,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
+            DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerInspectEngineRegister("http_method",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
-            DetectEngineInspectHttpMethod);
+    DetectAppLayerMpmRegister2("http_method", SIG_FLAG_TOSERVER, 4,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
+            HTP_REQUEST_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_method",
             "http request method");
@@ -148,6 +152,27 @@ static _Bool DetectHttpMethodValidateCallback(const Signature *s, const char **s
         }
     }
     return TRUE;
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+
+        if (tx->request_method == NULL)
+            return NULL;
+
+        const uint32_t data_len = bstr_len(tx->request_method);
+        const uint8_t *data = bstr_ptr(tx->request_method);
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
