@@ -61,6 +61,7 @@
 
 static int g_http_method_buffer_id = 0;
 static int DetectHttpMethodSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectHttpMethodSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 #ifdef UNITTESTS
 void DetectHttpMethodRegisterTests(void);
 #endif
@@ -75,6 +76,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
  */
 void DetectHttpMethodRegister(void)
 {
+    /* http_method content modifier */
     sigmatch_table[DETECT_AL_HTTP_METHOD].name = "http_method";
     sigmatch_table[DETECT_AL_HTTP_METHOD].desc = "content modifier to match only on the HTTP method-buffer";
     sigmatch_table[DETECT_AL_HTTP_METHOD].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-method";
@@ -84,6 +86,13 @@ void DetectHttpMethodRegister(void)
     sigmatch_table[DETECT_AL_HTTP_METHOD].RegisterTests = DetectHttpMethodRegisterTests;
 #endif
     sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_NOOPT;
+
+    /* http.method sticky buffer */
+    sigmatch_table[DETECT_HTTP_METHOD].name = "http.method";
+    sigmatch_table[DETECT_HTTP_METHOD].desc = "sticky buffer to match specifically and only on the HTTP method buffer";
+    sigmatch_table[DETECT_HTTP_METHOD].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-method";
+    sigmatch_table[DETECT_HTTP_METHOD].Setup = DetectHttpMethodSetupSticky;
+    sigmatch_table[DETECT_HTTP_METHOD].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerInspectEngineRegister2("http_method", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
@@ -121,6 +130,22 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
                                                   DETECT_AL_HTTP_METHOD,
                                                   g_http_method_buffer_id,
                                                   ALPROTO_HTTP);
+}
+
+/**
+ * \brief this function setup the http.method keyword used in the rule
+ *
+ * \param de_ctx   Pointer to the Detection Engine Context
+ * \param s        Pointer to the Signature to which the current keyword belongs
+ * \param str      Should hold an empty string always
+ *
+ * \retval 0       On success
+ */
+static int DetectHttpMethodSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    DetectBufferSetActiveList(s, g_http_method_buffer_id);
+    s->alproto = ALPROTO_HTTP;
+    return 0;
 }
 
 /**
