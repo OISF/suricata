@@ -38,7 +38,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
+#include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
@@ -62,6 +62,9 @@
 static int DetectHttpHRHSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHRHRegisterTests(void);
 static int g_http_raw_host_buffer_id = 0;
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id);
 
 /**
  * \brief Registers the keyword handlers for the "http_raw_host" keyword.
@@ -76,12 +79,13 @@ void DetectHttpHRHRegister(void)
 #endif
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT ;
 
-    DetectAppLayerMpmRegister("http_raw_host", SIG_FLAG_TOSERVER, 2,
-            PrefilterTxHostnameRawRegister);
+    DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
+            DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerInspectEngineRegister("http_raw_host",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
-            DetectEngineInspectHttpHRH);
+    DetectAppLayerMpmRegister2("http_raw_host", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
+            HTP_REQUEST_HEADERS);
 
     DetectBufferTypeSetDescriptionByName("http_raw_host",
             "http raw host header");
@@ -108,6 +112,40 @@ int DetectHttpHRHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
                                                   DETECT_AL_HTTP_RAW_HOST,
                                                   g_http_raw_host_buffer_id,
                                                   ALPROTO_HTTP);
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+
+        const uint8_t *data = NULL;
+        uint32_t data_len = 0;
+
+        if (tx->parsed_uri == NULL || tx->parsed_uri->hostname == NULL) {
+            if (tx->request_headers == NULL)
+                return NULL;
+
+            htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                    "Host");
+            if (h == NULL || h->value == NULL)
+                return NULL;
+
+            data = (const uint8_t *)bstr_ptr(h->value);
+            data_len = bstr_len(h->value);
+        } else {
+            data = (const uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
+            data_len = bstr_len(tx->parsed_uri->hostname);
+        }
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
 }
 
 /************************************Unittests*********************************/
