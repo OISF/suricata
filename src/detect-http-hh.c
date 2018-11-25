@@ -70,6 +70,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         void *txv, const int list_id);
 static int DetectHttpHRHSetup(DetectEngineCtx *, Signature *, const char *);
 static int g_http_raw_host_buffer_id = 0;
+static int DetectHttpHostRawSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id);
@@ -117,6 +118,13 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].desc = "content modifier to match only on the HTTP host header or the raw hostname from the HTTP uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].Setup = DetectHttpHRHSetup;
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT ;
+
+    /* http.host sticky buffer */
+    sigmatch_table[DETECT_HTTP_HOST_RAW].name = "http.host.raw";
+    sigmatch_table[DETECT_HTTP_HOST_RAW].desc = "sticky buffer to match only on the HTTP host header or the raw hostname from the HTTP uri";
+    sigmatch_table[DETECT_HTTP_HOST_RAW].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-host";
+    sigmatch_table[DETECT_HTTP_HOST_RAW].Setup = DetectHttpHostRawSetupSticky;
+    sigmatch_table[DETECT_HTTP_HOST_RAW].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
@@ -245,6 +253,22 @@ int DetectHttpHRHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
                                                   DETECT_AL_HTTP_RAW_HOST,
                                                   g_http_raw_host_buffer_id,
                                                   ALPROTO_HTTP);
+}
+
+/**
+ * \brief this function setup the http.host keyword used in the rule
+ *
+ * \param de_ctx   Pointer to the Detection Engine Context
+ * \param s        Pointer to the Signature to which the current keyword belongs
+ * \param str      Should hold an empty string always
+ *
+ * \retval 0       On success
+ */
+static int DetectHttpHostRawSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    DetectBufferSetActiveList(s, g_http_raw_host_buffer_id);
+    s->alproto = ALPROTO_HTTP;
+    return 0;
 }
 
 static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
