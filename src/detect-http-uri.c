@@ -77,6 +77,7 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
+static int DetectHttpRawUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 
 static int g_http_raw_uri_buffer_id = 0;
 static int g_http_uri_buffer_id = 0;
@@ -129,6 +130,13 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_uri-and-http_raw-uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].Setup = DetectHttpRawUriSetup;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_NOOPT;
+
+    /* http.uri.raw sticky buffer */
+    sigmatch_table[DETECT_HTTP_URI_RAW].name = "http.uri.raw";
+    sigmatch_table[DETECT_HTTP_URI_RAW].desc = "sticky buffer to match specifically and only on the raw HTTP URI buffer";
+    sigmatch_table[DETECT_HTTP_URI_RAW].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#http-uri";
+    sigmatch_table[DETECT_HTTP_URI_RAW].Setup = DetectHttpRawUriSetupSticky;
+    sigmatch_table[DETECT_HTTP_URI_RAW].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerInspectEngineRegister2("http_raw_uri", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
@@ -251,6 +259,22 @@ static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx,
 {
     SCLogDebug("callback invoked by %u", s->id);
     DetectUrilenApplyToContent(s, g_http_raw_uri_buffer_id);
+}
+
+/**
+ * \brief this function setup the http.uri.raw keyword used in the rule
+ *
+ * \param de_ctx   Pointer to the Detection Engine Context
+ * \param s        Pointer to the Signature to which the current keyword belongs
+ * \param str      Should hold an empty string always
+ *
+ * \retval 0       On success
+ */
+static int DetectHttpRawUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    DetectBufferSetActiveList(s, g_http_raw_uri_buffer_id);
+    s->alproto = ALPROTO_HTTP;
+    return 0;
 }
 
 static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
