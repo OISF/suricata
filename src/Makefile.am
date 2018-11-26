@@ -135,7 +135,6 @@ detect-engine-hcbd.c detect-engine-hcbd.h \
 detect-engine-hcd.c detect-engine-hcd.h \
 detect-engine-hrhd.c detect-engine-hrhd.h \
 detect-engine-hsbd.c detect-engine-hsbd.h \
-detect-engine-hscd.c detect-engine-hscd.h \
 detect-engine-iponly.c detect-engine-iponly.h \
 detect-engine-loader.c detect-engine-loader.h \
 detect-engine-mpm.c detect-engine-mpm.h \
