@@ -164,7 +164,6 @@
 #include "detect-engine-hrud.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
-#include "detect-engine-hua.h"
 #include "detect-engine-hhhd.h"
 #include "detect-engine-hrhhd.h"
 #include "detect-byte-extract.h"
