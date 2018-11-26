@@ -42,6 +42,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -59,13 +60,15 @@
 
 #include "app-layer-htp.h"
 #include "detect-http-stat-msg.h"
-#include "detect-engine-hsmd.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp.h"
 
 static int DetectHttpStatMsgSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpStatMsgRegisterTests(void);
 static int g_http_stat_msg_buffer_id = 0;
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id);
 
 /**
  * \brief Registration function for keyword: http_stat_msg
@@ -76,15 +79,18 @@ void DetectHttpStatMsgRegister (void)
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].desc = "content modifier to match on HTTP stat-msg-buffer";
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-stat-msg";
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Setup = DetectHttpStatMsgSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].RegisterTests = DetectHttpStatMsgRegisterTests;
+#endif
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("http_stat_msg", SIG_FLAG_TOCLIENT, 3,
-            PrefilterTxHttpStatMsgRegister);
+    DetectAppLayerInspectEngineRegister2("http_stat_msg", ALPROTO_HTTP,
+            SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
+            DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerInspectEngineRegister("http_stat_msg",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
-            DetectEngineInspectHttpStatMsg);
+    DetectAppLayerMpmRegister2("http_stat_msg", SIG_FLAG_TOCLIENT, 3,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
+            HTP_RESPONSE_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_stat_msg",
             "http response status message");
@@ -109,6 +115,29 @@ static int DetectHttpStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                                                   DETECT_AL_HTTP_STAT_MSG,
                                                   g_http_stat_msg_buffer_id,
                                                   ALPROTO_HTTP);
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+
+        if (tx->response_message == NULL)
+            return NULL;
+
+        const uint32_t data_len = bstr_len(tx->response_message);
+        const uint8_t *data = bstr_ptr(tx->response_message);
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
 }
 
 #ifdef UNITTESTS
