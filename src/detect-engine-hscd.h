@@ -23,16 +23,6 @@
 #ifndef __DETECT_ENGINE_HSCD_H__
 #define __DETECT_ENGINE_HSCD_H__
 
-#include "app-layer-htp.h"
-
-int PrefilterTxHttpStatCodeRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-
-int DetectEngineInspectHttpStatCode(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
-
 void DetectEngineHttpStatCodeRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HSCD_H__ */

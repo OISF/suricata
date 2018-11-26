@@ -42,6 +42,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -67,6 +68,10 @@ static int DetectHttpStatCodeSetup(DetectEngineCtx *, Signature *, const char *)
 static void DetectHttpStatCodeRegisterTests(void);
 static int g_http_stat_code_buffer_id = 0;
 
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id);
+
 /**
  * \brief Registration function for keyword: http_stat_code
  */
@@ -80,12 +85,13 @@ void DetectHttpStatCodeRegister (void)
 
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("http_stat_code", SIG_FLAG_TOCLIENT, 4,
-            PrefilterTxHttpStatCodeRegister);
+    DetectAppLayerInspectEngineRegister2("http_stat_code", ALPROTO_HTTP,
+            SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
+            DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerInspectEngineRegister("http_stat_code",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
-            DetectEngineInspectHttpStatCode);
+    DetectAppLayerMpmRegister2("http_stat_code", SIG_FLAG_TOCLIENT, 4,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
+            HTP_RESPONSE_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_stat_code",
             "http response status code");
@@ -110,6 +116,29 @@ static int DetectHttpStatCodeSetup(DetectEngineCtx *de_ctx, Signature *s, const 
                                                   DETECT_AL_HTTP_STAT_CODE,
                                                   g_http_stat_code_buffer_id,
                                                   ALPROTO_HTTP);
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+
+        if (tx->response_status == NULL)
+            return NULL;
+
+        const uint32_t data_len = bstr_len(tx->response_status);
+        const uint8_t *data = bstr_ptr(tx->response_status);
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
 }
 
 #ifdef UNITTESTS
