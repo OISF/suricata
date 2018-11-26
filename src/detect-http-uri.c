@@ -37,6 +37,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-urilen.h"
@@ -61,30 +62,41 @@ static void DetectHttpUriRegisterTests(void);
 static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx,
                                        Signature *s);
 static bool DetectHttpUriValidateCallback(const Signature *s, const char **sigerror);
-
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id);
+static int DetectHttpUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 static int g_http_uri_buffer_id = 0;
 
 /**
- * \brief Registration function for keyword: http_uri
+ * \brief Registration function for keywords: http_uri and http.uri
  */
 void DetectHttpUriRegister (void)
 {
+    /* http_uri content modifier */
     sigmatch_table[DETECT_AL_HTTP_URI].name = "http_uri";
     sigmatch_table[DETECT_AL_HTTP_URI].desc = "content modifier to match specifically and only on the HTTP uri-buffer";
     sigmatch_table[DETECT_AL_HTTP_URI].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-uri-and-http-raw-uri";
-    sigmatch_table[DETECT_AL_HTTP_URI].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_URI].Setup = DetectHttpUriSetup;
-    sigmatch_table[DETECT_AL_HTTP_URI].Free  = NULL;
     sigmatch_table[DETECT_AL_HTTP_URI].RegisterTests = DetectHttpUriRegisterTests;
-
     sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("http_uri", SIG_FLAG_TOSERVER, 2,
-            PrefilterTxUriRegister);
+    /* http.uri sticky buffer */
+    sigmatch_table[DETECT_HTTP_URI].name = "http.uri";
+    sigmatch_table[DETECT_HTTP_URI].alias = "http.uri.normalized";
+    sigmatch_table[DETECT_HTTP_URI].desc = "sticky buffer to match specifically and only on the normalized HTTP URI buffer";
+    sigmatch_table[DETECT_HTTP_URI].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#http-uri";
+    sigmatch_table[DETECT_HTTP_URI].Setup = DetectHttpUriSetupSticky;
+    sigmatch_table[DETECT_HTTP_URI].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister("http_uri",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
-            DetectEngineInspectHttpUri);
+    DetectAppLayerInspectEngineRegister2("http_uri", ALPROTO_HTTP,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
+            DetectEngineInspectBufferGeneric, GetData);
+
+    DetectAppLayerMpmRegister2("http_uri", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
+            HTP_REQUEST_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_uri",
             "http request uri");
@@ -97,7 +109,6 @@ void DetectHttpUriRegister (void)
 
     g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
 }
-
 
 /**
  * \brief this function setups the http_uri modifier keyword used in the rule
@@ -128,6 +139,48 @@ static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx,
 {
     SCLogDebug("callback invoked by %u", s->id);
     DetectUrilenApplyToContent(s, g_http_uri_buffer_id);
+}
+
+/**
+ * \brief this function setup the http.uri keyword used in the rule
+ *
+ * \param de_ctx   Pointer to the Detection Engine Context
+ * \param s        Pointer to the Signature to which the current keyword belongs
+ * \param str      Should hold an empty string always
+ *
+ * \retval 0       On success
+ */
+static int DetectHttpUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    DetectBufferSetActiveList(s, g_http_uri_buffer_id);
+    s->alproto = ALPROTO_HTTP;
+    return 0;
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+        HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+
+        if (tx_ud == NULL || tx_ud->request_uri_normalized == NULL) {
+            SCLogDebug("no tx_id or uri");
+            return NULL;
+        }
+
+        const uint32_t data_len = bstr_len(tx_ud->request_uri_normalized);
+        const uint8_t *data = bstr_ptr(tx_ud->request_uri_normalized);
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
 }
 
 /******************************** UNITESTS **********************************/
