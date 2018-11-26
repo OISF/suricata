@@ -64,6 +64,7 @@
 #include "stream-tcp.h"
 
 static int DetectHttpStatCodeSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectHttpStatCodeSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 #ifdef UNITTESTS
 static void DetectHttpStatCodeRegisterTests(void);
 #endif
@@ -77,6 +78,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
  */
 void DetectHttpStatCodeRegister (void)
 {
+    /* http_stat_code content modifier */
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].name = "http_stat_code";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].desc = "content modifier to match only on HTTP stat-code-buffer";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-stat-code";
@@ -85,6 +87,13 @@ void DetectHttpStatCodeRegister (void)
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].RegisterTests = DetectHttpStatCodeRegisterTests;
 #endif
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT;
+
+    /* http.stat_code content modifier */
+    sigmatch_table[DETECT_HTTP_STAT_CODE].name = "http.stat_code";
+    sigmatch_table[DETECT_HTTP_STAT_CODE].desc = "sticky buffer to match only on HTTP stat-code-buffer";
+    sigmatch_table[DETECT_HTTP_STAT_CODE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_stat-code";
+    sigmatch_table[DETECT_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetupSticky;
+    sigmatch_table[DETECT_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerInspectEngineRegister2("http_stat_code", ALPROTO_HTTP,
             SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
@@ -117,6 +126,22 @@ static int DetectHttpStatCodeSetup(DetectEngineCtx *de_ctx, Signature *s, const 
                                                   DETECT_AL_HTTP_STAT_CODE,
                                                   g_http_stat_code_buffer_id,
                                                   ALPROTO_HTTP);
+}
+
+/**
+ * \brief this function setup the http.stat_code keyword used in the rule
+ *
+ * \param de_ctx   Pointer to the Detection Engine Context
+ * \param s        Pointer to the Signature to which the current keyword belongs
+ * \param str      Should hold an empty string always
+ *
+ * \retval 0       On success
+ */
+static int DetectHttpStatCodeSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    DetectBufferSetActiveList(s, g_http_stat_code_buffer_id);
+    s->alproto = ALPROTO_HTTP;
+    return 0;
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
