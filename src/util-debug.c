@@ -222,15 +222,14 @@ static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_si
     CreateIsoTimeString(tval, timebuf, sizeof(timebuf));
     json_object_set_new(js, "timestamp", json_string(timebuf));
 
-    json_object_set_new(js, "event_type", json_string("engine"));
-
-    const char *s = NULL;
-    s = SCMapEnumValueToName(log_level, sc_log_level_map);
+    const char *s = SCMapEnumValueToName(log_level, sc_log_level_map);
     if (s != NULL) {
         json_object_set_new(js, "log_level", json_string(s));
     } else {
         json_object_set_new(js, "log_level", json_string("INVALID"));
     }
+
+    json_object_set_new(js, "event_type", json_string("engine"));
 
     if (error_code > 0) {
         json_object_set_new(ejs, "error_code", json_integer(error_code));
