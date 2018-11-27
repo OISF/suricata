@@ -23,18 +23,6 @@
 #ifndef __DETECT_ENGINE_HCD_H__
 #define __DETECT_ENGINE_HCD_H__
 
-#include "app-layer-htp.h"
-
-int PrefilterTxRequestCookieRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-int PrefilterTxResponseCookieRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-
-int DetectEngineInspectHttpCookie(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
-
 void DetectEngineHttpCookieRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HCD_H__ */
