@@ -73,9 +73,8 @@ static int g_keyword_thread_id = 0;
 static HttpHeaderThreadDataConfig g_td_config = { BUFFER_TX_STEP, BUFFER_SIZE_STEP };
 
 static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Flow *f, HtpState *htp_state, uint8_t flags,
-        uint32_t *buffer_len)
+        DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, uint32_t *buffer_len)
 {
     *buffer_len = 0;
 
@@ -174,11 +173,9 @@ static void PrefilterTxHttpRequestHeaders(DetectEngineThreadCtx *det_ctx,
     if (tx->request_headers == NULL)
         return;
 
-    HtpState *htp_state = f->alstate;
     uint32_t buffer_len = 0;
     const uint8_t *buffer = GetBufferForTX(tx, idx,
-            NULL, det_ctx, f, htp_state,
-            flags, &buffer_len);
+            det_ctx, f, flags, &buffer_len);
 
     if (buffer_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
@@ -203,11 +200,9 @@ static void PrefilterTxHttpRequestTrailers(DetectEngineThreadCtx *det_ctx,
     if (htud && !htud->request_has_trailers)
         return;
 
-    HtpState *htp_state = f->alstate;
     uint32_t buffer_len = 0;
     const uint8_t *buffer = GetBufferForTX(tx, idx,
-            NULL, det_ctx, f, htp_state,
-            flags, &buffer_len);
+            det_ctx, f, flags, &buffer_len);
 
     if (buffer_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
@@ -251,13 +246,9 @@ static void PrefilterTxHttpResponseHeaders(DetectEngineThreadCtx *det_ctx,
     if (tx->response_headers == NULL)
         return;
 
-    HtpState *htp_state = f->alstate;
     uint32_t buffer_len = 0;
-    const uint8_t *buffer = GetBufferForTX(tx, idx,
-                                                    NULL, det_ctx,
-                                                    f, htp_state,
-                                                    flags,
-                                                    &buffer_len);
+    const uint8_t *buffer = GetBufferForTX(tx, idx, det_ctx,
+            f, flags, &buffer_len);
 
     if (buffer_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
@@ -282,13 +273,9 @@ static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
     if (htud && !htud->response_has_trailers)
         return;
 
-    HtpState *htp_state = f->alstate;
     uint32_t buffer_len = 0;
-    const uint8_t *buffer = GetBufferForTX(tx, idx,
-                                                    NULL, det_ctx,
-                                                    f, htp_state,
-                                                    flags,
-                                                    &buffer_len);
+    const uint8_t *buffer = GetBufferForTX(tx, idx, det_ctx,
+            f, flags, &buffer_len);
 
     if (buffer_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
@@ -316,11 +303,9 @@ static int DetectEngineInspectHttpHeader(ThreadVars *tv,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
-    HtpState *htp_state = (HtpState *)alstate;
     uint32_t buffer_len = 0;
-    uint8_t *buffer = GetBufferForTX(tx, tx_id, de_ctx, det_ctx,
-            f, htp_state,
-            flags, &buffer_len);
+    uint8_t *buffer = GetBufferForTX(tx, tx_id, det_ctx,
+            f, flags, &buffer_len);
     if (buffer_len == 0)
         goto end;
 
