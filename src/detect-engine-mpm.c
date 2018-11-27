@@ -51,7 +51,6 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-hrhd.h"
-#include "detect-engine-hcd.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
 #include "detect-engine-dns.h"

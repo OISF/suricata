@@ -132,7 +132,6 @@ detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
 detect-engine-filedata.c detect-engine-filedata.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \
-detect-engine-hcd.c detect-engine-hcd.h \
 detect-engine-hrhd.c detect-engine-hrhd.h \
 detect-engine-hsbd.c detect-engine-hsbd.h \
 detect-engine-iponly.c detect-engine-iponly.h \
