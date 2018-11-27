@@ -1151,7 +1151,7 @@ typedef struct SigTableElmt_ {
     void (*Free)(void *);
     void (*RegisterTests)(void);
 
-    uint8_t flags;
+    uint16_t flags;
     /* coccinelle: SigTableElmt:flags:SIGMATCH_ */
 
     const char *name;     /**< keyword name alias */
@@ -1322,27 +1322,27 @@ typedef struct SigGroupHead_ {
 } SigGroupHead;
 
 /** sigmatch has no options, so the parser shouldn't expect any */
-#define SIGMATCH_NOOPT          (1 << 0)
+#define SIGMATCH_NOOPT              BIT_U16(0)
 /** sigmatch is compatible with a ip only rule */
-#define SIGMATCH_IPONLY_COMPAT  (1 << 1)
+#define SIGMATCH_IPONLY_COMPAT      BIT_U16(1)
 /** sigmatch is compatible with a decode event only rule */
-#define SIGMATCH_DEONLY_COMPAT  (1 << 2)
+#define SIGMATCH_DEONLY_COMPAT      BIT_U16(2)
 /**< Flag to indicate that the signature is not built-in */
-#define SIGMATCH_NOT_BUILT      (1 << 3)
+#define SIGMATCH_NOT_BUILT          BIT_U16(3)
 /** sigmatch may have options, so the parser should be ready to
  *  deal with both cases */
-#define SIGMATCH_OPTIONAL_OPT       (1 << 4)
+#define SIGMATCH_OPTIONAL_OPT       BIT_U16(4)
 /** input may be wrapped in double quotes. They will be stripped before
  *  input data is passed to keyword parser */
-#define SIGMATCH_QUOTES_OPTIONAL    (1 << 5)
+#define SIGMATCH_QUOTES_OPTIONAL    BIT_U16(5)
 /** input MUST be wrapped in double quotes. They will be stripped before
  *  input data is passed to keyword parser. Missing double quotes lead to
  *  error and signature invalidation. */
-#define SIGMATCH_QUOTES_MANDATORY   (1 << 6)
+#define SIGMATCH_QUOTES_MANDATORY   BIT_U16(6)
 /** negation parsing is handled by the rule parser. Signature::init_data::negated
  *  will be set to true or false prior to calling the keyword parser. Exclamation
  *  mark is stripped from the input to the keyword parser. */
-#define SIGMATCH_HANDLE_NEGATION    (1 << 7)
+#define SIGMATCH_HANDLE_NEGATION    BIT_U16(7)
 
 enum DetectEngineTenantSelectors
 {
