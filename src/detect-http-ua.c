@@ -84,6 +84,8 @@ void DetectHttpUARegister(void)
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].RegisterTests = DetectHttpUARegisterTests;
 #endif
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].alternative = DETECT_HTTP_UA;
 
     /* http.user_agent sticky buffer */
     sigmatch_table[DETECT_HTTP_UA].name = "http.user_agent";
@@ -91,6 +93,7 @@ void DetectHttpUARegister(void)
     sigmatch_table[DETECT_HTTP_UA].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-user-agent";
     sigmatch_table[DETECT_HTTP_UA].Setup = DetectHttpUserAgentSetup;
     sigmatch_table[DETECT_HTTP_UA].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_UA].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_user_agent", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
