@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -63,7 +63,6 @@
 
 static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpCookieRegisterTests(void);
-static void DetectHttpCookieFree(void *);
 static int g_http_cookie_buffer_id = 0;
 
 /**
@@ -74,9 +73,7 @@ void DetectHttpCookieRegister(void)
     sigmatch_table[DETECT_AL_HTTP_COOKIE].name = "http_cookie";
     sigmatch_table[DETECT_AL_HTTP_COOKIE].desc = "content modifier to match only on the HTTP cookie-buffer";
     sigmatch_table[DETECT_AL_HTTP_COOKIE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-cookie";
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Setup = DetectHttpCookieSetup;
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].Free  = DetectHttpCookieFree;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].RegisterTests = DetectHttpCookieRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_NOOPT;
@@ -97,21 +94,6 @@ void DetectHttpCookieRegister(void)
             "http cookie header");
 
     g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
-}
-
-/**
- * \brief this function clears the memory of http_cookie modifier keyword
- *
- * \param ptr   Pointer to the Detection Cookie data
- */
-void DetectHttpCookieFree(void *ptr)
-{
-    DetectContentData *hcd = (DetectContentData *)ptr;
-    if (hcd == NULL)
-        return;
-    if (hcd->content != NULL)
-        SCFree(hcd->content);
-    SCFree(hcd);
 }
 
 /**
@@ -257,7 +239,6 @@ static int DetectHttpCookieTest04(void)
         result = 1;
 
 end:
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -282,7 +263,6 @@ static int DetectHttpCookieTest05(void)
         result = 1;
 
  end:
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -427,7 +407,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
@@ -523,7 +502,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
     StreamTcpFreeConfig(TRUE);
@@ -616,7 +594,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
@@ -711,7 +688,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
@@ -806,7 +782,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
@@ -901,7 +876,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
@@ -995,7 +969,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
@@ -1126,7 +1099,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
@@ -1265,7 +1237,6 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
 
