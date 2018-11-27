@@ -183,6 +183,7 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT1);
     }
+    SCReturn;
 }
 
 int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
