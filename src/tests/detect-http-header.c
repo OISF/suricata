@@ -67,6 +67,24 @@ static int DetectHttpHeaderParserTest01(void)
 }
 
 /**
+ * \test Test parser accepting valid rules and rejecting invalid rules
+ */
+static int DetectHttpHeaderParserTest02(void)
+{
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; nocase; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; endswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; startswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; startswith; endswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; bsize:10; sid:1;)", true));
+
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; rawbytes; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (http.header; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (http.header; content:\"abc\"; sid:1;)", false));
+    PASS;
+}
+
+/**
  * \test Test that a signature containting a http_header is correctly parsed
  *       and the keyword is registered.
  */
@@ -5045,6 +5063,8 @@ static int DetectEngineHttpHeaderTest35(void)
 void DetectHttpHeaderRegisterTests(void)
 {
     UtRegisterTest("DetectHttpHeaderParserTest01", DetectHttpHeaderParserTest01);
+    UtRegisterTest("DetectHttpHeaderParserTest02", DetectHttpHeaderParserTest02);
+
     UtRegisterTest("DetectHttpHeaderTest01", DetectHttpHeaderTest01);
     UtRegisterTest("DetectHttpHeaderTest06", DetectHttpHeaderTest06);
     UtRegisterTest("DetectHttpHeaderTest07", DetectHttpHeaderTest07);
