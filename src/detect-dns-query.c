@@ -627,7 +627,7 @@ static int DetectDnsQueryTest03(void)
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                               "(msg:\"Test dns_query option\"; "
-                              "content:\"google\"; nocase; dns_query; sid:1;)");
+                              "dns_query; content:\"google\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);

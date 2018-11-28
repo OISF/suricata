@@ -1548,6 +1548,16 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
     SCEnter();
 
+    /* check for sticky buffers that were set w/o matches
+     * e.g. alert ... (file_data; sid:1;) */
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        if (s->init_data->smlists[s->init_data->list] == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u setup buffer %s but didn't add matches to it",
+                    s->id, DetectBufferTypeGetNameById(de_ctx, s->init_data->list));
+            SCReturnInt(0);
+        }
+    }
+
     /* run buffer type validation callbacks if any */
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
         if (DetectContentPMATCHValidateCallback(s) == FALSE)
