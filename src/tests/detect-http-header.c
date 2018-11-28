@@ -50,6 +50,23 @@
 #include "../util-unittest-helper.h"
 
 /**
+ * \test Test parser accepting valid rules and rejecting invalid rules
+ */
+static int DetectHttpHeaderParserTest01(void)
+{
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; http_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; nocase; http_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; endswith; http_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; startswith; http_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; startswith; endswith; http_header; sid:1;)", true));
+
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; rawbytes; http_header; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (http_header; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (content:\"abc\"; http_header; sid:1;)", false));
+    PASS;
+}
+
+/**
  * \test Test that a signature containting a http_header is correctly parsed
  *       and the keyword is registered.
  */
@@ -83,118 +100,6 @@ static int DetectHttpHeaderTest01(void)
         printf("Error updating content pattern to http_header pattern: ");
     }
 
-
- end:
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Test that a signature containing an valid http_header entry is
- *       parsed.
- */
-static int DetectHttpHeaderTest02(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_header\"; "
-                               "content:\"one\"; http_header:; sid:1;)");
-    if (de_ctx->sig_list != NULL)
-        result = 1;
-    else
-        printf("Error parsing signature: ");
-
- end:
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Test that an invalid signature containing no content but a http_header
- *       is invalidated.
- */
-static int DetectHttpHeaderTest03(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_header\"; "
-                               "http_header; sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        result = 1;
-    else
-        printf("Error parsing signature: ");
-
- end:
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Test that an invalid signature containing a rawbytes along with a
- *       http_header is invalidated.
- */
-static int DetectHttpHeaderTest04(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_header\"; "
-                               "content:\"one\"; rawbytes; http_header; sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        result = 1;
-    else
-        printf("Error parsing signature: ");
-
- end:
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Test that an invalid signature containing a rawbytes along with a
- *       http_header is invalidated.
- */
-static int DetectHttpHeaderTest05(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_header\"; "
-                               "content:\"one\"; nocase; http_header; sid:1;)");
-    if (de_ctx->sig_list != NULL)
-        result = 1;
-    else
-        printf("Error parsing signature: ");
 
  end:
     DetectEngineCtxFree(de_ctx);
@@ -5139,11 +5044,8 @@ static int DetectEngineHttpHeaderTest35(void)
 
 void DetectHttpHeaderRegisterTests(void)
 {
+    UtRegisterTest("DetectHttpHeaderParserTest01", DetectHttpHeaderParserTest01);
     UtRegisterTest("DetectHttpHeaderTest01", DetectHttpHeaderTest01);
-    UtRegisterTest("DetectHttpHeaderTest02", DetectHttpHeaderTest02);
-    UtRegisterTest("DetectHttpHeaderTest03", DetectHttpHeaderTest03);
-    UtRegisterTest("DetectHttpHeaderTest04", DetectHttpHeaderTest04);
-    UtRegisterTest("DetectHttpHeaderTest05", DetectHttpHeaderTest05);
     UtRegisterTest("DetectHttpHeaderTest06", DetectHttpHeaderTest06);
     UtRegisterTest("DetectHttpHeaderTest07", DetectHttpHeaderTest07);
     UtRegisterTest("DetectHttpHeaderTest08", DetectHttpHeaderTest08);
