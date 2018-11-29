@@ -61,162 +61,6 @@
 
 #include "util-validate.h"
 
-/** \brief HTTP Raw Header Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxRequestHeadersRaw(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
-{
-    SCEnter();
-
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud == NULL || tx_ud->request_headers_raw == NULL)
-        return;
-
-    const uint32_t buffer_len = tx_ud->request_headers_raw_len;
-    const uint8_t *buffer = tx_ud->request_headers_raw;
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
-    }
-}
-
-int PrefilterTxRequestHeadersRawRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxRequestHeadersRaw,
-        ALPROTO_HTTP, HTP_REQUEST_HEADERS+1, /* inspect when headers complete */
-        mpm_ctx, NULL, "http_raw_header (request)");
-    if (r != 0)
-        return r;
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxRequestHeadersRaw,
-        ALPROTO_HTTP, HTP_REQUEST_TRAILER+1, /* inspect when trailer complete */
-        mpm_ctx, NULL, "http_raw_header (request)");
-}
-
-/** \brief HTTP Raw Header Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxResponseHeadersRaw(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
-{
-    SCEnter();
-
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud == NULL || tx_ud->response_headers_raw == NULL)
-        return;
-
-    const uint32_t buffer_len = tx_ud->response_headers_raw_len;
-    const uint8_t *buffer = tx_ud->response_headers_raw;
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
-    }
-}
-
-int PrefilterTxResponseHeadersRawRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxResponseHeadersRaw,
-        ALPROTO_HTTP, HTP_RESPONSE_HEADERS+1, /* inspect when headers complete */
-        mpm_ctx, NULL, "http_raw_header (response)");
-    if (r != 0)
-        return r;
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxResponseHeadersRaw,
-        ALPROTO_HTTP, HTP_RESPONSE_TRAILER+1, /* inspect when trailer complete */
-        mpm_ctx, NULL, "http_raw_header (response)");
-}
-
-/**
- * \brief Do the http_raw_header content inspection for a signature.
- *
- * \param de_ctx  Detection engine context.
- * \param det_ctx Detection engine thread context.
- * \param s       Signature to inspect.
- * \param f       Flow.
- * \param flags   App layer flags.
- * \param state   App layer state.
- *
- * \retval 0 No match.
- * \retval 1 Match.
- */
-int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    HtpTxUserData *tx_ud = NULL;
-    uint8_t *headers_raw = NULL;
-    uint32_t headers_raw_len = 0;
-
-    if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_REQUEST_HEADERS)
-            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_RESPONSE_HEADERS)
-            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    }
-
-    tx_ud = htp_tx_get_user_data(txv);
-    if (tx_ud == NULL)
-        goto end;
-    if (flags & STREAM_TOSERVER) {
-        headers_raw = tx_ud->request_headers_raw;
-        headers_raw_len = tx_ud->request_headers_raw_len;
-    } else {
-        headers_raw = tx_ud->response_headers_raw;
-        headers_raw_len = tx_ud->response_headers_raw_len;
-    }
-    if (headers_raw == NULL)
-        goto end;
-
-    det_ctx->buffer_offset = 0;
-    det_ctx->discontinue_matching = 0;
-    det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-                                          f,
-                                          headers_raw,
-                                          headers_raw_len,
-                                          0, DETECT_CI_FLAGS_SINGLE,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-    if (r == 1)
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-
- end:
-    if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_REQUEST_HEADERS)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_RESPONSE_HEADERS)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
 /***********************************Unittests**********************************/
 
 #ifdef UNITTESTS
@@ -1805,12 +1649,8 @@ end:
 static int DetectEngineHttpRawHeaderTest20(void)
 {
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
     Flow f;
     uint8_t http1_buf[] =
         "GET /index.html HTTP/1.0\r\n"
@@ -1820,15 +1660,17 @@ static int DetectEngineHttpRawHeaderTest20(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p1);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p2);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -1847,81 +1689,49 @@ static int DetectEngineHttpRawHeaderTest20(void)
 
     StreamTcpInitConfig(TRUE);
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; flow:to_server; "
-                               "pcre:/body1/D; "
-                               "content:!\"dummy\"; http_raw_header; within:7; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                               "(flow:to_server; pcre:/body1/D; "
+                                "content:!\"dummy\"; http_raw_header; within:7; "
+                                "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF_NULL(det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                                 STREAM_TOSERVER, http1_buf, http1_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF_NOT(r == 0);
 
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        result = 0;
-        goto end;
-    }
+    HtpState *http_state = f.alstate;
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched but shouldn't have\n");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http2_buf, http2_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!PacketAlertCheck(p2, 1)) {
-        printf("sid 1 didn't match but shouldn't have");
-        goto end;
-    }
+    FAIL_IF(!PacketAlertCheck(p2, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest21(void)
