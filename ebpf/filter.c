@@ -27,31 +27,50 @@
 
 #include "bpf_helpers.h"
 
+#define DEBUG 0
+
 #define LINUX_VERSION_CODE 263682
+
+struct bpf_map_def SEC("maps") ipv4_drop = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(__u32),
+    .value_size = sizeof(__u32),
+    .max_entries = 32768,
+};
 
 int SEC("filter") hashfilter(struct __sk_buff *skb) {
     __u32 nhoff = BPF_LL_OFF + ETH_HLEN;
+    __u32 ip = 0;
+    __u32 *value;
 
-    skb->cb[0] = nhoff;
-    switch (skb->protocol) {
-        case __constant_htons(ETH_P_IP):
-            return -1;
-        case __constant_htons(ETH_P_IPV6):
-            return 0;
-        default:
-#if 0
-            {
-                char fmt[] = "Got proto %u\n";
-                bpf_trace_printk(fmt, sizeof(fmt), h_proto);
-                break;
-            }
-#else
-            break;
+    ip = load_word(skb, nhoff + offsetof(struct iphdr, saddr));
+    value = bpf_map_lookup_elem(&ipv4_drop, &ip);
+    if (value) {
+#if DEBUG
+        char fmt[] = "Found value for saddr: %u\n";
+        bpf_trace_printk(fmt, sizeof(fmt), value);
 #endif
+        __sync_fetch_and_add(value, 1);
+        return 0;
     }
+
+    ip = load_word(skb, nhoff + offsetof(struct iphdr, daddr));
+    value = bpf_map_lookup_elem(&ipv4_drop, &ip);
+    if (value) {
+#if DEBUG
+        char fmt[] = "Found value for daddr: %u\n";
+        bpf_trace_printk(fmt, sizeof(fmt), value);
+#endif
+        __sync_fetch_and_add(value, 1);
+        return 0;
+    }
+
+#if DEBUG
+    char fmt[] = "Nothing so ok\n";
+    bpf_trace_printk(fmt, sizeof(fmt));
+#endif
     return -1;
 }
-
 
 char __license[] SEC("license") = "GPL";
 

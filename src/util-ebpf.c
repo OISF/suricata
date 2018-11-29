@@ -276,6 +276,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             return -1;
         }
         /* TODO pin */
+        /* sudo mount bpf -t bpf /sys/fs/bpf/ */
         SCLogNotice("Pinning: %d to %s", bpf_map_data->array[bpf_map_data->last].fd,
                     bpf_map_data->array[bpf_map_data->last].name);
         char buf[1024];
