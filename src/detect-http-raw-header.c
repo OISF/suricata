@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -62,7 +62,6 @@
 
 static int DetectHttpRawHeaderSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpRawHeaderRegisterTests(void);
-static void DetectHttpRawHeaderFree(void *);
 static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char **sigerror);
 static int g_http_raw_header_buffer_id = 0;
 
@@ -72,9 +71,7 @@ static int g_http_raw_header_buffer_id = 0;
 void DetectHttpRawHeaderRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].name = "http_raw_header";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetup;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Free  = DetectHttpRawHeaderFree;
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].RegisterTests = DetectHttpRawHeaderRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT;
@@ -98,25 +95,6 @@ void DetectHttpRawHeaderRegister(void)
             DetectHttpRawHeaderValidateCallback);
 
     g_http_raw_header_buffer_id = DetectBufferTypeGetByName("http_raw_header");
-}
-
-
-/**
- * \brief this function clears the memory of http_raw_header modifier keyword
- *
- * \param ptr   Pointer to the Detection Header Data
- */
-void DetectHttpRawHeaderFree(void *ptr)
-{
-    DetectContentData *cd = (DetectContentData *)ptr;
-    if (cd == NULL)
-        return;
-
-    if (cd->content != NULL)
-        SCFree(cd->content);
-    SCFree(cd);
-
-    return;
 }
 
 /**
@@ -197,8 +175,6 @@ static int DetectHttpRawHeaderTest01(void)
 
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -227,8 +203,6 @@ static int DetectHttpRawHeaderTest02(void)
         printf("Error parsing signature: ");
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -257,8 +231,6 @@ static int DetectHttpRawHeaderTest03(void)
         printf("Error parsing signature: ");
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -287,8 +259,6 @@ static int DetectHttpRawHeaderTest04(void)
         printf("Error parsing signature: ");
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -317,8 +287,6 @@ static int DetectHttpRawHeaderTest05(void)
         printf("Error parsing signature: ");
 
  end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
@@ -413,10 +381,6 @@ static int DetectHttpRawHeaderTest06(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -543,10 +507,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -671,10 +631,6 @@ static int DetectHttpRawHeaderTest08(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -802,10 +758,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -932,10 +884,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1035,10 +983,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1136,10 +1080,6 @@ static int DetectHttpRawHeaderTest12(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1240,10 +1180,6 @@ end:
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
