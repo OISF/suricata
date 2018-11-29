@@ -23,18 +23,6 @@
 #ifndef __DETECT_ENGINE_HRHD_H__
 #define __DETECT_ENGINE_HRHD_H__
 
-#include "app-layer-htp.h"
-
-int PrefilterTxRequestHeadersRawRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-int PrefilterTxResponseHeadersRawRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-
-int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
-
 void DetectEngineHttpRawHeaderRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HHD_H__ */
