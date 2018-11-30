@@ -316,6 +316,8 @@ pub struct NFSState {
     /// size of the current chunk that we still need to receive
     pub ts_chunk_left: u32,
     pub tc_chunk_left: u32,
+    /// file handle of in progress toserver WRITE file chunk
+    ts_chunk_fh: Vec<u8>,
 
     ts_ssn_gap: bool,
     tc_ssn_gap: bool,
@@ -347,6 +349,7 @@ impl NFSState {
             tc_chunk_xid:0,
             ts_chunk_left:0,
             tc_chunk_left:0,
+            ts_chunk_fh:Vec::new(),
             ts_ssn_gap:false,
             tc_ssn_gap:false,
             ts_gap:false,
@@ -611,6 +614,8 @@ impl NFSState {
             self.ts_chunk_xid = r.hdr.xid;
             let file_data_len = w.file_data.len() as u32 - fill_bytes as u32;
             self.ts_chunk_left = w.file_len as u32 - file_data_len as u32;
+            self.ts_chunk_fh = file_handle;
+            SCLogDebug!("REQUEST chunk_xid {:04X} chunk_left {}", self.ts_chunk_xid, self.ts_chunk_left);
         }
         0
     }
@@ -691,17 +696,8 @@ impl NFSState {
 
             if direction == STREAM_TOSERVER {
                 self.ts_chunk_xid = 0;
-
-                // see if we have a file handle to work on
-                match self.requestmap.get(&xid) {
-                    None => {
-                        SCLogDebug!("no file handle found for XID {:04X}", xid);
-                        return 0
-                    },
-                    Some(ref xidmap) => {
-                        file_handle = xidmap.file_handle.to_vec();
-                    },
-                }
+                file_handle = self.ts_chunk_fh.to_vec();
+                self.ts_chunk_fh.clear();
             } else {
                 self.tc_chunk_xid = 0;
 
@@ -719,14 +715,19 @@ impl NFSState {
         } else {
             chunk_left -= data.len() as u32;
 
-            // see if we have a file handle to work on
-            match self.requestmap.get(&xid) {
-                None => {
-                    SCLogDebug!("no file handle found for XID {:04X}", xid);
-                    return 0 },
-                Some(xidmap) => {
-                    file_handle = xidmap.file_handle.to_vec();
-                },
+            if direction == STREAM_TOSERVER {
+                file_handle = self.ts_chunk_fh.to_vec();
+            } else {
+                // see if we have a file handle to work on
+                match self.requestmap.get(&xid) {
+                    None => {
+                        SCLogDebug!("no file handle found for XID {:04X}", xid);
+                        return 0
+                    },
+                    Some(xidmap) => {
+                        file_handle = xidmap.file_handle.to_vec();
+                    },
+                }
             }
         }
 
