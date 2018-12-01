@@ -1350,7 +1350,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
         return -1;
 
     uint8_t *content = NULL;
-    uint8_t content_len = 0;
+    uint16_t content_len = 0;
     PatIntId max_id = 0;
     DetectFPAndItsId *struct_offset = (DetectFPAndItsId *)ahb;
     uint8_t *content_offset = ahb + struct_total_size;
