@@ -1087,6 +1087,31 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             MemBufferReset(td->buffer);
             OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
         }
+    } else {
+        /* Log answers. */
+        for (uint16_t i = 0; i < UINT16_MAX; i++) {
+            json_t *answer = rs_dns_log_json_answer_v1(txptr, i,
+                    td->dnslog_ctx->flags);
+            if (answer == NULL) {
+                break;
+            }
+            json_object_set_new(js, "dns", answer);
+            MemBufferReset(td->buffer);
+            OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+            json_object_del(js, "dns");
+        }
+        /* Log authorities. */
+        for (uint16_t i = 0; i < UINT16_MAX; i++) {
+            json_t *answer = rs_dns_log_json_authority_v1(txptr, i,
+                    td->dnslog_ctx->flags);
+            if (answer == NULL) {
+                break;
+            }
+            json_object_set_new(js, "dns", answer);
+            MemBufferReset(td->buffer);
+            OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+            json_object_del(js, "dns");
+        }
     }
 #else
     DNSTransaction *tx = txptr;
@@ -1245,12 +1270,6 @@ static DnsVersion JsonDnsParseVersion(ConfNode *conf)
                 DNS_VERSION_DEFAULT);
         version = DNS_VERSION_DEFAULT;
     }
-#ifdef HAVE_RUST
-    if (version != DNS_VERSION_2) {
-        FatalError(SC_ERR_NOT_SUPPORTED, "EVE/DNS version %d not support with "
-                "by Rust builds.", version);
-    }
-#endif
     return version;
 }
 
@@ -1342,13 +1361,6 @@ static OutputInitResult JsonDnsLogInitCtx(ConfNode *conf)
     }
 
     DnsVersion version = JsonDnsParseVersion(conf);
-#ifdef HAVE_RUST
-    if (version != 2) {
-        SCLogError(SC_ERR_NOT_SUPPORTED, "EVE/DNS version %d not support with "
-                "by Rust builds.", version);
-        exit(1);
-    }
-#endif
 
     LogFileCtx *file_ctx = LogFileNewCtx();
 
