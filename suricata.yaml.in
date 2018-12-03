@@ -393,7 +393,7 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
-  # alert output to prelude (http://www.prelude-technologies.com/) only
+  # alert output to prelude (https://www.prelude-siem.org/) only
   # available if Suricata has been compiled with --enable-prelude
   - alert-prelude:
       enabled: no
