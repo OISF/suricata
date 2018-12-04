@@ -35,8 +35,8 @@ pub extern "C" fn rs_snmp_log_json_response(state: &mut SNMPState, tx: &mut SNMP
                 if info.err.0 != 0 {
                     js.set_string("error", &format!("{:?}", info.err));
                 }
-                match &info.trap_type {
-                    Some((trap_type, oid, address)) => {
+                match info.trap_type {
+                    Some((trap_type, ref oid, address)) => {
                         js.set_string("trap_type", &format!("{:?}", trap_type));
                         js.set_string("trap_oid", &oid.to_string());
                         match address {
