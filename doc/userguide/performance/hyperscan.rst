@@ -76,7 +76,7 @@ Trusty has 1.57, so it's too old. We can grab a newer libboost version, but we *
 Hyperscan
 ---------
 
-We'll install version 4.2.0.
+We'll install version 5.0.0.
 
 
 ::
