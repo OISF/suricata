@@ -164,6 +164,17 @@ struct AppLayerParserState_ {
     AppLayerDecoderEvents *decoder_events;
 };
 
+#ifdef UNITTESTS
+void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min)
+{
+    struct AppLayerParserState_ *s = ptr;
+    *i1 = s->inspect_id[0];
+    *i2 = s->inspect_id[1];
+    *log = s->log_id;
+    *min = s->min_id;
+}
+#endif
+
 /* Static global version of the parser context.
  * Post 2.0 let's look at changing this to move it out to app-layer.c. */
 static AppLayerParserCtx alp_ctx;
