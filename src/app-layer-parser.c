@@ -893,6 +893,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     uint64_t i = min;
     uint64_t new_min = min;
     SCLogDebug("start min %"PRIu64, min);
+    bool skipped = false;
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
@@ -907,11 +908,13 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         const int tx_progress_tc = AppLayerParserGetStateProgress(ipproto, alproto, tx, STREAM_TOCLIENT);
         if (tx_progress_tc < tx_end_state_tc) {
             SCLogDebug("%p/%"PRIu64" skipping: tc parser not done", tx, i);
+            skipped = true;
             goto next;
         }
         const int tx_progress_ts = AppLayerParserGetStateProgress(ipproto, alproto, tx, STREAM_TOSERVER);
         if (tx_progress_ts < tx_end_state_ts) {
             SCLogDebug("%p/%"PRIu64" skipping: ts parser not done", tx, i);
+            skipped = true;
             goto next;
         }
         if (f->sgh_toserver != NULL) {
@@ -919,6 +922,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
             if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
                 SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
                         tx, i, detect_flags_ts);
+                skipped = true;
                 goto next;
             }
         }
@@ -927,6 +931,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
             if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
                 SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
                         tx, i, detect_flags_tc);
+                skipped = true;
                 goto next;
             }
         }
@@ -935,6 +940,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
             if (tx_logged != logger_expectation) {
                 SCLogDebug("%p/%"PRIu64" skipping: logging not done: want:%"PRIx32", have:%"PRIx32,
                         tx, i, logger_expectation, tx_logged);
+                skipped = true;
                 goto next;
             }
         }
@@ -943,8 +949,9 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         p->StateTransactionFree(alstate, i);
         SCLogDebug("%p/%"PRIu64" freed", tx, i);
 
-        /* if this tx was the minimum, up the minimum */
-        if (i == new_min)
+        /* if we didn't skip any tx so far, up the minimum */
+        SCLogDebug("i %"PRIu64", new_min %"PRIu64, i, new_min);
+        if (!skipped)
             new_min = i + 1;
 
 next:

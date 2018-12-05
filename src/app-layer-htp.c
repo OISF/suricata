@@ -6920,6 +6920,115 @@ static int HTPParserTest24(void)
     PASS;
 }
 
+/** \test multi transactions and cleanup */
+static int HTPParserTest25(void)
+{
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    StreamTcpInitConfig(TRUE);
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof(ssn));
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    const char *str = "GET / HTTP/1.1\r\nHost: www.google.com\r\nUser-Agent: Suricata/1.0\r\n\r\n";
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+
+    str = "HTTP 1.1 200 OK\r\nServer: Suricata/1.0\r\nContent-Length: 8\r\n\r\nSuricata";
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT | STREAM_START, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+
+    AppLayerParserTransactionsCleanup(f);
+
+    uint64_t ret[4];
+    UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
+    FAIL_IF_NOT(ret[0] == 8); // inspect_id[0]
+    FAIL_IF_NOT(ret[1] == 8); // inspect_id[1]
+    FAIL_IF_NOT(ret[2] == 8); // log_id
+    FAIL_IF_NOT(ret[3] == 8); // min_id
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_EOF, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    AppLayerParserTransactionsCleanup(f);
+
+    UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
+    FAIL_IF_NOT(ret[0] == 8); // inspect_id[0] not updated by ..Cleanup() until full tx is done
+    FAIL_IF_NOT(ret[1] == 8); // inspect_id[1]
+    FAIL_IF_NOT(ret[2] == 8); // log_id
+    FAIL_IF_NOT(ret[3] == 8); // min_id
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT | STREAM_EOF, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    AppLayerParserTransactionsCleanup(f);
+
+    UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
+    FAIL_IF_NOT(ret[0] == 9); // inspect_id[0]
+    FAIL_IF_NOT(ret[1] == 9); // inspect_id[1]
+    FAIL_IF_NOT(ret[2] == 9); // log_id
+    FAIL_IF_NOT(ret[3] == 9); // min_id
+
+    HtpState *http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreeFlow(f);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -6976,6 +7085,7 @@ void HTPParserRegisterTests(void)
     UtRegisterTest("HTPParserTest22", HTPParserTest22);
     UtRegisterTest("HTPParserTest23", HTPParserTest23);
     UtRegisterTest("HTPParserTest24", HTPParserTest24);
+    UtRegisterTest("HTPParserTest25", HTPParserTest25);
 
     HTPFileParserRegisterTests();
     HTPXFFParserRegisterTests();
