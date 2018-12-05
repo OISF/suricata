@@ -866,11 +866,12 @@ FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
  */
 void AppLayerParserTransactionsCleanup(Flow *f)
 {
+    SCEnter();
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][f->alproto];
     if (unlikely(p->StateTransactionFree == NULL))
-        return;
+        SCReturn;
 
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
@@ -878,7 +879,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     AppLayerParserState * const alparser = f->alparser;
 
     if (alstate == NULL || alparser == NULL)
-        return;
+        SCReturn;
 
     const uint64_t min = alparser->min_id;
     const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
@@ -891,6 +892,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     memset(&state, 0, sizeof(state));
     uint64_t i = min;
     uint64_t new_min = min;
+    SCLogDebug("start min %"PRIu64, min);
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
@@ -951,7 +953,7 @@ next:
     }
 
     /* see if we need to bring all trackers up to date. */
-    SCLogDebug("update f->alparser->min_id? %"PRIu64, alparser->min_id);
+    SCLogDebug("update f->alparser->min_id? %"PRIu64" vs %"PRIu64, new_min, alparser->min_id);
     if (new_min > alparser->min_id) {
         const uint64_t next_id = new_min;
         alparser->min_id = next_id;
@@ -960,6 +962,7 @@ next:
         alparser->log_id = MAX(alparser->log_id, next_id);
         SCLogDebug("updated f->alparser->min_id %"PRIu64, alparser->min_id);
     }
+    SCReturn;
 }
 
 #define IS_DISRUPTED(flags) \
