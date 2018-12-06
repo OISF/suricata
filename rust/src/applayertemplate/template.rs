@@ -221,7 +221,7 @@ impl TemplateState {
                 index += 1;
                 continue;
             }
-            *state = index as u64 + 1;
+            *state = index as u64;
             return Some((tx, tx.tx_id - 1, (len - index) > 1));
         }
 

@@ -768,6 +768,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
         }
         if (!ires.has_next)
             break;
+        idx++;
     }
     pstate->inspect_id[direction] = idx;
     SCLogDebug("inspect_id now %"PRIu64, pstate->inspect_id[direction]);
@@ -808,6 +809,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
             }
             if (!ires.has_next)
                 break;
+            idx++;
         }
     }
 
@@ -901,7 +903,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
             break;
 
         void *tx = ires.tx_ptr;
-        i = ires.tx_id;
+        i = ires.tx_id; // actual tx id for the tx the IterFunc returned
 
         SCLogDebug("%p/%"PRIu64" checking", tx, i);
 
@@ -950,13 +952,25 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         SCLogDebug("%p/%"PRIu64" freed", tx, i);
 
         /* if we didn't skip any tx so far, up the minimum */
-        SCLogDebug("i %"PRIu64", new_min %"PRIu64, i, new_min);
+        SCLogDebug("skipped? %s i %"PRIu64", new_min %"PRIu64, skipped ? "true" : "false", i, new_min);
         if (!skipped)
             new_min = i + 1;
+        SCLogDebug("final i %"PRIu64", new_min %"PRIu64, i, new_min);
 
 next:
-        if (!ires.has_next)
+        if (!ires.has_next) {
+            /* this was the last tx. See if we skipped any. If not
+             * we removed all and can update the minimum to the max
+             * id. */
+            SCLogDebug("no next: cur tx i %"PRIu64", total %"PRIu64, i, total_txs);
+            if (!skipped) {
+                new_min = total_txs;
+                SCLogDebug("no next: cur tx i %"PRIu64", total %"PRIu64": "
+                        "new_min updated to %"PRIu64, i, total_txs, new_min);
+            }
             break;
+        }
+        i++;
     }
 
     /* see if we need to bring all trackers up to date. */
