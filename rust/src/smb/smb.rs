@@ -874,7 +874,10 @@ impl SMBState {
                 index += 1;
                 continue;
             }
-            *state = index as u64 + 1;
+            // store current index in the state and not the next
+            // as transactions might be freed between now and the
+            // next time we are called.
+            *state = index as u64;
             //SCLogDebug!("returning tx_id {} has_next? {} (len {} index {}), tx {:?}",
             //        tx.id - 1, (len - index) > 1, len, index, tx);
             return Some((tx, tx.id - 1, (len - index) > 1));

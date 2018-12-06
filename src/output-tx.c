@@ -270,6 +270,7 @@ next_logger:
 next_tx:
         if (!ires.has_next)
             break;
+        tx_id++;
     }
 
     /* Update the the last ID that has been logged with all
