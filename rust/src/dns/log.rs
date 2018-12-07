@@ -564,7 +564,7 @@ pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
                                         -> *mut JsonT
 {
     let index = i as usize;
-    for request in &tx.request {
+    if let &Some(ref request) = &tx.request {
         if index < request.queries.len() {
             let query = &request.queries[index];
             if dns_log_rrtype_enabled(query.rrtype, flags) {
@@ -587,7 +587,7 @@ pub extern "C" fn rs_dns_log_json_answer(tx: &mut DNSTransaction,
                                          flags: libc::uint64_t)
                                          -> *mut JsonT
 {
-    for response in &tx.response {
+    if let &Some(ref response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
                 let js = dns_log_json_answer(response, flags as u64);
@@ -679,6 +679,8 @@ pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
                                          -> *mut JsonT
 {
     let index = i as usize;
+    // Note for loop over Option for easier break out to default
+    // return value.
     for response in &tx.response {
         if response.header.flags & 0x000f > 0 {
             if index == 0 {
@@ -705,14 +707,13 @@ pub extern "C" fn rs_dns_log_json_authority_v1(tx: &mut DNSTransaction,
                                             -> *mut JsonT
 {
     let index = i as usize;
-    for response in &tx.response {
-        if index >= response.authorities.len() {
-            break;
-        }
-        let answer = &response.authorities[index];
-        if dns_log_rrtype_enabled(answer.rrtype, flags) {
-            let js = dns_log_json_answer_v1(&response.header, answer);
-            return js.unwrap();
+    if let &Some(ref response) = &tx.response {
+        if index < response.authorities.len() {
+            let answer = &response.authorities[index];
+            if dns_log_rrtype_enabled(answer.rrtype, flags) {
+                let js = dns_log_json_answer_v1(&response.header, answer);
+                return js.unwrap();
+            }
         }
     }
     return std::ptr::null_mut();
