@@ -861,8 +861,8 @@ static json_t *BuildAnswer(DNSTransaction *tx, uint64_t tx_id, uint64_t flags,
     DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
     json_object_set_new(js, "rcode", json_string(rcode));
 
-    /* Log the query rrname. Mostly useful on error, but still
-     * useful. */
+    /* Log the query rrname and rrtype. Mostly useful on error, but
+     * still useful. */
     DNSQueryEntry *query = TAILQ_FIRST(&tx->query_list);
     if (query != NULL) {
         char *c;
@@ -872,6 +872,9 @@ static json_t *BuildAnswer(DNSTransaction *tx, uint64_t tx_id, uint64_t flags,
             json_object_set_new(js, "rrname", json_string(c));
             SCFree(c);
         }
+        char rrtype[16] = "";
+        DNSCreateTypeString(query->type, rrtype, sizeof(rrtype));
+        json_object_set_new(js, "rrtype", json_string(rrtype));
     }
 
     if (flags & LOG_FORMAT_DETAILED) {
