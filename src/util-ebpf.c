@@ -75,7 +75,7 @@ struct bpf_maps_info {
     int last;
 };
 
-typedef struct BypassedIfaceList_ { 
+typedef struct BypassedIfaceList_ {
     LiveDevice *dev;
     struct BypassedIfaceList_ *next;
 } BypassedIfaceList;
@@ -153,7 +153,7 @@ int EBPFGetMapFDByName(const char *iface, const char *name)
     return -1;
 }
 
-/** 
+/**
  * Load a section of an eBPF file
  *
  * This function loads a section inside an eBPF and return
@@ -308,10 +308,10 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
 
 /**
  * Attach a XDP program identified by its file descriptor to a device
- * 
+ *
  * \param iface the name of interface
  * \param fd the eBPF/XDP program file descriptor
- * \param a flag to pass to attach function mostly used to set XDP mode 
+ * \param a flag to pass to attach function mostly used to set XDP mode
  * \return -1 in case of error, 0 if success
  */
 int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
@@ -767,7 +767,7 @@ int EBPFUpdateFlow(Flow *f, Packet *p, void *data)
         }
         ldev = ldev->next;
     }
-    /* Call bypass function if ever not in the list */ 
+    /* Call bypass function if ever not in the list */
     p->BypassPacketsFlow(p);
 
     /* Add iface to the list */
