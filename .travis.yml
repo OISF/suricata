@@ -96,35 +96,35 @@ matrix:
         - ARGS="--disable-rust"
         - DO_DISTCHECK="yes"
     # Linux, gcc, Rust (auto detect).
-    # - Rust 1.29.1, the latest known working version.
+    # - Rust 1.31.0, the latest known working version.
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,rust-1.29.1-auto"
+        - NAME="linux,gcc,rust-1.31.0-auto"
         - *default-cflags
         - ENABLE_RUST="yes"
-        - RUST_VERSION="1.29.1"
+        - RUST_VERSION="1.31.0"
         - ARGS=""
         - DO_DISTCHECK="yes"
     # Linux, gcc, Rust.
-    # - Rust 1.29.1, the latest known working version.
+    # - Rust 1.31.0, the latest known working version.
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,rust-1.29.1"
+        - NAME="linux,gcc,rust-1.31.0"
         - *default-cflags
         - ENABLE_RUST="yes"
-        - RUST_VERSION="1.29.1"
+        - RUST_VERSION="1.31.0"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_DISTCHECK="yes"
-    # Linux, gcc, Rust (1.21.0 - oldest supported).
+    # Linux, gcc, Rust (1.24.1 - oldest supported).
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,rust-1.21.0"
+        - NAME="linux,gcc,rust-1.24.1"
         - *default-cflags
         - ENABLE_RUST="yes"
-        - RUST_VERSION="1.21.0"
+        - RUST_VERSION="1.24.1"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_DISTCHECK="yes"
     # Linux, gcc, -DNDEBUG.
