@@ -74,7 +74,7 @@ void DetectHttpStatCodeRegister (void)
 {
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].name = "http_stat_code";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].desc = "content modifier to match only on HTTP stat-code-buffer";
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_stat-code";
+    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-stat-code";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetup;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Free  = NULL;

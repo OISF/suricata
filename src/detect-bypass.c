@@ -62,7 +62,11 @@ void DetectBypassRegister(void)
 {
     sigmatch_table[DETECT_BYPASS].name = "bypass";
     sigmatch_table[DETECT_BYPASS].desc = "call the bypass callback when the match of a sig is complete";
+<<<<<<< HEAD
     sigmatch_table[DETECT_BYPASS].url = "/rules/bypass-keyword.html";
+=======
+    sigmatch_table[DETECT_BYPASS].url = DOC_URL DOC_VERSION "rules/bypass-keyword.html";
+>>>>>>> fc395eb2c588bc1034311105247e7d44c384761f
     sigmatch_table[DETECT_BYPASS].Match = DetectBypassMatch;
     sigmatch_table[DETECT_BYPASS].Setup = DetectBypassSetup;
     sigmatch_table[DETECT_BYPASS].Free  = NULL;

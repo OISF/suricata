@@ -104,6 +104,19 @@
     fi
     AM_CONDITIONAL([HAVE_PYTHON], [test "x$enable_python" = "xyes"])
 
+    # Check for python-yaml.
+    have_python_yaml="no"
+    if test "x$enable_python" = "xyes"; then
+        AC_MSG_CHECKING([for python-yaml])
+	if $HAVE_PYTHON -c "import yaml" 2>/dev/null; then
+	   have_python_yaml="yes"
+	   AC_MSG_RESULT([yes])
+	else
+	   AC_MSG_RESULT([no])
+	fi
+    fi
+    AM_CONDITIONAL([HAVE_PYTHON_YAML], [test "x$have_python_yaml" = "xyes"])
+
     AC_PATH_PROG(HAVE_WGET, wget, "no")
     if test "$HAVE_WGET" = "no"; then
         AC_PATH_PROG(HAVE_CURL, curl, "no")
@@ -403,26 +416,40 @@
     if test "x$enable_ebpf_build" = "xyes"; then
         if echo $CC | grep clang; then
             if test "x$CC" = "xclang"; then
-                AC_MSG_CHECKING([llc binary])
-                AC_PATH_PROG(HAVE_LLC, llc, "yes", "no")
-                if test "$HAVE_LLC" = "yes"; then
+                AC_PATH_PROG(HAVE_LLC, llc, "no")
+                if test "$HAVE_LLC" != "no"; then
                     LLC="llc"
                     AC_SUBST(LLC)
                 else
-                    AC_MSG_CHECKING([llc binary for clang version])
                     llc_version_line=$($CC --version|$GREP version)
                     llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
-                    AC_MSG_RESULT($llc_version)
-                    LLC="llc-$llc_version"
-                    AC_SUBST(LLC)
+                    AC_PATH_PROG(HAVE_LLC, "llc-$llc_version", "no")
+                    if test "$HAVE_LLC" != "no"; then
+                        LLC="llc-$llc_version"
+                        AC_SUBST(LLC)
+		    else
+                        echo "unable to find llc needed to build ebpf files"
+                        exit 1
+                    fi
                 fi
             else
-                AC_MSG_CHECKING([llc binary for clang version])
-                llc_version_line=$($CC --version|$GREP version)
-                llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
-                AC_MSG_RESULT($llc_version)
-                LLC="llc-$llc_version"
-                AC_SUBST(LLC)
+                llc_version=$(echo $CC | cut -d '-' -f 2)
+                AC_PATH_PROG(HAVE_LLC, "llc-$llc_version", "no")
+                if test "$HAVE_LLC" != "no"; then
+                    LLC="llc-$llc_version"
+                    AC_SUBST(LLC)
+                else
+                    llc_version_line=$($CC --version|$GREP version)
+                    llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
+                    AC_PATH_PROG(HAVE_LLC, "llc-$llc_version", "no")
+                    if test "$HAVE_LLC" != "no"; then
+                        LLC="llc-$llc_version"
+                        AC_SUBST(LLC)
+                    else
+                        echo "unable to find llc needed to build ebpf files"
+                        exit 1
+                    fi
+                fi
             fi
         else
             echo "clang needed to build ebpf files"
@@ -1423,23 +1450,46 @@
         AC_CHECK_HEADER(net/netmap_user.h,,[AC_ERROR(net/netmap_user.h not found ...)],)
   ])
 
-  # suricata-update
-  have_suricata_update="no"
-  ruledirprefix="$sysconfdir"
-  suricata_update_rule_files="suricata-update-rule-files"
-  AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
-      SURICATA_UPDATE_DIR="suricata-update"
-      AC_SUBST(SURICATA_UPDATE_DIR)
-      AC_OUTPUT(suricata-update/Makefile)
-      have_suricata_update="yes"
-      ruledirprefix="$localstatedir/lib"
-      no_suricata_update_comment=""
-      has_suricata_update_comment="#"
-  ], [
-      no_suricata_update_comment="#"
-      has_suricata_update_comment=""
-  ])
-  AM_CONDITIONAL([HAVE_SURICATA_UPDATE], [test "x$have_suricata_update" != "xno"])
+  # Suricata-Update.
+    AC_ARG_ENABLE([suricata-update], AS_HELP_STRING([--disable-suricata-update],
+        [Disable suricata-update]), [enable_suricata_update=$enableval],
+      [enable_suricata_update="yes"])
+
+    # Assume suircata-update will not be installed.
+    have_suricata_update="no"
+    ruledirprefix="$sysconfdir"
+    no_suricata_update_comment="#"
+    has_suricata_update_comment=""
+    suricata_update_rule_files="suricata-update-rule-files"
+
+    if test "$enable_suricata_update" = "yes"; then
+      AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
+          have_suricata_update="yes"], [])
+    fi
+    AM_CONDITIONAL([HAVE_SURICATA_UPDATE],
+        [test "x$have_suricata_update" != "xno"])
+
+    install_suricata_update="no"
+    if test "$have_suricata_update" = "yes"; then
+        if test "$have_python_yaml" != "yes"; then
+	    echo ""
+	    echo "    Warning: suricata-update will not be installed as the"
+	    echo "        depedency python-yaml is not installed."
+	    echo ""
+	    echo "    Debian/Ubuntu: apt install python-yaml"
+	    echo "    Fedora: dnf install python-yaml"
+	    echo "    CentOS/RHEL: yum install python-yaml"
+	    echo ""
+	else
+	    install_suricata_update="yes"
+            SURICATA_UPDATE_DIR="suricata-update"
+            AC_SUBST(SURICATA_UPDATE_DIR)
+            AC_OUTPUT(suricata-update/Makefile)
+            ruledirprefix="$localstatedir/lib"
+            no_suricata_update_comment=""
+            has_suricata_update_comment="#"
+	fi
+    fi
 
   # libhtp
     AC_ARG_ENABLE(non-bundled-htp,
@@ -2387,9 +2437,11 @@ AC_SUBST(no_suricata_update_comment)
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
 EXPAND_VARIABLE(sysconfdir, CONFIGURE_SYSCONDIR)
 EXPAND_VARIABLE(localstatedir, CONFIGURE_LOCALSTATEDIR)
+EXPAND_VARIABLE(datadir, CONFIGURE_DATAROOTDIR)
 AC_SUBST(CONFIGURE_PREFIX)
 AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
+AC_SUBST(CONFIGURE_DATAROOTDIR)
 AC_SUBST(PACKAGE_VERSION)
 
 AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service python/Makefile python/suricata/config/defaults.py ebpf/Makefile)
@@ -2434,7 +2486,8 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Rust compiler:                           ${rust_compiler_version}
   Rust cargo:                              ${rust_cargo_version}
 
-  Suricatasc install:                      ${enable_python}
+  Install suricatasc:                      ${enable_python}
+  Install suricata-update:                 ${install_suricata_update}
 
   Profiling enabled:                       ${enable_profiling}
   Profiling locks enabled:                 ${enable_profiling_locks}
@@ -2453,6 +2506,7 @@ Generic build parameters:
   --prefix                                 ${CONFIGURE_PREFIX}
   --sysconfdir                             ${CONFIGURE_SYSCONDIR}
   --localstatedir                          ${CONFIGURE_LOCALSTATEDIR}
+  --datarootdir                            ${CONFIGURE_DATAROOTDIR}
 
   Host:                                    ${host}
   Compiler:                                ${CC} (exec name) / ${compiler} (real)

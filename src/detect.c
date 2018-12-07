@@ -1038,13 +1038,6 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
     PacketPatternCleanup(det_ctx);
 
     if (pflow != NULL) {
-        // TODO clean this up
-        const int nlists = det_ctx->de_ctx->buffer_type_id;
-        for (int i = 0; i < nlists; i++) {
-            InspectionBuffer *buffer = &det_ctx->inspect_buffers[i];
-            buffer->inspect = NULL;
-        }
-
         /* update inspected tracker for raw reassembly */
         if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL) {
             StreamReassembleRawUpdateProgress(pflow->protoctx, p,
@@ -1600,6 +1593,8 @@ static void DetectRunTx(ThreadVars *tv,
                     flow_flags, new_detect_flags);
         }
 next:
+        InspectionBufferClean(det_ctx);
+
         if (!ires.has_next)
             break;
     }

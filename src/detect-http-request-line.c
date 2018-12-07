@@ -75,7 +75,7 @@ void DetectHttpRequestLineRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].name = "http_request_line";
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].desc = "content modifier to match only on the HTTP request line";
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_request-line";
+    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-request-line";
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].Setup = DetectHttpRequestLineSetup;
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].RegisterTests = DetectHttpRequestLineRegisterTests;
@@ -122,9 +122,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id)
 {
-    BUG_ON(det_ctx->inspect_buffers == NULL);
-    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
-
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
         if (unlikely(tx->request_line == NULL)) {

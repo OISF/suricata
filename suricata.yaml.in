@@ -393,7 +393,7 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
-  # alert output to prelude (http://www.prelude-technologies.com/) only
+  # alert output to prelude (https://www.prelude-siem.org/) only
   # available if Suricata has been compiled with --enable-prelude
   - alert-prelude:
       enabled: no
@@ -637,7 +637,7 @@ af-packet:
     #  Requires at least Linux 3.14.
     #  * cluster_rollover: kernel rotates between sockets filling each socket before moving
     #  to the next. Requires at least Linux 3.10.
-    #  * cluster_ebpf: eBPF file load balancing. See doc/userguide/capture/ebpf-xdt.rst for
+    #  * cluster_ebpf: eBPF file load balancing. See doc/userguide/capture-hardware/ebpf-xdp.rst for
     #  more info.
     # Recommended modes are cluster_flow on most boxes and cluster_cpu or cluster_qm on system
     # with capture card using RSS (require cpu affinity tuning and system irq tuning)
