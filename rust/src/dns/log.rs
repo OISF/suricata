@@ -474,6 +474,7 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
 
     for query in &response.queries {
         js.set_string_from_bytes("rrname", &query.name);
+        js.set_string("rrtype", &dns_rrtype_string(query.rrtype));
         break;
     }
     js.set_string("rcode", &dns_rcode_string(header.flags));
