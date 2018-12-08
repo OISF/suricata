@@ -1672,6 +1672,7 @@
 	        AS_HELP_STRING([--enable-ebpf],[Enable eBPF support]),
 	        [ enable_ebpf="$enableval"],
 	        [ enable_ebpf="no"])
+    AM_CONDITIONAL([HAVE_EBPF], [test "x$enable_ebpf" != "xno"])
 
     have_xdp="no"
     if test "$enable_ebpf" = "yes"; then
@@ -2497,7 +2498,7 @@ AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(CONFIGURE_DATAROOTDIR)
 AC_SUBST(PACKAGE_VERSION)
 
-AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service python/Makefile python/suricata/config/defaults.py ebpf/Makefile)
+AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service python/Makefile python/suricata/config/defaults.py ebpf/Makefile ebpf/scbpf/Makefile)
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}

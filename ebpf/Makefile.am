@@ -1,3 +1,5 @@
+SUBDIRS = scbpf
+
 if BUILD_EBPF
 
 # Maintaining a local copy of UAPI linux/bpf.h
