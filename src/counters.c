@@ -328,7 +328,6 @@ static void *StatsMgmtThread(void *arg)
 
     ThreadVars *tv_local = (ThreadVars *)arg;
     uint8_t run = 1;
-    struct timespec cond_time;
 
     /* Set the thread name */
     if (SCSetThreadName(tv_local->name) < 0) {
@@ -369,8 +368,11 @@ static void *StatsMgmtThread(void *arg)
             TmThreadsUnsetFlag(tv_local, THV_PAUSED);
         }
 
-        cond_time.tv_sec = time(NULL) + stats_tts;
-        cond_time.tv_nsec = 0;
+        struct timeval cur_timev;
+        gettimeofday(&cur_timev, NULL);
+
+        struct timespec cond_time = FROM_TIMEVAL(cur_timev);
+        cond_time.tv_sec += (stats_tts);
 
         /* wait for the set time, or until we are woken up by
          * the shutdown procedure */
