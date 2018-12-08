@@ -401,7 +401,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
          * is 1 then we have a global hash. */
         struct pair values_array[tcfg->cpus_count];
         memset(values_array, 0, sizeof(values_array));
-        int res = bpf_map_lookup_elem(mapfd, &key, values_array);
+        int res = bpf_map_lookup_elem(mapfd, &next_key, values_array);
         if (res < 0) {
             SCLogDebug("no entry in v4 table for %d -> %d", key.port16[0], key.port16[1]);
             SCLogDebug("errno: (%d) %s", errno, strerror(errno));
@@ -487,7 +487,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
          * is 1 then we have a global hash. */
         struct pair values_array[tcfg->cpus_count];
         memset(values_array, 0, sizeof(values_array));
-        int res = bpf_map_lookup_elem(mapfd, &key, values_array);
+        int res = bpf_map_lookup_elem(mapfd, &next_key, values_array);
         if (res < 0) {
             SCLogDebug("no entry in v4 table for %d -> %d", key.port16[0], key.port16[1]);
             key = next_key;
