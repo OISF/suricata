@@ -575,6 +575,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     /* Un-pause all the paused threads */
     TmThreadWaitOnThreadInit();
+    PacketPoolPostRunmodes();
     TmThreadContinueThreads();
 
     SCLogInfo("Starting run for '%s'", this->current_file->filename);
