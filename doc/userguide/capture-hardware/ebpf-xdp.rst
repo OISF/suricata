@@ -401,7 +401,7 @@ for that will be used to check for the presence of the XDP filter ::
   - interface: eth3
     pinned-maps: true
     pinned-maps-name: ipv4_drop
-    xdp-filter-file:  /etc/suricata/ebpf/xdp_filter.bpf
+    xdp-filter-file: /etc/suricata/ebpf/xdp_filter.bpf
 
 If XDP bypass is used in IPS mode stopping Suricata will trigger a interruption in the traffic.
 To fix that you can use the `pinned-maps-switch` option that will create a direct interface
@@ -411,7 +411,7 @@ is exiting but it can also be activated by an external monitoring tool ::
   - interface: eth3
     pinned-maps: true
     pinned-maps-switch: g_switch
-    xdp-filter-file:  /etc/suricata/ebpf/xdp_filter.bpf
+    xdp-filter-file: /etc/suricata/ebpf/xdp_filter.bpf
     bypass: true
 
 
@@ -420,5 +420,5 @@ Getting live info about bypass
 
 You can get information about bypass via the stats event and through the unix socket.
 `ìface-stat` will return the number of bypassed packets (adding packets for a flow when it timeout).
-`ebpf-bypassed-stats` command will return the number of element in IPv4 and IPv6 flow tables for
+`ebpf-bypassed-stats` command will return the number of elements in IPv4 and IPv6 flow tables for
 each interfaces.
