@@ -49,6 +49,7 @@
 struct ebpf_timeout_config {
     uint16_t cpus_count;
     uint8_t mode;
+    uint8_t flags;
 };
 #endif
 

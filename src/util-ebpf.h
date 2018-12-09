@@ -63,6 +63,7 @@ struct pair {
 
 #define EBPF_SOCKET_FILTER  (1<<0)
 #define EBPF_XDP_CODE       (1<<1)
+#define EBPF_PINNED_MAPS    (1<<2)
 
 int EBPFGetMapFDByName(const char *iface, const char *name);
 int EBPFLoadFile(const char *iface, const char *path, const char * section,
