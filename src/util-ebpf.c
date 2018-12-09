@@ -275,16 +275,16 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             BpfMapsInfoFree(bpf_map_data);
             return -1;
         }
-        /* TODO pin */
-        /* sudo mount bpf -t bpf /sys/fs/bpf/ */
-        SCLogNotice("Pinning: %d to %s", bpf_map_data->array[bpf_map_data->last].fd,
+        if (flags & EBPF_PINNED_MAPS) {
+            SCLogNotice("Pinning: %d to %s", bpf_map_data->array[bpf_map_data->last].fd,
                     bpf_map_data->array[bpf_map_data->last].name);
-        char buf[1024];
-        snprintf(buf, sizeof(buf), "/sys/fs/bpf/suricata-%s-%s", iface,
-                 bpf_map_data->array[bpf_map_data->last].name);
-        int ret = bpf_obj_pin(bpf_map_data->array[bpf_map_data->last].fd, buf);
-        if (ret != 0) {
-            SCLogError(SC_ERR_AFP_CREATE, "Can not pin: %s", strerror(errno));
+            char buf[1024];
+            snprintf(buf, sizeof(buf), "/sys/fs/bpf/suricata-%s-%s", iface,
+                    bpf_map_data->array[bpf_map_data->last].name);
+            int ret = bpf_obj_pin(bpf_map_data->array[bpf_map_data->last].fd, buf);
+            if (ret != 0) {
+                SCLogError(SC_ERR_AFP_CREATE, "Can not pin: %s", strerror(errno));
+            }
         }
         bpf_map_data->last++;
     }
