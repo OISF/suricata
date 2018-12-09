@@ -153,7 +153,55 @@ int EBPFGetMapFDByName(const char *iface, const char *name)
             return bpf_maps->array[i].fd;
         }
     }
+
+    /* Fallback by getting pinned maps ? */
+
     return -1;
+}
+
+static int EBPFLoadPinnedMapsFile(LiveDevice *livedev, const char *file)
+{
+    char pinnedpath[1024];
+    snprintf(pinnedpath, sizeof(pinnedpath),
+            "/sys/fs/bpf/suricata-%s-%s",
+            livedev->dev,
+            file);
+
+    return bpf_obj_get(pinnedpath);
+}
+
+static int EBPFLoadPinnedMaps(LiveDevice *livedev, uint8_t flags)
+{
+    int fd_v4 = -1, fd_v6 = -1;
+
+    /* Get flow v4 table */
+    fd_v4 = EBPFLoadPinnedMapsFile(livedev, "flow_table_v4");
+    if (fd_v4 < 0) {
+        return fd_v4;
+    }
+
+    /* Get flow v6 table */
+    fd_v6 = EBPFLoadPinnedMapsFile(livedev, "flow_table_v6");
+    if (fd_v6 < 0) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                     "Found a flow_table_v4 map but no flow_table_v6 map");
+        return fd_v6;
+    }
+
+    struct bpf_maps_info *bpf_map_data = SCCalloc(1, sizeof(*bpf_map_data));
+    if (bpf_map_data == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bpf map array");
+        return -1;
+    }
+    SC_ATOMIC_INIT(bpf_map_data->ipv4_hash_count);
+    SC_ATOMIC_INIT(bpf_map_data->ipv6_hash_count);
+    bpf_map_data->array[0].fd = fd_v4;
+    bpf_map_data->array[0].name = SCStrdup("flow_table_v4");
+    bpf_map_data->array[1].fd = fd_v6;
+    bpf_map_data->array[1].name = SCStrdup("flow_table_v6");
+    bpf_map_data->last = 2;
+
+    return 0;
 }
 
 /**
@@ -182,6 +230,13 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     LiveDevice *livedev = LiveGetDevice(iface);
     if (livedev == NULL)
         return -1;
+
+    if (flags & EBPF_XDP_CODE) {
+        /* We try to get our flow table maps and if we have them we can simply return */
+        if (EBPFLoadPinnedMaps(livedev, flags) == 0) {
+            return 0;
+        }
+    }
 
     if (! path) {
         SCLogError(SC_ERR_INVALID_VALUE, "No file defined to load eBPF from");
