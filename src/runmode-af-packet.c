@@ -381,15 +381,25 @@ static void *ParseAFPConfig(const char *iface)
 #ifdef HAVE_PACKET_EBPF
         SCLogConfig("af-packet will use '%s' as eBPF load balancing file",
                   ebpf_file);
-#endif
         aconf->ebpf_lb_file = ebpf_file;
+        aconf->ebpf_t_config.flags |= EBPF_SOCKET_FILTER;
+#endif
+    }
+
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "pinned-maps", (int *)&boolval) != 1) {
+        if (boolval) {
+            SCLogConfig("Using pinned maps on iface %s",
+                        aconf->iface);
+            aconf->ebpf_t_config.flags |= EBPF_PINNED_MAPS;
+        }
     }
 
 #ifdef HAVE_PACKET_EBPF
     /* One shot loading of the eBPF file */
     if (aconf->ebpf_lb_file && cluster_type == PACKET_FANOUT_EBPF) {
         int ret = EBPFLoadFile(aconf->iface, aconf->ebpf_lb_file, "loadbalancer",
-                               &aconf->ebpf_lb_fd, EBPF_SOCKET_FILTER);
+                               &aconf->ebpf_lb_fd,
+                               aconf->ebpf_t_config.flags);
         if (ret != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE, "Error when loading eBPF lb file");
         }
@@ -428,7 +438,8 @@ static void *ParseAFPConfig(const char *iface)
     if (aconf->ebpf_filter_file) {
 #ifdef HAVE_PACKET_EBPF
         int ret = EBPFLoadFile(aconf->iface, aconf->ebpf_filter_file, "filter",
-                               &aconf->ebpf_filter_fd, EBPF_SOCKET_FILTER);
+                               &aconf->ebpf_filter_fd,
+                               aconf->ebpf_t_config.flags);
         if (ret != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                          "Error when loading eBPF filter file");
@@ -444,6 +455,7 @@ static void *ParseAFPConfig(const char *iface)
         SCLogInfo("af-packet will use '%s' as XDP filter file",
                   ebpf_file);
         aconf->ebpf_t_config.mode = AFP_MODE_XDP_BYPASS;
+        aconf->ebpf_t_config.flags |= EBPF_XDP_CODE;
         aconf->xdp_filter_file = ebpf_file;
         ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
         if (conf_val) {
@@ -490,7 +502,8 @@ static void *ParseAFPConfig(const char *iface)
     if (aconf->xdp_filter_file) {
 #ifdef HAVE_PACKET_XDP
         int ret = EBPFLoadFile(aconf->iface, aconf->xdp_filter_file, "xdp",
-                               &aconf->xdp_filter_fd, EBPF_XDP_CODE);
+                               &aconf->xdp_filter_fd,
+                               aconf->ebpf_t_config.flags);
         if (ret != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                          "Error when loading XDP filter file");
