@@ -352,6 +352,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     /* Un-pause all the paused threads */
     TmThreadWaitOnThreadInit();
+    PacketPoolPostRunmodes();
     TmThreadContinueThreads();
     return TM_ECODE_OK;
 }
