@@ -292,7 +292,7 @@ typedef struct AFPThreadVars_
 
     uint8_t xdp_mode;
 
-    unsigned int nr_cpus;
+    struct ebpf_timeout_config ebpf_t_config;
 
 } AFPThreadVars;
 
@@ -631,7 +631,7 @@ static int AFPRead(AFPThreadVars *ptv)
 #ifdef HAVE_PACKET_EBPF
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
-        p->afp_v.nr_cpus = ptv->nr_cpus;
+        p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
 #endif
     }
     if (ptv->flags & AFP_XDPBYPASS) {
@@ -639,7 +639,7 @@ static int AFPRead(AFPThreadVars *ptv)
 #ifdef HAVE_PACKET_EBPF
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
-        p->afp_v.nr_cpus = ptv->nr_cpus;
+        p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
 #endif
     }
 
@@ -918,7 +918,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
 #ifdef HAVE_PACKET_EBPF
             p->afp_v.v4_map_fd = ptv->v4_map_fd;
             p->afp_v.v6_map_fd = ptv->v6_map_fd;
-            p->afp_v.nr_cpus = ptv->nr_cpus;
+            p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
 #endif
         }
         if (ptv->flags & AFP_XDPBYPASS) {
@@ -926,7 +926,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
 #ifdef HAVE_PACKET_EBPF
             p->afp_v.v4_map_fd = ptv->v4_map_fd;
             p->afp_v.v6_map_fd = ptv->v6_map_fd;
-            p->afp_v.nr_cpus = ptv->nr_cpus;
+            p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
 #endif
         }
 
@@ -1054,14 +1054,14 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
 #ifdef HAVE_PACKET_EBPF
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
-        p->afp_v.nr_cpus = ptv->nr_cpus;
+        p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
 #endif
     } else if (ptv->flags & AFP_XDPBYPASS) {
         p->BypassPacketsFlow = AFPXDPBypassCallback;
 #ifdef HAVE_PACKET_EBPF
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
-        p->afp_v.nr_cpus = ptv->nr_cpus;
+        p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
 #endif
     }
 
@@ -2583,7 +2583,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     ptv->ebpf_lb_fd = afpconfig->ebpf_lb_fd;
     ptv->ebpf_filter_fd = afpconfig->ebpf_filter_fd;
     ptv->xdp_mode = afpconfig->xdp_mode;
-    ptv->nr_cpus = UtilCpuGetNumProcessorsConfigured();
+    ptv->ebpf_t_config.cpus_count = UtilCpuGetNumProcessorsConfigured();
 
 #ifdef HAVE_PACKET_EBPF
     if (ptv->flags & (AFP_BYPASS|AFP_XDPBYPASS)) {
@@ -2596,7 +2596,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
             SCLogError(SC_ERR_INVALID_VALUE, "Can't find eBPF map fd for '%s'", "flow_table_v6");
         }
     }
-    ptv->nr_cpus = afpconfig->ebpf_t_config.cpus_count;
+    ptv->ebpf_t_config = afpconfig->ebpf_t_config;
 #endif
 
 #ifdef PACKET_STATISTICS
@@ -2689,7 +2689,10 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
     AFPSwitchState(ptv, AFP_STATE_DOWN);
 
 #ifdef HAVE_PACKET_XDP
-    EBPFSetupXDP(ptv->iface, -1, ptv->xdp_mode);
+    if ((ptv->ebpf_t_config.flags & EBPF_XDP_CODE) &&
+        (!(ptv->ebpf_t_config.flags & EBPF_PINNED_MAPS))) {
+        EBPFSetupXDP(ptv->iface, -1, ptv->xdp_mode);
+    }
 #endif
     if (ptv->data != NULL) {
         SCFree(ptv->data);
