@@ -66,6 +66,7 @@ struct bpf_map_item {
     char iface[IFNAMSIZ];
     char * name;
     int fd;
+    uint8_t unlink;
 };
 
 struct bpf_maps_info {
@@ -86,13 +87,15 @@ static void BpfMapsInfoFree(void *bpf)
     int i;
     for (i = 0; i < bpfinfo->last; i ++) {
         if (bpfinfo->array[i].name) {
-            char pinnedpath[1024];
-            snprintf(pinnedpath, sizeof(pinnedpath),
-                     "/sys/fs/bpf/suricata-%s-%s",
-                     bpfinfo->array[i].iface,
-                     bpfinfo->array[i].name);
-            /* Unlink the pinned entry */
-            unlink(pinnedpath);
+            if (bpfinfo->array[i].unlink) {
+                char pinnedpath[1024];
+                snprintf(pinnedpath, sizeof(pinnedpath),
+                        "/sys/fs/bpf/suricata-%s-%s",
+                        bpfinfo->array[i].iface,
+                        bpfinfo->array[i].name);
+                /* Unlink the pinned entry */
+                unlink(pinnedpath);
+            }
             SCFree(bpfinfo->array[i].name);
         }
     }
@@ -275,6 +278,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             BpfMapsInfoFree(bpf_map_data);
             return -1;
         }
+        bpf_map_data->array[bpf_map_data->last].unlink = 0;
         if (flags & EBPF_PINNED_MAPS) {
             SCLogNotice("Pinning: %d to %s", bpf_map_data->array[bpf_map_data->last].fd,
                     bpf_map_data->array[bpf_map_data->last].name);
@@ -284,6 +288,12 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             int ret = bpf_obj_pin(bpf_map_data->array[bpf_map_data->last].fd, buf);
             if (ret != 0) {
                 SCLogError(SC_ERR_AFP_CREATE, "Can not pin: %s", strerror(errno));
+            }
+            /* Don't unlink pinned maps in XDP mode to avoid a state reset */
+            if (flags & EBPF_XDP_CODE) {
+                bpf_map_data->array[bpf_map_data->last].unlink = 0;
+            } else {
+                bpf_map_data->array[bpf_map_data->last].unlink = 1;
             }
         }
         bpf_map_data->last++;
