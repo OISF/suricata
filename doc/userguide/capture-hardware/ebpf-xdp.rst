@@ -359,7 +359,7 @@ Confirm you have the XDP filter engaged in the output (example)::
 Pinned maps usage
 -----------------
 
-Pnned maps stay attached to the system if the creating process disappear and
+Pinned maps stay attached to the system if the creating process disappear and
 they can also be accessed by external tools. In Suricata bypass case, this can be
 used to keep active bypassed flow tables so Suricata is not hit by previsouly bypassed flows when
 restarting. In the socket filter case, this can be used to maintain a map from tools outside
