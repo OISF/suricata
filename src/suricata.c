@@ -2492,13 +2492,13 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                 default_packet_size = DEFAULT_PACKET_SIZE;
                 break;
 #endif /* WINDIVERT */
-            case RUNMODE_PCAP_DEV:
-            case RUNMODE_AFP_DEV:
             case RUNMODE_NETMAP:
                 /* in netmap igb0+ has a special meaning, however the
                  * interface really is igb0 */
                 strip_trailing_plus = 1;
                 /* fall through */
+            case RUNMODE_PCAP_DEV:
+            case RUNMODE_AFP_DEV:
             case RUNMODE_PFRING:
                 nlive = LiveGetDeviceCount();
                 for (lthread = 0; lthread < nlive; lthread++) {
