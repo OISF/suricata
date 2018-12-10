@@ -17,8 +17,16 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-extern crate snmp_parser;
+use libc;
+use snmp::snmp::SNMPTransaction;
 
-pub mod snmp;
-pub mod log;
-pub mod detect;
+#[no_mangle]
+pub extern "C" fn rs_snmp_tx_get_version(tx: &mut SNMPTransaction,
+                                         version: *mut libc::uint32_t)
+{
+    debug_assert!(tx.version != 0, "SNMP version is 0");
+    unsafe {
+        *version = tx.version as libc::uint32_t;
+    }
+}
+
