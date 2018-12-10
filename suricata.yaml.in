@@ -104,6 +104,7 @@ outputs:
       # Include top level metadata. Default yes.
       #metadata: no
 
+      # include the name of the input pcap file in pcap file processing mode
       pcap-file: false
 
       # Community Flow ID
