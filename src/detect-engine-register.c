@@ -185,6 +185,7 @@
 #include "detect-krb5-sname.h"
 #include "detect-target.h"
 #include "detect-template-rust-buffer.h"
+#include "detect-snmp-version.h"
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -520,6 +521,7 @@ void SigTableSetup(void)
     DetectKrb5SNameRegister();
     DetectTargetRegister();
     DetectTemplateRustBufferRegister();
+    DetectSNMPVersionRegister();
     DetectTemplateBufferRegister();
     DetectBypassRegister();
 

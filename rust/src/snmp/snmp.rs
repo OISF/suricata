@@ -61,6 +61,9 @@ pub struct SNMPPduInfo {
 }
 
 pub struct SNMPTransaction {
+    /// PDU version
+    pub version: u32,
+
     /// PDU info, if present (and cleartext)
     pub info: Option<SNMPPduInfo>,
 
@@ -199,7 +202,7 @@ impl SNMPState {
 
     fn new_tx(&mut self) -> SNMPTransaction {
         self.tx_id += 1;
-        SNMPTransaction::new(self.tx_id)
+        SNMPTransaction::new(self.version, self.tx_id)
     }
 
     fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SNMPTransaction> {
@@ -251,8 +254,9 @@ impl SNMPState {
 }
 
 impl SNMPTransaction {
-    pub fn new(id: u64) -> SNMPTransaction {
+    pub fn new(version: u32, id: u64) -> SNMPTransaction {
         SNMPTransaction {
+            version,
             info: None,
             community: None,
             usm: None,

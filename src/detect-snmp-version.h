@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2015-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,10 +15,17 @@
  * 02110-1301, USA.
  */
 
-// written by Pierre Chifflier  <chifflier@wzdftpd.net>
+/**
+ * \file
+ *
+ * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ */
 
-extern crate snmp_parser;
+#ifndef __DETECT_SNMP_VERSION_H__
+#define __DETECT_SNMP_VERSION_H__
 
-pub mod snmp;
-pub mod log;
-pub mod detect;
+#include "app-layer-snmp.h"
+
+void DetectSNMPVersionRegister(void);
+
+#endif /* __DETECT_SNMP_VERSION_H__ */
