@@ -174,6 +174,7 @@
 #include "detect-target.h"
 #include "detect-template-rust-buffer.h"
 #include "detect-snmp-version.h"
+#include "detect-snmp-community.h"
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -528,6 +529,7 @@ void SigTableSetup(void)
     DetectTargetRegister();
     DetectTemplateRustBufferRegister();
     DetectSNMPVersionRegister();
+    DetectSNMPCommunityRegister();
     DetectTemplateBufferRegister();
     DetectBypassRegister();
 
