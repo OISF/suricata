@@ -30,3 +30,18 @@ pub extern "C" fn rs_snmp_tx_get_version(tx: &mut SNMPTransaction,
     }
 }
 
+#[no_mangle]
+pub extern "C" fn rs_snmp_tx_get_community(tx: &mut SNMPTransaction,
+                                           buf: *mut *const libc::uint8_t,
+                                           len: *mut libc::uint32_t)
+{
+    match tx.community {
+        Some(ref c) => {
+            unsafe {
+                *buf = (&c).as_ptr();
+                *len = c.len() as libc::uint32_t;
+            }
+        },
+        None        => ()
+    }
+}
