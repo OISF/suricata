@@ -45,3 +45,19 @@ pub extern "C" fn rs_snmp_tx_get_community(tx: &mut SNMPTransaction,
         None        => ()
     }
 }
+
+#[no_mangle]
+pub extern "C" fn rs_snmp_tx_get_pdu_type(tx: &mut SNMPTransaction,
+                                          pdu_type: *mut libc::uint32_t)
+{
+    unsafe {
+        match tx.info {
+            Some(ref info) => {
+                *pdu_type = info.pdu_type.0 as libc::uint32_t;
+            },
+            None           => {
+                *pdu_type = 0xffffffff;
+            }
+        }
+    }
+}
