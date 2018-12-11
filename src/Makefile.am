@@ -246,6 +246,7 @@ detect-rpc.c detect-rpc.h \
 detect-sameip.c detect-sameip.h \
 detect-seq.c detect-seq.h \
 detect-sid.c detect-sid.h \
+detect-snmp-community.c detect-snmp-community.h \
 detect-snmp-version.c detect-snmp-version.h \
 detect-ssh-proto.c detect-ssh-proto.h \
 detect-ssh-proto-version.c detect-ssh-proto-version.h \
