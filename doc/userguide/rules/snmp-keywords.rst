@@ -44,3 +44,32 @@ Signature example::
 
 ``snmp_community`` can be used as ``fast_pattern``.
 
+snmp_pdu_type
+-------------
+
+SNMP PDU type (integer).
+
+Common values are:
+
+ - 0: GetRequest
+ - 1: GetNextRequest
+ - 2: Response
+ - 3: SetRequest
+ - 4: TrapV1 (obsolete, was the old Trap-PDU in SNMPv1)
+ - 5: GetBulkRequest
+ - 6: InformRequest
+ - 7: TrapV2
+ - 8: Report
+
+This keyword will not match if the value is not accessible (for ex, an encrypted
+SNMP v3 message).
+
+
+Syntax::
+
+ snmp_pdu_type:<number>
+
+Signature example::
+
+ alert snmp any any -> any any (msg:"SNMP response"; snmp_pdu_type:2; sid:3; rev:1;)
+
