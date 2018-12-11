@@ -53,6 +53,7 @@
 #include "detect-http-raw-header.h"
 
 static int DetectHttpRawHeaderSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectHttpRawHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 #ifdef UNITTESTS
 static void DetectHttpRawHeaderRegisterTests(void);
 #endif
@@ -74,12 +75,22 @@ static int PrefilterMpmHttpHeaderRawResponseRegister(DetectEngineCtx *de_ctx,
  */
 void DetectHttpRawHeaderRegister(void)
 {
+    /* http_raw_header content modifier */
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].name = "http_raw_header";
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].RegisterTests = DetectHttpRawHeaderRegisterTests;
 #endif
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].alternative = DETECT_HTTP_RAW_HEADER;
+
+    /* http.header.raw sticky buffer */
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].name = "http.header.raw";
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].desc = "sticky buffer to match the raw HTTP header buffer";
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-raw-header";
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetupSticky;
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_raw_header", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS+1,
@@ -123,6 +134,24 @@ int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
                                                   DETECT_AL_HTTP_RAW_HEADER,
                                                   g_http_raw_header_buffer_id,
                                                   ALPROTO_HTTP);
+}
+
+/**
+ * \brief this function setup the http.header.raw keyword used in the rule
+ *
+ * \param de_ctx   Pointer to the Detection Engine Context
+ * \param s        Pointer to the Signature to which the current keyword belongs
+ * \param str      Should hold an empty string always
+ *
+ * \retval 0       On success
+ */
+static int DetectHttpRawHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectBufferSetActiveList(s, g_http_raw_header_buffer_id) < 0)
+        return -1;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
+    return 0;
 }
 
 static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char **sigerror)
