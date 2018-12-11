@@ -68,7 +68,7 @@ static int g_tls_sni_buffer_id = 0;
 void DetectTlsSniRegister(void)
 {
     sigmatch_table[DETECT_AL_TLS_SNI].name = "tls_sni";
-    sigmatch_table[DETECT_AL_TLS_SNI].desc = "content modifier to match specifically and only on the TLS SNI buffer";
+    sigmatch_table[DETECT_AL_TLS_SNI].desc = "Sticky buffer to match specifically and only on the TLS SNI buffer";
     sigmatch_table[DETECT_AL_TLS_SNI].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-sni";
     sigmatch_table[DETECT_AL_TLS_SNI].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_SNI].Setup = DetectTlsSniSetup;
