@@ -155,7 +155,6 @@
 #include "detect-http-response-line.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
-#include "detect-engine-hrhd.h"
 #include "detect-byte-extract.h"
 #include "detect-file-data.h"
 #include "detect-pkt-data.h"

@@ -46,7 +46,6 @@
 #include "detect-engine-iponly.h"
 #include "detect-engine-tag.h"
 
-#include "detect-engine-hrhd.h"
 #include "detect-engine-file.h"
 
 #include "detect-engine.h"
