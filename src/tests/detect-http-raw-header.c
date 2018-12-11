@@ -55,6 +55,41 @@
 #ifdef UNITTESTS
 
 /**
+ * \test Test parser accepting valid rules and rejecting invalid rules
+ */
+static int DetectHttpRawHeaderParserTest01(void)
+{
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; http_raw_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; nocase; http_raw_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; endswith; http_raw_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; startswith; http_raw_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; startswith; endswith; http_raw_header; sid:1;)", true));
+
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; rawbytes; http_raw_header; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_server; http_raw_header; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_server; content:\"abc\"; http_raw_header; sid:1;)", false));
+    PASS;
+}
+
+/**
+ * \test Test parser accepting valid rules and rejecting invalid rules
+ */
+static int DetectHttpRawHeaderParserTest02(void)
+{
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; nocase; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; endswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; startswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; startswith; endswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; bsize:10; sid:1;)", true));
+
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; rawbytes; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_server; http.header.raw; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; sid:1;)", false));
+    PASS;
+}
+
+/**
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
@@ -4480,6 +4515,11 @@ static int DetectHttpRawHeaderIsdataatParseTest(void)
 
 void DetectHttpRawHeaderRegisterTests(void)
 {
+    UtRegisterTest("DetectHttpRawHeaderParserTest01",
+                   DetectHttpRawHeaderParserTest01);
+    UtRegisterTest("DetectHttpRawHeaderParserTest02",
+                   DetectHttpRawHeaderParserTest02);
+
     UtRegisterTest("DetectEngineHttpRawHeaderTest01",
                    DetectEngineHttpRawHeaderTest01);
     UtRegisterTest("DetectEngineHttpRawHeaderTest02",
