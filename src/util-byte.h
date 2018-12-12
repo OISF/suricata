@@ -81,6 +81,7 @@
  *  \return string nul-terminated string or NULL on error
  */
 char *BytesToString(const uint8_t *bytes, size_t nbytes);
+void BytesToStringBuffer(const uint8_t *bytes, size_t nbytes, char *outstr, size_t outlen);
 
 /**
  * Extract bytes from a byte string and convert to a unint64_t.
