@@ -27,6 +27,7 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-validate.h"
 
 /** \brief Turn byte array into string.
  *
@@ -69,6 +70,53 @@ char *BytesToString(const uint8_t *bytes, size_t nbytes)
         }
     }
     return string;
+}
+
+/** \brief Turn byte array into string.
+ *
+ *  All non-printables are copied over, except for '\0', which is
+ *  turned into literal \0 in the string.
+ *
+ *  \param bytes byte array
+ *  \param nbytes number of bytes
+ *  \param outstr[out] buffer to fill
+ *  \param outlen size of outstr. Must be at least 2 * nbytes + 1 in size
+ */
+void BytesToStringBuffer(const uint8_t *bytes, size_t nbytes, char *outstr, size_t outlen)
+{
+    DEBUG_VALIDATE_BUG_ON(outlen < (nbytes * 2 + 1));
+
+    size_t n = nbytes + 1;
+    size_t nulls = 0;
+
+    size_t u;
+    for (u = 0; u < nbytes; u++) {
+        if (bytes[u] == '\0')
+            nulls++;
+    }
+    n += nulls;
+
+    char string[n];
+
+    if (nulls == 0) {
+        /* no nulls */
+        memcpy(string, bytes, nbytes);
+        string[nbytes] = '\0';
+    } else {
+        /* nulls present */
+        char *dst = string;
+        for (u = 0; u < nbytes; u++) {
+            if (bytes[u] == '\0') {
+                *dst++ = '\\';
+                *dst++ = '0';
+            } else {
+                *dst++ = bytes[u];
+            }
+        }
+        *dst = '\0';
+    }
+
+    strlcpy(outstr, string, outlen);
 }
 
 int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
