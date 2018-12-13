@@ -23,23 +23,6 @@
 #ifndef __DETECT_ENGINE_HSBD_H__
 #define __DETECT_ENGINE_HSBD_H__
 
-#include "app-layer-htp.h"
-
-int PrefilterTxHttpResponseBodyRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-
-int DetectEngineInspectHttpServerBody(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate,
-        void *tx, uint64_t tx_id);
-
-InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transform,
-        Flow *f, const uint8_t flow_flags, void *txv, const int list_id);
-
-void DetectEngineCleanHSBDBuffers(DetectEngineThreadCtx *det_ctx);
-
 void DetectEngineHttpServerBodyRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HSBD_H__ */

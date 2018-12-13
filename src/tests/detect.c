@@ -17,6 +17,7 @@
 
 #ifdef UNITTESTS
 
+#include "../app-layer-htp.h"
 #include "../conf-yaml-loader.h"
 #include "../detect-parse.h"
 #include "../detect-engine-content-inspection.h"

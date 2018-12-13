@@ -23,17 +23,6 @@
 #ifndef __DETECT_ENGINE_FILEDATA_H__
 #define __DETECT_ENGINE_FILEDATA_H__
 
-int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectMpmAppLayerRegistery *mpm_reg, int list_id);
-int DetectEngineInspectFiledata(
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine,
-        const Signature *s,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-
-void DetectEngineCleanFiledataBuffers(DetectEngineThreadCtx *det_ctx);
-
 void DetectEngineSMTPFiledataRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_FILEDATA_H__ */
