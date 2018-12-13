@@ -179,7 +179,7 @@ static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
                                         Signature *s)
 {
     if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_UNKNOWN) {
-        AppLayerHtpEnableRequestBodyCallback();
+        AppLayerHtpEnableResponseBodyCallback();
     }
 
 
