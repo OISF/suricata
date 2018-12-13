@@ -443,7 +443,8 @@ pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow, input:*const li
     if slice.len() <= 14 { return unsafe{ALPROTO_FAILED}; }
     match be_u32(slice) {
         IResult::Done(rem, record_mark) => {
-            if record_mark != rem.len() as u32 { return unsafe{ALPROTO_FAILED}; }
+            // protocol implementations forbid very large requests
+            if record_mark > 16384 { return unsafe{ALPROTO_FAILED}; }
             return rs_krb5_probing_parser(_flow, rem.as_ptr(), rem.len() as u32);
         },
         IResult::Incomplete(_) => {
