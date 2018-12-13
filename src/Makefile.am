@@ -130,7 +130,6 @@ detect-engine-modbus.c detect-engine-modbus.h \
 detect-engine-enip.c detect-engine-enip.h \
 detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
-detect-engine-filedata.c detect-engine-filedata.h \
 detect-engine-hsbd.c detect-engine-hsbd.h \
 detect-engine-iponly.c detect-engine-iponly.h \
 detect-engine-loader.c detect-engine-loader.h \

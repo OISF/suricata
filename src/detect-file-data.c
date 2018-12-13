@@ -35,7 +35,6 @@
 #include "detect-engine-state.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-engine-filedata.h"
 #include "detect-engine-hsbd.h"
 #include "detect-file-data.h"
 
@@ -54,7 +53,9 @@
 #include "util-file-decompression.h"
 
 static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectFiledataRegisterTests(void);
+#endif
 static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
                                         Signature *s);
 static int g_file_data_buffer_id = 0;
@@ -84,7 +85,9 @@ void DetectFiledataRegister(void)
     sigmatch_table[DETECT_FILE_DATA].desc = "make content keywords match on file data";
     sigmatch_table[DETECT_FILE_DATA].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#file-data";
     sigmatch_table[DETECT_FILE_DATA].Setup = DetectFiledataSetup;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_FILE_DATA].RegisterTests = DetectFiledataRegisterTests;
+#endif
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
@@ -529,242 +532,5 @@ int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx,
 }
 
 #ifdef UNITTESTS
-#include "detect-isdataat.h"
-
-static int DetectFiledataParseTest01(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert smtp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content is still in FILEDATA list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-       printf("content not in FILEDATA list: ");
-       goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-static int DetectFiledataParseTest02(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content is still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-       printf("content not in FILEDATA list: ");
-       goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-static int DetectFiledataParseTest03(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any 25 "
-                               "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content is still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-       printf("content not in FILEDATA list: ");
-       goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Test the file_data fails with flow:to_server.
- */
-static int DetectFiledataParseTest04(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert smtp any any -> any any "
-                               "(msg:\"test\"; flow:to_client,established; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 1;
-    }
-
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Test the file_data fails with flow:to_server.
- */
-static int DetectFiledataParseTest05(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert http any any -> any any "
-                               "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 1;
-    }
-
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-static int DetectFiledataIsdataatParseTest1(void)
-{
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-    de_ctx->flags |= DE_QUIET;
-
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert tcp any any -> any any ("
-            "file_data; content:\"one\"; "
-            "isdataat:!4,relative; sid:1;)");
-    FAIL_IF_NULL(s);
-
-    SigMatch *sm = s->init_data->smlists[g_file_data_buffer_id];
-    FAIL_IF_NULL(sm);
-    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
-    sm = sm->next;
-    FAIL_IF_NULL(sm);
-    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
-
-    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
-    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
-    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
-    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
-
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
-static int DetectFiledataIsdataatParseTest2(void)
-{
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-    de_ctx->flags |= DE_QUIET;
-
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert tcp any any -> any any ("
-            "file_data; "
-            "isdataat:!4,relative; sid:1;)");
-    FAIL_IF_NULL(s);
-
-    SigMatch *sm = s->init_data->smlists_tail[g_file_data_buffer_id];
-    FAIL_IF_NULL(sm);
-    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
-
-    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
-    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
-    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
-    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
-
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
+#include "tests/detect-file-data.c"
 #endif
-
-void DetectFiledataRegisterTests(void)
-{
-#ifdef UNITTESTS
-    UtRegisterTest("DetectFiledataParseTest01", DetectFiledataParseTest01);
-    UtRegisterTest("DetectFiledataParseTest02", DetectFiledataParseTest02);
-    UtRegisterTest("DetectFiledataParseTest03", DetectFiledataParseTest03);
-    UtRegisterTest("DetectFiledataParseTest04", DetectFiledataParseTest04);
-    UtRegisterTest("DetectFiledataParseTest05", DetectFiledataParseTest05);
-
-    UtRegisterTest("DetectFiledataIsdataatParseTest1",
-            DetectFiledataIsdataatParseTest1);
-    UtRegisterTest("DetectFiledataIsdataatParseTest2",
-            DetectFiledataIsdataatParseTest2);
-#endif
-}

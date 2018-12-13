@@ -49,9 +49,6 @@
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
 
-#include "detect-engine-filedata.h"
-
-
 #include "detect-engine-payload.h"
 #include "detect-engine-event.h"
 #include "detect-engine-hsbd.h"

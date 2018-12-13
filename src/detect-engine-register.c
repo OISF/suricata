@@ -55,7 +55,6 @@
 #include "detect-tls-ja3-string.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
-#include "detect-engine-filedata.h"
 
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"
