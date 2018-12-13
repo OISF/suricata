@@ -1250,6 +1250,8 @@ int DetectEngineInspectBufferGeneric(
     const int list_id = engine->sm_list;
     SCLogDebug("running inspect on %d", list_id);
 
+    const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+
     SCLogDebug("list %d mpm? %s transforms %p",
             engine->sm_list, engine->mpm ? "true" : "false", engine->v2.transforms);
 
@@ -1261,16 +1263,17 @@ int DetectEngineInspectBufferGeneric(
 
     const InspectionBuffer *buffer = engine->v2.GetData(det_ctx, transforms,
             f, flags, txv, list_id);
-    if (buffer == NULL) {
-        if (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-        else
-            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    if (unlikely(buffer == NULL)) {
+        return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH :
+                     DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
 
     const uint32_t data_len = buffer->inspect_len;
     const uint8_t *data = buffer->inspect;
     const uint64_t offset = buffer->inspect_offset;
+
+    uint8_t ci_flags = eof ? DETECT_CI_FLAGS_END : 0;
+    ci_flags |= (offset == 0 ? DETECT_CI_FLAGS_START : 0);
 
     det_ctx->discontinue_matching = 0;
     det_ctx->buffer_offset = 0;
@@ -1281,15 +1284,13 @@ int DetectEngineInspectBufferGeneric(
     int r = DetectEngineContentInspection(de_ctx, det_ctx,
                                           s, engine->smd,
                                           f,
-                                          (uint8_t *)data, data_len, offset, DETECT_CI_FLAGS_SINGLE,
+                                          (uint8_t *)data, data_len, offset, ci_flags,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
-        if (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-        else
-            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH :
+                     DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
 }
 
