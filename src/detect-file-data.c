@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -61,11 +61,9 @@ static int g_file_data_buffer_id = 0;
 void DetectFiledataRegister(void)
 {
     sigmatch_table[DETECT_FILE_DATA].name = "file_data";
-    sigmatch_table[DETECT_FILE_DATA].desc = "make content keywords match on HTTP response body";
+    sigmatch_table[DETECT_FILE_DATA].desc = "make content keywords match on file data";
     sigmatch_table[DETECT_FILE_DATA].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#file-data";
-    sigmatch_table[DETECT_FILE_DATA].Match = NULL;
     sigmatch_table[DETECT_FILE_DATA].Setup = DetectFiledataSetup;
-    sigmatch_table[DETECT_FILE_DATA].Free  = NULL;
     sigmatch_table[DETECT_FILE_DATA].RegisterTests = DetectFiledataRegisterTests;
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
@@ -103,7 +101,7 @@ void DetectFiledataRegister(void)
 #endif
 
     DetectBufferTypeSetDescriptionByName("file_data",
-            "http response body or smtp attachments data");
+            "http response body, smb files or smtp attachments data");
 
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 }
