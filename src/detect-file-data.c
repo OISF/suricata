@@ -130,7 +130,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 static void DetectFiledataSetupCallback(Signature *s)
 {
     if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_UNKNOWN) {
-        AppLayerHtpEnableRequestBodyCallback();
+        AppLayerHtpEnableResponseBodyCallback();
     }
     if (s->alproto == ALPROTO_HTTP) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
