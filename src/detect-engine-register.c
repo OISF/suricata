@@ -153,7 +153,6 @@
 #include "detect-http-stat-msg.h"
 #include "detect-http-request-line.h"
 #include "detect-http-response-line.h"
-#include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
 #include "detect-byte-extract.h"
 #include "detect-file-data.h"

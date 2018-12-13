@@ -32,7 +32,6 @@
 
 #include "detect-filestore.h"
 
-#include "detect-engine-hcbd.h"
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-file.h"
 
