@@ -1042,8 +1042,6 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
         if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL) {
             StreamReassembleRawUpdateProgress(pflow->protoctx, p,
                     det_ctx->raw_stream_progress);
-
-            DetectEngineCleanHCBDBuffers(det_ctx);
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);

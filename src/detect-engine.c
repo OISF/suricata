@@ -2544,12 +2544,6 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     if (det_ctx->bj_values != NULL)
         SCFree(det_ctx->bj_values);
 
-    /* HSCB */
-    if (det_ctx->hcbd != NULL) {
-        SCLogDebug("det_ctx hcbd %u", det_ctx->hcbd_buffers_size);
-        SCFree(det_ctx->hcbd);
-    }
-
     /* Decoded base64 data. */
     if (det_ctx->base64_decoded != NULL) {
         SCFree(det_ctx->base64_decoded);
