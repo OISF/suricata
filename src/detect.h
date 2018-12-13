@@ -995,11 +995,6 @@ typedef struct DetectEngineThreadCtx_ {
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
 
-    HttpReassembledBody *hcbd;
-    uint64_t hcbd_start_tx_id;
-    uint16_t hcbd_buffers_size;
-    uint16_t hcbd_buffers_list_len;
-
     /** id for alert counter */
     uint16_t counter_alerts;
 #ifdef PROFILING
