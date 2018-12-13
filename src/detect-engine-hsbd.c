@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -67,7 +67,7 @@
 
 #include "util-validate.h"
 
-static HtpBody *GetResponseBody(htp_tx_t *tx)
+static inline HtpBody *GetResponseBody(htp_tx_t *tx)
 {
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (htud == NULL) {
