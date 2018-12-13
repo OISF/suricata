@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -39,6 +39,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
+#include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
@@ -64,6 +65,12 @@ static void DetectHttpClientBodySetupCallback(const DetectEngineCtx *de_ctx,
                                               Signature *s);
 static int g_http_client_body_buffer_id = 0;
 
+static InspectionBuffer *HttpClientBodyGetDataCallback(
+        DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *f, const uint8_t flow_flags,
+        void *txv, const int list_id);
+
 /**
  * \brief Registers the keyword handlers for the "http_client_body" keyword.
  */
@@ -76,12 +83,14 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].RegisterTests = DetectHttpClientBodyRegisterTests;
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_NOOPT ;
 
-    DetectAppLayerMpmRegister("http_client_body", SIG_FLAG_TOSERVER, 2,
-            PrefilterTxHttpRequestBodyRegister);
+    DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
+            DetectEngineInspectBufferGeneric,
+            HttpClientBodyGetDataCallback);
 
-    DetectAppLayerInspectEngineRegister("http_client_body",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
-            DetectEngineInspectHttpClientBody);
+    DetectAppLayerMpmRegister2("http_client_body", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, HttpClientBodyGetDataCallback,
+            ALPROTO_HTTP, HTP_REQUEST_BODY);
 
     DetectBufferTypeSetDescriptionByName("http_client_body",
             "http request body");
@@ -121,6 +130,109 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                                                   DETECT_AL_HTTP_CLIENT_BODY,
                                                   g_http_client_body_buffer_id,
                                                   ALPROTO_HTTP);
+}
+
+static inline HtpBody *GetRequestBody(htp_tx_t *tx)
+{
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (htud == NULL) {
+        SCLogDebug("no htud");
+        return NULL;
+    }
+
+    return &htud->request_body;
+}
+
+static InspectionBuffer *HttpClientBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *f, const uint8_t flow_flags,
+        void *txv, const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect != NULL)
+        return buffer;
+
+    htp_tx_t *tx = txv;
+    HtpState *htp_state = f->alstate;
+    const uint8_t flags = flow_flags;
+
+    HtpBody *body = GetRequestBody(tx);
+    if (body == NULL) {
+        return NULL;
+    }
+
+    /* no new data */
+    if (body->body_inspected == body->content_len_so_far) {
+        SCLogDebug("no new data");
+        return NULL;
+    }
+
+    HtpBodyChunk *cur = body->first;
+    if (cur == NULL) {
+        SCLogDebug("No http chunks to inspect for this transacation");
+        return NULL;
+    }
+
+    SCLogDebug("request.body_limit %u request_body.content_len_so_far %"PRIu64
+               ", request.inspect_min_size %"PRIu32", EOF %s, progress > body? %s",
+              htp_state->cfg->request.body_limit, body->content_len_so_far,
+              htp_state->cfg->request.inspect_min_size,
+              flags & STREAM_EOF ? "true" : "false",
+               (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY) ? "true" : "false");
+
+    if (!htp_state->cfg->http_body_inline) {
+        /* inspect the body if the transfer is complete or we have hit
+        * our body size limit */
+        if ((htp_state->cfg->request.body_limit == 0 ||
+             body->content_len_so_far < htp_state->cfg->request.body_limit) &&
+            body->content_len_so_far < htp_state->cfg->request.inspect_min_size &&
+            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY) &&
+            !(flags & STREAM_EOF)) {
+            SCLogDebug("we still haven't seen the entire request body.  "
+                       "Let's defer body inspection till we see the "
+                       "entire body.");
+            return NULL;
+        }
+    }
+
+    /* get the inspect buffer
+     *
+     * make sure that we have at least the configured inspect_win size.
+     * If we have more, take at least 1/4 of the inspect win size before
+     * the new data.
+     */
+    uint64_t offset = 0;
+    if (body->body_inspected > htp_state->cfg->request.inspect_min_size) {
+        BUG_ON(body->content_len_so_far < body->body_inspected);
+        uint64_t inspect_win = body->content_len_so_far - body->body_inspected;
+        SCLogDebug("inspect_win %"PRIu64, inspect_win);
+        if (inspect_win < htp_state->cfg->request.inspect_window) {
+            uint64_t inspect_short = htp_state->cfg->request.inspect_window - inspect_win;
+            if (body->body_inspected < inspect_short)
+                offset = 0;
+            else
+                offset = body->body_inspected - inspect_short;
+        } else {
+            offset = body->body_inspected - (htp_state->cfg->request.inspect_window / 4);
+        }
+    }
+
+    const uint8_t *data;
+    uint32_t data_len;
+
+    StreamingBufferGetDataAtOffset(body->sb,
+            &data, &data_len, offset);
+    InspectionBufferSetup(buffer, data, data_len);
+    buffer->inspect_offset = offset;
+
+    /* move inspected tracker to end of the data. HtpBodyPrune will consider
+     * the window sizes when freeing data */
+    body->body_inspected = body->content_len_so_far;
+    SCLogDebug("body->body_inspected now: %"PRIu64, body->body_inspected);
+
+    SCReturnPtr(buffer, "InspectionBuffer");
 }
 
 /************************************Unittests*********************************/
