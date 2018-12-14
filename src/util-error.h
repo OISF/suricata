@@ -228,7 +228,7 @@ typedef enum {
     SC_ERR_MAGIC_OPEN,
     SC_ERR_MAGIC_LOAD,
     SC_ERR_SIZE_PARSE,
-    SC_ERR_RAWBYTES_FILE_DATA,
+    SC_ERR_RAWBYTES_BUFFER,
     SC_ERR_SOCKET,
     SC_ERR_PCAP_TRANSLATE,          /* failed to translate ip to dev */
     SC_WARN_OUTDATED_LIBHTP,

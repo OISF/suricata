@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,6 +31,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-rawbytes.h"
+#include "detect-engine.h"
 
 #include "detect-content.h"
 #include "detect-pcre.h"
@@ -42,11 +43,7 @@ static int DetectRawbytesSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectRawbytesRegister (void)
 {
     sigmatch_table[DETECT_RAWBYTES].name = "rawbytes";
-    sigmatch_table[DETECT_RAWBYTES].Match = NULL;
     sigmatch_table[DETECT_RAWBYTES].Setup = DetectRawbytesSetup;
-    sigmatch_table[DETECT_RAWBYTES].Free  = NULL;
-    sigmatch_table[DETECT_RAWBYTES].RegisterTests = NULL;
-
     sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_NOOPT;
 }
 
@@ -56,11 +53,13 @@ static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
     if (nullstr != NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "rawbytes has no value");
-        return -1;
+        SCReturnInt(-1);
     }
 
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        SCLogError(SC_ERR_RAWBYTES_FILE_DATA, "\"rawbytes\" cannot be combined with \"file_data\"");
+        SCLogError(SC_ERR_RAWBYTES_BUFFER, "\"rawbytes\" cannot be combined "
+                "with the \"%s\" sticky buffer",
+                DetectBufferTypeGetNameById(de_ctx, s->init_data->list));
         SCReturnInt(-1);
     }
 
