@@ -101,6 +101,17 @@ default_matcher:
             /* Use Boyer-Moore as fallback. */
             return SPM_BM;
         } else {
+            /* Hyperscan Information - AVX512 implies the use of AVX2 */
+            SCLogNotice("Hyperscan Version: %s", hs_version());
+            hs_platform_info_t plat;
+            hs_populate_platform(&plat);
+            if (HS_CPU_FEATURES_AVX512 & plat.cpu_features) {
+                SCLogNotice("AVX512 Instructions are available for SPM");
+            } else {
+                if (HS_CPU_FEATURES_AVX2 & plat.cpu_features) {
+                    SCLogNotice("AVX2 Instructions are available for SPM");
+                }
+            }
             return SPM_HS;
         }
     #else

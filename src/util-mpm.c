@@ -299,6 +299,17 @@ void MpmTableSetup(void)
             /* Fall back to best Aho-Corasick variant. */
             mpm_default_matcher = DEFAULT_MPM_AC;
         } else {
+            /* Hyperscan Information - AVX512 implies the use of AVX2 */
+            SCLogNotice("Hyperscan Version: %s", hs_version());
+            hs_platform_info_t plat;
+            hs_populate_platform(&plat);
+            if (HS_CPU_FEATURES_AVX512 & plat.cpu_features) {
+                SCLogNotice("AVX512 Instructions are available for MPM");
+            } else {
+                if (HS_CPU_FEATURES_AVX2 & plat.cpu_features) {
+                    SCLogNotice("AVX2 Instructions are available for MPM");
+                }
+            }
             MpmHSRegister();
         }
     #else
