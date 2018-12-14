@@ -69,6 +69,41 @@
 
 #ifdef UNITTESTS
 
+/**
+ * \test Test parser accepting valid rules and rejecting invalid rules
+ */
+static int DetectHttpClientBodyParserTest01(void)
+{
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; http_client_body; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; nocase; http_client_body; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; endswith; http_client_body; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; startswith; http_client_body; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; startswith; endswith; http_client_body; sid:1;)", true));
+
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; rawbytes; http_client_body; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_server; http_client_body; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_server; content:\"abc\"; http_client_body; sid:1;)", false));
+    PASS;
+}
+
+/**
+ * \test Test parser accepting valid rules and rejecting invalid rules
+ */
+static int DetectHttpClientBodyParserTest02(void)
+{
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; nocase; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; endswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; startswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; startswith; endswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; bsize:10; sid:1;)", true));
+
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; rawbytes; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_server; http.request_body; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_server; http.request_body; content:\"abc\"; sid:1;)", false));
+    PASS;
+}
+
 struct TestSteps {
     const uint8_t *input;
     size_t input_size;      /**< if 0 strlen will be used */
@@ -2996,6 +3031,8 @@ static int DetectHttpClientBodyIsdataatParseTest(void)
 
 void DetectHttpClientBodyRegisterTests(void)
 {
+    UtRegisterTest("DetectHttpClientBodyParserTest01", DetectHttpClientBodyParserTest01);
+    UtRegisterTest("DetectHttpClientBodyParserTest02", DetectHttpClientBodyParserTest02);
     UtRegisterTest("DetectHttpClientBodyTest01", DetectHttpClientBodyTest01);
     UtRegisterTest("DetectHttpClientBodyTest02", DetectHttpClientBodyTest02);
     UtRegisterTest("DetectHttpClientBodyTest03", DetectHttpClientBodyTest03);

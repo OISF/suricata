@@ -59,6 +59,7 @@
 #include "stream-tcp.h"
 
 static int DetectHttpClientBodySetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 #ifdef UNITTESTS
 static void DetectHttpClientBodyRegisterTests(void);
 #endif
@@ -77,6 +78,7 @@ static InspectionBuffer *HttpClientBodyGetDataCallback(
  */
 void DetectHttpClientBodyRegister(void)
 {
+    /* http_client_body content modifier */
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].name = "http_client_body";
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].desc = "content modifier to match only on HTTP request-body";
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-client-body";
@@ -85,6 +87,16 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].RegisterTests = DetectHttpClientBodyRegisterTests;
 #endif
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_NOOPT ;
+    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].alternative = DETECT_HTTP_REQUEST_BODY;
+
+    /* http.request_body sticky buffer */
+    sigmatch_table[DETECT_HTTP_REQUEST_BODY].name = "http.request_body";
+    sigmatch_table[DETECT_HTTP_REQUEST_BODY].desc = "sticky buffer to match the HTTP request body buffer";
+    sigmatch_table[DETECT_HTTP_REQUEST_BODY].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-client-body";
+    sigmatch_table[DETECT_HTTP_REQUEST_BODY].Setup = DetectHttpClientBodySetupSticky;
+    sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
@@ -133,6 +145,24 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                                                   DETECT_AL_HTTP_CLIENT_BODY,
                                                   g_http_client_body_buffer_id,
                                                   ALPROTO_HTTP);
+}
+
+/**
+ * \brief this function setup the http.request_body keyword used in the rule
+ *
+ * \param de_ctx   Pointer to the Detection Engine Context
+ * \param s        Pointer to the Signature to which the current keyword belongs
+ * \param str      Should hold an empty string always
+ *
+ * \retval 0       On success
+ */
+static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectBufferSetActiveList(s, g_http_client_body_buffer_id) < 0)
+        return -1;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
+    return 0;
 }
 
 static inline HtpBody *GetRequestBody(htp_tx_t *tx)
