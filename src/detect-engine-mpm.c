@@ -51,7 +51,6 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-dns.h"
-#include "detect-engine-tls.h"
 
 #include "stream.h"
 
