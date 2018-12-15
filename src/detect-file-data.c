@@ -35,7 +35,6 @@
 #include "detect-engine-state.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-engine-hsbd.h"
 #include "detect-file-data.h"
 
 #include "app-layer-parser.h"
