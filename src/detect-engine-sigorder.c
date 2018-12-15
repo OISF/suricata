@@ -1599,7 +1599,7 @@ static int SCSigOrderingTest08(void)
 #ifdef HAVE_LIBNET11
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
-    extern uint8_t action_order_sigs[4];
+    extern uint8_t action_order_sigs[NUMBER_OF_ACTIONS];
 
     /* Let's change the order. Default is pass, drop, reject, alert (pass has highest prio) */
     action_order_sigs[0] = ACTION_REJECT;
@@ -1726,7 +1726,7 @@ static int SCSigOrderingTest09(void)
 {
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
-    extern uint8_t action_order_sigs[4];
+    extern uint8_t action_order_sigs[NUMBER_OF_ACTIONS];
 
     /* Let's change the order. Default is pass, drop, reject, alert (pass has highest prio) */
     action_order_sigs[0] = ACTION_DROP;
