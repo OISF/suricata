@@ -37,7 +37,7 @@
 #include "util-debug.h"
 
 /* Default order: */
-uint8_t action_order_sigs[4] = {ACTION_PASS, ACTION_DROP, ACTION_REJECT, ACTION_ALERT};
+uint8_t action_order_sigs[NUMBER_OF_ACTIONS] = {ACTION_PASS, ACTION_DROP, ACTION_REJECT, ACTION_ALERT};
 /* This order can be changed from config */
 
 /**
@@ -59,7 +59,7 @@ uint8_t ActionOrderVal(uint8_t action)
         action = ACTION_REJECT;
     }
     uint8_t i = 0;
-    for (; i < 4; i++) {
+    for (; i < NUMBER_OF_ACTIONS; i++) {
         if (action_order_sigs[i] == action)
             return i;
     }
@@ -99,7 +99,7 @@ int ActionInitConfig()
 {
     uint8_t actions_used = 0;
     uint8_t action_flag = 0;
-    uint8_t actions_config[4] = {0, 0, 0, 0};
+    uint8_t actions_config[NUMBER_OF_ACTIONS] = {0, 0, 0, 0};
     int order = 0;
 
     ConfNode *action_order;
@@ -131,7 +131,7 @@ int ActionInitConfig()
                 goto error;
             }
 
-            if (order >= 4) {
+            if (order >= NUMBER_OF_ACTIONS) {
                 SCLogError(SC_ERR_ACTION_ORDER, "action-order, you have already specified all the "
                        "possible actions plus \"%s\". Please, use \"pass\","
                        "\"drop\",\"alert\",\"reject\". You have to specify"
@@ -143,7 +143,7 @@ int ActionInitConfig()
             actions_config[order++] = action_flag;
         }
     }
-    if (order < 4) {
+    if (order < NUMBER_OF_ACTIONS) {
         SCLogError(SC_ERR_ACTION_ORDER, "action-order, the config didn't specify all of the "
                "actions. Please, use \"pass\",\"drop\",\"alert\","
                "\"reject\". You have to specify all of them, without"
@@ -152,7 +152,7 @@ int ActionInitConfig()
     }
 
     /* Now, it's a valid config. Override the default preset */
-    for (order = 0; order < 4; order++) {
+    for (order = 0; order < NUMBER_OF_ACTIONS; order++) {
         action_order_sigs[order] = actions_config[order];
     }
 
