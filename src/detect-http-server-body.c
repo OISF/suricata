@@ -60,6 +60,7 @@
 #include "stream-tcp.h"
 
 static int DetectHttpServerBodySetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectHttpServerBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 #ifdef UNITTESTS
 static void DetectHttpServerBodyRegisterTests(void);
 #endif
@@ -70,14 +71,25 @@ static int g_file_data_buffer_id = 0;
  */
 void DetectHttpServerBodyRegister(void)
 {
+    /* http_server_body content modifier */
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].name = "http_server_body";
-    sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].desc = "content modifier to match only on the HTTP response-body";
+    sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].desc = "content modifier to match on the HTTP response-body";
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-server-body";
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].Setup = DetectHttpServerBodySetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].RegisterTests = DetectHttpServerBodyRegisterTests;
 #endif
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].alternative = DETECT_HTTP_RESPONSE_BODY;
+
+    /* http.request_body sticky buffer */
+    sigmatch_table[DETECT_HTTP_RESPONSE_BODY].name = "http.response_body";
+    sigmatch_table[DETECT_HTTP_RESPONSE_BODY].desc = "sticky buffer to match the HTTP response body buffer";
+    sigmatch_table[DETECT_HTTP_RESPONSE_BODY].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-server-body";
+    sigmatch_table[DETECT_HTTP_RESPONSE_BODY].Setup = DetectHttpServerBodySetupSticky;
+    sigmatch_table[DETECT_HTTP_RESPONSE_BODY].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_RESPONSE_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     g_file_data_buffer_id = DetectBufferTypeRegister("file_data");
 }
@@ -101,6 +113,24 @@ int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                                                   DETECT_AL_HTTP_SERVER_BODY,
                                                   g_file_data_buffer_id,
                                                   ALPROTO_HTTP);
+}
+
+/**
+ * \brief this function setup the http.response_body keyword used in the rule
+ *
+ * \param de_ctx   Pointer to the Detection Engine Context
+ * \param s        Pointer to the Signature to which the current keyword belongs
+ * \param str      Should hold an empty string always
+ *
+ * \retval 0       On success
+ */
+static int DetectHttpServerBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectBufferSetActiveList(s, g_file_data_buffer_id) < 0)
+        return -1;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
+    return 0;
 }
 
 /************************************Unittests*********************************/
