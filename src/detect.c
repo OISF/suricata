@@ -51,7 +51,6 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-event.h"
-#include "detect-engine-hsbd.h"
 
 #include "detect-filestore.h"
 #include "detect-flowvar.h"
