@@ -36,7 +36,6 @@
 #include "detect-engine-sigorder.h"
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
-#include "detect-engine-hsbd.h"
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-modbus.h"
@@ -188,7 +187,6 @@ static void RegisterUnittests(void)
 #endif
     DeStateRegisterTests();
     MemcmpRegisterTests();
-    DetectEngineHttpServerBodyRegisterTests();
     DetectEngineInspectModbusRegisterTests();
     DetectEngineRegisterTests();
     SCLogRegisterTests();
