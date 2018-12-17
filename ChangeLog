@@ -1,3 +1,23 @@
+4.1.1 -- 2018-12-17
+
+Feature #2637: af-packet: improve error output for BPF loading failure
+Feature #2671: Add Log level to suricata.log when using JSON type
+Bug #2502: suricata.c ConfigGetCaptureValue - PCAP/AFP fallthrough to strip_trailing_plus
+Bug #2528: krb parser not always parsing tgs responses
+Bug #2633: Improve errors handling in AF_PACKET
+Bug #2653: llc detection failure in configure.ac
+Bug #2677: coverity: ja3 potential memory leak
+Bug #2679: build with profiling enabled on generates compile warnings
+Bug #2704: DNSv1 for Rust enabled builds.
+Bug #2705: configure: Test for PyYAML and disable suricata-update if not installed.
+Bug #2716: Stats interval are 1 second too early each tick
+Bug #2717: nfs related panic in 4.1
+Bug #2719: Failed Assertion, Suricata Abort - util-mpm-hs.c line 163 (4.1.x)
+Bug #2723: dns v2 json output should always set top-level rrtype in responses
+Bug #2730: rust/dns/lua - The Lua calls for DNS values when using Rust don't behave the same as the C implementation.
+Bug #2731: multiple instances of transaction loggers are broken
+Bug #2734: unix runmode deadlock when using too many threads
+
 4.1.0 -- 2018-11-06
 
 Bug #2467: 4.1beta1 - non rust builds with SMB enabled
