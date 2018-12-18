@@ -1203,13 +1203,13 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     if (de_ctx_custom != NULL) {
         TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
             if (de_ctx_profile == NULL) {
-                if (strcmp(opt->val, "profile") == 0) {
+                if (opt->val && strcmp(opt->val, "profile") == 0) {
                     de_ctx_profile = opt->head.tqh_first->val;
                 }
             }
 
             if (sgh_mpm_context == NULL) {
-                if (strcmp(opt->val, "sgh-mpm-context") == 0) {
+                if (opt->val && strcmp(opt->val, "sgh-mpm-context") == 0) {
                     sgh_mpm_context = opt->head.tqh_first->val;
                 }
             }
@@ -1305,7 +1305,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
             if (de_ctx_custom != NULL) {
                 TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
-                    if (strcmp(opt->val, "custom-values") == 0) {
+                    if (opt->val && strcmp(opt->val, "custom-values") == 0) {
                         if (max_uniq_toclient_groups_str == NULL) {
                             max_uniq_toclient_groups_str = (char *)ConfNodeLookupChildValue
                                 (opt->head.tqh_first, "toclient-sp-groups");
@@ -1384,7 +1384,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         if (de_ctx_custom != NULL) {
             opt = NULL;
             TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
-                if (strcmp(opt->val, "inspection-recursion-limit") != 0)
+                if (opt->val && strcmp(opt->val, "inspection-recursion-limit") != 0)
                     continue;
 
                 insp_recursion_limit_node = ConfNodeLookupChild(opt, opt->val);
