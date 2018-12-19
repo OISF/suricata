@@ -76,6 +76,7 @@ int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case DECODE_TUNNEL_IPV4:
             return DecodeIPV4(tv, dtv, p, pkt, len, pq);
         case DECODE_TUNNEL_IPV6:
+        case DECODE_TUNNEL_IPV6_TEREDO:
             return DecodeIPV6(tv, dtv, p, pkt, len, pq);
         case DECODE_TUNNEL_VLAN:
             return DecodeVLAN(tv, dtv, p, pkt, len, pq);
@@ -84,7 +85,7 @@ int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case DECODE_TUNNEL_ERSPAN:
             return DecodeERSPAN(tv, dtv, p, pkt, len, pq);
         default:
-            SCLogInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
+            SCLogDebug("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
             break;
     }
     return TM_ECODE_OK;
@@ -295,8 +296,12 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
                        GET_PKT_LEN(p), pq, proto);
 
-    if (unlikely(ret != TM_ECODE_OK)) {
-        /* Not a tunnel packet, just a pseudo packet */
+    if (unlikely(ret != TM_ECODE_OK) ||
+            (proto == DECODE_TUNNEL_IPV6_TEREDO && (p->flags & PKT_IS_INVALID)))
+    {
+        /* Not a (valid) tunnel packet */
+        SCLogDebug("tunnel packet is invalid");
+
         p->root = NULL;
         UNSET_TUNNEL_PKT(p);
         TmqhOutputPacketpool(tv, p);

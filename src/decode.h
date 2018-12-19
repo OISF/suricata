@@ -910,6 +910,7 @@ enum DecodeTunnelProto {
     DECODE_TUNNEL_VLAN,
     DECODE_TUNNEL_IPV4,
     DECODE_TUNNEL_IPV6,
+    DECODE_TUNNEL_IPV6_TEREDO,  /**< separate protocol for stricter error handling */
     DECODE_TUNNEL_PPP,
 };
 
