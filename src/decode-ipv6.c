@@ -150,9 +150,9 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     SCEnter();
 
     uint8_t *orig_pkt = pkt;
-    uint8_t nh = 0; /* careful, 0 is actually a real type */
+    uint8_t nh = IPV6_GET_NH(p); /* careful, 0 is actually a real type */
     uint16_t hdrextlen = 0;
-    uint16_t plen;
+    uint16_t plen = len;
     char dstopts = 0;
     char exthdr_fh_done = 0;
     int hh = 0;
@@ -160,18 +160,18 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     int eh = 0;
     int ah = 0;
 
-    nh = IPV6_GET_NH(p);
-    plen = len;
-
     while(1)
     {
-        /* No upper layer, but we do have data. Suspicious. */
-        if (nh == IPPROTO_NONE && plen > 0) {
-            ENGINE_SET_EVENT(p, IPV6_DATA_AFTER_NONE_HEADER);
+        if (nh == IPPROTO_NONE) {
+            if (plen > 0) {
+                /* No upper layer, but we do have data. Suspicious. */
+                ENGINE_SET_EVENT(p, IPV6_DATA_AFTER_NONE_HEADER);
+            }
             SCReturn;
         }
 
         if (plen < 2) { /* minimal needed in a hdr */
+            ENGINE_SET_INVALID_EVENT(p, IPV6_TRUNC_EXTHDR);
             SCReturn;
         }
 
