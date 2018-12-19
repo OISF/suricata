@@ -1361,6 +1361,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
             (direction & STREAM_TOSERVER) ? "toserver" : "toclient");
 
     AppProto alproto = ALPROTO_UNKNOWN;
+    AppProto pm_alproto = ALPROTO_UNKNOWN;
 
     if (!FLOW_IS_PM_DONE(f, direction)) {
         AppProto pm_results[ALPROTO_MAX];
@@ -1371,7 +1372,15 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
                                                    pm_results);
         if (pm_matches > 0) {
             alproto = pm_results[0];
-            goto end;
+
+            /* HACK: if detected protocol is dcerpc/udp, we run PP as well
+             * to avoid misdetecting DNS as DCERPC. */
+            if (!(ipproto == IPPROTO_UDP && alproto == ALPROTO_DCERPC))
+                goto end;
+
+            pm_alproto = alproto;
+
+            /* fall through */
         }
     }
 
@@ -1388,6 +1397,9 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
     }
 
  end:
+    if (alproto == ALPROTO_UNKNOWN)
+        alproto = pm_alproto;
+
     SCReturnUInt(alproto);
 }
 
