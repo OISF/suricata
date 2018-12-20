@@ -701,6 +701,12 @@ impl SMBCommonHdr {
             msg_id : msg_id,
         }
     }
+
+    // don't include tree id
+    pub fn compare(&self, hdr: &SMBCommonHdr) -> bool {
+        (self.rec_type == hdr.rec_type && self.ssn_id == hdr.ssn_id &&
+         self.msg_id == hdr.msg_id)
+    }
 }
 
 #[derive(Hash, Eq, PartialEq, Debug)]
@@ -973,10 +979,10 @@ impl SMBState {
             let found = if tx.vercmd.get_version() == smb_ver {
                 if smb_ver == 1 {
                     let (_, cmd) = tx.vercmd.get_smb1_cmd();
-                    cmd as u16 == smb_cmd && tx.hdr == *key
+                    cmd as u16 == smb_cmd && tx.hdr.compare(key)
                 } else if smb_ver == 2 {
                     let (_, cmd) = tx.vercmd.get_smb2_cmd();
-                    cmd == smb_cmd && tx.hdr == *key
+                    cmd == smb_cmd && tx.hdr.compare(key)
                 } else {
                     false
                 }
@@ -1054,7 +1060,7 @@ impl SMBState {
         -> Option<&mut SMBTransaction>
     {
         for tx in &mut self.transactions {
-            let hit = tx.hdr == hdr && match tx.type_data {
+            let hit = tx.hdr.compare(&hdr) && match tx.type_data {
                 Some(SMBTransactionTypeData::TREECONNECT(_)) => { true },
                 _ => { false },
             };
@@ -1090,7 +1096,7 @@ impl SMBState {
         for tx in &mut self.transactions {
             let found = match tx.type_data {
                 Some(SMBTransactionTypeData::CREATE(ref _d)) => {
-                    *hdr == tx.hdr
+                    tx.hdr.compare(&hdr)
                 },
                 _ => { false },
             };

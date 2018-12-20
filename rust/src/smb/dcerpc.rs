@@ -232,7 +232,7 @@ impl SMBState {
 
         SCLogDebug!("looking for {:?}", dce_hdr);
         for tx in &mut self.transactions {
-            let found = dce_hdr == tx.hdr.to_dcerpc(vercmd) &&
+            let found = dce_hdr.compare(&tx.hdr.to_dcerpc(vercmd)) &&
                 match tx.type_data {
                 Some(SMBTransactionTypeData::DCERPC(ref x)) => {
                     x.call_id == call_id
