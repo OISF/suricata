@@ -592,6 +592,7 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void *
         return TM_ECODE_FAILED;
 
     ftd->instance = SC_ATOMIC_ADD(flowmgr_cnt, 1);
+    SCSetModule("flow-manager");
     SCLogDebug("flow manager instance %u", ftd->instance);
 
     /* set the min and max value used for hash row walking

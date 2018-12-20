@@ -486,4 +486,6 @@ void AlertDebugLogRegister(void)
     OutputRegisterPacketModule(LOGGER_ALERT_DEBUG, MODULE_NAME, "alert-debug",
         AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition,
         AlertDebugLogThreadInit, AlertDebugLogThreadDeinit, NULL);
+
+    SCSetModule("alert-debuglog");
 }

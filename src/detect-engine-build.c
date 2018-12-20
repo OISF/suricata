@@ -1906,6 +1906,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         s = s->next;
     }
 
+    SCSetModule("detect-engine");
     if (DetectSetFastPatternAndItsId(de_ctx) < 0)
         return -1;
 
