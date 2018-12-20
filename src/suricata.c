@@ -2914,6 +2914,9 @@ int main(int argc, char **argv)
 
     (void)SCSetThreadName("Suricata-Main");
 
+    /* Set subsystem name - TLS for main thread */
+    SCSetSubsystem("Suricata-main");
+
     /* Ignore SIGUSR2 as early as possble. We redeclare interest
      * once we're done launching threads. The goal is to either die
      * completely or handle any and all SIGUSR2s correctly.

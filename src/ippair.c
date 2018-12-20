@@ -163,6 +163,7 @@ void IPPairClearMemory(IPPair *h)
  *  \warning Not thread safe */
 void IPPairInitConfig(char quiet)
 {
+    SCSetModule("ippair");
     SCLogDebug("initializing ippair engine...");
     if (IPPairStorageSize() > 0)
         g_ippair_size = sizeof(IPPair) + IPPairStorageSize();

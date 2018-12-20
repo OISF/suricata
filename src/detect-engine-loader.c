@@ -474,6 +474,7 @@ void DetectLoadersInit(void)
     }
     num_loaders = (int32_t)setting;
 
+    SCSetModule("detect-loader");
     SCLogInfo("using %d detect loader threads", num_loaders);
 
     BUG_ON(loaders != NULL);

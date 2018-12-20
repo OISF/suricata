@@ -283,6 +283,8 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
+    SCSetSubsystem(tv->name);
+
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -416,6 +418,7 @@ static void *TmThreadsSlotPktAcqLoopAFL(void *td)
     TmEcode r = TM_ECODE_OK;
     TmSlot *slot = NULL;
 
+    SCSetSubsystem(tv->name);
     PacketPoolInit();
 
     /* check if we are setup properly */
@@ -534,6 +537,8 @@ static void *TmThreadsSlotVar(void *td)
     if (SCSetThreadName(tv->name) < 0) {
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
+
+    SCSetSubsystem(tv->name);
 
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
@@ -694,6 +699,7 @@ static void *TmThreadsManagement(void *td)
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
+    SCSetSubsystem(tv->name);
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
 
@@ -1852,6 +1858,7 @@ void TmThreadSetGroupName(ThreadVars *tv, const char *name)
         return;
     }
     tv->thread_group_name = thread_group_name;
+    SCSetSubsystem(tv->thread_group_name);
 }
 
 void TmThreadClearThreadsFamily(int family)

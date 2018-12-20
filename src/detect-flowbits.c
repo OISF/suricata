@@ -68,6 +68,8 @@ void DetectFlowbitsRegister (void)
     sigmatch_table[DETECT_FLOWBITS].flags |= SIGMATCH_IPONLY_COMPAT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+
+    SCSetModule("detect-flowbits");
 }
 
 

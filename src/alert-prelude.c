@@ -1036,6 +1036,8 @@ static TmEcode AlertPreludeThreadInit(ThreadVars *t, const void *initdata, void 
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    printf(">>>>>>>>>> [%s] %s <<<<<<<<<<<\n", __func__, t->name);
+    SCSetSubsystem("alert-prelude");
     *data = (void *)aun;
     SCReturnInt(TM_ECODE_OK);
 }

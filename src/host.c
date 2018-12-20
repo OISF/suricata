@@ -167,6 +167,7 @@ void HostClearMemory(Host *h)
  *  \warning Not thread safe */
 void HostInitConfig(char quiet)
 {
+    SCSetModule("host");
     SCLogDebug("initializing host engine...");
     if (HostStorageSize() > 0)
         g_host_size = sizeof(Host) + HostStorageSize();
