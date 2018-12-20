@@ -81,9 +81,9 @@ typedef enum {
 
 /* The default log_format, if it is not supplied by the user */
 #ifdef RELEASE
-#define SC_LOG_DEF_LOG_FORMAT "%t [%S] - <%d> - "
+#define SC_LOG_DEF_LOG_FORMAT "%t %S - <%d> - "
 #else
-#define SC_LOG_DEF_LOG_FORMAT "[%i] %t [%S] - (%f:%l) <%d> (%n) -- "
+#define SC_LOG_DEF_LOG_FORMAT "[%i] %t %S - (%f:%l) <%d> (%n) -- "
 #endif
 
 /* The maximum length of the log message */
