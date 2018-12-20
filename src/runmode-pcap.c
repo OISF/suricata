@@ -43,6 +43,7 @@ int RunModeIdsPcapWorkers(void);
 
 void RunModeIdsPcapRegister(void)
 {
+    SCSetModule("runmode-pcap");
     RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "single",
                               "Single threaded pcap live mode",
                               RunModeIdsPcapSingle);

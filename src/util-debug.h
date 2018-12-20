@@ -81,9 +81,9 @@ typedef enum {
 
 /* The default log_format, if it is not supplied by the user */
 #ifdef RELEASE
-#define SC_LOG_DEF_LOG_FORMAT "%t - <%d> - "
+#define SC_LOG_DEF_LOG_FORMAT "%t %S - <%d> - "
 #else
-#define SC_LOG_DEF_LOG_FORMAT "[%i] %t - (%f:%l) <%d> (%n) -- "
+#define SC_LOG_DEF_LOG_FORMAT "[%i] %t %S - (%f:%l) <%d> (%n) -- "
 #endif
 
 /* The maximum length of the log message */
@@ -198,9 +198,25 @@ typedef struct SCLogConfig_ {
 #define SC_LOG_FMT_FILE_NAME        'f' /* File name */
 #define SC_LOG_FMT_LINE             'l' /* Line number */
 #define SC_LOG_FMT_FUNCTION         'n' /* Function */
+#define SC_LOG_FMT_SUBSYSTEM        'S' /* Subystem name */
 
 /* The log format prefix for the format specifiers */
 #define SC_LOG_FMT_PREFIX           '%'
+
+static const char *_sc_module;
+
+/* The module name */
+#define SCSetModule(module_name)                                                \
+    do {                                                                        \
+        _sc_module = module_name;                                               \
+    } while(0)
+
+/* The subsystem name, usually the thread's name */
+#define SCSetSubsystem(subsystem_name)                                          \
+    do {                                                                        \
+        __thread extern const char *_sc_subsystem;                              \
+        _sc_subsystem = subsystem_name;                                         \
+    } while(0)
 
 extern SCLogLevel sc_log_global_log_level;
 
@@ -223,7 +239,7 @@ extern int sc_log_module_cleaned;
             if (_sc_log_ret == SC_LOG_MAX_LOG_MSG_LEN)                          \
                 _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN - 1] = '\0';                 \
                                                                                 \
-            SCLogMessage(x, file, line, func, SC_OK, _sc_log_msg);              \
+            SCLogMessage(x, file, line, func, _sc_module, SC_OK, _sc_log_msg);  \
         }                                                                       \
     } while(0)
 
@@ -242,7 +258,7 @@ extern int sc_log_module_cleaned;
             if (_sc_log_ret == SC_LOG_MAX_LOG_MSG_LEN)                          \
                 _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN - 1] = '\0';                 \
                                                                                 \
-            SCLogMessage(x, file, line, func, err, _sc_log_msg);                \
+            SCLogMessage(x, file, line, func, _sc_module, err, _sc_log_msg);     \
         }                                                                       \
     } while(0)
 
@@ -352,9 +368,9 @@ extern int sc_log_module_cleaned;
 
 #define SCReturnPtr(x, type)            return x
 
+
 /* Please use it only for debugging purposes */
 #else
-
 
 /**
  * \brief Macro used to log DEBUG messages. Comes under the debugging subsystem,
@@ -512,6 +528,7 @@ extern int sc_log_module_cleaned;
                                   return x;                                  \
                               } while(0)
 
+
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
  *        debugging sybsystem, and hence will be enabled only in the presence
@@ -535,6 +552,7 @@ extern int sc_log_module_cleaned;
                               } while(0)
 
 #endif /* DEBUG */
+
 
 #define FatalError(x, ...) do {                                             \
     SCLogError(x, __VA_ARGS__);                                             \
@@ -571,7 +589,7 @@ void SCLogInitLogModule(SCLogInitData *);
 void SCLogDeInitLogModule(void);
 
 SCError SCLogMessage(const SCLogLevel, const char *, const unsigned int,
-                     const char *, const SCError, const char *message);
+                     const char *, const char *, const SCError, const char *message);
 
 SCLogOPBuffer *SCLogAllocLogOPBuffer(void);
 

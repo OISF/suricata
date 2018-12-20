@@ -41,6 +41,7 @@ const char *RunModeFilePcapGetDefaultMode(void)
 
 void RunModeFilePcapRegister(void)
 {
+    SCSetModule("runmode-pcap-file");
     RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "single",
                               "Single threaded pcap file mode",
                               RunModeFilePcapSingle);

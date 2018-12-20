@@ -119,6 +119,7 @@ const char *PcapFileGetFilename(void)
 TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
 {
     SCEnter();
+    SCSetModule("pcap-file-dispatch");
 
     int packet_q_len = 64;
     int r;

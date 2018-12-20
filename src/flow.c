@@ -443,6 +443,7 @@ void FlowHandlePacket(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
  *  \warning Not thread safe */
 void FlowInitConfig(char quiet)
 {
+    SCSetModule("flow-engine");
     SCLogDebug("initializing flow engine...");
 
     memset(&flow_config,  0, sizeof(flow_config));

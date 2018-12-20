@@ -188,6 +188,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
 TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
+    SCSetModule("receive-pcap-file");
 
     TmEcode status = TM_ECODE_OK;
     const char *tmpstring = NULL;

@@ -2524,6 +2524,7 @@ static int AFPXDPBypassCallback(Packet *p)
  */
 TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
+    SCSetSubsystem("receive-afp");
     SCEnter();
     AFPIfaceConfig *afpconfig = (AFPIfaceConfig *)initdata;
 
