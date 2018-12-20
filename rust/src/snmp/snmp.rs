@@ -119,6 +119,7 @@ impl SNMPState {
             SnmpPdu::Generic(ref pdu) => {
                 pdu_info.err = pdu.err;
             },
+            SnmpPdu::Bulk(_) => (),
             SnmpPdu::TrapV1(ref t)    => {
                 pdu_info.trap_type = Some((t.generic_trap,t.enterprise.clone(),t.agent_addr.clone()));
             }
