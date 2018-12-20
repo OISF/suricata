@@ -367,6 +367,7 @@ void StreamTcpInitConfig(char quiet)
     intmax_t value = 0;
     uint16_t rdrange = 10;
 
+    SCSetModule("stream-tcp");
     SCLogDebug("Initializing Stream");
 
     memset(&stream_config,  0, sizeof(stream_config));

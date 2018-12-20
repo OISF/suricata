@@ -74,6 +74,8 @@ SCEnumCharMap sc_log_op_iface_map[ ] = {
     { NULL,             -1 }
 };
 
+__thread const char *_sc_subsystem;
+
 #if defined (OS_WIN32)
 /**
  * \brief Used for synchronous output on WIN32
@@ -286,11 +288,12 @@ static SCError SCLogMessageGetBuffer(
 
                      const SCLogLevel log_level, const char *file,
                      const unsigned int line, const char *function,
-                     const SCError error_code, const char *message)
+                     const char *module, const SCError error_code,
+                     const char *message)
 {
 #ifdef HAVE_LIBJANSSON
     if (type == SC_LOG_OP_TYPE_JSON)
-        return SCLogMessageJSON(tval, buffer, buffer_size, log_level, file, line, function, error_code, message);
+        return SCLogMessageJSON(tval, buffer, buffer_size, log_level, file, line, function, module, error_code, message);
 #endif
 
     char *temp = buffer;
@@ -445,6 +448,29 @@ static SCError SCLogMessageGetBuffer(
                 substr++;
                 break;
 
+            case SC_LOG_FMT_SUBSYSTEM:
+                temp_fmt[0] = '\0';
+                const char *fmt_string = "%s%s%s%s";
+                if (_sc_subsystem || module) {
+                    if (_sc_subsystem && module) {
+                        fmt_string = "%s%s[%s:%s]%s";
+                    } else {
+                        fmt_string = "%s%s[%s%s]%s";
+                    }
+                }
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                              fmt_string, substr, green,
+                              _sc_subsystem == NULL ? "" : _sc_subsystem,
+                              module == NULL ? "" : module,
+                              reset);
+                if (cw < 0)
+                    return SC_ERR_SPRINTF;
+                temp += cw;
+                temp_fmt++;
+                substr = temp_fmt;
+                substr++;
+                break;
+
             case SC_LOG_FMT_FUNCTION:
                 temp_fmt[0] = '\0';
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
@@ -547,7 +573,8 @@ static int SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
  */
 SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                      const unsigned int line, const char *function,
-                     const SCError error_code, const char *message)
+                     const char *module, const SCError error_code,
+                     const char *message)
 {
     char buffer[SC_LOG_MAX_LOG_MSG_LEN] = "";
     SCLogOPIfaceCtx *op_iface_ctx = NULL;
@@ -575,7 +602,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                                           buffer, sizeof(buffer),
                                           op_iface_ctx->log_format ?
                                               op_iface_ctx->log_format : sc_log_config->log_format,
-                                          log_level, file, line, function,
+                                          log_level, file, line, function, module,
                                           error_code, message) == 0)
                 {
                     SCLogPrintToStream((log_level == SC_LOG_ERROR)? stderr: stdout, buffer);
@@ -585,7 +612,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                 if (SCLogMessageGetBuffer(&tval, 0, op_iface_ctx->type, buffer, sizeof(buffer),
                                           op_iface_ctx->log_format ?
                                               op_iface_ctx->log_format : sc_log_config->log_format,
-                                          log_level, file, line, function,
+                                          log_level, file, line, function, module,
                                           error_code, message) == 0)
                 {
                     int r = 0;
@@ -608,7 +635,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                 if (SCLogMessageGetBuffer(&tval, 0, op_iface_ctx->type, buffer, sizeof(buffer),
                                           op_iface_ctx->log_format ?
                                               op_iface_ctx->log_format : sc_log_config->log_format,
-                                          log_level, file, line, function,
+                                          log_level, file, line, function, module,
                                           error_code, message) == 0)
                 {
                     SCLogPrintToSyslog(SCLogMapLogLevelToSyslogLevel(log_level), buffer);

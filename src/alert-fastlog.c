@@ -81,6 +81,7 @@ void AlertFastLogRegister(void)
         AlertFastLogInitCtx, AlertFastLogger, AlertFastLogCondition,
         AlertFastLogThreadInit, AlertFastLogThreadDeinit, NULL);
     AlertFastLogRegisterTests();
+    SCSetModule("alert-fastlog");
 }
 
 typedef struct AlertFastLogThread_ {

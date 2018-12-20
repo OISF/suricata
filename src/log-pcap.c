@@ -209,6 +209,7 @@ void PcapLogRegister(void)
         PcapLogDataDeinit, NULL);
     PcapLogProfileSetup();
     SC_ATOMIC_INIT(thread_cnt);
+    SCSetModule("pcap-log");
     return;
 }
 
