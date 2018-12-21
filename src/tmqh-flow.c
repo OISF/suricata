@@ -54,6 +54,8 @@ void TmqhFlowRegister(void)
     tmqh_table[TMQH_FLOW].OutHandlerCtxFree = TmqhOutputFlowFreeCtx;
     tmqh_table[TMQH_FLOW].RegisterTests = TmqhFlowRegisterTests;
 
+    SCSetModule("tmqh-flow");
+
     const char *scheduler = NULL;
     if (ConfGet("autofp-scheduler", &scheduler) == 1) {
         if (strcasecmp(scheduler, "round-robin") == 0) {

@@ -81,9 +81,9 @@ typedef enum {
 
 /* The default log_format, if it is not supplied by the user */
 #ifdef RELEASE
-#define SC_LOG_DEF_LOG_FORMAT "%t %S - <%d> - "
+#define SC_LOG_DEF_LOG_FORMAT "%t [%S] - <%d> - "
 #else
-#define SC_LOG_DEF_LOG_FORMAT "[%i] %t %S - (%f:%l) <%d> (%n) -- "
+#define SC_LOG_DEF_LOG_FORMAT "[%i] %t [%S] - (%f:%l) <%d> (%n) -- "
 #endif
 
 /* The maximum length of the log message */
@@ -203,7 +203,13 @@ typedef struct SCLogConfig_ {
 /* The log format prefix for the format specifiers */
 #define SC_LOG_FMT_PREFIX           '%'
 
-static const char *_sc_module;
+/* Module and thread tagging */
+
+/*
+ * Suppress unused variable warnings with attribute; this variable is
+ * used by some, but not all, source code modules
+ */
+static const char *_sc_module __attribute__((unused));
 
 /* The module name */
 #define SCSetModule(module_name)                                                \
@@ -214,7 +220,7 @@ static const char *_sc_module;
 /* The subsystem name, usually the thread's name */
 #define SCSetSubsystem(subsystem_name)                                          \
     do {                                                                        \
-        __thread extern const char *_sc_subsystem;                              \
+        extern __thread const char *_sc_subsystem;                              \
         _sc_subsystem = subsystem_name;                                         \
     } while(0)
 

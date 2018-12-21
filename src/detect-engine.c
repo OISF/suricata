@@ -1567,6 +1567,8 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     de_ctx->sigerror = NULL;
     de_ctx->type = type;
 
+    SCSetModule("detect-engine");
+
     if (type == DETECT_ENGINE_TYPE_DD_STUB || type == DETECT_ENGINE_TYPE_MT_STUB) {
         de_ctx->version = DetectEngineGetVersion();
         SCLogDebug("stub %u with version %u", type, de_ctx->version);
