@@ -916,6 +916,9 @@ static void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
             /* no error on timeout */
             if (flag)
                 NFQVerdictCacheFlush(t);
+
+            /* inject a fake packet on timeout */
+            TmThreadsCaptureInjectPacket(tv->tv, tv->slot, NULL);
         } else {
 #ifdef COUNTERS
             NFQMutexLock(t);
