@@ -1818,6 +1818,7 @@ static void TmThreadFree(ThreadVars *tv)
         return;
 
     SCLogDebug("Freeing thread '%s'.", tv->name);
+    SCSetSubsystem(NULL);
 
     StatsThreadCleanup(tv);
 
@@ -1858,7 +1859,6 @@ void TmThreadSetGroupName(ThreadVars *tv, const char *name)
         return;
     }
     tv->thread_group_name = thread_group_name;
-    SCSetSubsystem(tv->thread_group_name);
 }
 
 void TmThreadClearThreadsFamily(int family)

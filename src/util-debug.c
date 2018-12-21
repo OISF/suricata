@@ -210,8 +210,8 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
  */
 static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_size,
         SCLogLevel log_level, const char *file,
-        unsigned line, const char *function, SCError error_code,
-        const char *message)
+        unsigned line, const char *function, const char *module,
+        SCError error_code, const char *message)
 {
     json_t *js = json_object();
     if (unlikely(js == NULL))
@@ -450,13 +450,11 @@ static SCError SCLogMessageGetBuffer(
 
             case SC_LOG_FMT_SUBSYSTEM:
                 temp_fmt[0] = '\0';
-                const char *fmt_string = "%s%s%s%s";
-                if (_sc_subsystem || module) {
-                    if (_sc_subsystem && module) {
-                        fmt_string = "%s%s[%s:%s]%s";
-                    } else {
-                        fmt_string = "%s%s[%s%s]%s";
-                    }
+                const char *fmt_string;
+                if (_sc_subsystem && module) {
+                    fmt_string = "%s%s%s:%s%s";
+                } else {
+                    fmt_string = "%s%s%s%s%s";
                 }
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               fmt_string, substr, green,

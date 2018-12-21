@@ -846,6 +846,7 @@ void StatsInit(void)
     memset(stats_ctx, 0, sizeof(StatsGlobalContext));
 
     StatsPublicThreadContextInit(&stats_ctx->global_counter_ctx);
+    SCSetModule("counters");
 }
 
 void StatsSetupPostConfig(void)
@@ -1098,6 +1099,8 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
     temp->next = stats_ctx->sts;
     stats_ctx->sts = temp;
     stats_ctx->sts_cnt++;
+
+    SCSetSubsystem(thread_name);
     SCLogDebug("stats_ctx->sts %p", stats_ctx->sts);
 
     SCMutexUnlock(&stats_ctx->sts_lock);
