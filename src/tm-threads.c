@@ -1844,7 +1844,6 @@ void TmThreadSetGroupName(ThreadVars *tv, const char *name)
         return;
     }
     tv->thread_group_name = thread_group_name;
-    SCSetSubsystem(tv->thread_group_name);
 }
 
 void TmThreadClearThreadsFamily(int family)
