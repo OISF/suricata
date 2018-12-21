@@ -2871,7 +2871,7 @@ int main(int argc, char **argv)
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
 
-    (void)SCSetThreadName("Suricata-Main");
+    (void)SCSetThreadName("Suricata-main");
 
     /* Set subsystem name - TLS for main thread */
     SCSetSubsystem("Suricata-main");
