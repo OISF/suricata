@@ -89,6 +89,10 @@ typedef struct File_ {
                                      *   flag is set */
     uint64_t content_stored;
     uint64_t size;
+
+    uint32_t *sid; /* signature id of a rule that triggered the filestore event */
+    uint32_t sid_sze;
+    uint32_t sid_cap;
 } File;
 
 typedef struct FileContainer_ {

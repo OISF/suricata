@@ -264,6 +264,15 @@ static int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, 
      * matches. */
     if (file != NULL) {
         file_id = file->file_store_id;
+
+        if (s->id) {
+            if (file->sid_sze > file->sid_cap) {
+                void *tmp = SCRealloc(file->sid, sizeof(file->sid) * 2);
+                file->sid_cap = file->sid_cap * 2;
+            }
+            file->sid[file->sid_sze] = s->id;
+            file->sid_sze++;
+        }
     }
 
     det_ctx->filestore[det_ctx->filestore_cnt].file_id = file_id;
