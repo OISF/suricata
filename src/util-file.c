@@ -454,6 +454,14 @@ static File *FileAlloc(const uint8_t *name, uint16_t name_len)
     new->name_len = name_len;
     memcpy(new->name, name, name_len);
 
+    new->sid = SCMalloc(sizeof(uint32_t));
+    if (new->sid == NULL) {
+        SCFree(new);
+        return NULL;
+    }
+    new->sid_sze = 0;
+    new->sid_cap = 1;
+
     return new;
 }
 
@@ -464,6 +472,8 @@ static void FileFree(File *ff)
 
     if (ff->name != NULL)
         SCFree(ff->name);
+    if (ff->sid != NULL)
+        SCFree(ff->sid);
 #ifdef HAVE_MAGIC
     /* magic returned by libmagic is strdup'd by MagicLookup. */
     if (ff->magic != NULL)
