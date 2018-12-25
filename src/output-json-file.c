@@ -149,6 +149,9 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     json_object_set_new(fjs, "filename", SCJsonString(s));
     if (s != NULL)
         SCFree(s);
+
+    json_object_set_new(fjs, "sid", json_integer(ff->sid));
+
 #ifdef HAVE_MAGIC
     if (ff->magic)
         json_object_set_new(fjs, "magic", json_string((char *)ff->magic));

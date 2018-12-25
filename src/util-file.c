@@ -453,6 +453,7 @@ static File *FileAlloc(const uint8_t *name, uint16_t name_len)
 
     new->name_len = name_len;
     memcpy(new->name, name, name_len);
+    new->sid = 0;
 
     return new;
 }

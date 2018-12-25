@@ -264,6 +264,7 @@ static int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, 
      * matches. */
     if (file != NULL) {
         file_id = file->file_store_id;
+        file->sid = s->id;
     }
 
     det_ctx->filestore[det_ctx->filestore_cnt].file_id = file_id;
