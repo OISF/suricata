@@ -4,7 +4,7 @@ noinst_HEADERS = action-globals.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
 	source-windivert-prototypes.h \
 	suricata-common.h threadvars.h tree.h \
-    util-binsearch.h util-validate.h
+    util-validate.h
 bin_PROGRAMS = suricata
 
 suricata_SOURCES = \
