@@ -13,6 +13,8 @@ BPF_TARGETS += vlan_filter.bpf
 
 all: $(BPF_TARGETS)
 
+EXTRA_DIST= include bypass_filter.c filter.c lb.c vlan_filter.c xdp_filter.c
+
 $(BPF_TARGETS): %.bpf: %.c
 #      From C-code to LLVM-IR format suffix .ll (clang -S -emit-llvm)
 	${CLANG} -Wall $(BPF_CFLAGS) -O2 \
