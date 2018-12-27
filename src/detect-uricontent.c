@@ -52,7 +52,6 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-binsearch.h"
 #include "util-spm.h"
 #include "conf.h"
 
