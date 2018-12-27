@@ -4,6 +4,8 @@ EXTRA_DIST= access-pkt-packet.cocci \
     direct-packet.cocci \
     malloc-error-check.cocci \
     pktnotset-packet.cocci \
+    realloc.cocci \
+    siginit.cocci \
     size_t.cocci \
     struct-flags.cocci \
     sz3.cocci \
