@@ -126,7 +126,7 @@ impl IKEV2State {
     /// Parse an IKEV2 request message
     ///
     /// Returns The number of messages parsed, or -1 on error
-    fn parse(&mut self, i: &[u8], direction: u8) -> i8 {
+    fn parse(&mut self, i: &[u8], direction: u8) -> i32 {
         match parse_ikev2_header(i) {
             IResult::Done(rem,ref hdr) => {
                 if rem.len() == 0 && hdr.length == 28 {
@@ -406,6 +406,9 @@ impl IKEV2Transaction {
         if self.events != std::ptr::null_mut() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
+        if let Some(state) = self.de_state {
+            core::sc_detect_engine_state_free(state);
+        }
     }
 }
 
@@ -443,7 +446,8 @@ pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
                                        _pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
-                                       _data: *const libc::c_void) -> i8 {
+                                       _data: *const libc::c_void,
+                                       _flags: u8) -> i32 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,IKEV2State);
     state.parse(buf, STREAM_TOSERVER)
@@ -455,7 +459,8 @@ pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
                                        pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
-                                       _data: *const libc::c_void) -> i8 {
+                                       _data: *const libc::c_void,
+                                       _flags: u8) -> i32 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,IKEV2State);
     let res = state.parse(buf, STREAM_TOCLIENT);
@@ -608,7 +613,7 @@ pub extern "C" fn rs_ikev2_state_get_event_info(event_name: *const libc::c_char,
 static mut ALPROTO_IKEV2 : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow, input:*const libc::uint8_t, input_len: u32, _offset: *const u32) -> AppProto {
+pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow, input:*const libc::uint8_t, input_len: u32) -> AppProto {
     let slice = build_slice!(input,input_len as usize);
     let alproto = unsafe{ ALPROTO_IKEV2 };
     match parse_ikev2_header(slice) {
@@ -671,6 +676,7 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
         get_tx_mpm_id     : None,
         set_tx_mpm_id     : None,
         get_files         : None,
+        get_tx_iterator   : None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

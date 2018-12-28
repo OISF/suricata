@@ -36,7 +36,7 @@ static void RustDNSTCPParserRegisterTests(void);
 
 static int RustDNSTCPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-        void *local_data)
+        void *local_data, const uint8_t flags)
 {
     SCLogDebug("RustDNSTCPParseRequest");
     return rs_dns_parse_request_tcp(f, state, pstate, input, input_len,
@@ -45,15 +45,14 @@ static int RustDNSTCPParseRequest(Flow *f, void *state,
 
 static int RustDNSTCPParseResponse(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-        void *local_data)
+        void *local_data, const uint8_t flags)
 {
     SCLogDebug("RustDNSTCPParseResponse");
     return rs_dns_parse_response_tcp(f, state, pstate, input, input_len,
             local_data);
 }
 
-static uint16_t RustDNSTCPProbe(Flow *f, uint8_t *input, uint32_t len,
-                                uint32_t *offset)
+static uint16_t RustDNSTCPProbe(Flow *f, uint8_t *input, uint32_t len)
 {
     SCLogDebug("RustDNSTCPProbe");
     if (len == 0 || len < sizeof(DNSHeader)) {
@@ -295,7 +294,7 @@ static int RustDNSTCPParserTestMultiRecord(void)
     f->alstate = state;
 
     FAIL_IF(RustDNSTCPParseRequest(f, f->alstate, NULL, req, reqlen,
-                    NULL) < 0);
+                    NULL, STREAM_START) < 0);
     FAIL_IF(rs_dns_state_get_tx_count(state) != 20);
 
     UTHFreeFlow(f);

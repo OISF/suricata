@@ -45,6 +45,8 @@ typedef struct PcapFileSharedVars_
 
     struct timespec last_processed;
 
+    bool should_delete;
+
     ThreadVars *tv;
     TmSlot *slot;
 
@@ -74,7 +76,7 @@ typedef struct PcapFileFileVars_
     PcapFileSharedVars *shared;
 } PcapFileFileVars;
 
-typedef int (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+typedef int (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);
 
 /**
  * Dispatch a file for processing, where the information necessary to process that

@@ -66,7 +66,9 @@ typedef struct Pool_ {
     uint32_t elt_size;
     uint32_t outstanding;       /**< counter of data items 'in use'. Pretty much
                                  *   the diff between PoolGet and PoolReturn */
+#ifdef DEBUG
     uint32_t max_outstanding;   /**< max value of outstanding we saw */
+#endif
 } Pool;
 
 /* prototypes */

@@ -41,6 +41,13 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv)
             pfv->pcap_handle = NULL;
         }
         if (pfv->filename != NULL) {
+            if (pfv->shared != NULL && pfv->shared->should_delete) {
+                SCLogDebug("Deleting pcap file %s", pfv->filename);
+                if (unlink(pfv->filename) != 0) {
+                    SCLogWarning(SC_ERR_PCAP_FILE_DELETE_FAILED,
+                                 "Failed to delete %s", pfv->filename);
+                }
+            }
             SCFree(pfv->filename);
             pfv->filename = NULL;
         }
@@ -212,6 +219,7 @@ TmEcode ValidateLinkType(int datalink, Decoder *decoder)
         case LINKTYPE_IPV4:
         case LINKTYPE_RAW:
         case LINKTYPE_RAW2:
+        case LINKTYPE_GRE_OVER_IP:
             *decoder = DecodeRaw;
             break;
         case LINKTYPE_NULL:

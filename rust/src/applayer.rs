@@ -61,3 +61,39 @@ impl LoggerFlags {
     }
 
 }
+
+/// Export a function to get the DetectEngineState on a struct.
+#[macro_export]
+macro_rules!export_tx_get_detect_state {
+    ($name:ident, $type:ty) => (
+        #[no_mangle]
+        pub extern "C" fn $name(tx: *mut libc::c_void)
+            -> *mut core::DetectEngineState
+        {
+            let tx = cast_pointer!(tx, $type);
+            match tx.de_state {
+                Some(ds) => {
+                    return ds;
+                },
+                None => {
+                    return std::ptr::null_mut();
+                }
+            }
+        }
+    )
+}
+
+/// Export a function to set the DetectEngineState on a struct.
+#[macro_export]
+macro_rules!export_tx_set_detect_state {
+    ($name:ident, $type:ty) => (
+        #[no_mangle]
+        pub extern "C" fn $name(tx: *mut libc::c_void,
+                de_state: &mut core::DetectEngineState) -> libc::c_int
+        {
+            let tx = cast_pointer!(tx, $type);
+            tx.de_state = Some(de_state);
+            0
+        }
+    )
+}

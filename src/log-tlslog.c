@@ -94,29 +94,9 @@ typedef struct LogTlsLogThread_ {
 
 static void LogTlsLogVersion(MemBuffer *buffer, uint16_t version)
 {
-    switch (version) {
-        case TLS_VERSION_UNKNOWN:
-            MemBufferWriteString(buffer, "VERSION='UNDETERMINED'");
-            break;
-        case SSL_VERSION_2:
-            MemBufferWriteString(buffer, "VERSION='SSLv2'");
-            break;
-        case SSL_VERSION_3:
-            MemBufferWriteString(buffer, "VERSION='SSLv3'");
-            break;
-        case TLS_VERSION_10:
-            MemBufferWriteString(buffer, "VERSION='TLSv1'");
-            break;
-        case TLS_VERSION_11:
-            MemBufferWriteString(buffer, "VERSION='TLS 1.1'");
-            break;
-        case TLS_VERSION_12:
-            MemBufferWriteString(buffer, "VERSION='TLS 1.2'");
-            break;
-        default:
-            MemBufferWriteString(buffer, "VERSION='0x%04x'", version);
-            break;
-    }
+    char ssl_version[SSL_VERSION_MAX_STRLEN];
+    SSLVersionToString(version, ssl_version);
+    MemBufferWriteString(buffer, "VERSION='%s'", ssl_version);
 }
 
 static void LogTlsLogDate(MemBuffer *buffer, const char *title, time_t *date)
@@ -458,7 +438,8 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     if (((hlog->flags & LOG_TLS_SESSION_RESUMPTION) == 0 ||
             (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0) &&
             (ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL)) {
+            ssl_state->server_connp.cert0_subject == NULL) &&
+            ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
         return 0;
     }
 
@@ -490,7 +471,14 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                                  ssl_state->server_connp.cert0_issuerdn);
         }
         if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
-            MemBufferWriteString(aft->buffer, " Session='resumed'");
+            /* Only log a session as 'resumed' if a certificate has not
+               been seen. */
+            if ((ssl_state->server_connp.cert0_issuerdn == NULL) &&
+                    (ssl_state->server_connp.cert0_subject == NULL) &&
+                    (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
+                    ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
+                MemBufferWriteString(aft->buffer, " Session='resumed'");
+            }
         }
 
         if (hlog->flags & LOG_TLS_EXTENDED) {

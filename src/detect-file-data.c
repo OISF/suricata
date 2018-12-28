@@ -179,8 +179,12 @@ static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
                                         Signature *s)
 {
     if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_UNKNOWN) {
-        AppLayerHtpEnableRequestBodyCallback();
+        AppLayerHtpEnableResponseBodyCallback();
     }
+
+
+    /* server body needs to be inspected in sync with stream if possible */
+    s->init_data->init_flags |= SIG_FLAG_INIT_NEED_FLUSH;
 
     SCLogDebug("callback invoked by %u", s->id);
 }

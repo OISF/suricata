@@ -22,11 +22,11 @@ cd ${tmpdir}
 ./autogen.sh
 ./configure
 
-./scripts/setup-app-layer.sh Echo
+./scripts/setup-app-layer.py --parser Echo
 
-./scripts/setup-app-layer-detect.sh Echo request
+./scripts/setup-app-layer.py --detect Echo request
 
-./scripts/setup-app-layer-logger.sh Echo
+./scripts/setup-app-layer.py --logger Echo
 
 ./scripts/setup-decoder.sh Udplite
 

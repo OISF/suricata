@@ -525,8 +525,10 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
             return NULL;
         }
         node = SCRadixCreateNode();
-        if (node == NULL)
+        if (node == NULL) {
+            SCRadixReleasePrefix(prefix, tree);
             return NULL;
+        }
         node->prefix = prefix;
         node->bit = prefix->bitlen;
         tree->head = node;
@@ -1192,7 +1194,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
     /* we are deleting the root of the tree.  This would be the only node left
      * in the tree */
     if (tree->head == node) {
-        SCFree(node);
+        SCRadixReleaseNode(node, tree);
         tree->head = NULL;
         SCRadixReleasePrefix(prefix, tree);
         return;

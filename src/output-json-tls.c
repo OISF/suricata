@@ -60,8 +60,6 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-#define SSL_VERSION_LENGTH 13
-
 #define LOG_TLS_DEFAULT                 0
 #define LOG_TLS_EXTENDED                (1 << 0)
 #define LOG_TLS_CUSTOM                  (1 << 1)
@@ -105,7 +103,7 @@ typedef struct OutputTlsCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags;  /** Store mode */
     uint64_t fields; /** Store fields */
-    bool include_metadata;
+    OutputJsonCommonSettings cfg;
 } OutputTlsCtx;
 
 
@@ -118,7 +116,7 @@ static void JsonTlsLogSubject(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_subject) {
         json_object_set_new(js, "subject",
-                            json_string(ssl_state->server_connp.cert0_subject));
+                            SCJsonString(ssl_state->server_connp.cert0_subject));
     }
 }
 
@@ -126,28 +124,37 @@ static void JsonTlsLogIssuer(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_issuerdn) {
         json_object_set_new(js, "issuerdn",
-                            json_string(ssl_state->server_connp.cert0_issuerdn));
+                            SCJsonString(ssl_state->server_connp.cert0_issuerdn));
     }
 }
 
 static void JsonTlsLogSessionResumed(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
-        json_object_set_new(js, "session_resumed", json_boolean(true));
+        /* Only log a session as 'resumed' if a certificate has not
+           been seen, and the session is not TLSv1.3 or later. */
+        if ((ssl_state->server_connp.cert0_issuerdn == NULL &&
+               ssl_state->server_connp.cert0_subject == NULL) &&
+               (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
+               ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
+            json_object_set_new(js, "session_resumed", json_boolean(true));
+        }
     }
 }
 
 static void JsonTlsLogFingerprint(json_t *js, SSLState *ssl_state)
 {
-    json_object_set_new(js, "fingerprint",
-                        json_string(ssl_state->server_connp.cert0_fingerprint));
+    if (ssl_state->server_connp.cert0_fingerprint) {
+        json_object_set_new(js, "fingerprint",
+                SCJsonString(ssl_state->server_connp.cert0_fingerprint));
+    }
 }
 
 static void JsonTlsLogSni(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->client_connp.sni) {
         json_object_set_new(js, "sni",
-                            json_string(ssl_state->client_connp.sni));
+                            SCJsonString(ssl_state->client_connp.sni));
     }
 }
 
@@ -155,38 +162,14 @@ static void JsonTlsLogSerial(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_serial) {
         json_object_set_new(js, "serial",
-                            json_string(ssl_state->server_connp.cert0_serial));
+                            SCJsonString(ssl_state->server_connp.cert0_serial));
     }
 }
 
 static void JsonTlsLogVersion(json_t *js, SSLState *ssl_state)
 {
-    char ssl_version[SSL_VERSION_LENGTH + 1];
-
-    switch (ssl_state->server_connp.version) {
-        case TLS_VERSION_UNKNOWN:
-            snprintf(ssl_version, SSL_VERSION_LENGTH, "UNDETERMINED");
-            break;
-        case SSL_VERSION_2:
-            snprintf(ssl_version, SSL_VERSION_LENGTH, "SSLv2");
-            break;
-        case SSL_VERSION_3:
-            snprintf(ssl_version, SSL_VERSION_LENGTH, "SSLv3");
-            break;
-        case TLS_VERSION_10:
-            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLSv1");
-            break;
-        case TLS_VERSION_11:
-            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.1");
-            break;
-        case TLS_VERSION_12:
-            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.2");
-            break;
-        default:
-            snprintf(ssl_version, SSL_VERSION_LENGTH, "0x%04x",
-                     ssl_state->server_connp.version);
-            break;
-    }
+    char ssl_version[SSL_VERSION_MAX_STRLEN];
+    SSLVersionToString(ssl_state->server_connp.version, ssl_version);
     json_object_set_new(js, "version", json_string(ssl_version));
 }
 
@@ -389,7 +372,8 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     if ((ssl_state->server_connp.cert0_issuerdn == NULL ||
             ssl_state->server_connp.cert0_subject == NULL) &&
             ((ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0 ||
-            (tls_ctx->flags & LOG_TLS_SESSION_RESUMPTION) == 0)) {
+            (tls_ctx->flags & LOG_TLS_SESSION_RESUMPTION) == 0) &&
+            ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
         return 0;
     }
 
@@ -398,9 +382,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    if (tls_ctx->include_metadata) {
-        JsonAddMetadata(p, f, js);
-    }
+    JsonAddCommonOptions(&tls_ctx->cfg, p, f, js);
 
     json_t *tjs = json_object();
     if (tjs == NULL) {
@@ -612,7 +594,7 @@ static OutputInitResult OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     }
 
     tls_ctx->file_ctx = ojc->file_ctx;
-    tls_ctx->include_metadata = ojc->include_metadata;
+    tls_ctx->cfg = ojc->cfg;
 
     if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
             (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {

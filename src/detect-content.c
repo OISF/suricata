@@ -354,7 +354,7 @@ error:
 /**
  * \brief this function will SCFree memory associated with DetectContentData
  *
- * \param cd pointer to DetectCotentData
+ * \param cd pointer to DetectContentData
  */
 void DetectContentFree(void *ptr)
 {
@@ -2773,7 +2773,7 @@ static int SigTest69TestNegatedContent(void)
 
 static int SigTest70TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; content:!\"fourty\"; within:52; distance:45 sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; content:!\"fourty\"; within:52; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 /** \test within and distance */

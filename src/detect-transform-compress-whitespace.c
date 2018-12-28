@@ -45,7 +45,7 @@ void DetectTransformCompressWhitespaceRegister(void)
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].desc =
         "modify buffer to strip whitespace before inspection";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].url =
-        DOC_URL DOC_VERSION "/rules/transformations.html#compress_whitespace";
+        DOC_URL DOC_VERSION "/rules/transforms.html#compress-whitespace";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Transform =
         TransformCompressWhitespace;
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Setup =

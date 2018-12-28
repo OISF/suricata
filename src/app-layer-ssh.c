@@ -69,7 +69,7 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
     uint32_t line_len = input_len;
 
     /* is it the version line? */
-    if (SCMemcmp("SSH-", line_ptr, 4) != 0) {
+    if (line_len >= 4 && SCMemcmp("SSH-", line_ptr, 4) != 0) {
         SCReturnInt(-1);
     }
 
@@ -417,7 +417,7 @@ static int SSHParseData(SshState *state, SshHeader *header,
 
 static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
                            uint8_t *input, uint32_t input_len,
-                           void *local_data)
+                           void *local_data, const uint8_t flags)
 {
     SshState *ssh_state = (SshState *)state;
     SshHeader *ssh_header = &ssh_state->cli_hdr;
@@ -442,7 +442,7 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
 
 static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
-                            void *local_data)
+                            void *local_data, const uint8_t flags)
 {
     SshState *ssh_state = (SshState *)state;
     SshHeader *ssh_header = &ssh_state->srv_hdr;

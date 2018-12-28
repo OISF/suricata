@@ -224,40 +224,45 @@ static int Sha1Done(HashState * md, unsigned char *out)
     return SC_SHA_1_OK;
 }
 
-unsigned char* ComputeSHA1(unsigned char* buff, int bufflen)
+/** \brief calculate SHA1 hash
+ *  \retval int 1 for success, 0 for fail
+ */
+int ComputeSHA1(const uint8_t *inbuf, size_t inbuf_len,
+        uint8_t *outbuf, size_t outbuf_size)
 {
+    if (unlikely(outbuf_size != 20))
+        return 0;
+
     HashState md;
-    unsigned char* lResult = (unsigned char*) SCMalloc((sizeof(unsigned char) * 20));
-    if (lResult == NULL)
-        return NULL;
     Sha1Init(&md);
-    Sha1Process(&md, buff, bufflen);
-    Sha1Done(&md, lResult);
-    return lResult;
+    Sha1Process(&md, inbuf, inbuf_len);
+    Sha1Done(&md, outbuf);
+    return 1;
 }
 
 #else /* HAVE_NSS */
 
-unsigned char* ComputeSHA1(unsigned char* buff, int bufflen)
+/** \brief calculate SHA1 hash
+ *  \retval int 1 for success, 0 for fail
+ */
+int ComputeSHA1(const uint8_t *inbuf, size_t inbuf_len,
+        uint8_t *outbuf, size_t outbuf_size)
 {
+    if (unlikely(outbuf_size != 20))
+        return 0;
+
     HASHContext *sha1_ctx = HASH_Create(HASH_AlgSHA1);
-    unsigned char* lResult = NULL;
-    unsigned int rlen;
     if (sha1_ctx == NULL) {
-        return NULL;
+        return 0;
     }
 
-    lResult = (unsigned char*) SCMalloc((sizeof(unsigned char) * 20));
-    if (lResult == NULL) {
-        HASH_Destroy(sha1_ctx);
-        return NULL;
-    }
     HASH_Begin(sha1_ctx);
-    HASH_Update(sha1_ctx, buff, bufflen);
-    HASH_End(sha1_ctx, lResult, &rlen, (sizeof(unsigned char) * 20));
+    HASH_Update(sha1_ctx, inbuf, inbuf_len);
+    unsigned int rlen;
+    HASH_End(sha1_ctx, outbuf, &rlen, outbuf_size);
     HASH_Destroy(sha1_ctx);
 
-    return lResult;
+    return rlen == outbuf_size;
 }
 
 #endif /* HAVE_NSS */

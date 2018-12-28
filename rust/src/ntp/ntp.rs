@@ -85,11 +85,11 @@ impl NTPState {
     /// Parse an NTP request message
     ///
     /// Returns The number of messages parsed, or -1 on error
-    fn parse(&mut self, i: &[u8], _direction: u8) -> i8 {
+    fn parse(&mut self, i: &[u8], _direction: u8) -> i32 {
         match parse_ntp(i) {
             IResult::Done(_,ref msg) => {
                 // SCLogDebug!("parse_ntp: {:?}",msg);
-                if msg.mode == 1 || msg.mode == 3 {
+                if msg.mode == NtpMode::SymmetricActive || msg.mode == NtpMode::Client {
                     let mut tx = self.new_tx();
                     // use the reference id as identifier
                     tx.xid = msg.ref_id;
@@ -195,7 +195,8 @@ pub extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
                                        _pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
-                                       _data: *const libc::c_void) -> i8 {
+                                       _data: *const libc::c_void,
+                                       _flags: u8) -> i32 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,NTPState);
     state.parse(buf, 0)
@@ -207,7 +208,8 @@ pub extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
                                        _pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
-                                       _data: *const libc::c_void) -> i8 {
+                                       _data: *const libc::c_void,
+                                       _flags: u8) -> i32 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,NTPState);
     state.parse(buf, 1)
@@ -341,7 +343,7 @@ pub extern "C" fn rs_ntp_state_get_event_info(event_name: *const libc::c_char,
 static mut ALPROTO_NTP : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn ntp_probing_parser(_flow: *const Flow, input:*const u8, input_len: u32, _offset: *const u32) -> AppProto {
+pub extern "C" fn ntp_probing_parser(_flow: *const Flow, input:*const u8, input_len: u32) -> AppProto {
     let slice: &[u8] = unsafe { std::slice::from_raw_parts(input as *mut u8, input_len as usize) };
     let alproto = unsafe{ ALPROTO_NTP };
     match parse_ntp(slice) {
@@ -394,6 +396,7 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         get_tx_mpm_id     : None,
         set_tx_mpm_id     : None,
         get_files         : None,
+        get_tx_iterator   : None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

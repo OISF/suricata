@@ -8,7 +8,7 @@ ttl
 ^^^
 
 The ttl keyword is used to check for a specific IP time-to-live value
-in the header of a packet.  The format is::
+in the header of a packet. The format is::
 
   ttl:<number>
 
@@ -19,9 +19,9 @@ For example::
 At the end of the ttl keyword you can enter the value on which you
 want to match.  The Time-to-live value determines the maximal amount
 of time a packet can be in the Internet-system. If this field is set
-to 0, then the packet has to be destroyed.  The time-to-live is based
+to 0, then the packet has to be destroyed. The time-to-live is based
 on hop count. Each hop/router the packet passes subtracts one of the
-packet TTL counter.  The purpose of this mechanism is to limit the
+packet TTL counter. The purpose of this mechanism is to limit the
 existence of packets so that packets can not end up in infinite
 routing loops.
 
@@ -73,7 +73,7 @@ sameip
 Every packet has a source IP-address and a destination IP-address. It
 can be that the source IP is the same as the destination IP.  With the
 sameip keyword you can check if the IP address of the source is the
-same as the IP address of the destination.  The format of the sameip
+same as the IP address of the destination. The format of the sameip
 keyword is::
 
   sameip;
@@ -116,7 +116,7 @@ id
 
 With the id keyword, you can match on a specific IP ID value.  The ID
 identifies each packet sent by a host and increments usually with one
-with each packet that is being send.  The IP ID is used as a fragment
+with each packet that is being send. The IP ID is used as a fragment
 identification number. Each packet has an IP ID, and when the packet
 becomes fragmented, all fragments of this packet have the same ID. In
 this way, the receiver of the packet knows which fragments belong to
@@ -164,8 +164,8 @@ fragbits (IP fragmentation)
 
 With the fragbits keyword, you can check if the fragmentation and
 reserved bits are set in the IP header. The fragbits keyword should be
-placed at the beginning of a rule.  Fragbits is used to modify the
-fragmentation mechanism.  During routing of messages from one Internet
+placed at the beginning of a rule. Fragbits is used to modify the
+fragmentation mechanism. During routing of messages from one Internet
 module to the other, it can occur that a packet is bigger than the
 maximal packet size a network can process. In that case, a packet can
 be send in fragments. This maximum of the packet size is called
@@ -198,9 +198,9 @@ fragoffset
 ^^^^^^^^^^
 
 With the fragoffset keyword you can match on specific decimal values
-of the IP fragment offset field.  If you would like to check the first
+of the IP fragment offset field. If you would like to check the first
 fragments of a session, you have to combine fragoffset 0 with the More
-Fragment option.  The fragmentation offset field is convenient for
+Fragment option. The fragmentation offset field is convenient for
 reassembly. The id is used to determine which fragments belong to
 which packet and the fragmentation offset field clarifies the order of
 the fragments.
@@ -221,18 +221,44 @@ Example of fragoffset in a rule:
 
    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET EXPLOIT Invalid non-fragmented packet with fragment offset>0"; fragbits: M; :example-rule-emphasis:`fragoffset: >0;` reference:url,doc.emergingthreats.net/bin/view/Main/2001022; classtype:bad-unknown; sid:2001022; rev:5; metadata:created_at 2010_07_30, updated_at 2010_07_30;)
 
+tos
+^^^
+
+The tos keyword can match on specific decimal values of the IP header TOS
+field. The tos keyword can be have a value from 0 - 255. This field of the
+IP header has been updated by `rfc2474 <https://tools.ietf.org/html/rfc2474>`_
+to include functionality for
+`Differentiated services <https://en.wikipedia.org/wiki/Differentiated_services>`_.
+
+Format of tos::
+
+  tos:[!]<number>;
+
+Example of tos in a rule:
+
+.. container:: example-rule
+
+    alert ip any any -> any any (msg:"Differentiated Services Codepoint: Class Selector 1 (8)"; flow:established; :example-rule-emphasis:`tos:8;` classtype:not-suspicious; sid:2600115; rev:1;)
+
+Example of tos with negated values:
+
+.. container:: example-rule
+
+    alert ip any any -> any any (msg:"TGI HUNT non-DiffServ aware TOS setting"; flow:established,to_server; :example-rule-emphasis:`tos:!0; tos:!8; tos:!16; tos:!24; tos:!32; tos:!40; tos:!48; tos:!56;` threshold:type limit, track by_src, seconds 60, count 1; classtype:bad-unknown; sid:2600124; rev:1;)
+
+
 TCP keywords
 ------------
 
 seq
 ^^^
 The seq keyword can be used in a signature to check for a specific TCP
-sequence number.  A sequence number is a number that is generated
+sequence number. A sequence number is a number that is generated
 practically at random by both endpoints of a TCP-connection. The
 client and the server both create a sequence number, which increases
 with one with every byte that they send. So this sequence number is
 different for both sides. This sequence number has to be acknowledged
-by both sides of the connection.  Through sequence numbers, TCP
+by both sides of the connection. Through sequence numbers, TCP
 handles acknowledgement, order and retransmission. Its number
 increases with every data-byte the sender has send. The seq helps
 keeping track of to what place in a data-stream a byte belongs. If the
@@ -261,7 +287,7 @@ The ack is the acknowledgement of the receipt of all previous
 (data)-bytes send by the other side of the TCP-connection. In most
 occasions every packet of a TCP connection has an ACK flag after the
 first SYN and a ack-number which increases with the receipt of every
-new data-byte.  The ack-keyword can be used in a signature to check
+new data-byte. The ack keyword can be used in a signature to check
 for a specific TCP acknowledgement number.
 
 Format of ack::
@@ -289,7 +315,7 @@ received. This amount of data has to be acknowledged by the receiver
 first, before the sender can send the same amount of new data. This
 mechanism is used to prevent the receiver from being overflowed by
 data. The value of the window size is limited and can be 2 to 65.535
-bytes.  To make more use of your bandwidth you can use a bigger
+bytes. To make more use of your bandwidth you can use a bigger
 TCP-window.
 
 The format of the window keyword::
@@ -310,7 +336,7 @@ is not reliable when it comes to delivering data (datagram). ICMP
 gives feedback in case problems occur. It does not prevent problems
 from happening, but helps in understanding what went wrong and
 where. If reliability is necessary, protocols that use IP have to take
-care of reliability themselves.  In different situations ICMP messages
+care of reliability themselves. In different situations ICMP messages
 will be send. For instance when the destination is unreachable, if
 there is not enough buffer-capacity to forward the data, or when a
 datagram is send fragmented when it should not be, etcetera. More can
@@ -326,7 +352,7 @@ itype
 The itype keyword is for matching on a specific ICMP type (number).
 ICMP has several kinds of messages and uses codes to clarify those
 messages. The different messages are distinct by different names, but
-more important by numeric values.  For more information see the table
+more important by numeric values. For more information see the table
 with message-types and codes.
 
 The format of the itype keyword::

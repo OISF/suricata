@@ -31,8 +31,6 @@
 #include "util-print.h"
 #include "util-validate.h"
 
-//static void PrintList2(TcpSegment *seg);
-
 static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg);
 
 static int check_overlap_different_data = 0;
@@ -46,6 +44,23 @@ void StreamTcpReassembleConfigEnableOverlapCheck(void)
  *  Inserts and overlap handling
  */
 
+RB_GENERATE(TCPSEG, TcpSegment, rb, TcpSegmentCompare);
+
+int TcpSegmentCompare(struct TcpSegment *a, struct TcpSegment *b)
+{
+    if (SEQ_GT(a->seq, b->seq))
+        return 1;
+    else if (SEQ_LT(a->seq, b->seq))
+        return -1;
+    else {
+        if (a->payload_len == b->payload_len)
+            return 0;
+        else if (a->payload_len > b->payload_len)
+            return 1;
+        else
+            return -1;
+    }
+}
 
 /** \internal
  *  \brief insert segment data into the streaming buffer
@@ -98,22 +113,55 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
 }
 
 /** \internal
- *  \brief insert the segment into the proper place in the list
+ *  \brief check if this segments overlaps with an in-tree seg.
+ *  \retval true
+ *  \retval false
+ */
+static inline bool CheckOverlap(struct TCPSEG *tree, TcpSegment *seg)
+{
+    const uint32_t re = SEG_SEQ_RIGHT_EDGE(seg);
+    SCLogDebug("start. SEQ %u payload_len %u. Right edge: %u. Seg %p",
+            seg->seq, seg->payload_len, re, seg);
+
+    /* check forward */
+    TcpSegment *next = TCPSEG_RB_NEXT(seg);
+    if (next) {
+        // next has same seq, so data must overlap
+        if (SEQ_EQ(next->seq, seg->seq))
+            return true;
+        // our right edge is beyond next seq, overlap
+        if (SEQ_GT(re, next->seq))
+            return true;
+    }
+    /* check backwards */
+    TcpSegment *prev = TCPSEG_RB_PREV(seg);
+    if (prev) {
+        // prev has same seq, so data must overlap
+        if (SEQ_EQ(prev->seq, seg->seq))
+            return true;
+        // prev's right edge is beyond our seq, overlap
+        const uint32_t prev_re = SEG_SEQ_RIGHT_EDGE(prev);
+        if (SEQ_GT(prev_re, prev->seq))
+            return true;
+    }
+
+    SCLogDebug("no overlap");
+    return false;
+}
+
+/** \internal
+ *  \brief insert the segment into the proper place in the tree
  *         don't worry about the data or overlaps
  *
- *         If seq is equal to list seq, keep sorted by insert time.
- *         1. seg 123 len 12
- *         2. seg 123 len 14
- *         3. seg 124 len 1
- *
+ *  \retval 2 not inserted, data overlap
  *  \retval 1 inserted with overlap detected
  *  \retval 0 inserted, no overlap
  *  \retval -1 error
  */
-static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, Packet *p)
+static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, TcpSegment **dup_seg, Packet *p)
 {
     /* before our base_seq we don't insert it in our list */
-    if (SEQ_LEQ((seg->seq + TCP_SEG_LEN(seg)), stream->base_seq))
+    if (SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(seg), stream->base_seq))
     {
         SCLogDebug("not inserting: SEQ+payload %"PRIu32", last_ack %"PRIu32", "
                 "base_seq %"PRIu32, (seg->seq + TCP_SEG_LEN(seg)),
@@ -123,74 +171,33 @@ static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, Packet *p)
     }
 
     /* fast track */
-    if (stream->seg_list == NULL) {
-        SCLogDebug("empty list, inserting seg %p seq %" PRIu32 ", "
+    if (RB_EMPTY(&stream->seg_tree)) {
+        SCLogDebug("empty tree, inserting seg %p seq %" PRIu32 ", "
                    "len %" PRIu32 "", seg, seg->seq, TCP_SEG_LEN(seg));
-        stream->seg_list = seg;
-        seg->prev = NULL;
-        stream->seg_list_tail = seg;
+        TCPSEG_RB_INSERT(&stream->seg_tree, seg);
+        stream->segs_right_edge = SEG_SEQ_RIGHT_EDGE(seg);
         return 0;
     }
 
-    /* insert the segment in the stream list using this fast track, if seg->seq
-       is equal or higher than stream->seg_list_tail.*/
-    if (SEQ_GEQ(seg->seq, (stream->seg_list_tail->seq +
-                    TCP_SEG_LEN(stream->seg_list_tail))))
-    {
-        SCLogDebug("seg beyond list tail, append");
-        stream->seg_list_tail->next = seg;
-        seg->prev = stream->seg_list_tail;
-        stream->seg_list_tail = seg;
-        return 0;
-    }
+    /* insert and then check if there was any overlap with other segments */
+    TcpSegment *res = TCPSEG_RB_INSERT(&stream->seg_tree, seg);
+    if (res) {
+        SCLogDebug("seg has a duplicate in the tree seq %u/%u",
+                res->seq, res->payload_len);
+        /* exact duplicate SEQ + payload_len */
+        *dup_seg = res;
+        return 2; // duplicate has overlap by definition.
+    } else {
+        if (SEQ_GT(SEG_SEQ_RIGHT_EDGE(seg), stream->segs_right_edge))
+            stream->segs_right_edge = SEG_SEQ_RIGHT_EDGE(seg);
 
-    /* walk the list to see where we can insert the segment.
-     * Check if a segment overlaps with us, if so we return 1 to indicate
-     * to the caller that we need to handle overlaps. */
-    TcpSegment *list_seg;
-    for (list_seg = stream->seg_list; list_seg != NULL; list_seg = list_seg->next)
-    {
-        if (SEQ_LT(seg->seq, list_seg->seq)) {
-            if (list_seg->prev != NULL) {
-                list_seg->prev->next = seg;
-            } else {
-                stream->seg_list = seg;
-            }
-            seg->prev = list_seg->prev;
-            seg->next = list_seg;
-            list_seg->prev = seg;
-
-            SCLogDebug("inserted %u before %p seq %u", seg->seq, list_seg, list_seg->seq);
-
-            if (seg->prev != NULL) {
-                SCLogDebug("previous %u", seg->prev->seq);
-            }
-            if (seg->next != NULL) {
-                SCLogDebug("next %u", seg->next->seq);
-            }
-            if (seg->prev != NULL && SEQ_GT(SEG_SEQ_RIGHT_EDGE(seg->prev), seg->seq)) {
-                SCLogDebug("seg inserted with overlap (before)");
-                return 1;
-            }
-            else if (SEQ_GT(SEG_SEQ_RIGHT_EDGE(seg), seg->next->seq)) {
-                SCLogDebug("seg inserted with overlap (after)");
-                return 1;
-            }
-
-            return 0;
+        /* insert succeeded, now check if we overlap with someone */
+        if (CheckOverlap(&stream->seg_tree, seg) == true) {
+            SCLogDebug("seg %u has overlap in the tree", seg->seq);
+            return 1;
         }
     }
-    /* if we got here we didn't insert. Append */
-    seg->prev = stream->seg_list_tail;
-    stream->seg_list_tail->next = seg;
-    stream->seg_list_tail = seg;
-
-    if (seg->prev != NULL && SEQ_GT(SEG_SEQ_RIGHT_EDGE(seg->prev), seg->seq)) {
-        SCLogDebug("seg inserted with overlap (before)");
-        return 1;
-    }
-
-    SCLogDebug("default: append");
+    SCLogDebug("seg %u: no overlap", seg->seq);
     return 0;
 }
 
@@ -212,10 +219,12 @@ static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, Packet *p)
  *  \retval 1 if data was different
  *  \retval 0 data was the same or we didn't check for differences
  */
-static int DoHandleDataOverlap(TcpStream *stream, TcpSegment *list, TcpSegment *seg, uint8_t *buf, Packet *p)
+static int DoHandleDataOverlap(TcpStream *stream, const TcpSegment *list,
+        const TcpSegment *seg, uint8_t *buf, Packet *p)
 {
     SCLogDebug("handle overlap for segment %p seq %u len %u re %u, "
-            "list segment %p seq %u len %u re %u", seg, seg->seq, p->payload_len, SEG_SEQ_RIGHT_EDGE(seg),
+            "list segment %p seq %u len %u re %u", seg, seg->seq,
+            p->payload_len, SEG_SEQ_RIGHT_EDGE(seg),
             list, list->seq, TCP_SEG_LEN(list), SEG_SEQ_RIGHT_EDGE(list));
 
     int data_is_different = 0;
@@ -399,54 +408,56 @@ static int DoHandleDataOverlap(TcpStream *stream, TcpSegment *list, TcpSegment *
     return (check_overlap_different_data && data_is_different);
 }
 
-#define MAX_IP_DATA (uint32_t)(65536 - 40) // min ip header and min tcp header
-
 /** \internal
- *  \brief walk segment list backwards to see if there are overlaps
+ *  \brief walk segment tree backwards to see if there are overlaps
  *
- *  Walk back from the current segment which is already in the list.
+ *  Walk back from the current segment which is already in the tree.
  *  We walk until we can't possibly overlap anymore.
  */
-static int DoHandleDataCheckBackwards(TcpStream *stream, TcpSegment *seg, uint8_t *buf, Packet *p)
+static int DoHandleDataCheckBackwards(TcpStream *stream,
+        TcpSegment *seg, uint8_t *buf, Packet *p)
 {
     int retval = 0;
 
-    SCLogDebug("check list backwards: insert data for segment %p seq %u len %u re %u",
+    SCLogDebug("check tree backwards: insert data for segment %p seq %u len %u re %u",
             seg, seg->seq, TCP_SEG_LEN(seg), SEG_SEQ_RIGHT_EDGE(seg));
 
-    TcpSegment *list = seg->prev;
-    do {
+    /* check backwards */
+    TcpSegment *tree_seg = NULL, *s = seg;
+    RB_FOREACH_REVERSE_FROM(tree_seg, TCPSEG, s) {
+        if (tree_seg == seg)
+            continue;
+
         int overlap = 0;
-        if (SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(list), stream->base_seq)) {
+        if (SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(tree_seg), stream->base_seq)) {
             // segment entirely before base_seq
             ;
-        } else if (SEQ_LEQ(list->seq + MAX_IP_DATA, seg->seq)) {
+        } else if (SEQ_LEQ(tree_seg->seq + tree_seg->payload_len, seg->seq)) {
             SCLogDebug("list segment too far to the left, no more overlap will be found");
             break;
-        } else if (SEQ_GT(SEG_SEQ_RIGHT_EDGE(list), seg->seq)) {
+        } else if (SEQ_GT(SEG_SEQ_RIGHT_EDGE(tree_seg), seg->seq)) {
             overlap = 1;
         }
 
-        SCLogDebug("(back) list seg %u len %u re %u overlap? %s", list->seq, TCP_SEG_LEN(list),
-                SEG_SEQ_RIGHT_EDGE(list), overlap ? "yes" : "no");
+        SCLogDebug("(back) tree seg %u len %u re %u overlap? %s",
+                tree_seg->seq, TCP_SEG_LEN(tree_seg),
+                SEG_SEQ_RIGHT_EDGE(tree_seg), overlap ? "yes" : "no");
 
         if (overlap) {
-            retval |= DoHandleDataOverlap(stream, list, seg, buf, p);
+            retval |= DoHandleDataOverlap(stream, tree_seg, seg, buf, p);
         }
-
-        list = list->prev;
-    } while (list != NULL);
-
+    }
     return retval;
 }
 
 /** \internal
- *  \brief walk segment list in forward direction to see if there are overlaps
+ *  \brief walk segment tree in forward direction to see if there are overlaps
  *
- *  Walk forward from the current segment which is already in the list.
+ *  Walk forward from the current segment which is already in the tree.
  *  We walk until the next segs start with a SEQ beyond our right edge.
  */
-static int DoHandleDataCheckForward(TcpStream *stream, TcpSegment *seg, uint8_t *buf, Packet *p)
+static int DoHandleDataCheckForward(TcpStream *stream,
+        TcpSegment *seg, uint8_t *buf, Packet *p)
 {
     int retval = 0;
 
@@ -455,34 +466,39 @@ static int DoHandleDataCheckForward(TcpStream *stream, TcpSegment *seg, uint8_t 
     SCLogDebug("check list forward: insert data for segment %p seq %u len %u re %u",
             seg, seg->seq, TCP_SEG_LEN(seg), seg_re);
 
-    TcpSegment *list = seg->next;
-    do {
+    TcpSegment *tree_seg = NULL, *s = seg;
+    RB_FOREACH_FROM(tree_seg, TCPSEG, s) {
+        if (tree_seg == seg)
+            continue;
+
         int overlap = 0;
-        if (SEQ_GT(seg_re, list->seq))
+        if (SEQ_GT(seg_re, tree_seg->seq))
             overlap = 1;
-        else if (SEQ_LEQ(seg_re, list->seq)) {
-            SCLogDebug("list segment %u too far ahead, "
-                    "no more overlaps can happen", list->seq);
+        else if (SEQ_LEQ(seg_re, tree_seg->seq)) {
+            SCLogDebug("tree segment %u too far ahead, "
+                    "no more overlaps can happen", tree_seg->seq);
             break;
         }
 
-        SCLogDebug("(fwd) list seg %u len %u re %u overlap? %s", list->seq,
-                TCP_SEG_LEN(list), SEG_SEQ_RIGHT_EDGE(list), overlap ? "yes" : "no");
+        SCLogDebug("(fwd) in-tree seg %u len %u re %u overlap? %s",
+                tree_seg->seq, TCP_SEG_LEN(tree_seg),
+                SEG_SEQ_RIGHT_EDGE(tree_seg), overlap ? "yes" : "no");
 
         if (overlap) {
-            retval |= DoHandleDataOverlap(stream, list, seg, buf, p);
+            retval |= DoHandleDataOverlap(stream, tree_seg, seg, buf, p);
         }
-
-        list = list->next;
-    } while (list != NULL);
-
+    }
     return retval;
 }
 
+/**
+ *  \param dup_seg in-tree duplicate of `seg`
+ */
 static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-        TcpStream *stream, TcpSegment *seg, Packet *p)
+        TcpStream *stream, TcpSegment *seg, TcpSegment *tree_seg, Packet *p)
 {
     int result = 0;
+    TcpSegment *handle = seg;
 
     SCLogDebug("insert data for segment %p seq %u len %u re %u",
             seg, seg->seq, TCP_SEG_LEN(seg), SEG_SEQ_RIGHT_EDGE(seg));
@@ -493,18 +509,27 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     uint8_t buf[p->payload_len];
     memcpy(buf, p->payload, p->payload_len);
 
+    /* if tree_seg is set, we have an exact duplicate that we need to check */
+    if (tree_seg) {
+        DoHandleDataOverlap(stream, tree_seg, seg, buf, p);
+        handle = tree_seg;
+    }
+
+    const bool is_head = !(TCPSEG_RB_PREV(handle));
+    const bool is_tail = !(TCPSEG_RB_NEXT(handle));
+
     /* new list head  */
-    if (seg->next != NULL && seg->prev == NULL) {
-        result = DoHandleDataCheckForward(stream, seg, buf, p);
+    if (is_head && !is_tail) {
+        result = DoHandleDataCheckForward(stream, handle, buf, p);
 
     /* new list tail */
-    } else if (seg->next == NULL && seg->prev != NULL) {
-        result = DoHandleDataCheckBackwards(stream, seg, buf, p);
+    } else if (!is_head && is_tail) {
+        result = DoHandleDataCheckBackwards(stream, handle, buf, p);
 
     /* middle of the list */
-    } else if (seg->next != NULL && seg->prev != NULL) {
-        result = DoHandleDataCheckBackwards(stream, seg, buf, p);
-        result |= DoHandleDataCheckForward(stream, seg, buf, p);
+    } else if (!is_head && !is_tail) {
+        result = DoHandleDataCheckBackwards(stream, handle, buf, p);
+        result |= DoHandleDataCheckForward(stream, handle, buf, p);
     }
 
     /* we had an overlap with different data */
@@ -515,7 +540,7 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
     /* insert the temp buffer now that we've (possibly) updated
      * it to account for the overlap policies */
-    if (InsertSegmentDataCustom(stream, seg, buf, p->payload_len) < 0) {
+    if (InsertSegmentDataCustom(stream, handle, buf, p->payload_len) < 0) {
         return -1;
     }
 
@@ -530,25 +555,21 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
  *  In case of error, this function returns the segment to the pool
  */
 int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-        TcpStream *stream, TcpSegment *seg, Packet *p, uint32_t pkt_seq, uint8_t *pkt_data, uint16_t pkt_datalen)
+        TcpStream *stream, TcpSegment *seg, Packet *p,
+        uint32_t pkt_seq, uint8_t *pkt_data, uint16_t pkt_datalen)
 {
-#ifdef DEBUG
-    SCLogDebug("pre insert");
-    PrintList(stream->seg_list);
-#endif
+    SCEnter();
+
+    TcpSegment *dup_seg = NULL;
 
     /* insert segment into list. Note: doesn't handle the data */
-    int r = DoInsertSegment (stream, seg, p);
+    int r = DoInsertSegment (stream, seg, &dup_seg, p);
+    SCLogDebug("DoInsertSegment returned %d", r);
     if (r < 0) {
         StatsIncr(tv, ra_ctx->counter_tcp_reass_list_fail);
         StreamTcpSegmentReturntoPool(seg);
         SCReturnInt(-1);
     }
-
-#ifdef DEBUG
-    SCLogDebug("post insert");
-    PrintList(stream->seg_list);
-#endif
 
     if (likely(r == 0)) {
         /* no overlap, straight data insert */
@@ -560,17 +581,46 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             SCReturnInt(-1);
         }
 
-    } else if (r == 1) {
+    } else if (r == 1 || r == 2) {
+        SCLogDebug("overlap (%s%s)", r == 1 ? "normal" : "", r == 2 ? "duplicate" : "");
+
+        if (r == 2) {
+            SCLogDebug("dup_seg %p", dup_seg);
+        }
+
         /* XXX should we exclude 'retransmissions' here? */
         StatsIncr(tv, ra_ctx->counter_tcp_reass_overlap);
 
         /* now let's consider the data in the overlap case */
-        int res = DoHandleData(tv, ra_ctx, stream, seg, p);
+        int res = DoHandleData(tv, ra_ctx, stream, seg, dup_seg, p);
         if (res < 0) {
             StatsIncr(tv, ra_ctx->counter_tcp_reass_data_overlap_fail);
-            StreamTcpRemoveSegmentFromStream(stream, seg);
+
+            if (r == 1) // r == 2 mean seg wasn't added to stream
+                StreamTcpRemoveSegmentFromStream(stream, seg);
+
             StreamTcpSegmentReturntoPool(seg);
             SCReturnInt(-1);
+        }
+        if (r == 2) {
+            SCLogDebug("duplicate segment %u/%u, discard it",
+                    seg->seq, seg->payload_len);
+
+            StreamTcpSegmentReturntoPool(seg);
+#ifdef DEBUG
+            if (SCLogDebugEnabled()) {
+                TcpSegment *s = NULL, *safe = NULL;
+                RB_FOREACH_SAFE(s, TCPSEG, &stream->seg_tree, safe)
+                {
+                    SCLogDebug("tree: seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32"%s%s%s",
+                            s, s->seq, TCP_SEG_LEN(s),
+                            (uint32_t)(s->seq + TCP_SEG_LEN(s)),
+                            s->seq == seg->seq ? " DUPLICATE" : "",
+                            TCPSEG_RB_PREV(s) == NULL ? " HEAD" : "",
+                            TCPSEG_RB_NEXT(s) == NULL ? " TAIL" : "");
+                }
+            }
+#endif
         }
     }
 
@@ -617,24 +667,22 @@ static inline bool StreamTcpReturnSegmentCheck(const TcpStream *stream, const Tc
 
 static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
 {
-    int use_app = 1;
-    int use_raw = 1;
-    int use_log = 1;
+    bool use_app = true;
+    bool use_raw = true;
+    bool use_log = true;
 
     uint64_t left_edge = 0;
     if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
           (stream->flags & STREAMTCP_STREAM_FLAG_GAP))
     {
-        // app is dead
-        use_app = 0;
+        use_app = false; // app is dead
     }
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW) {
-        // raw is dead
-        use_raw = 0;
+        use_raw = false; // raw is dead
     }
     if (!stream_config.streaming_log_api) {
-        use_log = 0;
+        use_log = false;
     }
 
     if (use_raw) {
@@ -650,6 +698,19 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
                 raw_progress -= (uint64_t)chunk_size;
             }
         }
+
+        /* apply min inspect depth: if it is set we need to keep data
+         * before the raw progress. */
+        if (use_app && stream->min_inspect_depth) {
+            if (raw_progress < stream->min_inspect_depth)
+                raw_progress = 0;
+            else
+                raw_progress -= stream->min_inspect_depth;
+
+            SCLogDebug("stream->min_inspect_depth %u, raw_progress %"PRIu64,
+                    stream->min_inspect_depth, raw_progress);
+        }
+
         if (use_app) {
             left_edge = MIN(STREAM_APP_PROGRESS(stream), raw_progress);
             SCLogDebug("left_edge %"PRIu64", using both app:%"PRIu64", raw:%"PRIu64,
@@ -681,7 +742,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
         uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
         if (STREAM_LASTACK_GT_BASESEQ(stream)) {
             /* get window of data that is acked */
-            uint32_t delta = stream->last_ack - stream->base_seq;
+            const uint32_t delta = stream->last_ack - stream->base_seq;
             DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
             /* get max absolute offset */
             last_ack_abs += delta;
@@ -692,7 +753,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
      * consider data that is ack'd as well. Injected packets may have
      * been ack'd or injected packet may be too late. */
     } else if (check_overlap_different_data) {
-        uint32_t window = stream->window ? stream->window : 4096;
+        const uint32_t window = stream->window ? stream->window : 4096;
         if (window < left_edge)
             left_edge -= window;
         else
@@ -705,9 +766,8 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
         /* we know left edge based on the progress values now,
          * lets adjust it to make sure in-use segments still have
          * data */
-        TcpSegment *seg;
-        for (seg = stream->seg_list; seg != NULL; seg = seg->next)
-        {
+        TcpSegment *seg = NULL;
+        RB_FOREACH(seg, TCPSEG, &stream->seg_tree) {
             if (TCP_SEG_OFFSET(seg) > left_edge) {
                 SCLogDebug("seg beyond left_edge, we're done");
                 break;
@@ -726,18 +786,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
 
 static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
 {
-    if (seg->prev == NULL) {
-        stream->seg_list = seg->next;
-        if (stream->seg_list != NULL)
-            stream->seg_list->prev = NULL;
-    } else {
-        seg->prev->next = seg->next;
-        if (seg->next != NULL)
-            seg->next->prev = seg->prev;
-    }
-
-    if (stream->seg_list_tail == seg)
-        stream->seg_list_tail = seg->prev;
+    RB_REMOVE(TCPSEG, &stream->seg_tree, seg);
 }
 
 /** \brief Remove idle TcpSegments from TcpSession
@@ -792,7 +841,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         return;
     }
 
-    uint64_t left_edge = GetLeftEdge(ssn, stream);
+    const uint64_t left_edge = GetLeftEdge(ssn, stream);
     if (left_edge && left_edge > STREAM_BASE_OFFSET(stream)) {
         uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
         SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
@@ -819,9 +868,9 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
                 stream->base_seq, STREAM_BASE_OFFSET(stream));
     }
 
-    /* loop through the segments and fill one or more msgs */
-    TcpSegment *seg = stream->seg_list;
-    while (seg != NULL)
+    /* loop through the segments and remove all not in use */
+    TcpSegment *seg = NULL, *safe = NULL;
+    RB_FOREACH_SAFE(seg, TCPSEG, &stream->seg_tree, safe)
     {
         SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32,
                 seg, seg->seq, TCP_SEG_LEN(seg),
@@ -832,147 +881,15 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
             break;
         }
 
-        TcpSegment *next_seg = seg->next;
         StreamTcpRemoveSegmentFromStream(stream, seg);
         StreamTcpSegmentReturntoPool(seg);
-        seg = next_seg;
         SCLogDebug("removed segment");
         continue;
     }
-#ifdef DEBUG
-    PrintList(stream->seg_list);
-#endif
+
     SCReturn;
 }
 
-/*
- *  Utils
- */
-
-#if 0
-void PrintList2(TcpSegment *seg)
-{
-    TcpSegment *prev_seg = NULL;
-
-    if (seg == NULL)
-        return;
-
-    uint32_t next_seq = seg->seq;
-
-    while (seg != NULL) {
-        if (SEQ_LT(next_seq,seg->seq)) {
-            SCLogDebug("missing segment(s) for %" PRIu32 " bytes of data",
-                        (seg->seq - next_seq));
-        }
-
-        SCLogDebug("seg %10"PRIu32" len %" PRIu16 ", seg %p, prev %p, next %p",
-                    seg->seq, TCP_SEG_LEN(seg), seg, seg->prev, seg->next);
-
-        if (seg->prev != NULL && SEQ_LT(seg->seq,seg->prev->seq)) {
-            /* check for SEQ_LT cornercase where a - b is exactly 2147483648,
-             * which makes the marco return TRUE in both directions. This is
-             * a hack though, we're going to check next how we end up with
-             * a segment list with seq differences that big */
-            if (!(SEQ_LT(seg->prev->seq,seg->seq))) {
-                SCLogDebug("inconsistent list: SEQ_LT(seg->seq,seg->prev->seq)) =="
-                        " TRUE, seg->seq %" PRIu32 ", seg->prev->seq %" PRIu32 ""
-                        "", seg->seq, seg->prev->seq);
-            }
-        }
-
-        if (SEQ_LT(seg->seq,next_seq)) {
-            SCLogDebug("inconsistent list: SEQ_LT(seg->seq,next_seq)) == TRUE, "
-                       "seg->seq %" PRIu32 ", next_seq %" PRIu32 "", seg->seq,
-                       next_seq);
-        }
-
-        if (prev_seg != seg->prev) {
-            SCLogDebug("inconsistent list: prev_seg %p != seg->prev %p",
-                        prev_seg, seg->prev);
-        }
-
-        next_seq = seg->seq + TCP_SEG_LEN(seg);
-        SCLogDebug("next_seq is now %"PRIu32"", next_seq);
-        prev_seg = seg;
-        seg = seg->next;
-    }
-}
-#endif
-
-void PrintList(TcpSegment *seg)
-{
-    TcpSegment *prev_seg = NULL;
-//    TcpSegment *head_seg = seg;
-
-    if (seg == NULL)
-        return;
-
-    uint32_t next_seq = seg->seq;
-
-    while (seg != NULL) {
-        if (SEQ_LT(next_seq,seg->seq)) {
-            SCLogDebug("missing segment(s) for %" PRIu32 " bytes of data",
-                        (seg->seq - next_seq));
-        }
-
-        SCLogDebug("seg %10"PRIu32" len %" PRIu16 ", seg %p, prev %p, next %p",
-                    seg->seq, TCP_SEG_LEN(seg), seg, seg->prev, seg->next);
-
-        if (seg->prev != NULL && SEQ_LT(seg->seq,seg->prev->seq)) {
-            /* check for SEQ_LT cornercase where a - b is exactly 2147483648,
-             * which makes the marco return TRUE in both directions. This is
-             * a hack though, we're going to check next how we end up with
-             * a segment list with seq differences that big */
-            if (!(SEQ_LT(seg->prev->seq,seg->seq))) {
-                SCLogDebug("inconsistent list: SEQ_LT(seg->seq,seg->prev->seq)) == "
-                        "TRUE, seg->seq %" PRIu32 ", seg->prev->seq %" PRIu32 "",
-                        seg->seq, seg->prev->seq);
-//                PrintList2(head_seg);
-//                abort();
-            }
-        }
-
-        if (SEQ_LT(seg->seq,next_seq)) {
-            SCLogDebug("inconsistent list: SEQ_LT(seg->seq,next_seq)) == TRUE, "
-                       "seg->seq %" PRIu32 ", next_seq %" PRIu32 "", seg->seq,
-                       next_seq);
-//            PrintList2(head_seg);
-//            abort();
-        }
-
-        if (prev_seg != seg->prev) {
-            SCLogDebug("inconsistent list: prev_seg %p != seg->prev %p",
-                       prev_seg, seg->prev);
-//            PrintList2(head_seg);
-            abort();
-        }
-
-        next_seq = seg->seq + TCP_SEG_LEN(seg);
-        SCLogDebug("next_seq is now %"PRIu32"", next_seq);
-        prev_seg = seg;
-        seg = seg->next;
-    }
-}
-
-#if 0
-void ValidateList(const TcpStream *stream)
-{
-    TcpSegment *seg = stream->seg_list;
-    TcpSegment *prev_seg = NULL;
-
-    BUG_ON(seg && seg->next == NULL && stream->seg_list != stream->seg_list_tail);
-    BUG_ON(stream->seg_list != stream->seg_list_tail && stream->seg_list_tail->prev == NULL);
-
-    while (seg != NULL) {
-        prev_seg = seg;
-        seg = seg->next;
-        BUG_ON(seg && seg->prev != prev_seg);
-
-        // equal is possible
-        BUG_ON(seg && SEQ_LT(seg->seq, prev_seg->seq));
-    }
-}
-#endif
 
 /*
  *  unittests

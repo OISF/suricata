@@ -262,6 +262,7 @@ int SCHInfoGetHostOSFlavour(const char *ip_addr_str)
         }
 
         (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)ipv6_addr, sc_hinfo_tree, &user_data);
+        SCFree(ipv6_addr);
         if (user_data == NULL)
             return -1;
         else
@@ -273,6 +274,7 @@ int SCHInfoGetHostOSFlavour(const char *ip_addr_str)
         }
 
         (void)SCRadixFindKeyIPV4BestMatch((uint8_t *)ipv4_addr, sc_hinfo_tree, &user_data);
+        SCFree(ipv4_addr);
         if (user_data == NULL)
             return -1;
         else

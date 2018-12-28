@@ -58,6 +58,7 @@
 #include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
+#include "app-layer-htp.h"
 
 #include "util-classification-config.h"
 #include "util-unittest.h"
@@ -678,7 +679,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         }
         /* if quoting is mandatory, enforce it */
         if (st->flags & SIGMATCH_QUOTES_MANDATORY && ovlen && *ptr != '"') {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formattingto %s keyword: "
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting to %s keyword: "
                     "value must be double quoted \'%s\'", optname, optstr);
             goto error;
         }
@@ -1547,6 +1548,16 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
     SCEnter();
 
+    /* check for sticky buffers that were set w/o matches
+     * e.g. alert ... (file_data; sid:1;) */
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        if (s->init_data->smlists[s->init_data->list] == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u setup buffer %s but didn't add matches to it",
+                    s->id, DetectBufferTypeGetNameById(de_ctx, s->init_data->list));
+            SCReturnInt(0);
+        }
+    }
+
     /* run buffer type validation callbacks if any */
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
         if (DetectContentPMATCHValidateCallback(s) == FALSE)
@@ -1564,7 +1575,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->init_data->smlists[x]) {
             const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
             for ( ; app != NULL; app = app->next) {
-                if (app->sm_list == x && s->alproto == app->alproto) {
+                if (app->sm_list == x && ((s->alproto == app->alproto) || s->alproto == 0)) {
                     SCLogDebug("engine %s dir %d alproto %d",
                             DetectBufferTypeGetNameById(de_ctx, app->sm_list),
                             app->dir, app->alproto);
@@ -1644,44 +1655,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCReturnInt(0);
     }
 
-    //if (s->alproto != ALPROTO_UNKNOWN) {
-    //    if (s->flags & SIG_FLAG_STATE_MATCH) {
-    //        if (s->alproto == ALPROTO_DNS) {
-    //            if (al_proto_table[ALPROTO_DNS_UDP].to_server == 0 ||
-    //                al_proto_table[ALPROTO_DNS_UDP].to_client == 0 ||
-    //                al_proto_table[ALPROTO_DNS_TCP].to_server == 0 ||
-    //                al_proto_table[ALPROTO_DNS_TCP].to_client == 0) {
-    //                SCLogInfo("Signature uses options that need the app layer "
-    //                          "parser for dns, but the parser's disabled "
-    //                          "for the protocol.  Please check if you have "
-    //                          "disabled it through the option "
-    //                          "\"app-layer.protocols.dcerpc[udp|tcp].enabled\""
-    //                          "or internally the parser has been disabled in "
-    //                          "the code.  Invalidating signature.");
-    //                SCReturnInt(0);
-    //            }
-    //        } else {
-    //            if (al_proto_table[s->alproto].to_server == 0 ||
-    //                al_proto_table[s->alproto].to_client == 0) {
-    //                const char *proto_name = AppProtoToString(s->alproto);
-    //                SCLogInfo("Signature uses options that need the app layer "
-    //                          "parser for \"%s\", but the parser's disabled "
-    //                          "for the protocol.  Please check if you have "
-    //                          "disabled it through the option "
-    //                          "\"app-layer.protocols.%s.enabled\" or internally "
-    //                          "there the parser has been disabled in the code.   "
-    //                          "Invalidating signature.", proto_name, proto_name);
-    //                SCReturnInt(0);
-    //            }
-    //        }
-    //    }
-    //
-    //
-    //
-    //
-    //
-    //}
-
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
         pm = DetectGetLastSMFromLists(s, DETECT_REPLACE, -1);
         if (pm != NULL && SigMatchListSMBelongsTo(s, pm) != DETECT_SM_LIST_PMATCH) {
@@ -1708,19 +1681,33 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    /* TCP: pkt vs stream vs depth/offset */
+    /* TCP: corner cases:
+     * - pkt vs stream vs depth/offset
+     * - pkt vs stream vs stream_size
+     */
     if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) {
-        if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
-            s->flags |= SIG_FLAG_REQUIRE_STREAM;
-            sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
-            while (sm != NULL) {
-                if (sm->type == DETECT_CONTENT &&
-                        (((DetectContentData *)(sm->ctx))->flags &
-                         (DETECT_CONTENT_DEPTH | DETECT_CONTENT_OFFSET))) {
-                    s->flags |= SIG_FLAG_REQUIRE_PACKET;
-                    break;
+        if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
+            if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
+                s->flags |= SIG_FLAG_REQUIRE_STREAM;
+                sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
+                while (sm != NULL) {
+                    if (sm->type == DETECT_CONTENT &&
+                            (((DetectContentData *)(sm->ctx))->flags &
+                             (DETECT_CONTENT_DEPTH | DETECT_CONTENT_OFFSET))) {
+                        s->flags |= SIG_FLAG_REQUIRE_PACKET;
+                        break;
+                    }
+                    sm = sm->next;
                 }
-                sm = sm->next;
+                /* if stream_size is in use, also inspect packets */
+                sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
+                while (sm != NULL) {
+                    if (sm->type == DETECT_STREAM_SIZE) {
+                        s->flags |= SIG_FLAG_REQUIRE_PACKET;
+                        break;
+                    }
+                    sm = sm->next;
+                }
             }
         }
     }

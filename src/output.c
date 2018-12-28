@@ -72,7 +72,10 @@
 #include "output-json-tftp.h"
 #include "output-json-smb.h"
 #include "output-json-ikev2.h"
+#include "output-json-krb5.h"
+#include "output-json-dhcp.h"
 #include "output-json-template.h"
+#include "output-json-template-rust.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
 #include "output-json-metadata.h"
@@ -1098,7 +1101,12 @@ void OutputRegisterLoggers(void)
     JsonSMBLogRegister();
     /* IKEv2 JSON logger. */
     JsonIKEv2LogRegister();
-
+    /* KRB5 JSON logger. */
+    JsonKRB5LogRegister();
+    /* DHCP JSON logger. */
+    JsonDHCPLogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
+    /* Template Rust JSON logger. */
+    JsonTemplateRustLogRegister();
 }

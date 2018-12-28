@@ -375,7 +375,7 @@ void DetectHttpHeaderRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_HEADER].name = "http_header";
     sigmatch_table[DETECT_AL_HTTP_HEADER].desc = "content modifier to match only on the HTTP header-buffer";
-    sigmatch_table[DETECT_AL_HTTP_HEADER].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-header";
+    sigmatch_table[DETECT_AL_HTTP_HEADER].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-header-and-http-raw-header";
     sigmatch_table[DETECT_AL_HTTP_HEADER].Setup = DetectHttpHeaderSetup;
     sigmatch_table[DETECT_AL_HTTP_HEADER].RegisterTests = DetectHttpHeaderRegisterTests;
 

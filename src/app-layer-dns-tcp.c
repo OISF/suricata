@@ -51,6 +51,7 @@
 #include "app-layer-dns-tcp-rust.h"
 #endif
 
+#ifndef HAVE_RUST
 struct DNSTcpHeader_ {
     uint16_t len;
     uint16_t tx_id;
@@ -62,8 +63,7 @@ struct DNSTcpHeader_ {
 } __attribute__((__packed__));
 typedef struct DNSTcpHeader_ DNSTcpHeader;
 
-static uint16_t DNSTcpProbingParser(Flow *f, uint8_t *input, uint32_t ilen,
-        uint32_t *offset);
+static uint16_t DNSTcpProbingParser(Flow *f, uint8_t *input, uint32_t ilen);
 
 /** \internal
  *  \param input_len at least enough for the DNSTcpHeader
@@ -290,7 +290,7 @@ insufficient_data:
 static int DNSTCPRequestParse(Flow *f, void *dstate,
                               AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
-                              void *local_data)
+                              void *local_data, const uint8_t flags)
 {
     DNSState *dns_state = (DNSState *)dstate;
     SCLogDebug("starting %u", input_len);
@@ -317,7 +317,7 @@ static int DNSTCPRequestParse(Flow *f, void *dstate,
 
     /* Clear gap state. */
     if (dns_state->gap_ts) {
-        if (DNSTcpProbingParser(f, input, input_len, NULL) == ALPROTO_DNS) {
+        if (DNSTcpProbingParser(f, input, input_len) == ALPROTO_DNS) {
             SCLogDebug("New data probed as DNS, clearing gap state.");
             BufferReset(dns_state);
             dns_state->gap_ts = 0;
@@ -531,7 +531,7 @@ insufficient_data:
 static int DNSTCPResponseParse(Flow *f, void *dstate,
                                AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
-                               void *local_data)
+                               void *local_data, const uint8_t flags)
 {
     DNSState *dns_state = (DNSState *)dstate;
 
@@ -557,7 +557,7 @@ static int DNSTCPResponseParse(Flow *f, void *dstate,
 
     /* Clear gap state. */
     if (dns_state->gap_tc) {
-        if (DNSTcpProbingParser(f, input, input_len, NULL) == ALPROTO_DNS) {
+        if (DNSTcpProbingParser(f, input, input_len) == ALPROTO_DNS) {
             SCLogDebug("New data probed as DNS, clearing gap state.");
             BufferReset(dns_state);
             dns_state->gap_tc = 0;
@@ -639,8 +639,7 @@ bad_data:
     SCReturnInt(-1);
 }
 
-static uint16_t DNSTcpProbingParser(Flow *f, uint8_t *input, uint32_t ilen,
-                                    uint32_t *offset)
+static uint16_t DNSTcpProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
 {
     if (ilen == 0 || ilen < sizeof(DNSTcpHeader)) {
         SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)sizeof(DNSTcpHeader));
@@ -680,8 +679,7 @@ static uint16_t DNSTcpProbingParser(Flow *f, uint8_t *input, uint32_t ilen,
  * This is a minimal parser that just checks that the input contains enough
  * data for a TCP DNS response.
  */
-static uint16_t DNSTcpProbeResponse(Flow *f, uint8_t *input, uint32_t len,
-    uint32_t *offset)
+static uint16_t DNSTcpProbeResponse(Flow *f, uint8_t *input, uint32_t len)
 {
     if (len == 0 || len < sizeof(DNSTcpHeader)) {
         return ALPROTO_UNKNOWN;
@@ -695,14 +693,15 @@ static uint16_t DNSTcpProbeResponse(Flow *f, uint8_t *input, uint32_t len,
 
     return ALPROTO_DNS;
 }
+#endif /* HAVE_RUST */
 
 void RegisterDNSTCPParsers(void)
 {
-    const char *proto_name = "dns";
 #ifdef HAVE_RUST
     RegisterRustDNSTCPParsers();
     return;
-#endif
+#else
+    const char *proto_name = "dns";
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNS, proto_name);
@@ -771,16 +770,16 @@ void RegisterDNSTCPParsers(void)
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
-
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_DNS,
         DNSTCPParserRegisterTests);
 #endif
-
     return;
+#endif /* HAVE_RUST */
 }
 
 /* UNITTESTS */
+#ifndef HAVE_RUST
 #ifdef UNITTESTS
 
 #include "util-unittest-helper.h"
@@ -887,7 +886,7 @@ static int DNSTCPParserTestMultiRecord(void)
     f->alproto = ALPROTO_DNS;
     f->alstate = state;
 
-    FAIL_IF_NOT(DNSTCPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+    FAIL_IF_NOT(DNSTCPRequestParse(f, f->alstate, NULL, req, reqlen, NULL, STREAM_START));
     FAIL_IF(state->transaction_max != 20);
 
     UTHFreeFlow(f);
@@ -900,3 +899,4 @@ void DNSTCPParserRegisterTests(void)
 }
 
 #endif /* UNITTESTS */
+#endif /* HAVE_RUST */

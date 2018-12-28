@@ -25,12 +25,7 @@
 #ifndef __DETECT_URICONTENT_H__
 #define __DETECT_URICONTENT_H__
 
-#include "detect-content.h"
-
-#include "app-layer-htp.h"
-
 /* prototypes */
 void DetectUricontentRegister (void);
-void DetectUricontentPrint(DetectContentData *);
 
 #endif /* __DETECT_URICONTENT_H__ */

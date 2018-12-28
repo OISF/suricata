@@ -147,6 +147,12 @@ static const char *RunModeTranslateModeToName(int runmode)
 #endif
         case RUNMODE_UNIX_SOCKET:
             return "UNIX_SOCKET";
+        case RUNMODE_WINDIVERT:
+#ifdef WINDIVERT
+            return "WINDIVERT";
+#else
+            return "WINDIVERT(DISABLED)";
+#endif
         default:
             SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
             exit(EXIT_FAILURE);
@@ -220,6 +226,7 @@ void RunModeRegisterRunModes(void)
     RunModeIdsNflogRegister();
     RunModeTileMpipeRegister();
     RunModeUnixSocketRegister();
+    RunModeIpsWinDivertRegister();
 #ifdef UNITTESTS
     UtRunModeRegister();
 #endif
@@ -328,6 +335,11 @@ void RunModeDispatch(int runmode, const char *custom_mode)
             case RUNMODE_NFLOG:
                 custom_mode = RunModeIdsNflogGetDefaultMode();
                 break;
+#ifdef WINDIVERT
+            case RUNMODE_WINDIVERT:
+                custom_mode = RunModeIpsWinDivertGetDefaultMode();
+                break;
+#endif
             default:
                 SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
                 exit(EXIT_FAILURE);
@@ -609,6 +621,15 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
         char subname[256];
         snprintf(subname, sizeof(subname), "eve-log.%s", type->val);
 
+        ConfNode *sub_output_config = ConfNodeLookupChild(type, type->val);
+        if (sub_output_config != NULL) {
+            const char *enabled = ConfNodeLookupChildValue(
+                sub_output_config, "enabled");
+            if (enabled != NULL && !ConfValIsTrue(enabled)) {
+                continue;
+            }
+        }
+
         /* Now setup all registers logger of this name. */
         OutputModule *sub_module;
         TAILQ_FOREACH(sub_module, &output_modules, entries) {
@@ -624,9 +645,6 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
                     FatalError(SC_ERR_INVALID_ARGUMENT,
                             "bad sub-module for %s", subname);
                 }
-                ConfNode *sub_output_config =
-                    ConfNodeLookupChild(type, type->val);
-                // sub_output_config may be NULL if no config
 
                 /* pass on parent output_ctx */
                 OutputInitResult result =
@@ -644,6 +662,22 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
         /* Error is no registered loggers with this name
          * were found .*/
         if (!sub_count) {
+#ifndef HAVE_RUST
+            const char *rust_types[] = { "eve-log.smb", "eve-log.nfs",
+                "eve-log.dhcp", "eve-log.krb5", "eve-log.ikev2",
+                "eve-log.tftp", NULL, };
+            const char **iter = rust_types;
+            bool is_rust = false;
+            while (*iter) {
+                is_rust |= (strcmp(*iter, subname) == 0);
+                iter++;
+            }
+            if (is_rust) {
+                SCLogWarning(SC_WARN_RUST_NOT_AVAILABLE, "output "
+                    "module '%s' depends on Rust support", subname);
+                continue;
+            }
+#endif
             FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
                     "No output module named %s", subname);
             continue;

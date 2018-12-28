@@ -1188,6 +1188,8 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
+    } else if (input == NULL) {
+        SCReturnInt(-1);
     }
 
     if (sstate->bytesprocessed != 0 && sstate->data_needed_for_dir != dir) {
@@ -1392,14 +1394,14 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 
 static int SMBParseRequest(Flow *f, void *smb_state, AppLayerParserState *pstate,
                            uint8_t *input, uint32_t input_len,
-                           void *local_data)
+                           void *local_data, const uint8_t flags)
 {
     return SMBParse(f, smb_state, pstate, input, input_len, local_data, 0);
 }
 
 static int SMBParseResponse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
-                            void *local_data)
+                            void *local_data, const uint8_t flags)
 {
     return SMBParse(f, smb_state, pstate, input, input_len, local_data, 1);
 }
@@ -1510,8 +1512,7 @@ static int SMBGetAlstateProgress(void *tx, uint8_t direction)
 
 #define SMB_PROBING_PARSER_MIN_DEPTH 8
 
-static uint16_t SMBProbingParser(Flow *f, uint8_t *input, uint32_t ilen,
-                                 uint32_t *offset)
+static uint16_t SMBProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
 {
     int32_t len;
     int32_t input_len = ilen;

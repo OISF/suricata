@@ -420,9 +420,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         }
 
         if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(f, buf, buflen, NULL);
+            alproto = pe->ProbingParserTs(f, buf, buflen);
         } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(f, buf, buflen, NULL);
+            alproto = pe->ProbingParserTc(f, buf, buflen);
         }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
@@ -441,9 +441,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         }
 
         if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(f, buf, buflen, NULL);
+            alproto = pe->ProbingParserTs(f, buf, buflen);
         } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(f, buf, buflen, NULL);
+            alproto = pe->ProbingParserTc(f, buf, buflen);
         }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
@@ -727,6 +727,12 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_TFTP\n");
                     else if (pp_pe->alproto == ALPROTO_IKEV2)
                         printf("            alproto: ALPROTO_IKEV2\n");
+                    else if (pp_pe->alproto == ALPROTO_KRB5)
+                        printf("            alproto: ALPROTO_KRB5\n");
+                    else if (pp_pe->alproto == ALPROTO_DHCP)
+                        printf("            alproto: ALPROTO_DHCP\n");
+                    else if (pp_pe->alproto == ALPROTO_TEMPLATE_RUST)
+                        printf("            alproto: ALPROTO_TEMPLATE_RUST\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                         printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -794,6 +800,12 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_TFTP\n");
                 else if (pp_pe->alproto == ALPROTO_IKEV2)
                     printf("            alproto: ALPROTO_IKEV2\n");
+                else if (pp_pe->alproto == ALPROTO_KRB5)
+                    printf("            alproto: ALPROTO_KRB5\n");
+                else if (pp_pe->alproto == ALPROTO_DHCP)
+                    printf("            alproto: ALPROTO_DHCP\n");
+                else if (pp_pe->alproto == ALPROTO_TEMPLATE_RUST)
+                    printf("            alproto: ALPROTO_TEMPLATE_RUST\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                     printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -1345,20 +1357,30 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
                                      uint8_t ipproto, uint8_t direction)
 {
     SCEnter();
+    SCLogDebug("buflen %u for %s direction", buflen,
+            (direction & STREAM_TOSERVER) ? "toserver" : "toclient");
 
     AppProto alproto = ALPROTO_UNKNOWN;
-    AppProto pm_results[ALPROTO_MAX];
-    uint16_t pm_matches;
+    AppProto pm_alproto = ALPROTO_UNKNOWN;
 
     if (!FLOW_IS_PM_DONE(f, direction)) {
-        pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
+        AppProto pm_results[ALPROTO_MAX];
+        uint16_t pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
                                                    buf, buflen,
                                                    direction,
                                                    ipproto,
                                                    pm_results);
         if (pm_matches > 0) {
             alproto = pm_results[0];
-            goto end;
+
+            /* HACK: if detected protocol is dcerpc/udp, we run PP as well
+             * to avoid misdetecting DNS as DCERPC. */
+            if (!(ipproto == IPPROTO_UDP && alproto == ALPROTO_DCERPC))
+                goto end;
+
+            pm_alproto = alproto;
+
+            /* fall through */
         }
     }
 
@@ -1375,6 +1397,9 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
     }
 
  end:
+    if (alproto == ALPROTO_UNKNOWN)
+        alproto = pm_alproto;
+
     SCReturnUInt(alproto);
 }
 
@@ -1650,13 +1675,9 @@ void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_n
 {
     SCEnter();
 
-    if (alpd_ctx.alproto_names[alproto] != NULL)
-        goto end;
+    if (alpd_ctx.alproto_names[alproto] == NULL)
+        alpd_ctx.alproto_names[alproto] = alproto_name;
 
-    alpd_ctx.alproto_names[alproto] = alproto_name;
-
-    goto end;
- end:
     SCReturn;
 }
 
@@ -1938,6 +1959,8 @@ void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
 /***** Unittests *****/
 
 #ifdef UNITTESTS
+
+#include "app-layer-htp.h"
 
 static AppLayerProtoDetectCtx alpd_ctx_ut;
 
@@ -3102,8 +3125,7 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
 
 static uint16_t ProbingParserDummyForTesting(Flow *f,
                                              uint8_t *input,
-                                             uint32_t input_len,
-                                             uint32_t *offset)
+                                             uint32_t input_len)
 {
     return 0;
 }

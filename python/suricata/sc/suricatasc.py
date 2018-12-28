@@ -184,6 +184,9 @@ class SuricataSC:
                 continuous = None
                 if len(parts) > 4:
                     continuous = parts[4]
+                delete_when_done = None
+                if len(parts) > 5:
+                    delete_when_done = parts[5]
                 if cmd != "pcap-file":
                     raise SuricataCommandException("Invalid command '%s'" % (command))
                 else:
@@ -194,6 +197,8 @@ class SuricataSC:
                         arguments["tenant"] = int(tenant)
                     if continuous != None:
                         arguments["continuous"] = continuous
+                    if delete_when_done != None:
+                        arguments["delete-when-done"] = delete_when_done
             elif "pcap-file-continuous " in command:
                 try:
                     parts = command.split(' ')
@@ -203,6 +208,9 @@ class SuricataSC:
                 tenant = None
                 if len(parts) > 3:
                     tenant = parts[3]
+                delete_when_done = None
+                if len(parts) > 4:
+                    delete_when_done = parts[4]
                 if cmd != "pcap-file":
                     raise SuricataCommandException("Invalid command '%s'" % (command))
                 else:
@@ -212,6 +220,8 @@ class SuricataSC:
                     arguments["continuous"] = True
                     if tenant != None:
                         arguments["tenant"] = int(tenant)
+                    if delete_when_done != None:
+                        arguments["delete-when-done"] = delete_when_done
             elif "iface-stat" in command:
                 try:
                     [cmd, iface] = command.split(' ', 1)

@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,11 +36,8 @@
 #include "decode-events.h"
 #include "decode-template.h"
 
-#include "util-unittest.h"
-#include "util-debug.h"
-
 /**
- * \brief Function to decode XXX packets
+ * \brief Function to decode TEMPLATE packets
  * \param tv thread vars
  * \param dtv decoder thread vars
  * \param p packet
@@ -50,7 +47,7 @@
  */
 
 int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   const uint8_t *pkt, uint16_t len, PacketQueue *pq)
+                   const uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     /* TODO add counter for your type of packet to DecodeThreadVars,
      * and register it in DecodeRegisterPerfCounters */
@@ -78,12 +75,14 @@ int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         /* in this example it's clear that hdr_len can't be bigger than
          * 'len', but in more complex cases checking that we can't underflow
          * len is very important
-        if (hdr_len < len) {
+        if (hdr_len >= len) {
+            ENGINE_SET_EVENT(p,TEMPLATE_MALFORMED_HDRLEN);
+            return TM_ECODE_FAILED;
+        }
          */
 
         /* invoke the next decoder on the remainder of the data */
         return DecodeUDP(tv, dtv, p, (uint8_t *)pkt + hdr_len, len - hdr_len, pq);
-        //}
     } else {
         //ENGINE_SET_EVENT(p,TEMPLATE_UNSUPPORTED_PROTOCOL);
         return TM_ECODE_FAILED;

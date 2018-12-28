@@ -54,6 +54,7 @@ enum
 enum StreamUpdateDir {
     UPDATE_DIR_PACKET,
     UPDATE_DIR_OPPOSING,
+    UPDATE_DIR_BOTH,
 };
 
 typedef struct TcpReassemblyThreadCtx_ {
@@ -127,6 +128,7 @@ int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
 #endif
 
 bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p);
+void StreamTcpReassemblySetMinInspectDepth(TcpSession *ssn, int direction, uint32_t depth);
 
 static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
 {

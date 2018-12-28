@@ -457,7 +457,7 @@ static inline int MpmInitHashAdd(MpmCtx *ctx, MpmPattern *p)
     uint32_t hash = MpmInitHash(p);
 
     if (ctx->init_hash == NULL) {
-        return 0;
+        return -1;
     }
 
     if (ctx->init_hash[hash] == NULL) {
@@ -559,7 +559,8 @@ int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
         }
 
         /* put in the pattern hash */
-        MpmInitHashAdd(mpm_ctx, p);
+        if (MpmInitHashAdd(mpm_ctx, p) != 0)
+            goto error;
 
         mpm_ctx->pattern_cnt++;
 

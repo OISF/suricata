@@ -1196,7 +1196,7 @@ static int FlowMgrTest02 (void)
     memset(&fb, 0, sizeof(FlowBucket));
     memset(&ts, 0, sizeof(ts));
     memset(&seg, 0, sizeof(TcpSegment));
-    memset(&client, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpStream));
 
     FBLOCK_INIT(&fb);
     FLOW_INITIALIZE(&f);
@@ -1204,9 +1204,7 @@ static int FlowMgrTest02 (void)
 
     TimeGet(&ts);
     TCP_SEG_LEN(&seg) = 3;
-    seg.next = NULL;
-    seg.prev = NULL;
-    client.seg_list = &seg;
+    TCPSEG_RB_INSERT(&client.seg_tree, &seg);
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
@@ -1302,7 +1300,7 @@ static int FlowMgrTest04 (void)
     memset(&fb, 0, sizeof(FlowBucket));
     memset(&ts, 0, sizeof(ts));
     memset(&seg, 0, sizeof(TcpSegment));
-    memset(&client, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpStream));
 
     FBLOCK_INIT(&fb);
     FLOW_INITIALIZE(&f);
@@ -1310,9 +1308,7 @@ static int FlowMgrTest04 (void)
 
     TimeGet(&ts);
     TCP_SEG_LEN(&seg) = 3;
-    seg.next = NULL;
-    seg.prev = NULL;
-    client.seg_list = &seg;
+    TCPSEG_RB_INSERT(&client.seg_tree, &seg);
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;

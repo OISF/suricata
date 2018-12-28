@@ -68,7 +68,7 @@ void DetectIsdataatRegister(void)
 {
     sigmatch_table[DETECT_ISDATAAT].name = "isdataat";
     sigmatch_table[DETECT_ISDATAAT].desc = "check if there is still data at a specific part of the payload";
-    sigmatch_table[DETECT_ISDATAAT].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#isadataat";
+    sigmatch_table[DETECT_ISDATAAT].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#isdataat";
     /* match is handled in DetectEngineContentInspection() */
     sigmatch_table[DETECT_ISDATAAT].Match = NULL;
     sigmatch_table[DETECT_ISDATAAT].Setup = DetectIsdataatSetup;
@@ -218,7 +218,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
     int sm_list;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         if (DetectBufferGetActiveList(de_ctx, s) == -1)
-            return -1;
+            goto end;
         sm_list = s->init_data->list;
 
         if (idad->flags & ISDATAAT_RELATIVE) {
@@ -251,6 +251,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         idad->flags |= ISDATAAT_OFFSET_BE;
         SCLogDebug("isdataat uses byte_extract with local id %u", idad->dataat);
         SCFree(offset);
+        offset = NULL;
     }
 
     /* 'ends with' scenario */
@@ -293,6 +294,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
     ret = 0;
 
 end:
+    if (offset)
+        SCFree(offset);
     if (ret != 0)
         DetectIsdataatFree(idad);
     return ret;

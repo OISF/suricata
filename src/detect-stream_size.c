@@ -78,7 +78,9 @@ void DetectStreamSizeRegister(void)
  *  \retval 1 on success and 0 on failure.
  */
 
-static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t mode) {
+static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t mode)
+{
+    SCLogDebug("diff %u stream_size %u mode %u", diff, stream_size, mode);
 
     int ret = 0;
     switch (mode) {
@@ -108,7 +110,7 @@ static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t
             break;
     }
 
-    return ret;
+    SCReturnInt(ret);
 }
 
 /**
@@ -126,21 +128,17 @@ static int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchCtx *ctx)
 {
 
-    int ret = 0;
     const DetectStreamSizeData *sd = (const DetectStreamSizeData *)ctx;
 
     if (!(PKT_IS_TCP(p)))
-        return ret;
+        return 0;
+    if (p->flow == NULL || p->flow->protoctx == NULL)
+        return 0;
 
+    const TcpSession *ssn = (TcpSession *)p->flow->protoctx;
+    int ret = 0;
     uint32_t csdiff = 0;
     uint32_t ssdiff = 0;
-
-    if (p->flow == NULL)
-        return ret;
-
-    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-    if (ssn == NULL)
-        return ret;
 
     if (sd->flags & STREAM_SIZE_SERVER) {
         /* get the server stream size */
@@ -155,17 +153,21 @@ static int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     } else if (sd->flags & STREAM_SIZE_BOTH) {
         ssdiff = ssn->server.next_seq - ssn->server.isn;
         csdiff = ssn->client.next_seq - ssn->client.isn;
-        if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) && DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
+
+        if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) &&
+            DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
             ret = 1;
 
     } else if (sd->flags & STREAM_SIZE_EITHER) {
         ssdiff = ssn->server.next_seq - ssn->server.isn;
         csdiff = ssn->client.next_seq - ssn->client.isn;
-        if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) || DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
+
+        if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) ||
+            DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
             ret = 1;
     }
 
-    return ret;
+    SCReturnInt(ret);
 }
 
 /**

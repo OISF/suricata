@@ -96,8 +96,8 @@ static int DnsGetDnsRrname(lua_State *luastate)
             return ret;
         }
     }
-#endif
     return LuaCallbackError(luastate, "no query");
+#endif
 }
 
 static int DnsGetTxid(lua_State *luastate)

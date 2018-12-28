@@ -197,9 +197,16 @@ enum {
     DETECT_BASE64_DECODE,
     DETECT_BASE64_DATA,
 
+    DETECT_AL_KRB5_ERRCODE,
+    DETECT_AL_KRB5_MSGTYPE,
+    DETECT_AL_KRB5_CNAME,
+    DETECT_AL_KRB5_SNAME,
+
     DETECT_TEMPLATE,
+    DETECT_TEMPLATE2,
     DETECT_FTPDATA,
     DETECT_TARGET,
+    DETECT_AL_TEMPLATE_RUST_BUFFER,
     DETECT_AL_TEMPLATE_BUFFER,
 
     DETECT_BYPASS,
@@ -213,9 +220,6 @@ enum {
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
-
-/* Table with all SigMatch registrations */
-SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
 void SigTableList(const char *keyword);
 void SigTableSetup(void);

@@ -563,6 +563,20 @@ named!(pub parse_smb_create_andx_request_record<SmbRequestCreateAndXRecord>,
 );
 
 #[derive(Debug,PartialEq)]
+pub struct Trans2RecordParamSetFileInfoDisposition<> {
+    pub delete: bool,
+}
+
+named!(pub parse_trans2_request_data_set_file_info_disposition<Trans2RecordParamSetFileInfoDisposition>,
+    do_parse!(
+            delete: le_u8
+        >>  _reserved: take!(3)
+        >> (Trans2RecordParamSetFileInfoDisposition {
+                delete: delete & 1 == 1,
+            })
+));
+
+#[derive(Debug,PartialEq)]
 pub struct Trans2RecordParamSetFileInfo<'a> {
     pub fid: &'a[u8],
     pub loi: u16,
@@ -592,6 +606,42 @@ named!(pub parse_trans2_request_data_set_file_info_rename<Trans2RecordParamSetFi
         >>  newname_len: le_u32
         >>  newname: take!(newname_len)
         >> (Trans2RecordParamSetFileInfoRename {
+                replace: replace==1,
+                newname: newname,
+            })
+));
+
+#[derive(Debug,PartialEq)]
+pub struct Trans2RecordParamSetPathInfo<> {
+    pub loi: u16,
+    pub oldname: Vec<u8>,
+}
+
+named!(pub parse_trans2_request_params_set_path_info<Trans2RecordParamSetPathInfo>,
+    do_parse!(
+            loi: le_u16
+        >>  _reserved: take!(4)
+        >>  oldname: call!(smb_get_unicode_string)
+        >> (Trans2RecordParamSetPathInfo {
+                loi:loi,
+                oldname:oldname,
+            })
+));
+
+#[derive(Debug,PartialEq)]
+pub struct Trans2RecordParamSetPathInfoRename<'a> {
+    pub replace: bool,
+    pub newname: &'a[u8],
+}
+
+named!(pub parse_trans2_request_data_set_path_info_rename<Trans2RecordParamSetPathInfoRename>,
+    do_parse!(
+            replace: le_u8
+        >>  _reserved: take!(3)
+        >>  root_dir: take!(4)
+        >>  newname_len: le_u32
+        >>  newname: take!(newname_len)
+        >> (Trans2RecordParamSetPathInfoRename {
                 replace: replace==1,
                 newname: newname,
             })
@@ -649,7 +699,7 @@ named!(pub parse_smb_create_andx_response_record<SmbResponseCreateAndXRecord>,
     do_parse!(
             wct: le_u8
         >>  andx_command: le_u8
-        >>  take!(1)
+        >>  take!(1)    // reserved
         >>  andx_offset: le_u16
         >>  oplock_level: le_u8
         >>  fid: take!(2)
@@ -658,12 +708,14 @@ named!(pub parse_smb_create_andx_response_record<SmbResponseCreateAndXRecord>,
         >>  last_access_ts: le_u64
         >>  last_write_ts: le_u64
         >>  last_change_ts: le_u64
-        >>  take!(8)
+        >>  take!(4)
         >>  file_size: le_u64
-        >>  take!(8)
+        >>  eof: le_u64
         >>  file_type: le_u16
-        >>  take!(2)
+        >>  ipc_state: le_u16
         >>  is_dir: le_u8
+        >>  cond!(wct == 42, take!(32))
+        >>  bcc: le_u16
         >> (SmbResponseCreateAndXRecord {
                 fid:fid,
                 create_ts: SMBFiletime::new(create_ts),

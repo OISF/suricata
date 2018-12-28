@@ -107,7 +107,7 @@ static const uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
                                                DetectEngineCtx *de_ctx,
                                                DetectEngineThreadCtx *det_ctx,
                                                Flow *f, HtpState *htp_state,
-                                               uint8_t flags,
+                                               const uint8_t flags,
                                                uint32_t *buffer_len,
                                                uint32_t *stream_start_offset)
 {

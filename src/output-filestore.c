@@ -161,14 +161,19 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
 #ifdef HAVE_LIBJANSSON
     if (ctx->fileinfo) {
         char js_metadata_filename[PATH_MAX];
-        snprintf(js_metadata_filename, sizeof(js_metadata_filename),
-                "%s.%"PRIuMAX".%u.json", final_filename,
-                (uintmax_t)p->ts.tv_sec, ff->file_store_id);
-        json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, dir,
-                ctx->xff_cfg);
-        if (likely(js_fileinfo != NULL)) {
-            json_dump_file(js_fileinfo, js_metadata_filename, 0);
-            json_decref(js_fileinfo);
+        if (snprintf(js_metadata_filename, sizeof(js_metadata_filename),
+                        "%s.%"PRIuMAX".%u.json", final_filename,
+                        (uintmax_t)p->ts.tv_sec, ff->file_store_id)
+                == (int)sizeof(js_metadata_filename)) {
+            WARN_ONCE(SC_ERR_SPRINTF,
+                "Failed to write file info record. Output filename truncated.");
+        } else {
+            json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, dir,
+                    ctx->xff_cfg);
+            if (likely(js_fileinfo != NULL)) {
+                json_dump_file(js_fileinfo, js_metadata_filename, 0);
+                json_decref(js_fileinfo);
+            }
         }
     }
 #endif
@@ -218,6 +223,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
             if (FileGetMaxOpenFiles() > 0) {
                 StatsIncr(tv, aft->counter_max_hits);
             }
+            ff->fd = -1;
         }
     /* we can get called with a NULL ffd when we need to close */
     } else if (data != NULL) {
@@ -348,7 +354,13 @@ static bool InitFilestoreDirectory(const char *dir)
 
     for (int i = 0; i <= dir_count; i++) {
         char leaf[PATH_MAX];
-        snprintf(leaf, sizeof(leaf) - 1, "%s/%02x", dir, i);
+        int n = snprintf(leaf, sizeof(leaf), "%s/%02x", dir, i);
+        if (n < 0 || n >= PATH_MAX) {
+            SCLogError(SC_ERR_CREATE_DIRECTORY,
+                    "Filestore (v2) failed to create leaf directory: "
+                    "path too long");
+            return false;
+        }
         if (!SCPathExists(leaf)) {
             SCLogInfo("Filestore (v2) creating directory %s", leaf);
             if (SCDefaultMkDir(leaf) != 0) {
@@ -362,7 +374,12 @@ static bool InitFilestoreDirectory(const char *dir)
 
     /* Make sure the tmp directory exists. */
     char tmpdir[PATH_MAX];
-    snprintf(tmpdir, sizeof(tmpdir) - 1, "%s/tmp", dir);
+    int n = snprintf(tmpdir, sizeof(tmpdir), "%s/tmp", dir);
+    if (n < 0 || n >= PATH_MAX) {
+        SCLogError(SC_ERR_CREATE_DIRECTORY,
+                "Filestore (v2) failed to create tmp directory: path too long");
+        return false;
+    }
     if (!SCPathExists(tmpdir)) {
         SCLogInfo("Filestore (v2) creating directory %s", tmpdir);
         if (SCDefaultMkDir(tmpdir) != 0) {
@@ -407,8 +424,15 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
     if (unlikely(ctx == NULL)) {
         return result;
     }
+
     strlcpy(ctx->prefix, log_directory, sizeof(ctx->prefix));
-    snprintf(ctx->tmpdir, sizeof(ctx->tmpdir) - 1, "%s/tmp", log_directory);
+    int written = snprintf(ctx->tmpdir, sizeof(ctx->tmpdir) - 1, "%s/tmp",
+            log_directory);
+    if (written == sizeof(ctx->tmpdir)) {
+        SCLogError(SC_ERR_SPRINTF, "File-store output directory overflow.");
+        SCFree(ctx);
+        return result;
+    }
 
     ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
     if (ctx->xff_cfg != NULL) {

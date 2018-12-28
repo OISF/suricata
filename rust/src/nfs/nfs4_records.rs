@@ -45,6 +45,7 @@ pub enum Nfs4RequestContent<'a> {
     SetClientId(Nfs4RequestSetClientId<'a>),
     SetClientIdConfirm,
     ExchangeId(Nfs4RequestExchangeId<'a>),
+    Sequence(Nfs4RequestSequence<'a>),
 }
 
 #[derive(Debug,PartialEq)]
@@ -444,6 +445,25 @@ named!(nfs4_req_exchangeid<Nfs4RequestContent>,
         ))
 ));
 
+#[derive(Debug,PartialEq)]
+pub struct Nfs4RequestSequence<'a> {
+    pub ssn_id: &'a[u8],
+}
+
+named!(nfs4_req_sequence<Nfs4RequestContent>,
+    do_parse!(
+        ssn_id: take!(16)
+    >>  seq_id: be_u32
+    >>  slot_id: be_u32
+    >>  high_slot_id: be_u32
+    >>  cache_this: be_u32
+    >> (Nfs4RequestContent::Sequence(
+            Nfs4RequestSequence {
+                ssn_id: ssn_id,
+            }
+        ))
+));
+
 named!(parse_request_compound_command<Nfs4RequestContent>,
     do_parse!(
         cmd: be_u32
@@ -470,6 +490,7 @@ named!(parse_request_compound_command<Nfs4RequestContent>,
             NFSPROC4_PUTROOTFH              => call!(nfs4_req_putrootfh)            |
             NFSPROC4_SETCLIENTID            => call!(nfs4_req_setclientid)          |
             NFSPROC4_SETCLIENTID_CONFIRM    => call!(nfs4_req_setclientid_confirm)  |
+            NFSPROC4_SEQUENCE               => call!(nfs4_req_sequence)             |
             NFSPROC4_EXCHANGE_ID            => call!(nfs4_req_exchangeid)
             )
         >> ( cmd_data )
@@ -516,6 +537,7 @@ pub enum Nfs4ResponseContent<'a> {
     SetClientIdConfirm(u32),
     Create(u32),
     Commit(u32),
+    Sequence(u32, Option<Nfs4ResponseSequence<'a>>),
 }
 
 #[derive(Debug,PartialEq)]
@@ -818,6 +840,29 @@ named!(nfs4_res_access<Nfs4ResponseContent>,
                 status, ad, ))
 ));
 
+
+#[derive(Debug,PartialEq)]
+pub struct Nfs4ResponseSequence<'a> {
+    pub ssn_id: &'a[u8],
+}
+
+named!(nfs4_res_sequence_ok<Nfs4ResponseSequence>,
+    do_parse!(
+            ssn_id: take!(16)
+        >>  _slots: take!(12)
+        >>  _flags: be_u32
+        >> ( Nfs4ResponseSequence {
+                ssn_id: ssn_id,
+            })
+));
+
+named!(nfs4_res_sequence<Nfs4ResponseContent>,
+    do_parse!(
+            status: be_u32
+        >>  seq: cond!(status == 0, nfs4_res_sequence_ok)
+        >> ( Nfs4ResponseContent::Sequence(status, seq) )
+));
+
 named!(nfs4_res_compound_command<Nfs4ResponseContent>,
     do_parse!(
         cmd: be_u32
@@ -843,6 +888,7 @@ named!(nfs4_res_compound_command<Nfs4ResponseContent>,
             NFSPROC4_SETCLIENTID            => call!(nfs4_res_setclientid)         |
             NFSPROC4_SETCLIENTID_CONFIRM    => call!(nfs4_res_setclientid_confirm) |
             NFSPROC4_PUTROOTFH              => call!(nfs4_res_putrootfh)           |
+            NFSPROC4_SEQUENCE               => call!(nfs4_res_sequence)            |
             NFSPROC4_RENEW                  => call!(nfs4_res_renew))
     >> (cmd_data)
 ));

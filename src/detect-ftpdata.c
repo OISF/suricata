@@ -65,7 +65,7 @@ void DetectFtpdataRegister(void) {
     sigmatch_table[DETECT_FTPDATA].name = "ftpdata_command";
     /* description: listed in "suricata --list-keywords=all" */
     sigmatch_table[DETECT_FTPDATA].desc = "match FTP command triggering a FTP data channel";
-    sigmatch_table[DETECT_FTPDATA].url = DOC_URL DOC_VERSION "/rules/ftp-keywords#ftpdata_command";
+    sigmatch_table[DETECT_FTPDATA].url = DOC_URL DOC_VERSION "/rules/ftp-keywords.html#ftpdata-command";
     sigmatch_table[DETECT_FTPDATA].AppLayerTxMatch = DetectFtpdataMatch;
     /* setup function is called during signature parsing, when the ftpcommand
      * keyword is encountered in the rule */
@@ -215,7 +215,6 @@ static int DetectFtpdataSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     sm->type = DETECT_FTPDATA;
     sm->ctx = (void *)ftpcommandd;
 
-    s->flags |= SIG_FLAG_STATE_MATCH;
     SigMatchAppendSMToList(s, sm, g_ftpdata_buffer_id);
 
     return 0;

@@ -692,6 +692,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
                                     flags, p->payload, p->payload_len);
             PACKET_PROFILING_APP_END(tctx, f->alproto);
+            PACKET_PROFILING_APP_STORE(tctx, p);
         } else {
             f->alproto = ALPROTO_FAILED;
             AppLayerIncFlowCounter(tv, f);
@@ -710,9 +711,8 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
                 flags, p->payload, p->payload_len);
         PACKET_PROFILING_APP_END(tctx, f->alproto);
+        PACKET_PROFILING_APP_STORE(tctx, p);
     }
-
-    PACKET_PROFILING_APP_STORE(tctx, p);
 
     SCReturnInt(r);
 }

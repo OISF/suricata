@@ -4,7 +4,7 @@ Hyperscan
 Introduction
 ~~~~~~~~~~~~
 
-"Hyperscan is a high-performance multiple regex matching library." https://01.org/hyperscan
+"Hyperscan is a high-performance multiple regex matching library." https://www.hyperscan.io
 
 In Suricata it can be used to perform multi pattern matching (mpm). Support was implemented by Justin Viiret and Jim Xu from Intel: https://github.com/inliniac/suricata/pull/1965, https://redmine.openinfosecfoundation.org/issues/1704
 
@@ -67,22 +67,22 @@ Trusty has 1.57, so it's too old. We can grab a newer libboost version, but we *
 
 
   sudo apt-get python-dev libbz2-dev
-  wget http://downloads.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.gz
-  tar xvzf boost_1_60_0.tar.gz
-  cd boost_1_60_0
-  ./bootstrap.sh --prefix=~/tmp/boost-1.60
+  wget https://dl.bintray.com/boostorg/release/1.66.0/source/boost_1_66_0.tar.gz
+  tar xvzf boost_1_66_0.tar.gz
+  cd boost_1_66_0
+  ./bootstrap.sh --prefix=~/tmp/boost-1.66
   ./b2 install
 
 Hyperscan
 ---------
 
-We'll install version 4.2.0.
+We'll install version 5.0.0.
 
 
 ::
 
 
-  git clone https://github.com/01org/hyperscan
+  git clone https://github.com/intel/hyperscan
   cd hyperscan
   mkdir build
   cd build
@@ -93,7 +93,7 @@ If you have your own libboost headers, use this cmake line instead:
 ::
 
 
-  cmake -DBUILD_STATIC_AND_SHARED=1 -DBOOST_ROOT=~/tmp/boost-1.60 ../
+  cmake -DBUILD_STATIC_AND_SHARED=1 -DBOOST_ROOT=~/tmp/boost-1.66 ../
 
 Finally, make and make install:
 

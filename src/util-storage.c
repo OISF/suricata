@@ -175,8 +175,11 @@ int StorageFinalize(void)
             storage_map[entry->map.type][entry->id].Free = entry->map.Free;
         }
 
-        entry = entry->next;
+        StorageList *next = entry->next;
+        SCFree(entry);
+        entry = next;
     };
+    storage_list = NULL;
 
 #ifdef DEBUG
     for (i = 0; i < STORAGE_MAX; i++) {
@@ -261,6 +264,7 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id)
     StorageMapping *map = &storage_map[type][id];
     Storage *store = *storage;
     if (store == NULL) {
+        // coverity[suspicious_sizeof : FALSE]
         store = SCMalloc(sizeof(void *) * storage_max_id[type]);
         if (unlikely(store == NULL))
         return NULL;

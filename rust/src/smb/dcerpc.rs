@@ -149,6 +149,7 @@ pub fn dcerpc_uuid_to_string(i: &DCERPCIface) -> String {
 pub struct SMBTransactionDCERPC {
     pub opnum: u16,
     pub req_cmd: u8,
+    pub req_set: bool,
     pub res_cmd: u8,
     pub res_set: bool,
     pub call_id: u32,
@@ -159,10 +160,25 @@ pub struct SMBTransactionDCERPC {
 }
 
 impl SMBTransactionDCERPC {
-    pub fn new(req: u8, call_id: u32) -> SMBTransactionDCERPC {
+    fn new_request(req: u8, call_id: u32) -> SMBTransactionDCERPC {
         return SMBTransactionDCERPC {
             opnum: 0,
             req_cmd: req,
+            req_set: true,
+            res_cmd: 0,
+            res_set: false,
+            call_id: call_id,
+            frag_cnt_ts: 0,
+            frag_cnt_tc: 0,
+            stub_data_ts:Vec::new(),
+            stub_data_tc:Vec::new(),
+        }
+    }
+    fn new_response(call_id: u32) -> SMBTransactionDCERPC {
+        return SMBTransactionDCERPC {
+            opnum: 0,
+            req_cmd: 0,
+            req_set: false,
             res_cmd: 0,
             res_set: false,
             call_id: call_id,
@@ -179,14 +195,14 @@ impl SMBTransactionDCERPC {
 }
 
 impl SMBState {
-    pub fn new_dcerpc_tx(&mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, cmd: u8, call_id: u32)
+    fn new_dcerpc_tx(&mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, cmd: u8, call_id: u32)
         -> (&mut SMBTransaction)
     {
         let mut tx = self.new_tx();
         tx.hdr = hdr;
         tx.vercmd = vercmd;
         tx.type_data = Some(SMBTransactionTypeData::DCERPC(
-                    SMBTransactionDCERPC::new(cmd, call_id)));
+                    SMBTransactionDCERPC::new_request(cmd, call_id)));
 
         SCLogDebug!("SMB: TX DCERPC created: ID {} hdr {:?}", tx.id, tx.hdr);
         self.transactions.push(tx);
@@ -194,14 +210,29 @@ impl SMBState {
         return tx_ref.unwrap();
     }
 
-    pub fn get_dcerpc_tx(&mut self, hdr: &SMBCommonHdr, vercmd: &SMBVerCmdStat, call_id: u32)
+    fn new_dcerpc_tx_for_response(&mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, call_id: u32)
+        -> (&mut SMBTransaction)
+    {
+        let mut tx = self.new_tx();
+        tx.hdr = hdr;
+        tx.vercmd = vercmd;
+        tx.type_data = Some(SMBTransactionTypeData::DCERPC(
+                    SMBTransactionDCERPC::new_response(call_id)));
+
+        SCLogDebug!("SMB: TX DCERPC created: ID {} hdr {:?}", tx.id, tx.hdr);
+        self.transactions.push(tx);
+        let tx_ref = self.transactions.last_mut();
+        return tx_ref.unwrap();
+    }
+
+    fn get_dcerpc_tx(&mut self, hdr: &SMBCommonHdr, vercmd: &SMBVerCmdStat, call_id: u32)
         -> Option<&mut SMBTransaction>
     {
         let dce_hdr = hdr.to_dcerpc(vercmd);
 
         SCLogDebug!("looking for {:?}", dce_hdr);
         for tx in &mut self.transactions {
-            let found = dce_hdr == tx.hdr.to_dcerpc(vercmd) &&
+            let found = dce_hdr.compare(&tx.hdr.to_dcerpc(vercmd)) &&
                 match tx.type_data {
                 Some(SMBTransactionTypeData::DCERPC(ref x)) => {
                     x.call_id == call_id
@@ -422,6 +453,51 @@ fn smb_read_dcerpc_record_error(state: &mut SMBState,
     return found;
 }
 
+fn dcerpc_response_handle<'b>(tx: &mut SMBTransaction,
+        vercmd: SMBVerCmdStat,
+        dcer: &DceRpcRecord)
+{
+    let (_, ntstatus) = vercmd.get_ntstatus();
+    match dcer.packet_type {
+        DCERPC_TYPE_RESPONSE => {
+            match parse_dcerpc_response_record(dcer.data, dcer.frag_len) {
+                IResult::Done(_, respr) => {
+                    SCLogDebug!("SMBv1 READ RESPONSE {:?}", respr);
+                    if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
+                        SCLogDebug!("CMD 11 found at tx {}", tx.id);
+                        tdn.set_result(DCERPC_TYPE_RESPONSE);
+                        tdn.stub_data_tc.extend_from_slice(&respr.data);
+                        tdn.frag_cnt_tc += 1;
+                    }
+                    tx.vercmd.set_ntstatus(ntstatus);
+                    tx.response_done = dcer.last_frag;
+                },
+                _ => {
+                    tx.set_event(SMBEvent::MalformedData);
+                },
+            }
+        },
+        DCERPC_TYPE_BINDACK => {
+            // handled elsewhere
+        },
+        21...255 => {
+            if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
+                tdn.set_result(dcer.packet_type);
+            }
+            tx.vercmd.set_ntstatus(ntstatus);
+            tx.response_done = true;
+            tx.set_event(SMBEvent::MalformedData);
+        }
+        _ => { // valid type w/o special processing
+            if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
+                tdn.set_result(dcer.packet_type);
+            }
+            tx.vercmd.set_ntstatus(ntstatus);
+            tx.response_done = true;
+        },
+    }
+}
+
 /// Handle DCERPC reply record. Called for READ, TRANS, IOCTL
 ///
 pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
@@ -432,19 +508,17 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
 {
     let (_, ntstatus) = vercmd.get_ntstatus();
 
-    if ntstatus != SMB_NTSTATUS_SUCCESS {
+    if ntstatus != SMB_NTSTATUS_SUCCESS && ntstatus != SMB_NTSTATUS_BUFFER_OVERFLOW {
         return smb_read_dcerpc_record_error(state, hdr, vercmd, ntstatus);
     }
 
     SCLogDebug!("lets first see if we have prior data");
     // msg_id 0 as this data crosses cmd/reply pairs
-    let ehdr = SMBCommonHdr::new(SMBHDR_TYPE_TRANS_FRAG,
-            hdr.ssn_id as u64, hdr.tree_id as u32, 0 as u64);
-    let ekey = SMBHashKeyHdrGuid::new(ehdr, guid.to_vec());
-    SCLogDebug!("ekey {:?}", ekey);
-    let mut prevdata = match state.ssnguid2vec_map.remove(&ekey) {
+    let ehdr = SMBHashKeyHdrGuid::new(SMBCommonHdr::new(SMBHDR_TYPE_TRANS_FRAG,
+            hdr.ssn_id as u64, hdr.tree_id as u32, 0 as u64), guid.to_vec());
+    let mut prevdata = match state.ssnguid2vec_map.remove(&ehdr) {
         Some(s) => s,
-            None => Vec::new(),
+        None => Vec::new(),
     };
     SCLogDebug!("indata {} prevdata {}", indata.len(), prevdata.len());
     prevdata.extend_from_slice(&indata);
@@ -464,31 +538,10 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
                         dcer.version_major, dcer.version_minor, dcer.data.len(), dcer);
 
                 if ntstatus == SMB_NTSTATUS_BUFFER_OVERFLOW && data.len() < dcer.frag_len as usize {
-                    SCLogDebug!("short record {} < {}: lets see if we expected this", data.len(), dcer.frag_len);
-                    let ehdr = SMBCommonHdr::new(SMBHDR_TYPE_MAX_SIZE,
-                            hdr.ssn_id as u64, hdr.tree_id as u32, hdr.msg_id as u64);
-                    let max_size = match state.ssn2maxsize_map.remove(&ehdr) {
-                        Some(s) => s,
-                        None => 0,
-                    };
-                    if max_size as usize == data.len() {
-                        SCLogDebug!("YES this is expected. We should now see a follow up READ for {} bytes",
-                                dcer.frag_len as usize - data.len());
-                        let store = match state.get_dcerpc_tx(&hdr, &vercmd, dcer.call_id) {
-                            Some(_) => true,
-                            None => {
-                                SCLogDebug!("no TX found");
-                                false
-                            },
-                        };
-                        if store {
-                            SCLogDebug!("storing partial data in state");
-                            let ehdr = SMBCommonHdr::new(SMBHDR_TYPE_MAX_SIZE,
-                                    hdr.ssn_id as u64, hdr.tree_id as u32, 0 as u64);
-                            state.ssn2vec_map.insert(ehdr, data.to_vec());
-                        }
-                        return true; // TODO review
-                    }
+                    SCLogDebug!("short record {} < {}: storing partial data in state",
+                            data.len(), dcer.frag_len);
+                    state.ssnguid2vec_map.insert(ehdr, data.to_vec());
+                    return true; // TODO review
                 }
 
                 if dcer.packet_type == DCERPC_TYPE_BINDACK {
@@ -496,50 +549,20 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
                     return true;
                 }
 
-                let tx = match state.get_dcerpc_tx(&hdr, &vercmd, dcer.call_id) {
-                    Some(tx) => tx,
+                let found = match state.get_dcerpc_tx(&hdr, &vercmd, dcer.call_id) {
+                    Some(tx) => {
+                        dcerpc_response_handle(tx, vercmd.clone(), &dcer);
+                        true
+                    },
                     None => {
                         SCLogDebug!("no tx");
-                        return false; },
+                        false
+                    },
                 };
-
-                match dcer.packet_type {
-                    DCERPC_TYPE_RESPONSE => {
-                        match parse_dcerpc_response_record(dcer.data, dcer.frag_len) {
-                            IResult::Done(_, respr) => {
-                                SCLogDebug!("SMBv1 READ RESPONSE {:?}", respr);
-                                if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
-                                    SCLogDebug!("CMD 11 found at tx {}", tx.id);
-                                    tdn.set_result(DCERPC_TYPE_RESPONSE);
-                                    tdn.stub_data_tc.extend_from_slice(&respr.data);
-                                    tdn.frag_cnt_tc += 1;
-                                }
-                                tx.vercmd.set_ntstatus(ntstatus);
-                                tx.response_done = dcer.last_frag;
-                            },
-                            _ => {
-                                tx.set_event(SMBEvent::MalformedData);
-                            },
-                        }
-                    },
-                    DCERPC_TYPE_BINDACK => {
-                        // handled above
-                    },
-                    21...255 => {
-                        if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
-                            tdn.set_result(dcer.packet_type);
-                        }
-                        tx.vercmd.set_ntstatus(ntstatus);
-                        tx.response_done = true;
-                        tx.set_event(SMBEvent::MalformedData);
-                    }
-                    _ => { // valid type w/o special processing
-                        if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
-                            tdn.set_result(dcer.packet_type);
-                        }
-                        tx.vercmd.set_ntstatus(ntstatus);
-                        tx.response_done = true;
-                    },
+                if !found {
+                    // pick up DCERPC tx even if we missed the request
+                    let tx = state.new_dcerpc_tx_for_response(hdr, vercmd.clone(), dcer.call_id);
+                    dcerpc_response_handle(tx, vercmd, &dcer);
                 }
             },
             _ => {
@@ -553,4 +576,22 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
     }
 
     return true;
+}
+
+/// Try to find out if the input data looks like DCERPC
+pub fn smb_dcerpc_probe<'b>(data: &[u8]) -> bool
+{
+    match parse_dcerpc_record(data) {
+        IResult::Done(_, recr) => {
+            SCLogDebug!("SMB: could be DCERPC {:?}", recr);
+            if recr.version_major == 5 && recr.version_minor < 3 &&
+               recr.frag_len > 0 && recr.packet_type <= 20
+            {
+                SCLogDebug!("SMB: looks like we have dcerpc");
+                return true;
+            }
+        },
+        _ => { },
+    }
+    return false;
 }

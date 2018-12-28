@@ -76,12 +76,12 @@ SCEnumCharMap nfs_decoder_event_table[] = {
 
 static void *NFSTCPStateAlloc(void)
 {
-    return rs_nfs3_state_new();
+    return rs_nfs_state_new();
 }
 
 static void NFSTCPStateFree(void *state)
 {
-    rs_nfs3_state_free(state);
+    rs_nfs_state_free(state);
 }
 
 /**
@@ -92,7 +92,7 @@ static void NFSTCPStateFree(void *state)
  */
 static void NFSTCPStateTxFree(void *state, uint64_t tx_id)
 {
-    rs_nfs3_state_tx_free(state, tx_id);
+    rs_nfs_state_tx_free(state, tx_id);
 }
 
 static int NFSTCPStateGetEventInfo(const char *event_name, int *event_id,
@@ -112,8 +112,7 @@ static AppLayerDecoderEvents *NFSTCPGetEvents(void *state, uint64_t id)
  * \retval ALPROTO_NFS if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto NFSTCPProbingParserTS(Flow *f, uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto NFSTCPProbingParserTS(Flow *f, uint8_t *input, uint32_t input_len)
 {
     if (input_len < NFSTCP_MIN_FRAME_LEN) {
         return ALPROTO_UNKNOWN;
@@ -130,8 +129,7 @@ static AppProto NFSTCPProbingParserTS(Flow *f, uint8_t *input, uint32_t input_le
     return ALPROTO_UNKNOWN;
 }
 
-static AppProto NFSTCPProbingParserTC(Flow *f, uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto NFSTCPProbingParserTC(Flow *f, uint8_t *input, uint32_t input_len)
 {
     if (input_len < NFSTCP_MIN_FRAME_LEN) {
         return ALPROTO_UNKNOWN;
@@ -150,10 +148,10 @@ static AppProto NFSTCPProbingParserTC(Flow *f, uint8_t *input, uint32_t input_le
 
 static int NFSTCPParseRequest(Flow *f, void *state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-    void *local_data)
+    void *local_data, const uint8_t flags)
 {
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
-    rs_nfs3_setfileflags(0, state, file_flags);
+    rs_nfs_setfileflags(0, state, file_flags);
 
     int res;
     if (input == NULL && input_len > 0) {
@@ -165,10 +163,11 @@ static int NFSTCPParseRequest(Flow *f, void *state,
 }
 
 static int NFSTCPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
-    rs_nfs3_setfileflags(1, state, file_flags);
+    rs_nfs_setfileflags(1, state, file_flags);
 
     int res;
     if (input == NULL && input_len > 0) {
@@ -181,12 +180,12 @@ static int NFSTCPParseResponse(Flow *f, void *state, AppLayerParserState *pstate
 
 static uint64_t NFSTCPGetTxCnt(void *state)
 {
-    return rs_nfs3_state_get_tx_count(state);
+    return rs_nfs_state_get_tx_count(state);
 }
 
 static void *NFSTCPGetTx(void *state, uint64_t tx_id)
 {
-    return rs_nfs3_state_get_tx(state, tx_id);
+    return rs_nfs_state_get_tx(state, tx_id);
 }
 
 static AppLayerGetTxIterTuple RustNFSTCPGetTxIterator(
@@ -199,12 +198,12 @@ static AppLayerGetTxIterTuple RustNFSTCPGetTxIterator(
 
 static void NFSTCPSetTxLogged(void *state, void *vtx, LoggerId logged)
 {
-    rs_nfs3_tx_set_logged(state, vtx, logged);
+    rs_nfs_tx_set_logged(state, vtx, logged);
 }
 
 static LoggerId NFSTCPGetTxLogged(void *state, void *vtx)
 {
-    return rs_nfs3_tx_get_logged(state, vtx);
+    return rs_nfs_tx_get_logged(state, vtx);
 }
 
 /**
@@ -213,7 +212,7 @@ static LoggerId NFSTCPGetTxLogged(void *state, void *vtx)
  * In most cases 1 can be returned here.
  */
 static int NFSTCPGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return rs_nfs3_state_progress_completion_status(direction);
+    return rs_nfs_state_progress_completion_status(direction);
 }
 
 /**
@@ -231,7 +230,7 @@ static int NFSTCPGetAlstateProgressCompletionStatus(uint8_t direction) {
  */
 static int NFSTCPGetStateProgress(void *tx, uint8_t direction)
 {
-    return rs_nfs3_tx_get_alstate_progress(tx, direction);
+    return rs_nfs_tx_get_alstate_progress(tx, direction);
 }
 
 /**
@@ -239,7 +238,7 @@ static int NFSTCPGetStateProgress(void *tx, uint8_t direction)
  */
 static DetectEngineState *NFSTCPGetTxDetectState(void *vtx)
 {
-    return rs_nfs3_state_get_tx_detect_state(vtx);
+    return rs_nfs_state_get_tx_detect_state(vtx);
 }
 
 /**
@@ -247,13 +246,13 @@ static DetectEngineState *NFSTCPGetTxDetectState(void *vtx)
  */
 static int NFSTCPSetTxDetectState(void *vtx, DetectEngineState *s)
 {
-    rs_nfs3_state_set_tx_detect_state(vtx, s);
+    rs_nfs_state_set_tx_detect_state(vtx, s);
     return 0;
 }
 
 static FileContainer *NFSTCPGetFiles(void *state, uint8_t direction)
 {
-    return rs_nfs3_getfiles(direction, state);
+    return rs_nfs_getfiles(direction, state);
 }
 
 static void NFSTCPSetDetectFlags(void *tx, uint8_t dir, uint64_t flags)
@@ -277,7 +276,7 @@ void RegisterNFSTCPParsers(void)
      * the configuration file then it will be enabled by default. */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
 
-        rs_nfs3_init(&sfc);
+        rs_nfs_init(&sfc);
 
         SCLogDebug("NFSTCP TCP protocol detection enabled.");
 

@@ -40,13 +40,18 @@ int LiveGetOffload(void);
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
     char dev_short[MAX_DEVNAME + 1];
+    bool tenant_id_set;
+
     int ignore_checksum;
+    int id;
+
     SC_ATOMIC_DECLARE(uint64_t, pkts);
     SC_ATOMIC_DECLARE(uint64_t, drop);
     SC_ATOMIC_DECLARE(uint64_t, bypassed);
     SC_ATOMIC_DECLARE(uint64_t, invalid_checksums);
     TAILQ_ENTRY(LiveDevice_) next;
 
+    uint32_t tenant_id;     /**< tenant id in multi-tenancy */
     uint32_t offload_orig;  /**< original offload settings to restore @exit */
 } LiveDevice;
 

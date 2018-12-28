@@ -112,8 +112,7 @@ static AppLayerDecoderEvents *TFTPGetEvents(void *state, uint64_t tx_id)
  * \retval ALPROTO_TFTP if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto TFTPProbingParser(Flow *f, uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto TFTPProbingParser(Flow *f, uint8_t *input, uint32_t input_len)
 {
     /* Very simple test - if there is input, this is tftp.
      * Also check if it's starting by a zero */
@@ -128,7 +127,7 @@ static AppProto TFTPProbingParser(Flow *f, uint8_t *input, uint32_t input_len,
 
 static int TFTPParseRequest(Flow *f, void *state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-    void *local_data)
+    void *local_data, const uint8_t flags)
 {
     SCLogDebug("Parsing echo request: len=%"PRIu32, input_len);
 
@@ -151,7 +150,8 @@ static int TFTPParseRequest(Flow *f, void *state,
  * \brief Response parsing is not implemented
  */
 static int TFTPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     return 0;
 }

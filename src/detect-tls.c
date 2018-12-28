@@ -117,7 +117,7 @@ void DetectTlsRegister (void)
 {
     sigmatch_table[DETECT_AL_TLS_SUBJECT].name = "tls.subject";
     sigmatch_table[DETECT_AL_TLS_SUBJECT].desc = "match TLS/SSL certificate Subject field";
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlssubject";
+    sigmatch_table[DETECT_AL_TLS_SUBJECT].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-subject";
     sigmatch_table[DETECT_AL_TLS_SUBJECT].AppLayerTxMatch = DetectTlsSubjectMatch;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Setup = DetectTlsSubjectSetup;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Free  = DetectTlsSubjectFree;
@@ -126,7 +126,7 @@ void DetectTlsRegister (void)
 
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].name = "tls.issuerdn";
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].desc = "match TLS/SSL certificate IssuerDN field";
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlsissuerdn";
+    sigmatch_table[DETECT_AL_TLS_ISSUERDN].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-issuerdn";
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].AppLayerTxMatch = DetectTlsIssuerDNMatch;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Setup = DetectTlsIssuerDNSetup;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Free  = DetectTlsIssuerDNFree;
@@ -135,7 +135,7 @@ void DetectTlsRegister (void)
 
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].name = "tls.fingerprint";
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].desc = "match TLS/SSL certificate SHA1 fingerprint";
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlsfingerprint";
+    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-fingerprint";
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].AppLayerTxMatch = DetectTlsFingerprintMatch;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Free  = DetectTlsFingerprintFree;
@@ -145,7 +145,7 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_STORE].name = "tls_store";
     sigmatch_table[DETECT_AL_TLS_STORE].alias = "tls.store";
     sigmatch_table[DETECT_AL_TLS_STORE].desc = "store TLS/SSL certificate on disk";
-    sigmatch_table[DETECT_AL_TLS_STORE].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlsstore";
+    sigmatch_table[DETECT_AL_TLS_STORE].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-store";
     sigmatch_table[DETECT_AL_TLS_STORE].Match = DetectTlsStorePostMatch;
     sigmatch_table[DETECT_AL_TLS_STORE].Setup = DetectTlsStoreSetup;
     sigmatch_table[DETECT_AL_TLS_STORE].Free  = NULL;

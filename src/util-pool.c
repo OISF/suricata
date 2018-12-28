@@ -81,7 +81,9 @@ static int PoolDataPreAllocated(Pool *p, void *data)
  * \param Free free func
  * \retval the allocated Pool
  */
-Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *))
+Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
+        void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData,
+        void (*Cleanup)(void *), void (*Free)(void *))
 {
     Pool *p = NULL;
 
@@ -129,8 +131,8 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
             SCLogError(SC_ERR_POOL_INIT, "alloc error");
             goto error;
         }
-        p->pb_buffer = pb;
         memset(pb, 0, size * sizeof(PoolBucket));
+        p->pb_buffer = pb;
         for (u32 = 0; u32 < size; u32++) {
             /* populate pool */
             pb->next = p->empty_stack;
@@ -139,9 +141,7 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
             p->empty_stack_size++;
             pb++;
         }
-    }
 
-    if (size > 0) {
         p->data_buffer = SCCalloc(prealloc_size, elt_size);
         /* FIXME better goto */
         if (p->data_buffer == NULL) {
@@ -157,7 +157,6 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
                 SCLogError(SC_ERR_POOL_INIT, "alloc error");
                 goto error;
             }
-
             memset(pb, 0, sizeof(PoolBucket));
 
             if (p->Alloc) {
@@ -198,6 +197,7 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *
                 SCLogError(SC_ERR_POOL_INIT, "init error");
                 if (p->Cleanup)
                     p->Cleanup(pb->data);
+                pb->data = NULL;
                 goto error;
             }
 
@@ -220,7 +220,6 @@ error:
     }
     return NULL;
 }
-
 
 void PoolFree(Pool *p)
 {
@@ -314,10 +313,11 @@ void *PoolGet(Pool *p)
                 }
 
                 p->allocated++;
-
                 p->outstanding++;
+#ifdef DEBUG
                 if (p->outstanding > p->max_outstanding)
                     p->max_outstanding = p->outstanding;
+#endif
             }
 
             SCReturnPtr(pitem, "void");
@@ -329,8 +329,10 @@ void *PoolGet(Pool *p)
     void *ptr = pb->data;
     pb->data = NULL;
     p->outstanding++;
+#ifdef DEBUG
     if (p->outstanding > p->max_outstanding)
         p->max_outstanding = p->outstanding;
+#endif
     SCReturnPtr(ptr,"void");
 }
 

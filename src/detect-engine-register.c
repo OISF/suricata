@@ -178,7 +178,13 @@
 #include "detect-geoip.h"
 #include "detect-app-layer-protocol.h"
 #include "detect-template.h"
+#include "detect-template2.h"
+#include "detect-krb5-cname.h"
+#include "detect-krb5-errcode.h"
+#include "detect-krb5-msgtype.h"
+#include "detect-krb5-sname.h"
 #include "detect-target.h"
+#include "detect-template-rust-buffer.h"
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -258,6 +264,12 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("compatible with decoder event only rule");
         prev = 1;
     }
+    if (e->Transform) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("transform");
+        prev = 1;
+    }
     if (e->SupportsPrefilter) {
         if (prev == 1)
             printf("%c", sep);
@@ -290,22 +302,30 @@ void SigTableList(const char *keyword)
     if (keyword == NULL) {
         printf("=====Supported keywords=====\n");
         for (i = 0; i < size; i++) {
-            if (sigmatch_table[i].name != NULL) {
+            const char *name = sigmatch_table[i].name;
+            if (name != NULL && strlen(name) > 0) {
+                if (name[0] == '_' || strcmp(name, "template") == 0)
+                    continue;
+
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-                    printf("- %s (not built-in)\n", sigmatch_table[i].name);
+                    printf("- %s (not built-in)\n", name);
                 } else {
-                    printf("- %s\n", sigmatch_table[i].name);
+                    printf("- %s\n", name);
                 }
             }
         }
     } else if (strcmp("csv", keyword) == 0) {
         printf("name;description;app layer;features;documentation\n");
         for (i = 0; i < size; i++) {
-            if (sigmatch_table[i].name != NULL) {
+            const char *name = sigmatch_table[i].name;
+            if (name != NULL && strlen(name) > 0) {
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
                     continue;
                 }
-                printf("%s;", sigmatch_table[i].name);
+                if (name[0] == '_' || strcmp(name, "template") == 0)
+                    continue;
+
+                printf("%s;", name);
                 if (sigmatch_table[i].desc) {
                     printf("%s", sigmatch_table[i].desc);
                 }
@@ -322,7 +342,10 @@ void SigTableList(const char *keyword)
         }
     } else if (strcmp("all", keyword) == 0) {
         for (i = 0; i < size; i++) {
-            if (sigmatch_table[i].name != NULL) {
+            const char *name = sigmatch_table[i].name;
+            if (name != NULL && strlen(name) > 0) {
+                if (name[0] == '_' || strcmp(name, "template") == 0)
+                    continue;
                 printf("%s:\n", sigmatch_table[i].name);
                 SigMultilinePrint(i, "\t");
             }
@@ -490,7 +513,13 @@ void SigTableSetup(void)
     DetectBase64DecodeRegister();
     DetectBase64DataRegister();
     DetectTemplateRegister();
+    DetectTemplate2Register();
+    DetectKrb5CNameRegister();
+    DetectKrb5ErrCodeRegister();
+    DetectKrb5MsgTypeRegister();
+    DetectKrb5SNameRegister();
     DetectTargetRegister();
+    DetectTemplateRustBufferRegister();
     DetectTemplateBufferRegister();
     DetectBypassRegister();
 

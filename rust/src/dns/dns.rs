@@ -215,10 +215,10 @@ impl DNSTransaction {
 
     /// Get the DNS transactions ID (not the internal tracking ID).
     pub fn tx_id(&self) -> u16 {
-        for request in &self.request {
+        if let &Some(ref request) = &self.request {
             return request.header.tx_id;
         }
-        for response in &self.response {
+        if let &Some(ref response) = &self.response {
             return response.header.tx_id;
         }
 
@@ -229,7 +229,7 @@ impl DNSTransaction {
     /// Get the reply code of the transaction. Note that this will
     /// also return 0 if there is no reply.
     pub fn rcode(&self) -> u16 {
-        for response in &self.response {
+        if let &Some(ref response) = &self.response {
             return response.header.flags & 0x000f;
         }
         return 0;
@@ -292,7 +292,6 @@ impl DNSState {
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
-        SCLogDebug!("************** Freeing TX with ID {}", tx_id);
         let len = self.transactions.len();
         let mut found = false;
         let mut index = 0;
@@ -770,7 +769,7 @@ pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
                                        len: *mut libc::uint32_t)
                                        -> libc::uint8_t
 {
-    for request in &tx.request {
+    if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if query.name.len() > 0 {
@@ -810,7 +809,7 @@ pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
                                          rrtype: *mut libc::uint16_t)
                                          -> libc::uint8_t
 {
-    for request in &tx.request {
+    if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if query.name.len() > 0 {
@@ -914,7 +913,7 @@ mod tests {
         // than the available data.
         let mut request = Vec::new();
         request.push(((dns_payload.len() as u16) >> 8) as u8);
-        request.push((((dns_payload.len() as u16) & 0xff) as u8 + 1));
+        request.push(((dns_payload.len() as u16) & 0xff) as u8 + 1);
         request.extend(dns_payload);
 
         let mut state = DNSState::new();

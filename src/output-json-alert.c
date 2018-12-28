@@ -104,7 +104,7 @@ typedef struct AlertJsonOutputCtx_ {
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
     HttpXFFCfg *parent_xff_cfg;
-    bool include_metadata;
+    OutputJsonCommonSettings cfg;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
@@ -158,11 +158,10 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
     return;
 }
 
-static void AlertJsonDnp3(const Flow *f, json_t *js)
+static void AlertJsonDnp3(const Flow *f, const uint64_t tx_id, json_t *js)
 {
     DNP3State *dnp3_state = (DNP3State *)FlowGetAppState(f);
     if (dnp3_state) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
         DNP3Transaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_DNP3,
             dnp3_state, tx_id);
         if (tx) {
@@ -188,12 +187,11 @@ static void AlertJsonDnp3(const Flow *f, json_t *js)
     return;
 }
 
-static void AlertJsonDns(const Flow *f, json_t *js)
+static void AlertJsonDns(const Flow *f, const uint64_t tx_id, json_t *js)
 {
 #ifndef HAVE_RUST
     DNSState *dns_state = (DNSState *)FlowGetAppState(f);
     if (dns_state) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
         DNSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_DNS,
                                                  dns_state, tx_id);
         if (tx) {
@@ -330,9 +328,9 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, json_t *
     json_object_set_new(ajs, "signature_id", json_integer(pa->s->id));
     json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
     json_object_set_new(ajs, "signature",
-            json_string((pa->s->msg) ? pa->s->msg : ""));
+            SCJsonString((pa->s->msg) ? pa->s->msg : ""));
     json_object_set_new(ajs, "category",
-            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
+            SCJsonString((pa->s->class_msg) ? pa->s->class_msg : ""));
     json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
 
     if (p->tenant_id > 0)
@@ -426,9 +424,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    if (json_output_ctx->include_metadata) {
-        JsonAddMetadata(p, p->flow, js);
-    }
+    JsonAddCommonOptions(&json_output_ctx->cfg, p, p->flow, js);
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
@@ -507,11 +503,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
             /* dnp3 alert */
             if (proto == ALPROTO_DNP3) {
-                AlertJsonDnp3(p->flow, js);
+                AlertJsonDnp3(p->flow, pa->tx_id, js);
             }
 
             if (proto == ALPROTO_DNS) {
-                AlertJsonDns(p->flow, js);
+                AlertJsonDns(p->flow, pa->tx_id, js);
             }
         }
 
@@ -982,7 +978,7 @@ static OutputInitResult JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent
     memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
 
     json_output_ctx->file_ctx = ajt->file_ctx;
-    json_output_ctx->include_metadata = ajt->include_metadata;
+    json_output_ctx->cfg = ajt->cfg;
 
     JsonAlertLogSetupMetadata(json_output_ctx, conf);
     json_output_ctx->xff_cfg = JsonAlertLogGetXffCfg(conf);

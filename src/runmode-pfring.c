@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,13 +29,11 @@
 #include "util-affinity.h"
 #include "util-runmodes.h"
 #include "util-device.h"
+#include "util-ioctl.h"
 
 #ifdef HAVE_PFRING
 #include <pfring.h>
 #endif
-
-static const char *default_mode_autofp = NULL;
-
 
 #define PFRING_CONF_V1 1
 #define PFRING_CONF_V2 2
@@ -43,7 +41,7 @@ static const char *default_mode_autofp = NULL;
 const char *RunModeIdsPfringGetDefaultMode(void)
 {
 #ifdef HAVE_PFRING
-    return default_mode_autofp;
+    return "workers";
 #else
     return NULL;
 #endif
@@ -51,7 +49,6 @@ const char *RunModeIdsPfringGetDefaultMode(void)
 
 void RunModeIdsPfringRegister(void)
 {
-    default_mode_autofp = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_PFRING, "autofp",
                               "Multi threaded pfring mode.  Packets from "
                               "each flow are assigned to a single detect "
@@ -246,12 +243,22 @@ static void *ParsePfringConfig(const char *iface)
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         pfconf->threads = 1;
-    } else {
-        if (threadsstr != NULL) {
+    } else if (threadsstr != NULL) {
+        if (strcmp(threadsstr, "auto") == 0) {
+            pfconf->threads = (int)UtilCpuGetNumProcessorsOnline();
+            if (pfconf->threads > 0) {
+                SCLogPerf("%u cores, so using %u threads", pfconf->threads, pfconf->threads);
+            } else {
+                pfconf->threads = GetIfaceRSSQueuesNum(iface);
+                if (pfconf->threads > 0) {
+                    SCLogPerf("%d RSS queues, so using %u threads", pfconf->threads, pfconf->threads);
+                }
+            }
+        } else {
             pfconf->threads = atoi(threadsstr);
         }
     }
-    if (pfconf->threads == 0) {
+    if (pfconf->threads <= 0) {
         pfconf->threads = 1;
     }
 
@@ -372,10 +379,18 @@ static void *ParsePfringConfig(const char *iface)
         }
     }
 
+    if (LiveGetOffload() == 0) {
+        if (GetIfaceOffloading(iface, 0, 1) == 1) {
+            SCLogWarning(SC_ERR_NIC_OFFLOADING,
+                    "Using PF_RING with offloading activated leads to capture problems");
+        }
+    } else {
+        DisableIfaceOffloading(LiveGetDevice(iface), 0, 1);
+    }
     return pfconf;
 }
 
-static int PfringConfigGeThreadsCount(void *conf)
+static int PfringConfigGetThreadsCount(void *conf)
 {
     PfringIfaceConfig *pfp = (PfringIfaceConfig *)conf;
     return pfp->threads;
@@ -383,14 +398,13 @@ static int PfringConfigGeThreadsCount(void *conf)
 
 static int PfringConfLevel(void)
 {
-    const char *def_dev;
+    const char *def_dev = NULL;
     /* 1.0 config should return a string */
     if (ConfGet("pfring.interface", &def_dev) != 1) {
         return PFRING_CONF_V2;
     } else {
         return PFRING_CONF_V1;
     }
-    return PFRING_CONF_V2;
 }
 
 static int GetDevAndParser(const char **live_dev, ConfigIfaceParserFunc *parser)
@@ -441,7 +455,7 @@ int RunModeIdsPfringAutoFp(void)
     }
 
     ret = RunModeSetLiveCaptureAutoFp(tparser,
-                              PfringConfigGeThreadsCount,
+                              PfringConfigGetThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", thread_name_autofp,
                               live_dev);
@@ -478,7 +492,7 @@ int RunModeIdsPfringSingle(void)
     }
 
     ret = RunModeSetLiveCaptureSingle(tparser,
-                              PfringConfigGeThreadsCount,
+                              PfringConfigGetThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", thread_name_single,
                               live_dev);
@@ -515,7 +529,7 @@ int RunModeIdsPfringWorkers(void)
     }
 
     ret = RunModeSetLiveCaptureWorkers(tparser,
-                              PfringConfigGeThreadsCount,
+                              PfringConfigGetThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", thread_name_workers,
                               live_dev);

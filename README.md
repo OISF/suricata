@@ -45,6 +45,7 @@ On a high level, the steps are:
 
 
 
+
 ### Overview of Suricata's QA steps
 
 Trusted devs and core team members are able to submit builds to our (semi) public Buildbot instance. It will run a series of build tests and a regression suite to confirm no existing features break.
@@ -101,12 +102,12 @@ If the PR was closed without comments it's likely due to QA failure. If the Trav
 
 __Q: the compiler/code analyser/tool is wrong, what now?__
 
-A: to assist in the automation of the QA, we're not accepting warnings or errors to stay. In some cases this could mean that we add a suppression if the tool supports that (e.g. valgrind, DrMemory). Some warnings can be disabled. In some exceptional cases the only 'solution' is to refactor the code to work around a static code checker limitation false positive. While frusterating, we prefer this over leaving warnings in the output. Warnings tend to get ignored and then increase risk of hiding other warnings.
+A: To assist in the automation of the QA, we're not accepting warnings or errors to stay. In some cases this could mean that we add a suppression if the tool supports that (e.g. valgrind, DrMemory). Some warnings can be disabled. In some exceptional cases the only 'solution' is to refactor the code to work around a static code checker limitation false positive. While frustrating, we prefer this over leaving warnings in the output. Warnings tend to get ignored and then increase risk of hiding other warnings.
 
 
 __Q: I think your QA test is wrong__
 
-A: If you really think it is, we can discuss how to improve it. But don't come to this conclusion to quickly, moreoften it's the code that turns out to be wrong.
+A: If you really think it is, we can discuss how to improve it. But don't come to this conclusion to quickly, more often it's the code that turns out to be wrong.
 
 
 __Q: do you require signing of a contributor license agreement?__

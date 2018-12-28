@@ -80,7 +80,8 @@ typedef union HashState_ {
 
 #endif /* don't HAVE_NSS */
 
-unsigned char* ComputeSHA1(unsigned char* buff, int bufflen);
+int ComputeSHA1(const uint8_t * inbuf, size_t inbuf_len,
+        uint8_t *outbuf, size_t outbuf_len);
 int Base64Encode(const unsigned char *in,  unsigned long inlen, unsigned char *out, unsigned long *outlen);
 
 #endif /* UTIL_CRYPT_H_ */

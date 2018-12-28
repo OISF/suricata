@@ -77,41 +77,14 @@ struct DnsQueryGetDataArgs {
 #endif
 };
 
-/** \brief get an InspectionBuffer. Make space if we have to. */
-static InspectionBuffer *GetBuffer(InspectionBufferMultipleForList *fb, uint32_t id)
-{
-    if (id >= fb->size) {
-        uint32_t old_size = fb->size;
-        uint32_t new_size = id + 1;
-        uint32_t grow_by = new_size - old_size;
-        SCLogDebug("size is %u, need %u, so growing by %u",
-                old_size, new_size, grow_by);
-
-        void *ptr = SCRealloc(fb->inspection_buffers, (id + 1) * sizeof(InspectionBuffer));
-        if (ptr == NULL)
-            return NULL;
-
-        InspectionBuffer *to_zero = (InspectionBuffer *)ptr + old_size;
-        SCLogDebug("fb->inspection_buffers %p ptr %p to_zero %p",
-                fb->inspection_buffers, ptr, to_zero);
-        memset((uint8_t *)to_zero, 0, (grow_by * sizeof(InspectionBuffer)));
-        fb->inspection_buffers = ptr;
-        fb->size = new_size;
-    }
-
-    InspectionBuffer *buffer = &fb->inspection_buffers[id];
-    SCLogDebug("using file_data buffer %p", buffer);
-    return buffer;
-}
-
 static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *f, struct DnsQueryGetDataArgs *cbdata, int list_id, bool first)
 {
     SCEnter();
 
-    InspectionBufferMultipleForList *fb = &det_ctx->multi_inspect_buffers[list_id];
-    InspectionBuffer *buffer = GetBuffer(fb, cbdata->local_id);
+    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, cbdata->local_id);
     if (buffer == NULL)
         return NULL;
     if (!first && buffer->inspect != NULL)
@@ -654,7 +627,7 @@ static int DetectDnsQueryTest03(void)
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                               "(msg:\"Test dns_query option\"; "
-                              "content:\"google\"; nocase; dns_query; sid:1;)");
+                              "dns_query; content:\"google\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);

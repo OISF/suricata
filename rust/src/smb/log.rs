@@ -312,55 +312,105 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
         },
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
             let jsd = Json::object();
-            jsd.set_string("request", &dcerpc_type_string(x.req_cmd));
+            if x.req_set {
+                jsd.set_string("request", &dcerpc_type_string(x.req_cmd));
+            } else {
+                jsd.set_string("request", "REQUEST_LOST");
+            }
             if x.res_set {
                 jsd.set_string("response", &dcerpc_type_string(x.res_cmd));
             } else {
                 jsd.set_string("response", "UNREPLIED");
             }
-            match x.req_cmd {
-                DCERPC_TYPE_REQUEST => {
-                    jsd.set_integer("opnum", x.opnum as u64);
-                    let req = Json::object();
-                    req.set_integer("frag_cnt", x.frag_cnt_ts as u64);
-                    req.set_integer("stub_data_size", x.stub_data_ts.len() as u64);
-                    jsd.set("req", req);
-                    let res = Json::object();
-                    res.set_integer("frag_cnt", x.frag_cnt_tc as u64);
-                    res.set_integer("stub_data_size", x.stub_data_tc.len() as u64);
-                    jsd.set("res", res);
-                },
-                DCERPC_TYPE_BIND => {
-                    match state.dcerpc_ifaces {
-                        Some(ref ifaces) => {
-                            let jsa = Json::array();
-                            for i in ifaces {
-                                let jso = Json::object();
-                                let ifstr = dcerpc_uuid_to_string(&i);
-                                jso.set_string("uuid", &ifstr);
-                                let vstr = format!("{}.{}", i.ver, i.ver_min);
-                                jso.set_string("version", &vstr);
+            if x.req_set {
+                match x.req_cmd {
+                    DCERPC_TYPE_REQUEST => {
+                        jsd.set_integer("opnum", x.opnum as u64);
+                        let req = Json::object();
+                        req.set_integer("frag_cnt", x.frag_cnt_ts as u64);
+                        req.set_integer("stub_data_size", x.stub_data_ts.len() as u64);
+                        jsd.set("req", req);
+                    },
+                    DCERPC_TYPE_BIND => {
+                        match state.dcerpc_ifaces {
+                            Some(ref ifaces) => {
+                                let jsa = Json::array();
+                                for i in ifaces {
+                                    let jso = Json::object();
+                                    let ifstr = dcerpc_uuid_to_string(&i);
+                                    jso.set_string("uuid", &ifstr);
+                                    let vstr = format!("{}.{}", i.ver, i.ver_min);
+                                    jso.set_string("version", &vstr);
 
-                                if i.acked {
-                                    jso.set_integer("ack_result", i.ack_result as u64);
-                                    jso.set_integer("ack_reason", i.ack_reason as u64);
+                                    if i.acked {
+                                        jso.set_integer("ack_result", i.ack_result as u64);
+                                        jso.set_integer("ack_reason", i.ack_reason as u64);
+                                    }
+
+                                    jsa.array_append(jso);
                                 }
 
-                                jsa.array_append(jso);
-                            }
-
-                            jsd.set("interfaces", jsa);
-                        },
-                        _ => {},
-                    }
-                },
-                _ => {},
+                                jsd.set("interfaces", jsa);
+                            },
+                            _ => {},
+                        }
+                    },
+                    _ => {},
+                }
+            }
+            if x.res_set {
+                match x.res_cmd {
+                    DCERPC_TYPE_RESPONSE => {
+                        let res = Json::object();
+                        res.set_integer("frag_cnt", x.frag_cnt_tc as u64);
+                        res.set_integer("stub_data_size", x.stub_data_tc.len() as u64);
+                        jsd.set("res", res);
+                    },
+                    // we don't handle BINDACK w/o BIND
+                    _ => {},
+                }
             }
             jsd.set_integer("call_id", x.call_id as u64);
             js.set("dcerpc", jsd);
         }
         Some(SMBTransactionTypeData::IOCTL(ref x)) => {
             js.set_string("function", &fsctl_func_to_string(x.func));
+        },
+        Some(SMBTransactionTypeData::SETFILEPATHINFO(ref x)) => {
+            let mut name_raw = x.filename.to_vec();
+            name_raw.retain(|&i|i != 0x00);
+            if name_raw.len() > 0 {
+                let name = String::from_utf8_lossy(&name_raw);
+                js.set_string("filename", &name);
+            } else {
+                // name suggestion from Bro
+                js.set_string("filename", "<share_root>");
+            }
+            if x.delete_on_close {
+                js.set_string("access", "delete on close");
+            } else {
+                js.set_string("access", "normal");
+            }
+
+            match x.subcmd {
+                8 => {
+                    js.set_string("subcmd", "SET_FILE_INFO");
+                },
+                6 => {
+                    js.set_string("subcmd", "SET_PATH_INFO");
+                },
+                _ => { },
+            }
+
+            match x.loi {
+                1013 => { // Set Disposition Information
+                    js.set_string("level_of_interest", "Set Disposition Information");
+                },
+                _ => { },
+            }
+
+            let gs = fuid_to_string(&x.fid);
+            js.set_string("fuid", &gs);
         },
         _ => {  },
     }

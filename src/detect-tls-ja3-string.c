@@ -73,7 +73,7 @@ void DetectTlsJa3StringRegister(void)
 {
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].name = "ja3_string";
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].desc = "content modifier to match the JA3 string buffer";
-    sigmatch_table[DETECT_AL_TLS_JA3_STRING].url = DOC_URL DOC_VERSION "/rules/ja3-keywords.html#ja3_string";
+    sigmatch_table[DETECT_AL_TLS_JA3_STRING].url = DOC_URL DOC_VERSION "/rules/ja3-keywords.html#ja3-string";
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].Setup = DetectTlsJa3StringSetup;
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].Free = NULL;
@@ -120,9 +120,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id)
 {
-    BUG_ON(det_ctx->inspect_buffers == NULL);
-    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
-
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         SSLState *ssl_state = (SSLState *)_f->alstate;
 

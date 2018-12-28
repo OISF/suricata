@@ -180,31 +180,26 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectEngineEventSetupDo (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr, int smtype)
+static int DetectEngineEventSetupDo (DetectEngineCtx *de_ctx, Signature *s,
+        const char *rawstr, int smtype)
 {
-    DetectEngineEventData *de = NULL;
-    SigMatch *sm = NULL;
-
-    de = DetectEngineEventParse(rawstr);
+    DetectEngineEventData *de = DetectEngineEventParse(rawstr);
     if (de == NULL)
-        goto error;
+        return -1;
 
     SCLogDebug("rawstr %s %u", rawstr, de->event);
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        SCFree(de);
+        return -1;
+    }
 
     sm->type = smtype;
     sm->ctx = (SigMatchCtx *)de;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     return 0;
-
-error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
-    return -1;
 }
 
 
@@ -232,10 +227,10 @@ static void DetectEngineEventFree(void *ptr)
 */
 static int DetectDecodeEventSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    char drawstr[MAX_SUBSTRINGS * 2] = "decoder.";
+    char drawstr[64] = "decoder.";
 
     /* decoder:$EVENT alias command develop as decode-event:decoder.$EVENT */
-    strlcat(drawstr, rawstr, 2 * MAX_SUBSTRINGS - strlen("decoder.") - 1);
+    strlcat(drawstr, rawstr, sizeof(drawstr));
 
     return DetectEngineEventSetupDo(de_ctx, s, drawstr, DETECT_DECODE_EVENT);
 }
@@ -245,10 +240,16 @@ static int DetectDecodeEventSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 */
 static int DetectStreamEventSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    char srawstr[MAX_SUBSTRINGS * 2] = "stream.";
+    char srawstr[64] = "stream.";
+
+    if (strcmp(rawstr, "est_synack_resend_with_different_ack") == 0) {
+        rawstr = "est_synack_resend_with_diff_ack";
+    } else if (strcmp(rawstr, "3whs_synack_resend_with_different_ack") == 0) {
+        rawstr = "3whs_synack_resend_with_diff_ack";
+    }
 
     /* stream:$EVENT alias command develop as decode-event:stream.$EVENT */
-    strlcat(srawstr, rawstr, 2 * MAX_SUBSTRINGS - strlen("stream.") - 1);
+    strlcat(srawstr, rawstr, sizeof(srawstr));
 
     return DetectEngineEventSetup(de_ctx, s, srawstr);
 }

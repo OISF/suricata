@@ -5,7 +5,8 @@ Introduction
 ------------
 
 Multi tenancy support allows for different rule sets with different
-rule vars.
+rule vars. These tenants can then be assigned to VLANs or interfaces
+(devices).
 
 YAML
 ----
@@ -17,7 +18,7 @@ Settings:
 
 * enabled: yes/no -> is multi-tenancy support enable
 * default: yes/no -> is the normal detect config a default 'fall back' tenant?
-* selector: direct (for unix socket pcap processing, see below) or vlan
+* selector: direct (for unix socket pcap processing, see below), vlan or device
 * loaders: number of 'loader' threads, for parallel tenant loading at startup
 * tenants: list of tenants
 
@@ -26,8 +27,8 @@ Settings:
 
 * mappings:
 
-  * vlan id
-  * tenant id: tenant to associate with the vlan id
+  * vlan id or device
+  * tenant id: tenant to associate with the vlan id / device
 
 ::
 
@@ -91,6 +92,59 @@ configuration:
       SHELLCODE_PORTS: "!80"
 
       ...
+
+vlanid
+~~~~~~
+
+Assign tenants to vlan id's.
+
+Example of vlan mapping::
+
+    mappings:
+    - vlan-id: 1000
+      tenant-id: 1
+    - vlan-id: 2000
+      tenant-id: 2
+    - vlan-id: 1112
+      tenant-id: 3
+
+The mappings can also be modified over the unix socket, see below.
+
+Note: can only be used if 'vlan.use-for-tracking' is enabled.
+
+device
+~~~~~~
+
+Assign tenants to devices. A single tenant can be assigned to a device.
+Multiple devices can have the same tenant.
+
+Example of device mapping::
+
+    mappings:
+    - device: ens5f0
+      tenant-id: 1
+    - device: ens5f1
+      tenant-id: 3
+
+The mappings are static and cannot be modified over the unix socket.
+
+Note: Not currently supported for IPS.
+
+Note: support depends on a capture method using the 'livedev' API. Currently
+these are: pcap, AF_PACKET, PF_RING and Netmap.
+
+Per tenant settings
+-------------------
+
+The following settings are per tenant:
+
+* default-rule-path
+* rule-files
+* classification-file
+* reference-config-file
+* threshold-file
+* address-vars
+* port-vars
 
 Unix Socket
 -----------

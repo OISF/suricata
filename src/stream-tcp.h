@@ -96,6 +96,8 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_rst;
     /** midstream pickups */
     uint16_t counter_tcp_midstream_pickups;
+    /** wrong thread */
+    uint16_t counter_tcp_wrong_thread;
 
     /** tcp reassembly thread data */
     TcpReassemblyThreadCtx *ra_ctx;
@@ -132,7 +134,8 @@ int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
         uint64_t progress_in,
         uint64_t *progress_out, bool eof);
 int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
-        StreamReassembleRawFunc Callback, void *cb_data, uint64_t *progress_out);
+        StreamReassembleRawFunc Callback, void *cb_data,
+        uint64_t *progress_out, bool respect_inspect_depth);
 void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress);
 
 void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueue *pq);

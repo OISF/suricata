@@ -364,6 +364,69 @@ pub enum SMBTransactionTypeData {
     SESSIONSETUP(SMBTransactionSessionSetup),
     IOCTL(SMBTransactionIoctl),
     RENAME(SMBTransactionRename),
+    SETFILEPATHINFO(SMBTransactionSetFilePathInfo),
+}
+
+// Used for Trans2 SET_PATH_INFO and SET_FILE_INFO
+#[derive(Debug)]
+pub struct SMBTransactionSetFilePathInfo {
+    pub subcmd: u16,
+    pub loi: u16,
+    pub delete_on_close: bool,
+    pub filename: Vec<u8>,
+    pub fid: Vec<u8>,
+}
+
+impl SMBTransactionSetFilePathInfo {
+    pub fn new(filename: Vec<u8>, fid: Vec<u8>, subcmd: u16, loi: u16, delete_on_close: bool)
+        -> SMBTransactionSetFilePathInfo
+    {
+        return SMBTransactionSetFilePathInfo {
+            filename: filename, fid: fid,
+            subcmd: subcmd,
+            loi: loi,
+            delete_on_close: delete_on_close,
+        }
+    }
+}
+
+impl SMBState {
+    pub fn new_setfileinfo_tx(&mut self, filename: Vec<u8>, fid: Vec<u8>,
+            subcmd: u16, loi: u16, delete_on_close: bool)
+        -> (&mut SMBTransaction)
+    {
+        let mut tx = self.new_tx();
+
+        tx.type_data = Some(SMBTransactionTypeData::SETFILEPATHINFO(
+                    SMBTransactionSetFilePathInfo::new(
+                        filename, fid, subcmd, loi, delete_on_close)));
+        tx.request_done = true;
+        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+
+        SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
+        self.transactions.push(tx);
+        let tx_ref = self.transactions.last_mut();
+        return tx_ref.unwrap();
+    }
+
+    pub fn new_setpathinfo_tx(&mut self, filename: Vec<u8>,
+            subcmd: u16, loi: u16, delete_on_close: bool)
+        -> (&mut SMBTransaction)
+    {
+        let mut tx = self.new_tx();
+
+        let fid : Vec<u8> = Vec::new();
+        tx.type_data = Some(SMBTransactionTypeData::SETFILEPATHINFO(
+                    SMBTransactionSetFilePathInfo::new(filename, fid,
+                        subcmd, loi, delete_on_close)));
+        tx.request_done = true;
+        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+
+        SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
+        self.transactions.push(tx);
+        let tx_ref = self.transactions.last_mut();
+        return tx_ref.unwrap();
+    }
 }
 
 #[derive(Debug)]
@@ -574,10 +637,9 @@ pub const SMBHDR_TYPE_OFFSET:      u32 = 4;
 pub const SMBHDR_TYPE_GENERICTX:   u32 = 5;
 pub const SMBHDR_TYPE_HEADER:      u32 = 6;
 pub const SMBHDR_TYPE_MAX_SIZE:    u32 = 7; // max resp size for SMB1_COMMAND_TRANS
-pub const SMBHDR_TYPE_TXNAME:      u32 = 8; // SMB1_COMMAND_TRANS tx_name
-pub const SMBHDR_TYPE_TRANS_FRAG:  u32 = 9;
-pub const SMBHDR_TYPE_TREE:        u32 = 10;
-pub const SMBHDR_TYPE_DCERPCTX:    u32 = 11;
+pub const SMBHDR_TYPE_TRANS_FRAG:  u32 = 8;
+pub const SMBHDR_TYPE_TREE:        u32 = 9;
+pub const SMBHDR_TYPE_DCERPCTX:    u32 = 10;
 
 #[derive(Hash, Eq, PartialEq, Debug)]
 pub struct SMBCommonHdr {
@@ -639,6 +701,12 @@ impl SMBCommonHdr {
             msg_id : msg_id,
         }
     }
+
+    // don't include tree id
+    pub fn compare(&self, hdr: &SMBCommonHdr) -> bool {
+        (self.rec_type == hdr.rec_type && self.ssn_id == hdr.ssn_id &&
+         self.msg_id == hdr.msg_id)
+    }
 }
 
 #[derive(Hash, Eq, PartialEq, Debug)]
@@ -688,8 +756,8 @@ pub struct SMBState<> {
 
     pub ssn2tree_map: HashMap<SMBCommonHdr, SMBTree>,
 
-    // track the max size we expect for TRANS responses
-    pub ssn2maxsize_map: HashMap<SMBCommonHdr, u16>,
+    // store partial data records that are transfered in multiple
+    // requests for DCERPC.
     pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
 
     /// TCP segments defragmentation buffer
@@ -739,7 +807,6 @@ impl SMBState {
             guid2name_map:HashMap::new(),
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
-            ssn2maxsize_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
             tcp_buffer_ts:Vec::new(),
             tcp_buffer_tc:Vec::new(),
@@ -813,7 +880,10 @@ impl SMBState {
                 index += 1;
                 continue;
             }
-            *state = index as u64 + 1;
+            // store current index in the state and not the next
+            // as transactions might be freed between now and the
+            // next time we are called.
+            *state = index as u64;
             //SCLogDebug!("returning tx_id {} has_next? {} (len {} index {}), tx {:?}",
             //        tx.id - 1, (len - index) > 1, len, index, tx);
             return Some((tx, tx.id - 1, (len - index) > 1));
@@ -909,10 +979,10 @@ impl SMBState {
             let found = if tx.vercmd.get_version() == smb_ver {
                 if smb_ver == 1 {
                     let (_, cmd) = tx.vercmd.get_smb1_cmd();
-                    cmd as u16 == smb_cmd && tx.hdr == *key
+                    cmd as u16 == smb_cmd && tx.hdr.compare(key)
                 } else if smb_ver == 2 {
                     let (_, cmd) = tx.vercmd.get_smb2_cmd();
-                    cmd == smb_cmd && tx.hdr == *key
+                    cmd == smb_cmd && tx.hdr.compare(key)
                 } else {
                     false
                 }
@@ -990,7 +1060,7 @@ impl SMBState {
         -> Option<&mut SMBTransaction>
     {
         for tx in &mut self.transactions {
-            let hit = tx.hdr == hdr && match tx.type_data {
+            let hit = tx.hdr.compare(&hdr) && match tx.type_data {
                 Some(SMBTransactionTypeData::TREECONNECT(_)) => { true },
                 _ => { false },
             };
@@ -1026,7 +1096,7 @@ impl SMBState {
         for tx in &mut self.transactions {
             let found = match tx.type_data {
                 Some(SMBTransactionTypeData::CREATE(ref _d)) => {
-                    *hdr == tx.hdr
+                    tx.hdr.compare(&hdr)
                 },
                 _ => { false },
             };
@@ -1044,13 +1114,20 @@ impl SMBState {
     {
         let (name, is_dcerpc) = match self.guid2name_map.get(&guid.to_vec()) {
             Some(n) => {
-                match str::from_utf8(&n) {
+                let mut s = n.as_slice();
+                // skip leading \ if we have it
+                if s.len() > 1 && s[0] == 0x5c_u8 {
+                    s = &s[1..];
+                }
+                match str::from_utf8(s) {
                     Ok("PSEXESVC") => ("PSEXESVC", false),
                     Ok("svcctl") => ("svcctl", true),
                     Ok("srvsvc") => ("srvsvc", true),
                     Ok("atsvc") => ("atsvc", true),
                     Ok("lsarpc") => ("lsarpc", true),
                     Ok("samr") => ("samr", true),
+                    Ok("spoolss") => ("spoolss", true),
+                    Ok("suricata::dcerpc") => ("unknown", true),
                     Err(_) => ("MALFORMED", false),
                     Ok(&_) => {
                         SCLogDebug!("don't know {}", String::from_utf8_lossy(&n));
@@ -1720,11 +1797,17 @@ pub extern "C" fn rs_smb_parse_request_tcp(_flow: *mut Flow,
                                        _pstate: *mut libc::c_void,
                                        input: *mut libc::uint8_t,
                                        input_len: libc::uint32_t,
-                                       _data: *mut libc::c_void)
+                                       _data: *mut libc::c_void,
+                                       flags: u8)
                                        -> libc::int8_t
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
+
+    /* START with MISTREAM set: record might be starting the middle. */
+    if flags & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
+        state.ts_gap = true;
+    }
 
     if state.parse_tcp_data_ts(buf) == 0 {
         return 1;
@@ -1752,11 +1835,17 @@ pub extern "C" fn rs_smb_parse_response_tcp(_flow: *mut Flow,
                                         _pstate: *mut libc::c_void,
                                         input: *mut libc::uint8_t,
                                         input_len: libc::uint32_t,
-                                        _data: *mut libc::c_void)
+                                        _data: *mut libc::c_void,
+                                        flags: u8)
                                         -> libc::int8_t
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+
+    /* START with MISTREAM set: record might be starting the middle. */
+    if flags & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
+        state.tc_gap = true;
+    }
 
     if state.parse_tcp_data_tc(buf) == 0 {
         return 1;
@@ -1777,22 +1866,36 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
     return -1;
 }
 
+// probing parser
+// return 1 if found, 0 is not found
 #[no_mangle]
 pub extern "C" fn rs_smb_probe_tcp(input: *const libc::uint8_t, len: libc::uint32_t)
                                -> libc::int8_t
 {
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice = build_slice!(input, len as usize);
+    match search_smb_record(slice) {
+        IResult::Done(_, _) => {
+            SCLogDebug!("smb found");
+            return 1;
+        },
+        _ => {
+            SCLogDebug!("smb not found in {:?}", slice);
+        },
+    }
     match parse_nbss_record_partial(slice) {
         IResult::Done(_, ref hdr) => {
             if hdr.is_smb() {
+                SCLogDebug!("smb found");
+                return 1;
+            } else if hdr.is_valid() {
+                SCLogDebug!("nbss found, assume smb");
                 return 1;
             }
         },
         _ => { },
     }
-    return 1
+    SCLogDebug!("no smb");
+    return -1
 }
 
 #[no_mangle]

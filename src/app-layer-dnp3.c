@@ -264,8 +264,7 @@ static int DNP3ContainsBanner(const uint8_t *input, uint32_t len)
 /**
  * \brief DNP3 probing parser.
  */
-static uint16_t DNP3ProbingParser(Flow *f, uint8_t *input, uint32_t len,
-    uint32_t *offset)
+static uint16_t DNP3ProbingParser(Flow *f, uint8_t *input, uint32_t len)
 {
     DNP3LinkHeader *hdr = (DNP3LinkHeader *)input;
 
@@ -1111,7 +1110,8 @@ error:
  * multiple frames, but not the complete final frame).
  */
 static int DNP3ParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     SCEnter();
     DNP3State *dnp3 = (DNP3State *)state;
@@ -1250,7 +1250,8 @@ error:
  * See DNP3ParseResponsePDUs for DNP3 frame handling.
  */
 static int DNP3ParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     SCEnter();
     DNP3State *dnp3 = (DNP3State *)state;
@@ -2042,25 +2043,25 @@ static int DNP3ProbingParserTest(void)
     };
 
     /* Valid frame. */
-    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(pkt), NULL) != ALPROTO_DNP3);
+    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(pkt)) != ALPROTO_DNP3);
 
     /* Send too little bytes. */
-    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(DNP3LinkHeader) - 1, NULL) != ALPROTO_UNKNOWN);
+    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(DNP3LinkHeader) - 1) != ALPROTO_UNKNOWN);
 
     /* Bad start bytes. */
     pkt[0] = 0x06;
-    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(pkt), NULL) != ALPROTO_FAILED);
+    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(pkt)) != ALPROTO_FAILED);
 
     /* Restore start byte. */
     pkt[0] = 0x05;
 
     /* Set the length to a value less than the minimum length of 5. */
     pkt[2] = 0x03;
-    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(pkt), NULL) != ALPROTO_FAILED);
+    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(pkt)) != ALPROTO_FAILED);
 
     /* Send a banner. */
     char mybanner[] = "Welcome to DNP3 SCADA.";
-    FAIL_IF(DNP3ProbingParser(NULL, (uint8_t *)mybanner, sizeof(mybanner), NULL) != ALPROTO_DNP3);
+    FAIL_IF(DNP3ProbingParser(NULL, (uint8_t *)mybanner, sizeof(mybanner)) != ALPROTO_DNP3);
 
     PASS;
 }

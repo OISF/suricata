@@ -666,8 +666,45 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm)
             cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
         }
     }
+    cd->flags |= DETECT_CONTENT_MPM;
     s->init_data->mpm_sm = mpm_sm;
     return;
+}
+
+static SigMatch *GetMpmForList(const Signature *s, const int list, SigMatch *mpm_sm,
+    uint16_t max_len, bool skip_negated_content)
+{
+    for (SigMatch *sm = s->init_data->smlists[list]; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        const DetectContentData *cd = (DetectContentData *)sm->ctx;
+        /* skip_negated_content is only set if there's absolutely no
+         * non-negated content present in the sig */
+        if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
+            continue;
+        if (cd->content_len != max_len)
+            continue;
+
+        if (mpm_sm == NULL) {
+            mpm_sm = sm;
+        } else {
+            DetectContentData *data1 = (DetectContentData *)sm->ctx;
+            DetectContentData *data2 = (DetectContentData *)mpm_sm->ctx;
+            uint32_t ls = PatternStrength(data1->content, data1->content_len);
+            uint32_t ss = PatternStrength(data2->content, data2->content_len);
+            if (ls > ss) {
+                mpm_sm = sm;
+            } else if (ls == ss) {
+                /* if 2 patterns are of equal strength, we pick the longest */
+                if (data1->content_len > data2->content_len)
+                    mpm_sm = sm;
+            } else {
+                SCLogDebug("sticking with mpm_sm");
+            }
+        }
+    }
+    return mpm_sm;
 }
 
 void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
@@ -683,11 +720,10 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     memset(n_sm_list, 0, nlists * sizeof(int));
     int count_nn_sm_list = 0;
     int count_n_sm_list = 0;
-    int list_id;
 
     /* inspect rule to see if we have the fast_pattern reg to
      * force using a sig, otherwise keep stats about the patterns */
-    for (list_id = 0; list_id < nlists; list_id++) {
+    for (int list_id = 0; list_id < nlists; list_id++) {
         if (s->init_data->smlists[list_id] == NULL)
             continue;
 
@@ -698,8 +734,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             if (sm->type != DETECT_CONTENT)
                 continue;
 
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
-
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
             /* fast_pattern set in rule, so using this pattern */
             if ((cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
                 SetMpm(s, sm);
@@ -734,7 +769,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     int count_final_sm_list = 0;
     int priority;
 
-    SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
+    const SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
     while (tmp != NULL) {
         for (priority = tmp->priority;
              tmp != NULL && priority == tmp->priority;
@@ -752,9 +787,8 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 
     BUG_ON(count_final_sm_list == 0);
 
-    int max_len = 0;
-    int i;
-    for (i = 0; i < count_final_sm_list; i++) {
+    uint16_t max_len = 0;
+    for (int i = 0; i < count_final_sm_list; i++) {
         if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
             continue;
 
@@ -762,7 +796,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             if (sm->type != DETECT_CONTENT)
                 continue;
 
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
             /* skip_negated_content is only set if there's absolutely no
              * non-negated content present in the sig */
             if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
@@ -772,40 +806,11 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    for (i = 0; i < count_final_sm_list; i++) {
+    for (int i = 0; i < count_final_sm_list; i++) {
         if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
             continue;
 
-        for (sm = s->init_data->smlists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
-
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
-            /* skip_negated_content is only set if there's absolutely no
-             * non-negated content present in the sig */
-            if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
-                continue;
-            if (cd->content_len != max_len)
-                continue;
-
-            if (mpm_sm == NULL) {
-                mpm_sm = sm;
-            } else {
-                DetectContentData *data1 = (DetectContentData *)sm->ctx;
-                DetectContentData *data2 = (DetectContentData *)mpm_sm->ctx;
-                uint32_t ls = PatternStrength(data1->content, data1->content_len);
-                uint32_t ss = PatternStrength(data2->content, data2->content_len);
-                if (ls > ss) {
-                    mpm_sm = sm;
-                } else if (ls == ss) {
-                    /* if 2 patterns are of equal strength, we pick the longest */
-                    if (data1->content_len > data2->content_len)
-                        mpm_sm = sm;
-                } else {
-                    SCLogDebug("sticking with mpm_sm");
-                }
-            }
-        }
+        mpm_sm = GetMpmForList(s, final_sm_list[i], mpm_sm, max_len, skip_negated_content);
     }
 
     /* assign to signature */
@@ -1500,7 +1505,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
         return -1;
 
     uint8_t *content = NULL;
-    uint8_t content_len = 0;
+    uint16_t content_len = 0;
     PatIntId max_id = 0;
     DetectFPAndItsId *struct_offset = (DetectFPAndItsId *)ahb;
     uint8_t *content_offset = ahb + struct_total_size;

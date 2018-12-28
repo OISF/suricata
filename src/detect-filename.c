@@ -147,6 +147,7 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                 memcpy(name, filename->name, filename->len);
                 name[filename->len] = '\0';
                 SCLogDebug("will look for filename %s", name);
+                SCFree(name);
             }
         }
 #endif
@@ -156,7 +157,7 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         }
     }
 
-    if (ret == 0 && (filename->flags & DETECT_CONTENT_NEGATED)) {
+    else if (filename->flags & DETECT_CONTENT_NEGATED) {
         SCLogDebug("negated match");
         ret = 1;
     }
@@ -208,6 +209,7 @@ static DetectFilenameData *DetectFilenameParse (const char *str, bool negate)
             memcpy(name, filename->name, filename->len);
             name[filename->len] = '\0';
             SCLogDebug("will look for filename %s", name);
+            SCFree(name);
         }
     }
 #endif

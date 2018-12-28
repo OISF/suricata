@@ -74,7 +74,7 @@ void DetectTlsVersionRegister (void)
 {
     sigmatch_table[DETECT_AL_TLS_VERSION].name = "tls.version";
     sigmatch_table[DETECT_AL_TLS_VERSION].desc = "match on TLS/SSL version";
-    sigmatch_table[DETECT_AL_TLS_VERSION].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlsversion";
+    sigmatch_table[DETECT_AL_TLS_VERSION].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-version";
     sigmatch_table[DETECT_AL_TLS_VERSION].AppLayerTxMatch = DetectTlsVersionMatch;
     sigmatch_table[DETECT_AL_TLS_VERSION].Setup = DetectTlsVersionSetup;
     sigmatch_table[DETECT_AL_TLS_VERSION].Free  = DetectTlsVersionFree;
@@ -110,16 +110,26 @@ static int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     int ret = 0;
+    uint16_t version = 0;
     SCLogDebug("looking for tls_data->ver 0x%02X (flags 0x%02X)", tls_data->ver, flags);
 
     if (flags & STREAM_TOCLIENT) {
-        SCLogDebug("server (toclient) version is 0x%02X", ssl_state->server_connp.version);
-        if (tls_data->ver == ssl_state->server_connp.version)
-            ret = 1;
+        version = ssl_state->server_connp.version;
+        SCLogDebug("server (toclient) version is 0x%02X", version);
     } else if (flags & STREAM_TOSERVER) {
-        SCLogDebug("client (toserver) version is 0x%02X", ssl_state->client_connp.version);
-        if (tls_data->ver == ssl_state->client_connp.version)
-            ret = 1;
+        version =  ssl_state->client_connp.version;
+        SCLogDebug("client (toserver) version is 0x%02X", version);
+    }
+
+    if ((tls_data->flags & DETECT_TLS_VERSION_FLAG_RAW) == 0) {
+        /* Match all TLSv1.3 drafts as TLSv1.3 */
+        if (((version >> 8) & 0xff) == 0x7f) {
+            version = TLS_VERSION_13;
+        }
+    }
+
+    if (tls_data->ver == version) {
+        ret = 1;
     }
 
     SCReturnInt(ret);
@@ -160,7 +170,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
         }
 
         /* We have a correct id option */
-        tls = SCMalloc(sizeof(DetectTlsVersionData));
+        tls = SCCalloc(1, sizeof(DetectTlsVersionData));
         if (unlikely(tls == NULL))
             goto error;
 
@@ -177,12 +187,17 @@ static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
             tmp_str += 1;
         }
 
-        if (strcmp("1.0", tmp_str) == 0) {
+        if (strncmp("1.0", tmp_str, 3) == 0) {
             temp = TLS_VERSION_10;
-        } else if (strcmp("1.1", tmp_str) == 0) {
+        } else if (strncmp("1.1", tmp_str, 3) == 0) {
             temp = TLS_VERSION_11;
-        } else if (strcmp("1.2", tmp_str) == 0) {
+        } else if (strncmp("1.2", tmp_str, 3) == 0) {
             temp = TLS_VERSION_12;
+        } else if (strncmp("1.3", tmp_str, 3) == 0) {
+            temp = TLS_VERSION_13;
+        } else if ((strncmp("0x", tmp_str, 2) == 0) && (strlen(str) == 6)) {
+            temp = (uint16_t)strtol(tmp_str, NULL, 0);
+            tls->flags |= DETECT_TLS_VERSION_FLAG_RAW;
         } else {
             SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
             SCFree(orig);

@@ -30,9 +30,9 @@ impl SMBState {
             let txf = self.transactions.first().unwrap();
             let txl = self.transactions.last().unwrap();
 
-            SCLogNotice!("TXs {} MIN {} MAX {}", self.transactions.len(), txf.id, txl.id);
-            SCLogNotice!("- OLD tx.id {}: {:?}", txf.id, txf);
-            SCLogNotice!("- NEW tx.id {}: {:?}", txl.id, txl);
+            SCLogDebug!("TXs {} MIN {} MAX {}", self.transactions.len(), txf.id, txl.id);
+            SCLogDebug!("- OLD tx.id {}: {:?}", txf.id, txf);
+            SCLogDebug!("- NEW tx.id {}: {:?}", txl.id, txl);
             self._dump_txs();
         }
     }
@@ -61,7 +61,7 @@ impl SMBState {
                             String::from_utf8_lossy(&d.file_name), tx.type_data);
                 },
                 _ => {
-                    SCLogNotice!("idx {} tx id {} ver:{} cmd:{} progress {}/{} type_data {:?} tx {:?}",
+                    SCLogDebug!("idx {} tx id {} ver:{} cmd:{} progress {}/{} type_data {:?} tx {:?}",
                             i, tx.id, ver, _smbcmd, tx.request_done, tx.response_done, tx.type_data, tx);
                 },
             }
@@ -73,6 +73,6 @@ impl SMBState {
 
     #[cfg(feature = "debug")]
     pub fn _debug_state_stats(&self) {
-        SCLogNotice!("ssn2vec_map {} guid2name_map {} ssn2vecoffset_map {} ssn2tree_map {} ssn2maxsize_map {} ssnguid2vec_map {} tcp_buffer_ts {} tcp_buffer_tc {} file_ts_guid {} file_tc_guid {} transactions {}", self.ssn2vec_map.len(), self.guid2name_map.len(), self.ssn2vecoffset_map.len(), self.ssn2tree_map.len(), self.ssn2maxsize_map.len(), self.ssnguid2vec_map.len(), self.tcp_buffer_ts.len(), self.tcp_buffer_tc.len(), self.file_ts_guid.len(), self.file_tc_guid.len(), self.transactions.len());
+        SCLogDebug!("ssn2vec_map {} guid2name_map {} ssn2vecoffset_map {} ssn2tree_map {} ssnguid2vec_map {} tcp_buffer_ts {} tcp_buffer_tc {} file_ts_guid {} file_tc_guid {} transactions {}", self.ssn2vec_map.len(), self.guid2name_map.len(), self.ssn2vecoffset_map.len(), self.ssn2tree_map.len(), self.ssnguid2vec_map.len(), self.tcp_buffer_ts.len(), self.tcp_buffer_tc.len(), self.file_ts_guid.len(), self.file_tc_guid.len(), self.transactions.len());
     }
 }

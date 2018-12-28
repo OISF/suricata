@@ -162,7 +162,7 @@ void DetectFastPatternRegister(void)
 {
     sigmatch_table[DETECT_FAST_PATTERN].name = "fast_pattern";
     sigmatch_table[DETECT_FAST_PATTERN].desc = "force using preceding content in the multi pattern matcher";
-    sigmatch_table[DETECT_FAST_PATTERN].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#fast-pattern";
+    sigmatch_table[DETECT_FAST_PATTERN].url = DOC_URL DOC_VERSION "/rules/prefilter-keywords.html#fast-pattern";
     sigmatch_table[DETECT_FAST_PATTERN].Match = NULL;
     sigmatch_table[DETECT_FAST_PATTERN].Setup = DetectFastPatternSetup;
     sigmatch_table[DETECT_FAST_PATTERN].Free  = NULL;

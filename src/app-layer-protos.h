@@ -49,7 +49,10 @@ enum AppProtoEnum {
     ALPROTO_FTPDATA,
     ALPROTO_TFTP,
     ALPROTO_IKEV2,
+    ALPROTO_KRB5,
+    ALPROTO_DHCP,
     ALPROTO_TEMPLATE,
+    ALPROTO_TEMPLATE_RUST,
 
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */

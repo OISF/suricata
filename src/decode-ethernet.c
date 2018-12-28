@@ -39,12 +39,16 @@
 #include "util-debug.h"
 
 int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   uint8_t *pkt, uint16_t len, PacketQueue *pq)
+                   uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_eth);
 
     if (unlikely(len < ETHERNET_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, ETHERNET_PKT_TOO_SMALL);
+        return TM_ECODE_FAILED;
+    }
+
+    if (unlikely(len > ETHERNET_HEADER_LEN + USHRT_MAX)) {
         return TM_ECODE_FAILED;
     }
 

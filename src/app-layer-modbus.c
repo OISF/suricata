@@ -1266,7 +1266,8 @@ static int ModbusParseRequest(Flow                  *f,
                               AppLayerParserState   *pstate,
                               uint8_t               *input,
                               uint32_t              input_len,
-                              void                  *local_data)
+                              void                  *local_data,
+                              const uint8_t         flags)
 {
     SCEnter();
     ModbusState         *modbus = (ModbusState *) state;
@@ -1330,7 +1331,8 @@ static int ModbusParseResponse(Flow                 *f,
                                AppLayerParserState  *pstate,
                                uint8_t              *input,
                                uint32_t             input_len,
-                               void                 *local_data)
+                               void                 *local_data,
+                               const uint8_t        flags)
 {
     SCEnter();
     ModbusHeader        header;
@@ -1426,8 +1428,7 @@ static void ModbusStateFree(void *state)
 
 static uint16_t ModbusProbingParser(Flow *f,
                                     uint8_t     *input,
-                                    uint32_t    input_len,
-                                    uint32_t    *offset)
+                                    uint32_t    input_len)
 {
     ModbusHeader *header = (ModbusHeader *) input;
 

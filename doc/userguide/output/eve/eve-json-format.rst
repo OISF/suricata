@@ -124,12 +124,12 @@ Fields
 In addition to these fields, if the extended logging is enabled in the suricata.yaml file the following fields are (can) also included:
 
 * "length": The content size of the HTTP body
-* "status": HTTP statuscode
+* "status": HTTP status code
 * "protocol": Protocol / Version of HTTP (ex: HTTP/1.1)
 * "http_method": The HTTP method (ex: GET, POST, HEAD)
 * "http_refer": The referer for this action
 
-In addition to the extended logging fields one can also choose to enable/add from 50 additional custom logging HTTP fields enabled in the suricata.yaml file. The additional fields can be enabled as following:
+In addition to the extended logging fields one can also choose to enable/add from more than 50 additional custom logging HTTP fields enabled in the suricata.yaml file. The additional fields can be enabled as following:
 
 
 ::
@@ -179,6 +179,21 @@ Event with non-extended logging:
       "http_user_agent": "<User-Agent>",
       "http_content_type": "application\/x-gzip"
   }
+
+In case the hostname shows a port number, such as in case there is a header "Host: www.test.org:1337":
+
+::
+
+
+  "http": {
+      "http_port": 1337,
+      "hostname": "www.test.org",
+      "url" :"\/this\/is\/test.tar.gz",
+      "http_user_agent": "<User-Agent>",
+      "http_content_type": "application\/x-gzip"
+  }
+
+
 
 Event with extended logging:
 
@@ -474,7 +489,7 @@ SMB Fields
 * "filename" (string): filename for CREATE and other commands.
 * "disposition" (string): requested disposition. E.g. FILE_OPEN, FILE_CREATE and FILE_OVERWRITE. See https://msdn.microsoft.com/en-us/library/ee442175.aspx#Appendix_A_Target_119
 * "access" (string): indication of how the file was opened. "normal" or "delete on close" (field is subject to change)
-* "created", "accessed", "modified", "changed" (interger): timestamps in seconds since unix epoch
+* "created", "accessed", "modified", "changed" (integer): timestamps in seconds since unix epoch
 * "size" (integer): size of the requested file
 * "fuid" (string): SMB2+ file GUID. SMB1 FID as hex.
 * "share" (string): share name.

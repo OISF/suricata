@@ -90,6 +90,8 @@ static int InspectSshBanner(ThreadVars *tv,
 void DetectSshSoftwareVersionRegister(void)
 {
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].name = "ssh.softwareversion";
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].desc = "match SSH software string";
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].url = DOC_URL DOC_VERSION "/rules/ssh-keywords.html#ssh-softwareversion";
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].AppLayerTxMatch = DetectSshSoftwareVersionMatch;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Setup = DetectSshSoftwareVersionSetup;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Free  = DetectSshSoftwareVersionFree;

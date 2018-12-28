@@ -44,6 +44,10 @@
 #include <net/if.h>
 #endif
 
+#ifdef OS_WIN32
+#include "win32-syscall.h"
+#endif
+
 #include "util-ioctl.h"
 
 /**
@@ -77,6 +81,7 @@ static int GetIfaceMaxHWHeaderLength(const char *pcap_dev)
     return 8 + SLL_HEADER_LEN;
 }
 
+
 /**
  * \brief output the link MTU
  *
@@ -85,7 +90,7 @@ static int GetIfaceMaxHWHeaderLength(const char *pcap_dev)
  */
 int GetIfaceMTU(const char *pcap_dev)
 {
-#ifdef SIOCGIFMTU
+#if defined SIOCGIFMTU
     struct ifreq ifr;
     int fd;
 
@@ -106,6 +111,8 @@ int GetIfaceMTU(const char *pcap_dev)
     SCLogInfo("Found an MTU of %d for '%s'", ifr.ifr_mtu,
             pcap_dev);
     return ifr.ifr_mtu;
+#elif defined OS_WIN32
+    return GetIfaceMTUWin32(pcap_dev);
 #else
     /* ioctl is not defined, let's pretend returning 0 is ok */
     return 0;
@@ -585,7 +592,22 @@ static int DisableIfaceOffloadingBSD(LiveDevice *ldev)
         SCLogPerf("%s: disabling rxcsum offloading", ifname);
         set_caps &= ~IFCAP_RXCSUM;
     }
-
+    if (if_caps & IFCAP_TXCSUM) {
+        SCLogPerf("%s: disabling txcsum offloading", ifname);
+        set_caps &= ~IFCAP_TXCSUM;
+    }
+#ifdef IFCAP_RXCSUM_IPV6
+    if (if_caps & IFCAP_RXCSUM_IPV6) {
+        SCLogPerf("%s: disabling rxcsum6 offloading", ifname);
+        set_caps &= ~IFCAP_RXCSUM_IPV6;
+    }
+#endif
+#ifdef IFCAP_TXCSUM_IPV6
+    if (if_caps & IFCAP_TXCSUM_IPV6) {
+        SCLogPerf("%s: disabling txcsum6 offloading", ifname);
+        set_caps &= ~IFCAP_TXCSUM_IPV6;
+    }
+#endif
 #ifdef IFCAP_TOE
     if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
         SCLogPerf("%s: disabling tso|toe|lro offloading", ifname);
@@ -675,6 +697,8 @@ int GetIfaceOffloading(const char *dev, int csum, int other)
     return GetIfaceOffloadingLinux(dev, csum, other);
 #elif defined SIOCGIFCAP
     return GetIfaceOffloadingBSD(dev);
+#elif defined OS_WIN32
+    return GetIfaceOffloadingWin32(dev, csum, other);
 #else
     return 0;
 #endif
@@ -682,10 +706,15 @@ int GetIfaceOffloading(const char *dev, int csum, int other)
 
 int DisableIfaceOffloading(LiveDevice *dev, int csum, int other)
 {
+    /* already set */
+    if (dev->offload_orig != 0)
+        return 0;
 #if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
     return DisableIfaceOffloadingLinux(dev, csum, other);
 #elif defined SIOCSIFCAP
     return DisableIfaceOffloadingBSD(dev);
+#elif defined OS_WIN32
+    return DisableIfaceOffloadingWin32(dev, csum, other);
 #else
     return 0;
 #endif
@@ -699,6 +728,8 @@ void RestoreIfaceOffloading(LiveDevice *dev)
         RestoreIfaceOffloadingLinux(dev);
 #elif defined SIOCSIFCAP
         RestoreIfaceOffloadingBSD(dev);
+#elif defined OS_WIN32
+        RestoreIfaceOffloadingWin32(dev);
 #endif
     }
 }

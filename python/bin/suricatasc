@@ -38,6 +38,12 @@ else:
 
 from suricata.sc import *
 
+try:
+    from suricata.config import defaults
+    has_defaults = True
+except:
+    has_defaults = False
+
 parser = argparse.ArgumentParser(prog='suricatasc', description='Client for Suricata unix socket')
 parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output (including JSON dump)')
 parser.add_argument('-c', '--command', default=None, help='execute on single command and return JSON')
@@ -46,8 +52,11 @@ args = parser.parse_args()
 
 if args.socket != None:
     SOCKET_PATH = args.socket
+elif has_defaults:
+    SOCKET_PATH = os.path.join(defaults.localstatedir, "suricata-command.socket")
 else:
-    SOCKET_PATH = "@e_localstatedir@/suricata-command.socket"
+    print("Unable to determine path to suricata-command.socket.", file=sys.stderr)
+    sys.exit(1)
 
 sc = SuricataSC(SOCKET_PATH, verbose=args.verbose)
 try:

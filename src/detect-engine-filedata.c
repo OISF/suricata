@@ -36,30 +36,6 @@
 
 #include "app-layer-parser.h"
 
-static InspectionBuffer *GetBuffer(InspectionBufferMultipleForList *fb, uint32_t id)
-{
-    if (id >= fb->size) {
-        uint32_t old_size = fb->size;
-        uint32_t new_size = id + 1;
-        uint32_t grow_by = new_size - old_size;
-        SCLogDebug("size is %u, need %u, so growing by %u", old_size, new_size, grow_by);
-
-        void *ptr = SCRealloc(fb->inspection_buffers, (id + 1) * sizeof(InspectionBuffer));
-        if (ptr == NULL)
-            return NULL;
-
-        InspectionBuffer *to_zero = (InspectionBuffer *)ptr + old_size;
-        SCLogDebug("fb->inspection_buffers %p ptr %p to_zero %p", fb->inspection_buffers, ptr, to_zero);
-        memset((uint8_t *)to_zero, 0, (grow_by * sizeof(InspectionBuffer)));
-        fb->inspection_buffers = ptr;
-        fb->size = new_size;
-    }
-
-    InspectionBuffer *buffer = &fb->inspection_buffers[id];
-    SCLogDebug("using file_data buffer %p", buffer);
-    return buffer;
-}
-
 static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *f, uint8_t flow_flags, File *cur_file,
@@ -67,8 +43,8 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    InspectionBufferMultipleForList *fb = &det_ctx->multi_inspect_buffers[list_id];
-    InspectionBuffer *buffer = GetBuffer(fb, local_file_id);
+    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, local_file_id);
     if (buffer == NULL)
         return NULL;
     if (!first && buffer->inspect != NULL)

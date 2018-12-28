@@ -38,7 +38,9 @@
 #define APP_LAYER_PARSER_BYPASS_READY           BIT_U8(4)
 
 /* Flags for AppLayerParserProtoCtx. */
-#define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U64(0)
+#define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U32(0)
+
+#define APP_LAYER_PARSER_INT_STREAM_DEPTH_SET   BIT_U32(0)
 
 /* applies to DetectFlags uint64_t field */
 
@@ -90,7 +92,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
 typedef int (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
         AppLayerParserState *pstate,
         uint8_t *buf, uint32_t buf_len,
-        void *local_storage);
+        void *local_storage, const uint8_t flags);
 
 typedef struct AppLayerGetTxIterTuple {
     void *tx_ptr;
@@ -126,7 +128,7 @@ void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto,
                                               AppProto alproto,
                                               uint8_t direction);
 void AppLayerParserRegisterOptionFlags(uint8_t ipproto, AppProto alproto,
-        uint64_t flags);
+        uint32_t flags);
 void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,
                            void *(*StateAlloc)(void),
                            void (*StateFree)(void *));
@@ -275,6 +277,7 @@ void AppLayerParserRegisterProtocolUnittests(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterUnittests(void);
 void AppLayerParserBackupParserTable(void);
 void AppLayerParserRestoreParserTable(void);
+void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min);
 #endif
 
 #endif /* __APP_LAYER_PARSER_H__ */

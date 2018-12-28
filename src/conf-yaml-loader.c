@@ -118,7 +118,8 @@ ConfYamlHandleInclude(ConfNode *parent, const char *filename)
 {
     yaml_parser_t parser;
     char include_filename[PATH_MAX];
-    FILE *file;
+    FILE *file = NULL;
+    int ret = -1;
 
     if (yaml_parser_initialize(&parser) != 1) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "Failed to initialize YAML parser");
@@ -138,7 +139,7 @@ ConfYamlHandleInclude(ConfNode *parent, const char *filename)
         SCLogError(SC_ERR_FOPEN,
             "Failed to open configuration include file %s: %s",
             include_filename, strerror(errno));
-        return -1;
+        goto done;
     }
 
     yaml_parser_set_input_file(&parser, file);
@@ -146,13 +147,18 @@ ConfYamlHandleInclude(ConfNode *parent, const char *filename)
     if (ConfYamlParse(&parser, parent, 0) != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR,
             "Failed to include configuration file %s", filename);
-        return -1;
+        goto done;
     }
 
-    yaml_parser_delete(&parser);
-    fclose(file);
+    ret = 0;
 
-    return 0;
+done:
+    yaml_parser_delete(&parser);
+    if (file != NULL) {
+        fclose(file);
+    }
+
+    return ret;
 }
 
 /**
@@ -412,10 +418,12 @@ ConfYamlLoadFile(const char *filename)
         if (stat_buf.st_mode & S_IFDIR) {
             SCLogError(SC_ERR_FATAL, "yaml argument is not a file but a directory: %s. "
                     "Please specify the yaml file in your -c option.", filename);
+            yaml_parser_delete(&parser);
             return -1;
         }
     }
 
+    // coverity[toctou : FALSE]
     infile = fopen(filename, "r");
     if (infile == NULL) {
         SCLogError(SC_ERR_FATAL, "failed to open file: %s: %s", filename,

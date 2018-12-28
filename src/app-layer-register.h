@@ -65,6 +65,10 @@ typedef struct AppLayerParser {
     int (*SetTxMpmIDs)(void *tx, uint64_t);
 
     FileContainer *(*StateGetFiles)(void *, uint8_t);
+
+    AppLayerGetTxIterTuple (*GetTxIterator)(const uint8_t ipproto,
+            const AppProto alproto, void *alstate, uint64_t min_tx_id,
+            uint64_t max_tx_id, AppLayerGetTxIterState *istate);
 } AppLayerParser;
 
 /**

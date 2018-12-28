@@ -132,6 +132,7 @@ PacketQueue trans_q[256];
 
 typedef struct SCInstance_ {
     enum RunModes run_mode;
+    enum RunModes aux_run_mode;
 
     char pcap_dev[128];
     char *sig_file;

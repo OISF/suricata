@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,17 +38,14 @@
 
 void SigCleanSignatures(DetectEngineCtx *de_ctx)
 {
-    Signature *s = NULL, *ns;
-
     if (de_ctx == NULL)
         return;
 
-    for (s = de_ctx->sig_list; s != NULL;) {
-        ns = s->next;
+    for (Signature *s = de_ctx->sig_list; s != NULL;) {
+        Signature *ns = s->next;
         SigFree(s);
         s = ns;
     }
-
     de_ctx->sig_list = NULL;
 
     DetectEngineResetMaxSigId(de_ctx);
@@ -65,12 +62,10 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
  */
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *de_ctx, uint32_t sid, uint32_t gid)
 {
-    Signature *s = NULL;
-
     if (de_ctx == NULL)
         return NULL;
 
-    for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
         if (s->id == sid && s->gid == gid)
             return s;
     }
@@ -398,9 +393,6 @@ deonly:
 #define MASK_TCP_UNUSUAL_FLAGS      (TH_URG|TH_ECN|TH_CWR)
 
 /* Create mask for this packet + it's flow if it has one
- *
- * Sets SIG_MASK_REQUIRE_PAYLOAD, SIG_MASK_REQUIRE_FLOW,
- * SIG_MASK_REQUIRE_HTTP_STATE, SIG_MASK_REQUIRE_DCE_STATE
  */
 void
 PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
@@ -435,11 +427,48 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
         SCLogDebug("packet has flow");
         (*mask) |= SIG_MASK_REQUIRE_FLOW;
     }
+
+    if (alproto == ALPROTO_SMB || alproto == ALPROTO_DCERPC) {
+        SCLogDebug("packet will be inspected for DCERPC");
+        (*mask) |= SIG_MASK_REQUIRE_DCERPC;
+    }
+}
+
+static int g_dce_generic_list_id = -1;
+static int g_dce_stub_data_buffer_id = -1;
+
+static bool SignatureNeedsDCERPCMask(const Signature *s)
+{
+    if (g_dce_generic_list_id == -1) {
+        g_dce_generic_list_id = DetectBufferTypeGetByName("dce_generic");
+        SCLogDebug("g_dce_generic_list_id %d", g_dce_generic_list_id);
+    }
+    if (g_dce_stub_data_buffer_id == -1) {
+        g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
+        SCLogDebug("g_dce_stub_data_buffer_id %d", g_dce_stub_data_buffer_id);
+    }
+
+    if (g_dce_generic_list_id >= 0 &&
+            s->init_data->smlists[g_dce_generic_list_id] != NULL)
+    {
+        return true;
+    }
+    if (g_dce_stub_data_buffer_id >= 0 &&
+            s->init_data->smlists[g_dce_stub_data_buffer_id] != NULL)
+    {
+        return true;
+    }
+    return false;
 }
 
 static int SignatureCreateMask(Signature *s)
 {
     SCEnter();
+
+    if (SignatureNeedsDCERPCMask(s)) {
+        s->mask |= SIG_MASK_REQUIRE_DCERPC;
+        SCLogDebug("sig requires DCERPC");
+    }
 
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
@@ -1764,6 +1793,9 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
         SigGroupHeadBuildNonPrefilterArray(de_ctx, sgh);
 
+        SigGroupHeadInitDataFree(sgh->init);
+        sgh->init = NULL;
+
         sgh->id = idx;
         cnt++;
     }
@@ -1798,6 +1830,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
+extern int rule_engine_analysis_set;
 /** \internal
  *  \brief perform final per signature setup tasks
  *
@@ -1817,12 +1850,17 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         /* built-ins */
         int type;
         for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
+            /* skip PMATCH if it is used in a stream 'app engine' instead */
+            if (type == DETECT_SM_LIST_PMATCH && (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH))
+                continue;
             SigMatch *sm = s->init_data->smlists[type];
             s->sm_arrays[type] = SigMatchList2DataArray(sm);
         }
+        if (rule_engine_analysis_set) {
 #ifdef HAVE_LIBJANSSON
-        EngineAnalysisRules2(de_ctx, s);
+            EngineAnalysisRules2(de_ctx, s);
 #endif
+        }
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
         uint32_t i;
         for (i = 0; i < s->init_data->smlists_array_size; i++) {

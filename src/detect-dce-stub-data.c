@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,7 +19,7 @@
  * \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
- * \author Anoop Saldanha <victor@inliniac.net>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * Implements dce_stub_data keyword
  */
@@ -280,9 +280,6 @@ void DetectDceStubDataRegister(void)
 
 static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-//    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
-//        return -1;
-
     s->init_data->list = g_dce_stub_data_buffer_id;
     return 0;
 }

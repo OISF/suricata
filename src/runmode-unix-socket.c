@@ -21,6 +21,7 @@
 #include "runmodes.h"
 #include "runmode-pcap-file.h"
 #include "output.h"
+#include "output-json.h"
 
 #include "util-debug.h"
 #include "util-time.h"
@@ -59,6 +60,7 @@ typedef struct PcapFiles_ {
     time_t delay;
     time_t poll_interval;
     bool continuous;
+    bool should_delete;
     TAILQ_ENTRY(PcapFiles_) next;
 } PcapFiles;
 
@@ -162,7 +164,7 @@ static TmEcode UnixSocketPcapFilesList(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
     TAILQ_FOREACH(file, &this->files, next) {
-        json_array_append_new(jarray, json_string(file->filename));
+        json_array_append_new(jarray, SCJsonString(file->filename));
         i++;
     }
     json_object_set_new(jdata, "count", json_integer(i));
@@ -238,6 +240,7 @@ static void PcapFilesFree(PcapFiles *cfile)
  * \param output_dir absolute name of directory where log will be put
  * \param tenant_id Id of tenant associated with this file
  * \param continuous If file should be run in continuous mode
+ * \param delete If file should be deleted when done
  * \param delay Delay required for file modified time before being processed
  * \param poll_interval How frequently directory mode polls for new files
  *
@@ -249,6 +252,7 @@ static TmEcode UnixListAddFile(
     const char *output_dir,
     int tenant_id,
     bool continuous,
+    bool should_delete,
     time_t delay,
     time_t poll_interval
 )
@@ -282,6 +286,7 @@ static TmEcode UnixListAddFile(
 
     cfile->tenant_id = tenant_id;
     cfile->continuous = continuous;
+    cfile->should_delete = should_delete;
     cfile->delay = delay;
     cfile->poll_interval = poll_interval;
 
@@ -304,6 +309,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
     const char *filename;
     const char *output_dir;
     int tenant_id = 0;
+    bool should_delete = false;
     time_t delay = 30;
     time_t poll_interval = 5;
 #ifdef OS_WIN32
@@ -368,6 +374,11 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
         tenant_id = json_number_value(targ);
     }
 
+    json_t *delete_arg = json_object_get(cmd, "delete-when-done");
+    if (delete_arg != NULL) {
+        should_delete = json_is_true(delete_arg);
+    }
+
     json_t *delay_arg = json_object_get(cmd, "delay");
     if (delay_arg != NULL) {
         if (!json_is_integer(delay_arg)) {
@@ -392,7 +403,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
     }
 
     switch (UnixListAddFile(this, filename, output_dir, tenant_id, continuous,
-                           delay, poll_interval)) {
+                           should_delete, delay, poll_interval)) {
         case TM_ECODE_FAILED:
         case TM_ECODE_DONE:
             json_object_set_new(answer, "message",
@@ -502,6 +513,16 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
         PcapFilesFree(cfile);
         return TM_ECODE_FAILED;
     }
+    if (cfile->should_delete) {
+        set_res = ConfSetFinal("pcap-file.delete-when-done", "true");
+    } else {
+        set_res = ConfSetFinal("pcap-file.delete-when-done", "false");
+    }
+    if (set_res != 1) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Can not set delete mode for pcap processing");
+        PcapFilesFree(cfile);
+        return TM_ECODE_FAILED;
+    }
 
     if (cfile->delay > 0) {
         char tstr[32];
@@ -554,6 +575,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     /* Un-pause all the paused threads */
     TmThreadWaitOnThreadInit();
+    PacketPoolPostRunmodes();
     TmThreadContinueThreads();
 
     SCLogInfo("Starting run for '%s'", this->current_file->filename);
@@ -752,7 +774,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
             return TM_ECODE_FAILED;
         }
 
-        SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
+        SCLogInfo("VLAN handler: removing mapping of %u to tenant %u", (uint32_t)traffic_id, tenant_id);
         r = DetectEngineTentantUnregisterVlanId(tenant_id, (uint32_t)traffic_id);
     }
     if (r != 0) {
@@ -947,7 +969,7 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
     }
     int tenant_id = json_integer_value(jarg);
 
-    SCLogInfo("remove-tenant: %d TODO", tenant_id);
+    SCLogInfo("remove-tenant: removing tenant %d", tenant_id);
 
     /* 2 remove it from the system */
     char prefix[64];
@@ -973,7 +995,7 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
     /* walk free list, freeing the removed de_ctx */
     DetectEnginePruneFreeList();
 
-    json_object_set_new(answer, "message", json_string("work in progress"));
+    json_object_set_new(answer, "message", json_string("removing tenant succeeded"));
     return TM_ECODE_OK;
 }
 

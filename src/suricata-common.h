@@ -202,6 +202,10 @@
 #include <utime.h>
 #endif
 
+#ifdef HAVE_LIBGEN_H
+#include <libgen.h>
+#endif
+
 #if __CYGWIN__
 #if !defined _X86_ && !defined __x86_64
 #define _X86_
@@ -391,6 +395,7 @@ typedef enum PacketProfileDetectId_ {
     PROF_DETECT_SIZE,
 } PacketProfileDetectId;
 
+/** \note update PacketProfileLoggertIdToString if you change anything here */
 typedef enum {
     LOGGER_UNDEFINED,
 
@@ -412,6 +417,9 @@ typedef enum {
     LOGGER_JSON_SSH,
     LOGGER_JSON_SMB,
     LOGGER_JSON_IKEV2,
+    LOGGER_JSON_KRB5,
+    LOGGER_JSON_DHCP,
+    LOGGER_JSON_TEMPLATE_RUST,
     LOGGER_JSON_TEMPLATE,
 
     LOGGER_ALERT_DEBUG,
