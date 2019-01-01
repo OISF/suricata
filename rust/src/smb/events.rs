@@ -33,13 +33,17 @@ pub enum SMBEvent {
 pub fn smb_str_to_event(instr: &str) -> i32 {
     SCLogDebug!("checking {}", instr);
     match instr {
-        "internal_error"                => SMBEvent::InternalError as i32,
-        "malformed_data"                => SMBEvent::MalformedData as i32,
-        "record_overflow"               => SMBEvent::RecordOverflow as i32,
-        "malformed_ntlmssp_request"     => SMBEvent::MalformedNtlmsspRequest as i32,
-        "malformed_ntlmssp_response"    => SMBEvent::MalformedNtlmsspResponse as i32,
-        "duplicate_negotiate"           => SMBEvent::DuplicateNegotiate as i32,
-        "negotiate_malformed_dialects"  => SMBEvent::NegotiateMalformedDialects as i32,
+        "internal_error" => SMBEvent::InternalError as i32,
+        "malformed_data" => SMBEvent::MalformedData as i32,
+        "record_overflow" => SMBEvent::RecordOverflow as i32,
+        "malformed_ntlmssp_request" => SMBEvent::MalformedNtlmsspRequest as i32,
+        "malformed_ntlmssp_response" => {
+            SMBEvent::MalformedNtlmsspResponse as i32
+        }
+        "duplicate_negotiate" => SMBEvent::DuplicateNegotiate as i32,
+        "negotiate_malformed_dialects" => {
+            SMBEvent::NegotiateMalformedDialects as i32
+        }
         _ => -1,
     }
 }
@@ -53,7 +57,10 @@ impl SMBTransaction {
     /// Set events from vector of events.
     pub fn set_events(&mut self, events: Vec<SMBEvent>) {
         for e in events {
-            sc_app_layer_decoder_events_set_event_raw(&mut self.events, e as u8);
+            sc_app_layer_decoder_events_set_event_raw(
+                &mut self.events,
+                e as u8,
+            );
         }
     }
 }

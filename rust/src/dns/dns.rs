@@ -21,94 +21,93 @@ extern crate nom;
 use std;
 use std::mem::transmute;
 
-use crate::log::*;
 use crate::applayer::LoggerFlags;
 use crate::core;
 use crate::dns::parser;
+use crate::log::*;
 
 /// DNS record types.
-pub const DNS_RECORD_TYPE_A           : u16 = 1;
-pub const DNS_RECORD_TYPE_NS          : u16 = 2;
-pub const DNS_RECORD_TYPE_MD          : u16 = 3;   // Obsolete
-pub const DNS_RECORD_TYPE_MF          : u16 = 4;   // Obsolete
-pub const DNS_RECORD_TYPE_CNAME       : u16 = 5;
-pub const DNS_RECORD_TYPE_SOA         : u16 = 6;
-pub const DNS_RECORD_TYPE_MB          : u16 = 7;   // Experimental
-pub const DNS_RECORD_TYPE_MG          : u16 = 8;   // Experimental
-pub const DNS_RECORD_TYPE_MR          : u16 = 9;   // Experimental
-pub const DNS_RECORD_TYPE_NULL        : u16 = 10;  // Experimental
-pub const DNS_RECORD_TYPE_WKS         : u16 = 11;
-pub const DNS_RECORD_TYPE_PTR         : u16 = 12;
-pub const DNS_RECORD_TYPE_HINFO       : u16 = 13;
-pub const DNS_RECORD_TYPE_MINFO       : u16 = 14;
-pub const DNS_RECORD_TYPE_MX          : u16 = 15;
-pub const DNS_RECORD_TYPE_TXT         : u16 = 16;
-pub const DNS_RECORD_TYPE_RP          : u16 = 17;
-pub const DNS_RECORD_TYPE_AFSDB       : u16 = 18;
-pub const DNS_RECORD_TYPE_X25         : u16 = 19;
-pub const DNS_RECORD_TYPE_ISDN        : u16 = 20;
-pub const DNS_RECORD_TYPE_RT          : u16 = 21;
-pub const DNS_RECORD_TYPE_NSAP        : u16 = 22;
-pub const DNS_RECORD_TYPE_NSAPPTR     : u16 = 23;
-pub const DNS_RECORD_TYPE_SIG         : u16 = 24;
-pub const DNS_RECORD_TYPE_KEY         : u16 = 25;
-pub const DNS_RECORD_TYPE_PX          : u16 = 26;
-pub const DNS_RECORD_TYPE_GPOS        : u16 = 27;
-pub const DNS_RECORD_TYPE_AAAA        : u16 = 28;
-pub const DNS_RECORD_TYPE_LOC         : u16 = 29;
-pub const DNS_RECORD_TYPE_NXT         : u16 = 30;  // Obsolete
-pub const DNS_RECORD_TYPE_SRV         : u16 = 33;
-pub const DNS_RECORD_TYPE_ATMA        : u16 = 34;
-pub const DNS_RECORD_TYPE_NAPTR       : u16 = 35;
-pub const DNS_RECORD_TYPE_KX          : u16 = 36;
-pub const DNS_RECORD_TYPE_CERT        : u16 = 37;
-pub const DNS_RECORD_TYPE_A6          : u16 = 38;  // Obsolete
-pub const DNS_RECORD_TYPE_DNAME       : u16 = 39;
-pub const DNS_RECORD_TYPE_OPT         : u16 = 41;
-pub const DNS_RECORD_TYPE_APL         : u16 = 42;
-pub const DNS_RECORD_TYPE_DS          : u16 = 43;
-pub const DNS_RECORD_TYPE_SSHFP       : u16 = 44;
-pub const DNS_RECORD_TYPE_IPSECKEY    : u16 = 45;
-pub const DNS_RECORD_TYPE_RRSIG       : u16 = 46;
-pub const DNS_RECORD_TYPE_NSEC        : u16 = 47;
-pub const DNS_RECORD_TYPE_DNSKEY      : u16 = 48;
-pub const DNS_RECORD_TYPE_DHCID       : u16 = 49;
-pub const DNS_RECORD_TYPE_NSEC3       : u16 = 50;
-pub const DNS_RECORD_TYPE_NSEC3PARAM  : u16 = 51;
-pub const DNS_RECORD_TYPE_TLSA        : u16 = 52;
-pub const DNS_RECORD_TYPE_HIP         : u16 = 55;
-pub const DNS_RECORD_TYPE_CDS         : u16 = 59;
-pub const DNS_RECORD_TYPE_CDNSKEY     : u16 = 60;
-pub const DNS_RECORD_TYPE_SPF         : u16 = 99;  // Obsolete
-pub const DNS_RECORD_TYPE_TKEY        : u16 = 249;
-pub const DNS_RECORD_TYPE_TSIG        : u16 = 250;
-pub const DNS_RECORD_TYPE_MAILA       : u16 = 254; // Obsolete
-pub const DNS_RECORD_TYPE_ANY         : u16 = 255;
-pub const DNS_RECORD_TYPE_URI         : u16 = 256;
+pub const DNS_RECORD_TYPE_A: u16 = 1;
+pub const DNS_RECORD_TYPE_NS: u16 = 2;
+pub const DNS_RECORD_TYPE_MD: u16 = 3; // Obsolete
+pub const DNS_RECORD_TYPE_MF: u16 = 4; // Obsolete
+pub const DNS_RECORD_TYPE_CNAME: u16 = 5;
+pub const DNS_RECORD_TYPE_SOA: u16 = 6;
+pub const DNS_RECORD_TYPE_MB: u16 = 7; // Experimental
+pub const DNS_RECORD_TYPE_MG: u16 = 8; // Experimental
+pub const DNS_RECORD_TYPE_MR: u16 = 9; // Experimental
+pub const DNS_RECORD_TYPE_NULL: u16 = 10; // Experimental
+pub const DNS_RECORD_TYPE_WKS: u16 = 11;
+pub const DNS_RECORD_TYPE_PTR: u16 = 12;
+pub const DNS_RECORD_TYPE_HINFO: u16 = 13;
+pub const DNS_RECORD_TYPE_MINFO: u16 = 14;
+pub const DNS_RECORD_TYPE_MX: u16 = 15;
+pub const DNS_RECORD_TYPE_TXT: u16 = 16;
+pub const DNS_RECORD_TYPE_RP: u16 = 17;
+pub const DNS_RECORD_TYPE_AFSDB: u16 = 18;
+pub const DNS_RECORD_TYPE_X25: u16 = 19;
+pub const DNS_RECORD_TYPE_ISDN: u16 = 20;
+pub const DNS_RECORD_TYPE_RT: u16 = 21;
+pub const DNS_RECORD_TYPE_NSAP: u16 = 22;
+pub const DNS_RECORD_TYPE_NSAPPTR: u16 = 23;
+pub const DNS_RECORD_TYPE_SIG: u16 = 24;
+pub const DNS_RECORD_TYPE_KEY: u16 = 25;
+pub const DNS_RECORD_TYPE_PX: u16 = 26;
+pub const DNS_RECORD_TYPE_GPOS: u16 = 27;
+pub const DNS_RECORD_TYPE_AAAA: u16 = 28;
+pub const DNS_RECORD_TYPE_LOC: u16 = 29;
+pub const DNS_RECORD_TYPE_NXT: u16 = 30; // Obsolete
+pub const DNS_RECORD_TYPE_SRV: u16 = 33;
+pub const DNS_RECORD_TYPE_ATMA: u16 = 34;
+pub const DNS_RECORD_TYPE_NAPTR: u16 = 35;
+pub const DNS_RECORD_TYPE_KX: u16 = 36;
+pub const DNS_RECORD_TYPE_CERT: u16 = 37;
+pub const DNS_RECORD_TYPE_A6: u16 = 38; // Obsolete
+pub const DNS_RECORD_TYPE_DNAME: u16 = 39;
+pub const DNS_RECORD_TYPE_OPT: u16 = 41;
+pub const DNS_RECORD_TYPE_APL: u16 = 42;
+pub const DNS_RECORD_TYPE_DS: u16 = 43;
+pub const DNS_RECORD_TYPE_SSHFP: u16 = 44;
+pub const DNS_RECORD_TYPE_IPSECKEY: u16 = 45;
+pub const DNS_RECORD_TYPE_RRSIG: u16 = 46;
+pub const DNS_RECORD_TYPE_NSEC: u16 = 47;
+pub const DNS_RECORD_TYPE_DNSKEY: u16 = 48;
+pub const DNS_RECORD_TYPE_DHCID: u16 = 49;
+pub const DNS_RECORD_TYPE_NSEC3: u16 = 50;
+pub const DNS_RECORD_TYPE_NSEC3PARAM: u16 = 51;
+pub const DNS_RECORD_TYPE_TLSA: u16 = 52;
+pub const DNS_RECORD_TYPE_HIP: u16 = 55;
+pub const DNS_RECORD_TYPE_CDS: u16 = 59;
+pub const DNS_RECORD_TYPE_CDNSKEY: u16 = 60;
+pub const DNS_RECORD_TYPE_SPF: u16 = 99; // Obsolete
+pub const DNS_RECORD_TYPE_TKEY: u16 = 249;
+pub const DNS_RECORD_TYPE_TSIG: u16 = 250;
+pub const DNS_RECORD_TYPE_MAILA: u16 = 254; // Obsolete
+pub const DNS_RECORD_TYPE_ANY: u16 = 255;
+pub const DNS_RECORD_TYPE_URI: u16 = 256;
 
 /// DNS error codes.
-pub const DNS_RCODE_NOERROR:  u16 = 0;
-pub const DNS_RCODE_FORMERR:  u16 = 1;
+pub const DNS_RCODE_NOERROR: u16 = 0;
+pub const DNS_RCODE_FORMERR: u16 = 1;
 pub const DNS_RCODE_SERVFAIL: u16 = 2;
 pub const DNS_RCODE_NXDOMAIN: u16 = 3;
-pub const DNS_RCODE_NOTIMP:   u16 = 4;
-pub const DNS_RCODE_REFUSED:  u16 = 5;
+pub const DNS_RCODE_NOTIMP: u16 = 4;
+pub const DNS_RCODE_REFUSED: u16 = 5;
 pub const DNS_RCODE_YXDOMAIN: u16 = 6;
-pub const DNS_RCODE_YXRRSET:  u16 = 7;
-pub const DNS_RCODE_NXRRSET:  u16 = 8;
-pub const DNS_RCODE_NOTAUTH:  u16 = 9;
-pub const DNS_RCODE_NOTZONE:  u16 = 10;
+pub const DNS_RCODE_YXRRSET: u16 = 7;
+pub const DNS_RCODE_NXRRSET: u16 = 8;
+pub const DNS_RCODE_NOTAUTH: u16 = 9;
+pub const DNS_RCODE_NOTZONE: u16 = 10;
 // Support for OPT RR from RFC6891 will be needed to
 // parse RCODE values over 15
-pub const DNS_RCODE_BADVERS:  u16 = 16;
-pub const DNS_RCODE_BADSIG:   u16 = 16;
-pub const DNS_RCODE_BADKEY:   u16 = 17;
-pub const DNS_RCODE_BADTIME:  u16 = 18;
-pub const DNS_RCODE_BADMODE:  u16 = 19;
-pub const DNS_RCODE_BADNAME:  u16 = 20;
-pub const DNS_RCODE_BADALG:   u16 = 21;
+pub const DNS_RCODE_BADVERS: u16 = 16;
+pub const DNS_RCODE_BADSIG: u16 = 16;
+pub const DNS_RCODE_BADKEY: u16 = 17;
+pub const DNS_RCODE_BADTIME: u16 = 18;
+pub const DNS_RCODE_BADMODE: u16 = 19;
+pub const DNS_RCODE_BADNAME: u16 = 20;
+pub const DNS_RCODE_BADALG: u16 = 21;
 pub const DNS_RCODE_BADTRUNC: u16 = 22;
-
 
 /// The maximum number of transactions to keep in the queue pending
 /// processing before they are aggressively purged. Due to the
@@ -134,7 +133,7 @@ pub enum DNSEvent {
     StateMemCapReached,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct DNSHeader {
     pub tx_id: u16,
     pub flags: u16,
@@ -151,7 +150,7 @@ pub struct DNSQueryEntry {
     pub rrclass: u16,
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct DNSAnswerEntry {
     pub name: Vec<u8>,
     pub rrtype: u16,
@@ -187,9 +186,8 @@ pub struct DNSTransaction {
 }
 
 impl DNSTransaction {
-
     pub fn new() -> DNSTransaction {
-        return DNSTransaction{
+        return DNSTransaction {
             id: 0,
             request: None,
             response: None,
@@ -198,7 +196,7 @@ impl DNSTransaction {
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
-        }
+        };
     }
 
     pub fn free(&mut self) {
@@ -209,7 +207,7 @@ impl DNSTransaction {
             Some(state) => {
                 core::sc_detect_engine_state_free(state);
             }
-            None => { },
+            None => {}
         }
     }
 
@@ -234,7 +232,6 @@ impl DNSTransaction {
         }
         return 0;
     }
-
 }
 
 impl Drop for DNSTransaction {
@@ -259,9 +256,8 @@ pub struct DNSState {
 }
 
 impl DNSState {
-
     pub fn new() -> DNSState {
-        return DNSState{
+        return DNSState {
             tx_id: 0,
             transactions: Vec::new(),
             events: 0,
@@ -274,7 +270,7 @@ impl DNSState {
     /// Allocate a new state with capacites in the buffers for
     /// potentially buffering as might be needed in TCP.
     pub fn new_tcp() -> DNSState {
-        return DNSState{
+        return DNSState {
             tx_id: 0,
             transactions: Vec::new(),
             events: 0,
@@ -346,8 +342,10 @@ impl DNSState {
         }
 
         let tx = &mut self.transactions[len - 1];
-        core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events,
-                                                        event as u8);
+        core::sc_app_layer_decoder_events_set_event_raw(
+            &mut tx.events,
+            event as u8,
+        );
         self.events += 1;
     }
 
@@ -389,7 +387,6 @@ impl DNSState {
     pub fn parse_response(&mut self, input: &[u8]) -> bool {
         match parser::dns_parse_response(input) {
             nom::IResult::Done(_, response) => {
-
                 SCLogDebug!("Response header flags: {}", response.header.flags);
 
                 if response.header.flags & 0x8000 == 0 {
@@ -435,7 +432,7 @@ impl DNSState {
             if probe_tcp(input) {
                 self.gap = false;
             } else {
-                return 0
+                return 0;
             }
         }
 
@@ -445,13 +442,16 @@ impl DNSState {
         while self.request_buffer.len() > 0 {
             let size = match nom::be_u16(&self.request_buffer) {
                 nom::IResult::Done(_, len) => len,
-                _ => 0
+                _ => 0,
             } as usize;
-            SCLogDebug!("Have {} bytes, need {} to parse",
-                        self.request_buffer.len(), size);
+            SCLogDebug!(
+                "Have {} bytes, need {} to parse",
+                self.request_buffer.len(),
+                size
+            );
             if size > 0 && self.request_buffer.len() >= size + 2 {
-                let msg: Vec<u8> = self.request_buffer.drain(0..(size + 2))
-                    .collect();
+                let msg: Vec<u8> =
+                    self.request_buffer.drain(0..(size + 2)).collect();
                 if self.parse_request(&msg[2..]) {
                     count += 1
                 }
@@ -475,7 +475,7 @@ impl DNSState {
             if probe_tcp(input) {
                 self.gap = false;
             } else {
-                return 0
+                return 0;
             }
         }
 
@@ -485,11 +485,11 @@ impl DNSState {
         while self.response_buffer.len() > 0 {
             let size = match nom::be_u16(&self.response_buffer) {
                 nom::IResult::Done(_, len) => len,
-                _ => 0
+                _ => 0,
             } as usize;
             if size > 0 && self.response_buffer.len() >= size + 2 {
-                let msg: Vec<u8> = self.response_buffer.drain(0..(size + 2))
-                    .collect();
+                let msg: Vec<u8> =
+                    self.response_buffer.drain(0..(size + 2)).collect();
                 if self.parse_response(&msg[2..]) {
                     count += 1;
                 }
@@ -523,7 +523,7 @@ impl DNSState {
 fn probe(input: &[u8]) -> bool {
     match parser::dns_parse_request(input) {
         nom::IResult::Done(_, _) => true,
-        _ => false
+        _ => false,
     }
 }
 
@@ -532,7 +532,7 @@ pub fn probe_tcp(input: &[u8]) -> bool {
     match nom::be_u16(input) {
         nom::IResult::Done(rem, _) => {
             return probe(rem);
-        },
+        }
         _ => {}
     }
     return false;
@@ -543,7 +543,7 @@ pub fn probe_tcp(input: &[u8]) -> bool {
 pub extern "C" fn rs_dns_state_new() -> *mut libc::c_void {
     let state = DNSState::new();
     let boxed = Box::new(state);
-    return unsafe{transmute(boxed)};
+    return unsafe { transmute(boxed) };
 }
 
 /// Returns *mut DNSState
@@ -551,7 +551,7 @@ pub extern "C" fn rs_dns_state_new() -> *mut libc::c_void {
 pub extern "C" fn rs_dns_state_tcp_new() -> *mut libc::c_void {
     let state = DNSState::new_tcp();
     let boxed = Box::new(state);
-    return unsafe{transmute(boxed)};
+    return unsafe { transmute(boxed) };
 }
 
 /// Params:
@@ -559,26 +559,28 @@ pub extern "C" fn rs_dns_state_tcp_new() -> *mut libc::c_void {
 #[no_mangle]
 pub extern "C" fn rs_dns_state_free(state: *mut libc::c_void) {
     // Just unbox...
-    let _drop: Box<DNSState> = unsafe{transmute(state)};
+    let _drop: Box<DNSState> = unsafe { transmute(state) };
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_tx_free(state: &mut DNSState,
-                                       tx_id: libc::uint64_t)
-{
+pub extern "C" fn rs_dns_state_tx_free(
+    state: &mut DNSState,
+    tx_id: libc::uint64_t,
+) {
     state.free_tx(tx_id);
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_request(_flow: *mut core::Flow,
-                                       state: &mut DNSState,
-                                       _pstate: *mut libc::c_void,
-                                       input: *mut libc::uint8_t,
-                                       input_len: libc::uint32_t,
-                                       _data: *mut libc::c_void)
-                                       -> libc::int8_t {
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+pub extern "C" fn rs_dns_parse_request(
+    _flow: *mut core::Flow,
+    state: &mut DNSState,
+    _pstate: *mut libc::c_void,
+    input: *mut libc::uint8_t,
+    input_len: libc::uint32_t,
+    _data: *mut libc::c_void,
+) -> libc::int8_t {
+    let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
     if state.parse_request(buf) {
         1
     } else {
@@ -587,14 +589,15 @@ pub extern "C" fn rs_dns_parse_request(_flow: *mut core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_response(_flow: *mut core::Flow,
-                                        state: &mut DNSState,
-                                        _pstate: *mut libc::c_void,
-                                        input: *mut libc::uint8_t,
-                                        input_len: libc::uint32_t,
-                                        _data: *mut libc::c_void)
-                                        -> libc::int8_t {
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+pub extern "C" fn rs_dns_parse_response(
+    _flow: *mut core::Flow,
+    state: &mut DNSState,
+    _pstate: *mut libc::c_void,
+    input: *mut libc::uint8_t,
+    input_len: libc::uint32_t,
+    _data: *mut libc::c_void,
+) -> libc::int8_t {
+    let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
     if state.parse_response(buf) {
         1
     } else {
@@ -604,17 +607,19 @@ pub extern "C" fn rs_dns_parse_response(_flow: *mut core::Flow,
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_request_tcp(_flow: *mut core::Flow,
-                                           state: &mut DNSState,
-                                           _pstate: *mut libc::c_void,
-                                           input: *mut libc::uint8_t,
-                                           input_len: libc::uint32_t,
-                                           _data: *mut libc::c_void)
-                                           -> libc::int8_t {
+pub extern "C" fn rs_dns_parse_request_tcp(
+    _flow: *mut core::Flow,
+    state: &mut DNSState,
+    _pstate: *mut libc::c_void,
+    input: *mut libc::uint8_t,
+    input_len: libc::uint32_t,
+    _data: *mut libc::c_void,
+) -> libc::int8_t {
     if input_len > 0 {
         if input != std::ptr::null_mut() {
-            let buf = unsafe{
-                std::slice::from_raw_parts(input, input_len as usize)};
+            let buf = unsafe {
+                std::slice::from_raw_parts(input, input_len as usize)
+            };
             return state.parse_request_tcp(buf);
         }
         state.request_gap(input_len);
@@ -623,17 +628,19 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *mut core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_parse_response_tcp(_flow: *mut core::Flow,
-                                            state: &mut DNSState,
-                                            _pstate: *mut libc::c_void,
-                                            input: *mut libc::uint8_t,
-                                            input_len: libc::uint32_t,
-                                            _data: *mut libc::c_void)
-                                            -> libc::int8_t {
+pub extern "C" fn rs_dns_parse_response_tcp(
+    _flow: *mut core::Flow,
+    state: &mut DNSState,
+    _pstate: *mut libc::c_void,
+    input: *mut libc::uint8_t,
+    input_len: libc::uint32_t,
+    _data: *mut libc::c_void,
+) -> libc::int8_t {
     if input_len > 0 {
         if input != std::ptr::null_mut() {
-            let buf = unsafe{
-                std::slice::from_raw_parts(input, input_len as usize)};
+            let buf = unsafe {
+                std::slice::from_raw_parts(input, input_len as usize)
+            };
             return state.parse_response_tcp(buf);
         }
         state.response_gap(input_len);
@@ -643,18 +650,17 @@ pub extern "C" fn rs_dns_parse_response_tcp(_flow: *mut core::Flow,
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_progress_completion_status(
-    _direction: libc::uint8_t)
-    -> libc::c_int
-{
+    _direction: libc::uint8_t,
+) -> libc::c_int {
     SCLogDebug!("rs_dns_state_progress_completion_status");
     return 1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: &mut DNSTransaction,
-                                                 _direction: libc::uint8_t)
-                                                 -> libc::uint8_t
-{
+pub extern "C" fn rs_dns_tx_get_alstate_progress(
+    _tx: &mut DNSTransaction,
+    _direction: libc::uint8_t,
+) -> libc::uint8_t {
     // This is a stateless parser, just the existence of a transaction
     // means its complete.
     SCLogDebug!("rs_dns_tx_get_alstate_progress");
@@ -662,10 +668,11 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_set_detect_flags(tx: &mut DNSTransaction,
-                                             dir: libc::uint8_t,
-                                             flags: libc::uint64_t)
-{
+pub extern "C" fn rs_dns_tx_set_detect_flags(
+    tx: &mut DNSTransaction,
+    dir: libc::uint8_t,
+    flags: libc::uint64_t,
+) {
     if dir & core::STREAM_TOSERVER != 0 {
         tx.detect_flags_ts = flags as u64;
     } else {
@@ -674,10 +681,10 @@ pub extern "C" fn rs_dns_tx_set_detect_flags(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_detect_flags(tx: &mut DNSTransaction,
-                                             dir: libc::uint8_t)
-                                       -> libc::uint64_t
-{
+pub extern "C" fn rs_dns_tx_get_detect_flags(
+    tx: &mut DNSTransaction,
+    dir: libc::uint8_t,
+) -> libc::uint64_t {
     if dir & core::STREAM_TOSERVER != 0 {
         return tx.detect_flags_ts as libc::uint64_t;
     } else {
@@ -686,37 +693,38 @@ pub extern "C" fn rs_dns_tx_get_detect_flags(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_set_logged(_state: &mut DNSState,
-                                       tx: &mut DNSTransaction,
-                                       logged: libc::uint32_t)
-{
+pub extern "C" fn rs_dns_tx_set_logged(
+    _state: &mut DNSState,
+    tx: &mut DNSTransaction,
+    logged: libc::uint32_t,
+) {
     tx.logged.set(logged);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_logged(_state: &mut DNSState,
-                                       tx: &mut DNSTransaction)
-                                       -> u32
-{
+pub extern "C" fn rs_dns_tx_get_logged(
+    _state: &mut DNSState,
+    tx: &mut DNSTransaction,
+) -> u32 {
     return tx.logged.get();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_tx_count(state: &mut DNSState)
-                                            -> libc::uint64_t
-{
+pub extern "C" fn rs_dns_state_get_tx_count(
+    state: &mut DNSState,
+) -> libc::uint64_t {
     SCLogDebug!("rs_dns_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_tx(state: &mut DNSState,
-                                      tx_id: libc::uint64_t)
-                                      -> *mut DNSTransaction
-{
+pub extern "C" fn rs_dns_state_get_tx(
+    state: &mut DNSState,
+    tx_id: libc::uint64_t,
+) -> *mut DNSTransaction {
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe{transmute(tx)};
+            return unsafe { transmute(tx) };
         }
         None => {
             return std::ptr::null_mut();
@@ -727,20 +735,19 @@ pub extern "C" fn rs_dns_state_get_tx(state: &mut DNSState,
 #[no_mangle]
 pub extern "C" fn rs_dns_state_set_tx_detect_state(
     tx: &mut DNSTransaction,
-    de_state: &mut core::DetectEngineState)
-{
+    de_state: &mut core::DetectEngineState,
+) {
     tx.de_state = Some(de_state);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_get_tx_detect_state(
-    tx: &mut DNSTransaction)
-    -> *mut core::DetectEngineState
-{
+    tx: &mut DNSTransaction,
+) -> *mut core::DetectEngineState {
     match tx.de_state {
         Some(ds) => {
             return ds;
-        },
+        }
         None => {
             return std::ptr::null_mut();
         }
@@ -748,10 +755,10 @@ pub extern "C" fn rs_dns_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_events(state: &mut DNSState,
-                                          tx_id: libc::uint64_t)
-                                          -> *mut core::AppLayerDecoderEvents
-{
+pub extern "C" fn rs_dns_state_get_events(
+    state: &mut DNSState,
+    tx_id: libc::uint64_t,
+) -> *mut core::AppLayerDecoderEvents {
     match state.get_tx(tx_id) {
         Some(tx) => {
             return tx.events;
@@ -763,12 +770,12 @@ pub extern "C" fn rs_dns_state_get_events(state: &mut DNSState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
-                                       i: libc::uint16_t,
-                                       buf: *mut *const libc::uint8_t,
-                                       len: *mut libc::uint32_t)
-                                       -> libc::uint8_t
-{
+pub extern "C" fn rs_dns_tx_get_query_name(
+    tx: &mut DNSTransaction,
+    i: libc::uint16_t,
+    buf: *mut *const libc::uint8_t,
+    len: *mut libc::uint32_t,
+) -> libc::uint8_t {
     if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
@@ -788,27 +795,28 @@ pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
 //
 /// extern uint16_t rs_dns_tx_get_tx_id(RSDNSTransaction *);
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> libc::uint16_t
-{
-    return tx.tx_id()
+pub extern "C" fn rs_dns_tx_get_tx_id(
+    tx: &mut DNSTransaction,
+) -> libc::uint16_t {
+    return tx.tx_id();
 }
 
 /// Get the DNS response flags for a transaction.
 ///
 /// extern uint16_t rs_dns_tx_get_response_flags(RSDNSTransaction *);
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction)
-                                           -> libc::uint16_t
-{
+pub extern "C" fn rs_dns_tx_get_response_flags(
+    tx: &mut DNSTransaction,
+) -> libc::uint16_t {
     return tx.rcode();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
-                                         i: libc::uint16_t,
-                                         rrtype: *mut libc::uint16_t)
-                                         -> libc::uint8_t
-{
+pub extern "C" fn rs_dns_tx_get_query_rrtype(
+    tx: &mut DNSTransaction,
+    i: libc::uint16_t,
+    rrtype: *mut libc::uint16_t,
+) -> libc::uint8_t {
     if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
@@ -824,12 +832,12 @@ pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_probe(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::uint8_t
-{
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+pub extern "C" fn rs_dns_probe(
+    input: *const libc::uint8_t,
+    len: libc::uint32_t,
+) -> libc::uint8_t {
+    let slice: &[u8] =
+        unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
     if probe(slice) {
         return 1;
     }
@@ -837,13 +845,12 @@ pub extern "C" fn rs_dns_probe(input: *const libc::uint8_t, len: libc::uint32_t)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_probe_tcp(input: *const libc::uint8_t,
-                                   len: libc::uint32_t)
-                                   -> libc::uint8_t
-{
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+pub extern "C" fn rs_dns_probe_tcp(
+    input: *const libc::uint8_t,
+    len: libc::uint32_t,
+) -> libc::uint8_t {
+    let slice: &[u8] =
+        unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
     if probe_tcp(slice) {
         return 1;
     }
@@ -871,7 +878,7 @@ mod tests {
             0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03, /* ata-ids. */
             0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, /* org..... */
             0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00, /* ..)..... */
-            0x00, 0x00, 0x00                                /* ... */
+            0x00, 0x00, 0x00, /* ... */
         ];
 
         // The DNS payload starts at offset 42.
@@ -903,7 +910,7 @@ mod tests {
             0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03, /* ata-ids. */
             0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, /* org..... */
             0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00, /* ..)..... */
-            0x00, 0x00, 0x00                                /* ... */
+            0x00, 0x00, 0x00, /* ... */
         ];
 
         // The DNS payload starts at offset 42.
@@ -942,7 +949,7 @@ mod tests {
             0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf4, /* ........ */
             0x00, 0x04, 0xc0, 0x00, 0x4e, 0x18, 0xc0, 0x32, /* ....N..2 */
             0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf4, /* ........ */
-            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19              /* ....N. */
+            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19, /* ....N. */
         ];
 
         // The DNS payload starts at offset 42.
@@ -982,7 +989,7 @@ mod tests {
             0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf4, /* ........ */
             0x00, 0x04, 0xc0, 0x00, 0x4e, 0x18, 0xc0, 0x32, /* ....N..2 */
             0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf4, /* ........ */
-            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19              /* ....N. */
+            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19, /* ....N. */
         ];
 
         // The DNS payload starts at offset 42.

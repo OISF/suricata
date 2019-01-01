@@ -25,10 +25,13 @@ use std::os::raw::c_char;
 pub enum JsonT {}
 
 /// Expose the jansson functions we need.
-extern {
+extern "C" {
     fn json_object() -> *mut JsonT;
-    fn json_object_set_new(js: *mut JsonT, key: *const c_char,
-                           val: *mut JsonT) -> u32;
+    fn json_object_set_new(
+        js: *mut JsonT,
+        key: *const c_char,
+        val: *mut JsonT,
+    ) -> u32;
 
     fn json_array() -> *mut JsonT;
     fn json_array_append_new(array: *mut JsonT, value: *mut JsonT);
@@ -44,32 +47,31 @@ pub struct Json {
 }
 
 impl Json {
-
     pub fn decref(val: Json) {
-        unsafe{SCJsonDecref(val.js)};
+        unsafe { SCJsonDecref(val.js) };
     }
 
     pub fn object() -> Json {
-        return Json{
-            js: unsafe{json_object()},
-        }
+        return Json {
+            js: unsafe { json_object() },
+        };
     }
 
     pub fn array() -> Json {
-        return Json{
-            js: unsafe{json_array()},
-        }
+        return Json {
+            js: unsafe { json_array() },
+        };
     }
 
     pub fn string(val: &str) -> Json {
-        return Json{
-            js: unsafe{json_string(to_cstring(val.as_bytes()).as_ptr())}
+        return Json {
+            js: unsafe { json_string(to_cstring(val.as_bytes()).as_ptr()) },
         };
     }
 
     pub fn string_from_bytes(val: &[u8]) -> Json {
-        return Json{
-            js: unsafe{json_string(to_cstring(val).as_ptr())}
+        return Json {
+            js: unsafe { json_string(to_cstring(val).as_ptr()) },
         };
     }
 
@@ -79,41 +81,51 @@ impl Json {
 
     pub fn set(&self, key: &str, val: Json) {
         unsafe {
-            json_object_set_new(self.js,
-                                CString::new(key).unwrap().as_ptr(),
-                                val.js);
+            json_object_set_new(
+                self.js,
+                CString::new(key).unwrap().as_ptr(),
+                val.js,
+            );
         }
     }
 
     pub fn set_string_from_bytes(&self, key: &str, val: &[u8]) {
         unsafe {
-            json_object_set_new(self.js,
-                                CString::new(key).unwrap().as_ptr(),
-                                json_string(to_cstring(val).as_ptr()));
+            json_object_set_new(
+                self.js,
+                CString::new(key).unwrap().as_ptr(),
+                json_string(to_cstring(val).as_ptr()),
+            );
         }
     }
 
     pub fn set_string(&self, key: &str, val: &str) {
         unsafe {
-            json_object_set_new(self.js,
-                                CString::new(key).unwrap().as_ptr(),
-                                json_string(to_cstring(val.as_bytes()).as_ptr()));
+            json_object_set_new(
+                self.js,
+                CString::new(key).unwrap().as_ptr(),
+                json_string(to_cstring(val.as_bytes()).as_ptr()),
+            );
         }
     }
 
     pub fn set_integer(&self, key: &str, val: u64) {
         unsafe {
-            json_object_set_new(self.js,
-                                CString::new(key).unwrap().as_ptr(),
-                                json_integer(val));
+            json_object_set_new(
+                self.js,
+                CString::new(key).unwrap().as_ptr(),
+                json_integer(val),
+            );
         }
     }
 
     pub fn set_boolean(&self, key: &str, val: bool) {
         unsafe {
-            json_object_set_new(self.js,
-                                CString::new(key).unwrap().as_ptr(),
-                                SCJsonBool(val));
+            json_object_set_new(
+                self.js,
+                CString::new(key).unwrap().as_ptr(),
+                SCJsonBool(val),
+            );
         }
     }
 
@@ -124,7 +136,10 @@ impl Json {
     }
     pub fn array_append_string(&self, val: &str) {
         unsafe {
-            json_array_append_new(self.js, json_string(to_cstring(val.as_bytes()).as_ptr()));
+            json_array_append_new(
+                self.js,
+                json_string(to_cstring(val.as_bytes()).as_ptr()),
+            );
         }
     }
 }
@@ -147,9 +162,7 @@ fn to_cstring(val: &[u8]) -> CString {
     }
     match CString::new(safe) {
         Ok(cstr) => cstr,
-        _ => {
-            CString::new("<failed to encode string>").unwrap()
-        }
+        _ => CString::new("<failed to encode string>").unwrap(),
     }
 }
 
@@ -160,11 +173,15 @@ mod tests {
 
     #[test]
     fn test_to_string() {
-        assert_eq!("A\\x00A",
-                   to_cstring(&[0x41, 0x00, 0x41]).into_string().unwrap());
+        assert_eq!(
+            "A\\x00A",
+            to_cstring(&[0x41, 0x00, 0x41]).into_string().unwrap()
+        );
         assert_eq!("", to_cstring(&[]).into_string().unwrap());
-        assert_eq!("\\x80\\xf1\\xf2\\xf3",
-                   to_cstring(&[0x80, 0xf1, 0xf2, 0xf3]).into_string().unwrap());
+        assert_eq!(
+            "\\x80\\xf1\\xf2\\xf3",
+            to_cstring(&[0x80, 0xf1, 0xf2, 0xf3]).into_string().unwrap()
+        );
     }
 
 }

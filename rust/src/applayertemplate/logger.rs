@@ -15,10 +15,10 @@
  * 02110-1301, USA.
  */
 
+use super::template::TemplateTransaction;
+use crate::json::*;
 use libc;
 use std;
-use crate::json::*;
-use super::template::TemplateTransaction;
 
 fn log_template(tx: &TemplateTransaction) -> Option<Json> {
     let js = Json::object();

@@ -17,17 +17,17 @@
 
 extern crate libc;
 
-use std::string::String;
 use crate::json::*;
-use crate::nfs::types::*;
 use crate::nfs::nfs::*;
+use crate::nfs::types::*;
 use crc::crc32;
+use std::string::String;
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_logging_is_filtered(state: &mut NFSState,
-                                                tx: &mut NFSTransaction)
-                                                -> libc::uint8_t
-{
+pub extern "C" fn rs_nfs_tx_logging_is_filtered(
+    state: &mut NFSState,
+    tx: &mut NFSTransaction,
+) -> libc::uint8_t {
     // TODO probably best to make this configurable
 
     if state.nfs_version <= 3 && tx.procedure == NFSPROC3_GETATTR {
@@ -37,15 +37,14 @@ pub extern "C" fn rs_nfs_tx_logging_is_filtered(state: &mut NFSState,
     return 0;
 }
 
-fn nfs_rename_object(tx: &NFSTransaction) -> Json
-{
+fn nfs_rename_object(tx: &NFSTransaction) -> Json {
     let js = Json::object();
     let from_str = String::from_utf8_lossy(&tx.file_name);
     js.set_string("from", &from_str);
 
     let to_vec = match tx.type_data {
-        Some(NFSTransactionTypeData::RENAME(ref x)) => { x.to_vec() },
-        _ => { Vec::new() }
+        Some(NFSTransactionTypeData::RENAME(ref x)) => x.to_vec(),
+        _ => Vec::new(),
     };
 
     let to_str = String::from_utf8_lossy(&to_vec);
@@ -53,8 +52,7 @@ fn nfs_rename_object(tx: &NFSTransaction) -> Json
     return js;
 }
 
-fn nfs_creds_object(tx: &NFSTransaction) -> Json
-{
+fn nfs_creds_object(tx: &NFSTransaction) -> Json {
     let js = Json::object();
     let mach_name = String::from_utf8_lossy(&tx.request_machine_name);
     js.set_string("machine_name", &mach_name);
@@ -63,8 +61,7 @@ fn nfs_creds_object(tx: &NFSTransaction) -> Json
     return js;
 }
 
-fn nfs_file_object(tx: &NFSTransaction) -> Json
-{
+fn nfs_file_object(tx: &NFSTransaction) -> Json {
     let js = Json::object();
     js.set_boolean("first", tx.is_first);
     js.set_boolean("last", tx.is_last);
@@ -88,8 +85,7 @@ fn nfs_handle2crc(bytes: &Vec<u8>) -> u32 {
     c
 }
 
-fn nfs_common_header(state: &NFSState, tx: &NFSTransaction) -> Json
-{
+fn nfs_common_header(state: &NFSState, tx: &NFSTransaction) -> Json {
     let js = Json::object();
     js.set_integer("version", state.nfs_version as u64);
     let proc_string = if state.nfs_version < 4 {
@@ -113,16 +109,20 @@ fn nfs_common_header(state: &NFSState, tx: &NFSTransaction) -> Json
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_log_json_request(state: &mut NFSState, tx: &mut NFSTransaction) -> *mut JsonT
-{
+pub extern "C" fn rs_nfs_log_json_request(
+    state: &mut NFSState,
+    tx: &mut NFSTransaction,
+) -> *mut JsonT {
     let js = nfs_common_header(state, tx);
     js.set_string("type", "request");
     return js.unwrap();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_log_json_response(state: &mut NFSState, tx: &mut NFSTransaction) -> *mut JsonT
-{
+pub extern "C" fn rs_nfs_log_json_response(
+    state: &mut NFSState,
+    tx: &mut NFSTransaction,
+) -> *mut JsonT {
     let js = nfs_common_header(state, tx);
     js.set_string("type", "response");
 
@@ -144,10 +144,10 @@ pub extern "C" fn rs_nfs_log_json_response(state: &mut NFSState, tx: &mut NFSTra
     return js.unwrap();
 }
 
-
 #[no_mangle]
-pub extern "C" fn rs_rpc_log_json_response(tx: &mut NFSTransaction) -> *mut JsonT
-{
+pub extern "C" fn rs_rpc_log_json_response(
+    tx: &mut NFSTransaction,
+) -> *mut JsonT {
     let js = Json::object();
     js.set_integer("xid", tx.xid as u64);
     js.set_string("status", &rpc_status_string(tx.rpc_response_status));

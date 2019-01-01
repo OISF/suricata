@@ -20,79 +20,88 @@
 extern crate libc;
 extern crate nom;
 
-use std::str;
 use std;
 use std::mem::transmute;
+use std::str;
 
 use crate::applayer::LoggerFlags;
 
 #[derive(Debug)]
 pub struct TFTPTransaction {
-    pub opcode : u8,
-    pub filename : String,
-    pub mode : String,
-    pub logged : LoggerFlags
+    pub opcode: u8,
+    pub filename: String,
+    pub mode: String,
+    pub logged: LoggerFlags,
 }
 
 pub struct TFTPState {
-    pub transactions : Vec<TFTPTransaction>
+    pub transactions: Vec<TFTPTransaction>,
 }
 
 impl TFTPTransaction {
-    pub fn new(opcode : u8, filename : String, mode : String) -> TFTPTransaction {
+    pub fn new(opcode: u8, filename: String, mode: String) -> TFTPTransaction {
         TFTPTransaction {
-            opcode : opcode,
-            filename : filename,
-            mode : mode.to_lowercase(),
-            logged : LoggerFlags::new(),
+            opcode: opcode,
+            filename: filename,
+            mode: mode.to_lowercase(),
+            logged: LoggerFlags::new(),
         }
     }
     pub fn is_mode_ok(&self) -> bool {
         match self.mode.as_str() {
             "netascii" | "mail" | "octet" => true,
-            _ => false
+            _ => false,
         }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_state_alloc() -> *mut libc::c_void {
-    let state = TFTPState { transactions : Vec::new() };
+    let state = TFTPState {
+        transactions: Vec::new(),
+    };
     let boxed = Box::new(state);
-    return unsafe{transmute(boxed)};
+    return unsafe { transmute(boxed) };
 }
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_state_free(state: *mut libc::c_void) {
-    let _state : Box<TFTPState> = unsafe{transmute(state)};
+    let _state: Box<TFTPState> = unsafe { transmute(state) };
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_state_tx_free(state: &mut TFTPState,
-                                        tx_id: libc::uint32_t) {
+pub extern "C" fn rs_tftp_state_tx_free(
+    state: &mut TFTPState,
+    tx_id: libc::uint32_t,
+) {
     state.transactions.remove(tx_id as usize);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
-                                    tx_id: libc::uint64_t) -> *mut libc::c_void {
+pub extern "C" fn rs_tftp_get_tx(
+    state: &mut TFTPState,
+    tx_id: libc::uint64_t,
+) -> *mut libc::c_void {
     if state.transactions.len() <= tx_id as usize {
         return std::ptr::null_mut();
     }
-    return unsafe{transmute(&state.transactions[tx_id as usize])};
+    return unsafe { transmute(&state.transactions[tx_id as usize]) };
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_get_tx_logged(_state: &mut TFTPState,
-                                        tx: &mut TFTPTransaction)
-                                        -> u32 {
+pub extern "C" fn rs_tftp_get_tx_logged(
+    _state: &mut TFTPState,
+    tx: &mut TFTPTransaction,
+) -> u32 {
     return tx.logged.get();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_set_tx_logged(_state: &mut TFTPState,
-                                        tx: &mut TFTPTransaction,
-                                        logged: libc::uint32_t) {
+pub extern "C" fn rs_tftp_set_tx_logged(
+    _state: &mut TFTPState,
+    tx: &mut TFTPTransaction,
+    logged: libc::uint32_t,
+) {
     tx.logged.set(logged);
 }
 
@@ -106,10 +115,9 @@ pub extern "C" fn rs_tftp_get_tx_cnt(state: &mut TFTPState) -> u64 {
     return state.transactions.len() as u64;
 }
 
-named!(getstr<&str>, map_res!(
-        take_while!(call!(|c| c != 0)),
-        str::from_utf8
-    )
+named!(
+    getstr<&str>,
+    map_res!(take_while!(call!(|c| c != 0)), str::from_utf8)
 );
 
 named!(pub tftp_request<TFTPTransaction>,
@@ -125,17 +133,18 @@ named!(pub tftp_request<TFTPTransaction>,
     )
 );
 
-
 #[no_mangle]
-pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
-                                  input: *const libc::uint8_t,
-                                  len: libc::uint32_t) -> i64 {
-    let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
+pub extern "C" fn rs_tftp_request(
+    state: &mut TFTPState,
+    input: *const libc::uint8_t,
+    len: libc::uint32_t,
+) -> i64 {
+    let buf = unsafe { std::slice::from_raw_parts(input, len as usize) };
     return match tftp_request(buf) {
         nom::IResult::Done(_, rqst) => {
             state.transactions.push(rqst);
             1
-        },
-        _ => 0
-    }
+        }
+        _ => 0,
+    };
 }

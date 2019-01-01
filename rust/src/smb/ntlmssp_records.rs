@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-use nom::{rest, le_u8, le_u16, le_u32};
+use nom::{le_u16, le_u32, le_u8, rest};
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct NTLMSSPVersion {
     pub ver_major: u8,
     pub ver_minor: u8,
@@ -27,32 +27,35 @@ pub struct NTLMSSPVersion {
 
 impl NTLMSSPVersion {
     pub fn to_string(&self) -> String {
-        format!("{}.{} build {} rev {}",
-                self.ver_major, self.ver_minor,
-                self.ver_build, self.ver_ntlm_rev)
+        format!(
+            "{}.{} build {} rev {}",
+            self.ver_major, self.ver_minor, self.ver_build, self.ver_ntlm_rev
+        )
     }
 }
 
-named!(parse_ntlm_auth_version<NTLMSSPVersion>,
+named!(
+    parse_ntlm_auth_version<NTLMSSPVersion>,
     do_parse!(
-            ver_major: le_u8
-         >> ver_minor: le_u8
-         >> ver_build: le_u16
-         >> take!(3)
-         >> ver_ntlm_rev: le_u8
-         >> ( NTLMSSPVersion {
+        ver_major: le_u8
+            >> ver_minor: le_u8
+            >> ver_build: le_u16
+            >> take!(3)
+            >> ver_ntlm_rev: le_u8
+            >> (NTLMSSPVersion {
                 ver_major: ver_major,
                 ver_minor: ver_minor,
                 ver_build: ver_build,
                 ver_ntlm_rev: ver_ntlm_rev,
-             })
-));
+            })
+    )
+);
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct NTLMSSPAuthRecord<'a> {
-    pub domain: &'a[u8],
-    pub user: &'a[u8],
-    pub host: &'a[u8],
+    pub domain: &'a [u8],
+    pub user: &'a [u8],
+    pub host: &'a [u8],
     pub version: Option<NTLMSSPVersion>,
 }
 
@@ -104,10 +107,10 @@ named!(pub parse_ntlm_auth_record<NTLMSSPAuthRecord>,
             })
 ));
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct NTLMSSPRecord<'a> {
     pub msg_type: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 named!(pub parse_ntlmssp<NTLMSSPRecord>,

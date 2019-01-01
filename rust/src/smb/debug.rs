@@ -22,7 +22,7 @@ use log::*;
 
 impl SMBState {
     #[cfg(not(feature = "debug"))]
-    pub fn _debug_tx_stats(&self) { }
+    pub fn _debug_tx_stats(&self) {}
 
     #[cfg(feature = "debug")]
     pub fn _debug_tx_stats(&self) {
@@ -30,7 +30,12 @@ impl SMBState {
             let txf = self.transactions.first().unwrap();
             let txl = self.transactions.last().unwrap();
 
-            SCLogDebug!("TXs {} MIN {} MAX {}", self.transactions.len(), txf.id, txl.id);
+            SCLogDebug!(
+                "TXs {} MIN {} MAX {}",
+                self.transactions.len(),
+                txf.id,
+                txl.id
+            );
             SCLogDebug!("- OLD tx.id {}: {:?}", txf.id, txf);
             SCLogDebug!("- NEW tx.id {}: {:?}", txl.id, txl);
             self._dump_txs();
@@ -38,7 +43,7 @@ impl SMBState {
     }
 
     #[cfg(not(feature = "debug"))]
-    pub fn _dump_txs(&self) { }
+    pub fn _dump_txs(&self) {}
     #[cfg(feature = "debug")]
     pub fn _dump_txs(&self) {
         let len = self.transactions.len();
@@ -59,17 +64,17 @@ impl SMBState {
                     SCLogDebug!("idx {} tx id {} progress {}/{} filename {} type_data {:?}",
                             i, tx.id, tx.request_done, tx.response_done,
                             String::from_utf8_lossy(&d.file_name), tx.type_data);
-                },
+                }
                 _ => {
                     SCLogDebug!("idx {} tx id {} ver:{} cmd:{} progress {}/{} type_data {:?} tx {:?}",
                             i, tx.id, ver, _smbcmd, tx.request_done, tx.response_done, tx.type_data, tx);
-                },
+                }
             }
         }
     }
 
     #[cfg(not(feature = "debug"))]
-    pub fn _debug_state_stats(&self) { }
+    pub fn _debug_state_stats(&self) {}
 
     #[cfg(feature = "debug")]
     pub fn _debug_state_stats(&self) {

@@ -15,16 +15,16 @@
  * 02110-1301, USA.
  */
 
-use std;
-use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow};
-use libc;
-use crate::log::*;
-use std::mem::transmute;
-use crate::applayer::{self, LoggerFlags};
-use crate::parser::*;
-use std::ffi::CString;
-use nom;
 use super::parser;
+use crate::applayer::{self, LoggerFlags};
+use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN};
+use crate::log::*;
+use crate::parser::*;
+use libc;
+use nom;
+use std;
+use std::ffi::CString;
+use std::mem::transmute;
 
 static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN;
 
@@ -447,9 +447,7 @@ pub extern "C" fn rs_template_state_get_tx_iterator(
         Some((tx, out_tx_id, has_next)) => {
             let c_tx = unsafe { transmute(tx) };
             let ires = applayer::AppLayerGetTxIterTuple::with_values(
-                c_tx,
-                out_tx_id,
-                has_next,
+                c_tx, out_tx_id, has_next,
             );
             return ires;
         }
@@ -468,8 +466,7 @@ pub extern "C" fn rs_template_get_request_buffer(
     tx: *mut libc::c_void,
     buf: *mut *const libc::uint8_t,
     len: *mut libc::uint32_t,
-) -> libc::uint8_t
-{
+) -> libc::uint8_t {
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref request) = tx.request {
         if request.len() > 0 {
@@ -489,8 +486,7 @@ pub extern "C" fn rs_template_get_response_buffer(
     tx: *mut libc::c_void,
     buf: *mut *const libc::uint8_t,
     len: *mut libc::uint32_t,
-) -> libc::uint8_t
-{
+) -> libc::uint8_t {
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref response) = tx.response {
         if response.len() > 0 {
@@ -550,10 +546,8 @@ pub unsafe extern "C" fn rs_template_register_parser() {
     {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_TEMPLATE = alproto;
-        if AppLayerParserConfParserEnabled(
-            ip_proto_str.as_ptr(),
-            parser.name,
-        ) != 0
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name)
+            != 0
         {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }

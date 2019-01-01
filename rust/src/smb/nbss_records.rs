@@ -15,40 +15,44 @@
  * 02110-1301, USA.
  */
 
-use nom::{rest};
+use nom::rest;
 
-pub const NBSS_MSGTYPE_SESSION_MESSAGE:         u8 = 0x00;
-pub const NBSS_MSGTYPE_SESSION_REQUEST:         u8 = 0x81;
-pub const NBSS_MSGTYPE_POSITIVE_SSN_RESPONSE:   u8 = 0x82;
-pub const NBSS_MSGTYPE_NEGATIVE_SSN_RESPONSE:   u8 = 0x83;
-pub const NBSS_MSGTYPE_RETARG_RESPONSE:         u8 = 0x84;
-pub const NBSS_MSGTYPE_KEEP_ALIVE:              u8 = 0x85;
+pub const NBSS_MSGTYPE_SESSION_MESSAGE: u8 = 0x00;
+pub const NBSS_MSGTYPE_SESSION_REQUEST: u8 = 0x81;
+pub const NBSS_MSGTYPE_POSITIVE_SSN_RESPONSE: u8 = 0x82;
+pub const NBSS_MSGTYPE_NEGATIVE_SSN_RESPONSE: u8 = 0x83;
+pub const NBSS_MSGTYPE_RETARG_RESPONSE: u8 = 0x84;
+pub const NBSS_MSGTYPE_KEEP_ALIVE: u8 = 0x85;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct NbssRecord<'a> {
     pub message_type: u8,
     pub length: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 impl<'a> NbssRecord<'a> {
     pub fn is_valid(&self) -> bool {
         let valid = match self.message_type {
-            NBSS_MSGTYPE_SESSION_MESSAGE |
-            NBSS_MSGTYPE_SESSION_REQUEST |
-            NBSS_MSGTYPE_POSITIVE_SSN_RESPONSE |
-            NBSS_MSGTYPE_NEGATIVE_SSN_RESPONSE |
-            NBSS_MSGTYPE_RETARG_RESPONSE |
-            NBSS_MSGTYPE_KEEP_ALIVE => true,
+            NBSS_MSGTYPE_SESSION_MESSAGE
+            | NBSS_MSGTYPE_SESSION_REQUEST
+            | NBSS_MSGTYPE_POSITIVE_SSN_RESPONSE
+            | NBSS_MSGTYPE_NEGATIVE_SSN_RESPONSE
+            | NBSS_MSGTYPE_RETARG_RESPONSE
+            | NBSS_MSGTYPE_KEEP_ALIVE => true,
             _ => false,
         };
         valid
     }
     pub fn is_smb(&self) -> bool {
         let valid = self.is_valid();
-        let smb = if self.data.len() >= 4 &&
-            self.data[1] == 'S' as u8 && self.data[2] == 'M' as u8 && self.data[3] == 'B' as u8 &&
-            (self.data[0] == b'\xFE' || self.data[0] == b'\xFF' || self.data[0] == b'\xFD')
+        let smb = if self.data.len() >= 4
+            && self.data[1] == 'S' as u8
+            && self.data[2] == 'M' as u8
+            && self.data[3] == 'B' as u8
+            && (self.data[0] == b'\xFE'
+                || self.data[0] == b'\xFF'
+                || self.data[0] == b'\xFD')
         {
             true
         } else {

@@ -28,30 +28,32 @@ pub enum AppLayerDecoderEvents {}
 
 // From app-layer-events.h
 pub type AppLayerEventType = libc::c_int;
-pub const APP_LAYER_EVENT_TYPE_TRANSACTION : i32 = 1;
-pub const APP_LAYER_EVENT_TYPE_PACKET      : i32 = 2;
+pub const APP_LAYER_EVENT_TYPE_TRANSACTION: i32 = 1;
+pub const APP_LAYER_EVENT_TYPE_PACKET: i32 = 2;
 
 // From stream.h.
-pub const STREAM_START:    u8 = 0x01;
-pub const STREAM_EOF:      u8 = 0x02;
+pub const STREAM_START: u8 = 0x01;
+pub const STREAM_EOF: u8 = 0x02;
 pub const STREAM_TOSERVER: u8 = 0x04;
 pub const STREAM_TOCLIENT: u8 = 0x08;
-pub const STREAM_GAP:      u8 = 0x10;
-pub const STREAM_DEPTH:    u8 = 0x20;
-pub const STREAM_MIDSTREAM:u8 = 0x40;
+pub const STREAM_GAP: u8 = 0x10;
+pub const STREAM_DEPTH: u8 = 0x20;
+pub const STREAM_MIDSTREAM: u8 = 0x40;
 
 // Application layer protocol identifiers (app-layer-protos.h)
 pub type AppProto = libc::c_int;
 
-pub const ALPROTO_UNKNOWN : AppProto = 0;
-pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
+pub const ALPROTO_UNKNOWN: AppProto = 0;
+pub static mut ALPROTO_FAILED: AppProto = 0; // updated during init
 
-macro_rules!BIT_U64 {
-    ($x:expr) => (1 << $x);
+macro_rules! BIT_U64 {
+    ($x:expr) => {
+        1 << $x
+    };
 }
 
 // Defined in app-layer-protos.h
-extern {
+extern "C" {
     pub fn StringToAppProto(proto_name: *const u8) -> AppProto;
 }
 
@@ -60,54 +62,61 @@ extern {
 //
 
 #[allow(non_snake_case)]
-pub type SCLogMessageFunc =
-    extern "C" fn(level: libc::c_int,
-                  filename: *const libc::c_char,
-                  line: libc::c_uint,
-                  function: *const libc::c_char,
-                  code: libc::c_int,
-                  message: *const libc::c_char) -> libc::c_int;
+pub type SCLogMessageFunc = extern "C" fn(
+    level: libc::c_int,
+    filename: *const libc::c_char,
+    line: libc::c_uint,
+    function: *const libc::c_char,
+    code: libc::c_int,
+    message: *const libc::c_char,
+) -> libc::c_int;
 
 pub type DetectEngineStateFreeFunc =
     extern "C" fn(state: *mut DetectEngineState);
 
-pub type AppLayerDecoderEventsSetEventRawFunc =
-    extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
-                   event: libc::uint8_t);
+pub type AppLayerDecoderEventsSetEventRawFunc = extern "C" fn(
+    events: *mut *mut AppLayerDecoderEvents,
+    event: libc::uint8_t,
+);
 
 pub type AppLayerDecoderEventsFreeEventsFunc =
-    extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
+    extern "C" fn(events: *mut *mut AppLayerDecoderEvents);
 
 pub struct SuricataStreamingBufferConfig;
 
-pub type SCFileOpenFileWithId = extern "C" fn (
-        file_container: &FileContainer,
-        sbcfg: &SuricataStreamingBufferConfig,
-        track_id: u32,
-        name: *const u8, name_len: u16,
-        data: *const u8, data_len: u32,
-        flags: u16) -> i32;
-pub type SCFileCloseFileById = extern "C" fn (
-        file_container: &FileContainer,
-        track_id: u32,
-        data: *const u8, data_len: u32,
-        flags: u16) -> i32;
-pub type SCFileAppendDataById = extern "C" fn (
-        file_container: &FileContainer,
-        track_id: u32,
-        data: *const u8, data_len: u32) -> i32;
-pub type SCFileAppendGAPById = extern "C" fn (
-        file_container: &FileContainer,
-        track_id: u32,
-        data: *const u8, data_len: u32) -> i32;
-pub type SCFilePrune = extern "C" fn (
-        file_container: &FileContainer);
-pub type SCFileContainerRecycle = extern "C" fn (
-        file_container: &FileContainer);
+pub type SCFileOpenFileWithId = extern "C" fn(
+    file_container: &FileContainer,
+    sbcfg: &SuricataStreamingBufferConfig,
+    track_id: u32,
+    name: *const u8,
+    name_len: u16,
+    data: *const u8,
+    data_len: u32,
+    flags: u16,
+) -> i32;
+pub type SCFileCloseFileById = extern "C" fn(
+    file_container: &FileContainer,
+    track_id: u32,
+    data: *const u8,
+    data_len: u32,
+    flags: u16,
+) -> i32;
+pub type SCFileAppendDataById = extern "C" fn(
+    file_container: &FileContainer,
+    track_id: u32,
+    data: *const u8,
+    data_len: u32,
+) -> i32;
+pub type SCFileAppendGAPById = extern "C" fn(
+    file_container: &FileContainer,
+    track_id: u32,
+    data: *const u8,
+    data_len: u32,
+) -> i32;
+pub type SCFilePrune = extern "C" fn(file_container: &FileContainer);
+pub type SCFileContainerRecycle = extern "C" fn(file_container: &FileContainer);
 
-pub type SCFileSetTx = extern "C" fn (
-        file: &FileContainer,
-        tx_id: u64);
+pub type SCFileSetTx = extern "C" fn(file: &FileContainer, tx_id: u64);
 
 // A Suricata context that is passed in from C. This is alternative to
 // using functions from Suricata directly, so they can be wrapped so
@@ -142,8 +151,7 @@ pub struct SuricataFileContext {
 pub static mut SC: Option<&'static SuricataContext> = None;
 
 #[no_mangle]
-pub extern "C" fn rs_init(context: &'static mut SuricataContext)
-{
+pub extern "C" fn rs_init(context: &'static mut SuricataContext) {
     unsafe {
         SC = Some(context);
         ALPROTO_FAILED = StringToAppProto("failed\0".as_ptr());
@@ -151,8 +159,7 @@ pub extern "C" fn rs_init(context: &'static mut SuricataContext)
 }
 
 /// DetectEngineStateFree wrapper.
-pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
-{
+pub fn sc_detect_engine_state_free(state: *mut DetectEngineState) {
     unsafe {
         if let Some(c) = SC {
             (c.DetectEngineStateFree)(state);
@@ -162,8 +169,9 @@ pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
 
 /// AppLayerDecoderEventsSetEventRaw wrapper.
 pub fn sc_app_layer_decoder_events_set_event_raw(
-    events: *mut *mut AppLayerDecoderEvents, event: libc::uint8_t)
-{
+    events: *mut *mut AppLayerDecoderEvents,
+    event: libc::uint8_t,
+) {
     unsafe {
         if let Some(c) = SC {
             (c.AppLayerDecoderEventsSetEventRaw)(events, event);
@@ -173,8 +181,8 @@ pub fn sc_app_layer_decoder_events_set_event_raw(
 
 /// AppLayerDecoderEventsFreeEvents wrapper.
 pub fn sc_app_layer_decoder_events_free_events(
-    events: *mut *mut AppLayerDecoderEvents)
-{
+    events: *mut *mut AppLayerDecoderEvents,
+) {
     unsafe {
         if let Some(c) = SC {
             (c.AppLayerDecoderEventsFreeEvents)(events);

@@ -17,14 +17,16 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
+use crate::ikev2::ikev2::{IKEV2State, IKEV2Transaction};
 use crate::json::*;
-use crate::ikev2::ikev2::{IKEV2State,IKEV2Transaction};
 
 use crate::ikev2::ipsec_parser::IKEV2_FLAG_INITIATOR;
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_log_json_response(state: &mut IKEV2State, tx: &mut IKEV2Transaction) -> *mut JsonT
-{
+pub extern "C" fn rs_ikev2_log_json_response(
+    state: &mut IKEV2State,
+    tx: &mut IKEV2Transaction,
+) -> *mut JsonT {
     let js = Json::object();
     js.set_integer("version_major", tx.hdr.maj_ver as u64);
     js.set_integer("version_minor", tx.hdr.min_ver as u64);

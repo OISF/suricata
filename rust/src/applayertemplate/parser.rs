@@ -35,8 +35,8 @@ named!(pub parse_message<String>,
 #[cfg(test)]
 mod tests {
 
-    use nom::*;
     use super::*;
+    use nom::*;
 
     /// Simple test of some valid data.
     #[test]
