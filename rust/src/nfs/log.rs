@@ -18,9 +18,9 @@
 extern crate libc;
 
 use std::string::String;
-use json::*;
-use nfs::types::*;
-use nfs::nfs::*;
+use crate::json::*;
+use crate::nfs::types::*;
+use crate::nfs::nfs::*;
 use crc::crc32;
 
 #[no_mangle]

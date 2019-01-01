@@ -26,18 +26,18 @@ use std::ffi::CStr;
 
 use nom::IResult;
 
-use log::*;
-use applayer;
-use applayer::LoggerFlags;
-use core::*;
-use filetracker::*;
-use filecontainer::*;
+use crate::log::*;
+use crate::applayer;
+use crate::applayer::LoggerFlags;
+use crate::core::*;
+use crate::filetracker::*;
+use crate::filecontainer::*;
 
-use nfs::types::*;
-use nfs::rpc_records::*;
-use nfs::nfs_records::*;
-use nfs::nfs2_records::*;
-use nfs::nfs3_records::*;
+use crate::nfs::types::*;
+use crate::nfs::rpc_records::*;
+use crate::nfs::nfs_records::*;
+use crate::nfs::nfs2_records::*;
+use crate::nfs::nfs3_records::*;
 
 pub static mut SURICATA_NFS_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 

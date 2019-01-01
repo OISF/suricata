@@ -17,12 +17,12 @@
 
 use nom::{IResult};
 
-use log::*;
+use crate::log::*;
 
-use smb::smb2_records::*;
-use smb::smb::*;
+use crate::smb::smb2_records::*;
+use crate::smb::smb::*;
 //use smb::events::*;
-use smb::auth::*;
+use crate::smb::auth::*;
 
 pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
 {

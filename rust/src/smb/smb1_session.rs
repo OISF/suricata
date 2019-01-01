@@ -17,13 +17,13 @@
 
 use nom::{IResult};
 
-use log::*;
+use crate::log::*;
 
-use smb::smb_records::*;
-use smb::smb1_records::*;
-use smb::smb::*;
-use smb::events::*;
-use smb::auth::*;
+use crate::smb::smb_records::*;
+use crate::smb::smb1_records::*;
+use crate::smb::smb::*;
+use crate::smb::events::*;
+use crate::smb::auth::*;
 
 #[derive(Debug)]
 pub struct SessionSetupRequest {

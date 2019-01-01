@@ -19,11 +19,11 @@
 
 //! Parser registration functions and common interface
 
-use core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
-use filecontainer::FileContainer;
+use crate::core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
+use crate::filecontainer::FileContainer;
 
 use libc::{c_void,c_char,c_int};
-use applayer::{AppLayerGetTxIterTuple};
+use crate::applayer::{AppLayerGetTxIterTuple};
 
 /// Rust parser declaration
 #[repr(C)]
