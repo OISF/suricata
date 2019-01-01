@@ -20,20 +20,19 @@ extern crate libc;
 use std;
 use std::os::raw::c_void;
 
+use crate::conf::ConfNode;
 use crate::dhcp::dhcp::*;
-use crate::dhcp::parser::{DHCPOptionWrapper,DHCPOptGeneric};
+use crate::dhcp::parser::{DHCPOptGeneric, DHCPOptionWrapper};
 use crate::dns::log::dns_print_addr;
 use crate::json::*;
-use crate::conf::ConfNode;
 
 pub struct DHCPLogger {
     extended: bool,
 }
 
 impl DHCPLogger {
-    
     pub fn new(conf: ConfNode) -> DHCPLogger {
-        return DHCPLogger{
+        return DHCPLogger {
             extended: conf.get_child_bool("extended"),
         };
     }
@@ -43,16 +42,14 @@ impl DHCPLogger {
         for option in options {
             let code = option.code;
             match &option.option {
-                &DHCPOptionWrapper::Generic(ref option) => {
-                    match code {
-                        DHCP_OPT_TYPE => {
-                            if option.data.len() > 0 {
-                                return Some(option.data[0]);
-                            }
+                &DHCPOptionWrapper::Generic(ref option) => match code {
+                    DHCP_OPT_TYPE => {
+                        if option.data.len() > 0 {
+                            return Some(option.data[0]);
                         }
-                        _ => {}
                     }
-                }
+                    _ => {}
+                },
                 _ => {}
             }
         }
@@ -62,14 +59,12 @@ impl DHCPLogger {
     fn do_log(&self, tx: &DHCPTransaction) -> bool {
         if !self.extended {
             match self.get_type(tx) {
-                Some(t) => {
-                    match t {
-                        DHCP_TYPE_ACK => {
-                            return true;
-                        }
-                        _ => {}
+                Some(t) => match t {
+                    DHCP_TYPE_ACK => {
+                        return true;
                     }
-                }
+                    _ => {}
+                },
                 _ => {}
             }
             return false;
@@ -81,7 +76,7 @@ impl DHCPLogger {
         if !self.do_log(tx) {
             return None;
         }
-        
+
         let header = &tx.message.header;
         let options = &tx.message.options;
         let js = Json::object();
@@ -97,95 +92,105 @@ impl DHCPLogger {
                 js.set_string("type", "<unknown>");
             }
         }
-        
+
         js.set_integer("id", header.txid as u64);
-        js.set_string("client_mac",
-                      &format_addr_hex(&header.clienthw.to_vec()));
+        js.set_string(
+            "client_mac",
+            &format_addr_hex(&header.clienthw.to_vec()),
+        );
         js.set_string("assigned_ip", &dns_print_addr(&header.yourip));
 
         if self.extended {
             js.set_string("client_ip", &dns_print_addr(&header.clientip));
             if header.opcode == BOOTP_REPLY {
-                js.set_string("relay_ip",
-                              &dns_print_addr(&header.giaddr));
-                js.set_string("next_server_ip",
-                              &dns_print_addr(&header.serverip));
+                js.set_string("relay_ip", &dns_print_addr(&header.giaddr));
+                js.set_string(
+                    "next_server_ip",
+                    &dns_print_addr(&header.serverip),
+                );
             }
         }
-        
+
         for option in options {
             let code = option.code;
             match &option.option {
                 &DHCPOptionWrapper::ClientId(ref clientid) => {
-                    js.set_string("client_id",
-                                  &format_addr_hex(&clientid.data));
+                    js.set_string(
+                        "client_id",
+                        &format_addr_hex(&clientid.data),
+                    );
                 }
-                &DHCPOptionWrapper::TimeValue(ref time_value) => {
-                    match code {
-                        DHCP_OPT_ADDRESS_TIME => {
-                            if self.extended {
-                                js.set_integer("lease_time",
-                                               time_value.seconds as u64);
-                            }
+                &DHCPOptionWrapper::TimeValue(ref time_value) => match code {
+                    DHCP_OPT_ADDRESS_TIME => {
+                        if self.extended {
+                            js.set_integer(
+                                "lease_time",
+                                time_value.seconds as u64,
+                            );
                         }
-                        DHCP_OPT_REBINDING_TIME => {
-                            if self.extended {
-                                js.set_integer("rebinding_time",
-                                               time_value.seconds as u64);
-                            }
-                        }
-                        DHCP_OPT_RENEWAL_TIME => {
-                            js.set_integer("renewal_time",
-                                           time_value.seconds as u64);
-                        }
-                        _ => {}
                     }
-                }
-                &DHCPOptionWrapper::Generic(ref option) => {
-                    match code {
-                        DHCP_OPT_SUBNET_MASK => {
-                            if self.extended {
-                                js.set_string("subnet_mask",
-                                              &dns_print_addr(&option.data));
-                            }
+                    DHCP_OPT_REBINDING_TIME => {
+                        if self.extended {
+                            js.set_integer(
+                                "rebinding_time",
+                                time_value.seconds as u64,
+                            );
                         }
-                        DHCP_OPT_HOSTNAME => {
-                            if option.data.len() > 0 {
-                                js.set_string_from_bytes("hostname",
-                                                         &option.data);
-                            }
-                        }
-                        DHCP_OPT_TYPE => {
-                            self.log_opt_type(&js, option);
-                        }
-                        DHCP_OPT_REQUESTED_IP => {
-                            if self.extended {
-                                js.set_string("requested_ip",
-                                              &dns_print_addr(&option.data));
-                            }
-                        }
-                        DHCP_OPT_PARAMETER_LIST => {
-                            if self.extended {
-                                self.log_opt_parameters(&js, option);
-                            }
-                        }
-                        DHCP_OPT_DNS_SERVER => {
-                            if self.extended {
-                                self.log_opt_dns_server(&js, option);
-                            }
-                        }
-                        DHCP_OPT_ROUTERS => {
-                            if self.extended {
-                                self.log_opt_routers(&js, option);
-                            }
-                        }
-                        _ => {}
                     }
-                }
+                    DHCP_OPT_RENEWAL_TIME => {
+                        js.set_integer(
+                            "renewal_time",
+                            time_value.seconds as u64,
+                        );
+                    }
+                    _ => {}
+                },
+                &DHCPOptionWrapper::Generic(ref option) => match code {
+                    DHCP_OPT_SUBNET_MASK => {
+                        if self.extended {
+                            js.set_string(
+                                "subnet_mask",
+                                &dns_print_addr(&option.data),
+                            );
+                        }
+                    }
+                    DHCP_OPT_HOSTNAME => {
+                        if option.data.len() > 0 {
+                            js.set_string_from_bytes("hostname", &option.data);
+                        }
+                    }
+                    DHCP_OPT_TYPE => {
+                        self.log_opt_type(&js, option);
+                    }
+                    DHCP_OPT_REQUESTED_IP => {
+                        if self.extended {
+                            js.set_string(
+                                "requested_ip",
+                                &dns_print_addr(&option.data),
+                            );
+                        }
+                    }
+                    DHCP_OPT_PARAMETER_LIST => {
+                        if self.extended {
+                            self.log_opt_parameters(&js, option);
+                        }
+                    }
+                    DHCP_OPT_DNS_SERVER => {
+                        if self.extended {
+                            self.log_opt_dns_server(&js, option);
+                        }
+                    }
+                    DHCP_OPT_ROUTERS => {
+                        if self.extended {
+                            self.log_opt_routers(&js, option);
+                        }
+                    }
+                    _ => {}
+                },
                 _ => {}
             }
         }
-        
+
         return Some(js);
     }
 
@@ -200,7 +205,7 @@ impl DHCPLogger {
                 DHCP_TYPE_NAK => "nak",
                 DHCP_TYPE_RELEASE => "release",
                 DHCP_TYPE_INFORM => "inform",
-                _ => "unknown"
+                _ => "unknown",
             };
             js.set_string("dhcp_type", dhcp_type);
         }
@@ -218,7 +223,7 @@ impl DHCPLogger {
                 DHCP_PARAM_NTP_SERVER => "ntp_server",
                 DHCP_PARAM_TFTP_SERVER_NAME => "tftp_server_name",
                 DHCP_PARAM_TFTP_SERVER_IP => "tftp_server_ip",
-                _ => ""
+                _ => "",
             };
             if param.len() > 0 {
                 params.array_append_string(param);
@@ -226,31 +231,31 @@ impl DHCPLogger {
         }
         js.set("params", params);
     }
-    
+
     fn log_opt_dns_server(&self, js: &Json, option: &DHCPOptGeneric) {
         let servers = Json::array();
         for i in 0..(option.data.len() / 4) {
             servers.array_append_string(&dns_print_addr(
-                &option.data[(i * 4)..(i * 4) + 4].to_vec()))
+                &option.data[(i * 4)..(i * 4) + 4].to_vec(),
+            ))
         }
         js.set("dns_servers", servers);
     }
-    
+
     fn log_opt_routers(&self, js: &Json, option: &DHCPOptGeneric) {
         let routers = Json::array();
         for i in 0..(option.data.len() / 4) {
             routers.array_append_string(&dns_print_addr(
-                &option.data[(i * 4)..(i * 4) + 4].to_vec()))
+                &option.data[(i * 4)..(i * 4) + 4].to_vec(),
+            ))
         }
         js.set("routers", routers);
     }
-
 }
 
 fn format_addr_hex(input: &Vec<u8>) -> String {
-    let parts: Vec<String> = input.iter()
-        .map(|b| format!("{:02x}", b))
-        .collect();
+    let parts: Vec<String> =
+        input.iter().map(|b| format!("{:02x}", b)).collect();
     return parts.join(":");
 }
 
@@ -258,17 +263,19 @@ fn format_addr_hex(input: &Vec<u8>) -> String {
 pub extern "C" fn rs_dhcp_logger_new(conf: *const c_void) -> *mut libc::c_void {
     let conf = ConfNode::wrap(conf);
     let boxed = Box::new(DHCPLogger::new(conf));
-    return unsafe{std::mem::transmute(boxed)};
+    return unsafe { std::mem::transmute(boxed) };
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dhcp_logger_free(logger: *mut libc::c_void) {
-    let _: Box<DHCPLogger> = unsafe{std::mem::transmute(logger)};
+    let _: Box<DHCPLogger> = unsafe { std::mem::transmute(logger) };
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_logger_log(logger: *mut libc::c_void,
-                                     tx: *mut libc::c_void) -> *mut JsonT {
+pub extern "C" fn rs_dhcp_logger_log(
+    logger: *mut libc::c_void,
+    tx: *mut libc::c_void,
+) -> *mut JsonT {
     let logger = cast_pointer!(logger, DHCPLogger);
     let tx = cast_pointer!(tx, DHCPTransaction);
     match logger.log(tx) {

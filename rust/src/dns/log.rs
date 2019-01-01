@@ -18,79 +18,78 @@
 extern crate libc;
 
 use std;
-use std::string::String;
 use std::collections::HashMap;
+use std::string::String;
 
-use crate::json::*;
 use crate::dns::dns::*;
+use crate::json::*;
 
-pub const LOG_QUERIES    : u64 = BIT_U64!(0);
-pub const LOG_ANSWER     : u64 = BIT_U64!(1);
+pub const LOG_QUERIES: u64 = BIT_U64!(0);
+pub const LOG_ANSWER: u64 = BIT_U64!(1);
 
-pub const LOG_A          : u64 = BIT_U64!(2);
-pub const LOG_NS         : u64 = BIT_U64!(3);
-pub const LOG_MD         : u64 = BIT_U64!(4);
-pub const LOG_MF         : u64 = BIT_U64!(5);
-pub const LOG_CNAME      : u64 = BIT_U64!(6);
-pub const LOG_SOA        : u64 = BIT_U64!(7);
-pub const LOG_MB         : u64 = BIT_U64!(8);
-pub const LOG_MG         : u64 = BIT_U64!(9);
-pub const LOG_MR         : u64 = BIT_U64!(10);
-pub const LOG_NULL       : u64 = BIT_U64!(11);
-pub const LOG_WKS        : u64 = BIT_U64!(12);
-pub const LOG_PTR        : u64 = BIT_U64!(13);
-pub const LOG_HINFO      : u64 = BIT_U64!(14);
-pub const LOG_MINFO      : u64 = BIT_U64!(15);
-pub const LOG_MX         : u64 = BIT_U64!(16);
-pub const LOG_TXT        : u64 = BIT_U64!(17);
-pub const LOG_RP         : u64 = BIT_U64!(18);
-pub const LOG_AFSDB      : u64 = BIT_U64!(19);
-pub const LOG_X25        : u64 = BIT_U64!(20);
-pub const LOG_ISDN       : u64 = BIT_U64!(21);
-pub const LOG_RT         : u64 = BIT_U64!(22);
-pub const LOG_NSAP       : u64 = BIT_U64!(23);
-pub const LOG_NSAPPTR    : u64 = BIT_U64!(24);
-pub const LOG_SIG        : u64 = BIT_U64!(25);
-pub const LOG_KEY        : u64 = BIT_U64!(26);
-pub const LOG_PX         : u64 = BIT_U64!(27);
-pub const LOG_GPOS       : u64 = BIT_U64!(28);
-pub const LOG_AAAA       : u64 = BIT_U64!(29);
-pub const LOG_LOC        : u64 = BIT_U64!(30);
-pub const LOG_NXT        : u64 = BIT_U64!(31);
-pub const LOG_SRV        : u64 = BIT_U64!(32);
-pub const LOG_ATMA       : u64 = BIT_U64!(33);
-pub const LOG_NAPTR      : u64 = BIT_U64!(34);
-pub const LOG_KX         : u64 = BIT_U64!(35);
-pub const LOG_CERT       : u64 = BIT_U64!(36);
-pub const LOG_A6         : u64 = BIT_U64!(37);
-pub const LOG_DNAME      : u64 = BIT_U64!(38);
-pub const LOG_OPT        : u64 = BIT_U64!(39);
-pub const LOG_APL        : u64 = BIT_U64!(40);
-pub const LOG_DS         : u64 = BIT_U64!(41);
-pub const LOG_SSHFP      : u64 = BIT_U64!(42);
-pub const LOG_IPSECKEY   : u64 = BIT_U64!(43);
-pub const LOG_RRSIG      : u64 = BIT_U64!(44);
-pub const LOG_NSEC       : u64 = BIT_U64!(45);
-pub const LOG_DNSKEY     : u64 = BIT_U64!(46);
-pub const LOG_DHCID      : u64 = BIT_U64!(47);
-pub const LOG_NSEC3      : u64 = BIT_U64!(48);
-pub const LOG_NSEC3PARAM : u64 = BIT_U64!(49);
-pub const LOG_TLSA       : u64 = BIT_U64!(50);
-pub const LOG_HIP        : u64 = BIT_U64!(51);
-pub const LOG_CDS        : u64 = BIT_U64!(52);
-pub const LOG_CDNSKEY    : u64 = BIT_U64!(53);
-pub const LOG_SPF        : u64 = BIT_U64!(54);
-pub const LOG_TKEY       : u64 = BIT_U64!(55);
-pub const LOG_TSIG       : u64 = BIT_U64!(56);
-pub const LOG_MAILA      : u64 = BIT_U64!(57);
-pub const LOG_ANY        : u64 = BIT_U64!(58);
-pub const LOG_URI        : u64 = BIT_U64!(59);
+pub const LOG_A: u64 = BIT_U64!(2);
+pub const LOG_NS: u64 = BIT_U64!(3);
+pub const LOG_MD: u64 = BIT_U64!(4);
+pub const LOG_MF: u64 = BIT_U64!(5);
+pub const LOG_CNAME: u64 = BIT_U64!(6);
+pub const LOG_SOA: u64 = BIT_U64!(7);
+pub const LOG_MB: u64 = BIT_U64!(8);
+pub const LOG_MG: u64 = BIT_U64!(9);
+pub const LOG_MR: u64 = BIT_U64!(10);
+pub const LOG_NULL: u64 = BIT_U64!(11);
+pub const LOG_WKS: u64 = BIT_U64!(12);
+pub const LOG_PTR: u64 = BIT_U64!(13);
+pub const LOG_HINFO: u64 = BIT_U64!(14);
+pub const LOG_MINFO: u64 = BIT_U64!(15);
+pub const LOG_MX: u64 = BIT_U64!(16);
+pub const LOG_TXT: u64 = BIT_U64!(17);
+pub const LOG_RP: u64 = BIT_U64!(18);
+pub const LOG_AFSDB: u64 = BIT_U64!(19);
+pub const LOG_X25: u64 = BIT_U64!(20);
+pub const LOG_ISDN: u64 = BIT_U64!(21);
+pub const LOG_RT: u64 = BIT_U64!(22);
+pub const LOG_NSAP: u64 = BIT_U64!(23);
+pub const LOG_NSAPPTR: u64 = BIT_U64!(24);
+pub const LOG_SIG: u64 = BIT_U64!(25);
+pub const LOG_KEY: u64 = BIT_U64!(26);
+pub const LOG_PX: u64 = BIT_U64!(27);
+pub const LOG_GPOS: u64 = BIT_U64!(28);
+pub const LOG_AAAA: u64 = BIT_U64!(29);
+pub const LOG_LOC: u64 = BIT_U64!(30);
+pub const LOG_NXT: u64 = BIT_U64!(31);
+pub const LOG_SRV: u64 = BIT_U64!(32);
+pub const LOG_ATMA: u64 = BIT_U64!(33);
+pub const LOG_NAPTR: u64 = BIT_U64!(34);
+pub const LOG_KX: u64 = BIT_U64!(35);
+pub const LOG_CERT: u64 = BIT_U64!(36);
+pub const LOG_A6: u64 = BIT_U64!(37);
+pub const LOG_DNAME: u64 = BIT_U64!(38);
+pub const LOG_OPT: u64 = BIT_U64!(39);
+pub const LOG_APL: u64 = BIT_U64!(40);
+pub const LOG_DS: u64 = BIT_U64!(41);
+pub const LOG_SSHFP: u64 = BIT_U64!(42);
+pub const LOG_IPSECKEY: u64 = BIT_U64!(43);
+pub const LOG_RRSIG: u64 = BIT_U64!(44);
+pub const LOG_NSEC: u64 = BIT_U64!(45);
+pub const LOG_DNSKEY: u64 = BIT_U64!(46);
+pub const LOG_DHCID: u64 = BIT_U64!(47);
+pub const LOG_NSEC3: u64 = BIT_U64!(48);
+pub const LOG_NSEC3PARAM: u64 = BIT_U64!(49);
+pub const LOG_TLSA: u64 = BIT_U64!(50);
+pub const LOG_HIP: u64 = BIT_U64!(51);
+pub const LOG_CDS: u64 = BIT_U64!(52);
+pub const LOG_CDNSKEY: u64 = BIT_U64!(53);
+pub const LOG_SPF: u64 = BIT_U64!(54);
+pub const LOG_TKEY: u64 = BIT_U64!(55);
+pub const LOG_TSIG: u64 = BIT_U64!(56);
+pub const LOG_MAILA: u64 = BIT_U64!(57);
+pub const LOG_ANY: u64 = BIT_U64!(58);
+pub const LOG_URI: u64 = BIT_U64!(59);
 
-pub const LOG_FORMAT_GROUPED  : u64 = BIT_U64!(60);
-pub const LOG_FORMAT_DETAILED : u64 = BIT_U64!(61);
+pub const LOG_FORMAT_GROUPED: u64 = BIT_U64!(60);
+pub const LOG_FORMAT_DETAILED: u64 = BIT_U64!(61);
 
-fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool
-{
+fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool {
     if flags == !0 {
         return true;
     }
@@ -234,9 +233,7 @@ fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool
         DNS_RECORD_TYPE_DHCID => {
             return flags & LOG_DHCID != 0;
         }
-        DNS_RECORD_TYPE_NSEC3 => {
-            return flags & LOG_NSEC3 != 0
-        }
+        DNS_RECORD_TYPE_NSEC3 => return flags & LOG_NSEC3 != 0,
         DNS_RECORD_TYPE_NSEC3PARAM => {
             return flags & LOG_NSEC3PARAM != 0;
         }
@@ -339,7 +336,8 @@ pub fn dns_rrtype_string(rrtype: u16) -> String {
         _ => {
             return rrtype.to_string();
         }
-    }.to_string()
+    }
+    .to_string()
 }
 
 fn dns_rcode_string(flags: u16) -> String {
@@ -365,15 +363,15 @@ fn dns_rcode_string(flags: u16) -> String {
         _ => {
             return (flags & 0x000f).to_string();
         }
-    }.to_string()
+    }
+    .to_string()
 }
 
 /// Format bytes as an IP address string.
 pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
     if addr.len() == 4 {
         return format!("{}.{}.{}.{}", addr[0], addr[1], addr[2], addr[3]);
-    }
-    else if addr.len() == 16 {
+    } else if addr.len() == 16 {
         return format!("{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}:{:02x}{:02x}",
                        addr[0],
                        addr[1],
@@ -391,18 +389,16 @@ pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
                        addr[13],
                        addr[14],
                        addr[15]);
-    }
-    else {
+    } else {
         return "".to_string();
     }
 }
 
 ///  Log the SSHPF in an DNSAnswerEntry.
-fn dns_log_sshfp(answer: &DNSAnswerEntry) -> Option<Json>
-{
+fn dns_log_sshfp(answer: &DNSAnswerEntry) -> Option<Json> {
     // Need at least 3 bytes - TODO: log something if we don't?
     if answer.data.len() < 3 {
-        return None
+        return None;
     }
 
     let sshfp = Json::object();
@@ -418,8 +414,7 @@ fn dns_log_sshfp(answer: &DNSAnswerEntry) -> Option<Json>
     return Some(sshfp);
 }
 
-fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Json
-{
+fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Json {
     let jsa = Json::object();
 
     jsa.set_string_from_bytes("rrname", &answer.name);
@@ -430,25 +425,24 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Json
         DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
             jsa.set_string("rdata", &dns_print_addr(&answer.data));
         }
-        DNS_RECORD_TYPE_CNAME |
-        DNS_RECORD_TYPE_MX |
-        DNS_RECORD_TYPE_TXT |
-        DNS_RECORD_TYPE_PTR => {
+        DNS_RECORD_TYPE_CNAME
+        | DNS_RECORD_TYPE_MX
+        | DNS_RECORD_TYPE_TXT
+        | DNS_RECORD_TYPE_PTR => {
             jsa.set_string_from_bytes("rdata", &answer.data);
-        },
+        }
         DNS_RECORD_TYPE_SSHFP => {
             for sshfp in dns_log_sshfp(&answer) {
                 jsa.set("sshfp", sshfp);
             }
-        },
+        }
         _ => {}
     }
 
     return jsa;
 }
 
-fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
-{
+fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json {
     let header = &response.header;
     let js = Json::object();
 
@@ -486,44 +480,45 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
         let mut answer_types = HashMap::new();
 
         for answer in &response.answers {
-
             if flags & LOG_FORMAT_GROUPED != 0 {
                 let type_string = dns_rrtype_string(answer.rrtype);
                 match answer.rrtype {
                     DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(),
-                                                Json::array());
+                            answer_types
+                                .insert(type_string.to_string(), Json::array());
                         }
                         for a in &answer_types.get(&type_string) {
-                            a.array_append(
-                                Json::string(&dns_print_addr(&answer.data)));
+                            a.array_append(Json::string(&dns_print_addr(
+                                &answer.data,
+                            )));
                         }
                     }
-                    DNS_RECORD_TYPE_CNAME |
-                    DNS_RECORD_TYPE_MX |
-                    DNS_RECORD_TYPE_TXT |
-                    DNS_RECORD_TYPE_PTR => {
+                    DNS_RECORD_TYPE_CNAME
+                    | DNS_RECORD_TYPE_MX
+                    | DNS_RECORD_TYPE_TXT
+                    | DNS_RECORD_TYPE_PTR => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(),
-                                                Json::array());
+                            answer_types
+                                .insert(type_string.to_string(), Json::array());
                         }
                         for a in &answer_types.get(&type_string) {
-                            a.array_append(
-                                Json::string_from_bytes(&answer.data));
+                            a.array_append(Json::string_from_bytes(
+                                &answer.data,
+                            ));
                         }
-                    },
+                    }
                     DNS_RECORD_TYPE_SSHFP => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(),
-                                                Json::array());
+                            answer_types
+                                .insert(type_string.to_string(), Json::array());
                         }
                         for a in &answer_types.get(&type_string) {
                             for sshfp in dns_log_sshfp(&answer) {
                                 a.array_append(sshfp);
                             }
                         }
-                    },
+                    }
                     _ => {}
                 }
             }
@@ -544,7 +539,6 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
             }
             js.set("grouped", grouped);
         }
-
     }
 
     if response.authorities.len() > 0 {
@@ -559,11 +553,11 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
-                                        i: libc::uint16_t,
-                                        flags: libc::uint64_t)
-                                        -> *mut JsonT
-{
+pub extern "C" fn rs_dns_log_json_query(
+    tx: &mut DNSTransaction,
+    i: libc::uint16_t,
+    flags: libc::uint64_t,
+) -> *mut JsonT {
     let index = i as usize;
     if let &Some(ref request) = &tx.request {
         if index < request.queries.len() {
@@ -584,10 +578,10 @@ pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_log_json_answer(tx: &mut DNSTransaction,
-                                         flags: libc::uint64_t)
-                                         -> *mut JsonT
-{
+pub extern "C" fn rs_dns_log_json_answer(
+    tx: &mut DNSTransaction,
+    flags: libc::uint64_t,
+) -> *mut JsonT {
     if let &Some(ref response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
@@ -602,9 +596,7 @@ pub extern "C" fn rs_dns_log_json_answer(tx: &mut DNSTransaction,
 
 // Version 1 logging support.
 
-fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
-                       -> Json
-{
+fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry) -> Json {
     let js = Json::object();
 
     js.set_string("type", "answer");
@@ -634,25 +626,28 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
         DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
             js.set_string("rdata", &dns_print_addr(&answer.data));
         }
-        DNS_RECORD_TYPE_CNAME |
-        DNS_RECORD_TYPE_MX |
-        DNS_RECORD_TYPE_TXT |
-        DNS_RECORD_TYPE_PTR => {
+        DNS_RECORD_TYPE_CNAME
+        | DNS_RECORD_TYPE_MX
+        | DNS_RECORD_TYPE_TXT
+        | DNS_RECORD_TYPE_PTR => {
             js.set_string_from_bytes("rdata", &answer.data);
-        },
+        }
         DNS_RECORD_TYPE_SSHFP => {
             if let Some(sshfp) = dns_log_sshfp(&answer) {
                 js.set("sshfp", sshfp);
             }
-        },
+        }
         _ => {}
     }
 
     return js;
 }
 
-fn dns_log_json_failure_v1(r: &DNSResponse, index: usize, flags: u64)
-                        -> * mut JsonT {
+fn dns_log_json_failure_v1(
+    r: &DNSResponse,
+    index: usize,
+    flags: u64,
+) -> *mut JsonT {
     if index >= r.queries.len() {
         return std::ptr::null_mut();
     }
@@ -674,11 +669,11 @@ fn dns_log_json_failure_v1(r: &DNSResponse, index: usize, flags: u64)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
-                                         i: libc::uint16_t,
-                                         flags: libc::uint64_t)
-                                         -> *mut JsonT
-{
+pub extern "C" fn rs_dns_log_json_answer_v1(
+    tx: &mut DNSTransaction,
+    i: libc::uint16_t,
+    flags: libc::uint64_t,
+) -> *mut JsonT {
     let index = i as usize;
     // Note for loop over Option for easier break out to default
     // return value.
@@ -702,11 +697,11 @@ pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_log_json_authority_v1(tx: &mut DNSTransaction,
-                                            i: libc::uint16_t,
-                                            flags: libc::uint64_t)
-                                            -> *mut JsonT
-{
+pub extern "C" fn rs_dns_log_json_authority_v1(
+    tx: &mut DNSTransaction,
+    i: libc::uint16_t,
+    flags: libc::uint64_t,
+) -> *mut JsonT {
     let index = i as usize;
     if let &Some(ref response) = &tx.response {
         if index < response.authorities.len() {

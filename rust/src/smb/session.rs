@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
-use crate::log::*;
 use crate::kerberos::*;
+use crate::log::*;
+use crate::smb::auth::*;
 use crate::smb::smb::*;
 use crate::smb::smb1_session::*;
-use crate::smb::auth::*;
 
 #[derive(Debug)]
 pub struct SMBTransactionSessionSetup {
@@ -36,19 +36,21 @@ impl SMBTransactionSessionSetup {
             response_host: None,
             ntlmssp: None,
             krb_ticket: None,
-        }
+        };
     }
 }
 
 impl SMBState {
-    pub fn new_sessionsetup_tx(&mut self, hdr: SMBCommonHdr)
-        -> (&mut SMBTransaction)
-    {
+    pub fn new_sessionsetup_tx(
+        &mut self,
+        hdr: SMBCommonHdr,
+    ) -> (&mut SMBTransaction) {
         let mut tx = self.new_tx();
 
         tx.hdr = hdr;
         tx.type_data = Some(SMBTransactionTypeData::SESSIONSETUP(
-                    SMBTransactionSessionSetup::new()));
+            SMBTransactionSessionSetup::new(),
+        ));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
@@ -58,14 +60,16 @@ impl SMBState {
         return tx_ref.unwrap();
     }
 
-    pub fn get_sessionsetup_tx(&mut self, hdr: SMBCommonHdr)
-        -> Option<&mut SMBTransaction>
-    {
+    pub fn get_sessionsetup_tx(
+        &mut self,
+        hdr: SMBCommonHdr,
+    ) -> Option<&mut SMBTransaction> {
         for tx in &mut self.transactions {
-            let hit = tx.hdr.compare(&hdr) && match tx.type_data {
-                Some(SMBTransactionTypeData::SESSIONSETUP(_)) => { true },
-                _ => { false },
-            };
+            let hit = tx.hdr.compare(&hdr)
+                && match tx.type_data {
+                    Some(SMBTransactionTypeData::SESSIONSETUP(_)) => true,
+                    _ => false,
+                };
             if hit {
                 return Some(tx);
             }

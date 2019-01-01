@@ -123,7 +123,7 @@ named!(pub parse_clientid_option<DHCPOption>,
            code: be_u8 >>
            len: be_u8 >>
            htype: be_u8 >>
-           data: take!(len - 1) >>    
+           data: take!(len - 1) >>
                (
                    DHCPOption{
                        code: code,
@@ -262,8 +262,10 @@ mod tests {
                 assert_eq!(header.yourip, &[0, 0, 0, 0]);
                 assert_eq!(header.serverip, &[0, 0, 0, 0]);
                 assert_eq!(header.giaddr, &[0, 0, 0, 0]);
-                assert_eq!(&header.clienthw[..(header.hlen as usize)],
-                           &[0x00, 0x0b, 0x82, 0x01, 0xfc, 0x42]);
+                assert_eq!(
+                    &header.clienthw[..(header.hlen as usize)],
+                    &[0x00, 0x0b, 0x82, 0x01, 0xfc, 0x42]
+                );
                 assert!(header.servername.iter().all(|&x| x == 0));
                 assert!(header.bootfilename.iter().all(|&x| x == 0));
                 assert_eq!(header.magic, &[0x63, 0x82, 0x53, 0x63]);

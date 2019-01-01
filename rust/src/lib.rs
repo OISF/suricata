@@ -47,14 +47,14 @@ pub mod kerberos;
 pub mod lua;
 
 pub mod dns;
-pub mod nfs;
 pub mod ftp;
-pub mod smb;
 pub mod krb;
+pub mod nfs;
+pub mod smb;
 
 pub mod ikev2;
 
+pub mod applayertemplate;
+pub mod dhcp;
 pub mod ntp;
 pub mod tftp;
-pub mod dhcp;
-pub mod applayertemplate;

@@ -18,41 +18,47 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::json::*;
-use crate::krb::krb5::{KRB5State,KRB5Transaction,test_weak_encryption};
+use crate::krb::krb5::{test_weak_encryption, KRB5State, KRB5Transaction};
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_log_json_response(_state: &mut KRB5State, tx: &mut KRB5Transaction) -> *mut JsonT
-{
+pub extern "C" fn rs_krb5_log_json_response(
+    _state: &mut KRB5State,
+    tx: &mut KRB5Transaction,
+) -> *mut JsonT {
     let js = Json::object();
     match tx.error_code {
         Some(c) => {
             js.set_string("msg_type", "KRB_ERROR");
             js.set_string("failed_request", &format!("{:?}", tx.msg_type));
             js.set_string("error_code", &format!("{:?}", c));
-        },
-        None    => { js.set_string("msg_type", &format!("{:?}", tx.msg_type)); },
+        }
+        None => {
+            js.set_string("msg_type", &format!("{:?}", tx.msg_type));
+        }
     }
     let cname = match tx.cname {
         Some(ref x) => format!("{}", x),
-        None        => "<empty>".to_owned(),
+        None => "<empty>".to_owned(),
     };
     let realm = match tx.realm {
         Some(ref x) => format!("{}", x.0),
-        None        => "<empty>".to_owned(),
+        None => "<empty>".to_owned(),
     };
     let sname = match tx.sname {
         Some(ref x) => format!("{}", x),
-        None        => "<empty>".to_owned(),
+        None => "<empty>".to_owned(),
     };
     let encryption = match tx.etype {
         Some(ref x) => format!("{:?}", x),
-        None        => "<none>".to_owned(),
+        None => "<none>".to_owned(),
     };
     js.set_string("cname", &cname);
     js.set_string("realm", &realm);
     js.set_string("sname", &sname);
     js.set_string("encryption", &encryption);
-    js.set_boolean("weak_encryption", tx.etype.map_or(false,test_weak_encryption));
+    js.set_boolean(
+        "weak_encryption",
+        tx.etype.map_or(false, test_weak_encryption),
+    );
     return js.unwrap();
 }
-

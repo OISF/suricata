@@ -20,26 +20,27 @@
 
 extern crate libc;
 use std;
-use std::mem::transmute;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::ffi::CStr;
+use std::mem::transmute;
 
 use nom::IResult;
 
-use crate::log::*;
 use crate::applayer;
 use crate::applayer::LoggerFlags;
 use crate::core::*;
-use crate::filetracker::*;
 use crate::filecontainer::*;
+use crate::filetracker::*;
+use crate::log::*;
 
-use crate::nfs::types::*;
-use crate::nfs::rpc_records::*;
-use crate::nfs::nfs_records::*;
 use crate::nfs::nfs2_records::*;
 use crate::nfs::nfs3_records::*;
+use crate::nfs::nfs_records::*;
+use crate::nfs::rpc_records::*;
+use crate::nfs::types::*;
 
-pub static mut SURICATA_NFS_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
+pub static mut SURICATA_NFS_FILE_CONFIG: Option<&'static SuricataFileContext> =
+    None;
 
 /*
  * Record parsing.
@@ -117,17 +118,19 @@ impl NFSTransactionFile {
     pub fn new() -> NFSTransactionFile {
         return NFSTransactionFile {
             file_additional_procs: Vec::new(),
-            chunk_count:0,
+            chunk_count: 0,
             file_last_xid: 0,
             file_tracker: FileTransferTracker::new(),
-        }
+        };
     }
 }
 
 #[derive(Debug)]
 pub struct NFSTransaction {
-    pub id: u64,    /// internal id
-    pub xid: u32,   /// nfs req/reply pair id
+    pub id: u64,
+    /// internal id
+    pub xid: u32,
+    /// nfs req/reply pair id
     pub procedure: u32,
     /// file name of the object we're dealing with. In case of RENAME
     /// this is the 'from' or original name.
@@ -173,32 +176,32 @@ pub struct NFSTransaction {
 
 impl NFSTransaction {
     pub fn new() -> NFSTransaction {
-        return NFSTransaction{
+        return NFSTransaction {
             id: 0,
             xid: 0,
             procedure: 0,
-            file_name:Vec::new(),
-            request_machine_name:Vec::new(),
-            request_uid:0,
-            request_gid:0,
-            rpc_response_status:0,
-            nfs_response_status:0,
+            file_name: Vec::new(),
+            request_machine_name: Vec::new(),
+            request_uid: 0,
+            request_gid: 0,
+            rpc_response_status: 0,
+            nfs_response_status: 0,
             auth_type: 0,
             is_first: false,
             is_last: false,
             request_done: false,
             response_done: false,
-            nfs_version:0,
+            nfs_version: 0,
             is_file_tx: false,
             file_tx_direction: 0,
-            file_handle:Vec::new(),
+            file_handle: Vec::new(),
             type_data: None,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
-        }
+        };
     }
 
     pub fn free(&mut self) {
@@ -225,23 +228,27 @@ pub struct NFSRequestXidMap {
     pub progver: u32,
     pub procedure: u32,
     pub chunk_offset: u64,
-    pub file_name:Vec<u8>,
+    pub file_name: Vec<u8>,
 
     /// READ replies can use this to get to the handle the request used
-    pub file_handle:Vec<u8>,
+    pub file_handle: Vec<u8>,
 
     pub gssapi_proc: u32,
     pub gssapi_service: u32,
 }
 
 impl NFSRequestXidMap {
-    pub fn new(progver: u32, procedure: u32, chunk_offset: u64) -> NFSRequestXidMap {
+    pub fn new(
+        progver: u32,
+        procedure: u32,
+        chunk_offset: u64,
+    ) -> NFSRequestXidMap {
         NFSRequestXidMap {
-            progver:progver,
-            procedure:procedure,
-            chunk_offset:chunk_offset,
-            file_name:Vec::new(),
-            file_handle:Vec::new(),
+            progver: progver,
+            procedure: procedure,
+            chunk_offset: chunk_offset,
+            file_name: Vec::new(),
+            file_handle: Vec::new(),
             gssapi_proc: 0,
             gssapi_service: 0,
         }
@@ -259,10 +266,10 @@ pub struct NFSFiles {
 impl NFSFiles {
     pub fn new() -> NFSFiles {
         NFSFiles {
-            files_ts:FileContainer::default(),
-            files_tc:FileContainer::default(),
-            flags_ts:0,
-            flags_tc:0,
+            files_ts: FileContainer::default(),
+            files_tc: FileContainer::default(),
+            flags_ts: 0,
+            flags_tc: 0,
         }
     }
     pub fn free(&mut self) {
@@ -270,8 +277,7 @@ impl NFSFiles {
         self.files_tc.free();
     }
 
-    pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16)
-    {
+    pub fn get(&mut self, direction: u8) -> (&mut FileContainer, u16) {
         if direction == STREAM_TOSERVER {
             (&mut self.files_ts, self.flags_ts)
         } else {
@@ -281,14 +287,33 @@ impl NFSFiles {
 }
 
 /// little wrapper around the FileTransferTracker::new_chunk method
-pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
-        flags: u16, name: &Vec<u8>, data: &[u8],
-        chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
-{
-    match unsafe {SURICATA_NFS_FILE_CONFIG} {
+pub fn filetracker_newchunk(
+    ft: &mut FileTransferTracker,
+    files: &mut FileContainer,
+    flags: u16,
+    name: &Vec<u8>,
+    data: &[u8],
+    chunk_offset: u64,
+    chunk_size: u32,
+    fill_bytes: u8,
+    is_last: bool,
+    xid: &u32,
+) {
+    match unsafe { SURICATA_NFS_FILE_CONFIG } {
         Some(sfcm) => {
-            ft.new_chunk(sfcm, files, flags, &name, data, chunk_offset,
-                    chunk_size, fill_bytes, is_last, xid); }
+            ft.new_chunk(
+                sfcm,
+                files,
+                flags,
+                &name,
+                data,
+                chunk_offset,
+                chunk_size,
+                fill_bytes,
+                is_last,
+                xid,
+            );
+        }
         None => panic!("BUG"),
     }
 }
@@ -339,25 +364,25 @@ impl NFSState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> NFSState {
         NFSState {
-            requestmap:HashMap::new(),
-            namemap:HashMap::new(),
+            requestmap: HashMap::new(),
+            namemap: HashMap::new(),
             transactions: Vec::new(),
-            tcp_buffer_ts:Vec::with_capacity(8192),
-            tcp_buffer_tc:Vec::with_capacity(8192),
-            files:NFSFiles::new(),
-            ts_chunk_xid:0,
-            tc_chunk_xid:0,
-            ts_chunk_left:0,
-            tc_chunk_left:0,
-            ts_chunk_fh:Vec::new(),
-            ts_ssn_gap:false,
-            tc_ssn_gap:false,
-            ts_gap:false,
-            tc_gap:false,
-            is_udp:false,
-            nfs_version:0,
-            events:0,
-            tx_id:0,
+            tcp_buffer_ts: Vec::with_capacity(8192),
+            tcp_buffer_tc: Vec::with_capacity(8192),
+            files: NFSFiles::new(),
+            ts_chunk_xid: 0,
+            tc_chunk_xid: 0,
+            ts_chunk_left: 0,
+            tc_chunk_left: 0,
+            ts_chunk_fh: Vec::new(),
+            ts_ssn_gap: false,
+            tc_ssn_gap: false,
+            ts_gap: false,
+            tc_gap: false,
+            is_udp: false,
+            nfs_version: 0,
+            events: 0,
+            tx_id: 0,
         }
     }
     pub fn free(&mut self) {
@@ -402,11 +427,18 @@ impl NFSState {
         return None;
     }
 
-    pub fn get_tx_by_xid(&mut self, tx_xid: u32) -> Option<&mut NFSTransaction> {
+    pub fn get_tx_by_xid(
+        &mut self,
+        tx_xid: u32,
+    ) -> Option<&mut NFSTransaction> {
         SCLogDebug!("get_tx_by_xid: tx_xid={}", tx_xid);
         for tx in &mut self.transactions {
             if !tx.is_file_tx && tx.xid == tx_xid {
-                SCLogDebug!("Found NFS TX with ID {} XID {:04X}", tx.id, tx.xid);
+                SCLogDebug!(
+                    "Found NFS TX with ID {} XID {:04X}",
+                    tx.id,
+                    tx.xid
+                );
                 return Some(tx);
             }
         }
@@ -415,9 +447,11 @@ impl NFSState {
     }
 
     // for use with the C API call StateGetTxIterator
-    pub fn get_tx_iterator(&mut self, min_tx_id: u64, state: &mut u64) ->
-        Option<(&NFSTransaction, u64, bool)>
-    {
+    pub fn get_tx_iterator(
+        &mut self,
+        min_tx_id: u64,
+        state: &mut u64,
+    ) -> Option<(&NFSTransaction, u64, bool)> {
         let mut index = *state as usize;
         let len = self.transactions.len();
 
@@ -432,8 +466,14 @@ impl NFSState {
             // as transactions might be freed between now and the
             // next time we are called.
             *state = index as u64;
-            SCLogDebug!("returning tx_id {} has_next? {} (len {} index {}), tx {:?}",
-                    tx.id - 1, (len - index) > 1, len, index, tx);
+            SCLogDebug!(
+                "returning tx_id {} has_next? {} (len {} index {}), tx {:?}",
+                tx.id - 1,
+                (len - index) > 1,
+                len,
+                index,
+                tx
+            );
             return Some((tx, tx.id - 1, (len - index) > 1));
         }
         return None;
@@ -452,8 +492,13 @@ impl NFSState {
     }
 
     // TODO maybe not enough users to justify a func
-    pub fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &Vec<u8>)
-    {
+    pub fn mark_response_tx_done(
+        &mut self,
+        xid: u32,
+        rpc_status: u32,
+        nfs_status: u32,
+        resp_handle: &Vec<u8>,
+    ) {
         match self.get_tx_by_xid(xid) {
             Some(mytx) => {
                 mytx.response_done = true;
@@ -465,22 +510,26 @@ impl NFSState {
 
                 SCLogDebug!("process_reply_record: tx ID {} XID {:04X} REQUEST {} RESPONSE {}",
                         mytx.id, mytx.xid, mytx.request_done, mytx.response_done);
-            },
+            }
             None => {
                 //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
-            },
+            }
         }
     }
 
-    pub fn process_request_record_lookup<'b>(&mut self, r: &RpcPacket<'b>, xidmap: &mut NFSRequestXidMap) {
+    pub fn process_request_record_lookup<'b>(
+        &mut self,
+        r: &RpcPacket<'b>,
+        xidmap: &mut NFSRequestXidMap,
+    ) {
         match parse_nfs3_request_lookup(r.prog_data) {
             IResult::Done(_, lookup) => {
                 SCLogDebug!("LOOKUP {:?}", lookup);
                 xidmap.file_name = lookup.name_vec;
-            },
+            }
             _ => {
                 self.set_event(NFSEvent::MalformedData);
-            },
+            }
         };
     }
 
@@ -489,64 +538,78 @@ impl NFSState {
             Some(n) => {
                 SCLogDebug!("xidmap_handle2name: name {:?}", n);
                 xidmap.file_name = n.to_vec();
-            },
+            }
             _ => {
-                SCLogDebug!("xidmap_handle2name: object {:?} not found",
-                        xidmap.file_handle);
-            },
+                SCLogDebug!(
+                    "xidmap_handle2name: object {:?} not found",
+                    xidmap.file_handle
+                );
+            }
         }
     }
 
     /// complete request record
     fn process_request_record<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
-        SCLogDebug!("REQUEST {} procedure {} ({}) blob size {}",
-                r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
+        SCLogDebug!(
+            "REQUEST {} procedure {} ({}) blob size {}",
+            r.hdr.xid,
+            r.procedure,
+            self.requestmap.len(),
+            r.prog_data.len()
+        );
 
         match r.progver {
-            4 => {
-                self.process_request_record_v4(r)
-            },
-            3 => {
-                self.process_request_record_v3(r)
-            },
-            2 => {
-                self.process_request_record_v2(r)
-            },
-            _ => { 1 },
+            4 => self.process_request_record_v4(r),
+            3 => self.process_request_record_v3(r),
+            2 => self.process_request_record_v2(r),
+            _ => 1,
         }
     }
 
-    pub fn new_file_tx(&mut self, file_handle: &Vec<u8>, file_name: &Vec<u8>, direction: u8)
-        -> (&mut NFSTransaction, &mut FileContainer, u16)
-    {
+    pub fn new_file_tx(
+        &mut self,
+        file_handle: &Vec<u8>,
+        file_name: &Vec<u8>,
+        direction: u8,
+    ) -> (&mut NFSTransaction, &mut FileContainer, u16) {
         let mut tx = self.new_tx();
         tx.file_name = file_name.to_vec();
         tx.file_handle = file_handle.to_vec();
         tx.is_file_tx = true;
         tx.file_tx_direction = direction;
 
-        tx.type_data = Some(NFSTransactionTypeData::FILE(NFSTransactionFile::new()));
+        tx.type_data =
+            Some(NFSTransactionTypeData::FILE(NFSTransactionFile::new()));
         if let Some(NFSTransactionTypeData::FILE(ref mut d)) = tx.type_data {
             d.file_tracker.tx_id = tx.id - 1;
         }
-        SCLogDebug!("new_file_tx: TX FILE created: ID {} NAME {}",
-                tx.id, String::from_utf8_lossy(file_name));
+        SCLogDebug!(
+            "new_file_tx: TX FILE created: ID {} NAME {}",
+            tx.id,
+            String::from_utf8_lossy(file_name)
+        );
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
         let (files, flags) = self.files.get(direction);
-        return (tx_ref.unwrap(), files, flags)
+        return (tx_ref.unwrap(), files, flags);
     }
 
-    pub fn get_file_tx_by_handle(&mut self, file_handle: &Vec<u8>, direction: u8)
-        -> Option<(&mut NFSTransaction, &mut FileContainer, u16)>
-    {
+    pub fn get_file_tx_by_handle(
+        &mut self,
+        file_handle: &Vec<u8>,
+        direction: u8,
+    ) -> Option<(&mut NFSTransaction, &mut FileContainer, u16)> {
         let fh = file_handle.to_vec();
         for tx in &mut self.transactions {
-            if tx.is_file_tx &&
-                direction == tx.file_tx_direction &&
-                tx.file_handle == fh
+            if tx.is_file_tx
+                && direction == tx.file_tx_direction
+                && tx.file_handle == fh
             {
-                SCLogDebug!("Found NFS file TX with ID {} XID {:04X}", tx.id, tx.xid);
+                SCLogDebug!(
+                    "Found NFS file TX with ID {} XID {:04X}",
+                    tx.id,
+                    tx.xid
+                );
                 let (files, flags) = self.files.get(direction);
                 return Some((tx, files, flags));
             }
@@ -555,7 +618,11 @@ impl NFSState {
         return None;
     }
 
-    pub fn process_write_record<'b>(&mut self, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
+    pub fn process_write_record<'b>(
+        &mut self,
+        r: &RpcPacket<'b>,
+        w: &Nfs3RequestWrite<'b>,
+    ) -> u32 {
         // for now assume that stable FILE_SYNC flags means a single chunk
         let is_last = if w.stable == 2 { true } else { false };
 
@@ -570,38 +637,62 @@ impl NFSState {
             Some(n) => {
                 SCLogDebug!("WRITE name {:?}", n);
                 n.to_vec()
-            },
+            }
             None => {
                 SCLogDebug!("WRITE object {:?} not found", w.handle.value);
                 Vec::new()
-            },
+            }
         };
 
-        let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
-            Some((tx, files, flags)) => {
-                if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    filetracker_newchunk(&mut tdf.file_tracker, files, flags,
-                            &file_name, w.file_data, w.offset,
-                            w.file_len, fill_bytes as u8, is_last, &r.hdr.xid);
-                    tdf.chunk_count += 1;
-                    if is_last {
-                        tdf.file_last_xid = r.hdr.xid;
-                        tx.is_last = true;
-                        tx.response_done = true;
+        let found =
+            match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
+                Some((tx, files, flags)) => {
+                    if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) =
+                        tx.type_data
+                    {
+                        filetracker_newchunk(
+                            &mut tdf.file_tracker,
+                            files,
+                            flags,
+                            &file_name,
+                            w.file_data,
+                            w.offset,
+                            w.file_len,
+                            fill_bytes as u8,
+                            is_last,
+                            &r.hdr.xid,
+                        );
+                        tdf.chunk_count += 1;
+                        if is_last {
+                            tdf.file_last_xid = r.hdr.xid;
+                            tx.is_last = true;
+                            tx.response_done = true;
+                        }
+                        true
+                    } else {
+                        false
                     }
-                    true
-                } else {
-                    false
                 }
-            },
-            None => { false },
-        };
+                None => false,
+            };
         if !found {
-            let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, STREAM_TOSERVER);
-            if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                filetracker_newchunk(&mut tdf.file_tracker, files, flags,
-                        &file_name, w.file_data, w.offset,
-                        w.file_len, fill_bytes as u8, is_last, &r.hdr.xid);
+            let (tx, files, flags) =
+                self.new_file_tx(&file_handle, &file_name, STREAM_TOSERVER);
+            if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) =
+                tx.type_data
+            {
+                filetracker_newchunk(
+                    &mut tdf.file_tracker,
+                    files,
+                    flags,
+                    &file_name,
+                    w.file_data,
+                    w.offset,
+                    w.file_len,
+                    fill_bytes as u8,
+                    is_last,
+                    &r.hdr.xid,
+                );
                 tx.procedure = NFSPROC3_WRITE;
                 tx.xid = r.hdr.xid;
                 tx.is_first = true;
@@ -618,13 +709,26 @@ impl NFSState {
             let file_data_len = w.file_data.len() as u32 - fill_bytes as u32;
             self.ts_chunk_left = w.file_len as u32 - file_data_len as u32;
             self.ts_chunk_fh = file_handle;
-            SCLogDebug!("REQUEST chunk_xid {:04X} chunk_left {}", self.ts_chunk_xid, self.ts_chunk_left);
+            SCLogDebug!(
+                "REQUEST chunk_xid {:04X} chunk_left {}",
+                self.ts_chunk_xid,
+                self.ts_chunk_left
+            );
         }
         0
     }
 
-    fn process_partial_write_request_record<'b>(&mut self, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
-        SCLogDebug!("REQUEST {} procedure {} blob size {}", r.hdr.xid, r.procedure, r.prog_data.len());
+    fn process_partial_write_request_record<'b>(
+        &mut self,
+        r: &RpcPacket<'b>,
+        w: &Nfs3RequestWrite<'b>,
+    ) -> u32 {
+        SCLogDebug!(
+            "REQUEST {} procedure {} blob size {}",
+            r.hdr.xid,
+            r.procedure,
+            r.prog_data.len()
+        );
 
         let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         xidmap.file_handle = w.handle.value.to_vec();
@@ -636,18 +740,26 @@ impl NFSState {
     fn process_reply_record<'b>(&mut self, r: &RpcReplyPacket<'b>) -> u32 {
         let mut xidmap;
         match self.requestmap.remove(&r.hdr.xid) {
-            Some(p) => { xidmap = p; },
+            Some(p) => {
+                xidmap = p;
+            }
             _ => {
-                SCLogDebug!("REPLY: xid {:04X} NOT FOUND. GAPS? TS:{} TC:{}",
-                        r.hdr.xid, self.ts_ssn_gap, self.tc_ssn_gap);
+                SCLogDebug!(
+                    "REPLY: xid {:04X} NOT FOUND. GAPS? TS:{} TC:{}",
+                    r.hdr.xid,
+                    self.ts_ssn_gap,
+                    self.tc_ssn_gap
+                );
 
                 // TODO we might be able to try to infer from the size + data
                 // that this is a READ reply and pass the data to the file API anyway?
                 return 0;
-            },
+            }
         }
-        SCLogDebug!("process_reply_record: removed xid {:04X} from requestmap",
-            r.hdr.xid);
+        SCLogDebug!(
+            "process_reply_record: removed xid {:04X} from requestmap",
+            r.hdr.xid
+        );
 
         if self.nfs_version == 0 {
             self.nfs_version = xidmap.progver as u16;
@@ -657,40 +769,50 @@ impl NFSState {
             2 => {
                 SCLogDebug!("NFSv2 reply record");
                 return self.process_reply_record_v2(r, &xidmap);
-            },
+            }
             3 => {
                 SCLogDebug!("NFSv3 reply record");
                 return self.process_reply_record_v3(r, &mut xidmap);
-            },
+            }
             4 => {
                 SCLogDebug!("NFSv4 reply record");
                 return self.process_reply_record_v4(r, &mut xidmap);
-            },
+            }
             _ => {
                 SCLogDebug!("Invalid NFS version");
                 self.set_event(NFSEvent::NonExistingVersion);
                 return 0;
-            },
+            }
         }
     }
 
     // update in progress chunks for file transfers
     // return how much data we consumed
-    fn filetracker_update(&mut self, direction: u8, data: &[u8], gap_size: u32) -> u32 {
+    fn filetracker_update(
+        &mut self,
+        direction: u8,
+        data: &[u8],
+        gap_size: u32,
+    ) -> u32 {
         let mut chunk_left = if direction == STREAM_TOSERVER {
             self.ts_chunk_left
         } else {
             self.tc_chunk_left
         };
         if chunk_left == 0 {
-            return 0
+            return 0;
         }
         let xid = if direction == STREAM_TOSERVER {
             self.ts_chunk_xid
         } else {
             self.tc_chunk_xid
         };
-        SCLogDebug!("filetracker_update: chunk left {}, input {} chunk_xid {:04X}", chunk_left, data.len(), xid);
+        SCLogDebug!(
+            "filetracker_update: chunk left {}, input {} chunk_xid {:04X}",
+            chunk_left,
+            data.len(),
+            xid
+        );
 
         let file_handle;
         // we have the data that we expect
@@ -708,11 +830,11 @@ impl NFSState {
                 match self.requestmap.remove(&xid) {
                     None => {
                         SCLogDebug!("no file handle found for XID {:04X}", xid);
-                        return 0
-                    },
+                        return 0;
+                    }
                     Some(xidmap) => {
                         file_handle = xidmap.file_handle.to_vec();
-                    },
+                    }
                 }
             }
         } else {
@@ -725,11 +847,11 @@ impl NFSState {
                 match self.requestmap.get(&xid) {
                     None => {
                         SCLogDebug!("no file handle found for XID {:04X}", xid);
-                        return 0
-                    },
+                        return 0;
+                    }
                     Some(xidmap) => {
                         file_handle = xidmap.file_handle.to_vec();
-                    },
+                    }
                 }
             }
         }
@@ -742,19 +864,24 @@ impl NFSState {
 
         let ssn_gap = self.ts_ssn_gap | self.tc_ssn_gap;
         // get the tx and update it
-        let consumed = match self.get_file_tx_by_handle(&file_handle, direction) {
+        let consumed = match self.get_file_tx_by_handle(&file_handle, direction)
+        {
             Some((tx, files, flags)) => {
-                if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) =
+                    tx.type_data
+                {
                     if ssn_gap {
                         let queued_data = tdf.file_tracker.get_queued_size();
-                        if queued_data > 2000000 { // TODO should probably be configurable
+                        if queued_data > 2000000 {
+                            // TODO should probably be configurable
                             SCLogDebug!("QUEUED size {} while we've seen GAPs. Truncating file.", queued_data);
                             tdf.file_tracker.trunc(files, flags);
                         }
                     }
 
                     tdf.chunk_count += 1;
-                    let cs = tdf.file_tracker.update(files, flags, data, gap_size);
+                    let cs =
+                        tdf.file_tracker.update(files, flags, data, gap_size);
                     /* see if we need to close the tx */
                     if tdf.file_tracker.is_done() {
                         if direction == STREAM_TOCLIENT {
@@ -769,17 +896,20 @@ impl NFSState {
                 } else {
                     0
                 }
-            },
-            None => { 0 },
+            }
+            None => 0,
         };
         return consumed;
     }
 
     /// xidmapr is an Option as it's already removed from the map if we
     /// have a complete record. Otherwise we do a lookup ourselves.
-    pub fn process_read_record<'b>(&mut self, r: &RpcReplyPacket<'b>,
-            reply: &NfsReplyRead<'b>, xidmapr: Option<&NFSRequestXidMap>) -> u32
-    {
+    pub fn process_read_record<'b>(
+        &mut self,
+        r: &RpcReplyPacket<'b>,
+        reply: &NfsReplyRead<'b>,
+        xidmapr: Option<&NFSRequestXidMap>,
+    ) -> u32 {
         let file_name;
         let file_handle;
         let chunk_offset;
@@ -791,7 +921,7 @@ impl NFSState {
                 file_handle = xidmap.file_handle.to_vec();
                 chunk_offset = xidmap.chunk_offset;
                 nfs_version = xidmap.progver;
-            },
+            }
             None => {
                 if let Some(xidmap) = self.requestmap.get(&r.hdr.xid) {
                     file_name = xidmap.file_name.to_vec();
@@ -801,7 +931,7 @@ impl NFSState {
                 } else {
                     return 0;
                 }
-            },
+            }
         }
         SCLogDebug!("chunk_offset {}", chunk_offset);
 
@@ -816,10 +946,8 @@ impl NFSState {
 
         if nfs_version == 2 {
             let size = match parse_nfs2_attribs(reply.attr_blob) {
-                IResult::Done(_, ref attr) => {
-                    attr.asize
-                },
-                _ => { 0 },
+                IResult::Done(_, ref attr) => attr.asize,
+                _ => 0,
             };
             SCLogDebug!("NFSv2 READ reply record: File size {}. Offset {} data len {}: total {}",
                     size, chunk_offset, reply.data_len, chunk_offset + reply.data_len as u64);
@@ -827,48 +955,75 @@ impl NFSState {
             if size as u64 == chunk_offset + reply.data_len as u64 {
                 is_last = true;
             }
-
         }
 
         let is_partial = reply.data.len() < reply.count as usize;
         SCLogDebug!("partial data? {}", is_partial);
 
-        let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOCLIENT) {
-            Some((tx, files, flags)) => {
-                SCLogDebug!("updated TX {:?}", tx);
-                if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    filetracker_newchunk(&mut tdf.file_tracker, files, flags,
-                            &file_name, reply.data, chunk_offset,
-                            reply.count, fill_bytes as u8, is_last, &r.hdr.xid);
-                    tdf.chunk_count += 1;
-                    if is_last {
-                        tdf.file_last_xid = r.hdr.xid;
-                        tx.rpc_response_status = r.reply_state;
-                        tx.nfs_response_status = reply.status;
-                        tx.is_last = true;
-                        tx.request_done = true;
+        let found =
+            match self.get_file_tx_by_handle(&file_handle, STREAM_TOCLIENT) {
+                Some((tx, files, flags)) => {
+                    SCLogDebug!("updated TX {:?}", tx);
+                    if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) =
+                        tx.type_data
+                    {
+                        filetracker_newchunk(
+                            &mut tdf.file_tracker,
+                            files,
+                            flags,
+                            &file_name,
+                            reply.data,
+                            chunk_offset,
+                            reply.count,
+                            fill_bytes as u8,
+                            is_last,
+                            &r.hdr.xid,
+                        );
+                        tdf.chunk_count += 1;
+                        if is_last {
+                            tdf.file_last_xid = r.hdr.xid;
+                            tx.rpc_response_status = r.reply_state;
+                            tx.nfs_response_status = reply.status;
+                            tx.is_last = true;
+                            tx.request_done = true;
 
-                        /* if this is a partial record we will close the tx
-                         * when we've received the final data */
-                        if !is_partial {
-                            tx.response_done = true;
-                            SCLogDebug!("TX {} is DONE", tx.id);
+                            /* if this is a partial record we will close the tx
+                             * when we've received the final data */
+                            if !is_partial {
+                                tx.response_done = true;
+                                SCLogDebug!("TX {} is DONE", tx.id);
+                            }
                         }
+                        true
+                    } else {
+                        false
                     }
-                    true
-                } else {
-                    false
                 }
-            },
-            None => { false },
-        };
+                None => false,
+            };
         if !found {
-            let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, STREAM_TOCLIENT);
-            if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                filetracker_newchunk(&mut tdf.file_tracker, files, flags,
-                        &file_name, reply.data, chunk_offset,
-                        reply.count, fill_bytes as u8, is_last, &r.hdr.xid);
-                tx.procedure = if nfs_version < 4 { NFSPROC3_READ } else { NFSPROC4_READ };
+            let (tx, files, flags) =
+                self.new_file_tx(&file_handle, &file_name, STREAM_TOCLIENT);
+            if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) =
+                tx.type_data
+            {
+                filetracker_newchunk(
+                    &mut tdf.file_tracker,
+                    files,
+                    flags,
+                    &file_name,
+                    reply.data,
+                    chunk_offset,
+                    reply.count,
+                    fill_bytes as u8,
+                    is_last,
+                    &r.hdr.xid,
+                );
+                tx.procedure = if nfs_version < 4 {
+                    NFSPROC3_READ
+                } else {
+                    NFSPROC4_READ
+                };
                 tx.xid = r.hdr.xid;
                 tx.is_first = true;
                 if is_last {
@@ -890,7 +1045,8 @@ impl NFSState {
 
         if !self.is_udp {
             self.tc_chunk_xid = r.hdr.xid;
-            self.tc_chunk_left = (reply.count as u32 + fill_bytes) - reply.data.len() as u32;
+            self.tc_chunk_left =
+                (reply.count as u32 + fill_bytes) - reply.data.len() as u32;
         }
 
         SCLogDebug!("REPLY {} to procedure {} blob size {} / {}: chunk_left {} chunk_xid {:04X}",
@@ -899,9 +1055,17 @@ impl NFSState {
         0
     }
 
-    fn process_partial_read_reply_record<'b>(&mut self, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>) -> u32 {
-        SCLogDebug!("REPLY {} to procedure READ blob size {} / {}",
-                r.hdr.xid, r.prog_data.len(), reply.count);
+    fn process_partial_read_reply_record<'b>(
+        &mut self,
+        r: &RpcReplyPacket<'b>,
+        reply: &NfsReplyRead<'b>,
+    ) -> u32 {
+        SCLogDebug!(
+            "REPLY {} to procedure READ blob size {} / {}",
+            r.hdr.xid,
+            r.prog_data.len(),
+            reply.count
+        );
 
         return self.process_read_record(r, reply, None);
     }
@@ -909,8 +1073,13 @@ impl NFSState {
     fn peek_reply_record(&mut self, r: &RpcPacketHeader) -> u32 {
         let xidmap;
         match self.requestmap.get(&r.xid) {
-            Some(p) => { xidmap = p; },
-            _ => { SCLogDebug!("REPLY: xid {} NOT FOUND", r.xid); return 0; },
+            Some(p) => {
+                xidmap = p;
+            }
+            _ => {
+                SCLogDebug!("REPLY: xid {} NOT FOUND", r.xid);
+                return 0;
+            }
         }
 
         xidmap.procedure
@@ -924,13 +1093,17 @@ impl NFSState {
         let gap = vec![0; gap_size as usize];
         let consumed = self.filetracker_update(STREAM_TOSERVER, &gap, gap_size);
         if consumed > gap_size {
-            SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
+            SCLogDebug!(
+                "consumed more than GAP size: {} > {}",
+                consumed,
+                gap_size
+            );
             return 1;
         }
         self.ts_ssn_gap = true;
         self.ts_gap = true;
         SCLogDebug!("parse_tcp_data_ts_gap ({}) done", gap_size);
-        return 0
+        return 0;
     }
 
     pub fn parse_tcp_data_tc_gap<'b>(&mut self, gap_size: u32) -> u32 {
@@ -941,20 +1114,24 @@ impl NFSState {
         let gap = vec![0; gap_size as usize];
         let consumed = self.filetracker_update(STREAM_TOCLIENT, &gap, gap_size);
         if consumed > gap_size {
-            SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
+            SCLogDebug!(
+                "consumed more than GAP size: {} > {}",
+                consumed,
+                gap_size
+            );
             return 1;
         }
         self.tc_ssn_gap = true;
         self.tc_gap = true;
         SCLogDebug!("parse_tcp_data_tc_gap ({}) done", gap_size);
-        return 0
+        return 0;
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> u32 {
-        let mut v : Vec<u8>;
+    pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b [u8]) -> u32 {
+        let mut v: Vec<u8>;
         let mut status = 0;
-        SCLogDebug!("parse_tcp_data_ts ({})",i.len());
+        SCLogDebug!("parse_tcp_data_ts ({})", i.len());
         //SCLogDebug!("{:?}",i);
         // Check if TCP data is being defragmented
         let tcp_buffer = match self.tcp_buffer_ts.len() {
@@ -963,13 +1140,16 @@ impl NFSState {
                 v = self.tcp_buffer_ts.split_off(0);
                 // sanity check vector length to avoid memory exhaustion
                 if self.tcp_buffer_ts.len() + i.len() > 1000000 {
-                    SCLogDebug!("parse_tcp_data_ts: TS buffer exploded {} {}",
-                            self.tcp_buffer_ts.len(), i.len());
+                    SCLogDebug!(
+                        "parse_tcp_data_ts: TS buffer exploded {} {}",
+                        self.tcp_buffer_ts.len(),
+                        i.len()
+                    );
                     return 1;
                 };
                 v.extend_from_slice(i);
                 v.as_slice()
-            },
+            }
         };
         //SCLogDebug!("tcp_buffer ({})",tcp_buffer.len());
         let mut cur_i = tcp_buffer;
@@ -980,11 +1160,16 @@ impl NFSState {
         // and skip buffer beyond it
         let consumed = self.filetracker_update(STREAM_TOSERVER, cur_i, 0);
         if consumed > 0 {
-            if consumed > cur_i.len() as u32 { return 1; }
+            if consumed > cur_i.len() as u32 {
+                return 1;
+            }
             cur_i = &cur_i[consumed as usize..];
         }
         if self.ts_gap {
-            SCLogDebug!("TS trying to catch up after GAP (input {})", cur_i.len());
+            SCLogDebug!(
+                "TS trying to catch up after GAP (input {})",
+                cur_i.len()
+            );
 
             let mut cnt = 0;
             while cur_i.len() > 0 {
@@ -994,25 +1179,28 @@ impl NFSState {
                         SCLogDebug!("expected data found");
                         self.ts_gap = false;
                         break;
-                    },
+                    }
                     0 => {
                         SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.", cur_i.len(), cnt);
                         self.tcp_buffer_tc.extend_from_slice(cur_i);
                         return 0;
-                    },
+                    }
                     -1 => {
                         cur_i = &cur_i[1..];
                         if cur_i.len() == 0 {
                             SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", cnt);
                         }
-                    },
-                    _ => { return 1; },
+                    }
+                    _ => {
+                        return 1;
+                    }
                 }
             }
             SCLogDebug!("TS GAP handling done (input {})", cur_i.len());
         }
 
-        while cur_i.len() > 0 { // min record size
+        while cur_i.len() > 0 {
+            // min record size
             match parse_rpc_request_partial(cur_i) {
                 IResult::Done(_, ref rpc_phdr) => {
                     let rec_size = (rpc_phdr.hdr.frag_len + 4) as usize;
@@ -1024,7 +1212,10 @@ impl NFSState {
                         // as these can be large.
                         if rec_size >= 512 && cur_i.len() >= 44 {
                             // large record, likely file xfer
-                            SCLogDebug!("large record {}, likely file xfer", rec_size);
+                            SCLogDebug!(
+                                "large record {}, likely file xfer",
+                                rec_size
+                            );
 
                             // quick peek, are in WRITE mode?
                             if rpc_phdr.procedure == NFSPROC3_WRITE {
@@ -1032,30 +1223,40 @@ impl NFSState {
 
                                 // lets try to parse the RPC record. Might fail with Incomplete.
                                 match parse_rpc(cur_i) {
-                                    IResult::Done(remaining, ref rpc_record) => {
-                                        match parse_nfs3_request_write(rpc_record.prog_data) {
-                                            IResult::Done(_, ref nfs_request_write) => {
+                                    IResult::Done(
+                                        remaining,
+                                        ref rpc_record,
+                                    ) => {
+                                        match parse_nfs3_request_write(
+                                            rpc_record.prog_data,
+                                        ) {
+                                            IResult::Done(
+                                                _,
+                                                ref nfs_request_write,
+                                            ) => {
                                                 // deal with the partial nfs write data
                                                 status |= self.process_partial_write_request_record(rpc_record, nfs_request_write);
                                                 cur_i = remaining; // progress input past parsed record
-                                            },
+                                            }
                                             _ => {
-                                                self.set_event(NFSEvent::MalformedData);
-                                            },
+                                                self.set_event(
+                                                    NFSEvent::MalformedData,
+                                                );
+                                            }
                                         }
-                                    },
+                                    }
                                     IResult::Incomplete(_) => {
                                         // we just size checked for the minimal record size above,
                                         // so if options are used (creds/verifier), we can still
                                         // have Incomplete data. Fall through to the buffer code
                                         // and try again on our next iteration.
                                         SCLogDebug!("TS data incomplete");
-                                    },
+                                    }
                                     IResult::Error(_e) => {
                                         self.set_event(NFSEvent::MalformedData);
                                         SCLogDebug!("Parsing failed: {:?}", _e);
                                         return 1;
-                                    },
+                                    }
                                 }
                             }
                         }
@@ -1069,7 +1270,7 @@ impl NFSState {
                         IResult::Done(_, ref rpc_record) => {
                             cur_i = &cur_i[rec_size..];
                             status |= self.process_request_record(rpc_record);
-                        },
+                        }
                         IResult::Incomplete(_) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
 
@@ -1079,34 +1280,34 @@ impl NFSState {
                             self.set_event(NFSEvent::MalformedData);
 
                             status = 1;
-                        },
+                        }
                         IResult::Error(_e) => {
                             self.set_event(NFSEvent::MalformedData);
                             SCLogDebug!("Parsing failed: {:?}", _e);
                             return 1;
-                        },
+                        }
                     }
-                },
+                }
                 IResult::Incomplete(_) => {
                     SCLogDebug!("Fragmentation required (TCP level) 2");
                     self.tcp_buffer_ts.extend_from_slice(cur_i);
                     break;
-                },
+                }
                 IResult::Error(_e) => {
                     self.set_event(NFSEvent::MalformedData);
                     SCLogDebug!("Parsing failed: {:?}", _e);
                     return 1;
-                },
+                }
             }
-        };
+        }
         status
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> u32 {
-        let mut v : Vec<u8>;
+    pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b [u8]) -> u32 {
+        let mut v: Vec<u8>;
         let mut status = 0;
-        SCLogDebug!("parse_tcp_data_tc ({})",i.len());
+        SCLogDebug!("parse_tcp_data_tc ({})", i.len());
         //SCLogDebug!("{:?}",i);
         // Check if TCP data is being defragmented
         let tcp_buffer = match self.tcp_buffer_tc.len() {
@@ -1121,24 +1322,36 @@ impl NFSState {
 
                 v.extend_from_slice(i);
                 v.as_slice()
-            },
+            }
         };
-        SCLogDebug!("TC tcp_buffer ({}), input ({})",tcp_buffer.len(), i.len());
+        SCLogDebug!(
+            "TC tcp_buffer ({}), input ({})",
+            tcp_buffer.len(),
+            i.len()
+        );
 
         let mut cur_i = tcp_buffer;
         if cur_i.len() > 100000 {
-            SCLogDebug!("parse_tcp_data_tc: BUG buffer exploded {}", cur_i.len());
+            SCLogDebug!(
+                "parse_tcp_data_tc: BUG buffer exploded {}",
+                cur_i.len()
+            );
         }
 
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
         let consumed = self.filetracker_update(STREAM_TOCLIENT, cur_i, 0);
         if consumed > 0 {
-            if consumed > cur_i.len() as u32 { return 1; }
+            if consumed > cur_i.len() as u32 {
+                return 1;
+            }
             cur_i = &cur_i[consumed as usize..];
         }
         if self.tc_gap {
-            SCLogDebug!("TC trying to catch up after GAP (input {})", cur_i.len());
+            SCLogDebug!(
+                "TC trying to catch up after GAP (input {})",
+                cur_i.len()
+            );
 
             let mut cnt = 0;
             while cur_i.len() > 0 {
@@ -1148,19 +1361,21 @@ impl NFSState {
                         SCLogDebug!("expected data found");
                         self.tc_gap = false;
                         break;
-                    },
+                    }
                     0 => {
                         SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.", cur_i.len(), cnt);
                         self.tcp_buffer_tc.extend_from_slice(cur_i);
                         return 0;
-                    },
+                    }
                     -1 => {
                         cur_i = &cur_i[1..];
                         if cur_i.len() == 0 {
                             SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", cnt);
                         }
-                    },
-                    _ => { return 1; },
+                    }
+                    _ => {
+                        return 1;
+                    }
                 }
             }
             SCLogDebug!("TC GAP handling done (input {})", cur_i.len());
@@ -1174,38 +1389,58 @@ impl NFSState {
                     if rec_size > cur_i.len() {
                         // special case: avoid buffering file read blobs
                         // as these can be large.
-                        if rec_size >= 512 && cur_i.len() >= 128 {//36 {
+                        if rec_size >= 512 && cur_i.len() >= 128 {
+                            //36 {
                             // large record, likely file xfer
-                            SCLogDebug!("large record {}, likely file xfer", rec_size);
+                            SCLogDebug!(
+                                "large record {}, likely file xfer",
+                                rec_size
+                            );
 
                             // quick peek, are in READ mode?
-                            if self.peek_reply_record(&rpc_hdr) == NFSPROC3_READ {
+                            if self.peek_reply_record(&rpc_hdr) == NFSPROC3_READ
+                            {
                                 SCLogDebug!("CONFIRMED large READ record {}, likely file chunk xfer", rec_size);
 
                                 // we should have enough data to parse the RPC record
                                 match parse_rpc_reply(cur_i) {
-                                    IResult::Done(remaining, ref rpc_record) => {
-                                        match parse_nfs3_reply_read(rpc_record.prog_data) {
-                                            IResult::Done(_, ref nfs_reply_read) => {
+                                    IResult::Done(
+                                        remaining,
+                                        ref rpc_record,
+                                    ) => {
+                                        match parse_nfs3_reply_read(
+                                            rpc_record.prog_data,
+                                        ) {
+                                            IResult::Done(
+                                                _,
+                                                ref nfs_reply_read,
+                                            ) => {
                                                 // deal with the partial nfs read data
                                                 status |= self.process_partial_read_reply_record(rpc_record, nfs_reply_read);
                                                 cur_i = remaining; // progress input past parsed record
-                                            },
+                                            }
                                             IResult::Incomplete(_) => {
-                                                self.set_event(NFSEvent::MalformedData);
-                                            },
+                                                self.set_event(
+                                                    NFSEvent::MalformedData,
+                                                );
+                                            }
                                             IResult::Error(_e) => {
-                                                self.set_event(NFSEvent::MalformedData);
-                                                SCLogDebug!("Parsing failed: {:?}", _e);
+                                                self.set_event(
+                                                    NFSEvent::MalformedData,
+                                                );
+                                                SCLogDebug!(
+                                                    "Parsing failed: {:?}",
+                                                    _e
+                                                );
                                                 return 1;
                                             }
                                         }
-                                    },
+                                    }
                                     IResult::Incomplete(_) => {
                                         // size check was done for MINIMAL record size,
                                         // so Incomplete is normal.
                                         SCLogDebug!("TC data incomplete");
-                                    },
+                                    }
                                     IResult::Error(_e) => {
                                         self.set_event(NFSEvent::MalformedData);
                                         SCLogDebug!("Parsing failed: {:?}", _e);
@@ -1223,7 +1458,7 @@ impl NFSState {
                         IResult::Done(_, ref rpc_record) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
                             status |= self.process_reply_record(rpc_record);
-                        },
+                        }
                         IResult::Incomplete(_) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
 
@@ -1233,30 +1468,30 @@ impl NFSState {
                             self.set_event(NFSEvent::MalformedData);
 
                             status = 1;
-                        },
+                        }
                         IResult::Error(_e) => {
                             self.set_event(NFSEvent::MalformedData);
                             SCLogDebug!("Parsing failed: {:?}", _e);
                             return 1;
                         }
                     }
-                },
+                }
                 IResult::Incomplete(_) => {
                     SCLogDebug!("REPLY: insufficient data for HDR");
                     self.tcp_buffer_tc.extend_from_slice(cur_i);
                     break;
-                },
+                }
                 IResult::Error(_e) => {
                     self.set_event(NFSEvent::MalformedData);
                     SCLogDebug!("Parsing failed: {:?}", _e);
                     return 1;
-                },
+                }
             }
-        };
+        }
         status
     }
     /// Parsing function
-    pub fn parse_udp_ts<'b>(&mut self, input: &'b[u8]) -> u32 {
+    pub fn parse_udp_ts<'b>(&mut self, input: &'b [u8]) -> u32 {
         let mut status = 0;
         SCLogDebug!("parse_udp_ts ({})", input.len());
         if input.len() > 0 {
@@ -1266,24 +1501,27 @@ impl NFSState {
                     match rpc_record.progver {
                         3 => {
                             status |= self.process_request_record(rpc_record);
-                        },
+                        }
                         2 => {
-                            status |= self.process_request_record_v2(rpc_record);
-                        },
-                        _ => { status = 1; },
+                            status |=
+                                self.process_request_record_v2(rpc_record);
+                        }
+                        _ => {
+                            status = 1;
+                        }
                     }
-                },
-                IResult::Incomplete(_) => {
-                },
-                IResult::Error(_e) => { SCLogDebug!("Parsing failed: {:?}", _e);
-                },
+                }
+                IResult::Incomplete(_) => {}
+                IResult::Error(_e) => {
+                    SCLogDebug!("Parsing failed: {:?}", _e);
+                }
             }
         }
         status
     }
 
     /// Parsing function
-    pub fn parse_udp_tc<'b>(&mut self, input: &'b[u8]) -> u32 {
+    pub fn parse_udp_tc<'b>(&mut self, input: &'b [u8]) -> u32 {
         let mut status = 0;
         SCLogDebug!("parse_udp_tc ({})", input.len());
         if input.len() > 0 {
@@ -1291,17 +1529,16 @@ impl NFSState {
                 IResult::Done(_, ref rpc_record) => {
                     self.is_udp = true;
                     status |= self.process_reply_record(rpc_record);
-                },
-                IResult::Incomplete(_) => {
-                },
+                }
+                IResult::Incomplete(_) => {}
                 IResult::Error(_e) => {
                     SCLogDebug!("Parsing failed: {:?}", _e);
-                },
+                }
             }
         };
         status
     }
-    fn getfiles(&mut self, direction: u8) -> * mut FileContainer {
+    fn getfiles(&mut self, direction: u8) -> *mut FileContainer {
         //SCLogDebug!("direction: {}", direction);
         if direction == STREAM_TOCLIENT {
             &mut self.files.files_tc as *mut FileContainer
@@ -1325,7 +1562,7 @@ pub extern "C" fn rs_nfs_state_new() -> *mut libc::c_void {
     let state = NFSState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
-    return unsafe{transmute(boxed)};
+    return unsafe { transmute(boxed) };
 }
 
 /// Params:
@@ -1334,21 +1571,21 @@ pub extern "C" fn rs_nfs_state_new() -> *mut libc::c_void {
 pub extern "C" fn rs_nfs_state_free(state: *mut libc::c_void) {
     // Just unbox...
     SCLogDebug!("freeing state");
-    let mut nfs_state: Box<NFSState> = unsafe{transmute(state)};
+    let mut nfs_state: Box<NFSState> = unsafe { transmute(state) };
     nfs_state.free();
 }
 
 /// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_request(_flow: *mut Flow,
-                                       state: &mut NFSState,
-                                       _pstate: *mut libc::c_void,
-                                       input: *mut libc::uint8_t,
-                                       input_len: libc::uint32_t,
-                                       _data: *mut libc::c_void)
-                                       -> libc::int8_t
-{
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+pub extern "C" fn rs_nfs_parse_request(
+    _flow: *mut Flow,
+    state: &mut NFSState,
+    _pstate: *mut libc::c_void,
+    input: *mut libc::uint8_t,
+    input_len: libc::uint32_t,
+    _data: *mut libc::c_void,
+) -> libc::int8_t {
+    let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
     if state.parse_tcp_data_ts(buf) == 0 {
@@ -1360,10 +1597,9 @@ pub extern "C" fn rs_nfs_parse_request(_flow: *mut Flow,
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_request_tcp_gap(
-                                        state: &mut NFSState,
-                                        input_len: libc::uint32_t)
-                                        -> libc::int8_t
-{
+    state: &mut NFSState,
+    input_len: libc::uint32_t,
+) -> libc::int8_t {
     if state.parse_tcp_data_ts_gap(input_len as u32) == 0 {
         return 1;
     }
@@ -1371,16 +1607,16 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_response(_flow: *mut Flow,
-                                        state: &mut NFSState,
-                                        _pstate: *mut libc::c_void,
-                                        input: *mut libc::uint8_t,
-                                        input_len: libc::uint32_t,
-                                        _data: *mut libc::c_void)
-                                        -> libc::int8_t
-{
+pub extern "C" fn rs_nfs_parse_response(
+    _flow: *mut Flow,
+    state: &mut NFSState,
+    _pstate: *mut libc::c_void,
+    input: *mut libc::uint8_t,
+    input_len: libc::uint32_t,
+    _data: *mut libc::c_void,
+) -> libc::int8_t {
     SCLogDebug!("parsing {} bytes of response data", input_len);
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
 
     if state.parse_tcp_data_tc(buf) == 0 {
         1
@@ -1391,10 +1627,9 @@ pub extern "C" fn rs_nfs_parse_response(_flow: *mut Flow,
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_response_tcp_gap(
-                                        state: &mut NFSState,
-                                        input_len: libc::uint32_t)
-                                        -> libc::int8_t
-{
+    state: &mut NFSState,
+    input_len: libc::uint32_t,
+) -> libc::int8_t {
     if state.parse_tcp_data_tc_gap(input_len as u32) == 0 {
         return 1;
     }
@@ -1403,15 +1638,15 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
-                                       state: &mut NFSState,
-                                       _pstate: *mut libc::c_void,
-                                       input: *mut libc::uint8_t,
-                                       input_len: libc::uint32_t,
-                                       _data: *mut libc::c_void)
-                                       -> libc::int8_t
-{
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+pub extern "C" fn rs_nfs_parse_request_udp(
+    _flow: *mut Flow,
+    state: &mut NFSState,
+    _pstate: *mut libc::c_void,
+    input: *mut libc::uint8_t,
+    input_len: libc::uint32_t,
+    _data: *mut libc::c_void,
+) -> libc::int8_t {
+    let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
     if state.parse_udp_ts(buf) == 0 {
@@ -1422,16 +1657,16 @@ pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
-                                        state: &mut NFSState,
-                                        _pstate: *mut libc::c_void,
-                                        input: *mut libc::uint8_t,
-                                        input_len: libc::uint32_t,
-                                        _data: *mut libc::c_void)
-                                        -> libc::int8_t
-{
+pub extern "C" fn rs_nfs_parse_response_udp(
+    _flow: *mut Flow,
+    state: &mut NFSState,
+    _pstate: *mut libc::c_void,
+    input: *mut libc::uint8_t,
+    input_len: libc::uint32_t,
+    _data: *mut libc::c_void,
+) -> libc::int8_t {
     SCLogDebug!("parsing {} bytes of response data", input_len);
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
 
     if state.parse_udp_tc(buf) == 0 {
         1
@@ -1441,21 +1676,21 @@ pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_tx_count(state: &mut NFSState)
-                                            -> libc::uint64_t
-{
+pub extern "C" fn rs_nfs_state_get_tx_count(
+    state: &mut NFSState,
+) -> libc::uint64_t {
     SCLogDebug!("rs_nfs_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_tx(state: &mut NFSState,
-                                      tx_id: libc::uint64_t)
-                                      -> *mut NFSTransaction
-{
+pub extern "C" fn rs_nfs_state_get_tx(
+    state: &mut NFSState,
+    tx_id: libc::uint64_t,
+) -> *mut NFSTransaction {
     match state.get_tx_by_id(tx_id) {
         Some(tx) => {
-            return unsafe{transmute(tx)};
+            return unsafe { transmute(tx) };
         }
         None => {
             return std::ptr::null_mut();
@@ -1466,15 +1701,16 @@ pub extern "C" fn rs_nfs_state_get_tx(state: &mut NFSState,
 // for use with the C API call StateGetTxIterator
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_get_tx_iterator(
-                                      state: &mut NFSState,
-                                      min_tx_id: libc::uint64_t,
-                                      istate: &mut libc::uint64_t)
-                                      -> applayer::AppLayerGetTxIterTuple
-{
+    state: &mut NFSState,
+    min_tx_id: libc::uint64_t,
+    istate: &mut libc::uint64_t,
+) -> applayer::AppLayerGetTxIterTuple {
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
             let c_tx = unsafe { transmute(tx) };
-            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
+            let ires = applayer::AppLayerGetTxIterTuple::with_values(
+                c_tx, out_tx_id, has_next,
+            );
             return ires;
         }
         None => {
@@ -1484,25 +1720,25 @@ pub extern "C" fn rs_nfs_state_get_tx_iterator(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_tx_free(state: &mut NFSState,
-                                       tx_id: libc::uint64_t)
-{
+pub extern "C" fn rs_nfs_state_tx_free(
+    state: &mut NFSState,
+    tx_id: libc::uint64_t,
+) {
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_progress_completion_status(
-    _direction: libc::uint8_t)
-    -> libc::c_int
-{
+    _direction: libc::uint8_t,
+) -> libc::c_int {
     return 1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
-                                                  direction: libc::uint8_t)
-                                                  -> libc::uint8_t
-{
+pub extern "C" fn rs_nfs_tx_get_alstate_progress(
+    tx: &mut NFSTransaction,
+    direction: libc::uint8_t,
+) -> libc::uint8_t {
     if direction == STREAM_TOSERVER && tx.request_done {
         //SCLogNotice!("TOSERVER progress 1");
         return 1;
@@ -1516,39 +1752,39 @@ pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_set_logged(_state: &mut NFSState,
-                                       tx: &mut NFSTransaction,
-                                       logged: libc::uint32_t)
-{
+pub extern "C" fn rs_nfs_tx_set_logged(
+    _state: &mut NFSState,
+    tx: &mut NFSTransaction,
+    logged: libc::uint32_t,
+) {
     tx.logged.set(logged);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_get_logged(_state: &mut NFSState,
-                                       tx: &mut NFSTransaction)
-                                       -> u32
-{
+pub extern "C" fn rs_nfs_tx_get_logged(
+    _state: &mut NFSState,
+    tx: &mut NFSTransaction,
+) -> u32 {
     return tx.logged.get();
 }
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_set_tx_detect_state(
     tx: &mut NFSTransaction,
-    de_state: &mut DetectEngineState)
-{
+    de_state: &mut DetectEngineState,
+) {
     tx.de_state = Some(de_state);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_get_tx_detect_state(
-    tx: &mut NFSTransaction)
-    -> *mut DetectEngineState
-{
+    tx: &mut NFSTransaction,
+) -> *mut DetectEngineState {
     match tx.de_state {
         Some(ds) => {
             SCLogDebug!("{}: getting de_state", tx.id);
             return ds;
-        },
+        }
         None => {
             SCLogDebug!("{}: getting de_state: have none", tx.id);
             return std::ptr::null_mut();
@@ -1558,10 +1794,10 @@ pub extern "C" fn rs_nfs_state_get_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_set_detect_flags(
-                                       tx: &mut NFSTransaction,
-                                       direction: libc::uint8_t,
-                                       flags: libc::uint64_t)
-{
+    tx: &mut NFSTransaction,
+    direction: libc::uint8_t,
+    flags: libc::uint64_t,
+) {
     if (direction & STREAM_TOSERVER) != 0 {
         tx.detect_flags_ts = flags as u64;
     } else {
@@ -1571,10 +1807,9 @@ pub extern "C" fn rs_nfs_tx_set_detect_flags(
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_get_detect_flags(
-                                       tx: &mut NFSTransaction,
-                                       direction: libc::uint8_t)
-                                       -> libc::uint64_t
-{
+    tx: &mut NFSTransaction,
+    direction: libc::uint8_t,
+) -> libc::uint64_t {
     if (direction & STREAM_TOSERVER) != 0 {
         return tx.detect_flags_ts as libc::uint64_t;
     } else {
@@ -1583,10 +1818,10 @@ pub extern "C" fn rs_nfs_tx_get_detect_flags(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_events(state: &mut NFSState,
-                                          tx_id: libc::uint64_t)
-                                          -> *mut AppLayerDecoderEvents
-{
+pub extern "C" fn rs_nfs_state_get_events(
+    state: &mut NFSState,
+    tx_id: libc::uint64_t,
+) -> *mut AppLayerDecoderEvents {
     match state.get_tx_by_id(tx_id) {
         Some(tx) => {
             return tx.events;
@@ -1598,11 +1833,11 @@ pub extern "C" fn rs_nfs_state_get_events(state: &mut NFSState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const libc::c_char,
-                                              event_id: *mut libc::c_int,
-                                              event_type: *mut AppLayerEventType)
-                                              -> i8
-{
+pub extern "C" fn rs_nfs_state_get_event_info(
+    event_name: *const libc::c_char,
+    event_id: *mut libc::c_int,
+    event_type: *mut AppLayerEventType,
+) -> i8 {
     if event_name == std::ptr::null() {
         return -1;
     }
@@ -1613,10 +1848,10 @@ pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const libc::c_char,
                 "malformed_data" => NFSEvent::MalformedData as i32,
                 _ => -1, // unknown event
             }
-        },
+        }
         Err(_) => -1, // UTF-8 conversion failed
     };
-    unsafe{
+    unsafe {
         *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
         *event_id = event as libc::c_int;
     };
@@ -1627,11 +1862,11 @@ pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const libc::c_char,
 /// otherwise get procs from the 'file_additional_procs'.
 /// Keep calling until 0 is returned.
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
-                                           i: libc::uint16_t,
-                                           procedure: *mut libc::uint32_t)
-                                           -> libc::uint8_t
-{
+pub extern "C" fn rs_nfs_tx_get_procedures(
+    tx: &mut NFSTransaction,
+    i: libc::uint16_t,
+    procedure: *mut libc::uint32_t,
+) -> libc::uint8_t {
     if i == 0 {
         unsafe {
             *procedure = tx.procedure as libc::uint32_t;
@@ -1659,17 +1894,17 @@ pub extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_get_version(tx: &mut NFSTransaction,
-                                        version: *mut libc::uint32_t)
-{
+pub extern "C" fn rs_nfs_tx_get_version(
+    tx: &mut NFSTransaction,
+    version: *mut libc::uint32_t,
+) {
     unsafe {
         *version = tx.nfs_version as libc::uint32_t;
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_init(context: &'static mut SuricataFileContext)
-{
+pub extern "C" fn rs_nfs_init(context: &'static mut SuricataFileContext) {
     unsafe {
         SURICATA_NFS_FILE_CONFIG = Some(context);
     }
@@ -1679,55 +1914,75 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
     if direction == STREAM_TOCLIENT {
         match parse_rpc_reply(i) {
             IResult::Done(_, ref rpc) => {
-                if rpc.hdr.frag_len >= 24 && rpc.hdr.frag_len <= 35000 && rpc.hdr.msgtype == 1 && rpc.reply_state == 0 && rpc.accept_state == 0 {
-                    SCLogDebug!("TC PROBE LEN {} XID {} TYPE {}", rpc.hdr.frag_len, rpc.hdr.xid, rpc.hdr.msgtype);
+                if rpc.hdr.frag_len >= 24
+                    && rpc.hdr.frag_len <= 35000
+                    && rpc.hdr.msgtype == 1
+                    && rpc.reply_state == 0
+                    && rpc.accept_state == 0
+                {
+                    SCLogDebug!(
+                        "TC PROBE LEN {} XID {} TYPE {}",
+                        rpc.hdr.frag_len,
+                        rpc.hdr.xid,
+                        rpc.hdr.msgtype
+                    );
                     return 1;
                 } else {
                     return -1;
                 }
-            },
+            }
             IResult::Incomplete(_) => {
-                match parse_rpc_packet_header (i) {
+                match parse_rpc_packet_header(i) {
                     IResult::Done(_, ref rpc_hdr) => {
-                        if rpc_hdr.frag_len >= 24 && rpc_hdr.frag_len <= 35000 && rpc_hdr.xid != 0 && rpc_hdr.msgtype == 1 {
-                            SCLogDebug!("TC PROBE LEN {} XID {} TYPE {}", rpc_hdr.frag_len, rpc_hdr.xid, rpc_hdr.msgtype);
+                        if rpc_hdr.frag_len >= 24
+                            && rpc_hdr.frag_len <= 35000
+                            && rpc_hdr.xid != 0
+                            && rpc_hdr.msgtype == 1
+                        {
+                            SCLogDebug!(
+                                "TC PROBE LEN {} XID {} TYPE {}",
+                                rpc_hdr.frag_len,
+                                rpc_hdr.xid,
+                                rpc_hdr.msgtype
+                            );
                             return 1;
                         } else {
                             return -1;
                         }
-                    },
-                    IResult::Incomplete(_) => { },
+                    }
+                    IResult::Incomplete(_) => {}
                     IResult::Error(_) => {
                         return -1;
-                    },
+                    }
                 }
 
-
                 return 0;
-            },
+            }
             IResult::Error(_) => {
                 return -1;
-            },
+            }
         }
     } else {
         match parse_rpc(i) {
             IResult::Done(_, ref rpc) => {
-                if rpc.hdr.frag_len >= 40 && rpc.hdr.msgtype == 0 &&
-                   rpc.rpcver == 2 && (rpc.progver == 3 || rpc.progver == 4) &&
-                   rpc.program == 100003 &&
-                   rpc.procedure <= NFSPROC3_COMMIT
+                if rpc.hdr.frag_len >= 40
+                    && rpc.hdr.msgtype == 0
+                    && rpc.rpcver == 2
+                    && (rpc.progver == 3 || rpc.progver == 4)
+                    && rpc.program == 100003
+                    && rpc.procedure <= NFSPROC3_COMMIT
                 {
                     return 1;
                 } else {
                     return -1;
                 }
-            },
+            }
             IResult::Incomplete(_) => {
                 return 0;
-            },
+            }
             IResult::Error(_) => {
                 return -1;
-            },
+            }
         }
     }
 }
@@ -1736,95 +1991,123 @@ pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
     if direction == STREAM_TOCLIENT {
         match parse_rpc_udp_reply(i) {
             IResult::Done(_, ref rpc) => {
-                if i.len() >= 32 && rpc.hdr.msgtype == 1 && rpc.reply_state == 0 && rpc.accept_state == 0 {
-                    SCLogDebug!("TC PROBE LEN {} XID {} TYPE {}", rpc.hdr.frag_len, rpc.hdr.xid, rpc.hdr.msgtype);
+                if i.len() >= 32
+                    && rpc.hdr.msgtype == 1
+                    && rpc.reply_state == 0
+                    && rpc.accept_state == 0
+                {
+                    SCLogDebug!(
+                        "TC PROBE LEN {} XID {} TYPE {}",
+                        rpc.hdr.frag_len,
+                        rpc.hdr.xid,
+                        rpc.hdr.msgtype
+                    );
                     return 1;
                 } else {
                     return -1;
                 }
-            },
+            }
             IResult::Incomplete(_) => {
                 return -1;
-            },
+            }
             IResult::Error(_) => {
                 return -1;
-            },
+            }
         }
     } else {
         match parse_rpc_udp_request(i) {
             IResult::Done(_, ref rpc) => {
-                if i.len() >= 48 && rpc.hdr.msgtype == 0 && rpc.progver == 3 && rpc.program == 100003 {
+                if i.len() >= 48
+                    && rpc.hdr.msgtype == 0
+                    && rpc.progver == 3
+                    && rpc.program == 100003
+                {
                     return 1;
-                } else if i.len() >= 48 && rpc.hdr.msgtype == 0 && rpc.progver == 2 && rpc.program == 100003 {
+                } else if i.len() >= 48
+                    && rpc.hdr.msgtype == 0
+                    && rpc.progver == 2
+                    && rpc.program == 100003
+                {
                     SCLogDebug!("NFSv2!");
                     return 1;
                 } else {
                     return -1;
                 }
-            },
+            }
             IResult::Incomplete(_) => {
                 return -1;
-            },
+            }
             IResult::Error(_) => {
                 return -1;
-            },
+            }
         }
     }
 }
 
 /// TOSERVER probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_ts(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
-{
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+pub extern "C" fn rs_nfs_probe_ts(
+    input: *const libc::uint8_t,
+    len: libc::uint32_t,
+) -> libc::int8_t {
+    let slice: &[u8] =
+        unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
     return nfs_probe(slice, STREAM_TOSERVER);
 }
 
 /// TOCLIENT probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_tc(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
-{
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+pub extern "C" fn rs_nfs_probe_tc(
+    input: *const libc::uint8_t,
+    len: libc::uint32_t,
+) -> libc::int8_t {
+    let slice: &[u8] =
+        unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
     return nfs_probe(slice, STREAM_TOCLIENT);
 }
 
 /// TOSERVER probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_udp_ts(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
-{
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+pub extern "C" fn rs_nfs_probe_udp_ts(
+    input: *const libc::uint8_t,
+    len: libc::uint32_t,
+) -> libc::int8_t {
+    let slice: &[u8] =
+        unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
     return nfs_probe_udp(slice, STREAM_TOSERVER);
 }
 
 /// TOCLIENT probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_udp_tc(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
-{
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+pub extern "C" fn rs_nfs_probe_udp_tc(
+    input: *const libc::uint8_t,
+    len: libc::uint32_t,
+) -> libc::int8_t {
+    let slice: &[u8] =
+        unsafe { std::slice::from_raw_parts(input as *mut u8, len as usize) };
     return nfs_probe_udp(slice, STREAM_TOCLIENT);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_getfiles(direction: u8, ptr: *mut NFSState) -> * mut FileContainer {
-    if ptr.is_null() { panic!("NULL ptr"); };
+pub extern "C" fn rs_nfs_getfiles(
+    direction: u8,
+    ptr: *mut NFSState,
+) -> *mut FileContainer {
+    if ptr.is_null() {
+        panic!("NULL ptr");
+    };
     let parser = unsafe { &mut *ptr };
     parser.getfiles(direction)
 }
 #[no_mangle]
-pub extern "C" fn rs_nfs_setfileflags(direction: u8, ptr: *mut NFSState, flags: u16) {
-    if ptr.is_null() { panic!("NULL ptr"); };
+pub extern "C" fn rs_nfs_setfileflags(
+    direction: u8,
+    ptr: *mut NFSState,
+    flags: u16,
+) {
+    if ptr.is_null() {
+        panic!("NULL ptr");
+    };
     let parser = unsafe { &mut *ptr };
     SCLogDebug!("direction {} flags {}", direction, flags);
     parser.setfileflags(direction, flags)

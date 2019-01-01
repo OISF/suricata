@@ -41,17 +41,19 @@ impl IKEV2ConnectionState {
     pub fn advance(&self, payload: &IkeV2Payload) -> IKEV2ConnectionState {
         use self::IKEV2ConnectionState::*;
         match (self, &payload.content) {
-            (&Init, &IkeV2PayloadContent::SA(_))                          => InitSASent,
-            (&InitSASent, &IkeV2PayloadContent::KE(_))                    => InitKESent,
-            (&InitKESent, &IkeV2PayloadContent::Nonce(_))                 => InitNonceSent,
-            (&InitNonceSent, &IkeV2PayloadContent::SA(_))                 => RespSASent,
-            (&RespSASent, &IkeV2PayloadContent::KE(_))                    => RespKESent,
-            (&RespKESent, &IkeV2PayloadContent::Nonce(_))                 => ParsingDone, // RespNonceSent,
-            (&RespNonceSent, &IkeV2PayloadContent::CertificateRequest(_)) => ParsingDone, // RespCertReqSent,
-            (&ParsingDone,_)                                              => self.clone(),
-            (_, &IkeV2PayloadContent::Notify(_))                          => self.clone(),
-            (_, &IkeV2PayloadContent::Dummy)                              => self.clone(),
-            (_,_) => Invalid,
+            (&Init, &IkeV2PayloadContent::SA(_)) => InitSASent,
+            (&InitSASent, &IkeV2PayloadContent::KE(_)) => InitKESent,
+            (&InitKESent, &IkeV2PayloadContent::Nonce(_)) => InitNonceSent,
+            (&InitNonceSent, &IkeV2PayloadContent::SA(_)) => RespSASent,
+            (&RespSASent, &IkeV2PayloadContent::KE(_)) => RespKESent,
+            (&RespKESent, &IkeV2PayloadContent::Nonce(_)) => ParsingDone, // RespNonceSent,
+            (&RespNonceSent, &IkeV2PayloadContent::CertificateRequest(_)) => {
+                ParsingDone
+            } // RespCertReqSent,
+            (&ParsingDone, _) => self.clone(),
+            (_, &IkeV2PayloadContent::Notify(_)) => self.clone(),
+            (_, &IkeV2PayloadContent::Dummy) => self.clone(),
+            (_, _) => Invalid,
         }
     }
 }

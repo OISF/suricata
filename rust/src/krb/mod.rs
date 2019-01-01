@@ -17,6 +17,6 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-pub mod krb5;
 pub mod detect;
+pub mod krb5;
 pub mod log;

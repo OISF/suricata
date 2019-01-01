@@ -41,9 +41,7 @@ pub enum Level {
 pub static mut LEVEL: i32 = Level::NotSet as i32;
 
 pub fn get_log_level() -> i32 {
-    unsafe {
-        LEVEL
-    }
+    unsafe { LEVEL }
 }
 
 fn basename(filename: &str) -> &str {
@@ -56,23 +54,25 @@ fn basename(filename: &str) -> &str {
     return filename;
 }
 
-pub fn sclog(level: Level, file: &str, line: u32, function: &str,
-         code: i32, message: &str)
-{
+pub fn sclog(
+    level: Level,
+    file: &str,
+    line: u32,
+    function: &str,
+    code: i32,
+    message: &str,
+) {
     let filename = basename(file);
-    sc_log_message(level,
-                   filename,
-                   line,
-                   function,
-                   code,
-                   message);
+    sc_log_message(level, filename, line, function, code, message);
 }
 
 /// Return the function name, but for now just return <rust> as Rust
 /// has no macro to return the function name, but may in the future,
 /// see: https://github.com/rust-lang/rfcs/pull/1719
-macro_rules!function {
-    () => {{ "<rust>" }}
+macro_rules! function {
+    () => {{
+        "<rust>"
+    }};
 }
 
 #[macro_export]
@@ -146,13 +146,14 @@ pub fn log_set_level(level: Level) {
 /// SCLogMessage wrapper. If the Suricata C context is not registered
 /// a more basic log format will be used (for example, when running
 /// Rust unit tests).
-pub fn sc_log_message(level: Level,
-                      filename: &str,
-                      line: libc::c_uint,
-                      function: &str,
-                      code: libc::c_int,
-                      message: &str) -> libc::c_int
-{
+pub fn sc_log_message(
+    level: Level,
+    filename: &str,
+    line: libc::c_uint,
+    function: &str,
+    code: libc::c_int,
+    message: &str,
+) -> libc::c_int {
     unsafe {
         if let Some(c) = SC {
             return (c.SCLogMessage)(
@@ -161,7 +162,8 @@ pub fn sc_log_message(level: Level,
                 line,
                 to_safe_cstring(function).as_ptr(),
                 code,
-                to_safe_cstring(message).as_ptr());
+                to_safe_cstring(message).as_ptr(),
+            );
         }
     }
 
@@ -186,8 +188,6 @@ fn to_safe_cstring(val: &str) -> CString {
     }
     match CString::new(safe) {
         Ok(cstr) => cstr,
-        _ => {
-            CString::new("<failed to encode string>").unwrap()
-        }
+        _ => CString::new("<failed to encode string>").unwrap(),
     }
 }
