@@ -19,7 +19,7 @@
 
 use libc;
 
-use krb::krb5::KRB5Transaction;
+use crate::krb::krb5::KRB5Transaction;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_tx_get_msgtype(tx:  &mut KRB5Transaction,

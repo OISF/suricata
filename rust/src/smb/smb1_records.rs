@@ -15,10 +15,10 @@
  * 02110-1301, USA.
  */
 
-use log::*;
+use crate::log::*;
 use nom::{rest, le_u8, le_u16, le_u32, le_u64, IResult};
-use smb::smb::*;
-use smb::smb_records::*;
+use crate::smb::smb::*;
+use crate::smb::smb_records::*;
 
 fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8], Vec<u8>>
 {

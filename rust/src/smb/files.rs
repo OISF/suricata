@@ -15,12 +15,12 @@
  * 02110-1301, USA.
  */
 
-use core::*;
-use log::*;
-use filetracker::*;
-use filecontainer::*;
+use crate::core::*;
+use crate::log::*;
+use crate::filetracker::*;
+use crate::filecontainer::*;
 
-use smb::smb::*;
+use crate::smb::smb::*;
 
 /// File tracking transaction. Single direction only.
 #[derive(Debug)]

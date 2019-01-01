@@ -24,12 +24,12 @@ use nom::{IResult,be_u32};
 use der_parser::der_read_element_header;
 use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
-use applayer;
-use core;
-use core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
-use parser::*;
+use crate::applayer;
+use crate::core;
+use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
+use crate::parser::*;
 
-use log::*;
+use crate::log::*;
 
 #[repr(u32)]
 pub enum KRB5Event {

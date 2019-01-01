@@ -22,7 +22,7 @@ use std::ffi::{CString, CStr};
 use std::ptr;
 use std::str;
 
-use log::*;
+use crate::log::*;
 
 extern {
     fn ConfGet(key: *const c_char, res: *mut *const c_char) -> i8;

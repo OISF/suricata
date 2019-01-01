@@ -21,8 +21,8 @@ use std;
 use std::string::String;
 use std::collections::HashMap;
 
-use json::*;
-use dns::dns::*;
+use crate::json::*;
+use crate::dns::dns::*;
 
 pub const LOG_QUERIES    : u64 = BIT_U64!(0);
 pub const LOG_ANSWER     : u64 = BIT_U64!(1);

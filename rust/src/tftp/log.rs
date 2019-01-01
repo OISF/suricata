@@ -19,8 +19,8 @@
 
 extern crate libc;
 
-use json::*;
-use tftp::tftp::*;
+use crate::json::*;
+use crate::tftp::tftp::*;
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_log_json_request(tx: &mut TFTPTransaction) -> *mut JsonT

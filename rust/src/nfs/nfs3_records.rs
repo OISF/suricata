@@ -18,7 +18,7 @@
 //! Nom parsers for RPC & NFSv3
 
 use nom::{be_u32, be_u64, rest};
-use nfs::nfs_records::*;
+use crate::nfs::nfs_records::*;
 
 #[derive(Debug,PartialEq)]
 pub struct Nfs3Handle<'a> {

@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
-use kerberos::*;
+use crate::kerberos::*;
 
-use log::*;
-use smb::ntlmssp_records::*;
-use smb::smb::*;
+use crate::log::*;
+use crate::smb::ntlmssp_records::*;
+use crate::smb::smb::*;
 
 use nom::{IResult, ErrorKind};
 use der_parser;

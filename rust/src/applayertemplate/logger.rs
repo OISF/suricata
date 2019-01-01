@@ -17,7 +17,7 @@
 
 use libc;
 use std;
-use json::*;
+use crate::json::*;
 use super::template::TemplateTransaction;
 
 fn log_template(tx: &TemplateTransaction) -> Option<Json> {

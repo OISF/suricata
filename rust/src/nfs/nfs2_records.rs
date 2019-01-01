@@ -17,7 +17,7 @@
 
 //! Nom parsers for NFSv2 records
 use nom::{be_u32, rest};
-use nfs::nfs_records::*;
+use crate::nfs::nfs_records::*;
 
 #[derive(Debug,PartialEq)]
 pub struct Nfs2Handle<'a> {

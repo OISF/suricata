@@ -19,12 +19,12 @@
 extern crate libc;
 
 use nom::IResult;
-use log::*;
+use crate::log::*;
 
-use smb::smb::*;
-use smb::smb2::*;
-use smb::dcerpc_records::*;
-use smb::events::*;
+use crate::smb::smb::*;
+use crate::smb::smb2::*;
+use crate::smb::dcerpc_records::*;
+use crate::smb::events::*;
 
 pub const DCERPC_TYPE_REQUEST:              u8 = 0;
 pub const DCERPC_TYPE_PING:                 u8 = 1;

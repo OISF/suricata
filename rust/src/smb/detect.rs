@@ -19,9 +19,9 @@ extern crate libc;
 
 use std;
 use std::ptr;
-use core::*;
-use log::*;
-use smb::smb::*;
+use crate::core::*;
+use crate::log::*;
+use crate::smb::smb::*;
 
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
