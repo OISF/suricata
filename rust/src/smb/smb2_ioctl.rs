@@ -22,7 +22,6 @@ use crate::smb::funcs::*;
 use crate::smb::smb::*;
 use crate::smb::smb2::*;
 use crate::smb::smb2_records::*;
-use nom::IResult;
 
 #[derive(Debug)]
 pub struct SMBTransactionIoctl {
@@ -65,7 +64,7 @@ impl SMBState {
 pub fn smb2_ioctl_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_request_ioctl(r.data) {
-        IResult::Done(_, rd) => {
+        Ok( (_, rd) ) => {
             SCLogDebug!("IOCTL request data: {:?}", rd);
             let is_dcerpc = rd.is_pipe
                 && match state.get_service_for_guid(&rd.guid) {
@@ -99,7 +98,7 @@ pub fn smb2_ioctl_response_record<'b>(
 ) {
     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_response_ioctl(r.data) {
-        IResult::Done(_, rd) => {
+        Ok( (_, rd) ) => {
             SCLogDebug!("IOCTL response data: {:?}", rd);
 
             let is_dcerpc = rd.is_pipe

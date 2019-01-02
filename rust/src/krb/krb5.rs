@@ -30,7 +30,7 @@ use kerberos_parser::krb5::{
 };
 use kerberos_parser::krb5_parser;
 use libc;
-use nom::{be_u32, IResult};
+use nom::be_u32;
 use std;
 use std::ffi::{CStr, CString};
 
@@ -112,7 +112,7 @@ impl KRB5State {
     /// Returns The number of messages parsed, or -1 on error
     fn parse(&mut self, i: &[u8], _direction: u8) -> i32 {
         match der_read_element_header(i) {
-            IResult::Done(_rem, hdr) => {
+            Ok( (_rem, hdr) ) => {
                 // Kerberos messages start with an APPLICATION header
                 if hdr.class != 0b01 {
                     return 1;
@@ -122,8 +122,7 @@ impl KRB5State {
                         self.req_id = hdr.tag;
                     }
                     11 => {
-                        let res = krb5_parser::parse_as_rep(i);
-                        res.map(|kdc_rep| {
+                        if let Ok( (_, kdc_rep) ) = krb5_parser::parse_as_rep(i) {
                             let mut tx = self.new_tx();
                             tx.msg_type = MessageType::KRB_AS_REP;
                             tx.cname = Some(kdc_rep.cname);
@@ -134,15 +133,14 @@ impl KRB5State {
                             if test_weak_encryption(kdc_rep.enc_part.etype) {
                                 self.set_event(KRB5Event::WeakEncryption);
                             }
-                        });
+                        };
                         self.req_id = 0;
                     }
                     12 => {
                         self.req_id = hdr.tag;
                     }
                     13 => {
-                        let res = krb5_parser::parse_tgs_rep(i);
-                        res.map(|kdc_rep| {
+                        if let Ok( (_, kdc_rep) ) = krb5_parser::parse_tgs_rep(i) {
                             let mut tx = self.new_tx();
                             tx.msg_type = MessageType::KRB_TGS_REP;
                             tx.cname = Some(kdc_rep.cname);
@@ -153,7 +151,7 @@ impl KRB5State {
                             if test_weak_encryption(kdc_rep.enc_part.etype) {
                                 self.set_event(KRB5Event::WeakEncryption);
                             }
-                        });
+                        };
                         self.req_id = 0;
                     }
                     14 => {
@@ -163,8 +161,7 @@ impl KRB5State {
                         self.req_id = 0;
                     }
                     30 => {
-                        let res = krb5_parser::parse_krb_error(i);
-                        res.map(|error| {
+                        if let Ok( (_, error) ) = krb5_parser::parse_krb_error(i) {
                             let mut tx = self.new_tx();
                             tx.msg_type = MessageType(self.req_id as u32);
                             tx.cname = error.cname;
@@ -172,7 +169,7 @@ impl KRB5State {
                             tx.sname = Some(error.sname);
                             tx.error_code = Some(error.error_code);
                             self.transactions.push(tx);
-                        });
+                        };
                         self.req_id = 0;
                     }
                     _ => {
@@ -181,12 +178,12 @@ impl KRB5State {
                 }
                 0
             }
-            IResult::Incomplete(_) => {
+            Err(nom::Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing KRB5 data");
                 self.set_event(KRB5Event::MalformedData);
                 -1
             }
-            IResult::Error(_) => {
+            Err(_e) => {
                 SCLogDebug!("Error while parsing KRB5 data");
                 self.set_event(KRB5Event::MalformedData);
                 -1
@@ -423,7 +420,7 @@ pub extern "C" fn rs_krb5_probing_parser(
         return unsafe { ALPROTO_FAILED };
     }
     match der_read_element_header(slice) {
-        IResult::Done(rem, ref hdr) => {
+        Ok( (rem, ref hdr) ) => {
             // Kerberos messages start with an APPLICATION header
             if hdr.class != 0b01 {
                 return unsafe { ALPROTO_FAILED };
@@ -437,7 +434,7 @@ pub extern "C" fn rs_krb5_probing_parser(
                 return unsafe { ALPROTO_FAILED };
             }
             // Check kerberos version
-            if let IResult::Done(rem, _hdr) = der_read_element_header(rem) {
+            if let Ok( (rem, _hdr) ) = der_read_element_header(rem) {
                 if rem.len() > 5 {
                     match (rem[2], rem[3], rem[4]) {
                         // Encoding of DER integer 5 (version)
@@ -450,10 +447,10 @@ pub extern "C" fn rs_krb5_probing_parser(
             }
             return unsafe { ALPROTO_FAILED };
         }
-        IResult::Incomplete(_) => {
+        Err(nom::Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;
         }
-        IResult::Error(_) => {
+        Err(_) => {
             return unsafe { ALPROTO_FAILED };
         }
     }
@@ -470,7 +467,7 @@ pub extern "C" fn rs_krb5_probing_parser_tcp(
         return unsafe { ALPROTO_FAILED };
     }
     match be_u32(slice) {
-        IResult::Done(rem, record_mark) => {
+        Ok( (rem, record_mark) ) => {
             // protocol implementations forbid very large requests
             if record_mark > 16384 {
                 return unsafe { ALPROTO_FAILED };
@@ -481,10 +478,10 @@ pub extern "C" fn rs_krb5_probing_parser_tcp(
                 rem.len() as u32,
             );
         }
-        IResult::Incomplete(_) => {
+        Err(nom::Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;
         }
-        IResult::Error(_) => {
+        Err(_) => {
             return unsafe { ALPROTO_FAILED };
         }
     }
@@ -559,7 +556,7 @@ pub extern "C" fn rs_krb5_parse_request_tcp(
     while cur_i.len() > 0 {
         if state.record_ts == 0 {
             match be_u32(cur_i) {
-                IResult::Done(rem, record) => {
+                Ok( (rem, record) ) => {
                     state.record_ts = record as usize;
                     cur_i = rem;
                 }
@@ -624,7 +621,7 @@ pub extern "C" fn rs_krb5_parse_response_tcp(
     while cur_i.len() > 0 {
         if state.record_tc == 0 {
             match be_u32(cur_i) {
-                IResult::Done(rem, record) => {
+                Ok( (rem, record) ) => {
                     state.record_tc = record as usize;
                     cur_i = rem;
                 }

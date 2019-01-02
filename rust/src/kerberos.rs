@@ -33,21 +33,13 @@ pub struct Kerberos5Ticket {
 }
 
 fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq> {
-    let blob = match der_parser::parse_der(blob) {
-        IResult::Done(_, b) => match b.content.as_slice() {
-            Ok(b) => b,
-            _ => {
-                return IResult::Error(error_code!(ErrorKind::Custom(
-                    SECBLOB_KRB_FMT_ERR
-                )));
-            }
-        },
-        IResult::Incomplete(needed) => {
-            return IResult::Incomplete(needed);
-        }
-        IResult::Error(err) => {
-            return IResult::Error(err);
-        }
+    let (_, parse_blob) = der_parser::parse_der(blob)?;
+    let blob = if let Ok(b) = parse_blob.content.as_slice() {
+        b
+    } else {
+        return Err(nom::Err::Failure(error_position!(blob, ErrorKind::Custom(
+            SECBLOB_KRB_FMT_ERR
+        ))));
     };
     do_parse!(
         blob,
@@ -66,19 +58,10 @@ fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq> {
 }
 
 pub fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket> {
-    match parse_kerberos5_request_do(blob) {
-        IResult::Done(rem, req) => {
-            let t = Kerberos5Ticket {
-                realm: req.ticket.realm,
-                sname: req.ticket.sname,
-            };
-            return IResult::Done(rem, t);
-        }
-        IResult::Incomplete(needed) => {
-            return IResult::Incomplete(needed);
-        }
-        IResult::Error(err) => {
-            return IResult::Error(err);
-        }
-    }
+    let (rem, req) = parse_kerberos5_request_do(blob)?;
+    let t = Kerberos5Ticket {
+        realm: req.ticket.realm,
+        sname: req.ticket.sname,
+    };
+    return Ok( (rem, t) );
 }

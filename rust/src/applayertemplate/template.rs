@@ -143,7 +143,7 @@ impl TemplateState {
 
         while current.len() > 0 {
             match parser::parse_message(current) {
-                nom::IResult::Done(rem, request) => {
+                Ok( (rem, request) ) => {
                     current = rem;
 
                     SCLogNotice!("Request: {}", request);
@@ -151,11 +151,11 @@ impl TemplateState {
                     tx.request = Some(request);
                     self.transactions.push(tx);
                 }
-                nom::IResult::Incomplete(_) => {
+                Err(nom::Err::Incomplete(_)) => {
                     self.request_buffer.extend_from_slice(current);
                     break;
                 }
-                nom::IResult::Error(_) => {
+                Err(_) => {
                     return false;
                 }
             }
@@ -181,7 +181,7 @@ impl TemplateState {
 
         while current.len() > 0 {
             match parser::parse_message(current) {
-                nom::IResult::Done(rem, response) => {
+                Ok( (rem, response) ) => {
                     current = rem;
 
                     match self.find_request() {
@@ -194,11 +194,11 @@ impl TemplateState {
                         None => {}
                     }
                 }
-                nom::IResult::Incomplete(_) => {
+                Err(nom::Err::Incomplete(_)) => {
                     self.response_buffer.extend_from_slice(current);
                     break;
                 }
-                nom::IResult::Error(_) => {
+                Err(_) => {
                     return false;
                 }
             }

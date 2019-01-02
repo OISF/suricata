@@ -17,7 +17,6 @@
 
 use crate::core::*;
 use crate::log::*;
-use nom::IResult;
 
 use crate::smb::dcerpc::*;
 use crate::smb::events::*;
@@ -123,7 +122,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
     smb2_read_response_record_generic(state, r);
 
     match parse_smb2_response_read(r.data) {
-        IResult::Done(_, rd) => {
+        Ok( (_, rd) ) => {
             if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
                 SCLogDebug!(
                     "SMBv2/READ: incomplete record, expecting a follow up"
@@ -307,7 +306,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
         tx.request_done = true;
     }
     match parse_smb2_request_write(r.data) {
-        IResult::Done(_, wr) => {
+        Ok( (_, wr) ) => {
             /* update key-guid map */
             let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GUID);
             state.ssn2vec_map.insert(guid_key, wr.guid.to_vec());
@@ -457,7 +456,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
         SMB2_COMMAND_SET_INFO => {
             SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", r);
             let have_si_tx = match parse_smb2_request_setinfo(r.data) {
-                IResult::Done(_, rd) => {
+                Ok( (_, rd) ) => {
                     SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", rd);
 
                     if let Some(ref ren) = rd.rename {
@@ -482,12 +481,12 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
                         false
                     }
                 }
-                IResult::Incomplete(_n) => {
+                Err(nom::Err::Incomplete(_n)) => {
                     SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", _n);
                     events.push(SMBEvent::MalformedData);
                     false
                 }
-                IResult::Error(_e) => {
+                Err(_e) => {
                     SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", _e);
                     events.push(SMBEvent::MalformedData);
                     false
@@ -506,7 +505,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
         }
         SMB2_COMMAND_NEGOTIATE_PROTOCOL => {
             match parse_smb2_request_negotiate_protocol(r.data) {
-                IResult::Done(_, rd) => {
+                Ok( (_, rd) ) => {
                     let mut dialects: Vec<Vec<u8>> = Vec::new();
                     for d in rd.dialects_vec {
                         SCLogDebug!(
@@ -550,7 +549,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
         }
         SMB2_COMMAND_TREE_CONNECT => {
             match parse_smb2_request_tree_connect(r.data) {
-                IResult::Done(_, tr) => {
+                Ok( (_, tr) ) => {
                     let name_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_TREE);
                     let mut name_val = tr.share_name.to_vec();
                     name_val.retain(|&i| i != 0x00);
@@ -571,7 +570,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
         }
         SMB2_COMMAND_READ => {
             match parse_smb2_request_read(r.data) {
-                IResult::Done(_, rd) => {
+                Ok( (_, rd) ) => {
                     SCLogDebug!("SMBv2 READ: GUID {:?} requesting {} bytes at offset {}",
                             rd.guid, rd.rd_len, rd.rd_offset);
 
@@ -588,7 +587,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
             false
         }
         SMB2_COMMAND_CREATE => match parse_smb2_request_create(r.data) {
-            IResult::Done(_, cr) => {
+            Ok( (_, cr) ) => {
                 let del = cr.create_options & 0x0000_1000 != 0;
                 let dir = cr.create_options & 0x0000_0001 != 0;
 
@@ -620,7 +619,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
         }
         SMB2_COMMAND_CLOSE => {
             match parse_smb2_request_close(r.data) {
-                IResult::Done(_, cd) => {
+                Ok( (_, cd) ) => {
                     let found_ts = match state
                         .get_file_tx_by_fuid(&cd.guid.to_vec(), STREAM_TOSERVER)
                     {
@@ -705,7 +704,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
         SMB2_COMMAND_WRITE => {
             if r.nt_status == SMB_NTSTATUS_SUCCESS {
                 match parse_smb2_response_write(r.data) {
-                    IResult::Done(_, wr) => {
+                    Ok( (_, wr) ) => {
                         SCLogDebug!("SMBv2: Write response => {:?}", wr);
 
                         /* search key-guid map */
@@ -788,7 +787,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
         SMB2_COMMAND_CREATE => {
             if r.nt_status == SMB_NTSTATUS_SUCCESS {
                 match parse_smb2_response_create(r.data) {
-                    IResult::Done(_, cr) => {
+                    Ok( (_, cr) ) => {
                         SCLogDebug!("SMBv2: Create response => {:?}", cr);
 
                         let guid_key =
@@ -849,7 +848,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
         SMB2_COMMAND_TREE_CONNECT => {
             if r.nt_status == SMB_NTSTATUS_SUCCESS {
                 match parse_smb2_response_tree_connect(r.data) {
-                    IResult::Done(_, tr) => {
+                    Ok( (_, tr) ) => {
                         let name_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_TREE);
                         let mut share_name = Vec::new();
                         let is_pipe = tr.share_type == 2;
@@ -909,7 +908,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>) {
                 parse_smb2_response_negotiate_protocol_error(r.data)
             };
             match res {
-                IResult::Done(_, rd) => {
+                Ok( (_, rd) ) => {
                     SCLogDebug!(
                         "SERVER dialect => {}",
                         &smb2_dialect_string(rd.dialect)

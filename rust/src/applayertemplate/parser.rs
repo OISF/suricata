@@ -25,7 +25,7 @@ named!(pub parse_message<String>,
        do_parse!(
            len: map_res!(
                map_res!(take_until_s!(":"), std::str::from_utf8), parse_len) >>
-           sep: take!(1) >>
+           _sep: take!(1) >>
            msg: take_str!(len) >>
                (
                    msg.to_string()
@@ -36,7 +36,6 @@ named!(pub parse_message<String>,
 mod tests {
 
     use super::*;
-    use nom::*;
 
     /// Simple test of some valid data.
     #[test]
@@ -45,17 +44,17 @@ mod tests {
 
         let result = parse_message(buf);
         match result {
-            IResult::Done(remainder, message) => {
+            Ok( (remainder, message) ) => {
                 // Check the first message.
                 assert_eq!(message, "Hello World!");
 
                 // And we should have 6 bytes left.
                 assert_eq!(remainder.len(), 6);
             }
-            IResult::Incomplete(_) => {
+            Err(nom::Err::Incomplete(_)) => {
                 panic!("Result should not have been incomplete.");
             }
-            IResult::Error(err) => {
+            Err(err) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
         }

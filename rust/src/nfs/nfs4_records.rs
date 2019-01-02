@@ -148,12 +148,12 @@ pub struct Nfs4RequestSetClientId<'a> {
 named!(
     nfs4_req_setclientid<Nfs4RequestContent>,
     do_parse!(
-        client_verifier: take!(8)
+        _client_verifier: take!(8)
             >> client_id: nfs4_parse_nfsstring
-            >> cb_program: be_u32
+            >> _cb_program: be_u32
             >> r_netid: nfs4_parse_nfsstring
             >> r_addr: nfs4_parse_nfsstring
-            >> cb_id: be_u32
+            >> _cb_id: be_u32
             >> (Nfs4RequestContent::SetClientId(Nfs4RequestSetClientId {
                 client_id: client_id,
                 r_netid: r_netid,
@@ -165,8 +165,8 @@ named!(
 named!(
     nfs4_req_setclientid_confirm<Nfs4RequestContent>,
     do_parse!(
-        client_id: take!(8)
-            >> verifier: take!(8)
+        _client_id: take!(8)
+            >> _verifier: take!(8)
             >> (Nfs4RequestContent::SetClientIdConfirm)
     )
 );
@@ -184,7 +184,7 @@ named!(
         ftype4: be_u32
             >> link_content: cond!(ftype4 == 5, nfs4_parse_nfsstring)
             >> filename: nfs4_parse_nfsstring
-            >> attrs: nfs4_parse_attrs
+            >> _attrs: nfs4_parse_attrs
             >> (Nfs4RequestContent::Create(Nfs4RequestCreate {
                 ftype4: ftype4,
                 filename: filename,
@@ -241,15 +241,15 @@ pub struct Nfs4RequestOpen<'a> {
 named!(
     nfs4_req_open<Nfs4RequestContent>,
     do_parse!(
-        seqid: be_u32
-            >> share_access: be_u32
-            >> share_deny: be_u32
-            >> client_id: be_u64
+        _seqid: be_u32
+            >> _share_access: be_u32
+            >> _share_deny: be_u32
+            >> _client_id: be_u64
             >> owner_len: be_u32
             >> cond!(owner_len > 0, take!(owner_len))
             >> open_type: be_u32
             >> open_data: cond!(open_type == 1, nfs4_req_open_type)
-            >> claim_type: be_u32
+            >> _claim_type: be_u32
             >> filename: nfs4_parse_nfsstring
             >> (Nfs4RequestContent::Open(Nfs4RequestOpen {
                 open_type: open_type,
@@ -262,11 +262,11 @@ named!(
 named!(
     nfs4_req_readdir<Nfs4RequestContent>,
     do_parse!(
-        cookie: be_u64
-            >> cookie_verf: be_u64
-            >> dir_cnt: be_u32
-            >> max_cnt: be_u32
-            >> attr: nfs4_parse_attrbits
+        _cookie: be_u64
+            >> _cookie_verf: be_u64
+            >> _dir_cnt: be_u32
+            >> _max_cnt: be_u32
+            >> _attr: nfs4_parse_attrbits
             >> (Nfs4RequestContent::ReadDir)
     )
 );
@@ -321,7 +321,7 @@ named!(
     nfs4_req_setattr<Nfs4RequestContent>,
     do_parse!(
         stateid: nfs4_parse_stateid
-            >> attrs: nfs4_parse_attrs
+            >> _attrs: nfs4_parse_attrs
             >> (Nfs4RequestContent::SetAttr(Nfs4RequestSetAttr {
                 stateid: stateid,
             }))
@@ -387,7 +387,7 @@ named!(
 named!(
     nfs4_req_close<Nfs4RequestContent>,
     do_parse!(
-        seqid: be_u32
+        _seqid: be_u32
             >> stateid: nfs4_parse_stateid
             >> (Nfs4RequestContent::Close(stateid))
     )
@@ -402,7 +402,7 @@ named!(
     nfs4_req_open_confirm<Nfs4RequestContent>,
     do_parse!(
         stateid: nfs4_parse_stateid
-            >> seqid: be_u32
+            >> _seqid: be_u32
             >> (Nfs4RequestContent::OpenConfirm(Nfs4RequestOpenConfirm {
                 stateid: stateid,
             }))
@@ -441,7 +441,7 @@ named!(
 
 named!(
     nfs4_req_commit<Nfs4RequestContent>,
-    do_parse!(offset: be_u64 >> count: be_u32 >> (Nfs4RequestContent::Commit))
+    do_parse!(_offset: be_u64 >> _count: be_u32 >> (Nfs4RequestContent::Commit))
 );
 
 #[derive(Debug, PartialEq)]
@@ -454,15 +454,15 @@ pub struct Nfs4RequestExchangeId<'a> {
 named!(
     nfs4_req_exchangeid<Nfs4RequestContent>,
     do_parse!(
-        verifier: take!(8)
+        _verifier: take!(8)
             >> eia_clientstring: nfs4_parse_nfsstring
-            >> eia_clientflags: be_u32
-            >> eia_state_protect: be_u32
-            >> eia_client_impl_id: be_u32
+            >> _eia_clientflags: be_u32
+            >> _eia_state_protect: be_u32
+            >> _eia_client_impl_id: be_u32
             >> nii_domain: nfs4_parse_nfsstring
             >> nii_name: nfs4_parse_nfsstring
-            >> nii_data_sec: be_u64
-            >> nii_data_nsec: be_u32
+            >> _nii_data_sec: be_u64
+            >> _nii_data_nsec: be_u32
             >> (Nfs4RequestContent::ExchangeId(Nfs4RequestExchangeId {
                 client_string: eia_clientstring,
                 nii_domain: nii_domain,
@@ -480,10 +480,10 @@ named!(
     nfs4_req_sequence<Nfs4RequestContent>,
     do_parse!(
         ssn_id: take!(16)
-            >> seq_id: be_u32
-            >> slot_id: be_u32
-            >> high_slot_id: be_u32
-            >> cache_this: be_u32
+            >> _seq_id: be_u32
+            >> _slot_id: be_u32
+            >> _high_slot_id: be_u32
+            >> _cache_this: be_u32
             >> (Nfs4RequestContent::Sequence(Nfs4RequestSequence {
                 ssn_id: ssn_id,
             }))
@@ -533,8 +533,8 @@ pub struct Nfs4RequestCompoundRecord<'a> {
 named!(pub parse_nfs4_request_compound<Nfs4RequestCompoundRecord>,
     do_parse!(
             tag_len: be_u32
-        >>  tag: cond!(tag_len > 0, take!(tag_len))
-        >>  min_ver: be_u32
+        >>  _tag: cond!(tag_len > 0, take!(tag_len))
+        >>  _min_ver: be_u32
         >>  ops_cnt: be_u32
         >>  commands: count!(parse_request_compound_command, ops_cnt as usize)
         >> (Nfs4RequestCompoundRecord {
@@ -580,7 +580,7 @@ named!(
     do_parse!(
         count: be_u32
             >> committed: be_u32
-            >> verifier: be_u64
+            >> _verifier: be_u64
             >> (Nfs4ResponseWrite {
                 count: count,
                 committed: committed,
@@ -644,12 +644,12 @@ named!(
     nfs4_res_open_ok_delegate_read<Nfs4ResponseOpenDelegateRead>,
     do_parse!(
         stateid: nfs4_parse_stateid
-            >> recall: be_u32
-            >> ace_type: be_u32
-            >> ace_flags: be_u32
-            >> ace_mask: be_u32
+            >> _recall: be_u32
+            >> _ace_type: be_u32
+            >> _ace_flags: be_u32
+            >> _ace_mask: be_u32
             >> who_len: be_u32
-            >> who: take!(who_len)
+            >> _who: take!(who_len)
             >> (Nfs4ResponseOpenDelegateRead { stateid: stateid })
     )
 );
@@ -658,9 +658,9 @@ named!(
     nfs4_res_open_ok<Nfs4ResponseOpen>,
     do_parse!(
         stateid: nfs4_parse_stateid
-            >> change_info: take!(20)
+            >> _change_info: take!(20)
             >> result_flags: be_u32
-            >> attrs: nfs4_parse_attrbits
+            >> _attrs: nfs4_parse_attrbits
             >> delegation_type: be_u32
             >> delegate_read:
                 cond!(delegation_type == 1, nfs4_res_open_ok_delegate_read)
@@ -696,9 +696,9 @@ pub struct Nfs4ResponseReaddir<'a> {
 named!(
     nfs4_res_readdir_entry_do<Nfs4ResponseReaddirEntry>,
     do_parse!(
-        cookie: be_u64
+        _cookie: be_u64
             >> name: nfs4_parse_nfsstring
-            >> attrs: nfs4_parse_attrs
+            >> _attrs: nfs4_parse_attrs
             >> (Nfs4ResponseReaddirEntry { name: name })
     )
 );
@@ -715,7 +715,7 @@ named!(
 named!(
     nfs4_res_readdir_ok<Nfs4ResponseReaddir>,
     do_parse!(
-        verifier: be_u64
+        _verifier: be_u64
         // run parser until we find a 'value follows == 0'
         >>  listing: many_till!(call!(nfs4_res_readdir_entry), peek!(tag!(b"\x00\x00\x00\x00")))
         // value follows == 0 checked by line above
@@ -736,14 +736,14 @@ named!(
 
 named!(
     nfs4_res_create_ok<Nfs4Attr>,
-    do_parse!(change_info: take!(20) >> attrs: nfs4_parse_attrbits >> (attrs))
+    do_parse!(_change_info: take!(20) >> attrs: nfs4_parse_attrbits >> (attrs))
 );
 
 named!(
     nfs4_res_create<Nfs4ResponseContent>,
     do_parse!(
         status: be_u32
-            >> attrs: cond!(status == 0, nfs4_res_create_ok)
+            >> _attrs: cond!(status == 0, nfs4_res_create_ok)
             >> (Nfs4ResponseContent::Create(status))
     )
 );
@@ -757,7 +757,7 @@ named!(
     nfs4_res_setattr<Nfs4ResponseContent>,
     do_parse!(
         status: be_u32
-            >> attrs: cond!(status == 0, nfs4_res_setattr_ok)
+            >> _attrs: cond!(status == 0, nfs4_res_setattr_ok)
             >> (Nfs4ResponseContent::SetAttr(status))
     )
 );
@@ -851,8 +851,8 @@ named!(
     nfs4_res_setclientid<Nfs4ResponseContent>,
     do_parse!(
         status: be_u32
-            >> client_id: be_u64
-            >> verifier: be_u32
+            >> _client_id: be_u64
+            >> _verifier: be_u32
             >> (Nfs4ResponseContent::SetClientId(status))
     )
 );
@@ -868,7 +868,7 @@ named!(
     nfs4_res_commit<Nfs4ResponseContent>,
     do_parse!(
         status: be_u32
-            >> verifier: cond!(status == 0, take!(8))
+            >> _verifier: cond!(status == 0, take!(8))
             >> (Nfs4ResponseContent::Commit(status))
     )
 );
@@ -967,7 +967,7 @@ named!(pub parse_nfs4_response_compound<Nfs4ResponseCompoundRecord>,
     do_parse!(
             status: be_u32
         >>  tag_len: be_u32
-        >>  tag: cond!(tag_len > 0, take!(tag_len))
+        >>  _tag: cond!(tag_len > 0, take!(tag_len))
         >>  ops_cnt: be_u32
         >>  commands: count!(nfs4_res_compound_command, ops_cnt as usize)
         >> (Nfs4ResponseCompoundRecord {

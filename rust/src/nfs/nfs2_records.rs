@@ -45,7 +45,7 @@ named!(pub parse_nfs2_request_lookup<Nfs2RequestLookup>,
             handle: parse_nfs2_handle
         >>  name_len: be_u32
         >>  name_contents: take!(name_len)
-        >>  name_padding: rest
+        >>  _name_padding: rest
         >> (
             Nfs2RequestLookup {
                 handle:handle,
@@ -64,7 +64,7 @@ named!(pub parse_nfs2_request_read<Nfs2RequestRead>,
     do_parse!(
             handle: parse_nfs2_handle
         >>  offset: be_u32
-        >>  count: be_u32
+        >>  _count: be_u32
         >> (
             Nfs2RequestRead {
                 handle:handle,
@@ -101,9 +101,9 @@ pub struct Nfs2Attributes {
 named!(pub parse_nfs2_attribs<Nfs2Attributes>,
     do_parse!(
             atype: be_u32
-        >>  blob1: take!(16)
+        >>  _blob1: take!(16)
         >>  asize: be_u32
-        >>  blob2: take!(44)
+        >>  _blob2: take!(44)
         >> (
             Nfs2Attributes {
                 atype:atype,

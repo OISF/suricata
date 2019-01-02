@@ -25,7 +25,6 @@ use crate::dhcp::parser::*;
 use crate::log::*;
 use crate::parser::*;
 use libc;
-use nom;
 use std;
 use std::ffi::{CStr, CString};
 use std::mem::transmute;
@@ -144,24 +143,21 @@ impl DHCPState {
     }
 
     pub fn parse(&mut self, input: &[u8]) -> bool {
-        match dhcp_parse(input) {
-            nom::IResult::Done(_, message) => {
-                let malformed_options = message.malformed_options;
-                let truncated_options = message.truncated_options;
-                self.tx_id += 1;
-                let transaction = DHCPTransaction::new(self.tx_id, message);
-                self.transactions.push(transaction);
-                if malformed_options {
-                    self.set_event(DHCPEvent::MalformedOptions);
-                }
-                if truncated_options {
-                    self.set_event(DHCPEvent::TruncatedOptions);
-                }
-                return true;
+        if let Ok( (_, message) ) = dhcp_parse(input) {
+            let malformed_options = message.malformed_options;
+            let truncated_options = message.truncated_options;
+            self.tx_id += 1;
+            let transaction = DHCPTransaction::new(self.tx_id, message);
+            self.transactions.push(transaction);
+            if malformed_options {
+                self.set_event(DHCPEvent::MalformedOptions);
             }
-            _ => {
-                return false;
+            if truncated_options {
+                self.set_event(DHCPEvent::TruncatedOptions);
             }
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -234,13 +230,10 @@ pub extern "C" fn rs_dhcp_probing_parser(
     }
 
     let slice = build_slice!(input, input_len as usize);
-    match parse_header(slice) {
-        nom::IResult::Done(_, _) => {
-            return unsafe { ALPROTO_DHCP };
-        }
-        _ => {
-            return ALPROTO_UNKNOWN;
-        }
+    if parse_header(slice).is_ok() {
+        return unsafe { ALPROTO_DHCP };
+    } else {
+        return ALPROTO_UNKNOWN;
     }
 }
 

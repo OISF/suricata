@@ -27,10 +27,10 @@ pub struct Smb3TransformRecord<'a> {
 named!(pub parse_smb3_transform_record<Smb3TransformRecord>,
     do_parse!(
             tag!(b"\xfdSMB")
-        >>  signature: take!(16)
-        >>  nonce: take!(16)
+        >>  _signature: take!(16)
+        >>  _nonce: take!(16)
         >>  msg_size: le_u32
-        >>  reserved: le_u16
+        >>  _reserved: le_u16
         >>  enc_algo: le_u16
         >>  session_id: le_u64
         >>  enc_data: take!(msg_size)

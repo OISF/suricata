@@ -24,8 +24,6 @@ use std::collections::HashMap;
 use std::ffi::CStr;
 use std::mem::transmute;
 
-use nom::IResult;
-
 use crate::applayer;
 use crate::applayer::LoggerFlags;
 use crate::core::*;
@@ -523,7 +521,7 @@ impl NFSState {
         xidmap: &mut NFSRequestXidMap,
     ) {
         match parse_nfs3_request_lookup(r.prog_data) {
-            IResult::Done(_, lookup) => {
+            Ok( (_, lookup) ) => {
                 SCLogDebug!("LOOKUP {:?}", lookup);
                 xidmap.file_name = lookup.name_vec;
             }
@@ -946,7 +944,7 @@ impl NFSState {
 
         if nfs_version == 2 {
             let size = match parse_nfs2_attribs(reply.attr_blob) {
-                IResult::Done(_, ref attr) => attr.asize,
+                Ok( (_, ref attr) ) => attr.asize,
                 _ => 0,
             };
             SCLogDebug!("NFSv2 READ reply record: File size {}. Offset {} data len {}: total {}",
@@ -1202,7 +1200,7 @@ impl NFSState {
         while cur_i.len() > 0 {
             // min record size
             match parse_rpc_request_partial(cur_i) {
-                IResult::Done(_, ref rpc_phdr) => {
+                Ok( (_, ref rpc_phdr) ) => {
                     let rec_size = (rpc_phdr.hdr.frag_len + 4) as usize;
                     //SCLogDebug!("rec_size {}/{}", rec_size, cur_i.len());
                     //SCLogDebug!("cur_i {:?}", cur_i);
@@ -1223,17 +1221,17 @@ impl NFSState {
 
                                 // lets try to parse the RPC record. Might fail with Incomplete.
                                 match parse_rpc(cur_i) {
-                                    IResult::Done(
+                                    Ok( (
                                         remaining,
                                         ref rpc_record,
-                                    ) => {
+                                    ) ) => {
                                         match parse_nfs3_request_write(
                                             rpc_record.prog_data,
                                         ) {
-                                            IResult::Done(
+                                            Ok( (
                                                 _,
                                                 ref nfs_request_write,
-                                            ) => {
+                                            ) ) => {
                                                 // deal with the partial nfs write data
                                                 status |= self.process_partial_write_request_record(rpc_record, nfs_request_write);
                                                 cur_i = remaining; // progress input past parsed record
@@ -1245,14 +1243,14 @@ impl NFSState {
                                             }
                                         }
                                     }
-                                    IResult::Incomplete(_) => {
+                                    Err(nom::Err::Incomplete(_)) => {
                                         // we just size checked for the minimal record size above,
                                         // so if options are used (creds/verifier), we can still
                                         // have Incomplete data. Fall through to the buffer code
                                         // and try again on our next iteration.
                                         SCLogDebug!("TS data incomplete");
                                     }
-                                    IResult::Error(_e) => {
+                                    Err(_e) => {
                                         self.set_event(NFSEvent::MalformedData);
                                         SCLogDebug!("Parsing failed: {:?}", _e);
                                         return 1;
@@ -1267,11 +1265,11 @@ impl NFSState {
                     // we have the full records size worth of data,
                     // let's parse it
                     match parse_rpc(&cur_i[..rec_size]) {
-                        IResult::Done(_, ref rpc_record) => {
+                        Ok( (_, ref rpc_record) ) => {
                             cur_i = &cur_i[rec_size..];
                             status |= self.process_request_record(rpc_record);
                         }
-                        IResult::Incomplete(_) => {
+                        Err(nom::Err::Incomplete(_)) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
 
                             // we shouldn't get incomplete as we have the full data
@@ -1281,19 +1279,19 @@ impl NFSState {
 
                             status = 1;
                         }
-                        IResult::Error(_e) => {
+                        Err(_e) => {
                             self.set_event(NFSEvent::MalformedData);
                             SCLogDebug!("Parsing failed: {:?}", _e);
                             return 1;
                         }
                     }
                 }
-                IResult::Incomplete(_) => {
+                Err(nom::Err::Incomplete(_)) => {
                     SCLogDebug!("Fragmentation required (TCP level) 2");
                     self.tcp_buffer_ts.extend_from_slice(cur_i);
                     break;
                 }
-                IResult::Error(_e) => {
+                Err(_e) => {
                     self.set_event(NFSEvent::MalformedData);
                     SCLogDebug!("Parsing failed: {:?}", _e);
                     return 1;
@@ -1383,7 +1381,7 @@ impl NFSState {
 
         while cur_i.len() > 0 {
             match parse_rpc_packet_header(cur_i) {
-                IResult::Done(_, ref rpc_hdr) => {
+                Ok( (_, ref rpc_hdr) ) => {
                     let rec_size = (rpc_hdr.frag_len + 4) as usize;
                     // see if we have all data available
                     if rec_size > cur_i.len() {
@@ -1404,27 +1402,27 @@ impl NFSState {
 
                                 // we should have enough data to parse the RPC record
                                 match parse_rpc_reply(cur_i) {
-                                    IResult::Done(
+                                    Ok( (
                                         remaining,
                                         ref rpc_record,
-                                    ) => {
+                                    ) ) => {
                                         match parse_nfs3_reply_read(
                                             rpc_record.prog_data,
                                         ) {
-                                            IResult::Done(
+                                            Ok( (
                                                 _,
                                                 ref nfs_reply_read,
-                                            ) => {
+                                            ) ) => {
                                                 // deal with the partial nfs read data
                                                 status |= self.process_partial_read_reply_record(rpc_record, nfs_reply_read);
                                                 cur_i = remaining; // progress input past parsed record
                                             }
-                                            IResult::Incomplete(_) => {
+                                            Err(nom::Err::Incomplete(_)) => {
                                                 self.set_event(
                                                     NFSEvent::MalformedData,
                                                 );
                                             }
-                                            IResult::Error(_e) => {
+                                            Err(_e) => {
                                                 self.set_event(
                                                     NFSEvent::MalformedData,
                                                 );
@@ -1436,12 +1434,12 @@ impl NFSState {
                                             }
                                         }
                                     }
-                                    IResult::Incomplete(_) => {
+                                    Err(nom::Err::Incomplete(_)) => {
                                         // size check was done for MINIMAL record size,
                                         // so Incomplete is normal.
                                         SCLogDebug!("TC data incomplete");
                                     }
-                                    IResult::Error(_e) => {
+                                    Err(_e) => {
                                         self.set_event(NFSEvent::MalformedData);
                                         SCLogDebug!("Parsing failed: {:?}", _e);
                                         return 1;
@@ -1455,11 +1453,11 @@ impl NFSState {
 
                     // we have the full data of the record, lets parse
                     match parse_rpc_reply(&cur_i[..rec_size]) {
-                        IResult::Done(_, ref rpc_record) => {
+                        Ok( (_, ref rpc_record) ) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
                             status |= self.process_reply_record(rpc_record);
                         }
-                        IResult::Incomplete(_) => {
+                        Err(nom::Err::Incomplete(_)) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
 
                             // we shouldn't get incomplete as we have the full data
@@ -1469,19 +1467,19 @@ impl NFSState {
 
                             status = 1;
                         }
-                        IResult::Error(_e) => {
+                        Err(_e) => {
                             self.set_event(NFSEvent::MalformedData);
                             SCLogDebug!("Parsing failed: {:?}", _e);
                             return 1;
                         }
                     }
                 }
-                IResult::Incomplete(_) => {
+                Err(nom::Err::Incomplete(_)) => {
                     SCLogDebug!("REPLY: insufficient data for HDR");
                     self.tcp_buffer_tc.extend_from_slice(cur_i);
                     break;
                 }
-                IResult::Error(_e) => {
+                Err(_e) => {
                     self.set_event(NFSEvent::MalformedData);
                     SCLogDebug!("Parsing failed: {:?}", _e);
                     return 1;
@@ -1496,7 +1494,7 @@ impl NFSState {
         SCLogDebug!("parse_udp_ts ({})", input.len());
         if input.len() > 0 {
             match parse_rpc_udp_request(input) {
-                IResult::Done(_, ref rpc_record) => {
+                Ok( (_, ref rpc_record) ) => {
                     self.is_udp = true;
                     match rpc_record.progver {
                         3 => {
@@ -1511,8 +1509,8 @@ impl NFSState {
                         }
                     }
                 }
-                IResult::Incomplete(_) => {}
-                IResult::Error(_e) => {
+                Err(nom::Err::Incomplete(_)) => {}
+                Err(_e) => {
                     SCLogDebug!("Parsing failed: {:?}", _e);
                 }
             }
@@ -1526,12 +1524,12 @@ impl NFSState {
         SCLogDebug!("parse_udp_tc ({})", input.len());
         if input.len() > 0 {
             match parse_rpc_udp_reply(input) {
-                IResult::Done(_, ref rpc_record) => {
+                Ok( (_, ref rpc_record) ) => {
                     self.is_udp = true;
                     status |= self.process_reply_record(rpc_record);
                 }
-                IResult::Incomplete(_) => {}
-                IResult::Error(_e) => {
+                Err(nom::Err::Incomplete(_)) => {}
+                Err(_e) => {
                     SCLogDebug!("Parsing failed: {:?}", _e);
                 }
             }
@@ -1913,7 +1911,7 @@ pub extern "C" fn rs_nfs_init(context: &'static mut SuricataFileContext) {
 pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
     if direction == STREAM_TOCLIENT {
         match parse_rpc_reply(i) {
-            IResult::Done(_, ref rpc) => {
+            Ok( (_, ref rpc) ) => {
                 if rpc.hdr.frag_len >= 24
                     && rpc.hdr.frag_len <= 35000
                     && rpc.hdr.msgtype == 1
@@ -1931,9 +1929,9 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
                     return -1;
                 }
             }
-            IResult::Incomplete(_) => {
+            Err(nom::Err::Incomplete(_)) => {
                 match parse_rpc_packet_header(i) {
-                    IResult::Done(_, ref rpc_hdr) => {
+                    Ok( (_, ref rpc_hdr) ) => {
                         if rpc_hdr.frag_len >= 24
                             && rpc_hdr.frag_len <= 35000
                             && rpc_hdr.xid != 0
@@ -1950,21 +1948,21 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
                             return -1;
                         }
                     }
-                    IResult::Incomplete(_) => {}
-                    IResult::Error(_) => {
+                    Err(nom::Err::Incomplete(_)) => {}
+                    Err(_) => {
                         return -1;
                     }
                 }
 
                 return 0;
             }
-            IResult::Error(_) => {
+            Err(_) => {
                 return -1;
             }
         }
     } else {
         match parse_rpc(i) {
-            IResult::Done(_, ref rpc) => {
+            Ok( (_, ref rpc) ) => {
                 if rpc.hdr.frag_len >= 40
                     && rpc.hdr.msgtype == 0
                     && rpc.rpcver == 2
@@ -1977,10 +1975,10 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
                     return -1;
                 }
             }
-            IResult::Incomplete(_) => {
+            Err(nom::Err::Incomplete(_)) => {
                 return 0;
             }
-            IResult::Error(_) => {
+            Err(_) => {
                 return -1;
             }
         }
@@ -1990,7 +1988,7 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
 pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
     if direction == STREAM_TOCLIENT {
         match parse_rpc_udp_reply(i) {
-            IResult::Done(_, ref rpc) => {
+            Ok( (_, ref rpc) ) => {
                 if i.len() >= 32
                     && rpc.hdr.msgtype == 1
                     && rpc.reply_state == 0
@@ -2007,16 +2005,13 @@ pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
                     return -1;
                 }
             }
-            IResult::Incomplete(_) => {
-                return -1;
-            }
-            IResult::Error(_) => {
+            Err(_) => {
                 return -1;
             }
         }
     } else {
         match parse_rpc_udp_request(i) {
-            IResult::Done(_, ref rpc) => {
+            Ok( (_, ref rpc) ) => {
                 if i.len() >= 48
                     && rpc.hdr.msgtype == 0
                     && rpc.progver == 3
@@ -2034,10 +2029,7 @@ pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
                     return -1;
                 }
             }
-            IResult::Incomplete(_) => {
-                return -1;
-            }
-            IResult::Error(_) => {
+            Err(_) => {
                 return -1;
             }
         }

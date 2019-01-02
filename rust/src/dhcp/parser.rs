@@ -122,7 +122,7 @@ named!(pub parse_clientid_option<DHCPOption>,
        do_parse!(
            code: be_u8 >>
            len: be_u8 >>
-           htype: be_u8 >>
+           _htype: be_u8 >>
            data: take!(len - 1) >>
                (
                    DHCPOption{
@@ -140,7 +140,7 @@ named!(pub parse_clientid_option<DHCPOption>,
 named!(pub parse_address_time_option<DHCPOption>,
        do_parse!(
            code: be_u8 >>
-           len: be_u8 >>
+           _len: be_u8 >>
            seconds: be_u32 >>
                (
                    DHCPOption{
@@ -192,50 +192,41 @@ named!(pub parse_option<DHCPOption>,
 
 /// Parse and return all the options. Upon the end of option indicator
 /// all the data will be consumed.
-named!(pub parse_all_options<Vec<DHCPOption>>, many0!(call!(parse_option)));
+named!(pub parse_all_options<Vec<DHCPOption>>, many0!(complete!(call!(parse_option))));
 
 pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
-    match parse_header(input) {
-        IResult::Done(rem, header) => {
-            let mut options = Vec::new();
-            let mut next = rem;
-            let mut malformed_options = false;
-            let mut truncated_options = false;
-            loop {
-                match parse_option(next) {
-                    IResult::Done(rem, option) => {
-                        let done = option.code == DHCP_OPT_END;
-                        options.push(option);
-                        next = rem;
-                        if done {
-                            break;
-                        }
-                    }
-                    IResult::Incomplete(_) => {
-                        truncated_options = true;
-                        break;
-                    }
-                    IResult::Error(_) => {
-                        malformed_options = true;
-                        break;
-                    }
+    let (rem, header) = parse_header(input)?;
+    let mut options = Vec::new();
+    let mut next = rem;
+    let mut malformed_options = false;
+    let mut truncated_options = false;
+    loop {
+        match parse_option(next) {
+            Ok( (rem, option) ) => {
+                let done = option.code == DHCP_OPT_END;
+                options.push(option);
+                next = rem;
+                if done {
+                    break;
                 }
             }
-            let message = DHCPMessage {
-                header: header,
-                options: options,
-                malformed_options: malformed_options,
-                truncated_options: truncated_options,
-            };
-            return IResult::Done(next, message);
-        }
-        IResult::Error(err) => {
-            return IResult::Error(err);
-        }
-        IResult::Incomplete(incomplete) => {
-            return IResult::Incomplete(incomplete);
+            Err(nom::Err::Incomplete(_)) => {
+                truncated_options = true;
+                break;
+            }
+            Err(_) => {
+                malformed_options = true;
+                break;
+            }
         }
     }
+    let message = DHCPMessage {
+        header: header,
+        options: options,
+        malformed_options: malformed_options,
+        truncated_options: truncated_options,
+    };
+    return Ok( (next, message) );
 }
 
 #[cfg(test)]
@@ -249,7 +240,7 @@ mod tests {
         let payload = &pcap[24 + 16 + 42..];
 
         match dhcp_parse(payload) {
-            IResult::Done(_rem, message) => {
+            Ok( (_rem, message) ) => {
                 let header = message.header;
                 assert_eq!(header.opcode, BOOTP_REQUEST);
                 assert_eq!(header.htype, 1);

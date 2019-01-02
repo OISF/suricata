@@ -14,9 +14,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
-
-use nom::IResult;
-
 use crate::log::*;
 
 use crate::smb::auth::*;
@@ -47,10 +44,10 @@ pub fn smb1_session_setup_request_host_info(
         let blob = if offset % 2 == 1 { &blob[1..] } else { blob };
         let (native_os, native_lm, primary_domain) =
             match smb_get_unicode_string(blob) {
-                IResult::Done(rem, n1) => match smb_get_unicode_string(rem) {
-                    IResult::Done(rem, n2) => {
+                Ok( (rem, n1) ) => match smb_get_unicode_string(rem) {
+                    Ok( (rem, n2) ) => {
                         match smb_get_unicode_string(rem) {
-                            IResult::Done(_, n3) => (n1, n2, n3),
+                            Ok( (_, n3) ) => (n1, n2, n3),
                             _ => (n1, n2, Vec::new()),
                         }
                     }
@@ -73,9 +70,9 @@ pub fn smb1_session_setup_request_host_info(
     } else {
         let (native_os, native_lm, primary_domain) =
             match smb_get_ascii_string(blob) {
-                IResult::Done(rem, n1) => match smb_get_ascii_string(rem) {
-                    IResult::Done(rem, n2) => match smb_get_ascii_string(rem) {
-                        IResult::Done(_, n3) => (n1, n2, n3),
+                Ok( (rem, n1) ) => match smb_get_ascii_string(rem) {
+                    Ok( (rem, n2) ) => match smb_get_ascii_string(rem) {
+                        Ok( (_, n3) ) => (n1, n2, n3),
                         _ => (n1, n2, Vec::new()),
                     },
                     _ => (n1, Vec::new(), Vec::new()),
@@ -100,8 +97,8 @@ pub fn smb1_session_setup_response_host_info(
         let offset = r.data.len() - blob.len();
         let blob = if offset % 2 == 1 { &blob[1..] } else { blob };
         let (native_os, native_lm) = match smb_get_unicode_string(blob) {
-            IResult::Done(rem, n1) => match smb_get_unicode_string(rem) {
-                IResult::Done(_, n2) => (n1, n2),
+            Ok( (rem, n1) ) => match smb_get_unicode_string(rem) {
+                Ok( (_, n2) ) => (n1, n2),
                 _ => (n1, Vec::new()),
             },
             _ => (Vec::new(), Vec::new()),
@@ -115,8 +112,8 @@ pub fn smb1_session_setup_response_host_info(
     } else {
         SCLogDebug!("session_setup_response_host_info: not unicode");
         let (native_os, native_lm) = match smb_get_ascii_string(blob) {
-            IResult::Done(rem, n1) => match smb_get_ascii_string(rem) {
-                IResult::Done(_, n2) => (n1, n2),
+            Ok( (rem, n1) ) => match smb_get_ascii_string(rem) {
+                Ok( (_, n2) ) => (n1, n2),
                 _ => (n1, Vec::new()),
             },
             _ => (Vec::new(), Vec::new()),
@@ -131,7 +128,7 @@ pub fn smb1_session_setup_response_host_info(
 pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord) {
     SCLogDebug!("SMB1_COMMAND_SESSION_SETUP_ANDX user_id {}", r.user_id);
     match parse_smb_setup_andx_record(r.data) {
-        IResult::Done(rem, setup) => {
+        Ok( (rem, setup) ) => {
             let hdr = SMBCommonHdr::new(
                 SMBHDR_TYPE_HEADER,
                 r.ssn_id as u64,
@@ -163,7 +160,7 @@ pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord) {
 
 fn smb1_session_setup_update_tx(tx: &mut SMBTransaction, r: &SmbRecord) {
     match parse_smb_response_setup_andx_record(r.data) {
-        IResult::Done(rem, _setup) => {
+        Ok( (rem, _setup) ) => {
             if let Some(SMBTransactionTypeData::SESSIONSETUP(ref mut td)) =
                 tx.type_data
             {

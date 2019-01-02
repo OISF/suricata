@@ -19,7 +19,7 @@
 
 extern crate libc;
 
-use nom::{be_u32, IResult};
+use nom::be_u32;
 
 use crate::core::*;
 use crate::log::*;
@@ -303,19 +303,19 @@ impl NFSState {
                 if creds.procedure == 0 && creds.service == 2 {
                     SCLogDebug!("GSS INTEGRITIY: {:?}", creds);
                     match parse_rpc_gssapi_integrity(r.prog_data) {
-                        IResult::Done(_rem, rec) => {
+                        Ok( (_rem, rec) ) => {
                             SCLogDebug!("GSS INTEGRITIY wrapper: {:?}", rec);
                             data = rec.data;
                             // store proc and serv for the reply
                             xidmap.gssapi_proc = creds.procedure;
                             xidmap.gssapi_service = creds.service;
                         }
-                        IResult::Incomplete(_n) => {
+                        Err(nom::Err::Incomplete(_n)) => {
                             SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: INCOMPLETE {:?}", _n);
                             self.set_event(NFSEvent::MalformedData);
                             return 0;
                         }
-                        IResult::Error(_e) => {
+                        Err(_e) => {
                             SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}", _e);
                             self.set_event(NFSEvent::MalformedData);
                             return 0;
@@ -325,15 +325,15 @@ impl NFSState {
             }
 
             match parse_nfs4_request_compound(data) {
-                IResult::Done(_, rd) => {
+                Ok( (_, rd) ) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: {:?}", rd);
                     self.compound_request(&r, &rd, &mut xidmap);
                 }
-                IResult::Incomplete(_n) => {
+                Err(nom::Err::Incomplete(_n)) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: INCOMPLETE {:?}", _n);
                     self.set_event(NFSEvent::MalformedData);
                 }
-                IResult::Error(_e) => {
+                Err(_e) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: Parsing failed: {:?}", _e);
                     self.set_event(NFSEvent::MalformedData);
                 }
@@ -450,11 +450,11 @@ impl NFSState {
             if xidmap.gssapi_proc == 0 && xidmap.gssapi_service == 2 {
                 SCLogDebug!("GSS INTEGRITIY as set by call: {:?}", xidmap);
                 match parse_rpc_gssapi_integrity(r.prog_data) {
-                    IResult::Done(_rem, rec) => {
+                    Ok( (_rem, rec) ) => {
                         SCLogDebug!("GSS INTEGRITIY wrapper: {:?}", rec);
                         data = rec.data;
                     }
-                    IResult::Incomplete(_n) => {
+                    Err(nom::Err::Incomplete(_n)) => {
                         SCLogDebug!(
                             "NFSPROC4_COMPOUND/GSS INTEGRITIY: INCOMPLETE {:?}",
                             _n
@@ -462,7 +462,7 @@ impl NFSState {
                         self.set_event(NFSEvent::MalformedData);
                         return 0;
                     }
-                    IResult::Error(_e) => {
+                    Err(_e) => {
                         SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}", _e);
                         self.set_event(NFSEvent::MalformedData);
                         return 0;
@@ -470,14 +470,14 @@ impl NFSState {
                 }
             }
             match parse_nfs4_response_compound(data) {
-                IResult::Done(_, rd) => {
+                Ok( (_, rd) ) => {
                     SCLogDebug!("COMPOUNDv4: {:?}", rd);
                     self.compound_response(&r, &rd, xidmap);
                 }
-                IResult::Incomplete(_) => {
+                Err(nom::Err::Incomplete(_)) => {
                     self.set_event(NFSEvent::MalformedData);
                 }
-                IResult::Error(_e) => {
+                Err(_e) => {
                     SCLogDebug!("Parsing failed: {:?}", _e);
                     self.set_event(NFSEvent::MalformedData);
                 }

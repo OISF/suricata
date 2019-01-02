@@ -140,11 +140,10 @@ pub extern "C" fn rs_tftp_request(
     len: libc::uint32_t,
 ) -> i64 {
     let buf = unsafe { std::slice::from_raw_parts(input, len as usize) };
-    return match tftp_request(buf) {
-        nom::IResult::Done(_, rqst) => {
-            state.transactions.push(rqst);
-            1
-        }
-        _ => 0,
-    };
+    if let Ok( (_, rqst) ) = tftp_request(buf) {
+        state.transactions.push(rqst);
+        1
+    } else {
+        0
+    }
 }

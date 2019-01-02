@@ -27,17 +27,14 @@ use crate::nfs::nfs3_records::*;
 use crate::nfs::rpc_records::*;
 use crate::nfs::types::*;
 
-/// nom bug leads to this wrappers being necessary
-/// TODO for some reason putting these in parser.rs and making them public
-/// leads to a compile error wrt an unknown lifetime identifier 'a
-//named!(many0_nfs3_request_objects<Vec<Nfs3RequestObject<'a>>>, many0!(parse_nfs3_request_object));
-//named!(many0_nfs3_reply_objects<Vec<Nfs3ReplyObject<'a>>>, many0!(parse_nfs3_reply_object));
-named!(
-    many0_nfs3_response_readdirplus_entries<
-        Vec<Nfs3ResponseReaddirplusEntry<'a>>,
-    >,
-    many0!(parse_nfs3_response_readdirplus_entry_cond)
-);
+pub fn many0_nfs3_response_readdirplus_entries<'a>(input: &'a [u8]) -> IResult<&'a[u8], Vec<Nfs3ResponseReaddirplusEntry<'a>>> {
+    do_parse!(input,
+
+        res: many0!(complete!(parse_nfs3_response_readdirplus_entry_cond)) >>
+
+        (res)
+    )
+}
 
 impl NFSState {
     /// complete NFS3 request record
@@ -61,7 +58,7 @@ impl NFSState {
             self.process_request_record_lookup(r, &mut xidmap);
         } else if r.procedure == NFSPROC3_ACCESS {
             match parse_nfs3_request_access(r.prog_data) {
-                IResult::Done(_, ar) => {
+                Ok( (_, ar) ) => {
                     xidmap.file_handle = ar.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
                 }
@@ -71,7 +68,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_GETATTR {
             match parse_nfs3_request_getattr(r.prog_data) {
-                IResult::Done(_, gar) => {
+                Ok( (_, gar) ) => {
                     xidmap.file_handle = gar.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
                 }
@@ -81,7 +78,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_READDIRPLUS {
             match parse_nfs3_request_readdirplus(r.prog_data) {
-                IResult::Done(_, rdp) => {
+                Ok( (_, rdp) ) => {
                     xidmap.file_handle = rdp.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
                 }
@@ -91,7 +88,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_READ {
             match parse_nfs3_request_read(r.prog_data) {
-                IResult::Done(_, nfs3_read_record) => {
+                Ok( (_, nfs3_read_record) ) => {
                     xidmap.chunk_offset = nfs3_read_record.offset;
                     xidmap.file_handle = nfs3_read_record.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
@@ -102,7 +99,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_WRITE {
             match parse_nfs3_request_write(r.prog_data) {
-                IResult::Done(_, w) => {
+                Ok( (_, w) ) => {
                     self.process_write_record(r, &w);
                 }
                 _ => {
@@ -111,7 +108,7 @@ impl NFSState {
             }
         } else if r.procedure == NFSPROC3_CREATE {
             match parse_nfs3_request_create(r.prog_data) {
-                IResult::Done(_, nfs3_create_record) => {
+                Ok( (_, nfs3_create_record) ) => {
                     xidmap.file_handle =
                         nfs3_create_record.handle.value.to_vec();
                     xidmap.file_name = nfs3_create_record.name_vec;
@@ -122,7 +119,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_REMOVE {
             match parse_nfs3_request_remove(r.prog_data) {
-                IResult::Done(_, rr) => {
+                Ok( (_, rr) ) => {
                     xidmap.file_handle = rr.handle.value.to_vec();
                     xidmap.file_name = rr.name_vec;
                 }
@@ -132,7 +129,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_RENAME {
             match parse_nfs3_request_rename(r.prog_data) {
-                IResult::Done(_, rr) => {
+                Ok( (_, rr) ) => {
                     xidmap.file_handle = rr.from_handle.value.to_vec();
                     xidmap.file_name = rr.from_name_vec;
                     aux_file_name = rr.to_name_vec;
@@ -143,7 +140,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_MKDIR {
             match parse_nfs3_request_mkdir(r.prog_data) {
-                IResult::Done(_, mr) => {
+                Ok( (_, mr) ) => {
                     xidmap.file_handle = mr.handle.value.to_vec();
                     xidmap.file_name = mr.name_vec;
                 }
@@ -153,7 +150,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_RMDIR {
             match parse_nfs3_request_rmdir(r.prog_data) {
-                IResult::Done(_, rr) => {
+                Ok( (_, rr) ) => {
                     xidmap.file_handle = rr.handle.value.to_vec();
                     xidmap.file_name = rr.name_vec;
                 }
@@ -165,7 +162,7 @@ impl NFSState {
             SCLogDebug!("COMMIT, closing shop");
 
             match parse_nfs3_request_commit(r.prog_data) {
-                IResult::Done(_, cr) => {
+                Ok( (_, cr) ) => {
                     let file_handle = cr.handle.value.to_vec();
                     match self
                         .get_file_tx_by_handle(&file_handle, STREAM_TOSERVER)
@@ -270,7 +267,7 @@ impl NFSState {
 
         if xidmap.procedure == NFSPROC3_LOOKUP {
             match parse_nfs3_response_lookup(r.prog_data) {
-                IResult::Done(_, lookup) => {
+                Ok( (_, lookup) ) => {
                     SCLogDebug!("LOOKUP: {:?}", lookup);
                     SCLogDebug!(
                         "RESPONSE LOOKUP file_name {:?}",
@@ -292,7 +289,7 @@ impl NFSState {
             };
         } else if xidmap.procedure == NFSPROC3_CREATE {
             match parse_nfs3_response_create(r.prog_data) {
-                IResult::Done(_, nfs3_create_record) => {
+                Ok( (_, nfs3_create_record) ) => {
                     SCLogDebug!("nfs3_create_record: {:?}", nfs3_create_record);
 
                     SCLogDebug!(
@@ -316,7 +313,7 @@ impl NFSState {
             };
         } else if xidmap.procedure == NFSPROC3_READ {
             match parse_nfs3_reply_read(r.prog_data) {
-                IResult::Done(_, ref reply) => {
+                Ok( (_, ref reply) ) => {
                     self.process_read_record(r, reply, Some(&xidmap));
                     nfs_status = reply.status;
                 }
@@ -326,7 +323,7 @@ impl NFSState {
             }
         } else if xidmap.procedure == NFSPROC3_READDIRPLUS {
             match parse_nfs3_response_readdirplus(r.prog_data) {
-                IResult::Done(_, ref reply) => {
+                Ok( (_, ref reply) ) => {
                     //SCLogDebug!("READDIRPLUS reply {:?}", reply);
 
                     nfs_status = reply.status;
@@ -336,7 +333,7 @@ impl NFSState {
 
                     // store all handle/filename mappings
                     match many0_nfs3_response_readdirplus_entries(d) {
-                        IResult::Done(_, ref entries) => {
+                        Ok( (_, ref entries) ) => {
                             for ce in entries {
                                 SCLogDebug!("ce {:?}", ce);
                                 match ce.entry {
@@ -375,7 +372,7 @@ impl NFSState {
         // for all other record types only parse the status
         else {
             let stat = match nom::be_u32(&r.prog_data) {
-                nom::IResult::Done(_, stat) => stat as u32,
+                Ok( (_, stat) ) => stat as u32,
                 _ => 0 as u32,
             };
             nfs_status = stat;
