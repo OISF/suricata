@@ -59,7 +59,7 @@ void DetectGeoipRegister(void)
 
 #else /* HAVE_GEOIP */
 
-#include <GeoIP.h>
+#include <maxminddb.h>
 
 static int DetectGeoipMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                             const Signature *, const SigMatchCtx *);
@@ -84,27 +84,78 @@ void DetectGeoipRegister(void)
  * \internal
  * \brief This function is used to initialize the geolocation MaxMind engine
  *
- * \retval NULL if the engine couldn't be initialized
- * \retval (GeoIP *) to the geolocation engine
+ * \retval FALSE if the engine couldn't be initialized
  */
-static GeoIP *InitGeolocationEngine(void)
+static int InitGeolocationEngine(DetectGeoipData *geoipdata)
 {
-    return GeoIP_new(GEOIP_MEMORY_CACHE);
+    const char *filename = NULL;
+
+    /* Get location and name of GeoIP2 database from YAML conf */
+    (void)ConfGet("geoip-database", &filename);
+
+    if (filename == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Unable to locate a GeoIP2 database filename in YAML conf.  GeoIP rule matching is disabled.");
+        geoipdata->mmdb_status = MMDB_FILE_OPEN_ERROR;
+        return FALSE;
+    }
+
+    /* Attempt to open MaxMind DB and save file handle if successful */
+    int status = MMDB_open(filename, MMDB_MODE_MMAP, &geoipdata->mmdb);
+
+    if (status == MMDB_SUCCESS) {
+        geoipdata->mmdb_status = status;
+        return TRUE;
+    }
+
+    SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Failed to open GeoIP2 database: %s.  Error was: %s.  GeoIP rule matching is disabled.", filename, MMDB_strerror(status));
+    geoipdata->mmdb_status = status;
+    return FALSE;
 }
 
 /**
  * \internal
  * \brief This function is used to geolocate the IP using the MaxMind libraries
  *
- * \param ip IP to geolocate (uint32_t ip)
+ * \param ip IPv4 to geolocate (uint32_t ip)
  *
  * \retval NULL if it couldn't be geolocated
  * \retval ptr (const char *) to the country code string
  */
-static const char *GeolocateIPv4(GeoIP *geoengine, uint32_t ip)
+static const char *GeolocateIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
 {
-    if (geoengine != NULL)
-        return GeoIP_country_code_by_ipnum(geoengine,  SCNtohl(ip));
+    int mmdb_error;
+    struct sockaddr_in sa;
+    sa.sin_family = AF_INET;
+    sa.sin_port = 0;
+    sa.sin_addr.s_addr = ip;
+    MMDB_lookup_result_s result;
+    MMDB_entry_data_s entry_data;
+
+    /* Return if no GeoIP database access available */
+    if (geoipdata->mmdb_status != MMDB_SUCCESS)
+        return NULL;
+
+    /* Attempt to find the IPv4 address in the database */
+    result = MMDB_lookup_sockaddr((MMDB_s *)&geoipdata->mmdb, (struct sockaddr*)&sa, &mmdb_error);
+    if (mmdb_error != MMDB_SUCCESS)
+        return NULL;
+
+    /* The IPv4 address was found, so grab ISO country code if available */
+    if (result.found_entry) {
+        mmdb_error = MMDB_get_value(&result.entry, &entry_data, "country", "iso_code", NULL);
+        if (mmdb_error != MMDB_SUCCESS)
+            return NULL;
+
+        /* If ISO country code was found, then return it */
+        if (entry_data.has_data) {
+            if (entry_data.type == MMDB_DATA_TYPE_UTF8_STRING) {
+                    char *country_code = strndup((char *)entry_data.utf8_string, entry_data.data_size);
+                    return country_code;
+            }
+        }
+    }
+
+    /* The country code for the IP was not found */
     return NULL;
 }
 
@@ -125,16 +176,23 @@ static const char *GeolocateIPv4(GeoIP *geoengine, uint32_t ip)
  * \internal
  * \brief This function is used to geolocate the IP using the MaxMind libraries
  *
- * \param ip IP to geolocate (uint32_t ip)
+ * \param ip IPv4 to geolocate (uint32_t ip)
  *
  * \retval 0 no match
  * \retval 1 match
  */
 static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
 {
-    const char *country;
+    const char *country = NULL;
     int i;
-    country = GeolocateIPv4(geoipdata->geoengine, ip);
+
+    /* Attempt country code lookup for the IP address */
+    country = GeolocateIPv4(geoipdata, ip);
+
+    /* Skip further checks if did not get a country code */
+    if (country == NULL || geoipdata->mmdb_status != MMDB_SUCCESS)
+        return 0;
+
     /* Check if NOT NEGATED match-on condition */
     if ((geoipdata->flags & GEOIP_MATCH_NEGATED) == 0)
     {
@@ -299,8 +357,7 @@ static DetectGeoipData *DetectGeoipDataParse (const char *str)
     }
 
     /* Initialize the geolocation engine */
-    geoipdata->geoengine = InitGeolocationEngine();
-    if (geoipdata->geoengine == NULL)
+    if (InitGeolocationEngine(geoipdata) == FALSE)
         goto error;
 
     return geoipdata;
@@ -362,6 +419,8 @@ static void DetectGeoipDataFree(void *ptr)
 {
     if (ptr != NULL) {
         DetectGeoipData *geoipdata = (DetectGeoipData *)ptr;
+        if (geoipdata->mmdb_status == MMDB_SUCCESS)
+            MMDB_close(&geoipdata->mmdb);
         SCFree(geoipdata);
     }
 }
