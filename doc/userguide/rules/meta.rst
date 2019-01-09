@@ -79,7 +79,7 @@ possible to modify this. It is not usual that it will be changed, and
 changing it has no technical implications. You can only notice it in
 the alert.
 
-Example of gid in an alert of fast.log. In the part [1:2008124:2], 1 is the gid (2008124 is the the sid and 2 the rev).
+Example of gid in an alert of fast.log. In the part [1:2008124:2], 1 is the gid (2008124 is the sid and 2 the rev).
 
 .. container:: example-rule
 
@@ -169,7 +169,7 @@ format of priority is::
 metadata
 --------
 
-The meatadata keyword allows additional, non-functional information to
+The metadata keyword allows additional, non-functional information to
 be added to the signature. While the format is free-form, it is
 recommended to stick to key, value pairs as Suricata can include these
 in eve alerts. The format is::

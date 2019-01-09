@@ -81,7 +81,7 @@ only_stream
   Match on packets that have been reassembled by the stream engine.
 no_stream
   Match on packets that have not been reassembled by the stream
-  engine. Will not match packets that have been reeassembled.
+  engine. Will not match packets that have been reassembled.
 only_frag
   Match packets that have been reassembled from fragments.
 no_frag
