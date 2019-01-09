@@ -31,7 +31,7 @@ init:
 install:
     - ps: 'Start-FileDownload "http://cygwin.com/$env:CYG_SETUP" -FileName "$env:CYG_SETUP"'
     - '%CYG_SETUP% -gqnNdO --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" > NUL 2>&1'
-    - '%CYG_SETUP% --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" --packages automake,bison,gcc-core,libtool,make,gettext-devel,gettext,intltool,pkg-config,clang,llvm,libpcre-devel,file-devel,wget,zlib-devel,libnss-devel,libnspr-devel,libmaxminddb-devel,libyaml-devel,luajit-devel,unzip,libiconv,libiconv-devel > NUL 2>&1'
+    - '%CYG_SETUP% --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" --packages automake,bison,gcc-core,libtool,make,gettext-devel,gettext,intltool,pkg-config,clang,llvm,libpcre-devel,file-devel,wget,zlib-devel,libnss-devel,libnspr-devel,libmaxminddb,libmaxminddb-devel,libyaml-devel,luajit-devel,unzip,libiconv,libiconv-devel > NUL 2>&1'
     - '%CYG_BASH% -lc "cygcheck -dc cygwin"'
     - '%CYG_BASH% -lc "wget https://www.winpcap.org/install/bin/WpdPack_4_1_2.zip && ls && unzip WpdPack_4_1_2.zip"'
     - '%CYG_BASH% -lc "cp WpdPack/Lib/libpacket.a /usr/lib/"'
