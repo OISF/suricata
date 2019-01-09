@@ -94,9 +94,9 @@ static int InitGeolocationEngine(DetectGeoipData *geoipdata)
     (void)ConfGet("geoip-database", &filename);
 
     if (filename == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Unable to locate a GeoIP2 
-                     database filename in YAML conf.  GeoIP rule matching 
-                     is disabled.");
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Unable to locate a GeoIP2"  
+                     "database filename in YAML conf.  GeoIP rule matching "
+                     "is disabled.");
         geoipdata->mmdb_status = MMDB_FILE_OPEN_ERROR;
         return FALSE;
     }
@@ -109,8 +109,8 @@ static int InitGeolocationEngine(DetectGeoipData *geoipdata)
         return TRUE;
     }
 
-    SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Failed to open GeoIP2 database: %s.  
-                 Error was: %s.  GeoIP rule matching is disabled.", filename, 
+    SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Failed to open GeoIP2 database: %s. " 
+                 "Error was: %s.  GeoIP rule matching is disabled.", filename, 
                  MMDB_strerror(status));
     geoipdata->mmdb_status = status;
     return FALSE;
