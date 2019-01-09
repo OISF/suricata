@@ -40,7 +40,7 @@ card that support XDP in the driver.
 Suricata XDP code has been tested with 4.13.10 but 4.15 or later is necessary to use all
 features like the CPU redirect map.
 
-If you are using an Intel netword card, you will need to stay with in tree kernel NIC drivers.
+If you are using an Intel network card, you will need to stay with in tree kernel NIC drivers.
 The out of tree drivers do not contain the XDP support.
 
 Having a network card with support for RSS symmetric hashing is a good point or you will have to

@@ -16,7 +16,7 @@ Installing from the source distribution files gives the most control over the Su
 
 Basic steps::
 
-    tar xzvf suricata-4.1.0.tar.gz
+    tar xzvf suricata-4.1.2.tar.gz
     cd suricata-4.1.0
     ./configure
     make

@@ -84,7 +84,7 @@ For example::
   distance:-10; sid:9000000; rev:1;)
 
 You see ``content:!”Firefox/3.6.13”;``. This means an alert will be
-generated if the the used version of Firefox is not 3.6.13.
+generated if the used version of Firefox is not 3.6.13.
 
 .. note:: The following characters must be escaped inside the content:
              ``;`` ``\`` ``"``
