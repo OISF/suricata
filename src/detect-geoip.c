@@ -205,7 +205,7 @@ static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
     {
         for (i = 0; i < geoipdata->nlocations; i++) {
             if (country != NULL && strcmp(country, (char *)geoipdata->location[i])==0) {
-                free(country);
+                SCFree(country);
                 return 1;
             }
         }
@@ -213,14 +213,14 @@ static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
         /* Check if NEGATED match-on condition */
         for (i = 0; i < geoipdata->nlocations; i++) {
             if (country != NULL && strcmp(country, (char *)geoipdata->location[i])==0) {
-                free(country);
+                SCFree(country);
                 return 0; /* if one matches, rule does NOT match (negated) */
             }
         }
-        free(country);
+        SCFree(country);
         return 1; /* returns 1 if no location matches (negated) */
     }
-    free(country);
+    SCFree(country);
     return 0;
 }
 
