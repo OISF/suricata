@@ -61,6 +61,14 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
         shim = *(uint32_t *)pkt;
         pkt += MPLS_HEADER_LEN;
         len -= MPLS_HEADER_LEN;
+
+        if (p->mpls_idx >= 6) {
+            ENGINE_SET_EVENT(p, MPLS_HEADER_TOO_MANY_LAYERS);
+            return TM_ECODE_FAILED;
+        }
+
+        p->mpls_id[p->mpls_idx] = MPLS_LABEL(shim);
+        p->mpls_idx ++;
     } while (MPLS_BOTTOM(shim) == 0);
 
     label = MPLS_LABEL(shim);

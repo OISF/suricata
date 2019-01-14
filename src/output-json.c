@@ -739,6 +739,19 @@ json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
         }
     }
 
+    /* mpls */
+    if (p->mpls_idx > 0) {
+        json_t *js_mpls;
+        js_mpls = json_array();
+        if (unlikely(js_mpls != NULL)) {
+            for (uint8_t i = 0; i < p->mpls_idx; i++) {
+                json_array_append_new(js_mpls, json_integer(p->mpls_id[i]));
+            }
+        }
+
+        json_object_set_new(js, "mpls", js_mpls);
+    }
+
     /* 5-tuple */
     JsonFiveTuple(p, dir, js);
 
