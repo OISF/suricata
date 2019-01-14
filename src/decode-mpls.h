@@ -29,6 +29,9 @@
 #define ETHERNET_TYPE_MPLS_UNICAST   0x8847
 #define ETHERNET_TYPE_MPLS_MULTICAST 0x8848
 
+/** MPLS max label depth */
+#define MPLS_MAX_LABEL_DEPTH 6
+
 void DecodeMPLSRegisterTests(void);
 
 #endif /* !__DECODE_MPLS_H__ */
