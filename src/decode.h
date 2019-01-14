@@ -434,6 +434,9 @@ typedef struct Packet_
     uint16_t vlan_id[2];
     uint8_t vlan_idx;
 
+    uint16_t mpls_id[2];
+    uint8_t mpls_idx;
+
     /* flow */
     uint8_t flowflags;
     /* coccinelle: Packet:flowflags:FLOW_PKT_ */
@@ -768,6 +771,9 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->vlan_id[0] = 0;                    \
         (p)->vlan_id[1] = 0;                    \
         (p)->vlan_idx = 0;                      \
+        (p)->mpls_id[0] = 0;                    \
+        (p)->mpls_id[1] = 0;                    \
+        (p)->mpls_idx = 0;                      \
         (p)->ts.tv_sec = 0;                     \
         (p)->ts.tv_usec = 0;                    \
         (p)->datalink = 0;                      \

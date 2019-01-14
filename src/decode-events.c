@@ -174,6 +174,7 @@ const struct DecodeEvents_ DEvents[] = {
     { "decoder.mpls.bad_label_implicit_null", MPLS_BAD_LABEL_IMPLICIT_NULL, },
     { "decoder.mpls.bad_label_reserved", MPLS_BAD_LABEL_RESERVED, },
     { "decoder.mpls.unknown_payload_type", MPLS_UNKNOWN_PAYLOAD_TYPE, },
+    { "decoder.mpls.too_many_layers", MPLS_HEADER_TOO_MANY_LAYERS, },
 
     /* ERSPAN events */
     { "decoder.erspan.header_too_small", ERSPAN_HEADER_TOO_SMALL, },
