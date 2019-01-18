@@ -357,8 +357,8 @@ static int LuaCallbackTuplePushToStackFromPacket(lua_State *luastate, const Pack
         lua_pushnumber (luastate, p->dp);
 
     } else if (p->proto == IPPROTO_ICMP || p->proto == IPPROTO_ICMPV6) {
-        lua_pushnumber (luastate, p->type);
-        lua_pushnumber (luastate, p->code);
+        lua_pushnumber (luastate, p->icmp_s.type);
+        lua_pushnumber (luastate, p->icmp_s.code);
     } else {
         lua_pushnumber (luastate, 0);
         lua_pushnumber (luastate, 0);
@@ -420,8 +420,8 @@ static int LuaCallbackTuplePushToStackFromFlow(lua_State *luastate, const Flow *
         lua_pushnumber (luastate, f->dp);
 
     } else if (f->proto == IPPROTO_ICMP || f->proto == IPPROTO_ICMPV6) {
-        lua_pushnumber (luastate, f->type);
-        lua_pushnumber (luastate, f->code);
+        lua_pushnumber (luastate, f->icmp_s.type);
+        lua_pushnumber (luastate, f->icmp_s.code);
     } else {
         lua_pushnumber (luastate, 0);
         lua_pushnumber (luastate, 0);
@@ -802,6 +802,14 @@ static int LuaCallbackFileStatePushToStackFromFile(lua_State *luastate, const Fi
             break;
         case FILE_STATE_ERROR:
             state = "ERROR";
+            break;
+        case FILE_STATE_OPENED:
+            state = "OPENED";
+            break;
+        case FILE_STATE_NONE:
+            state = "NONE";
+            break;
+        case FILE_STATE_MAX:
             break;
     }
 

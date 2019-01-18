@@ -119,7 +119,7 @@ static inline int CreateSpace(HttpHeaderThreadData *td, uint64_t size)
         while (td->buffers_size + extra < size) {
             extra += td->tx_step;
         }
-        SCLogDebug("adding %u to the buffer", (uint)extra);
+        SCLogDebug("adding %u to the buffer", extra);
 
         void *ptmp = SCRealloc(td->buffers,
                          (td->buffers_size + extra) * sizeof(HttpHeaderBuffer));
@@ -144,7 +144,7 @@ int HttpHeaderExpandBuffer(HttpHeaderThreadData *td,
     while ((buf->size + extra) < (size + buf->len)) {
         extra += td->size_step;
     }
-    SCLogDebug("adding %u to the buffer", (uint)extra);
+    SCLogDebug("adding %"PRIuMAX" to the buffer", (uintmax_t)extra);
 
     uint8_t *new_buffer = SCRealloc(buf->buffer, buf->size + extra);
     if (unlikely(new_buffer == NULL)) {

@@ -45,6 +45,22 @@ Example::
 
 ``tls_cert_serial`` can be used as ``fast_pattern``.
 
+tls_cert_fingerprint
+--------------------
+
+Match on the SHA-1 fingerprint of the certificate.
+
+Example::
+
+  alert tls any any -> any any (msg:"match cert fingerprint"; \
+    tls_cert_fingerprint; \
+    content:"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18"; \
+    sid:200023;)
+
+``tls_cert_fingerprint`` is a 'Sticky buffer'.
+
+``tls_cert_fingerprint`` can be used as ``fast_pattern``.
+
 tls_sni
 -------
 
@@ -105,7 +121,36 @@ tls.version
 
 Match on negotiated TLS/SSL version.
 
-Example values: "1.0", "1.1", "1.2"
+Supported values: "1.0", "1.1", "1.2", "1.3"
+
+It is also possible to match versions using a hex string.
+
+Examples::
+
+  tls.version:1.2;
+  tls.version:0x7f12;
+
+The first example matches TLSv1.2, whilst the last example matches TLSv1.3
+draft 16.
+
+ssl_version
+-----------
+
+Match version of SSL/TLS record.
+
+Supported values "sslv2", "sslv3", "tls1.0", "tls1.1", "tls1.2", "tls1.3"
+
+Example::
+
+  alert tls any any -> any any (msg:"match TLSv1.2"; \
+    ssl_version:tls1.2; sid:200030;)
+
+It is also possible to match on several versions at the same time.
+
+Example::
+
+  alert tls any any -> any any (msg:"match SSLv2 and SSLv3"; \
+    ssl_version:sslv2,sslv3; sid:200031;)
 
 tls.subject
 -----------

@@ -95,9 +95,6 @@ struct ProfileProtoRecords {
     SCProfilePacketData records4[257];
     SCProfilePacketData records6[257];
 };
-static SCProfilePacketData prefilter4[256][256];
-static SCProfilePacketData prefilter6[256][256];
-
 
 struct ProfileProtoRecords packet_profile_flowworker_data[PROFILE_FLOWWORKER_SIZE];
 
@@ -122,6 +119,7 @@ __thread int profiling_rules_entered = 0;
 void SCProfilingDumpPacketStats(void);
 const char * PacketProfileDetectIdToString(PacketProfileDetectId id);
 const char * PacketProfileLoggertIdToString(LoggerId id);
+static void PrintCSVHeader(void);
 
 static void FormatNumber(uint64_t num, char *str, size_t size)
 {
@@ -178,8 +176,6 @@ SCProfilingInit(void)
             memset(&packet_profile_log_data4, 0, sizeof(packet_profile_log_data4));
             memset(&packet_profile_log_data6, 0, sizeof(packet_profile_log_data6));
             memset(&packet_profile_flowworker_data, 0, sizeof(packet_profile_flowworker_data));
-            memset(&prefilter4, 0, sizeof(prefilter4));
-            memset(&prefilter6, 0, sizeof(prefilter6));
 
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
@@ -203,14 +199,12 @@ SCProfilingInit(void)
         conf = ConfGetNode("profiling.packets.csv");
         if (conf != NULL) {
             if (ConfNodeChildValueIsTrue(conf, "enabled")) {
-
                 const char *filename = ConfNodeLookupChildValue(conf, "filename");
                 if (filename == NULL) {
                     filename = "packet_profile.csv";
                 }
 
-                const char *log_dir;
-                log_dir = ConfigGetLogDirectory();
+                const char *log_dir = ConfigGetLogDirectory();
 
                 profiling_csv_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_csv_file_name == NULL)) {
@@ -221,22 +215,12 @@ SCProfilingInit(void)
 
                 packet_profile_csv_fp = fopen(profiling_csv_file_name, "w");
                 if (packet_profile_csv_fp == NULL) {
+                    SCFree(profiling_csv_file_name);
+                    profiling_csv_file_name = NULL;
                     return;
                 }
-                fprintf(packet_profile_csv_fp, "pcap_cnt,ipver,ipproto,total,");
-                int i;
-                for (i = 0; i < TMM_SIZE; i++) {
-                    fprintf(packet_profile_csv_fp, "%s,", TmModuleTmmIdToString(i));
-                }
-                fprintf(packet_profile_csv_fp, "threading,");
-                for (i = 0; i < ALPROTO_MAX; i++) {
-                    fprintf(packet_profile_csv_fp, "%s,", AppProtoToString(i));
-                }
-                fprintf(packet_profile_csv_fp, "proto detect,");
-                for (i = 0; i < PROF_DETECT_SIZE; i++) {
-                    fprintf(packet_profile_csv_fp, "%s,", PacketProfileDetectIdToString(i));
-                }
-                fprintf(packet_profile_csv_fp, "\n");
+
+                PrintCSVHeader();
 
                 profiling_packets_csv_enabled = 1;
             }
@@ -314,96 +298,6 @@ SCProfilingDump(void)
 {
     SCProfilingDumpPacketStats();
     SCLogPerf("Done dumping profiling data.");
-}
-
-static void DumpPrefilterIP(FILE *fp, int ipv, uint64_t total)
-{
-    char totalstr[256];
-
-    SCProfilePacketData total_pd;
-    memset(&total_pd, 0, sizeof(total_pd));
-
-    int i;
-    for (i = 0; i < 256; i++) {
-        const char *name = PrefilterStoreGetName(i);
-
-        for (int p = 0; p < 256; p++) {
-            SCProfilePacketData *pd = ipv == 4 ? &prefilter4[i][p] : &prefilter6[i][p];
-            if (pd->cnt == 0) {
-                continue;
-            }
-
-            total_pd.cnt += pd->cnt;
-            total_pd.tot += pd->tot;
-
-            FormatNumber(pd->tot, totalstr, sizeof(totalstr));
-            double percent = (long double)pd->tot /
-                (long double)total * 100;
-
-            fprintf(fp, "%-30s    IPv%d     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %11s  %-6.2f\n",
-                    name, ipv, p, pd->cnt,
-                    pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
-        }
-    }
-    if (total_pd.cnt) {
-        FormatNumber(total_pd.tot, totalstr, sizeof(totalstr));
-        fprintf(fp, "%-30s    IPv%d          %12"PRIu64"                                  %12"PRIu64"  %11s\n",
-                "Total", ipv, total_pd.cnt, (uint64_t)(total_pd.tot / total_pd.cnt), totalstr);
-    }
-}
-
-static void DumpPrefilter(FILE *fp)
-{
-    uint64_t total = 0;
-
-    int i;
-    for (i = 0; i < 256; i++) {
-        for (int p = 0; p < 256; p++) {
-            SCProfilePacketData *pd = &prefilter4[i][p];
-            total += pd->tot;
-            pd = &prefilter6[i][p];
-            total += pd->tot;
-        }
-    }
-
-    fprintf(fp, "\n%-30s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-11s  %-3s\n",
-            "Prefilter", "IP ver", "Proto", "cnt", "min", "max", "avg", "tot", "%%");
-    fprintf(fp, "%-30s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-11s  %-3s\n",
-            "--------------------", "------", "-----", "----------",
-            "------------", "------------", "-----------", "---------", "---");
-    DumpPrefilterIP(fp, 4, total);
-    DumpPrefilterIP(fp, 6, total);
-}
-
-static void SCProfilingUpdatePrefilterRecords(Packet *p)
-{
-    if (p->profile->prefilter.engines != NULL) {
-        uint32_t x;
-        for (x = 0; x < p->profile->prefilter.size; x++) {
-            uint64_t ticks = p->profile->prefilter.engines[x].ticks_spent;
-            if (ticks == 0)
-                continue;
-
-            SCProfilePacketData *pd = NULL;
-            if (PKT_IS_IPV4(p)) {
-                pd = &prefilter4[x][p->proto];
-            } else if (PKT_IS_IPV6(p)) {
-                pd = &prefilter6[x][p->proto];
-            } else {
-                continue;
-            }
-
-            if (pd->min == 0 || ticks < pd->min) {
-                pd->min = ticks;
-            }
-            if (pd->max < ticks) {
-                pd->max = ticks;
-            }
-
-            pd->tot += ticks;
-            pd->cnt ++;
-        }
-    }
 }
 
 static void DumpFlowWorkerIP(FILE *fp, int ipv, uint64_t total)
@@ -785,7 +679,7 @@ void SCProfilingDumpPacketStats(void)
     total = 0;
     for (m = 0; m < LOGGER_SIZE; m++) {
         int p;
-        for (p = 0; p < 257; p++) {
+        for (p = 0; p < 256; p++) {
             SCProfilePacketData *pd = &packet_profile_log_data4[m][p];
             total += pd->tot;
             pd = &packet_profile_log_data6[m][p];
@@ -799,7 +693,7 @@ void SCProfilingDumpPacketStats(void)
             "------------------------", "------", "-----", "----------", "------------", "------------", "-----------", "-----------");
     for (m = 0; m < LOGGER_SIZE; m++) {
         int p;
-        for (p = 0; p < 257; p++) {
+        for (p = 0; p < 256; p++) {
             SCProfilePacketData *pd = &packet_profile_log_data4[m][p];
 
             if (pd->cnt == 0) {
@@ -816,7 +710,7 @@ void SCProfilingDumpPacketStats(void)
     }
     for (m = 0; m < LOGGER_SIZE; m++) {
         int p;
-        for (p = 0; p < 257; p++) {
+        for (p = 0; p < 256; p++) {
             SCProfilePacketData *pd = &packet_profile_log_data6[m][p];
 
             if (pd->cnt == 0) {
@@ -831,8 +725,6 @@ void SCProfilingDumpPacketStats(void)
                     PacketProfileLoggertIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
     }
-
-    DumpPrefilter(fp);
 
     fprintf(fp, "\nGeneral detection engine stats:\n");
 
@@ -888,36 +780,75 @@ void SCProfilingDumpPacketStats(void)
     fclose(fp);
 }
 
+static void PrintCSVHeader(void)
+{
+    fprintf(packet_profile_csv_fp, "pcap_cnt,total,receive,decode,flowworker,");
+    fprintf(packet_profile_csv_fp, "threading,");
+    fprintf(packet_profile_csv_fp, "proto detect,");
+
+    for (enum ProfileFlowWorkerId fwi = 0; fwi < PROFILE_FLOWWORKER_SIZE; fwi++) {
+        fprintf(packet_profile_csv_fp, "%s,", ProfileFlowWorkerIdToString(fwi));
+    }
+    fprintf(packet_profile_csv_fp, "loggers,");
+
+    /* detect stages */
+    for (int i = 0; i < PROF_DETECT_SIZE; i++) {
+        fprintf(packet_profile_csv_fp, "%s,", PacketProfileDetectIdToString(i));
+    }
+
+    /* individual loggers */
+    for (LoggerId i = 0; i < LOGGER_SIZE; i++) {
+        fprintf(packet_profile_csv_fp, "%s,", PacketProfileLoggertIdToString(i));
+    }
+
+    fprintf(packet_profile_csv_fp, "\n");
+}
+
 void SCProfilingPrintPacketProfile(Packet *p)
 {
-    if (profiling_packets_csv_enabled == 0 || p == NULL || packet_profile_csv_fp == NULL || p->profile == NULL) {
+    if (profiling_packets_csv_enabled == 0 || p == NULL ||
+        packet_profile_csv_fp == NULL || p->profile == NULL) {
         return;
     }
 
-    uint64_t delta = p->profile->ticks_end - p->profile->ticks_start;
-
-    fprintf(packet_profile_csv_fp, "%"PRIu64",%c,%"PRIu8",%"PRIu64",",
-            p->pcap_cnt, PKT_IS_IPV4(p) ? '4' : (PKT_IS_IPV6(p) ? '6' : '?'), p->proto,
-            delta);
-
-    int i;
     uint64_t tmm_total = 0;
+    uint64_t receive = 0;
+    uint64_t decode = 0;
 
-    for (i = 0; i < TMM_SIZE; i++) {
-        PktProfilingTmmData *pdt = &p->profile->tmm[i];
+    /* total cost from acquisition to return to packetpool */
+    uint64_t delta = p->profile->ticks_end - p->profile->ticks_start;
+    fprintf(packet_profile_csv_fp, "%"PRIu64",%"PRIu64",",
+            p->pcap_cnt, delta);
 
+    for (int i = 0; i < TMM_SIZE; i++) {
+        const PktProfilingTmmData *pdt = &p->profile->tmm[i];
         uint64_t tmm_delta = pdt->ticks_end - pdt->ticks_start;
-        fprintf(packet_profile_csv_fp, "%"PRIu64",", tmm_delta);
+
+        if (tmm_modules[i].flags & TM_FLAG_RECEIVE_TM) {
+            if (tmm_delta) {
+                receive = tmm_delta;
+            }
+            continue;
+
+        } else if (tmm_modules[i].flags & TM_FLAG_DECODE_TM) {
+            if (tmm_delta) {
+                decode = tmm_delta;
+            }
+            continue;
+        }
+
         tmm_total += tmm_delta;
     }
-
+    fprintf(packet_profile_csv_fp, "%"PRIu64",", receive);
+    fprintf(packet_profile_csv_fp, "%"PRIu64",", decode);
+    PktProfilingTmmData *fw_pdt = &p->profile->tmm[TMM_FLOWWORKER];
+    fprintf(packet_profile_csv_fp, "%"PRIu64",", fw_pdt->ticks_end - fw_pdt->ticks_start);
     fprintf(packet_profile_csv_fp, "%"PRIu64",", delta - tmm_total);
 
+    /* count ticks for app layer */
     uint64_t app_total = 0;
-    for (i = 0; i < ALPROTO_MAX; i++) {
-        PktProfilingAppData *pdt = &p->profile->app[i];
-
-        fprintf(packet_profile_csv_fp,"%"PRIu64",", pdt->ticks_spent);
+    for (AppProto i = 1; i < ALPROTO_FAILED; i++) {
+        const PktProfilingAppData *pdt = &p->profile->app[i];
 
         if (p->proto == IPPROTO_TCP) {
             app_total += pdt->ticks_spent;
@@ -926,11 +857,40 @@ void SCProfilingPrintPacketProfile(Packet *p)
 
     fprintf(packet_profile_csv_fp, "%"PRIu64",", p->profile->proto_detect);
 
-    for (i = 0; i < PROF_DETECT_SIZE; i++) {
-        PktProfilingDetectData *pdt = &p->profile->detect[i];
+    /* print flowworker steps */
+    for (enum ProfileFlowWorkerId fwi = 0; fwi < PROFILE_FLOWWORKER_SIZE; fwi++) {
+        const PktProfilingData *pd = &p->profile->flowworker[fwi];
+        uint64_t ticks_spent = pd->ticks_end - pd->ticks_start;
+        if (fwi == PROFILE_FLOWWORKER_STREAM) {
+            ticks_spent -= app_total;
+        } else if (fwi == PROFILE_FLOWWORKER_APPLAYERUDP && app_total) {
+            ticks_spent = app_total;
+        }
+
+        fprintf(packet_profile_csv_fp, "%"PRIu64",", ticks_spent);
+    }
+
+    /* count loggers cost and print as a single cost */
+    uint64_t loggers = 0;
+    for (LoggerId i = 0; i < LOGGER_SIZE; i++) {
+        const PktProfilingLoggerData *pd = &p->profile->logger[i];
+        loggers += pd->ticks_spent;
+    }
+    fprintf(packet_profile_csv_fp, "%"PRIu64",", loggers);
+
+    /* detect steps */
+    for (int i = 0; i < PROF_DETECT_SIZE; i++) {
+        const PktProfilingDetectData *pdt = &p->profile->detect[i];
 
         fprintf(packet_profile_csv_fp,"%"PRIu64",", pdt->ticks_spent);
     }
+
+    /* print individual loggers */
+    for (LoggerId i = 0; i < LOGGER_SIZE; i++) {
+        const PktProfilingLoggerData *pd = &p->profile->logger[i];
+        fprintf(packet_profile_csv_fp, "%"PRIu64",", pd->ticks_spent);
+    }
+
     fprintf(packet_profile_csv_fp,"\n");
 }
 
@@ -1182,9 +1142,6 @@ void SCProfilingAddPacket(Packet *p)
     pthread_mutex_lock(&packet_profile_lock);
     {
 
-        if (profiling_packets_csv_enabled)
-            SCProfilingPrintPacketProfile(p);
-
         if (PKT_IS_IPV4(p)) {
             SCProfilePacketData *pd = &packet_profile_data4[p->proto];
 
@@ -1258,7 +1215,9 @@ void SCProfilingAddPacket(Packet *p)
             SCProfilingUpdatePacketLogRecords(p);
         }
 
-        SCProfilingUpdatePrefilterRecords(p);
+        if (profiling_packets_csv_enabled)
+            SCProfilingPrintPacketProfile(p);
+
     }
     pthread_mutex_unlock(&packet_profile_lock);
 }
@@ -1302,21 +1261,20 @@ int SCProfileRuleStart(Packet *p)
 const char * PacketProfileDetectIdToString(PacketProfileDetectId id)
 {
     switch (id) {
+        CASE_CODE (PROF_DETECT_SETUP);
+        CASE_CODE (PROF_DETECT_GETSGH);
         CASE_CODE (PROF_DETECT_IPONLY);
         CASE_CODE (PROF_DETECT_RULES);
-        CASE_CODE (PROF_DETECT_PREFILTER);
         CASE_CODE (PROF_DETECT_PF_PKT);
         CASE_CODE (PROF_DETECT_PF_PAYLOAD);
         CASE_CODE (PROF_DETECT_PF_TX);
         CASE_CODE (PROF_DETECT_PF_SORT1);
         CASE_CODE (PROF_DETECT_PF_SORT2);
-        CASE_CODE (PROF_DETECT_STATEFUL_START);
-        CASE_CODE (PROF_DETECT_STATEFUL_CONT);
-        CASE_CODE (PROF_DETECT_STATEFUL_UPDATE);
-        CASE_CODE (PROF_DETECT_ALERT);
-        CASE_CODE (PROF_DETECT_CLEANUP);
-        CASE_CODE (PROF_DETECT_GETSGH);
         CASE_CODE (PROF_DETECT_NONMPMLIST);
+        CASE_CODE (PROF_DETECT_TX);
+        CASE_CODE (PROF_DETECT_ALERT);
+        CASE_CODE (PROF_DETECT_TX_UPDATE);
+        CASE_CODE (PROF_DETECT_CLEANUP);
         default:
             return "UNKNOWN";
     }
@@ -1341,12 +1299,23 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_JSON_ALERT);
         CASE_CODE (LOGGER_JSON_DROP);
         CASE_CODE (LOGGER_JSON_SSH);
-        CASE_CODE (LOGGER_DNS);
+        CASE_CODE (LOGGER_DNS_TS);
+        CASE_CODE (LOGGER_DNS_TC);
+        CASE_CODE (LOGGER_JSON_SMB);
+        CASE_CODE (LOGGER_JSON_NFS);
         CASE_CODE (LOGGER_HTTP);
-        CASE_CODE (LOGGER_JSON_DNS);
+        CASE_CODE (LOGGER_JSON_DNS_TS);
+        CASE_CODE (LOGGER_JSON_DNS_TC);
+        CASE_CODE (LOGGER_JSON_DNP3_TS);
+        CASE_CODE (LOGGER_JSON_DNP3_TC);
         CASE_CODE (LOGGER_JSON_HTTP);
+        CASE_CODE (LOGGER_JSON_DHCP);
+        CASE_CODE (LOGGER_JSON_KRB5);
+        CASE_CODE (LOGGER_JSON_IKEV2);
+        CASE_CODE (LOGGER_JSON_TFTP);
         CASE_CODE (LOGGER_JSON_SMTP);
         CASE_CODE (LOGGER_JSON_TLS);
+        CASE_CODE (LOGGER_JSON_TEMPLATE_RUST);
         CASE_CODE (LOGGER_JSON_TEMPLATE);
         CASE_CODE (LOGGER_TLS_STORE);
         CASE_CODE (LOGGER_TLS);
@@ -1360,10 +1329,11 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_JSON_STATS);
         CASE_CODE (LOGGER_PRELUDE);
         CASE_CODE (LOGGER_PCAP);
-        CASE_CODE (LOGGER_JSON_VARS);
-        default:
+        CASE_CODE (LOGGER_JSON_METADATA);
+        case LOGGER_SIZE:
             return "UNKNOWN";
     }
+    return "UNKNOWN";
 }
 
 #ifdef UNITTESTS

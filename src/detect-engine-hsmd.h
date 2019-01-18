@@ -25,7 +25,8 @@
 
 #include "app-layer-htp.h"
 
-int PrefilterTxHttpStatMsgRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxHttpStatMsgRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,

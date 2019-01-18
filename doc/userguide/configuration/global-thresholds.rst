@@ -3,7 +3,7 @@ Global-Thresholds
 
 Thresholds can be configured in the rules themselves, see
 :doc:`../rules/thresholding`. They are often set by rule writers based on
-their intel for creating a rule combined with a judgement on how often
+their intelligence for creating a rule combined with a judgement on how often
 a rule will alert.
 
 Threshold Config
@@ -53,6 +53,8 @@ track
 Where to track the rule matches. When using by_src/by_dst the tracking is
 done per IP-address. The Host table is used for storage. When using by_rule
 it's done globally for the rule.
+Option by_both used to track per IP pair of source and destination. Packets
+going to opposite directions between same addresses tracked as the same pair.
 
 count
 ^^^^^
@@ -113,7 +115,7 @@ Syntax:
 ::
 
   suppress gen_id <gid>, sig_id <sid>
-  suppress gen_id <gid>, sig_id <sid>, track <by_src|by_dst>, ip <ip|subnet>
+  suppress gen_id <gid>, sig_id <sid>, track <by_src|by_dst|by_either>, ip <ip|subnet|addressvar>
 
 Examples:
 
@@ -129,6 +131,11 @@ Other possibilities/examples::
   suppress gen_id 1, sig_id 2003614, track by_src, ip 217.110.97.128/25
   suppress gen_id 1, sig_id 2003614, track by_src, ip [192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]
   suppress gen_id 1, sig_id 2003614, track by_src, ip $HOME_NET
+  suppress gen_id 1, sig_id 2003614, track by_either, ip 217.110.97.128/25
+
+In the last example above, the ``by_either`` tracking means that if either
+the ``source ip`` or ``destination ip`` matches ``217.110.97.128/25`` the
+rule with sid 2003614 is suppressed.
 
 .. _global-thresholds-vs-rule-thresholds:
 
@@ -195,9 +202,9 @@ Each of these will replace the threshold setting for 2002087 by the
 new threshold setting.
 
 **Note:** overriding all gids or sids (by using gen_id 0 or sig_id 0)
-is not supported. Bug #425.
+is not supported. Bug https://redmine.openinfosecfoundation.org/issues/425.
 
 Rate_filter
 ~~~~~~~~~~~
 
-TODO
+see https://redmine.openinfosecfoundation.org/issues/425.

@@ -25,7 +25,22 @@
 
 .. option:: -r <path>
 
-   Run in pcap offline mode reading files from pcap file.
+   Run in pcap offline mode (replay mode) reading files from pcap file. If
+   <path> specifies a directory, all files in that directory will be processed
+   in order of modified time maintaining flow state between files.
+
+.. option:: --pcap-file-continuous
+
+   Used with the -r option to indicate that the mode should stay alive until
+   interrupted. This is useful with directories to add new files and not reset
+   flow state between files.
+
+.. option:: --pcap-file-delete
+
+   Used with the -r option to indicate that the mode should delete pcap files
+   after they have been processed. This is useful with pcap-file-continuous to
+   continuously feed files to a directory and have them cleaned up when done. If
+   this option is not set, pcap files will not be deleted after processing.
 
 .. option::  -i <interface>
 
@@ -74,7 +89,7 @@
 
    Normally if you run Suricata on your console, it keeps your console
    occupied. You can not use it for other purposes, and when you close
-   the window, Suricata stops running.  If you run Suricata as deamon
+   the window, Suricata stops running.  If you run Suricata as daemon
    (using the -D option), it runs at the background and you will be
    able to use the console for other tasks without disturbing the
    engine running.

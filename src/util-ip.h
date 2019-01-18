@@ -25,6 +25,8 @@
 #ifndef __UTIL_IP_H__
 #define __UTIL_IP_H__
 
+bool IPv4AddressStringIsValid(const char *str);
+bool IPv6AddressStringIsValid(const char *str);
 struct in_addr *ValidateIPV4Address(const char *);
 struct in6_addr *ValidateIPV6Address(const char *);
 void MaskIPNetblock(uint8_t *, int, int);

@@ -60,10 +60,10 @@ typedef struct IPV6Hdr_
 #define s_ip6_hlim                      ip6_hdrun.ip6_un1.ip6_un1_hlim
 
 #define IPV6_GET_RAW_VER(ip6h)          (((ip6h)->s_ip6_vfc & 0xf0) >> 4)
-#define IPV6_GET_RAW_CLASS(ip6h)        ((ntohl((ip6h)->s_ip6_flow) & 0x0FF00000) >> 20)
-#define IPV6_GET_RAW_FLOW(ip6h)         (ntohl((ip6h)->s_ip6_flow) & 0x000FFFFF)
+#define IPV6_GET_RAW_CLASS(ip6h)        ((SCNtohl((ip6h)->s_ip6_flow) & 0x0FF00000) >> 20)
+#define IPV6_GET_RAW_FLOW(ip6h)         (SCNtohl((ip6h)->s_ip6_flow) & 0x000FFFFF)
 #define IPV6_GET_RAW_NH(ip6h)           ((ip6h)->s_ip6_nxt)
-#define IPV6_GET_RAW_PLEN(ip6h)         (ntohs((ip6h)->s_ip6_plen))
+#define IPV6_GET_RAW_PLEN(ip6h)         (SCNtohs((ip6h)->s_ip6_plen))
 #define IPV6_GET_RAW_HLIM(ip6h)         ((ip6h)->s_ip6_hlim)
 
 #define IPV6_SET_RAW_VER(ip6h, value)   ((ip6h)->s_ip6_vfc = (((ip6h)->s_ip6_vfc & 0x0f) | (value << 4)))

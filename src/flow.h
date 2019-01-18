@@ -42,9 +42,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 
 /* per flow flags */
 
-/** At least on packet from the source address was seen */
+/** At least one packet from the source address was seen */
 #define FLOW_TO_SRC_SEEN                BIT_U32(0)
-/** At least on packet from the destination address was seen */
+/** At least one packet from the destination address was seen */
 #define FLOW_TO_DST_SEEN                BIT_U32(1)
 /** Don't return this from the flow hash. It has been replaced. */
 #define FLOW_TCP_REUSED                 BIT_U32(2)
@@ -79,22 +79,28 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TS_PM_ALPROTO_DETECT_DONE  BIT_U32(13)
 /** Probing parser alproto detection done */
 #define FLOW_TS_PP_ALPROTO_DETECT_DONE  BIT_U32(14)
+/** Expectation alproto detection done */
+#define FLOW_TS_PE_ALPROTO_DETECT_DONE  BIT_U32(15)
 /** Pattern matcher alproto detection done */
-#define FLOW_TC_PM_ALPROTO_DETECT_DONE  BIT_U32(15)
+#define FLOW_TC_PM_ALPROTO_DETECT_DONE  BIT_U32(16)
 /** Probing parser alproto detection done */
-#define FLOW_TC_PP_ALPROTO_DETECT_DONE  BIT_U32(16)
-#define FLOW_TIMEOUT_REASSEMBLY_DONE    BIT_U32(17)
+#define FLOW_TC_PP_ALPROTO_DETECT_DONE  BIT_U32(17)
+/** Expectation alproto detection done */
+#define FLOW_TC_PE_ALPROTO_DETECT_DONE  BIT_U32(18)
+#define FLOW_TIMEOUT_REASSEMBLY_DONE    BIT_U32(19)
 
 /** flow is ipv4 */
-#define FLOW_IPV4                       BIT_U32(18)
+#define FLOW_IPV4                       BIT_U32(20)
 /** flow is ipv6 */
-#define FLOW_IPV6                       BIT_U32(19)
+#define FLOW_IPV6                       BIT_U32(21)
 
-#define FLOW_PROTO_DETECT_TS_DONE       BIT_U32(20)
-#define FLOW_PROTO_DETECT_TC_DONE       BIT_U32(21)
+#define FLOW_PROTO_DETECT_TS_DONE       BIT_U32(22)
+#define FLOW_PROTO_DETECT_TC_DONE       BIT_U32(23)
 
 /** Indicate that alproto detection for flow should be done again */
-#define FLOW_CHANGE_PROTO               BIT_U32(22)
+#define FLOW_CHANGE_PROTO               BIT_U32(24)
+
+#define FLOW_WRONG_THREAD               BIT_U32(25)
 
 /* File flags */
 
@@ -233,19 +239,21 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 
 #define FLOW_IS_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE))
 #define FLOW_IS_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PP_ALPROTO_DETECT_DONE))
+#define FLOW_IS_PE_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PE_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PE_ALPROTO_DETECT_DONE))
 
 #define FLOW_SET_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PM_ALPROTO_DETECT_DONE))
 #define FLOW_SET_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PP_ALPROTO_DETECT_DONE))
+#define FLOW_SET_PE_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PE_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PE_ALPROTO_DETECT_DONE))
 
 #define FLOW_RESET_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PM_ALPROTO_DETECT_DONE))
 #define FLOW_RESET_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PP_ALPROTO_DETECT_DONE))
+#define FLOW_RESET_PE_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PE_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PE_ALPROTO_DETECT_DONE))
 
 /* global flow config */
 typedef struct FlowCnf_
 {
     uint32_t hash_rand;
     uint32_t hash_size;
-    uint64_t memcap;
     uint32_t max_flows;
     uint32_t prealloc;
 
@@ -256,6 +264,7 @@ typedef struct FlowCnf_
     uint32_t emerg_timeout_est;
     uint32_t emergency_recovery;
 
+    SC_ATOMIC_DECLARE(uint64_t, memcap);
 } FlowConfig;
 
 /* Hash key for the flow hash */
@@ -322,11 +331,17 @@ typedef struct Flow_
     FlowAddress src, dst;
     union {
         Port sp;        /**< tcp/udp source port */
-        uint8_t type;   /**< icmp type */
+        struct {
+            uint8_t type;   /**< icmp type */
+            uint8_t code;   /**< icmp code */
+        } icmp_s;
     };
     union {
         Port dp;        /**< tcp/udp destination port */
-        uint8_t code;   /**< icmp code */
+        struct {
+            uint8_t type;   /**< icmp type */
+            uint8_t code;   /**< icmp code */
+        } icmp_d;
     };
     uint8_t proto;
     uint8_t recursion_level;
@@ -368,6 +383,9 @@ typedef struct Flow_
      *  for use with STARTTLS and HTTP CONNECT detection */
     uint16_t protodetect_dp; /**< 0 if not used */
 
+    /* Parent flow id for protocol like ftp */
+    int64_t parent_id;
+
 #ifdef FLOWLOCK_RWLOCK
     SCRWLock r;
 #elif defined FLOWLOCK_MUTEX
@@ -404,6 +422,12 @@ typedef struct Flow_
 
     /** Thread ID for the stream/detect portion of this flow */
     FlowThreadId thread_id;
+
+    /** ttl tracking */
+    uint8_t min_ttl_toserver;
+    uint8_t max_ttl_toserver;
+    uint8_t min_ttl_toclient;
+    uint8_t max_ttl_toclient;
 
     /** application level storage ptrs.
      *
@@ -490,6 +514,10 @@ int FlowGetPacketDirection(const Flow *, const Packet *);
 void FlowCleanupAppLayer(Flow *);
 
 void FlowUpdateState(Flow *f, enum FlowState s);
+
+int FlowSetMemcap(uint64_t size);
+uint64_t FlowGetMemcap(void);
+uint64_t FlowGetMemuse(void);
 
 /** ----- Inline functions ----- */
 

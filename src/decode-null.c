@@ -45,12 +45,16 @@
 
 #define HDR_SIZE 4
 
-int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_null);
 
     if (unlikely(len < HDR_SIZE)) {
         ENGINE_SET_INVALID_EVENT(p, LTNULL_PKT_TOO_SMALL);
+        return TM_ECODE_FAILED;
+    }
+
+    if (unlikely(GET_PKT_LEN(p) > HDR_SIZE + USHRT_MAX)) {
         return TM_ECODE_FAILED;
     }
 

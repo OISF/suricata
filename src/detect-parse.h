@@ -46,7 +46,6 @@ void SigFree(Signature *s);
 Signature *SigInit(DetectEngineCtx *, const char *sigstr);
 Signature *SigInitReal(DetectEngineCtx *, const char *);
 SigMatchData* SigMatchList2DataArray(SigMatch *head);
-void SigParsePrepare(void);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, const char *);
 
@@ -65,11 +64,12 @@ const char *DetectListToHumanString(int list);
 const char *DetectListToString(int list);
 
 SigMatch *DetectGetLastSM(const Signature *);
-SigMatch *DetectGetLastSMFromMpmLists(const Signature *s);
+SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signature *s);
 SigMatch *DetectGetLastSMFromLists(const Signature *s, ...);
 SigMatch *DetectGetLastSMByListPtr(const Signature *s, SigMatch *sm_list, ...);
 SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...);
 
+int DetectSignatureAddTransform(Signature *s, int transform);
 int DetectSignatureSetAppProto(Signature *s, AppProto alproto);
 
 /* parse regex setup and free util funcs */

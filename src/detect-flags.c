@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -64,7 +64,7 @@ static int DetectFlagsSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFlagsFree(void *);
 
 static _Bool PrefilterTcpFlagsIsPrefilterable(const Signature *s);
-static int PrefilterSetupTcpFlags(SigGroupHead *sgh);
+static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 /**
  * \brief Registration function for flags: keyword
@@ -167,127 +167,57 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
 {
     SCEnter();
 
-    DetectFlagsData *de = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, found = 0, ignore = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
-    const char *str_ptr = NULL;
-    char *args[3] = { NULL, NULL, NULL };
     char *ptr;
-    int i;
+
+    char arg1[16] = "";
+    char arg2[16] = "";
+    char arg3[16] = "";
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr),
             0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 1) {
+    SCLogDebug("input '%s', pcre said %d", rawstr, ret);
+    if (ret < 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre match failed");
-        goto error;
+        SCReturnPtr(NULL, "DetectFlagsData");
     }
 
-    for (i = 0; i < (ret - 1); i++) {
-
-        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,i + 1,
-                &str_ptr);
+    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCReturnPtr(NULL, "DetectFlagsData");
+    }
+    if (ret >= 2) {
+        res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, arg2, sizeof(arg2));
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            goto error;
+            SCReturnPtr(NULL, "DetectFlagsData");
         }
+    }
+    if (ret >= 3) {
+        res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, arg3, sizeof(arg3));
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCReturnPtr(NULL, "DetectFlagsData");
+        }
+    }
+    SCLogDebug("args '%s', '%s', '%s'", arg1, arg2, arg3);
 
-        args[i] = (char *)str_ptr;
+    if (strlen(arg2) == 0) {
+        SCLogDebug("empty argument");
+        SCReturnPtr(NULL, "DetectFlagsData");
     }
 
-    if(args[1] == NULL) {
-        SCLogDebug("args[1] == NULL");
-        goto error;
-    }
-
-    de = SCMalloc(sizeof(DetectFlagsData));
+    DetectFlagsData *de = SCMalloc(sizeof(DetectFlagsData));
     if (unlikely(de == NULL))
         goto error;
-
-    memset(de,0,sizeof(DetectFlagsData));
-
+    memset(de, 0, sizeof(DetectFlagsData));
     de->ignored_flags = 0xff;
 
-    /** First parse args[0] */
-
-    if(args[0])   {
-
-        ptr = args[0];
-
-        while (*ptr != '\0') {
-            switch (*ptr) {
-                case 'S':
-                case 's':
-                    de->flags |= TH_SYN;
-                    found++;
-                    break;
-                case 'A':
-                case 'a':
-                    de->flags |= TH_ACK;
-                    found++;
-                    break;
-                case 'F':
-                case 'f':
-                    de->flags |= TH_FIN;
-                    found++;
-                    break;
-                case 'R':
-                case 'r':
-                    de->flags |= TH_RST;
-                    found++;
-                    break;
-                case 'P':
-                case 'p':
-                    de->flags |= TH_PUSH;
-                    found++;
-                    break;
-                case 'U':
-                case 'u':
-                    de->flags |= TH_URG;
-                    found++;
-                    break;
-                case '1':
-                    de->flags |= TH_CWR;
-                    found++;
-                    break;
-                case '2':
-                    de->flags |= TH_ECN;
-                    found++;
-                    break;
-                case 'C':
-                case 'c':
-                    de->flags |= TH_CWR;
-                    found++;
-                    break;
-                case 'E':
-                case 'e':
-                    de->flags |= TH_ECN;
-                    found++;
-                    break;
-                case '0':
-                    de->flags = 0;
-                    found++;
-                    break;
-
-                case '!':
-                    de->modifier = MODIFIER_NOT;
-                    break;
-                case '+':
-                    de->modifier = MODIFIER_PLUS;
-                    break;
-                case '*':
-                    de->modifier = MODIFIER_ANY;
-                    break;
-            }
-            ptr++;
-        }
-
-    }
-
-    /** Second parse first set of flags */
-
-    ptr = args[1];
-
+    /** First parse args1 */
+    ptr = arg1;
     while (*ptr != '\0') {
         switch (*ptr) {
             case 'S':
@@ -344,46 +274,110 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
                 break;
 
             case '!':
-                if (de->modifier != 0) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
-                            " one modifier at a time");
-                    goto error;
-                }
                 de->modifier = MODIFIER_NOT;
-                SCLogDebug("NOT modifier is set");
                 break;
             case '+':
-                if (de->modifier != 0) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
-                            " one modifier at a time");
-                    goto error;
-                }
                 de->modifier = MODIFIER_PLUS;
-                SCLogDebug("PLUS modifier is set");
                 break;
             case '*':
-                if (de->modifier != 0) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
-                            " one modifier at a time");
-                    goto error;
-                }
                 de->modifier = MODIFIER_ANY;
-                SCLogDebug("ANY modifier is set");
-                break;
-            default:
                 break;
         }
         ptr++;
     }
 
-    if(found == 0)
-        goto error;
+    /** Second parse first set of flags */
+    if (strlen(arg2) > 0) {
+        ptr = arg2;
+        while (*ptr != '\0') {
+            switch (*ptr) {
+                case 'S':
+                case 's':
+                    de->flags |= TH_SYN;
+                    found++;
+                    break;
+                case 'A':
+                case 'a':
+                    de->flags |= TH_ACK;
+                    found++;
+                    break;
+                case 'F':
+                case 'f':
+                    de->flags |= TH_FIN;
+                    found++;
+                    break;
+                case 'R':
+                case 'r':
+                    de->flags |= TH_RST;
+                    found++;
+                    break;
+                case 'P':
+                case 'p':
+                    de->flags |= TH_PUSH;
+                    found++;
+                    break;
+                case 'U':
+                case 'u':
+                    de->flags |= TH_URG;
+                    found++;
+                    break;
+                case '1':
+                case 'C':
+                case 'c':
+                    de->flags |= TH_CWR;
+                    found++;
+                    break;
+                case '2':
+                case 'E':
+                case 'e':
+                    de->flags |= TH_ECN;
+                    found++;
+                    break;
+                case '0':
+                    de->flags = 0;
+                    found++;
+                    break;
+
+                case '!':
+                    if (de->modifier != 0) {
+                        SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
+                                " one modifier at a time");
+                        goto error;
+                    }
+                    de->modifier = MODIFIER_NOT;
+                    SCLogDebug("NOT modifier is set");
+                    break;
+                case '+':
+                    if (de->modifier != 0) {
+                        SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
+                                " one modifier at a time");
+                        goto error;
+                    }
+                    de->modifier = MODIFIER_PLUS;
+                    SCLogDebug("PLUS modifier is set");
+                    break;
+                case '*':
+                    if (de->modifier != 0) {
+                        SCLogError(SC_ERR_FLAGS_MODIFIER, "\"flags\" supports only"
+                                " one modifier at a time");
+                        goto error;
+                    }
+                    de->modifier = MODIFIER_ANY;
+                    SCLogDebug("ANY modifier is set");
+                    break;
+                default:
+                    break;
+            }
+            ptr++;
+        }
+
+        if (found == 0)
+            goto error;
+    }
 
     /** Finally parse ignored flags */
-
-    if(args[2])    {
-
-        ptr = args[2];
+    if (strlen(arg3) > 0) {
+        ptr = arg3;
 
         while (*ptr != '\0') {
             switch (*ptr) {
@@ -443,25 +437,19 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
             ptr++;
         }
 
-        if(ignore == 0) {
+        if (ignore == 0) {
             SCLogDebug("ignore == 0");
             goto error;
         }
-    }
-
-    for (i = 0; i < (ret - 1); i++){
-        SCLogDebug("args[%"PRId32"] = %s",i, args[i]);
-        if (args[i] != NULL) SCFree(args[i]);
     }
 
     SCLogDebug("found %"PRId32" ignore %"PRId32"", found, ignore);
     SCReturnPtr(de, "DetectFlagsData");
 
 error:
-    for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+    if (de) {
+        SCFree(de);
     }
-    if (de) SCFree(de);
     SCReturnPtr(NULL, "DetectFlagsData");
 }
 
@@ -594,9 +582,9 @@ PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupTcpFlags(SigGroupHead *sgh)
+static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_FLAGS,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLAGS,
             PrefilterPacketFlagsSet,
             PrefilterPacketFlagsCompare,
             PrefilterPacketFlagsMatch);
@@ -628,14 +616,11 @@ static _Bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
  */
 static int FlagsTestParse01 (void)
 {
-    DetectFlagsData *de = NULL;
-    de = DetectFlagsParse("S");
-    if (de && (de->flags == TH_SYN) ) {
-        DetectFlagsFree(de);
-        return 1;
-    }
-
-    return 0;
+    DetectFlagsData *de = DetectFlagsParse("S");
+    FAIL_IF_NULL(de);
+    FAIL_IF_NOT(de->flags == TH_SYN);
+    DetectFlagsFree(de);
+    PASS;
 }
 
 /**

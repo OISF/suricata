@@ -165,8 +165,8 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
         }
         SCReturnInt(TM_ECODE_FAILED);
     }
-    int rlen = ntohs(dr.rlen);
-    int wlen = ntohs(dr.wlen);
+    int rlen = SCNtohs(dr.rlen);
+    int wlen = SCNtohs(dr.wlen);
     r = fread(GET_PKT_DATA(p), rlen - sizeof(DagRecord), 1, etv->erf);
     if (r < 1) {
         if (feof(etv->erf)) {

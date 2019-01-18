@@ -65,6 +65,7 @@
 typedef struct JsonDropOutputCtx_ {
     LogFileCtx *file_ctx;
     uint8_t flags;
+    OutputJsonCommonSettings cfg;
 } JsonDropOutputCtx;
 
 typedef struct JsonDropLogThread_ {
@@ -86,10 +87,13 @@ static int g_droplog_flows_start = 1;
  */
 static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 {
-    uint16_t proto = 0;
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "drop");//TODO const
+    JsonDropOutputCtx *drop_ctx = aft->drop_ctx;
+
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "drop");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
+
+    JsonAddCommonOptions(&drop_ctx->cfg, p, p->flow, js);
 
     json_t *djs = json_object();
     if (unlikely(djs == NULL)) {
@@ -100,6 +104,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     /* reset */
     MemBufferReset(aft->buffer);
 
+    uint16_t proto = 0;
     if (PKT_IS_IPV4(p)) {
         json_object_set_new(djs, "len", json_integer(IPV4_GET_IPLEN(p)));
         json_object_set_new(djs, "tos", json_integer(IPV4_GET_IPTOS(p)));
@@ -157,14 +162,14 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
                ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
             {
-                AlertJsonHeader(p, pa, js);
+                AlertJsonHeader(NULL, p, pa, js, 0);
                 logged = 1;
             }
         }
         if (logged == 0) {
             if (p->alerts.drop.action != 0) {
                 const PacketAlert *pa = &p->alerts.drop;
-                AlertJsonHeader(p, pa, js);
+                AlertJsonHeader(NULL, p, pa, js, 0);
             }
         }
     }
@@ -250,33 +255,34 @@ static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "drop.json"
-static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
+static OutputInitResult JsonDropLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     if (OutputDropLoggerEnable() != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'drop' logger "
             "can be enabled");
-        return NULL;
+        return result;
     }
 
     JsonDropOutputCtx *drop_ctx = SCCalloc(1, sizeof(*drop_ctx));
     if (drop_ctx == NULL)
-        return NULL;
+        return result;
 
     drop_ctx->file_ctx = LogFileNewCtx();
     if (drop_ctx->file_ctx == NULL) {
         JsonDropOutputCtxFree(drop_ctx);
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, drop_ctx->file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         JsonDropOutputCtxFree(drop_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         JsonDropOutputCtxFree(drop_ctx);
-        return NULL;
+        return result;
     }
 
     if (conf) {
@@ -301,27 +307,31 @@ static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
 
     output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtx;
-    return output_ctx;
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
-static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     if (OutputDropLoggerEnable() != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'drop' logger "
             "can be enabled");
-        return NULL;
+        return result;
     }
 
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ajt = parent_ctx->data;
 
     JsonDropOutputCtx *drop_ctx = SCCalloc(1, sizeof(*drop_ctx));
     if (drop_ctx == NULL)
-        return NULL;
+        return result;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         JsonDropOutputCtxFree(drop_ctx);
-        return NULL;
+        return result;
     }
 
     if (conf) {
@@ -345,10 +355,14 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     drop_ctx->file_ctx = ajt->file_ctx;
+    drop_ctx->cfg = ajt->cfg;
 
     output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtxSub;
-    return output_ctx;
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 /**

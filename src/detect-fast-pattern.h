@@ -34,32 +34,9 @@ typedef struct SCFPSupportSMList_ {
 
 extern SCFPSupportSMList *sm_fp_support_smlist_list;
 
-/**
- * \brief Checks if a particular list(Signature->sm_lists[]) is in the list
- *        of lists that need to be searched for a keyword that has fp support.
- *
- * \param list_id The list id.
- *
- * \retval 1 If supported.
- * \retval 0 If not.
- */
-static inline int FastPatternSupportEnabledForSigMatchList(int list_id)
-{
-    if (sm_fp_support_smlist_list == NULL)
-        return 0;
-
-    SCFPSupportSMList *tmp_smlist_fp = sm_fp_support_smlist_list;
-    while (tmp_smlist_fp != NULL) {
-        if (tmp_smlist_fp->list_id == list_id)
-            return 1;
-
-        tmp_smlist_fp = tmp_smlist_fp->next;
-    }
-
-    return 0;
-}
-
 void SupportFastPatternForSigMatchList(int list_id, int priority);
+int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
+        const int list_id);
 
 void SupportFastPatternForSigMatchTypes(void);
 

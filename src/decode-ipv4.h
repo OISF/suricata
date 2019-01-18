@@ -125,22 +125,22 @@ typedef struct IPV4Hdr_
 #define IPV4_GET_IPTOS(p) \
     IPV4_GET_RAW_IPTOS((p)->ip4h)
 #define IPV4_GET_IPLEN(p) \
-    (ntohs(IPV4_GET_RAW_IPLEN((p)->ip4h)))
+    (SCNtohs(IPV4_GET_RAW_IPLEN((p)->ip4h)))
 #define IPV4_GET_IPID(p) \
-    (ntohs(IPV4_GET_RAW_IPID((p)->ip4h)))
+    (SCNtohs(IPV4_GET_RAW_IPID((p)->ip4h)))
 /* _IPV4_GET_IPOFFSET: get the content of the offset header field in host order */
 #define _IPV4_GET_IPOFFSET(p) \
-    (ntohs(IPV4_GET_RAW_IPOFFSET((p)->ip4h)))
+    (SCNtohs(IPV4_GET_RAW_IPOFFSET((p)->ip4h)))
 /* IPV4_GET_IPOFFSET: get the final offset */
 #define IPV4_GET_IPOFFSET(p) \
     (_IPV4_GET_IPOFFSET(p) & 0x1fff)
-/* IPV4_GET_RF: get the RF flag. Use _IPV4_GET_IPOFFSET to save a ntohs call. */
+/* IPV4_GET_RF: get the RF flag. Use _IPV4_GET_IPOFFSET to save a SCNtohs call. */
 #define IPV4_GET_RF(p) \
     (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x8000) >> 15)
-/* IPV4_GET_DF: get the DF flag. Use _IPV4_GET_IPOFFSET to save a ntohs call. */
+/* IPV4_GET_DF: get the DF flag. Use _IPV4_GET_IPOFFSET to save a SCNtohs call. */
 #define IPV4_GET_DF(p) \
     (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x4000) >> 14)
-/* IPV4_GET_MF: get the MF flag. Use _IPV4_GET_IPOFFSET to save a ntohs call. */
+/* IPV4_GET_MF: get the MF flag. Use _IPV4_GET_IPOFFSET to save a SCNtohs call. */
 #define IPV4_GET_MF(p) \
     (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x2000) >> 13)
 #define IPV4_GET_IPTTL(p) \

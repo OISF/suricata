@@ -56,6 +56,10 @@
 
 #define DETECT_CONTENT_WITHIN_NEXT      BIT_U32(17)
 #define DETECT_CONTENT_DISTANCE_NEXT    BIT_U32(18)
+#define DETECT_CONTENT_STARTS_WITH      BIT_U32(19)
+/** MPM pattern selected by the engine or forced by fast_pattern keyword */
+#define DETECT_CONTENT_MPM              BIT_U32(20)
+
 /** a relative match to this content is next, used in matching phase */
 #define DETECT_CONTENT_RELATIVE_NEXT    (DETECT_CONTENT_WITHIN_NEXT|DETECT_CONTENT_DISTANCE_NEXT)
 
@@ -116,5 +120,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
 void DetectContentPrint(DetectContentData *);
 
 void DetectContentFree(void *);
+_Bool DetectContentPMATCHValidateCallback(const Signature *s);
+void DetectContentPropagateLimits(Signature *s);
 
 #endif /* __DETECT_CONTENT_H__ */

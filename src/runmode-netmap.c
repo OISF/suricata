@@ -36,8 +36,8 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-netmap.h"
-#include "log-httplog.h"
 #include "output.h"
+#include "log-httplog.h"
 #include "detect-engine-mpm.h"
 
 #include "alert-fastlog.h"
@@ -138,7 +138,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         if (strcmp(threadsstr, "auto") == 0) {
             ns->threads = 0;
         } else {
-            ns->threads = (uint8_t)atoi(threadsstr);
+            ns->threads = atoi(threadsstr);
         }
     }
 

@@ -16,8 +16,8 @@ Installing from the source distribution files gives the most control over the Su
 
 Basic steps::
 
-    tar xzvf suricata-3.2beta1.tar.gz
-    cd suricata-3.2beta1
+    tar xzvf suricata-4.1.0.tar.gz
+    cd suricata-4.1.0
     ./configure
     make
     make install
@@ -55,6 +55,10 @@ Common configure options
 
     Enables GeoIP support for detection.
 
+.. option:: --disable-rust
+
+    Disables Rust support. Rust support is enabled by default if rustc/cargo
+    are available.
 
 Dependencies
 ^^^^^^^^^^^^
@@ -71,6 +75,14 @@ For full features, also add:
 
   libjansson, libnss, libgeoip, liblua5.1, libhiredis, libevent
 
+Rust support:
+
+  rustc, cargo
+
+  Not every distro provides Rust packages yet. Rust can also be installed
+  directly from the Rust project itself:
+  https://www.rust-lang.org/en-US/install.html
+
 Ubuntu/Debian
 """""""""""""
 
@@ -85,13 +97,18 @@ Recommended::
     apt-get install libpcre3 libpcre3-dbg libpcre3-dev build-essential libpcap-dev   \
                     libnet1-dev libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
                     libcap-ng-dev libcap-ng0 make libmagic-dev libjansson-dev        \
-                    libnss3-dev libgeoip-dev liblua5.1-dev libhiredis-dev libevent-dev
+                    libnss3-dev libgeoip-dev liblua5.1-dev libhiredis-dev libevent-dev \
+                    python-yaml rustc cargo
 
 Extra for iptables/nftables IPS integration::
 
     apt-get install libnetfilter-queue-dev libnetfilter-queue1  \
                     libnetfilter-log-dev libnetfilter-log1      \
                     libnfnetlink-dev libnfnetlink0
+
+For Rust support::
+
+    apt-get install rustc cargo
 
 .. _install-binary-packages:
 
@@ -111,6 +128,10 @@ To use it::
 
 Debian
 ^^^^^^
+
+In Debian 9 (Stretch) do::
+
+    apt-get install suricata
 
 In Debian Jessie Suricata is out of date, but an updated version is in Debian Backports.
 

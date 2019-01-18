@@ -48,7 +48,7 @@
     FAIL_IF_NULL(det_ctx);                                                                  \
     int r = DetectEngineContentInspection(de_ctx, det_ctx,                                  \
                 s, s->sm_arrays[DETECT_SM_LIST_PMATCH], &f,                                 \
-                (uint8_t *)(buf), (buflen), 0,                                              \
+                (uint8_t *)(buf), (buflen), 0, DETECT_CI_FLAGS_SINGLE,                      \
                 DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, NULL);                       \
     FAIL_IF_NOT(r == (match));                                                              \
     FAIL_IF_NOT(det_ctx->inspection_recursion_counter == (steps));                          \
@@ -209,6 +209,60 @@ static int DetectEngineContentInspectionTest09(void) {
     TEST_FOOTER;
 }
 
+/** \test mix in byte_extract */
+static int DetectEngineContentInspectionTest10(void) {
+    TEST_HEADER;
+    /* extract first byte as lenght field and check with isdataat */
+    TEST_RUN("9abcdefghi", 10, "byte_extract:1,0,data_size,string; isdataat:data_size;", true, 2);
+    TEST_RUN("9abcdefgh", 9, "byte_extract:1,0,data_size,string; isdataat:!data_size;", true, 2);
+    /* anchor len field to pattern 'x' to test recursion */
+    TEST_RUN("x9x9abcdefghi", 13, "content:\"x\"; byte_extract:1,0,data_size,string,relative; isdataat:data_size,relative;", true, 3);
+    TEST_RUN("x9x9abcdefgh", 12, "content:\"x\"; byte_extract:1,0,data_size,string,relative; isdataat:!data_size,relative;", true, 5);
+    TEST_RUN("x9x9abcdefgh", 12, "content:\"x\"; depth:1; byte_extract:1,0,data_size,string,relative; isdataat:!data_size,relative;", false, 3);
+    /* check for super high extracted values */
+    TEST_RUN("100000000abcdefghi", 18, "byte_extract:0,0,data_size,string; isdataat:data_size;", false, 2);
+    TEST_RUN("100000000abcdefghi", 18, "byte_extract:0,0,data_size,string; isdataat:!data_size;", true, 2);
+    TEST_FOOTER;
+}
+
+static int DetectEngineContentInspectionTest11(void) {
+    TEST_HEADER;
+    TEST_RUN("ab", 2, "content:\"a\"; startswith; content:\"b\";", true, 2);
+    TEST_RUN("ab", 2, "content:\"a\"; startswith; content:\"b\"; within:1; distance:0;", true, 2);
+    TEST_RUN("ab", 2, "content:\"ab\"; startswith;", true, 1);
+    TEST_RUN("ab", 2, "content:\"a\"; startswith;", true, 1);
+    TEST_RUN("ab", 2, "content:\"b\"; startswith;", false, 1);
+    TEST_FOOTER;
+}
+
+/** \test endswith (isdataat) recursion logic
+ *        based on DetectEngineContentInspectionTest06 */
+static int DetectEngineContentInspectionTest12(void) {
+    TEST_HEADER;
+    // 6 steps: (1) a, (2) 1st b, (3) c not found, (4) 2nd b, (5) c found, endswith
+    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; endswith;", true, 5);
+
+    TEST_RUN("ababcabc", 8, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; endswith;", true, 7);
+
+    TEST_RUN("abcXYZ", 6, "content:\"abc\"; content:\"XYZ\"; distance:0; within:3; endswith;", true, 2);
+    TEST_RUN("abcXYZ", 6, "content:\"XYZ\"; distance:3; within:3; endswith;", true, 1);
+    TEST_RUN("abcXYZ", 6, "content:\"cXY\"; distance:2; within:3; endswith;", false, 1);
+
+    TEST_RUN("xxxxxxxxxxxxxxxxxyYYYYYYYYYYYYYYYY", 34, "content:\"yYYYYYYYYYYYYYYYY\"; distance:9; within:29; endswith;", true, 1);
+    TEST_FOOTER;
+}
+
+static int DetectEngineContentInspectionTest13(void) {
+    TEST_HEADER;
+    TEST_RUN("ab", 2, "content:\"a\"; startswith; content:\"b\"; endswith;", true, 2);
+    TEST_RUN("ab", 2, "content:\"a\"; startswith; content:\"b\"; within:1; distance:0; endswith;", true, 2);
+    TEST_RUN("ab", 2, "content:\"ab\"; startswith; endswith;", true, 1);
+    TEST_RUN("ab", 2, "content:\"a\"; startswith; endswith;", false, 1);
+    TEST_RUN("ab", 2, "content:\"b\"; startswith;", false, 1);
+    TEST_RUN("ab", 2, "content:\"b\"; startswith; endswith;", false, 1);
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -229,6 +283,14 @@ void DetectEngineContentInspectionRegisterTests(void)
                    DetectEngineContentInspectionTest08);
     UtRegisterTest("DetectEngineContentInspectionTest09",
                    DetectEngineContentInspectionTest09);
+    UtRegisterTest("DetectEngineContentInspectionTest10",
+                   DetectEngineContentInspectionTest10);
+    UtRegisterTest("DetectEngineContentInspectionTest11 startswith",
+                   DetectEngineContentInspectionTest11);
+    UtRegisterTest("DetectEngineContentInspectionTest12 endswith",
+                   DetectEngineContentInspectionTest12);
+    UtRegisterTest("DetectEngineContentInspectionTest13 mix startswith/endswith",
+                   DetectEngineContentInspectionTest13);
 }
 
 #undef TEST_HEADER

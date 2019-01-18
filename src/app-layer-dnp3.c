@@ -258,14 +258,13 @@ static int DNP3CheckStartBytes(const DNP3LinkHeader *header)
  */
 static int DNP3ContainsBanner(const uint8_t *input, uint32_t len)
 {
-    return memmem(input, len, banner, strlen(banner)) != NULL;
+    return BasicSearch(input, len, (uint8_t *)banner, strlen(banner)) != NULL;
 }
 
 /**
  * \brief DNP3 probing parser.
  */
-static uint16_t DNP3ProbingParser(uint8_t *input, uint32_t len,
-    uint32_t *offset)
+static uint16_t DNP3ProbingParser(Flow *f, uint8_t *input, uint32_t len)
 {
     DNP3LinkHeader *hdr = (DNP3LinkHeader *)input;
 
@@ -1111,7 +1110,8 @@ error:
  * multiple frames, but not the complete final frame).
  */
 static int DNP3ParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     SCEnter();
     DNP3State *dnp3 = (DNP3State *)state;
@@ -1250,7 +1250,8 @@ error:
  * See DNP3ParseResponsePDUs for DNP3 frame handling.
  */
 static int DNP3ParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     SCEnter();
     DNP3State *dnp3 = (DNP3State *)state;
@@ -1323,13 +1324,6 @@ static AppLayerDecoderEvents *DNP3GetEvents(void *state, uint64_t tx_id)
     }
 
     return NULL;
-}
-
-static int DNP3HasEvents(void *state)
-{
-    SCEnter();
-    uint16_t events = (((DNP3State *)state)->events);
-    SCReturnInt((events > 0));
 }
 
 static void *DNP3GetTx(void *alstate, uint64_t tx_id)
@@ -1535,27 +1529,23 @@ static DetectEngineState *DNP3GetTxDetectState(void *vtx)
 /**
  * \brief App-layer support.
  */
-static int DNP3SetTxDetectState(void *state, void *vtx, DetectEngineState *s)
+static int DNP3SetTxDetectState(void *vtx, DetectEngineState *s)
 {
     DNP3Transaction *tx = vtx;
     tx->de_state = s;
     return 0;
 }
 
-static void DNP3SetTxLogged(void *alstate, void *vtx, uint32_t logger)
+static void DNP3SetTxLogged(void *alstate, void *vtx, LoggerId logged)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    tx->logged |= logger;
+    tx->logged = logged;
 }
 
-static int DNP3GetTxLogged(void *alstate, void *vtx, uint32_t logger)
+static LoggerId DNP3GetTxLogged(void *alstate, void *vtx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    if (tx->logged & logger) {
-        return 1;
-    }
-
-    return 0;
+    return tx->logged;
 }
 
 /**
@@ -1624,9 +1614,7 @@ void RegisterDNP3Parsers(void)
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetEvents);
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_DNP3,
-            DNP3HasEvents);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNP3, NULL,
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxDetectState, DNP3SetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTx);
@@ -2055,25 +2043,25 @@ static int DNP3ProbingParserTest(void)
     };
 
     /* Valid frame. */
-    FAIL_IF(DNP3ProbingParser(pkt, sizeof(pkt), NULL) != ALPROTO_DNP3);
+    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(pkt)) != ALPROTO_DNP3);
 
     /* Send too little bytes. */
-    FAIL_IF(DNP3ProbingParser(pkt, sizeof(DNP3LinkHeader) - 1, NULL) != ALPROTO_UNKNOWN);
+    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(DNP3LinkHeader) - 1) != ALPROTO_UNKNOWN);
 
     /* Bad start bytes. */
     pkt[0] = 0x06;
-    FAIL_IF(DNP3ProbingParser(pkt, sizeof(pkt), NULL) != ALPROTO_FAILED);
+    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(pkt)) != ALPROTO_FAILED);
 
     /* Restore start byte. */
     pkt[0] = 0x05;
 
     /* Set the length to a value less than the minimum length of 5. */
     pkt[2] = 0x03;
-    FAIL_IF(DNP3ProbingParser(pkt, sizeof(pkt), NULL) != ALPROTO_FAILED);
+    FAIL_IF(DNP3ProbingParser(NULL, pkt, sizeof(pkt)) != ALPROTO_FAILED);
 
     /* Send a banner. */
     char mybanner[] = "Welcome to DNP3 SCADA.";
-    FAIL_IF(DNP3ProbingParser((uint8_t *)mybanner, sizeof(mybanner), NULL) != ALPROTO_DNP3);
+    FAIL_IF(DNP3ProbingParser(NULL, (uint8_t *)mybanner, sizeof(mybanner)) != ALPROTO_DNP3);
 
     PASS;
 }
@@ -2134,7 +2122,6 @@ static int DNP3ParserTestRequestResponse(void)
 
     state = flow.alstate;
     FAIL_IF(state == NULL);
-    FAIL_IF(DNP3HasEvents(state));
 
     DNP3Transaction *tx = DNP3GetTx(state, 0);
     FAIL_IF(tx == NULL);
@@ -2202,7 +2189,6 @@ static int DNP3ParserTestUnsolicitedResponseConfirm(void)
 
     state = flow.alstate;
     FAIL_IF(state == NULL);
-    FAIL_IF(DNP3HasEvents(state));
 
     DNP3Transaction *tx = DNP3GetTx(state, 0);
     FAIL_IF(tx == NULL);
@@ -2269,7 +2255,6 @@ static int DNP3ParserTestFlooded(void)
 
     state = flow.alstate;
     FAIL_IF(state == NULL);
-    FAIL_IF(DNP3HasEvents(state));
 
     DNP3Transaction *tx = DNP3GetTx(state, 0);
     FAIL_IF(tx == NULL);
@@ -2558,7 +2543,6 @@ static int DNP3ParserDecodeG70V3Test(void)
     FAIL_IF_NULL(dnp3state);
     int bytes = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
     FAIL_IF(bytes != sizeof(pkt));
-    FAIL_IF(DNP3HasEvents(dnp3state));
     DNP3Transaction *tx = DNP3GetTx(dnp3state, 0);
     FAIL_IF_NULL(tx);
     FAIL_IF_NOT(tx->has_request);
@@ -2620,9 +2604,6 @@ static int DNP3ParserUnknownEventAlertTest(void)
     FAIL_IF_NULL(dnp3state);
     int bytes = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
     FAIL_IF(bytes != sizeof(pkt));
-
-    /* Should have an event now. */
-    FAIL_IF_NOT(DNP3HasEvents(dnp3state));
 
     DNP3StateFree(dnp3state);
     PASS;

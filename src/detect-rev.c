@@ -56,6 +56,14 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
         SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "rev value to high, max %u", UINT_MAX);
         goto error;
     }
+    if (rev == 0) {
+        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "rev value 0 is invalid");
+        goto error;
+    }
+    if (s->rev > 0) {
+        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "duplicated 'rev' keyword detected");
+        goto error;
+    }
 
     s->rev = (uint32_t)rev;
 

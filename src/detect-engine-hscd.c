@@ -87,11 +87,12 @@ static void PrefilterTxHttpStatCode(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxHttpStatCodeRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxHttpStatCodeRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpStatCode,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpStatCode,
         ALPROTO_HTTP,
         HTP_RESPONSE_LINE+1, /* inspect when response line completely parsed */
         mpm_ctx, NULL, "http_stat_code");
@@ -130,7 +131,7 @@ int DetectEngineInspectHttpStatCode(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(tx->response_status),
                                           bstr_len(tx->response_status),
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

@@ -15,53 +15,48 @@ if HAVE_RUST_VENDOR
 FROZEN = --frozen
 endif
 
+if !RUST_DEBUG
 if !DEBUG
 RELEASE = --release
 endif
-
-FEATURES =
+endif
 
 if HAVE_LUA
-FEATURES +=	lua
+RUST_FEATURES +=	lua
+endif
+
+if DEBUG
+RUST_FEATURES +=	debug
 endif
 
 all-local:
 if HAVE_PYTHON
-	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
-		$(HAVE_PYTHON) ./gen-c-headers.py && \
-		cargo build $(RELEASE) $(FROZEN) --features "$(FEATURES)"
-else
-	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
-		cargo build $(RELEASE) $(FROZEN) --features "$(FEATURES)"
+	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
 endif
+	cd $(top_srcdir)/rust && \
+		CARGO_HOME=$(CARGO_HOME) \
+		CARGO_TARGET_DIR=$(abs_top_builddir)/rust/target \
+		$(CARGO) build $(RELEASE) $(FROZEN) \
+			--features "$(RUST_FEATURES)"
 
 clean-local:
-	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
-		cargo clean
+	-rm -rf target
 
-distclean-local:
-	rm -rf vendor
-	rm -rf gen
+distclean-local: clean-local
+	rm -rf vendor gen Cargo.lock
 
 check:
-	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
-		cargo test
+	CARGO_HOME=$(CARGO_HOME) $(CARGO) test
 
 Cargo.lock: Cargo.toml
-	cargo update
+	CARGO_HOME=$(CARGO_HOME) $(CARGO) generate-lockfile
 
 if HAVE_CARGO_VENDOR
 vendor:
-	cargo vendor > /dev/null
+	CARGO_HOME=$(CARGO_HOME) $(CARGO) vendor > /dev/null
 else
 vendor:
 endif
-
-else # HAVE_RUST
-
-all-local clean-local check vendor:
-
-endif # HAVE_RUST
 
 # Can only include the headers if we have Python to generate them.
 if HAVE_PYTHON
@@ -71,3 +66,8 @@ gen/c-headers:
 else
 gen/c-headers:
 endif
+else # HAVE_RUST
+
+all-local clean-local check vendor gen/c-headers:
+
+endif # HAVE_RUST

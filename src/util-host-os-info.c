@@ -130,7 +130,8 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     int *user_data = NULL;
     char recursive = FALSE;
 
-    if (host_os == NULL || host_os_ip_range == NULL) {
+    if (host_os == NULL || host_os_ip_range == NULL ||
+            strlen(host_os_ip_range) == 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid arguments");
         return -1;
     }
@@ -261,6 +262,7 @@ int SCHInfoGetHostOSFlavour(const char *ip_addr_str)
         }
 
         (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)ipv6_addr, sc_hinfo_tree, &user_data);
+        SCFree(ipv6_addr);
         if (user_data == NULL)
             return -1;
         else
@@ -272,6 +274,7 @@ int SCHInfoGetHostOSFlavour(const char *ip_addr_str)
         }
 
         (void)SCRadixFindKeyIPV4BestMatch((uint8_t *)ipv4_addr, sc_hinfo_tree, &user_data);
+        SCFree(ipv4_addr);
         if (user_data == NULL)
             return -1;
         else

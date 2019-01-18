@@ -110,7 +110,7 @@ static int ParseXFFString(char *input, char *output, int output_size)
  * \retval 1 if the IP has been found and returned in dstbuf
  * \retval 0 if the IP has not being found or error
  */
-int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
+int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
         char *dstbuf, int dstbuflen)
 {
     uint8_t xff_chain[XFF_CHAIN_MAXLEN];
@@ -119,18 +119,18 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
     uint64_t total_txs = 0;
     uint8_t *p_xff = NULL;
 
-    htp_state = (HtpState *)FlowGetAppState(p->flow);
+    htp_state = (HtpState *)FlowGetAppState(f);
 
     if (htp_state == NULL) {
         SCLogDebug("no http state, XFF IP cannot be retrieved");
         return 0;
     }
 
-    total_txs = AppLayerParserGetTxCnt(p->flow, htp_state);
+    total_txs = AppLayerParserGetTxCnt(f, htp_state);
     if (tx_id >= total_txs)
         return 0;
 
-    tx = AppLayerParserGetTx(p->flow->proto, ALPROTO_HTTP, htp_state, tx_id);
+    tx = AppLayerParserGetTx(f->proto, ALPROTO_HTTP, htp_state, tx_id);
     if (tx == NULL) {
         SCLogDebug("tx is NULL, XFF cannot be retrieved");
         return 0;
@@ -174,21 +174,21 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
  *  \retval 1 if the IP has been found and returned in dstbuf
  *  \retval 0 if the IP has not being found or error
  */
-int HttpXFFGetIP(const Packet *p, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen)
+int HttpXFFGetIP(const Flow *f, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen)
 {
     HtpState *htp_state = NULL;
     uint64_t tx_id = 0;
     uint64_t total_txs = 0;
 
-    htp_state = (HtpState *)FlowGetAppState(p->flow);
+    htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state == NULL) {
         SCLogDebug("no http state, XFF IP cannot be retrieved");
         goto end;
     }
 
-    total_txs = AppLayerParserGetTxCnt(p->flow, htp_state);
+    total_txs = AppLayerParserGetTxCnt(f, htp_state);
     for (; tx_id < total_txs; tx_id++) {
-        if (HttpXFFGetIPFromTx(p, tx_id, xff_cfg, dstbuf, dstbuflen) == 1)
+        if (HttpXFFGetIPFromTx(f, tx_id, xff_cfg, dstbuf, dstbuflen) == 1)
             return 1;
     }
 
@@ -201,7 +201,7 @@ end:
  */
 void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
 {
-    BUG_ON(conf == NULL || result == NULL);
+    BUG_ON(result == NULL);
 
     ConfNode *xff_node = NULL;
 

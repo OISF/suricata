@@ -24,18 +24,26 @@
 #ifndef __DETECT_ENGINE_PREFILTER_H__
 #define __DETECT_ENGINE_PREFILTER_H__
 
-void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p,
-        const uint8_t flags, const bool has_state);
+#include "detect-engine-state.h"
 
-int PrefilterAppendEngine(SigGroupHead *sgh,
+typedef struct PrefilterStore_ {
+    const char *name;
+    void (*FreeFunc)(void *);
+    uint32_t id;
+} PrefilterStore;
+
+void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p,
+        const uint8_t flags);
+
+int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name);
-int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
+int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name);
-int PrefilterAppendTxEngine(SigGroupHead *sgh,
+int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
             Packet *p, Flow *f, void *tx,
             const uint64_t idx, const uint8_t flags),
@@ -43,13 +51,29 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name);
 
+void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
+        const SigGroupHead *sgh,
+        Packet *p,
+        const uint8_t ipproto,
+        const uint8_t flow_flags,
+        const AppProto alproto,
+        void *alstate,
+        DetectTransaction *tx);
+
 void PrefilterFreeEnginesList(PrefilterEngineList *list);
 
 void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-void PrefilterCleanupRuleGroup(SigGroupHead *sgh);
+void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 #ifdef PROFILING
 const char *PrefilterStoreGetName(const uint32_t id);
 #endif
+
+void PrefilterInit(DetectEngineCtx *de_ctx);
+void PrefilterDeinit(DetectEngineCtx *de_ctx);
+
+int PrefilterGenericMpmRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectMpmAppLayerRegistery *mpm_reg, int list_id);
 
 #endif

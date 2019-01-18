@@ -262,14 +262,14 @@ static DetectAsn1Data *DetectAsn1Parse(const char *instr)
         } else {
             SCLogError(SC_ERR_INVALID_VALUE, "Malformed asn1 argument: %s",
                        asn1str);
-            return NULL;
+            goto error;
         }
         tok = strtok_r(NULL, ASN_DELIM, &saveptr);
     }
 
     fd = SCMalloc(sizeof(DetectAsn1Data));
     if (unlikely(fd == NULL)) {
-        exit(EXIT_FAILURE);
+        goto error;
     }
     memset(fd, 0x00, sizeof(DetectAsn1Data));
 
@@ -277,9 +277,11 @@ static DetectAsn1Data *DetectAsn1Parse(const char *instr)
     fd->oversize_length = ov_len;    /* Length argument if needed */
     fd->absolute_offset = abs_off;   /* Length argument if needed */
     fd->relative_offset = rel_off;   /* Length argument if needed */
+    SCFree(asn1str);
     return fd;
 
 error:
+    SCFree(asn1str);
     return NULL;
 }
 

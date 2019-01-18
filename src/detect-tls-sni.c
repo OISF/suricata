@@ -48,7 +48,7 @@
 
 #include "app-layer.h"
 #include "app-layer-ssl.h"
-#include "detect-engine-tls.h"
+#include "detect-engine-prefilter.h"
 #include "detect-tls-sni.h"
 
 #include "util-unittest.h"
@@ -56,6 +56,10 @@
 
 static int DetectTlsSniSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSniRegisterTests(void);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+       const DetectEngineTransforms *transforms,
+       Flow *_f, const uint8_t _flow_flags,
+       void *txv, const int list_id);
 static int g_tls_sni_buffer_id = 0;
 
 /**
@@ -73,12 +77,14 @@ void DetectTlsSniRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("tls_sni", SIG_FLAG_TOSERVER, 2,
-            PrefilterTxTlsSniRegister);
+    DetectAppLayerInspectEngineRegister2("tls_sni", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerInspectEngineRegister("tls_sni",
-            ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectTlsSni);
+    DetectAppLayerMpmRegister2("tls_sni", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
+
+    DetectBufferTypeSetDescriptionByName("tls_sni",
+            "TLS Server Name Indication (SNI) extension");
 
     g_tls_sni_buffer_id = DetectBufferTypeGetByName("tls_sni");
 }
@@ -95,9 +101,31 @@ void DetectTlsSniRegister(void)
  */
 static int DetectTlsSniSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    s->init_data->list = g_tls_sni_buffer_id;
+    DetectBufferSetActiveList(s, g_tls_sni_buffer_id);
     s->alproto = ALPROTO_TLS;
     return 0;
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        SSLState *ssl_state = (SSLState *)_f->alstate;
+
+        if (ssl_state->client_connp.sni == NULL) {
+            return NULL;
+        }
+
+        const uint32_t data_len = strlen(ssl_state->client_connp.sni);
+        const uint8_t *data = (uint8_t *)ssl_state->client_connp.sni;
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
 }
 
 #ifdef UNITTESTS

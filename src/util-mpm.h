@@ -33,9 +33,6 @@ enum {
 
     /* aho-corasick */
     MPM_AC,
-#ifdef __SC_CUDA_SUPPORT__
-    MPM_AC_CUDA,
-#endif
     MPM_AC_BS,
     MPM_AC_TILE,
     MPM_HS,
@@ -59,6 +56,13 @@ typedef struct MpmPattern_ {
     uint16_t len;
     /* flags decribing the pattern */
     uint8_t flags;
+
+    /* offset into the buffer where match may start */
+    uint16_t offset;
+
+    /* offset into the buffer before which match much complete */
+    uint16_t depth;
+
     /* holds the original pattern that was added */
     uint8_t *original_pat;
     /* case sensitive */
@@ -151,7 +155,7 @@ typedef struct MpmTableElmt_ {
     int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
     int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
     int  (*Prepare)(struct MpmCtx_ *);
-    uint32_t (*Search)(const struct MpmCtx_ *, struct MpmThreadCtx_ *, PrefilterRuleStore *, const uint8_t *, uint16_t);
+    uint32_t (*Search)(const struct MpmCtx_ *, struct MpmThreadCtx_ *, PrefilterRuleStore *, const uint8_t *, uint32_t);
     void (*PrintCtx)(struct MpmCtx_ *);
     void (*PrintThreadCtx)(struct MpmThreadCtx_ *);
     void (*RegisterUnittests)(void);
@@ -160,42 +164,6 @@ typedef struct MpmTableElmt_ {
 
 MpmTableElmt mpm_table[MPM_TABLE_SIZE];
 int mpm_default_matcher;
-
-/* macros decides if cuda is enabled for the platform or not */
-#ifdef __SC_CUDA_SUPPORT__
-
-/* the min size limit of a payload(or any other data) to be buffered */
-#define UTIL_MPM_CUDA_DATA_BUFFER_SIZE_MIN_LIMIT_DEFAULT 0
-/* the max size limit of a payload(or any other data) to be buffered */
-#define UTIL_MPM_CUDA_DATA_BUFFER_SIZE_MAX_LIMIT_DEFAULT 1500
-/* Default value for data buffer used by cuda mpm engine for CudaBuffer reg */
-#define UTIL_MPM_CUDA_CUDA_BUFFER_DBUFFER_SIZE_DEFAULT 500 * 1024 * 1024
-/* Default value for the max data chunk that would be sent to gpu */
-#define UTIL_MPM_CUDA_GPU_TRANSFER_SIZE 50 * 1024 * 1024
-/* Default value for offset/pointer buffer to be used by cuda mpm
- * engine for CudaBuffer reg */
-#define UTIL_MPM_CUDA_CUDA_BUFFER_OPBUFFER_ITEMS_DEFAULT 500000
-#define UTIL_MPM_CUDA_BATCHING_TIMEOUT_DEFAULT 2000
-#define UTIL_MPM_CUDA_CUDA_STREAMS_DEFAULT 2
-#define UTIL_MPM_CUDA_DEVICE_ID_DEFAULT 0
-
-/**
- * \brief Cuda configuration for "mpm" profile.  We can further extend this
- *        to have conf for specific mpms.  For now its common for all mpms.
- */
-typedef struct MpmCudaConf_ {
-    uint16_t data_buffer_size_min_limit;
-    uint16_t data_buffer_size_max_limit;
-    uint32_t cb_buffer_size;
-    uint32_t gpu_transfer_size;
-    int batching_timeout;
-    int device_id;
-    int cuda_streams;
-} MpmCudaConf;
-
-void MpmCudaEnvironmentSetup();
-
-#endif /* __SC_CUDA_SUPPORT__ */
 
 struct DetectEngineCtx_;
 

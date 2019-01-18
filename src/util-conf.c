@@ -25,6 +25,7 @@
 #include "suricata-common.h"
 #include "config.h"
 #include "conf.h"
+#include "runmodes.h"
 #include "util-conf.h"
 
 TmEcode ConfigSetLogDirectory(char *name)
@@ -100,12 +101,17 @@ int ConfUnixSocketIsEnable(void)
         return 0;
     }
 
+    if (value == NULL) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed value for unix-command.enabled: NULL");
+        return 0;
+    }
+
     if (!strcmp(value, "auto")) {
 #ifdef HAVE_LIBJANSSON
 #ifdef OS_WIN32
         return 0;
 #else
-        if (TimeModeIsLive()) {
+        if (!IsRunModeOffline(RunmodeGetCurrent())) {
             SCLogInfo("Running in live mode, activating unix socket");
             return 1;
         } else {

@@ -31,6 +31,7 @@ contributions that have made this user guide possible:
 - Nicolas Merle
 - Peter Manev
 - Philipp Buehler
+- Ralph Broenink
 - Rob MacGregor
 - Russel Fulton
 - Victor Julien

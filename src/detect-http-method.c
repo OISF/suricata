@@ -64,8 +64,7 @@ static int g_http_method_buffer_id = 0;
 static int DetectHttpMethodSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectHttpMethodRegisterTests(void);
 void DetectHttpMethodFree(void *);
-static void DetectHttpMethodSetupCallback(Signature *s);
-static _Bool DetectHttpMethodValidateCallback(const Signature *s);
+static _Bool DetectHttpMethodValidateCallback(const Signature *s, const char **sigerror);
 
 /**
  * \brief Registration function for keyword: http_method
@@ -91,8 +90,6 @@ void DetectHttpMethodRegister(void)
     DetectBufferTypeSetDescriptionByName("http_method",
             "http request method");
 
-    DetectBufferTypeRegisterSetupCallback("http_method",
-            DetectHttpMethodSetupCallback);
     DetectBufferTypeRegisterValidateCallback("http_method",
             DetectHttpMethodValidateCallback);
 
@@ -134,17 +131,11 @@ void DetectHttpMethodFree(void *ptr)
     SCFree(data);
 }
 
-static void DetectHttpMethodSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-}
-
 /**
  *  \retval 1 valid
  *  \retval 0 invalid
  */
-static _Bool DetectHttpMethodValidateCallback(const Signature *s)
+static _Bool DetectHttpMethodValidateCallback(const Signature *s, const char **sigerror)
 {
     const SigMatch *sm = s->init_data->smlists[g_http_method_buffer_id];
     for ( ; sm != NULL; sm = sm->next) {
@@ -153,16 +144,20 @@ static _Bool DetectHttpMethodValidateCallback(const Signature *s)
         const DetectContentData *cd = (const DetectContentData *)sm->ctx;
         if (cd->content && cd->content_len) {
             if (cd->content[cd->content_len-1] == 0x20) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with trailing space");
+                *sigerror = "http_method pattern with trailing space";
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
                 return FALSE;
             } else if (cd->content[0] == 0x20) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with leading space");
+                *sigerror = "http_method pattern with leading space";
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
                 return FALSE;
             } else if (cd->content[cd->content_len-1] == 0x09) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with trailing tab");
+                *sigerror = "http_method pattern with trailing tab";
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
                 return FALSE;
             } else if (cd->content[0] == 0x09) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with leading tab");
+                *sigerror = "http_method pattern with leading tab";
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
                 return FALSE;
             }
         }

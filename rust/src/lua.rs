@@ -43,7 +43,7 @@ impl LuaState {
 
     pub fn settable(&self, idx: i64) {
         unsafe {
-            lua_settable(self.lua, idx);
+            lua_settable(self.lua, idx as c_long);
         }
     }
 
@@ -55,7 +55,7 @@ impl LuaState {
 
     pub fn pushinteger(&self, val: i64) {
         unsafe {
-            lua_pushinteger(self.lua, val);
+            lua_pushinteger(self.lua, val as c_long);
         }
     }
 }

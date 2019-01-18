@@ -68,7 +68,7 @@ DefragTrackerHashRow *defragtracker_hash;
 #define DEFRAG_QUIET      1
 
 typedef struct DefragConfig_ {
-    uint64_t memcap;
+    SC_ATOMIC_DECLARE(uint64_t, memcap);
     uint32_t hash_rand;
     uint32_t hash_size;
     uint32_t prealloc;
@@ -82,7 +82,7 @@ typedef struct DefragConfig_ {
  *  \retval 0 no fit
  */
 #define DEFRAG_CHECK_MEMCAP(size) \
-    ((((uint64_t)SC_ATOMIC_GET(defrag_memuse) + (uint64_t)(size)) <= defrag_config.memcap))
+    ((((uint64_t)SC_ATOMIC_GET(defrag_memuse) + (uint64_t)(size)) <= SC_ATOMIC_GET(defrag_config.memcap)))
 
 DefragConfig defrag_config;
 SC_ATOMIC_DECLARE(uint64_t,defrag_memuse);
@@ -98,6 +98,10 @@ void DefragTrackerRelease(DefragTracker *);
 void DefragTrackerClearMemory(DefragTracker *);
 void DefragTrackerMoveToSpare(DefragTracker *);
 uint32_t DefragTrackerSpareQueueGetSize(void);
+
+int DefragTrackerSetMemcap(uint64_t);
+uint64_t DefragTrackerGetMemcap(void);
+uint64_t DefragTrackerGetMemuse(void);
 
 #endif /* __DEFRAG_HASH_H__ */
 

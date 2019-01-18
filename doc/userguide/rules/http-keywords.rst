@@ -1,7 +1,6 @@
-:tocdepth: 2
-
 HTTP Keywords
 =============
+.. role:: example-rule-emphasis
 
 There are additional content modifiers that can provide protocol-specific
 capabilities at the application layer. More information can be found at
@@ -9,26 +8,19 @@ capabilities at the application layer. More information can be found at
 specific parts of the network traffic. For instance, to check specifically on
 the request URI, cookies, or the HTTP request or response body, etc.
 
-Types of modifiers
-------------------
+All HTTP keywords are modifiers. Note the difference between content modifiers
+and sticky buffers. See :ref:`rules-modifiers` for more information. As a
+refresher:
 
-There are 2 types of modifiers. The older style 'content modifiers' look back in the rule.
+* **'content modifiers'** look back in the rule, e.g.::
 
-Example::
+      alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
 
-    alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
+* **'sticky buffers'** are placed first and all keywords following it apply to that buffer, for instance::
 
-In the above example the pattern 'index.php' is modified to inspect the HTTP uri buffer.
+      alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
 
-The more recent type is called the 'sticky buffer'. It places the buffer name first and all keywords following it apply to that buffer.
-
-Example::
-
-    alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
-
-In the above example the pattern '403 Forbidden' is inspected against the HTTP response line because it follows the ``http_response_line`` keyword.
-
-The following request keywords are available:
+The following **request** keywords are available:
 
 ============================== ======================== ==================
 Keyword                        Sticky or Modifier       Direction
@@ -56,7 +48,7 @@ http_protocol                  Sticky Buffer            Both
 http_header_names              Sticky Buffer            Both
 ============================== ======================== ==================
 
-The following response keywords are available:
+The following **response** keywords are available:
 
 ============================== ======================== ==================
 Keyword                        Sticky or Modifier       Direction
@@ -76,11 +68,12 @@ http_protocol                  Sticky Buffer            Both
 http_header_names              Sticky Buffer            Both
 ============================== ======================== ==================
 
+HTTP Primer
+-----------
 It is important to understand the structure of HTTP requests and
 responses. A simple example of a HTTP request and response follows:
 
-HTTP request
-------------
+**HTTP request**
 
 ::
 
@@ -92,8 +85,7 @@ HEAD, etc. The URI path is ``/index.html`` and the HTTP version is
 the versions 0.9, 1.0 and 1.1, 1.0 and 1.1 are the most commonly used
 today.
 
-HTTP response
--------------
+**HTTP response**
 
 ::
 
@@ -157,6 +149,7 @@ Example of the purpose of method:
 
 .. image:: http-keywords/method1.png
 
+.. _rules-http-uri-normalization:
 
 http_uri and http_raw_uri
 -------------------------
@@ -167,9 +160,13 @@ buffer. The keyword can be used in combination with all previously
 mentioned content modifiers like ``depth``, ``distance``, ``offset``,
 ``nocase`` and ``within``.
 
-To learn more about the difference between ``http_uri`` and
-``http_raw_uri``, please read the information about
-:doc:`http-uri-normalization`.
+The uri has two appearances in Suricata: the raw_uri and the
+normalized uri. The space for example can be indicated with the
+heximal notation %20. To convert this notation in a space, means
+normalizing it. It is possible though to match specific on the
+characters %20 in a uri. This means matching on the raw_uri.  The
+raw_uri and the normalized uri are separate buffers. So, the raw_uri
+inspects the raw_uri buffer and can not inspect the normalized buffer.
 
 Example of the URI in a HTTP request:
 
@@ -178,10 +175,6 @@ Example of the URI in a HTTP request:
 Example of the purpose of ``http_uri``:
 
 .. image:: http-keywords/uri.png
-
-Example of the purpose of ``http_raw_uri``:
-
-#.. image:: http-keywords/raw_uri.png
 
 uricontent
 ----------
@@ -193,7 +186,9 @@ request URI buffer.
 
 Example of ``uricontent``:
 
-.. image:: http-keywords/uricontent.png
+.. container:: example-rule
+
+    alert tcp $HOME_NET any -> $EXTERNAL_NET $HTTP_PORTS (msg:"ET TROJAN Possible Vundo Trojan Variant reporting to Controller"; flow:established,to_server; content:"POST "; depth:5; :example-rule-emphasis:`uricontent:"/frame.html?";` urilen: > 80; classtype:trojan-activity; reference:url,doc.emergingthreats.net/2009173; reference:url,www.emergingthreats.net/cgi-bin/cvsweb.cgi/sigs/VIRUS/TROJAN_Vundo; sid:2009173; rev:2;)
 
 The difference between ``http_uri`` and ``uricontent`` is the syntax:
 
@@ -229,7 +224,9 @@ Example:
 
 Example of ``urilen`` in a signature:
 
-.. image:: http-keywords/urilen1.png
+.. container:: example-rule
+
+    alert tcp $HOME_NET any -> $EXTERNAL_NET $HTTP_PORTS (msg:"ET TROJAN Possible Vundo Trojan Variant reporting to Controller"; flow:established,to_server; content:"POST "; depth:5; uricontent:"/frame.html?"; :example-rule-emphasis:`urilen: > 80;` classtype:trojan-activity; reference:url,doc.emergingthreats.net/2009173; reference:url,www.emergingthreats.net/cgi-bin/cvsweb.cgi/sigs/VIRUS/TROJAN_Vundo; sid:2009173; rev:2;)
 
 You can also append ``norm`` or ``raw`` to define what sort of buffer you want
 to use (normalized or raw buffer).
@@ -268,7 +265,7 @@ modifiers, like ``depth``, ``distance``, ``offset``, ``nocase`` and
 
     **Note**: the header buffer is *normalized*. Any trailing
     whitespace and tab characters are removed. See:
-    http://lists.openinfosecfoundation.org/pipermail/oisf-users/2011-October/000935.html.
+    https://lists.openinfosecfoundation.org/pipermail/oisf-users/2011-October/000935.html.
     To avoid that, use the ``http_raw_header`` keyword.
 
 Example of a header in a HTTP request:
@@ -356,7 +353,7 @@ Notes
    comes to performance than using the ``http_header`` buffer (~10%
    better).
 
--  `http://blog.inliniac.net/2012/07/09/suricata-http\_user\_agent-vs-http\_header/ <http://blog.inliniac.net/2012/07/09/suricata-http_user_agent-vs-http_header/>`_
+-  `https://blog.inliniac.net/2012/07/09/suricata-http\_user\_agent-vs-http\_header/ <https://blog.inliniac.net/2012/07/09/suricata-http_user_agent-vs-http_header/>`_
 
 http_accept
 -----------
@@ -485,7 +482,7 @@ Example rule::
 Example to make sure *only* Host is present::
 
     alert http any any -> any any (http_header_names; \
-            content:"|0d 0a 0d 0a|Host|0d 0a 0d 0a|"; sid:1;)
+            content:"|0d 0a|Host|0d 0a 0d 0a|"; sid:1;)
 
 Example to make sure *User-Agent* is directly after *Host*::
 
@@ -591,6 +588,8 @@ Notes
 
 -  Corresponding PCRE modifier: ``Q``
 
+-  further notes at the ``file_data`` section below.
+
 http_host and http_raw_host
 ---------------------------
 
@@ -673,18 +672,46 @@ rule. This makes it a useful shortcut for applying many content
 matches to the HTTP response body, eliminating the need to modify each
 content match individually.
 
-Note: how much of the response/server body is inspected is controlled
+As the body of a HTTP response can be very large, it is inspected in
+smaller chunks.
+
+How much of the response/server body is inspected is controlled
 in your :ref:`libhtp configuration section
 <suricata-yaml-configure-libhtp>` via the ``response-body-limit``
 setting.
 
-pcre
-----
+If the HTTP body is a flash file compressed with 'deflate' or 'lzma',
+it can be decompressed and ``file_data`` can match on the decompress data.
+Flash decompression must be enabled under ``libhtp`` configuration:
 
-For information about the ``pcre`` keyword, check the :doc:`pcre` page.
+::
 
-fast_pattern
-------------
+    # Decompress SWF files.
+    # 2 types: 'deflate', 'lzma', 'both' will decompress deflate and lzma
+    # compress-depth:
+    # Specifies the maximum amount of data to decompress,
+    # set 0 for unlimited.
+    # decompress-depth:
+    # Specifies the maximum amount of decompressed data to obtain,
+    # set 0 for unlimited.
+    swf-decompression:
+      enabled: yes
+      type: both
+      compress-depth: 0
+      decompress-depth: 0
 
-For information about the ``fast_pattern`` keyword, check the
-:doc:`fast-pattern` page.
+Notes
+~~~~~
+
+-  If a HTTP body is using gzip or deflate, ``file_data`` will match
+   on the decompressed data.
+
+-  Negated matching is affected by the chunked inspection. E.g.
+   'content:!"<html";' could not match on the first chunk, but would
+   then possibly match on the 2nd. To avoid this, use a depth setting.
+   The depth setting takes the body size into account.
+   Assuming that the ``response-body-minimal-inspect-size`` is bigger
+   than 1k, 'content:!"<html"; depth:1024;' can only match if the
+   pattern '<html' is absent from the first inspected chunk.
+
+-  ``file_data`` can also be used with SMTP

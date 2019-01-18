@@ -601,12 +601,13 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
                         PacketEnqueue(pq,tp);
                     }
+                    FlowSetupPacket(p);
                 }
                 break;
             }
         case IPPROTO_IP:
             /* check PPP VJ uncompressed packets and decode tcp dummy */
-            if(p->ppph != NULL && ntohs(p->ppph->protocol) == PPP_VJ_UCOMP)    {
+            if(p->ppph != NULL && SCNtohs(p->ppph->protocol) == PPP_VJ_UCOMP)    {
                 DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
                           IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p), pq);
             }

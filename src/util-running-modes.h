@@ -23,11 +23,7 @@
 #ifndef __UTIL_RUNNING_MODES_H__
 #define __UTIL_RUNNING_MODES_H__
 
-
 int ListKeywords(const char *keyword_info);
 int ListAppLayerProtocols(void);
-#ifdef __SC_CUDA_SUPPORT__
-int ListCudaCards(void);
-#endif
 
 #endif /* __UTIL_RUNNING_MODES_H__ */

@@ -98,6 +98,11 @@ static uint32_t stats_tts = STATS_MGMTT_TTS;
 /** is the stats counter enabled? */
 static char stats_enabled = TRUE;
 
+/**< add decoder events as stats? enabled by default */
+bool stats_decoder_events = true;
+/**< add stream events as stats? disabled by default */
+bool stats_stream_events = false;
+
 static int StatsOutput(ThreadVars *tv);
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *);
 void StatsReleaseCounters(StatsCounter *head);
@@ -237,6 +242,16 @@ static void StatsInitCtx(void)
         const char *interval = ConfNodeLookupChildValue(stats, "interval");
         if (interval != NULL)
             stats_tts = (uint32_t) atoi(interval);
+
+        int b;
+        int ret = ConfGetChildValueBool(stats, "decoder-events", &b);
+        if (ret) {
+            stats_decoder_events = (b == 1);
+        }
+        ret = ConfGetChildValueBool(stats, "stream-events", &b);
+        if (ret) {
+            stats_stream_events = (b == 1);
+        }
     }
 
     if (!OutputStatsLoggersRegistered()) {
@@ -323,12 +338,8 @@ static void StatsReleaseCtx(void)
  */
 static void *StatsMgmtThread(void *arg)
 {
-    /* block usr2.  usr2 to be handled by the main thread only */
-    UtilSignalBlock(SIGUSR2);
-
     ThreadVars *tv_local = (ThreadVars *)arg;
     uint8_t run = 1;
-    struct timespec cond_time;
 
     /* Set the thread name */
     if (SCSetThreadName(tv_local->name) < 0) {
@@ -369,8 +380,11 @@ static void *StatsMgmtThread(void *arg)
             TmThreadsUnsetFlag(tv_local, THV_PAUSED);
         }
 
-        cond_time.tv_sec = time(NULL) + stats_tts;
-        cond_time.tv_nsec = 0;
+        struct timeval cur_timev;
+        gettimeofday(&cur_timev, NULL);
+
+        struct timespec cond_time = FROM_TIMEVAL(cur_timev);
+        cond_time.tv_sec += (stats_tts);
 
         /* wait for the set time, or until we are woken up by
          * the shutdown procedure */
@@ -410,9 +424,6 @@ static void *StatsMgmtThread(void *arg)
  */
 static void *StatsWakeupThread(void *arg)
 {
-    /* block usr2.  usr2 to be handled by the main thread only */
-    UtilSignalBlock(SIGUSR2);
-
     ThreadVars *tv_local = (ThreadVars *)arg;
     uint8_t run = 1;
     ThreadVars *tv = NULL;
@@ -802,6 +813,25 @@ TmEcode StatsOutputCounterSocket(json_t *cmd,
 }
 #endif /* BUILD_UNIX_SOCKET */
 
+static void StatsLogSummary(void)
+{
+    uint64_t alerts = 0;
+    SCMutexLock(&stats_table_mutex);
+    if (stats_table.start_time != 0) {
+        const StatsTable *st = &stats_table;
+        uint32_t u = 0;
+        for (u = 0; u < st->nstats; u++) {
+            const char *name = st->stats[u].name;
+            if (name == NULL || strcmp(name, "detect.alert") != 0)
+                continue;
+            alerts = st->stats[u].value;
+            break;
+        }
+    }
+    SCMutexUnlock(&stats_table_mutex);
+    SCLogInfo("Alerts: %"PRIu64, alerts);
+}
+
 /**
  * \brief Initializes the perf counter api.  Things are hard coded currently.
  *        More work to be done when we implement multiple interfaces
@@ -886,7 +916,7 @@ void StatsSpawnThreads(void)
 uint16_t StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
-                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
                                                  &tv->perf_public_ctx,
                                                  STATS_TYPE_NORMAL, NULL);
 
@@ -907,7 +937,7 @@ uint16_t StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
 uint16_t StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
-                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
                                                  &tv->perf_public_ctx,
                                                  STATS_TYPE_AVERAGE, NULL);
 
@@ -928,7 +958,7 @@ uint16_t StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
 uint16_t StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
-                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
                                                  &tv->perf_public_ctx,
                                                  STATS_TYPE_MAXIMUM, NULL);
 
@@ -1149,7 +1179,8 @@ int StatsSetupPrivate(ThreadVars *tv)
 {
     StatsGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
 
-    StatsThreadRegister(tv->name, &(tv)->perf_public_ctx);
+    StatsThreadRegister(tv->printable_name ? tv->printable_name : tv->name,
+        &(tv)->perf_public_ctx);
     return 0;
 }
 
@@ -1208,6 +1239,7 @@ uint64_t StatsGetLocalCounterValue(ThreadVars *tv, uint16_t id)
  */
 void StatsReleaseResources()
 {
+    StatsLogSummary();
     StatsReleaseCtx();
 
     return;

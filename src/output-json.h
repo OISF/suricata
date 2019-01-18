@@ -27,10 +27,21 @@
 #include "suricata-common.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+#include "output.h"
+
+#include "app-layer-htp-xff.h"
 
 void OutputJsonRegister(void);
 
 #ifdef HAVE_LIBJANSSON
+
+enum OutputJsonLogDirection {
+    LOG_DIR_PACKET = 0,
+    LOG_DIR_FLOW,
+    LOG_DIR_FLOW_TOCLIENT,
+    LOG_DIR_FLOW_TOSERVER,
+};
+
 /* helper struct for OutputJSONMemBufferCallback */
 typedef struct OutputJSONMemBufferWrapper_ {
     MemBuffer **buffer; /**< buffer to use & expand as needed */
@@ -39,16 +50,25 @@ typedef struct OutputJSONMemBufferWrapper_ {
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
-void JsonAddVars(const Packet *p, const Flow *f, json_t *js);
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
-void JsonFiveTuple(const Packet *, int, json_t *);
-json_t *CreateJSONHeader(const Packet *p, int direction_sensative, const char *event_type);
-json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const char *event_type, uint64_t tx_id);
+void JsonFiveTuple(const Packet *, enum OutputJsonLogDirection, json_t *);
+json_t *CreateJSONHeader(const Packet *p,
+        enum OutputJsonLogDirection dir, const char *event_type);
+json_t *CreateJSONHeaderWithTxId(const Packet *p,
+        enum OutputJsonLogDirection dir, const char *event_type, uint64_t tx_id);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
-OutputCtx *OutputJsonInitCtx(ConfNode *);
+OutputInitResult OutputJsonInitCtx(ConfNode *);
 
-enum JsonFormat { COMPACT, INDENT };
+OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);
+TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
+TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
+
+typedef struct OutputJsonCommonSettings_ {
+    bool include_metadata;
+    bool include_community_id;
+    uint16_t community_id_seed;
+} OutputJsonCommonSettings;
 
 /*
  * Global configuration context data
@@ -56,15 +76,21 @@ enum JsonFormat { COMPACT, INDENT };
 typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
     enum LogFileType json_out;
-    enum JsonFormat format;
+    OutputJsonCommonSettings cfg;
+    HttpXFFCfg *xff_cfg;
 } OutputJsonCtx;
 
-typedef struct AlertJsonThread_ {
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx *file_ctx;
-} AlertJsonThread;
+typedef struct OutputJsonThreadCtx_ {
+    OutputJsonCtx *ctx;
+    MemBuffer *buffer;
+} OutputJsonThreadCtx;
 
 json_t *SCJsonBool(int val);
+json_t *SCJsonString(const char *val);
+void SCJsonDecref(json_t *js);
+
+void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
+        const Packet *p, const Flow *f, json_t *js);
 
 #endif /* HAVE_LIBJANSSON */
 

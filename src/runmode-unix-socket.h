@@ -28,7 +28,7 @@ const char *RunModeUnixSocketGetDefaultMode(void);
 
 int RunModeUnixSocketIsActive(void);
 
-void UnixSocketPcapFile(TmEcode tm);
+TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data);
@@ -39,6 +39,9 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketHostbitRemove(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data);
+TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data);
+TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data);
+TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data);
 #endif
 
 #endif /* __RUNMODE_UNIX_SOCKET_H__ */

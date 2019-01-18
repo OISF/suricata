@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -247,6 +247,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         goto error;
 
     cd->idx = VarNameStoreSetupAdd(fb_name, VAR_TYPE_FLOW_BIT);
+    de_ctx->max_fb_id = MAX(cd->idx, de_ctx->max_fb_id);
     cd->cmd = fb_cmd;
 
     SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
@@ -276,6 +277,11 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
             /* modifiers, only run when entire sig has matched */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
             break;
+
+        // suppress coverity warning as scan-build-7 warns w/o this.
+        // coverity[deadcode : FALSE]
+        default:
+            goto error;
     }
 
     return 0;
@@ -297,6 +303,369 @@ void DetectFlowbitFree (void *ptr)
 
     SCFree(fd);
 }
+
+struct FBAnalyze {
+    uint16_t cnts[DETECT_FLOWBITS_CMD_MAX];
+    uint16_t state_cnts[DETECT_FLOWBITS_CMD_MAX];
+
+    uint32_t *set_sids;
+    uint32_t set_sids_idx;
+    uint32_t set_sids_size;
+
+    uint32_t *isset_sids;
+    uint32_t isset_sids_idx;
+    uint32_t isset_sids_size;
+
+    uint32_t *isnotset_sids;
+    uint32_t isnotset_sids_idx;
+    uint32_t isnotset_sids_size;
+
+    uint32_t *unset_sids;
+    uint32_t unset_sids_idx;
+    uint32_t unset_sids_size;
+
+    uint32_t *toggle_sids;
+    uint32_t toggle_sids_idx;
+    uint32_t toggle_sids_size;
+};
+#ifdef PROFILING
+#ifdef HAVE_LIBJANSSON
+static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
+        struct FBAnalyze *array, uint32_t elements);
+#endif
+#endif
+
+void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
+{
+    const uint32_t max_fb_id = de_ctx->max_fb_id;
+    if (max_fb_id == 0)
+        return;
+
+#define MAX_SIDS 8
+    uint32_t array_size = max_fb_id + 1;
+    struct FBAnalyze array[array_size];
+    memset(&array, 0, array_size * sizeof(struct FBAnalyze));
+
+    SCLogDebug("fb analyzer array size: %"PRIu64,
+            (uint64_t)(array_size * sizeof(struct FBAnalyze)));
+
+    /* fill flowbit array, updating counters per sig */
+    for (uint32_t i = 0; i < de_ctx->sig_array_len; i++) {
+        const Signature *s = de_ctx->sig_array[i];
+        bool has_state = false;
+
+        /* see if the signature uses stateful matching */
+        for (uint32_t x = DETECT_SM_LIST_DYNAMIC_START; x < s->init_data->smlists_array_size; x++) {
+            if (s->init_data->smlists[x] == NULL)
+                continue;
+            has_state = true;
+            break;
+        }
+
+        for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+            switch (sm->type) {
+                case DETECT_FLOWBITS:
+                {
+                    /* figure out the flowbit action */
+                    const DetectFlowbitsData *fb = (DetectFlowbitsData *)sm->ctx;
+                    array[fb->idx].cnts[fb->cmd]++;
+                    if (has_state)
+                        array[fb->idx].state_cnts[fb->cmd]++;
+                    if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
+                        if (array[fb->idx].isset_sids_idx >= array[fb->idx].isset_sids_size) {
+                            uint32_t old_size = array[fb->idx].isset_sids_size;
+                            uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
+
+                            void *ptr = SCRealloc(array[fb->idx].isset_sids, new_size * sizeof(uint32_t));
+                            if (ptr == NULL)
+                                goto end;
+                            array[fb->idx].isset_sids_size = new_size;
+                            array[fb->idx].isset_sids = ptr;
+                        }
+
+                        array[fb->idx].isset_sids[array[fb->idx].isset_sids_idx] = s->num;
+                        array[fb->idx].isset_sids_idx++;
+                    } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET){
+                        if (array[fb->idx].isnotset_sids_idx >= array[fb->idx].isnotset_sids_size) {
+                            uint32_t old_size = array[fb->idx].isnotset_sids_size;
+                            uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
+
+                            void *ptr = SCRealloc(array[fb->idx].isnotset_sids, new_size * sizeof(uint32_t));
+                            if (ptr == NULL)
+                                goto end;
+                            array[fb->idx].isnotset_sids_size = new_size;
+                            array[fb->idx].isnotset_sids = ptr;
+                        }
+
+                        array[fb->idx].isnotset_sids[array[fb->idx].isnotset_sids_idx] = s->num;
+                        array[fb->idx].isnotset_sids_idx++;
+                    }
+                }
+            }
+        }
+        for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_POSTMATCH] ; sm != NULL; sm = sm->next) {
+            switch (sm->type) {
+                case DETECT_FLOWBITS:
+                {
+                    /* figure out what flowbit action */
+                    const DetectFlowbitsData *fb = (DetectFlowbitsData *)sm->ctx;
+                    array[fb->idx].cnts[fb->cmd]++;
+                    if (has_state)
+                        array[fb->idx].state_cnts[fb->cmd]++;
+                    if (fb->cmd == DETECT_FLOWBITS_CMD_SET) {
+                        if (array[fb->idx].set_sids_idx >= array[fb->idx].set_sids_size) {
+                            uint32_t old_size = array[fb->idx].set_sids_size;
+                            uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
+
+                            void *ptr = SCRealloc(array[fb->idx].set_sids, new_size * sizeof(uint32_t));
+                            if (ptr == NULL)
+                                goto end;
+                            array[fb->idx].set_sids_size = new_size;
+                            array[fb->idx].set_sids = ptr;
+                        }
+
+                        array[fb->idx].set_sids[array[fb->idx].set_sids_idx] = s->num;
+                        array[fb->idx].set_sids_idx++;
+                    }
+                    else if (fb->cmd == DETECT_FLOWBITS_CMD_UNSET) {
+                        if (array[fb->idx].unset_sids_idx >= array[fb->idx].unset_sids_size) {
+                            uint32_t old_size = array[fb->idx].unset_sids_size;
+                            uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
+
+                            void *ptr = SCRealloc(array[fb->idx].unset_sids, new_size * sizeof(uint32_t));
+                            if (ptr == NULL)
+                                goto end;
+                            array[fb->idx].unset_sids_size = new_size;
+                            array[fb->idx].unset_sids = ptr;
+                        }
+
+                        array[fb->idx].unset_sids[array[fb->idx].unset_sids_idx] = s->num;
+                        array[fb->idx].unset_sids_idx++;
+                    }
+                    else if (fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
+                        if (array[fb->idx].toggle_sids_idx >= array[fb->idx].toggle_sids_size) {
+                            uint32_t old_size = array[fb->idx].toggle_sids_size;
+                            uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
+
+                            void *ptr = SCRealloc(array[fb->idx].toggle_sids, new_size * sizeof(uint32_t));
+                            if (ptr == NULL)
+                                goto end;
+                            array[fb->idx].toggle_sids_size = new_size;
+                            array[fb->idx].toggle_sids = ptr;
+                        }
+
+                        array[fb->idx].toggle_sids[array[fb->idx].toggle_sids_idx] = s->num;
+                        array[fb->idx].toggle_sids_idx++;
+                    }
+                }
+            }
+        }
+    }
+
+    /* walk array to see if all bits make sense */
+    for (uint32_t i = 0; i < array_size; i++) {
+        char *varname = VarNameStoreSetupLookup(i, VAR_TYPE_FLOW_BIT);
+        if (varname == NULL)
+            continue;
+
+        bool to_state = false;
+
+        if (array[i].cnts[DETECT_FLOWBITS_CMD_ISSET] &&
+            array[i].cnts[DETECT_FLOWBITS_CMD_TOGGLE] == 0 &&
+            array[i].cnts[DETECT_FLOWBITS_CMD_SET] == 0) {
+
+            const Signature *s = de_ctx->sig_array[array[i].isset_sids[0]];
+            SCLogWarning(SC_WARN_FLOWBIT, "flowbit '%s' is checked but not "
+                    "set. Checked in %u and %u other sigs",
+                    varname, s->id, array[i].isset_sids_idx - 1);
+        }
+        if (array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET] &&
+            array[i].state_cnts[DETECT_FLOWBITS_CMD_SET] == 0)
+        {
+            SCLogDebug("flowbit %s/%u: isset in state, set not in state", varname, i);
+        }
+
+        /* if signature depends on 'stateful' flowbits, then turn the
+         * sig into a stateful sig itself */
+        if (array[i].cnts[DETECT_FLOWBITS_CMD_ISSET] > 0 &&
+            array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET] == 0 &&
+            array[i].state_cnts[DETECT_FLOWBITS_CMD_SET])
+        {
+            SCLogDebug("flowbit %s/%u: isset not in state, set in state", varname, i);
+            to_state = true;
+        }
+
+        SCLogDebug("ALL flowbit %s/%u: sets %u toggles %u unsets %u isnotsets %u issets %u", varname, i,
+                array[i].cnts[DETECT_FLOWBITS_CMD_SET], array[i].cnts[DETECT_FLOWBITS_CMD_TOGGLE],
+                array[i].cnts[DETECT_FLOWBITS_CMD_UNSET], array[i].cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
+                array[i].cnts[DETECT_FLOWBITS_CMD_ISSET]);
+        SCLogDebug("STATE flowbit %s/%u: sets %u toggles %u unsets %u isnotsets %u issets %u", varname, i,
+                array[i].state_cnts[DETECT_FLOWBITS_CMD_SET], array[i].state_cnts[DETECT_FLOWBITS_CMD_TOGGLE],
+                array[i].state_cnts[DETECT_FLOWBITS_CMD_UNSET], array[i].state_cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
+                array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET]);
+        for (uint32_t x = 0; x < array[i].set_sids_idx; x++) {
+            SCLogDebug("SET flowbit %s/%u: SID %u", varname, i,
+                    de_ctx->sig_array[array[i].set_sids[x]]->id);
+        }
+        for (uint32_t x = 0; x < array[i].isset_sids_idx; x++) {
+            Signature *s = de_ctx->sig_array[array[i].isset_sids[x]];
+            SCLogDebug("GET flowbit %s/%u: SID %u", varname, i, s->id);
+
+            if (to_state) {
+                s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
+                SCLogDebug("made SID %u stateful because it depends on "
+                        "stateful rules that set flowbit %s", s->id, varname);
+            }
+        }
+        SCFree(varname);
+    }
+#ifdef PROFILING
+#ifdef HAVE_LIBJANSSON
+    DetectFlowbitsAnalyzeDump(de_ctx, array, array_size);
+#endif
+#endif
+
+end:
+    for (uint32_t i = 0; i < array_size; i++) {
+        SCFree(array[i].set_sids);
+        SCFree(array[i].unset_sids);
+        SCFree(array[i].isset_sids);
+        SCFree(array[i].isnotset_sids);
+        SCFree(array[i].toggle_sids);
+    }
+}
+
+#ifdef PROFILING
+#ifdef HAVE_LIBJANSSON
+#include "output-json.h"
+#include "util-buffer.h"
+SCMutex g_flowbits_dump_write_m = SCMUTEX_INITIALIZER;
+static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
+        struct FBAnalyze *array, uint32_t elements)
+{
+    json_t *js = json_object();
+    if (js == NULL)
+        return;
+
+    json_t *js_array = json_array();
+    uint32_t x;
+    for (x = 0; x < elements; x++)
+    {
+        char *varname = VarNameStoreSetupLookup(x, VAR_TYPE_FLOW_BIT);
+        if (varname == NULL)
+            continue;
+
+        const struct FBAnalyze *e = &array[x];
+
+        json_t *js_fb = json_object();
+        if (unlikely(js_fb != NULL)) {
+            json_object_set_new(js_fb, "name", json_string(varname));
+            json_object_set_new(js_fb, "internal_id", json_integer(x));
+            json_object_set_new(js_fb, "set_cnt", json_integer(e->cnts[DETECT_FLOWBITS_CMD_SET]));
+            json_object_set_new(js_fb, "unset_cnt", json_integer(e->cnts[DETECT_FLOWBITS_CMD_UNSET]));
+            json_object_set_new(js_fb, "toggle_cnt", json_integer(e->cnts[DETECT_FLOWBITS_CMD_TOGGLE]));
+            json_object_set_new(js_fb, "isset_cnt", json_integer(e->cnts[DETECT_FLOWBITS_CMD_ISSET]));
+            json_object_set_new(js_fb, "isnotset_cnt", json_integer(e->cnts[DETECT_FLOWBITS_CMD_ISNOTSET]));
+
+            // sets
+            if (e->cnts[DETECT_FLOWBITS_CMD_SET]) {
+                json_t *js_set_array = json_array();
+                if (js_set_array) {
+                    for(uint32_t i = 0; i < e->set_sids_idx; i++) {
+                        const Signature *s = de_ctx->sig_array[e->set_sids[i]];
+                        json_array_append_new(js_set_array, json_integer(s->id));
+                    }
+                    json_object_set_new(js_fb, "sets", js_set_array);
+                }
+            }
+            // gets
+            if (e->cnts[DETECT_FLOWBITS_CMD_ISSET]) {
+                json_t *js_isset_array = json_array();
+                if (js_isset_array) {
+                    for(uint32_t i = 0; i < e->isset_sids_idx; i++) {
+                        const Signature *s = de_ctx->sig_array[e->isset_sids[i]];
+                        json_array_append_new(js_isset_array, json_integer(s->id));
+                    }
+                    json_object_set_new(js_fb, "isset", js_isset_array);
+                }
+            }
+            // isnotset
+            if (e->cnts[DETECT_FLOWBITS_CMD_ISNOTSET]) {
+                json_t *js_isnotset_array = json_array();
+                if (js_isnotset_array) {
+                    for(uint32_t i = 0; i < e->isnotset_sids_idx; i++) {
+                        const Signature *s = de_ctx->sig_array[e->isnotset_sids[i]];
+                        json_array_append_new(js_isnotset_array, json_integer(s->id));
+                    }
+                    json_object_set_new(js_fb, "isnotset", js_isnotset_array);
+                }
+            }
+            // unset
+            if (e->cnts[DETECT_FLOWBITS_CMD_UNSET]) {
+                json_t *js_unset_array = json_array();
+                if (js_unset_array) {
+                    for(uint32_t i = 0; i < e->unset_sids_idx; i++) {
+                        const Signature *s = de_ctx->sig_array[e->unset_sids[i]];
+                        json_array_append_new(js_unset_array, json_integer(s->id));
+                    }
+                    json_object_set_new(js_fb, "unset", js_unset_array);
+                }
+            }
+            // toggle
+            if (e->cnts[DETECT_FLOWBITS_CMD_TOGGLE]) {
+                json_t *js_toggle_array = json_array();
+                if (js_toggle_array) {
+                    for(uint32_t i = 0; i < e->toggle_sids_idx; i++) {
+                        const Signature *s = de_ctx->sig_array[e->toggle_sids[i]];
+                        json_array_append_new(js_toggle_array, json_integer(s->id));
+                    }
+                    json_object_set_new(js_fb, "toggle", js_toggle_array);
+                }
+            }
+
+            json_array_append_new(js_array, js_fb);
+        }
+        SCFree(varname);
+    }
+
+    json_object_set_new(js, "flowbits", js_array);
+
+    const char *filename = "flowbits.json";
+    const char *log_dir = ConfigGetLogDirectory();
+    char log_path[PATH_MAX] = "";
+    snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, filename);
+
+    MemBuffer *mbuf = NULL;
+    mbuf = MemBufferCreateNew(4096);
+    BUG_ON(mbuf == NULL);
+
+    OutputJSONMemBufferWrapper wrapper = {
+        .buffer = &mbuf,
+        .expand_by = 4096,
+    };
+
+    int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
+            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
+            JSON_ESCAPE_SLASH);
+    if (r != 0) {
+        SCLogWarning(SC_ERR_SOCKET, "unable to serialize JSON object");
+    } else {
+        MemBufferWriteString(mbuf, "\n");
+        SCMutexLock(&g_flowbits_dump_write_m);
+        FILE *fp = fopen(log_path, "w");
+        if (fp != NULL) {
+            MemBufferPrintToFPAsString(mbuf, fp);
+            fclose(fp);
+        }
+        SCMutexUnlock(&g_flowbits_dump_write_m);
+    }
+
+    MemBufferFree(mbuf);
+    json_object_clear(js);
+    json_decref(js);
+}
+#endif /* HAVE_LIBJANSSON */
+#endif /* PROFILING */
 
 #ifdef UNITTESTS
 

@@ -28,6 +28,7 @@
 #include "suricata-common.h"
 #include "win32-misc.h"
 #include "direct.h"
+#include "util-ip.h"
 
 void setenv(const char *name, const char *value, int overwrite)
 {
@@ -51,6 +52,8 @@ void unsetenv(const char *name)
     SCFree(str);
 }
 
+/* these functions have been defined on Vista and later */
+#if NTDDI_VERSION < NTDDI_VISTA
 const char* inet_ntop(int af, const void *src, char *dst, uint32_t cnt)
 {
     if (af == AF_INET)
@@ -80,6 +83,17 @@ int inet_pton(int af, const char *src, void *dst)
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = af;
 
+    /* as getaddrinfo below seems more liberal that inet_pton on Linux,
+     * add this check here that does a guess at the validity of the
+     * input address. */
+    if (af == AF_INET) {
+        if (!IPv4AddressStringIsValid(src))
+            return -1;
+    } else if (af == AF_INET6) {
+        if (!IPv6AddressStringIsValid(src))
+            return -1;
+    }
+
     struct addrinfo* result = NULL;
     if (0 != getaddrinfo(src, NULL, &hints, &result))
         return -1;
@@ -104,5 +118,6 @@ int inet_pton(int af, const char *src, void *dst)
 
     return -1;
 }
+#endif
 
 #endif /* OS_WIN32 */

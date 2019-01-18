@@ -30,6 +30,43 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(void);
 /** queue with spare tracker */
 static DefragTrackerQueue defragtracker_spare_q;
 
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+int DefragTrackerSetMemcap(uint64_t size)
+{
+    if ((uint64_t)SC_ATOMIC_GET(defrag_memuse) < size) {
+        SC_ATOMIC_SET(defrag_config.memcap, size);
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t DefragTrackerGetMemcap(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(defrag_config.memcap);
+    return memcapcopy;
+}
+
+/**
+ *  \brief Return memuse value
+ *
+ *  \retval memuse value
+ */
+uint64_t DefragTrackerGetMemuse(void)
+{
+    uint64_t memusecopy = (uint64_t)SC_ATOMIC_GET(defrag_memuse);
+    return memusecopy;
+}
+
 uint32_t DefragTrackerSpareQueueGetSize(void)
 {
     return DefragTrackerQueueLen(&defragtracker_spare_q);
@@ -100,7 +137,6 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p)
     dt->remove = 0;
     dt->seen_last = 0;
 
-    TAILQ_INIT(&dt->frags);
     (void) DefragTrackerIncrUsecnt(dt);
 }
 
@@ -131,26 +167,30 @@ void DefragInitConfig(char quiet)
     SC_ATOMIC_INIT(defragtracker_counter);
     SC_ATOMIC_INIT(defrag_memuse);
     SC_ATOMIC_INIT(defragtracker_prune_idx);
+    SC_ATOMIC_INIT(defrag_config.memcap);
     DefragTrackerQueueInit(&defragtracker_spare_q);
 
     /* set defaults */
     defrag_config.hash_rand   = (uint32_t)RandomGet();
     defrag_config.hash_size   = DEFRAG_DEFAULT_HASHSIZE;
-    defrag_config.memcap      = DEFRAG_DEFAULT_MEMCAP;
     defrag_config.prealloc    = DEFRAG_DEFAULT_PREALLOC;
+    SC_ATOMIC_SET(defrag_config.memcap, DEFRAG_DEFAULT_MEMCAP);
 
     /* Check if we have memcap and hash_size defined at config */
     const char *conf_val;
     uint32_t configval = 0;
 
+    uint64_t defrag_memcap;
     /** set config values for memcap, prealloc and hash_size */
     if ((ConfGet("defrag.memcap", &conf_val)) == 1)
     {
-        if (ParseSizeStringU64(conf_val, &defrag_config.memcap) < 0) {
+        if (ParseSizeStringU64(conf_val, &defrag_memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing defrag.memcap "
                        "from conf file - %s.  Killing engine",
                        conf_val);
             exit(EXIT_FAILURE);
+        } else {
+            SC_ATOMIC_SET(defrag_config.memcap, defrag_memcap);
         }
     }
     if ((ConfGet("defrag.hash-size", &conf_val)) == 1)
@@ -174,7 +214,7 @@ void DefragInitConfig(char quiet)
         }
     }
     SCLogDebug("DefragTracker config from suricata.yaml: memcap: %"PRIu64", hash-size: "
-               "%"PRIu32", prealloc: %"PRIu32, defrag_config.memcap,
+               "%"PRIu32", prealloc: %"PRIu32, SC_ATOMIC_GET(defrag_config.memcap),
                defrag_config.hash_size, defrag_config.prealloc);
 
     /* alloc hash memory */
@@ -184,7 +224,7 @@ void DefragInitConfig(char quiet)
                 "max defrag memcap is smaller than projected hash size. "
                 "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
                 "total hash size by multiplying \"defrag.hash-size\" with %"PRIuMAX", "
-                "which is the hash bucket size.", defrag_config.memcap, hash_size,
+                "which is the hash bucket size.", SC_ATOMIC_GET(defrag_config.memcap), hash_size,
                 (uintmax_t)sizeof(DefragTrackerHashRow));
         exit(EXIT_FAILURE);
     }
@@ -216,7 +256,7 @@ void DefragInitConfig(char quiet)
                 if (!(DEFRAG_CHECK_MEMCAP(sizeof(DefragTracker)))) {
                     SCLogError(SC_ERR_DEFRAG_INIT, "preallocating defrag trackers failed: "
                             "max defrag memcap reached. Memcap %"PRIu64", "
-                            "Memuse %"PRIu64".", defrag_config.memcap,
+                            "Memuse %"PRIu64".", SC_ATOMIC_GET(defrag_config.memcap),
                             ((uint64_t)SC_ATOMIC_GET(defrag_memuse) + (uint64_t)sizeof(DefragTracker)));
                     exit(EXIT_FAILURE);
                 }
@@ -237,7 +277,7 @@ void DefragInitConfig(char quiet)
 
     if (quiet == FALSE) {
         SCLogConfig("defrag memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
-                SC_ATOMIC_GET(defrag_memuse), defrag_config.memcap);
+                SC_ATOMIC_GET(defrag_memuse), SC_ATOMIC_GET(defrag_config.memcap));
     }
 
     return;
@@ -286,6 +326,7 @@ void DefragHashShutdown(void)
     SC_ATOMIC_DESTROY(defragtracker_prune_idx);
     SC_ATOMIC_DESTROY(defrag_memuse);
     SC_ATOMIC_DESTROY(defragtracker_counter);
+    SC_ATOMIC_DESTROY(defrag_config.memcap);
     //SC_ATOMIC_DESTROY(flow_flags);
     return;
 }
@@ -294,7 +335,7 @@ void DefragHashShutdown(void)
  *
  *  \note we don't care about the real ipv6 ip's, this is just
  *        to consistently fill the DefragHashKey6 struct, without all
- *        the ntohl calls.
+ *        the SCNtohl calls.
  *
  *  \warning do not use elsewhere unless you know what you're doing.
  *           detect-engine-address-ipv6.c's AddressIPv6GtU32 is likely

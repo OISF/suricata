@@ -1,4 +1,4 @@
-/* Copyright (C) 2013 Open Information Security Foundation
+/* Copyright (C) 2013-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,19 +29,23 @@
 #include "runmodes.h"
 #include "conf.h"
 
+#include "output-json-stats.h"
+
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-device.h"
+#include "util-ebpf.h"
 #include "util-signal.h"
 #include "util-buffer.h"
 
+#if (defined BUILD_UNIX_SOCKET) && (defined HAVE_SYS_UN_H) && (defined HAVE_SYS_STAT_H) && (defined HAVE_SYS_TYPES_H)
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#ifdef BUILD_UNIX_SOCKET
 #include <jansson.h>
 
+#include "output.h"
 #include "output-json.h"
 
 // MSG_NOSIGNAL does not exists on OS X
@@ -54,6 +58,8 @@
 #define SOCKET_PATH LOCAL_STATE_DIR "/run/suricata/"
 #define SOCKET_FILENAME "suricata-command.socket"
 #define SOCKET_TARGET SOCKET_PATH SOCKET_FILENAME
+
+#define MAX_FAILED_RULES   20
 
 typedef struct Command_ {
     char *name;
@@ -73,6 +79,7 @@ typedef struct Task_ {
 typedef struct UnixClient_ {
     int fd;
     MemBuffer *mbuf; /**< buffer for response construction */
+    int version;
     TAILQ_ENTRY(UnixClient_) next;
 } UnixClient;
 
@@ -128,7 +135,7 @@ static int UnixNew(UnixCommand * this)
         /* coverity[toctou] */
         if (stat(SOCKET_PATH, &stat_buf) != 0) {
             /* coverity[toctou] */
-            ret = mkdir(SOCKET_PATH, S_IRWXU|S_IXGRP|S_IRGRP);
+            ret = SCMkDir(SOCKET_PATH, S_IRWXU|S_IXGRP|S_IRGRP);
             if (ret != 0) {
                 int err = errno;
                 if (err != EEXIST) {
@@ -163,19 +170,6 @@ static int UnixNew(UnixCommand * this)
     }
     this->select_max = this->socket + 1;
 
-#if !(defined OS_FREEBSD || defined __OpenBSD__)
-    /* Set file mode: will not fully work on most system, the group
-     * permission is not changed on some Linux. *BSD won't do the
-     * chmod: it returns EINVAL when calling fchmod on sockets. */
-    ret = fchmod(this->socket, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
-    if (ret == -1) {
-        int err = errno;
-        SCLogWarning(SC_ERR_INITIALIZATION,
-                     "Unable to change permission on socket: %s (%d)",
-                     strerror(err),
-                     err);
-    }
-#endif
     /* set reuse option */
     ret = setsockopt(this->socket, SOL_SOCKET, SO_REUSEADDR,
                      (char *) &on, sizeof(on));
@@ -192,6 +186,20 @@ static int UnixNew(UnixCommand * this)
                      sockettarget, strerror(errno));
         return 0;
     }
+
+#if !(defined OS_FREEBSD || defined __OpenBSD__)
+    /* Set file mode: will not fully work on most system, the group
+     * permission is not changed on some Linux. *BSD won't do the
+     * chmod: it returns EINVAL when calling chmod on sockets. */
+    ret = chmod(sockettarget, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+    if (ret == -1) {
+        int err = errno;
+        SCLogWarning(SC_ERR_INITIALIZATION,
+                     "Unable to change permission on socket: %s (%d)",
+                     strerror(err),
+                     err);
+    }
+#endif
 
     /* listen */
     if (listen(this->socket, 1) == -1) {
@@ -272,7 +280,10 @@ static void UnixCommandClose(UnixCommand  *this, int fd)
 }
 
 #define UNIX_PROTO_VERSION_LENGTH 200
-#define UNIX_PROTO_VERSION "0.1"
+#define UNIX_PROTO_VERSION_V1 "0.1"
+#define UNIX_PROTO_V1 1
+#define UNIX_PROTO_VERSION "0.2"
+#define UNIX_PROTO_V2 2
 
 static int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
 {
@@ -289,6 +300,13 @@ static int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
     if (r != 0) {
         SCLogWarning(SC_ERR_SOCKET, "unable to serialize JSON object");
         return -1;
+    }
+
+    if (client->version > UNIX_PROTO_V1) {
+        if (MEMBUFFER_OFFSET(client->mbuf) + 1 >= MEMBUFFER_SIZE(client->mbuf)) {
+            MemBufferExpand(&client->mbuf, 1);
+        }
+        MemBufferWriteRaw(client->mbuf, "\n", 1);
     }
 
     if (send(client->fd, (const char *)MEMBUFFER_BUFFER(client->mbuf),
@@ -322,6 +340,7 @@ static int UnixCommandAccept(UnixCommand *this)
     json_t *version;
     json_error_t jerror;
     int client;
+    int client_version;
     int ret;
     UnixClient *uclient = NULL;
 
@@ -368,7 +387,8 @@ static int UnixCommandAccept(UnixCommand *this)
     }
 
     /* check client version */
-    if (strcmp(json_string_value(version), UNIX_PROTO_VERSION) != 0) {
+    if ((strcmp(json_string_value(version), UNIX_PROTO_VERSION) != 0)
+        && (strcmp(json_string_value(version), UNIX_PROTO_VERSION_V1) != 0)) {
         SCLogInfo("Unix socket: invalid client version: \"%s\"",
                 json_string_value(version));
         json_decref(client_msg);
@@ -377,6 +397,11 @@ static int UnixCommandAccept(UnixCommand *this)
     } else {
         SCLogDebug("Unix socket: client version: \"%s\"",
                 json_string_value(version));
+        if (strcmp(json_string_value(version), UNIX_PROTO_VERSION_V1) == 0) {
+            client_version = UNIX_PROTO_V1;
+        } else {
+            client_version = UNIX_PROTO_V2;
+        }
     }
 
     json_decref(client_msg);
@@ -396,6 +421,7 @@ static int UnixCommandAccept(UnixCommand *this)
         return 0;
     }
     uclient->fd = client;
+    uclient->version = client_version;
 
     if (UnixCommandSendJSONToClient(uclient, server_msg) != 0) {
         SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
@@ -410,7 +436,6 @@ static int UnixCommandAccept(UnixCommand *this)
 
     /* client connected */
     SCLogDebug("Unix socket: client connected");
-
     TAILQ_INSERT_TAIL(&this->clients, uclient, next);
     UnixCommandSetMaxFD(this);
     return 1;
@@ -520,23 +545,82 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
 {
     char buffer[4096];
     int ret;
-    ret = recv(client->fd, buffer, sizeof(buffer) - 1, 0);
-    if (ret <= 0) {
-        if (ret == 0) {
-            SCLogDebug("Unix socket: lost connection with client");
-        } else {
-            SCLogError(SC_ERR_SOCKET, "Unix socket: error on recv() from client: %s",
-                      strerror(errno));
+    if (client->version <= UNIX_PROTO_V1) {
+        ret = recv(client->fd, buffer, sizeof(buffer) - 1, 0);
+        if (ret <= 0) {
+            if (ret == 0) {
+                SCLogDebug("Unix socket: lost connection with client");
+            } else {
+                SCLogError(SC_ERR_SOCKET, "Unix socket: error on recv() from client: %s",
+                        strerror(errno));
+            }
+            UnixCommandClose(this, client->fd);
+            return;
         }
-        UnixCommandClose(this, client->fd);
-        return;
+        if (ret >= (int)(sizeof(buffer)-1)) {
+            SCLogError(SC_ERR_SOCKET, "Command server: client command is too long, "
+                    "disconnect him.");
+            UnixCommandClose(this, client->fd);
+        }
+        buffer[ret] = 0;
+    } else {
+        int try = 0;
+        int offset = 0;
+        int cmd_over = 0;
+        ret = recv(client->fd, buffer + offset, sizeof(buffer) - offset - 1, 0);
+        do {
+            if (ret <= 0) {
+                if (ret == 0) {
+                    SCLogInfo("Unix socket: lost connection with client");
+                } else {
+                    SCLogInfo("Unix socket: error on recv() from client: %s",
+                            strerror(errno));
+                }
+                UnixCommandClose(this, client->fd);
+                return;
+            }
+            if (ret >= (int)(sizeof(buffer)- offset - 1)) {
+                SCLogInfo("Command server: client command is too long, "
+                        "disconnect him.");
+                UnixCommandClose(this, client->fd);
+            }
+            if (buffer[ret - 1] == '\n') {
+                buffer[ret-1] = 0;
+                cmd_over = 1;
+            } else {
+                struct timeval tv;
+                fd_set select_set;
+                offset += ret;
+                do {
+                    FD_ZERO(&select_set);
+                    FD_SET(client->fd, &select_set);
+                    tv.tv_sec = 0;
+                    tv.tv_usec = 200 * 1000;
+                    try++;
+                    ret = select(client->fd, &select_set, NULL, NULL, &tv);
+                    /* catch select() error */
+                    if (ret == -1) {
+                        /* Signal was caught: just ignore it */
+                        if (errno != EINTR) {
+                            SCLogInfo("Unix socket: lost connection with client");
+                            UnixCommandClose(this, client->fd);
+                            return;
+                        }
+                    }
+                } while (ret == 0 && try < 3);
+                if (ret > 0) {
+                    ret = recv(client->fd, buffer + offset,
+                               sizeof(buffer) - offset - 1, 0);
+                }
+            }
+        } while (try < 3 && cmd_over == 0);
+
+        if (try == 3 && cmd_over == 0) {
+            SCLogInfo("Unix socket: imcomplete client message, closing connection");
+            UnixCommandClose(this, client->fd);
+            return;
+        }
     }
-    if (ret >= (int)(sizeof(buffer)-1)) {
-        SCLogInfo("Command server: client command is too long, "
-                  "disconnect him.");
-        UnixCommandClose(this, client->fd);
-    }
-    buffer[ret] = 0;
     UnixCommandExecute(this, buffer, client);
 }
 
@@ -652,20 +736,126 @@ static TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-static TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+static TmEcode UnixManagerReloadRulesWrapper(json_t *cmd, json_t *server_msg, void *data, int do_wait)
 {
     SCEnter();
-    DetectEngineReloadStart();
 
-    while (DetectEngineReloadIsDone() == 0)
-        usleep(100);
+    if (SuriHasSigFile()) {
+        json_object_set_new(server_msg, "message",
+                            json_string("Live rule reload not possible if -s "
+                                        "or -S option used at runtime."));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    int r = DetectEngineReloadStart();
+
+    if (r == 0 && do_wait) {
+        while (!DetectEngineReloadIsIdle())
+            usleep(100);
+    } else {
+        if (r == -1) {
+            json_object_set_new(server_msg, "message", json_string("Reload already in progress"));
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+    }
 
     json_object_set_new(server_msg, "message", json_string("done"));
     SCReturnInt(TM_ECODE_OK);
 }
 
+static TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+{
+    return UnixManagerReloadRulesWrapper(cmd, server_msg, data, 1);
+}
+
+static TmEcode UnixManagerNonBlockingReloadRules(json_t *cmd, json_t *server_msg, void *data)
+{
+    return UnixManagerReloadRulesWrapper(cmd, server_msg, data, 0);
+}
+
+static TmEcode UnixManagerReloadTimeCommand(json_t *cmd,
+                                            json_t *server_msg, void *data)
+{
+    SCEnter();
+    TmEcode retval;
+    json_t *jdata = NULL;
+
+    retval = OutputEngineStatsReloadTime(&jdata);
+    json_object_set_new(server_msg, "message", jdata);
+    SCReturnInt(retval);
+}
+
+static TmEcode UnixManagerRulesetStatsCommand(json_t *cmd,
+                                              json_t *server_msg, void *data)
+{
+    SCEnter();
+    TmEcode retval;
+    json_t *jdata = NULL;
+
+    retval = OutputEngineStatsRuleset(&jdata);
+    json_object_set_new(server_msg, "message", jdata);
+    SCReturnInt(retval);
+}
+
+static TmEcode UnixManagerShowFailedRules(json_t *cmd,
+                                          json_t *server_msg, void *data)
+{
+    SCEnter();
+    int rules_cnt = 0;
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (de_ctx == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        SCReturnInt(TM_ECODE_OK);
+    }
+
+    /* Since we need to deference de_ctx, we don't want to lost it. */
+    DetectEngineCtx *list = de_ctx;
+    json_t *js_sigs_array = json_array();
+
+    if (js_sigs_array == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        goto error;
+    }
+    while (list) {
+        SigString *sigs_str = NULL;
+        TAILQ_FOREACH(sigs_str, &list->sig_stat.failed_sigs, next) {
+            json_t *jdata = json_object();
+            if (jdata == NULL) {
+                json_object_set_new(server_msg, "message", json_string("Unable to get the sig"));
+                goto error;
+            }
+
+            json_object_set_new(jdata, "tenant_id", json_integer(list->tenant_id));
+            json_object_set_new(jdata, "rule", json_string(sigs_str->sig_str));
+            json_object_set_new(jdata, "filename", json_string(sigs_str->filename));
+            json_object_set_new(jdata, "line", json_integer(sigs_str->line));
+            if (sigs_str->sig_error) {
+                json_object_set_new(jdata, "error", json_string(sigs_str->sig_error));
+            }
+            json_array_append_new(js_sigs_array, jdata);
+            if (++rules_cnt > MAX_FAILED_RULES) {
+                break;
+            }
+        }
+        if (rules_cnt > MAX_FAILED_RULES) {
+            break;
+        }
+        list = list->next;
+    }
+
+    json_object_set_new(server_msg, "message", js_sigs_array);
+    DetectEngineDeReference(&de_ctx);
+    SCReturnInt(TM_ECODE_OK);
+
+error:
+    DetectEngineDeReference(&de_ctx);
+    json_object_clear(js_sigs_array);
+    json_decref(js_sigs_array);
+    SCReturnInt(TM_ECODE_FAILED);
+}
+
 static TmEcode UnixManagerConfGetCommand(json_t *cmd,
-                                  json_t *server_msg, void *data)
+                                         json_t *server_msg, void *data)
 {
     SCEnter();
 
@@ -728,6 +918,12 @@ static TmEcode UnixManagerListCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+static TmEcode UnixManagerReopenLogFiles(json_t *cmd, json_t *server_msg, void *data)
+{
+    OutputNotifyFileRotation();
+    json_object_set_new(server_msg, "message", json_string("done"));
+    SCReturnInt(TM_ECODE_OK);
+}
 
 #if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
@@ -875,6 +1071,11 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", StatsOutputCounterSocket, NULL, 0);
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-reload-nonblocking", UnixManagerNonBlockingReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-reload-time", UnixManagerReloadTimeCommand, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-stats", UnixManagerRulesetStatsCommand, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-failed-rules", UnixManagerShowFailedRules, NULL, 0);
     UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant-handler", UnixSocketUnregisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
@@ -883,6 +1084,10 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("add-hostbit", UnixSocketHostbitAdd, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("remove-hostbit", UnixSocketHostbitRemove, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("list-hostbit", UnixSocketHostbitList, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("reopen-log-files", UnixManagerReopenLogFiles, NULL, 0);
+    UnixManagerRegisterCommand("memcap-set", UnixSocketSetMemcap, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("memcap-show", UnixSocketShowMemcap, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("memcap-list", UnixSocketShowAllMemcap, NULL, 0);
 
     return 0;
 }
@@ -986,6 +1191,9 @@ void UnixManagerThreadSpawnNonRunmode(void)
                     UNIX_CMD_TAKE_ARGS);
             UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
             UnixManagerThreadSpawn(0);
+#ifdef HAVE_PACKET_EBPF
+            UnixManagerRegisterCommand("ebpf-bypassed-stats", EBPFGetBypassedStats, NULL, 0);
+#endif
         }
     }
 }
@@ -1056,7 +1264,7 @@ void UnixManagerThreadSpawnNonRunmode(void)
 
 void TmModuleUnixManagerRegister (void)
 {
-#ifdef BUILD_UNIX_SOCKET
+#if defined(BUILD_UNIX_SOCKET) && defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_STAT_H) && defined(HAVE_SYS_TYPES_H)
     tmm_modules[TMM_UNIXMANAGER].name = "UnixManager";
     tmm_modules[TMM_UNIXMANAGER].ThreadInit = UnixManagerThreadInit;
     tmm_modules[TMM_UNIXMANAGER].ThreadDeinit = UnixManagerThreadDeinit;

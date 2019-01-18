@@ -81,6 +81,8 @@
 #define SMTP_PARSER_STATE_FIRST_REPLY_SEEN        0x04
 /* Used to indicate that the parser is parsing a multiline reply */
 #define SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY 0x08
+/* Used to indicate that the server supports pipelining */
+#define SMTP_PARSER_STATE_PIPELINING_SERVER        0x10
 
 /* Various SMTP commands
  * We currently have var-ified just STARTTLS and DATA, since we need to them
@@ -390,12 +392,12 @@ static void SMTPPruneFiles(FileContainer *files)
 static void FlagDetectStateNewFile(SMTPTransaction *tx)
 {
     if (tx && tx->de_state) {
-        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW set");
-        tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
+        tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
     } else if (tx == NULL) {
-        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW NOT set, no TX");
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW NOT set, no TX");
     } else if (tx->de_state == NULL) {
-        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW NOT set, no TX DESTATE");
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW NOT set, no TX DESTATE");
     }
 }
 
@@ -799,6 +801,44 @@ static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
     SCReturnInt(0);
 }
 
+static void SetMimeEvents(SMTPState *state)
+{
+    if (state->curr_tx->mime_state->msg == NULL) {
+        return;
+    }
+
+    /* Generate decoder events */
+    MimeDecEntity *msg = state->curr_tx->mime_state->msg;
+    if (msg->anomaly_flags & ANOM_INVALID_BASE64) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_BASE64);
+    }
+    if (msg->anomaly_flags & ANOM_INVALID_QP) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_QP);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_LINE) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_LINE);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_ENC_LINE) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_ENC_LINE);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_HEADER_NAME) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_HEADER_VALUE) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE);
+    }
+    if (msg->anomaly_flags & ANOM_MALFORMED_MSG) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_BOUNDARY) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
+    }
+}
+
+/**
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
 static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
                                   AppLayerParserState *pstate)
 {
@@ -821,37 +861,12 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
             /* Complete parsing task */
             int ret = MimeDecParseComplete(state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
-
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_PARSE_FAILED);
                 SCLogDebug("MimeDecParseComplete() function failed");
             }
 
             /* Generate decoder events */
-            MimeDecEntity *msg = state->curr_tx->mime_state->msg;
-            if (msg->anomaly_flags & ANOM_INVALID_BASE64) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_BASE64);
-            }
-            if (msg->anomaly_flags & ANOM_INVALID_QP) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_QP);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_LINE) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_LINE);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_ENC_LINE) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_ENC_LINE);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_HEADER_NAME) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_HEADER_VALUE) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE);
-            }
-            if (msg->anomaly_flags & ANOM_MALFORMED_MSG) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_BOUNDARY) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
-            }
+            SetMimeEvents(state);
         }
         state->curr_tx->done = 1;
         SCLogDebug("marked tx as done");
@@ -861,12 +876,20 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
     if (state->current_command == SMTP_COMMAND_DATA &&
             (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
-        if (smtp_config.decode_mime && state->curr_tx->mime_state) {
+        if (smtp_config.decode_mime && state->curr_tx->mime_state != NULL) {
             int ret = MimeDecParseLine((const uint8_t *) state->current_line,
                     state->current_line_len, state->current_line_delimiter_len,
                     state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
-                SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);
+                if (ret != MIME_DEC_ERR_STATE) {
+                    /* Generate decoder events */
+                    SetMimeEvents(state);
+
+                    SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);
+                    SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_PARSE_FAILED);
+                }
+                /* keep the parser in its error state so we can log that,
+                 * the parser will reject new data */
             }
         }
     }
@@ -979,6 +1002,12 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
      * line of the multiline reply, following which we increment the index */
     if (!(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
         state->cmds_idx++;
+    } else if (state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        /* we check if the server is indicating pipelining support */
+        if (reply_code == SMTP_REPLY_250 && state->current_line_len == 14 &&
+            SCMemcmpLowercase("pipelining", state->current_line+4, 10) == 0) {
+            state->parser_state |= SMTP_PARSER_STATE_PIPELINING_SERVER;
+        }
     }
 
     /* if we have matched all the buffered commands, reset the cnt and index */
@@ -1168,7 +1197,10 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                     tx->msg_tail = tx->mime_state->msg;
                 }
             }
-
+            /* Enter immediately data mode without waiting for server reply */
+            if (state->parser_state & SMTP_PARSER_STATE_PIPELINING_SERVER) {
+                state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+            }
         } else if (state->current_line_len >= 4 &&
                    SCMemcmpLowercase("bdat", state->current_line, 4) == 0) {
             r = SMTPParseCommandBDAT(state);
@@ -1268,7 +1300,7 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
 static int SMTPParseClientRecord(Flow *f, void *alstate,
                                  AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
-                                 void *local_data)
+                                 void *local_data, const uint8_t flags)
 {
     SCEnter();
 
@@ -1279,14 +1311,12 @@ static int SMTPParseClientRecord(Flow *f, void *alstate,
 static int SMTPParseServerRecord(Flow *f, void *alstate,
                                  AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
-                                 void *local_data)
+                                 void *local_data, const uint8_t flags)
 {
     SCEnter();
 
     /* first arg 1 is toclient */
     return SMTPParse(1, f, alstate, pstate, input, input_len, local_data);
-
-    return 0;
 }
 
 /**
@@ -1560,19 +1590,16 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
 
 }
 
-static void SMTPStateSetTxLogged(void *state, void *vtx, uint32_t logger)
+static void SMTPStateSetTxLogged(void *state, void *vtx, LoggerId logged)
 {
     SMTPTransaction *tx = vtx;
-    tx->logged |= logger;
+    tx->logged = logged;
 }
 
-static int SMTPStateGetTxLogged(void *state, void *vtx, uint32_t logger)
+static LoggerId SMTPStateGetTxLogged(void *state, void *vtx)
 {
     SMTPTransaction *tx = vtx;
-    if (tx->logged & logger)
-        return 1;
-
-    return 0;
+    return tx->logged;
 }
 
 static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction) {
@@ -1627,11 +1654,31 @@ static DetectEngineState *SMTPGetTxDetectState(void *vtx)
     return tx->de_state;
 }
 
-static int SMTPSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
+static int SMTPSetTxDetectState(void *vtx, DetectEngineState *s)
 {
     SMTPTransaction *tx = (SMTPTransaction *)vtx;
     tx->de_state = s;
     return 0;
+}
+
+static uint64_t SMTPGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    SMTPTransaction *tx = (SMTPTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return tx->detect_flags_ts;
+    } else {
+        return tx->detect_flags_tc;
+    }
+}
+
+static void SMTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
+{
+    SMTPTransaction *tx = (SMTPTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        tx->detect_flags_ts = flags;
+    } else {
+        tx->detect_flags_tc = flags;
+    }
 }
 
 /**
@@ -1661,8 +1708,11 @@ void RegisterSMTPParsers(void)
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP, NULL,
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP,
                                                SMTPGetTxDetectState, SMTPSetTxDetectState);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SMTP,
+                                               SMTPGetTxDetectFlags, SMTPSetTxDetectFlags);
+
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);
@@ -1940,8 +1990,6 @@ static int SMTPParserTest02(void)
         0x61, 0x5f, 0x73, 0x6c, 0x61, 0x63, 0x6b, 0x5f,
         0x76, 0x6d, 0x31, 0x2e, 0x6c, 0x6f, 0x63, 0x61,
         0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e, 0x0d,
-        0x0a, 0x32, 0x35, 0x30, 0x2d, 0x50, 0x49, 0x50,
-        0x45, 0x4c, 0x49, 0x4e, 0x49, 0x4e, 0x47, 0x0d,
         0x0a, 0x32, 0x35, 0x30, 0x2d, 0x53, 0x49, 0x5a,
         0x45, 0x20, 0x31, 0x30, 0x32, 0x34, 0x30, 0x30,
         0x30, 0x30, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d,
@@ -2748,6 +2796,7 @@ static int SMTPParserTest03(void)
     /* MAIL FROM:pbsf@asdfs.com<CR><LF>
      * RCPT TO:pbsf@asdfs.com<CR><LF>
      * DATA<CR><LF>
+     * Immediate data
      */
     uint8_t request2[] = {
         0x4d, 0x41, 0x49, 0x4c, 0x20, 0x46, 0x52, 0x4f,
@@ -2756,7 +2805,9 @@ static int SMTPParserTest03(void)
         0x0d, 0x0a, 0x52, 0x43, 0x50, 0x54, 0x20, 0x54,
         0x4f, 0x3a, 0x70, 0x62, 0x73, 0x66, 0x40, 0x61,
         0x73, 0x64, 0x66, 0x73, 0x2e, 0x63, 0x6f, 0x6d,
-        0x0d, 0x0a, 0x44, 0x41, 0x54, 0x41, 0x0d, 0x0a
+        0x0d, 0x0a, 0x44, 0x41, 0x54, 0x41, 0x0d, 0x0a,
+        0x49, 0x6d, 0x6d, 0x65, 0x64, 0x69, 0x61, 0x74,
+        0x65, 0x20, 0x64, 0x61, 0x74, 0x61, 0x0d, 0x0a,
     };
     uint32_t request2_len = sizeof(request2);
     /* 250 2.1.0 Ok<CR><LF>
@@ -2842,7 +2893,8 @@ static int SMTPParserTest03(void)
     if (smtp_state->input_len != 0 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        smtp_state->parser_state != ( SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                      SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2862,7 +2914,9 @@ static int SMTPParserTest03(void)
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
         smtp_state->cmds[1] != SMTP_COMMAND_OTHER_CMD ||
         smtp_state->cmds[2] != SMTP_COMMAND_DATA ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2880,7 +2934,8 @@ static int SMTPParserTest03(void)
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3140,7 +3195,8 @@ static int SMTPParserTest05(void)
     if (smtp_state->input_len != 0 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3158,7 +3214,8 @@ static int SMTPParserTest05(void)
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_STARTTLS ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3175,7 +3232,8 @@ static int SMTPParserTest05(void)
     if (smtp_state->input_len != 0 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3200,7 +3258,8 @@ static int SMTPParserTest05(void)
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3217,7 +3276,8 @@ static int SMTPParserTest05(void)
     if (smtp_state->input_len != 0 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3304,8 +3364,6 @@ static int SMTPParserTest06(void)
         0x5d, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d, 0x53,
         0x49, 0x5a, 0x45, 0x20, 0x32, 0x39, 0x36, 0x39,
         0x36, 0x30, 0x30, 0x30, 0x0d, 0x0a, 0x32, 0x35,
-        0x30, 0x2d, 0x50, 0x49, 0x50, 0x45, 0x4c, 0x49,
-        0x4e, 0x49, 0x4e, 0x47, 0x0d, 0x0a, 0x32, 0x35,
         0x30, 0x2d, 0x38, 0x62, 0x69, 0x74, 0x6d, 0x69,
         0x6d, 0x65, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d,
         0x42, 0x49, 0x4e, 0x41, 0x52, 0x59, 0x4d, 0x49,
@@ -4455,8 +4513,6 @@ static int SMTPParserTest14(void)
             0x61, 0x5f, 0x73, 0x6c, 0x61, 0x63, 0x6b, 0x5f,
             0x76, 0x6d, 0x31, 0x2e, 0x6c, 0x6f, 0x63, 0x61,
             0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e, 0x0d,
-            0x0a, 0x32, 0x35, 0x30, 0x2d, 0x50, 0x49, 0x50,
-            0x45, 0x4c, 0x49, 0x4e, 0x49, 0x4e, 0x47, 0x0d,
             0x0a, 0x32, 0x35, 0x30, 0x2d, 0x53, 0x49, 0x5a,
             0x45, 0x20, 0x31, 0x30, 0x32, 0x34, 0x30, 0x30,
             0x30, 0x30, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d,

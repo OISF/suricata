@@ -32,7 +32,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-tls.h"
+#include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
@@ -56,6 +56,14 @@
 
 static int DetectTlsSerialSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSerialRegisterTests(void);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id);
+static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
+        Signature *s);
+static _Bool DetectTlsSerialValidateCallback(const Signature *s,
+        const char **sigerror);
 static int g_tls_cert_serial_buffer_id = 0;
 
 /**
@@ -73,12 +81,22 @@ void DetectTlsSerialRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("tls_cert_serial", SIG_FLAG_TOCLIENT, 2,
-            PrefilterTxTlsSerialRegister);
-
-    DetectAppLayerInspectEngineRegister("tls_cert_serial", ALPROTO_TLS,
+    DetectAppLayerInspectEngineRegister2("tls_cert_serial", ALPROTO_TLS,
             SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
-            DetectEngineInspectTlsSerial);
+            DetectEngineInspectBufferGeneric, GetData);
+
+    DetectAppLayerMpmRegister2("tls_cert_serial", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS,
+            TLS_STATE_CERT_READY);
+
+    DetectBufferTypeSetDescriptionByName("tls_cert_serial",
+            "TLS certificate serial number");
+
+    DetectBufferTypeRegisterSetupCallback("tls_cert_serial",
+            DetectTlsSerialSetupCallback);
+
+    DetectBufferTypeRegisterValidateCallback("tls_cert_serial",
+            DetectTlsSerialValidateCallback);
 
     g_tls_cert_serial_buffer_id = DetectBufferTypeGetByName("tls_cert_serial");
 }
@@ -94,12 +112,102 @@ void DetectTlsSerialRegister(void)
  */
 static int DetectTlsSerialSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    s->init_data->list = g_tls_cert_serial_buffer_id;
+    DetectBufferSetActiveList(s, g_tls_cert_serial_buffer_id);
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
     return 0;
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        SSLState *ssl_state = (SSLState *)_f->alstate;
+
+        if (ssl_state->server_connp.cert0_serial == NULL) {
+            return NULL;
+        }
+
+        const uint32_t data_len = strlen(ssl_state->server_connp.cert0_serial);
+        const uint8_t *data = (uint8_t *)ssl_state->server_connp.cert0_serial;
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
+static _Bool DetectTlsSerialValidateCallback(const Signature *s,
+                                             const char **sigerror)
+{
+    const SigMatch *sm = s->init_data->smlists[g_tls_cert_serial_buffer_id];
+    for ( ; sm != NULL; sm = sm->next)
+    {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        const DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        if (cd->flags & DETECT_CONTENT_NOCASE) {
+            *sigerror = "tls_cert_serial should not be used together "
+                        "with nocase, since the rule is automatically "
+                        "uppercased anyway which makes nocase redundant.";
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+        }
+
+        /* no need to worry about this if the content is short enough */
+        if (cd->content_len <= 2)
+            return TRUE;
+
+        uint32_t u;
+        for (u = 0; u < cd->content_len; u++)
+            if (cd->content[u] == ':')
+                return TRUE;
+
+        *sigerror = "No colon delimiters ':' detected in content after "
+                    "tls_cert_serial. This rule will therefore never "
+                    "match.";
+        SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
+                                         Signature *s)
+{
+    SigMatch *sm = s->init_data->smlists[g_tls_cert_serial_buffer_id];
+    for ( ; sm != NULL; sm = sm->next)
+    {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        _Bool changed = FALSE;
+        uint32_t u;
+        for (u = 0; u < cd->content_len; u++)
+        {
+            if (islower(cd->content[u])) {
+                cd->content[u] = toupper(cd->content[u]);
+                changed = TRUE;
+            }
+        }
+
+        /* recreate the context if changes were made */
+        if (changed) {
+            SpmDestroyCtx(cd->spm_ctx);
+            cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1,
+                                     de_ctx->spm_global_thread_ctx);
+        }
+    }
 }
 
 #ifdef UNITTESTS

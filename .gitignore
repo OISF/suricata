@@ -5,7 +5,7 @@
 *.log
 *.rule
 *.rules
-*.yaml
+/*.yaml
 Makefile
 .deps/
 .libs/
@@ -44,3 +44,6 @@ src/suricata
 stamp-h1
 src/build-info.h
 qa/log/
+
+/suricata-update/*
+!/suricata-update/Makefile.am

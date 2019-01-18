@@ -418,7 +418,7 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
 
         prec = (char *)ewtn->btm;
         dr = (dag_record_t*)prec;
-        rlen = ntohs(dr->rlen);
+        rlen = SCNtohs(dr->rlen);
         hdr_type = dr->type;
 
         /* If we don't have enough data to finish processing this ERF
@@ -443,7 +443,7 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
             break;
         case TYPE_ETH:
             if (dr->lctr) {
-                StatsAddUI64(ewtn->tv, ewtn->drops, ntohs(dr->lctr));
+                StatsAddUI64(ewtn->tv, ewtn->drops, SCNtohs(dr->lctr));
             }
             break;
         default:
@@ -482,8 +482,8 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
     Packet *p;
 
     hdr_type = dr->type;
-    wlen = ntohs(dr->wlen);
-    rlen = ntohs(dr->rlen);
+    wlen = SCNtohs(dr->wlen);
+    rlen = SCNtohs(dr->rlen);
 
     /* count extension headers */
     while (hdr_type & 0x80) {

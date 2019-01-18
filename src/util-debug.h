@@ -45,6 +45,8 @@
 
 /**
  * \brief The various log levels
+ * NOTE: when adding new level, don't forget to update SCLogMapLogLevelToSyslogLevel()
+  *      or it may result in logging to syslog with LOG_EMERG priority.
  */
 typedef enum {
     SC_LOG_NOTSET = -1,
@@ -139,6 +141,9 @@ typedef struct SCLogOPIfaceCtx_ {
     /* override for the global_log_format(currently not used) */
     const char *log_format;
 
+    /* Mutex used for locking around rotate/write to a file. */
+    SCMutex fp_mutex;
+
     struct SCLogOPIfaceCtx_ *next;
 } SCLogOPIfaceCtx;
 
@@ -214,7 +219,9 @@ extern int sc_log_module_cleaned;
         {                                                                       \
             char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN];                           \
                                                                                 \
-            snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);         \
+            int _sc_log_ret = snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);   \
+            if (_sc_log_ret == SC_LOG_MAX_LOG_MSG_LEN)                          \
+                _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN - 1] = '\0';                 \
                                                                                 \
             SCLogMessage(x, file, line, func, SC_OK, _sc_log_msg);              \
         }                                                                       \
@@ -231,7 +238,9 @@ extern int sc_log_module_cleaned;
         {                                                                       \
             char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN];                           \
                                                                                 \
-            snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);         \
+            int _sc_log_ret = snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);   \
+            if (_sc_log_ret == SC_LOG_MAX_LOG_MSG_LEN)                          \
+                _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN - 1] = '\0';                 \
                                                                                 \
             SCLogMessage(x, file, line, func, err, _sc_log_msg);                \
         }                                                                       \
@@ -534,6 +543,7 @@ extern int sc_log_module_cleaned;
 
 /** \brief Fatal error IF we're starting up, and configured to consider
  *         errors to be fatal errors */
+#if !defined(__clang_analyzer__)
 #define FatalErrorOnInit(x, ...) do {                                       \
     int init_errors_fatal = 0;                                              \
     ConfGetBool("engine.init-failure-fatal", &init_errors_fatal);           \
@@ -544,7 +554,10 @@ extern int sc_log_module_cleaned;
     }                                                                       \
     SCLogWarning(x, __VA_ARGS__);                                           \
 } while(0)
-
+/* make it simpler for scan-build */
+#else
+#define FatalErrorOnInit(x, ...) FatalError(x, __VA_ARGS__)
+#endif
 
 SCLogInitData *SCLogAllocLogInitData(void);
 

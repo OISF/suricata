@@ -65,7 +65,6 @@
 
 static int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHeaderRegisterTests(void);
-static void DetectHttpHeaderSetupCallback(Signature *);
 static int g_http_header_buffer_id = 0;
 static int g_keyword_thread_id = 0;
 
@@ -216,16 +215,17 @@ static void PrefilterTxHttpRequestTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpRequestHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpRequestHeadersRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestHeaders,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestHeaders,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, "http_header (request)");
     if (r != 0)
         return r;
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestTrailers,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestTrailers,
         ALPROTO_HTTP, HTP_REQUEST_TRAILER,
         mpm_ctx, NULL, "http_header (request trailer)");
 }
@@ -296,16 +296,17 @@ static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpResponseHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpResponseHeadersRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseHeaders,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseHeaders,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
         mpm_ctx, NULL, "http_header (response)");
     if (r != 0)
         return r;
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseTrailers,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseTrailers,
         ALPROTO_HTTP, HTP_RESPONSE_TRAILER,
         mpm_ctx, NULL, "http_header (response trailer)");
 }
@@ -330,7 +331,7 @@ static int DetectEngineInspectHttpHeader(ThreadVars *tv,
                                           f,
                                           buffer,
                                           buffer_len,
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -367,12 +368,6 @@ static int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
                                                   ALPROTO_HTTP);
 }
 
-static void DetectHttpHeaderSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-}
-
 /**
  * \brief Registers the keyword handlers for the "http_header" keyword.
  */
@@ -380,7 +375,7 @@ void DetectHttpHeaderRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_HEADER].name = "http_header";
     sigmatch_table[DETECT_AL_HTTP_HEADER].desc = "content modifier to match only on the HTTP header-buffer";
-    sigmatch_table[DETECT_AL_HTTP_HEADER].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-header";
+    sigmatch_table[DETECT_AL_HTTP_HEADER].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-header-and-http-raw-header";
     sigmatch_table[DETECT_AL_HTTP_HEADER].Setup = DetectHttpHeaderSetup;
     sigmatch_table[DETECT_AL_HTTP_HEADER].RegisterTests = DetectHttpHeaderRegisterTests;
 
@@ -400,9 +395,6 @@ void DetectHttpHeaderRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_header",
             "http headers");
-
-    DetectBufferTypeRegisterSetupCallback("http_header",
-            DetectHttpHeaderSetupCallback);
 
     g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
 

@@ -27,11 +27,14 @@
 
 #include "detect.h"
 #include "host.h"
+#include "ippair.h"
 
 void ThresholdInit(void);
 
 int ThresholdHostStorageId(void);
 int ThresholdHostHasThreshold(Host *);
+
+int ThresholdIPPairHasThreshold(IPPair *pair);
 
 const DetectThresholdData *SigGetThresholdTypeIter(const Signature *,
         Packet *, const SigMatchData **, int list);
@@ -42,7 +45,8 @@ int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
 void ThresholdHashInit(DetectEngineCtx *);
 void ThresholdContextDestroy(DetectEngineCtx *);
 
-int ThresholdTimeoutCheck(Host *, struct timeval *);
+int ThresholdHostTimeoutCheck(Host *, struct timeval *);
+int ThresholdIPPairTimeoutCheck(IPPair *, struct timeval *);
 void ThresholdListFree(void *ptr);
 
 #endif /* __DETECT_ENGINE_THRESHOLD_H__ */

@@ -103,7 +103,7 @@
 /** macro for icmpv6 "code" access */
 #define ICMPV6_GET_CODE(p)      (p)->icmpv6h->code
 /** macro for icmpv6 "csum" access */
-#define ICMPV6_GET_RAW_CSUM(p)      ntohs((p)->icmpv6h->csum)
+#define ICMPV6_GET_RAW_CSUM(p)      SCNtohs((p)->icmpv6h->csum)
 #define ICMPV6_GET_CSUM(p)      (p)->icmpv6h->csum
 
 /** If message is informational */
@@ -188,6 +188,8 @@ typedef struct ICMPV6Vars_ {
 } while(0)
 
 void DecodeICMPV6RegisterTests(void);
+
+int ICMPv6GetCounterpart(uint8_t type);
 
 /** -------- Inline functions --------- */
 static inline uint16_t ICMPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t);

@@ -66,6 +66,10 @@ typedef struct SMTPString_ {
 typedef struct SMTPTransaction_ {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;
+
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
+
     int done;
     /** indicates loggers done logging */
     uint32_t logged;

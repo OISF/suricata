@@ -63,7 +63,7 @@ void DetectFlowintRegister(void)
 {
     sigmatch_table[DETECT_FLOWINT].name = "flowint";
     sigmatch_table[DETECT_FLOWINT].desc = "operate on a per-flow integer";
-    sigmatch_table[DETECT_FLOWINT].url = DOC_URL DOC_VERSION "/rules/flowint.html";
+    sigmatch_table[DETECT_FLOWINT].url = DOC_URL DOC_VERSION "/rules/flow-keywords.html#flowint";
     sigmatch_table[DETECT_FLOWINT].Match = DetectFlowintMatch;
     sigmatch_table[DETECT_FLOWINT].Setup = DetectFlowintSetup;
     sigmatch_table[DETECT_FLOWINT].Free = DetectFlowintFree;
@@ -94,6 +94,9 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     FlowVar *fvt;
     uint32_t targetval;
     int ret = 0;
+
+    if (p->flow == NULL)
+        return 0;
 
     /** ATM If we are going to compare the current var with another
      * that doesn't exist, the default value will be zero;
@@ -1128,14 +1131,14 @@ static int DetectFlowintTestPacket01Real(void)
 
     p = UTHBuildPacket((uint8_t *)"GET", 3, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!PacketAlertCheck(p, 101));
     UTHFreePacket(p);
 
     p = UTHBuildPacket((uint8_t *)"Unauthorized", 12, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!PacketAlertCheck(p, 102));
     FAIL_IF(!PacketAlertCheck(p, 103));
@@ -1143,7 +1146,7 @@ static int DetectFlowintTestPacket01Real(void)
 
     p = UTHBuildPacket((uint8_t *)"1", 1, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1152,7 +1155,7 @@ static int DetectFlowintTestPacket01Real(void)
 
     p = UTHBuildPacket((uint8_t *)"X", 1, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!PacketAlertCheck(p, 105));
     UTHFreePacket(p);
@@ -1201,14 +1204,14 @@ static int DetectFlowintTestPacket02Real(void)
 
     p = UTHBuildPacket((uint8_t *)"GET", 3, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!PacketAlertCheck(p, 101));
     UTHFreePacket(p);
 
     p = UTHBuildPacket((uint8_t *)"Unauthorized", 12, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!PacketAlertCheck(p, 102));
     FAIL_IF(!PacketAlertCheck(p, 103));
@@ -1216,7 +1219,7 @@ static int DetectFlowintTestPacket02Real(void)
 
     p = UTHBuildPacket((uint8_t *)"1", 1, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1225,7 +1228,7 @@ static int DetectFlowintTestPacket02Real(void)
 
     p = UTHBuildPacket((uint8_t *)"X", 1, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!PacketAlertCheck(p, 105));
     UTHFreePacket(p);
@@ -1272,14 +1275,14 @@ static int DetectFlowintTestPacket03Real(void)
 
     p = UTHBuildPacket((uint8_t *)"GET", 3, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!PacketAlertCheck(p, 101));
     UTHFreePacket(p);
 
     p = UTHBuildPacket((uint8_t *)"Unauthorized", 12, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!PacketAlertCheck(p, 102));
     FAIL_IF(PacketAlertCheck(p, 103));
@@ -1287,7 +1290,7 @@ static int DetectFlowintTestPacket03Real(void)
 
     p = UTHBuildPacket((uint8_t *)"1", 1, IPPROTO_TCP);
     FAIL_IF(p == NULL);
-    p->flow = f;
+    UTHAssignFlow(p, f);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 102));
     FAIL_IF(PacketAlertCheck(p, 103));

@@ -26,8 +26,6 @@
 
 #include "stream-tcp-private.h"
 
-void PrintList(TcpSegment *);
-
 #ifdef UNITTESTS
 void StreamTcpListRegisterTests(void);
 #endif

@@ -69,10 +69,17 @@
 #include "log-stats.h"
 #include "output-json.h"
 #include "output-json-nfs.h"
+#include "output-json-tftp.h"
+#include "output-json-smb.h"
+#include "output-json-ikev2.h"
+#include "output-json-krb5.h"
+#include "output-json-dhcp.h"
 #include "output-json-template.h"
+#include "output-json-template-rust.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
-#include "output-json-vars.h"
+#include "output-json-metadata.h"
+#include "output-filestore.h"
 
 typedef struct RootLogger_ {
     ThreadInitFunc ThreadInit;
@@ -953,6 +960,9 @@ TmEcode OutputLoggerThreadInit(ThreadVars *tv, const void *initdata, void **data
 
 TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
 {
+    if (thread_data == NULL)
+        return TM_ECODE_FAILED;
+
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
     RootLogger *logger = TAILQ_FIRST(&RootLoggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
@@ -1063,6 +1073,7 @@ void OutputRegisterLoggers(void)
     LogFileLogRegister();
     JsonFileLogRegister();
     LogFilestoreRegister();
+    OutputFilestoreRegister();
     /* dns log */
     LogDnsLogRegister();
     JsonDnsLogRegister();
@@ -1080,10 +1091,22 @@ void OutputRegisterLoggers(void)
 
     /* DNP3. */
     JsonDNP3LogRegister();
-    JsonVarsLogRegister();
+    JsonMetadataLogRegister();
 
     /* NFS JSON logger. */
     JsonNFSLogRegister();
+    /* TFTP JSON logger. */
+    JsonTFTPLogRegister();
+    /* SMB JSON logger. */
+    JsonSMBLogRegister();
+    /* IKEv2 JSON logger. */
+    JsonIKEv2LogRegister();
+    /* KRB5 JSON logger. */
+    JsonKRB5LogRegister();
+    /* DHCP JSON logger. */
+    JsonDHCPLogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
+    /* Template Rust JSON logger. */
+    JsonTemplateRustLogRegister();
 }

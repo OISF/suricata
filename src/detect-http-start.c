@@ -109,7 +109,7 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         headers = tx->response_headers;
         line = tx->response_line;
     }
-    if (headers == NULL)
+    if (line == NULL || headers == NULL)
         return NULL;
 
     size_t line_size = bstr_len(line) + 2;
@@ -199,11 +199,12 @@ static void PrefilterTxHttpRequestStart(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpRequestStartRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpRequestStartRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestStart,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestStart,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, KEYWORD_NAME " (request)");
     return r;
@@ -238,11 +239,12 @@ static void PrefilterTxHttpResponseStart(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpResponseStartRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpResponseStartRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseStart,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseStart,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
         mpm_ctx, NULL, KEYWORD_NAME " (response)");
     return r;
@@ -267,7 +269,7 @@ static int InspectEngineHttpStart(ThreadVars *tv,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           buffer, buffer_len,
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -287,12 +289,6 @@ static int DetectHttpStartSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 {
     s->init_data->list = g_buffer_id;
     return 0;
-}
-
-static void DetectHttpStartSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /**
@@ -321,9 +317,6 @@ void DetectHttpStartRegister(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
-
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
-            DetectHttpStartSetupCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 

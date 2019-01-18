@@ -30,11 +30,13 @@
 #include "app-layer-dns-tcp-rust.h"
 #include "rust-dns-dns-gen.h"
 
+#ifdef UNITTESTS
 static void RustDNSTCPParserRegisterTests(void);
+#endif
 
 static int RustDNSTCPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-        void *local_data)
+        void *local_data, const uint8_t flags)
 {
     SCLogDebug("RustDNSTCPParseRequest");
     return rs_dns_parse_request_tcp(f, state, pstate, input, input_len,
@@ -43,14 +45,14 @@ static int RustDNSTCPParseRequest(Flow *f, void *state,
 
 static int RustDNSTCPParseResponse(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-        void *local_data)
+        void *local_data, const uint8_t flags)
 {
     SCLogDebug("RustDNSTCPParseResponse");
     return rs_dns_parse_response_tcp(f, state, pstate, input, input_len,
             local_data);
 }
 
-static uint16_t RustDNSTCPProbe(uint8_t *input, uint32_t len, uint32_t *offset)
+static uint16_t RustDNSTCPProbe(Flow *f, uint8_t *input, uint32_t len)
 {
     SCLogDebug("RustDNSTCPProbe");
     if (len == 0 || len < sizeof(DNSHeader)) {
@@ -80,14 +82,14 @@ static void *RustDNSGetTx(void *alstate, uint64_t tx_id)
     return rs_dns_state_get_tx(alstate, tx_id);
 }
 
-static void RustDNSSetTxLogged(void *alstate, void *tx, uint32_t logger)
+static void RustDNSSetTxLogged(void *alstate, void *tx, LoggerId logged)
 {
-    rs_dns_tx_set_logged(alstate, tx, logger);
+    rs_dns_tx_set_logged(alstate, tx, logged);
 }
 
-static int RustDNSGetTxLogged(void *alstate, void *tx, uint32_t logger)
+static LoggerId RustDNSGetTxLogged(void *alstate, void *tx)
 {
-    return rs_dns_tx_get_logged(alstate, tx, logger);
+    return rs_dns_tx_get_logged(alstate, tx);
 }
 
 static void RustDNSStateTransactionFree(void *state, uint64_t tx_id)
@@ -95,26 +97,16 @@ static void RustDNSStateTransactionFree(void *state, uint64_t tx_id)
     rs_dns_state_tx_free(state, tx_id);
 }
 
-static int RustDNSStateHasTxDetectState(void *state)
-{
-    return rs_dns_state_has_detect_state(state);
-}
-
 static DetectEngineState *RustDNSGetTxDetectState(void *tx)
 {
     return rs_dns_state_get_tx_detect_state(tx);
 }
 
-static int RustDNSSetTxDetectState(void *state, void *tx,
+static int RustDNSSetTxDetectState(void *tx,
         DetectEngineState *s)
 {
-    rs_dns_state_set_tx_detect_state(state, tx, s);
+    rs_dns_state_set_tx_detect_state(tx, s);
     return 0;
-}
-
-static int RustDNSHasEvents(void *state)
-{
-    return rs_dns_state_has_events(state);
 }
 
 static AppLayerDecoderEvents *RustDNSGetEvents(void *state, uint64_t id)
@@ -165,11 +157,8 @@ void RegisterRustDNSTCPParsers(void)
                 RustDNSStateTransactionFree);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_DNS,
                 RustDNSGetEvents);
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_DNS,
-                RustDNSHasEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNS,
-                RustDNSStateHasTxDetectState, RustDNSGetTxDetectState,
-                RustDNSSetTxDetectState);
+                RustDNSGetTxDetectState, RustDNSSetTxDetectState);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DNS, RustDNSGetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_DNS,
                 RustDNSGetTxCnt);
@@ -305,7 +294,7 @@ static int RustDNSTCPParserTestMultiRecord(void)
     f->alstate = state;
 
     FAIL_IF(RustDNSTCPParseRequest(f, f->alstate, NULL, req, reqlen,
-                    NULL) < 0);
+                    NULL, STREAM_START) < 0);
     FAIL_IF(rs_dns_state_get_tx_count(state) != 20);
 
     UTHFreeFlow(f);

@@ -658,9 +658,6 @@ static TmEcode FlowManagerThreadDeinit(ThreadVars *t, void *data)
  */
 static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 {
-    /* block usr2.  usr1 to be handled by the main thread only */
-    UtilSignalBlock(SIGUSR2);
-
     FlowManagerThreadData *ftd = thread_data;
     struct timeval ts;
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0;
@@ -803,12 +800,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static uint64_t FlowGetMemuse(void)
-{
-    uint64_t flow_memuse = SC_ATOMIC_GET(flow_memuse);
-    return flow_memuse;
-}
-
 /** \brief spawn the flow manager thread */
 void FlowManagerThreadSpawn()
 {
@@ -892,9 +883,6 @@ static TmEcode FlowRecyclerThreadDeinit(ThreadVars *t, void *data)
  */
 static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 {
-    /* block usr2. usr2 to be handled by the main thread only */
-    UtilSignalBlock(SIGUSR2);
-
     struct timeval ts;
     struct timespec cond_time;
     int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
@@ -1208,7 +1196,7 @@ static int FlowMgrTest02 (void)
     memset(&fb, 0, sizeof(FlowBucket));
     memset(&ts, 0, sizeof(ts));
     memset(&seg, 0, sizeof(TcpSegment));
-    memset(&client, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpStream));
 
     FBLOCK_INIT(&fb);
     FLOW_INITIALIZE(&f);
@@ -1216,9 +1204,7 @@ static int FlowMgrTest02 (void)
 
     TimeGet(&ts);
     TCP_SEG_LEN(&seg) = 3;
-    seg.next = NULL;
-    seg.prev = NULL;
-    client.seg_list = &seg;
+    TCPSEG_RB_INSERT(&client.seg_tree, &seg);
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
@@ -1314,7 +1300,7 @@ static int FlowMgrTest04 (void)
     memset(&fb, 0, sizeof(FlowBucket));
     memset(&ts, 0, sizeof(ts));
     memset(&seg, 0, sizeof(TcpSegment));
-    memset(&client, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpStream));
 
     FBLOCK_INIT(&fb);
     FLOW_INITIALIZE(&f);
@@ -1322,9 +1308,7 @@ static int FlowMgrTest04 (void)
 
     TimeGet(&ts);
     TCP_SEG_LEN(&seg) = 3;
-    seg.next = NULL;
-    seg.prev = NULL;
-    client.seg_list = &seg;
+    TCPSEG_RB_INSERT(&client.seg_tree, &seg);
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
@@ -1366,7 +1350,7 @@ static int FlowMgrTest05 (void)
 
     uint32_t ini = 0;
     uint32_t end = flow_spare_q.len;
-    flow_config.memcap = 10000;
+    SC_ATOMIC_SET(flow_config.memcap, 10000);
     flow_config.prealloc = 100;
 
     /* Let's get the flow_spare_q empty */

@@ -3,7 +3,7 @@ Suricata User Guide
 
 .. toctree::
    :numbered:
-   :titlesonly:
+   :maxdepth: 2
 
    what-is-suricata
    install.rst
@@ -16,7 +16,9 @@ Suricata User Guide
    reputation/index.rst
    initscripts
    setting-up-ipsinline-for-linux
+   setting-up-ipsinline-for-windows
    output/index.rst
+   lua/index.rst
    file-extraction/file-extraction.rst
    public-data-sets
    capture-hardware/index.rst

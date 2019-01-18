@@ -51,6 +51,7 @@
 #include "suricata.h"
 #include "conf.h"
 #include "decode.h"
+#include "decode-teredo.h"
 #include "util-debug.h"
 #include "util-mem.h"
 #include "app-layer-detect-proto.h"
@@ -66,8 +67,11 @@
 #include "output.h"
 #include "output-flow.h"
 
+extern bool stats_decoder_events;
+extern bool stats_stream_events;
+
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        uint8_t *pkt, uint16_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
+        uint8_t *pkt, uint32_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
@@ -75,6 +79,7 @@ int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case DECODE_TUNNEL_IPV4:
             return DecodeIPV4(tv, dtv, p, pkt, len, pq);
         case DECODE_TUNNEL_IPV6:
+        case DECODE_TUNNEL_IPV6_TEREDO:
             return DecodeIPV6(tv, dtv, p, pkt, len, pq);
         case DECODE_TUNNEL_VLAN:
             return DecodeVLAN(tv, dtv, p, pkt, len, pq);
@@ -83,7 +88,7 @@ int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case DECODE_TUNNEL_ERSPAN:
             return DecodeERSPAN(tv, dtv, p, pkt, len, pq);
         default:
-            SCLogInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
+            SCLogDebug("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
             break;
     }
     return TM_ECODE_OK;
@@ -105,24 +110,25 @@ void PacketFree(Packet *p)
  * functions when decoding has been succesful.
  *
  */
-
 void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
-
     if (p->flags & PKT_IS_INVALID) {
         StatsIncr(tv, dtv->counter_invalid);
-        int i = 0;
-        for (i = 0; i < p->events.cnt; i++) {
-            if (EVENT_IS_DECODER_PACKET_ERROR(p->events.events[i])) {
-                StatsIncr(tv, dtv->counter_invalid_events[p->events.events[i]]);
-            }
-        }
     }
-#ifdef __SC_CUDA_SUPPORT__
-    if (dtv->cuda_vars.mpm_is_cuda)
-        CudaBufferPacket(&dtv->cuda_vars, p);
-#endif
+}
 
+void PacketUpdateEngineEventCounters(ThreadVars *tv,
+        DecodeThreadVars *dtv, Packet *p)
+{
+    for (uint8_t i = 0; i < p->events.cnt; i++) {
+        const uint8_t e = p->events.events[i];
+
+        if (e <= DECODE_EVENT_PACKET_MAX && !stats_decoder_events)
+            continue;
+        if (e > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
+            continue;
+        StatsIncr(tv, dtv->counter_engine_events[e]);
+    }
 }
 
 /**
@@ -207,7 +213,7 @@ inline int PacketCallocExtPkt(Packet *p, int datalen)
  *  \param Pointer to the data to copy
  *  \param Length of the data to copy
  */
-inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen)
+inline int PacketCopyDataOffset(Packet *p, uint32_t offset, uint8_t *data, uint32_t datalen)
 {
     if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE)) {
         /* too big */
@@ -216,7 +222,11 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
 
     /* Do we have already an packet with allocated data */
     if (! p->ext_pkt) {
-        if (offset + datalen <= (int)default_packet_size) {
+        uint32_t newsize = offset + datalen;
+        // check overflow
+        if (newsize < offset)
+            return -1;
+        if (newsize <= default_packet_size) {
             /* data will fit in memory allocated with packet */
             memcpy(GET_PKT_DIRECT_DATA(p) + offset, data, datalen);
         } else {
@@ -244,7 +254,7 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
  *  \param Pointer to the data to copy
  *  \param Length of the data to copy
  */
-inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
+inline int PacketCopyData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
@@ -261,7 +271,7 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
  *  \retval p the pseudo packet or NULL if out of memory
  */
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             uint8_t *pkt, uint16_t len, enum DecodeTunnelProto proto,
+                             uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto,
                              PacketQueue *pq)
 {
     int ret;
@@ -294,8 +304,12 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
                        GET_PKT_LEN(p), pq, proto);
 
-    if (unlikely(ret != TM_ECODE_OK)) {
-        /* Not a tunnel packet, just a pseudo packet */
+    if (unlikely(ret != TM_ECODE_OK) ||
+            (proto == DECODE_TUNNEL_IPV6_TEREDO && (p->flags & PKT_IS_INVALID)))
+    {
+        /* Not a (valid) tunnel packet */
+        SCLogDebug("tunnel packet is invalid");
+
         p->root = NULL;
         UNSET_TUNNEL_PKT(p);
         TmqhOutputPacketpool(tv, p);
@@ -330,7 +344,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
  *
  *  \retval p the pseudo packet or NULL if out of memory
  */
-Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
+Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint32_t len, uint8_t proto)
 {
     SCEnter();
 
@@ -421,6 +435,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_gre = StatsRegisterCounter("decoder.gre", tv);
     dtv->counter_vlan = StatsRegisterCounter("decoder.vlan", tv);
     dtv->counter_vlan_qinq = StatsRegisterCounter("decoder.vlan_qinq", tv);
+    dtv->counter_ieee8021ah = StatsRegisterCounter("decoder.ieee8021ah", tv);
     dtv->counter_teredo = StatsRegisterCounter("decoder.teredo", tv);
     dtv->counter_ipv4inipv6 = StatsRegisterCounter("decoder.ipv4_in_ipv6", tv);
     dtv->counter_ipv6inipv6 = StatsRegisterCounter("decoder.ipv6_in_ipv6", tv);
@@ -450,10 +465,15 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_defrag_max_hit =
         StatsRegisterCounter("defrag.max_frag_hits", tv);
 
-    int i = 0;
-    for (i = 0; i < DECODE_EVENT_PACKET_MAX; i++) {
+    for (int i = 0; i < DECODE_EVENT_MAX; i++) {
         BUG_ON(i != (int)DEvents[i].code);
-        dtv->counter_invalid_events[i] = StatsRegisterCounter(
+
+        if (i <= DECODE_EVENT_PACKET_MAX && !stats_decoder_events)
+            continue;
+        if (i > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
+            continue;
+
+        dtv->counter_engine_events[i] = StatsRegisterCounter(
                 DEvents[i].event_name, tv);
     }
 
@@ -540,7 +560,7 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
  *  \param Pointer to the data
  *  \param Length of the data
  */
-inline int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen)
+inline int PacketSetData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
     if (unlikely(!pktdata)) {
@@ -606,6 +626,11 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s)
     s->counter_ips_blocked = StatsRegisterCounter("ips.blocked", tv);
     s->counter_ips_rejected = StatsRegisterCounter("ips.rejected", tv);
     s->counter_ips_replaced = StatsRegisterCounter("ips.replaced", tv);
+}
+
+void DecodeGlobalConfig(void)
+{
+    DecodeTeredoConfig();
 }
 
 /**

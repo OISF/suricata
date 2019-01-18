@@ -36,6 +36,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter.h"
 #include "util-mpm.h"
 #include "util-memcmp.h"
 #include "util-memcpy.h"
@@ -62,7 +63,6 @@
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
 #include "detect-engine-dns.h"
-#include "detect-engine-filedata-smtp.h"
 #include "detect-engine-tls.h"
 
 #include "stream.h"
@@ -91,10 +91,71 @@ const char *builtin_mpms[] = {
 static DetectMpmAppLayerRegistery *g_app_mpms_list = NULL;
 static int g_app_mpms_list_cnt = 0;
 
+/** \brief register a MPM engine
+ *
+ *  \note to be used at start up / registration only. Errors are fatal.
+ */
+void DetectAppLayerMpmRegister2(const char *name,
+        int direction, int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
+            SigGroupHead *sgh, MpmCtx *mpm_ctx,
+            const DetectMpmAppLayerRegistery *mpm_reg, int list_id),
+        InspectionBufferGetDataPtr GetData,
+        AppProto alproto, int tx_min_progress)
+{
+    SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,
+            PrefilterRegister, GetData, alproto, tx_min_progress);
+
+    if (PrefilterRegister == PrefilterGenericMpmRegister && GetData == NULL) {
+        // must register GetData with PrefilterGenericMpmRegister
+        abort();
+    }
+
+    DetectBufferTypeSupportsMpm(name);
+    DetectBufferTypeSupportsTransformations(name);
+    int sm_list = DetectBufferTypeGetByName(name);
+    if (sm_list == -1) {
+        FatalError(SC_ERR_INITIALIZATION,
+                "MPM engine registration for %s failed", name);
+    }
+
+    DetectMpmAppLayerRegistery *am = SCCalloc(1, sizeof(*am));
+    BUG_ON(am == NULL);
+    am->name = name;
+    snprintf(am->pname, sizeof(am->pname), "%s", am->name);
+    am->direction = direction;
+    am->sm_list = sm_list;
+    am->priority = priority;
+
+    am->v2.PrefilterRegisterWithListId = PrefilterRegister;
+    am->v2.GetData = GetData;
+    am->v2.alproto = alproto;
+    am->v2.tx_min_progress = tx_min_progress;
+
+    if (g_app_mpms_list == NULL) {
+        g_app_mpms_list = am;
+    } else {
+        DetectMpmAppLayerRegistery *t = g_app_mpms_list;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = am;
+        am->id = t->id + 1;
+    }
+    g_app_mpms_list_cnt++;
+
+    SupportFastPatternForSigMatchList(sm_list, priority);
+}
+
 void DetectAppLayerMpmRegister(const char *name,
         int direction, int priority,
-        int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx))
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
+            SigGroupHead *sgh, MpmCtx *mpm_ctx))
 {
+    SCLogDebug("registering %s/%d/%d/%p",
+            name, direction, priority, PrefilterRegister);
+
     DetectBufferTypeSupportsMpm(name);
     int sm_list = DetectBufferTypeGetByName(name);
     BUG_ON(sm_list == -1);
@@ -102,8 +163,10 @@ void DetectAppLayerMpmRegister(const char *name,
     DetectMpmAppLayerRegistery *am = SCCalloc(1, sizeof(*am));
     BUG_ON(am == NULL);
     am->name = name;
+    snprintf(am->pname, sizeof(am->pname), "%s", am->name);
     am->direction = direction;
     am->sm_list = sm_list;
+    am->priority = priority;
     am->PrefilterRegister = PrefilterRegister;
 
     if (g_app_mpms_list == NULL) {
@@ -122,14 +185,81 @@ void DetectAppLayerMpmRegister(const char *name,
     SupportFastPatternForSigMatchList(sm_list, priority);
 }
 
+/** \brief copy a mpm engine from parent_id, add in transforms */
+void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
+        const int id, const int parent_id,
+        DetectEngineTransforms *transforms)
+{
+    SCLogDebug("registering %d/%d", id, parent_id);
+
+    DetectMpmAppLayerRegistery *t = de_ctx->app_mpms_list;
+    while (t) {
+        if (t->sm_list == parent_id) {
+            DetectMpmAppLayerRegistery *am = SCCalloc(1, sizeof(*am));
+            BUG_ON(am == NULL);
+            am->name = t->name;
+            snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
+            am->direction = t->direction;
+            am->sm_list = id; // use new id
+            am->PrefilterRegister = t->PrefilterRegister;
+            am->v2.PrefilterRegisterWithListId = t->v2.PrefilterRegisterWithListId;
+            am->v2.GetData = t->v2.GetData;
+            am->v2.alproto = t->v2.alproto;
+            am->v2.tx_min_progress = t->v2.tx_min_progress;
+            am->priority = t->priority;
+            am->next = t->next;
+            if (transforms) {
+                memcpy(&am->v2.transforms, transforms, sizeof(*transforms));
+            }
+            am->id = de_ctx->app_mpms_list_cnt++;
+
+            SupportFastPatternForSigMatchList(am->sm_list, am->priority);
+            t->next = am;
+            SCLogDebug("copied mpm registration for %s id %u "
+                    "with parent %u and GetData %p",
+                    t->name, id, parent_id, am->v2.GetData);
+            t = am;
+        }
+        t = t->next;
+    }
+}
+
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
 {
-    BUG_ON(g_app_mpms_list_cnt == 0);
+    const DetectMpmAppLayerRegistery *list = g_app_mpms_list;
+    while (list != NULL) {
+        DetectMpmAppLayerRegistery *n = SCCalloc(1, sizeof(*n));
+        BUG_ON(n == NULL);
 
-    de_ctx->app_mpms = SCCalloc(g_app_mpms_list_cnt + 1, sizeof(DetectMpmAppLayerKeyword));
+        *n = *list;
+        n->next = NULL;
+
+        if (de_ctx->app_mpms_list == NULL) {
+            de_ctx->app_mpms_list = n;
+        } else {
+            DetectMpmAppLayerRegistery *t = de_ctx->app_mpms_list;
+            while (t->next != NULL) {
+                t = t->next;
+            }
+
+            t->next = n;
+        }
+
+        list = list->next;
+    }
+    de_ctx->app_mpms_list_cnt = g_app_mpms_list_cnt;
+    SCLogDebug("mpm: de_ctx app_mpms_list %p %u",
+            de_ctx->app_mpms_list, de_ctx->app_mpms_list_cnt);
+}
+
+void DetectMpmSetupAppMpms(DetectEngineCtx *de_ctx)
+{
+    BUG_ON(de_ctx->app_mpms_list_cnt == 0);
+
+    de_ctx->app_mpms = SCCalloc(de_ctx->app_mpms_list_cnt + 1, sizeof(DetectMpmAppLayerKeyword));
     BUG_ON(de_ctx->app_mpms == NULL);
 
-    DetectMpmAppLayerRegistery *list = g_app_mpms_list;
+    DetectMpmAppLayerRegistery *list = de_ctx->app_mpms_list;
     while (list != NULL) {
         DetectMpmAppLayerKeyword *am = &de_ctx->app_mpms[list->id];
         am->reg = list;
@@ -167,8 +297,9 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
  *  \brief initialize mpm contexts for applayer buffers that are in
  *         "single or "shared" mode.
  */
-void DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
+int DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
 {
+    int r = 0;
     DetectMpmAppLayerKeyword *am = de_ctx->app_mpms;
     while (am->reg != NULL) {
         int dir = (am->reg->direction == SIG_FLAG_TOSERVER) ? 1 : 0;
@@ -178,12 +309,13 @@ void DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
             MpmCtx *mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, am->sgh_mpm_context, dir);
             if (mpm_ctx != NULL) {
                 if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-                    mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+                    r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
                 }
             }
         }
         am++;
     }
+    return r;
 }
 
 static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
@@ -223,49 +355,52 @@ void DetectMpmInitializeBuiltinMpms(DetectEngineCtx *de_ctx)
  *  \brief initialize mpm contexts for builtin buffers that are in
  *         "single or "shared" mode.
  */
-void DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx)
+int DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx)
 {
+    int r = 0;
     MpmCtx *mpm_ctx = NULL;
 
     if (de_ctx->sgh_mpm_context_proto_tcp_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
     }
 
     if (de_ctx->sgh_mpm_context_proto_udp_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
     }
 
     if (de_ctx->sgh_mpm_context_proto_other_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_other_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
     }
 
     if (de_ctx->sgh_mpm_context_stream != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
     }
+
+    return r;
 }
 
 /**
@@ -393,7 +528,7 @@ uint16_t PatternMatchDefaultMatcher(void)
 }
 
 /** \brief cleans up the mpm instance after a match */
-void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
+void PacketPatternCleanup(DetectEngineThreadCtx *det_ctx)
 {
     PmqReset(&det_ctx->pmq);
 }
@@ -402,12 +537,6 @@ void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher)
 {
     SCLogDebug("mpm_ctx %p, mpm_matcher %"PRIu16"", mpm_ctx, mpm_matcher);
     mpm_table[mpm_matcher].DestroyCtx(mpm_ctx);
-}
-
-void PatternMatchPrepare(MpmCtx *mpm_ctx, uint16_t mpm_matcher)
-{
-    SCLogDebug("mpm_ctx %p, mpm_matcher %"PRIu16"", mpm_ctx, mpm_matcher);
-    MpmInitCtx(mpm_ctx, mpm_matcher);
 }
 
 void PatternMatchThreadPrint(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
@@ -537,41 +666,75 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm)
             cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
         }
     }
+    cd->flags |= DETECT_CONTENT_MPM;
     s->init_data->mpm_sm = mpm_sm;
     return;
 }
 
-void RetrieveFPForSig(Signature *s)
+static SigMatch *GetMpmForList(const Signature *s, const int list, SigMatch *mpm_sm,
+    uint16_t max_len, bool skip_negated_content)
+{
+    for (SigMatch *sm = s->init_data->smlists[list]; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        const DetectContentData *cd = (DetectContentData *)sm->ctx;
+        /* skip_negated_content is only set if there's absolutely no
+         * non-negated content present in the sig */
+        if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
+            continue;
+        if (cd->content_len != max_len)
+            continue;
+
+        if (mpm_sm == NULL) {
+            mpm_sm = sm;
+        } else {
+            DetectContentData *data1 = (DetectContentData *)sm->ctx;
+            DetectContentData *data2 = (DetectContentData *)mpm_sm->ctx;
+            uint32_t ls = PatternStrength(data1->content, data1->content_len);
+            uint32_t ss = PatternStrength(data2->content, data2->content_len);
+            if (ls > ss) {
+                mpm_sm = sm;
+            } else if (ls == ss) {
+                /* if 2 patterns are of equal strength, we pick the longest */
+                if (data1->content_len > data2->content_len)
+                    mpm_sm = sm;
+            } else {
+                SCLogDebug("sticking with mpm_sm");
+            }
+        }
+    }
+    return mpm_sm;
+}
+
+void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 {
     if (s->init_data->mpm_sm != NULL)
         return;
 
-    const int nlists = DetectBufferTypeMaxId();
-
     SigMatch *mpm_sm = NULL, *sm = NULL;
+    const int nlists = s->init_data->smlists_array_size;
     int nn_sm_list[nlists];
     int n_sm_list[nlists];
     memset(nn_sm_list, 0, nlists * sizeof(int));
     memset(n_sm_list, 0, nlists * sizeof(int));
     int count_nn_sm_list = 0;
     int count_n_sm_list = 0;
-    int list_id;
 
     /* inspect rule to see if we have the fast_pattern reg to
      * force using a sig, otherwise keep stats about the patterns */
-    for (list_id = 0; list_id < nlists; list_id++) {
+    for (int list_id = 0; list_id < nlists; list_id++) {
         if (s->init_data->smlists[list_id] == NULL)
             continue;
 
-        if (!FastPatternSupportEnabledForSigMatchList(list_id))
+        if (!FastPatternSupportEnabledForSigMatchList(de_ctx, list_id))
             continue;
 
         for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
-
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
             /* fast_pattern set in rule, so using this pattern */
             if ((cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
                 SetMpm(s, sm);
@@ -606,12 +769,14 @@ void RetrieveFPForSig(Signature *s)
     int count_final_sm_list = 0;
     int priority;
 
-    SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
+    const SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
     while (tmp != NULL) {
         for (priority = tmp->priority;
              tmp != NULL && priority == tmp->priority;
              tmp = tmp->next)
         {
+            if (tmp->list_id >= nlists)
+                continue;
             if (curr_sm_list[tmp->list_id] == 0)
                 continue;
             final_sm_list[count_final_sm_list++] = tmp->list_id;
@@ -622,14 +787,16 @@ void RetrieveFPForSig(Signature *s)
 
     BUG_ON(count_final_sm_list == 0);
 
-    int max_len = 0;
-    int i;
-    for (i = 0; i < count_final_sm_list; i++) {
+    uint16_t max_len = 0;
+    for (int i = 0; i < count_final_sm_list; i++) {
+        if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
+            continue;
+
         for (sm = s->init_data->smlists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
             /* skip_negated_content is only set if there's absolutely no
              * non-negated content present in the sig */
             if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
@@ -639,37 +806,11 @@ void RetrieveFPForSig(Signature *s)
         }
     }
 
-    for (i = 0; i < count_final_sm_list; i++) {
-        for (sm = s->init_data->smlists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
+    for (int i = 0; i < count_final_sm_list; i++) {
+        if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
+            continue;
 
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
-            /* skip_negated_content is only set if there's absolutely no
-             * non-negated content present in the sig */
-            if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
-                continue;
-            if (cd->content_len != max_len)
-                continue;
-
-            if (mpm_sm == NULL) {
-                mpm_sm = sm;
-            } else {
-                DetectContentData *data1 = (DetectContentData *)sm->ctx;
-                DetectContentData *data2 = (DetectContentData *)mpm_sm->ctx;
-                uint32_t ls = PatternStrength(data1->content, data1->content_len);
-                uint32_t ss = PatternStrength(data2->content, data2->content_len);
-                if (ls > ss) {
-                    mpm_sm = sm;
-                } else if (ls == ss) {
-                    /* if 2 patterns are of equal strength, we pick the longest */
-                    if (data1->content_len > data2->content_len)
-                        mpm_sm = sm;
-                } else {
-                    SCLogDebug("sticking with mpm_sm");
-                }
-            }
-        }
+        mpm_sm = GetMpmForList(s, final_sm_list[i], mpm_sm, max_len, skip_negated_content);
     }
 
     /* assign to signature */
@@ -934,14 +1075,14 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             s = de_ctx->sig_array[sig];
             if (s == NULL)
                 continue;
+            if ((s->flags & ms->direction) == 0)
+                continue;
             if (s->init_data->mpm_sm == NULL)
                 continue;
             int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
             if (list < 0)
                 continue;
             if (list != ms->sm_list)
-                continue;
-            if ((s->flags & ms->direction) == 0)
                 continue;
 
             SCLogDebug("adding %u", s->id);
@@ -1223,12 +1364,12 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (SGH_DIRECTION_TS(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TS);
             if (mpm_store != NULL) {
-                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TS);
             if (mpm_store != NULL) {
-                PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktStreamRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
 
             SetRawReassemblyFlag(de_ctx, sh);
@@ -1236,12 +1377,12 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TC);
             if (mpm_store != NULL) {
-                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TC);
             if (mpm_store != NULL) {
-                PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktStreamRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
 
             SetRawReassemblyFlag(de_ctx, sh);
@@ -1250,19 +1391,19 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (SGH_DIRECTION_TS(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TS);
             if (mpm_store != NULL) {
-                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TC);
             if (mpm_store != NULL) {
-                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
         }
     } else {
         mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_OTHERIP);
         if (mpm_store != NULL) {
-            PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
+            PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
         }
     }
 
@@ -1287,10 +1428,23 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (mpm_store != NULL) {
                 sh->init->app_mpms[a->reg->id] = mpm_store->mpm_ctx;
 
+                SCLogDebug("a->reg->PrefilterRegister %p mpm_store->mpm_ctx %p",
+                        a->reg->PrefilterRegister, mpm_store->mpm_ctx);
+                SCLogDebug("a %p a->reg->name %s a->reg->PrefilterRegisterWithListId %p "
+                        "mpm_store->mpm_ctx %p", a, a->reg->name,
+                        a->reg->v2.PrefilterRegisterWithListId, mpm_store->mpm_ctx);
+
                 /* if we have just certain types of negated patterns,
                  * mpm_ctx can be NULL */
-                if (a->reg->PrefilterRegister && mpm_store->mpm_ctx) {
-                    BUG_ON(a->reg->PrefilterRegister(sh, mpm_store->mpm_ctx) != 0);
+                if (a->reg->v2.PrefilterRegisterWithListId && mpm_store->mpm_ctx) {
+                    BUG_ON(a->reg->v2.PrefilterRegisterWithListId(de_ctx,
+                                sh, mpm_store->mpm_ctx,
+                                a->reg, a->reg->sm_list) != 0);
+                    SCLogDebug("mpm %s %d set up", a->reg->name, a->reg->sm_list);
+                }
+                else if (a->reg->PrefilterRegister && mpm_store->mpm_ctx) {
+                    BUG_ON(a->reg->PrefilterRegister(de_ctx, sh, mpm_store->mpm_ctx) != 0);
+                    SCLogDebug("mpm %s %d set up", a->reg->name, a->reg->sm_list);
                 }
             }
         }
@@ -1332,7 +1486,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
         if (s->flags & SIG_FLAG_PREFILTER)
             continue;
 
-        RetrieveFPForSig(s);
+        RetrieveFPForSig(de_ctx, s);
         if (s->init_data->mpm_sm != NULL) {
             DetectContentData *cd = (DetectContentData *)s->init_data->mpm_sm->ctx;
             struct_total_size += sizeof(DetectFPAndItsId);
@@ -1351,7 +1505,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
         return -1;
 
     uint8_t *content = NULL;
-    uint8_t content_len = 0;
+    uint16_t content_len = 0;
     PatIntId max_id = 0;
     DetectFPAndItsId *struct_offset = (DetectFPAndItsId *)ahb;
     uint8_t *content_offset = ahb + struct_total_size;

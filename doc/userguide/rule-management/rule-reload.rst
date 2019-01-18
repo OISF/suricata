@@ -18,6 +18,14 @@ Signal::
 
   kill -USR2 $(pidof suricata)
 
-Unix socket::
+Unix socket has two method for rules reload.
+
+Blocking reload ::
 
   suricatasc -c reload-rules
+
+Non blocking reload ::
+
+  suricatasc -c ruleset-reload-nonblocking
+
+It is also possible to get information about the last reload via dedicated commands. See :ref:`standard-unix-socket-commands` for more information.

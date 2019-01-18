@@ -60,6 +60,14 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *si
         SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "sid value to high, max %u", UINT_MAX);
         goto error;
     }
+    if (id == 0) {
+        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "sid value 0 is invalid");
+        goto error;
+    }
+    if (s->id > 0) {
+        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "duplicated 'sid' keyword detected");
+        goto error;
+    }
 
     s->id = (uint32_t)id;
     return 0;

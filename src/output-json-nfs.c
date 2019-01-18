@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -51,17 +51,6 @@
 #include "rust.h"
 #include "rust-nfs-log-gen.h"
 
-typedef struct LogNFSFileCtx_ {
-    LogFileCtx *file_ctx;
-    uint32_t    flags;
-} LogNFSFileCtx;
-
-typedef struct LogNFSLogThread_ {
-    LogNFSFileCtx *nfslog_ctx;
-    uint32_t            count;
-    MemBuffer          *buffer;
-} LogNFSLogThread;
-
 json_t *JsonNFSAddMetadataRPC(const Flow *f, uint64_t tx_id)
 {
     NFSState *state = FlowGetAppState(f);
@@ -92,16 +81,17 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     NFSTransaction *nfstx = tx;
-    LogNFSLogThread *thread = thread_data;
-    json_t *js, *nfsjs;
+    OutputJsonThreadCtx *thread = thread_data;
 
-    if (rs_nfs_tx_logging_is_filtered(nfstx))
+    if (rs_nfs_tx_logging_is_filtered(state, nfstx))
         return TM_ECODE_OK;
 
-    js = CreateJSONHeader((Packet *)p, 0, "nfs");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "nfs");
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
+
+    JsonAddCommonOptions(&thread->ctx->cfg, p, f, js);
 
     json_t *rpcjs = rs_rpc_log_json_response(tx);
     if (unlikely(rpcjs == NULL)) {
@@ -109,14 +99,14 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     }
     json_object_set_new(js, "rpc", rpcjs);
 
-    nfsjs = rs_nfs_log_json_response(state, tx);
+    json_t *nfsjs = rs_nfs_log_json_response(state, tx);
     if (unlikely(nfsjs == NULL)) {
         goto error;
     }
     json_object_set_new(js, "nfs", nfsjs);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->nfslog_ctx->file_ctx, &thread->buffer);
+    OutputJSONBuffer(js, thread->ctx->file_ctx, &thread->buffer);
 
     json_decref(js);
     return TM_ECODE_OK;
@@ -126,87 +116,21 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static void OutputNFSLogDeInitCtxSub(OutputCtx *output_ctx)
-{
-    LogNFSFileCtx *nfslog_ctx = (LogNFSFileCtx *)output_ctx->data;
-    SCFree(nfslog_ctx);
-    SCFree(output_ctx);
-}
-
-static OutputCtx *OutputNFSLogInitSub(ConfNode *conf,
+static OutputInitResult NFSLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
-
-    LogNFSFileCtx *nfslog_ctx = SCCalloc(1, sizeof(*nfslog_ctx));
-    if (unlikely(nfslog_ctx == NULL)) {
-        return NULL;
-    }
-    nfslog_ctx->file_ctx = ajt->file_ctx;
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
-    if (unlikely(output_ctx == NULL)) {
-        SCFree(nfslog_ctx);
-        return NULL;
-    }
-    output_ctx->data = nfslog_ctx;
-    output_ctx->DeInit = OutputNFSLogDeInitCtxSub;
-
-    SCLogDebug("NFS log sub-module initialized.");
-
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_NFS);
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_NFS);
-
-    return output_ctx;
-}
-
-#define OUTPUT_BUFFER_SIZE 65535
-
-static TmEcode JsonNFSLogThreadInit(ThreadVars *t, const void *initdata, void **data)
-{
-    LogNFSLogThread *thread = SCCalloc(1, sizeof(*thread));
-    if (unlikely(thread == NULL)) {
-        return TM_ECODE_FAILED;
-    }
-
-    if (initdata == NULL) {
-        SCLogDebug("Error getting context for EveLogNFS.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
-    }
-
-    thread->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
-    if (unlikely(thread->buffer == NULL)) {
-        SCFree(thread);
-        return TM_ECODE_FAILED;
-    }
-
-    thread->nfslog_ctx = ((OutputCtx *)initdata)->data;
-    *data = (void *)thread;
-
-    return TM_ECODE_OK;
-}
-
-static TmEcode JsonNFSLogThreadDeinit(ThreadVars *t, void *data)
-{
-    LogNFSLogThread *thread = (LogNFSLogThread *)data;
-    if (thread == NULL) {
-        return TM_ECODE_OK;
-    }
-    if (thread->buffer != NULL) {
-        MemBufferFree(thread->buffer);
-    }
-    SCFree(thread);
-    return TM_ECODE_OK;
+    return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
 void JsonNFSLogRegister(void)
 {
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(LOGGER_JSON_NFS, "eve-log", "JsonNFSLog",
-        "eve-log.nfs", OutputNFSLogInitSub, ALPROTO_NFS,
-        JsonNFSLogger, JsonNFSLogThreadInit,
-        JsonNFSLogThreadDeinit, NULL);
+        "eve-log.nfs", NFSLogInitSub, ALPROTO_NFS,
+        JsonNFSLogger, JsonLogThreadInit,
+        JsonLogThreadDeinit, NULL);
 
     SCLogDebug("NFS JSON logger registered.");
 }

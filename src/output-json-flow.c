@@ -54,22 +54,16 @@
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
+    OutputJsonCommonSettings cfg;
 } LogJsonFileCtx;
 
 typedef struct JsonFlowLogThread_ {
     LogJsonFileCtx *flowlog_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    uint32_t uri_cnt;
-
     MemBuffer *buffer;
 } JsonFlowLogThread;
 
-
-#define LOG_HTTP_DEFAULT 0
-#define LOG_HTTP_EXTENDED 1
-#define LOG_HTTP_CUSTOM 2
-
-static json_t *CreateJSONHeaderFromFlow(Flow *f, const char *event_type)
+static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -169,25 +163,22 @@ static json_t *CreateJSONHeaderFromFlow(Flow *f, const char *event_type)
         case IPPROTO_ICMP:
         case IPPROTO_ICMPV6:
             json_object_set_new(js, "icmp_type",
-                    json_integer(f->type));
+                    json_integer(f->icmp_s.type));
             json_object_set_new(js, "icmp_code",
-                    json_integer(f->code));
+                    json_integer(f->icmp_s.code));
+            if (f->tosrcpktcnt) {
+                json_object_set_new(js, "response_icmp_type",
+                        json_integer(f->icmp_d.type));
+                json_object_set_new(js, "response_icmp_code",
+                        json_integer(f->icmp_d.code));
+            }
             break;
     }
     return js;
 }
 
-/* JSON format logging */
-static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
+void JsonAddFlow(Flow *f, json_t *js, json_t *hjs)
 {
-#if 0
-    LogJsonFileCtx *flow_ctx = aft->flowlog_ctx;
-#endif
-    json_t *hjs = json_object();
-    if (hjs == NULL) {
-        return;
-    }
-
     json_object_set_new(js, "app_proto",
             json_string(AppProtoToString(f->alproto)));
     if (f->alproto_ts != f->alproto) {
@@ -216,12 +207,24 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
     json_object_set_new(hjs, "bytes_toclient",
             json_integer(f->tosrcbytecnt));
 
-    char timebuf1[64], timebuf2[64];
-
+    char timebuf1[64];
     CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
-    CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
-
     json_object_set_new(hjs, "start", json_string(timebuf1));
+}
+
+/* JSON format logging */
+static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
+{
+    LogJsonFileCtx *flow_ctx = aft->flowlog_ctx;
+    json_t *hjs = json_object();
+    if (hjs == NULL) {
+        return;
+    }
+
+    JsonAddFlow(f, js, hjs);
+
+    char timebuf2[64];
+    CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
     json_object_set_new(hjs, "end", json_string(timebuf2));
 
     int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
@@ -271,9 +274,12 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
             json_string(reason));
 
     json_object_set_new(hjs, "alerted", json_boolean(FlowHasAlerts(f)));
+    if (f->flags & FLOW_WRONG_THREAD)
+        json_object_set_new(hjs, "wrong_thread", json_true());
 
     json_object_set_new(js, "flow", hjs);
 
+    JsonAddCommonOptions(&flow_ctx->cfg, NULL, f, js);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {
@@ -354,7 +360,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     /* reset */
     MemBufferReset(jhl->buffer);
 
-    json_t *js = CreateJSONHeaderFromFlow(f, "flow"); //TODO const
+    json_t *js = CreateJSONHeaderFromFlow(f, "flow");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
@@ -379,38 +385,40 @@ static void OutputFlowLogDeinit(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "flow.json"
-static OutputCtx *OutputFlowLogInit(ConfNode *conf)
+static OutputInitResult OutputFlowLogInit(ConfNode *conf)
 {
-    SCLogInfo("hi");
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_FLOW_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     LogJsonFileCtx *flow_ctx = SCMalloc(sizeof(LogJsonFileCtx));
     if (unlikely(flow_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(flow_ctx);
-        return NULL;
+        return result;
     }
 
     flow_ctx->file_ctx = file_ctx;
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputFlowLogDeinit;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void OutputFlowLogDeinitSub(OutputCtx *output_ctx)
@@ -420,27 +428,30 @@ static void OutputFlowLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
     LogJsonFileCtx *flow_ctx = SCMalloc(sizeof(LogJsonFileCtx));
     if (unlikely(flow_ctx == NULL))
-        return NULL;
+        return result;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(flow_ctx);
-        return NULL;
+        return result;
     }
 
     flow_ctx->file_ctx = ojc->file_ctx;
-    flow_ctx->flags = LOG_HTTP_DEFAULT;
+    flow_ctx->cfg = ojc->cfg;
 
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputFlowLogDeinitSub;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535

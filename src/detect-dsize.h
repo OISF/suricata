@@ -38,5 +38,9 @@ typedef struct DetectDsizeData_ {
 /* prototypes */
 void DetectDsizeRegister (void);
 
+int SigParseGetMaxDsize(const Signature *s);
+void SigParseSetDsizePair(Signature *s);
+void SigParseApplyDsizeToContent(Signature *s);
+
 #endif /* __DETECT_DSIZE_H__ */
 

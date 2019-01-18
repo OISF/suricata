@@ -43,6 +43,7 @@
 #include "flow-timeout.h"
 #include "flow-manager.h"
 #include "flow-storage.h"
+#include "flow-bypass.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -88,6 +89,38 @@ int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 
 /* Run mode selected at suricata.c */
 extern int run_mode;
+
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+int FlowSetMemcap(uint64_t size)
+{
+    if ((uint64_t)SC_ATOMIC_GET(flow_memuse) < size) {
+        SC_ATOMIC_SET(flow_config.memcap, size);
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t FlowGetMemcap(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(flow_config.memcap);
+    return memcapcopy;
+}
+
+uint64_t FlowGetMemuse(void)
+{
+    uint64_t memusecopy = SC_ATOMIC_GET(flow_memuse);
+    return memusecopy;
+}
 
 void FlowCleanupAppLayer(Flow *f)
 {
@@ -266,6 +299,25 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
     return 1;
 }
 
+static inline void FlowUpdateTTL(Flow *f, Packet *p, uint8_t ttl)
+{
+    if (FlowGetPacketDirection(f, p) == TOSERVER) {
+        if (f->min_ttl_toserver == 0) {
+            f->min_ttl_toserver = ttl;
+        } else {
+            f->min_ttl_toserver = MIN(f->min_ttl_toserver, ttl);
+        }
+        f->max_ttl_toserver = MAX(f->max_ttl_toserver, ttl);
+    } else {
+        if (f->min_ttl_toclient == 0) {
+            f->min_ttl_toclient = ttl;
+        } else {
+            f->min_ttl_toclient = MIN(f->min_ttl_toclient, ttl);
+        }
+        f->max_ttl_toclient = MAX(f->max_ttl_toclient, ttl);
+    }
+}
+
 /** \brief Update Packet and Flow
  *
  *  Updates packet and flow based on the new packet.
@@ -290,6 +342,12 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
             SCLogDebug("Downgrading flow to local bypass");
             COPY_TIMESTAMP(&p->ts, &f->lastts);
             FlowUpdateState(f, FLOW_STATE_LOCAL_BYPASSED);
+        } else {
+            /* In IPS mode the packet could come from the over interface so it would
+             * need to be bypassed */
+            if (EngineModeIsIPS()) {
+                BypassedFlowUpdate(f, p);
+            }
         }
     }
 
@@ -326,7 +384,12 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
         }
     }
 
-    if ((f->flags & (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) == (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) {
+    if (SC_ATOMIC_GET(f->flow_state) == FLOW_STATE_ESTABLISHED) {
+        SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
+        p->flowflags |= FLOW_PKT_ESTABLISHED;
+
+    } else if ((f->flags & (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) ==
+            (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -343,6 +406,14 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
+    }
+
+
+    /* update flow's ttl fields if needed */
+    if (PKT_IS_IPV4(p)) {
+        FlowUpdateTTL(f, p, IPV4_GET_IPTTL(p));
+    } else if (PKT_IS_IPV6(p)) {
+        FlowUpdateTTL(f, p, IPV6_GET_HLIM(p));
     }
 }
 
@@ -378,14 +449,15 @@ void FlowInitConfig(char quiet)
     SC_ATOMIC_INIT(flow_flags);
     SC_ATOMIC_INIT(flow_memuse);
     SC_ATOMIC_INIT(flow_prune_idx);
+    SC_ATOMIC_INIT(flow_config.memcap);
     FlowQueueInit(&flow_spare_q);
     FlowQueueInit(&flow_recycle_q);
 
     /* set defaults */
     flow_config.hash_rand   = (uint32_t)RandomGet();
     flow_config.hash_size   = FLOW_DEFAULT_HASHSIZE;
-    flow_config.memcap      = FLOW_DEFAULT_MEMCAP;
     flow_config.prealloc    = FLOW_DEFAULT_PREALLOC;
+    SC_ATOMIC_SET(flow_config.memcap, FLOW_DEFAULT_MEMCAP);
 
     /* If we have specific config, overwrite the defaults with them,
      * otherwise, leave the default values */
@@ -407,17 +479,30 @@ void FlowInitConfig(char quiet)
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */
+    uint64_t flow_memcap_copy;
     if ((ConfGet("flow.memcap", &conf_val)) == 1)
     {
-        if (ParseSizeStringU64(conf_val, &flow_config.memcap) < 0) {
+        if (conf_val == NULL) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,"Invalid value for flow.memcap: NULL");
+	    exit(EXIT_FAILURE);
+        }
+
+        if (ParseSizeStringU64(conf_val, &flow_memcap_copy) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing flow.memcap "
                        "from conf file - %s.  Killing engine",
                        conf_val);
             exit(EXIT_FAILURE);
+        } else {
+            SC_ATOMIC_SET(flow_config.memcap, flow_memcap_copy);
         }
     }
     if ((ConfGet("flow.hash-size", &conf_val)) == 1)
     {
+        if (conf_val == NULL) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,"Invalid value for flow.hash-size: NULL");
+	    exit(EXIT_FAILURE);
+        }
+
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             flow_config.hash_size = configval;
@@ -425,13 +510,18 @@ void FlowInitConfig(char quiet)
     }
     if ((ConfGet("flow.prealloc", &conf_val)) == 1)
     {
+        if (conf_val == NULL) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,"Invalid value for flow.prealloc: NULL");
+	    exit(EXIT_FAILURE);
+        }
+
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             flow_config.prealloc = configval;
         }
     }
     SCLogDebug("Flow config from suricata.yaml: memcap: %"PRIu64", hash-size: "
-               "%"PRIu32", prealloc: %"PRIu32, flow_config.memcap,
+               "%"PRIu32", prealloc: %"PRIu32, SC_ATOMIC_GET(flow_config.memcap),
                flow_config.hash_size, flow_config.prealloc);
 
     /* alloc hash memory */
@@ -441,7 +531,7 @@ void FlowInitConfig(char quiet)
                 "max flow memcap is smaller than projected hash size. "
                 "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
                 "total hash size by multiplying \"flow.hash-size\" with %"PRIuMAX", "
-                "which is the hash bucket size.", flow_config.memcap, hash_size,
+                "which is the hash bucket size.", SC_ATOMIC_GET(flow_config.memcap), hash_size,
                 (uintmax_t)sizeof(FlowBucket));
         exit(EXIT_FAILURE);
     }
@@ -471,7 +561,7 @@ void FlowInitConfig(char quiet)
         if (!(FLOW_CHECK_MEMCAP(sizeof(Flow) + FlowStorageSize()))) {
             SCLogError(SC_ERR_FLOW_INIT, "preallocating flows failed: "
                     "max flow memcap reached. Memcap %"PRIu64", "
-                    "Memuse %"PRIu64".", flow_config.memcap,
+                    "Memuse %"PRIu64".", SC_ATOMIC_GET(flow_config.memcap),
                     ((uint64_t)SC_ATOMIC_GET(flow_memuse) + (uint64_t)sizeof(Flow)));
             exit(EXIT_FAILURE);
         }
@@ -489,7 +579,7 @@ void FlowInitConfig(char quiet)
         SCLogConfig("preallocated %" PRIu32 " flows of size %" PRIuMAX "",
                 flow_spare_q.len, (uintmax_t)(sizeof(Flow) + + FlowStorageSize()));
         SCLogConfig("flow memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
-                SC_ATOMIC_GET(flow_memuse), flow_config.memcap);
+                SC_ATOMIC_GET(flow_memuse), SC_ATOMIC_GET(flow_config.memcap));
     }
 
     FlowInitFlowProto();
@@ -547,6 +637,7 @@ void FlowShutdown(void)
     FlowQueueDestroy(&flow_spare_q);
     FlowQueueDestroy(&flow_recycle_q);
 
+    SC_ATOMIC_DESTROY(flow_config.memcap);
     SC_ATOMIC_DESTROY(flow_prune_idx);
     SC_ATOMIC_DESTROY(flow_memuse);
     SC_ATOMIC_DESTROY(flow_flags);
@@ -1037,7 +1128,7 @@ static int FlowTest07 (void)
 
     uint32_t ini = 0;
     uint32_t end = flow_spare_q.len;
-    flow_config.memcap = 10000;
+    SC_ATOMIC_SET(flow_config.memcap, 10000);
     flow_config.prealloc = 100;
 
     /* Let's get the flow_spare_q empty */
@@ -1084,7 +1175,7 @@ static int FlowTest08 (void)
 
     uint32_t ini = 0;
     uint32_t end = flow_spare_q.len;
-    flow_config.memcap = 10000;
+    SC_ATOMIC_SET(flow_config.memcap, 10000);
     flow_config.prealloc = 100;
 
     /* Let's get the flow_spare_q empty */
@@ -1131,7 +1222,7 @@ static int FlowTest09 (void)
 
     uint32_t ini = 0;
     uint32_t end = flow_spare_q.len;
-    flow_config.memcap = 10000;
+    SC_ATOMIC_SET(flow_config.memcap, 10000);
     flow_config.prealloc = 100;
 
     /* Let's get the flow_spare_q empty */

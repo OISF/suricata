@@ -69,6 +69,8 @@ void DetectTosRegister(void)
     sigmatch_table[DETECT_TOS].RegisterTests = DetectTosRegisterTests;
     sigmatch_table[DETECT_TOS].flags =
         (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
+    sigmatch_table[DETECT_TOS].url =
+        DOC_URL DOC_VERSION "/rules/header-keywords.html#tos";
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
@@ -170,31 +172,24 @@ error:
  * \retval  0 on Success.
  * \retval -1 on Failure.
  */
-int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+static int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectTosData *tosd;
-    SigMatch *sm;
-
-    tosd = DetectTosParse(arg, s->init_data->negated);
+    DetectTosData *tosd = DetectTosParse(arg, s->init_data->negated);
     if (tosd == NULL)
-        goto error;
+        return -1;
 
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectTosFree(tosd);
+        return -1;
+    }
 
     sm->type = DETECT_TOS;
     sm->ctx = (SigMatchCtx *)tosd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
-
     return 0;
-
-error:
-    return -1;
 }
 
 /**
@@ -202,7 +197,7 @@ error:
  *
  * \param tosd Data to be freed.
  */
-void DetectTosFree(void *tosd)
+static void DetectTosFree(void *tosd)
 {
     SCFree(tosd);
 }

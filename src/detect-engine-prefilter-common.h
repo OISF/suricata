@@ -56,13 +56,15 @@ typedef struct PrefilterPacketU8HashCtx_ {
 #define PREFILTER_U8HASH_MODE_GT    2
 #define PREFILTER_U8HASH_MODE_RA    3
 
-int PrefilterSetupPacketHeader(SigGroupHead *sgh, int sm_type,
+int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
             Packet *p, const void *pectx));
 
-int PrefilterSetupPacketHeaderU8Hash(SigGroupHead *sgh, int sm_type,
+int PrefilterSetupPacketHeaderU8Hash(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,

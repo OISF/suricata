@@ -39,41 +39,73 @@ name=Hyperscan false positives due to DrMemory limitations 2
 libhs.so.*!hs_compile
 *
 
+UNINITIALIZED READ
+name=Hyperscan false positive
+...
+libhs.so.*!*_hs_scan
+suricata!SCHSSearch
+*
+
+UNINITIALIZED READ
+name=Hyperscan false positive
+...
+libhs.so.*!*_hs_scan
+suricata!HSScan
+*
+
+UNADDRESSABLE ACCESS
+name=Hyperscan false positive
+...
+libhs.so.*!*_hs_scan
+suricata!SCHSSearch
+*
+
+UNADDRESSABLE ACCESS
+name=Hyperscan false positive
+...
+libhs.so.*!*_hs_scan
+suricata!HSScan
+*
+
+UNINITIALIZED READ
+name=Hyperscan false positive
+...
+libhs.so.*!hs_alloc_scratch
+suricata!HSBuildDatabase
+*
+
+UNINITIALIZED READ
+name=Hyperscan false positive
+...
+libhs.so.*!hs_alloc_scratch
+suricata!SCHSPreparePatterns
+*
+
 WARNING
 name=Prefetch warnings 1
 ...
 libhs.so.*!hs_scan
 suricata!SCHSSearch
-...
-suricata!main
-
-WARNING
-name=Prefetch warnings 2
-...
-libhs.so.*!hs_scan
-suricata!SCHSSearch
-...
-libc.so.6!__clone
+*
 
 WARNING
 name=Prefetch warnings 3
 ...
 libhs.so.*!hs_scan
 suricata!HSScan
-...
-suricata!main
+*
 
 WARNING
 name=Prefetch warnings 4
 ...
-libhs.so.*!hs_scan
-suricata!HSScan
-...
-libc.so.6!__clone
+libhs.so.*!*hs_scan
+suricata!SCHSSearch
+*
 
 WARNING
 name=Prefetch warnings 5
 ...
-libhs.so.*!hs_scan
+libhs.so.*!*hs_scan
 suricata!HSScan
 *
+

@@ -51,7 +51,7 @@
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-modbus.h"
-#include "detect-engine-filedata-smtp.h"
+#include "detect-engine-filedata.h"
 #include "detect-fast-pattern.h"
 #include "flow.h"
 #include "flow-timeout.h"
@@ -122,6 +122,19 @@
 #include "util-streaming-buffer.h"
 #include "util-lua.h"
 
+#ifdef OS_WIN32
+#include "win32-syscall.h"
+#endif
+
+#ifdef WINDIVERT
+#include "source-windivert.h"
+#endif
+
+#ifdef HAVE_NSS
+#include <prinit.h>
+#include <nss.h>
+#endif
+
 #endif /* UNITTESTS */
 
 void TmqhSetup (void);
@@ -180,9 +193,6 @@ static void RegisterUnittests(void)
     SCClassConfRegisterTests();
     SCThresholdConfRegisterTests();
     SCRConfRegisterTests();
-#ifdef __SC_CUDA_SUPPORT__
-    SCCudaRegisterTests();
-#endif
     PayloadRegisterTests();
     DcePayloadRegisterTests();
     UriRegisterTests();
@@ -213,12 +223,15 @@ static void RegisterUnittests(void)
     DetectPortTests();
     SCAtomicRegisterTests();
     MemrchrRegisterTests();
-#ifdef __SC_CUDA_SUPPORT__
-    CudaBufferRegisterUnittests();
-#endif
     AppLayerUnittestsRegister();
     MimeDecRegisterTests();
     StreamingBufferRegisterTests();
+#ifdef OS_WIN32
+    Win32SyscallRegisterTests();
+#endif
+#ifdef WINDIVERT
+    SourceWinDivertRegisterTests();
+#endif
 }
 #endif
 
@@ -246,20 +259,16 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     default_packet_size = DEFAULT_PACKET_SIZE;
     /* load the pattern matchers */
     MpmTableSetup();
-#ifdef __SC_CUDA_SUPPORT__
-    MpmCudaEnvironmentSetup();
-#endif
     SpmTableSetup();
 
+    StorageInit();
     AppLayerSetup();
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
-    StorageInit();
     CIDRInit();
-    SigParsePrepare();
 
 #ifdef DBG_MEM_ALLOC
     SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
@@ -283,6 +292,13 @@ void RunUnittests(int list_unittests, const char *regex_arg)
         UtRunSelftest(regex_arg); /* inits and cleans up again */
     }
 
+#ifdef HAVE_NSS
+    /* init NSS for hashing */
+    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+    NSS_NoDB_Init(NULL);
+#endif
+
+
     AppLayerHtpEnableRequestBodyCallback();
     AppLayerHtpNeedFileInspection();
 
@@ -301,11 +317,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
         UtCleanup();
 #ifdef BUILD_HYPERSCAN
         MpmHSGlobalCleanup();
-#endif
-#ifdef __SC_CUDA_SUPPORT__
-        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-            MpmCudaBufferDeSetup();
-        CudaHandlerFreeProfiles();
 #endif
         if (failed) {
             exit(EXIT_FAILURE);

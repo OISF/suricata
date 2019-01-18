@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "util-enum.h"
+#include "util-debug.h"
 
 /**
  * \brief Maps a string name to an enum value from the supplied table.  Please
@@ -42,7 +43,7 @@ int SCMapEnumNameToValue(const char *enum_name, SCEnumCharMap *table)
     int result = -1;
 
     if (enum_name == NULL || table == NULL) {
-        printf("Invalid argument(s) passed into SCMapEnumNameToValue\n");
+        SCLogDebug("Invalid argument(s) passed into SCMapEnumNameToValue");
         return -1;
     }
 
@@ -68,7 +69,7 @@ int SCMapEnumNameToValue(const char *enum_name, SCEnumCharMap *table)
 const char * SCMapEnumValueToName(int enum_value, SCEnumCharMap *table)
 {
     if (table == NULL) {
-        printf("Invalid argument(s) passed into SCMapEnumValueToName\n");
+        SCLogDebug("Invalid argument(s) passed into SCMapEnumValueToName");
         return NULL;
     }
 
@@ -78,7 +79,7 @@ const char * SCMapEnumValueToName(int enum_value, SCEnumCharMap *table)
         }
     }
 
-    printf("A enum by the value %d doesn't exist in this table\n", enum_value);
+    SCLogDebug("A enum by the value %d doesn't exist in this table", enum_value);
 
     return NULL;
 }

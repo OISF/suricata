@@ -65,7 +65,6 @@
 
 static int DetectHttpStatCodeSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpStatCodeRegisterTests(void);
-static void DetectHttpStatCodeSetupCallback(Signature *);
 static int g_http_stat_code_buffer_id = 0;
 
 /**
@@ -75,7 +74,7 @@ void DetectHttpStatCodeRegister (void)
 {
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].name = "http_stat_code";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].desc = "content modifier to match only on HTTP stat-code-buffer";
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_stat-code";
+    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-stat-code";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetup;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Free  = NULL;
@@ -92,9 +91,6 @@ void DetectHttpStatCodeRegister (void)
 
     DetectBufferTypeSetDescriptionByName("http_stat_code",
             "http response status code");
-
-    DetectBufferTypeRegisterSetupCallback("http_stat_code",
-            DetectHttpStatCodeSetupCallback);
 
     g_http_stat_code_buffer_id = DetectBufferTypeGetByName("http_stat_code");
 }
@@ -116,12 +112,6 @@ static int DetectHttpStatCodeSetup(DetectEngineCtx *de_ctx, Signature *s, const 
                                                   DETECT_AL_HTTP_STAT_CODE,
                                                   g_http_stat_code_buffer_id,
                                                   ALPROTO_HTTP);
-}
-
-static void DetectHttpStatCodeSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 #ifdef UNITTESTS

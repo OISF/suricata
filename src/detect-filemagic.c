@@ -69,7 +69,7 @@ void DetectFilemagicRegister(void)
 {
     sigmatch_table[DETECT_FILEMAGIC].name = "filemagic";
     sigmatch_table[DETECT_FILEMAGIC].desc = "match on the information libmagic returns about a file";
-    sigmatch_table[DETECT_FILEMAGIC].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filemagic";
+    sigmatch_table[DETECT_FILEMAGIC].url = "https://suricata.readthedocs.io/en/latest/rules/file-keywords.html#filemagic";
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetupNoSupport;
     sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
 }
@@ -211,6 +211,7 @@ static int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                     memcpy(name, filemagic->name, filemagic->len);
                     name[filemagic->len] = '\0';
                     SCLogDebug("will look for filemagic %s", name);
+                    SCFree(name);
                 }
             }
 #endif
@@ -271,6 +272,7 @@ static DetectFilemagicData *DetectFilemagicParse (const char *str, bool negate)
             memcpy(name, filemagic->name, filemagic->len);
             name[filemagic->len] = '\0';
             SCLogDebug("will look for filemagic %s", name);
+            SCFree(name);
         }
     }
 #endif

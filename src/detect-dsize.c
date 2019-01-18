@@ -32,6 +32,7 @@
 
 #include "flow-var.h"
 
+#include "detect-content.h"
 #include "detect-dsize.h"
 
 #include "util-unittest.h"
@@ -55,7 +56,7 @@ static int DetectDsizeSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DsizeRegisterTests(void);
 static void DetectDsizeFree(void *);
 
-static int PrefilterSetupDsize(SigGroupHead *sgh);
+static int PrefilterSetupDsize(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterDsizeIsPrefilterable(const Signature *s);
 
 /**
@@ -353,9 +354,9 @@ PrefilterPacketDsizeCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupDsize(SigGroupHead *sgh)
+static int PrefilterSetupDsize(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_DSIZE,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_DSIZE,
             PrefilterPacketDsizeSet,
             PrefilterPacketDsizeCompare,
             PrefilterPacketDsizeMatch);
@@ -371,6 +372,102 @@ static _Bool PrefilterDsizeIsPrefilterable(const Signature *s)
         }
     }
     return FALSE;
+}
+
+/** \brief get max dsize "depth"
+ *  \param s signature to get dsize value from
+ *  \retval depth or negative value
+ */
+int SigParseGetMaxDsize(const Signature *s)
+{
+    if (s->flags & SIG_FLAG_DSIZE && s->init_data->dsize_sm != NULL) {
+        const DetectDsizeData *dd = (const DetectDsizeData *)s->init_data->dsize_sm->ctx;
+
+        switch (dd->mode) {
+            case DETECTDSIZE_LT:
+            case DETECTDSIZE_EQ:
+                return dd->dsize;
+            case DETECTDSIZE_RA:
+                return dd->dsize2;
+            case DETECTDSIZE_GT:
+            default:
+                SCReturnInt(-2);
+        }
+    }
+    SCReturnInt(-1);
+}
+
+/** \brief set prefilter dsize pair
+ *  \param s signature to get dsize value from
+ */
+void SigParseSetDsizePair(Signature *s)
+{
+    if (s->flags & SIG_FLAG_DSIZE && s->init_data->dsize_sm != NULL) {
+        DetectDsizeData *dd = (DetectDsizeData *)s->init_data->dsize_sm->ctx;
+
+        uint16_t low = 0;
+        uint16_t high = 65535;
+
+        switch (dd->mode) {
+            case DETECTDSIZE_LT:
+                low = 0;
+                high = dd->dsize;
+                break;
+            case DETECTDSIZE_EQ:
+                low = dd->dsize;
+                high = dd->dsize;
+                break;
+            case DETECTDSIZE_RA:
+                low = dd->dsize;
+                high = dd->dsize2;
+                break;
+            case DETECTDSIZE_GT:
+                low = dd->dsize;
+                high = 65535;
+                break;
+        }
+        s->dsize_low = low;
+        s->dsize_high = high;
+
+        SCLogDebug("low %u, high %u", low, high);
+    }
+}
+
+/**
+ *  \brief Apply dsize as depth to content matches in the rule
+ *  \param s signature to get dsize value from
+ */
+void SigParseApplyDsizeToContent(Signature *s)
+{
+    SCEnter();
+
+    if (s->flags & SIG_FLAG_DSIZE) {
+        SigParseSetDsizePair(s);
+
+        int dsize = SigParseGetMaxDsize(s);
+        if (dsize < 0) {
+            /* nothing to do */
+            return;
+        }
+
+        SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
+        for ( ; sm != NULL;  sm = sm->next) {
+            if (sm->type != DETECT_CONTENT) {
+                continue;
+            }
+
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            if (cd == NULL) {
+                continue;
+            }
+
+            if (cd->depth == 0 || cd->depth >= dsize) {
+                cd->depth = (uint16_t)dsize;
+                SCLogDebug("updated %u, content %u to have depth %u "
+                        "because of dsize.", s->id, cd->id, cd->depth);
+            }
+        }
+    }
 }
 
 /*

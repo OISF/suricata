@@ -53,6 +53,7 @@
 
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;
+    OutputJsonCommonSettings cfg;
 } LogJsonFileCtx;
 
 typedef struct JsonNetFlowLogThread_ {
@@ -63,7 +64,7 @@ typedef struct JsonNetFlowLogThread_ {
 } JsonNetFlowLogThread;
 
 
-static json_t *CreateJSONHeaderFromFlow(Flow *f, const char *event_type, int dir)
+static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, int dir)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -176,12 +177,18 @@ static json_t *CreateJSONHeaderFromFlow(Flow *f, const char *event_type, int dir
     json_object_set_new(js, "proto", json_string(proto));
     switch (f->proto) {
         case IPPROTO_ICMP:
-        case IPPROTO_ICMPV6:
-            json_object_set_new(js, "icmp_type",
-                    json_integer(f->type));
-            json_object_set_new(js, "icmp_code",
-                    json_integer(f->code));
+        case IPPROTO_ICMPV6: {
+            uint8_t type = f->icmp_s.type;
+            uint8_t code = f->icmp_s.code;
+            if (dir == 1) {
+                type = f->icmp_d.type;
+                code = f->icmp_d.code;
+
+            }
+            json_object_set_new(js, "icmp_type", json_integer(type));
+            json_object_set_new(js, "icmp_code", json_integer(code));
             break;
+        }
     }
     return js;
 }
@@ -213,6 +220,9 @@ static void JsonNetFlowLogJSONToServer(JsonNetFlowLogThread *aft, json_t *js, Fl
     int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
     json_object_set_new(hjs, "age",
             json_integer(age));
+
+    json_object_set_new(hjs, "min_ttl", json_integer(f->min_ttl_toserver));
+    json_object_set_new(hjs, "max_ttl", json_integer(f->max_ttl_toserver));
 
     json_object_set_new(js, "netflow", hjs);
 
@@ -263,6 +273,12 @@ static void JsonNetFlowLogJSONToClient(JsonNetFlowLogThread *aft, json_t *js, Fl
     json_object_set_new(hjs, "age",
             json_integer(age));
 
+    /* To client is zero if we did not see any packet */
+    if (f->tosrcpktcnt) {
+        json_object_set_new(hjs, "min_ttl", json_integer(f->min_ttl_toclient));
+        json_object_set_new(hjs, "max_ttl", json_integer(f->max_ttl_toclient));
+    }
+
     json_object_set_new(js, "netflow", hjs);
 
     /* TCP */
@@ -289,29 +305,34 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 {
     SCEnter();
     JsonNetFlowLogThread *jhl = (JsonNetFlowLogThread *)thread_data;
+    LogJsonFileCtx *netflow_ctx = jhl->flowlog_ctx;
 
     /* reset */
     MemBufferReset(jhl->buffer);
-    json_t *js = CreateJSONHeaderFromFlow(f, "netflow", 0); //TODO const
+    json_t *js = CreateJSONHeaderFromFlow(f, "netflow", 0);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToServer(jhl, js, f);
+    JsonAddCommonOptions(&netflow_ctx->cfg, NULL, f, js);
     OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "netflow");
     json_object_clear(js);
     json_decref(js);
 
-    /* reset */
-    MemBufferReset(jhl->buffer);
-    js = CreateJSONHeaderFromFlow(f, "netflow", 1); //TODO const
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-    JsonNetFlowLogJSONToClient(jhl, js, f);
-    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
-    json_object_del(js, "netflow");
-    json_object_clear(js);
-    json_decref(js);
-
+    /* only log a response record if we actually have seen response packets */
+    if (f->tosrcpktcnt) {
+        /* reset */
+        MemBufferReset(jhl->buffer);
+        js = CreateJSONHeaderFromFlow(f, "netflow", 1);
+        if (unlikely(js == NULL))
+            return TM_ECODE_OK;
+        JsonNetFlowLogJSONToClient(jhl, js, f);
+        JsonAddCommonOptions(&netflow_ctx->cfg, NULL, f, js);
+        OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
+        json_object_del(js, "netflow");
+        json_object_clear(js);
+        json_decref(js);
+    }
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -325,38 +346,40 @@ static void OutputNetFlowLogDeinit(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "netflow.json"
-static OutputCtx *OutputNetFlowLogInit(ConfNode *conf)
+static OutputInitResult OutputNetFlowLogInit(ConfNode *conf)
 {
-    SCLogInfo("hi");
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_NETFLOW_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     LogJsonFileCtx *flow_ctx = SCMalloc(sizeof(LogJsonFileCtx));
     if (unlikely(flow_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(flow_ctx);
-        return NULL;
+        return result;
     }
 
     flow_ctx->file_ctx = file_ctx;
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputNetFlowLogDeinit;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void OutputNetFlowLogDeinitSub(OutputCtx *output_ctx)
@@ -366,26 +389,30 @@ static void OutputNetFlowLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
     LogJsonFileCtx *flow_ctx = SCMalloc(sizeof(LogJsonFileCtx));
     if (unlikely(flow_ctx == NULL))
-        return NULL;
+        return result;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(flow_ctx);
-        return NULL;
+        return result;
     }
 
     flow_ctx->file_ctx = ojc->file_ctx;
+    flow_ctx->cfg = ojc->cfg;
 
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputNetFlowLogDeinitSub;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535

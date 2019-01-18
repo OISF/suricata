@@ -58,7 +58,6 @@ static int DetectEngineAptEventInspect(ThreadVars *tv,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate,
         void *tx, uint64_t tx_id);
-static void DetectAppLayerEventSetupCallback(Signature *s);
 static int g_applayer_events_list_id = 0;
 
 /**
@@ -80,9 +79,6 @@ void DetectAppLayerEventRegister(void)
     DetectAppLayerInspectEngineRegister("app-layer-events",
             ALPROTO_UNKNOWN, SIG_FLAG_TOCLIENT, 0,
             DetectEngineAptEventInspect);
-
-    DetectBufferTypeRegisterSetupCallback("app-layer-events",
-            DetectAppLayerEventSetupCallback);
 
     g_applayer_events_list_id = DetectBufferTypeGetByName("app-layer-events");
 }
@@ -146,38 +142,6 @@ static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det
                                            aled->event_id);
 }
 
-static void DetectAppLayerEventSetupCallback(Signature *s)
-{
-    SigMatch *sm;
-    for (sm = s->init_data->smlists[g_applayer_events_list_id] ; sm != NULL; sm = sm->next) {
-        switch (sm->type) {
-            case DETECT_AL_APP_LAYER_EVENT:
-            {
-                DetectAppLayerEventData *aed = (DetectAppLayerEventData *)sm->ctx;
-                switch (aed->alproto) {
-                    case ALPROTO_HTTP:
-                        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-                        SCLogDebug("sig %u requires http app state (http event)", s->id);
-                        break;
-                    case ALPROTO_SMTP:
-                        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
-                        SCLogDebug("sig %u requires smtp app state (smtp event)", s->id);
-                        break;
-                    case ALPROTO_DNS:
-                        s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
-                        SCLogDebug("sig %u requires dns app state (dns event)", s->id);
-                        break;
-                    case ALPROTO_TLS:
-                        s->mask |= SIG_MASK_REQUIRE_TLS_STATE;
-                        SCLogDebug("sig %u requires tls app state (tls event)", s->id);
-                        break;
-                }
-                break;
-            }
-        }
-    }
-}
-
 static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
                                                             AppLayerEventType *event_type)
 {
@@ -230,8 +194,13 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
         return -1;
     }
 
-    r = AppLayerParserGetEventInfo(ipproto, data->alproto,
-                        p_idx + 1, &event_id, event_type);
+    if (!data->needs_detctx) {
+        r = AppLayerParserGetEventInfo(ipproto, data->alproto,
+                            p_idx + 1, &event_id, event_type);
+    } else {
+        r = DetectEngineGetEventInfo(p_idx + 1, &event_id, event_type);
+    }
+
     if (r < 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
                    "protocol \"%s\" doesn't have event \"%s\" registered",
@@ -250,6 +219,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
     AppProto alproto;
     const char *p_idx;
     char alproto_name[MAX_ALPROTO_NAME];
+    int needs_detctx = FALSE;
 
     p_idx = strchr(arg, '.');
     if (strlen(arg) > MAX_ALPROTO_NAME) {
@@ -261,10 +231,14 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
 
     alproto = AppLayerGetProtoByName(alproto_name);
     if (alproto == ALPROTO_UNKNOWN) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
-                   "supplied with unknown protocol \"%s\"",
-                   alproto_name);
-        return NULL;
+        if (!strcmp(alproto_name, "file")) {
+            needs_detctx = TRUE;
+        } else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
+                       "supplied with unknown protocol \"%s\"",
+                       alproto_name);
+            return NULL;
+        }
     }
 
     aled = SCMalloc(sizeof(*aled));
@@ -273,6 +247,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
     memset(aled, 0x00, sizeof(*aled));
     aled->alproto = alproto;
     aled->arg = SCStrdup(arg);
+    aled->needs_detctx = needs_detctx;
     if (aled->arg == NULL) {
         SCFree(aled);
         return NULL;
@@ -310,6 +285,9 @@ static int DetectAppLayerEventSetupP2(Signature *s,
     if (DetectAppLayerEventParseAppP2((DetectAppLayerEventData *)sm->ctx, s->proto.proto,
                                       &event_type) < 0) {
         /* DetectAppLayerEventParseAppP2 prints errors */
+
+        /* sm has been removed from lists by DetectAppLayerEventPrepare */
+        SigMatchFree(sm);
         return -1;
     }
     SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
@@ -827,6 +805,26 @@ static int DetectAppLayerEventTest05(void)
     PASS;
 }
 
+static int DetectAppLayerEventTest06(void)
+{
+    AppLayerEventType event_type;
+    uint8_t ipproto_bitarray[256 / 8];
+    memset(ipproto_bitarray, 0, sizeof(ipproto_bitarray));
+    ipproto_bitarray[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
+
+    DetectAppLayerEventData *aled = DetectAppLayerEventParse("file.test",
+                                                             &event_type);
+
+    FAIL_IF_NULL(aled);
+
+    FAIL_IF(DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0);
+
+    FAIL_IF(aled->alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(aled->event_id != DET_CTX_EVENT_TEST);
+
+    DetectAppLayerEventFree(aled);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -840,6 +838,7 @@ void DetectAppLayerEventRegisterTests(void)
     UtRegisterTest("DetectAppLayerEventTest03", DetectAppLayerEventTest03);
     UtRegisterTest("DetectAppLayerEventTest04", DetectAppLayerEventTest04);
     UtRegisterTest("DetectAppLayerEventTest05", DetectAppLayerEventTest05);
+    UtRegisterTest("DetectAppLayerEventTest06", DetectAppLayerEventTest06);
 #endif /* UNITTESTS */
 
     return;

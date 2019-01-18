@@ -76,6 +76,8 @@ static int g_ssh_banner_list_id = 0;
 void DetectSshVersionRegister(void)
 {
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].name = "ssh.protoversion";
+    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].desc = "match SSH protocol version";
+    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].url = DOC_URL DOC_VERSION "/rules/ssh-keywords.html#ssh-protoversion";
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].AppLayerTxMatch = DetectSshVersionMatch;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Setup = DetectSshVersionSetup;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Free  = DetectSshVersionFree;

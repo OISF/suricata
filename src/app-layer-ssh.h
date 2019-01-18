@@ -76,8 +76,8 @@ typedef struct SshState_ {
     /* specifies which loggers are done logging */
     uint32_t logged;
 
-    /* bit flags of mpms that have already run */
-    uint64_t mpm_ids;
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
 
     DetectEngineState *de_state;
 } SshState;

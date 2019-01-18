@@ -29,8 +29,6 @@ typedef struct Tmq_ {
     uint16_t id;
     uint16_t reader_cnt;
     uint16_t writer_cnt;
-    /* 0 for packet-queue and 1 for data-queue */
-    uint8_t q_type;
 } Tmq;
 
 Tmq* TmqCreateQueue(const char *name);

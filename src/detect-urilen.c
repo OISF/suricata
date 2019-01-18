@@ -34,6 +34,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-state.h"
+#include "detect-content.h"
 
 #include "detect-urilen.h"
 #include "util-debug.h"
@@ -283,6 +284,84 @@ void DetectUrilenFree(void *ptr)
 
     DetectUrilenData *urilend = (DetectUrilenData *)ptr;
     SCFree(urilend);
+}
+
+/** \brief set prefilter dsize pair
+ *  \param s signature to get dsize value from
+ */
+void DetectUrilenApplyToContent(Signature *s, int list)
+{
+    uint16_t high = 65535;
+    bool found = false;
+
+    SigMatch *sm = s->init_data->smlists[list];
+    for ( ; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_AL_URILEN)
+            continue;
+
+        DetectUrilenData *dd = (DetectUrilenData *)sm->ctx;
+
+        switch (dd->mode) {
+            case DETECT_URILEN_LT:
+                high = dd->urilen1 + 1;
+                break;
+            case DETECT_URILEN_EQ:
+                high = dd->urilen1;
+                break;
+            case DETECT_URILEN_RA:
+                high = dd->urilen2 + 1;
+                break;
+            case DETECT_URILEN_GT:
+                high = 65535;
+                break;
+        }
+        found = true;
+    }
+
+    // skip 65535 to avoid mismatch on uri > 64k
+    if (!found || high == 65535)
+        return;
+
+    SCLogDebug("high %u", high);
+
+    sm = s->init_data->smlists[list];
+    for ( ; sm != NULL;  sm = sm->next) {
+        if (sm->type != DETECT_CONTENT) {
+            continue;
+        }
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+        if (cd == NULL) {
+            continue;
+        }
+
+        if (cd->depth == 0 || cd->depth > high) {
+            cd->depth = (uint16_t)high;
+            SCLogDebug("updated %u, content %u to have depth %u "
+                    "because of urilen.", s->id, cd->id, cd->depth);
+        }
+    }
+}
+
+bool DetectUrilenValidateContent(const Signature *s, int list, const char **sigerror)
+{
+    const SigMatch *sm = s->init_data->smlists[list];
+    for ( ; sm != NULL;  sm = sm->next) {
+        if (sm->type != DETECT_CONTENT) {
+            continue;
+        }
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+        if (cd == NULL) {
+            continue;
+        }
+
+        if (cd->depth && cd->depth < cd->content_len) {
+            *sigerror = "depth or urilen smaller than content len";
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "depth or urilen %u smaller "
+                    "than content len %u", cd->depth, cd->content_len);
+            return false;
+        }
+    }
+    return true;
 }
 
 #ifdef UNITTESTS

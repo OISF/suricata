@@ -49,6 +49,10 @@ int32_t CoredumpLoadConfig (void)
         SCLogDebug ("core dump size not specified");
         return 1;
     }
+    if (dump_size_config == NULL) {
+        SCLogError (SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed value for coredump.max-dump: NULL");
+        return 0;
+    }
     if (strcasecmp (dump_size_config, "unlimited") == 0) {
         unlimited = 1;
     }

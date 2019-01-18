@@ -1,0 +1,40 @@
+#! /usr/bin/env python
+#
+# Copyright (C) 2017 Open Information Security Foundation
+#
+# You can copy, redistribute or modify this Program under the terms of
+# the GNU General Public License version 2 as published by the Free
+# Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# version 2 along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+import sys
+import os
+import site
+
+exec_dir = os.path.dirname(__file__)
+
+if os.path.exists(os.path.join(exec_dir, "..", "suricata", "ctl", "main.py")):
+    # Looks like we're running from the development directory.
+    sys.path.insert(0, ".")
+else:
+    # This is to find the suricata module in the case of being installed
+    # to a non-standard prefix.
+    version_info = sys.version_info
+    pyver = "%d.%d" % (version_info.major, version_info.minor)
+    path = os.path.join(
+        exec_dir, "..", "lib", "python%s" % (pyver), "site-packages",
+        "suricata")
+    if os.path.exists(path):
+        sys.path.insert(0, os.path.dirname(path))
+
+from suricata.ctl.main import main
+sys.exit(main())

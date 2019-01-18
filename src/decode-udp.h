@@ -26,11 +26,11 @@
 
 #define UDP_HEADER_LEN         8
 
-/* XXX RAW* needs to be really 'raw', so no ntohs there */
-#define UDP_GET_RAW_LEN(udph)                ntohs((udph)->uh_len)
-#define UDP_GET_RAW_SRC_PORT(udph)           ntohs((udph)->uh_sport)
-#define UDP_GET_RAW_DST_PORT(udph)           ntohs((udph)->uh_dport)
-#define UDP_GET_RAW_SUM(udph)                ntohs((udph)->uh_sum)
+/* XXX RAW* needs to be really 'raw', so no SCNtohs there */
+#define UDP_GET_RAW_LEN(udph)                SCNtohs((udph)->uh_len)
+#define UDP_GET_RAW_SRC_PORT(udph)           SCNtohs((udph)->uh_sport)
+#define UDP_GET_RAW_DST_PORT(udph)           SCNtohs((udph)->uh_dport)
+#define UDP_GET_RAW_SUM(udph)                SCNtohs((udph)->uh_sum)
 
 #define UDP_GET_LEN(p)                       UDP_GET_RAW_LEN(p->udph)
 #define UDP_GET_SRC_PORT(p)                  UDP_GET_RAW_SRC_PORT(p->udph)

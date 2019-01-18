@@ -101,11 +101,12 @@ static void PrefilterTxHttpRequestProtocol(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpRequestProtocolRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpRequestProtocolRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestProtocol,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestProtocol,
         ALPROTO_HTTP, HTP_REQUEST_LINE,
         mpm_ctx, NULL, KEYWORD_NAME " (request)");
     return r;
@@ -141,11 +142,12 @@ static void PrefilterTxHttpResponseProtocol(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpResponseProtocolRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpResponseProtocolRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseProtocol,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseProtocol,
         ALPROTO_HTTP, HTP_RESPONSE_LINE,
         mpm_ctx, NULL, KEYWORD_NAME " (response)");
     return r;
@@ -178,7 +180,7 @@ static int InspectEngineHttpProtocol(ThreadVars *tv,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           buffer, buffer_len,
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -198,12 +200,6 @@ static int DetectHttpProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const 
 {
     s->init_data->list = g_buffer_id;
     return 0;
-}
-
-static void DetectHttpProtocolSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /**
@@ -232,9 +228,6 @@ void DetectHttpProtocolRegister(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
-
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
-            DetectHttpProtocolSetupCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }

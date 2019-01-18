@@ -225,8 +225,9 @@ TmEcode LogTcpDataLogThreadDeinit(ThreadVars *t, void *data)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputCtx *LogTcpDataLogInitCtx(ConfNode *conf)
+OutputInitResult LogTcpDataLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     char filename[PATH_MAX] = "";
     char dirname[32] = "";
     strlcpy(filename, DEFAULT_LOG_FILENAME, sizeof(filename));
@@ -234,13 +235,13 @@ OutputCtx *LogTcpDataLogInitCtx(ConfNode *conf)
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_TCPDATA_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     LogTcpDataFileCtx *tcpdatalog_ctx = SCMalloc(sizeof(LogTcpDataFileCtx));
     if (unlikely(tcpdatalog_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
     memset(tcpdatalog_ctx, 0x00, sizeof(LogTcpDataFileCtx));
 
@@ -281,7 +282,7 @@ OutputCtx *LogTcpDataLogInitCtx(ConfNode *conf)
         if (SCConfLogOpenGeneric(conf, file_ctx, filename, 1) < 0) {
             LogFileFreeCtx(file_ctx);
             SCFree(tcpdatalog_ctx);
-            return NULL;
+            return result;
         }
     }
 
@@ -295,11 +296,7 @@ OutputCtx *LogTcpDataLogInitCtx(ConfNode *conf)
         SCLogInfo("using directory %s", dirfull);
 
         /* if mkdir fails file open will fail, so deal with errors there */
-#ifndef OS_WIN32
-        (void)mkdir(dirfull, 0700);
-#else
-        (void)mkdir(dirfull);
-#endif
+        (void)SCMkDir(dirfull, 0700);
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
@@ -311,13 +308,15 @@ OutputCtx *LogTcpDataLogInitCtx(ConfNode *conf)
     output_ctx->DeInit = LogTcpDataLogDeInitCtx;
 
     SCLogDebug("Streaming log output initialized");
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 
 parsererror:
     LogFileFreeCtx(file_ctx);
     SCFree(tcpdatalog_ctx);
     SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom http log format string.");
-    return NULL;
+    return result;
 
 }
 

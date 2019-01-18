@@ -42,18 +42,6 @@
 #include "util-ioctl.h"
 #include "tmqh-packetpool.h"
 
-#ifdef __SC_CUDA_SUPPORT__
-
-#include "util-cuda.h"
-#include "util-cuda-buffer.h"
-#include "util-mpm-ac.h"
-#include "util-cuda-handlers.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "util-cuda-vars.h"
-
-#endif /* __SC_CUDA_SUPPORT__ */
-
 #define PCAP_STATE_DOWN 0
 #define PCAP_STATE_UP 1
 
@@ -420,9 +408,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
     }
 #ifdef HAVE_PCAP_SET_BUFF
     ptv->pcap_buffer_size = pcapconfig->buffer_size;
-    if (ptv->pcap_buffer_size >= 0 && ptv->pcap_buffer_size <= INT_MAX) {
-        if (ptv->pcap_buffer_size > 0)
-            SCLogInfo("Going to use pcap buffer size of %" PRId32 "", ptv->pcap_buffer_size);
+    if (ptv->pcap_buffer_size > 0) {
+        SCLogInfo("Going to use pcap buffer size of %" PRId32 "", ptv->pcap_buffer_size);
 
         int pcap_set_buffer_size_r = pcap_set_buffer_size(ptv->pcap_handle,ptv->pcap_buffer_size);
         //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_buffer_size_r);
@@ -575,6 +562,7 @@ TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
             DecodePPP(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         case LINKTYPE_RAW:
+        case LINKTYPE_GRE_OVER_IP:
             DecodeRaw(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         case LINKTYPE_NULL:
@@ -601,11 +589,6 @@ TmEcode DecodePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 
     DecodeRegisterPerfCounters(dtv, tv);
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (CudaThreadVarsInit(&dtv->cuda_vars) < 0)
-        SCReturnInt(TM_ECODE_FAILED);
-#endif
 
     *data = (void *)dtv;
 

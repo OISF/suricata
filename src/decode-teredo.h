@@ -15,5 +15,11 @@
  * 02110-1301, USA.
  */
 
+#ifndef __DECODE_TEREDO_H__
+#define __DECODE_TEREDO_H__
+
 int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                  uint8_t *pkt, uint16_t len, PacketQueue *pq);
+void DecodeTeredoConfig(void);
+
+#endif

@@ -57,6 +57,7 @@ void ConfInit(void);
 void ConfDeInit(void);
 ConfNode *ConfGetRootNode(void);
 int ConfGet(const char *name, const char **vptr);
+int ConfGetValue(const char *name, const char **vptr);
 int ConfGetInt(const char *name, intmax_t *val);
 int ConfGetBool(const char *name, int *val);
 int ConfGetDouble(const char *name, double *val);
@@ -80,7 +81,9 @@ int ConfValIsTrue(const char *val);
 int ConfValIsFalse(const char *val);
 void ConfNodePrune(ConfNode *node);
 int ConfRemove(const char *name);
+bool ConfNodeHasChildren(const ConfNode *node);
 
+ConfNode *ConfGetChildWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name);
 ConfNode *ConfNodeLookupKeyValue(const ConfNode *base, const char *key, const char *value);
 int ConfGetChildValue(const ConfNode *base, const char *name, const char **vptr);
 int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val);

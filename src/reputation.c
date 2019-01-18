@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -265,7 +265,7 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
 /**
  *  \retval 0 valid
  *  \retval 1 header
- *  \retval -1 boo
+ *  \retval -1 bad line
  */
 static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_t *cat, uint8_t *value)
 {
@@ -553,7 +553,7 @@ static char *SRepCompleteFilePath(char *file)
                 strlcat(path, "/", path_len);
 #endif
             strlcat(path, file, path_len);
-       } else {
+        } else {
             path = SCStrdup(file);
             if (unlikely(path == NULL))
                 return NULL;
@@ -580,8 +580,6 @@ int SRepInit(DetectEngineCtx *de_ctx)
 {
     ConfNode *files;
     ConfNode *file = NULL;
-    int r = 0;
-    char *sfile = NULL;
     const char *filename = NULL;
     int init = 0;
     int i = 0;
@@ -633,19 +631,21 @@ int SRepInit(DetectEngineCtx *de_ctx)
     de_ctx->srep_version = SRepIncrVersion();
     SCLogDebug("Reputation version %u", de_ctx->srep_version);
 
-    /* ok, let's load signature files from the general config */
+    /* ok, let's load reputation files from the general config */
     if (files != NULL) {
         TAILQ_FOREACH(file, &files->head, next) {
-            sfile = SRepCompleteFilePath(file->val);
-            SCLogInfo("Loading reputation file: %s", sfile);
+            char *sfile = SRepCompleteFilePath(file->val);
+            if (sfile) {
+                SCLogInfo("Loading reputation file: %s", sfile);
 
-            r = SRepLoadFile(cidr_ctx, sfile);
-            if (r < 0){
-                if (de_ctx->failure_fatal == 1) {
-                    exit(EXIT_FAILURE);
+                int r = SRepLoadFile(cidr_ctx, sfile);
+                if (r < 0){
+                    if (de_ctx->failure_fatal == 1) {
+                        exit(EXIT_FAILURE);
+                    }
                 }
+                SCFree(sfile);
             }
-            SCFree(sfile);
         }
     }
 

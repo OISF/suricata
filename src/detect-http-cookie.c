@@ -64,7 +64,6 @@
 static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpCookieRegisterTests(void);
 static void DetectHttpCookieFree(void *);
-static void DetectHttpCookieSetupCallback(Signature *s);
 static int g_http_cookie_buffer_id = 0;
 
 /**
@@ -96,9 +95,6 @@ void DetectHttpCookieRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_cookie",
             "http cookie header");
-
-    DetectBufferTypeRegisterSetupCallback("http_cookie",
-            DetectHttpCookieSetupCallback);
 
     g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
 }
@@ -136,13 +132,6 @@ static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
                                                   g_http_cookie_buffer_id,
                                                   ALPROTO_HTTP);
 }
-
-static void DetectHttpCookieSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-}
-
 
 /******************************** UNITESTS **********************************/
 

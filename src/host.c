@@ -52,6 +52,43 @@ static HostQueue host_spare_q;
  *  the storage APIs additions. */
 static uint16_t g_host_size = sizeof(Host);
 
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+int HostSetMemcap(uint64_t size)
+{
+    if ((uint64_t)SC_ATOMIC_GET(host_memuse) < size) {
+        SC_ATOMIC_SET(host_config.memcap, size);
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t HostGetMemcap(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(host_config.memcap);
+    return memcapcopy;
+}
+
+/**
+ *  \brief Return memuse value
+ *
+ *  \retval memuse value
+ */
+uint64_t HostGetMemuse(void)
+{
+    uint64_t memuse = SC_ATOMIC_GET(host_memuse);
+    return memuse;
+}
+
 uint32_t HostSpareQueueGetSize(void)
 {
     return HostQueueLen(&host_spare_q);
@@ -139,29 +176,33 @@ void HostInitConfig(char quiet)
     SC_ATOMIC_INIT(host_counter);
     SC_ATOMIC_INIT(host_memuse);
     SC_ATOMIC_INIT(host_prune_idx);
+    SC_ATOMIC_INIT(host_config.memcap);
     HostQueueInit(&host_spare_q);
 
     /* set defaults */
     host_config.hash_rand   = (uint32_t)RandomGet();
     host_config.hash_size   = HOST_DEFAULT_HASHSIZE;
-    host_config.memcap      = HOST_DEFAULT_MEMCAP;
     host_config.prealloc    = HOST_DEFAULT_PREALLOC;
+    SC_ATOMIC_SET(host_config.memcap, HOST_DEFAULT_MEMCAP);
 
     /* Check if we have memcap and hash_size defined at config */
     const char *conf_val;
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */
-    if ((ConfGet("host.memcap", &conf_val)) == 1)
+    if ((ConfGetValue("host.memcap", &conf_val)) == 1)
     {
-        if (ParseSizeStringU64(conf_val, &host_config.memcap) < 0) {
+        uint64_t host_memcap = 0;
+        if (ParseSizeStringU64(conf_val, &host_memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing host.memcap "
                        "from conf file - %s.  Killing engine",
                        conf_val);
             exit(EXIT_FAILURE);
+        } else {
+            SC_ATOMIC_SET(host_config.memcap, host_memcap);
         }
     }
-    if ((ConfGet("host.hash-size", &conf_val)) == 1)
+    if ((ConfGetValue("host.hash-size", &conf_val)) == 1)
     {
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
@@ -169,7 +210,7 @@ void HostInitConfig(char quiet)
         }
     }
 
-    if ((ConfGet("host.prealloc", &conf_val)) == 1)
+    if ((ConfGetValue("host.prealloc", &conf_val)) == 1)
     {
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
@@ -179,7 +220,7 @@ void HostInitConfig(char quiet)
         }
     }
     SCLogDebug("Host config from suricata.yaml: memcap: %"PRIu64", hash-size: "
-               "%"PRIu32", prealloc: %"PRIu32, host_config.memcap,
+               "%"PRIu32", prealloc: %"PRIu32, SC_ATOMIC_GET(host_config.memcap),
                host_config.hash_size, host_config.prealloc);
 
     /* alloc hash memory */
@@ -189,7 +230,7 @@ void HostInitConfig(char quiet)
                 "max host memcap is smaller than projected hash size. "
                 "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
                 "total hash size by multiplying \"host.hash-size\" with %"PRIuMAX", "
-                "which is the hash bucket size.", host_config.memcap, hash_size,
+                "which is the hash bucket size.", SC_ATOMIC_GET(host_config.memcap), hash_size,
                 (uintmax_t)sizeof(HostHashRow));
         exit(EXIT_FAILURE);
     }
@@ -218,7 +259,7 @@ void HostInitConfig(char quiet)
         if (!(HOST_CHECK_MEMCAP(g_host_size))) {
             SCLogError(SC_ERR_HOST_INIT, "preallocating hosts failed: "
                     "max host memcap reached. Memcap %"PRIu64", "
-                    "Memuse %"PRIu64".", host_config.memcap,
+                    "Memuse %"PRIu64".", SC_ATOMIC_GET(host_config.memcap),
                     ((uint64_t)SC_ATOMIC_GET(host_memuse) + g_host_size));
             exit(EXIT_FAILURE);
         }
@@ -235,7 +276,7 @@ void HostInitConfig(char quiet)
         SCLogConfig("preallocated %" PRIu32 " hosts of size %" PRIu16 "",
                 host_spare_q.len, g_host_size);
         SCLogConfig("host memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
-                SC_ATOMIC_GET(host_memuse), host_config.memcap);
+                SC_ATOMIC_GET(host_memuse), SC_ATOMIC_GET(host_config.memcap));
     }
 
     return;
@@ -250,7 +291,7 @@ void HostPrintStats (void)
         hostbits_added, hostbits_removed, hostbits_memuse_max);
 #endif /* HOSTBITS_STATS */
     SCLogPerf("host memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
-            SC_ATOMIC_GET(host_memuse), host_config.memcap);
+            SC_ATOMIC_GET(host_memuse), SC_ATOMIC_GET(host_config.memcap));
     return;
 }
 
@@ -290,6 +331,7 @@ void HostShutdown(void)
     SC_ATOMIC_DESTROY(host_prune_idx);
     SC_ATOMIC_DESTROY(host_memuse);
     SC_ATOMIC_DESTROY(host_counter);
+    SC_ATOMIC_DESTROY(host_config.memcap);
     //SC_ATOMIC_DESTROY(flow_flags);
     return;
 }

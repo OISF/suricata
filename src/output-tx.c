@@ -140,11 +140,15 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         return TM_ECODE_OK;
 
     Flow * const f = p->flow;
+    const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
 
     if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
         goto end;
     if (AppLayerParserProtocolHasLogger(p->proto, alproto) == 0)
+        goto end;
+    const LoggerId logger_expectation = AppLayerParserProtocolGetLoggerBits(p->proto, alproto);
+    if (logger_expectation == 0)
         goto end;
 
     void *alstate = f->alstate;
@@ -161,26 +165,29 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     int logged = 0;
     int gap = 0;
 
-    for (; tx_id < total_txs; tx_id++)
-    {
-        /* Track the number of loggers, of the eligible loggers that
-         * actually logged this transaction. They all must have logged
-         * before the transaction is considered logged. */
-        int number_of_loggers = 0;
-        int loggers_that_logged = 0;
+    AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
+    AppLayerGetTxIterState state;
+    memset(&state, 0, sizeof(state));
 
-        void *tx = AppLayerParserGetTx(p->proto, alproto, alstate, tx_id);
-        if (tx == NULL) {
-            SCLogDebug("tx is NULL not logging");
-            continue;
+    while (1) {
+        AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id, total_txs, &state);
+        if (ires.tx_ptr == NULL)
+            break;
+        void * const tx = ires.tx_ptr;
+        tx_id = ires.tx_id;
+
+        LoggerId tx_logged = AppLayerParserGetTxLogged(f, alstate, tx);
+        const LoggerId tx_logged_old = tx_logged;
+        SCLogDebug("logger: expect %08x, have %08x", logger_expectation, tx_logged);
+        if (tx_logged == logger_expectation) {
+            /* tx already fully logged */
+            goto next_tx;
         }
 
         int tx_progress_ts = AppLayerParserGetStateProgress(p->proto, alproto,
                 tx, ts_disrupt_flags);
-
         int tx_progress_tc = AppLayerParserGetStateProgress(p->proto, alproto,
                 tx, tc_disrupt_flags);
-
         SCLogDebug("tx_progress_ts %d tx_progress_tc %d",
                 tx_progress_ts, tx_progress_tc);
 
@@ -197,16 +204,10 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             SCLogDebug("logger %p, LogCondition %p, ts_log_progress %d "
                     "tc_log_progress %d", logger, logger->LogCondition,
                     logger->ts_log_progress, logger->tc_log_progress);
-            if (logger->alproto == alproto) {
+            if (logger->alproto == alproto &&
+                (tx_logged_old & (1<<logger->logger_id)) == 0)
+            {
                 SCLogDebug("alproto match, logging tx_id %"PRIu64, tx_id);
-
-                number_of_loggers++;
-
-                if (AppLayerParserGetTxLogged(f, alstate, tx, logger->id)) {
-                    SCLogDebug("logger has already logged this transaction");
-                    loggers_that_logged++;
-                    goto next;
-                }
 
                 if (!(AppLayerParserStateIssetFlag(f->alparser,
                                                    APP_LAYER_PARSER_EOF))) {
@@ -214,17 +215,17 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                         int r = logger->LogCondition(tv, p, alstate, tx, tx_id);
                         if (r == FALSE) {
                             SCLogDebug("conditions not met, not logging");
-                            goto next;
+                            goto next_logger;
                         }
                     } else {
                         if (tx_progress_tc < logger->tc_log_progress) {
                             SCLogDebug("progress not far enough, not logging");
-                            goto next;
+                            goto next_logger;
                         }
 
                         if (tx_progress_ts < logger->ts_log_progress) {
                             SCLogDebug("progress not far enough, not logging");
-                            goto next;
+                            goto next_logger;
                         }
                     }
                 }
@@ -235,12 +236,10 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
                 PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
 
-                AppLayerParserSetTxLogged(p->proto, alproto, alstate, tx,
-                                          logger->id);
-                loggers_that_logged++;
+                tx_logged |= (1<<logger->logger_id);
             }
 
-next:
+next_logger:
             logger = logger->next;
             store = store->next;
 #ifdef DEBUG_VALIDATION
@@ -249,18 +248,29 @@ next:
 #endif
         }
 
+        if (tx_logged != tx_logged_old) {
+            SCLogDebug("logger: storing %08x (was %08x)",
+                tx_logged, tx_logged_old);
+            AppLayerParserSetTxLogged(p->proto, alproto, alstate, tx,
+                    tx_logged);
+        }
+
         /* If all loggers logged set a flag and update the last tx_id
          * that was logged.
          *
          * If not all loggers were logged we flag that there was a gap
          * so any subsequent transactions in this loop don't increase
          * the maximum ID that was logged. */
-        if (!gap && loggers_that_logged == number_of_loggers) {
+        if (!gap && tx_logged == logger_expectation) {
             logged = 1;
             max_id = tx_id;
         } else {
             gap = 1;
         }
+next_tx:
+        if (!ires.has_next)
+            break;
+        tx_id++;
     }
 
     /* Update the the last ID that has been logged with all

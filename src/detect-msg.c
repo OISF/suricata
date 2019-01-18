@@ -103,6 +103,10 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ms
         }
     }
 
+    if (s->msg != NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "duplicated 'msg' keyword detected");
+        goto error;
+    }
     s->msg = SCStrdup(str);
     if (s->msg == NULL)
         goto error;

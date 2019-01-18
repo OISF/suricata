@@ -24,7 +24,6 @@
 
 #include "suricata-common.h"
 #include "debug.h"
-#include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -61,6 +60,7 @@
 #include "util-lua-common.h"
 #include "util-lua-http.h"
 #include "util-lua-dns.h"
+#include "util-lua-ja3.h"
 #include "util-lua-tls.h"
 #include "util-lua-ssh.h"
 #include "util-lua-smtp.h"
@@ -213,8 +213,13 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
 
         lua_getglobal(td->lua_ctx->luastate, "log");
 
+        void *txptr = NULL;
+        if (p->flow && p->flow->alstate && (pa->flags & PACKET_ALERT_FLAG_TX))
+            txptr = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, pa->tx_id);
+
         LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
         LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
+        LuaStateSetTX(td->lua_ctx->luastate, txptr);
         LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
         LuaStateSetPacketAlert(td->lua_ctx->luastate, (PacketAlert *)pa);
 
@@ -298,11 +303,9 @@ static int LuaPacketCondition(ThreadVars *tv, const Packet *p)
  *
  *  Executes a script once for one file.
  *
- * TODO non-http support
- *
  * NOTE p->flow is locked at this point
  */
-static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff)
+static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff, uint8_t dir)
 {
     SCEnter();
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
@@ -314,17 +317,16 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
 
     SCLogDebug("ff %p", ff);
 
-    /* Get the TX so the script can get more context about it.
-     * TODO hardcoded to HTTP currently */
-    void *txptr = NULL;
-    if (p->flow && p->flow->alstate)
-        txptr = AppLayerParserGetTx(p->proto, ALPROTO_HTTP, p->flow->alstate, ff->txid);
-
     SCMutexLock(&td->lua_ctx->m);
 
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-    LuaStateSetTX(td->lua_ctx->luastate, txptr);
+    if (p->flow && p->flow->alstate) {
+        void *txptr = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, ff->txid);
+        if (txptr) {
+            LuaStateSetTX(td->lua_ctx->luastate, txptr);
+        }
+    }
     LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
     LuaStateSetFile(td->lua_ctx->luastate, (File *)ff);
 
@@ -632,6 +634,7 @@ static lua_State *LuaScriptSetup(const char *filename)
      * if the tx is registered in the state at runtime though. */
     LuaRegisterHttpFunctions(luastate);
     LuaRegisterDnsFunctions(luastate);
+    LuaRegisterJa3Functions(luastate);
     LuaRegisterTlsFunctions(luastate);
     LuaRegisterSshFunctions(luastate);
     LuaRegisterSmtpFunctions(luastate);
@@ -659,20 +662,21 @@ static void LogLuaSubFree(OutputCtx *oc) {
  *
  *  Runs script 'setup' function.
  */
-static OutputCtx *OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     if (conf == NULL)
-        return NULL;
+        return result;
 
     LogLuaCtx *lua_ctx = SCMalloc(sizeof(LogLuaCtx));
     if (unlikely(lua_ctx == NULL))
-        return NULL;
+        return result;
     memset(lua_ctx, 0x00, sizeof(*lua_ctx));
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(lua_ctx);
-        return NULL;
+        return result;
     }
 
     SCMutexInit(&lua_ctx->m, NULL);
@@ -684,7 +688,11 @@ static OutputCtx *OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     char path[PATH_MAX] = "";
-    snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", conf->val);
+    int ret = snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", conf->val);
+    if (ret < 0 || ret == sizeof(path)) {
+        SCLogError(SC_ERR_SPRINTF,"failed to construct lua script path");
+        goto error;
+    }
     SCLogDebug("script full path %s", path);
 
     SCMutexLock(&lua_ctx->m);
@@ -698,12 +706,14 @@ static OutputCtx *OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->data = lua_ctx;
     output_ctx->DeInit = LogLuaSubFree;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 error:
     SCMutexDestroy(&lua_ctx->m);
     SCFree(lua_ctx);
     SCFree(output_ctx);
-    return NULL;
+    return result;
 }
 
 static void LogLuaMasterFree(OutputCtx *oc)
@@ -725,8 +735,9 @@ static void LogLuaMasterFree(OutputCtx *oc)
  *  inspect, then fills the OutputCtx::submodules list with the
  *  proper Logger function for the data type the script needs.
  */
-static OutputCtx *OutputLuaLogInit(ConfNode *conf)
+static OutputInitResult OutputLuaLogInit(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     const char *dir = ConfNodeLookupChildValue(conf, "scripts-dir");
     if (dir == NULL)
         dir = "";
@@ -735,19 +746,19 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
     if (scripts == NULL) {
         /* No "outputs" section in the configuration. */
         SCLogInfo("scripts not defined");
-        return NULL;
+        return result;
     }
 
     /* global output ctx setup */
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
-        return NULL;
+        return result;
     }
     output_ctx->DeInit = LogLuaMasterFree;
     output_ctx->data = SCCalloc(1, sizeof(LogLuaMasterCtx));
     if (unlikely(output_ctx->data == NULL)) {
         SCFree(output_ctx);
-        return NULL;
+        return result;
     }
     LogLuaMasterCtx *master_config = output_ctx->data;
     strlcpy(master_config->path, dir, sizeof(master_config->path));
@@ -844,12 +855,26 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         TAILQ_INSERT_TAIL(&output_ctx->submodules, om, entries);
     }
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 
 error:
     if (output_ctx->DeInit)
         output_ctx->DeInit(output_ctx);
-    return NULL;
+
+    int failure_fatal = 0;
+    if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
+        SCLogDebug("ConfGetBool could not load the value.");
+    }
+    if (failure_fatal) {
+        SCLogError(SC_ERR_LUA_ERROR,
+                   "Error during setup of lua output. Details should be "
+                   "described in previous error messages. Shutting down...");
+        exit(EXIT_FAILURE);
+    }
+
+    return result;
 }
 
 /** \internal

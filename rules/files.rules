@@ -45,3 +45,17 @@
 
 # Alert and store files over SMTP
 #alert smtp any any -> any any (msg:"File Found over SMTP and stored"; filestore; sid:27; rev:1;)
+
+# Alert and store files from black list checksum: md5 or sha1 or sha256
+#alert http any any -> any any (msg:"Black list checksum match and extract MD5"; filemd5:fileextraction-chksum.list; filestore; sid:28; rev:1;)
+#alert http any any -> any any (msg:"Black list checksum match and extract SHA1"; filesha1:fileextraction-chksum.list; filestore; sid:29; rev:1;)
+#alert http any any -> any any (msg:"Black list checksum match and extract SHA256"; filesha256:fileextraction-chksum.list; filestore; sid:30; rev:1;)
+
+# Alert and store files over FTP
+#alert ftp-data any any -> any any (msg:"File Found within FTP and stored"; filestore; filename:"password"; ftpdata_command:stor; sid:31; rev:1;)
+
+# Alert and store files over SMB (with RUST activated)
+#alert smb any any -> any any (msg:"File Found over SMB and stored"; filestore; sid:32; rev:1;)
+
+# Alert and store files over NFS (with RUST activated)
+#alert nfs any any -> any any (msg:"File found within NFS and stored"; filestore; sid:33; rev:1;)

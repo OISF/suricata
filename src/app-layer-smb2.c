@@ -522,7 +522,7 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
 
 static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
                      uint8_t *input, uint32_t input_len,
-                     void *local_data)
+                     void *local_data, const uint8_t flags)
 {
     SCEnter();
     SMB2State *sstate = (SMB2State *) smb2_state;

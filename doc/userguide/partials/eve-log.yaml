@@ -1,0 +1,181 @@
+outputs:
+  # Extensible Event Format (nicknamed EVE) event log in JSON format
+  - eve-log:
+      enabled: yes
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
+      filename: eve.json
+      #prefix: "@cee: " # prefix to prepend to each log entry
+      # the following are valid when type: syslog above
+      #identity: "suricata"
+      #facility: local5
+      #level: Info ## possible levels: Emergency, Alert, Critical,
+                   ## Error, Warning, Notice, Info, Debug
+      #redis:
+      #  server: 127.0.0.1
+      #  port: 6379
+      #  async: true ## if redis replies are read asynchronously
+      #  mode: list ## possible values: list|lpush (default), rpush, channel|publish
+      #             ## lpush and rpush are using a Redis list. "list" is an alias for lpush
+      #             ## publish is using a Redis channel. "channel" is an alias for publish
+      #  key: suricata ## key or channel to use (default to suricata)
+      # Redis pipelining set up. This will enable to only do a query every
+      # 'batch-size' events. This should lower the latency induced by network
+      # connection at the cost of some memory. There is no flushing implemented
+      # so this setting as to be reserved to high traffic suricata.
+      #  pipelining:
+      #    enabled: yes ## set enable to yes to enable query pipelining
+      #    batch-size: 10 ## number of entry to keep in buffer
+
+      # Include top level metadata. Default yes.
+      #metadata: no
+
+      types:
+        - alert:
+            # payload: yes             # enable dumping payload in Base64
+            # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
+            # payload-printable: yes   # enable dumping payload in printable (lossy) format
+            # packet: yes              # enable dumping of packet (without stream segments)
+            # http-body: yes           # enable dumping of http body in Base64
+            # http-body-printable: yes # enable dumping of http body in printable format
+
+            # Enable the logging of tagged packets for rules using the
+            # "tag" keyword.
+            tagged-packets: yes
+
+            # Configure the metadata to be logged along with an
+            # alert. The following shows the default configuration
+            # which is used if this field is not provided or simply
+            # set to a truthful value. Setting of this section is only
+            # required if you wish to enable/disable specific fields.
+            #metadata:
+
+              # Include the decoded application layer (ie. http, dns)
+              app-layer: true
+
+              # Log the the current state of the flow record.
+              flow: true
+
+              rule:
+                # Log the metadata field from the rule in a structured
+                # format.
+                metadata: true
+
+                # Log the raw rule text.
+                raw: false
+
+            # HTTP X-Forwarded-For support by adding an extra field or overwriting
+            # the source or destination IP address (depending on flow direction)
+            # with the one reported in the X-Forwarded-For HTTP header. This is
+            # helpful when reviewing alerts for traffic that is being reverse
+            # or forward proxied.
+            xff:
+              enabled: no
+              # Two operation modes are available, "extra-data" and "overwrite".
+              mode: extra-data
+              # Two proxy deployments are supported, "reverse" and "forward". In
+              # a "reverse" deployment the IP address used is the last one, in a
+              # "forward" deployment the first IP address is used.
+              deployment: reverse
+              # Header name where the actual IP address will be reported, if more
+              # than one IP address is present, the last IP address will be the
+              # one taken into consideration.
+              header: X-Forwarded-For
+        - http:
+            extended: yes     # enable this for extended logging information
+            # custom allows additional http fields to be included in eve-log
+            # the example below adds three additional fields when uncommented
+            #custom: [Accept-Encoding, Accept-Language, Authorization]
+        - dns:
+            # Use version 2 logging with the new format:
+            # dns answers will be logged in one single event
+            # rather than an event for each of the answers.
+            # Without setting a version the version
+            # will fallback to 1 for backwards compatibility.
+            version: 2
+
+            # Enable/disable this logger. Default: enabled.
+            #enabled: no
+
+            # Control logging of requests and responses:
+            # - requests: enable logging of DNS queries
+            # - responses: enable logging of DNS answers
+            # By default both requests and responses are logged.
+            #requests: no
+            #responses: no
+
+            # Format of answer logging:
+            # - detailed: array item per answer
+            # - grouped: answers aggregated by type
+            # Default: all
+            #answer-format: [detailed, grouped]
+
+            # Answer types to log.
+            # Default: all
+            #answer-types: [a, aaaa, cname, mx, ns, ptr, txt]
+        - dns:
+            # Version 1 (deprecated) DNS logger.
+            version: 1
+
+            enabled: no
+            # control logging of queries and answers
+            # default yes, no to disable
+            query: yes     # enable logging of DNS queries
+            answer: yes    # enable logging of DNS answers
+            # control which RR types are logged
+            # all enabled if custom not specified
+            #custom: [a, aaaa, cname, mx, ns, ptr, txt]
+        - tls:
+            extended: yes     # enable this for extended logging information
+            # output TLS transaction where the session is resumed using a
+            # session id
+            #session-resumption: no
+            # custom allows to control which tls fields that are included
+            # in eve-log
+            #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain]
+        - files:
+            force-magic: no   # force logging magic on all logged files
+            # force logging of checksums, available hash functions are md5,
+            # sha1 and sha256
+            #force-hash: [md5]
+        #- drop:
+        #    alerts: yes      # log alerts that caused drops
+        #    flows: all       # start or all: 'start' logs only a single drop
+        #                     # per flow direction. All logs each dropped pkt.
+        - smtp:
+            #extended: yes # enable this for extended logging information
+            # this includes: bcc, message-id, subject, x_mailer, user-agent
+            # custom fields logging from the list:
+            #  reply-to, bcc, message-id, subject, x-mailer, user-agent, received,
+            #  x-originating-ip, in-reply-to, references, importance, priority,
+            #  sensitivity, organization, content-md5, date
+            #custom: [received, x-mailer, x-originating-ip, relays, reply-to, bcc]
+            # output md5 of fields: body, subject
+            # for the body you need to set app-layer.protocols.smtp.mime.body-md5
+            # to yes
+            #md5: [body, subject]
+
+        # NFS logging. Requires Rust.
+        - nfs
+        # IKEv2 logging. Requires Rust.
+        - ikev2
+        - ssh
+        - stats:
+            totals: yes       # stats for all threads merged together
+            threads: no       # per thread stats
+            deltas: no        # include delta values
+        - dhcp:
+            # DHCP logging requires Rust.
+            enabled: @rust_config_enabled@
+            # When extended mode is on, all DHCP messages are logged
+            # with full detail. When extended mode is off (the
+            # default), just enough information to map a MAC address
+            # to an IP address is logged.
+            extended: no
+        # bi-directional flows
+        - flow
+        # uni-directional flows
+        #- netflow
+
+        # An event for logging metadata, specifically pktvars when
+        # they are set, but will also include the full metadata object.
+        #- metadata

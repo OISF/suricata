@@ -80,8 +80,8 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
         case IPPROTO_TCP:
             if (len >= IPV4_HEADER_LEN + TCP_HEADER_LEN ) {
                 p->icmpv4vars.emb_tcph = (TCPHdr*)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = ntohs(p->icmpv4vars.emb_tcph->th_sport);
-                p->icmpv4vars.emb_dport = ntohs(p->icmpv4vars.emb_tcph->th_dport);
+                p->icmpv4vars.emb_sport = SCNtohs(p->icmpv4vars.emb_tcph->th_sport);
+                p->icmpv4vars.emb_dport = SCNtohs(p->icmpv4vars.emb_tcph->th_dport);
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP header sport: "
@@ -92,8 +92,8 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
                 TCPHdr *emb_tcph = (TCPHdr*)(partial_packet + IPV4_HEADER_LEN);
 
                 p->icmpv4vars.emb_tcph = NULL;
-                p->icmpv4vars.emb_sport = ntohs(emb_tcph->th_sport);
-                p->icmpv4vars.emb_dport = ntohs(emb_tcph->th_dport);
+                p->icmpv4vars.emb_sport = SCNtohs(emb_tcph->th_sport);
+                p->icmpv4vars.emb_dport = SCNtohs(emb_tcph->th_dport);
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP partial header sport: "
                            "%"PRIu8" dport %"PRIu8"", p->icmpv4vars.emb_sport,
@@ -109,8 +109,8 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
         case IPPROTO_UDP:
             if (len >= IPV4_HEADER_LEN + UDP_HEADER_LEN ) {
                 p->icmpv4vars.emb_udph = (UDPHdr*)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = ntohs(p->icmpv4vars.emb_udph->uh_sport);
-                p->icmpv4vars.emb_dport = ntohs(p->icmpv4vars.emb_udph->uh_dport);
+                p->icmpv4vars.emb_sport = SCNtohs(p->icmpv4vars.emb_udph->uh_sport);
+                p->icmpv4vars.emb_dport = SCNtohs(p->icmpv4vars.emb_udph->uh_dport);
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_UDP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->UDP header sport: "
@@ -152,7 +152,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 /** DecodeICMPV4
  *  \brief Main ICMPv4 decoding function
  */
-int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_icmpv4);
 
@@ -166,10 +166,15 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
     SCLogDebug("ICMPV4 TYPE %" PRIu32 " CODE %" PRIu32 "", p->icmpv4h->type, p->icmpv4h->code);
 
     p->proto = IPPROTO_ICMP;
-    p->type = p->icmpv4h->type;
-    p->code = p->icmpv4h->code;
+    p->icmp_s.type = p->icmpv4h->type;
+    p->icmp_s.code = p->icmpv4h->code;
     p->payload = pkt + ICMPV4_HEADER_LEN;
     p->payload_len = len - ICMPV4_HEADER_LEN;
+
+    int ctype = ICMPv4GetCounterpart(p->icmp_s.type);
+    if (ctype != -1) {
+        p->icmp_d.type = (uint8_t)ctype;
+    }
 
     ICMPV4ExtHdr* icmp4eh = (ICMPV4ExtHdr*) p->icmpv4h;
 
@@ -189,18 +194,10 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
             } else {
                 /* parse IP header plus 64 bytes */
                 if (len > ICMPV4_HEADER_PKT_OFFSET) {
-                    if (DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
-                                             len - ICMPV4_HEADER_PKT_OFFSET ) == 0)
-                    {
-                        /* ICMP ICMP_DEST_UNREACH influence TCP/UDP flows */
-                        if (ICMPV4_DEST_UNREACH_IS_VALID(p)) {
-                            FlowSetupPacket(p);
-                        }
-                    }
+                    (void)DecodePartialIPV4(p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET),
+                                            len - ICMPV4_HEADER_PKT_OFFSET );
                 }
             }
-
-
             break;
 
         case ICMP_SOURCE_QUENCH:
@@ -208,8 +205,12 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len >= ICMPV4_HEADER_PKT_OFFSET)
+                if (len >= ICMPV4_HEADER_PKT_OFFSET) {
+                    if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
+                        return TM_ECODE_FAILED;
+                    }
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET  );
+                }
             }
             break;
 
@@ -218,8 +219,12 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len > ICMPV4_HEADER_PKT_OFFSET)
+                if (len > ICMPV4_HEADER_PKT_OFFSET) {
+                    if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
+                        return TM_ECODE_FAILED;
+                    }
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                }
             }
             break;
 
@@ -236,8 +241,12 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len > ICMPV4_HEADER_PKT_OFFSET)
+                if (len > ICMPV4_HEADER_PKT_OFFSET) {
+                    if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
+                        return TM_ECODE_FAILED;
+                    }
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                }
             }
             break;
 
@@ -246,8 +255,12 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len > ICMPV4_HEADER_PKT_OFFSET)
+                if (len > ICMPV4_HEADER_PKT_OFFSET) {
+                    if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
+                        return TM_ECODE_FAILED;
+                    }
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                }
             }
             break;
 
@@ -304,7 +317,24 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
 
     }
 
+    FlowSetupPacket(p);
     return TM_ECODE_OK;
+}
+
+/** \retval type counterpart type or -1 */
+int ICMPv4GetCounterpart(uint8_t type)
+{
+#define CASE_CODE(t,r) case (t): return r; case (r): return t;
+    switch (type) {
+        CASE_CODE(ICMP_ECHO,            ICMP_ECHOREPLY);
+        CASE_CODE(ICMP_TIMESTAMP,       ICMP_TIMESTAMPREPLY);
+        CASE_CODE(ICMP_INFO_REQUEST,    ICMP_INFO_REPLY);
+        CASE_CODE(ICMP_ROUTERSOLICIT,   ICMP_ROUTERADVERT);
+        CASE_CODE(ICMP_ADDRESS,         ICMP_ADDRESSREPLY);
+        default:
+            return -1;
+    }
+#undef CASE_CODE
 }
 
 #ifdef UNITTESTS

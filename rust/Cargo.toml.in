@@ -4,14 +4,22 @@ version = "@PACKAGE_VERSION@"
 
 [lib]
 crate-type = ["staticlib"]
+path = "@abs_srcdir@/src/lib.rs"
 
 [profile.release]
 debug = true
 
 [features]
 lua = []
+strict = []
+debug = []
 
 [dependencies]
-nom = "~3.0"
-libc = "~0.2.0"
-crc = "~1.4.0"
+nom = "~3.2.1"
+libc = "^0.2.36"
+crc = "~1.7.0"
+der-parser = "0.5.2"
+kerberos-parser = "0.1.3"
+
+ntp-parser = "0.2.0"
+ipsec-parser = "~0.3.0"

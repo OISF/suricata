@@ -25,7 +25,7 @@
 #include "suricata-common.h"
 
 #include "util-decode-mime.h"
-
+#include "util-ip.h"
 #include "util-spm-bs.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
@@ -912,7 +912,7 @@ static int IsIpv4Host(const uint8_t *urlhost, uint32_t len)
 
     /* Cut off at '/'  */
     uint32_t i = 0;
-    for (i = 0; i < len && urlhost[i] != 0; i++) {
+    for ( ; i < len && urlhost[i] != 0; i++) {
 
         if (urlhost[i] == '/') {
             break;
@@ -927,6 +927,9 @@ static int IsIpv4Host(const uint8_t *urlhost, uint32_t len)
     /* Create null-terminated string */
     memcpy(tempIp, urlhost, i);
     tempIp[i] = '\0';
+
+    if (!IPv4AddressStringIsValid(tempIp))
+        return 0;
 
     return inet_pton(AF_INET, tempIp, &(sa.sin_addr));
 }
@@ -948,7 +951,6 @@ static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
     /* Cut off at '/'  */
     uint32_t i = 0;
     for (i = 0; i < len && urlhost[i] != 0; i++) {
-
         if (urlhost[i] == '/') {
             break;
         }
@@ -962,6 +964,9 @@ static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
     /* Create null-terminated string */
     memcpy(tempIp, urlhost, i);
     tempIp[i] = '\0';
+
+    if (!IPv6AddressStringIsValid(tempIp))
+        return 0;
 
     return inet_pton(AF_INET6, tempIp, &in6);
 }
@@ -2325,6 +2330,11 @@ static int ProcessMimeEntity(const uint8_t *buf, uint32_t len,
 
     SCLogDebug("START FLAG: %s", StateFlags[state->state_flag]);
 
+    if (state->state_flag == PARSE_ERROR) {
+        SCLogDebug("START FLAG: PARSE_ERROR, bail");
+        return MIME_DEC_ERR_STATE;
+    }
+
     /* Track long line */
     if (len > MAX_LINE_LEN) {
         state->stack->top->data->anomaly_flags |= ANOM_LONG_LINE;
@@ -2471,6 +2481,11 @@ int MimeDecParseComplete(MimeDecParseState *state)
     int ret = MIME_DEC_OK;
 
     SCLogDebug("Parsing flagged as completed");
+
+    if (state->state_flag == PARSE_ERROR) {
+        SCLogDebug("parser in error state: PARSE_ERROR");
+        return MIME_DEC_ERR_STATE;
+    }
 
     /* Store the header value */
     ret = StoreMimeHeader(state);
@@ -2978,71 +2993,47 @@ static int MimeIsExeURLTest01(void)
     return ret;
 }
 
+#define TEST(str, len, expect) {                        \
+    SCLogDebug("str %s", (str));                        \
+    int r = IsIpv4Host((const uint8_t *)(str),(len));   \
+    FAIL_IF_NOT(r == (expect));                         \
+}
 static int MimeIsIpv4HostTest01(void)
 {
-    if(IsIpv4Host((const uint8_t *)"192.168.1.1", 11) != 1) {
-        return 0;
-    }
-
-    if(IsIpv4Host((const uint8_t *)"999.oogle.com", 14) != 0) {
-        return 0;
-    }
-
-    if(IsIpv4Host((const uint8_t *)"0:0:0:0:0:0:0:0", 15) != 0) {
-        return 0;
-    }
-
-    if (IsIpv4Host((const uint8_t *)"192.168.255.255", 15) != 1) {
-        return 0;
-    }
-
-    if (IsIpv4Host((const uint8_t *)"192.168.255.255/testurl.html", 28) != 1) {
-        return 0;
-    }
-
-    if (IsIpv4Host((const uint8_t *)"www.google.com", 14) != 0) {
-        return 0;
-    }
-
-    return 1;
+    TEST("192.168.1.1", 11, 1);
+    TEST("192.168.1.1.4", 13, 0);
+    TEST("999.168.1.1", 11, 0);
+    TEST("1111.168.1.1", 12, 0);
+    TEST("999.oogle.com", 14, 0);
+    TEST("0:0:0:0:0:0:0:0", 15, 0);
+    TEST("192.168.255.255", 15, 1);
+    TEST("192.168.255.255/testurl.html", 28, 1);
+    TEST("www.google.com", 14, 0);
+    PASS;
 }
+#undef TEST
 
+#define TEST(str, len, expect) {                        \
+    SCLogDebug("str %s", (str));                        \
+    int r = IsIpv6Host((const uint8_t *)(str),(len));   \
+    FAIL_IF_NOT(r == (expect));                         \
+}
 static int MimeIsIpv6HostTest01(void)
 {
-    if(IsIpv6Host((const uint8_t *)"0:0:0:0:0:0:0:0", 19) != 1) {
-        return 0;
-    }
-
-    if(IsIpv6Host((const uint8_t *)"0000:0000:0000:0000:0000:0000:0000:0000", 39) != 1) {
-        return 0;
-    }
-
-    if(IsIpv6Host((const uint8_t *)"0:0:0:0:0:0:0:0", 19) != 1) {
-        return 0;
-    }
-
-    if(IsIpv6Host((const uint8_t *)"192:168:1:1:0:0:0:0", 19) != 1) {
-        return 0;
-    }
-
-    if(IsIpv6Host((const uint8_t *)"999.oogle.com", 14) != 0) {
-        return 0;
-    }
-
-    if (IsIpv6Host((const uint8_t *)"192.168.255.255", 15) != 0) {
-        return 0;
-    }
-
-    if (IsIpv6Host((const uint8_t *)"192.168.255.255/testurl.html", 28) != 0) {
-        return 0;
-    }
-
-    if (IsIpv6Host((const uint8_t *)"www.google.com", 14) != 0) {
-        return 0;
-    }
-
-    return 1;
+    TEST("0:0:0:0:0:0:0:0", 19, 1);
+    TEST("0000:0000:0000:0000:0000:0000:0000:0000", 39, 1);
+    TEST("XXXX:0000:0000:0000:0000:0000:0000:0000", 39, 0);
+    TEST("00001:0000:0000:0000:0000:0000:0000:0000", 40, 0);
+    TEST("0:0:0:0:0:0:0:0", 19, 1);
+    TEST("0:0:0:0:0:0:0:0:0", 20, 0);
+    TEST("192:168:1:1:0:0:0:0", 19, 1);
+    TEST("999.oogle.com", 14, 0);
+    TEST("192.168.255.255", 15, 0);
+    TEST("192.168.255.255/testurl.html", 28, 0);
+    TEST("www.google.com", 14, 0);
+    PASS;
 }
+#undef TEST
 
 #endif /* UNITTESTS */
 

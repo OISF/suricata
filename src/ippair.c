@@ -51,6 +51,43 @@ static IPPairQueue ippair_spare_q;
  *  the storage APIs additions. */
 static uint16_t g_ippair_size = sizeof(IPPair);
 
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+int IPPairSetMemcap(uint64_t size)
+{
+    if ((uint64_t)SC_ATOMIC_GET(ippair_memuse) < size) {
+        SC_ATOMIC_SET(ippair_config.memcap, size);
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t IPPairGetMemcap(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(ippair_config.memcap);
+    return memcapcopy;
+}
+
+/**
+ *  \brief Return memuse value
+ *
+ *  \retval memuse value
+ */
+uint64_t IPPairGetMemuse(void)
+{
+    uint64_t memusecopy = SC_ATOMIC_GET(ippair_memuse);
+    return memusecopy;
+}
+
 uint32_t IPPairSpareQueueGetSize(void)
 {
     return IPPairQueueLen(&ippair_spare_q);
@@ -135,26 +172,30 @@ void IPPairInitConfig(char quiet)
     SC_ATOMIC_INIT(ippair_counter);
     SC_ATOMIC_INIT(ippair_memuse);
     SC_ATOMIC_INIT(ippair_prune_idx);
+    SC_ATOMIC_INIT(ippair_config.memcap);
     IPPairQueueInit(&ippair_spare_q);
 
     /* set defaults */
     ippair_config.hash_rand   = (uint32_t)RandomGet();
     ippair_config.hash_size   = IPPAIR_DEFAULT_HASHSIZE;
-    ippair_config.memcap      = IPPAIR_DEFAULT_MEMCAP;
     ippair_config.prealloc    = IPPAIR_DEFAULT_PREALLOC;
+    SC_ATOMIC_SET(ippair_config.memcap, IPPAIR_DEFAULT_MEMCAP);
 
     /* Check if we have memcap and hash_size defined at config */
     const char *conf_val;
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */
+    uint64_t ippair_memcap;
     if ((ConfGet("ippair.memcap", &conf_val)) == 1)
     {
-        if (ParseSizeStringU64(conf_val, &ippair_config.memcap) < 0) {
+        if (ParseSizeStringU64(conf_val, &ippair_memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing ippair.memcap "
                        "from conf file - %s.  Killing engine",
                        conf_val);
             exit(EXIT_FAILURE);
+        } else {
+            SC_ATOMIC_SET(ippair_config.memcap, ippair_memcap);
         }
     }
     if ((ConfGet("ippair.hash-size", &conf_val)) == 1)
@@ -175,7 +216,7 @@ void IPPairInitConfig(char quiet)
         }
     }
     SCLogDebug("IPPair config from suricata.yaml: memcap: %"PRIu64", hash-size: "
-               "%"PRIu32", prealloc: %"PRIu32, ippair_config.memcap,
+               "%"PRIu32", prealloc: %"PRIu32, SC_ATOMIC_GET(ippair_config.memcap),
                ippair_config.hash_size, ippair_config.prealloc);
 
     /* alloc hash memory */
@@ -185,7 +226,7 @@ void IPPairInitConfig(char quiet)
                 "max ippair memcap is smaller than projected hash size. "
                 "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
                 "total hash size by multiplying \"ippair.hash-size\" with %"PRIuMAX", "
-                "which is the hash bucket size.", ippair_config.memcap, hash_size,
+                "which is the hash bucket size.", SC_ATOMIC_GET(ippair_config.memcap), hash_size,
                 (uintmax_t)sizeof(IPPairHashRow));
         exit(EXIT_FAILURE);
     }
@@ -214,7 +255,7 @@ void IPPairInitConfig(char quiet)
         if (!(IPPAIR_CHECK_MEMCAP(g_ippair_size))) {
             SCLogError(SC_ERR_IPPAIR_INIT, "preallocating ippairs failed: "
                     "max ippair memcap reached. Memcap %"PRIu64", "
-                    "Memuse %"PRIu64".", ippair_config.memcap,
+                    "Memuse %"PRIu64".", SC_ATOMIC_GET(ippair_config.memcap),
                     ((uint64_t)SC_ATOMIC_GET(ippair_memuse) + g_ippair_size));
             exit(EXIT_FAILURE);
         }
@@ -231,7 +272,7 @@ void IPPairInitConfig(char quiet)
         SCLogConfig("preallocated %" PRIu32 " ippairs of size %" PRIu16 "",
                 ippair_spare_q.len, g_ippair_size);
         SCLogConfig("ippair memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
-                SC_ATOMIC_GET(ippair_memuse), ippair_config.memcap);
+                SC_ATOMIC_GET(ippair_memuse), SC_ATOMIC_GET(ippair_config.memcap));
     }
 
     return;
@@ -246,7 +287,7 @@ void IPPairPrintStats (void)
         ippairbits_added, ippairbits_removed, ippairbits_memuse_max);
 #endif /* IPPAIRBITS_STATS */
     SCLogPerf("ippair memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
-            SC_ATOMIC_GET(ippair_memuse), ippair_config.memcap);
+            SC_ATOMIC_GET(ippair_memuse), SC_ATOMIC_GET(ippair_config.memcap));
     return;
 }
 
@@ -286,6 +327,7 @@ void IPPairShutdown(void)
     SC_ATOMIC_DESTROY(ippair_prune_idx);
     SC_ATOMIC_DESTROY(ippair_memuse);
     SC_ATOMIC_DESTROY(ippair_counter);
+    SC_ATOMIC_DESTROY(ippair_config.memcap);
     //SC_ATOMIC_DESTROY(flow_flags);
     return;
 }
@@ -339,7 +381,7 @@ void IPPairCleanup(void)
  *
  *  \note we don't care about the real ipv6 ip's, this is just
  *        to consistently fill the FlowHashKey6 struct, without all
- *        the ntohl calls.
+ *        the SCNtohl calls.
  *
  *  \warning do not use elsewhere unless you know what you're doing.
  *           detect-engine-address-ipv6.c's AddressIPv6GtU32 is likely

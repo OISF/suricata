@@ -4,8 +4,9 @@ AUTOMAKE_OPTIONS = foreign 1.4
 ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
              classification.config threshold.config \
-             reference.config
-SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib scripts
+             reference.config $(SURICATA_UPDATE_DIR)
+SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib etc python ebpf \
+          $(SURICATA_UPDATE_DIR)
 
 CLEANFILES = stamp-h[0-9]*
 
@@ -29,12 +30,18 @@ install-conf:
 	install -m 770 -d "$(DESTDIR)$(e_localstatedir)"
 
 install-rules:
+if HAVE_SURICATA_UPDATE
+	$(DESTDIR)$(bindir)/suricata-update \
+		--suricata $(DESTDIR)$(bindir)/suricata \
+		--suricata-conf $(DESTDIR)$(sysconfdir)/suricata/suricata.yaml \
+		--no-test --no-reload
+else
 	install -d "$(DESTDIR)$(e_sysconfrulesdir)"
 if HAVE_FETCH_COMMAND
 if HAVE_WGET_COMMAND
-	$(HAVE_WGET) -qO - https://rules.emergingthreats.net/open/suricata-3.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
+	$(HAVE_WGET) -qO - https://rules.emergingthreats.net/open/suricata-4.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
 else
-	$(HAVE_CURL) -s https://rules.emergingthreats.net/open/suricata-3.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
+	$(HAVE_CURL) -s https://rules.emergingthreats.net/open/suricata-4.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
 endif
 else
 	@echo "UNABLE to load ruleset wget or curl are not installed on system."
@@ -55,5 +62,6 @@ endif
 	@echo "'LD_LIBRARY_PATH="$(DESTDIR)$(prefix)/lib" "$(DESTDIR)$(bindir)/suricata" -c "$(DESTDIR)$(e_sysconfdir)/suricata.yaml" -i eth0'."
 	@echo ""
 	@echo "While rules are installed now, it's highly recommended to use a rule manager for maintaining rules."
-	@echo "The two most common are Oinkmaster and Pulledpork. For a guide see:"
-	@echo "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Rule_Management_with_Oinkmaster"
+	@echo "The three most common are Suricata-Update, Oinkmaster and Pulledpork. For a guide see:"
+	@echo "https://suricata.readthedocs.io/en/latest/rule-management/index.html"
+endif

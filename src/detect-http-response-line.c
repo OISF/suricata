@@ -62,12 +62,12 @@
 
 static int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpResponseLineRegisterTests(void);
-static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+static int PrefilterTxHttpResponseLineRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 static int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-static void DetectHttpResponseLineSetupCallback(Signature *s);
 static int g_http_response_line_id = 0;
 
 /**
@@ -77,7 +77,7 @@ void DetectHttpResponseLineRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].name = "http_response_line";
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].desc = "content modifier to match only on the HTTP response line";
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_response-line";
+    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-response-line";
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].Setup = DetectHttpResponseLineSetup;
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].RegisterTests = DetectHttpResponseLineRegisterTests;
@@ -93,9 +93,6 @@ void DetectHttpResponseLineRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_response_line",
             "http response line");
-
-    DetectBufferTypeRegisterSetupCallback("http_response_line",
-            DetectHttpResponseLineSetupCallback);
 
     g_http_response_line_id = DetectBufferTypeGetByName("http_response_line");
 }
@@ -118,12 +115,6 @@ static int DetectHttpResponseLineSetup(DetectEngineCtx *de_ctx, Signature *s, co
     s->init_data->list = g_http_response_line_id;
     s->alproto = ALPROTO_HTTP;
     return 0;
-}
-
-static void DetectHttpResponseLineSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /** \brief HTTP response line Mpm prefilter callback
@@ -156,11 +147,12 @@ static void PrefilterTxHttpResponseLine(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpResponseLineRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseLine,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseLine,
         ALPROTO_HTTP, HTP_RESPONSE_LINE,
         mpm_ctx, NULL, "http_response_line");
 }
@@ -208,7 +200,7 @@ int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
                                           f,
                                           bstr_ptr(tx->response_line),
                                           bstr_len(tx->response_line),
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

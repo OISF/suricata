@@ -39,7 +39,7 @@
 #include "util-debug.h"
 
 int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   uint8_t *pkt, uint16_t len, PacketQueue *pq)
+                   uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_eth);
 
@@ -48,13 +48,17 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
 
+    if (unlikely(len > ETHERNET_HEADER_LEN + USHRT_MAX)) {
+        return TM_ECODE_FAILED;
+    }
+
     p->ethh = (EthernetHdr *)pkt;
     if (unlikely(p->ethh == NULL))
         return TM_ECODE_FAILED;
 
-    SCLogDebug("p %p pkt %p ether type %04x", p, pkt, ntohs(p->ethh->eth_type));
+    SCLogDebug("p %p pkt %p ether type %04x", p, pkt, SCNtohs(p->ethh->eth_type));
 
-    switch (ntohs(p->ethh->eth_type)) {
+    switch (SCNtohs(p->ethh->eth_type)) {
         case ETHERNET_TYPE_IP:
             //printf("DecodeEthernet ip4\n");
             DecodeIPV4(tv, dtv, p, pkt + ETHERNET_HEADER_LEN,
@@ -95,7 +99,7 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         default:
             SCLogDebug("p %p pkt %p ether type %04x not supported", p,
-                       pkt, ntohs(p->ethh->eth_type));
+                       pkt, SCNtohs(p->ethh->eth_type));
     }
 
     return TM_ECODE_OK;

@@ -91,6 +91,21 @@ void DetectFilenameRegister(void)
             ALPROTO_NFS, SIG_FLAG_TOCLIENT, 0,
             DetectFileInspectGeneric);
 
+    DetectAppLayerInspectEngineRegister("files",
+            ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0,
+            DetectFileInspectGeneric);
+
+    DetectAppLayerInspectEngineRegister("files",
+            ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0,
+            DetectFileInspectGeneric);
+
+    DetectAppLayerInspectEngineRegister("files",
+            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
+            DetectFileInspectGeneric);
+    DetectAppLayerInspectEngineRegister("files",
+            ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
+            DetectFileInspectGeneric);
+
     g_file_match_list_id = DetectBufferTypeGetByName("files");
 
 	SCLogDebug("registering filename rule option");
@@ -132,6 +147,7 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                 memcpy(name, filename->name, filename->len);
                 name[filename->len] = '\0';
                 SCLogDebug("will look for filename %s", name);
+                SCFree(name);
             }
         }
 #endif
@@ -141,7 +157,7 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         }
     }
 
-    if (ret == 0 && (filename->flags & DETECT_CONTENT_NEGATED)) {
+    else if (filename->flags & DETECT_CONTENT_NEGATED) {
         SCLogDebug("negated match");
         ret = 1;
     }
@@ -193,6 +209,7 @@ static DetectFilenameData *DetectFilenameParse (const char *str, bool negate)
             memcpy(name, filename->name, filename->len);
             name[filename->len] = '\0';
             SCLogDebug("will look for filename %s", name);
+            SCFree(name);
         }
     }
 #endif

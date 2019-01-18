@@ -172,12 +172,6 @@ AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id)
     return NULL;
 }
 
-int DNSHasEvents(void *state)
-{
-    DNSState *dns_state = (DNSState *)state;
-    return (dns_state->events > 0);
-}
-
 void *DNSGetTx(void *alstate, uint64_t tx_id)
 {
     DNSState *dns_state = (DNSState *)alstate;
@@ -236,19 +230,36 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction)
     }
 }
 
-void DNSSetTxLogged(void *alstate, void *tx, uint32_t logger)
+void DNSSetTxLogged(void *alstate, void *tx, LoggerId logged)
 {
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    dns_tx->logged |= logger;
+    dns_tx->logged = logged;
 }
 
-int DNSGetTxLogged(void *alstate, void *tx, uint32_t logger)
+LoggerId DNSGetTxLogged(void *alstate, void *tx)
 {
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    if (dns_tx->logged & logger)
-        return 1;
+    return dns_tx->logged;
+}
 
-    return 0;
+uint64_t DNSGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    DNSTransaction *tx = (DNSTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return tx->detect_flags_ts;
+    } else {
+        return tx->detect_flags_tc;
+    }
+}
+
+void DNSSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags)
+{
+    DNSTransaction *tx = (DNSTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        tx->detect_flags_ts = detect_flags;
+    } else {
+        tx->detect_flags_tc = detect_flags;
+    }
 }
 
 /** \brief get value for 'complete' status in DNS
@@ -325,8 +336,6 @@ static void DNSTransactionFree(DNSTransaction *tx, DNSState *state)
 
     if (tx->de_state != NULL) {
         DetectEngineStateFree(tx->de_state);
-        BUG_ON(state->tx_with_detect_state_cnt == 0);
-        state->tx_with_detect_state_cnt--;
     }
 
     if (state->iter == tx)
@@ -402,23 +411,15 @@ DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16
     return NULL;
 }
 
-int DNSStateHasTxDetectState(void *alstate)
-{
-    DNSState *state = (DNSState *)alstate;
-    return (state->tx_with_detect_state_cnt > 0);
-}
-
 DetectEngineState *DNSGetTxDetectState(void *vtx)
 {
     DNSTransaction *tx = (DNSTransaction *)vtx;
     return tx->de_state;
 }
 
-int DNSSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
+int DNSSetTxDetectState(void *vtx, DetectEngineState *s)
 {
-    DNSState *state = (DNSState *)alstate;
     DNSTransaction *tx = (DNSTransaction *)vtx;
-    state->tx_with_detect_state_cnt++;
     tx->de_state = s;
     return 0;
 }
@@ -457,8 +458,6 @@ void DNSStateFree(void *s)
             SCFree(dns_state->buffer);
         }
 
-        BUG_ON(dns_state->tx_with_detect_state_cnt > 0);
-
         DNSDecrMemcap(sizeof(DNSState), dns_state);
         BUG_ON(dns_state->memuse > 0);
         SCFree(s);
@@ -475,7 +474,7 @@ void DNSStateFree(void *s)
  */
 int DNSValidateRequestHeader(DNSState *dns_state, const DNSHeader *dns_header)
 {
-    uint16_t flags = ntohs(dns_header->flags);
+    uint16_t flags = SCNtohs(dns_header->flags);
 
     if ((flags & 0x8000) != 0) {
         SCLogDebug("not a request 0x%04x", flags);
@@ -503,7 +502,7 @@ bad_data:
  */
 int DNSValidateResponseHeader(DNSState *dns_state, const DNSHeader *dns_header)
 {
-    uint16_t flags = ntohs(dns_header->flags);
+    uint16_t flags = SCNtohs(dns_header->flags);
 
     if ((flags & 0x8000) == 0) {
         SCLogDebug("not a response 0x%04x", flags);
@@ -794,7 +793,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 {
     if (input + input_len < data + 2) {
         SCLogDebug("input buffer too small for record 'name' field, record %u, "
-                "total answer_rr %u", num, ntohs(dns_header->answer_rr));
+                "total answer_rr %u", num, SCNtohs(dns_header->answer_rr));
         goto insufficient_data;
     }
 
@@ -834,33 +833,33 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
     }
 
     const DNSAnswerHeader *head = (DNSAnswerHeader *)data;
-    const uint16_t datalen = ntohs(head->len);
+    const uint16_t datalen = SCNtohs(head->len);
 
     data += sizeof(DNSAnswerHeader);
 
-    SCLogDebug("head->len %u", ntohs(head->len));
+    SCLogDebug("head->len %u", SCNtohs(head->len));
 
-    if (input + input_len < data + ntohs(head->len)) {
-        SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
+    if (input + input_len < data + SCNtohs(head->len)) {
+        SCLogDebug("input buffer too small for data of len %u", SCNtohs(head->len));
         goto insufficient_data;
     }
 
-    SCLogDebug("TTL %u", ntohl(head->ttl));
+    SCLogDebug("TTL %u", SCNtohl(head->ttl));
 
-    switch (ntohs(head->type)) {
+    switch (SCNtohs(head->type)) {
         case DNS_RECORD_TYPE_A:
         {
             if (datalen == 0 || datalen == 4) {
-                //PrintRawDataFp(stdout, data, ntohs(head->len));
+                //PrintRawDataFp(stdout, data, SCNtohs(head->len));
                 //char a[16];
                 //PrintInet(AF_INET, (const void *)data, a, sizeof(a));
-                //SCLogInfo("A %s TTL %u", a, ntohl(head->ttl));
+                //SCLogInfo("A %s TTL %u", a, SCNtohl(head->ttl));
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
-                        ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                        data, datalen, ntohs(dns_header->tx_id));
+                        SCNtohs(head->type), SCNtohs(head->class), SCNtohl(head->ttl),
+                        data, datalen, SCNtohs(dns_header->tx_id));
             } else {
-                SCLogDebug("invalid length for A response data: %u", ntohs(head->len));
+                SCLogDebug("invalid length for A response data: %u", SCNtohs(head->len));
                 goto bad_data;
             }
 
@@ -872,13 +871,13 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             if (datalen == 0 || datalen == 16) {
                 //char a[46];
                 //PrintInet(AF_INET6, (const void *)data, a, sizeof(a));
-                //SCLogInfo("AAAA %s TTL %u", a, ntohl(head->ttl));
+                //SCLogInfo("AAAA %s TTL %u", a, SCNtohl(head->ttl));
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
-                        ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                        data, datalen, ntohs(dns_header->tx_id));
+                        SCNtohs(head->type), SCNtohs(head->class), SCNtohl(head->ttl),
+                        data, datalen, SCNtohs(dns_header->tx_id));
             } else {
-                SCLogDebug("invalid length for AAAA response data: %u", ntohs(head->len));
+                SCLogDebug("invalid length for AAAA response data: %u", SCNtohs(head->len));
                 goto bad_data;
             }
 
@@ -893,7 +892,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             uint16_t name_len = 0;
             uint8_t skip = 0;
 
-            if (ntohs(head->type) == DNS_RECORD_TYPE_MX) {
+            if (SCNtohs(head->type) == DNS_RECORD_TYPE_MX) {
                 // Skip the preference header
                 skip = 2;
             }
@@ -906,10 +905,10 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             }
 
             DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
-                    ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                    name, name_len, ntohs(dns_header->tx_id));
+                    SCNtohs(head->type), SCNtohs(head->class), SCNtohl(head->ttl),
+                    name, name_len, SCNtohs(dns_header->tx_id));
 
-            data += ntohs(head->len);
+            data += SCNtohs(head->len);
             break;
         }
         case DNS_RECORD_TYPE_NS:
@@ -925,7 +924,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                 goto insufficient_data;
             }
 
-            if (ntohs(head->type) == DNS_RECORD_TYPE_SOA) {
+            if (SCNtohs(head->type) == DNS_RECORD_TYPE_SOA) {
                 const uint8_t *sdata = SkipDomain(input, input_len, data);
                 if (sdata == NULL) {
                     goto insufficient_data;
@@ -962,17 +961,17 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                 }
 
                 SCLogDebug("serial %u refresh %u retry %u exp %u min ttl %u",
-                        ntohl(tail->serial), ntohl(tail->refresh),
-                        ntohl(tail->retry), ntohl(tail->experiation),
-                        ntohl(tail->minttl));
+                        SCNtohl(tail->serial), SCNtohl(tail->refresh),
+                        SCNtohl(tail->retry), SCNtohl(tail->experiation),
+                        SCNtohl(tail->minttl));
 #endif
             }
 
             DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
-                    ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                    pname, pname_len, ntohs(dns_header->tx_id));
+                    SCNtohs(head->type), SCNtohs(head->class), SCNtohl(head->ttl),
+                    pname, pname_len, SCNtohs(dns_header->tx_id));
 
-            data += ntohs(head->len);
+            data += SCNtohs(head->len);
             break;
         }
         case DNS_RECORD_TYPE_TXT:
@@ -994,8 +993,8 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                     goto bad_data;
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
-                        ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                        (uint8_t*)tdata, (uint16_t)txtlen, ntohs(dns_header->tx_id));
+                        SCNtohs(head->type), SCNtohs(head->class), SCNtohl(head->ttl),
+                        (uint8_t*)tdata, (uint16_t)txtlen, SCNtohs(dns_header->tx_id));
 
                 txtdatalen -= txtlen;
                 tdata += txtlen;
@@ -1019,8 +1018,8 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
              * code figure out what to do with it. */
 
             DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
-                    ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                    data, ntohs(head->len), ntohs(dns_header->tx_id));
+                    SCNtohs(head->type), SCNtohs(head->class), SCNtohl(head->ttl),
+                    data, SCNtohs(head->len), SCNtohs(dns_header->tx_id));
 
             data += datalen;
             break;
@@ -1028,10 +1027,10 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         default:    /* unsupported record */
         {
             DNSStoreAnswerInState(dns_state, list, NULL, 0,
-                    ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                    NULL, 0, ntohs(dns_header->tx_id));
+                    SCNtohs(head->type), SCNtohs(head->class), SCNtohl(head->ttl),
+                    NULL, 0, SCNtohs(dns_header->tx_id));
 
-            //PrintRawDataFp(stdout, data, ntohs(head->len));
+            //PrintRawDataFp(stdout, data, SCNtohs(head->len));
             data += datalen;
             break;
         }

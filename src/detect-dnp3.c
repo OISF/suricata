@@ -154,12 +154,14 @@ static int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
     if (flags & STREAM_TOSERVER && tx->request_buffer != NULL) {
         r = DetectEngineContentInspection(de_ctx, det_ctx, s,
             smd, f, tx->request_buffer,
-            tx->request_buffer_len, 0, 0, NULL);
+            tx->request_buffer_len, 0, DETECT_CI_FLAGS_SINGLE,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     }
     else if (flags & STREAM_TOCLIENT && tx->response_buffer != NULL) {
         r = DetectEngineContentInspection(de_ctx, det_ctx, s,
             smd, f, tx->response_buffer,
-            tx->response_buffer_len, 0, 0, NULL);
+            tx->response_buffer_len, 0, DETECT_CI_FLAGS_SINGLE,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     }
 
     SCReturnInt(r);
@@ -209,6 +211,9 @@ static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     SigMatch *sm = NULL;
     uint8_t function_code;
 
+    if (DetectSignatureSetAppProto(s, ALPROTO_DNP3) != 0)
+        return -1;
+
     if (!DetectDNP3FuncParseFunctionCode(str, &function_code)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
             "Invalid argument \"%s\" supplied to dnp3_func keyword.", str);
@@ -227,8 +232,6 @@ static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
     sm->type = DETECT_AL_DNP3FUNC;
     sm->ctx = (void *)dnp3;
-    s->alproto = ALPROTO_DNP3;
-    s->flags |= SIG_FLAG_STATE_MATCH;
 
     SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id);
 
@@ -296,6 +299,9 @@ static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     SigMatch *sm = NULL;
     uint16_t flags;
 
+    if (DetectSignatureSetAppProto(s, ALPROTO_DNP3) != 0)
+        return -1;
+
     if (!DetectDNP3IndParse(str, &flags)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
             "Invalid argument \"%s\" supplied to dnp3.ind keyword.", str);
@@ -314,9 +320,6 @@ static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     sm->type = DETECT_AL_DNP3IND;
     sm->ctx = (void *)detect;
-    s->alproto = ALPROTO_DNP3;
-    s->flags |= SIG_FLAG_STATE_MATCH;
-
     SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id);
 
     SCReturnInt(0);
@@ -371,6 +374,9 @@ static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     DetectDNP3 *detect = NULL;
     SigMatch *sm = NULL;
 
+    if (DetectSignatureSetAppProto(s, ALPROTO_DNP3) != 0)
+        return -1;
+
     if (!DetectDNP3ObjParse(str, &group, &variation)) {
         goto fail;
     }
@@ -388,8 +394,6 @@ static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     sm->type = DETECT_AL_DNP3OBJ;
     sm->ctx = (void *)detect;
-    s->alproto = ALPROTO_DNP3;
-    s->flags |= SIG_FLAG_STATE_MATCH;
     SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id);
 
     SCReturnInt(1);
@@ -526,8 +530,10 @@ static void DetectDNP3ObjRegister(void)
 static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
-    s->init_data->list = g_dnp3_data_buffer_id;
-    s->alproto = ALPROTO_DNP3;
+    if (DetectSignatureSetAppProto(s, ALPROTO_DNP3) != 0)
+        return -1;
+
+    DetectBufferSetActiveList(s, g_dnp3_data_buffer_id);
     SCReturnInt(0);
 }
 

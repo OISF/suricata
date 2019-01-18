@@ -14,3 +14,5 @@ Netresec: http://www.netresec.com/?page=PcapFiles
 Wireshark: https://wiki.wireshark.org/SampleCaptures
 
 Security Onion collection: https://github.com/security-onion-solutions/security-onion/wiki/Pcaps
+
+Stratosphere IPS. Malware Capture Facility Project: https://stratosphereips.org/category/dataset.html

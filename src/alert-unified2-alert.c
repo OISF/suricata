@@ -38,6 +38,8 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
+#include "output.h"
+
 #include "util-unittest.h"
 #include "alert-unified2-alert.h"
 #include "decode-ipv4.h"
@@ -58,7 +60,6 @@
 #include "app-layer.h"
 #include "app-layer-htp-xff.h"
 
-#include "output.h"
 #include "util-privs.h"
 
 #include "stream.h"
@@ -223,6 +224,7 @@ TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
 static int Unified2IPv4TypeAlert(ThreadVars *, const Packet *, void *);
 static int Unified2IPv6TypeAlert(ThreadVars *, const Packet *, void *);
 static int Unified2PacketTypeAlert(Unified2AlertThread *, const Packet *, uint32_t, int);
+static int Unified2XFFTypeAlert(Unified2AlertThread *, const Packet *, uint32_t);
 void Unified2RegisterTests(void);
 static int Unified2AlertOpenFileCtx(LogFileCtx *, const char *, bool);
 static void Unified2AlertDeInitCtx(OutputCtx *);
@@ -327,7 +329,7 @@ int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
         int have_xff_ip = 0;
 
         if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-            have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
+            have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, buffer, XFF_MAXLEN);
         }
 
         if (have_xff_ip) {
@@ -438,65 +440,9 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, const
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     Unified2AlertFileHeader *hdr = (Unified2AlertFileHeader*)(aun->data);
     Unified2Packet *phdr = (Unified2Packet *)(hdr + 1);
-    /** Prepare the pointers to extra data structures should they be required.
-     * If they are required we will shift the *hdr and the *phdr */
-    Unified2AlertFileHeader *eu2hdr =  (Unified2AlertFileHeader*)(aun->data);
-    Unified2ExtraDataHdr *ehdr = (Unified2ExtraDataHdr *)(eu2hdr + 1);
-    Unified2ExtraData *dhdr = (Unified2ExtraData *) (ehdr + 1);
-    uint32_t *edxff = (uint32_t *) (dhdr + 1);
 
     aun->length = 0;
     aun->offset = 0;
-
-    // If XFF is in extra data mode...
-    if (aun->xff_flags & XFF_EXTRADATA) {
-        memset(dhdr, 0, sizeof(Unified2ExtraData));
-
-        if (aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4) {
-            eu2hdr->type = htonl (UNIFIED2_IDS_EVENT_EXTRADATA_TYPE);
-            eu2hdr->length = htonl(sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + sizeof(uint32_t));
-            ehdr->event_type = htonl(UNIFIED2_EXTRADATA_TYPE_EXTRA_DATA);
-            ehdr->event_length = htonl(sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + sizeof(uint32_t));
-            dhdr->sensor_id = 0;
-            dhdr->event_id = aun->event_id;
-            dhdr->event_second = htonl(p->ts.tv_sec);
-            dhdr->data_type = htonl(UNIFIED2_EXTRADATA_TYPE_BLOB);
-            dhdr->type = htonl(UNIFIED2_EXTRADATA_CLIENT_IPV4_TYPE);
-            dhdr->blob_length = htonl(3 * sizeof(uint32_t));
-            aun->length += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + sizeof(uint32_t);
-            aun->offset += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + sizeof(uint32_t);
-            *edxff=aun->xff_ip[0];
-            /** Shift the *hdr and *phdr pointers */
-            hdr = (Unified2AlertFileHeader*)(edxff + 1);
-            phdr = (Unified2Packet *)(hdr + 1);
-        }
-        else if (aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6) {
-            eu2hdr->type = htonl(UNIFIED2_IDS_EVENT_EXTRADATA_TYPE);
-            eu2hdr->length = htonl(sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t));
-            ehdr->event_type = htonl(UNIFIED2_EXTRADATA_TYPE_EXTRA_DATA);
-            ehdr->event_length = htonl(sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t));
-            dhdr->sensor_id = 0;
-            dhdr->event_id = aun->event_id;
-            dhdr->event_second = htonl(p->ts.tv_sec);
-            dhdr->data_type = htonl(UNIFIED2_EXTRADATA_TYPE_BLOB);
-            dhdr->type = htonl(UNIFIED2_EXTRADATA_CLIENT_IPV6_TYPE);
-            dhdr->blob_length = htonl(6 * sizeof(uint32_t));
-            aun->length += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t);
-            aun->offset += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t);
-            memcpy(edxff, aun->xff_ip, 4 * sizeof(uint32_t));
-            /** Shift the *hdr and *phdr pointers */
-            hdr = (Unified2AlertFileHeader*)(edxff + 4);
-            phdr = (Unified2Packet *)(hdr + 1);
-        }
-    }
 
     int ethh_offset = 0;
     EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IPV6) };
@@ -773,6 +719,89 @@ static int Unified2PacketTypeAlert(Unified2AlertThread *aun, const Packet *p, ui
     return 1;
 }
 
+
+/**
+ *  \brief Function to fill unified2 xff extra data into the file.
+ *
+ *  No need to lock here, since it's already locked.
+ *  Will clear thread local data prior to writing, resetting length and offset
+ *
+ *  \param aun thread local data
+ *  \param p Packet
+ *  \param event_id unique event id
+ *
+ *  \retval 0 on succces
+ *  \retval -1 on failure
+ */
+static int Unified2XFFTypeAlert(Unified2AlertThread *aun, const Packet *p, uint32_t event_id)
+{
+    /* Return immediately if XFF extra-data mode is not enabled */
+    if ( !(aun->xff_flags & XFF_EXTRADATA) ) {
+        return 0;
+    }
+
+    /* Determine length info for various data fields*/
+    size_t addr_size;
+    unsigned int blob_length;
+    unsigned int dhdr_type;
+
+    if ( aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4 ) {
+        addr_size = sizeof(uint32_t);
+        blob_length = 3 * sizeof(uint32_t);
+        dhdr_type = UNIFIED2_EXTRADATA_CLIENT_IPV4_TYPE;
+    } else if ( aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6 ) {
+        addr_size = 4*sizeof(uint32_t);
+        blob_length = 6 * sizeof(uint32_t);
+        dhdr_type = UNIFIED2_EXTRADATA_CLIENT_IPV6_TYPE;
+    } else {
+        return -1;
+    }
+
+    int hdr_length = sizeof(Unified2ExtraDataHdr)
+                   + sizeof(Unified2ExtraData)
+                   + addr_size;
+    int total_len = sizeof(Unified2AlertFileHeader) + hdr_length;
+
+    /* Clear aun's data and set new length */
+    memset( aun->data, 0, aun->datalen );
+    if ( total_len > aun->datalen ) {
+        SCLogError( SC_ERR_INVALID_VALUE, "len too big for thread data: %d, %d",
+                total_len, aun->datalen );
+        return -1;
+    }
+
+    aun->length = total_len;
+    aun->offset = total_len;
+
+    /* Prepare pointers to file header, extra data header, extra data record,
+    * and the extra data itself */
+    Unified2AlertFileHeader *hdr = (Unified2AlertFileHeader *)(aun->data);
+    Unified2ExtraDataHdr *ehdr = (Unified2ExtraDataHdr *)(hdr + 1);
+    Unified2ExtraData *dhdr = (Unified2ExtraData *)(ehdr + 1);
+    uint32_t *xff = (uint32_t *) (dhdr + 1);
+
+    /* Fill in all data structures and write */
+    hdr->type = htonl( UNIFIED2_IDS_EVENT_EXTRADATA_TYPE );
+    hdr->length = htonl( hdr_length );
+
+    ehdr->event_type = htonl( UNIFIED2_EXTRADATA_TYPE_EXTRA_DATA );
+    ehdr->event_length = hdr->length;
+
+    dhdr->sensor_id = 0;
+    dhdr->event_id = event_id;
+    dhdr->event_second = htonl( p->ts.tv_sec );
+    dhdr->data_type = htonl( UNIFIED2_EXTRADATA_TYPE_BLOB );
+    dhdr->type = htonl( dhdr_type );
+    dhdr->blob_length = htonl( blob_length );
+
+    memcpy( xff, aun->xff_ip, addr_size );
+
+    Unified2Write(aun);
+
+    return 0;
+}
+
+
 /**
  *  \brief Function to fill unified2 ipv6 ids type format into the file.
  *
@@ -815,16 +844,17 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
     gphdr.sensor_id = htonl(sensor_id);
     gphdr.event_second =  htonl(p->ts.tv_sec);
     gphdr.event_microsecond = htonl(p->ts.tv_usec);
-    gphdr.src_ip = *(struct in6_addr*)GET_IPV6_SRC_ADDR(p);
-    gphdr.dst_ip = *(struct in6_addr*)GET_IPV6_DST_ADDR(p);
+    gphdr.src_ip = GET_IPV6_SRC_IN6ADDR(p);
+    gphdr.dst_ip = GET_IPV6_SRC_IN6ADDR(p);
     /** If XFF is in overwrite mode... */
     if (aun->xff_flags & XFF_OVERWRITE) {
         BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4);
 
+        struct in6_addr *a = (struct in6_addr*)aun->xff_ip;
         if (p->flowflags & FLOW_PKT_TOCLIENT) {
-           gphdr.dst_ip = *(struct in6_addr*)aun->xff_ip;
+            gphdr.dst_ip = *a;
         } else {
-           gphdr.src_ip = *(struct in6_addr*)aun->xff_ip;
+            gphdr.src_ip = *a;
         }
     }
     gphdr.protocol = p->proto;
@@ -886,9 +916,9 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
 
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
                 } else {
-                    have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, buffer, XFF_MAXLEN);
                 }
             }
 
@@ -934,6 +964,19 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         }
 
         if (Unified2Write(aun) != 1) {
+            SCMutexUnlock(&file_ctx->fp_mutex);
+            return -1;
+        }
+
+        memset(aun->data, 0, aun->length);
+        aun->length = 0;
+        aun->offset = 0;
+
+        /* Write the extra data if any (it doesn't lock inside, since we
+         * already locked here for rotation check) */
+        ret = Unified2XFFTypeAlert(aun, p, phdr->event_id);
+        if (ret != 0) {
+            SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             SCMutexUnlock(&file_ctx->fp_mutex);
             return -1;
         }
@@ -1061,9 +1104,9 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
 
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
                 } else {
-                    have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, buffer, XFF_MAXLEN);
                 }
             }
 
@@ -1110,6 +1153,18 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
         }
 
         if (Unified2Write(aun) != 1) {
+            SCMutexUnlock(&file_ctx->fp_mutex);
+            return -1;
+        }
+
+        memset(aun->data, 0, aun->length);
+        aun->length = 0;
+        aun->offset = 0;
+
+        /* Write the extra data if any (it doesn't lock inside, since we
+         * already locked here for rotation check) */
+        ret = Unified2XFFTypeAlert(aun, p, event_id);
+        if (ret != 0) {
             SCMutexUnlock(&file_ctx->fp_mutex);
             return -1;
         }
@@ -1218,18 +1273,18 @@ error:
  *  \param conf The configuration node for this output.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
+OutputInitResult Unified2AlertInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     int ret = 0;
-    LogFileCtx* file_ctx = NULL;
     OutputCtx* output_ctx = NULL;
     HttpXFFCfg *xff_cfg = NULL;
     int nostamp = 0;
 
-    file_ctx = LogFileNewCtx();
+    LogFileCtx* file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
         SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC, "Couldn't create new file_ctx");
-        goto error;
+        return result;
     }
 
     const char *filename = NULL;
@@ -1341,9 +1396,13 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
 
     SC_ATOMIC_INIT(unified2_event_id);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 
 error:
+    LogFileFreeCtx(file_ctx);
+
     if (xff_cfg != NULL) {
         SCFree(xff_cfg);
     }
@@ -1351,7 +1410,7 @@ error:
         SCFree(output_ctx);
     }
 
-    return NULL;
+    return result;
 }
 
 static void Unified2AlertDeInitCtx(OutputCtx *output_ctx)
@@ -1444,7 +1503,7 @@ static int Unified2Test01(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
     void *data = NULL;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     Signature s;
@@ -1483,17 +1542,17 @@ static int Unified2Test01(void)
 
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL) {
+    if (oc.ctx == NULL) {
         goto end;
     }
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if(ret == TM_ECODE_FAILED) {
         goto end;
     }
@@ -1506,7 +1565,7 @@ static int Unified2Test01(void)
         goto end;
     }
 
-    Unified2AlertDeInitCtx(oc);
+    Unified2AlertDeInitCtx(oc.ctx);
 
     PACKET_RECYCLE(p);
     SCFree(p);
@@ -1533,7 +1592,7 @@ static int Unified2Test02(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
     void *data = NULL;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     Signature s;
@@ -1573,17 +1632,17 @@ static int Unified2Test02(void)
     DecodeEthernet(&tv, &dtv, p, raw_ipv6_tcp, sizeof(raw_ipv6_tcp), &pq);
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL) {
+    if (oc.ctx == NULL) {
         goto end;
     }
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if(ret == -1) {
         goto end;
     }
@@ -1596,7 +1655,7 @@ static int Unified2Test02(void)
         goto end;
     }
 
-    Unified2AlertDeInitCtx(oc);
+    Unified2AlertDeInitCtx(oc.ctx);
 
     PACKET_RECYCLE(p);
     SCFree(p);
@@ -1624,7 +1683,7 @@ static int Unified2Test03(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
     void *data = NULL;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     Signature s;
@@ -1670,17 +1729,17 @@ static int Unified2Test03(void)
     DecodeEthernet(&tv, &dtv, p, raw_gre, sizeof(raw_gre), &pq);
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL) {
+    if (oc.ctx == NULL) {
         goto end;
     }
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if(ret == -1) {
         goto end;
     }
@@ -1693,7 +1752,7 @@ static int Unified2Test03(void)
         goto end;
     }
 
-    Unified2AlertDeInitCtx(oc);
+    Unified2AlertDeInitCtx(oc.ctx);
 
     pkt = PacketDequeue(&pq);
     while (pkt != NULL) {
@@ -1733,7 +1792,7 @@ static int Unified2Test04(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
     void *data = NULL;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     Signature s;
@@ -1767,17 +1826,17 @@ static int Unified2Test04(void)
     DecodePPP(&tv, &dtv, p, raw_ppp, sizeof(raw_ppp), &pq);
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL) {
+    if (oc.ctx == NULL) {
         goto end;
     }
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if(ret == -1) {
         goto end;
     }
@@ -1790,7 +1849,7 @@ static int Unified2Test04(void)
         goto end;
     }
 
-    Unified2AlertDeInitCtx(oc);
+    Unified2AlertDeInitCtx(oc.ctx);
 
     PACKET_RECYCLE(p);
     SCFree(p);
@@ -1817,7 +1876,7 @@ static int Unified2Test05(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
     void *data = NULL;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     Signature s;
@@ -1857,17 +1916,17 @@ static int Unified2Test05(void)
     p->action = ACTION_DROP;
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL) {
+    if (oc.ctx == NULL) {
         goto end;
     }
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if(ret == -1) {
         goto end;
     }
@@ -1880,7 +1939,7 @@ static int Unified2Test05(void)
         goto end;
     }
 
-    Unified2AlertDeInitCtx(oc);
+    Unified2AlertDeInitCtx(oc.ctx);
 
     PACKET_RECYCLE(p);
     SCFree(p);
@@ -1905,16 +1964,16 @@ static int Unified2TestRotate01(void)
     int ret = 0;
     int r = 0;
     ThreadVars tv;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     void *data = NULL;
     char *filename = NULL;
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL)
+    if (oc.ctx == NULL)
         return 0;
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
@@ -1926,7 +1985,7 @@ static int Unified2TestRotate01(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if (ret == TM_ECODE_FAILED) {
         LogFileFreeCtx(lf);
         if (filename != NULL)
@@ -1953,8 +2012,8 @@ error:
     if(ret == TM_ECODE_FAILED) {
         printf("Unified2AlertThreadDeinit error");
     }
-    if (oc != NULL)
-        Unified2AlertDeInitCtx(oc);
+    if (oc.ctx != NULL)
+        Unified2AlertDeInitCtx(oc.ctx);
     if (filename != NULL)
         SCFree(filename);
     return r;

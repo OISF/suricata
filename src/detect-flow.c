@@ -55,7 +55,7 @@ static int DetectFlowSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectFlowRegisterTests(void);
 void DetectFlowFree(void *);
 
-static int PrefilterSetupFlow(SigGroupHead *sgh);
+static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterFlowIsPrefilterable(const Signature *s);
 
 /**
@@ -152,7 +152,7 @@ int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
 
     const DetectFlowData *fd = (const DetectFlowData *)ctx;
 
-    int ret = FlowMatch(p->flags, p->flowflags, det_ctx->flags, fd->flags, fd->match_cnt);;
+    const int ret = FlowMatch(p->flags, p->flowflags, det_ctx->flags, fd->flags, fd->match_cnt);
     SCLogDebug("returning %" PRId32 " fd->match_cnt %" PRId32 " fd->flags 0x%02X p->flowflags 0x%02X",
         ret, fd->match_cnt, fd->flags, p->flowflags);
     SCReturnInt(ret);
@@ -316,6 +316,37 @@ error:
 
 }
 
+int DetectFlowSetupImplicit(Signature *s, uint32_t flags)
+{
+#define SIG_FLAG_BOTH (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)
+    BUG_ON(flags == 0);
+    BUG_ON(flags & ~SIG_FLAG_BOTH);
+    BUG_ON((flags & SIG_FLAG_BOTH) == SIG_FLAG_BOTH);
+
+    SCLogDebug("want %08lx", flags & SIG_FLAG_BOTH);
+    SCLogDebug("have %08lx", s->flags & SIG_FLAG_BOTH);
+
+    if (flags & SIG_FLAG_TOSERVER) {
+        if ((s->flags & SIG_FLAG_BOTH) == SIG_FLAG_BOTH) {
+            /* both is set if we just have 'flow:established' */
+            s->flags &= ~SIG_FLAG_TOCLIENT;
+        } else if (s->flags & SIG_FLAG_TOCLIENT) {
+            return -1;
+        }
+        s->flags |= SIG_FLAG_TOSERVER;
+    } else {
+        if ((s->flags & SIG_FLAG_BOTH) == SIG_FLAG_BOTH) {
+            /* both is set if we just have 'flow:established' */
+            s->flags &= ~SIG_FLAG_TOSERVER;
+        } else if (s->flags & SIG_FLAG_TOSERVER) {
+            return -1;
+        }
+        s->flags |= SIG_FLAG_TOCLIENT;
+    }
+    return 0;
+#undef SIG_FLAG_BOTH
+}
+
 /**
  * \brief this function is used to add the parsed flowdata into the current signature
  *
@@ -328,22 +359,17 @@ error:
  */
 int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
 {
-    DetectFlowData *fd = NULL;
-    SigMatch *sm = NULL;
-
-    fd = DetectFlowParse(flowstr);
-    if (fd == NULL)
-        goto error;
-
-    /*ensure only one flow option*/
+    /* ensure only one flow option */
     if (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) {
         SCLogError (SC_ERR_INVALID_SIGNATURE, "A signature may have only one flow option.");
-        goto error;
+        return -1;
     }
 
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
-    sm = SigMatchAlloc();
+    DetectFlowData *fd = DetectFlowParse(flowstr);
+    if (fd == NULL)
+        return -1;
+
+    SigMatch *sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
 
@@ -375,8 +401,6 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
 error:
     if (fd != NULL)
         DetectFlowFree(fd);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 
 }
@@ -426,9 +450,9 @@ PrefilterPacketFlowCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupFlow(SigGroupHead *sgh)
+static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_FLOW,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW,
         PrefilterPacketFlowSet,
         PrefilterPacketFlowCompare,
         PrefilterPacketFlowMatch);

@@ -218,16 +218,28 @@ int DetectEngineInspectModbus(ThreadVars            *tv,
         SCReturnInt(0);
     }
 
+    if (modbus->unit_id != NULL) {
+        if (DetectEngineInspectModbusValueMatch(modbus->unit_id, tx->unit_id, 0) == 0) {
+            SCReturnInt(0);
+        } else {
+            ret = 1;
+        }
+    }
+
     if (modbus->type == MODBUS_TYP_NONE) {
         if (modbus->category == MODBUS_CAT_NONE) {
-            if (modbus->function == tx->function) {
-                if (modbus->subfunction != NULL) {
-                    SCLogDebug("looking for Modbus server function %d and subfunction %d",
-                                modbus->function, *(modbus->subfunction));
-                    ret = (*(modbus->subfunction) == (tx->subFunction))? 1 : 0;
+            if (modbus->function != MODBUS_FUNC_NONE) {
+                if (modbus->function == tx->function) {
+                    if (modbus->subfunction != NULL) {
+                        SCLogDebug("looking for Modbus server function %d and subfunction %d",
+                                   modbus->function, *(modbus->subfunction));
+                        ret = (*(modbus->subfunction) == (tx->subFunction))? 1 : 0;
+                    } else {
+                        SCLogDebug("looking for Modbus server function %d", modbus->function);
+                        ret = 1;
+                    }
                 } else {
-                    SCLogDebug("looking for Modbus server function %d", modbus->function);
-                    ret = 1;
+                    ret = 0;
                 }
             }
         } else {
@@ -238,16 +250,20 @@ int DetectEngineInspectModbus(ThreadVars            *tv,
         uint8_t access      = modbus->type & MODBUS_TYP_ACCESS_MASK;
         uint8_t function    = modbus->type & MODBUS_TYP_ACCESS_FUNCTION_MASK;
 
-        if ((access & tx->type) && ((function == MODBUS_TYP_NONE) || (function & tx->type))) {
-            if (modbus->address != NULL) {
-                ret = DetectEngineInspectModbusAddress(tx, modbus->address, access);
+        if (access != MODBUS_TYP_NONE) {
+            if ((access & tx->type) && ((function == MODBUS_TYP_NONE) || (function & tx->type))) {
+                if (modbus->address != NULL) {
+                    ret = DetectEngineInspectModbusAddress(tx, modbus->address, access);
 
-                if (ret && (modbus->data != NULL)) {
-                    ret = DetectEngineInspectModbusData(tx, modbus->address->min, modbus->data);
+                    if (ret && (modbus->data != NULL)) {
+                        ret = DetectEngineInspectModbusData(tx, modbus->address->min, modbus->data);
+                    }
+                } else {
+                    SCLogDebug("looking for Modbus access type %d and function type %d", access, function);
+                    ret = 1;
                 }
             } else {
-                SCLogDebug("looking for Modbus access type %d and function type %d", access, function);
-                ret = 1;
+                ret = 0;
             }
         }
     }
@@ -274,7 +290,7 @@ int DetectEngineInspectModbus(ThreadVars            *tv,
 static uint8_t readCoilsReq[] = {/* Transaction ID */    0x00, 0x00,
                                  /* Protocol ID */       0x00, 0x00,
                                  /* Length */            0x00, 0x06,
-                                 /* Unit ID */           0x00,
+                                 /* Unit ID */           0x0a,
                                  /* Function code */     0x01,
                                  /* Starting Address */  0x78, 0x90,
                                  /* Quantity of coils */ 0x00, 0x13 };
@@ -295,7 +311,7 @@ static uint8_t readInputsRegistersReq[] = {/* Transaction ID */          0x00, 0
 static uint8_t readWriteMultipleRegistersReq[] = {/* Transaction ID */          0x12, 0x34,
                                                   /* Protocol ID */             0x00, 0x00,
                                                   /* Length */                  0x00, 0x11,
-                                                  /* Unit ID */                 0x00,
+                                                  /* Unit ID */                 0x0a,
                                                   /* Function code */           0x17,
                                                   /* Read Starting Address */   0x00, 0x03,
                                                   /* Quantity to Read */        0x00, 0x06,
@@ -345,7 +361,7 @@ static int DetectEngineInspectModbusTest01(void)
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -366,16 +382,13 @@ static int DetectEngineInspectModbusTest01(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
                                             "(msg:\"Testing modbus code function\"; "
                                             "modbus: function 23; sid:1;)");
-
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -385,43 +398,26 @@ static int DetectEngineInspectModbusTest01(void)
                                 STREAM_TOSERVER,
                                 readWriteMultipleRegistersReq,
                                 sizeof(readWriteMultipleRegistersReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sid 1 didn't match but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
 
 /** \test code function and code subfunction. */
@@ -436,7 +432,7 @@ static int DetectEngineInspectModbusTest02(void)
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -457,17 +453,14 @@ static int DetectEngineInspectModbusTest02(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
                                            "(msg:\"Testing modbus function and subfunction\"; "
                                            "modbus: function 8, subfunction 4;  sid:1;)");
-
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -476,43 +469,26 @@ static int DetectEngineInspectModbusTest02(void)
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, forceListenOnlyMode,
                                 sizeof(forceListenOnlyMode));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sid 1 didn't match but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
 
 /** \test function category. */
@@ -527,7 +503,7 @@ static int DetectEngineInspectModbusTest03(void)
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -548,17 +524,14 @@ static int DetectEngineInspectModbusTest03(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
                                            "(msg:\"Testing modbus category function\"; "
                                            "modbus: function reserved;  sid:1;)");
-
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -568,43 +541,26 @@ static int DetectEngineInspectModbusTest03(void)
                                 STREAM_TOSERVER,
                                 encapsulatedInterfaceTransport,
                                 sizeof(encapsulatedInterfaceTransport));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sid 1 didn't match but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
 
 /** \test negative function category. */
@@ -619,7 +575,7 @@ static int DetectEngineInspectModbusTest04(void)
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -640,17 +596,14 @@ static int DetectEngineInspectModbusTest04(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
                                        "(msg:\"Testing modbus category function\"; "
                                        "modbus: function !assigned;  sid:1;)");
-
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -659,43 +612,26 @@ static int DetectEngineInspectModbusTest04(void)
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, unassigned,
                                 sizeof(unassigned));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sid 1 didn't match but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
 
 /** \test access type. */
@@ -710,7 +646,7 @@ static int DetectEngineInspectModbusTest05(void)
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -731,17 +667,14 @@ static int DetectEngineInspectModbusTest05(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
                                            "(msg:\"Testing modbus access type\"; "
                                            "modbus: access read;  sid:1;)");
-
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -750,43 +683,26 @@ static int DetectEngineInspectModbusTest05(void)
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, readCoilsReq,
                                 sizeof(readCoilsReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sid 1 didn't match but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
 
 /** \test access function. */
@@ -801,7 +717,7 @@ static int DetectEngineInspectModbusTest06(void)
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -822,17 +738,14 @@ static int DetectEngineInspectModbusTest06(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
                                            "(msg:\"Testing modbus access type\"; "
                                            "modbus: access read input;  sid:1;)");
-
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -841,43 +754,26 @@ static int DetectEngineInspectModbusTest06(void)
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, readInputsRegistersReq,
                                 sizeof(readInputsRegistersReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sid 1 didn't match but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
 
 /** \test read access at an address. */
@@ -892,7 +788,7 @@ static int DetectEngineInspectModbusTest07(void)
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -913,17 +809,14 @@ static int DetectEngineInspectModbusTest07(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
                                            "(msg:\"Testing modbus address access\"; "
                                            "modbus: access read, address 30870;  sid:1;)");
-
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -932,43 +825,26 @@ static int DetectEngineInspectModbusTest07(void)
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, readCoilsReq,
                                 sizeof(readCoilsReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sid 1 didn't match but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
 
 /** \test read access at a range of address. */
@@ -983,7 +859,7 @@ static int DetectEngineInspectModbusTest08(void)
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1004,8 +880,7 @@ static int DetectEngineInspectModbusTest08(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1060,9 +935,7 @@ static int DetectEngineInspectModbusTest08(void)
                                       "(msg:\"Testing modbus access\"; "
                                       "modbus: access read input, "
                                       "address 104<>110;  sid:10;)");
-
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -1071,88 +944,36 @@ static int DetectEngineInspectModbusTest08(void)
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, readInputsRegistersReq,
                                 sizeof(readInputsRegistersReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1)) {
-        printf("sid 1 did match but should not have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p, 1));
+    FAIL_IF(PacketAlertCheck(p, 3));
+    FAIL_IF(PacketAlertCheck(p, 9));
+    FAIL_IF(PacketAlertCheck(p, 10));
 
-    if (!(PacketAlertCheck(p, 2))) {
-        printf("sid 2 didn't match but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 2));
+    FAIL_IF_NOT(PacketAlertCheck(p, 4));
+    FAIL_IF_NOT(PacketAlertCheck(p, 5));
+    FAIL_IF_NOT(PacketAlertCheck(p, 6));
+    FAIL_IF_NOT(PacketAlertCheck(p, 7));
+    FAIL_IF_NOT(PacketAlertCheck(p, 8));
 
-    if (PacketAlertCheck(p, 3)) {
-        printf("sid 3 did match but should not have: ");
-        goto end;
-    }
-
-    if (!(PacketAlertCheck(p, 4))) {
-        printf("sid 4 didn't match but should have: ");
-        goto end;
-    }
-
-    if (!(PacketAlertCheck(p, 5))) {
-        printf("sid 5 didn't match but should have: ");
-        goto end;
-    }
-
-    if (!(PacketAlertCheck(p, 6))) {
-        printf("sid 6 didn't match but should have: ");
-        goto end;
-    }
-
-    if (!(PacketAlertCheck(p, 7))) {
-        printf("sid 7 didn't match but should have: ");
-        goto end;
-    }
-
-    if (!(PacketAlertCheck(p, 8))) {
-        printf("sid 8 didn't match but should have: ");
-        goto end;
-    }
-
-    if (PacketAlertCheck(p, 9)) {
-        printf("sid 9 did match but should not have: ");
-        goto end;
-    }
-
-    if (PacketAlertCheck(p, 10)) {
-        printf("sid 10 did match but should not have: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
 
 /** \test write access at a address in a range of value. */
@@ -1167,7 +988,7 @@ static int DetectEngineInspectModbusTest09(void)
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1188,8 +1009,7 @@ static int DetectEngineInspectModbusTest09(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1246,9 +1066,7 @@ static int DetectEngineInspectModbusTest09(void)
                                       "(msg:\"Testing modbus write access\"; "
                                       "modbus: access write holding, "
                                       "address 15, value >4660;  sid:10;)");
-
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -1258,88 +1076,368 @@ static int DetectEngineInspectModbusTest09(void)
                                 STREAM_TOSERVER,
                                 readWriteMultipleRegistersReq,
                                 sizeof(readWriteMultipleRegistersReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1)) {
-        printf("sid 1 did match but should not have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p, 1));
+    FAIL_IF(PacketAlertCheck(p, 4));
+    FAIL_IF(PacketAlertCheck(p, 5));
+    FAIL_IF(PacketAlertCheck(p, 8));
+    FAIL_IF(PacketAlertCheck(p, 10));
 
-    if (!(PacketAlertCheck(p, 2))) {
-        printf("sid 2 didn't match but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 2));
+    FAIL_IF_NOT(PacketAlertCheck(p, 3));
+    FAIL_IF_NOT(PacketAlertCheck(p, 6));
+    FAIL_IF_NOT(PacketAlertCheck(p, 7));
+    FAIL_IF_NOT(PacketAlertCheck(p, 9));
 
-    if (!(PacketAlertCheck(p, 3))) {
-        printf("sid 3 didn't match but should have: ");
-        goto end;
-    }
-
-    if (PacketAlertCheck(p, 4)) {
-        printf("sid 4 did match but should not have: ");
-        goto end;
-    }
-
-    if (PacketAlertCheck(p, 5)) {
-        printf("sid 5 did match but should not have: ");
-        goto end;
-    }
-
-    if (!(PacketAlertCheck(p, 6))) {
-        printf("sid 6 didn't match but should have: ");
-        goto end;
-    }
-
-    if (!(PacketAlertCheck(p, 7))) {
-        printf("sid 7 didn't match but should have: ");
-        goto end;
-    }
-
-    if (PacketAlertCheck(p, 8)) {
-        printf("sid 8 did match but should not have: ");
-        goto end;
-    }
-
-    if (!(PacketAlertCheck(p, 9))) {
-        printf("sid 9 didn't match but should have: ");
-        goto end;
-    }
-
-    if (PacketAlertCheck(p, 10)) {
-        printf("sid 10 did match but should not have: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
+}
+
+/** \test Test code unit_id. */
+static int DetectEngineInspectModbusTest10(void)
+{
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(readWriteMultipleRegistersReq,
+                       sizeof(readWriteMultipleRegistersReq),
+                       IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto   = ALPROTO_MODBUS;
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+    f.flags     |= FLOW_IPV4;
+
+    p->flow         = &f;
+    p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    /* readWriteMultipleRegistersReq, Write Starting Address = 0x0E, Quantity to Write = 0x03 */
+    /* Unit ID                          = 0x0a (10)         */
+    /* Function code                    = 0x17 (23)         */
+    /* Write access register address 15 = 0x1234 (4660)     */
+    /* Write access register address 16 = 0x5678 (22136)    */
+    /* Write access register address 17 = 0x9ABC (39612)    */
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 10; sid:1;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 12; sid:2;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 5<>15; sid:3;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 5<>9; sid:4;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 11<>15; sid:5;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit >9; sid:6;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit >11; sid:7;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit <11; sid:8;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit <9; sid:9;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER,
+                                readWriteMultipleRegistersReq,
+                                sizeof(readWriteMultipleRegistersReq));
+    FAIL_IF_NOT(r == 0);
+    FLOWLOCK_UNLOCK(&f);
+
+    ModbusState    *modbus_state = f.alstate;
+    FAIL_IF_NULL(modbus_state);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    FAIL_IF(PacketAlertCheck(p, 2));
+    FAIL_IF(PacketAlertCheck(p, 4));
+    FAIL_IF(PacketAlertCheck(p, 5));
+    FAIL_IF(PacketAlertCheck(p, 7));
+    FAIL_IF(PacketAlertCheck(p, 9));
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+    FAIL_IF_NOT(PacketAlertCheck(p, 3));
+    FAIL_IF_NOT(PacketAlertCheck(p, 6));
+    FAIL_IF_NOT(PacketAlertCheck(p, 8));
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    PASS;
+}
+
+/** \test Test code unit_id and code function. */
+static int DetectEngineInspectModbusTest11(void)
+{
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(readWriteMultipleRegistersReq,
+                       sizeof(readWriteMultipleRegistersReq),
+                       IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto   = ALPROTO_MODBUS;
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+    f.flags     |= FLOW_IPV4;
+
+    p->flow         = &f;
+    p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    /* readWriteMultipleRegistersReq, Write Starting Address = 0x0E, Quantity to Write = 0x03 */
+    /* Unit ID                          = 0x0a (10)         */
+    /* Function code                    = 0x17 (23)         */
+    /* Write access register address 15 = 0x1234 (4660)     */
+    /* Write access register address 16 = 0x5678 (22136)    */
+    /* Write access register address 17 = 0x9ABC (39612)    */
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 10, function 20; sid:1;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 10, function 23; sid:2;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 11, function 20; sid:3;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 11, function 23; sid:4;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 10, function public; sid:5;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 11, function public; sid:6;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 10, function user; sid:7;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus code unit_id\"; "
+                              "modbus: unit 10, function !user; sid:8;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER,
+                                readWriteMultipleRegistersReq,
+                                sizeof(readWriteMultipleRegistersReq));
+    FAIL_IF_NOT(r == 0);
+    FLOWLOCK_UNLOCK(&f);
+
+    ModbusState    *modbus_state = f.alstate;
+    FAIL_IF_NULL(modbus_state);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    FAIL_IF(PacketAlertCheck(p, 1));
+    FAIL_IF(PacketAlertCheck(p, 3));
+    FAIL_IF(PacketAlertCheck(p, 4));
+    FAIL_IF(PacketAlertCheck(p, 6));
+    FAIL_IF(PacketAlertCheck(p, 7));
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 2));
+    FAIL_IF_NOT(PacketAlertCheck(p, 5));
+    FAIL_IF_NOT(PacketAlertCheck(p, 8));
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    PASS;
+}
+
+/** \test unit_id and read access at an address. */
+static int DetectEngineInspectModbusTest12(void)
+{
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(readCoilsReq, sizeof(readCoilsReq), IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto   = ALPROTO_MODBUS;
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+    f.flags     |= FLOW_IPV4;
+
+    p->flow         = &f;
+    p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    /* readCoilsReq, Read coils Starting Address = 0x7890 (30864), Quantity of coils = 0x13 (19) */
+    /* Unit ID              = 0x0a (10) */
+    /* Function code        = 0x01 (01) */
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus address access\"; "
+                              "modbus: unit 10, access read, address 30870;  sid:1;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus address access\"; "
+                              "modbus: unit 10, access read, address 30863;  sid:2;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus address access\"; "
+                              "modbus: unit 11, access read, address 30870;  sid:3;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus address access\"; "
+                              "modbus: unit 11, access read, address 30863;  sid:4;)");
+
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                              "(msg:\"Testing modbus address access\"; "
+                              "modbus: unit 10, access write;  sid:5;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, readCoilsReq,
+                                sizeof(readCoilsReq));
+    FAIL_IF_NOT(r == 0);
+    FLOWLOCK_UNLOCK(&f);
+
+    ModbusState    *modbus_state = f.alstate;
+    FAIL_IF_NULL(modbus_state);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    FAIL_IF(PacketAlertCheck(p, 2));
+    FAIL_IF(PacketAlertCheck(p, 3));
+    FAIL_IF(PacketAlertCheck(p, 4));
+    FAIL_IF(PacketAlertCheck(p, 5));
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    PASS;
 }
 #endif /* UNITTESTS */
 
@@ -1364,6 +1462,12 @@ void DetectEngineInspectModbusRegisterTests(void)
                    DetectEngineInspectModbusTest08);
     UtRegisterTest("DetectEngineInspectModbusTest09 - Write access at an address a range of value",
                    DetectEngineInspectModbusTest09);
+    UtRegisterTest("DetectEngineInspectModbusTest10 - Code unit_id",
+                   DetectEngineInspectModbusTest10);
+    UtRegisterTest("DetectEngineInspectModbusTest11 - Code unit_id and code function",
+                   DetectEngineInspectModbusTest11);
+    UtRegisterTest("DetectEngineInspectModbusTest12 - Code unit_id and acces function",
+                   DetectEngineInspectModbusTest12);
 #endif /* UNITTESTS */
     return;
 }

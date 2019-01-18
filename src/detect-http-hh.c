@@ -62,8 +62,7 @@
 static int DetectHttpHHSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHHRegisterTests(void);
 static void DetectHttpHHFree(void *);
-static void DetectHttpHostSetupCallback(Signature *s);
-static _Bool DetectHttpHostValidateCallback(const Signature *s);
+static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror);
 static int g_http_host_buffer_id = 0;
 
 /**
@@ -89,9 +88,6 @@ void DetectHttpHHRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_host",
             "http host header");
-
-    DetectBufferTypeRegisterSetupCallback("http_host",
-            DetectHttpHostSetupCallback);
 
     DetectBufferTypeRegisterValidateCallback("http_host",
             DetectHttpHostValidateCallback);
@@ -120,24 +116,20 @@ static int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
                                                   ALPROTO_HTTP);
 }
 
-static void DetectHttpHostSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-}
-
-static _Bool DetectHttpHostValidateCallback(const Signature *s)
+static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror)
 {
     const SigMatch *sm = s->init_data->smlists[g_http_host_buffer_id];
     for ( ; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)sm->ctx;
             if (cd->flags & DETECT_CONTENT_NOCASE) {
-                SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_host keyword "
+                *sigerror = "http_host keyword "
                         "specified along with \"nocase\". "
                         "Since the hostname buffer we match against "
                         "is actually lowercase.  So having a "
-                        "nocase is redundant.");
+                        "nocase is redundant.";
+                SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+                return FALSE;
             } else {
                 uint32_t u;
                 for (u = 0; u < cd->content_len; u++) {
@@ -145,11 +137,12 @@ static _Bool DetectHttpHostValidateCallback(const Signature *s)
                         break;
                 }
                 if (u != cd->content_len) {
-                    SCLogWarning(SC_ERR_INVALID_SIGNATURE, "A pattern with "
+                    *sigerror = "A pattern with "
                             "uppercase chars detected for http_host.  "
                             "Since the hostname buffer we match against "
                             "is lowercase only, please specify a "
-                            "lowercase pattern.");
+                            "lowercase pattern.";
+                    SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
                     return FALSE;
                 }
             }

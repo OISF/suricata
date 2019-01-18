@@ -38,8 +38,7 @@
 
 #include "app-layer-htp-mem.h"
 
-uint64_t htp_config_memcap = 0;
-
+SC_ATOMIC_DECLARE(uint64_t, htp_config_memcap);
 SC_ATOMIC_DECLARE(uint64_t, htp_memuse);
 SC_ATOMIC_DECLARE(uint64_t, htp_memcap);
 
@@ -47,19 +46,24 @@ void HTPParseMemcap()
 {
     const char *conf_val;
 
+    SC_ATOMIC_INIT(htp_config_memcap);
+
     /** set config values for memcap, prealloc and hash_size */
+    uint64_t memcap;
     if ((ConfGet("app-layer.protocols.http.memcap", &conf_val)) == 1)
     {
-        if (ParseSizeStringU64(conf_val, &htp_config_memcap) < 0) {
+        if (ParseSizeStringU64(conf_val, &memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing http.memcap "
                        "from conf file - %s.  Killing engine",
                        conf_val);
             exit(EXIT_FAILURE);
+        } else {
+            SC_ATOMIC_SET(htp_config_memcap, memcap);
         }
-        SCLogInfo("HTTP memcap: %"PRIu64, htp_config_memcap);
+        SCLogInfo("HTTP memcap: %"PRIu64, SC_ATOMIC_GET(htp_config_memcap));
     } else {
         /* default to unlimited */
-        htp_config_memcap = 0;
+        SC_ATOMIC_SET(htp_config_memcap, 0);
     }
 
     SC_ATOMIC_INIT(htp_memuse);
@@ -98,10 +102,36 @@ uint64_t HTPMemcapGlobalCounter(void)
  */
 static int HTPCheckMemcap(uint64_t size)
 {
-    if (htp_config_memcap == 0 || size + SC_ATOMIC_GET(htp_memuse) <= htp_config_memcap)
+    uint64_t memcapcopy = SC_ATOMIC_GET(htp_config_memcap);
+    if (memcapcopy == 0 || size + SC_ATOMIC_GET(htp_memuse) <= memcapcopy)
         return 1;
     (void) SC_ATOMIC_ADD(htp_memcap, 1);
     return 0;
+}
+
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+int HTPSetMemcap(uint64_t size)
+{
+    if (size == 0 || (uint64_t)SC_ATOMIC_GET(htp_memuse) < size) {
+        SC_ATOMIC_SET(htp_config_memcap, size);
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ *  \brief Update memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t HTPGetMemcap(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(htp_config_memcap);
+    return memcapcopy;
 }
 
 void *HTPMalloc(size_t size)
@@ -140,16 +170,20 @@ void *HTPCalloc(size_t n, size_t size)
 
 void *HTPRealloc(void *ptr, size_t orig_size, size_t size)
 {
-    void *rptr = NULL;
+    if (size > orig_size) {
+        if (HTPCheckMemcap((uint32_t)(size - orig_size)) == 0)
+            return NULL;
+    }
 
-    if (HTPCheckMemcap((uint32_t)(size - orig_size)) == 0)
-        return NULL;
-
-    rptr = SCRealloc(ptr, size);
+    void *rptr = SCRealloc(ptr, size);
     if (rptr == NULL)
         return NULL;
 
-    HTPIncrMemuse((uint64_t)(size - orig_size));
+    if (size > orig_size) {
+        HTPIncrMemuse((uint64_t)(size - orig_size));
+    } else {
+        HTPDecrMemuse((uint64_t)(orig_size - size));
+    }
 
     return rptr;
 }
@@ -161,6 +195,12 @@ void HTPFree(void *ptr, size_t size)
     HTPDecrMemuse((uint64_t)size);
 }
 
+void HTPDestroyMemcap(void)
+{
+    SC_ATOMIC_DESTROY(htp_config_memcap);
+    SC_ATOMIC_DESTROY(htp_memcap);
+    SC_ATOMIC_DESTROY(htp_memuse);
+}
 
 /**
  * @}

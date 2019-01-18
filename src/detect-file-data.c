@@ -33,10 +33,12 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
-
-#include "detect-engine-filedata-smtp.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine-filedata.h"
 #include "detect-engine-hsbd.h"
 #include "detect-file-data.h"
+
+#include "app-layer-smtp.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -49,7 +51,8 @@
 
 static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFiledataRegisterTests(void);
-static void DetectFiledataSetupCallback(Signature *s);
+static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
+                                        Signature *s);
 static int g_file_data_buffer_id = 0;
 
 /**
@@ -66,25 +69,68 @@ void DetectFiledataRegister(void)
     sigmatch_table[DETECT_FILE_DATA].RegisterTests = DetectFiledataRegisterTests;
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("file_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterTxSmtpFiledataRegister);
-    DetectAppLayerMpmRegister("file_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterTxHttpResponseBodyRegister);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmFiledataRegister, NULL,
+            ALPROTO_SMTP, 0);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister,
+            HttpServerBodyGetDataCallback,
+            ALPROTO_HTTP, HTP_RESPONSE_BODY);
+#ifdef HAVE_RUST
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmFiledataRegister, NULL,
+            ALPROTO_SMB, 0);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
+            PrefilterMpmFiledataRegister, NULL,
+            ALPROTO_SMB, 0);
+#endif
 
-    DetectAppLayerInspectEngineRegister("file_data",
+    DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
-            DetectEngineInspectHttpServerBody);
-    DetectAppLayerInspectEngineRegister("file_data",
+            DetectEngineInspectBufferGeneric, HttpServerBodyGetDataCallback);
+    DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectSMTPFiledata);
-
+            DetectEngineInspectFiledata, NULL);
     DetectBufferTypeRegisterSetupCallback("file_data",
             DetectFiledataSetupCallback);
+#ifdef HAVE_RUST
+    DetectAppLayerInspectEngineRegister2("file_data",
+            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectFiledata, NULL);
+    DetectAppLayerInspectEngineRegister2("file_data",
+            ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectFiledata, NULL);
+#endif
 
     DetectBufferTypeSetDescriptionByName("file_data",
             "http response body or smtp attachments data");
 
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+}
+
+#define FILEDATA_CONTENT_LIMIT 100000
+#define FILEDATA_CONTENT_INSPECT_MIN_SIZE 32768
+#define FILEDATA_CONTENT_INSPECT_WINDOW 4096
+
+static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
+    if (de_ctx->filedata_config_initialized)
+        return;
+
+    /* initialize default */
+    for (int i = 0; i < (int)ALPROTO_MAX; i++) {
+        de_ctx->filedata_config[i].content_limit = FILEDATA_CONTENT_LIMIT;
+        de_ctx->filedata_config[i].content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
+        de_ctx->filedata_config[i].content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW;
+    }
+
+    /* add protocol specific settings here */
+
+    /* SMTP */
+    de_ctx->filedata_config[ALPROTO_SMTP].content_limit = smtp_config.content_limit;
+    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_min_size = smtp_config.content_inspect_min_size;
+    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_window = smtp_config.content_inspect_window;
+
+    de_ctx->filedata_config_initialized = true;
 }
 
 /**
@@ -104,7 +150,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
     if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
         (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
-        s->alproto != ALPROTO_SMTP)) {
+        s->alproto != ALPROTO_SMTP && s->alproto != ALPROTO_SMB)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }
@@ -123,20 +169,22 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
         return -1;
     }
 
-    s->init_data->list = DetectBufferTypeGetByName("file_data");
+    DetectBufferSetActiveList(s, DetectBufferTypeGetByName("file_data"));
+
+    SetupDetectEngineConfig(de_ctx);
     return 0;
 }
 
-static void DetectFiledataSetupCallback(Signature *s)
+static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
+                                        Signature *s)
 {
     if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_UNKNOWN) {
-        AppLayerHtpEnableRequestBodyCallback();
+        AppLayerHtpEnableResponseBodyCallback();
     }
-    if (s->alproto == ALPROTO_HTTP) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-    } else if (s->alproto == ALPROTO_SMTP) {
-        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
-    }
+
+
+    /* server body needs to be inspected in sync with stream if possible */
+    s->init_data->init_flags |= SIG_FLAG_INIT_NEED_FLUSH;
 
     SCLogDebug("callback invoked by %u", s->id);
 }

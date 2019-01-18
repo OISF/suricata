@@ -193,7 +193,7 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
     det_ctx->buffer_offset = ptr - payload;
 
     *value = val;
-
+    SCLogDebug("extracted value is %"PRIu64, val);
     return 1;
 }
 
@@ -641,15 +641,12 @@ static void DetectByteExtractFree(void *ptr)
  */
 SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, const Signature *s)
 {
-    DetectByteExtractData *bed = NULL;
-    int list;
-    const int nlists = DetectBufferTypeMaxId();
-
-    for (list = 0; list < nlists; list++) {
+    const int nlists = s->init_data->smlists_array_size;
+    for (int list = 0; list < nlists; list++) {
         SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
             if (sm->type == DETECT_BYTE_EXTRACT) {
-                bed = (DetectByteExtractData *)sm->ctx;
+                const DetectByteExtractData *bed = (const DetectByteExtractData *)sm->ctx;
                 if (strcmp(bed->name, arg) == 0) {
                     return sm;
                 }

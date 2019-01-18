@@ -65,7 +65,6 @@
 
 static int DetectHttpStatMsgSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpStatMsgRegisterTests(void);
-static void DetectHttpStatMsgSetupCallback(Signature *s);
 static int g_http_stat_msg_buffer_id = 0;
 
 /**
@@ -75,7 +74,7 @@ void DetectHttpStatMsgRegister (void)
 {
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].name = "http_stat_msg";
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].desc = "content modifier to match on HTTP stat-msg-buffer";
-    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_stat-msg";
+    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-stat-msg";
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Setup = DetectHttpStatMsgSetup;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Free  = NULL;
@@ -92,9 +91,6 @@ void DetectHttpStatMsgRegister (void)
 
     DetectBufferTypeSetDescriptionByName("http_stat_msg",
             "http response status message");
-
-    DetectBufferTypeRegisterSetupCallback("http_stat_msg",
-            DetectHttpStatMsgSetupCallback);
 
     g_http_stat_msg_buffer_id = DetectBufferTypeGetByName("http_stat_msg");
 }
@@ -116,12 +112,6 @@ static int DetectHttpStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                                                   DETECT_AL_HTTP_STAT_MSG,
                                                   g_http_stat_msg_buffer_id,
                                                   ALPROTO_HTTP);
-}
-
-static void DetectHttpStatMsgSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 #ifdef UNITTESTS

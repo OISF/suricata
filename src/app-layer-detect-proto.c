@@ -55,11 +55,11 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
+#include "app-layer-expectation.h"
 
 #include "conf.h"
 #include "util-memcmp.h"
 #include "util-spm.h"
-#include "util-cuda.h"
 #include "util-debug.h"
 
 #include "runmodes.h"
@@ -169,6 +169,9 @@ struct AppLayerProtoDetectThreadCtx_ {
 
 /* The global app layer proto detection context. */
 static AppLayerProtoDetectCtx alpd_ctx;
+
+static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
+                                             uint8_t *ipprotos);
 
 /***** Static Internal Calls: Protocol Retrieval *****/
 
@@ -314,6 +317,24 @@ static AppLayerProtoDetectProbingParserPort *AppLayerProtoDetectGetProbingParser
     SCReturnPtr(pp_port, "AppLayerProtoDetectProbingParserPort *");
 }
 
+
+/**
+ * \brief Call the probing expectation to see if there is some for this flow.
+ *
+ */
+static AppProto AppLayerProtoDetectPEGetProto(Flow *f, uint8_t ipproto,
+                                              uint8_t direction)
+{
+    AppProto alproto = ALPROTO_UNKNOWN;
+
+    SCLogDebug("expectation check for %p (dir %d)", f, direction);
+    FLOW_SET_PE_DONE(f, direction);
+
+    alproto = AppLayerExpectationHandle(f, direction);
+
+    return alproto;
+}
+
 /**
  * \brief Call the probing parser if it exists for this flow.
  *
@@ -399,9 +420,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         }
 
         if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(buf, buflen, NULL);
+            alproto = pe->ProbingParserTs(f, buf, buflen);
         } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(buf, buflen, NULL);
+            alproto = pe->ProbingParserTc(f, buf, buflen);
         }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
@@ -420,9 +441,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         }
 
         if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(buf, buflen, NULL);
+            alproto = pe->ProbingParserTs(f, buf, buflen);
         } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(buf, buflen, NULL);
+            alproto = pe->ProbingParserTc(f, buf, buflen);
         }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
@@ -670,6 +691,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_HTTP\n");
                     else if (pp_pe->alproto == ALPROTO_FTP)
                         printf("            alproto: ALPROTO_FTP\n");
+                    else if (pp_pe->alproto == ALPROTO_FTPDATA)
+                        printf("            alproto: ALPROTO_FTPDATA\n");
                     else if (pp_pe->alproto == ALPROTO_SMTP)
                         printf("            alproto: ALPROTO_SMTP\n");
                     else if (pp_pe->alproto == ALPROTO_TLS)
@@ -698,6 +721,18 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_ENIP\n");
                     else if (pp_pe->alproto == ALPROTO_NFS)
                         printf("            alproto: ALPROTO_NFS\n");
+                    else if (pp_pe->alproto == ALPROTO_NTP)
+                        printf("            alproto: ALPROTO_NTP\n");
+                    else if (pp_pe->alproto == ALPROTO_TFTP)
+                        printf("            alproto: ALPROTO_TFTP\n");
+                    else if (pp_pe->alproto == ALPROTO_IKEV2)
+                        printf("            alproto: ALPROTO_IKEV2\n");
+                    else if (pp_pe->alproto == ALPROTO_KRB5)
+                        printf("            alproto: ALPROTO_KRB5\n");
+                    else if (pp_pe->alproto == ALPROTO_DHCP)
+                        printf("            alproto: ALPROTO_DHCP\n");
+                    else if (pp_pe->alproto == ALPROTO_TEMPLATE_RUST)
+                        printf("            alproto: ALPROTO_TEMPLATE_RUST\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                         printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -729,6 +764,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_HTTP\n");
                 else if (pp_pe->alproto == ALPROTO_FTP)
                     printf("            alproto: ALPROTO_FTP\n");
+                else if (pp_pe->alproto == ALPROTO_FTPDATA)
+                    printf("            alproto: ALPROTO_FTPDATA\n");
                 else if (pp_pe->alproto == ALPROTO_SMTP)
                     printf("            alproto: ALPROTO_SMTP\n");
                 else if (pp_pe->alproto == ALPROTO_TLS)
@@ -757,6 +794,18 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_ENIP\n");
                 else if (pp_pe->alproto == ALPROTO_NFS)
                     printf("            alproto: ALPROTO_NFS\n");
+                else if (pp_pe->alproto == ALPROTO_NTP)
+                    printf("            alproto: ALPROTO_NTP\n");
+                else if (pp_pe->alproto == ALPROTO_TFTP)
+                    printf("            alproto: ALPROTO_TFTP\n");
+                else if (pp_pe->alproto == ALPROTO_IKEV2)
+                    printf("            alproto: ALPROTO_IKEV2\n");
+                else if (pp_pe->alproto == ALPROTO_KRB5)
+                    printf("            alproto: ALPROTO_KRB5\n");
+                else if (pp_pe->alproto == ALPROTO_DHCP)
+                    printf("            alproto: ALPROTO_DHCP\n");
+                else if (pp_pe->alproto == ALPROTO_TEMPLATE_RUST)
+                    printf("            alproto: ALPROTO_TEMPLATE_RUST\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                     printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -1308,27 +1357,49 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
                                      uint8_t ipproto, uint8_t direction)
 {
     SCEnter();
+    SCLogDebug("buflen %u for %s direction", buflen,
+            (direction & STREAM_TOSERVER) ? "toserver" : "toclient");
 
     AppProto alproto = ALPROTO_UNKNOWN;
-    AppProto pm_results[ALPROTO_MAX];
-    uint16_t pm_matches;
+    AppProto pm_alproto = ALPROTO_UNKNOWN;
 
     if (!FLOW_IS_PM_DONE(f, direction)) {
-        pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
+        AppProto pm_results[ALPROTO_MAX];
+        uint16_t pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
                                                    buf, buflen,
                                                    direction,
                                                    ipproto,
                                                    pm_results);
         if (pm_matches > 0) {
             alproto = pm_results[0];
-            goto end;
+
+            /* HACK: if detected protocol is dcerpc/udp, we run PP as well
+             * to avoid misdetecting DNS as DCERPC. */
+            if (!(ipproto == IPPROTO_UDP && alproto == ALPROTO_DCERPC))
+                goto end;
+
+            pm_alproto = alproto;
+
+            /* fall through */
         }
     }
 
-    if (!FLOW_IS_PP_DONE(f, direction))
-        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto, direction);
+    if (!FLOW_IS_PP_DONE(f, direction)) {
+        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen,
+                                                ipproto, direction);
+        if (alproto != ALPROTO_UNKNOWN)
+            goto end;
+    }
+
+    /* Look if flow can be found in expectation list */
+    if (!FLOW_IS_PE_DONE(f, direction)) {
+        alproto = AppLayerProtoDetectPEGetProto(f, ipproto, direction);
+    }
 
  end:
+    if (alproto == ALPROTO_UNKNOWN)
+        alproto = pm_alproto;
+
     SCReturnUInt(alproto);
 }
 
@@ -1426,7 +1497,7 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
         }
         temp_dp = temp_dp->next;
     }
-    DetectPortCleanupList(head);
+    DetectPortCleanupList(NULL,head);
 
     SCReturn;
 }
@@ -1552,12 +1623,6 @@ int AppLayerProtoDetectSetup(void)
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     uint16_t mpm_matcher = PatternMatchDefaultMatcher();
 
-#ifdef __SC_CUDA_SUPPORT__
-    /* CUDA won't work here, so fall back to AC */
-    if (mpm_matcher == MPM_AC_CUDA)
-        mpm_matcher = mpm_default_matcher;
-#endif
-
     alpd_ctx.spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     if (alpd_ctx.spm_global_thread_ctx == NULL) {
         SCLogError(SC_ERR_FATAL, "Unable to alloc SpmGlobalThreadCtx.");
@@ -1569,6 +1634,9 @@ int AppLayerProtoDetectSetup(void)
             MpmInitCtx(&alpd_ctx.ctx_ipp[i].ctx_pm[j].mpm_ctx, mpm_matcher);
         }
     }
+
+    AppLayerExpectationSetup();
+
     SCReturnInt(0);
 }
 
@@ -1607,13 +1675,9 @@ void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_n
 {
     SCEnter();
 
-    if (alpd_ctx.alproto_names[alproto] != NULL)
-        goto end;
+    if (alpd_ctx.alproto_names[alproto] == NULL)
+        alpd_ctx.alproto_names[alproto] = alproto_name;
 
-    alpd_ctx.alproto_names[alproto] = alproto_name;
-
-    goto end;
- end:
     SCReturn;
 }
 
@@ -1658,6 +1722,8 @@ void AppLayerProtoDetectReset(Flow *f)
     FLOW_RESET_PM_DONE(f, STREAM_TOCLIENT);
     FLOW_RESET_PP_DONE(f, STREAM_TOSERVER);
     FLOW_RESET_PP_DONE(f, STREAM_TOCLIENT);
+    FLOW_RESET_PE_DONE(f, STREAM_TOSERVER);
+    FLOW_RESET_PE_DONE(f, STREAM_TOCLIENT);
     f->probing_parser_toserver_alproto_masks = 0;
     f->probing_parser_toclient_alproto_masks = 0;
 
@@ -1823,6 +1889,7 @@ void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos)
 
     AppLayerProtoDetectPMGetIpprotos(alproto, ipprotos);
     AppLayerProtoDetectPPGetIpprotos(alproto, ipprotos);
+    AppLayerProtoDetectPEGetIpprotos(alproto, ipprotos);
 
     SCReturn;
 }
@@ -1865,9 +1932,35 @@ void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos)
     SCReturn;
 }
 
+uint8_t expectation_proto[ALPROTO_MAX];
+
+static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
+                                             uint8_t *ipprotos)
+{
+    if (expectation_proto[alproto] == IPPROTO_TCP) {
+        ipprotos[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
+    }
+    if (expectation_proto[alproto] == IPPROTO_UDP) {
+        ipprotos[IPPROTO_UDP / 8] |= 1 << (IPPROTO_UDP % 8);
+    }
+}
+
+void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
+{
+    if (expectation_proto[alproto]) {
+        if (proto != expectation_proto[alproto]) {
+            SCLogError(SC_ERR_NOT_SUPPORTED,
+                       "Expectation on 2 IP protocols are not supported");
+        }
+    }
+    expectation_proto[alproto] = proto;
+}
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS
+
+#include "app-layer-htp.h"
 
 static AppLayerProtoDetectCtx alpd_ctx_ut;
 
@@ -3030,9 +3123,9 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
     return result;
 }
 
-static uint16_t ProbingParserDummyForTesting(uint8_t *input,
-                                             uint32_t input_len,
-                                             uint32_t *offset)
+static uint16_t ProbingParserDummyForTesting(Flow *f,
+                                             uint8_t *input,
+                                             uint32_t input_len)
 {
     return 0;
 }

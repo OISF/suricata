@@ -39,6 +39,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
+#include "detect-urilen.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -57,7 +58,9 @@
 #include "stream-tcp.h"
 
 static void DetectHttpUriRegisterTests(void);
-static void DetectHttpUriSetupCallback(Signature *s);
+static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx,
+                                       Signature *s);
+static bool DetectHttpUriValidateCallback(const Signature *s, const char **sigerror);
 
 static int g_http_uri_buffer_id = 0;
 
@@ -68,7 +71,7 @@ void DetectHttpUriRegister (void)
 {
     sigmatch_table[DETECT_AL_HTTP_URI].name = "http_uri";
     sigmatch_table[DETECT_AL_HTTP_URI].desc = "content modifier to match specifically and only on the HTTP uri-buffer";
-    sigmatch_table[DETECT_AL_HTTP_URI].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_uri-and-http_raw-uri";
+    sigmatch_table[DETECT_AL_HTTP_URI].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-uri-and-http-raw-uri";
     sigmatch_table[DETECT_AL_HTTP_URI].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_URI].Setup = DetectHttpUriSetup;
     sigmatch_table[DETECT_AL_HTTP_URI].Free  = NULL;
@@ -88,6 +91,9 @@ void DetectHttpUriRegister (void)
 
     DetectBufferTypeRegisterSetupCallback("http_uri",
             DetectHttpUriSetupCallback);
+
+    DetectBufferTypeRegisterValidateCallback("http_uri",
+            DetectHttpUriValidateCallback);
 
     g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
 }
@@ -112,10 +118,16 @@ int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
                                                   ALPROTO_HTTP);
 }
 
-static void DetectHttpUriSetupCallback(Signature *s)
+static bool DetectHttpUriValidateCallback(const Signature *s, const char **sigerror)
+{
+    return DetectUrilenValidateContent(s, g_http_uri_buffer_id, sigerror);
+}
+
+static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx,
+                                       Signature *s)
 {
     SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+    DetectUrilenApplyToContent(s, g_http_uri_buffer_id);
 }
 
 /******************************** UNITESTS **********************************/

@@ -35,6 +35,7 @@ extern {
 
     fn json_string(value: *const c_char) -> *mut JsonT;
     fn json_integer(val: u64) -> *mut JsonT;
+    fn SCJsonDecref(value: *mut JsonT);
     fn SCJsonBool(val: bool) -> *mut JsonT;
 }
 
@@ -43,6 +44,10 @@ pub struct Json {
 }
 
 impl Json {
+
+    pub fn decref(val: Json) {
+        unsafe{SCJsonDecref(val.js)};
+    }
 
     pub fn object() -> Json {
         return Json{
@@ -54,6 +59,18 @@ impl Json {
         return Json{
             js: unsafe{json_array()},
         }
+    }
+
+    pub fn string(val: &str) -> Json {
+        return Json{
+            js: unsafe{json_string(to_cstring(val.as_bytes()).as_ptr())}
+        };
+    }
+
+    pub fn string_from_bytes(val: &[u8]) -> Json {
+        return Json{
+            js: unsafe{json_string(to_cstring(val).as_ptr())}
+        };
     }
 
     pub fn unwrap(&self) -> *mut JsonT {
@@ -105,6 +122,11 @@ impl Json {
             json_array_append_new(self.js, val.js);
         }
     }
+    pub fn array_append_string(&self, val: &str) {
+        unsafe {
+            json_array_append_new(self.js, json_string(to_cstring(val.as_bytes()).as_ptr()));
+        }
+    }
 }
 
 /// Convert an array of bytes into an ascii printable string replacing
@@ -117,7 +139,7 @@ impl Json {
 fn to_cstring(val: &[u8]) -> CString {
     let mut safe = Vec::with_capacity(val.len());
     for c in val {
-        if *c == 0 || *c > 0x7f {
+        if *c < 0x20 || *c > 0x7e {
             safe.extend(format!("\\x{:02x}", *c).as_bytes());
         } else {
             safe.push(*c);

@@ -34,6 +34,8 @@
 #include "detect-pcre.h"
 #include "detect-nfs-version.h"
 
+#include "app-layer-parser.h"
+
 #include "flow.h"
 #include "flow-util.h"
 #include "flow-var.h"
@@ -354,7 +356,6 @@ static int DetectNfsVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_NFS_VERSION;
     sm->ctx = (void *)dd;
 
-    s->flags |= SIG_FLAG_STATE_MATCH;
     SCLogDebug("low %u hi %u", dd->lo, dd->hi);
     SigMatchAppendSMToList(s, sm, g_nfs_request_buffer_id);
     return 0;

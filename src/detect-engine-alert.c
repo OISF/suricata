@@ -287,20 +287,12 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             }
 
             /* set actions on packet */
-            DetectSignatureApplyActions(p, p->alerts.alerts[i].s);
+            DetectSignatureApplyActions(p, p->alerts.alerts[i].s, p->alerts.alerts[i].flags);
 
             if (PACKET_TEST_ACTION(p, ACTION_PASS)) {
                 /* Ok, reset the alert cnt to end in the previous of pass
                  * so we ignore the rest with less prio */
                 p->alerts.cnt = i;
-
-                /* if an stream/app-layer match we enforce the pass for the flow */
-                if ((p->flow != NULL) &&
-                    (p->alerts.alerts[i].flags &
-                        (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH)))
-                {
-                    FlowSetNoPacketInspectionFlag(p->flow);
-                }
                 break;
 
             /* if the signature wants to drop, check if the

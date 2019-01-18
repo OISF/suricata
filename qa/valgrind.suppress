@@ -65,5 +65,18 @@
    fun:DetectIPProtoParse
    fun:DetectIPProtoTestParse02
 }
-
+{
+   Known warning, NIC offloading - Param, see Bug 2230
+   Memcheck:Param
+   ioctl(SIOCETHTOOL)
+   fun:ioctl
+   fun:*EthtoolValue
+   ...
+}
+{
+   Known warning, NIC offloading - Cond, see Bug 2230
+   Memcheck:Cond
+   fun:*IfaceOffloadingLinux
+   ...
+}
 

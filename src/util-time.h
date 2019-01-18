@@ -40,6 +40,9 @@ void TimeDeinit(void);
 void TimeSetByThread(const int thread_id, const struct timeval *tv);
 void TimeGet(struct timeval *);
 
+/** \brief intialize a 'struct timespec' from a 'struct timeval'. */
+#define FROM_TIMEVAL(timev) { .tv_sec = (timev).tv_sec, .tv_nsec = (timev).tv_usec * 1000 }
+
 #ifdef UNITTESTS
 void TimeSet(struct timeval *);
 void TimeSetToCurrentTime(void);
@@ -62,6 +65,7 @@ int SCTimeToStringPattern (time_t epoch, const char *pattern, char *str,
                            size_t size);
 uint64_t SCParseTimeSizeString (const char *str);
 uint64_t SCGetSecondsUntil (const char *str, time_t epoch);
+uint64_t SCTimespecAsEpochMillis(const struct timespec *ts);
 
 #endif /* __UTIL_TIME_H__ */
 

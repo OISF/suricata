@@ -194,12 +194,17 @@ typedef struct DNSAnswerEntry_ {
 typedef struct DNSTransaction_ {
     uint16_t tx_num;                                /**< internal: id */
     uint16_t tx_id;                                 /**< transaction id */
+    uint16_t flags;                                 /**< dns flags */
     uint32_t logged;                                /**< flags for loggers done logging */
     uint8_t replied;                                /**< bool indicating request is
                                                          replied to. */
     uint8_t reply_lost;
     uint8_t rcode;                                  /**< response code (e.g. "no error" / "no such name") */
     uint8_t recursion_desired;                      /**< server said "recursion desired" */
+
+    /** detection engine flags */
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
 
     TAILQ_HEAD(, DNSQueryEntry_) query_list;        /**< list for query/queries */
     TAILQ_HEAD(, DNSAnswerEntry_) answer_list;      /**< list for answers */
@@ -220,8 +225,6 @@ typedef struct DNSState_ {
     uint32_t unreplied_cnt;                 /**< number of unreplied requests in a row */
     uint32_t memuse;                        /**< state memuse, for comparing with
                                                  state-memcap settings */
-    uint64_t tx_with_detect_state_cnt;
-
     struct timeval last_req;      /**< Timestamp of last request. */
     struct timeval last_resp;     /**< Timestamp of last response. */
 
@@ -235,9 +238,9 @@ typedef struct DNSState_ {
     /* used by TCP only */
     uint16_t offset;
     uint16_t record_len;
-    uint8_t *buffer;
     uint8_t gap_ts;               /**< Flag set when a gap has occurred. */
     uint8_t gap_tc;               /**< Flag set when a gap has occurred. */
+    uint8_t *buffer;
 } DNSState;
 
 #define DNS_CONFIG_DEFAULT_REQUEST_FLOOD 500
@@ -266,23 +269,23 @@ void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto);
 
 void *DNSGetTx(void *alstate, uint64_t tx_id);
 uint64_t DNSGetTxCnt(void *alstate);
-void DNSSetTxLogged(void *alstate, void *tx, uint32_t logger);
-int DNSGetTxLogged(void *alstate, void *tx, uint32_t logger);
+void DNSSetTxLogged(void *alstate, void *tx, LoggerId logged);
+LoggerId DNSGetTxLogged(void *alstate, void *tx);
 int DNSGetAlstateProgress(void *tx, uint8_t direction);
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction);
 
 void DNSStateTransactionFree(void *state, uint64_t tx_id);
 DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id);
 
-int DNSStateHasTxDetectState(void *alstate);
 DetectEngineState *DNSGetTxDetectState(void *vtx);
-int DNSSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s);
+int DNSSetTxDetectState(void *vtx, DetectEngineState *s);
+uint64_t DNSGetTxDetectFlags(void *vtx, uint8_t dir);
+void DNSSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags);
 
 void DNSSetEvent(DNSState *s, uint8_t e);
 void *DNSStateAlloc(void);
 void DNSStateFree(void *s);
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id);
-int DNSHasEvents(void *state);
 
 int DNSValidateRequestHeader(DNSState *, const DNSHeader *dns_header);
 int DNSValidateResponseHeader(DNSState *, const DNSHeader *dns_header);

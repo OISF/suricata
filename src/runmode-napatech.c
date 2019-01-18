@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2012-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,30 +21,35 @@
  *  \author nPulse Technologies, LLC.
  *  \author Matt Keeler <mk@npulsetech.com>
  */
+
 #include "suricata-common.h"
 #include "tm-threads.h"
 #include "conf.h"
 #include "runmodes.h"
 #include "output.h"
-
 #include "util-debug.h"
 #include "util-time.h"
 #include "util-cpu.h"
 #include "util-affinity.h"
 #include "util-runmodes.h"
 #include "util-device.h"
-
+#include "util-napatech.h"
 #include "runmode-napatech.h"
-
-// need NapatechStreamDevConf structure
-#include "source-napatech.h"
+#include "source-napatech.h" // need NapatechStreamDevConf structure
 
 #define NT_RUNMODE_AUTOFP  1
 #define NT_RUNMODE_WORKERS 2
 
 static const char *default_mode = NULL;
 #ifdef HAVE_NAPATECH
-static int num_configured_streams = 0;
+
+#define MAX_STREAMS 256
+static uint16_t num_configured_streams = 0;
+
+uint16_t GetNumConfiguredStreams(void) {
+    return num_configured_streams;
+}
+
 #endif
 
 const char *RunModeNapatechGetDefaultMode(void)
@@ -69,128 +74,97 @@ void RunModeNapatechRegister(void)
 #endif
 }
 
-#ifdef HAVE_NAPATECH
-int NapatechRegisterDeviceStreams()
-{
-    NtInfoStream_t info_stream;
-    NtInfo_t info;
-    char error_buf[100];
-    int status;
-    int i;
-    char live_dev_buf[9];
-    int use_all_streams;
-    ConfNode *ntstreams;
-    ConfNode *stream_id;
 
-    if (ConfGetBool("napatech.use-all-streams", &use_all_streams) == 0)
-    {
+#ifdef HAVE_NAPATECH
+
+
+static int NapatechRegisterDeviceStreams(void)
+{
+
+    /* Display the configuration mode */
+    int use_all_streams;
+    if (ConfGetBool("napatech.use-all-streams", &use_all_streams) == 0) {
         SCLogError(SC_ERR_RUNMODE, "Failed retrieving napatech.use-all-streams from Conf");
         exit(EXIT_FAILURE);
     }
 
-    if (use_all_streams)
-    {
+    if (use_all_streams) {
         SCLogInfo("Using All Napatech Streams");
-        // When using the default streams we need to query the service for a list of all configured
-        if ((status = NT_InfoOpen(&info_stream, "SuricataStreamInfo")) != NT_SUCCESS)
-        {
-            NT_ExplainError(status, error_buf, sizeof(error_buf) -1);
-            SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "NT_InfoOpen failed: %s", error_buf);
-            return -1;
-        }
-
-        info.cmd = NT_INFO_CMD_READ_STREAM;
-        if ((status = NT_InfoRead(info_stream, &info)) != NT_SUCCESS)
-        {
-            NT_ExplainError(status, error_buf, sizeof(error_buf) -1);
-            SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "NT_InfoRead failed: %s", error_buf);
-            return -1;
-        }
-
-        num_configured_streams = info.u.stream.data.count;
-        for (i = 0; i < num_configured_streams; i++)
-        {
-            // The Stream IDs do not have to be sequential
-            snprintf(live_dev_buf, sizeof(live_dev_buf), "nt%d", info.u.stream.data.streamIDList[i]);
-            LiveRegisterDevice(live_dev_buf);
-        }
-
-        if ((status = NT_InfoClose(info_stream)) != NT_SUCCESS)
-        {
-            NT_ExplainError(status, error_buf, sizeof(error_buf) -1);
-            SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "NT_InfoClose failed: %s", error_buf);
-            return -1;
-        }
-    }
-    else
-    {
+    } else {
         SCLogInfo("Using Selected Napatech Streams");
-        // When not using the default streams we need to parse the array of streams from the conf
-        if ((ntstreams = ConfGetNode("napatech.streams")) == NULL)
-        {
-            SCLogError(SC_ERR_RUNMODE, "Failed retrieving napatech.streams from Conf");
+    }
+
+    /* Get the stream ID's either from the conf or by querying Napatech */
+    NapatechStreamConfig stream_config[MAX_STREAMS];
+    uint16_t stream_cnt = NapatechGetStreamConfig(stream_config);
+    num_configured_streams = stream_cnt;
+    SCLogDebug("Configuring %d Napatech Streams...", stream_cnt);
+
+    for (uint16_t inst = 0; inst < stream_cnt; ++inst) {
+        char *plive_dev_buf = SCCalloc(1, 9);
+        if (unlikely(plive_dev_buf == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH stream counter.");
             exit(EXIT_FAILURE);
         }
-
-        // Loop through all stream numbers in the array and register the devices
-        TAILQ_FOREACH(stream_id, &ntstreams->head, next)
-        {
-            if (stream_id == NULL)
-            {
-                SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "Couldn't Parse Stream Configuration");
-                exit(EXIT_FAILURE);
-            }
-            num_configured_streams++;
-
-            snprintf(live_dev_buf, sizeof(live_dev_buf), "nt%d", atoi(stream_id->val));
-            LiveRegisterDevice(live_dev_buf);
-        }
+        snprintf(plive_dev_buf, 9, "nt%d", stream_config[inst].stream_id);
+        SCLogInfo("registering Napatech device: %s - active stream%sfound.",
+                        plive_dev_buf, stream_config[inst].is_active ? " " : " NOT ");
+        LiveRegisterDevice(plive_dev_buf);
     }
+
+    /* Napatech stats come from a separate thread.  This will surpress
+     * the counters when suricata exits.
+     */
+    LiveDeviceHasNoStats();
     return 0;
 }
 
-void *NapatechConfigParser(const char *device)
+static void *NapatechConfigParser(const char *device)
 {
-    // Expect device to be of the form nt%d where %d is the stream id to use
+    /* Expect device to be of the form nt%d where %d is the stream id to use */
     int dev_len = strlen(device);
-    struct NapatechStreamDevConf *conf = SCMalloc(sizeof(struct NapatechStreamDevConf));
-    if (unlikely(conf == NULL))
-        return NULL;
-    if (dev_len < 3 || dev_len > 5)
-    {
+    if (dev_len < 3 || dev_len > 5) {
         SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG, "Could not parse config for device: %s - invalid length", device);
         return NULL;
     }
 
-    // device+5 is a pointer to the beginning of the stream id after the constant nt portion
-    conf->stream_id = atoi(device+2);
+    struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof (struct NapatechStreamDevConf));
+    if (unlikely(conf == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH device name.");
+        return NULL;
+    }
 
-    // Set the host buffer allowance for this stream
-    // Right now we just look at the global default - there is no per-stream hba configuration
-    if (ConfGetInt("napatech.hba", &conf->hba) == 0)
+    /* device+5 is a pointer to the beginning of the stream id after the constant nt portion */
+    conf->stream_id = atoi(device + 2);
+
+    /* Set the host buffer allowance for this stream
+     * Right now we just look at the global default - there is no per-stream hba configuration
+     */
+    if (ConfGetInt("napatech.hba", &conf->hba) == 0) {
         conf->hba = -1;
-
+    }
     return (void *) conf;
 }
 
-int NapatechGetThreadsCount(void *conf __attribute__((unused))) {
-    // No matter which live device it is there is no reason to ever use more than 1 thread
-    //   2 or more thread would cause packet duplication
+static int NapatechGetThreadsCount(void *conf __attribute__((unused)))
+{
+    /* No matter which live device it is there is no reason to ever use more than 1 thread
+       2 or more thread would cause packet duplication */
     return 1;
 }
 
 static int NapatechInit(int runmode)
 {
     int ret;
-    char errbuf[100];
+    char error_buf[100];
 
     RunModeInitialize();
     TimeModeSetLive();
 
     /* Initialize the API and check version compatibility */
     if ((ret = NT_Init(NTAPI_VERSION)) != NT_SUCCESS) {
-        NT_ExplainError(ret, errbuf, sizeof(errbuf));
-        SCLogError(SC_ERR_NAPATECH_INIT_FAILED ,"NT_Init failed. Code 0x%X = %s", ret, errbuf);
+        NT_ExplainError(ret, error_buf, sizeof (error_buf));
+        SCLogError(SC_ERR_NAPATECH_INIT_FAILED, "NT_Init failed. Code 0x%X = %s", ret, error_buf);
         exit(EXIT_FAILURE);
     }
 
@@ -200,16 +174,29 @@ static int NapatechInit(int runmode)
         exit(EXIT_FAILURE);
     }
 
-    switch(runmode) {
+    struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof (struct NapatechStreamDevConf));
+    if (unlikely(conf == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH device.");
+        exit(EXIT_FAILURE);
+    }
+
+    if ( (ConfGetInt("napatech.hba", &conf->hba) != 0) && (conf->hba > 0)){
+        SCLogInfo("Host Buffer Allowance: %d", (int)conf->hba);
+    }
+
+    /* Start a thread to process the statistics */
+    NapatechStartStats();
+
+    switch (runmode) {
         case NT_RUNMODE_AUTOFP:
             ret = RunModeSetLiveCaptureAutoFp(NapatechConfigParser, NapatechGetThreadsCount,
-                                              "NapatechStream", "NapatechDecode",
-                                              thread_name_autofp, NULL);
+                    "NapatechStream", "NapatechDecode",
+                    thread_name_autofp, NULL);
             break;
         case NT_RUNMODE_WORKERS:
             ret = RunModeSetLiveCaptureWorkers(NapatechConfigParser, NapatechGetThreadsCount,
-                                               "NapatechStream", "NapatechDecode",
-                                               thread_name_workers, NULL);
+                    "NapatechStream", "NapatechDecode",
+                    thread_name_workers, NULL);
             break;
         default:
             ret = -1;

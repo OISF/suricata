@@ -42,6 +42,8 @@ typedef enum {
 
 #ifndef HAVE_NSS
 
+#define SHA1_LENGTH 20
+
 #define LOAD32H(x, y)                            \
      { x = ((unsigned long)((y)[0] & 255)<<24) | \
            ((unsigned long)((y)[1] & 255)<<16) | \
@@ -78,7 +80,8 @@ typedef union HashState_ {
 
 #endif /* don't HAVE_NSS */
 
-unsigned char* ComputeSHA1(unsigned char* buff, int bufflen);
+int ComputeSHA1(const uint8_t * inbuf, size_t inbuf_len,
+        uint8_t *outbuf, size_t outbuf_len);
 int Base64Encode(const unsigned char *in,  unsigned long inlen, unsigned char *out, unsigned long *outlen);
 
 #endif /* UTIL_CRYPT_H_ */

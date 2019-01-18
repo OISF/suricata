@@ -50,7 +50,7 @@ static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectFragOffsetRegisterTests(void);
 void DetectFragOffsetFree(void *);
 
-static int PrefilterSetupFragOffset(SigGroupHead *sgh);
+static int PrefilterSetupFragOffset(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterFragOffsetIsPrefilterable(const Signature *s);
 
 /**
@@ -302,9 +302,9 @@ PrefilterPacketFragOffsetCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupFragOffset(SigGroupHead *sgh)
+static int PrefilterSetupFragOffset(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_FRAGOFFSET,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FRAGOFFSET,
         PrefilterPacketFragOffsetSet,
         PrefilterPacketFragOffsetCompare,
         PrefilterPacketFragOffsetMatch);

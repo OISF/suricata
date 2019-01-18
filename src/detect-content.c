@@ -32,6 +32,7 @@
 #include "detect-engine.h"
 #include "detect-engine-state.h"
 #include "detect-parse.h"
+#include "detect-pcre.h"
 #include "util-mpm.h"
 #include "flow.h"
 #include "flow-util.h"
@@ -47,6 +48,7 @@
 #include "pkt-var.h"
 #include "host.h"
 #include "util-profiling.h"
+#include "detect-dsize.h"
 
 static void DetectContentRegisterTests(void);
 
@@ -327,6 +329,9 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
 
     DetectContentPrint(cd);
 
+    if (DetectBufferGetActiveList(de_ctx, s) == -1)
+        goto error;
+
     int sm_list = s->init_data->list;
     if (sm_list == DETECT_SM_LIST_NOTSET) {
         sm_list = DETECT_SM_LIST_PMATCH;
@@ -349,7 +354,7 @@ error:
 /**
  * \brief this function will SCFree memory associated with DetectContentData
  *
- * \param cd pointer to DetectCotentData
+ * \param cd pointer to DetectContentData
  */
 void DetectContentFree(void *ptr)
 {
@@ -365,7 +370,338 @@ void DetectContentFree(void *ptr)
     SCReturn;
 }
 
+/**
+ *  \retval 1 valid
+ *  \retval 0 invalid
+ */
+_Bool DetectContentPMATCHValidateCallback(const Signature *s)
+{
+    if (!(s->flags & SIG_FLAG_DSIZE)) {
+        return TRUE;
+    }
+
+    int max_right_edge_i = SigParseGetMaxDsize(s);
+    if (max_right_edge_i < 0) {
+        return TRUE;
+    }
+
+    uint32_t max_right_edge = (uint32_t)max_right_edge_i;
+
+    const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
+    for ( ; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+        const DetectContentData *cd = (const DetectContentData *)sm->ctx;
+        uint32_t right_edge = cd->content_len + cd->offset;
+        if (cd->content_len > max_right_edge) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "signature can't match as content length %u is bigger than dsize %u",
+                    cd->content_len, max_right_edge);
+            return FALSE;
+        }
+        if (right_edge > max_right_edge) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "signature can't match as content length %u with offset %u (=%u) is bigger than dsize %u",
+                    cd->content_len, cd->offset, right_edge, max_right_edge);
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+/** \brief apply depth/offset and distance/within to content matches
+ *
+ *  The idea is that any limitation we can set is a win, as the mpm
+ *  can use this to reduce match candidates.
+ *
+ *  E.g. if we have 'content:"1"; depth:1; content:"2"; distance:0; within:1;'
+ *  we know that we can add 'offset:1; depth:2;' to the 2nd condition. This
+ *  will then be used in mpm if the 2nd condition would be selected for mpm.
+ *
+ *  Another example: 'content:"1"; depth:1; content:"2"; distance:0;'. Here we
+ *  cannot set a depth, but we can set an offset of 'offset:1;'. This will
+ *  make the mpm a bit more precise.
+ */
+void DetectContentPropagateLimits(Signature *s)
+{
+    BUG_ON(s == NULL || s->init_data == NULL);
+
+    uint32_t list = 0;
+    for (list = 0; list < s->init_data->smlists_array_size; list++) {
+        uint16_t offset = 0;
+        uint16_t offset_plus_pat = 0;
+        uint16_t depth = 0;
+        bool last_reset = false; // TODO really last reset 'depth'
+
+        bool has_depth = false;
+        bool has_ends_with = false;
+        uint16_t ends_with_depth = 0;
+
+        bool have_anchor = false;
+
+        SigMatch *sm = s->init_data->smlists[list];
+        for ( ; sm != NULL; sm = sm->next) {
+            switch (sm->type) {
+                case DETECT_CONTENT: {
+                    DetectContentData *cd = (DetectContentData *)sm->ctx;
+                    if ((cd->flags & (DETECT_CONTENT_DEPTH|DETECT_CONTENT_OFFSET|DETECT_CONTENT_WITHIN|DETECT_CONTENT_DISTANCE)) == 0) {
+                        offset = depth = 0;
+                        offset_plus_pat = cd->content_len;
+                        SCLogDebug("reset");
+                        last_reset = true;
+                        have_anchor = false;
+                        continue;
+                    }
+                    if (cd->flags & DETECT_CONTENT_NEGATED) {
+                        offset = depth = 0;
+                        offset_plus_pat = 0;
+                        SCLogDebug("reset because of negation");
+                        last_reset = true;
+                        have_anchor = false;
+                        continue;
+                    }
+
+                    if (cd->depth) {
+                        has_depth = true;
+                        have_anchor = true;
+                    }
+
+                    SCLogDebug("sm %p depth %u offset %u distance %d within %d", sm, cd->depth, cd->offset, cd->distance, cd->within);
+
+                    SCLogDebug("stored: offset %u depth %u offset_plus_pat %u", offset, depth, offset_plus_pat);
+
+                    if ((cd->flags & DETECT_CONTENT_WITHIN) == 0) {
+                        if (depth)
+                            SCLogDebug("no within, reset depth");
+                        depth = 0;
+                    }
+                    if ((cd->flags & DETECT_CONTENT_DISTANCE) == 0) {
+                        if (offset_plus_pat)
+                            SCLogDebug("no distance, reset offset_plus_pat & offset");
+                        offset_plus_pat = offset = 0;
+                    }
+
+                    SCLogDebug("stored: offset %u depth %u offset_plus_pat %u", offset, depth, offset_plus_pat);
+
+                    if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
+                        offset = cd->offset = offset_plus_pat + cd->distance;
+                        SCLogDebug("updated content to have offset %u", cd->offset);
+                    }
+                    if (have_anchor && !last_reset && offset_plus_pat && cd->flags & DETECT_CONTENT_WITHIN && cd->within >= 0) {
+                        if (depth && depth > offset_plus_pat) {
+                            uint16_t dist = 0;
+                            if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance > 0) {
+                                dist = cd->distance;
+                                SCLogDebug("distance to add: %u. depth + dist %u", dist, depth + dist);
+                            }
+                            SCLogDebug("depth %u + cd->within %u", depth, cd->within);
+                            depth = cd->depth = depth + cd->within + dist;
+                        } else {
+                            SCLogDebug("offset %u + cd->within %u", offset, cd->within);
+                            depth = cd->depth = offset + cd->within;
+                        }
+                        SCLogDebug("updated content to have depth %u", cd->depth);
+                    } else {
+                        if (cd->depth == 0 && depth != 0) {
+                            if (cd->within > 0) {
+                                SCLogDebug("within %d distance %d", cd->within, cd->distance);
+                                if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
+                                    cd->offset = offset_plus_pat + cd->distance;
+                                    SCLogDebug("updated content to have offset %u", cd->offset);
+                                }
+
+                                cd->depth = cd->within + depth;
+                                depth = cd->depth;
+                                SCLogDebug("updated content to have depth %u", cd->depth);
+
+                                if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
+                                    has_ends_with = true;
+                                    if (ends_with_depth == 0)
+                                        ends_with_depth = depth;
+                                    ends_with_depth = MIN(ends_with_depth, depth);
+                                }
+                            }
+                        }
+                    }
+                    if (cd->offset == 0) {// && offset != 0) {
+                        if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
+                            cd->offset = offset_plus_pat;
+                            SCLogDebug("update content to have offset %u", cd->offset);
+                        }
+                    }
+
+                    if ((cd->flags & (DETECT_CONTENT_DEPTH|DETECT_CONTENT_OFFSET|DETECT_CONTENT_WITHIN|DETECT_CONTENT_DISTANCE)) == (DETECT_CONTENT_DISTANCE|DETECT_CONTENT_WITHIN) ||
+                            (cd->flags & (DETECT_CONTENT_DEPTH|DETECT_CONTENT_OFFSET|DETECT_CONTENT_WITHIN|DETECT_CONTENT_DISTANCE)) == (DETECT_CONTENT_DISTANCE)) {
+                        if (cd->distance >= 0) {
+                            // only distance
+                            offset = cd->offset = offset_plus_pat + cd->distance;
+                            offset_plus_pat = offset + cd->content_len;
+                            SCLogDebug("offset %u offset_plus_pat %u", offset, offset_plus_pat);
+                        }
+                    }
+                    if (cd->flags & DETECT_CONTENT_OFFSET) {
+                        offset = cd->offset;
+                        offset_plus_pat = offset + cd->content_len;
+                        SCLogDebug("stored offset %u offset_plus_pat %u", offset, offset_plus_pat);
+                    }
+                    if (cd->depth) {
+                        depth = cd->depth;
+                        SCLogDebug("stored depth now %u", depth);
+                        offset_plus_pat = offset + cd->content_len;
+                        if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
+                            has_ends_with = true;
+                            if (ends_with_depth == 0)
+                                ends_with_depth = depth;
+                            ends_with_depth = MIN(ends_with_depth, depth);
+                        }
+                    }
+                    if ((cd->flags & (DETECT_CONTENT_WITHIN|DETECT_CONTENT_DEPTH)) == 0) {
+                        last_reset = true;
+                        depth = 0;
+                    } else {
+                        last_reset = false;
+                    }
+                    break;
+                }
+                case DETECT_PCRE: {
+                    // relative could leave offset_plus_pat set.
+                    DetectPcreData *pd = (DetectPcreData *)sm->ctx;
+                    if (pd->flags & DETECT_PCRE_RELATIVE) {
+                        depth = 0;
+                        last_reset = true;
+                    } else {
+                        SCLogDebug("non-anchored PCRE not supported, reset offset_plus_pat & offset");
+                        offset_plus_pat = offset = depth = 0;
+                        last_reset = true;
+                    }
+                    break;
+                }
+                default: {
+                    SCLogDebug("keyword not supported, reset offset_plus_pat & offset");
+                    offset_plus_pat = offset = depth = 0;
+                    last_reset = true;
+                    break;
+                }
+            }
+        }
+        /* apply anchored 'ends with' as depth to all patterns */
+        if (has_depth && has_ends_with) {
+            sm = s->init_data->smlists[list];
+            for ( ; sm != NULL; sm = sm->next) {
+                switch (sm->type) {
+                    case DETECT_CONTENT: {
+                        DetectContentData *cd = (DetectContentData *)sm->ctx;
+                        if (cd->depth == 0)
+                            cd->depth = ends_with_depth;
+                        cd->depth = MIN(ends_with_depth, cd->depth);
+                        if (cd->depth)
+                            cd->flags |= DETECT_CONTENT_DEPTH;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
 #ifdef UNITTESTS /* UNITTESTS */
+
+static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)
+{
+    const SigMatch *sm = s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH];
+    if (!sm) {
+        SCLogDebug("no sm");
+        return false;
+    }
+    if (!(sm->type == DETECT_CONTENT)) {
+        SCLogDebug("not content");
+        return false;
+    }
+    const DetectContentData *cd = (const DetectContentData *)sm->ctx;
+    if (o != cd->offset) {
+        SCLogDebug("offset mismatch %u != %u", o, cd->offset);
+        return false;
+    }
+    if (d != cd->depth) {
+        SCLogDebug("depth mismatch %u != %u", d, cd->depth);
+        return false;
+    }
+    return true;
+}
+
+#define TEST_RUN(sig, o, d)                                                                 \
+{                                                                                           \
+    SCLogDebug("TEST_RUN start: '%s'", (sig));                                              \
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();                                        \
+    FAIL_IF_NULL(de_ctx);                                                                   \
+    char rule[2048];                                                                        \
+    snprintf(rule, sizeof(rule), "alert tcp any any -> any any (%s sid:1; rev:1;)", (sig)); \
+    Signature *s = DetectEngineAppendSig(de_ctx, rule);                                     \
+    FAIL_IF_NULL(s);                                                                        \
+    SigAddressPrepareStage1(de_ctx);                                                        \
+    bool res = TestLastContent(s, (o), (d));                                                \
+    FAIL_IF(res == false);                                                                  \
+    DetectEngineCtxFree(de_ctx);                                                            \
+}
+
+#define TEST_DONE \
+    PASS
+
+/** \test test propagation of depth/offset/distance/within */
+static int DetectContentDepthTest01(void)
+{
+    // straight depth/offset
+    TEST_RUN("content:\"abc\"; offset:1; depth:3;", 1, 4);
+    // dsize applied as depth
+    TEST_RUN("dsize:10; content:\"abc\";", 0, 10);
+
+    // relative match, directly following anchored content
+    TEST_RUN("content:\"abc\"; depth:3; content:\"xyz\"; distance:0; within:3; ", 3, 6);
+    // relative match, directly following anchored content
+    TEST_RUN("content:\"abc\"; offset:3; depth:3; content:\"xyz\"; distance:0; within:3; ", 6, 9);
+    TEST_RUN("content:\"abc\"; depth:6; content:\"xyz\"; distance:0; within:3; ", 3, 9);
+
+    // multiple relative matches after anchored content
+    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; distance:0; within:3; content:\"xyz\"; distance:0; within:3; ", 6, 9);
+    // test 'reset' due to unanchored content
+    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; content:\"xyz\"; distance:0; within:3; ", 3, 0);
+    // test 'reset' due to unanchored pcre
+    TEST_RUN("content:\"abc\"; depth:3; pcre:/\"klm\"/; content:\"xyz\"; distance:0; within:3; ", 0, 0);
+    // test relative pcre. We can use previous offset+pattern len
+    TEST_RUN("content:\"abc\"; depth:3; pcre:/\"klm\"/R; content:\"xyz\"; distance:0; within:3; ", 3, 0);
+    TEST_RUN("content:\"abc\"; offset:3; depth:3; pcre:/\"klm\"/R; content:\"xyz\"; distance:0; within:3; ", 6, 0);
+
+    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; within:3; content:\"xyz\"; within:3; ", 0, 9);
+
+    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; distance:0; content:\"xyz\"; distance:0; ", 6, 0);
+
+    // tests to see if anchored 'ends_with' is applied to other content as depth
+    TEST_RUN("content:\"abc\"; depth:6; isdataat:!1,relative; content:\"klm\";", 0, 6);
+    TEST_RUN("content:\"abc\"; depth:3; content:\"klm\"; within:3; content:\"xyz\"; within:3; isdataat:!1,relative; content:\"def\"; ", 0, 9);
+
+    TEST_RUN("content:\"|03|\"; depth:1; content:\"|e0|\"; distance:4; within:1;", 5, 6);
+    TEST_RUN("content:\"|03|\"; depth:1; content:\"|e0|\"; distance:4; within:1; content:\"Cookie|3a|\"; distance:5; within:7;", 11, 18);
+
+    TEST_RUN("content:\"this\"; content:\"is\"; within:6; content:\"big\"; within:8; content:\"string\"; within:8;", 0, 0);
+
+    TEST_RUN("dsize:<80; content:!\"|00 22 02 00|\"; depth: 4; content:\"|00 00 04|\"; distance:8; within:3; content:\"|00 00 00 00 00|\"; distance:6; within:5;", 17, 80);
+    TEST_RUN("content:!\"|00 22 02 00|\"; depth: 4; content:\"|00 00 04|\"; distance:8; within:3; content:\"|00 00 00 00 00|\"; distance:6; within:5;", 17, 0);
+
+    TEST_RUN("content:\"|0d 0a 0d 0a|\"; content:\"code=\"; distance:0;", 4, 0);
+    TEST_RUN("content:\"|0d 0a 0d 0a|\"; content:\"code=\"; distance:0; content:\"xploit.class\"; distance:2; within:18;", 11, 0);
+
+    TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0;", 2, 0);
+    TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0; content:\"|0d|LogMeIn, Inc.\"; distance:1; within:14;", 6, 0);
+    TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0; content:\"|0d|LogMeIn, Inc.\"; distance:1; within:14; content:\".app\";", 0, 0);
+
+    TEST_RUN("content:\"=\"; offset:4; depth:9;", 4, 13);
+    // low end: offset 4 + patlen 1 = 5. So 5 + distance 55 = 60.
+    // hi end: depth '13' (4+9) + distance 55 = 68 + within 2 = 70
+    TEST_RUN("content:\"=\"; offset:4; depth:9; content:\"=&\"; distance:55; within:2;", 60, 70);
+
+    TEST_DONE;
+}
+
 /**
  * \brief Print list of DETECT_CONTENT SigMatch's allocated in a
  * SigMatch list, from the current sm to the end
@@ -2437,7 +2773,7 @@ static int SigTest69TestNegatedContent(void)
 
 static int SigTest70TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; content:!\"fourty\"; within:52; distance:45 sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; content:!\"fourty\"; within:52; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 /** \test within and distance */
@@ -2662,6 +2998,8 @@ static void DetectContentRegisterTests(void)
 #ifdef UNITTESTS /* UNITTESTS */
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
     g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
+
+    UtRegisterTest("DetectContentDepthTest01", DetectContentDepthTest01);
 
     UtRegisterTest("DetectContentParseTest01", DetectContentParseTest01);
     UtRegisterTest("DetectContentParseTest02", DetectContentParseTest02);

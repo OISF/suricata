@@ -161,9 +161,9 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                 break;
             case LOG_CF_TIMESTAMP_U:
             /* TIMESTAMP USECONDS */
-                snprintf(buf, 6, "%06u", (unsigned int) ts->tv_usec);
+                snprintf(buf, sizeof(buf), "%06u", (unsigned int) ts->tv_usec);
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                            aft->buffer->size, (uint8_t *)buf,strlen(buf));
+                            aft->buffer->size, (uint8_t *)buf, MIN(strlen(buf),6));
                 break;
             case LOG_CF_CLIENT_IP:
             /* CLIENT IP ADDRESS */
@@ -549,23 +549,24 @@ TmEcode LogHttpLogThreadDeinit(ThreadVars *t, void *data)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
+OutputInitResult LogHttpLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx* file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     LogHttpFileCtx *httplog_ctx = SCMalloc(sizeof(LogHttpFileCtx));
     if (unlikely(httplog_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
     memset(httplog_ctx, 0x00, sizeof(LogHttpFileCtx));
 
@@ -612,7 +613,9 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 
 parsererror:
     SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom http log format string.");
@@ -620,7 +623,7 @@ errorfree:
     LogCustomFormatFree(httplog_ctx->cf);
     LogFileFreeCtx(file_ctx);
     SCFree(httplog_ctx);
-    return NULL;
+    return result;
 
 }
 

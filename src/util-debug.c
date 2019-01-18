@@ -140,7 +140,9 @@ static inline int SCLogMapLogLevelToSyslogLevel(int log_level)
         case SC_LOG_INFO:
             syslog_log_level = LOG_INFO;
             break;
+        case SC_LOG_CONFIG:
         case SC_LOG_DEBUG:
+        case SC_LOG_PERF:
             syslog_log_level = LOG_DEBUG;
             break;
         default:
@@ -219,6 +221,13 @@ static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_si
     char timebuf[64];
     CreateIsoTimeString(tval, timebuf, sizeof(timebuf));
     json_object_set_new(js, "timestamp", json_string(timebuf));
+
+    const char *s = SCMapEnumValueToName(log_level, sc_log_level_map);
+    if (s != NULL) {
+        json_object_set_new(js, "log_level", json_string(s));
+    } else {
+        json_object_set_new(js, "log_level", json_string("INVALID"));
+    }
 
     json_object_set_new(js, "event_type", json_string("engine"));
 
@@ -505,22 +514,24 @@ static SCError SCLogMessageGetBuffer(
     return SC_OK;
 }
 
-static void SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
+/** \internal
+ *  \brief try to reopen file
+ *  \note no error reporting here, as we're called by SCLogMessage
+ *  \retval status 0 ok, -1 error */
+static int SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
 {
-    if (op_iface_ctx->file_d == NULL) {
-        return;
-    }
-
     if (op_iface_ctx->file == NULL) {
-        return;
+        return 0;
     }
 
-    fclose(op_iface_ctx->file_d);
+    if (op_iface_ctx->file_d != NULL) {
+        fclose(op_iface_ctx->file_d);
+    }
     op_iface_ctx->file_d = fopen(op_iface_ctx->file, "a");
     if (op_iface_ctx->file_d == NULL) {
-        SCLogError(SC_ERR_FOPEN, "Erroring re-opening file \"%s\": %s",
-            op_iface_ctx->file, strerror(errno));
+        return -1;
     }
+    return 0;
 }
 
 /**
@@ -577,11 +588,20 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                                           log_level, file, line, function,
                                           error_code, message) == 0)
                 {
+                    int r = 0;
+                    SCMutexLock(&op_iface_ctx->fp_mutex);
                     if (op_iface_ctx->rotation_flag) {
-                        SCLogReopen(op_iface_ctx);
+                        r = SCLogReopen(op_iface_ctx);
                         op_iface_ctx->rotation_flag = 0;
                     }
                     SCLogPrintToStream(op_iface_ctx->file_d, buffer);
+                    SCMutexUnlock(&op_iface_ctx->fp_mutex);
+
+                    /* report error outside of lock to avoid recursion */
+                    if (r == -1) {
+                        SCLogError(SC_ERR_FOPEN, "re-opening file \"%s\" failed: %s",
+                                op_iface_ctx->file, strerror(errno));
+                    }
                 }
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
@@ -714,6 +734,7 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
         goto error;
     }
 
+    SCMutexInit(&iface_ctx->fp_mutex, NULL);
     OutputRegisterFileRotationFlag(&iface_ctx->rotation_flag);
 
     iface_ctx->log_level = log_level;
@@ -793,9 +814,11 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
     }
     iface_ctx->log_level = tmp_log_level;
 
+#ifndef OS_WIN32
     if (isatty(fileno(stdout)) && isatty(fileno(stderr))) {
         iface_ctx->use_color = TRUE;
     }
+#endif
 
     return iface_ctx;
 }
@@ -854,8 +877,10 @@ static inline void SCLogFreeLogOPIfaceCtx(SCLogOPIfaceCtx *iface_ctx)
     while (iface_ctx != NULL) {
         temp = iface_ctx;
 
-        if (iface_ctx->file_d != NULL)
+        if (iface_ctx->file_d != NULL) {
             fclose(iface_ctx->file_d);
+            SCMutexDestroy(&iface_ctx->fp_mutex);
+        }
 
         if (iface_ctx->file != NULL)
             SCFree((void *)iface_ctx->file);
@@ -1096,7 +1121,8 @@ SCLogInitData *SCLogAllocLogInitData(void)
     return sc_lid;
 }
 
-#if 0
+#ifdef UNITTESTS
+#ifndef OS_WIN32
 /**
  * \brief Frees a SCLogInitData
  *
@@ -1105,18 +1131,13 @@ SCLogInitData *SCLogAllocLogInitData(void)
 static void SCLogFreeLogInitData(SCLogInitData *sc_lid)
 {
     if (sc_lid != NULL) {
-        if (sc_lid->startup_message != NULL)
-            SCFree(sc_lid->startup_message);
-        if (sc_lid->global_log_format != NULL)
-            SCFree(sc_lid->global_log_format);
-        if (sc_lid->op_filter != NULL)
-            SCFree(sc_lid->op_filter);
-
         SCLogFreeLogOPIfaceCtx(sc_lid->op_ifaces);
+        SCFree(sc_lid);
     }
 
     return;
 }
+#endif
 #endif
 
 /**
@@ -1131,6 +1152,11 @@ static inline void SCLogFreeLogConfig(SCLogConfig *sc_lc)
             SCFree(sc_lc->log_format);
         if (sc_lc->op_filter != NULL)
             SCFree(sc_lc->op_filter);
+
+        if (sc_lc->op_filter_regex != NULL)
+            pcre_free(sc_lc->op_filter_regex);
+        if (sc_lc->op_filter_regex_study)
+            pcre_free_study(sc_lc->op_filter_regex_study);
 
         SCLogFreeLogOPIfaceCtx(sc_lc->op_ifaces);
         SCFree(sc_lc);
@@ -1311,7 +1337,7 @@ void SCLogLoadConfig(int daemon, int verbose)
     if (ConfGet("logging.default-log-format", &sc_lid->global_log_format) != 1)
         sc_lid->global_log_format = SC_LOG_DEF_LOG_FORMAT;
 
-    ConfGet("logging.default-output-filter", &sc_lid->op_filter);
+    (void)ConfGet("logging.default-output-filter", &sc_lid->op_filter);
 
     ConfNode *seq_node, *output;
     TAILQ_FOREACH(seq_node, &outputs->head, next) {
@@ -1387,8 +1413,7 @@ void SCLogLoadConfig(int daemon, int verbose)
                     facility = SC_LOG_DEF_SYSLOG_FACILITY;
                 }
             }
-            printf("Initialization syslog logging with format \"%s\".\n",
-                format);
+            SCLogDebug("Initializing syslog logging with format \"%s\"", format);
             have_logging = 1;
             op_iface_ctx = SCLogInitSyslogOPIface(facility, format, level, type);
         }
@@ -1483,8 +1508,7 @@ void SCLogDeInitLogModule(void)
 
 static int SCLogTestInit01(void)
 {
-    int result = 1;
-
+#ifndef OS_WIN32
     /* unset any environment variables set for the logging module */
     unsetenv(SC_LOG_ENV_LOG_LEVEL);
     unsetenv(SC_LOG_ENV_LOG_OP_IFACE);
@@ -1492,13 +1516,12 @@ static int SCLogTestInit01(void)
 
     SCLogInitLogModule(NULL);
 
-    if (sc_log_config == NULL)
-        return 0;
+    FAIL_IF_NULL(sc_log_config);
 
-    result &= (SC_LOG_DEF_LOG_LEVEL == sc_log_config->log_level);
-    result &= (sc_log_config->op_ifaces != NULL &&
+    FAIL_IF_NOT(SC_LOG_DEF_LOG_LEVEL == sc_log_config->log_level);
+    FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                SC_LOG_DEF_LOG_OP_IFACE == sc_log_config->op_ifaces->iface);
-    result &= (sc_log_config->log_format != NULL &&
+    FAIL_IF_NOT(sc_log_config->log_format != NULL &&
                strcmp(SC_LOG_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
 
     SCLogDeInitLogModule();
@@ -1509,10 +1532,10 @@ static int SCLogTestInit01(void)
 
     SCLogInitLogModule(NULL);
 
-    result &= (SC_LOG_DEBUG == sc_log_config->log_level);
-    result &= (sc_log_config->op_ifaces != NULL &&
+    FAIL_IF_NOT(SC_LOG_DEBUG == sc_log_config->log_level);
+    FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->iface);
-    result &= (sc_log_config->log_format != NULL &&
+    FAIL_IF_NOT(sc_log_config->log_format != NULL &&
                !strcmp("%n- %l", sc_log_config->log_format));
 
     unsetenv(SC_LOG_ENV_LOG_LEVEL);
@@ -1520,19 +1543,18 @@ static int SCLogTestInit01(void)
     unsetenv(SC_LOG_ENV_LOG_FORMAT);
 
     SCLogDeInitLogModule();
-
-    return result;
+#endif
+    PASS;
 }
 
 static int SCLogTestInit02(void)
 {
+#ifndef OS_WIN32
     SCLogInitData *sc_lid = NULL;
     SCLogOPIfaceCtx *sc_iface_ctx = NULL;
-    int result = 1;
     char *logfile = SCLogGetLogFilename("boo.txt");
     sc_lid = SCLogAllocLogInitData();
-    if (sc_lid == NULL)
-        return 0;
+    FAIL_IF_NULL(sc_lid);
     sc_lid->startup_message = "Test02";
     sc_lid->global_log_level = SC_LOG_DEBUG;
     sc_lid->op_filter = "boo";
@@ -1545,29 +1567,28 @@ static int SCLogTestInit02(void)
 
     SCLogInitLogModule(sc_lid);
 
-    if (sc_log_config == NULL)
-        return 0;
+    FAIL_IF_NULL(sc_log_config);
 
-    result &= (SC_LOG_DEBUG == sc_log_config->log_level);
-    result &= (sc_log_config->op_ifaces != NULL &&
+    FAIL_IF_NOT(SC_LOG_DEBUG == sc_log_config->log_level);
+    FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                SC_LOG_OP_IFACE_FILE == sc_log_config->op_ifaces->iface);
-    result &= (sc_log_config->op_ifaces != NULL &&
+    FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                sc_log_config->op_ifaces->next != NULL &&
                SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->next->iface);
-    result &= (sc_log_config->log_format != NULL &&
+    FAIL_IF_NOT(sc_log_config->log_format != NULL &&
                strcmp(SC_LOG_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
-    result &= (sc_log_config->op_ifaces != NULL &&
+    FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                sc_log_config->op_ifaces->log_format != NULL &&
                strcmp("%m - %d", sc_log_config->op_ifaces->log_format) == 0);
-    result &= (sc_log_config->op_ifaces != NULL &&
+    FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                sc_log_config->op_ifaces->next != NULL &&
                sc_log_config->op_ifaces->next->log_format == NULL);
 
+    SCLogFreeLogInitData(sc_lid);
     SCLogDeInitLogModule();
 
     sc_lid = SCLogAllocLogInitData();
-    if (sc_lid == NULL)
-        return 0;
+    FAIL_IF_NULL(sc_lid);
     sc_lid->startup_message = "Test02";
     sc_lid->global_log_level = SC_LOG_DEBUG;
     sc_lid->op_filter = "boo";
@@ -1575,52 +1596,49 @@ static int SCLogTestInit02(void)
 
     SCLogInitLogModule(sc_lid);
 
-    if (sc_log_config == NULL)
-        return 0;
+    FAIL_IF_NULL(sc_log_config);
 
-    result &= (SC_LOG_DEBUG == sc_log_config->log_level);
-    result &= (sc_log_config->op_ifaces != NULL &&
+    FAIL_IF_NOT(SC_LOG_DEBUG == sc_log_config->log_level);
+    FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->iface);
-    result &= (sc_log_config->op_ifaces != NULL &&
+    FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                sc_log_config->op_ifaces->next == NULL);
-    result &= (sc_log_config->log_format != NULL &&
+    FAIL_IF_NOT(sc_log_config->log_format != NULL &&
                strcmp("kaboo", sc_log_config->log_format) == 0);
-    result &= (sc_log_config->op_ifaces != NULL &&
+    FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                sc_log_config->op_ifaces->log_format == NULL);
-    result &= (sc_log_config->op_ifaces != NULL &&
+    FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                sc_log_config->op_ifaces->next == NULL);
 
+    SCLogFreeLogInitData(sc_lid);
     SCLogDeInitLogModule();
-
-    return result;
+    SCFree(logfile);
+#endif
+    PASS;
 }
 
 static int SCLogTestInit03(void)
 {
-    int result = 1;
-
     SCLogInitLogModule(NULL);
 
     SCLogAddFGFilterBL(NULL, "bamboo", -1);
     SCLogAddFGFilterBL(NULL, "soo", -1);
     SCLogAddFGFilterBL(NULL, "dummy", -1);
 
-    result &= (SCLogPrintFGFilters() == 3);
+    FAIL_IF_NOT(SCLogPrintFGFilters() == 3);
 
     SCLogAddFGFilterBL(NULL, "dummy1", -1);
     SCLogAddFGFilterBL(NULL, "dummy2", -1);
 
-    result &= (SCLogPrintFGFilters() == 5);
+    FAIL_IF_NOT(SCLogPrintFGFilters() == 5);
 
     SCLogDeInitLogModule();
 
-    return result;
+    PASS;
 }
 
 static int SCLogTestInit04(void)
 {
-    int result = 1;
-
     SCLogInitLogModule(NULL);
 
     SCLogAddFDFilter("bamboo");
@@ -1628,34 +1646,33 @@ static int SCLogTestInit04(void)
     SCLogAddFDFilter("foo");
     SCLogAddFDFilter("roo");
 
-    result &= (SCLogPrintFDFilters() == 4);
+    FAIL_IF_NOT(SCLogPrintFDFilters() == 4);
 
     SCLogAddFDFilter("loo");
     SCLogAddFDFilter("soo");
 
-    result &= (SCLogPrintFDFilters() == 5);
+    FAIL_IF_NOT(SCLogPrintFDFilters() == 5);
 
     SCLogRemoveFDFilter("bamboo");
     SCLogRemoveFDFilter("soo");
     SCLogRemoveFDFilter("foo");
     SCLogRemoveFDFilter("noo");
 
-    result &= (SCLogPrintFDFilters() == 2);
+    FAIL_IF_NOT(SCLogPrintFDFilters() == 2);
 
     SCLogDeInitLogModule();
 
-    return result;
+    PASS;
 }
 
 static int SCLogTestInit05(void)
 {
-    int result = 1;
+    char str[4096];
+    memset(str, 'A', sizeof(str));
+    SCLogInfo("%s", str);
 
-    SCLogInfo("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-
-    return result;
+    PASS;
 }
-
 
 #endif /* UNITTESTS */
 

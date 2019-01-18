@@ -1,0 +1,3 @@
+sysconfdir = "@e_sysconfdir@"
+datarulesdir = "@e_datarulesdir@"
+localstatedir = "@e_localstatedir@"

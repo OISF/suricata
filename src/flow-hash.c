@@ -58,7 +58,7 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv);
  *
  *  \note we don't care about the real ipv6 ip's, this is just
  *        to consistently fill the FlowHashKey6 struct, without all
- *        the ntohl calls.
+ *        the SCNtohl calls.
  *
  *  \warning do not use elsewhere unless you know what you're doing.
  *           detect-engine-address-ipv6.c's AddressIPv6GtU32 is likely
@@ -223,6 +223,17 @@ static inline uint32_t FlowGetHash(const Packet *p)
      (f1)->recursion_level == (f2)->recursion_level && \
      (f1)->vlan_id[0] == (f2)->vlan_id[0] && \
      (f1)->vlan_id[1] == (f2)->vlan_id[1])
+#define CMP_FLOW_ICMP(f1,f2) \
+    (((CMP_ADDR(&(f1)->src, &(f2)->src) && \
+       CMP_ADDR(&(f1)->dst, &(f2)->dst) && \
+       CMP_PORT((f1)->icmp_s.type, (f2)->icmp_s.type) && CMP_PORT((f1)->icmp_d.type, (f2)->icmp_d.type)) || \
+      (CMP_ADDR(&(f1)->src, &(f2)->dst) && \
+       CMP_ADDR(&(f1)->dst, &(f2)->src) && \
+       CMP_PORT((f1)->icmp_d.type, (f2)->icmp_s.type) && CMP_PORT((f1)->icmp_s.type, (f2)->icmp_d.type))) && \
+     (f1)->proto == (f2)->proto && \
+     (f1)->recursion_level == (f2)->recursion_level && \
+     (f1)->vlan_id[0] == (f2)->vlan_id[0] && \
+     (f1)->vlan_id[1] == (f2)->vlan_id[1])
 
 /**
  *  \brief See if a ICMP packet belongs to a flow by comparing the embedded
@@ -268,7 +279,7 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
         /* no match, fall through */
     } else {
         /* just treat ICMP as a normal proto for now */
-        return CMP_FLOW(f, p);
+        return CMP_FLOW_ICMP(f, p);
     }
 
     return 0;

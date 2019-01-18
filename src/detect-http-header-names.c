@@ -120,7 +120,8 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         if (i + 1 == no_of_headers)
             size += 2;
 
-        SCLogDebug("size %u + buf->len %u vs buf->size %u", (uint)size, buf->len, buf->size);
+        SCLogDebug("size %"PRIuMAX" + buf->len %u vs buf->size %u",
+                (uintmax_t)size, buf->len, buf->size);
         if (size + buf->len > buf->size) {
             if (HttpHeaderExpandBuffer(hdr_td, buf, size) != 0) {
                 return NULL;
@@ -213,11 +214,12 @@ static void PrefilterTxHttpRequestTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 #endif
-static int PrefilterTxHttpRequestHeaderNamesRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpRequestHeaderNamesRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestHeaderNames,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestHeaderNames,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, KEYWORD_NAME " (request)");
     return r;
@@ -293,11 +295,12 @@ static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 #endif
-static int PrefilterTxHttpResponseHeaderNamesRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpResponseHeaderNamesRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseHeaderNames,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseHeaderNames,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
         mpm_ctx, NULL, KEYWORD_NAME " (response)");
     return r;
@@ -329,7 +332,7 @@ static int InspectEngineHttpHeaderNames(ThreadVars *tv,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           buffer, buffer_len,
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -364,12 +367,6 @@ static int DetectHttpHeaderNamesSetup(DetectEngineCtx *de_ctx, Signature *s, con
     return 0;
 }
 
-static void DetectHttpHeaderNamesSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-}
-
 /**
  * \brief Registers the keyword handlers for the "http_header" keyword.
  */
@@ -396,9 +393,6 @@ void DetectHttpHeaderNamesRegister(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
-
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
-            DetectHttpHeaderNamesSetupCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 

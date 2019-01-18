@@ -39,17 +39,29 @@ except:
     GOT_NOTIFY = False
 
 GOT_DOCKER = True
+GOT_DOCKERPY_API = 2
+
 try:
-    from docker import Client
-except:
+    import docker
+    try:
+        from docker import APIClient as Client
+        from docker import from_env as DockerClient
+    except ImportError:
+        GOT_DOCKERPY_API = 1
+        try:
+            from docker import Client
+        except ImportError:
+            GOT_DOCKER = FALSE
+except ImportError:
     GOT_DOCKER = False
+
 # variables
 #  - github user
 #  - buildbot user and password
 
 BASE_URI="https://buildbot.openinfosecfoundation.org/"
 GITHUB_BASE_URI = "https://api.github.com/repos/"
-GITHUB_MASTER_URI = "https://api.github.com/repos/inliniac/suricata/commits?sha=master"
+GITHUB_MASTER_URI = "https://api.github.com/repos/OISF/suricata/commits?sha=master"
 
 if GOT_DOCKER:
     parser = argparse.ArgumentParser(prog='prscript', description='Script checking validity of branch before PR')
@@ -80,7 +92,7 @@ username = args.username
 password = args.password
 cookie = None
 
-if args.create or args.start or args.stop:
+if args.create or args.start or args.stop or args.rm:
     if GOT_DOCKER:
         args.docker = True
         args.local = True
@@ -237,7 +249,7 @@ def WaitForBuildResult(builder, buildid, extension="", builder_name = None):
         print "Build failure for " + builder_name + ": " + BUILDERS_URI + builder_name + '/builds/' + str(buildid)
     return res
 
-    # check that github branch and inliniac master branch are sync
+    # check that github branch and OISF master branch are sync
 if not args.local:
     ret = TestGithubSync(args.branch)
     if ret != 0:
@@ -251,43 +263,63 @@ if not args.local:
             sys.exit(-1)
     if TestRepoSync(args.branch) != 0:
         if args.norebase:
-            print "Branch " + args.branch + " is not in sync with inliniac's master branch. Continuing due to --norebase option."
+            print "Branch " + args.branch + " is not in sync with OISF's master branch. Continuing due to --norebase option."
         else:
-            print "Branch " + args.branch + " is not in sync with inliniac's master branch. Rebase needed."
+            print "Branch " + args.branch + " is not in sync with OISF's master branch. Rebase needed."
             sys.exit(-1)
 
 def CreateContainer():
-    cli = Client()
     # FIXME check if existing
     print "Pulling docking image, first run should take long"
-    cli.pull('regit/suri-buildbot')
-    cli.create_container(name='suri-buildbot', image='regit/suri-buildbot', ports=[8010, 22], volumes=['/data/oisf', '/data/buildbot/master/master.cfg'])
+    if GOT_DOCKERPY_API < 2:
+        cli = Client()
+        cli.pull('regit/suri-buildbot')
+        cli.create_container(name='suri-buildbot', image='regit/suri-buildbot', ports=[8010, 22], volumes=['/data/oisf', '/data/buildbot/master/master.cfg'])
+    else:
+        cli = DockerClient()
+        cli.images.pull('regit/suri-buildbot')
+        suri_src_dir = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
+        print "Using base src dir: " + suri_src_dir
+        cli.containers.create('regit/suri-buildbot', name='suri-buildbot', ports={'8010/tcp': 8010, '22/tcp': None} , volumes={suri_src_dir: { 'bind': '/data/oisf', 'mode': 'ro'}, os.path.join(suri_src_dir,'qa','docker','buildbot.cfg'): { 'bind': '/data/buildbot/master/master.cfg', 'mode': 'ro'}}, detach = True)
     sys.exit(0)
 
 def StartContainer():
-    cli = Client()
     suri_src_dir = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
     print "Using base src dir: " + suri_src_dir
-    cli.start('suri-buildbot', port_bindings={8010:8010, 22:None}, binds={suri_src_dir: { 'bind': '/data/oisf', 'ro': True}, os.path.join(suri_src_dir,'qa','docker','buildbot.cfg'): { 'bind': '/data/buildbot/master/master.cfg', 'ro': True}} )
+    if GOT_DOCKERPY_API < 2:
+        cli = Client()
+        cli.start('suri-buildbot', port_bindings={8010:8010, 22:None}, binds={suri_src_dir: { 'bind': '/data/oisf', 'ro': True}, os.path.join(suri_src_dir,'qa','docker','buildbot.cfg'): { 'bind': '/data/buildbot/master/master.cfg', 'ro': True}} )
+    else:
+        cli = DockerClient()
+        cli.containers.get('suri-buildbot').start()
     sys.exit(0)
 
 def StopContainer():
-    cli = Client()
-    cli.stop('suri-buildbot')
+    if GOT_DOCKERPY_API < 2:
+        cli = Client()
+        cli.stop('suri-buildbot')
+    else:
+        cli = DockerClient()
+        cli.containers.get('suri-buildbot').stop()
     sys.exit(0)
 
 def RmContainer():
-    cli = Client()
-    try:
-        cli.remove_container('suri-buildbot')
-    except:
-        print "Unable to remove suri-buildbot container"
-        pass
-    try:
-        cli.remove_image('regit/suri-buildbot:latest')
-    except:
-        print "Unable to remove suri-buildbot images"
-        pass
+    if GOT_DOCKERPY_API < 2:
+        cli = Client()
+        try:
+            cli.remove_container('suri-buildbot')
+        except:
+            print "Unable to remove suri-buildbot container"
+            pass
+        try:
+            cli.remove_image('regit/suri-buildbot:latest')
+        except:
+            print "Unable to remove suri-buildbot images"
+            pass
+    else:
+        cli = DockerClient()
+        cli.containers.get('suri-buildbot').remove()
+        cli.images.remove('regit/suri-buildbot:latest')
     sys.exit(0)
 
 if GOT_DOCKER:

@@ -28,7 +28,7 @@ int SigGroupHeadAppendSig(const DetectEngineCtx *, SigGroupHead **, const Signat
 int SigGroupHeadClearSigs(SigGroupHead *);
 int SigGroupHeadCopySigs(DetectEngineCtx *, SigGroupHead *, SigGroupHead **);
 
-void SigGroupHeadFree(SigGroupHead *);
+void SigGroupHeadFree(const DetectEngineCtx *de_ctx, SigGroupHead *);
 
 void SigGroupHeadFreeMpmArrays(DetectEngineCtx *);
 

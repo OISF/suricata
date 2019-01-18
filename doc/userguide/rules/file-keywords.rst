@@ -113,7 +113,51 @@ Just MD5's are good as well::
 
 Each MD5 uses 16 bytes of memory. 20 Million MD5's use about 310 MiB of memory.
 
-See also: http://blog.inliniac.net/2012/06/09/suricata-md5-blacklisting/
+See also: https://blog.inliniac.net/2012/06/09/suricata-md5-blacklisting/
+
+filesha1
+--------
+
+Match file SHA1 against list of SHA1 checksums.
+
+Syntax::
+
+  filesha1:[!]filename;
+
+The filename is expanded to include the rule dir. In the default case
+it will become /etc/suricata/rules/filename. Use the exclamation mark
+to get a negated match. This allows for white listing.
+
+Examples::
+
+  filesha1:sha1-blacklist;
+  filesha1:!sha1-whitelist;
+
+*File format*
+
+Same as md5 file format.
+
+filesha256
+----------
+
+Match file SHA256 against list of SHA256 checksums.
+
+Syntax::
+
+  filesha256:[!]filename;
+
+The filename is expanded to include the rule dir. In the default case
+it will become /etc/suricata/rules/filename. Use the exclamation mark
+to get a negated match. This allows for white listing.
+
+Examples::
+
+  filesha256:sha256-blacklist;
+  filesha256:!sha256-whitelist;
+
+*File format*
+
+Same as md5 file format.
 
 filesize
 --------
@@ -124,12 +168,14 @@ Syntax::
 
   filesize:<value>;
 
+Possible units are KB, MB and GB, without any unit the default is bytes.
+
 Examples::
 
   filesize:100; # exactly 100 bytes
   filesize:100<>200; # greater than 100 and smaller than 200
-  filesize:>100; # greater than 100
-  filesize:<100; # smaller than 100
+  filesize:>100MB; # greater than 100 megabytes
+  filesize:<100MB; # smaller than 100 megabytes
 
 **Note**: For files that are not completely tracked because of packet
 loss or stream.depth being reached on the "greater than" is

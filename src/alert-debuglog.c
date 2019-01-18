@@ -430,8 +430,9 @@ static void AlertDebugLogDeInitCtx(OutputCtx *output_ctx)
  *
  *  \return output_ctx if succesful, NULL otherwise
  */
-static OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
+static OutputInitResult AlertDebugLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = NULL;
 
     file_ctx = LogFileNewCtx();
@@ -453,14 +454,16 @@ static OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
     output_ctx->DeInit = AlertDebugLogDeInitCtx;
 
     SCLogDebug("Alert debug log output initialized");
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 
 error:
     if (file_ctx != NULL) {
         LogFileFreeCtx(file_ctx);
     }
 
-    return NULL;
+    return result;
 }
 
 static int AlertDebugLogCondition(ThreadVars *tv, const Packet *p)

@@ -42,6 +42,7 @@
 #include "util-debug.h"
 
 static int DetectDepthSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectStartsWithSetup (DetectEngineCtx *, Signature *, const char *);
 
 void DetectDepthRegister (void)
 {
@@ -52,6 +53,12 @@ void DetectDepthRegister (void)
     sigmatch_table[DETECT_DEPTH].Setup = DetectDepthSetup;
     sigmatch_table[DETECT_DEPTH].Free  = NULL;
     sigmatch_table[DETECT_DEPTH].RegisterTests = NULL;
+
+    sigmatch_table[DETECT_STARTS_WITH].name = "startswith";
+    sigmatch_table[DETECT_STARTS_WITH].desc = "pattern must be at the start of a buffer (same as 'depth:<pattern len>')";
+    sigmatch_table[DETECT_STARTS_WITH].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#startswith";
+    sigmatch_table[DETECT_STARTS_WITH].Setup = DetectStartsWithSetup;
+    sigmatch_table[DETECT_STARTS_WITH].flags |= SIGMATCH_NOOPT;
 }
 
 static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *depthstr)
@@ -113,10 +120,69 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
                       "invalid value for depth: %s", str);
             goto end;
         }
+
+        if (cd->depth < cd->content_len) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "depth:%u smaller than "
+                   "content of len %u", cd->depth, cd->content_len);
+            return -1;
+        }
         /* Now update the real limit, as depth is relative to the offset */
         cd->depth += cd->offset;
     }
     cd->flags |= DETECT_CONTENT_DEPTH;
+
+    ret = 0;
+ end:
+    return ret;
+}
+
+static int DetectStartsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const char *unused)
+{
+    SigMatch *pm = NULL;
+    int ret = -1;
+
+    /* retrieve the sm to apply the depth against */
+    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    if (pm == NULL) {
+        SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "startswith needs a "
+                   "preceding content option");
+        goto end;
+    }
+
+    /* verify other conditions. */
+    DetectContentData *cd = (DetectContentData *)pm->ctx;
+
+    if (cd->flags & DETECT_CONTENT_DEPTH) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple "
+                "depth/startswith settings for the same content");
+        goto end;
+    }
+    if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative "
+                   "keyword like within/distance with a absolute "
+                   "relative keyword like depth/offset for the same "
+                   "content.");
+        goto end;
+    }
+    if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+                   "negated keyword set along with a fast_pattern");
+        goto end;
+    }
+    if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+                   "keyword set along with a fast_pattern:only;");
+        goto end;
+    }
+    if (cd->flags & DETECT_CONTENT_OFFSET) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix offset "
+                   "with startswith");
+        goto end;
+    }
+
+    cd->depth = cd->content_len;
+    cd->flags |= DETECT_CONTENT_DEPTH;
+    cd->flags |= DETECT_CONTENT_STARTS_WITH;
 
     ret = 0;
  end:

@@ -3,122 +3,16 @@
 Eve JSON Output
 ===============
 
-Suricata can output alerts, http events, dns events, tls events and file info through json.
+The EVE output facility outputs alerts, metadata, file info and protocol
+specific records through JSON.
 
-The most common way to use this is through 'EVE', which is a firehose approach where all these logs go into a single file.
+The most common way to use this is through 'EVE', which is a firehose approach
+where all these logs go into a single file.
 
-
-::
-
-  # Extensible Event Format (nicknamed EVE) event log in JSON format
-  - eve-log:
-      enabled: yes
-      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
-      filename: eve.json
-      #prefix: "@cee: " # prefix to prepend to each log entry
-      # the following are valid when type: syslog above
-      #identity: "suricata"
-      #facility: local5
-      #level: Info ## possible levels: Emergency, Alert, Critical,
-                   ## Error, Warning, Notice, Info, Debug
-      #redis:
-      #  server: 127.0.0.1
-      #  port: 6379
-      #  async: true ## if redis replies are read asynchronously
-      #  mode: list ## possible values: list (default), channel
-      #  key: suricata ## key or channel to use (default to suricata)
-      # Redis pipelining set up. This will enable to only do a query every
-      # 'batch-size' events. This should lower the latency induced by network
-      # connection at the cost of some memory. There is no flushing implemented
-      # so this setting as to be reserved to high traffic suricata.
-      #  pipelining:
-      #    enabled: yes ## set enable to yes to enable query pipelining
-      #    batch-size: 10 ## number of entry to keep in buffer
-      types:
-        - alert:
-            # payload: yes             # enable dumping payload in Base64
-            # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
-            # payload-printable: yes   # enable dumping payload in printable (lossy) format
-            # packet: yes              # enable dumping of packet (without stream segments)
-            http: yes                # enable dumping of http fields
-            tls: yes                 # enable dumping of tls fields
-            ssh: yes                 # enable dumping of ssh fields
-            smtp: yes                # enable dumping of smtp fields
-
-            # Enable the logging of tagged packets for rules using the
-            # "tag" keyword.
-            tagged-packets: yes
-
-            # HTTP X-Forwarded-For support by adding an extra field or overwriting
-            # the source or destination IP address (depending on flow direction)
-            # with the one reported in the X-Forwarded-For HTTP header. This is
-            # helpful when reviewing alerts for traffic that is being reverse
-            # or forward proxied.
-            xff:
-              enabled: no
-              # Two operation modes are available, "extra-data" and "overwrite".
-              mode: extra-data
-              # Two proxy deployments are supported, "reverse" and "forward". In
-              # a "reverse" deployment the IP address used is the last one, in a
-              # "forward" deployment the first IP address is used.
-              deployment: reverse
-              # Header name where the actual IP address will be reported, if more
-              # than one IP address is present, the last IP address will be the
-              # one taken into consideration.
-              header: X-Forwarded-For
-        - http:
-            extended: yes     # enable this for extended logging information
-            # custom allows additional http fields to be included in eve-log
-            # the example below adds three additional fields when uncommented
-            #custom: [Accept-Encoding, Accept-Language, Authorization]
-        - dns:
-            # control logging of queries and answers
-            # default yes, no to disable
-            query: yes     # enable logging of DNS queries
-            answer: yes    # enable logging of DNS answers
-            # control which RR types are logged
-            # all enabled if custom not specified
-            #custom: [a, aaaa, cname, mx, ns, ptr, txt]
-        - tls:
-            extended: yes     # enable this for extended logging information
-            # custom allows to control which tls fields that are included
-            # in eve-log
-            #custom: [subject, issuer, fingerprint, sni, version, not_before, not_after, certificate, chain]
-
-        - files:
-            force-magic: no   # force logging magic on all logged files
-            # force logging of checksums, available hash functions are md5,
-            # sha1 and sha256
-            #force-hash: [md5]
-        #- drop:
-        #    alerts: yes      # log alerts that caused drops
-        #    flows: all       # start or all: 'start' logs only a single drop
-        #                     # per flow direction. All logs each dropped pkt.
-        - smtp:
-            #extended: yes # enable this for extended logging information
-            # this includes: bcc, message-id, subject, x_mailer, user-agent
-            # custom fields logging from the list:
-            #  reply-to, bcc, message-id, subject, x-mailer, user-agent, received,
-            #  x-originating-ip, in-reply-to, references, importance, priority,
-            #  sensitivity, organization, content-md5, date
-            #custom: [received, x-mailer, x-originating-ip, relays, reply-to, bcc]
-            # output md5 of fields: body, subject
-            # for the body you need to set app-layer.protocols.smtp.mime.body-md5
-            # to yes
-            #md5: [body, subject]
-
-        - ssh
-        - stats:
-            totals: yes       # stats for all threads merged together
-            threads: no       # per thread stats
-            deltas: no        # include delta values
-        # bi-directional flows
-        - flow
-        # uni-directional flows
-        #- netflow
+.. literalinclude:: ../../partials/eve-log.yaml
 
 Each alert, http log, etc will go into this one file: 'eve.json'. This file
-can then be processed by 3rd party tools like Logstash or jq.
+can then be processed by 3rd party tools like Logstash (ELK) or jq.
 
 Output types
 ~~~~~~~~~~~~
@@ -140,7 +34,9 @@ Output types::
       #  server: 127.0.0.1
       #  port: 6379
       #  async: true ## if redis replies are read asynchronously
-      #  mode: list ## possible values: list (default), channel
+      #  mode: list ## possible values: list|lpush (default), rpush, channel|publish
+      #             ## lpush and rpush are using a Redis list. "list" is an alias for lpush
+      #             ## publish is using a Redis channel. "channel" is an alias for publish
       #  key: suricata ## key or channel to use (default to suricata)
       # Redis pipelining set up. This will enable to only do a query every
       # 'batch-size' events. This should lower the latency induced by network
@@ -153,20 +49,35 @@ Output types::
 Alerts
 ~~~~~~
 
-Alerts are event records for rule matches. They can be ammended with metadata,
-such as the HTTP record an alert was generated for.
+Alerts are event records for rule matches. They can be amended with
+metadata, such as the application layer record (HTTP, DNS, etc) an
+alert was generated for, and elements of the rule.
 
 Metadata::
 
         - alert:
-            # payload: yes             # enable dumping payload in Base64
-            # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
-            # payload-printable: yes   # enable dumping payload in printable (lossy) format
-            # packet: yes              # enable dumping of packet (without stream segments)
-            http: yes                # enable dumping of http fields
-            tls: yes                 # enable dumping of tls fields
-            ssh: yes                 # enable dumping of ssh fields
-            smtp: yes                # enable dumping of smtp fields
+            #payload: yes             # enable dumping payload in Base64
+            #payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
+            #payload-printable: yes   # enable dumping payload in printable (lossy) format
+            #packet: yes              # enable dumping of packet (without stream segments)
+            #http-body: yes           # enable dumping of http body in Base64
+            #http-body-printable: yes # enable dumping of http body in printable format
+
+            # metadata:
+
+              # Include the decoded application layer (ie. http, dns)
+              #app-layer: true
+
+              # Log the the current state of the flow record.
+              #flow: true
+
+              #rule:
+                # Log the metadata field from the rule in a structured
+                # format.
+                #metadata: true
+
+                # Log the raw rule text.
+                #raw: false
 
 DNS
 ~~~
@@ -198,7 +109,7 @@ YAML::
             extended: yes     # enable this for extended logging information
             # custom allows to control which tls fields that are included
             # in eve-log
-            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain]
+            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3]
 
 The default is to log certificate subject and issuer. If ``extended`` is
 enabled, then the log gets more verbose.
@@ -219,6 +130,8 @@ It is possible to use date modifiers in the eve-log filename.
 The example above adds epoch time to the filename. All the date modifiers from the
 C library should be supported. See the man page for ``strftime`` for all supported
 modifiers.
+
+.. _output_eve_rotate:
 
 Rotate log file
 ~~~~~~~~~~~~~~~
@@ -354,3 +267,71 @@ Several flags can be specified to control the JSON output in EVE:
           escape-slash: yes
 
 All these flags are enabled by default, and can be modified per EVE instance.
+
+Community Flow ID
+~~~~~~~~~~~~~~~~~
+
+Often Suricata is used in combination with other tools like Bro/Zeek. Enabling
+the community-id option in the eve-log section adds a new ``community_id``
+field to each output.
+
+Example::
+
+    {
+      "timestamp": "2003-12-16T13:21:44.891921+0000",
+      "flow_id": 1332028388187153,
+      "pcap_cnt": 1,
+      "event_type": "alert",
+      ...
+      "community_id": "1:LQU9qZlK+B5F3KDmev6m5PMibrg=",
+      "alert": {
+        "action": "allowed",
+        "gid": 1,
+        "signature_id": 1,
+      },
+    }
+    {
+      "timestamp": "2003-12-16T13:21:45.037333+0000",
+      "flow_id": 1332028388187153,
+      "event_type": "flow",
+      "flow": {
+        "pkts_toserver": 5,
+        "pkts_toclient": 4,
+        "bytes_toserver": 338,
+        "bytes_toclient": 272,
+        "start": "2003-12-16T13:21:44.891921+0000",
+        "end": "2003-12-16T13:21:45.346457+0000",
+        "age": 1,
+        "state": "closed",
+        "reason": "shutdown",
+        "alerted": true
+      },
+      "community_id": "1:LQU9qZlK+B5F3KDmev6m5PMibrg=",
+    }
+
+Options
+"""""""
+
+The output can be enabled per instance of the EVE logger.
+
+The ``community-id`` option is boolean. If set to ``true`` it is enabled.
+The ``community-id-seed`` option specifies a unsigned 16 bit value that
+is used a seed to the hash that is calculated for the ``community-id``
+output. This must be set to the same value on all tools that output this
+record.
+
+YAML::
+
+  - eve-log:
+      # Community Flow ID
+      # Adds a 'community_id' field to EVE records. These are meant to give
+      # a records a predictable flow id that can be used to match records to
+      # output of other tools such as Bro.
+      #
+      # Takes a 'seed' that needs to be same across sensors and tools
+      # to make the id less predictable.
+
+      # enable/disable the community id feature.
+      community-id: false
+      # Seed value for the ID output. Valid values are 0-65535.
+      community-id-seed: 0

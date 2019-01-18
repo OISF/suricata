@@ -14,13 +14,13 @@ Max-pending-packets
 -------------------
 
 With the max-pending-packets setting you can set the number of packets
-you allow Suricata to process simultaneously.  This can range from one
-packet to tens of thousands/hundreds of thousands of packets.  It is a
+you allow Suricata to process simultaneously. This can range from one
+packet to tens of thousands/hundreds of thousands of packets. It is a
 trade of higher performance and the use of more memory (RAM), or lower
 performance and less use of memory. A high number of packets being
 processed results in a higher performance and the use of more
 memory. A low number of packets, results in lower performance and less
-use of memory.  Choosing a low number of packets being processed while
+use of memory. Choosing a low number of packets being processed while
 having many CPU's/CPU cores, can result in not making use of the whole
 computer-capacity. (For instance: using one core while having three
 waiting for processing packets.)
@@ -66,6 +66,24 @@ It is possible to set the user and group to run Suricata as:
     group: suri
 
 
+PID File
+--------
+
+This option sets the name of the PID file when Suricata is run in
+daemon mode. This file records the Suricata process ID.
+
+::
+
+   pid-file: /var/run/suricata.pid
+
+.. note:: This configuration file option only sets the PID file when
+          running in daemon mode. To force creation of a PID file when
+          not running in daemon mode, use the :option:`--pidfile`
+          command line option.
+
+	  Also, if running more than one Suricata process, each
+	  process will need to specify a different pid-file location.
+
 .. _suricata-yaml-action-order:
 
 Action-order
@@ -73,7 +91,7 @@ Action-order
 
 All signatures have different properties. One of those is the Action
 property. This one determines what will happen when a signature
-matches.  There are four types of Action. A summary of what will
+matches. There are four types of Action. A summary of what will
 happen when a signature matches and contains one of those Actions:
 
 1) Pass
@@ -84,9 +102,9 @@ packet).
 
 2) Drop
 
-This only concerns the IPS/inline mode.  If the program finds a
+This only concerns the IPS/inline mode. If the program finds a
 signature that matches, containing drop, it stops immediately. The
-packet will not be sent any further.  Drawback: The receiver does not
+packet will not be sent any further. Drawback: The receiver does not
 receive a message of what is going on, resulting in a time-out
 (certainly with TCP). Suricata generates an alert for this packet.
 
@@ -131,7 +149,7 @@ Splitting configuration in multiple files
 -----------------------------------------
 
 Some users might have a need or a wish to split their suricata.yaml
-file in to seperate files, this is available vis the 'include' and
+file in to separate files, this is available vis the 'include' and
 '!include' keyword. The first example is of taking the contents of the
 outputs section and storing them in outputs.yaml
 
@@ -209,6 +227,8 @@ with the -l command line parameter, enter the following:
 
   suricata -c suricata.yaml -i eth0 -l /var/log/suricata-logs/
 
+.. _suricata_yaml_outputs:
+
 Outputs
 ~~~~~~~
 
@@ -217,7 +237,7 @@ There are several types of output. The general structure is:
 ::
 
   outputs:
-   -fast:
+    - fast:
       enabled: yes
       filename: fast.log
       append: yes/no
@@ -228,7 +248,7 @@ the use of more disc space, so enable only the outputs you need.
 Line based alerts log (fast.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This log contains alerts consisting of a single line.  Example of the
+This log contains alerts consisting of a single line. Example of the
 appearance of a single fast.log-file line:
 
 ::
@@ -245,123 +265,21 @@ appearance of a single fast.log-file line:
      append: yes/no         #If this option is set to yes, the last filled fast.log-file will not be
                             #overwritten while restarting Suricata.
 
+.. _suricata-yaml-outputs-eve:
+
 Eve (Extensible Event Format)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is an JSON output for alerts and events. It allows for easy
 integration with 3rd party tools like logstash.
 
-::
-
-  # Extensible Event Format (nicknamed EVE) event log in JSON format
-  - eve-log:
-      enabled: yes
-      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
-      filename: eve.json
-      #prefix: "@cee: " # prefix to prepend to each log entry
-      # the following are valid when type: syslog above
-      #identity: "suricata"
-      #facility: local5
-      #level: Info ## possible levels: Emergency, Alert, Critical,
-                   ## Error, Warning, Notice, Info, Debug
-      #redis:
-      #  server: 127.0.0.1
-      #  port: 6379
-      #  async: true ## if redis replies are read asynchronously
-      #  mode: list ## possible values: list (default), channel
-      #  key: suricata ## key or channel to use (default to suricata)
-      # Redis pipelining set up. This will enable to only do a query every
-      # 'batch-size' events. This should lower the latency induced by network
-      # connection at the cost of some memory. There is no flushing implemented
-      # so this setting as to be reserved to high traffic suricata.
-      #  pipelining:
-      #    enabled: yes ## set enable to yes to enable query pipelining
-      #    batch-size: 10 ## number of entry to keep in buffer
-      types:
-        - alert:
-            # payload: yes             # enable dumping payload in Base64
-            # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
-            # payload-printable: yes   # enable dumping payload in printable (lossy) format
-            # packet: yes              # enable dumping of packet (without stream segments)
-            http: yes                # enable dumping of http fields
-            tls: yes                 # enable dumping of tls fields
-            ssh: yes                 # enable dumping of ssh fields
-            smtp: yes                # enable dumping of smtp fields
-
-            # Enable the logging of tagged packets for rules using the
-            # "tag" keyword.
-            tagged-packets: yes
-
-            # HTTP X-Forwarded-For support by adding an extra field or overwriting
-            # the source or destination IP address (depending on flow direction)
-            # with the one reported in the X-Forwarded-For HTTP header. This is
-            # helpful when reviewing alerts for traffic that is being reverse
-            # or forward proxied.
-            xff:
-              enabled: no
-              # Two operation modes are available, "extra-data" and "overwrite".
-              mode: extra-data
-              # Two proxy deployments are supported, "reverse" and "forward". In
-              # a "reverse" deployment the IP address used is the last one, in a
-              # "forward" deployment the first IP address is used.
-              deployment: reverse
-              # Header name where the actual IP address will be reported, if more
-              # than one IP address is present, the last IP address will be the
-              # one taken into consideration.
-              header: X-Forwarded-For
-        - http:
-            extended: yes     # enable this for extended logging information
-            # custom allows additional http fields to be included in eve-log
-            # the example below adds three additional fields when uncommented
-            #custom: [Accept-Encoding, Accept-Language, Authorization]
-        - dns:
-            # control logging of queries and answers
-            # default yes, no to disable
-            query: yes     # enable logging of DNS queries
-            answer: yes    # enable logging of DNS answers
-            # control which RR types are logged
-            # all enabled if custom not specified
-            #custom: [a, aaaa, cname, mx, ns, ptr, txt]
-        - tls:
-            extended: yes     # enable this for extended logging information
-            # output TLS transaction where the session is resumed using a
-            # session id
-            #session-resumption: no
-        - files:
-            force-magic: no   # force logging magic on all logged files
-            # force logging of checksums, available hash functions are md5,
-            # sha1 and sha256
-            #force-hash: [md5]
-        #- drop:
-        #    alerts: yes      # log alerts that caused drops
-        #    flows: all       # start or all: 'start' logs only a single drop
-        #                     # per flow direction. All logs each dropped pkt.
-        - smtp:
-            #extended: yes # enable this for extended logging information
-            # this includes: bcc, message-id, subject, x_mailer, user-agent
-            # custom fields logging from the list:
-            #  reply-to, bcc, message-id, subject, x-mailer, user-agent, received,
-            #  x-originating-ip, in-reply-to, references, importance, priority,
-            #  sensitivity, organization, content-md5, date
-            #custom: [received, x-mailer, x-originating-ip, relays, reply-to, bcc]
-            # output md5 of fields: body, subject
-            # for the body you need to set app-layer.protocols.smtp.mime.body-md5
-            # to yes
-            #md5: [body, subject]
-
-        - ssh
-        - stats:
-            totals: yes       # stats for all threads merged together
-            threads: no       # per thread stats
-            deltas: no        # include delta values
-        # bi-directional flows
-        - flow
-        # uni-directional flows
-        #- netflow
+.. literalinclude:: ../partials/eve-log.yaml
 
 For more advanced configuration options, see :ref:`Eve JSON Output <eve-json-output>`.
 
 The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
+
+.. _suricata_yaml_unified2:
 
 Alert output for use with Barnyard2 (unified2.alert)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -398,7 +316,7 @@ This output supports IPv6 and IPv4 events.
 
       # By default unified2 log files have the file creation time (in
       # unix epoch format) appended to the filename. Set this to yes to
-      # disable this behaviour.
+      # disable this behavior.
       #nostamp: no
 
       # Sensor ID field of unified2 alerts.
@@ -475,7 +393,7 @@ server, ttl, resource record data. This logging can also be performed
 through the use of the :ref:`Eve-log capability <eve-json-format>` which
 offers easier parsing.
 
-Example of the apperance of a DNS log of a query with a preceding reply:
+Example of the appearance of a DNS log of a query with a preceding reply:
 
 ::
 
@@ -503,6 +421,8 @@ Configuration options:
       append: yes                 # If this option is set to yes, the (if any exists) dns.log file wil not be overwritten while restarting Suricata.
       filetype: regular / unix_stream / unix_dgram
 
+.. _suricata_yaml_pcap_log:
+
 Packet log (pcap-log)
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -521,9 +441,9 @@ The pcap-log option can be enabled and disabled.
 
 There is a size limit for the pcap-log file that can be set. The
 default limit is 32 MB. If the log-file reaches this limit, the file
-will be rotated and a new one will be created.  The pcap-log option
+will be rotated and a new one will be created. The pcap-log option
 has an extra functionality for "Sguil":http://sguil.sourceforge.net/
-that can be enabled in the 'mode' option.  In the sguil mode the
+that can be enabled in the 'mode' option. In the sguil mode the
 "sguil_base_dir" indicates the base directory. In this base dir the
 pcaps are created in a Sguil-specific directory structure that is
 based on the day:
@@ -536,6 +456,14 @@ If you would like to use Suricata with Sguil, do not forget to enable
 (and if necessary modify) the base dir in the suricata.yaml file.
 Remember that in the 'normal' mode, the file will be saved in
 default-log-dir or in the absolute path (if set).
+
+The pcap files can be compressed before being written to disk by setting
+the compression option to lz4. This option is incompatible with sguil
+mode. Note: On Windows, this option increases disk I/O instead of
+reducing it. When using lz4 compression, you can enable checksums using
+the lz4-checksum option, and you can set the compression level lz4-level
+to a value between 0 and 16, where higher levels result in higher
+compression.
 
 By default all packets are logged except:
 
@@ -616,7 +544,7 @@ want the output-data to be written to the log file.
 
   - stats:
        enabled: yes               #By default, the stats-option is enabled
-       filename: stats.log        #The log-name. Combined with the  default logging directory
+       filename: stats.log        #The log-name. Combined with the default logging directory
                                   #(default-log-dir) it will result in /var/log/suricata/stats.log.
                                   #This directory can be overruled with a absolute path. (A
                                   #directory starting with / ).
@@ -653,13 +581,59 @@ a Netfilter log format.
        append: yes               #If this option is set to yes, the last filled drop.log-file will not be
                                   #overwritten while restarting Suricata. If set to 'no' the last filled drop.log file will be overwritten.
 
+.. _suricata-yaml-file-store:
+
+File-store (File Extraction)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `file-store` output enables storing of extracted files to disk and
+configures where they are stored.
+
+The following shows the configuration options for version 2 of the
+`file-store` output.
+
+.. code-block:: yaml
+
+  - file-store:
+      # This configures version 2 of the file-store.
+      version: 2
+
+      enabled: no
+
+      # Set the directory for the filestore. If the path is not
+      # absolute will be be relative to the default-log-dir.
+      #dir: filestore
+
+      # Write out a fileinfo record for each occurrence of a
+      # file. Disabled by default as each occurrence is already logged
+      # as a fileinfo record to the main eve-log.
+      #write-fileinfo: yes
+
+      # Force storing of all files. Default: no.
+      #force-filestore: yes
+
+      # Override the global stream-depth for sessions in which we want
+      # to perform file extraction. Set to 0 for unlimited.
+      #stream-depth: 0
+
+      # Uncomment the following variable to define how many files can
+      # remain open for filestore by Suricata. Default value is 0 which
+      # means files get closed after each write
+      #max-open-files: 1000
+
+      # Force logging of checksums, available hash functions are md5,
+      # sha1 and sha256. Note that SHA256 is automatically forced by
+      # the use of this output module as it uses the SHA256 as the
+      # file naming scheme.
+      #force-hash: [sha1, md5]
+
 Detection engine
 ----------------
 
 Inspection configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The detection-engine builds internal groups of signatures. Suricata loads signatures, with which the network traffic will be compared. The fact is, that many rules certainly will not be necessary. (For instance: if there appears a packet with the UDP-protocol, all signatures for the TCP-protocol won't be needed.)  For that reason, all signatures will be divided in groups. However, a distribution containing many groups will make use of a lot of memory. Not every type of signature gets its own group. There is a possibility that different signatures with several properties in common, will be placed together in a group.  The quantity of groups will determine the balance between memory and performance. A small amount of groups will lower the performance yet uses little memory. The opposite counts for a higher amount of groups. The engine allows you to manage the balance between memory and performance. To manage this, (by determining the amount of groups) there are several general options:high for good performance and more use of memory, low for low performance and little use of memory. The option medium is the balance between performance and memory usage. This is the default setting.The option custom is for advanced users. This option has values which can be managed by the user.
+The detection-engine builds internal groups of signatures. Suricata loads signatures, with which the network traffic will be compared. The fact is, that many rules certainly will not be necessary. (For instance: if there appears a packet with the UDP-protocol, all signatures for the TCP-protocol won't be needed.) For that reason, all signatures will be divided in groups. However, a distribution containing many groups will make use of a lot of memory. Not every type of signature gets its own group. There is a possibility that different signatures with several properties in common, will be placed together in a group. The quantity of groups will determine the balance between memory and performance. A small amount of groups will lower the performance yet uses little memory. The opposite counts for a higher amount of groups. The engine allows you to manage the balance between memory and performance. To manage this, (by determining the amount of groups) there are several general options: high for good performance and more use of memory, low for low performance and little use of memory. The option medium is the balance between performance and memory usage. This is the default setting. The option custom is for advanced users. This option has values which can be managed by the user.
 
 ::
 
@@ -671,13 +645,13 @@ The detection-engine builds internal groups of signatures. Suricata loads signat
     sgh-mpm-context: auto
     inspection-recursion-limit: 3000
 
-At all of these options, you can add (or change) a value.  Most
+At all of these options, you can add (or change) a value. Most
 signatures have the adjustment to focus on one direction, meaning
 focusing exclusively on the server, or exclusively on the client.
 
 If you take a look at example 4, *the Detection-engine grouping tree*,
 you see it has many branches. At the end of each branch, there is
-actually a 'sig group head'.  Within that sig group head there is a
+actually a 'sig group head'. Within that sig group head there is a
 container which contains a list with signatures that are significant
 for that specific group/that specific end of the branch. Also within
 the sig group head the settings for Multi-Pattern-Matcher (MPM) can be
@@ -694,7 +668,7 @@ For setting the option sgh-mpm-context, you can choose from auto, full
 or single. The default setting is 'auto', meaning Suricata selects
 full or single based on the algorithm you use. 'Full' means that every
 group has its own MPM-context, and 'single' that all groups share one
-MPM-context.  The two algorithms ac and ac-gfbs are new in 1.03. These
+MPM-context. The two algorithms ac and ac-gfbs are new in 1.03. These
 algorithms use a single MPM-context if the Sgh-MPM-context setting is
 'auto'. The rest of the algorithms use full in that case.
 
@@ -761,69 +735,6 @@ To let Suricata make these decisions set default to 'auto':
       default: auto
 
 
-CUDA (Compute United Device Architecture)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Suricata utilizes CUDA for offloading CPU intensive tasks to the
-(NVIDIA) GPU (graphics processing unit). Suricata supports an
-experimental multi-pattern-matcher using CUDA.  Only if you have
-compiled Suricata with CUDA (by entering --enable-cuda in the
-configure stage) you can make use of these features.  There are
-several options for CUDA.  The option 'packet_buffer_limit' designates
-how many packets will be send to the GPU at the same time. Suricata
-sends packets in 'batches', meaning it sends multiple packets at
-once. As soon as Suricata has collected the amount of packets set in
-the 'packet_buffer_limit' option, it sends them to the GPU. The
-default amount of packets is 2400.
-
-The option 'packet_size_limit' makes sure that packets with payloads
-bigger than a certain amount of bytes will not be send to the
-GPU. Other packets will be send to the GPU. The default setting is
-1500 bytes.
-
-The option 'packet_buffers' designates the amount of buffers that will
-be filled with packets and will be processed. Buffers contain the
-batches of packets. During the time these filled buffers are being
-processed, new buffers will be filled.
-
-The option 'batching_timeout' can have all values higher than 0. If a
-buffers is not fully filled after a period of time (set in this option
-'batching_timeout'), the buffer will be send to the GPU anyway.
-
-The option 'page_locked' designates whether the page locked memory
-will or will not be used. The advantage of page locked memory is that
-it can not be swapped out to disk. You would not want your computer to
-use your hard disk for Suricata, because it lowers the performance a
-lot. In this option you can set whether you still want this for CUDA
-or not.
-
-The option 'device_id' is an option within CUDA to determine which GPU
-should be turned to account.(If there is only one GPU present at your
-computer, there is no benefit making use of the 'device-id' option.)
-To detect the id of your GPU's, enter the following in your command
-line:
-
-::
-
-  suricata --list-cuda-cards
-
-With the option 'cuda_streams' you can determine how many cuda-streams
-should be used for asynchronous processing. All values > 0 are
-valid. For this option you need a device with Compute Capability > 1.0
-and page_locked enabled to have any effect.
-
-::
-
-  cuda:
-    -mpm:
-       packet_buffer_limit: 2400
-       packet_size_limit: 1500
-       packet_buffers: 10
-       batching_timeout: 1
-       page_locked: enabled
-       device_id: 0
-       cuda_streams: 2
-
 Pattern matcher settings
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -838,7 +749,7 @@ These are the proceedings:
 
 1)A packet comes in.
 
-2)The packed will be analysed by the Multi-pattern-matcher in search
+2)The packed will be analyzed by the Multi-pattern-matcher in search
   of patterns that match.
 
 3)All patterns that match, will be further processed by Suricata (signatures).
@@ -879,7 +790,7 @@ used with the final step of the pattern matcher, namely the validation
 of the pattern. For this option the same counts as for the hash-size
 option: setting it to low will cause lower memory usage, but lowers
 the performance. The opposite counts for a high setting of the
-bf_size: higher memory usage, but (generally) higher performance.  The
+bf_size: higher memory usage, but (generally) higher performance. The
 bloom-filter sizes can vary from low (512) - medium (1024) - high
 (2048).
 
@@ -948,13 +859,13 @@ There is an option within threading:
   set-cpu-affinity: no
 
 With this option you can cause Suricata setting fixed cores for every
-thread.  In that case 1, 2 and 4 are at core 0 (zero).  Each core has
+thread. In that case 1, 2 and 4 are at core 0 (zero). Each core has
 its own detect thread. The detect thread running on core 0 has a lower
 priority than the other threads running on core 0. If these other
 cores are to occupied, the detect thread on core 0 has not much
-packets to process. De detect threads running on other cores will
-process more packets.  This is only the case after setting the option
-at 'yes'.
+packets to process. The detect threads running on other cores will
+process more packets. This is only the case after setting the option
+to 'yes'.
 
 *Example 7	Balancing workload*
 
@@ -975,23 +886,21 @@ waited for a detection thread. The remaining detection thread can
 become active.
 
 
-In the option 'cpu affinity' you can set which CPU's/cores work on
-which thread. In this option there are several sets of threads. The
-management-, receive-, decode-, stream-, detect-, verdict-, reject-
-and outputs-set. These are fixed names and can not be changed. For
-each set there are several options: cpu, mode, and prio.  In the
-option 'cpu' you can set the numbers of the CPU's/cores which will run
-the threads from that set. You can set this option to 'all', use a
-range (0-3) or a comma separated list (0,1).  The option 'mode' can be
-set to 'balanced' or 'exclusive'. When set to 'balanced', the
-individual threads can be processed by all cores set in the option
-'cpu'. If the option 'mode' is set to 'exclusive', there will be fixed
-cores for each thread.  As mentioned before, threads can have
-different priority's. In the option 'prio' you can set a priority for
-each thread. This priority can be low, medium, high or you can set the
-priority to 'default'. If you do not set a priority for a CPU, than
-the settings in 'default' will count.  By default Suricata creates one
-'detect' thread per available CPU/CPU core.
+In the option 'cpu affinity' you can set which CPU's/cores work on which
+thread. In this option there are several sets of threads. The management-,
+receive-, worker- and verdict-set. These are fixed names and can not be
+changed. For each set there are several options: cpu, mode, and prio. In the
+option 'cpu' you can set the numbers of the CPU's/cores which will run the
+threads from that set. You can set this option to 'all', use a range (0-3) or a
+comma separated list (0,1).  The option 'mode' can be set to 'balanced' or
+'exclusive'. When set to 'balanced', the individual threads can be processed by
+all cores set in the option 'cpu'. If the option 'mode' is set to 'exclusive',
+there will be fixed cores for each thread. As mentioned before, threads can
+have different priority's. In the option 'prio' you can set a priority for each
+thread. This priority can be low, medium, high or you can set the priority to
+'default'. If you do not set a priority for a CPU, than the settings in
+'default' will count. By default Suricata creates one 'detect' (worker) thread
+per available CPU/CPU core.
 
 ::
 
@@ -1000,14 +909,9 @@ the settings in 'default' will count.  By default Suricata creates one
           cpu: [ 0 ]  # include only these cpus in affinity settings
       - receive-cpu-set:
           cpu: [ 0 ]  # include only these cpus in affinity settings
-      - decode-cpu-set:
-          cpu: [ 0, 1 ]
-          mode: "balanced"
-      - stream-cpu-set:
-          cpu: [ "0-1" ]
-      - detect-cpu-set:
+      - worker-cpu-set:
           cpu: [ "all" ]
-          mode: "exclusive" # run detect threads in these cpus
+          mode: "exclusive"
           # Use explicitely 3 threads and don't compute number by using
           # detect-thread-ratio variable:
           # threads: 3
@@ -1020,14 +924,6 @@ the settings in 'default' will count.  By default Suricata creates one
           cpu: [ 0 ]
           prio:
             default: "high"
-      - reject-cpu-set:
-          cpu: [ 0 ]
-          prio:
-            default: "low"
-      - output-cpu-set:
-          cpu: [ "all" ]
-          prio:
-             default: "medium"
 
 Relevant cpu-affinity settings for IDS/IPS modes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1038,13 +934,13 @@ IDS mode
 Runmode AutoFp::
 
 	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
-	recive-cpu-set - used for receive and decode
-	detect-cpu-set - used for streamtcp,detect,output(logging),reject
+	receive-cpu-set - used for receive and decode
+	worker-cpu-set - used for streamtcp,detect,output(logging),reject
 
 Rumode Workers::
 
 	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
-	detect-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject
+	worker-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject
 
 
 IPS mode
@@ -1053,14 +949,14 @@ IPS mode
 Runmode AutoFp::
 
 	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
-	recive-cpu-set - used for receive and decode
-	detect-cpu-set - used for streamtcp,detect,output(logging)
+	receive-cpu-set - used for receive and decode
+	worker-cpu-set - used for streamtcp,detect,output(logging)
 	verdict-cpu-set - used for verdict and respond/reject
 
 Runmode Workers::
 
 	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
-	detect-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject, verdict
+	worker-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject, verdict
 
 
 
@@ -1076,7 +972,7 @@ packet is reconstructed by the defragment-engine, the engine sends on
 the reassembled packet to rest of Suricata.
 
 There are three options within defrag: max-frags, prealloc and
-timeout.  At the moment Suricata receives a fragment of a packet, it
+timeout. At the moment Suricata receives a fragment of a packet, it
 keeps in memory that other fragments of that packet will appear soon
 to complete the packet. However, there is a possibility that one of
 the fragments does not appear. To prevent Suricata for keeping waiting
@@ -1101,7 +997,7 @@ Flow Settings
 
 Within Suricata, Flows are very important. They play a big part in the
 way Suricata organizes data internally. A flow is a bit similar to a
-connection, except a flow is more general.All packets having the same
+connection, except a flow is more general. All packets having the same
 Tuple (protocol, source IP, destination IP, source-port,
 destination-port), belong to the same flow. Packets belonging to a
 flow are connected to it internally.
@@ -1232,7 +1128,7 @@ exists of two parts: The stream tracking- and the reassembly-engine.
 
 The stream-tracking engine monitors the state of a connection. The
 reassembly-engine reconstructs the flow as it used to be, so it will
-be recognised by Suricata.
+be recognized by Suricata.
 
 The stream-engine has two memcaps that can be set. One for the
 stream-tracking-engine and one for the reassembly-engine.
@@ -1264,7 +1160,7 @@ started. This way, Suricata misses the original setup of those
 sessions. This setup always includes a lot of information. If you want
 Suricata to check the stream from that time on, you can do so by
 setting the option 'midstream' to 'true'. The default setting is
-'false'.  Normally Suricata is able to see all packets of a
+'false'. Normally Suricata is able to see all packets of a
 connection. Some networks make it more complicated though. Some of the
 network-traffic follows a different route than the other part, in
 other words: the traffic goes asynchronous. To make sure Suricata will
@@ -1515,7 +1411,7 @@ use of libhtp.
        # Apache does not do this, but IIS does. If enabled, a path such as
        # "/one%2ftwo" will be normalized to "/one/two". If the
        # backslash_separators option is also enabled, encoded backslash
-       # characters will be converted too (and subseqently normalized to
+       # characters will be converted too (and subsequently normalized to
        # forward slashes).  Accepted values - yes, no.
        #path-decode-separators: yes
 
@@ -1546,7 +1442,7 @@ use of libhtp.
        # path.  Accepted values - none, terminate, status_400, status_404.
        path-nul-raw-handling: none
 
-       # Sets the replacement characater that will be used to in the lossy
+       # Sets the replacement character that will be used to in the lossy
        # best-fit mapping from Unicode characters into single-byte streams.
        # The question mark is the default replacement character.
        #set-path-replacement-char: ?
@@ -1558,6 +1454,29 @@ use of libhtp.
        # probably be an option to convert such characters to UCS-2 or UTF-8.
        # Accepted values - bestfit, status_400 and status_404.
        #set-path-unicode-mapping: bestfit
+
+Configure SMB (Rust)
+~~~~~~~~~~~~~~~~~~~~
+
+.. note:: for full SMB support compile Suricata with Rust support
+
+The SMB parser will parse version 1, 2 and 3 of the SMB protocol over TCP.
+
+To enable the parser add the following to the ``app-layer`` section of the YAML.
+
+::
+
+    smb:
+      enabled: yes
+      detection-ports:
+        dp: 139, 445
+
+The parser uses pattern based protocol detection and will fallback to ``probing parsers``
+if the pattern based detection fails. As usual, the pattern based detection is port
+independent. The ``probing parsers`` will only run on the ``detection-ports``.
+
+SMB is commonly used to transfer the DCERPC protocol. This traffic is also handled by
+this parser.
 
 Engine output
 -------------
@@ -1609,7 +1528,7 @@ is the actual message.)
 
 It is possible to determine which information will be displayed in
 this line and (the manner how it will be displayed) in which format it
-will be displayed.  This option is the so called format string::
+will be displayed. This option is the so called format string::
 
   default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
 
@@ -1676,7 +1595,7 @@ Pf-ring
 ~~~~~~~
 
 The Pf_ring is a library that aims to improve packet capture
-performance over libcap. It performs packet acquisition.  There are
+performance over libcap. It performs packet acquisition. There are
 three options within Pf_ring: interface, cluster-id and cluster-type.
 
 ::
@@ -1799,7 +1718,7 @@ Rule-files
 For different categories of risk there are different rule-files
 available containing one or more rules. There is a possibility to
 instruct Suricata where to find these rules and which rules you want
-to be load for use.  You can set the directory where the files can be
+to be load for use. You can set the directory where the files can be
 found.
 
 ::
@@ -1973,7 +1892,7 @@ Engine-analysis
 ~~~~~~~~~~~~~~~
 
 The option engine-analysis provides information for signature writers
-about how Suricata organises signatures internally.
+about how Suricata organizes signatures internally.
 
 Like mentioned before, signatures have zero or more patterns on which
 they can match. Only one of these patterns will be used by the multi
@@ -2171,9 +2090,9 @@ in yaml.
 
 It is best to use runmode 'single' if you would like to profile the
 speed of the code.  When using a single thread, there is no situation
-in which two threads have to wait for each other . When using two
+in which two threads have to wait for each other. When using two
 threads, the time threads might have to wait for each other will be
-taken in account when/during profiling packets.  For more information
+taken in account when/during profiling packets. For more information
 see :doc:`../performance/packet-profiling`.
 
 Application layers
@@ -2196,29 +2115,47 @@ port independent.
       detection-ports:
         dp: 443
 
-      # Completely stop processing TLS/SSL session after the handshake
-      # completed. If bypass is enabled this will also trigger flow
-      # bypass. If disabled (the default), TLS/SSL session is still
-      # tracked for Heartbleed and other anomalies.
-      #no-reassemble: yes
+      # What to do when the encrypted communications start:
+      # - default: keep tracking TLS session, check for protocol anomalies,
+      #            inspect tls_* keywords. Disables inspection of unmodified
+      #            'content' signatures.
+      # - bypass:  stop processing this flow as much as possible. No further
+      #            TLS parsing and inspection. Offload flow bypass to kernel
+      #            or hardware if possible.
+      # - full:    keep tracking and inspection as normal. Unmodified content
+      #            keyword signatures are inspected as well.
+      #
+      # For best performance, select 'bypass'.
+      #
+      #encrypt-handling: default
+
 
 Encrypted traffic
 ^^^^^^^^^^^^^^^^^
 
 There is no decryption of encrypted traffic, so once the handshake is complete
-continued tracking of the session is of limited use. The ``no-reassemble``
-option controls the behaviour after the handshake.
+continued tracking of the session is of limited use. The ``encrypt-handling``
+option controls the behavior after the handshake.
 
-If ``no-reassemble`` is set to ``true``, all processing of this session is
-stopped. No further parsing and inspection happens. If ``bypass`` is enabled
-this will lead to the flow being bypassed, either inside Suricata or by the
-capture method if it supports it.
-
-If ``no-reassemble`` is set to ``false``, which is the default, Suricata will
-continue to track the SSL/TLS session. Inspection will be limited, as
-``content`` inspection will still be disabled. There is no point in doing
+If ``encrypt-handling`` is set to ``default`` (or if the option is not set),
+Suricata will continue to track the SSL/TLS session. Inspection will be limited,
+as raw ``content`` inspection will still be disabled. There is no point in doing
 pattern matching on traffic known to be encrypted. Inspection for (encrypted)
 Heartbleed and other protocol anomalies still happens.
+
+When ``encrypt-handling`` is set to ``bypass``, all processing of this session is
+stopped. No further parsing and inspection happens. If ``stream.bypass`` is enabled
+this will lead to the flow being bypassed, either inside Suricata or by the
+capture method if it supports it and is configured for it.
+
+Finally, if ``encrypt-handling`` is set to ``full``, Suricata will process the
+flow as normal, without inspection limitations or bypass.
+
+The option has replaced the ``no-reassemble`` option. If ``no-reassemble`` is
+present, and ``encrypt-handling`` is not, ``false`` is intepreted as
+``encrypt-handling: default`` and ``true`` is interpreted as
+``encrypt-handling: bypass``.
+
 
 Modbus
 ~~~~~~
@@ -2234,6 +2171,23 @@ unlimited.
       modbus:
         # Stream reassembly size for modbus, default is 0
         stream-depth: 0
+
+Decoder
+-------
+
+Teredo
+~~~~~~
+
+The Teredo decoder can be disabled. It is enabled by default.
+
+::
+
+    decoder:
+      # Teredo decoder is known to not be completely accurate
+      # it will sometimes detect non-teredo as teredo.
+      teredo:
+        enabled: true
+
 
 Advanced Options
 ----------------

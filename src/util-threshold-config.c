@@ -33,6 +33,7 @@
 #include "suricata-common.h"
 
 #include "host.h"
+#include "ippair.h"
 
 #include "detect.h"
 #include "detect-engine.h"
@@ -68,7 +69,7 @@ static FILE *g_ut_threshold_fp = NULL;
 #define DETECT_THRESHOLD_REGEX "^,\\s*type\\s*(limit|both|threshold)\\s*,\\s*track\\s*(by_dst|by_src)\\s*,\\s*count\\s*(\\d+)\\s*,\\s*seconds\\s*(\\d+)\\s*$"
 
 /* TODO: "apply_to" */
-#define DETECT_RATE_REGEX "^,\\s*track\\s*(by_dst|by_src|by_rule)\\s*,\\s*count\\s*(\\d+)\\s*,\\s*seconds\\s*(\\d+)\\s*,\\s*new_action\\s*(alert|drop|pass|log|sdrop|reject)\\s*,\\s*timeout\\s*(\\d+)\\s*$"
+#define DETECT_RATE_REGEX "^,\\s*track\\s*(by_dst|by_src|by_both|by_rule)\\s*,\\s*count\\s*(\\d+)\\s*,\\s*seconds\\s*(\\d+)\\s*,\\s*new_action\\s*(alert|drop|pass|log|sdrop|reject)\\s*,\\s*timeout\\s*(\\d+)\\s*$"
 
 /*
  * suppress has two form:
@@ -98,6 +99,93 @@ static pcre *regex_suppress = NULL;
 static pcre_extra *regex_suppress_study = NULL;
 
 static void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd);
+
+void SCThresholdConfGlobalInit(void)
+{
+    const char *eb = NULL;
+    int eo;
+    int opts = 0;
+
+    regex_base = pcre_compile(DETECT_BASE_REGEX, opts, &eb, &eo, NULL);
+    if (regex_base == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_BASE_REGEX, eo, eb);
+    }
+
+    regex_base_study = pcre_study(regex_base, 0, &eb);
+    if (eb != NULL) {
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+    }
+
+    regex_threshold = pcre_compile(DETECT_THRESHOLD_REGEX, opts, &eb, &eo, NULL);
+    if (regex_threshold == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_THRESHOLD_REGEX, eo, eb);
+    }
+
+    regex_threshold_study = pcre_study(regex_threshold, 0, &eb);
+    if (eb != NULL) {
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+    }
+
+    regex_rate = pcre_compile(DETECT_RATE_REGEX, opts, &eb, &eo, NULL);
+    if (regex_rate == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_RATE_REGEX, eo, eb);
+    }
+
+    regex_rate_study = pcre_study(regex_rate, 0, &eb);
+    if (eb != NULL) {
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+    }
+
+    regex_suppress = pcre_compile(DETECT_SUPPRESS_REGEX, opts, &eb, &eo, NULL);
+    if (regex_suppress == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_SUPPRESS_REGEX, eo, eb);
+    }
+
+    regex_suppress_study = pcre_study(regex_suppress, 0, &eb);
+    if (eb != NULL) {
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+    }
+
+}
+
+void SCThresholdConfGlobalFree(void)
+{
+    if (regex_base != NULL) {
+        pcre_free(regex_base);
+        regex_base = NULL;
+    }
+    if (regex_base_study != NULL) {
+        pcre_free(regex_base_study);
+        regex_base_study = NULL;
+    }
+
+    if (regex_threshold != NULL) {
+        pcre_free(regex_threshold);
+        regex_threshold = NULL;
+    }
+    if (regex_threshold_study != NULL) {
+        pcre_free(regex_threshold_study);
+        regex_threshold_study = NULL;
+    }
+
+    if (regex_rate != NULL) {
+        pcre_free(regex_rate);
+        regex_rate = NULL;
+    }
+    if (regex_rate_study != NULL) {
+        pcre_free(regex_rate_study);
+        regex_rate_study = NULL;
+    }
+
+    if (regex_suppress != NULL) {
+        pcre_free(regex_suppress);
+        regex_suppress = NULL;
+    }
+    if (regex_suppress_study != NULL) {
+        pcre_free(regex_suppress_study);
+        regex_suppress_study = NULL;
+    }
+}
 
 /**
  * \brief Returns the path for the Threshold Config file.  We check if we
@@ -149,9 +237,6 @@ static const char *SCThresholdConfGetConfFilename(const DetectEngineCtx *de_ctx)
 int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 {
     const char *filename = NULL;
-    const char *eb = NULL;
-    int eo;
-    int opts = 0;
 #ifndef UNITTESTS
     FILE *fd = NULL;
 #else
@@ -166,54 +251,6 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 #ifdef UNITTESTS
     }
 #endif
-
-    regex_base = pcre_compile(DETECT_BASE_REGEX, opts, &eb, &eo, NULL);
-    if (regex_base == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_BASE_REGEX, eo, eb);
-        goto error;
-    }
-
-    regex_base_study = pcre_study(regex_base, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    regex_threshold = pcre_compile(DETECT_THRESHOLD_REGEX, opts, &eb, &eo, NULL);
-    if (regex_threshold == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_THRESHOLD_REGEX, eo, eb);
-        goto error;
-    }
-
-    regex_threshold_study = pcre_study(regex_threshold, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    regex_rate = pcre_compile(DETECT_RATE_REGEX, opts, &eb, &eo, NULL);
-    if (regex_rate == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_RATE_REGEX, eo, eb);
-        goto error;
-    }
-
-    regex_rate_study = pcre_study(regex_rate, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    regex_suppress = pcre_compile(DETECT_SUPPRESS_REGEX, opts, &eb, &eo, NULL);
-    if (regex_suppress == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_SUPPRESS_REGEX, eo, eb);
-        goto error;
-    }
-
-    regex_suppress_study = pcre_study(regex_suppress, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
 
     SCThresholdConfParseFile(de_ctx, fd);
     SCThresholdConfDeInitContext(de_ctx, fd);
@@ -239,43 +276,6 @@ static void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
 {
     if (fd != NULL)
         fclose(fd);
-
-    if (regex_base != NULL) {
-        pcre_free(regex_base);
-        regex_base = NULL;
-    }
-    if (regex_base_study != NULL) {
-        pcre_free(regex_base_study);
-        regex_base_study = NULL;
-    }
-
-    if (regex_threshold != NULL) {
-        pcre_free(regex_threshold);
-        regex_threshold = NULL;
-    }
-    if (regex_threshold_study != NULL) {
-        pcre_free(regex_threshold_study);
-        regex_threshold_study = NULL;
-    }
-
-    if (regex_rate != NULL) {
-        pcre_free(regex_rate);
-        regex_rate = NULL;
-    }
-    if (regex_rate_study != NULL) {
-        pcre_free(regex_rate_study);
-        regex_rate_study = NULL;
-    }
-
-    if (regex_suppress != NULL) {
-        pcre_free(regex_suppress);
-        regex_suppress = NULL;
-    }
-    if (regex_suppress_study != NULL) {
-        pcre_free(regex_suppress_study);
-        regex_suppress_study = NULL;
-    }
-
     return;
 }
 
@@ -902,9 +902,6 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                 goto error;
             }
             break;
-        default:
-            SCLogError(SC_ERR_PCRE_MATCH, "unable to find rule type for string %s", rawstr);
-            goto error;
     }
 
     switch (rule_type) {
@@ -916,6 +913,9 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                 parsed_track = TRACK_DST;
             else if (strcasecmp(th_track,"by_src") == 0)
                 parsed_track = TRACK_SRC;
+            else if (strcasecmp(th_track, "by_both") == 0) {
+                parsed_track = TRACK_BOTH;
+            }
             else if (strcasecmp(th_track,"by_rule") == 0)
                 parsed_track = TRACK_RULE;
             else {
@@ -1005,7 +1005,7 @@ static int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx
     uint32_t parsed_seconds = 0;
     uint32_t parsed_timeout = 0;
     const char *th_ip = NULL;
-    uint32_t id, gid;
+    uint32_t id = 0, gid = 0;
 
     int r = 0;
     r = ParseThresholdRule(de_ctx, rawstr, &id, &gid, &parsed_type, &parsed_track,
@@ -1094,97 +1094,36 @@ static int SCThresholdConfLineIsMultiline(char *line)
 }
 
 /**
- * \brief Get the config line length to allocate the buffer needed
- *
- * \param fd Pointer to file descriptor.
- * \retval int of the line length
- */
-static int SCThresholdConfLineLength(FILE *fd)
-{
-    long pos = ftell(fd);
-    int len = 0;
-    int c;
-
-    while ( (c = fgetc(fd)) && (char)c != '\n' && c != EOF && !feof(fd))
-        len++;
-
-    if (pos < 0)
-        pos = 0;
-
-    if (fseek(fd, pos, SEEK_SET) < 0) {
-        SCLogError(SC_ERR_THRESHOLD_SETUP, "threshold fseek failure: %s",
-                strerror(errno));
-        return -1;
-    }
-    return len;
-}
-
-/**
  * \brief Parses the Threshold Config file
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  * \param fd Pointer to file descriptor.
  */
-void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
+void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
 {
-    char *line = NULL;
-    int len = 0;
+    char line[8192] = "";
     int rule_num = 0;
 
     /* position of "\", on multiline rules */
     int esc_pos = 0;
 
-    if (fd == NULL)
+    if (fp == NULL)
         return;
 
-    while (!feof(fd)) {
-        len = SCThresholdConfLineLength(fd);
+    while (fgets(line + esc_pos, (int)sizeof(line) - esc_pos, fp) != NULL) {
+        if (SCThresholdConfIsLineBlankOrComment(line)) {
+            continue;
+        }
 
-        if (len > 0) {
-            if (line == NULL) {
-                line = SCMalloc(len + 1);
-                if (unlikely(line == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                    return;
-                }
-            } else {
-                char *newline = SCRealloc(line, strlen(line) + len + 1);
-                if (unlikely(newline == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                    SCFree(line);
-                    return;
-                }
-                line = newline;
-            }
-
-            if (fgets(line + esc_pos, len + 1, fd) == NULL)
-                break;
-
-            /* Skip EOL to inspect the next line (or read EOF) */
-            (void)fgetc(fd);
-
-            if (SCThresholdConfIsLineBlankOrComment(line)) {
-                continue;
-            }
-
-            esc_pos = SCThresholdConfLineIsMultiline(line);
-            if (esc_pos == 0) {
-                rule_num++;
-                SCLogDebug("Adding threshold.config rule num %"PRIu32"( %s )", rule_num, line);
-                SCThresholdConfAddThresholdtype(line, de_ctx);
-            }
-        } else {
-            /* Skip EOL to inspect the next line (or read EOF) */
-            (void)fgetc(fd);
-            if (feof(fd))
-                break;
+        esc_pos = SCThresholdConfLineIsMultiline(line);
+        if (esc_pos == 0) {
+            rule_num++;
+            SCLogDebug("Adding threshold.config rule num %"PRIu32"( %s )", rule_num, line);
+            SCThresholdConfAddThresholdtype(line, de_ctx);
         }
     }
 
     SCLogInfo("Threshold config parsed: %d rule(s) found", rule_num);
-
-    /* Free the last line */
-    SCFree(line);
 
     return;
 }
@@ -1280,7 +1219,8 @@ static FILE *SCThresholdConfGenerateValidDummyFD05(void)
     const char *buffer =
         "rate_filter gen_id 1, sig_id 10, track by_src, count 1, seconds 60, new_action drop, timeout 10\n"
         "rate_filter gen_id 1, sig_id 100, track by_dst, count 10, seconds 60, new_action pass, timeout 5\n"
-        "rate_filter gen_id 1, sig_id 1000, track by_rule, count 100, seconds 60, new_action alert, timeout 30\n";
+        "rate_filter gen_id 1, sig_id 1000, track by_rule, count 100, seconds 60, new_action alert, timeout 30\n"
+        "rate_filter gen_id 1, sig_id 10000, track by_both, count 1000, seconds 60, new_action reject, timeout 21\n";
 
     fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -1301,7 +1241,8 @@ static FILE *SCThresholdConfGenerateValidDummyFD06(void)
     const char *buffer =
         "rate_filter \\\ngen_id 1, sig_id 10, track by_src, count 1, seconds 60\\\n, new_action drop, timeout 10\n"
         "rate_filter gen_id 1, \\\nsig_id 100, track by_dst, \\\ncount 10, seconds 60, new_action pass, timeout 5\n"
-        "rate_filter gen_id 1, sig_id 1000, \\\ntrack by_rule, count 100, seconds 60, new_action alert, timeout 30\n";
+        "rate_filter gen_id 1, sig_id 1000, \\\ntrack by_rule, count 100, seconds 60, new_action alert, timeout 30\n"
+        "rate_filter gen_id 1, sig_id 10000, track by_both, count 1000, \\\nseconds 60, new_action reject, timeout 21\n";
 
     fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -1331,8 +1272,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD07(void)
 }
 
 /**
- * \brief Creates a dummy threshold file, with all valid options, but
- *        with splitted rules (multiline), for testing purposes.
+ * \brief Creates a dummy threshold file, for testing rate_filter, track by_rule
  *
  * \retval fd Pointer to file descriptor.
  */
@@ -1340,8 +1280,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD08(void)
 {
     FILE *fd = NULL;
     const char *buffer =
-        "rate_filter gen_id 1, sig_id 10, track by_rule, count 3, seconds 3, new_action drop, timeout 10\n"
-        "rate_filter gen_id 1, sig_id 11, track by_src, count 3, seconds 1, new_action drop, timeout 5\n";
+        "rate_filter gen_id 1, sig_id 10, track by_rule, count 3, seconds 3, new_action drop, timeout 10\n";
 
     fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -1796,7 +1735,11 @@ static int SCThresholdConfTest10(void)
     memset (&ts, 0, sizeof(struct timeval));
     TimeGet(&ts);
 
-    Packet *p1 = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
+    /* Create two different packets falling to the same rule, and
+    *  because count:3, we should drop on match #4.
+    */
+    Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP,
+            "172.26.0.2", "172.26.0.11");
     FAIL_IF_NULL(p1);
     Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP,
             "172.26.0.1", "172.26.0.10");
@@ -1822,26 +1765,44 @@ static int SCThresholdConfTest10(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
     TimeGet(&p1->ts);
+    p2->ts = p1->ts;
 
+    /* All should be alerted, none dropped */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF(PacketAlertCheck(p1, 10));
+    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+    p1->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    FAIL_IF(PacketAlertCheck(p2, 10));
-
+    FAIL_IF(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p2, 10) != 1);
+    p2->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF_NOT(PacketAlertCheck(p1, 10) == 1);
+    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+    p1->action = 0;
+
+    /* Match #4 should be dropped*/
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF_NOT(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p2, 10) != 1);
+    p2->action = 0;
 
     TimeSetIncrementTime(2);
     TimeGet(&p1->ts);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    FAIL_IF_NOT(PacketAlertCheck(p2, 10) == 1);
+    /* Still dropped because timeout not expired */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF_NOT(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+    p1->action = 0;
 
     TimeSetIncrementTime(10);
     TimeGet(&p1->ts);
 
+    /* Not dropped because timeout expired */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF_NOT(PacketAlertCheck(p1, 10) == 0);
+    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
 
     /* Ensure that a Threshold entry was installed at the sig */
     FAIL_IF_NULL(de_ctx->ths_ctx.th_entry[s->num]);
@@ -2536,6 +2497,230 @@ static int SCThresholdConfTest21(void)
     PASS;
 }
 
+/**
+* \brief Creates a dummy rate_filter file, for testing rate filtering by_both source and destination
+*
+* \retval fd Pointer to file descriptor.
+*/
+static FILE *SCThresholdConfGenerateValidDummyFD22(void)
+{
+    FILE *fd = NULL;
+    const char *buffer =
+        "rate_filter gen_id 1, sig_id 10, track by_both, count 2, seconds 5, new_action drop, timeout 6\n";
+
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with SCFmemopen() called by Threshold Config test code");
+
+    return fd;
+}
+
+/**
+* \test Check if the rate_filter rules work with track by_both
+*
+*  \retval 1 on succces
+*  \retval 0 on failure
+*/
+static int SCThresholdConfTest22(void)
+{
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+
+    IPPairInitConfig(IPPAIR_QUIET);
+
+    struct timeval ts;
+    memset(&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    /* This packet will cause rate_filter */
+    Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
+    FAIL_IF_NULL(p1);
+
+    /* Should not be filtered for different destination */
+    Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.2");
+    FAIL_IF_NULL(p2);
+
+    /* Should not be filtered when both src and dst the same */
+    Packet *p3 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.1");
+    FAIL_IF_NULL(p3);
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"ratefilter by_both test\"; gid:1; sid:10;)");
+    FAIL_IF_NULL(sig);
+
+    FAIL_IF_NOT_NULL(g_ut_threshold_fp);
+    g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD22();
+    FAIL_IF_NULL(g_ut_threshold_fp);
+    SCThresholdConfInitContext(de_ctx);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p1->ts);
+    p2->ts = p3->ts = p1->ts;
+
+    /* All should be alerted, none dropped */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p2, 10) != 1);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF(PACKET_TEST_ACTION(p3, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p3, 10) != 1);
+
+    p1->action = p2->action = p3->action = 0;
+
+    TimeSetIncrementTime(2);
+    TimeGet(&p1->ts);
+    p2->ts = p3->ts = p1->ts;
+
+    /* p1 still shouldn't be dropped after 2nd alert */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+
+    p1->action = 0;
+
+    TimeSetIncrementTime(2);
+    TimeGet(&p1->ts);
+    p2->ts = p3->ts = p1->ts;
+
+    /* All should be alerted, only p1 must be dropped  due to rate_filter*/
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF_NOT(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p2, 10) != 1);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF(PACKET_TEST_ACTION(p3, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p3, 10) != 1);
+
+    p1->action = p2->action = p3->action = 0;
+
+    TimeSetIncrementTime(7);
+    TimeGet(&p1->ts);
+    p2->ts = p3->ts = p1->ts;
+
+    /* All should be alerted, none dropped (because timeout expired) */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p2, 10) != 1);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF(PACKET_TEST_ACTION(p3, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p3, 10) != 1);
+
+    UTHFreePacket(p3);
+    UTHFreePacket(p2);
+    UTHFreePacket(p1);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    IPPairShutdown();
+    PASS;
+}
+
+/**
+* \brief Creates a dummy rate_filter file, for testing rate filtering by_both source and destination
+*
+* \retval fd Pointer to file descriptor.
+*/
+static FILE *SCThresholdConfGenerateValidDummyFD23(void)
+{
+    FILE *fd = NULL;
+    const char *buffer =
+        "rate_filter gen_id 1, sig_id 10, track by_both, count 1, seconds 5, new_action drop, timeout 6\n";
+
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with SCFmemopen() called by Threshold Config test code");
+
+    return fd;
+}
+
+/**
+* \test Check if the rate_filter by_both work when similar packets
+*       going in opposite direction
+*
+*  \retval 1 on succces
+*  \retval 0 on failure
+*/
+static int SCThresholdConfTest23(void)
+{
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+
+    IPPairInitConfig(IPPAIR_QUIET);
+
+    struct timeval ts;
+    memset(&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    /* Create two packets between same addresses in opposite direction */
+    Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
+    FAIL_IF_NULL(p1);
+
+    Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.10", "172.26.0.1");
+    FAIL_IF_NULL(p2);
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+        "alert tcp any any -> any any (msg:\"ratefilter by_both test\"; gid:1; sid:10;)");
+    FAIL_IF_NULL(sig);
+
+    FAIL_IF_NOT_NULL(g_ut_threshold_fp);
+    g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD23();
+    FAIL_IF_NULL(g_ut_threshold_fp);
+    SCThresholdConfInitContext(de_ctx);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p1->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    /* First packet should be alerted, not dropped */
+    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+
+    TimeSetIncrementTime(2);
+    TimeGet(&p2->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    /* Second packet should be dropped because it considered as "the same pair"
+       and rate_filter count reached*/
+    FAIL_IF_NOT(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p2, 10) != 1);
+
+    UTHFreePacket(p2);
+    UTHFreePacket(p1);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    IPPairShutdown();
+    PASS;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -2577,6 +2762,11 @@ void SCThresholdConfRegisterTests(void)
                    SCThresholdConfTest20);
     UtRegisterTest("SCThresholdConfTest21 - suppress parsing",
                    SCThresholdConfTest21);
+    UtRegisterTest("SCThresholdConfTest22 - rate_filter by_both",
+                   SCThresholdConfTest22);
+    UtRegisterTest("SCThresholdConfTest23 - rate_filter by_both opposite",
+        SCThresholdConfTest23);
+
 #endif /* UNITTESTS */
 }
 

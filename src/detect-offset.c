@@ -37,6 +37,7 @@
 
 #include "flow-var.h"
 
+#include "util-byte.h"
 #include "util-debug.h"
 
 static int DetectOffsetSetup(DetectEngineCtx *, Signature *, const char *);
@@ -69,6 +70,10 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
     /* verify other conditions */
     DetectContentData *cd = (DetectContentData *)pm->ctx;
 
+    if (cd->flags & DETECT_CONTENT_STARTS_WITH) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use offset with startswith");
+        goto end;
+    }
     if (cd->flags & DETECT_CONTENT_OFFSET) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple offsets for the same content. ");
         goto end;
@@ -101,7 +106,11 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
         cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         cd->flags |= DETECT_CONTENT_OFFSET_BE;
     } else {
-        cd->offset = (uint32_t)atoi(str);
+        if (ByteExtractStringUint16(&cd->offset, 0, 0, str) != (int)strlen(str))
+        {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid value for offset: %s", str);
+            goto end;
+        }
         if (cd->depth != 0) {
             if (cd->depth < cd->content_len) {
                 SCLogDebug("depth increased to %"PRIu32" to match pattern len",

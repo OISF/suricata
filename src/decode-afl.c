@@ -77,7 +77,8 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
 
         size_t size = fread(&buffer, 1, sizeof(buffer), fp);
         char outfilename[256];
-        snprintf(outfilename, sizeof(outfilename), "dump/%u-%u.%u", (uint)ts.tv_sec, (uint)ts.tv_usec, cnt);
+        snprintf(outfilename, sizeof(outfilename), "dump/%u-%u.%u",
+                (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, cnt);
         FILE *out_fp = fopen(outfilename, "w");
         BUG_ON(out_fp == NULL);
         (void)fwrite(buffer, size, 1, out_fp);
@@ -106,7 +107,8 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
     uint32_t x = 0;
     for (x = 0; x < cnt; x++) {
         char rmfilename[256];
-        snprintf(rmfilename, sizeof(rmfilename), "dump/%u-%u.%u", (uint)ts.tv_sec, (uint)ts.tv_usec, x);
+        snprintf(rmfilename, sizeof(rmfilename), "dump/%u-%u.%u",
+                (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, x);
         unlink(rmfilename);
     }
 

@@ -40,6 +40,7 @@
 
 #include "output.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-xff.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-privs.h"
@@ -47,7 +48,9 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "util-crypt.h"
 #include "output-json.h"
+#include "output-json-alert.h"
 #include "output-json-http.h"
 
 #ifdef HAVE_LIBJANSSON
@@ -56,6 +59,9 @@ typedef struct LogHttpFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
     uint64_t fields;/** Store fields */
+    HttpXFFCfg *xff_cfg;
+    HttpXFFCfg *parent_xff_cfg;
+    OutputJsonCommonSettings cfg;
 } LogHttpFileCtx;
 
 typedef struct JsonHttpLogThread_ {
@@ -191,9 +197,21 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
     {
         c = bstr_util_strdup_to_c(tx->request_hostname);
         if (c != NULL) {
-            json_object_set_new(js, "hostname", json_string(c));
+            json_object_set_new(js, "hostname", SCJsonString(c));
             SCFree(c);
         }
+    }
+
+    /* port */
+    /* NOTE: this field will be set ONLY if the port is present in the
+     * hostname. It may be present in the header "Host" or in the URL.
+     * There is no connection (from the suricata point of view) between this
+     * port and the TCP destination port of the flow.
+     */
+    if (tx->request_port_number >= 0)
+    {
+        json_object_set_new(js, "http_port",
+                json_integer(tx->request_port_number));
     }
 
     /* uri */
@@ -201,7 +219,7 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
     {
         c = bstr_util_strdup_to_c(tx->request_uri);
         if (c != NULL) {
-            json_object_set_new(js, "url", json_string(c));
+            json_object_set_new(js, "url", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -214,7 +232,7 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
     if (h_user_agent != NULL) {
         c = bstr_util_strdup_to_c(h_user_agent->value);
         if (c != NULL) {
-            json_object_set_new(js, "http_user_agent", json_string(c));
+            json_object_set_new(js, "http_user_agent", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -244,7 +262,7 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
             p = strchr(c, ';');
             if (p != NULL)
                 *p = '\0';
-            json_object_set_new(js, "http_content_type", json_string(c));
+            json_object_set_new(js, "http_content_type", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -283,7 +301,7 @@ static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t
                     if (c != NULL) {
                         json_object_set_new(js,
                                 http_fields[f].config_field,
-                                json_string(c));
+                                SCJsonString(c));
                         SCFree(c);
                     }
                 }
@@ -304,7 +322,7 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (h_referer != NULL) {
         c = bstr_util_strdup_to_c(h_referer->value);
         if (c != NULL) {
-            json_object_set_new(js, "http_refer", json_string(c));
+            json_object_set_new(js, "http_refer", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -313,7 +331,7 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (tx->request_method != NULL) {
         c = bstr_util_strdup_to_c(tx->request_method);
         if (c != NULL) {
-            json_object_set_new(js, "http_method", json_string(c));
+            json_object_set_new(js, "http_method", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -322,7 +340,7 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (tx->request_protocol != NULL) {
         c = bstr_util_strdup_to_c(tx->request_protocol);
         if (c != NULL) {
-            json_object_set_new(js, "protocol", json_string(c));
+            json_object_set_new(js, "protocol", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -340,7 +358,7 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
         if (h_location != NULL) {
             c = bstr_util_strdup_to_c(h_location->value);
             if (c != NULL) {
-                json_object_set_new(js, "redirect", json_string(c));
+                json_object_set_new(js, "redirect", SCJsonString(c));
                 SCFree(c);
             }
         }
@@ -348,6 +366,79 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
 
     /* length */
     json_object_set_new(js, "length", json_integer(tx->response_message_len));
+}
+
+static void BodyPrintableBuffer(json_t *js, HtpBody *body, const char *key)
+{
+    if (body->sb != NULL && body->sb->buf != NULL) {
+        uint32_t offset = 0;
+        const uint8_t *body_data;
+        uint32_t body_data_len;
+        uint64_t body_offset;
+
+        if (StreamingBufferGetData(body->sb, &body_data,
+                                   &body_data_len, &body_offset) == 0) {
+            return;
+        }
+
+        uint8_t printable_buf[body_data_len + 1];
+        PrintStringsToBuffer(printable_buf, &offset,
+                             sizeof(printable_buf),
+                             body_data, body_data_len);
+        if (offset > 0) {
+            json_object_set_new(js, key, json_string((char *)printable_buf));
+        }
+    }
+}
+
+void JsonHttpLogJSONBodyPrintable(json_t *js, Flow *f, uint64_t tx_id)
+{
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
+    if (htp_state) {
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        if (tx) {
+            HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+            if (htud != NULL) {
+                BodyPrintableBuffer(js, &htud->request_body, "http_request_body_printable");
+                BodyPrintableBuffer(js, &htud->response_body, "http_response_body_printable");
+            }
+        }
+    }
+}
+
+static void BodyBase64Buffer(json_t *js, HtpBody *body, const char *key)
+{
+    if (body->sb != NULL && body->sb->buf != NULL) {
+        const uint8_t *body_data;
+        uint32_t body_data_len;
+        uint64_t body_offset;
+
+        if (StreamingBufferGetData(body->sb, &body_data,
+                                   &body_data_len, &body_offset) == 0) {
+            return;
+        }
+
+        unsigned long len = body_data_len * 2 + 1;
+        uint8_t encoded[len];
+        if (Base64Encode(body_data, body_data_len, encoded, &len) == SC_BASE64_OK) {
+            json_object_set_new(js, key, json_string((char *)encoded));
+        }
+    }
+}
+
+void JsonHttpLogJSONBodyBase64(json_t *js, Flow *f, uint64_t tx_id)
+{
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
+    if (htp_state) {
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        if (tx) {
+            HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+            if (htud != NULL) {
+                BodyBase64Buffer(js, &htud->request_body, "http_request_body");
+                BodyBase64Buffer(js, &htud->response_body, "http_response_body");
+            }
+        }
+    }
 }
 
 /* JSON format logging */
@@ -376,9 +467,11 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     htp_tx_t *tx = txptr;
     JsonHttpLogThread *jhl = (JsonHttpLogThread *)thread_data;
 
-    json_t *js = CreateJSONHeaderWithTxId((Packet *)p, 1, "http", tx_id); //TODO const
+    json_t *js = CreateJSONHeaderWithTxId(p, LOG_DIR_FLOW, "http", tx_id);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
+
+    JsonAddCommonOptions(&jhl->httplog_ctx->cfg, p, f, js);
 
     SCLogDebug("got a HTTP request and now logging !!");
 
@@ -386,6 +479,29 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     MemBufferReset(jhl->buffer);
 
     JsonHttpLogJSON(jhl, js, tx, tx_id);
+    HttpXFFCfg *xff_cfg = jhl->httplog_ctx->xff_cfg != NULL ?
+        jhl->httplog_ctx->xff_cfg : jhl->httplog_ctx->parent_xff_cfg;
+
+    /* xff header */
+    if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
+        int have_xff_ip = 0;
+        char buffer[XFF_MAXLEN];
+
+        have_xff_ip = HttpXFFGetIPFromTx(p->flow, tx_id, xff_cfg, buffer, XFF_MAXLEN);
+
+        if (have_xff_ip) {
+            if (xff_cfg->flags & XFF_EXTRADATA) {
+                json_object_set_new(js, "xff", json_string(buffer));
+            }
+            else if (xff_cfg->flags & XFF_OVERWRITE) {
+                if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                    json_object_set(js, "dest_ip", json_string(buffer));
+                } else {
+                    json_object_set(js, "src_ip", json_string(buffer));
+                }
+            }
+        }
+    }
 
     OutputJSONBuffer(js, jhl->httplog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "http");
@@ -409,7 +525,6 @@ json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id)
 
             JsonHttpLogJSONBasic(hjs, tx);
             JsonHttpLogJSONExtended(hjs, tx);
-
             return hjs;
         }
     }
@@ -422,35 +537,39 @@ static void OutputHttpLogDeinit(OutputCtx *output_ctx)
     LogHttpFileCtx *http_ctx = output_ctx->data;
     LogFileCtx *logfile_ctx = http_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
+    if (http_ctx->xff_cfg) {
+        SCFree(http_ctx->xff_cfg);
+    }
     SCFree(http_ctx);
     SCFree(output_ctx);
 }
 
 #define DEFAULT_LOG_FILENAME "http.json"
-static OutputCtx *OutputHttpLogInit(ConfNode *conf)
+static OutputInitResult OutputHttpLogInit(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     LogHttpFileCtx *http_ctx = SCMalloc(sizeof(LogHttpFileCtx));
     if (unlikely(http_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(http_ctx);
-        return NULL;
+        return result;
     }
 
     http_ctx->file_ctx = file_ctx;
@@ -465,39 +584,51 @@ static OutputCtx *OutputHttpLogInit(ConfNode *conf)
             }
         }
     }
+    http_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
+    if (http_ctx->xff_cfg != NULL) {
+        HttpXFFGetCfg(conf, http_ctx->xff_cfg);
+    }
+
     output_ctx->data = http_ctx;
     output_ctx->DeInit = OutputHttpLogDeinit;
 
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void OutputHttpLogDeinitSub(OutputCtx *output_ctx)
 {
     LogHttpFileCtx *http_ctx = output_ctx->data;
+    if (http_ctx->xff_cfg) {
+        SCFree(http_ctx->xff_cfg);
+    }
     SCFree(http_ctx);
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
-    LogHttpFileCtx *http_ctx = SCMalloc(sizeof(LogHttpFileCtx));
+    LogHttpFileCtx *http_ctx = SCCalloc(1, sizeof(LogHttpFileCtx));
     if (unlikely(http_ctx == NULL))
-        return NULL;
+        return result;
     memset(http_ctx, 0x00, sizeof(*http_ctx));
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(http_ctx);
-        return NULL;
+        return result;
     }
 
     http_ctx->file_ctx = ojc->file_ctx;
     http_ctx->flags = LOG_HTTP_DEFAULT;
+    http_ctx->cfg = ojc->cfg;
 
     if (conf) {
         const char *extended = ConfNodeLookupChildValue(conf, "extended");
@@ -531,13 +662,25 @@ static OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
             }
         }
     }
+
+    if (conf != NULL && ConfNodeLookupChild(conf, "xff") != NULL) {
+        http_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
+        if (http_ctx->xff_cfg != NULL) {
+            HttpXFFGetCfg(conf, http_ctx->xff_cfg);
+        }
+    } else if (ojc->xff_cfg) {
+        http_ctx->parent_xff_cfg = ojc->xff_cfg;
+    }
+
     output_ctx->data = http_ctx;
     output_ctx->DeInit = OutputHttpLogDeinitSub;
 
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535

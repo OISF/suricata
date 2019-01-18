@@ -37,8 +37,8 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv6 DSTOPTS unknown option"; dec
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 DSTOPTS only padding"; decode-event:ipv6.dstopts_only_padding; classtype:protocol-command-decode; sid:2200089; rev:2;)
 # Type 0 Routing header deprecated per RFC 5095
 alert ipv6 any any -> any any (msg:"SURICATA RH Type 0"; decode-event:ipv6.rh_type_0; classtype:protocol-command-decode; sid:2200093; rev:2;)
-# padN option with zero length field
-alert ipv6 any any -> any any (msg:"SURICATA zero length padN option"; decode-event:ipv6.zero_len_padn; classtype:protocol-command-decode; sid:2200094; rev:2;)
+# padN option with zero length field. This is not uncommon, so disabled by default.
+#alert ipv6 any any -> any any (msg:"SURICATA zero length padN option"; decode-event:ipv6.zero_len_padn; classtype:protocol-command-decode; sid:2200094; rev:2;)
 # Frag Header 'length' field is reserved and should be 0
 alert ipv6 any any -> any any (msg:"SURICATA reserved field in Frag Header not zero"; decode-event:ipv6.fh_non_zero_reserved_field; classtype:protocol-command-decode; sid:2200095; rev:2;)
 # Data after the 'none' header (59) is suspicious.
@@ -97,6 +97,7 @@ alert pkthdr any any -> any any (msg:"SURICATA VLAN header too small "; decode-e
 alert pkthdr any any -> any any (msg:"SURICATA VLAN unknown type"; decode-event:vlan.unknown_type; classtype:protocol-command-decode; sid:2200067; rev:2;)
 # more than 2 vlan layers in the packet
 alert pkthdr any any -> any any (msg:"SURICATA VLAN too many layers"; decode-event:vlan.too_many_layers; classtype:protocol-command-decode; sid:2200091; rev:2;)
+alert pkthdr any any -> any any (msg:"SURICATA IEEE802.1AH header too small"; decode-event:ieee8021ah.header_too_small; classtype:protocol-command-decode; sid:2200112; rev:1;)
 
 alert pkthdr any any -> any any (msg:"SURICATA IP raw invalid IP version "; decode-event:ipraw.invalid_ip_version; classtype:protocol-command-decode; sid:2200068; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Packet size too large"; decode-event:ipv4.frag_pkt_too_large; classtype:protocol-command-decode; sid:2200069; rev:3;)
@@ -141,5 +142,5 @@ alert pkthdr any any -> any any (msg:"SURICATA ERSPAN too many vlan layers"; dec
 # Cisco Fabric Path/DCE
 alert pkthdr any any -> any any (msg:"SURICATA DCE packet too small"; decode-event:dce.pkt_too_small; classtype:protocol-command-decode; sid:2200110; rev:2;)
 
-# next sid is 2200112
+# next sid is 2200113
 

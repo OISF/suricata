@@ -99,8 +99,13 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 
     for (u = 0; u < buflen; u++) {
         if (isprint(buf[u]) && buf[u] != '\"') {
-            PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
-                             "%c", buf[u]);
+            if (buf[u] == '\\') {
+                PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
+                                "\\\\");
+            } else {
+                PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
+                                "%c", buf[u]);
+            }
         } else {
             PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
                             "\\x%02X", buf[u]);
@@ -227,6 +232,7 @@ void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
                         src_buf[ch] == '\n' ||
                         src_buf[ch] == '\r') ? (uint8_t)src_buf[ch] : '.');
     }
+    dst_buf[dst_buf_size - 1] = 0;
 
     return;
 }
@@ -262,7 +268,17 @@ const char *PrintInet(int af, const void *src, char *dst, socklen_t size)
 {
     switch (af) {
         case AF_INET:
+#if defined(OS_WIN32) && NTDDI_VERSION >= NTDDI_VISTA
+{
+            // because Windows has to provide a non-conformant inet_ntop, of
+            // course!
+            struct in_addr _src;
+            memcpy(&_src, src, sizeof(struct in_addr));
+            return inet_ntop(af, &_src, dst, size);
+}
+#else
             return inet_ntop(af, src, dst, size);
+#endif
         case AF_INET6:
             /* Format IPv6 without deleting zeroes */
             return PrintInetIPv6(src, dst, size);

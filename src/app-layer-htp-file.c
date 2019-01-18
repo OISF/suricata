@@ -83,7 +83,6 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
     int retval = 0;
     uint16_t flags = 0;
     FileContainer *files = NULL;
-    FileContainer *files_opposite = NULL;
     const StreamingBufferConfig *sbcfg = NULL;
 
     SCLogDebug("data %p data_len %"PRIu32, data, data_len);
@@ -102,7 +101,6 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         }
 
         files = s->files_tc;
-        files_opposite = s->files_ts;
 
         flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
 
@@ -126,7 +124,6 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         }
 
         files = s->files_ts;
-        files_opposite = s->files_tc;
 
         flags = FileFlowToFlags(s->f, STREAM_TOSERVER);
         if ((s->flags & HTP_FLAG_STORE_FILES_TC) ||
@@ -138,31 +135,6 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         }
 
         sbcfg = &s->cfg->request.sbcfg;
-    }
-
-    /* if the previous file is in the same txid, we reset the file part of the
-     * stateful detection engine. We cannot do that here directly, because of
-     * locking order. Flow is locked at this point and we can't lock flow
-     * before de_state */
-    if (files != NULL && files->tail != NULL && files->tail->txid == txid) {
-        SCLogDebug("new file in same tx, flagging http state for de_state reset");
-
-        if (direction & STREAM_TOCLIENT) {
-            s->flags |= HTP_FLAG_NEW_FILE_TX_TC;
-        } else {
-            s->flags |= HTP_FLAG_NEW_FILE_TX_TS;
-        }
-    }
-    if (files_opposite != NULL && files_opposite->tail != NULL && files_opposite->tail->txid == txid) {
-        SCLogDebug("new file in same tx, flagging http state for de_state reset");
-
-        if (direction & STREAM_TOCLIENT) {
-            SCLogDebug("flagging TC");
-            s->flags |= HTP_FLAG_NEW_FILE_TX_TC;
-        } else {
-            SCLogDebug("flagging TS");
-            s->flags |= HTP_FLAG_NEW_FILE_TX_TS;
-        }
     }
 
     if (FileOpenFile(files, sbcfg, filename, filename_len,

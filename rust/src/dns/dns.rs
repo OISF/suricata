@@ -27,17 +27,6 @@ use core;
 use dns::parser;
 
 /// DNS record types.
-pub const DNS_RTYPE_A:     u16 = 1;
-pub const DNS_RTYPE_CNAME: u16 = 5;
-pub const DNS_RTYPE_SOA:   u16 = 6;
-pub const DNS_RTYPE_PTR:   u16 = 12;
-pub const DNS_RTYPE_MX:    u16 = 15;
-pub const DNS_RTYPE_TXT:   u16 = 16;
-pub const DNS_RTYPE_AAAA:  u16 = 28;
-pub const DNS_RTYPE_SSHFP: u16 = 44;
-pub const DNS_RTYPE_RRSIG: u16 = 46;
-
-/// DNS record types.
 pub const DNS_RECORD_TYPE_A           : u16 = 1;
 pub const DNS_RECORD_TYPE_NS          : u16 = 2;
 pub const DNS_RECORD_TYPE_MD          : u16 = 3;   // Obsolete
@@ -67,7 +56,7 @@ pub const DNS_RECORD_TYPE_PX          : u16 = 26;
 pub const DNS_RECORD_TYPE_GPOS        : u16 = 27;
 pub const DNS_RECORD_TYPE_AAAA        : u16 = 28;
 pub const DNS_RECORD_TYPE_LOC         : u16 = 29;
-pub const DNS_RECORD_TYPE_NXT         : u16 = 30;  // Obosolete
+pub const DNS_RECORD_TYPE_NXT         : u16 = 30;  // Obsolete
 pub const DNS_RECORD_TYPE_SRV         : u16 = 33;
 pub const DNS_RECORD_TYPE_ATMA        : u16 = 34;
 pub const DNS_RECORD_TYPE_NAPTR       : u16 = 35;
@@ -100,7 +89,26 @@ pub const DNS_RECORD_TYPE_URI         : u16 = 256;
 /// DNS error codes.
 pub const DNS_RCODE_NOERROR:  u16 = 0;
 pub const DNS_RCODE_FORMERR:  u16 = 1;
+pub const DNS_RCODE_SERVFAIL: u16 = 2;
 pub const DNS_RCODE_NXDOMAIN: u16 = 3;
+pub const DNS_RCODE_NOTIMP:   u16 = 4;
+pub const DNS_RCODE_REFUSED:  u16 = 5;
+pub const DNS_RCODE_YXDOMAIN: u16 = 6;
+pub const DNS_RCODE_YXRRSET:  u16 = 7;
+pub const DNS_RCODE_NXRRSET:  u16 = 8;
+pub const DNS_RCODE_NOTAUTH:  u16 = 9;
+pub const DNS_RCODE_NOTZONE:  u16 = 10;
+// Support for OPT RR from RFC6891 will be needed to
+// parse RCODE values over 15
+pub const DNS_RCODE_BADVERS:  u16 = 16;
+pub const DNS_RCODE_BADSIG:   u16 = 16;
+pub const DNS_RCODE_BADKEY:   u16 = 17;
+pub const DNS_RCODE_BADTIME:  u16 = 18;
+pub const DNS_RCODE_BADMODE:  u16 = 19;
+pub const DNS_RCODE_BADNAME:  u16 = 20;
+pub const DNS_RCODE_BADALG:   u16 = 21;
+pub const DNS_RCODE_BADTRUNC: u16 = 22;
+
 
 /// The maximum number of transactions to keep in the queue pending
 /// processing before they are aggressively purged. Due to the
@@ -149,7 +157,6 @@ pub struct DNSAnswerEntry {
     pub rrtype: u16,
     pub rrclass: u16,
     pub ttl: u32,
-    pub data_len: u16,
     pub data: Vec<u8>,
 }
 
@@ -172,6 +179,8 @@ pub struct DNSTransaction {
     pub id: u64,
     pub request: Option<DNSRequest>,
     pub response: Option<DNSResponse>,
+    detect_flags_ts: u64,
+    detect_flags_tc: u64,
     pub logged: LoggerFlags,
     pub de_state: Option<*mut core::DetectEngineState>,
     pub events: *mut core::AppLayerDecoderEvents,
@@ -184,6 +193,8 @@ impl DNSTransaction {
             id: 0,
             request: None,
             response: None,
+            detect_flags_ts: 0,
+            detect_flags_tc: 0,
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
@@ -194,14 +205,20 @@ impl DNSTransaction {
         if self.events != std::ptr::null_mut() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
+        match self.de_state {
+            Some(state) => {
+                core::sc_detect_engine_state_free(state);
+            }
+            None => { },
+        }
     }
 
     /// Get the DNS transactions ID (not the internal tracking ID).
     pub fn tx_id(&self) -> u16 {
-        for request in &self.request {
+        if let &Some(ref request) = &self.request {
             return request.header.tx_id;
         }
-        for response in &self.response {
+        if let &Some(ref response) = &self.response {
             return response.header.tx_id;
         }
 
@@ -212,7 +229,7 @@ impl DNSTransaction {
     /// Get the reply code of the transaction. Note that this will
     /// also return 0 if there is no reply.
     pub fn rcode(&self) -> u16 {
-        for response in &self.response {
+        if let &Some(ref response) = &self.response {
             return response.header.flags & 0x000f;
         }
         return 0;
@@ -233,8 +250,6 @@ pub struct DNSState {
     // Transactions.
     pub transactions: Vec<DNSTransaction>,
 
-    pub de_state_count: u64,
-
     pub events: u16,
 
     pub request_buffer: Vec<u8>,
@@ -249,7 +264,6 @@ impl DNSState {
         return DNSState{
             tx_id: 0,
             transactions: Vec::new(),
-            de_state_count: 0,
             events: 0,
             request_buffer: Vec::new(),
             response_buffer: Vec::new(),
@@ -263,21 +277,11 @@ impl DNSState {
         return DNSState{
             tx_id: 0,
             transactions: Vec::new(),
-            de_state_count: 0,
             events: 0,
             request_buffer: Vec::with_capacity(0xffff),
             response_buffer: Vec::with_capacity(0xffff),
             gap: false,
         };
-    }
-
-    pub fn free(&mut self) {
-        SCLogDebug!("Freeing {} transactions left in state.",
-                    self.transactions.len());
-        while self.transactions.len() > 0 {
-            self.free_tx_at_index(0);
-        }
-        assert!(self.transactions.len() == 0);
     }
 
     pub fn new_tx(&mut self) -> DNSTransaction {
@@ -288,7 +292,6 @@ impl DNSState {
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
-        SCLogDebug!("************** Freeing TX with ID {}", tx_id);
         let len = self.transactions.len();
         let mut found = false;
         let mut index = 0;
@@ -301,18 +304,7 @@ impl DNSState {
             }
         }
         if found {
-            self.free_tx_at_index(index);
-        }
-    }
-
-    fn free_tx_at_index(&mut self, index: usize) {
-        let tx = self.transactions.remove(index);
-        match tx.de_state {
-            Some(state) => {
-                core::sc_detect_engine_state_free(state);
-                self.de_state_count -= 1;
-            }
-            _ => {}
+            self.transactions.remove(index);
         }
     }
 
@@ -329,7 +321,7 @@ impl DNSState {
                 return;
             }
             SCLogDebug!("Purging DNS TX with ID {}", self.transactions[0].id);
-            self.free_tx_at_index(0);
+            self.transactions.remove(0);
         }
     }
 
@@ -353,7 +345,7 @@ impl DNSState {
             return;
         }
 
-        let mut tx = &mut self.transactions[len - 1];
+        let tx = &mut self.transactions[len - 1];
         core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events,
                                                         event as u8);
         self.events += 1;
@@ -527,14 +519,6 @@ impl DNSState {
     }
 }
 
-/// Implement Drop for DNSState as transactions need to do some
-/// explicit cleanup.
-impl Drop for DNSState {
-    fn drop(&mut self) {
-        self.free();
-    }
-}
-
 /// Probe input to see if it looks like DNS.
 fn probe(input: &[u8]) -> bool {
     match parser::dns_parse_request(input) {
@@ -546,10 +530,8 @@ fn probe(input: &[u8]) -> bool {
 /// Probe TCP input to see if it looks like DNS.
 pub fn probe_tcp(input: &[u8]) -> bool {
     match nom::be_u16(input) {
-        nom::IResult::Done(rem, len) => {
-            if rem.len() >= len as usize {
-                return probe(rem);
-            }
+        nom::IResult::Done(rem, _) => {
+            return probe(rem);
         },
         _ => {}
     }
@@ -680,23 +662,43 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
+pub extern "C" fn rs_dns_tx_set_detect_flags(tx: &mut DNSTransaction,
+                                             dir: libc::uint8_t,
+                                             flags: libc::uint64_t)
+{
+    if dir & core::STREAM_TOSERVER != 0 {
+        tx.detect_flags_ts = flags as u64;
+    } else {
+        tx.detect_flags_tc = flags as u64;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dns_tx_get_detect_flags(tx: &mut DNSTransaction,
+                                             dir: libc::uint8_t)
+                                       -> libc::uint64_t
+{
+    if dir & core::STREAM_TOSERVER != 0 {
+        return tx.detect_flags_ts as libc::uint64_t;
+    } else {
+        return tx.detect_flags_tc as libc::uint64_t;
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn rs_dns_tx_set_logged(_state: &mut DNSState,
                                        tx: &mut DNSTransaction,
-                                       logger: libc::uint32_t)
+                                       logged: libc::uint32_t)
 {
-    tx.logged.set_logged(logger);
+    tx.logged.set(logged);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dns_tx_get_logged(_state: &mut DNSState,
-                                       tx: &mut DNSTransaction,
-                                       logger: libc::uint32_t)
-                                       -> i8
+                                       tx: &mut DNSTransaction)
+                                       -> u32
 {
-    if tx.logged.is_logged(logger) {
-        return 1;
-    }
-    return 0;
+    return tx.logged.get();
 }
 
 #[no_mangle]
@@ -723,21 +725,10 @@ pub extern "C" fn rs_dns_state_get_tx(state: &mut DNSState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_has_detect_state(state: &mut DNSState) -> u8
-{
-    if state.de_state_count > 0 {
-        return 1;
-    }
-    return 0;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_dns_state_set_tx_detect_state(
-    state: &mut DNSState,
     tx: &mut DNSTransaction,
     de_state: &mut core::DetectEngineState)
 {
-    state.de_state_count += 1;
     tx.de_state = Some(de_state);
 }
 
@@ -754,14 +745,6 @@ pub extern "C" fn rs_dns_state_get_tx_detect_state(
             return std::ptr::null_mut();
         }
     }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dns_state_has_events(state: &mut DNSState) -> u8 {
-    if state.events > 0 {
-        return 1;
-    }
-    return 0;
 }
 
 #[no_mangle]
@@ -786,7 +769,7 @@ pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
                                        len: *mut libc::uint32_t)
                                        -> libc::uint8_t
 {
-    for request in &tx.request {
+    if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if query.name.len() > 0 {
@@ -826,7 +809,7 @@ pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
                                          rrtype: *mut libc::uint16_t)
                                          -> libc::uint8_t
 {
-    for request in &tx.request {
+    if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if query.name.len() > 0 {
@@ -930,7 +913,7 @@ mod tests {
         // than the available data.
         let mut request = Vec::new();
         request.push(((dns_payload.len() as u16) >> 8) as u8);
-        request.push((((dns_payload.len() as u16) & 0xff) as u8 + 1));
+        request.push(((dns_payload.len() as u16) & 0xff) as u8 + 1);
         request.extend(dns_payload);
 
         let mut state = DNSState::new();

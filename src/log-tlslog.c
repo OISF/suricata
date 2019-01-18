@@ -94,29 +94,9 @@ typedef struct LogTlsLogThread_ {
 
 static void LogTlsLogVersion(MemBuffer *buffer, uint16_t version)
 {
-    switch (version) {
-        case TLS_VERSION_UNKNOWN:
-            MemBufferWriteString(buffer, "VERSION='UNDETERMINED'");
-            break;
-        case SSL_VERSION_2:
-            MemBufferWriteString(buffer, "VERSION='SSLv2'");
-            break;
-        case SSL_VERSION_3:
-            MemBufferWriteString(buffer, "VERSION='SSLv3'");
-            break;
-        case TLS_VERSION_10:
-            MemBufferWriteString(buffer, "VERSION='TLSv1'");
-            break;
-        case TLS_VERSION_11:
-            MemBufferWriteString(buffer, "VERSION='TLS 1.1'");
-            break;
-        case TLS_VERSION_12:
-            MemBufferWriteString(buffer, "VERSION='TLS 1.2'");
-            break;
-        default:
-            MemBufferWriteString(buffer, "VERSION='0x%04x'", version);
-            break;
-    }
+    char ssl_version[SSL_VERSION_MAX_STRLEN];
+    SSLVersionToString(version, ssl_version);
+    MemBufferWriteString(buffer, "VERSION='%s'", ssl_version);
 }
 
 static void LogTlsLogDate(MemBuffer *buffer, const char *title, time_t *date)
@@ -264,14 +244,15 @@ static void LogTlsLogExitPrintStats(ThreadVars *tv, void *data)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
+static OutputInitResult LogTlsLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx* file_ctx = LogFileNewCtx();
 
     if (file_ctx == NULL) {
         SCLogError(SC_ERR_TLS_LOG_GENERIC, "LogTlsLogInitCtx: Couldn't "
         "create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
@@ -325,7 +306,9 @@ static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 parser_error:
     SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom tls log format string.");
 tlslog_error:
@@ -333,7 +316,7 @@ tlslog_error:
     SCFree(tlslog_ctx);
 filectx_error:
     LogFileFreeCtx(file_ctx);
-    return NULL;
+    return result;
 }
 
 /* Custom format logging */
@@ -342,7 +325,7 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const str
 {
     LogTlsFileCtx *tlslog_ctx = aft->tlslog_ctx;
     uint32_t i;
-    char buf[6];
+    char buf[64];
 
     for (i = 0; i < tlslog_ctx->cf->cf_n; i++) {
 
@@ -361,9 +344,9 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const str
                 break;
             case LOG_CF_TIMESTAMP_U:
             /* TIMESTAMP USECONDS */
-                snprintf(buf, 6, "%06u", (unsigned int) ts->tv_usec);
+                snprintf(buf, sizeof(buf), "%06u", (unsigned int) ts->tv_usec);
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                            aft->buffer->size, (uint8_t *)buf,strlen(buf));
+                            aft->buffer->size, (uint8_t *)buf, MIN(strlen(buf),6));
                 break;
             case LOG_CF_CLIENT_IP:
             /* CLIENT IP ADDRESS */
@@ -455,7 +438,8 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     if (((hlog->flags & LOG_TLS_SESSION_RESUMPTION) == 0 ||
             (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0) &&
             (ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL)) {
+            ssl_state->server_connp.cert0_subject == NULL) &&
+            ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
         return 0;
     }
 
@@ -487,7 +471,14 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                                  ssl_state->server_connp.cert0_issuerdn);
         }
         if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
-            MemBufferWriteString(aft->buffer, " Session='resumed'");
+            /* Only log a session as 'resumed' if a certificate has not
+               been seen. */
+            if ((ssl_state->server_connp.cert0_issuerdn == NULL) &&
+                    (ssl_state->server_connp.cert0_subject == NULL) &&
+                    (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
+                    ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
+                MemBufferWriteString(aft->buffer, " Session='resumed'");
+            }
         }
 
         if (hlog->flags & LOG_TLS_EXTENDED) {

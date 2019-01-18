@@ -91,9 +91,10 @@ static void PrefilterTxMethod(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxMethodRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxMethodRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
-    return PrefilterAppendTxEngine(sgh, PrefilterTxMethod,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxMethod,
         ALPROTO_HTTP, HTP_REQUEST_LINE,
         mpm_ctx, NULL, "http_method");
 }
@@ -131,7 +132,7 @@ int DetectEngineInspectHttpMethod(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(tx->request_method),
                                           bstr_len(tx->request_method),
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

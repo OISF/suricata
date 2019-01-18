@@ -25,7 +25,6 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "util-cuda.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "conf-yaml-loader.h"
@@ -55,11 +54,3 @@ int ListAppLayerProtocols()
     exit(EXIT_SUCCESS);
 }
 
-#ifdef __SC_CUDA_SUPPORT__
-int ListCudaCards()
-{
-    SCCudaInitCudaEnvironment();
-    SCCudaListCards();
-    exit(EXIT_SUCCESS);
-}
-#endif

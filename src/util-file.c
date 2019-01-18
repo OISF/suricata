@@ -79,6 +79,9 @@ static uint32_t g_file_store_reassembly_depth = 0;
 
 /* prototypes */
 static void FileFree(File *);
+#ifdef HAVE_NSS
+static void FileEndSha256(File *ff);
+#endif
 
 void FileForceFilestoreEnable(void)
 {
@@ -331,7 +334,7 @@ static int FilePruneFile(File *file)
     /* file is done when state is closed+, logging/storing is done (if any) */
     if (file->state >= FILE_STATE_CLOSED &&
         (!RunModeOutputFileEnabled() || (file->flags & FILE_LOGGED)) &&
-        (!RunModeOutputFiledataEnabled() || (file->flags & FILE_STORED)))
+        (!RunModeOutputFiledataEnabled() || (file->flags & (FILE_STORED|FILE_NOSTORE))))
     {
         SCReturnInt(1);
     } else {
@@ -627,9 +630,10 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
 
     SCLogDebug("appending %"PRIu32" bytes", data_len);
 
-    if (AppendData(ff, data, data_len) != 0) {
+    int r = AppendData(ff, data, data_len);
+    if (r != 0) {
         ff->state = FILE_STATE_ERROR;
-        SCReturnInt(-1);
+        SCReturnInt(r);
     }
 
     SCReturnInt(0);
@@ -826,20 +830,24 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
 
     SCReturnPtr(ff, "File");
 }
-File *FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
+
+/**
+ *  \retval 0 ok
+ *  \retval -1 failed */
+int FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags)
 {
     File *ff = FileOpenFile(ffc, sbcfg, name, name_len, data, data_len, flags);
     if (ff == NULL)
-        return NULL;
+        return -1;
 
     ff->file_track_id = track_id;
     ff->flags |= FILE_USE_TRACKID;
-    return ff;
+    return 0;
 }
 
-static int FileCloseFilePtr(File *ff, const uint8_t *data,
+int FileCloseFilePtr(File *ff, const uint8_t *data,
         uint32_t data_len, uint16_t flags)
 {
     SCEnter();
@@ -879,6 +887,12 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
         if (flags & FILE_NOSTORE) {
             SCLogDebug("not storing this file");
             ff->flags |= FILE_NOSTORE;
+        } else {
+#ifdef HAVE_NSS
+            if (g_file_force_sha256 && ff->sha256_ctx) {
+                FileEndSha256(ff);
+            }
+#endif
         }
     } else {
         ff->state = FILE_STATE_CLOSED;
@@ -896,9 +910,7 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
             ff->flags |= FILE_SHA1;
         }
         if (ff->sha256_ctx) {
-            unsigned int len = 0;
-            HASH_End(ff->sha256_ctx, ff->sha256, &len, sizeof(ff->sha256));
-            ff->flags |= FILE_SHA256;
+            FileEndSha256(ff);
         }
 #endif
     }
@@ -932,6 +944,7 @@ int FileCloseFile(FileContainer *ffc, const uint8_t *data,
 
     SCReturnInt(0);
 }
+
 int FileCloseFileById(FileContainer *ffc, uint32_t track_id,
         const uint8_t *data, uint32_t data_len, uint16_t flags)
 {
@@ -944,10 +957,8 @@ int FileCloseFileById(FileContainer *ffc, uint32_t track_id,
     File *ff = ffc->head;
     for ( ; ff != NULL; ff = ff->next) {
         if (track_id == ff->file_track_id) {
-            if (FileCloseFilePtr(ff, data, data_len, flags) == -1) {
-                SCReturnInt(-1);
-            }
-            SCReturnInt(0);
+            int r = FileCloseFilePtr(ff, data, data_len, flags);
+            SCReturnInt(r);
         }
     }
     SCReturnInt(-1);
@@ -1285,3 +1296,17 @@ void FileTruncateAllOpenFiles(FileContainer *fc)
         }
     }
 }
+
+/**
+ * \brief Finish the SHA256 calculation.
+ */
+#ifdef HAVE_NSS
+static void FileEndSha256(File *ff)
+{
+    if (!(ff->flags & FILE_SHA256) && ff->sha256_ctx) {
+        unsigned int len = 0;
+        HASH_End(ff->sha256_ctx, ff->sha256, &len, sizeof(ff->sha256));
+        ff->flags |= FILE_SHA256;
+    }
+}
+#endif

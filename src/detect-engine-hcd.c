@@ -97,11 +97,12 @@ static void PrefilterTxRequestCookie(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxRequestCookieRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxRequestCookieRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxRequestCookie,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxRequestCookie,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, "http_cookie (request)");
 }
@@ -143,11 +144,12 @@ static void PrefilterTxResponseCookie(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxResponseCookieRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxResponseCookieRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxResponseCookie,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxResponseCookie,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
         mpm_ctx, NULL, "http_cookie (response)");
 }
@@ -195,7 +197,7 @@ int DetectEngineInspectHttpCookie(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(h->value),
                                           bstr_len(h->value),
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

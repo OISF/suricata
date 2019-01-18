@@ -26,8 +26,10 @@
 
 #include "stream-tcp-private.h"
 
-int StreamTcpInlineSegmentCompare(TcpStream *, Packet *, TcpSegment *);
-void StreamTcpInlineSegmentReplacePacket(TcpStream *, Packet *, TcpSegment *);
+int StreamTcpInlineSegmentCompare(const TcpStream *,
+        const Packet *, const TcpSegment *);
+void StreamTcpInlineSegmentReplacePacket(const TcpStream *,
+        Packet *, const TcpSegment *);
 
 void StreamTcpInlineRegisterTests(void);
 

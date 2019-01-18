@@ -54,7 +54,7 @@ static int TestReassembleRawValidate(TcpSession *ssn, Packet *p,
 {
     struct TestReassembleRawCallbackData cb = { data, data_len };
     uint64_t progress = 0;
-    int r = StreamReassembleRaw(ssn, p, TestReassembleRawCallback, &cb, &progress);
+    int r = StreamReassembleRaw(ssn, p, TestReassembleRawCallback, &cb, &progress, false);
     if (r == 1) {
         StreamReassembleRawUpdateProgress(ssn, p, progress);
     }

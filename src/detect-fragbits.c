@@ -73,7 +73,7 @@ static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
 static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFragBitsFree(void *);
 
-static int PrefilterSetupFragBits(SigGroupHead *sgh);
+static int PrefilterSetupFragBits(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterFragBitsIsPrefilterable(const Signature *s);
 
 /**
@@ -84,7 +84,7 @@ void DetectFragBitsRegister (void)
 {
     sigmatch_table[DETECT_FRAGBITS].name = "fragbits";
     sigmatch_table[DETECT_FRAGBITS].desc = "check if the fragmentation and reserved bits are set in the IP header";
-    sigmatch_table[DETECT_FRAGBITS].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#fragbits";
+    sigmatch_table[DETECT_FRAGBITS].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#fragbits-ip-fragmentation";
     sigmatch_table[DETECT_FRAGBITS].Match = DetectFragBitsMatch;
     sigmatch_table[DETECT_FRAGBITS].Setup = DetectFragBitsSetup;
     sigmatch_table[DETECT_FRAGBITS].Free  = DetectFragBitsFree;
@@ -358,9 +358,9 @@ PrefilterPacketFragBitsCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupFragBits(SigGroupHead *sgh)
+static int PrefilterSetupFragBits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_FRAGBITS,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FRAGBITS,
         PrefilterPacketFragBitsSet,
         PrefilterPacketFragBitsCompare,
         PrefilterPacketFragBitsMatch);

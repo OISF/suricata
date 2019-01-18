@@ -27,7 +27,7 @@
 void LogHttpLogRegister(void);
 void TmModuleLogHttpLogIPv4Register (void);
 void TmModuleLogHttpLogIPv6Register (void);
-OutputCtx *LogHttpLogInitCtx(ConfNode *);
+OutputInitResult LogHttpLogInitCtx(ConfNode *);
 
 #endif /* __LOG_HTTPLOG_H__ */
 

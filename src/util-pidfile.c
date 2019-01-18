@@ -106,9 +106,9 @@ int SCPidfileTestRunning(const char *pid_filename)
 {
     if (access(pid_filename, F_OK) == 0) {
         /* Check if the existing process is still alive. */
-        pid_t pidv;
         FILE *pf;
 
+        // coverity[toctou : FALSE]
         pf = fopen(pid_filename, "r");
         if (pf == NULL) {
             SCLogError(SC_ERR_INITIALIZATION,
@@ -117,11 +117,15 @@ int SCPidfileTestRunning(const char *pid_filename)
             return -1;
         }
 
+#ifndef OS_WIN32
+        pid_t pidv;
         if (fscanf(pf, "%d", &pidv) == 1 && kill(pidv, 0) == 0) {
             SCLogError(SC_ERR_INITIALIZATION,
                     "pid file '%s' exists and Suricata appears to be running. "
                     "Aborting!", pid_filename);
-        } else {
+        } else
+#endif
+        {
             SCLogError(SC_ERR_INITIALIZATION,
                     "pid file '%s' exists but appears stale. "
                     "Make sure Suricata is not running and then remove %s. "

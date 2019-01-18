@@ -25,6 +25,6 @@
 #define __LOG_TCPDATALOG_H__
 
 void LogTcpDataLogRegister(void);
-OutputCtx *LogTcpDataLogInitCtx(ConfNode *);
+OutputInitResult LogTcpDataLogInitCtx(ConfNode *);
 
 #endif /* __LOG_TCPDATALOG_H__ */

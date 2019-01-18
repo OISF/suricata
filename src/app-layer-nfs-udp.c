@@ -59,7 +59,7 @@ void RegisterNFSUDPParsers(void)
  *
  * Example rule:
  *
- * alert nfs3 any any -> any any (msg:"SURICATA NFS empty message"; \
+ * alert nfs any any -> any any (msg:"SURICATA NFS empty message"; \
  *    app-layer-event:nfs.empty_message; sid:X; rev:Y;)
  */
 enum {
@@ -73,12 +73,12 @@ SCEnumCharMap nfs_udp_decoder_event_table[] = {
 
 static void *NFSStateAlloc(void)
 {
-    return rs_nfs3_state_new();
+    return rs_nfs_state_new();
 }
 
 static void NFSStateFree(void *state)
 {
-    rs_nfs3_state_free(state);
+    rs_nfs_state_free(state);
 }
 
 /**
@@ -89,46 +89,19 @@ static void NFSStateFree(void *state)
  */
 static void NFSStateTxFree(void *state, uint64_t tx_id)
 {
-    rs_nfs3_state_tx_free(state, tx_id);
+    rs_nfs_state_tx_free(state, tx_id);
 }
 
-#if 0
 static int NFSStateGetEventInfo(const char *event_name, int *event_id,
     AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, nfs_decoder_event_table);
-    if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "nfs enum map table.",  event_name);
-        /* This should be treated as fatal. */
-        return -1;
-    }
-
-    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-
-    return 0;
+    return rs_nfs_state_get_event_info(event_name, event_id, event_type);
 }
 
-static AppLayerDecoderEvents *NFSGetEvents(void *state, uint64_t tx_id)
+static AppLayerDecoderEvents *NFSGetEvents(void *state, uint64_t id)
 {
-    NFSState *nfs_state = state;
-    NFSTransaction *tx;
-
-    TAILQ_FOREACH(tx, &nfs3_state->tx_list, next) {
-        if (tx->tx_id == tx_id) {
-            return tx->decoder_events;
-        }
-    }
-
-    return NULL;
+    return rs_nfs_state_get_events(state, id);
 }
-
-static int NFSHasEvents(void *state)
-{
-    NFSState *echo = state;
-    return echo->events;
-}
-#endif
 
 /**
  * \brief Probe the input to see if it looks like echo.
@@ -136,8 +109,7 @@ static int NFSHasEvents(void *state)
  * \retval ALPROTO_NFS if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto NFSProbingParserTS(uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto NFSProbingParserTS(Flow *f, uint8_t *input, uint32_t input_len)
 {
     SCLogDebug("probing");
     if (input_len < NFS_MIN_FRAME_LEN) {
@@ -158,8 +130,7 @@ static AppProto NFSProbingParserTS(uint8_t *input, uint32_t input_len,
     return ALPROTO_UNKNOWN;
 }
 
-static AppProto NFSProbingParserTC(uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto NFSProbingParserTC(Flow *f, uint8_t *input, uint32_t input_len)
 {
     SCLogDebug("probing");
     if (input_len < NFS_MIN_FRAME_LEN) {
@@ -182,41 +153,50 @@ static AppProto NFSProbingParserTC(uint8_t *input, uint32_t input_len,
 
 static int NFSParseRequest(Flow *f, void *state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-    void *local_data)
+    void *local_data, const uint8_t flags)
 {
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
-    rs_nfs3_setfileflags(0, state, file_flags);
+    rs_nfs_setfileflags(0, state, file_flags);
 
-    return rs_nfs3_parse_request_udp(f, state, pstate, input, input_len, local_data);
+    return rs_nfs_parse_request_udp(f, state, pstate, input, input_len, local_data);
 }
 
 static int NFSParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
-    rs_nfs3_setfileflags(1, state, file_flags);
+    rs_nfs_setfileflags(1, state, file_flags);
 
-    return rs_nfs3_parse_response_udp(f, state, pstate, input, input_len, local_data);
+    return rs_nfs_parse_response_udp(f, state, pstate, input, input_len, local_data);
 }
 
 static uint64_t NFSGetTxCnt(void *state)
 {
-    return rs_nfs3_state_get_tx_count(state);
+    return rs_nfs_state_get_tx_count(state);
 }
 
 static void *NFSGetTx(void *state, uint64_t tx_id)
 {
-    return rs_nfs3_state_get_tx(state, tx_id);
+    return rs_nfs_state_get_tx(state, tx_id);
 }
 
-static void NFSSetTxLogged(void *state, void *vtx, uint32_t logger)
+static AppLayerGetTxIterTuple RustNFSGetTxIterator(
+        const uint8_t ipproto, const AppProto alproto,
+        void *alstate, uint64_t min_tx_id, uint64_t max_tx_id,
+        AppLayerGetTxIterState *istate)
 {
-    rs_nfs3_tx_set_logged(state, vtx, logger);
+    return rs_nfs_state_get_tx_iterator(alstate, min_tx_id, (uint64_t *)istate);
 }
 
-static int NFSGetTxLogged(void *state, void *vtx, uint32_t logger)
+static void NFSSetTxLogged(void *state, void *vtx, LoggerId logged)
 {
-    return rs_nfs3_tx_get_logged(state, vtx, logger);
+    rs_nfs_tx_set_logged(state, vtx, logged);
+}
+
+static LoggerId NFSGetTxLogged(void *state, void *vtx)
+{
+    return rs_nfs_tx_get_logged(state, vtx);
 }
 
 /**
@@ -225,7 +205,7 @@ static int NFSGetTxLogged(void *state, void *vtx, uint32_t logger)
  * In most cases 1 can be returned here.
  */
 static int NFSGetAlstateProgressCompletionStatus(uint8_t direction) {
-    return rs_nfs3_state_progress_completion_status(direction);
+    return rs_nfs_state_progress_completion_status(direction);
 }
 
 /**
@@ -243,7 +223,7 @@ static int NFSGetAlstateProgressCompletionStatus(uint8_t direction) {
  */
 static int NFSGetStateProgress(void *tx, uint8_t direction)
 {
-    return rs_nfs3_tx_get_alstate_progress(tx, direction);
+    return rs_nfs_tx_get_alstate_progress(tx, direction);
 }
 
 /**
@@ -251,22 +231,31 @@ static int NFSGetStateProgress(void *tx, uint8_t direction)
  */
 static DetectEngineState *NFSGetTxDetectState(void *vtx)
 {
-    return rs_nfs3_state_get_tx_detect_state(vtx);
+    return rs_nfs_state_get_tx_detect_state(vtx);
 }
 
 /**
  * \brief set store tx detect state
  */
-static int NFSSetTxDetectState(void *state, void *vtx,
-    DetectEngineState *s)
+static int NFSSetTxDetectState(void *vtx, DetectEngineState *s)
 {
-    rs_nfs3_state_set_tx_detect_state(state, vtx, s);
+    rs_nfs_state_set_tx_detect_state(vtx, s);
     return 0;
 }
 
 static FileContainer *NFSGetFiles(void *state, uint8_t direction)
 {
-    return rs_nfs3_getfiles(direction, state);
+    return rs_nfs_getfiles(direction, state);
+}
+
+static void NFSSetDetectFlags(void *tx, uint8_t dir, uint64_t flags)
+{
+    rs_nfs_tx_set_detect_flags(tx, dir, flags);
+}
+
+static uint64_t NFSGetDetectFlags(void *tx, uint8_t dir)
+{
+    return rs_nfs_tx_get_detect_flags(tx, dir);
 }
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
@@ -280,7 +269,7 @@ void RegisterNFSUDPParsers(void)
      * the configuration file then it will be enabled by default. */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
 
-        rs_nfs3_init(&sfc);
+        rs_nfs_init(&sfc);
 
         SCLogDebug("NFS UDP protocol detection enabled.");
 
@@ -353,21 +342,23 @@ void RegisterNFSUDPParsers(void)
             ALPROTO_NFS, NFSGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_NFS,
             NFSGetTx);
+        AppLayerParserRegisterGetTxIterator(IPPROTO_UDP, ALPROTO_NFS,
+                RustNFSGetTxIterator);
 
         AppLayerParserRegisterGetFilesFunc(IPPROTO_UDP, ALPROTO_NFS, NFSGetFiles);
 
-        /* Application layer event handling. */
-//        AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_NFS,
-//            NFSHasEvents);
-
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_NFS,
-            NULL, NFSGetTxDetectState, NFSSetTxDetectState);
+            NFSGetTxDetectState, NFSSetTxDetectState);
 
-//        AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_NFS,
-//            NFSStateGetEventInfo);
-//        AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_NFS,
-//            NFSGetEvents);
+        AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_NFS,
+            NFSStateGetEventInfo);
+        AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_NFS,
+            NFSGetEvents);
+
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_UDP, ALPROTO_NFS,
+                                               NFSGetDetectFlags, NFSSetDetectFlags);
+
     }
     else {
         SCLogNotice("NFS protocol parsing disabled.");

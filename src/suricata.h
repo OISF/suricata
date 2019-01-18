@@ -66,11 +66,10 @@
 
 #include "suricata-common.h"
 #include "packet-queue.h"
-#include "data-queue.h"
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
-#define PROG_VER "4.0.0-dev"
+#define PROG_VER "4.1.0-dev"
 
 /* workaround SPlint error (don't know __gnuc_va_list) */
 #ifdef S_SPLINT_S
@@ -84,7 +83,7 @@
 #define DEFAULT_PID_BASENAME "suricata.pid"
 #define DEFAULT_PID_FILENAME DEFAULT_PID_DIR DEFAULT_PID_BASENAME
 
-#define DOC_URL "http://suricata.readthedocs.io/en/"
+#define DOC_URL "https://suricata.readthedocs.io/en/"
 
 #if defined RELEASE
 #define DOC_VERSION PROG_VER
@@ -131,10 +130,9 @@ enum {
  */
 PacketQueue trans_q[256];
 
-SCDQDataQueue data_queues[256];
-
 typedef struct SCInstance_ {
     enum RunModes run_mode;
+    enum RunModes aux_run_mode;
 
     char pcap_dev[128];
     char *sig_file;
@@ -173,16 +171,6 @@ void GlobalsInitPreConfig(void);
 extern volatile uint8_t suricata_ctl_flags;
 extern int g_disable_randomness;
 
-/* uppercase to lowercase conversion lookup table */
-uint8_t g_u8_lowercasetable[256];
-
-/* marco to do the actual lookup */
-//#define u8_tolower(c) g_u8_lowercasetable[(c)]
-// these 2 are slower:
-//#define u8_tolower(c) ((c) >= 'A' && (c) <= 'Z') ? g_u8_lowercasetable[(c)] : (c)
-//#define u8_tolower(c) (((c) >= 'A' && (c) <= 'Z') ? ((c) + ('a' - 'A')) : (c))
-
-/* this is faster than the table lookup */
 #include <ctype.h>
 #define u8_tolower(c) tolower((uint8_t)(c))
 
@@ -193,8 +181,9 @@ int RunmodeIsUnittests(void);
 int RunmodeGetCurrent(void);
 int IsRuleReloadSet(int quiet);
 
+int SuriHasSigFile(void);
+
 extern int run_mode;
-extern int run_mode_offline;
 
 void PreRunInit(const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);

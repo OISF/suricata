@@ -26,6 +26,7 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "app-layer-parser.h"
 #include "tm-threads.h"
 #include "util-debug.h"
 #include "util-time.h"
@@ -38,6 +39,8 @@
 #include "util-unittest.h"
 #include "util-misc.h"
 
+#include "output.h"
+
 #include "alert-fastlog.h"
 #include "alert-prelude.h"
 #include "alert-unified2-alert.h"
@@ -45,18 +48,12 @@
 
 #include "log-httplog.h"
 
-#include "output.h"
-
 #include "source-pfring.h"
 
 #include "tmqh-flow.h"
 #include "flow-manager.h"
+#include "flow-bypass.h"
 #include "counters.h"
-
-#ifdef __SC_CUDA_SUPPORT__
-#include "util-cuda-buffer.h"
-#include "util-mpm-ac.h"
-#endif
 
 int debuglog_enabled = 0;
 
@@ -150,6 +147,12 @@ static const char *RunModeTranslateModeToName(int runmode)
 #endif
         case RUNMODE_UNIX_SOCKET:
             return "UNIX_SOCKET";
+        case RUNMODE_WINDIVERT:
+#ifdef WINDIVERT
+            return "WINDIVERT";
+#else
+            return "WINDIVERT(DISABLED)";
+#endif
         default:
             SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
             exit(EXIT_FAILURE);
@@ -223,6 +226,7 @@ void RunModeRegisterRunModes(void)
     RunModeIdsNflogRegister();
     RunModeTileMpipeRegister();
     RunModeUnixSocketRegister();
+    RunModeIpsWinDivertRegister();
 #ifdef UNITTESTS
     UtRunModeRegister();
 #endif
@@ -331,6 +335,11 @@ void RunModeDispatch(int runmode, const char *custom_mode)
             case RUNMODE_NFLOG:
                 custom_mode = RunModeIdsNflogGetDefaultMode();
                 break;
+#ifdef WINDIVERT
+            case RUNMODE_WINDIVERT:
+                custom_mode = RunModeIpsWinDivertGetDefaultMode();
+                break;
+#endif
             default:
                 SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
                 exit(EXIT_FAILURE);
@@ -348,15 +357,6 @@ void RunModeDispatch(int runmode, const char *custom_mode)
             custom_mode = local_custom_mode;
         }
     }
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA &&
-        strcasecmp(custom_mode, "autofp") != 0) {
-        SCLogError(SC_ERR_RUNMODE, "When using a cuda mpm, the only runmode we "
-                   "support is autofp.");
-        exit(EXIT_FAILURE);
-    }
-#endif
 
     RunMode *mode = RunModeGetCustomMode(runmode, custom_mode);
     if (mode == NULL) {
@@ -386,11 +386,6 @@ void RunModeDispatch(int runmode, const char *custom_mode)
     if (local_custom_mode != NULL)
         SCFree(local_custom_mode);
 
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-        SCACCudaStartDispatcher();
-#endif
-
     /* Check if the alloted queues have at least 1 reader and writer */
     TmValidateQueueState();
 
@@ -398,9 +393,26 @@ void RunModeDispatch(int runmode, const char *custom_mode)
         /* spawn management threads */
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
+        if (RunModeNeedsBypassManager()) {
+            BypassedFlowManagerThreadSpawn();
+        }
         StatsSpawnThreads();
     }
 }
+
+static int g_runmode_needs_bypass = 0;
+
+void RunModeEnablesBypassManager(void)
+{
+    g_runmode_needs_bypass = 1;
+}
+
+int RunModeNeedsBypassManager(void)
+{
+    return g_runmode_needs_bypass;
+}
+
+
 
 /**
  * \brief Registers a new runmode.
@@ -473,6 +485,7 @@ static void RunOutputFreeList(void)
 
 static int file_logger_count = 0;
 static int filedata_logger_count = 0;
+static LoggerId logger_bits[ALPROTO_MAX];
 
 int RunModeOutputFileEnabled(void)
 {
@@ -482,6 +495,21 @@ int RunModeOutputFileEnabled(void)
 int RunModeOutputFiledataEnabled(void)
 {
     return filedata_logger_count > 0;
+}
+
+bool IsRunModeOffline(int run_mode_to_check)
+{
+    switch(run_mode_to_check) {
+        case RUNMODE_CONF_TEST:
+        case RUNMODE_PCAP_FILE:
+        case RUNMODE_ERF_FILE:
+        case RUNMODE_ENGINE_ANALYSIS:
+        case RUNMODE_UNIX_SOCKET:
+            return true;
+            break;
+        default:
+            return false;
+    }
 }
 
 /**
@@ -552,6 +580,7 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
                 module->ts_log_progress, module->TxLogCondition,
                 module->ThreadInit, module->ThreadDeinit,
                 module->ThreadExitPrintStats);
+        logger_bits[module->alproto] |= (1<<module->logger_id);
     } else if (module->FiledataLogFunc) {
         SCLogDebug("%s is a filedata logger", module->name);
         OutputRegisterFiledataLogger(module->logger_id, module->name,
@@ -592,6 +621,15 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
         char subname[256];
         snprintf(subname, sizeof(subname), "eve-log.%s", type->val);
 
+        ConfNode *sub_output_config = ConfNodeLookupChild(type, type->val);
+        if (sub_output_config != NULL) {
+            const char *enabled = ConfNodeLookupChildValue(
+                sub_output_config, "enabled");
+            if (enabled != NULL && !ConfValIsTrue(enabled)) {
+                continue;
+            }
+        }
+
         /* Now setup all registers logger of this name. */
         OutputModule *sub_module;
         TAILQ_FOREACH(sub_module, &output_modules, entries) {
@@ -607,27 +645,39 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
                     FatalError(SC_ERR_INVALID_ARGUMENT,
                             "bad sub-module for %s", subname);
                 }
-                ConfNode *sub_output_config =
-                    ConfNodeLookupChild(type, type->val);
-                // sub_output_config may be NULL if no config
 
                 /* pass on parent output_ctx */
-                OutputCtx *sub_output_ctx =
-                    sub_module->InitSubFunc(sub_output_config,
-                            parent_ctx);
-                if (sub_output_ctx == NULL) {
+                OutputInitResult result =
+                    sub_module->InitSubFunc(sub_output_config, parent_ctx);
+                if (!result.ok || result.ctx == NULL) {
                     continue;
                 }
 
-                AddOutputToFreeList(sub_module, sub_output_ctx);
+                AddOutputToFreeList(sub_module, result.ctx);
                 SetupOutput(sub_module->name, sub_module,
-                        sub_output_ctx);
+                        result.ctx);
             }
         }
 
         /* Error is no registered loggers with this name
          * were found .*/
         if (!sub_count) {
+#ifndef HAVE_RUST
+            const char *rust_types[] = { "eve-log.smb", "eve-log.nfs",
+                "eve-log.dhcp", "eve-log.krb5", "eve-log.ikev2",
+                "eve-log.tftp", NULL, };
+            const char **iter = rust_types;
+            bool is_rust = false;
+            while (*iter) {
+                is_rust |= (strcmp(*iter, subname) == 0);
+                iter++;
+            }
+            if (is_rust) {
+                SCLogWarning(SC_WARN_RUST_NOT_AVAILABLE, "output "
+                    "module '%s' depends on Rust support", subname);
+                continue;
+            }
+#endif
             FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
                     "No output module named %s", subname);
             continue;
@@ -657,15 +707,13 @@ static void RunModeInitializeLuaOutput(ConfNode *conf, OutputCtx *parent_ctx)
         BUG_ON(script == NULL);
 
         /* pass on parent output_ctx */
-        OutputCtx *sub_output_ctx =
-            m->InitSubFunc(script, parent_ctx);
-        if (sub_output_ctx == NULL) {
-            SCLogInfo("sub_output_ctx NULL, skipping");
+        OutputInitResult result = m->InitSubFunc(script, parent_ctx);
+        if (!result.ok || result.ctx == NULL) {
             continue;
         }
 
-        AddOutputToFreeList(m, sub_output_ctx);
-        SetupOutput(m->name, m, sub_output_ctx);
+        AddOutputToFreeList(m, result.ctx);
+        SetupOutput(m->name, m, result.ctx);
     }
 }
 
@@ -684,6 +732,8 @@ void RunModeInitializeOutputs(void)
     const char *enabled;
     char tls_log_enabled = 0;
     char tls_store_present = 0;
+
+    memset(&logger_bits, 0, sizeof(logger_bits));
 
     TAILQ_FOREACH(output, &outputs->head, next) {
 
@@ -734,6 +784,12 @@ void RunModeInitializeOutputs(void)
                     "files installed to add lua support.");
             continue;
 #endif
+        } else if (strcmp(output->val, "dns-log") == 0) {
+#ifdef HAVE_RUST
+            SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                    "dns-log is not available when Rust is enabled.");
+            continue;
+#endif
         } else if (strcmp(output->val, "tls-log") == 0) {
             tls_log_enabled = 1;
         }
@@ -749,12 +805,15 @@ void RunModeInitializeOutputs(void)
 
             OutputCtx *output_ctx = NULL;
             if (module->InitFunc != NULL) {
-                output_ctx = module->InitFunc(output_config);
-                if (output_ctx == NULL) {
+                OutputInitResult r = module->InitFunc(output_config);
+                if (!r.ok) {
                     FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
                         "output module setup failed");
                     continue;
+                } else if (r.ctx == NULL) {
+                    continue;
                 }
+                output_ctx = r.ctx;
             } else if (module->InitSubFunc != NULL) {
                 SCLogInfo("skipping submodule");
                 continue;
@@ -807,10 +866,15 @@ void RunModeInitializeOutputs(void)
 
                 OutputCtx *output_ctx = NULL;
                 if (module->InitFunc != NULL) {
-                    output_ctx = module->InitFunc(output_config);
-                    if (output_ctx == NULL) {
+                    OutputInitResult r = module->InitFunc(output_config);
+                    if (!r.ok) {
+                        FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
+                                "output module setup failed");
+                        continue;
+                    } else if (r.ctx == NULL) {
                         continue;
                     }
+                    output_ctx = r.ctx;
                 }
 
                 AddOutputToFreeList(module, output_ctx);
@@ -819,6 +883,25 @@ void RunModeInitializeOutputs(void)
         }
     }
 
+    /* register the logger bits to the app-layer */
+    int a;
+    for (a = 0; a < ALPROTO_MAX; a++) {
+        if (logger_bits[a] == 0)
+            continue;
+
+        const int tcp = AppLayerParserProtocolHasLogger(IPPROTO_TCP, a);
+        const int udp = AppLayerParserProtocolHasLogger(IPPROTO_UDP, a);
+
+        SCLogDebug("logger for %s: %s %s", AppProtoToString(a),
+                tcp ? "true" : "false", udp ? "true" : "false");
+
+        SCLogDebug("logger bits for %s: %08x", AppProtoToString(a), logger_bits[a]);
+        if (tcp)
+            AppLayerParserRegisterLoggerBits(IPPROTO_TCP, a, logger_bits[a]);
+        if (udp)
+            AppLayerParserRegisterLoggerBits(IPPROTO_UDP, a, logger_bits[a]);
+
+    }
 }
 
 float threading_detect_ratio = 1;

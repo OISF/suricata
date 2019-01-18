@@ -41,8 +41,8 @@ BmCtx *BoyerMooreCtxInit(const uint8_t *needle, uint16_t needle_len);
 BmCtx *BoyerMooreNocaseCtxInit(uint8_t *needle, uint16_t needle_len);
 
 void BoyerMooreCtxToNocase(BmCtx *, uint8_t *, uint16_t);
-uint8_t *BoyerMoore(const uint8_t *x, uint16_t m, const uint8_t *y, int32_t n, BmCtx *bm_ctx);
-uint8_t *BoyerMooreNocase(const uint8_t *x, uint16_t m, const uint8_t *y, int32_t n, BmCtx *bm_ctx);
+uint8_t *BoyerMoore(const uint8_t *x, uint16_t m, const uint8_t *y, uint32_t n, BmCtx *bm_ctx);
+uint8_t *BoyerMooreNocase(const uint8_t *x, uint16_t m, const uint8_t *y, uint32_t n, BmCtx *bm_ctx);
 void BoyerMooreCtxDeInit(BmCtx *);
 
 void SpmBMRegister(void);

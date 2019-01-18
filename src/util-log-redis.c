@@ -33,7 +33,8 @@
 #include <event2/thread.h>
 #endif /* HAVE_LIBEVENT_PTHREADS */
 
-static const char * redis_push_cmd = "LPUSH";
+static const char * redis_lpush_cmd = "LPUSH";
+static const char * redis_rpush_cmd = "RPUSH";
 static const char * redis_publish_cmd = "PUBLISH";
 static const char * redis_default_key = "suricata";
 static const char * redis_default_server = "127.0.0.1";
@@ -454,7 +455,7 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
         redis_port =  ConfNodeLookupChildValue(redis_node, "port");
         redis_mode =  ConfNodeLookupChildValue(redis_node, "mode");
 
-        ConfGetChildValueBool(redis_node, "async", &is_async);
+        (void)ConfGetChildValueBool(redis_node, "async", &is_async);
     }
     if (!log_ctx->redis_setup.server) {
         log_ctx->redis_setup.server = redis_default_server;
@@ -497,11 +498,17 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
         log_ctx->redis_setup.batch_size = 0;
     }
 
-    if (!strcmp(redis_mode, "list")) {
-        log_ctx->redis_setup.command = redis_push_cmd;
-    } else {
+    if (!strcmp(redis_mode, "list") || !strcmp(redis_mode,"lpush")) {
+        log_ctx->redis_setup.command = redis_lpush_cmd;
+    } else if(!strcmp(redis_mode, "rpush")){
+        log_ctx->redis_setup.command = redis_rpush_cmd;
+    } else if(!strcmp(redis_mode,"channel") || !strcmp(redis_mode,"publish")) {
         log_ctx->redis_setup.command = redis_publish_cmd;
+    } else {
+        SCLogError(SC_ERR_REDIS_CONFIG,"Invalid redis mode");
+        exit(EXIT_FAILURE);
     }
+
     /* store server params for reconnection */
     if (!log_ctx->redis_setup.server) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating redis server string");

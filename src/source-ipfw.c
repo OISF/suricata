@@ -457,10 +457,16 @@ TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
 
     /* Process IP packets */
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
+        if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
+            return TM_ECODE_FAILED;
+        }
         SCLogDebug("DecodeIPFW ip4 processing");
         DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
     } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
+        if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
+            return TM_ECODE_FAILED;
+        }
         SCLogDebug("DecodeIPFW ip6 processing");
         DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
@@ -623,30 +629,12 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
      *  if this is a tunnel packet we check if we are ready to verdict
      * already. */
     if (IS_TUNNEL_PKT(p)) {
-        char verdict = 1;
-
-        SCMutex *m = p->root ? &p->root->tunnel_mutex : &p->tunnel_mutex;
-        SCMutexLock(m);
-
-        /* if there are more tunnel packets than ready to verdict packets,
-         * we won't verdict this one
-         */
-        if (TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p)) {
-            SCLogDebug("VerdictIPFW: not ready to verdict yet: "
-                    "TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p) = %" PRId32
-                    " > %" PRId32 "", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
-            verdict = 0;
-        }
-
-        SCMutexUnlock(m);
+        bool verdict = VerdictTunnelPacket(p);
 
         /* don't verdict if we are not ready */
-        if (verdict == 1) {
+        if (verdict == true) {
             SCLogDebug("Setting verdict on tunnel");
             retval = IPFWSetVerdict(tv, ptv, p->root ? p->root : p);
-
-        } else {
-            TUNNEL_INCR_PKT_RTV(p);
         }
     } else {
         /* no tunnel, verdict normally */
@@ -755,7 +743,7 @@ int IPFWRegisterQueue(char *queue)
     nq->port_num = port_num;
     receive_port_num++;
     SCMutexUnlock(&ipfw_init_lock);
-    LiveRegisterDevice(queue);
+    LiveRegisterDeviceName(queue);
 
     SCLogDebug("Queue \"%s\" registered.", queue);
     return 0;

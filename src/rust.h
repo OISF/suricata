@@ -26,7 +26,7 @@ typedef struct SuricataContext_ {
             uint8_t);
     void (*AppLayerDecoderEventsFreeEvents)(AppLayerDecoderEvents **);
 
-    File *(*FileOpenFileWithId)(FileContainer *, const StreamingBufferConfig *,
+    int (*FileOpenFileWithId)(FileContainer *, const StreamingBufferConfig *,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags);
     int (*FileCloseFileById)(FileContainer *, uint32_t track_id,
@@ -53,5 +53,7 @@ typedef struct _Store Store;
 /** Opaque Rust types. */
 typedef struct NFState_ NFSState;
 typedef struct NFSTransaction_ NFSTransaction;
+typedef struct SMBState_ SMBState;
+typedef struct SMBTransaction_ SMBTransaction;
 
 #endif /* !__RUST_H__ */

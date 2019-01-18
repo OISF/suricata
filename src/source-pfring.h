@@ -27,13 +27,12 @@
 #define PFRING_IFACE_NAME_LENGTH 48
 
 #include <config.h>
-#ifdef HAVE_PFRING
-#include <pfring.h>
-#endif
 
-typedef enum {
-    PFRING_CONF_FLAGS_CLUSTER = 0x1
-} PfringIfaceConfigFlags;
+typedef struct PfringThreadVars_ PfringThreadVars;
+
+/* PfringIfaceConfig flags */
+#define PFRING_CONF_FLAGS_CLUSTER (1 << 0)
+#define PFRING_CONF_FLAGS_BYPASS  (1 << 1)
 
 typedef struct PfringIfaceConfig_
 {
@@ -41,9 +40,8 @@ typedef struct PfringIfaceConfig_
 
     /* cluster param */
     int cluster_id;
-#ifdef HAVE_PFRING
-    cluster_type ctype;
-#endif
+    unsigned int ctype;
+
     char iface[PFRING_IFACE_NAME_LENGTH];
     /* number of threads */
     int threads;
@@ -55,6 +53,16 @@ typedef struct PfringIfaceConfig_
     void (*DerefFunc)(void *);
 } PfringIfaceConfig;
 
+/**
+ * \brief per packet Pfring vars
+ *
+ * This structure is used to pass packet metadata in callbacks.
+ */
+typedef struct PfringPacketVars_
+{
+    PfringThreadVars *ptv;
+    uint32_t flow_id;
+} PfringPacketVars;
 
 
 void TmModuleReceivePfringRegister (void);

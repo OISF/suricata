@@ -6566,6 +6566,10 @@ static int DNP3DecodeObjectG70V1(const uint8_t **buf, uint32_t *len,
             goto error;
         }
         if (object->filename_size > 0) {
+            if (*len < object->filename_size) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->filename, *buf, object->filename_size);
             *buf += object->filename_size;
             *len -= object->filename_size;
@@ -6575,6 +6579,10 @@ static int DNP3DecodeObjectG70V1(const uint8_t **buf, uint32_t *len,
             goto error;
         }
         if (object->data_size > 0) {
+            if (*len < object->data_size) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->data, *buf, object->data_size);
             *buf += object->data_size;
             *len -= object->data_size;
@@ -6633,12 +6641,20 @@ static int DNP3DecodeObjectG70V2(const uint8_t **buf, uint32_t *len,
             goto error;
         }
         if (object->username_size > 0) {
+            if (*len < object->username_size) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->username, *buf, object->username_size);
             *buf += object->username_size;
             *len -= object->username_size;
         }
         object->username[object->username_size] = '\0';
         if (object->password_size > 0) {
+            if (*len < object->password_size) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->password, *buf, object->password_size);
             *buf += object->password_size;
             *len -= object->password_size;
@@ -6709,6 +6725,10 @@ static int DNP3DecodeObjectG70V3(const uint8_t **buf, uint32_t *len,
             goto error;
         }
         if (object->filename_size > 0) {
+            if (*len < object->filename_size) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->filename, *buf, object->filename_size);
             *buf += object->filename_size;
             *len -= object->filename_size;
@@ -6775,6 +6795,10 @@ static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint32_t *len,
         }
         object->optional_text_len = prefix - (offset - *len);
         if (object->optional_text_len > 0) {
+            if (*len < object->optional_text_len) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->optional_text, *buf, object->optional_text_len);
             *buf += object->optional_text_len;
             *len -= object->optional_text_len;
@@ -6832,6 +6856,10 @@ static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint32_t *len,
         }
         object->file_data_len = prefix - (offset - *len);
         if (object->file_data_len > 0) {
+            if (*len < object->file_data_len) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->file_data, *buf, object->file_data_len);
             *buf += object->file_data_len;
             *len -= object->file_data_len;
@@ -6892,6 +6920,10 @@ static int DNP3DecodeObjectG70V6(const uint8_t **buf, uint32_t *len,
         }
         object->optional_text_len = prefix - (offset - *len);
         if (object->optional_text_len > 0) {
+            if (*len < object->optional_text_len) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->optional_text, *buf, object->optional_text_len);
             *buf += object->optional_text_len;
             *len -= object->optional_text_len;
@@ -6956,6 +6988,10 @@ static int DNP3DecodeObjectG70V7(const uint8_t **buf, uint32_t *len,
             goto error;
         }
         if (object->filename_size > 0) {
+            if (*len < object->filename_size) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->filename, *buf, object->filename_size);
             *buf += object->filename_size;
             *len -= object->filename_size;
@@ -7007,6 +7043,10 @@ static int DNP3DecodeObjectG70V8(const uint8_t **buf, uint32_t *len,
 
         object->file_specification_len = prefix - (offset - *len);
         if (object->file_specification_len > 0) {
+            if (*len < object->file_specification_len) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->file_specification, *buf, object->file_specification_len);
             *buf += object->file_specification_len;
             *len -= object->file_specification_len;
@@ -7697,6 +7737,10 @@ static int DNP3DecodeObjectG120V7(const uint8_t **buf, uint32_t *len,
         }
         object->error_text_len = prefix - (offset - *len);
         if (object->error_text_len > 0) {
+            if (*len < object->error_text_len) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->error_text, *buf, object->error_text_len);
             *buf += object->error_text_len;
             *len -= object->error_text_len;
@@ -7886,6 +7930,10 @@ static int DNP3DecodeObjectG120V10(const uint8_t **buf, uint32_t *len,
             goto error;
         }
         if (object->username_len > 0) {
+            if (*len < object->username_len) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->username, *buf, object->username_len);
             *buf += object->username_len;
             *len -= object->username_len;
@@ -7968,6 +8016,10 @@ static int DNP3DecodeObjectG120V11(const uint8_t **buf, uint32_t *len,
             goto error;
         }
         if (object->username_len > 0) {
+            if (*len < object->username_len) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->username, *buf, object->username_len);
             *buf += object->username_len;
             *len -= object->username_len;

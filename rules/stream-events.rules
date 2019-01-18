@@ -15,6 +15,11 @@ alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake excessive diff
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN resend different seq on SYN recv"; stream-event:3whs_syn_resend_diff_seq_on_syn_recv; classtype:protocol-command-decode; sid:2210008; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake SYN to client on SYN recv"; stream-event:3whs_syn_toclient_on_syn_recv; classtype:protocol-command-decode; sid:2210009; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 3way handshake wrong seq wrong ack"; stream-event:3whs_wrong_seq_wrong_ack; classtype:protocol-command-decode; sid:2210010; rev:2;)
+# suspected data injection by sending data packet right after the SYN/ACK,
+# this to make sure network inspection reject tools reject it as it's
+# before the 3whs is complete. Only set in IPS mode. Drops unconditionally
+# in the code, so can't be made not to drop.
+drop tcp any any -> any any (msg:"SURICATA STREAM 3way handshake toclient data injection suspected"; flow:to_client; stream-event:3whs_ack_data_inject; classtype:protocol-command-decode; sid:2210057; rev:1;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 4way handshake SYNACK with wrong ACK"; stream-event:4whs_synack_with_wrong_ack; classtype:protocol-command-decode; sid:2210011; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 4way handshake SYNACK with wrong SYN"; stream-event:4whs_synack_with_wrong_syn; classtype:protocol-command-decode; sid:2210012; rev:2;)
 alert tcp any any -> any any (msg:"SURICATA STREAM 4way handshake wrong seq"; stream-event:4whs_wrong_seq; classtype:protocol-command-decode; sid:2210013; rev:2;)
@@ -62,6 +67,9 @@ alert tcp any any -> any any (msg:"SURICATA STREAM SHUTDOWN RST invalid ack"; st
 alert tcp any any -> any any (msg:"SURICATA STREAM reassembly overlap with different data"; stream-event:reassembly_overlap_different_data; classtype:protocol-command-decode; sid:2210050; rev:2;)
 # Bad Window Update: see bug 1238 for an explanation
 alert tcp any any -> any any (msg:"SURICATA STREAM bad window update"; stream-event:pkt_bad_window_update; classtype:protocol-command-decode; sid:2210056; rev:1;)
+# RST injection suspected. Alerts on packets *after* the RST, as these indicate the target
+# rejected/ignored the RST.
+alert tcp any any -> any any (msg:"SURICATA STREAM suspected RST injection"; stream-event:suspected_rst_inject; classtype:protocol-command-decode; sid:2210058; rev:1;)
 
 # retransmission detection
 #
@@ -80,6 +88,8 @@ alert tcp any any -> any any (msg:"SURICATA STREAM reassembly segment before bas
 alert tcp any any -> any any (msg:"SURICATA STREAM Packet is retransmission"; stream-event:pkt_retransmission; flowint:tcp.retransmission.count,+,1; noalert; classtype:protocol-command-decode; sid:2210053; rev:1;)
 # rule to alert if a stream has excessive retransmissions
 alert tcp any any -> any any (msg:"SURICATA STREAM excessive retransmissions"; flowbits:isnotset,tcp.retransmission.alerted; flowint:tcp.retransmission.count,>=,10; flowbits:set,tcp.retransmission.alerted; classtype:protocol-command-decode; sid:2210054; rev:1;)
+# Packet on wrong thread. Fires at most once per flow.
+alert tcp any any -> any any (msg:"SURICATA STREAM pkt seen on wrong thread"; stream-event:wrong_thread; sid:2210059; rev:1;)
 
-# next sid 2210057
+# next sid 2210060
 

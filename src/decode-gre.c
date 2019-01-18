@@ -43,9 +43,9 @@
  * \brief Function to decode GRE packets
  */
 
-int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
-    uint16_t header_len = GRE_HDR_LEN;
+    uint32_t header_len = GRE_HDR_LEN;
     GRESreHdr *gsre = NULL;
 
     StatsIncr(tv, dtv->counter_gre);
@@ -115,7 +115,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
 
                     header_len += GRE_SRE_HDR_LEN;
 
-                    if ((ntohs(gsre->af) == 0) && (gsre->sre_length == 0))
+                    if ((SCNtohs(gsre->af) == 0) && (gsre->sre_length == 0))
                         break;
 
                     header_len += gsre->sre_length;

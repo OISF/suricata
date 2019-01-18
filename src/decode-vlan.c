@@ -44,6 +44,9 @@
 #include "util-profiling.h"
 #include "host.h"
 
+static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        uint8_t *pkt, uint16_t len, PacketQueue *pq);
+
 /**
  * \internal
  * \brief this function is used to decode IEEE802.1q packets
@@ -56,7 +59,7 @@
  * \param pq pointer to the packet queue
  *
  */
-int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     uint32_t proto;
 
@@ -80,7 +83,7 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     proto = GET_VLAN_PROTO(p->vlanh[p->vlan_idx]);
 
-    SCLogDebug("p %p pkt %p VLAN protocol %04x VLAN PRI %d VLAN CFI %d VLAN ID %d Len: %" PRId32 "",
+    SCLogDebug("p %p pkt %p VLAN protocol %04x VLAN PRI %d VLAN CFI %d VLAN ID %d Len: %" PRIu32 "",
             p, pkt, proto, GET_VLAN_PRIORITY(p->vlanh[p->vlan_idx]),
             GET_VLAN_CFI(p->vlanh[p->vlan_idx]), GET_VLAN_ID(p->vlanh[p->vlan_idx]), len);
 
@@ -92,10 +95,17 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     switch (proto)   {
         case ETHERNET_TYPE_IP:
+            if (unlikely(len > VLAN_HEADER_LEN + USHRT_MAX)) {
+                return TM_ECODE_FAILED;
+            }
+
             DecodeIPV4(tv, dtv, p, pkt + VLAN_HEADER_LEN,
                        len - VLAN_HEADER_LEN, pq);
             break;
         case ETHERNET_TYPE_IPV6:
+            if (unlikely(len > VLAN_HEADER_LEN + USHRT_MAX)) {
+                return TM_ECODE_FAILED;
+            }
             DecodeIPV6(tv, dtv, p, pkt + VLAN_HEADER_LEN,
                        len - VLAN_HEADER_LEN, pq);
             break;
@@ -117,6 +127,12 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                         len - VLAN_HEADER_LEN, pq);
             }
             break;
+        case ETHERNET_TYPE_8021AH:
+            DecodeIEEE8021ah(tv, dtv, p, pkt + VLAN_HEADER_LEN,
+                    len - VLAN_HEADER_LEN, pq);
+            break;
+        case ETHERNET_TYPE_ARP:
+            break;
         default:
             SCLogDebug("unknown VLAN type: %" PRIx32 "", proto);
             ENGINE_SET_INVALID_EVENT(p, VLAN_UNKNOWN_TYPE);
@@ -137,6 +153,38 @@ uint16_t DecodeVLANGetId(const Packet *p, uint8_t layer)
         return GET_VLAN_ID(p->vlanh[layer]);
     }
     return 0;
+}
+
+typedef struct IEEE8021ahHdr_ {
+    uint32_t flags;
+    uint8_t c_destination[6];
+    uint8_t c_source[6];
+    uint16_t type;              /**< next protocol */
+}  __attribute__((__packed__)) IEEE8021ahHdr;
+
+#define IEEE8021AH_HEADER_LEN sizeof(IEEE8021ahHdr)
+
+static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+{
+    StatsIncr(tv, dtv->counter_ieee8021ah);
+
+    if (len < IEEE8021AH_HEADER_LEN) {
+        ENGINE_SET_INVALID_EVENT(p, IEEE8021AH_HEADER_TOO_SMALL);
+        return TM_ECODE_FAILED;
+    }
+
+    IEEE8021ahHdr *hdr = (IEEE8021ahHdr *)pkt;
+    uint16_t next_proto = SCNtohs(hdr->type);
+
+    switch (next_proto) {
+        case ETHERNET_TYPE_VLAN:
+        case ETHERNET_TYPE_8021QINQ: {
+            DecodeVLAN(tv, dtv, p, pkt + IEEE8021AH_HEADER_LEN,
+                    len - IEEE8021AH_HEADER_LEN, pq);
+            break;
+        }
+    }
+    return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS

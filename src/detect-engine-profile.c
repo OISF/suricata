@@ -57,16 +57,17 @@ static void DumpFp(const SigMatch *sm, char *pat_orig, uint32_t pat_orig_sz, cha
 #endif
 
 SCMutex g_rule_dump_write_m = SCMUTEX_INITIALIZER;
-void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
+void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
+        const SigGroupHead *sgh, const Packet *p)
 {
-    json_t *js = CreateJSONHeader(p, 0, "inspectedrules");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "inspectedrules");
     if (js == NULL)
         return;
     json_t *ir = json_object();
     if (ir == NULL)
         return;
 
-    json_object_set_new(ir, "rule_group_id", json_integer(det_ctx->sgh->id));
+    json_object_set_new(ir, "rule_group_id", json_integer(sgh->id));
     json_object_set_new(ir, "rule_cnt", json_integer(det_ctx->match_array_cnt));
 
     json_t *js_array = json_array();
@@ -78,7 +79,7 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
             continue;
 
         json_t *js_sig = json_object();
-        if (unlikely(js == NULL))
+        if (unlikely(js_sig == NULL))
             continue;
         json_object_set_new(js_sig, "sig_id", json_integer(s->id));
 #if 0
@@ -130,8 +131,8 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
         if (fp != NULL) {
             MemBufferPrintToFPAsString(mbuf, fp);
             fclose(fp);
-            SCMutexUnlock(&g_rule_dump_write_m);
         }
+        SCMutexUnlock(&g_rule_dump_write_m);
     }
 
     MemBufferFree(mbuf);

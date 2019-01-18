@@ -28,6 +28,7 @@
 #include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
+#include "detect-engine.h"
 
 #include "threads.h"
 #include "threadvars.h"
@@ -51,6 +52,16 @@
 
 #ifdef HAVE_LIBJANSSON
 
+/**
+ * specify which engine info will be printed in stats log.
+ * ALL means both last reload and ruleset stats.
+ */
+typedef enum OutputEngineInfo_ {
+    OUTPUT_ENGINE_LAST_RELOAD = 0,
+    OUTPUT_ENGINE_RULESET,
+    OUTPUT_ENGINE_ALL,
+} OutputEngineInfo;
+
 typedef struct OutputStatsCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
@@ -61,6 +72,98 @@ typedef struct JsonStatsLogThread_ {
     MemBuffer *buffer;
 } JsonStatsLogThread;
 
+static json_t *EngineStats2Json(const DetectEngineCtx *de_ctx,
+                                const OutputEngineInfo output)
+{
+    struct timeval last_reload;
+    char timebuf[64];
+    const SigFileLoaderStat *sig_stat = NULL;
+
+    json_t *jdata = json_object();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    if (output == OUTPUT_ENGINE_LAST_RELOAD || output == OUTPUT_ENGINE_ALL) {
+        last_reload = de_ctx->last_reload;
+        CreateIsoTimeString(&last_reload, timebuf, sizeof(timebuf));
+        json_object_set_new(jdata, "last_reload", json_string(timebuf));
+    }
+
+    sig_stat = &de_ctx->sig_stat;
+    if ((output == OUTPUT_ENGINE_RULESET || output == OUTPUT_ENGINE_ALL) &&
+        sig_stat != NULL)
+    {
+        json_object_set_new(jdata, "rules_loaded",
+                            json_integer(sig_stat->good_sigs_total));
+        json_object_set_new(jdata, "rules_failed",
+                            json_integer(sig_stat->bad_sigs_total));
+    }
+
+    return jdata;
+}
+
+static TmEcode OutputEngineStats2Json(json_t **jdata, const OutputEngineInfo output)
+{
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (de_ctx == NULL) {
+        goto err1;
+    }
+    /* Since we need to deference de_ctx pointer, we don't want to lost it. */
+    DetectEngineCtx *list = de_ctx;
+
+    json_t *js_tenant_list = json_array();
+    json_t *js_tenant = NULL;
+
+    if (js_tenant_list == NULL) {
+        goto err2;
+    }
+
+    while(list) {
+        js_tenant = json_object();
+        if (js_tenant == NULL) {
+            goto err3;
+        }
+        json_object_set_new(js_tenant, "id", json_integer(list->tenant_id));
+
+        json_t *js_stats = EngineStats2Json(list, output);
+        if (js_stats == NULL) {
+            goto err4;
+        }
+        json_object_update(js_tenant, js_stats);
+        json_array_append_new(js_tenant_list, js_tenant);
+        json_decref(js_stats);
+        list = list->next;
+    }
+
+    DetectEngineDeReference(&de_ctx);
+    *jdata = js_tenant_list;
+    return TM_ECODE_OK;
+
+err4:
+    json_object_clear(js_tenant);
+    json_decref(js_tenant);
+
+err3:
+    json_object_clear(js_tenant_list);
+    json_decref(js_tenant_list);
+
+err2:
+    DetectEngineDeReference(&de_ctx);
+
+err1:
+    json_object_set_new(*jdata, "message", json_string("Unable to get info"));
+    return TM_ECODE_FAILED;
+}
+
+TmEcode OutputEngineStatsReloadTime(json_t **jdata) {
+    return OutputEngineStats2Json(jdata, OUTPUT_ENGINE_LAST_RELOAD);
+}
+
+TmEcode OutputEngineStatsRuleset(json_t **jdata) {
+    return OutputEngineStats2Json(jdata, OUTPUT_ENGINE_RULESET);
+}
+
 static json_t *OutputStats2Json(json_t *js, const char *key)
 {
     void *iter;
@@ -68,6 +171,10 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
     const char *dot = index(key, '.');
     if (dot == NULL)
         return NULL;
+    if (strlen(dot) > 2) {
+        if (*(dot + 1) == '.' && *(dot + 2) != '\0')
+            dot = index(dot + 2, '.');
+    }
 
     size_t predot_len = (dot - key) + 1;
     char s[predot_len];
@@ -79,6 +186,15 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
     json_t *value = json_object_iter_value(iter);
     if (value == NULL) {
         value = json_object();
+
+        if (!strncmp(s, "detect", 6)) {
+            json_t *js_engine = NULL;
+
+            TmEcode ret = OutputEngineStats2Json(&js_engine, OUTPUT_ENGINE_ALL);
+            if (ret == TM_ECODE_OK && js_engine) {
+                json_object_set_new(value, "engines", js_engine);
+            }
+        }
         json_object_set_new(js, s, value);
     }
     if (s2 != NULL) {
@@ -262,23 +378,24 @@ static void OutputStatsLogDeinit(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "stats.json"
-static OutputCtx *OutputStatsLogInit(ConfNode *conf)
+static OutputInitResult OutputStatsLogInit(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_STATS_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputStatsCtx *stats_ctx = SCMalloc(sizeof(OutputStatsCtx));
     if (unlikely(stats_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
     stats_ctx->flags = JSON_STATS_TOTALS;
 
@@ -304,7 +421,7 @@ static OutputCtx *OutputStatsLogInit(ConfNode *conf)
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(stats_ctx);
-        return NULL;
+        return result;
     }
 
     stats_ctx->file_ctx = file_ctx;
@@ -312,7 +429,9 @@ static OutputCtx *OutputStatsLogInit(ConfNode *conf)
     output_ctx->data = stats_ctx;
     output_ctx->DeInit = OutputStatsLogDeinit;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void OutputStatsLogDeinitSub(OutputCtx *output_ctx)
@@ -322,13 +441,13 @@ static void OutputStatsLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
-
+    OutputInitResult result = { NULL, false };
+    OutputJsonCtx *ajt = parent_ctx->data;
     OutputStatsCtx *stats_ctx = SCMalloc(sizeof(OutputStatsCtx));
     if (unlikely(stats_ctx == NULL))
-        return NULL;
+        return result;
 
     stats_ctx->flags = JSON_STATS_TOTALS;
 
@@ -343,7 +462,7 @@ static OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
             SCFree(stats_ctx);
             SCLogError(SC_ERR_JSON_STATS_LOG_NEGATED,
                     "Cannot disable both totals and threads in stats logging");
-            return NULL;
+            return result;
         }
 
         if (totals != NULL && ConfValIsFalse(totals)) {
@@ -361,7 +480,7 @@ static OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(stats_ctx);
-        return NULL;
+        return result;
     }
 
     stats_ctx->file_ctx = ajt->file_ctx;
@@ -369,7 +488,9 @@ static OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->data = stats_ctx;
     output_ctx->DeInit = OutputStatsLogDeinitSub;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 void JsonStatsLogRegister(void) {

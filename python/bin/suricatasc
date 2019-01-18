@@ -1,0 +1,92 @@
+#!/usr/bin/python
+# Copyright(C) 2013 Open Information Security Foundation
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+from __future__ import print_function
+
+import sys
+import os
+import argparse
+
+# Find the Python libdir.
+exec_dir = os.path.dirname(__file__)
+if os.path.exists(os.path.join(exec_dir, "..", "suricata", "ctl", "main.py")):
+    # Looks like we're running from the development directory.
+    sys.path.insert(0, ".")
+else:
+    # This is to find the suricata module in the case of being installed
+    # to a non-standard prefix.
+    version_info = sys.version_info
+    pyver = "%d.%d" % (version_info.major, version_info.minor)
+    path = os.path.join(
+        exec_dir, "..", "lib", "python%s" % (pyver), "site-packages",
+        "suricata")
+    if os.path.exists(path):
+        sys.path.insert(0, os.path.dirname(path))
+
+from suricata.sc import *
+
+try:
+    from suricata.config import defaults
+    has_defaults = True
+except:
+    has_defaults = False
+
+parser = argparse.ArgumentParser(prog='suricatasc', description='Client for Suricata unix socket')
+parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output (including JSON dump)')
+parser.add_argument('-c', '--command', default=None, help='execute on single command and return JSON')
+parser.add_argument('socket', metavar='socket', nargs='?', help='socket file to connnect to', default=None)
+args = parser.parse_args()
+
+if args.socket != None:
+    SOCKET_PATH = args.socket
+elif has_defaults:
+    SOCKET_PATH = os.path.join(defaults.localstatedir, "suricata-command.socket")
+else:
+    print("Unable to determine path to suricata-command.socket.", file=sys.stderr)
+    sys.exit(1)
+
+sc = SuricataSC(SOCKET_PATH, verbose=args.verbose)
+try:
+    sc.connect()
+except SuricataNetException as err:
+    print("Unable to connect to socket %s: %s" % (SOCKET_PATH, err), file=sys.stderr)
+    sys.exit(1)
+except SuricataReturnException as err:
+    print("Unable to negotiate version with server: %s" % (err), file=sys.stderr)
+    sys.exit(1)
+
+if args.command:
+    (command, arguments) = sc.parse_command(args.command)
+    res = sc.send_command(command, arguments)
+    print(json.dumps(res))
+    sc.close()
+    if res['return'] == 'OK':
+        sys.exit(0)
+    else:
+        sys.exit(1)
+
+try:
+    sc.interactive()
+except SuricataNetException as err:
+    print("Communication error: %s" % (err))
+    sys.exit(1)
+except SuricataReturnException as err:
+    print("Invalid return from server: %s" % (err))
+    sys.exit(1)
+
+print("[+] Quit command client")
+
+sc.close()

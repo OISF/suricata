@@ -48,7 +48,7 @@
 #include "detect-ssh-software.h"
 
 #define KEYWORD_NAME "ssh_software"
-#define KEYWORD_DOC "ssh-keywords#ssh-software"
+#define KEYWORD_DOC "ssh-keywords.html#ssh-software"
 #define BUFFER_NAME "ssh_software"
 #define BUFFER_DESC "ssh software"
 static int g_buffer_id = 0;
@@ -83,11 +83,12 @@ static void PrefilterTxSshRequestSoftware(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxSshRequestSoftwareRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxSshRequestSoftwareRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxSshRequestSoftware,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxSshRequestSoftware,
         ALPROTO_SSH, SSH_STATE_BANNER_DONE,
         mpm_ctx, NULL, KEYWORD_NAME " (request)");
     return r;
@@ -123,11 +124,12 @@ static void PrefilterTxSshResponseSoftware(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxSshResponseSoftwareRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxSshResponseSoftwareRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxSshResponseSoftware,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxSshResponseSoftware,
         ALPROTO_SSH, SSH_STATE_BANNER_DONE,
         mpm_ctx, NULL, KEYWORD_NAME " (response)");
     return r;
@@ -159,7 +161,7 @@ static int InspectEngineSshSoftware(ThreadVars *tv,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           buffer, buffer_len,
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -174,12 +176,6 @@ static int DetectSshSoftwareSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 {
     s->init_data->list = g_buffer_id;
     return 0;
-}
-
-static void DetectSshSoftwareSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_SSH_STATE;
 }
 
 void DetectSshSoftwareRegister(void)
@@ -204,9 +200,6 @@ void DetectSshSoftwareRegister(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
-
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
-            DetectSshSoftwareSetupCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }

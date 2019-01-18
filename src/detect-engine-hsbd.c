@@ -56,6 +56,7 @@
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-file-decompression.h"
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-mem.h"
@@ -66,101 +67,53 @@
 
 #include "util-validate.h"
 
-#define BUFFER_STEP 50
-
-static inline int HSBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
+static HtpBody *GetResponseBody(htp_tx_t *tx)
 {
-    if (size >= (USHRT_MAX - BUFFER_STEP))
-        return -1;
-
-    void *ptmp;
-    if (size > det_ctx->hsbd_buffers_size) {
-        ptmp = SCRealloc(det_ctx->hsbd,
-                         (det_ctx->hsbd_buffers_size + BUFFER_STEP) * sizeof(HttpReassembledBody));
-        if (ptmp == NULL) {
-            SCFree(det_ctx->hsbd);
-            det_ctx->hsbd = NULL;
-            det_ctx->hsbd_buffers_size = 0;
-            det_ctx->hsbd_buffers_list_len = 0;
-            return -1;
-        }
-        det_ctx->hsbd = ptmp;
-
-        memset(det_ctx->hsbd + det_ctx->hsbd_buffers_size, 0, BUFFER_STEP * sizeof(HttpReassembledBody));
-        det_ctx->hsbd_buffers_size += BUFFER_STEP;
-    }
-    uint16_t i;
-    for (i = det_ctx->hsbd_buffers_list_len; i < ((uint16_t)size); i++) {
-        det_ctx->hsbd[i].buffer_len = 0;
-        det_ctx->hsbd[i].offset = 0;
-    }
-
-    return 0;
-}
-
-static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
-                                               DetectEngineCtx *de_ctx,
-                                               DetectEngineThreadCtx *det_ctx,
-                                               Flow *f, HtpState *htp_state,
-                                               uint8_t flags,
-                                               uint32_t *buffer_len,
-                                               uint32_t *stream_start_offset)
-{
-    int index = 0;
-    const uint8_t *buffer = NULL;
-    *buffer_len = 0;
-    *stream_start_offset = 0;
-
-    if (det_ctx->hsbd_buffers_list_len == 0) {
-        /* get the inspect id to use as a 'base id' */
-        uint64_t base_inspect_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
-        BUG_ON(base_inspect_id > tx_id);
-        /* see how many space we need for the current tx_id */
-        uint64_t txs = (tx_id - base_inspect_id) + 1;
-        if (HSBDCreateSpace(det_ctx, txs) < 0)
-            goto end;
-        index = (tx_id - base_inspect_id);
-        det_ctx->hsbd_start_tx_id = base_inspect_id;
-        det_ctx->hsbd_buffers_list_len = txs;
-    } else {
-        if ((tx_id - det_ctx->hsbd_start_tx_id) < det_ctx->hsbd_buffers_list_len) {
-            if (det_ctx->hsbd[(tx_id - det_ctx->hsbd_start_tx_id)].buffer_len != 0) {
-                *buffer_len = det_ctx->hsbd[(tx_id - det_ctx->hsbd_start_tx_id)].buffer_len;
-                *stream_start_offset = det_ctx->hsbd[(tx_id - det_ctx->hsbd_start_tx_id)].offset;
-                return det_ctx->hsbd[(tx_id - det_ctx->hsbd_start_tx_id)].buffer;
-            }
-        } else {
-            uint64_t txs = (tx_id - det_ctx->hsbd_start_tx_id) + 1;
-            if (HSBDCreateSpace(det_ctx, txs) < 0)
-                goto end;
-
-            det_ctx->hsbd_buffers_list_len = txs;
-        }
-        index = (tx_id - det_ctx->hsbd_start_tx_id);
-    }
-
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (htud == NULL) {
         SCLogDebug("no htud");
-        goto end;
+        return NULL;
+    }
+
+    return &htud->response_body;
+}
+
+InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *f, const uint8_t flow_flags,
+        void *txv, const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect != NULL)
+        return buffer;
+
+    htp_tx_t *tx = txv;
+    HtpState *htp_state = f->alstate;
+    const uint8_t flags = flow_flags;
+
+    HtpBody *body = GetResponseBody(tx);
+    if (body == NULL) {
+        return NULL;
     }
 
     /* no new data */
-    if (htud->response_body.body_inspected == htud->response_body.content_len_so_far) {
+    if (body->body_inspected == body->content_len_so_far) {
         SCLogDebug("no new data");
-        goto end;
+        return NULL;
     }
 
-    HtpBodyChunk *cur = htud->response_body.first;
+    HtpBodyChunk *cur = body->first;
     if (cur == NULL) {
         SCLogDebug("No http chunks to inspect for this transacation");
-        goto end;
+        return NULL;
     }
 
     SCLogDebug("response.body_limit %u response_body.content_len_so_far %"PRIu64
                ", response.inspect_min_size %"PRIu32", EOF %s, progress > body? %s",
               htp_state->cfg->response.body_limit,
-              htud->response_body.content_len_so_far,
+              body->content_len_so_far,
               htp_state->cfg->response.inspect_min_size,
               flags & STREAM_EOF ? "true" : "false",
                (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) ? "true" : "false");
@@ -169,14 +122,14 @@ static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
         /* inspect the body if the transfer is complete or we have hit
         * our body size limit */
         if ((htp_state->cfg->response.body_limit == 0 ||
-             htud->response_body.content_len_so_far < htp_state->cfg->response.body_limit) &&
-            htud->response_body.content_len_so_far < htp_state->cfg->response.inspect_min_size &&
+             body->content_len_so_far < htp_state->cfg->response.body_limit) &&
+            body->content_len_so_far < htp_state->cfg->response.inspect_min_size &&
             !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) &&
             !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire response body.  "
                        "Let's defer body inspection till we see the "
                        "entire body.");
-            goto end;
+            return NULL;
         }
     }
 
@@ -187,129 +140,50 @@ static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
      * the new data.
      */
     uint64_t offset = 0;
-    if (htud->response_body.body_inspected > htp_state->cfg->response.inspect_min_size) {
-        BUG_ON(htud->response_body.content_len_so_far < htud->response_body.body_inspected);
-        uint64_t inspect_win = htud->response_body.content_len_so_far - htud->response_body.body_inspected;
-        SCLogDebug("inspect_win %u", (uint)inspect_win);
+    if (body->body_inspected > htp_state->cfg->response.inspect_min_size) {
+        BUG_ON(body->content_len_so_far < body->body_inspected);
+        uint64_t inspect_win = body->content_len_so_far - body->body_inspected;
+        SCLogDebug("inspect_win %"PRIu64, inspect_win);
         if (inspect_win < htp_state->cfg->response.inspect_window) {
             uint64_t inspect_short = htp_state->cfg->response.inspect_window - inspect_win;
-            if (htud->response_body.body_inspected < inspect_short)
+            if (body->body_inspected < inspect_short)
                 offset = 0;
             else
-                offset = htud->response_body.body_inspected - inspect_short;
+                offset = body->body_inspected - inspect_short;
         } else {
-            offset = htud->response_body.body_inspected - (htp_state->cfg->response.inspect_window / 4);
+            offset = body->body_inspected - (htp_state->cfg->response.inspect_window / 4);
         }
     }
 
-    StreamingBufferGetDataAtOffset(htud->response_body.sb,
-            &det_ctx->hsbd[index].buffer, &det_ctx->hsbd[index].buffer_len,
-            offset);
-    det_ctx->hsbd[index].offset = offset;
+    const uint8_t *data;
+    uint32_t data_len;
+
+    StreamingBufferGetDataAtOffset(body->sb,
+            &data, &data_len, offset);
+    InspectionBufferSetup(buffer, data, data_len);
+    buffer->inspect_offset = offset;
+
+    /* built-in 'transformation' */
+    if (htp_state->cfg->swf_decompression_enabled) {
+        int swf_file_type = FileIsSwfFile(data, data_len);
+        if (swf_file_type == FILE_SWF_ZLIB_COMPRESSION ||
+            swf_file_type == FILE_SWF_LZMA_COMPRESSION)
+        {
+            (void)FileSwfDecompression(data, data_len,
+                                       det_ctx,
+                                       buffer,
+                                       htp_state->cfg->swf_compression_type,
+                                       htp_state->cfg->swf_decompress_depth,
+                                       htp_state->cfg->swf_compress_depth);
+        }
+    }
 
     /* move inspected tracker to end of the data. HtpBodyPrune will consider
      * the window sizes when freeing data */
-    htud->response_body.body_inspected = htud->response_body.content_len_so_far;
-    SCLogDebug("htud->response_body.body_inspected now: %"PRIu64, htud->response_body.body_inspected);
+    body->body_inspected = body->content_len_so_far;
+    SCLogDebug("body->body_inspected now: %"PRIu64, body->body_inspected);
 
-    buffer = det_ctx->hsbd[index].buffer;
-    *buffer_len = det_ctx->hsbd[index].buffer_len;
-    *stream_start_offset = det_ctx->hsbd[index].offset;
- end:
-    return buffer;
-}
-
-/** \brief HTTP Server Body Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxHttpResponseBody(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
-{
-    SCEnter();
-
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    HtpState *htp_state = f->alstate;
-    uint32_t buffer_len = 0;
-    uint32_t stream_start_offset = 0;
-    const uint8_t *buffer = DetectEngineHSBDGetBufferForTX(tx, idx,
-                                                     NULL, det_ctx,
-                                                     f, htp_state,
-                                                     flags,
-                                                     &buffer_len,
-                                                     &stream_start_offset);
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
-    }
-}
-
-int PrefilterTxHttpResponseBodyRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseBody,
-        ALPROTO_HTTP, HTP_RESPONSE_BODY,
-        mpm_ctx, NULL, "file_data (http response)");
-}
-
-
-int DetectEngineInspectHttpServerBody(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
-{
-    HtpState *htp_state = (HtpState *)alstate;
-    uint32_t buffer_len = 0;
-    uint32_t stream_start_offset = 0;
-    const uint8_t *buffer = DetectEngineHSBDGetBufferForTX(tx, tx_id,
-                                                     de_ctx, det_ctx,
-                                                     f, htp_state,
-                                                     flags,
-                                                     &buffer_len,
-                                                     &stream_start_offset);
-    if (buffer_len == 0)
-        goto end;
-
-    det_ctx->buffer_offset = 0;
-    det_ctx->discontinue_matching = 0;
-    det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-                                          f,
-                                          (uint8_t *)buffer,
-                                          buffer_len,
-                                          stream_start_offset,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-    if (r == 1)
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-
- end:
-    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY)
-        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    else
-        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
-void DetectEngineCleanHSBDBuffers(DetectEngineThreadCtx *det_ctx)
-{
-    if (det_ctx->hsbd_buffers_list_len > 0) {
-        for (int i = 0; i < det_ctx->hsbd_buffers_list_len; i++) {
-            det_ctx->hsbd[i].buffer_len = 0;
-            det_ctx->hsbd[i].offset = 0;
-        }
-    }
-    det_ctx->hsbd_buffers_list_len = 0;
-    det_ctx->hsbd_start_tx_id = 0;
-
-    return;
+    SCReturnPtr(buffer, "InspectionBuffer");
 }
 
 /***********************************Unittests**********************************/
@@ -4392,6 +4266,8 @@ libhtp:\n\
     const char *sig = "alert http any any -> any any (file_data; content:\"bccd\"; depth:4; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
+
+#include "tests/detect-engine-hsbd.c"
 #endif /* UNITTESTS */
 
 void DetectEngineHttpServerBodyRegisterTests(void)
@@ -4480,6 +4356,7 @@ void DetectEngineHttpServerBodyRegisterTests(void)
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest18",
                    DetectEngineHttpServerBodyFileDataTest18);
 
+    DetectEngineHttpServerBodyFileRegisterTests();
 #endif /* UNITTESTS */
 
     return;

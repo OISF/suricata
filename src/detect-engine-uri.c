@@ -81,11 +81,12 @@ static void PrefilterTxUri(DetectEngineThreadCtx *det_ctx, const void *pectx,
     }
 }
 
-int PrefilterTxUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxUriRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxUri,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxUri,
         ALPROTO_HTTP, HTP_REQUEST_LINE,
         mpm_ctx, NULL, "http_uri");
 }
@@ -134,7 +135,7 @@ int DetectEngineInspectHttpUri(ThreadVars *tv,
                                           f,
                                           bstr_ptr(tx_ud->request_uri_normalized),
                                           bstr_len(tx_ud->request_uri_normalized),
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -1171,251 +1172,6 @@ static int UriTestSig09(void)
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Test pcre /U option with urilen \"; "
                                    "pcre:/(one){2,}(self)?/U; urilen:<2; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
-
-    FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_buf1_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
-
-    /* do detect */
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted, but it should not: ");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, http_buf2, http_buf2_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
-
-    /* do detect */
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted, but it should not: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePacket(p);
-    return result;
-}
-
-/** \test Test the uricontent option in combination with urilen */
-static int UriTestSig10(void)
-{
-    int result = 0;
-    Flow f;
-    HtpState *http_state = NULL;
-    uint8_t http_buf1[] = "POST /oneoneoneone HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
-    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] = "POST /oneoneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
-    uint32_t http_buf2_len = sizeof(http_buf2) - 1;
-    TcpSession ssn;
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars tv;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-
-    memset(&tv, 0, sizeof(ThreadVars));
-    memset(&f, 0, sizeof(Flow));
-    memset(&ssn, 0, sizeof(TcpSession));
-
-    p = UTHBuildPacket(http_buf1, http_buf1_len, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-
-    p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_ESTABLISHED;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-    de_ctx->flags |= DE_QUIET;
-
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test uricontent with urilen option\"; "
-                                   "uricontent:\"one\"; urilen:<2; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
-
-    FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_buf1_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
-
-    /* do detect */
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted, but it should not: ");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOSERVER, http_buf2, http_buf2_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
-
-    /* do detect */
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted, but it should not: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePacket(p);
-    return result;
-}
-
-/** \test Test content, uricontent, urilen, pcre /U options */
-static int UriTestSig11(void)
-{
-    int result = 0;
-    Flow f;
-    HtpState *http_state = NULL;
-    uint8_t http_buf1[] = "POST /oneoneoneone HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
-    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] = "POST /oneoneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
-    uint32_t http_buf2_len = sizeof(http_buf2) - 1;
-    TcpSession ssn;
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars tv;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-
-    memset(&tv, 0, sizeof(ThreadVars));
-    memset(&f, 0, sizeof(Flow));
-    memset(&ssn, 0, sizeof(TcpSession));
-
-    p = UTHBuildPacket(http_buf1, http_buf1_len, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-
-    p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_ESTABLISHED;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-    de_ctx->flags |= DE_QUIET;
-
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test content, uricontent, pcre /U and urilen options\"; "
-                                   "content:\"one\"; uricontent:\"one\"; pcre:/(one){2,}(self)?/U;"
-                                   "urilen:<2; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -4175,8 +3931,6 @@ void UriRegisterTests(void)
     UtRegisterTest("UriTestSig07", UriTestSig07);
     UtRegisterTest("UriTestSig08", UriTestSig08);
     UtRegisterTest("UriTestSig09", UriTestSig09);
-    UtRegisterTest("UriTestSig10", UriTestSig10);
-    UtRegisterTest("UriTestSig11", UriTestSig11);
     UtRegisterTest("UriTestSig12", UriTestSig12);
     UtRegisterTest("UriTestSig13", UriTestSig13);
     UtRegisterTest("UriTestSig14", UriTestSig14);

@@ -55,7 +55,7 @@ static int DetectIdSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectIdRegisterTests(void);
 void DetectIdFree(void *);
 
-static int PrefilterSetupId(SigGroupHead *sgh);
+static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterIdIsPrefilterable(const Signature *s);
 
 /**
@@ -129,59 +129,48 @@ static DetectIdData *DetectIdParse (const char *idstr)
                     ov, MAX_SUBSTRINGS);
 
     if (ret < 1 || ret > 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid id option. The id option value must be"
-                    " in the range %u - %u",
-                    DETECT_IPID_MIN, DETECT_IPID_MAX);
-        goto error;
+        SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'. The id option "
+                    "value must be in the range %u - %u",
+                    idstr, DETECT_IPID_MIN, DETECT_IPID_MAX);
+        return NULL;
     }
 
+    char copy_str[128] = "";
+    char *tmp_str;
+    res = pcre_copy_substring((char *)idstr, ov, MAX_SUBSTRINGS, 1,
+            copy_str, sizeof(copy_str));
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        return NULL;
+    }
+    tmp_str = copy_str;
 
-    if (ret > 1) {
-        char copy_str[128] = "";
-        char *tmp_str;
-        res = pcre_copy_substring((char *)idstr, ov, MAX_SUBSTRINGS, 1,
-                                    copy_str, sizeof(copy_str));
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-            goto error;
-        }
-
-        tmp_str = copy_str;
-
-        /* Let's see if we need to scape "'s */
-        if (tmp_str[0] == '"')
-        {
-            tmp_str[strlen(tmp_str) - 1] = '\0';
-            tmp_str += 1;
-        }
-
-        /* ok, fill the id data */
-        temp = atoi((char *)tmp_str);
-
-        if (temp > DETECT_IPID_MAX) {
-            SCLogError(SC_ERR_INVALID_VALUE, "\"id\" option  must be in "
-                        "the range %u - %u",
-                        DETECT_IPID_MIN, DETECT_IPID_MAX);
-            goto error;
-        }
-
-        /* We have a correct id option */
-        id_d = SCMalloc(sizeof(DetectIdData));
-        if (unlikely(id_d == NULL))
-            goto error;
-
-        id_d->id = temp;
-
-        SCLogDebug("detect-id: will look for ip_id: %u\n", id_d->id);
+    /* Let's see if we need to scape "'s */
+    if (tmp_str[0] == '"')
+    {
+        tmp_str[strlen(tmp_str) - 1] = '\0';
+        tmp_str += 1;
     }
 
+    /* ok, fill the id data */
+    temp = atoi((char *)tmp_str);
+
+    if (temp > DETECT_IPID_MAX) {
+        SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'. The id option "
+                    "value must be in the range %u - %u",
+                    idstr, DETECT_IPID_MIN, DETECT_IPID_MAX);
+        return NULL;
+    }
+
+    /* We have a correct id option */
+    id_d = SCMalloc(sizeof(DetectIdData));
+    if (unlikely(id_d == NULL))
+        return NULL;
+
+    id_d->id = temp;
+
+    SCLogDebug("detect-id: will look for ip_id: %u\n", id_d->id);
     return id_d;
-
-error:
-    if (id_d != NULL)
-        DetectIdFree(id_d);
-    return NULL;
-
 }
 
 /**
@@ -202,27 +191,22 @@ int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
 
     id_d = DetectIdParse(idstr);
     if (id_d == NULL)
-        goto error;
+        return -1;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    if (sm == NULL) {
+        DetectIdFree(id_d);
+        return -1;
+    }
 
     sm->type = DETECT_ID;
     sm->ctx = (SigMatchCtx *)id_d;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
-
     return 0;
-
-error:
-    if (id_d != NULL) DetectIdFree(id_d);
-    if (sm != NULL) SCFree(sm);
-    return -1;
-
 }
 
 /**
@@ -273,9 +257,9 @@ PrefilterPacketIdCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupId(SigGroupHead *sgh)
+static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_ID,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ID,
         PrefilterPacketIdSet,
         PrefilterPacketIdCompare,
         PrefilterPacketIdMatch);

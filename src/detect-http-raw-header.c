@@ -63,8 +63,7 @@
 static int DetectHttpRawHeaderSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpRawHeaderRegisterTests(void);
 static void DetectHttpRawHeaderFree(void *);
-static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s);
-static void DetectHttpRawHeaderSetupCallback(Signature *s);
+static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char **sigerror);
 static int g_http_raw_header_buffer_id = 0;
 
 /**
@@ -97,8 +96,6 @@ void DetectHttpRawHeaderRegister(void)
 
     DetectBufferTypeRegisterValidateCallback("http_raw_header",
             DetectHttpRawHeaderValidateCallback);
-    DetectBufferTypeRegisterSetupCallback("http_raw_header",
-            DetectHttpRawHeaderSetupCallback);
 
     g_http_raw_header_buffer_id = DetectBufferTypeGetByName("http_raw_header");
 }
@@ -143,22 +140,18 @@ int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
                                                   ALPROTO_HTTP);
 }
 
-static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s)
+static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char **sigerror)
 {
     if ((s->flags & (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature "
+        *sigerror = "http_raw_header signature "
                 "without a flow direction. Use flow:to_server for "
                 "inspecting request headers or flow:to_client for "
-                "inspecting response headers.");
+                "inspecting response headers.";
+
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
         SCReturnInt(FALSE);
     }
     return TRUE;
-}
-
-static void DetectHttpRawHeaderSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /************************************Unittests*********************************/
