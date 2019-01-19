@@ -386,6 +386,7 @@ static void *ParseAFPConfig(const char *iface)
 #endif
     }
 
+#ifdef HAVE_PACKET_EBPF
     if (ConfGetChildValueBoolWithDefault(if_root, if_default, "pinned-maps", (int *)&boolval) != 1) {
         if (boolval) {
             SCLogConfig("Using pinned maps on iface %s",
@@ -393,6 +394,7 @@ static void *ParseAFPConfig(const char *iface)
             aconf->ebpf_t_config.flags |= EBPF_PINNED_MAPS;
         }
     }
+#endif
 
 #ifdef HAVE_PACKET_EBPF
     /* One shot loading of the eBPF file */
@@ -416,9 +418,9 @@ static void *ParseAFPConfig(const char *iface)
 #ifdef HAVE_PACKET_EBPF
         SCLogConfig("af-packet will use '%s' as eBPF filter file",
                   ebpf_file);
-#endif
         aconf->ebpf_filter_file = ebpf_file;
         aconf->ebpf_t_config.mode = AFP_MODE_EBPF_BYPASS;
+#endif
         ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
         if (conf_val) {
 #ifdef HAVE_PACKET_EBPF
@@ -452,6 +454,7 @@ static void *ParseAFPConfig(const char *iface)
     if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-filter-file", &ebpf_file) != 1) {
         aconf->xdp_filter_file = NULL;
     } else {
+#ifdef HAVE_PACKET_XDP
         SCLogInfo("af-packet will use '%s' as XDP filter file",
                   ebpf_file);
         aconf->ebpf_t_config.mode = AFP_MODE_XDP_BYPASS;
@@ -460,17 +463,16 @@ static void *ParseAFPConfig(const char *iface)
         /* TODO FIXME Do we really have a usage of setting XDP and not bypassing ? */
         ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
         if (conf_val) {
-#ifdef HAVE_PACKET_XDP
             SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             aconf->flags |= AFP_XDPBYPASS;
             RunModeEnablesBypassManager();
             BypassedFlowManagerRegisterCheckFunc(EBPFCheckBypassedFlowTimeout, (void *) &(aconf->ebpf_t_config));
             BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow, NULL);
-#else
-            SCLogError(SC_ERR_UNIMPLEMENTED, "Bypass set but XDP support is not built-in");
-#endif
         }
+#else
+	SCLogError(SC_ERR_UNIMPLEMENTED, "XDP filter set but XDP support is not built-in");
+#endif
 #ifdef HAVE_PACKET_XDP
         const char *xdp_mode;
         if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-mode", &xdp_mode) != 1) {
@@ -495,7 +497,6 @@ static void *ParseAFPConfig(const char *iface)
                 aconf->ebpf_t_config.cpus_count = 1;
             }
         }
-
 #endif
     }
 
