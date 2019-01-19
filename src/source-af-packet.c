@@ -292,7 +292,9 @@ typedef struct AFPThreadVars_
 
     uint8_t xdp_mode;
 
+#ifdef HAVE_PACKET_EBPF
     struct ebpf_timeout_config ebpf_t_config;
+#endif
 
 } AFPThreadVars;
 
@@ -2582,9 +2584,9 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     ptv->ebpf_lb_fd = afpconfig->ebpf_lb_fd;
     ptv->ebpf_filter_fd = afpconfig->ebpf_filter_fd;
     ptv->xdp_mode = afpconfig->xdp_mode;
+#ifdef HAVE_PACKET_EBPF
     ptv->ebpf_t_config.cpus_count = UtilCpuGetNumProcessorsConfigured();
 
-#ifdef HAVE_PACKET_EBPF
     if (ptv->flags & (AFP_BYPASS|AFP_XDPBYPASS)) {
         ptv->v4_map_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_v4");
         if (ptv->v4_map_fd == -1) {
