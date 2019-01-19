@@ -1051,6 +1051,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                         (DETECT_CONTENT_OFFSET | DETECT_CONTENT_DEPTH)) {
                         rule_content_offset_depth++;
                     }
+                } else {
+                    rule_content += 1;
                 }
             }
             else if (sm->type == DETECT_FLOW) {
