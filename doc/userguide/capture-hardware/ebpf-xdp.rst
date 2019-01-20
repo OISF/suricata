@@ -404,16 +404,15 @@ for that will be used to check for the presence of the XDP filter ::
     xdp-filter-file: /etc/suricata/ebpf/xdp_filter.bpf
 
 If XDP bypass is used in IPS mode stopping Suricata will trigger a interruption in the traffic.
-To fix that you can use the `pinned-maps-switch` option that will create a direct interface
-to interface forwarding if ever the switch is activated. Switch will be activated when Suricata
-is exiting but it can also be activated by an external monitoring tool ::
+To fix that, the provided XDP filter `xdp_filter.bpf` is prodviding a map that will trigger
+a global bypass if set to 1. You need to use `pinned-maps` to benefit of this feature.
 
-  - interface: eth3
-    pinned-maps: true
-    pinned-maps-switch: g_switch
-    xdp-filter-file: /etc/suricata/ebpf/xdp_filter.bpf
-    bypass: true
+To use it you need to set `#define USE_GLOBAL_BYPASS   1` (instead of 0) in the `xdp_filter.c` file and rebuild
+the eBPF code and install the eBPF file in the correct place. If you write `1` as key `0` then the XDP
+filter will switch to global bypass mode. Set key `0` to `0` to send traffic to Suricata.
 
+The switch must be activated on all sniffing interface. For an interfac named `eth0` the global
+switch map will be `/sys/fs/bpf/suricata-eth0-global_bypass`.
 
 Getting live info about bypass
 ------------------------------
