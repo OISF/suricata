@@ -143,6 +143,18 @@ struct bpf_map_def SEC("maps") tx_peer_int = {
 	.max_entries = 1,
 };
 
+#define USE_GLOBAL_BYPASS   0
+#if USE_GLOBAL_BYPASS
+/* single entry to indicate if global bypass switch is on */
+struct bpf_map_def SEC("maps") global_bypass = {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(char),
+	.value_size = sizeof(char),
+	.max_entries = 1,
+};
+#endif
+
+
 static __always_inline int get_sport(void *trans_data, void *data_end,
         __u8 protocol)
 {
@@ -361,6 +373,22 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
     __u64 nh_off;
     __u16 vlan0 = 0;
     __u16 vlan1 = 0;
+#if USE_GLOBAL_BYPASS
+    int *iface_peer;
+    char *g_switch = 0;
+    char key0;
+    int tx_port = 0;
+
+    g_switch = bpf_map_lookup_elem(&global_bypass, &key0);
+    if (g_switch && *g_switch) {
+        iface_peer = bpf_map_lookup_elem(&tx_peer_int, &key0);
+        if (!iface_peer) {
+            return XDP_DROP;
+        } else {
+            return bpf_redirect_map(&tx_peer, tx_port, 0);
+        }
+    }
+#endif
 
 	nh_off = sizeof(*eth);
 	if (data + nh_off > data_end)
