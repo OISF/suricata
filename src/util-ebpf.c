@@ -170,9 +170,19 @@ static int EBPFLoadPinnedMapsFile(LiveDevice *livedev, const char *file)
     return bpf_obj_get(pinnedpath);
 }
 
-static int EBPFLoadPinnedMaps(LiveDevice *livedev, uint8_t flags)
+static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *config)
 {
     int fd_v4 = -1, fd_v6 = -1;
+
+    /* First try to load the eBPF check map and return if found */
+    if (config->pinned_maps_name) {
+        int ret = -1;
+        ret = EBPFLoadPinnedMapsFile(livedev, config->pinned_maps_name);
+        if (ret == 0) {
+            /* pinned maps found, let's just exit as XDP filter is in place */
+            return ret;
+        }
+    }
 
     /* Get flow v4 table */
     fd_v4 = EBPFLoadPinnedMapsFile(livedev, "flow_table_v4");
@@ -200,6 +210,8 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, uint8_t flags)
     bpf_map_data->array[1].fd = fd_v6;
     bpf_map_data->array[1].name = SCStrdup("flow_table_v6");
     bpf_map_data->last = 2;
+    /* Attach the bpf_maps_info to the LiveDevice via the device storage */
+    LiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
 
     return 0;
 }
@@ -217,7 +229,7 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, uint8_t flags)
  * \return -1 in case of error and 0 in case of success
  */
 int EBPFLoadFile(const char *iface, const char *path, const char * section,
-                 int *val, uint8_t flags)
+                 int *val, struct ebpf_timeout_config *config)
 {
     int err, pfd;
     bool found = false;
@@ -231,9 +243,9 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     if (livedev == NULL)
         return -1;
 
-    if (flags & EBPF_XDP_CODE) {
+    if (config->flags & EBPF_XDP_CODE) {
         /* We try to get our flow table maps and if we have them we can simply return */
-        if (EBPFLoadPinnedMaps(livedev, flags) == 0) {
+        if (EBPFLoadPinnedMaps(livedev, config) == 0) {
             return 0;
         }
     }
@@ -269,7 +281,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     bpf_object__for_each_program(bpfprog, bpfobj) {
         const char *title = bpf_program__title(bpfprog, 0);
         if (!strcmp(title, section)) {
-            if (flags & EBPF_SOCKET_FILTER) {
+            if (config->flags & EBPF_SOCKET_FILTER) {
                 bpf_program__set_socket_filter(bpfprog);
             } else {
                 bpf_program__set_xdp(bpfprog);
@@ -334,7 +346,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             return -1;
         }
         bpf_map_data->array[bpf_map_data->last].unlink = 0;
-        if (flags & EBPF_PINNED_MAPS) {
+        if (config->flags & EBPF_PINNED_MAPS) {
             SCLogNotice("Pinning: %d to %s", bpf_map_data->array[bpf_map_data->last].fd,
                     bpf_map_data->array[bpf_map_data->last].name);
             char buf[1024];
@@ -345,7 +357,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
                 SCLogError(SC_ERR_AFP_CREATE, "Can not pin: %s", strerror(errno));
             }
             /* Don't unlink pinned maps in XDP mode to avoid a state reset */
-            if (flags & EBPF_XDP_CODE) {
+            if (config->flags & EBPF_XDP_CODE) {
                 bpf_map_data->array[bpf_map_data->last].unlink = 0;
             } else {
                 bpf_map_data->array[bpf_map_data->last].unlink = 1;

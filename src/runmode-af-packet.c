@@ -389,6 +389,14 @@ static void *ParseAFPConfig(const char *iface)
                         aconf->iface);
             aconf->ebpf_t_config.flags |= EBPF_PINNED_MAPS;
         }
+        const char *pinned_maps_name;
+        if (ConfGetChildValueWithDefault(if_root, if_default,
+                    "pinned-maps-name",
+                    &pinned_maps_name) != 1) {
+            aconf->ebpf_t_config.pinned_maps_name = pinned_maps_name;
+        } else {
+            aconf->ebpf_t_config.pinned_maps_name = NULL;
+        }
     }
 #endif
 
@@ -397,7 +405,7 @@ static void *ParseAFPConfig(const char *iface)
     if (aconf->ebpf_lb_file && cluster_type == PACKET_FANOUT_EBPF) {
         int ret = EBPFLoadFile(aconf->iface, aconf->ebpf_lb_file, "loadbalancer",
                                &aconf->ebpf_lb_fd,
-                               aconf->ebpf_t_config.flags);
+                               &aconf->ebpf_t_config);
         if (ret != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE, "Error when loading eBPF lb file");
         }
@@ -437,7 +445,7 @@ static void *ParseAFPConfig(const char *iface)
 #ifdef HAVE_PACKET_EBPF
         int ret = EBPFLoadFile(aconf->iface, aconf->ebpf_filter_file, "filter",
                                &aconf->ebpf_filter_fd,
-                               aconf->ebpf_t_config.flags);
+                               &aconf->ebpf_t_config);
         if (ret != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                          "Error when loading eBPF filter file");
@@ -501,7 +509,7 @@ static void *ParseAFPConfig(const char *iface)
 #ifdef HAVE_PACKET_XDP
         int ret = EBPFLoadFile(aconf->iface, aconf->xdp_filter_file, "xdp",
                                &aconf->xdp_filter_fd,
-                               aconf->ebpf_t_config.flags);
+                               &aconf->ebpf_t_config);
         if (ret != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                          "Error when loading XDP filter file");
