@@ -184,18 +184,20 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
         }
     }
 
-    /* Get flow v4 table */
-    fd_v4 = EBPFLoadPinnedMapsFile(livedev, "flow_table_v4");
-    if (fd_v4 < 0) {
-        return fd_v4;
-    }
+    if (config->mode == AFP_MODE_XDP_BYPASS) {
+        /* Get flow v4 table */
+        fd_v4 = EBPFLoadPinnedMapsFile(livedev, "flow_table_v4");
+        if (fd_v4 < 0) {
+            return fd_v4;
+        }
 
-    /* Get flow v6 table */
-    fd_v6 = EBPFLoadPinnedMapsFile(livedev, "flow_table_v6");
-    if (fd_v6 < 0) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                     "Found a flow_table_v4 map but no flow_table_v6 map");
-        return fd_v6;
+        /* Get flow v6 table */
+        fd_v6 = EBPFLoadPinnedMapsFile(livedev, "flow_table_v6");
+        if (fd_v6 < 0) {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                    "Found a flow_table_v4 map but no flow_table_v6 map");
+            return fd_v6;
+        }
     }
 
     struct bpf_maps_info *bpf_map_data = SCCalloc(1, sizeof(*bpf_map_data));
@@ -205,11 +207,42 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
     }
     SC_ATOMIC_INIT(bpf_map_data->ipv4_hash_count);
     SC_ATOMIC_INIT(bpf_map_data->ipv6_hash_count);
-    bpf_map_data->array[0].fd = fd_v4;
-    bpf_map_data->array[0].name = SCStrdup("flow_table_v4");
-    bpf_map_data->array[1].fd = fd_v6;
-    bpf_map_data->array[1].name = SCStrdup("flow_table_v6");
-    bpf_map_data->last = 2;
+    if (config->mode == AFP_MODE_XDP_BYPASS) {
+        bpf_map_data->array[0].fd = fd_v4;
+        bpf_map_data->array[0].name = SCStrdup("flow_table_v4");
+        bpf_map_data->array[1].fd = fd_v6;
+        bpf_map_data->array[1].name = SCStrdup("flow_table_v6");
+        bpf_map_data->last = 2;
+    } else {
+        bpf_map_data->last = 0;
+    }
+
+    /* Load other known maps: cpu_map, cpus_available, tx_peer, tx_peer_int */
+    int fd = EBPFLoadPinnedMapsFile(livedev, "cpu_map");
+    if (fd >= 0) {
+        bpf_map_data->array[bpf_map_data->last].fd = fd;
+        bpf_map_data->array[bpf_map_data->last].name = SCStrdup("cpu_map");
+        bpf_map_data->last++;
+    }
+    fd = EBPFLoadPinnedMapsFile(livedev, "cpus_available");
+    if (fd >= 0) {
+        bpf_map_data->array[bpf_map_data->last].fd = fd;
+        bpf_map_data->array[bpf_map_data->last].name = SCStrdup("cpus_available");
+        bpf_map_data->last++;
+    }
+    fd = EBPFLoadPinnedMapsFile(livedev, "tx_peer");
+    if (fd >= 0) {
+        bpf_map_data->array[bpf_map_data->last].fd = fd;
+        bpf_map_data->array[bpf_map_data->last].name = SCStrdup("tx_peer");
+        bpf_map_data->last++;
+    }
+    fd = EBPFLoadPinnedMapsFile(livedev, "tx_peer_int");
+    if (fd >= 0) {
+        bpf_map_data->array[bpf_map_data->last].fd = fd;
+        bpf_map_data->array[bpf_map_data->last].name = SCStrdup("tx_peer_int");
+        bpf_map_data->last++;
+    }
+
     /* Attach the bpf_maps_info to the LiveDevice via the device storage */
     LiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
 
