@@ -27,25 +27,15 @@ use nom::{ErrorKind, IResult};
 fn parse_secblob_get_spnego(blob: &[u8]) -> IResult<&[u8], &[u8]> {
     let (rem, base_o) = der_parser::parse_der(blob)?;
     SCLogDebug!("parse_secblob_get_spnego: base_o {:?}", base_o);
-    let d = match base_o.content.as_slice() {
-        Err(_) => {
-            return Err(nom::Err::Failure(error_position!(blob, ErrorKind::Custom(
-                SECBLOB_NOT_SPNEGO
-            ))));
-        }
-        Ok(d) => d,
-    };
+    let d = base_o.as_slice().or(
+        Err(nom::Err::Failure(error_position!(blob, ErrorKind::Custom(SECBLOB_NOT_SPNEGO))))
+    )?;
     let (next, o) = der_parser::parse_der_oid(d)?;
     SCLogDebug!("parse_secblob_get_spnego: sub_o {:?}", o);
 
-    let oid = match o.content.as_oid() {
-        Ok(oid) => oid,
-        Err(_) => {
-            return Err(nom::Err::Failure(error_position!(blob, ErrorKind::Custom(
-                SECBLOB_NOT_SPNEGO
-            ))));
-        }
-    };
+    let oid = o.as_oid().or(
+        Err(nom::Err::Failure(error_position!(blob, ErrorKind::Custom(SECBLOB_NOT_SPNEGO))))
+    )?;
     SCLogDebug!("oid {}", oid.to_string());
 
     match oid.to_string().as_str() {
