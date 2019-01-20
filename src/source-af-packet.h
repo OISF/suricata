@@ -47,6 +47,7 @@
 #define AFP_MODE_XDP_BYPASS 1
 #define AFP_MODE_EBPF_BYPASS 2
 struct ebpf_timeout_config {
+    const char *pinned_maps_name;
     uint16_t cpus_count;
     uint8_t mode;
     uint8_t flags;
