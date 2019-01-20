@@ -18,8 +18,8 @@ debug = []
 nom = "4.1"
 libc = "0.2"
 crc = "1.7"
-der-parser = { git = "https://github.com/dbcfd/der-parser.git", branch = "nom41" }
-kerberos-parser = { git = "https://github.com/dbcfd/kerberos-parser.git", branch = "nom41" }
+der-parser = "1.1"
+kerberos-parser = "0.2"
 
 ntp-parser = { git = "https://github.com/dbcfd/ntp-parser.git", branch = "nom41" }
 ipsec-parser = { git = "https://github.com/dbcfd/ipsec-parser.git", branch = "nom41" }
