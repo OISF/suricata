@@ -29,6 +29,15 @@
     AC_LANG_POP([C])
     AC_MSG_RESULT([${compiler}])
 
+    AC_ARG_WITH([clang],
+                [  --with-clang=PROGRAM    path to Clang for compiling eBPF code. Use if the main C compiler is not Clang.],
+                [CLANG="$withval"],
+                [AS_IF([test "$compiler" = clang],
+                       [CLANG="$CC"],
+                       [AC_PATH_PROG([CLANG],[clang])])])
+
+    AC_SUBST([CLANG])
+
     case "$compiler" in
         clang)
             CLANG_CFLAGS="-Wextra -Werror-implicit-function-declaration -Wno-error=unused-command-line-argument"
