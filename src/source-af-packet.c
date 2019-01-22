@@ -1329,12 +1329,20 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
 
 #ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
+        int ret = 0;
         struct tpacket_block_desc *pbd;
         pbd = (struct tpacket_block_desc *) ptv->ring_v3[ptv->frame_offset].iov_base;
         *discarded_pkts += pbd->hdr.bh1.num_pkts;
+        struct tpacket3_hdr *ppd =
+            (struct tpacket3_hdr *)((uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt);
+        if (((time_t)ppd->tp_sec > synctv->tv_sec) ||
+                ((time_t)ppd->tp_sec == synctv->tv_sec &&
+                 (suseconds_t) (ppd->tp_nsec / 1000) > (suseconds_t)synctv->tv_usec)) {
+            ret = 1;
+        }
         AFPFlushBlock(pbd);
         ptv->frame_offset = (ptv->frame_offset + 1) % ptv->req3.tp_block_nr;
-        return 1;
+        return ret;
 
     } else
 #endif
