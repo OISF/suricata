@@ -3,8 +3,6 @@ if BUILD_EBPF
 # Maintaining a local copy of UAPI linux/bpf.h
 BPF_CFLAGS = -Iinclude
 
-CLANG = ${CC}
-
 BPF_TARGETS  = lb.bpf
 BPF_TARGETS += filter.bpf
 BPF_TARGETS += bypass_filter.bpf
