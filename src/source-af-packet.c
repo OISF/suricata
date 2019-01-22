@@ -1380,7 +1380,6 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
  */
 static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
 {
-    int r;
     struct timeval synctv;
     struct pollfd fds;
 
@@ -1392,7 +1391,7 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
     synctv.tv_usec = 0xffffffff;
 
     while (1) {
-        r = poll(&fds, 1, POLL_TIMEOUT);
+        int r = poll(&fds, 1, POLL_TIMEOUT);
         if (r > 0 &&
                 (fds.revents & (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL))) {
             SCLogWarning(SC_ERR_AFP_READ, "poll failed %02x",
@@ -1435,8 +1434,6 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
  */
 static int AFPTryReopen(AFPThreadVars *ptv)
 {
-    int afp_activate_r;
-
     ptv->down_count++;
 
     /* Don't reconnect till we have packet that did not release data */
@@ -1444,7 +1441,7 @@ static int AFPTryReopen(AFPThreadVars *ptv)
         return -1;
     }
 
-    afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);
+    int afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);
     if (afp_activate_r != 0) {
         if (ptv->down_count % AFP_DOWN_COUNTER_INTERVAL == 0) {
             SCLogWarning(SC_ERR_AFP_CREATE, "Can not open iface '%s'",
