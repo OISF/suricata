@@ -444,23 +444,6 @@ static json_t *OutputQuery(DNSTransaction *tx, uint64_t tx_id, DNSQueryEntry *en
     return djs;
 }
 
-json_t *JsonDNSLogQuery(DNSTransaction *tx, uint64_t tx_id)
-{
-    DNSQueryEntry *entry = NULL;
-    json_t *queryjs = json_array();
-    if (queryjs == NULL)
-        return NULL;
-
-    TAILQ_FOREACH(entry, &tx->query_list, next) {
-        json_t *qjs = OutputQuery(tx, tx_id, entry);
-        if (qjs != NULL) {
-            json_array_append_new(queryjs, qjs);
-        }
-    }
-
-    return queryjs;
-}
-
 static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
         uint64_t tx_id, DNSQueryEntry *entry)
 {
@@ -484,6 +467,34 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
     json_object_del(js, "dns");
 }
 #endif
+
+json_t *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
+{
+    json_t *queryjs = json_array();
+    if (queryjs == NULL)
+        return NULL;
+
+#ifdef HAVE_RUST
+    for (uint16_t i = 0; i < UINT16_MAX; i++) {
+        json_t *dns = rs_dns_log_json_query((void *)txptr, i, LOG_ALL_RRTYPES);
+        if (unlikely(dns == NULL)) {
+            break;
+        }
+        json_array_append_new(queryjs, dns);
+    }
+#else
+    DNSTransaction *tx = txptr;
+    DNSQueryEntry *entry = NULL;
+    TAILQ_FOREACH(entry, &tx->query_list, next) {
+        json_t *qjs = OutputQuery(tx, tx_id, entry);
+        if (qjs != NULL) {
+            json_array_append_new(queryjs, qjs);
+        }
+    }
+#endif
+
+    return queryjs;
+}
 
 #ifndef HAVE_RUST
 
@@ -917,20 +928,21 @@ static void OutputAnswerV2(LogDnsLogThread *aft, json_t *djs,
         OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
     }
 }
-
-json_t *JsonDNSLogAnswer(DNSTransaction *tx, uint64_t tx_id)
-{
-    DNSAnswerEntry *entry = TAILQ_FIRST(&tx->answer_list);
-    json_t *js = NULL;
-
-    if (entry) {
-        js = BuildAnswer(tx, tx_id, LOG_FORMAT_DETAILED, DNS_VERSION_2);
-    }
-
-    return js;
-}
-
 #endif
+
+json_t *JsonDNSLogAnswer(void *txptr, uint64_t tx_id)
+{
+#ifdef HAVE_RUST
+    return rs_dns_log_json_answer(txptr, LOG_ALL_RRTYPES);
+#else
+    DNSTransaction *tx = txptr;
+    DNSAnswerEntry *entry = TAILQ_FIRST(&tx->answer_list);
+    if (entry) {
+        return BuildAnswer(tx, tx_id, LOG_FORMAT_DETAILED, DNS_VERSION_2);
+    }
+    return NULL;
+#endif
+}
 
 #ifndef HAVE_RUST
 static void OutputFailure(LogDnsLogThread *aft, json_t *djs,

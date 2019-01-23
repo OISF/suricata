@@ -29,8 +29,8 @@ void JsonDnsLogRegister(void);
 #ifdef HAVE_LIBJANSSON
 #include "app-layer-dns-common.h"
 
-json_t *JsonDNSLogQuery(DNSTransaction *tx, uint64_t tx_id) __attribute__((nonnull));
-json_t *JsonDNSLogAnswer(DNSTransaction *tx, uint64_t tx_id) __attribute__((nonnull));
+json_t *JsonDNSLogQuery(void *txptr, uint64_t tx_id) __attribute__((nonnull));
+json_t *JsonDNSLogAnswer(void *txptr, uint64_t tx_id) __attribute__((nonnull));
 #endif
 
 #endif /* __OUTPUT_JSON_DNS_H__ */
