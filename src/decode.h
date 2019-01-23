@@ -971,6 +971,7 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
 int DecoderParseDataFromFileSerie(char *fileprefix, DecoderFunc Decoder);
 #endif
 void DecodeGlobalConfig(void);
+void DecodeUnregisterCounters(void);
 
 /** \brief Set the No payload inspection Flag for the packet.
  *
