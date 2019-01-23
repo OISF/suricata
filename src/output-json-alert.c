@@ -189,29 +189,26 @@ static void AlertJsonDnp3(const Flow *f, const uint64_t tx_id, json_t *js)
 
 static void AlertJsonDns(const Flow *f, const uint64_t tx_id, json_t *js)
 {
-#ifndef HAVE_RUST
     DNSState *dns_state = (DNSState *)FlowGetAppState(f);
     if (dns_state) {
-        DNSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_DNS,
-                                                 dns_state, tx_id);
-        if (tx) {
+        void *txptr = AppLayerParserGetTx(f->proto, ALPROTO_DNS,
+                                          dns_state, tx_id);
+        if (txptr) {
             json_t *dnsjs = json_object();
             if (unlikely(dnsjs == NULL)) {
                 return;
             }
-
-            json_t *qjs = JsonDNSLogQuery(tx, tx_id);
+            json_t *qjs = JsonDNSLogQuery(txptr, tx_id);
             if (qjs != NULL) {
                 json_object_set_new(dnsjs, "query", qjs);
             }
-            json_t *ajs = JsonDNSLogAnswer(tx, tx_id);
+            json_t *ajs = JsonDNSLogAnswer(txptr, tx_id);
             if (ajs != NULL) {
                 json_object_set_new(dnsjs, "answer", ajs);
             }
             json_object_set_new(js, "dns", dnsjs);
         }
     }
-#endif
     return;
 }
 
