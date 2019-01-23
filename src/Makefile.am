@@ -435,6 +435,7 @@ util-fmemopen.c util-fmemopen.h \
 util-hash.c util-hash.h \
 util-hashlist.c util-hashlist.h \
 util-hash-lookup3.c util-hash-lookup3.h \
+util-hash-string.c util-hash-string.h \
 util-host-os-info.c util-host-os-info.h \
 util-host-info.c util-host-info.h \
 util-hyperscan.c util-hyperscan.h \
