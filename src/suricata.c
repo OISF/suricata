@@ -2327,6 +2327,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     /* mgt and ppt threads killed, we can run non thread-safe
      * shutdown functions */
     StatsReleaseResources();
+    DecodeUnregisterCounters();
     RunModeShutDown();
     FlowShutdown();
     IPPairShutdown();
