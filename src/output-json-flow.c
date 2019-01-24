@@ -121,31 +121,17 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
     if (event_type) {
         json_object_set_new(js, "event_type", json_string(event_type));
     }
-#if 0
+
     /* vlan */
-    if (f->vlan_id[0] > 0) {
-        json_t *js_vlan;
-        switch (f->vlan_idx) {
-            case 1:
-                json_object_set_new(js, "vlan",
-                                    json_integer(f->vlan_id[0]));
-                break;
-            case 2:
-                js_vlan = json_array();
-                if (unlikely(js != NULL)) {
-                    json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID1(p)));
-                    json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID2(p)));
-                    json_object_set_new(js, "vlan", js_vlan);
-                }
-                break;
-            default:
-                /* shouldn't get here */
-                break;
+    if (f->vlan_idx > 0) {
+        json_t *js_vlan = json_array();
+        json_array_append_new(js_vlan, json_integer(f->vlan_id[0]));
+        if (f->vlan_idx > 1) {
+            json_array_append_new(js_vlan, json_integer(f->vlan_id[1]));
         }
+        json_object_set_new(js, "vlan", js_vlan);
     }
-#endif
+
     /* tuple */
     json_object_set_new(js, "src_ip", json_string(srcip));
     switch(f->proto) {

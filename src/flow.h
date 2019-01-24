@@ -627,4 +627,3 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 void FlowHandlePacketUpdate(Flow *f, Packet *p);
 
 #endif /* __FLOW_H__ */
-
