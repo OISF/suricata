@@ -173,6 +173,8 @@ void AppLayerParserRegisterMpmIDsFuncs(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterDetectFlagsFuncs(uint8_t ipproto, AppProto alproto,
         uint64_t(*GetTxDetectFlags)(void *tx, uint8_t dir),
         void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t));
+void AppLayerParserRegisterSetStreamDepthFlag(uint8_t ipproto, AppProto alproto,
+        void (*SetStreamDepthFlag)(void *tx, uint8_t flags));
 
 /***** Get and transaction functions *****/
 
@@ -237,6 +239,7 @@ LoggerId AppLayerParserProtocolGetLoggerBits(uint8_t ipproto, AppProto alproto);
 void AppLayerParserTriggerRawStreamReassembly(Flow *f, int direction);
 void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t stream_depth);
 uint32_t AppLayerParserGetStreamDepth(const Flow *f);
+void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *state, uint64_t tx_id, uint8_t flags);
 
 /***** Cleanup *****/
 
