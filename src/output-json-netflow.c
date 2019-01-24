@@ -125,6 +125,12 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, i
     if (sensor_id >= 0)
         json_object_set_new(js, "sensor_id", json_integer(sensor_id));
 #endif
+
+    /* input interface */
+    if (f->livedev) {
+        json_object_set_new(js, "in_iface", json_string(f->livedev->dev));
+    }
+
     if (event_type) {
         json_object_set_new(js, "event_type", json_string(event_type));
     }
