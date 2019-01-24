@@ -345,7 +345,9 @@ typedef struct Flow_
     };
     uint8_t proto;
     uint8_t recursion_level;
+
     uint16_t vlan_id[2];
+    uint8_t vlan_idx;
 
     /** flow hash - the flow hash before hash table size mod. */
     uint32_t flow_hash;
@@ -625,4 +627,3 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 void FlowHandlePacketUpdate(Flow *f, Packet *p);
 
 #endif /* __FLOW_H__ */
-
