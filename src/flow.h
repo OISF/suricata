@@ -27,6 +27,7 @@
 #include "decode.h"
 #include "util-var.h"
 #include "util-atomic.h"
+#include "util-device.h"
 #include "detect-tag.h"
 #include "util-optimize.h"
 
@@ -348,6 +349,9 @@ typedef struct Flow_
 
     uint16_t vlan_id[2];
     uint8_t vlan_idx;
+
+    /* Incoming interface */
+    struct LiveDevice_ *livedev;
 
     /** flow hash - the flow hash before hash table size mod. */
     uint32_t flow_hash;
