@@ -225,7 +225,7 @@ static ConfNode *GetConfig(void) {
 /**
  * \brief Initializes stats context
  */
-static void StatsInitCtx(void)
+static void StatsInitCtxPreOutput(void)
 {
     SCEnter();
 #ifdef AFLFUZZ_DISABLE_MGTTHREADS
@@ -265,6 +265,20 @@ static void StatsInitCtx(void)
         }
         stats_decoder_events_prefix = prefix;
     }
+    SCReturn;
+}
+
+static void StatsInitCtxPostOutput(void)
+{
+    SCEnter();
+    /* Store the engine start time */
+    time(&stats_start_time);
+
+    /* init the lock used by StatsThreadStore */
+    if (SCMutexInit(&stats_ctx->sts_lock, NULL) != 0) {
+        SCLogError(SC_ERR_INITIALIZATION, "error initializing sts mutex");
+        exit(EXIT_FAILURE);
+    }
 
     if (!OutputStatsLoggersRegistered()) {
         stats_loggers_active = 0;
@@ -276,15 +290,6 @@ static void StatsInitCtx(void)
             stats_enabled = FALSE;
             SCReturn;
         }
-    }
-
-    /* Store the engine start time */
-    time(&stats_start_time);
-
-    /* init the lock used by StatsThreadStore */
-    if (SCMutexInit(&stats_ctx->sts_lock, NULL) != 0) {
-        SCLogError(SC_ERR_INITIALIZATION, "error initializing sts mutex");
-        exit(EXIT_FAILURE);
     }
 
     SCReturn;
@@ -860,10 +865,16 @@ void StatsInit(void)
     StatsPublicThreadContextInit(&stats_ctx->global_counter_ctx);
 }
 
-void StatsSetupPostConfig(void)
+void StatsSetupPostConfigPreOutput(void)
 {
-    StatsInitCtx();
+    StatsInitCtxPreOutput();
 }
+
+void StatsSetupPostConfigPostOutput(void)
+{
+    StatsInitCtxPostOutput();
+}
+
 
 /**
  * \brief Spawns the wakeup, and the management thread used by the stats api

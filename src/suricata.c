@@ -2289,8 +2289,9 @@ void PreRunPostPrivsDropInit(const int runmode)
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 
+    StatsSetupPostConfigPreOutput();
     RunModeInitializeOutputs();
-    StatsSetupPostConfig();
+    StatsSetupPostConfigPostOutput();
 }
 
 /* clean up / shutdown code for both the main modes and for

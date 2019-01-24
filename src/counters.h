@@ -105,7 +105,8 @@ typedef struct StatsPrivateThreadContext_ {
 
 /* the initialization functions */
 void StatsInit(void);
-void StatsSetupPostConfig(void);
+void StatsSetupPostConfigPreOutput(void);
+void StatsSetupPostConfigPostOutput(void);
 void StatsSpawnThreads(void);
 void StatsRegisterTests(void);
 
