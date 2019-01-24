@@ -203,4 +203,3 @@ void FlowInit(Flow *f, const Packet *p)
 
     SCReturn;
 }
-
