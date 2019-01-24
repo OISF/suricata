@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -68,6 +68,7 @@
 #include "output-flow.h"
 
 extern bool stats_decoder_events;
+const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
 
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
@@ -501,7 +502,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
             char name[256];
             char *dot = index(DEvents[i].event_name, '.');
             BUG_ON(!dot);
-            snprintf(name, sizeof(name), "decoder.events.%s", dot+1);
+            snprintf(name, sizeof(name), "%s.%s",
+                    stats_decoder_events_prefix, dot+1);
 
             const char *found = HashTableLookup(g_counter_table, name, 0);
             if (!found) {
