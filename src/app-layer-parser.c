@@ -122,6 +122,8 @@ typedef struct AppLayerParserProtoCtx_
     uint64_t (*GetTxDetectFlags)(void *tx, uint8_t dir);
     void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t);
 
+    void (*SetStreamDepthFlag)(void *tx, uint8_t flags);
+
     /* each app-layer has its own value */
     uint32_t stream_depth;
 
@@ -590,6 +592,16 @@ void AppLayerParserRegisterMpmIDsFuncs(uint8_t ipproto, AppProto alproto,
     SCEnter();
     SCLogWarning(SC_WARN_DEPRECATED, "%u/%s: GetTxMpmIDs/SetTxMpmIDs is no longer used",
             ipproto, AppProtoToString(alproto));
+    SCReturn;
+}
+
+void AppLayerParserRegisterSetStreamDepthFlag(uint8_t ipproto, AppProto alproto,
+        void (*SetStreamDepthFlag)(void *tx, uint8_t flags))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetStreamDepthFlag = SetStreamDepthFlag;
+
     SCReturn;
 }
 
@@ -1367,6 +1379,20 @@ void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t st
 uint32_t AppLayerParserGetStreamDepth(const Flow *f)
 {
     SCReturnInt(alp_ctx.ctxs[f->protomap][f->alproto].stream_depth);
+}
+
+void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *state, uint64_t tx_id, uint8_t flags)
+{
+    SCEnter();
+    void *tx = NULL;
+    if (state != NULL) {
+        if ((tx = AppLayerParserGetTx(ipproto, alproto, state, tx_id)) != NULL) {
+            if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetStreamDepthFlag != NULL) {
+                alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetStreamDepthFlag(tx, flags);
+            }
+        }
+    }
+    SCReturn;
 }
 
 /***** Cleanup *****/
