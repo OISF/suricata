@@ -211,18 +211,24 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
     else
         flags |= STREAM_TOSERVER;
 
+    uint16_t u;
+
+    for (u = 0; u < det_ctx->filestore_cnt; u++) {
+        AppLayerParserSetStreamDepthFlag(p->flow->proto, p->flow->alproto,
+                                         FlowGetAppState(p->flow),
+                                         det_ctx->filestore[u].tx_id,
+                                         flags);
+    }
+
     FileContainer *ffc = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
                                                 p->flow->alstate, flags);
 
     /* filestore for single files only */
     if (s->filestore_ctx == NULL) {
-        uint16_t u;
         for (u = 0; u < det_ctx->filestore_cnt; u++) {
             FileStoreFileById(ffc, det_ctx->filestore[u].file_id);
         }
     } else {
-        uint16_t u;
-
         for (u = 0; u < det_ctx->filestore_cnt; u++) {
             FilestorePostMatchWithOptions(p, p->flow, s->filestore_ctx, ffc,
                     det_ctx->filestore[u].file_id, det_ctx->filestore[u].tx_id);
