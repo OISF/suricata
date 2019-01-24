@@ -128,9 +128,9 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, i
     if (event_type) {
         json_object_set_new(js, "event_type", json_string(event_type));
     }
-#if 0
+
     /* vlan */
-    if (f->vlan_id[0] > 0) {
+    if (f->vlan_idx > 0) {
         json_t *js_vlan;
         switch (f->vlan_idx) {
             case 1:
@@ -141,9 +141,9 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, i
                 js_vlan = json_array();
                 if (unlikely(js != NULL)) {
                     json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID1(p)));
+                                    json_integer(f->vlan_id[0]));
                     json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID2(p)));
+                                    json_integer(f->vlan_id[1]));
                     json_object_set_new(js, "vlan", js_vlan);
                 }
                 break;
@@ -152,7 +152,7 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, i
                 break;
         }
     }
-#endif
+
     /* tuple */
     json_object_set_new(js, "src_ip", json_string(srcip));
     switch(f->proto) {
