@@ -149,7 +149,7 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
     char strbuf[24];
 
     if (len > 23) {
-        SCLogError(SC_ERR_ARG_LEN_LONG, "len too large (23 max)");
+        SCLogDebug("len too large (23 max)");
         return -1;
     }
 
@@ -164,15 +164,15 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
     *res = strtoull(ptr, &endptr, base);
 
     if (errno == ERANGE) {
-        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range");
+        SCLogDebug("numeric value out of range");
         return -1;
         /* If there is no numeric value in the given string then strtoull(), makes
         endptr equals to ptr and return 0 as result */
     } else if (endptr == ptr && *res == 0) {
-        SCLogDebug("No numeric value");
+        SCLogDebug("no numeric value");
         return -1;
     } else if (endptr == ptr) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "Invalid numeric value");
+        SCLogDebug("invalid numeric value");
         return -1;
     }
     /* This will interfere with some rules that do not know the length
