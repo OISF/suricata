@@ -465,6 +465,49 @@ void AppLayerHtpNeedFileInspection(void)
     SCReturn;
 }
 
+static void AppLayerHtpSetStreamDepthFlag(void *tx, uint8_t flags)
+{
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data((htp_tx_t *)tx);
+    if (tx_ud) {
+        if (flags & STREAM_TOCLIENT) {
+            tx_ud->tcflags |= HTP_STREAM_DEPTH_SET;
+        } else {
+            tx_ud->tsflags |= HTP_STREAM_DEPTH_SET;
+        }
+    }
+}
+
+static bool AppLayerHtpCheckStreamDepth(uint64_t content_len_so_far, uint8_t flags)
+{
+    if (flags & HTP_STREAM_DEPTH_SET) {
+        uint32_t stream_depth = FileReassemblyDepth();
+        if (content_len_so_far < (uint64_t)stream_depth || stream_depth == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint32_t body_limit,
+                                              uint32_t stream_depth, uint8_t flags, uint32_t data_len)
+{
+    uint32_t chunk_len = 0;
+    if (!(flags & HTP_STREAM_DEPTH_SET) && body_limit > 0 &&
+        (content_len_so_far < (uint64_t)body_limit) &&
+        (content_len_so_far + (uint64_t)data_len) > body_limit)
+    {
+        chunk_len = body_limit - content_len_so_far;
+    } else if ((flags & HTP_STREAM_DEPTH_SET) && stream_depth > 0 &&
+               (content_len_so_far < (uint64_t)stream_depth) &&
+               (content_len_so_far + (uint64_t)data_len) > stream_depth)
+    {
+        chunk_len = stream_depth - content_len_so_far;
+    }
+    SCLogDebug("len %u", chunk_len);
+    return (chunk_len == 0 ? data_len : chunk_len);
+}
+
 /* below error messages updated up to libhtp 0.5.7 (git 379632278b38b9a792183694a4febb9e0dbd1e7a) */
 struct {
     const char *msg;
@@ -1723,17 +1766,17 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     SCLogDebug("hstate->cfg->request.body_limit %u", hstate->cfg->request.body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if (hstate->cfg->request.body_limit == 0 || tx_ud->request_body.content_len_so_far < hstate->cfg->request.body_limit)
+    if ((!(tx_ud->tsflags & HTP_STREAM_DEPTH_SET) &&
+        (hstate->cfg->request.body_limit == 0 || tx_ud->request_body.content_len_so_far < hstate->cfg->request.body_limit)) ||
+        AppLayerHtpCheckStreamDepth(tx_ud->request_body.content_len_so_far, tx_ud->tsflags))
     {
-        uint32_t len = (uint32_t)d->len;
-
-        if (hstate->cfg->request.body_limit > 0 &&
-                (tx_ud->request_body.content_len_so_far + len) > hstate->cfg->request.body_limit)
-        {
-            len = hstate->cfg->request.body_limit - tx_ud->request_body.content_len_so_far;
-            BUG_ON(len > (uint32_t)d->len);
-        }
-        SCLogDebug("len %u", len);
+        uint32_t stream_depth = FileReassemblyDepth();
+        uint32_t len = AppLayerHtpComputeChunkLength(tx_ud->request_body.content_len_so_far,
+                                                     hstate->cfg->request.body_limit,
+                                                     stream_depth,
+                                                     tx_ud->tsflags,
+                                                     (uint32_t)d->len);
+        BUG_ON(len > (uint32_t)d->len);
 
         HtpBodyAppendChunk(&hstate->cfg->request, &tx_ud->request_body, d->data, len);
 
@@ -1847,17 +1890,17 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     SCLogDebug("hstate->cfg->response.body_limit %u", hstate->cfg->response.body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if (hstate->cfg->response.body_limit == 0 || tx_ud->response_body.content_len_so_far < hstate->cfg->response.body_limit)
+    if ((!(tx_ud->tcflags & HTP_STREAM_DEPTH_SET) &&
+        (hstate->cfg->response.body_limit == 0 || tx_ud->response_body.content_len_so_far < hstate->cfg->response.body_limit)) ||
+        AppLayerHtpCheckStreamDepth(tx_ud->response_body.content_len_so_far, tx_ud->tcflags))
     {
-        uint32_t len = (uint32_t)d->len;
-
-        if (hstate->cfg->response.body_limit > 0 &&
-                (tx_ud->response_body.content_len_so_far + len) > hstate->cfg->response.body_limit)
-        {
-            len = hstate->cfg->response.body_limit - tx_ud->response_body.content_len_so_far;
-            BUG_ON(len > (uint32_t)d->len);
-        }
-        SCLogDebug("len %u", len);
+        uint32_t stream_depth = FileReassemblyDepth();
+        uint32_t len = AppLayerHtpComputeChunkLength(tx_ud->response_body.content_len_so_far,
+                                                     hstate->cfg->response.body_limit,
+                                                     stream_depth,
+                                                     tx_ud->tcflags,
+                                                     (uint32_t)d->len);
+        BUG_ON(len > (uint32_t)d->len);
 
         HtpBodyAppendChunk(&hstate->cfg->response, &tx_ud->response_body, d->data, len);
 
@@ -2972,6 +3015,9 @@ void RegisterHTPParsers(void)
                                                HTPGetTxDetectState, HTPSetTxDetectState);
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_HTTP,
                                                HTPGetTxDetectFlags, HTPSetTxDetectFlags);
+
+        AppLayerParserRegisterSetStreamDepthFlag(IPPROTO_TCP, ALPROTO_HTTP,
+                                                 AppLayerHtpSetStreamDepthFlag);
 
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOSERVER,
                                      HTPHandleRequestData);
@@ -7029,6 +7075,167 @@ static int HTPParserTest25(void)
     PASS;
 }
 
+static int HTPParserTest26(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+    request-body-limit: 1\n\
+    response-body-limit: 1\n\
+";
+    ConfCreateContextBackup();
+    ConfInit();
+    HtpConfigCreateBackup();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    uint8_t httpbuf1[] = "GET /alice.txt HTTP/1.1\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "HTTP/1.1 200 OK\r\n"
+                         "Content-Type: text/plain\r\n"
+                         "Content-Length: 228\r\n\r\n"
+                         "Alice was beginning to get very tired of sitting by her sister on the bank."
+                         "Alice was beginning to get very tired of sitting by her sister on the bank.";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    uint8_t httpbuf3[] = "Alice was beginning to get very tired of sitting by her sister on the bank.\r\n\r\n";
+    uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOCLIENT;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(filestore; sid:1; rev:1;)");
+    FAIL_IF_NULL(de_ctx->sig_list);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+
+    int r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, httpbuf1,
+                                httplen1);
+    FAIL_IF(r != 0);
+
+    http_state = f.alstate;
+    FAIL_IF_NULL(http_state);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    FAIL_IF((PacketAlertCheck(p1, 1)));
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    FAIL_IF((PacketAlertCheck(p1, 1)));
+
+    r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT, httpbuf2,
+                            httplen2);
+    FAIL_IF(r != 0);
+
+    http_state = f.alstate;
+    FAIL_IF_NULL(http_state);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    FAIL_IF(!(PacketAlertCheck(p2, 1)));
+
+    r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT, httpbuf3,
+                            httplen3);
+    FAIL_IF(r != 0);
+
+    http_state = f.alstate;
+    FAIL_IF_NULL(http_state);
+
+    FileContainer *ffc = HTPStateGetFiles(http_state, STREAM_TOCLIENT);
+    FAIL_IF_NULL(ffc);
+
+    File *ptr = ffc->head;
+    FAIL_IF(ptr->state != FILE_STATE_CLOSED);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(TRUE);
+
+    HTPFreeConfig();
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
+    PASS;
+}
+
+static int HTPParserTest27(void)
+{
+    FileReassemblyDepthEnable(2000);
+
+    uint32_t len = 1000;
+
+    HtpTxUserData *tx_ud = SCMalloc(sizeof(HtpTxUserData));
+    FAIL_IF_NULL(tx_ud);
+
+    tx_ud->tsflags |= HTP_STREAM_DEPTH_SET;
+    tx_ud->request_body.content_len_so_far = 2500;
+
+    FAIL_IF(AppLayerHtpCheckStreamDepth(tx_ud->request_body.content_len_so_far, tx_ud->tsflags));
+
+    len = AppLayerHtpComputeChunkLength(tx_ud->request_body.content_len_so_far,
+                                        0,
+                                        FileReassemblyDepth(),
+                                        tx_ud->tsflags,
+                                        len);
+    FAIL_IF(len != 1000);
+
+    SCFree(tx_ud);
+
+    PASS;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -7086,6 +7293,8 @@ void HTPParserRegisterTests(void)
     UtRegisterTest("HTPParserTest23", HTPParserTest23);
     UtRegisterTest("HTPParserTest24", HTPParserTest24);
     UtRegisterTest("HTPParserTest25", HTPParserTest25);
+    UtRegisterTest("HTPParserTest26", HTPParserTest26);
+    UtRegisterTest("HTPParserTest27", HTPParserTest27);
 
     HTPFileParserRegisterTests();
     HTPXFFParserRegisterTests();
