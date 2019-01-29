@@ -38,7 +38,11 @@ int RunModeNapatechWorkers(void);
 void RunModeNapatechRegister(void);
 const char *RunModeNapatechGetDefaultMode(void);
 
-uint16_t GetNumConfiguredStreams(void);
+uint16_t NapatechGetNumConfiguredStreams(void);
+uint16_t NapatechGetNumFirstStream(void);
+uint16_t NapatechGetNumLastStream(void);
+
+bool NapatechIsAutoConfigEnabled(void);
 
 
 
