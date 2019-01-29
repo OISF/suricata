@@ -452,7 +452,7 @@ http_start
 ----------
 
 Inspect the start of a HTTP request or response. This will contain the
-request/reponse line plus the request/response headers. Use flow:to_server
+request/response line plus the request/response headers. Use flow:to_server
 or flow:to_client to force inspection of request or response.
 
 Example::

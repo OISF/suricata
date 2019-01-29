@@ -1329,12 +1329,20 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
 
 #ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
+        int ret = 0;
         struct tpacket_block_desc *pbd;
         pbd = (struct tpacket_block_desc *) ptv->ring_v3[ptv->frame_offset].iov_base;
         *discarded_pkts += pbd->hdr.bh1.num_pkts;
+        struct tpacket3_hdr *ppd =
+            (struct tpacket3_hdr *)((uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt);
+        if (((time_t)ppd->tp_sec > synctv->tv_sec) ||
+                ((time_t)ppd->tp_sec == synctv->tv_sec &&
+                 (suseconds_t) (ppd->tp_nsec / 1000) > (suseconds_t)synctv->tv_usec)) {
+            ret = 1;
+        }
         AFPFlushBlock(pbd);
         ptv->frame_offset = (ptv->frame_offset + 1) % ptv->req3.tp_block_nr;
-        return 1;
+        return ret;
 
     } else
 #endif
@@ -1372,7 +1380,6 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
  */
 static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
 {
-    int r;
     struct timeval synctv;
     struct pollfd fds;
 
@@ -1384,7 +1391,7 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
     synctv.tv_usec = 0xffffffff;
 
     while (1) {
-        r = poll(&fds, 1, POLL_TIMEOUT);
+        int r = poll(&fds, 1, POLL_TIMEOUT);
         if (r > 0 &&
                 (fds.revents & (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL))) {
             SCLogWarning(SC_ERR_AFP_READ, "poll failed %02x",
@@ -1427,8 +1434,6 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
  */
 static int AFPTryReopen(AFPThreadVars *ptv)
 {
-    int afp_activate_r;
-
     ptv->down_count++;
 
     /* Don't reconnect till we have packet that did not release data */
@@ -1436,7 +1441,7 @@ static int AFPTryReopen(AFPThreadVars *ptv)
         return -1;
     }
 
-    afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);
+    int afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);
     if (afp_activate_r != 0) {
         if (ptv->down_count % AFP_DOWN_COUNTER_INTERVAL == 0) {
             SCLogWarning(SC_ERR_AFP_CREATE, "Can not open iface '%s'",
@@ -1499,9 +1504,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     }
     if (ptv->afp_state == AFP_STATE_UP) {
         SCLogDebug("Thread %s using socket %d", tv->name, ptv->socket);
-        if ((ptv->flags & AFP_TPACKET_V3) != 0) {
-            AFPSynchronizeStart(ptv, &discarded_pkts);
-        }
+        AFPSynchronizeStart(ptv, &discarded_pkts);
         /* let's reset counter as we will start the capture at the
          * next function call */
 #ifdef PACKET_STATISTICS
