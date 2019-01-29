@@ -22,4 +22,4 @@ der-parser = "1.1"
 kerberos-parser = "0.2"
 
 ntp-parser = "0.3"
-ipsec-parser = "0.4"
+ipsec-parser = "0.4.1"
