@@ -28,9 +28,9 @@
  * The tracker does continue to follow the file.
  */
 extern crate libc;
-use crate::core::*;
-use crate::filecontainer::*;
-use crate::log::*;
+use core::*;
+use filecontainer::*;
+use log::*;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 

@@ -36,6 +36,7 @@ named!(pub parse_message<String>,
 mod tests {
 
     use super::*;
+    use nom;
 
     /// Simple test of some valid data.
     #[test]

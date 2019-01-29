@@ -17,12 +17,12 @@
 
 extern crate libc;
 
-use crate::json::*;
-use crate::smb::dcerpc::*;
-use crate::smb::funcs::*;
-use crate::smb::smb::*;
-use crate::smb::smb1::*;
-use crate::smb::smb2::*;
+use json::*;
+use smb::dcerpc::*;
+use smb::funcs::*;
+use smb::smb::*;
+use smb::smb1::*;
+use smb::smb2::*;
 use std::str;
 use std::string::String;
 

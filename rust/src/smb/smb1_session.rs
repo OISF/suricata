@@ -14,13 +14,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
-use crate::log::*;
+use log::*;
 
-use crate::smb::auth::*;
-use crate::smb::events::*;
-use crate::smb::smb::*;
-use crate::smb::smb1_records::*;
-use crate::smb::smb_records::*;
+use smb::auth::*;
+use smb::events::*;
+use smb::smb::*;
+use smb::smb1_records::*;
+use smb::smb_records::*;
 
 #[derive(Debug)]
 pub struct SessionSetupRequest {

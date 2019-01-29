@@ -19,18 +19,19 @@
 
 extern crate libc;
 
+use nom;
 use nom::be_u32;
 
-use crate::core::*;
-use crate::log::*;
+use core::*;
+use log::*;
 
-use crate::nfs::nfs::*;
-use crate::nfs::nfs4_records::*;
-use crate::nfs::nfs_records::*;
-use crate::nfs::rpc_records::*;
-use crate::nfs::types::*;
+use nfs::nfs::*;
+use nfs::nfs4_records::*;
+use nfs::nfs_records::*;
+use nfs::rpc_records::*;
+use nfs::types::*;
 
-use crate::kerberos;
+use kerberos;
 
 named!(
     parse_req_gssapi<kerberos::Kerberos5Ticket>,

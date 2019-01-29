@@ -15,12 +15,12 @@
  * 02110-1301, USA.
  */
 
-use crate::log::*;
+use log::*;
 
-use crate::smb::smb::*;
-use crate::smb::smb2_records::*;
+use smb::smb::*;
+use smb::smb2_records::*;
 //use smb::events::*;
-use crate::smb::auth::*;
+use smb::auth::*;
 
 pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record) {
     SCLogDebug!("SMB2_COMMAND_SESSION_SETUP: r.data.len() {}", r.data.len());

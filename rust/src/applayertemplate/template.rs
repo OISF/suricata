@@ -16,10 +16,10 @@
  */
 
 use super::parser;
-use crate::applayer::{self, LoggerFlags};
-use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN};
-use crate::log::*;
-use crate::parser::*;
+use applayer::{self, LoggerFlags};
+use core::{self, AppProto, Flow, ALPROTO_UNKNOWN};
+use log::*;
+use parser::*;
 use libc;
 use nom;
 use std;

@@ -15,16 +15,17 @@
  * 02110-1301, USA.
  */
 
-use crate::core::*;
-use crate::log::*;
+use core::*;
+use log::*;
+use nom;
 
-use crate::smb::dcerpc::*;
-use crate::smb::events::*;
-use crate::smb::files::*;
-use crate::smb::smb::*;
-use crate::smb::smb2_ioctl::*;
-use crate::smb::smb2_records::*;
-use crate::smb::smb2_session::*;
+use smb::dcerpc::*;
+use smb::events::*;
+use smb::files::*;
+use smb::smb::*;
+use smb::smb2_ioctl::*;
+use smb::smb2_records::*;
+use smb::smb2_session::*;
 
 pub const SMB2_COMMAND_NEGOTIATE_PROTOCOL: u16 = 0;
 pub const SMB2_COMMAND_SESSION_SETUP: u16 = 1;

@@ -17,24 +17,25 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::applayer;
-use crate::core;
-use crate::core::{
+use applayer;
+use core;
+use core::{
     sc_detect_engine_state_free, AppProto, Flow, ALPROTO_FAILED,
     ALPROTO_UNKNOWN, STREAM_TOCLIENT, STREAM_TOSERVER,
 };
-use crate::parser::*;
+use parser::*;
 use der_parser::der_read_element_header;
 use kerberos_parser::krb5::{
     EncryptionType, ErrorCode, MessageType, PrincipalName, Realm,
 };
 use kerberos_parser::krb5_parser;
 use libc;
+use nom;
 use nom::be_u32;
 use std;
 use std::ffi::{CStr, CString};
 
-use crate::log::*;
+use log::*;
 
 #[repr(u32)]
 pub enum KRB5Event {

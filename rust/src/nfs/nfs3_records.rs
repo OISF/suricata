@@ -17,7 +17,7 @@
 
 //! Nom parsers for RPC & NFSv3
 
-use crate::nfs::nfs_records::*;
+use nfs::nfs_records::*;
 use nom::{be_u32, be_u64, rest};
 
 #[derive(Debug, PartialEq)]

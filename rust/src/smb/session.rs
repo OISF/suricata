@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
-use crate::kerberos::*;
-use crate::log::*;
-use crate::smb::auth::*;
-use crate::smb::smb::*;
-use crate::smb::smb1_session::*;
+use kerberos::*;
+use log::*;
+use smb::auth::*;
+use smb::smb::*;
+use smb::smb1_session::*;
 
 #[derive(Debug)]
 pub struct SMBTransactionSessionSetup {

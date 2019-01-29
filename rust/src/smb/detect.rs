@@ -17,9 +17,9 @@
 
 extern crate libc;
 
-use crate::core::*;
-use crate::log::*;
-use crate::smb::smb::*;
+use core::*;
+use log::*;
+use smb::smb::*;
 use std;
 use std::ptr;
 

@@ -15,13 +15,14 @@
  * 02110-1301, USA.
  */
 
-use crate::kerberos::*;
+use kerberos::*;
 
-use crate::log::*;
-use crate::smb::ntlmssp_records::*;
-use crate::smb::smb::*;
+use log::*;
+use smb::ntlmssp_records::*;
+use smb::smb::*;
 
 use der_parser;
+use nom;
 use nom::{ErrorKind, IResult};
 
 fn parse_secblob_get_spnego(blob: &[u8]) -> IResult<&[u8], &[u8]> {

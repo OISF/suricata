@@ -18,12 +18,12 @@
 // written by Victor Julien
 extern crate libc;
 
-use crate::log::*;
+use log::*;
 
-use crate::smb::dcerpc_records::*;
-use crate::smb::events::*;
-use crate::smb::smb::*;
-use crate::smb::smb2::*;
+use smb::dcerpc_records::*;
+use smb::events::*;
+use smb::smb::*;
+use smb::smb2::*;
 
 pub const DCERPC_TYPE_REQUEST: u8 = 0;
 pub const DCERPC_TYPE_PING: u8 = 1;

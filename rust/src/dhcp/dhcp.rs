@@ -15,15 +15,15 @@
  * 02110-1301, USA.
  */
 
-use crate::applayer;
-use crate::core;
-use crate::core::{
+use applayer;
+use core;
+use core::{
     sc_app_layer_decoder_events_free_events, sc_detect_engine_state_free,
 };
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN};
-use crate::dhcp::parser::*;
-use crate::log::*;
-use crate::parser::*;
+use core::{AppProto, Flow, ALPROTO_UNKNOWN};
+use dhcp::parser::*;
+use log::*;
+use parser::*;
 use libc;
 use std;
 use std::ffi::{CStr, CString};

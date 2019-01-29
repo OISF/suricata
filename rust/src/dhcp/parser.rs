@@ -17,7 +17,8 @@
 
 use std::cmp::min;
 
-use crate::dhcp::dhcp::*;
+use dhcp::dhcp::*;
+use nom;
 use nom::*;
 
 pub struct DHCPMessage {
@@ -231,8 +232,8 @@ pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
 
 #[cfg(test)]
 mod tests {
-    use crate::dhcp::dhcp::*;
-    use crate::dhcp::parser::*;
+    use dhcp::dhcp::*;
+    use dhcp::parser::*;
 
     #[test]
     fn test_parse_discover() {

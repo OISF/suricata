@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::smb::smb::*;
+use smb::smb::*;
 
 #[cfg(feature = "debug")]
 use log::*;

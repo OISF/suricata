@@ -20,11 +20,11 @@ extern crate libc;
 use std;
 use std::os::raw::c_void;
 
-use crate::conf::ConfNode;
-use crate::dhcp::dhcp::*;
-use crate::dhcp::parser::{DHCPOptGeneric, DHCPOptionWrapper};
-use crate::dns::log::dns_print_addr;
-use crate::json::*;
+use conf::ConfNode;
+use dhcp::dhcp::*;
+use dhcp::parser::{DHCPOptGeneric, DHCPOptionWrapper};
+use dns::log::dns_print_addr;
+use json::*;
 
 pub struct DHCPLogger {
     extended: bool,

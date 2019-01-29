@@ -19,8 +19,8 @@
 
 extern crate libc;
 
-use crate::json::*;
-use crate::tftp::tftp::*;
+use json::*;
+use tftp::tftp::*;
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_log_json_request(

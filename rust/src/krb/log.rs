@@ -17,8 +17,8 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::json::*;
-use crate::krb::krb5::{test_weak_encryption, KRB5State, KRB5Transaction};
+use json::*;
+use krb::krb5::{test_weak_encryption, KRB5State, KRB5Transaction};
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_log_json_response(

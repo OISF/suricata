@@ -169,7 +169,7 @@ fn to_cstring(val: &[u8]) -> CString {
 #[cfg(test)]
 mod tests {
 
-    use crate::json::to_cstring;
+    use json::to_cstring;
 
     #[test]
     fn test_to_string() {

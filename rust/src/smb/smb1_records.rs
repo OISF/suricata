@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-use crate::log::*;
-use crate::smb::smb::*;
-use crate::smb::smb_records::*;
+use log::*;
+use smb::smb::*;
+use smb::smb_records::*;
 use nom::{le_u16, le_u32, le_u64, le_u8, rest, IResult};
 
 fn smb_get_unicode_string_with_offset(

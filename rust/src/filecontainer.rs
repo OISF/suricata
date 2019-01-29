@@ -19,8 +19,8 @@ extern crate libc;
 use libc::c_void;
 use std::ptr;
 
-use crate::core::*;
-use crate::log::*;
+use core::*;
+use log::*;
 
 pub struct File;
 #[repr(C)]

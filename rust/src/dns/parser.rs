@@ -17,7 +17,7 @@
 
 //! Nom parsers for DNS.
 
-use crate::dns::dns::*;
+use dns::dns::*;
 use nom;
 use nom::{be_u16, be_u32, be_u8};
 
@@ -309,8 +309,8 @@ pub fn dns_parse_request<'a>(
 #[cfg(test)]
 mod tests {
 
-    use crate::dns::dns::{DNSAnswerEntry, DNSHeader};
-    use crate::dns::parser::*;
+    use dns::dns::{DNSAnswerEntry, DNSHeader};
+    use dns::parser::*;
 
     /// Parse a simple name with no pointers.
     #[test]

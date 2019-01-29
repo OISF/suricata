@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use crate::smb::smb::*;
+use smb::smb::*;
 use nom::{le_u16, le_u32, le_u64, le_u8, rest, AsBytes, IResult};
 
 #[derive(Debug, PartialEq)]

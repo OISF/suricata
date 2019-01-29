@@ -15,13 +15,13 @@
  * 02110-1301, USA.
  */
 
-use crate::log::*;
-use crate::smb::dcerpc::*;
-use crate::smb::events::*;
-use crate::smb::funcs::*;
-use crate::smb::smb::*;
-use crate::smb::smb2::*;
-use crate::smb::smb2_records::*;
+use log::*;
+use smb::dcerpc::*;
+use smb::events::*;
+use smb::funcs::*;
+use smb::smb::*;
+use smb::smb2::*;
+use smb::smb2_records::*;
 
 #[derive(Debug)]
 pub struct SMBTransactionIoctl {

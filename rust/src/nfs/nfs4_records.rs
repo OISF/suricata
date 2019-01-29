@@ -18,7 +18,7 @@
 //! Nom parsers for NFSv4 records
 use nom::{be_u32, be_u64};
 
-use crate::nfs::types::*;
+use nfs::types::*;
 
 #[derive(Debug, PartialEq)]
 pub enum Nfs4RequestContent<'a> {

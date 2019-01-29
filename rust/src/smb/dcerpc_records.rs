@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use nom;
 use nom::{
     be_u16, le_u16, le_u32, le_u8, rest, Endianness, ErrorKind, IResult,
 };

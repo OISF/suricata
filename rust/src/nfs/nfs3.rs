@@ -17,15 +17,15 @@
 
 // written by Victor Julien
 
-use crate::core::*;
-use crate::log::*;
+use core::*;
+use log::*;
 use nom;
 use nom::IResult;
 
-use crate::nfs::nfs::*;
-use crate::nfs::nfs3_records::*;
-use crate::nfs::rpc_records::*;
-use crate::nfs::types::*;
+use nfs::nfs::*;
+use nfs::nfs3_records::*;
+use nfs::rpc_records::*;
+use nfs::types::*;
 
 pub fn many0_nfs3_response_readdirplus_entries<'a>(input: &'a [u8]) -> IResult<&'a[u8], Vec<Nfs3ResponseReaddirplusEntry<'a>>> {
     do_parse!(input,

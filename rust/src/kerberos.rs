@@ -20,8 +20,9 @@ use der_parser::parse_der_oid;
 use kerberos_parser::krb5::{ApReq, PrincipalName, Realm};
 use kerberos_parser::krb5_parser::parse_ap_req;
 use nom::{le_u16, ErrorKind, IResult};
+use nom;
 
-use crate::log::*;
+use log::*;
 
 pub const SECBLOB_NOT_SPNEGO: u32 = 128;
 pub const SECBLOB_KRB_FMT_ERR: u32 = 129;

@@ -19,7 +19,7 @@
 
 extern crate libc;
 
-use crate::filecontainer::*;
+use filecontainer::*;
 
 /// Opaque C types.
 pub enum Flow {}

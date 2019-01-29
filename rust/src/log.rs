@@ -20,7 +20,7 @@ extern crate libc;
 use std::ffi::CString;
 use std::path::Path;
 
-use crate::core::*;
+use core::*;
 
 #[derive(Debug)]
 pub enum Level {

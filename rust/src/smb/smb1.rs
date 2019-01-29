@@ -21,16 +21,18 @@
 
 extern crate libc;
 
-use crate::core::*;
-use crate::log::*;
+use nom;
 
-use crate::smb::dcerpc::*;
-use crate::smb::events::*;
-use crate::smb::files::*;
-use crate::smb::smb::*;
+use core::*;
+use log::*;
 
-use crate::smb::smb1_records::*;
-use crate::smb::smb1_session::*;
+use smb::dcerpc::*;
+use smb::events::*;
+use smb::files::*;
+use smb::smb::*;
+
+use smb::smb1_records::*;
+use smb::smb1_session::*;
 
 // https://msdn.microsoft.com/en-us/library/ee441741.aspx
 pub const SMB1_COMMAND_CREATE_DIRECTORY: u8 = 0x00;

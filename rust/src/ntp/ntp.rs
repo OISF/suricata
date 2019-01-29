@@ -19,15 +19,17 @@
 
 extern crate ntp_parser;
 use self::ntp_parser::*;
-use crate::applayer;
-use crate::core;
-use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN};
-use crate::parser::*;
+use applayer;
+use core;
+use core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN};
+use parser::*;
 use libc;
 use std;
 use std::ffi::{CStr, CString};
 
-use crate::log::*;
+use nom;
+
+use log::*;
 
 #[repr(u32)]
 pub enum NTPEvent {
