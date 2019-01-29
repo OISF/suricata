@@ -78,6 +78,7 @@ TmEcode NoNapatechSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #else /* Implied we do have NAPATECH support */
 
 
+#include <numa.h>
 #include <nt.h>
 
 #define MAX_STREAMS 256
