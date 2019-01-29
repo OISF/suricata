@@ -24,15 +24,14 @@
 #ifndef __SOURCE_NAPATECH_H__
 #define __SOURCE_NAPATECH_H__
 
-void TmModuleNapatechStreamRegister (void);
+void TmModuleNapatechStreamRegister(void);
 TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data);
-void TmModuleNapatechDecodeRegister (void);
+void TmModuleNapatechDecodeRegister(void);
 
 #ifdef HAVE_NAPATECH
 #include <nt.h>
 
-struct NapatechStreamDevConf
-{
+struct NapatechStreamDevConf {
     uint16_t stream_id;
     intmax_t hba;
 };
