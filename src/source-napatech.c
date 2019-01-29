@@ -23,10 +23,8 @@
  *  *
  * Support for NAPATECH adapter with the 3GD Driver/API.
  * Requires libntapi from Napatech A/S.
- *
  */
 
-#include <numa.h>
 
 #include "suricata-common.h"
 #include "suricata.h"
@@ -78,6 +76,7 @@ TmEcode NoNapatechSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #else /* Implied we do have NAPATECH support */
 
 
+#include <numa.h>
 #include <nt.h>
 
 #define MAX_STREAMS 256
