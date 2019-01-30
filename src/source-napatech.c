@@ -23,7 +23,6 @@
  *  *
  * Support for NAPATECH adapter with the 3GD Driver/API.
  * Requires libntapi from Napatech A/S.
- *
  */
 
 
