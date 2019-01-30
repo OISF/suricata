@@ -26,7 +26,6 @@
  *
  */
 
-#include <numa.h>
 
 #include "suricata-common.h"
 #include "suricata.h"
