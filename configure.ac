@@ -85,7 +85,7 @@
     fi
 
     AC_ARG_ENABLE(python,
-           AS_HELP_STRING([--enable-python], [Enable python]),,[enable_python=yes])
+           AS_HELP_STRING([--enable-python], [Enable python]),[enable_python=$enableval],[enable_python=yes])
     AC_PATH_PROGS(HAVE_PYTHON, python python2 python2.7, "no")
     if test "x$enable_python" = "xno" ; then
         echo
@@ -289,7 +289,7 @@
     #These flags seem to be supported on CentOS 5+, Ubuntu 8.04+, and FedoreCore 11+
     #Options are taken from https://wiki.ubuntu.com/CompilerFlags
     AC_ARG_ENABLE(gccprotect,
-           AS_HELP_STRING([--enable-gccprotect], [Detect and use gcc hardening options]),,[enable_gccprotect=no])
+           AS_HELP_STRING([--enable-gccprotect], [Detect and use gcc hardening options]),[enable_gccprotect=$enableval],[enable_gccprotect=no])
 
     AS_IF([test "x$enable_gccprotect" = "xyes"], [
         #buffer overflow protection
@@ -343,14 +343,14 @@
 
     #enable profile generation
     AC_ARG_ENABLE(gccprofile,
-           AS_HELP_STRING([--enable-gccprofile], [Enable gcc profile info i.e -pg flag is set]),,[enable_gccprofile=no])
+           AS_HELP_STRING([--enable-gccprofile], [Enable gcc profile info i.e -pg flag is set]),[enable_gccprofile=$enableval],[enable_gccprofile=no])
     AS_IF([test "x$enable_gccprofile" = "xyes"], [
         CFLAGS="${CFLAGS} -pg"
     ])
 
     #enable gcc march=native gcc 4.2 or later
     AC_ARG_ENABLE(gccmarch_native,
-           AS_HELP_STRING([--enable-gccmarch-native], [Enable gcc march=native gcc 4.2 and later only]),,[enable_gccmarch_native=yes])
+           AS_HELP_STRING([--enable-gccmarch-native], [Enable gcc march=native gcc 4.2 and later only]),[enable_gccmarch_native=$enableval],[enable_gccmarch_native=yes])
     AS_IF([test "x$enable_gccmarch_native" = "xyes"], [
         case "$host" in
             *powerpc*)
@@ -379,7 +379,7 @@
 
   # enable the running of unit tests
     AC_ARG_ENABLE(unittests,
-           AS_HELP_STRING([--enable-unittests], [Enable compilation of the unit tests]),,[enable_unittests=no])
+           AS_HELP_STRING([--enable-unittests], [Enable compilation of the unit tests]),[enable_unittests=$enableval],[enable_unittests=no])
     AS_IF([test "x$enable_unittests" = "xyes"], [
         AC_DEFINE([UNITTESTS],[1],[Enable built-in unittests])
     ])
@@ -387,14 +387,14 @@
 
   # enable workaround for old barnyard2 for unified alert output
     AC_ARG_ENABLE(old-barnyard2,
-           AS_HELP_STRING([--enable-old-barnyard2], [Use workaround for old barnyard2 in unified2 output]),,[enable_old_barnyard2=no])
+           AS_HELP_STRING([--enable-old-barnyard2], [Use workaround for old barnyard2 in unified2 output]),[enable_old_barnyard2=$enableval],[enable_old_barnyard2=no])
     AS_IF([test "x$enable_old_barnyard2" = "xyes"], [
         AC_DEFINE([HAVE_OLD_BARNYARD2],[1],[Use workaround for old barnyard2 in unified2 output])
     ])
 
   # enable debug output
     AC_ARG_ENABLE(debug,
-           AS_HELP_STRING([--enable-debug], [Enable debug output]),,[enable_debug=no])
+           AS_HELP_STRING([--enable-debug], [Enable debug output]),[enable_debug=$enableval],[enable_debug=no])
     AS_IF([test "x$enable_debug" = "xyes"], [
         AC_DEFINE([DEBUG],[1],[Enable debug output])
     ])
@@ -402,7 +402,7 @@
 
   # enable debug validation functions & macro's output
     AC_ARG_ENABLE(debug-validation,
-           AS_HELP_STRING([--enable-debug-validation], [Enable (debug) validation code output]),,[enable_debug_validation=no])
+           AS_HELP_STRING([--enable-debug-validation], [Enable (debug) validation code output]),[enable_debug_validation=$enableval],[enable_debug_validation=no])
     AS_IF([test "x$enable_debug_validation" = "xyes"], [
         if test "$enable_unittests" = "yes"; then
             AC_MSG_ERROR([debug_validation can't be enabled with enabled unittests!])
@@ -413,7 +413,7 @@
 
   # profiling support
     AC_ARG_ENABLE(profiling,
-           AS_HELP_STRING([--enable-profiling], [Enable performance profiling]),,[enable_profiling=no])
+           AS_HELP_STRING([--enable-profiling], [Enable performance profiling]),[enable_profiling=$enableval],[enable_profiling=no])
     AS_IF([test "x$enable_profiling" = "xyes"], [
     case "$host" in
         *-*-openbsd*)
@@ -427,7 +427,7 @@
 
   # profiling support, locking
     AC_ARG_ENABLE(profiling-locks,
-           AS_HELP_STRING([--enable-profiling-locks], [Enable performance profiling for locks]),,[enable_profiling_locks=no])
+           AS_HELP_STRING([--enable-profiling-locks], [Enable performance profiling for locks]),[enable_profiling_locks=$enableval],[enable_profiling_locks=no])
     AS_IF([test "x$enable_profiling_locks" = "xyes"], [
         AC_DEFINE([PROFILING],[1],[Enable performance profiling])
         AC_DEFINE([PROFILE_LOCKING],[1],[Enable performance profiling for locks])
@@ -435,7 +435,7 @@
 
   # enable support for IPFW
     AC_ARG_ENABLE(ipfw,
-            AS_HELP_STRING([--enable-ipfw], [Enable FreeBSD IPFW support for inline IDP]),,[enable_ipfw=no])
+            AS_HELP_STRING([--enable-ipfw], [Enable FreeBSD IPFW support for inline IDP]),[enable_ipfw=$enableval],[enable_ipfw=no])
     AS_IF([test "x$enable_ipfw" = "xyes"], [
         AC_DEFINE([IPFW],[1],[Enable FreeBSD IPFW support for inline IDP])
     ])
@@ -786,10 +786,10 @@
 
     AC_ARG_ENABLE(nflog,
             AS_HELP_STRING([--enable-nflog],[Enable libnetfilter_log support]),
-                           [ enable_nflog="yes"],
+                           [ enable_nflog="$enableval"],
                            [ enable_nflog="no"])
     AC_ARG_ENABLE(nfqueue,
-           AS_HELP_STRING([--enable-nfqueue], [Enable NFQUEUE support for inline IDP]),[enable_nfqueue=yes],[enable_nfqueue=no])
+           AS_HELP_STRING([--enable-nfqueue], [Enable NFQUEUE support for inline IDP]),[enable_nfqueue=$enableval],[enable_nfqueue=no])
     if test "$enable_nfqueue" != "no"; then
         PKG_CHECK_MODULES([libnetfilter_queue], [libnetfilter_queue], [enable_nfqueue=yes], [enable_nfqueue=no])
         CPPFLAGS="${CPPFLAGS} ${libnetfilter_queue_CFLAGS}"
@@ -935,7 +935,7 @@
 
   # prelude
     AC_ARG_ENABLE(prelude,
-            AS_HELP_STRING([--enable-prelude], [Enable Prelude support for alerts]),,[enable_prelude=no])
+            AS_HELP_STRING([--enable-prelude], [Enable Prelude support for alerts]),[enable_prelude=$enableval],[enable_prelude=no])
     # Prelude doesn't work with -Werror
     STORECFLAGS="${CFLAGS}"
     CFLAGS="${CFLAGS} -Wno-error=unused-result"
@@ -1141,7 +1141,7 @@
     # libpfring (currently only supported for libpcap enabled pfring)
     # Error on the side of caution. If libpfring enabled pcap is being used and we don't link against -lpfring compilation will fail.
     AC_ARG_ENABLE(pfring,
-           AS_HELP_STRING([--enable-pfring], [Enable Native PF_RING support]),,[enable_pfring=no])
+           AS_HELP_STRING([--enable-pfring], [Enable Native PF_RING support]),[enable_pfring=$enableval],[enable_pfring=no])
     AS_IF([test "x$enable_pfring" = "xyes"], [
         AC_DEFINE([HAVE_PFRING],[1],(PF_RING support enabled))
 
@@ -1200,7 +1200,7 @@
   # AF_PACKET support
     AC_ARG_ENABLE(af-packet,
            AS_HELP_STRING([--enable-af-packet], [Enable AF_PACKET support [default=yes]]),
-                        ,[enable_af_packet=yes])
+                        [enable_af_packet=$enableval],[enable_af_packet=yes])
     AS_IF([test "x$enable_af_packet" = "xyes"], [
         AC_CHECK_DECL([TPACKET_V2],
             AC_DEFINE([HAVE_AF_PACKET],[1],[AF_PACKET support is available]),
@@ -1224,7 +1224,7 @@
 
   # Netmap support
     AC_ARG_ENABLE(netmap,
-            AS_HELP_STRING([--enable-netmap], [Enable Netmap support]),,[enable_netmap=no])
+            AS_HELP_STRING([--enable-netmap], [Enable Netmap support]),[enable_netmap=$enableval],[enable_netmap=no])
     AC_ARG_WITH(netmap_includes,
             [  --with-netmap-includes=DIR netmap include directory],
             [with_netmap_includes="$withval"],[with_netmap_includes=no])
@@ -1241,7 +1241,7 @@
 
   # libhtp
     AC_ARG_ENABLE(non-bundled-htp,
-           AS_HELP_STRING([--enable-non-bundled-htp], [Enable the use of an already installed version of htp]),,[enable_non_bundled_htp=no])
+           AS_HELP_STRING([--enable-non-bundled-htp], [Enable the use of an already installed version of htp]),[enable_non_bundled_htp=$enableval],[enable_non_bundled_htp=no])
     AS_IF([test "x$enable_non_bundled_htp" = "xyes"], [
         PKG_CHECK_MODULES([libhtp], htp,, [with_pkgconfig_htp=no])
         if test "$with_pkgconfig_htp" != "no"; then
@@ -1446,7 +1446,7 @@
   # Check for DAG support.
     AC_ARG_ENABLE(dag,
 	        AS_HELP_STRING([--enable-dag],[Enable DAG capture]),
-	        [ enable_dag=yes ],
+	        [ enable_dag=$enableval ],
 	        [ enable_dag=no])
     AC_ARG_WITH(dag_includes,
             [  --with-dag-includes=DIR  dagapi include directory],
@@ -1575,7 +1575,7 @@
     enable_magic="no"
     AC_ARG_ENABLE(libmagic,
            AS_HELP_STRING([--enable-libmagic], [Enable libmagic support [default=yes]]),
-                        ,[enable_magic=yes])
+                        [enable_magic=$enableval],[enable_magic=yes])
     if test "$enable_magic" = "yes"; then
         AC_ARG_WITH(libmagic_includes,
                 [  --with-libmagic-includes=DIR  libmagic include directory],
@@ -1614,7 +1614,7 @@
   # Napatech - Using the 3GD API
     AC_ARG_ENABLE(napatech,
                 AS_HELP_STRING([--enable-napatech],[Enabled Napatech Devices]),
-                [ enable_napatech=yes ],
+                [ enable_napatech=$enableval ],
                 [ enable_napatech=no])
     AC_ARG_WITH(napatech_includes,
                 [  --with-napatech-includes=DIR   napatech include directory],
@@ -1645,11 +1645,11 @@
   # liblua
     AC_ARG_ENABLE(lua,
 	        AS_HELP_STRING([--enable-lua],[Enable Lua support]),
-	        [ enable_lua="yes"],
+	        [ enable_lua="$enableval"],
 	        [ enable_lua="no"])
     AC_ARG_ENABLE(luajit,
 	        AS_HELP_STRING([--enable-luajit],[Enable Luajit support]),
-	        [ enable_luajit="yes"],
+	        [ enable_luajit="$enableval"],
 	        [ enable_luajit="no"])
     if test "$enable_lua" = "yes"; then
         if test "$enable_luajit" = "yes"; then
@@ -1811,7 +1811,7 @@
   # libgeoip
     AC_ARG_ENABLE(geoip,
 	        AS_HELP_STRING([--enable-geoip],[Enable GeoIP support]),
-	        [ enable_geoip="yes"],
+	        [ enable_geoip="$enableval"],
 	        [ enable_geoip="no"])
     AC_ARG_WITH(libgeoip_includes,
             [  --with-libgeoip-includes=DIR  libgeoip include directory],
@@ -1850,7 +1850,7 @@
   # Position Independent Executable
     AC_ARG_ENABLE(pie,
                 AS_HELP_STRING([--enable-pie],[Enable compiling as a position independent executable]),
-                [ enable_pie="yes"],
+                [ enable_pie="$enableval"],
                 [ enable_pie="no"])
     if test "$enable_pie" = "yes"; then
         CPPFLAGS="${CPPFLAGS} -fPIC"
@@ -1868,7 +1868,7 @@
 # libhiredis
     AC_ARG_ENABLE(hiredis,
 	        AS_HELP_STRING([--enable-hiredis],[Enable Redis support]),
-	        [ enable_hiredis="yes"],
+	        [ enable_hiredis="$enableval"],
 	        [ enable_hiredis="no"])
     AC_ARG_WITH(libhiredis_includes,
             [  --with-libhiredis-includes=DIR  libhiredis include directory],
@@ -2079,7 +2079,7 @@
     AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$HAVE_CARGO_VENDOR" != "xno"])
 
     AC_ARG_ENABLE(rust_strict,
-           AS_HELP_STRING([--enable-rust-strict], [Rust warnings as errors]),,[enable_rust_strict=no])
+           AS_HELP_STRING([--enable-rust-strict], [Rust warnings as errors]),[enable_rust_strict=$enableval],[enable_rust_strict=no])
     AS_IF([test "x$enable_rust_strict" = "xyes"], [
         RUST_FEATURES="strict"
     ])
