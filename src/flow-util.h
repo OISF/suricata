@@ -40,6 +40,8 @@
         (f)->sp = 0; \
         (f)->dp = 0; \
         (f)->proto = 0; \
+        (f)->livedev = NULL; \
+        (f)->vlan_idx = 0; \
         SC_ATOMIC_INIT((f)->flow_state); \
         SC_ATOMIC_INIT((f)->use_cnt); \
         (f)->tenant_id = 0; \
@@ -83,6 +85,8 @@
         (f)->sp = 0; \
         (f)->dp = 0; \
         (f)->proto = 0; \
+        (f)->livedev = NULL; \
+        (f)->vlan_idx = 0; \
         SC_ATOMIC_RESET((f)->flow_state); \
         SC_ATOMIC_RESET((f)->use_cnt); \
         (f)->tenant_id = 0; \

@@ -343,6 +343,10 @@ typedef struct Flow_
     uint8_t proto;
     uint8_t recursion_level;
     uint16_t vlan_id[2];
+    uint8_t vlan_idx;
+
+    /** Incoming interface */
+    const struct LiveDevice_ *livedev;
 
     /** flow hash - the flow hash before hash table size mod. */
     uint32_t flow_hash;
