@@ -6034,6 +6034,10 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     np->flags |= PKT_HAS_FLOW;
     np->flags |= PKT_IGNORE_CHECKSUM;
     np->flags |= PKT_PSEUDO_DETECTLOG_FLUSH;
+    np->vlan_id[0] = f->vlan_id[0];
+    np->vlan_id[1] = f->vlan_id[1];
+    np->vlan_idx = f->vlan_idx;
+    np->livedev = (struct LiveDevice_ *)f->livedev;
 
     if (f->flags & FLOW_NOPACKET_INSPECTION) {
         DecodeSetNoPacketInspectionFlag(np);
@@ -10827,4 +10831,3 @@ void StreamTcpRegisterTests (void)
     StreamTcpSackRegisterTests ();
 #endif /* UNITTESTS */
 }
-
