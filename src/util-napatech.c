@@ -327,64 +327,66 @@ static uint32_t CountWorkerThreads(void)
 {
     int worker_count = 0;
 
-    ConfNode *root = ConfGetNode("threading.cpu-affinity");
     ConfNode *affinity;
+    ConfNode *root = ConfGetNode("threading.cpu-affinity");   
 
-    TAILQ_FOREACH(affinity, &root->head, next)
-    {
-        if (strcmp(affinity->val, "decode-cpu-set") == 0 ||
-                strcmp(affinity->val, "stream-cpu-set") == 0 ||
-                strcmp(affinity->val, "reject-cpu-set") == 0 ||
-                strcmp(affinity->val, "output-cpu-set") == 0) {
-            continue;
-        }
-        
-        if (strcmp(affinity->val, "worker-cpu-set") == 0) {
-            ConfNode *node = ConfNodeLookupChild(affinity->head.tqh_first, "cpu");
-            ConfNode *lnode;
-
-            enum CONFIG_SPECIFIER cpu_spec = CONFIG_SPECIFIER_UNDEFINED;
-
-            TAILQ_FOREACH(lnode, &node->head, next)
-            {
-                uint8_t start, end;
-                if (strncmp(lnode->val, "all", 4) == 0) {
-                    /* check that the sting in the config file is correctly specified */
-                    if (cpu_spec != CONFIG_SPECIFIER_UNDEFINED) {
-                        SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                                "Only one Napatech port specifier type allowed.");
-                        exit(EXIT_FAILURE);
-                    }
-                    cpu_spec = CONFIG_SPECIFIER_RANGE;
-                    worker_count = UtilCpuGetNumProcessorsConfigured();
-                } else if (strchr(lnode->val, '-')) {
-                    /* check that the sting in the config file is correctly specified */
-                    if (cpu_spec != CONFIG_SPECIFIER_UNDEFINED) {
-                        SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                                "Only one Napatech port specifier type allowed.");
-                        exit(EXIT_FAILURE);
-                    }
-                    cpu_spec = CONFIG_SPECIFIER_RANGE;
-
-                    char copystr[16];
-                    strlcpy(copystr, lnode->val, 16);
-
-                    start = atoi(copystr);
-                    end = atoi(strchr(copystr, '-') + 1);
-                    worker_count = end - start + 1;
-
-                } else {
-                    /* check that the sting in the config file is correctly specified */
-                    if (cpu_spec == CONFIG_SPECIFIER_RANGE) {
-                        SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
-                                "Napatech port range specifiers cannot be combined with individual stream specifiers.");
-                        exit(EXIT_FAILURE);
-                    }
-                    cpu_spec = CONFIG_SPECIFIER_INDIVIDUAL;
-                    ++worker_count;
-                }
+    if (root != NULL) {
+        TAILQ_FOREACH(affinity, &root->head, next)
+        {
+            if (strcmp(affinity->val, "decode-cpu-set") == 0 ||
+                    strcmp(affinity->val, "stream-cpu-set") == 0 ||
+                    strcmp(affinity->val, "reject-cpu-set") == 0 ||
+                    strcmp(affinity->val, "output-cpu-set") == 0) {
+                continue;
             }
-            break;
+
+            if (strcmp(affinity->val, "worker-cpu-set") == 0) {
+                ConfNode *node = ConfNodeLookupChild(affinity->head.tqh_first, "cpu");
+                ConfNode *lnode;
+
+                enum CONFIG_SPECIFIER cpu_spec = CONFIG_SPECIFIER_UNDEFINED;
+
+                TAILQ_FOREACH(lnode, &node->head, next)
+                {
+                    uint8_t start, end;
+                    if (strncmp(lnode->val, "all", 4) == 0) {
+                        /* check that the sting in the config file is correctly specified */
+                        if (cpu_spec != CONFIG_SPECIFIER_UNDEFINED) {
+                            SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
+                                    "Only one Napatech port specifier type allowed.");
+                            exit(EXIT_FAILURE);
+                        }
+                        cpu_spec = CONFIG_SPECIFIER_RANGE;
+                        worker_count = UtilCpuGetNumProcessorsConfigured();
+                    } else if (strchr(lnode->val, '-')) {
+                        /* check that the sting in the config file is correctly specified */
+                        if (cpu_spec != CONFIG_SPECIFIER_UNDEFINED) {
+                            SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
+                                    "Only one Napatech port specifier type allowed.");
+                            exit(EXIT_FAILURE);
+                        }
+                        cpu_spec = CONFIG_SPECIFIER_RANGE;
+
+                        char copystr[16];
+                        strlcpy(copystr, lnode->val, 16);
+
+                        start = atoi(copystr);
+                        end = atoi(strchr(copystr, '-') + 1);
+                        worker_count = end - start + 1;
+
+                    } else {
+                        /* check that the sting in the config file is correctly specified */
+                        if (cpu_spec == CONFIG_SPECIFIER_RANGE) {
+                            SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
+                                    "Napatech port range specifiers cannot be combined with individual stream specifiers.");
+                            exit(EXIT_FAILURE);
+                        }
+                        cpu_spec = CONFIG_SPECIFIER_INDIVIDUAL;
+                        ++worker_count;
+                    }
+                }
+                break;
+            }
         }
     }
     return worker_count;
@@ -922,7 +924,9 @@ static uint32_t GetStreamNUMAs(uint32_t stream_id, int stream_numas[])
 uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream,
         uint32_t *filter_id, uint32_t *hash_id)
 {
-    char ports_spec[64];
+#define PORTS_SPEC_SIZE 64
+    
+    char ports_spec[PORTS_SPEC_SIZE];
     ConfNode *ntports;
     bool first_iteration = true;
     int status = 0;
@@ -993,8 +997,9 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream,
                 snprintf(ports_spec, sizeof(ports_spec), "port==%s", port->val);
                 first_iteration = false;
             } else {
-                strncat(ports_spec, ",", sizeof(ports_spec));
-                strncat(ports_spec, port->val, sizeof(ports_spec));
+                char temp[PORTS_SPEC_SIZE]; 
+                snprintf(temp, sizeof(temp), "%s,%s",ports_spec,port->val);
+                snprintf(ports_spec, sizeof(ports_spec), "%s", temp);
             }
         }
     }
