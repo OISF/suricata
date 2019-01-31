@@ -1805,19 +1805,63 @@ napatech:
     # (-1 = OFF, 1 - 100 = percentage of the host buffer that can be held back)
     # This may be enabled when sharing streams with another application.
     # Otherwise, it should be turned off.
-    hba: -1
+    #hba: -1
 
-    # use_all_streams set to "yes" will query the Napatech service for all configured
-    # streams and listen on all of them. When set to "no" the streams config array
-    # will be used.
-    use-all-streams: yes
+    # When use_all_streams is set to "yes" the initialization code will query 
+    # the Napatech service for all configured streams and listen on all of them. 
+    # When set to "no" the streams config array will be used.
+    #
+    # This option necessitates running the appropriate NTPL commands to create
+    # the desired streams prior to running suricata.
+    #use-all-streams: no
 
-    # The streams to listen on.  This can be either:
-    #   a list of individual streams (e.g. streams: [0,1,2,3])
+    # The streams to listen on when auto-config is disabled or when and threading 
+    # cpu-affinity is disabled.  This can be either:
+    #   an individual stream (e.g. streams: [0])
     # or
     #   a range of streams (e.g. streams: ["0-3"])
+    #
     streams: ["0-3"]
 
+    # When auto-config is enabled the streams will be created and assigned 
+    # automatically to the NUMA node where the thread resides.  If cpu-affinity 
+    # is enabled in the threading section.  Then the streams will be created 
+    # according to the number of worker threads specified in the worker cpu set.
+    # Otherwise, the streams array is used to define the streams.
+    #
+    # This option cannot be used simultaneous with "use-all-streams".
+    # 
+    auto-config: yes
+    
+    # Ports indicates which napatech ports are to be used in auto-config mode.
+    # these are the port ID's of the ports that will be merged prior to the 
+    # traffic being distributed to the streams.
+    #
+    # This can be specified in any of the following ways:
+    #
+    #   a list of individual ports (e.g. ports: [0,1,2,3])
+    #
+    #   a range of ports (e.g. ports: [0-3])
+    #
+    #   "all" to indicate that all ports are to be merged together 
+    #   (e.g. ports: [all])    
+    #
+    # This has no effect if auto-config is disabled.
+    #
+    ports: [all]    
+    
+    # When auto-config is enabled the hashmode specifies the algorithm for  
+    # determining to which stream a given packet is to be delivered.  
+    # This can be any valid Napatech NTPL hashmode command.  
+    #
+    # The most common hashmode commands are:  hash2tuple, hash2tuplesorted,
+    # hash5tuple, hash5tuplesorted and roundrobin.
+    #
+    # See Napatech NTPL documentation other hashmodes and details on their use.
+    # 
+    # This has no effect if auto-config is disabled.
+    #
+    hashmode: hash5tuplesorted
 # Tilera mpipe configuration. for use on Tilera TILE-Gx.
 mpipe:
 
