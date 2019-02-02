@@ -1,3 +1,13 @@
+4.1.2 -- 2018-12-21
+
+Feature #1863: smtp: improve pipelining support
+Feature #2748: bundle libhtp 0.5.29
+Feature #2749: bundle suricata-update 1.0.3
+Bug #2682: python-yaml Not Listed As Ubuntu Prerequisite
+Bug #2736: DNS Golden Transaction ID - detection bypass
+Bug #2745: Invalid detect-engine config could lead to segfault
+Bug #2752: smb: logs for IOCTL and DCERPC have tree_id value of 0
+
 4.1.1 -- 2018-12-17
 
 Feature #2637: af-packet: improve error output for BPF loading failure

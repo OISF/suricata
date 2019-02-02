@@ -164,7 +164,7 @@ example:
 
   tls.subject:"CN=*.googleusercontent.com"
 
-Case sensitve, can't use 'nocase'.
+Case sensitive, can't use 'nocase'.
 
 Legacy keyword. ``tls_cert_subject`` is the replacement.
 
@@ -180,7 +180,7 @@ example:
 
   tls.issuerdn:!"CN=Google-Internet-Authority"
 
-Case sensitve, can't use 'nocase'.
+Case sensitive, can't use 'nocase'.
 
 Legacy keyword. ``tls_cert_issuer`` is the replacement.
 

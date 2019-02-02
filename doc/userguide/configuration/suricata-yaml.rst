@@ -229,6 +229,53 @@ with the -l command line parameter, enter the following:
 
 .. _suricata_yaml_outputs:
 
+Stats
+~~~~~
+
+Engine statistics such as packet counters, memory use counters and others
+can be logged in several ways. A separate text log 'stats.log' and an EVE
+record type 'stats' are enabled by default.
+
+The stats have a global configuration and a per logger configuration. Here
+the global config is documented.
+
+::
+
+    # global stats configuration
+    stats:
+      enabled: yes
+      # The interval field (in seconds) controls at what interval
+      # the loggers are invoked.
+      interval: 8
+      # Add decode events as stats.
+      #decoder-events: true
+      # Decoder event prefix in stats. Has been 'decoder' before, but that leads
+      # to missing events in the eve.stats records. See issue #2225.
+      decoder-events-prefix: "decoder.event"
+      # Add stream events as stats.
+      #stream-events: false
+
+Statistics can be `enabled` or disabled here.
+
+Statistics are dumped on an `interval`. Setting this below 3 or 4 seconds is
+not useful due to how threads are synchronized internally.
+
+The decoder events that the decoding layer generates, can create a counter per
+event type. This behaviour is enabled by default. The `decoder-events` option
+can be set to `false` to disable.
+
+In 4.1.x there is a naming clash between the regular decoder counters and
+the decoder-event counters. This leads to a fair amount of decoder-event
+counters not being shown in the EVE.stats records. To address this without
+breaking existing setups, a config option `decoder-events-prefix` is added
+to change the naming of the decoder-events from decoder.<proto>.<event> to
+decoder.event.<proto>.<event>. In 5.0 which will become the default.
+See `issue 2225 <https://redmine.openinfosecfoundation.org/issues/2225>`_.
+
+Similar to the `decoder-events` option, the `stream-events` option controls
+whether the stream-events are added as counters as well. This is disabled by
+default.
+
 Outputs
 ~~~~~~~
 
@@ -548,10 +595,11 @@ want the output-data to be written to the log file.
                                   #(default-log-dir) it will result in /var/log/suricata/stats.log.
                                   #This directory can be overruled with a absolute path. (A
                                   #directory starting with / ).
-       interval: 8                #The default amount of time after which the file will be
-                                  #refreshed.
        append: yes/no             #If this option is set to yes, the last filled fast.log-file will not be
                                   #overwritten while restarting Suricata.
+
+The interval and several other options depend on the global stats
+section as described above.
 
 Syslog
 ~~~~~~

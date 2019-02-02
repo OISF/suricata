@@ -49,13 +49,8 @@
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
 
-#include "detect-engine-filedata.h"
-
-
 #include "detect-engine-payload.h"
 #include "detect-engine-event.h"
-#include "detect-engine-hcbd.h"
-#include "detect-engine-hsbd.h"
 
 #include "detect-filestore.h"
 #include "detect-flowvar.h"
@@ -1039,11 +1034,11 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
 
     if (pflow != NULL) {
         /* update inspected tracker for raw reassembly */
-        if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL) {
+        if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL &&
+            (p->flags & PKT_STREAM_EST))
+        {
             StreamReassembleRawUpdateProgress(pflow->protoctx, p,
                     det_ctx->raw_stream_progress);
-
-            DetectEngineCleanHCBDBuffers(det_ctx);
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);

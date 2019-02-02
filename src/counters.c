@@ -100,6 +100,7 @@ static char stats_enabled = TRUE;
 
 /**< add decoder events as stats? enabled by default */
 bool stats_decoder_events = true;
+const char *stats_decoder_events_prefix = "decoder";
 /**< add stream events as stats? disabled by default */
 bool stats_stream_events = false;
 
@@ -224,7 +225,7 @@ static ConfNode *GetConfig(void) {
 /**
  * \brief Initializes stats context
  */
-static void StatsInitCtx(void)
+static void StatsInitCtxPreOutput(void)
 {
     SCEnter();
 #ifdef AFLFUZZ_DISABLE_MGTTHREADS
@@ -252,6 +253,31 @@ static void StatsInitCtx(void)
         if (ret) {
             stats_stream_events = (b == 1);
         }
+
+        const char *prefix = NULL;
+        if (ConfGet("stats.decoder-events-prefix", &prefix) != 1) {
+            prefix = "decoder";
+            SCLogWarning(SC_WARN_DEFAULT_WILL_CHANGE, "in 5.0 the default "
+                    "for decoder event stats will go from "
+                    "'decoder.<proto>.<event>' to 'decoder.event.<proto>.<event>'. "
+                    "See ticket #2225. To suppress this message, "
+                    "set stats.decoder-events-prefix in the yaml.");
+        }
+        stats_decoder_events_prefix = prefix;
+    }
+    SCReturn;
+}
+
+static void StatsInitCtxPostOutput(void)
+{
+    SCEnter();
+    /* Store the engine start time */
+    time(&stats_start_time);
+
+    /* init the lock used by StatsThreadStore */
+    if (SCMutexInit(&stats_ctx->sts_lock, NULL) != 0) {
+        SCLogError(SC_ERR_INITIALIZATION, "error initializing sts mutex");
+        exit(EXIT_FAILURE);
     }
 
     if (!OutputStatsLoggersRegistered()) {
@@ -264,15 +290,6 @@ static void StatsInitCtx(void)
             stats_enabled = FALSE;
             SCReturn;
         }
-    }
-
-    /* Store the engine start time */
-    time(&stats_start_time);
-
-    /* init the lock used by StatsThreadStore */
-    if (SCMutexInit(&stats_ctx->sts_lock, NULL) != 0) {
-        SCLogError(SC_ERR_INITIALIZATION, "error initializing sts mutex");
-        exit(EXIT_FAILURE);
     }
 
     SCReturn;
@@ -849,10 +866,16 @@ void StatsInit(void)
     SCSetModule("counters");
 }
 
-void StatsSetupPostConfig(void)
+void StatsSetupPostConfigPreOutput(void)
 {
-    StatsInitCtx();
+    StatsInitCtxPreOutput();
 }
+
+void StatsSetupPostConfigPostOutput(void)
+{
+    StatsInitCtxPostOutput();
+}
+
 
 /**
  * \brief Spawns the wakeup, and the management thread used by the stats api

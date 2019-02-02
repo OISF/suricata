@@ -46,8 +46,6 @@
 #include "detect-engine-iponly.h"
 #include "detect-engine-tag.h"
 
-#include "detect-engine-uri.h"
-#include "detect-engine-hrhd.h"
 #include "detect-engine-file.h"
 
 #include "detect-engine.h"
@@ -2547,12 +2545,6 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 
     if (det_ctx->bj_values != NULL)
         SCFree(det_ctx->bj_values);
-
-    /* HSCB */
-    if (det_ctx->hcbd != NULL) {
-        SCLogDebug("det_ctx hcbd %u", det_ctx->hcbd_buffers_size);
-        SCFree(det_ctx->hcbd);
-    }
 
     /* Decoded base64 data. */
     if (det_ctx->base64_decoded != NULL) {

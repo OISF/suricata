@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,24 +15,16 @@
  * 02110-1301, USA.
  */
 
-/** \file
+/**
+ * \file
  *
- * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_HUA_H__
-#define __DETECT_ENGINE_HUA_H__
+#ifndef __DETECT_TRANSFORM_MD5_H__
+#define __DETECT_TRANSFORM_MD5_H__
 
-#include "app-layer-htp.h"
+/* prototypes */
+void DetectTransformMd5Register (void);
 
-int PrefilterTxUARegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-
-int DetectEngineInspectHttpUA(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
-
-void DetectEngineHttpUARegisterTests(void);
-
-#endif /* __DETECT_ENGINE_HUA_H__ */
+#endif /* __DETECT_TRANSFORM_MD5_H__ */

@@ -45,7 +45,6 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
-#include "detect-engine-uri.h"
 #include "detect-dns-query.h"
 #include "detect-tls-sni.h"
 #include "detect-tls-cert-fingerprint.h"
@@ -56,13 +55,11 @@
 #include "detect-tls-ja3-string.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
-#include "detect-engine-filedata.h"
 
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"
 #include "detect-http-ua.h"
 #include "detect-http-hh.h"
-#include "detect-http-hrh.h"
 
 #include "detect-nfs-procedure.h"
 #include "detect-nfs-version.h"
@@ -152,21 +149,9 @@
 #include "detect-http-uri.h"
 #include "detect-http-protocol.h"
 #include "detect-http-start.h"
-#include "detect-http-raw-uri.h"
 #include "detect-http-stat-msg.h"
 #include "detect-http-request-line.h"
 #include "detect-http-response-line.h"
-#include "detect-engine-hcbd.h"
-#include "detect-engine-hsbd.h"
-#include "detect-engine-hrhd.h"
-#include "detect-engine-hmd.h"
-#include "detect-engine-hcd.h"
-#include "detect-engine-hrud.h"
-#include "detect-engine-hsmd.h"
-#include "detect-engine-hscd.h"
-#include "detect-engine-hua.h"
-#include "detect-engine-hhhd.h"
-#include "detect-engine-hrhhd.h"
 #include "detect-byte-extract.h"
 #include "detect-file-data.h"
 #include "detect-pkt-data.h"
@@ -192,6 +177,8 @@
 
 #include "detect-transform-compress-whitespace.h"
 #include "detect-transform-strip-whitespace.h"
+#include "detect-transform-md5.h"
+#include "detect-transform-sha1.h"
 #include "detect-transform-sha256.h"
 
 #include "util-rule-vars.h"
@@ -245,7 +232,7 @@
 
 static void PrintFeatureList(const SigTableElmt *e, char sep)
 {
-    const uint8_t flags = e->flags;
+    const uint16_t flags = e->flags;
 
     int prev = 0;
     if (flags & SIGMATCH_NOOPT) {
@@ -262,6 +249,18 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         if (prev == 1)
             printf("%c", sep);
         printf("compatible with decoder event only rule");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_CONTENT_MODIFIER) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("content modifier");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_STICKY_BUFFER) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("sticky buffer");
         prev = 1;
     }
     if (e->Transform) {
@@ -290,6 +289,9 @@ static void SigMultilinePrint(int i, const char *prefix)
     PrintFeatureList(&sigmatch_table[i], ',');
     if (sigmatch_table[i].url) {
         printf("\n%sDocumentation: %s", prefix, sigmatch_table[i].url);
+    }
+    if (sigmatch_table[i].alternative) {
+        printf("\n%sReplaced by: %s", prefix, sigmatch_table[sigmatch_table[i].alternative].name);
     }
     printf("\n");
 }
@@ -403,7 +405,6 @@ void SigTableSetup(void)
     DetectHttpRawHeaderRegister();
     DetectHttpMethodRegister();
     DetectHttpCookieRegister();
-    DetectHttpRawUriRegister();
 
     DetectFilenameRegister();
     DetectFileextRegister();
@@ -416,7 +417,6 @@ void SigTableSetup(void)
 
     DetectHttpUARegister();
     DetectHttpHHRegister();
-    DetectHttpHRHRegister();
 
     DetectHttpStatMsgRegister();
     DetectHttpStatCodeRegister();
@@ -525,6 +525,8 @@ void SigTableSetup(void)
 
     DetectTransformCompressWhitespaceRegister();
     DetectTransformStripWhitespaceRegister();
+    DetectTransformMd5Register();
+    DetectTransformSha1Register();
     DetectTransformSha256Register();
 
     /* close keyword registration */

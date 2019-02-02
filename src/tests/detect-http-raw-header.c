@@ -31,195 +31,63 @@
  *
  */
 
-#include "suricata-common.h"
-#include "suricata.h"
-#include "decode.h"
+#include "../suricata-common.h"
+#include "../suricata.h"
+#include "../decode.h"
 
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-hrhd.h"
-#include "detect-engine-mpm.h"
-#include "detect-parse.h"
-#include "detect-engine-state.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-engine-prefilter.h"
+#include "../detect.h"
+#include "../detect-engine.h"
+#include "../detect-isdataat.h"
+#include "../detect-pcre.h"
 
-#include "flow-util.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "flow.h"
+#include "../stream-tcp.h"
+#include "../app-layer.h"
+#include "../app-layer-htp.h"
+#include "../app-layer-protos.h"
+#include "../app-layer-parser.h"
 
-#include "stream-tcp.h"
-
-#include "app-layer-parser.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "app-layer.h"
-#include "app-layer-htp.h"
-#include "app-layer-protos.h"
-
-#include "util-validate.h"
-
-/** \brief HTTP Raw Header Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxRequestHeadersRaw(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
-{
-    SCEnter();
-
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud == NULL || tx_ud->request_headers_raw == NULL)
-        return;
-
-    const uint32_t buffer_len = tx_ud->request_headers_raw_len;
-    const uint8_t *buffer = tx_ud->request_headers_raw;
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
-    }
-}
-
-int PrefilterTxRequestHeadersRawRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxRequestHeadersRaw,
-        ALPROTO_HTTP, HTP_REQUEST_HEADERS+1, /* inspect when headers complete */
-        mpm_ctx, NULL, "http_raw_header (request)");
-    if (r != 0)
-        return r;
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxRequestHeadersRaw,
-        ALPROTO_HTTP, HTP_REQUEST_TRAILER+1, /* inspect when trailer complete */
-        mpm_ctx, NULL, "http_raw_header (request)");
-}
-
-/** \brief HTTP Raw Header Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxResponseHeadersRaw(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
-{
-    SCEnter();
-
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud == NULL || tx_ud->response_headers_raw == NULL)
-        return;
-
-    const uint32_t buffer_len = tx_ud->response_headers_raw_len;
-    const uint8_t *buffer = tx_ud->response_headers_raw;
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
-    }
-}
-
-int PrefilterTxResponseHeadersRawRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxResponseHeadersRaw,
-        ALPROTO_HTTP, HTP_RESPONSE_HEADERS+1, /* inspect when headers complete */
-        mpm_ctx, NULL, "http_raw_header (response)");
-    if (r != 0)
-        return r;
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxResponseHeadersRaw,
-        ALPROTO_HTTP, HTP_RESPONSE_TRAILER+1, /* inspect when trailer complete */
-        mpm_ctx, NULL, "http_raw_header (response)");
-}
-
-/**
- * \brief Do the http_raw_header content inspection for a signature.
- *
- * \param de_ctx  Detection engine context.
- * \param det_ctx Detection engine thread context.
- * \param s       Signature to inspect.
- * \param f       Flow.
- * \param flags   App layer flags.
- * \param state   App layer state.
- *
- * \retval 0 No match.
- * \retval 1 Match.
- */
-int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    HtpTxUserData *tx_ud = NULL;
-    uint8_t *headers_raw = NULL;
-    uint32_t headers_raw_len = 0;
-
-    if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_REQUEST_HEADERS)
-            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_RESPONSE_HEADERS)
-            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    }
-
-    tx_ud = htp_tx_get_user_data(txv);
-    if (tx_ud == NULL)
-        goto end;
-    if (flags & STREAM_TOSERVER) {
-        headers_raw = tx_ud->request_headers_raw;
-        headers_raw_len = tx_ud->request_headers_raw_len;
-    } else {
-        headers_raw = tx_ud->response_headers_raw;
-        headers_raw_len = tx_ud->response_headers_raw_len;
-    }
-    if (headers_raw == NULL)
-        goto end;
-
-    det_ctx->buffer_offset = 0;
-    det_ctx->discontinue_matching = 0;
-    det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-                                          f,
-                                          headers_raw,
-                                          headers_raw_len,
-                                          0, DETECT_CI_FLAGS_SINGLE,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-    if (r == 1)
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-
- end:
-    if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_REQUEST_HEADERS)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_RESPONSE_HEADERS)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
+#include "../util-unittest.h"
+#include "../util-unittest-helper.h"
+#include "../util-validate.h"
 
 /***********************************Unittests**********************************/
 
 #ifdef UNITTESTS
+
+/**
+ * \test Test parser accepting valid rules and rejecting invalid rules
+ */
+static int DetectHttpRawHeaderParserTest01(void)
+{
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; http_raw_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; nocase; http_raw_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; endswith; http_raw_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; startswith; http_raw_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; startswith; endswith; http_raw_header; sid:1;)", true));
+
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; rawbytes; http_raw_header; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_server; http_raw_header; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_server; content:\"abc\"; http_raw_header; sid:1;)", false));
+    PASS;
+}
+
+/**
+ * \test Test parser accepting valid rules and rejecting invalid rules
+ */
+static int DetectHttpRawHeaderParserTest02(void)
+{
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; nocase; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; endswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; startswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; startswith; endswith; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; bsize:10; sid:1;)", true));
+
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; rawbytes; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_server; http.header.raw; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_server; http.header.raw; content:\"abc\"; sid:1;)", false));
+    PASS;
+}
 
 /**
  *\test Test that the http_header content matches against a http request
@@ -305,10 +173,6 @@ static int DetectEngineHttpRawHeaderTest01(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -403,10 +267,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -499,10 +359,6 @@ static int DetectEngineHttpRawHeaderTest03(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -597,10 +453,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -693,10 +545,6 @@ static int DetectEngineHttpRawHeaderTest05(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -791,10 +639,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -887,10 +731,6 @@ static int DetectEngineHttpRawHeaderTest07(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -985,10 +825,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1081,10 +917,6 @@ static int DetectEngineHttpRawHeaderTest09(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1179,10 +1011,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1275,10 +1103,6 @@ static int DetectEngineHttpRawHeaderTest11(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1373,10 +1197,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1469,10 +1289,6 @@ static int DetectEngineHttpRawHeaderTest13(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1567,10 +1383,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1663,10 +1475,6 @@ static int DetectEngineHttpRawHeaderTest15(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1761,10 +1569,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1858,10 +1662,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -1873,12 +1673,8 @@ end:
 static int DetectEngineHttpRawHeaderTest20(void)
 {
     TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
     ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
     Flow f;
     uint8_t http1_buf[] =
         "GET /index.html HTTP/1.0\r\n"
@@ -1888,15 +1684,17 @@ static int DetectEngineHttpRawHeaderTest20(void)
         "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p1);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p2);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -1915,85 +1713,49 @@ static int DetectEngineHttpRawHeaderTest20(void)
 
     StreamTcpInitConfig(TRUE);
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; flow:to_server; "
-                               "pcre:/body1/D; "
-                               "content:!\"dummy\"; http_raw_header; within:7; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                               "(flow:to_server; pcre:/body1/D; "
+                                "content:!\"dummy\"; http_raw_header; within:7; "
+                                "sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF_NULL(det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                                 STREAM_TOSERVER, http1_buf, http1_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF_NOT(r == 0);
 
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        result = 0;
-        goto end;
-    }
+    HtpState *http_state = f.alstate;
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched but shouldn't have\n");
-        goto end;
-    }
-
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http2_buf, http2_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF_NOT(r == 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!PacketAlertCheck(p2, 1)) {
-        printf("sid 1 didn't match but shouldn't have");
-        goto end;
-    }
+    FAIL_IF(!PacketAlertCheck(p2, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+
+    PASS;
 }
 
 static int DetectEngineHttpRawHeaderTest21(void)
@@ -2108,10 +1870,6 @@ static int DetectEngineHttpRawHeaderTest21(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -2235,10 +1993,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -2360,10 +2114,6 @@ static int DetectEngineHttpRawHeaderTest23(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -2487,10 +2237,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -2613,10 +2359,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -2736,10 +2478,6 @@ static int DetectEngineHttpRawHeaderTest26(void)
     result = 1;
 
 end:
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -2862,10 +2600,6 @@ static int DetectEngineHttpRawHeaderTest27(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -2993,10 +2727,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -3122,10 +2852,6 @@ static int DetectEngineHttpRawHeaderTest29(void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -3261,10 +2987,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
@@ -3393,9 +3115,382 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+/**
+ * \test Test that a signature containting a http_header is correctly parsed
+ *       and the keyword is registered.
+ */
+static int DetectHttpRawHeaderTest01(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    SigMatch *sm = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing http_header\"; flow:to_server; "
+                               "content:\"one\"; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 1;
+    } else {
+        printf("Error parsing signature: ");
+        goto end;
+    }
+
+    sm = de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id];
+    if (sm != NULL) {
+        result &= (sm->type == DETECT_CONTENT);
+        result &= (sm->next == NULL);
+    } else {
+        result = 0;
+        printf("Error updating content pattern to http_header pattern: ");
+    }
+
+
+ end:
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Test that a signature containing an valid http_header entry is
+ *       parsed.
+ */
+static int DetectHttpRawHeaderTest02(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing http_header\"; flow:to_server; "
+                               "content:\"one\"; http_raw_header:; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        result = 1;
+    else
+        printf("Error parsing signature: ");
+
+ end:
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Test that an invalid signature containing no content but a http_header
+ *       is invalidated.
+ */
+static int DetectHttpRawHeaderTest03(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing http_header\"; flow:to_server; "
+                               "http_raw_header; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        result = 1;
+    else
+        printf("Error parsing signature: ");
+
+ end:
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Test that an invalid signature containing a rawbytes along with a
+ *       http_header is invalidated.
+ */
+static int DetectHttpRawHeaderTest04(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing http_header\"; flow:to_server; "
+                               "content:\"one\"; rawbytes; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        result = 1;
+    else
+        printf("Error parsing signature: ");
+
+ end:
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Test that an invalid signature containing a rawbytes along with a
+ *       http_header is invalidated.
+ */
+static int DetectHttpRawHeaderTest05(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing http_header\"; flow:to_server; "
+                               "content:\"one\"; nocase; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        result = 1;
+    else
+        printf("Error parsing signature: ");
+
+ end:
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ *\test Test that the http_header content matches against a http request
+ *      which holds the content.
+ */
+static int DetectHttpRawHeaderTest06(void)
+{
+    TcpSession ssn;
+    Packet *p = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 26\r\n"
+        "\r\n"
+        "This is dummy message body\r\n";
+    uint32_t http_len = sizeof(http_buf) - 1;
+    int result = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http header test\"; flow:to_server; "
+                               "content:\"Content-Type: text/html\"; http_raw_header; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, http_buf, http_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/**
+ *\test Test that the http_header content matches against a http request
+ *      which holds the content.
+ */
+static int DetectHttpRawHeaderTest07(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "User-Agent: Mozi";
+    uint8_t http2_buf[] =
+        "lla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\nContent-Type: text/html\r\n"
+        "Content-Length: 67\r\n"
+        "\r\n"
+        "This is dummy message body1";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http header test\"; flow:to_server; "
+                               "content:\"Mozilla\"; http_raw_header; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if ( (PacketAlertCheck(p1, 1))) {
+        printf("sid 1 matched but shouldn't have: ");
+        goto end;
+    }
+
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -3406,12 +3501,1025 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
-void DetectEngineHttpRawHeaderRegisterTests(void)
+/**
+ *\test Test that the http_header content matches against a http request
+ *      which holds the content.
+ */
+static int DetectHttpRawHeaderTest08(void)
 {
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n";
+    uint8_t http2_buf[] =
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 67\r\n"
+        "\r\n";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
-#ifdef UNITTESTS
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http header test\"; flow:to_server; "
+                               "content:\"Gecko/20091221 Firefox/3.5.7\"; http_raw_header; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if ((PacketAlertCheck(p1, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+/**
+ *\test Test that the http_header content matches against a http request
+ *      which holds the content, against a cross boundary present pattern.
+ */
+static int DetectHttpRawHeaderTest09(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n";
+    uint8_t http2_buf[] =
+        "Content-Type: text/html\r\n"
+        "Content-Length: 67\r\n"
+        "\r\n"
+        "This is dummy body\r\n";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http header test\"; flow:to_server; "
+                               "content:\"Firefox/3.5.7|0D 0A|Content\"; http_raw_header; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if ((PacketAlertCheck(p1, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+/**
+ *\test Test that the http_header content matches against a http request
+ *      against a case insensitive pattern.
+ */
+static int DetectHttpRawHeaderTest10(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n";
+    uint8_t http2_buf[] =
+        "Content-Type: text/html\r\n"
+        "Content-Length: 67\r\n"
+        "\r\n"
+        "This is dummy body";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http header test\"; flow:to_server; "
+                               "content:\"firefox/3.5.7|0D 0A|content\"; nocase; http_raw_header;"
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if ((PacketAlertCheck(p1, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+/**
+ *\test Test that the negated http_header content matches against a
+ *      http request which doesn't hold the content.
+ */
+static int DetectHttpRawHeaderTest11(void)
+{
+    TcpSession ssn;
+    Packet *p = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 26\r\n"
+        "\r\n"
+        "This is dummy message body\r\n";
+    uint32_t http_len = sizeof(http_buf) - 1;
+    int result = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http header test\"; flow:to_server; "
+                               "content:!\"lalalalala\"; http_raw_header; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, http_buf, http_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/**
+ *\test Negative test that the negated http_header content matches against a
+ *      http request which holds hold the content.
+ */
+static int DetectHttpRawHeaderTest12(void)
+{
+    TcpSession ssn;
+    Packet *p = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 26\r\n"
+        "\r\n"
+        "This is dummy message body\r\n";
+    uint32_t http_len = sizeof(http_buf) - 1;
+    int result = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http header test\"; flow:to_server; "
+                               "content:!\"User-Agent: Mozilla/5.0 \"; http_raw_header; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, http_buf, http_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if ((PacketAlertCheck(p, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/**
+ *\test Test that the http_header content matches against a http request
+ *      which holds the content.
+ */
+static int DetectHttpRawHeaderTest13(void)
+{
+    TcpSession ssn;
+    Packet *p = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 100\r\n"
+        "\r\n"
+        "longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\r\n";
+    uint32_t http_len = sizeof(http_buf) - 1;
+    int result = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http header test\"; flow:to_server; "
+                               "content:\"Host: www.openinfosecfoundation.org\"; http_raw_header; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, http_buf, http_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+static int DetectHttpRawHeaderTest20(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                               "(flow:to_server; content:\"one\"; http_raw_header; "
+                               "content:\"two\"; distance:0; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *hrhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev->ctx;
+    DetectContentData *hrhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->ctx;
+    if (hrhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(hrhd1->content, "one", hrhd1->content_len) != 0 ||
+        hrhd2->flags != DETECT_CONTENT_DISTANCE ||
+        memcmp(hrhd2->content, "two", hrhd1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpRawHeaderTest21(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                               "(flow:to_server; content:\"one\"; http_raw_header; "
+                               "content:\"two\"; within:5; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *hrhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev->ctx;
+    DetectContentData *hrhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->ctx;
+    if (hrhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(hrhd1->content, "one", hrhd1->content_len) != 0 ||
+        hrhd2->flags != DETECT_CONTENT_WITHIN ||
+        memcmp(hrhd2->content, "two", hrhd1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpRawHeaderTest22(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                               "(flow:to_server; content:\"one\"; within:5; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpRawHeaderTest23(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                               "(flow:to_server; content:\"one\"; http_raw_header; within:5; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpRawHeaderTest24(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                               "(flow:to_server; content:\"one\"; within:5; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpRawHeaderTest25(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                               "(flow:to_server; pcre:/one/D; "
+                               "content:\"two\"; within:5; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id] == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id] == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->type != DETECT_CONTENT ||
+        de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev->type != DETECT_PCRE) {
+
+        goto end;
+    }
+
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev->ctx;
+    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->ctx;
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
+        hhd2->flags != DETECT_CONTENT_WITHIN ||
+        memcmp(hhd2->content, "two", hhd2->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpRawHeaderTest26(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                               "(flow:to_server; content:\"two\"; http_raw_header; "
+                               "pcre:/one/DR; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id] == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id] == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->type != DETECT_PCRE ||
+        de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev->type != DETECT_CONTENT) {
+
+        goto end;
+    }
+
+    DetectContentData *hhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev->ctx;
+    DetectPcreData *pd2 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->ctx;
+    if (pd2->flags != (DETECT_PCRE_RELATIVE) ||
+        hhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(hhd1->content, "two", hhd1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpRawHeaderTest27(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                               "(flow:to_server; pcre:/one/D; "
+                               "content:\"two\"; distance:5; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_raw_header_buffer_id] == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id] == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->type != DETECT_CONTENT ||
+        de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev->type != DETECT_PCRE) {
+
+        goto end;
+    }
+
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->prev->ctx;
+    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_raw_header_buffer_id]->ctx;
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
+        hhd2->flags != DETECT_CONTENT_DISTANCE ||
+        memcmp(hhd2->content, "two", hhd2->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int DetectHttpRawHeaderIsdataatParseTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any ("
+            "flow:to_server; "
+            "content:\"one\"; http_raw_header; "
+            "isdataat:!4,relative; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigMatch *sm = s->init_data->smlists_tail[g_http_raw_header_buffer_id];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
+
+    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+void DetectHttpRawHeaderRegisterTests(void)
+{
+    UtRegisterTest("DetectHttpRawHeaderParserTest01",
+                   DetectHttpRawHeaderParserTest01);
+    UtRegisterTest("DetectHttpRawHeaderParserTest02",
+                   DetectHttpRawHeaderParserTest02);
+
     UtRegisterTest("DetectEngineHttpRawHeaderTest01",
                    DetectEngineHttpRawHeaderTest01);
     UtRegisterTest("DetectEngineHttpRawHeaderTest02",
@@ -3474,10 +4582,38 @@ void DetectEngineHttpRawHeaderRegisterTests(void)
                    DetectEngineHttpRawHeaderTest31);
     UtRegisterTest("DetectEngineHttpRawHeaderTest32",
                    DetectEngineHttpRawHeaderTest32);
-#endif /* UNITTESTS */
+
+    UtRegisterTest("DetectHttpRawHeaderTest01", DetectHttpRawHeaderTest01);
+    UtRegisterTest("DetectHttpRawHeaderTest02", DetectHttpRawHeaderTest02);
+    UtRegisterTest("DetectHttpRawHeaderTest03", DetectHttpRawHeaderTest03);
+    UtRegisterTest("DetectHttpRawHeaderTest04", DetectHttpRawHeaderTest04);
+    UtRegisterTest("DetectHttpRawHeaderTest05", DetectHttpRawHeaderTest05);
+    UtRegisterTest("DetectHttpRawHeaderTest06", DetectHttpRawHeaderTest06);
+    UtRegisterTest("DetectHttpRawHeaderTest07", DetectHttpRawHeaderTest07);
+    UtRegisterTest("DetectHttpRawHeaderTest08", DetectHttpRawHeaderTest08);
+    UtRegisterTest("DetectHttpRawHeaderTest09", DetectHttpRawHeaderTest09);
+    UtRegisterTest("DetectHttpRawHeaderTest10", DetectHttpRawHeaderTest10);
+    UtRegisterTest("DetectHttpRawHeaderTest11", DetectHttpRawHeaderTest11);
+    UtRegisterTest("DetectHttpRawHeaderTest12", DetectHttpRawHeaderTest12);
+    UtRegisterTest("DetectHttpRawHeaderTest13", DetectHttpRawHeaderTest13);
+    UtRegisterTest("DetectHttpRawHeaderTest20", DetectHttpRawHeaderTest20);
+    UtRegisterTest("DetectHttpRawHeaderTest21", DetectHttpRawHeaderTest21);
+    UtRegisterTest("DetectHttpRawHeaderTest22", DetectHttpRawHeaderTest22);
+    UtRegisterTest("DetectHttpRawHeaderTest23", DetectHttpRawHeaderTest23);
+    UtRegisterTest("DetectHttpRawHeaderTest24", DetectHttpRawHeaderTest24);
+    UtRegisterTest("DetectHttpRawHeaderTest25", DetectHttpRawHeaderTest25);
+    UtRegisterTest("DetectHttpRawHeaderTest26", DetectHttpRawHeaderTest26);
+    UtRegisterTest("DetectHttpRawHeaderTest27", DetectHttpRawHeaderTest27);
+
+    UtRegisterTest("DetectHttpRawHeaderIsdataatParseTest",
+            DetectHttpRawHeaderIsdataatParseTest);
+
 
     return;
 }
+
+#endif /* UNITTESTS */
+
 /**
  * @}
  */

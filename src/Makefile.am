@@ -4,7 +4,7 @@ noinst_HEADERS = action-globals.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
 	source-windivert-prototypes.h \
 	suricata-common.h threadvars.h tree.h \
-    util-binsearch.h util-validate.h
+    util-validate.h
 bin_PROGRAMS = suricata
 
 suricata_SOURCES = \
@@ -125,23 +125,10 @@ detect-engine-build.c detect-engine-build.h \
 detect-engine-content-inspection.c detect-engine-content-inspection.h \
 detect-engine-dcepayload.c detect-engine-dcepayload.h \
 detect-engine-dns.c detect-engine-dns.h \
-detect-engine-tls.c detect-engine-tls.h \
 detect-engine-modbus.c detect-engine-modbus.h \
 detect-engine-enip.c detect-engine-enip.h \
 detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
-detect-engine-filedata.c detect-engine-filedata.h \
-detect-engine-hcbd.c detect-engine-hcbd.h \
-detect-engine-hcd.c detect-engine-hcd.h \
-detect-engine-hhhd.c detect-engine-hhhd.h \
-detect-engine-hmd.c detect-engine-hmd.h \
-detect-engine-hrhd.c detect-engine-hrhd.h \
-detect-engine-hrhhd.c detect-engine-hrhhd.h \
-detect-engine-hrud.c detect-engine-hrud.h \
-detect-engine-hsbd.c detect-engine-hsbd.h \
-detect-engine-hscd.c detect-engine-hscd.h \
-detect-engine-hsmd.c detect-engine-hsmd.h \
-detect-engine-hua.c detect-engine-hua.h \
 detect-engine-iponly.c detect-engine-iponly.h \
 detect-engine-loader.c detect-engine-loader.h \
 detect-engine-mpm.c detect-engine-mpm.h \
@@ -157,7 +144,6 @@ detect-engine-sigorder.c detect-engine-sigorder.h \
 detect-engine-state.c detect-engine-state.h \
 detect-engine-tag.c detect-engine-tag.h \
 detect-engine-threshold.c detect-engine-threshold.h \
-detect-engine-uri.c detect-engine-uri.h \
 detect-fast-pattern.c detect-fast-pattern.h \
 detect-file-data.c detect-file-data.h \
 detect-file-hash-common.c detect-file-hash-common.h \
@@ -193,11 +179,9 @@ detect-http-headers.c detect-http-headers.h detect-http-headers-stub.h \
 detect-http-header-common.c detect-http-header-common.h \
 detect-http-header-names.c detect-http-header-names.h \
 detect-http-hh.c detect-http-hh.h \
-detect-http-hrh.c detect-http-hrh.h \
 detect-http-method.c detect-http-method.h \
 detect-http-protocol.c detect-http-protocol.h \
 detect-http-raw-header.c detect-http-raw-header.h \
-detect-http-raw-uri.c detect-http-raw-uri.h \
 detect-http-referer.c detect-http-referer.h \
 detect-http-request-line.c detect-http-request-line.h \
 detect-http-response-line.c detect-http-response-line.h \
@@ -267,6 +251,8 @@ detect-tls-version.c detect-tls-version.h \
 detect-tos.c detect-tos.h \
 detect-transform-compress-whitespace.c detect-transform-compress-whitespace.h \
 detect-transform-strip-whitespace.c detect-transform-strip-whitespace.h \
+detect-transform-md5.c detect-transform-md5.h \
+detect-transform-sha1.c detect-transform-sha1.h \
 detect-transform-sha256.c detect-transform-sha256.h \
 detect-ttl.c detect-ttl.h \
 detect-uricontent.c detect-uricontent.h \
@@ -435,6 +421,7 @@ util-fmemopen.c util-fmemopen.h \
 util-hash.c util-hash.h \
 util-hashlist.c util-hashlist.h \
 util-hash-lookup3.c util-hash-lookup3.h \
+util-hash-string.c util-hash-string.h \
 util-host-os-info.c util-host-os-info.h \
 util-host-info.c util-host-info.h \
 util-hyperscan.c util-hyperscan.h \

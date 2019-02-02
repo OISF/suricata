@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,15 +15,12 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Anoop Saldanha <anoopsaldanha@gmail.com>
- */
+#ifndef __UTIL_HASH_STRING_H__
+#define __UTIL_HASH_STRING_H__
 
-#ifndef __DETECT_HTTP_HRH_H__
-#define __DETECT_HTTP_HRH_H__
+uint32_t StringHashFunc(HashTable *ht, void *data, uint16_t datalen);
+char StringHashCompareFunc(void *data1, uint16_t datalen1,
+                           void *data2, uint16_t datalen2);
+void StringHashFreeFunc(void *data);
 
-void DetectHttpHRHRegister(void);
-
-#endif /* __DETECT_HTTP_HRH_H__ */
+#endif /* __UTIL_HASH_STRING_H__ */

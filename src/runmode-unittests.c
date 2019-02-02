@@ -36,22 +36,9 @@
 #include "detect-engine-sigorder.h"
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
-#include "detect-engine-uri.h"
-#include "detect-engine-hcbd.h"
-#include "detect-engine-hsbd.h"
-#include "detect-engine-hrhd.h"
-#include "detect-engine-hmd.h"
-#include "detect-engine-hcd.h"
-#include "detect-engine-hrud.h"
-#include "detect-engine-hsmd.h"
-#include "detect-engine-hscd.h"
-#include "detect-engine-hua.h"
-#include "detect-engine-hhhd.h"
-#include "detect-engine-hrhhd.h"
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-modbus.h"
-#include "detect-engine-filedata.h"
 #include "detect-fast-pattern.h"
 #include "flow.h"
 #include "flow-timeout.h"
@@ -195,26 +182,13 @@ static void RegisterUnittests(void)
     SCRConfRegisterTests();
     PayloadRegisterTests();
     DcePayloadRegisterTests();
-    UriRegisterTests();
 #ifdef PROFILING
     SCProfilingRegisterTests();
 #endif
     DeStateRegisterTests();
     MemcmpRegisterTests();
-    DetectEngineHttpClientBodyRegisterTests();
-    DetectEngineHttpServerBodyRegisterTests();
-    DetectEngineHttpRawHeaderRegisterTests();
-    DetectEngineHttpMethodRegisterTests();
-    DetectEngineHttpCookieRegisterTests();
-    DetectEngineHttpRawUriRegisterTests();
-    DetectEngineHttpStatMsgRegisterTests();
-    DetectEngineHttpStatCodeRegisterTests();
-    DetectEngineHttpUARegisterTests();
-    DetectEngineHttpHHRegisterTests();
-    DetectEngineHttpHRHRegisterTests();
     DetectEngineInspectModbusRegisterTests();
     DetectEngineRegisterTests();
-    DetectEngineSMTPFiledataRegisterTests();
     SCLogRegisterTests();
     MagicRegisterTests();
     UtilMiscRegisterTests();

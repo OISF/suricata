@@ -94,6 +94,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *, const void *, void **);
 void ReceivePcapThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
 TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
+TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data);
 
 TmEcode DecodePcapThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
@@ -113,7 +114,7 @@ void TmModuleReceivePcapRegister (void)
     tmm_modules[TMM_RECEIVEPCAP].ThreadInit = ReceivePcapThreadInit;
     tmm_modules[TMM_RECEIVEPCAP].Func = NULL;
     tmm_modules[TMM_RECEIVEPCAP].PktAcqLoop = ReceivePcapLoop;
-    tmm_modules[TMM_RECEIVEPCAP].PktAcqBreakLoop = NULL;
+    tmm_modules[TMM_RECEIVEPCAP].PktAcqBreakLoop = ReceivePcapBreakLoop;
     tmm_modules[TMM_RECEIVEPCAP].ThreadExitPrintStats = ReceivePcapThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAP].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEPCAP].RegisterTests = NULL;
@@ -295,6 +296,20 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 
     PcapDumpCounters(ptv);
     StatsSyncCountersIfSignalled(tv);
+    SCReturnInt(TM_ECODE_OK);
+}
+
+/**
+ * \brief PCAP Break Loop function.
+ */
+TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data)
+{
+    SCEnter();
+    PcapThreadVars *ptv = (PcapThreadVars *)data;
+    if (ptv->pcap_handle == NULL) {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    pcap_breakloop(ptv->pcap_handle);
     SCReturnInt(TM_ECODE_OK);
 }
 

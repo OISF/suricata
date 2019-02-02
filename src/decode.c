@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -63,11 +63,12 @@
 #include "util-profiling.h"
 #include "pkt-var.h"
 #include "util-mpm-ac.h"
-
+#include "util-hash-string.h"
 #include "output.h"
 #include "output-flow.h"
 
 extern bool stats_decoder_events;
+const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
 
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
@@ -125,7 +126,7 @@ void PacketUpdateEngineEventCounters(ThreadVars *tv,
 
         if (e <= DECODE_EVENT_PACKET_MAX && !stats_decoder_events)
             continue;
-        if (e > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
+        else if (e > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
             continue;
         StatsIncr(tv, dtv->counter_engine_events[e]);
     }
@@ -413,6 +414,20 @@ void PacketBypassCallback(Packet *p)
     }
 }
 
+/* counter name store */
+static HashTable *g_counter_table = NULL;
+static SCMutex g_counter_table_mutex = SCMUTEX_INITIALIZER;
+
+void DecodeUnregisterCounters(void)
+{
+    SCMutexLock(&g_counter_table_mutex);
+    if (g_counter_table) {
+        HashTableFree(g_counter_table);
+        g_counter_table = NULL;
+    }
+    SCMutexUnlock(&g_counter_table_mutex);
+}
+
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 {
     /* register counters */
@@ -470,11 +485,41 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 
         if (i <= DECODE_EVENT_PACKET_MAX && !stats_decoder_events)
             continue;
-        if (i > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
+        else if (i > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
             continue;
 
-        dtv->counter_engine_events[i] = StatsRegisterCounter(
-                DEvents[i].event_name, tv);
+        if (i < DECODE_EVENT_PACKET_MAX &&
+                strncmp(DEvents[i].event_name, "decoder.", 8) == 0)
+        {
+            SCMutexLock(&g_counter_table_mutex);
+            if (g_counter_table == NULL) {
+                g_counter_table = HashTableInit(256, StringHashFunc,
+                        StringHashCompareFunc,
+                        StringHashFreeFunc);
+                BUG_ON(g_counter_table == NULL);
+            }
+
+            char name[256];
+            char *dot = index(DEvents[i].event_name, '.');
+            BUG_ON(!dot);
+            snprintf(name, sizeof(name), "%s.%s",
+                    stats_decoder_events_prefix, dot+1);
+
+            const char *found = HashTableLookup(g_counter_table, name, 0);
+            if (!found) {
+                char *add = SCStrdup(name);
+                BUG_ON(!add);
+                HashTableAdd(g_counter_table, add, 0);
+                found = add;
+            }
+            dtv->counter_engine_events[i] = StatsRegisterCounter(
+                    found, tv);
+
+            SCMutexUnlock(&g_counter_table_mutex);
+        } else {
+            dtv->counter_engine_events[i] = StatsRegisterCounter(
+                    DEvents[i].event_name, tv);
+        }
     }
 
     return;

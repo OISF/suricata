@@ -2289,8 +2289,9 @@ void PreRunPostPrivsDropInit(const int runmode)
     if (runmode == RUNMODE_UNIX_SOCKET)
         return;
 
+    StatsSetupPostConfigPreOutput();
     RunModeInitializeOutputs();
-    StatsSetupPostConfig();
+    StatsSetupPostConfigPostOutput();
 }
 
 /* clean up / shutdown code for both the main modes and for
@@ -2327,6 +2328,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     /* mgt and ppt threads killed, we can run non thread-safe
      * shutdown functions */
     StatsReleaseResources();
+    DecodeUnregisterCounters();
     RunModeShutDown();
     FlowShutdown();
     IPPairShutdown();

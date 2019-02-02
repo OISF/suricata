@@ -50,20 +50,7 @@
 #include "detect-content.h"
 
 #include "detect-engine-payload.h"
-#include "detect-engine-uri.h"
-#include "detect-engine-hrud.h"
-#include "detect-engine-hmd.h"
-#include "detect-engine-hrhd.h"
-#include "detect-engine-hcd.h"
-#include "detect-engine-hua.h"
-#include "detect-engine-hhhd.h"
-#include "detect-engine-hrhhd.h"
-#include "detect-engine-hsmd.h"
-#include "detect-engine-hscd.h"
-#include "detect-engine-hcbd.h"
-#include "detect-engine-hsbd.h"
 #include "detect-engine-dns.h"
-#include "detect-engine-tls.h"
 
 #include "stream.h"
 
