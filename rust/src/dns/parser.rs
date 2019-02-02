@@ -189,7 +189,7 @@ fn dns_parse_answer<'a>(
                 many_m_n!(
                     1,
                     n,
-                    apply!(dns_parse_rdata, message, rrtype)
+                    complete!(apply!(dns_parse_rdata, message, rrtype))
                 )
                 >> (rdata)
         )?;
