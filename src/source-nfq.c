@@ -129,6 +129,8 @@ typedef struct NFQThreadVars_
     ThreadVars *tv;
     TmSlot *slot;
 
+    LiveDevice *livedev;
+
     char *data; /** Per function and thread data */
     int datalen; /** Length of per function and thread data */
 
@@ -561,6 +563,8 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         q->pkts++;
         q->bytes += GET_PKT_LEN(p);
 #endif /* COUNTERS */
+        (void) SC_ATOMIC_ADD(ntv->livedev->pkts, 1);
+
         /* NFQSetupPkt is issuing a verdict
            so we only recycle Packet and leave */
         TmqhOutputPacketpool(tv, p);
@@ -574,6 +578,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     q->pkts++;
     q->bytes += GET_PKT_LEN(p);
 #endif /* COUNTERS */
+    (void) SC_ATOMIC_ADD(ntv->livedev->pkts, 1);
 
     if (ntv->slot) {
         if (TmThreadsSlotProcessPkt(tv, ntv->slot, p) != TM_ECODE_OK) {
@@ -839,7 +844,7 @@ int NFQRegisterQueue(const uint16_t number)
 {
     NFQThreadVars *ntv = NULL;
     NFQQueueVars *nq = NULL;
-    char queue[6] = { 0 };
+    char queue[8] = { 0 };
     static bool many_queues_warned = false;
     uint16_t num_cpus = UtilCpuGetNumProcessorsOnline();
 
@@ -871,8 +876,15 @@ int NFQRegisterQueue(const uint16_t number)
     nq->queue_num = number;
     receive_queue_num++;
     SCMutexUnlock(&nfq_init_lock);
-    snprintf(queue, sizeof(queue) - 1, "%hu", number);
-    LiveRegisterDeviceName(queue);
+    snprintf(queue, sizeof(queue) - 1, "Q#%hu", number);
+    LiveRegisterDevice(queue);
+
+    ntv->livedev = LiveGetDevice(queue);
+
+    if (ntv->livedev == NULL) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        return -1;
+    }
 
     SCLogDebug("Queue %d registered.", number);
     return 0;

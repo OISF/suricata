@@ -481,7 +481,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
             exit(EXIT_FAILURE);
         }
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname), "%s-Q%s", thread_name_autofp, cur_queue);
+        snprintf(tname, sizeof(tname), "%s-%s", thread_name_autofp, cur_queue);
 
         ThreadVars *tv_receive =
             TmThreadCreatePacketHandler(tname,
