@@ -169,7 +169,7 @@ def gen_headers(filename):
     if not should_regen(filename, output_filename):
         return
 
-    buf = open(filename).read()
+    buf = open(filename, "rb").read().decode("utf-8")
     writer = StringIO()
 
     for fn in re.findall(
