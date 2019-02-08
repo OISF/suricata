@@ -27,14 +27,6 @@ use nfs::types::*;
 use nfs::rpc_records::*;
 use nfs::nfs3_records::*;
 
-/// nom bug leads to this wrappers being necessary
-/// TODO for some reason putting these in parser.rs and making them public
-/// leads to a compile error wrt an unknown lifetime identifier 'a
-//named!(many0_nfs3_request_objects<Vec<Nfs3RequestObject<'a>>>, many0!(parse_nfs3_request_object));
-//named!(many0_nfs3_reply_objects<Vec<Nfs3ReplyObject<'a>>>, many0!(parse_nfs3_reply_object));
-named!(many0_nfs3_response_readdirplus_entries<Vec<Nfs3ResponseReaddirplusEntry<'a>>>,
-        many0!(parse_nfs3_response_readdirplus_entry_cond));
-
 impl NFSState {
     /// complete NFS3 request record
     pub fn process_request_record_v3<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {

@@ -38,7 +38,7 @@ fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq>
         IResult::Done(_, b) => {
             match b.content.as_slice() {
                 Ok(b) => { b },
-                _ => { return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR))); },
+                _ => { return IResult::Error(error_position!(blob,ErrorKind::Custom(SECBLOB_KRB_FMT_ERR))); },
             }
         },
         IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },

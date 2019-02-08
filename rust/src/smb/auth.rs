@@ -33,7 +33,7 @@ fn parse_secblob_get_spnego(blob: &[u8]) -> IResult<&[u8], &[u8]>
     };
     SCLogDebug!("parse_secblob_get_spnego: base_o {:?}", base_o);
     let d = match base_o.content.as_slice() {
-        Err(_) => { return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_NOT_SPNEGO))); },
+        Err(_) => { return IResult::Error(error_position!(blob,ErrorKind::Custom(SECBLOB_NOT_SPNEGO))); },
         Ok(d) => d,
     };
     let (next, o) = match der_parser::parse_der_oid(d) {
@@ -46,7 +46,7 @@ fn parse_secblob_get_spnego(blob: &[u8]) -> IResult<&[u8], &[u8]>
     let oid = match o.content.as_oid() {
         Ok(oid) => oid,
         Err(_) => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_NOT_SPNEGO)));
+            return IResult::Error(error_position!(blob,ErrorKind::Custom(SECBLOB_NOT_SPNEGO)));
         },
     };
     SCLogDebug!("oid {}", oid.to_string());
@@ -56,7 +56,7 @@ fn parse_secblob_get_spnego(blob: &[u8]) -> IResult<&[u8], &[u8]>
             SCLogDebug!("SPNEGO {}", oid);
         },
         _ => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_NOT_SPNEGO)));
+            return IResult::Error(error_position!(blob,ErrorKind::Custom(SECBLOB_NOT_SPNEGO)));
         },
     }
 
@@ -81,7 +81,7 @@ fn parse_secblob_spnego_start(blob: &[u8]) -> IResult<&[u8], &[u8]>
             d
         },
         _ => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_NOT_SPNEGO)));
+            return IResult::Error(error_position!(blob,ErrorKind::Custom(SECBLOB_NOT_SPNEGO)));
         },
     };
     IResult::Done(rem, d)
