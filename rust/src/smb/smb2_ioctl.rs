@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-use nom::IResult;
 use log::*;
 use smb::smb::*;
 use smb::smb2::*;
@@ -61,7 +60,7 @@ pub fn smb2_ioctl_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_request_ioctl(r.data) {
-        IResult::Done(_, rd) => {
+        Ok((_, rd)) => {
             SCLogDebug!("IOCTL request data: {:?}", rd);
             let is_dcerpc = rd.is_pipe && match state.get_service_for_guid(&rd.guid) {
                 (_, x) => x,
@@ -88,7 +87,7 @@ pub fn smb2_ioctl_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_response_ioctl(r.data) {
-        IResult::Done(_, rd) => {
+        Ok((_, rd)) => {
             SCLogDebug!("IOCTL response data: {:?}", rd);
 
             let is_dcerpc = rd.is_pipe && match state.get_service_for_guid(&rd.guid) {

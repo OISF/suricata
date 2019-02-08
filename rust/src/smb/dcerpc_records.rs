@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use nom;
 use nom::{rest, le_u8, be_u16, le_u16, le_u32, IResult, ErrorKind, Endianness};
 
 #[derive(Debug,PartialEq)]
@@ -28,7 +29,7 @@ pub fn parse_dcerpc_response_record(i:&[u8], frag_len: u16 )
     -> IResult<&[u8], DceRpcResponseRecord>
 {
     if frag_len < 24 {
-        return IResult::Error(error_position!(i,ErrorKind::Custom(128)));
+        return Err(nom::Err::Error(error_position!(i,ErrorKind::Custom(128))));
     }
     do_parse!(i,
                 take!(8)
@@ -51,7 +52,7 @@ pub fn parse_dcerpc_request_record(i:&[u8], frag_len: u16, little: bool)
     -> IResult<&[u8], DceRpcRequestRecord>
 {
     if frag_len < 24 {
-        return IResult::Error(error_position!(i,ErrorKind::Custom(128)));
+        return Err(nom::Err::Error(error_position!(i,ErrorKind::Custom(128))));
     }
     do_parse!(i,
                 take!(6)

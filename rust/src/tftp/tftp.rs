@@ -132,7 +132,7 @@ pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
                                   len: libc::uint32_t) -> i64 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
     return match tftp_request(buf) {
-        nom::IResult::Done(_, rqst) => {
+        Ok((_, rqst)) => {
             state.transactions.push(rqst);
             1
         },

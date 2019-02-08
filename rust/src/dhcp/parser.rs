@@ -196,14 +196,14 @@ named!(pub parse_all_options<Vec<DHCPOption>>, many0!(call!(parse_option)));
 
 pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
     match parse_header(input) {
-        IResult::Done(rem, header) => {
+        Ok((rem, header)) => {
             let mut options = Vec::new();
             let mut next = rem;
             let mut malformed_options = false;
             let mut truncated_options = false;
             loop {
                 match parse_option(next) {
-                    IResult::Done(rem, option) => {
+                    Ok((rem, option)) => {
                         let done = option.code == DHCP_OPT_END;
                         options.push(option);
                         next = rem;
@@ -211,12 +211,8 @@ pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
                             break;
                         }
                     }
-                    IResult::Incomplete(_) => {
+                    Err(_) => {
                         truncated_options = true;
-                        break;
-                    }
-                    IResult::Error(_) => {
-                        malformed_options = true;
                         break;
                     }
                 }
@@ -227,13 +223,10 @@ pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
                 malformed_options: malformed_options,
                 truncated_options: truncated_options,
             };
-            return IResult::Done(next, message);
+            return Ok((next, message));
         }
-        IResult::Error(err) => {
-            return IResult::Error(err);
-        }
-        IResult::Incomplete(incomplete) => {
-            return IResult::Incomplete(incomplete);
+        Err(err) => {
+            return Err(err);
         }
     }
 }
@@ -249,7 +242,7 @@ mod tests {
         let payload = &pcap[24 + 16 + 42..];
 
         match dhcp_parse(payload) {
-            IResult::Done(_rem, message) => {
+            Ok((_rem, message)) => {
                 let header = message.header;
                 assert_eq!(header.opcode, BOOTP_REQUEST);
                 assert_eq!(header.htype, 1);

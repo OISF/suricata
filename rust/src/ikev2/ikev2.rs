@@ -29,7 +29,7 @@ use std::ffi::{CStr,CString};
 
 use log::*;
 
-use nom::IResult;
+use nom;
 
 #[repr(u32)]
 pub enum IKEV2Event {
@@ -128,7 +128,7 @@ impl IKEV2State {
     /// Returns The number of messages parsed, or -1 on error
     fn parse(&mut self, i: &[u8], direction: u8) -> i32 {
         match parse_ikev2_header(i) {
-            IResult::Done(rem,ref hdr) => {
+            Ok((rem,ref hdr)) => {
                 if rem.len() == 0 && hdr.length == 28 {
                     return 1;
                 }
@@ -150,7 +150,7 @@ impl IKEV2State {
                 tx.xid = hdr.init_spi;
                 tx.hdr = (*hdr).clone();
                 match parse_ikev2_payload_list(rem,hdr.next_payload) {
-                    IResult::Done(_,Ok(ref p)) => {
+                    Ok((_,Ok(ref p))) => {
                         for payload in p {
                             tx.payload_types.push(payload.hdr.next_payload_type);
                             match payload.content {
@@ -194,12 +194,12 @@ impl IKEV2State {
                 self.transactions.push(tx);
                 1
             },
-            IResult::Incomplete(_) => {
+            Err(nom::Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing IKEV2 data");
                 self.set_event(IKEV2Event::MalformedData);
                 -1
             },
-            IResult::Error(_) => {
+            Err(_) => {
                 SCLogDebug!("Error while parsing IKEV2 data");
                 self.set_event(IKEV2Event::MalformedData);
                 -1
@@ -617,7 +617,7 @@ pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow, input:*const libc:
     let slice = build_slice!(input,input_len as usize);
     let alproto = unsafe{ ALPROTO_IKEV2 };
     match parse_ikev2_header(slice) {
-        IResult::Done(_, ref hdr) => {
+        Ok((_, ref hdr)) => {
             if hdr.maj_ver != 2 || hdr.min_ver != 0 {
                 SCLogDebug!("ipsec_probe: could be ipsec, but with unsupported/invalid version {}.{}",
                         hdr.maj_ver, hdr.min_ver);
@@ -634,10 +634,10 @@ pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow, input:*const libc:
             }
             return alproto;
         },
-        IResult::Incomplete(_) => {
+        Err(nom::Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;
         },
-        IResult::Error(_) => {
+        Err(_) => {
             return unsafe{ALPROTO_FAILED};
         },
     }
