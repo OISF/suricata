@@ -17,7 +17,7 @@
 
 //! Nom parsers for RPC & NFSv3
 
-use nom::{be_u32, be_u64, rest};
+use nom::{IResult, be_u32, be_u64, rest};
 use nfs::nfs_records::*;
 
 #[derive(Debug,PartialEq)]
@@ -345,6 +345,10 @@ named!(pub parse_nfs3_response_readdirplus<Nfs3ResponseReaddirplus>,
                 data:data,
         } ))
 );
+
+pub(crate) fn many0_nfs3_response_readdirplus_entries<'a>(input: &'a [u8]) -> IResult<&'a[u8], Vec<Nfs3ResponseReaddirplusEntry<'a>>> {
+    many0!(input, complete!(parse_nfs3_response_readdirplus_entry_cond))
+}
 
 #[derive(Debug,PartialEq)]
 pub struct Nfs3RequestReaddirplus<'a> {
