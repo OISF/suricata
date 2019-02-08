@@ -672,7 +672,7 @@ named!(nfs4_res_readdir_ok<Nfs4ResponseReaddir>,
     do_parse!(
             _verifier: be_u64
         // run parser until we find a 'value follows == 0'
-        >>  listing: many_till!(call!(nfs4_res_readdir_entry), peek!(tag!(b"\x00\x00\x00\x00")))
+        >>  listing: many_till!(complete!(call!(nfs4_res_readdir_entry)), peek!(tag!(b"\x00\x00\x00\x00")))
         // value follows == 0 checked by line above
         >>  _value_follows: be_u32
         >>  eof: be_u32
