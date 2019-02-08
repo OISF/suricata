@@ -32,6 +32,11 @@ argsd = {
             "required": 1,
         },
         {
+            "name": "continuous",
+            "val": True,
+            "required": 1,
+        },
+        {
             "name": "tenant",
             "type": int,
             "required": 0,
@@ -55,7 +60,8 @@ argsd = {
     ],
     "unregister-tenant-handler": [
         {
-            "name": "tenantid",
+            "name": "id",
+            "type": int,
             "required": 1,
         },
         {
@@ -70,7 +76,8 @@ argsd = {
     ],
     "register-tenant-handler": [
         {
-            "name": "tenantid",
+            "name": "id",
+            "type": int,
             "required": 1,
         },
         {
