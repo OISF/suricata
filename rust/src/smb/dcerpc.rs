@@ -18,7 +18,6 @@
 // written by Victor Julien
 extern crate libc;
 
-use nom::IResult;
 use log::*;
 
 use smb::smb::*;
@@ -259,7 +258,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
 
     SCLogDebug!("called for {} bytes of data", data.len());
     match parse_dcerpc_record(data) {
-        IResult::Done(_, dcer) => {
+        Ok((_, dcer)) => {
             SCLogDebug!("DCERPC: version {}.{} write data {} => {:?}",
                     dcer.version_major, dcer.version_minor, dcer.data.len(), dcer);
 
@@ -268,7 +267,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
             if dcer.packet_type == DCERPC_TYPE_REQUEST && dcer.first_frag == false {
                 SCLogDebug!("NOT the first frag. Need to find an existing TX");
                 match parse_dcerpc_request_record(dcer.data, dcer.frag_len, dcer.little_endian) {
-                    IResult::Done(_, recr) => {
+                    Ok((_, recr)) => {
                         let found = match state.get_dcerpc_tx(&hdr, &vercmd, dcer.call_id) {
                             Some(tx) => {
                                 SCLogDebug!("previous CMD {} found at tx {} => {:?}",
@@ -305,7 +304,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
             match dcer.packet_type {
                 DCERPC_TYPE_REQUEST => {
                     match parse_dcerpc_request_record(dcer.data, dcer.frag_len, dcer.little_endian) {
-                        IResult::Done(_, recr) => {
+                        Ok((_, recr)) => {
                             SCLogDebug!("DCERPC: REQUEST {:?}", recr);
                             if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                                 SCLogDebug!("first frag size {}", recr.data.len());
@@ -333,7 +332,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                         parse_dcerpc_bind_record_big(dcer.data)
                     };
                     match brec {
-                        IResult::Done(_, bindr) => {
+                        Ok((_, bindr)) => {
                             SCLogDebug!("SMB DCERPC {:?} BIND {:?}", dcer, bindr);
 
                             if bindr.ifaces.len() > 0 {
@@ -387,7 +386,7 @@ fn smb_dcerpc_response_bindack(
         ntstatus: u32)
 {
     match parse_dcerpc_bindack_record(dcer.data) {
-        IResult::Done(_, bindackr) => {
+        Ok((_, bindackr)) => {
             SCLogDebug!("SMB READ BINDACK {:?}", bindackr);
 
             let found = match state.get_dcerpc_tx(&hdr, &vercmd, dcer.call_id) {
@@ -461,7 +460,7 @@ fn dcerpc_response_handle<'b>(tx: &mut SMBTransaction,
     match dcer.packet_type {
         DCERPC_TYPE_RESPONSE => {
             match parse_dcerpc_response_record(dcer.data, dcer.frag_len) {
-                IResult::Done(_, respr) => {
+                Ok((_, respr)) => {
                     SCLogDebug!("SMBv1 READ RESPONSE {:?}", respr);
                     if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                         SCLogDebug!("CMD 11 found at tx {}", tx.id);
@@ -533,7 +532,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
 
     } else {
         match parse_dcerpc_record(&data) {
-            IResult::Done(_, dcer) => {
+            Ok((_, dcer)) => {
                 SCLogDebug!("DCERPC: version {}.{} read data {} => {:?}",
                         dcer.version_major, dcer.version_minor, dcer.data.len(), dcer);
 
@@ -581,17 +580,14 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
 /// Try to find out if the input data looks like DCERPC
 pub fn smb_dcerpc_probe<'b>(data: &[u8]) -> bool
 {
-    match parse_dcerpc_record(data) {
-        IResult::Done(_, recr) => {
-            SCLogDebug!("SMB: could be DCERPC {:?}", recr);
-            if recr.version_major == 5 && recr.version_minor < 3 &&
-               recr.frag_len > 0 && recr.packet_type <= 20
+    if let Ok((_, recr)) = parse_dcerpc_record(data) {
+        SCLogDebug!("SMB: could be DCERPC {:?}", recr);
+        if recr.version_major == 5 && recr.version_minor < 3 &&
+            recr.frag_len > 0 && recr.packet_type <= 20
             {
                 SCLogDebug!("SMB: looks like we have dcerpc");
                 return true;
             }
-        },
-        _ => { },
     }
     return false;
 }

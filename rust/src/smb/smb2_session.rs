@@ -15,8 +15,6 @@
  * 02110-1301, USA.
  */
 
-use nom::{IResult};
-
 use log::*;
 
 use smb::smb2_records::*;
@@ -28,7 +26,7 @@ pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
 {
     SCLogDebug!("SMB2_COMMAND_SESSION_SETUP: r.data.len() {}", r.data.len());
     match parse_smb2_request_session_setup(r.data) {
-        IResult::Done(_, setup) => {
+        Ok((_, setup)) => {
             let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
             let tx = state.new_sessionsetup_tx(hdr);
             tx.vercmd.set_smb2_cmd(r.command);
