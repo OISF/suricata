@@ -18,7 +18,7 @@
 extern crate libc;
 extern crate nom;
 
-use nom::{digit};
+use nom::digit;
 use std::str;
 use std;
 use std::str::FromStr;
@@ -61,14 +61,14 @@ named!(pub ftp_pasv_response<u16>,
 pub extern "C" fn rs_ftp_pasv_response(input: *const libc::uint8_t, len: libc::uint32_t) -> u16 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
     match ftp_pasv_response(buf) {
-        nom::IResult::Done(_, dport) => {
+        Ok((_, dport)) => {
             return dport;
         }
-        nom::IResult::Incomplete(_) => {
+        Err(nom::Err::Incomplete(_)) => {
             let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("pasv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
-        nom::IResult::Error(_) => {
+        Err(_) => {
             let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("pasv error on '{:?}'", String::from_utf8_lossy(buf));
         },
@@ -93,14 +93,14 @@ named!(pub ftp_epsv_response<u16>,
 pub extern "C" fn rs_ftp_epsv_response(input: *const libc::uint8_t, len: libc::uint32_t) -> u16 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
     match ftp_epsv_response(buf) {
-        nom::IResult::Done(_, dport) => {
+        Ok((_, dport)) => {
             return dport;
         },
-        nom::IResult::Incomplete(_) => {
+        Err(nom::Err::Incomplete(_)) => {
             let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
-        nom::IResult::Error(_) => {
+        Err(_) => {
             let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },

@@ -18,7 +18,6 @@
 // written by Victor Julien
 
 use nom;
-use nom::IResult;
 use log::*;
 
 use nfs::nfs::*;
@@ -37,7 +36,7 @@ impl NFSState {
 
         if r.procedure == NFSPROC3_LOOKUP {
             match parse_nfs2_request_lookup(r.prog_data) {
-                IResult::Done(_, ar) => {
+                Ok((_, ar)) => {
                     xidmap.file_handle = ar.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
                 },
@@ -47,7 +46,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_READ {
             match parse_nfs2_request_read(r.prog_data) {
-                IResult::Done(_, read_record) => {
+                Ok((_, read_record)) => {
                     xidmap.chunk_offset = read_record.offset as u64;
                     xidmap.file_handle = read_record.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
@@ -99,7 +98,7 @@ impl NFSState {
 
         if xidmap.procedure == NFSPROC3_READ {
             match parse_nfs2_reply_read(r.prog_data) {
-                IResult::Done(_, ref reply) => {
+                Ok((_, ref reply)) => {
                     SCLogDebug!("NFSv2: READ reply record");
                     self.process_read_record(r, reply, Some(&xidmap));
                     nfs_status = reply.status;
@@ -110,7 +109,7 @@ impl NFSState {
             }
         } else {
             let stat = match nom::be_u32(&r.prog_data) {
-                nom::IResult::Done(_, stat) => {
+                Ok((_, stat)) => {
                     stat as u32
                 }
                 _ => 0 as u32

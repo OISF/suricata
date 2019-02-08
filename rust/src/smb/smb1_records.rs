@@ -300,19 +300,11 @@ pub fn parse_smb_trans_request_record_data(i: &[u8],
 pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
     -> IResult<&'a[u8], SmbRecordTransRequest<'a>>
 {
-    let (rem, (params, pipe)) = match parse_smb_trans_request_record_params(i) {
-        IResult::Done(rem, (rd, p)) => (rem, (rd, p)),
-        IResult::Incomplete(ii) => { return IResult::Incomplete(ii); }
-        IResult::Error(e) => { return IResult::Error(e); }
-    };
+    let (rem, (params, pipe)) = parse_smb_trans_request_record_params(i)?;
     let mut offset = 32 + (i.len() - rem.len()); // init with SMB header
     SCLogDebug!("params {:?}: offset {}", params, offset);
 
-    let (rem2, n) = match smb1_get_string(rem, r, offset) {
-        IResult::Done(rem, rd) => (rem, rd),
-        IResult::Incomplete(ii) => { return IResult::Incomplete(ii); }
-        IResult::Error(e) => { return IResult::Error(e); }
-    };
+    let (rem2, n) = smb1_get_string(rem, r, offset)?;
     offset += rem.len() - rem2.len();
     SCLogDebug!("n {:?}: offset {}", n, offset);
 
@@ -340,9 +332,8 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
 
         let d = match parse_smb_trans_request_record_data(rem2,
                 pad1, params.param_cnt, pad2, params.data_cnt) {
-            IResult::Done(_, rd) => rd,
-            IResult::Incomplete(ii) => { return IResult::Incomplete(ii); }
-            IResult::Error(e) => { return IResult::Error(e); }
+            Ok((_, rd)) => rd,
+            Err(e) => { return Err(e); }
         };
         SCLogDebug!("d {:?}", d);
         d
@@ -353,7 +344,7 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
     let res = SmbRecordTransRequest {
         params: params, pipe: pipe, txname: n, data: recdata,
     };
-    IResult::Done(&rem, res)
+    Ok((&rem, res))
 }
 
 
