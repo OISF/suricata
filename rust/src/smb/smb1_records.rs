@@ -160,7 +160,7 @@ named!(pub parse_smb1_negotiate_protocol_record<Smb1NegotiateProtocolRecord>,
            _wtc: le_u8
         >> _bcc: le_u16
         // dialects is a list of [1 byte buffer format][string][0 terminator]
-        >> dialects: many1!(take_until_and_consume!("\0"))
+        >> dialects: many1!(complete!(take_until_and_consume!("\0")))
         >> (Smb1NegotiateProtocolRecord {
                 dialects
             }))
