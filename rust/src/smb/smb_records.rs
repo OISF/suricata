@@ -41,7 +41,7 @@ pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>>
         name.push(c[0]);
         c = &c[2..];
     }
-    IResult::Error(error_code!(ErrorKind::Custom(130)))
+    IResult::Error(error_position!(blob,ErrorKind::Custom(130)))
 }
 
 /// parse an ASCII string that is null terminated

@@ -28,7 +28,7 @@ pub fn parse_dcerpc_response_record(i:&[u8], frag_len: u16 )
     -> IResult<&[u8], DceRpcResponseRecord>
 {
     if frag_len < 24 {
-        return IResult::Error(error_code!(ErrorKind::Custom(128)));
+        return IResult::Error(error_position!(i,ErrorKind::Custom(128)));
     }
     do_parse!(i,
                 take!(8)
@@ -51,7 +51,7 @@ pub fn parse_dcerpc_request_record(i:&[u8], frag_len: u16, little: bool)
     -> IResult<&[u8], DceRpcRequestRecord>
 {
     if frag_len < 24 {
-        return IResult::Error(error_code!(ErrorKind::Custom(128)));
+        return IResult::Error(error_position!(i,ErrorKind::Custom(128)));
     }
     do_parse!(i,
                 take!(6)
