@@ -179,7 +179,7 @@ fn dns_parse_answer<'a>(slice: &'a [u8], message: &'a [u8], count: usize)
                 let result: IResult<&'a [u8], Vec<Vec<u8>>> =
                     closure!(&'a [u8], do_parse!(
                         rdata: many_m_n!(1, n,
-                                         apply!(dns_parse_rdata, message, rrtype))
+                                         complete!(apply!(dns_parse_rdata, message, rrtype)))
                             >> (rdata)
                     ))(data);
                 match result {

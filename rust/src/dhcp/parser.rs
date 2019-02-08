@@ -192,7 +192,7 @@ named!(pub parse_option<DHCPOption>,
 
 /// Parse and return all the options. Upon the end of option indicator
 /// all the data will be consumed.
-named!(pub parse_all_options<Vec<DHCPOption>>, many0!(call!(parse_option)));
+named!(pub parse_all_options<Vec<DHCPOption>>, many0!(complete!(call!(parse_option))));
 
 pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
     match parse_header(input) {
