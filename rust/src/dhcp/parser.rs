@@ -120,10 +120,10 @@ named!(pub parse_header<DHCPHeader>,
 
 named!(pub parse_clientid_option<DHCPOption>,
        do_parse!(
-           code: be_u8 >>
-           len: be_u8 >>
-           htype: be_u8 >>
-           data: take!(len - 1) >>    
+           code:   be_u8 >>
+           len:    be_u8 >>
+           _htype: be_u8 >>
+           data:   take!(len - 1) >>    
                (
                    DHCPOption{
                        code: code,
@@ -139,8 +139,8 @@ named!(pub parse_clientid_option<DHCPOption>,
 
 named!(pub parse_address_time_option<DHCPOption>,
        do_parse!(
-           code: be_u8 >>
-           len: be_u8 >>
+           code:    be_u8 >>
+           _len:    be_u8 >>
            seconds: be_u32 >>
                (
                    DHCPOption{
