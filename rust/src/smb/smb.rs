@@ -1371,7 +1371,7 @@ impl SMBState {
             match search_smb_record(cur_i) {
                 Ok((_, pg)) => {
                     SCLogDebug!("smb record found");
-                    let smb2_offset = cur_i.len() - pg.data.len();
+                    let smb2_offset = cur_i.len() - pg.len();
                     if smb2_offset < 4 {
                         return 0;
                     }
@@ -1597,7 +1597,7 @@ impl SMBState {
             match search_smb_record(cur_i) {
                 Ok((_, pg)) => {
                     SCLogDebug!("smb record found");
-                    let smb2_offset = cur_i.len() - pg.data.len();
+                    let smb2_offset = cur_i.len() - pg.len();
                     if smb2_offset < 4 {
                         return 0;
                     }

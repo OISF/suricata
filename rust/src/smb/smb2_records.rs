@@ -15,7 +15,8 @@
  * 02110-1301, USA.
  */
 
-use nom::{rest, le_u8, le_u16, le_u32, le_u64, AsBytes, IResult};
+use nom;
+use nom::{rest, le_u8, le_u16, le_u32, le_u64, IResult};
 use smb::smb::*;
 
 #[derive(Debug,PartialEq)]
@@ -521,18 +522,15 @@ named!(pub parse_smb2_response_record<Smb2Record>,
            })
 ));
 
-#[derive(Debug,PartialEq)]
-pub struct SmbRecordPostGap<'a> {
-    pub data: &'a[u8],
+pub fn search_smb_record<'a>(i: &'a [u8]) -> nom::IResult<&'a [u8], &'a [u8]> {
+    let mut d = i;
+    while d.len() >= 4 {
+        if &d[1..4] == b"SMB" &&
+            (d[0] == 0xfe || d[0] == 0xff || d[0] == 0xfd)
+        {
+            return Ok((&d[4..], d));
+        }
+        d = &d[1..];
+    }
+    Err(nom::Err::Incomplete(nom::Needed::Size(4 as usize - d.len())))
 }
-
-named!(pub search_smb_record<SmbRecordPostGap>,
-    do_parse!(
-           alt!(take_until!([0xfe, 0x53, 0x4d, 0x42].as_bytes())|    // SMB2
-                take_until!([0xff, 0x53, 0x4d, 0x42].as_bytes())|    // SMB1
-                take_until!([0xfd, 0x53, 0x4d, 0x42].as_bytes()))    // SMB3 transform hdr
-        >> data : rest
-        >> ( SmbRecordPostGap {
-                data:data,
-           })
-));
