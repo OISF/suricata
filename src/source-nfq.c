@@ -844,7 +844,7 @@ int NFQRegisterQueue(const uint16_t number)
 {
     NFQThreadVars *ntv = NULL;
     NFQQueueVars *nq = NULL;
-    char queue[8] = { 0 };
+    char queue[10] = { 0 };
     static bool many_queues_warned = false;
     uint16_t num_cpus = UtilCpuGetNumProcessorsOnline();
 
@@ -876,7 +876,7 @@ int NFQRegisterQueue(const uint16_t number)
     nq->queue_num = number;
     receive_queue_num++;
     SCMutexUnlock(&nfq_init_lock);
-    snprintf(queue, sizeof(queue) - 1, "%hu", number);
+    snprintf(queue, sizeof(queue) - 1, "NFQ#%hu", number);
     LiveRegisterDevice(queue);
 
     ntv->livedev = LiveGetDevice(queue);
