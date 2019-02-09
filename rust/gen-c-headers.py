@@ -92,6 +92,8 @@ type_map = {
     "IKEV2Transaction": "IKEV2Transaction",
     "KRB5State": "KRB5State",
     "KRB5Transaction": "KRB5Transaction",
+    "SIPState": "SIPState",
+    "SIPTransaction": "SIPTransaction",
     "JsonT": "json_t",
     "DetectEngineState": "DetectEngineState",
     "core::DetectEngineState": "DetectEngineState",

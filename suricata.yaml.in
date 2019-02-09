@@ -1012,6 +1012,9 @@ app-layer:
     dhcp:
       enabled: yes
 
+    sip:
+      enabled: yes
+
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
 
