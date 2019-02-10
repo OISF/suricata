@@ -259,7 +259,7 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
  * \param path the path of the eBPF file to load
  * \param section the section in the eBPF file to load
  * \param val a pointer to an integer that will be the file desc
- * \return -1 in case of error and 0 in case of success
+ * \return -1 in case of error, 0 in case of success, 1 if pinned maps is loaded
  */
 int EBPFLoadFile(const char *iface, const char *path, const char * section,
                  int *val, struct ebpf_timeout_config *config)
@@ -276,10 +276,10 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     if (livedev == NULL)
         return -1;
 
-    if (config->flags & EBPF_XDP_CODE) {
+    if (config->flags & EBPF_XDP_CODE && config->flags & EBPF_PINNED_MAPS) {
         /* We try to get our flow table maps and if we have them we can simply return */
         if (EBPFLoadPinnedMaps(livedev, config) == 0) {
-            return 0;
+            return 1;
         }
     }
 
