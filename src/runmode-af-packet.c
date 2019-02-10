@@ -383,7 +383,8 @@ static void *ParseAFPConfig(const char *iface)
     }
 
 #ifdef HAVE_PACKET_EBPF
-    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "pinned-maps", (int *)&boolval) != 1) {
+    boolval = false;
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "pinned-maps", (int *)&boolval) == 1) {
         if (boolval) {
             SCLogConfig("Using pinned maps on iface %s",
                         aconf->iface);
@@ -510,35 +511,40 @@ static void *ParseAFPConfig(const char *iface)
         int ret = EBPFLoadFile(aconf->iface, aconf->xdp_filter_file, "xdp",
                                &aconf->xdp_filter_fd,
                                &aconf->ebpf_t_config);
-        if (ret != 0) {
-            SCLogWarning(SC_ERR_INVALID_VALUE,
-                         "Error when loading XDP filter file");
-        } else {
-            ret = EBPFSetupXDP(aconf->iface, aconf->xdp_filter_fd, aconf->xdp_mode);
-            if (ret != 0) {
+        switch (ret) {
+            case 1:
+                SCLogInfo("Loaded pinned maps from sysfs");
+                break;
+            case -1:
                 SCLogWarning(SC_ERR_INVALID_VALUE,
-                             "Error when setting up XDP");
-            } else {
-                /* Try to get the xdp-cpu-redirect key */
-                const char *cpuset;
-                if (ConfGetChildValueWithDefault(if_root, if_default,
-                                                 "xdp-cpu-redirect", &cpuset) == 1) {
-                    SCLogConfig("Setting up CPU map XDP");
-                    ConfNode *node = ConfGetChildWithDefault(if_root, if_default, "xdp-cpu-redirect");
-                    if (node == NULL) {
-                        SCLogError(SC_ERR_INVALID_VALUE, "Should not be there");
-                    } else {
-                        EBPFBuildCPUSet(node, aconf->iface);
-                    }
+                             "Error when loading XDP filter file");
+                break;
+            case 0:
+                ret = EBPFSetupXDP(aconf->iface, aconf->xdp_filter_fd, aconf->xdp_mode);
+                if (ret != 0) {
+                    SCLogWarning(SC_ERR_INVALID_VALUE,
+                            "Error when setting up XDP");
                 } else {
+                    /* Try to get the xdp-cpu-redirect key */
+                    const char *cpuset;
+                    if (ConfGetChildValueWithDefault(if_root, if_default,
+                                "xdp-cpu-redirect", &cpuset) == 1) {
+                        SCLogConfig("Setting up CPU map XDP");
+                        ConfNode *node = ConfGetChildWithDefault(if_root, if_default, "xdp-cpu-redirect");
+                        if (node == NULL) {
+                            SCLogError(SC_ERR_INVALID_VALUE, "Should not be there");
+                        } else {
+                            EBPFBuildCPUSet(node, aconf->iface);
+                        }
+                    } else {
                         /* It will just set CPU count to 0 */
                         EBPFBuildCPUSet(NULL, aconf->iface);
+                    }
                 }
-            }
-            /* we have a peer and we use bypass so we can set up XDP iface redirect */
-            if (aconf->out_iface) {
-                EBPFSetPeerIface(aconf->iface, aconf->out_iface);
-            }
+                /* we have a peer and we use bypass so we can set up XDP iface redirect */
+                if (aconf->out_iface) {
+                    EBPFSetPeerIface(aconf->iface, aconf->out_iface);
+                }
         }
 #else
         SCLogError(SC_ERR_UNIMPLEMENTED, "XDP support is not built-in");
