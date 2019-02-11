@@ -85,22 +85,26 @@
         exit 1
     fi
 
+    python_version="not set"
+    python_path="not set"
+
     AC_ARG_ENABLE(python,
-           AS_HELP_STRING([--enable-python], [Enable python]),[enable_python=$enableval],[enable_python=yes])
-    AC_PATH_PROGS(HAVE_PYTHON, python python2 python2.7, "no")
-    if test "x$enable_python" = "xno" ; then
-        echo
-        echo "   Warning! python disabled, you will not be      "
-        echo "   able to install suricatasc unix socket client   "
-        echo
+           AS_HELP_STRING([--enable-python], [Enable python]),
+	   [enable_python=$enableval],[enable_python=yes])
+    if test "x$enable_python" != "xyes"; then
         enable_python="no"
-    fi
-    if test "$HAVE_PYTHON" = "no"; then
-        echo
-        echo "   Warning! python not found, you will not be     "
-        echo "   able to install suricatasc unix socket client   "
-        echo
-        enable_python="no"
+    else
+        AC_PATH_PROGS(HAVE_PYTHON, python3 python2.7 python2 python, "no")
+        if test "$HAVE_PYTHON" = "no"; then
+            echo
+            echo "   Warning! python not found, you will not be     "
+            echo "   able to install suricatasc unix socket client   "
+            echo
+            enable_python="no"
+	else
+	    python_path="$HAVE_PYTHON"
+	    python_version="$($HAVE_PYTHON --version)"
+        fi
     fi
     AM_CONDITIONAL([HAVE_PYTHON], [test "x$enable_python" = "xyes"])
 
@@ -2539,6 +2543,9 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Rust compiler:                           ${rust_compiler_version}
   Rust cargo:                              ${rust_cargo_version}
 
+  Python support:                          ${enable_python}
+  Python path:                             ${python_path}
+  Python version:                          ${python_version}
   Install suricatasc:                      ${enable_python}
   Install suricata-update:                 ${install_suricata_update}
 
