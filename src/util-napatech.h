@@ -51,20 +51,28 @@ typedef struct NapatechCurrentStats_ {
 extern void NapatechStartStats(void);
 
 
-#define NAPATECH_ERROR(ErrType, status) {  \
+#define NAPATECH_ERROR(err_type, status) {  \
     char errorBuffer[1024]; \
-    NT_ExplainError(status, errorBuffer, sizeof (errorBuffer) - 1); \
-    SCLogError(ErrType, "Napatech Error: %s", errorBuffer);   \
+    NT_ExplainError((status), errorBuffer, sizeof (errorBuffer) - 1); \
+    SCLogError((err_type), "Napatech Error: %s", errorBuffer);   \
     }
 
 #define NAPATECH_NTPL_ERROR(ntpl_cmd, ntpl_info, status) { \
     char errorBuffer[1024]; \
     NT_ExplainError(status, errorBuffer, sizeof (errorBuffer) - 1); \
-    SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "     NTPL failed: %s", errorBuffer); \
-    SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "         cmd: %s", ntpl_cmd); \
-    if (strncmp(ntpl_info.u.errorData.errBuffer[0], "", 256) != 0) SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "         %s", ntpl_info.u.errorData.errBuffer[0]); \
-    if (strncmp(ntpl_info.u.errorData.errBuffer[1], "", 256) != 0) SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "         %s", ntpl_info.u.errorData.errBuffer[1]); \
-    if (strncmp(ntpl_info.u.errorData.errBuffer[2], "", 256) != 0) SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "         %s", ntpl_info.u.errorData.errBuffer[2]); \
+    SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, \
+               "     NTPL failed: %s", errorBuffer); \
+    SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, \
+               "         cmd: %s", ntpl_cmd); \
+    if (strncmp(ntpl_info.u.errorData.errBuffer[0], "", 256) != 0) \
+        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, \
+                   "         %s", ntpl_info.u.errorData.errBuffer[0]); \
+    if (strncmp(ntpl_info.u.errorData.errBuffer[1], "", 256) != 0) \
+        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, \
+                   "         %s", ntpl_info.u.errorData.errBuffer[1]); \
+    if (strncmp(ntpl_info.u.errorData.errBuffer[2], "", 256) != 0) \
+        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, \
+                   "         %s", ntpl_info.u.errorData.errBuffer[2]); \
 }
 
 

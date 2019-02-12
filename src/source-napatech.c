@@ -213,7 +213,8 @@ static int GetNumaNode(void)
     cpu = sched_getcpu();
     node = numa_node_of_cpu(cpu);
 #else
-    SCLogWarning(SC_ERR_NAPATECH_NOSUPPORT, "Auto configuration of NUMA node is not supported on this OS.");
+    SCLogWarning(SC_ERR_NAPATECH_NOSUPPORT, 
+            "Auto configuration of NUMA node is not supported on this OS.");
 #endif
 
     return node;
@@ -233,7 +234,7 @@ static void RecommendNUMAConfig(SCLogLevel log_level)
 
     if (set_cpu_affinity) {
         SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
-                "You should have at least the following number of host buffers defined in ntservice.ini:");
+                "Minimum host buffers that should be defined in ntservice.ini:");
 
         SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
                 "   NUMA Node 0: %d", (SC_ATOMIC_GET(numa0_count)));
@@ -248,14 +249,18 @@ static void RecommendNUMAConfig(SCLogLevel log_level)
                 "   NUMA Node 3: %d ", (SC_ATOMIC_GET(numa3_count)));
 
         snprintf(string0, 16, "[%d, 16, 0]", SC_ATOMIC_GET(numa0_count));
-        snprintf(string1, 16, (numa_max_node() >= 1 ? ",[%d, 16, 1]" : ""), SC_ATOMIC_GET(numa1_count));
-        snprintf(string2, 16, (numa_max_node() >= 2 ? ",[%d, 16, 2]" : ""), SC_ATOMIC_GET(numa2_count));
-        snprintf(string3, 16, (numa_max_node() >= 3 ? ",[%d, 16, 3]" : ""), SC_ATOMIC_GET(numa3_count));
+        snprintf(string1, 16, (numa_max_node() >= 1 ? ",[%d, 16, 1]" : ""), 
+                SC_ATOMIC_GET(numa1_count));
+        snprintf(string2, 16, (numa_max_node() >= 2 ? ",[%d, 16, 2]" : ""), 
+                SC_ATOMIC_GET(numa2_count));
+        snprintf(string3, 16, (numa_max_node() >= 3 ? ",[%d, 16, 3]" : ""), 
+                SC_ATOMIC_GET(numa3_count));
 
         SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
                 "E.g.: HostBuffersRx=%s%s%s%s", string0, string1, string2, string3);
     } else if (log_level == SC_LOG_ERROR) {
-        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "Or, try running /opt/napatech3/bin/ntpl -e \"delete=all\" to clean-up stream NUMA config.");
+        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, 
+            "Or, try running /opt/napatech3/bin/ntpl -e \"delete=all\" to clean-up stream NUMA config.");
     }
 }
 
@@ -306,16 +311,20 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
         SC_ATOMIC_ADD(stream_count, 1);
         if (SC_ATOMIC_GET(stream_count) == NapatechGetNumConfiguredStreams()) {
             /* The last thread to run sets up the streams */
-            status = NapatechSetupTraffic(NapatechGetNumFirstStream(), NapatechGetNumLastStream(), &filter_id, &hash_id);
+            status = NapatechSetupTraffic(NapatechGetNumFirstStream(), 
+                                          NapatechGetNumLastStream(), 
+                                          &filter_id, &hash_id);
 
             if (filter_id == 0) {
 
                 if (status == 0x20002061) {
-                    SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "Check host buffer configuration in ntservice.ini.");
+                    SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, 
+                            "Check host buffer configuration in ntservice.ini.");
                     RecommendNUMAConfig(SC_LOG_ERROR);
 
                 } else if (filter_id == 0x20000008) {
-                    SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "Check napatech.ports in the suricata config file.");
+                    SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, 
+                            "Check napatech.ports in the suricata config file.");
                 }
 
                 exit(EXIT_FAILURE);
@@ -331,7 +340,8 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
     if (ntv->hba > 0) {
         char *s_hbad_pkt = SCCalloc(1, 32);
         if (unlikely(s_hbad_pkt == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH stream counter.");
+            SCLogError(SC_ERR_MEM_ALLOC, 
+                    "Failed to allocate memory for NAPATECH stream counter.");
             exit(EXIT_FAILURE);
         }
         snprintf(s_hbad_pkt, 32, "nt%d.hba_drop", ntv->stream_id);
@@ -341,7 +351,9 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
     }
     SCLogDebug("Opening NAPATECH Stream: %lu for processing", ntv->stream_id);
 
-    if ((status = NT_NetRxOpen(&(ntv->rx_stream), "SuricataStream", NT_NET_INTERFACE_PACKET, ntv->stream_id, ntv->hba)) != NT_SUCCESS) {
+    if ((status = NT_NetRxOpen(&(ntv->rx_stream), "SuricataStream", 
+                  NT_NET_INTERFACE_PACKET, ntv->stream_id, ntv->hba)) != NT_SUCCESS) {
+        
         NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
         SCFree(ntv);
         SCReturnInt(TM_ECODE_FAILED);
@@ -361,7 +373,8 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
             continue;
         } else if (unlikely(status != NT_SUCCESS)) {
             NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
-            SCLogInfo("Failed to read from Napatech Stream%d: %s", ntv->stream_id, error_buffer);
+            SCLogInfo("Failed to read from Napatech Stream%d: %s", 
+                    ntv->stream_id, error_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
@@ -375,7 +388,8 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
 
         /*
          * Handle the different timestamp forms that the napatech cards could use
-         *   - NT_TIMESTAMP_TYPE_NATIVE is not supported due to having an base of 0 as opposed to NATIVE_UNIX which has a base of 1/1/1970
+         *   - NT_TIMESTAMP_TYPE_NATIVE is not supported due to having an base 
+         *     of 0 as opposed to NATIVE_UNIX which has a base of 1/1/1970
          */
         switch (NT_NET_GET_PKT_TIMESTAMP_TYPE(packet_buffer)) {
             case NT_TIMESTAMP_TYPE_NATIVE_UNIX:
@@ -388,12 +402,14 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
                 break;
             case NT_TIMESTAMP_TYPE_PCAP_NANOTIME:
                 p->ts.tv_sec = pkt_ts >> 32;
-                p->ts.tv_usec = ((pkt_ts & 0xFFFFFFFF) / 1000) + (pkt_ts % 1000) > 500 ? 1 : 0;
+                p->ts.tv_usec = (   (pkt_ts & 0xFFFFFFFF) / 1000) 
+                                  + (pkt_ts % 1000) > 500 ? 1 : 0;
                 break;
             case NT_TIMESTAMP_TYPE_NATIVE_NDIS:
                 /* number of seconds between 1/1/1601 and 1/1/1970 */
                 p->ts.tv_sec = (pkt_ts / 100000000) - 11644473600;
-                p->ts.tv_usec = ((pkt_ts % 100000000) / 100) + (pkt_ts % 100) > 50 ? 1 : 0;
+                p->ts.tv_usec = (   (pkt_ts % 100000000) / 100) 
+                                  + (pkt_ts % 100) > 50 ? 1 : 0;
                 break;
             default:
                 SCLogError(SC_ERR_NAPATECH_TIMESTAMP_TYPE_NOT_SUPPORTED,
@@ -424,7 +440,10 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
         p->ntpv.stream_id = ntv->stream_id;
         p->datalink = LINKTYPE_ETHERNET;
 
-        if (unlikely(PacketSetData(p, (uint8_t *) NT_NET_GET_PKT_L2_PTR(packet_buffer), NT_NET_GET_PKT_WIRE_LENGTH(packet_buffer)))) {
+        if (unlikely(PacketSetData(p, 
+                     (uint8_t *) NT_NET_GET_PKT_L2_PTR(packet_buffer), 
+                      NT_NET_GET_PKT_WIRE_LENGTH(packet_buffer)))) {
+            
             TmqhOutputPacketpool(ntv->tv, p);
             NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
@@ -439,15 +458,6 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
         /* Release any packets that were returned by the callback function */
         Packet *rel_pkt = PacketDequeue(&packets_to_release[ntv->stream_id]);
         while (rel_pkt != NULL) {
-            //p->BypassPacketsFlow = NTBypassCallback;
-
-            if ((rel_pkt->action | ACTION_DROP) != 0) {
-                //printf("---packet with ACTION_DROP");
-            }
-            if ((rel_pkt->action | ACTION_REJECT) != 0) {
-                //printf("---packet with ACTION_REJECT");                
-            }
-
             NT_NetRxRelease(ntv->rx_stream, rel_pkt->ntpv.nt_packet_buf);
             rel_pkt = PacketDequeue(&packets_to_release[ntv->stream_id]);
         }
@@ -463,7 +473,8 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
     }
 
     if (unlikely(ntv->hba > 0)) {
-        SCLogInfo("Host Buffer Allowance Drops - pkts: %ld,  bytes: %ld", hba_pkt_drops, hba_byte_drops);
+        SCLogInfo("Host Buffer Allowance Drops - pkts: %ld,  bytes: %ld", 
+                hba_pkt_drops, hba_byte_drops);
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -552,7 +563,7 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,
-                    "Error: datalink type %" PRId32 " not yet supported in module NapatechDecode",
+                "Error: datalink type %" PRId32 " not yet supported in module NapatechDecode",
                     p->datalink);
             break;
     }

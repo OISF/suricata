@@ -119,16 +119,19 @@ static int NapatechRegisterDeviceStreams(void)
     for (uint16_t inst = 0; inst < stream_cnt; ++inst) {
         char *plive_dev_buf = SCCalloc(1, 9);
         if (unlikely(plive_dev_buf == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH stream counter.");
+            SCLogError(SC_ERR_MEM_ALLOC, 
+                    "Failed to allocate memory for NAPATECH stream counter.");
             exit(EXIT_FAILURE);
         }
         snprintf(plive_dev_buf, 9, "nt%d", stream_config[inst].stream_id);
 
         if (auto_config) {
             if (stream_config[inst].is_active) {
-                SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "Registering Napatech device: %s - active stream found.",
+                SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, 
+                        "Registering Napatech device: %s - active stream found.",
                         plive_dev_buf);
-                SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "Delete the stream or disable auto-config before running.");
+                SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, 
+                        "Delete the stream or disable auto-config before running.");
                 exit(EXIT_FAILURE);
             }
         } else {
@@ -155,13 +158,15 @@ static void *NapatechConfigParser(const char *device)
     /* Expect device to be of the form nt%d where %d is the stream id to use */
     int dev_len = strlen(device);
     if (dev_len < 3 || dev_len > 5) {
-        SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG, "Could not parse config for device: %s - invalid length", device);
+        SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
+                "Could not parse config for device: %s - invalid length", device);
         return NULL;
     }
 
     struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof (struct NapatechStreamDevConf));
     if (unlikely(conf == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH device name.");
+        SCLogError(SC_ERR_MEM_ALLOC, 
+                "Failed to allocate memory for NAPATECH device name.");
         return NULL;
     }
 
@@ -199,11 +204,13 @@ static int NapatechInit(int runmode)
 
     status = NapatechRegisterDeviceStreams();
     if (status < 0 || num_configured_streams <= 0) {
-        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, "Unable to find existing Napatech Streams");
+        SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED, 
+                    "Unable to find existing Napatech Streams");
         exit(EXIT_FAILURE);
     }
 
-    struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof (struct NapatechStreamDevConf));
+    struct NapatechStreamDevConf *conf = 
+                            SCCalloc(1, sizeof (struct NapatechStreamDevConf));
     if (unlikely(conf == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH device.");
         exit(EXIT_FAILURE);
@@ -218,7 +225,8 @@ static int NapatechInit(int runmode)
 
     switch (runmode) {
         case NT_RUNMODE_WORKERS:
-            status = RunModeSetLiveCaptureWorkers(NapatechConfigParser, NapatechGetThreadsCount,
+            status = RunModeSetLiveCaptureWorkers(NapatechConfigParser, 
+                    NapatechGetThreadsCount,
                     "NapatechStream", "NapatechDecode",
                     thread_name_workers, NULL);
             break;
