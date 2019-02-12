@@ -5,7 +5,6 @@ Napatech Suricata Installation Guide
 
 Contents
 --------
-
 	* Introduction
 
 	* Package Installation
@@ -34,11 +33,9 @@ hardware based features:
 
 	* Accurate time synchronization
 
-
-The  package uses a proprietary shell script to handle the installation process.
+The package uses a proprietary shell script to handle the installation process.
 In either case, gcc, make and the kernel header files are required to compile the kernel module and
 install the software.
-
 
 Package Installation
 --------------------
@@ -77,35 +74,33 @@ prepare for compilation::
 	$ make
 	$ make install-full
 
-
 Suricata configuration
 ----------------------
 
 Now edit the suricata.yaml file to configure the system. There are three ways
 the system can be configured:
 
-     1. Auto-config: without cpu-affinity: In this mode you specify the stream 
+     1. Auto-config without cpu-affinity: In this mode you specify the stream 
     configuration in suricata.yaml file and allow the threads to 
-    roam freely.  This is good for single processor systems where NUMA node 
-    configuration is not a performance concern.  
+    roam freely. This is good for single processor systems where NUMA node 
+    configuration is not a performance concern.
   
     2. Auto-config with cpu-affinity:  In this mode you use the cpu-affinity 
     of the worker threads to control the creation and configuration of streams.
     One stream and one worker thread will be created for each cpu identified in 
-    suricata.yaml.  This is best in systems with multiple NUMA nodes (i.e. 
+    suricata.yaml. This is best in systems with multiple NUMA nodes (i.e. 
     multi-processor systems) as the NUMA node of the host buffers is matched 
     to the core on which the thread is running.
 
    3. Manual-config (legacy): In this mode the underlying Napatech streams are configured 
-    by issuing NTPL commands prior to running suricata.  Suricata then connects 
+    by issuing NTPL commands prior to running suricata. Suricata then connects 
     to the existing streams on startup.
-
 
 Example Configuration - Auto-config without cpu-affinity: 
 --------------------------------------------------------
 
 If cpu-affinity is not used it is necessary to explicitly define the streams in
-the Suricata configuration file.  To use this option the following options should
+the Suricata configuration file. To use this option the following options should
 be set in the suricata configuration file:
     1. Turn off cpu-affinity 
     2. Enable the napatech "auto-config" option
@@ -120,9 +115,8 @@ threading:
   set-cpu-affinity: no # this turns off cpu affinity
 
 napatech:
-
     # When auto-config is enabled the streams will be created and assigned to the
-    # NUMA node where the thread resides automatically.  The streams will be created 
+    # NUMA node where the thread resides automatically. The streams will be created 
     # according to the number of worker threads specified in the worker cpu set.
     # (I.e. the value of threading.cpu-affinity.worker-cpu-set.cpu.)
     #
@@ -157,7 +151,7 @@ napatech:
     # determining to which stream a given packet is to be delivered.  
     # This can be any valid Napatech NTPL hashmode command.  
     #
-    # The most common hashmode commands are:  hash2tuple, hash2tuplesorted,
+    # The most common hashmode commands are: hash2tuple, hash2tuplesorted,
     # hash5tuple, hash5tuplesorted and roundrobin.
     #
     # See Napatech NTPL documentation other hashmodes and details on their use.
@@ -181,8 +175,6 @@ Stop and restart ntservice after making changes to ntservice::
 Now you are ready to start suricata::
 
     $ suricata -c /usr/local/etc/suricata/suricata.yaml --napatech --runmode workers
-
-
 
 Example Configuration - Auto-config with cpu-affinity: 
 ------------------------------------------------------
@@ -248,7 +240,6 @@ napatech:
     #
     hashmode: hash5tuplesorted
 
-
 Prior to running Suricata in this mode you also need to configure a sufficient 
 number of host buffers on each NUMA node.  So, for example, if you have a two 
 processor server with 32 total cores and you plan to use all of the cores you 
@@ -260,18 +251,14 @@ To do this make the following changes to ntservice.ini:
     TimeSyncReferencePriority = OSTime	# Timestamp clock synchronized to the OS
     HostBuffersRx = [16,16,0],[16,16,1] # [number of host buffers, Size(MB), NUMA node]
 
-
 Stop and restart ntservice after making changes to ntservice::
 
 	$ /opt/napatech3/bin/ntstop.sh -m
 	$ /opt/napatech3/bin/ntstart.sh -m
 
-
 Now you are ready to start suricata::
 
     $ suricata -c /usr/local/etc/suricata/suricata.yaml --napatech --runmode workers
-
-
 
 Example Configuration -  Manual Configuration
 --------------------------------------------------
@@ -329,8 +316,7 @@ Now you are ready to start suricata::
 	$ suricata -c /usr/local/etc/suricata/suricata.yaml --napatech --runmode workers
 
 It is possible to specify much more elaborate configurations using this option. Simply by 
-creating the appropriate NTPL file and attaching suricata to the streams.
- 
+creating the appropriate NTPL file and attaching suricata to the streams. 
 
 Counters
 --------
@@ -351,7 +337,6 @@ In addition to counters host buffer utilization is tracked and logged.  This is 
 debugging.  Log messages are output for both Host and On-Board buffers when reach 25, 50, 75
 percent of utilization.  Corresponding messages are output when utilization decreases.
 
-
 Debugging:
 
 For debugging configurations it is useful to see what traffic is flowing as well as what streams are 
@@ -366,7 +351,6 @@ If suricata terminates abnormally stream definitions, which are normally removed
 If this happens they can be cleared by issuing the "delete=all" NTPL command as follows:
 
     #  /opt/napatech3/bin/ntpl -e "delete=all"
-
 
 Appendix - Napatech configuration options:
 ------------------------------------------
@@ -443,7 +427,6 @@ buffering.
 
 Make sure that there are enough host-buffers declared in ntservice.ini to 
 accommodate the number of cores/streams being used.
-
 
 Support
 -------
