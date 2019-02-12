@@ -28,10 +28,10 @@
 
 static void usage(void)
 {
-	printf("Usage: fds_example [...]\n");
+	printf("Usage: scbpf [...]\n");
 	printf("       -F <file>   File to pin/get object\n");
 	printf("       -A          |- add key\n");
-	printf("       -G          `- get object\n");
+	printf("       -G          |- get object\n");
 	printf("       -k <key>    |- map key\n");
 	printf("       -h          Display this help.\n");
 }
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 	uint32_t value;
 	int opt;
 
-	while ((opt = getopt(argc, argv, "F:GAk:")) != -1) {
+	while ((opt = getopt(argc, argv, "F:GAk:h")) != -1) {
 		switch (opt) {
 		/* General args */
 		case 'F':
