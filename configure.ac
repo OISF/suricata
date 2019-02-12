@@ -2234,6 +2234,14 @@ fi
     if test "x$enable_rust" != "xyes" && test "x$enable_rust" != "xyes (default)"; then
       enable_rust="no"
     elif test "x$enable_python" != "xyes" && test ! -f rust/gen/c-headers/rust-core-gen.h; then
+      if test "x$enable_rust" = "xyes"; then
+        echo ""
+        echo "   ERROR! Rust support requires Python."
+        echo
+        echo "   Ubuntu: apt install python"
+        echo ""
+        exit 1
+      fi
       enable_rust="no"
     else
       # Rust require jansson (json support).
