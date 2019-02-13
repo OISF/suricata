@@ -771,6 +771,11 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
         if (!(HAS_SPACE(cipher_suites_length)))
             goto invalid_length;
 
+        /* Cipher suites length should always be divisible by 2 */
+        if ((cipher_suites_length & 1) != 0) {
+            goto invalid_length;
+        }
+
         if (ssl_config.enable_ja3) {
             int rc;
 
