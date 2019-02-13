@@ -212,18 +212,18 @@ class SuricataSC:
                     phrase = " at least" if required_args_count != len(cmd_specs) else ""
                     msg = "Missing arguments: expected{} {}".format(phrase, required_args_count)
                     raise SuricataCommandException(msg)
+                except ValueError as ve:
+                    raise SuricataCommandException("Erroneous arguments: {}".format(ve))
             elif c < len(full_cmd):
                 arguments[spec["name"]] = spec_type(full_cmd[c])
         return cmd, arguments
 
     def parse_command(self, command):
         arguments = None
-        cmd = command.split(maxsplit=1)[0] if command else None
+        cmd = command.split()[0] if command else None
         if cmd in self.cmd_list:
             if cmd in self.fn_commands:
                 cmd, arguments = getattr(self, "execute")(command=command)
-            else:
-                cmd = command
         else:
             raise SuricataCommandException("Unknown command {}".format(command))
         return cmd, arguments
