@@ -425,6 +425,7 @@ static void *ParseAFPConfig(const char *iface)
                   ebpf_file);
         aconf->ebpf_filter_file = ebpf_file;
         aconf->ebpf_t_config.mode = AFP_MODE_EBPF_BYPASS;
+        aconf->ebpf_t_config.flags |= EBPF_SOCKET_FILTER;
 #endif
         ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
         if (conf_val) {
