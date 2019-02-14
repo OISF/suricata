@@ -39,7 +39,7 @@ struct bpf_map_def SEC("maps") ipv4_drop = {
 };
 
 int SEC("filter") hashfilter(struct __sk_buff *skb) {
-    __u32 nhoff = BPF_LL_OFF + ETH_HLEN;
+    __u32 nhoff = ETH_HLEN;
     __u32 ip = 0;
     __u32 *value;
 
