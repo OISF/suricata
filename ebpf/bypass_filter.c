@@ -207,7 +207,7 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
  * \return 0 to drop packet out and -1 to accept it
  */
 int SEC("filter") hashfilter(struct __sk_buff *skb) {
-    __u32 nhoff = BPF_LL_OFF + ETH_HLEN;
+    __u32 nhoff = ETH_HLEN;
 
     skb->cb[0] = nhoff;
     switch (skb->protocol) {
