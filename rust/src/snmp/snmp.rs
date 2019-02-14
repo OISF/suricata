@@ -133,7 +133,16 @@ impl SNMPState {
     }
 
     fn parse_v1_2(&mut self, i: &[u8], _direction: u8) -> i32 {
-        match parse_snmp_v1(i) {
+        let parser = match self.version {
+            1 => parse_snmp_v1,
+            2 => parse_snmp_v2c,
+            _ => {
+                SCLogInfo!("parse_snmp: invalid version {}", self.version);
+                self.set_event(SNMPEvent::MalformedData);
+                return -1;
+            }
+        };
+        match parser(i) {
             Ok((_rem,r)) => {
                 let mut tx = self.new_tx();
                 self.add_pdu_info(&r.pdu, &mut tx);
@@ -142,7 +151,7 @@ impl SNMPState {
                 0
             },
             _e => {
-                SCLogInfo!("parse_snmp_v1 failed: {:?}", _e);
+                SCLogInfo!("parse_snmp_v{} failed: {:?}", self.version, _e);
                 self.set_event(SNMPEvent::MalformedData);
                 -1
             },
