@@ -2277,3 +2277,19 @@ If the pool was depleted a hint will be printed at the engines exit.
 States are allocated as follows: for each detect script a state is used per
 detect thread. For each output script, a single state is used. Keep in
 mind that a rule reload temporary doubles the states requirement.
+
+YARA
+~~~~
+
+YARA requires a ``timeout`` value.  This value indicates the maximum
+duration for a scan in seconds. A value of 0 means no timeout. The
+default timeout is 1 second.
+
+The ``fast-scan`` mode will, for each string, stop scanning after the
+first match. The default is enabled.
+
+::
+
+    yara:
+        timeout: 1
+        fast-scan: enabled

@@ -144,6 +144,7 @@
 #include "util-profiling.h"
 #include "util-magic.h"
 #include "util-signal.h"
+#include "util-yara.h"
 
 #include "util-coredump-config.h"
 
@@ -381,6 +382,11 @@ static void GlobalsDestroy(SCInstance *suri)
 #ifdef HAVE_MAGIC
     MagicDeinit();
 #endif
+
+#ifdef HAVE_LIBYARA
+    YaraDeInit();
+#endif
+
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
@@ -752,6 +758,9 @@ static void PrintBuildInfo(void)
 #endif
 #ifdef HAVE_MAGIC
     strlcat(features, "MAGIC ", sizeof(features));
+#endif
+#ifdef HAVE_LIBYARA
+    strlcat(features, "YARA ", sizeof(features));
 #endif
 #if defined(HAVE_RUST)
     strlcat(features, "RUST ", sizeof(features));
@@ -2821,6 +2830,12 @@ static int PostConfLoadedSetup(SCInstance *suri)
     if (MagicInit() != 0)
         SCReturnInt(TM_ECODE_FAILED);
 #endif
+
+#ifdef HAVE_LIBYARA
+    if (YaraInit() != 0)
+        SCReturnInt(TM_ECODE_FAILED);
+#endif
+
     SCAsn1LoadConfig();
 
     CoredumpLoadConfig();
