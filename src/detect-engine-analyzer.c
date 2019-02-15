@@ -875,6 +875,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     uint32_t http_raw_header_buf = 0;
     uint32_t http_raw_uri_buf = 0;
     uint32_t http_ua_buf = 0;
+    uint32_t http_host_buf = 0;
     uint32_t warn_pcre_no_content = 0;
     uint32_t warn_pcre_http_content = 0;
     uint32_t warn_pcre_http = 0;
@@ -905,6 +906,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     const int httprawheader_id = DetectBufferTypeGetByName("http_raw_header");
     const int httpclientbody_id = DetectBufferTypeGetByName("http_client_body");
     const int httprawuri_id = DetectBufferTypeGetByName("http_raw_uri");
+    const int httphost_id = DetectBufferTypeGetByName("http_host");
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -983,6 +985,11 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                     norm_http_buf += 1;
                     http_ua_buf += 1;
                 }
+                else if (list_id == httphost_id) {
+                    rule_pcre_http += 1;
+                    norm_http_buf += 1;
+                    http_host_buf += 1;
+                }
                 else {
                     rule_pcre += 1;
                 }
@@ -1043,6 +1050,11 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_method_buf += 1;
+                }
+                else if (list_id == httphost_id) {
+                    rule_content_http += 1;
+                    raw_http_buf += 1;
+                    http_host_buf += 1;
                 }
                 else if (list_id == DETECT_SM_LIST_PMATCH) {
                     rule_content += 1;
@@ -1191,6 +1203,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         if (http_stat_msg_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http stat msg buffer.\n");
         if (http_stat_code_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http stat code buffer.\n");
         if (http_ua_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http user agent buffer.\n");
+        if (http_host_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http host buffer.\n");
         if (s->alproto != ALPROTO_UNKNOWN) {
             fprintf(rule_engine_analysis_FD, "    App layer protocol is %s.\n", AppProtoToString(s->alproto));
         }
