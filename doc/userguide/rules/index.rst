@@ -13,6 +13,7 @@ Suricata Rules
    bypass-keyword
    http-keywords
    file-keywords
+   yara-keyword
    dns-keywords
    tls-keywords
    ssh-keywords

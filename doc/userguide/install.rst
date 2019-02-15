@@ -32,7 +32,7 @@ Common configure options
 
 .. option:: --disable-gccmarch-native
 
-    Do not optimize the binary for the hardware it is built on. Add this 
+    Do not optimize the binary for the hardware it is built on. Add this
     flag if the binary is meant to be portable or if Suricata is to be used in a VM.
 
 .. option:: --prefix=/usr/
@@ -55,6 +55,10 @@ Common configure options
 
     Enables GeoIP support for detection.
 
+.. option:: --enable-yara
+
+    Enables YARA support for detection.
+
 .. option:: --disable-rust
 
     Disables Rust support. Rust support is enabled by default if rustc/cargo
@@ -73,7 +77,7 @@ The following tools are required:
 
 For full features, also add:
 
-  libjansson, libnss, libgeoip, liblua5.1, libhiredis, libevent
+  libjansson, libnss, libgeoip, liblua5.1, libhiredis, libevent, libyara
 
 Rust support:
 
@@ -96,7 +100,7 @@ Recommended::
 
     apt-get install libpcre3 libpcre3-dbg libpcre3-dev build-essential libpcap-dev   \
                     libnet1-dev libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
-                    libcap-ng-dev libcap-ng0 make libmagic-dev libjansson-dev        \
+                    libcap-ng-dev libcap-ng0 make libmagic-dev libjansson-dev libyara-dev \
                     libnss3-dev libgeoip-dev liblua5.1-dev libhiredis-dev libevent-dev \
                     python-yaml rustc cargo
 
