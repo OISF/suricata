@@ -264,7 +264,26 @@ static int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, 
      * matches. */
     if (file != NULL) {
         file_id = file->file_store_id;
+        if (file->sid != NULL && s->id > 0) {
+            if (file->sid_cnt >= file->sid_max) {
+                void *p = SCRealloc(file->sid, sizeof(uint32_t) * (file->sid_max + 8));
+                if (p == NULL) {
+                    SCFree(file->sid);
+                    file->sid = NULL;
+                    file->sid_cnt = 0;
+                    file->sid_max = 0;
+                    goto continue_after_realloc_fail;
+                } else {
+                    file->sid = p;
+                    file->sid_max += 8;
+                }
+            }
+            file->sid[file->sid_cnt] = s->id;
+            file->sid_cnt++;
+        }
     }
+
+continue_after_realloc_fail:
 
     det_ctx->filestore[det_ctx->filestore_cnt].file_id = file_id;
     det_ctx->filestore[det_ctx->filestore_cnt].tx_id = det_ctx->tx_id;
