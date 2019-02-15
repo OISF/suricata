@@ -2827,13 +2827,13 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     DecodeGlobalConfig();
 
-    PreRunInit(suri->run_mode);
-
     LiveDeviceFinalize();
 
     if (PostDeviceFinalizedSetup(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
+
+    PreRunInit(suri->run_mode);
 
     SCReturnInt(TM_ECODE_OK);
 }
