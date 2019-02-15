@@ -1168,13 +1168,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
             LiveRegisterDeviceName(suri->pcap_dev);
         }
     } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
-#ifdef OS_WIN32
-        SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
-                "support is not (yet) supported on Windows.");
-        return TM_ECODE_FAILED;
-#else
         LiveRegisterDeviceName(suri->pcap_dev);
-#endif
     } else {
         SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                 "has been specified");
