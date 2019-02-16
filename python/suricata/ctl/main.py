@@ -46,5 +46,8 @@ def main():
     filestore.register_args(subparsers.add_parser("filestore"))
 
     args = parser.parse_args()
-
-    args.func(args)
+    try:
+        func = args.func
+    except AttributeError:
+        parser.error("too few arguments")
+    func(args)
