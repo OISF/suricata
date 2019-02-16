@@ -12,7 +12,7 @@ class PruneTestCase(unittest.TestCase):
         self.assertEqual(filestore.parse_age("1h"), 3600)
         self.assertEqual(filestore.parse_age("1d"), 86400)
 
-        with self.assertRaises(filestore.InvalidAgeFormatError) as err:
+        with self.assertRaises(filestore.InvalidAgeFormatError):
             filestore.parse_age("1")
-        with self.assertRaises(filestore.InvalidAgeFormatError) as err:
+        with self.assertRaises(filestore.InvalidAgeFormatError):
             filestore.parse_age("1y")
