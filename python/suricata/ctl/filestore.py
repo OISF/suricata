@@ -30,7 +30,6 @@ class InvalidAgeFormatError(Exception):
     pass
 
 def register_args(parser):
-
     parsers = parser.add_subparsers()
 
     prune_parser = parsers.add_parser("prune")
