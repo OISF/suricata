@@ -40,15 +40,16 @@ class SuriColourLogHandler(logging.StreamHandler):
     """An alternative stream log handler that logs with Suricata inspired
     log colours."""
 
-    def formatTime(self, record):
-        lt = time.localtime(record.created)
-        t = "%d/%d/%d -- %02d:%02d:%02d" % (lt.tm_mday,
-                                            lt.tm_mon,
-                                            lt.tm_year,
-                                            lt.tm_hour,
-                                            lt.tm_min,
-                                            lt.tm_sec)
-        return "%s" % (t)
+    @staticmethod
+    def format_time(record):
+        local_time = time.localtime(record.created)
+        formatted_time = "%d/%d/%d -- %02d:%02d:%02d" % (local_time.tm_mday,
+                                                         local_time.tm_mon,
+                                                         local_time.tm_year,
+                                                         local_time.tm_hour,
+                                                         local_time.tm_min,
+                                                         local_time.tm_sec)
+        return "%s" % (formatted_time)
 
     def emit(self, record):
 
@@ -64,7 +65,7 @@ class SuriColourLogHandler(logging.StreamHandler):
 
         self.stream.write("%s%s%s - <%s%s%s> -- %s%s%s\n" % (
             GREEN,
-            self.formatTime(record),
+            self.format_time(record),
             RESET,
             level_prefix,
             record.levelname.title(),
@@ -73,7 +74,8 @@ class SuriColourLogHandler(logging.StreamHandler):
             self.mask_secrets(record.getMessage()),
             RESET))
 
-    def mask_secrets(self, msg):
+    @staticmethod
+    def mask_secrets(msg):
         for secret in secrets:
             msg = msg.replace(secret, "<%s>" % secrets[secret])
         return msg
