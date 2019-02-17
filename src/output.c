@@ -74,6 +74,7 @@
 #include "output-json-krb5.h"
 #include "output-json-dhcp.h"
 #include "output-json-snmp.h"
+#include "output-json-sip.h"
 #include "output-json-template.h"
 #include "output-json-template-rust.h"
 #include "output-lua.h"
@@ -1106,6 +1107,8 @@ void OutputRegisterLoggers(void)
     JsonDHCPLogRegister();
     /* SNMP JSON logger. */
     JsonSNMPLogRegister();
+    /* SIP JSON logger. */
+    JsonSIPLogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
     /* Template Rust JSON logger. */

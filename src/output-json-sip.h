@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,8 +15,15 @@
  * 02110-1301, USA.
  */
 
-// written by Giuseppe Longo <giuseppe@glongo.it>
+/**
+ * \file
+ *
+ * \author Giuseppe Longo <giuseppe@glongo.it>
+ */
 
-pub mod sip;
-pub mod parser;
-pub mod log;
+#ifndef __OUTPUT_JSON_SIP_H__
+#define __OUTPUT_JSON_SIP_H__
+
+void JsonSIPLogRegister(void);
+
+#endif /* __OUTPUT_JSON_SIP_H__ */
