@@ -333,6 +333,7 @@ output-json-flow.c output-json-flow.h \
 output-json-ftp.c output-json-ftp.h \
 output-json-netflow.c output-json-netflow.h \
 output-json-http.c output-json-http.h \
+output-json-sip.c output-json-sip.h \
 output-json-smtp.c output-json-smtp.h \
 output-json-ssh.c output-json-ssh.h \
 output-json-stats.c output-json-stats.h \
