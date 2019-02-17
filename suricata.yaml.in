@@ -240,6 +240,7 @@ outputs:
         - ikev2
         - krb5
         - snmp
+        - sip
         - dhcp:
             enabled: yes
             # When extended mode is on, all DHCP messages are logged
