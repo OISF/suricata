@@ -496,7 +496,10 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
                 g_counter_table = HashTableInit(256, StringHashFunc,
                         StringHashCompareFunc,
                         StringHashFreeFunc);
-                BUG_ON(g_counter_table == NULL);
+                if (g_counter_table == NULL) {
+                    FatalError(SC_ERR_INITIALIZATION, "decoder counter hash "
+                            "table init failed");
+                }
             }
 
             char name[256];
@@ -508,8 +511,13 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
             const char *found = HashTableLookup(g_counter_table, name, 0);
             if (!found) {
                 char *add = SCStrdup(name);
-                BUG_ON(!add);
-                HashTableAdd(g_counter_table, add, 0);
+                if (add == NULL)
+                    FatalError(SC_ERR_INITIALIZATION, "decoder counter hash "
+                            "table name init failed");
+                int r = HashTableAdd(g_counter_table, add, 0);
+                if (r != 0)
+                    FatalError(SC_ERR_INITIALIZATION, "decoder counter hash "
+                            "table name add failed");
                 found = add;
             }
             dtv->counter_engine_events[i] = StatsRegisterCounter(
