@@ -172,12 +172,7 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
     pfv->pcap_handle = pcap_open_offline(pfv->filename, errbuf);
     if (pfv->pcap_handle == NULL) {
         SCLogError(SC_ERR_FOPEN, "%s", errbuf);
-        if (!RunModeUnixSocketIsActive()) {
-            SCReturnInt(TM_ECODE_FAILED);
-        } else {
-            UnixSocketPcapFile(TM_ECODE_FAILED, 0);
-            SCReturnInt(TM_ECODE_DONE);
-        }
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     if (pfv->shared != NULL && pfv->shared->bpf_string != NULL) {
