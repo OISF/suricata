@@ -86,7 +86,7 @@
 #define DOC_URL "https://suricata.readthedocs.io/en/"
 
 #if defined RELEASE
-#define DOC_VERSION PROG_VER
+#define DOC_VERSION "suricata-" PROG_VER
 #else
 #define DOC_VERSION "latest"
 #endif
