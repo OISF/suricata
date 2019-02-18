@@ -45,7 +45,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX         "([a-z]+)(?:,\\s*(.*))?"
+#define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
@@ -767,6 +767,9 @@ static int FlowBitsTestSig02(void)
     FAIL_IF_NOT_NULL(s);
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"toggle rule need an option\"; flowbits:toggle; content:\"GET \"; sid:5;)");
+    FAIL_IF_NOT_NULL(s);
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"!set is not an option\"; flowbits:!set,myerr; content:\"GET \"; sid:6;)");
     FAIL_IF_NOT_NULL(s);
 
     SigGroupBuild(de_ctx);
