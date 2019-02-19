@@ -145,7 +145,7 @@ void PcapFileGlobalInit()
 TmEcode PcapFileExit(TmEcode status, struct timespec *last_processed)
 {
     if(RunModeUnixSocketIsActive()) {
-        SCReturnUInt(UnixSocketPcapFile(status, last_processed));
+        SCReturnInt((intmax_t)UnixSocketPcapFile(status, last_processed));
     } else {
         EngineStop();
         SCReturnUInt(status);
