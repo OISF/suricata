@@ -15,9 +15,15 @@
  * 02110-1301, USA.
  */
 
-// written by Giuseppe Longo <giuseppe@glongo.it>
+/**
+ * \file
+ *
+ * \author Giuseppe Longo <giuseppe@glongo.it>
+ */
 
-pub mod sip;
-pub mod parser;
-pub mod log;
-pub mod detect;
+#ifndef __DETECT_SIP_METHOD_H__
+#define __DETECT_SIP_METHOD_H__
+
+void DetectSipMethodRegister(void);
+
+#endif /* __DETECT_SIP_METHOD_H__ */
