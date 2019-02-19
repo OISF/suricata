@@ -78,7 +78,7 @@ SCEnumCharMap sc_log_op_iface_map[ ] = {
 /**
  * \brief Used for synchronous output on WIN32
  */
-static SCMutex sc_log_stream_lock = NULL;
+static SCMutex sc_log_stream_lock;
 #endif /* OS_WIN32 */
 
 /**
@@ -1486,10 +1486,7 @@ void SCLogDeInitLogModule(void)
     SCLogReleaseFGFilters();
 
 #if defined (OS_WIN32)
-	if (sc_log_stream_lock != NULL) {
-		SCMutexDestroy(&sc_log_stream_lock);
-		sc_log_stream_lock = NULL;
-	}
+    SCMutexDestroy(&sc_log_stream_lock);
 #endif /* OS_WIN32 */
 
     return;
