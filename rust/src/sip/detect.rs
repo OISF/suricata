@@ -17,7 +17,27 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-pub mod sip;
-pub mod parser;
-pub mod log;
-pub mod detect;
+use std::ptr;
+
+use sip::sip::SIPTransaction;
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_sip_tx_get_method(tx:  &mut SIPTransaction,
+                                              buffer: *mut *const u8,
+                                              buffer_len: *mut u32)
+                                              -> u8
+{
+    if let Some(ref r) = tx.request {
+        let m = &r.method;
+        if m.len() > 0 {
+            *buffer = m.as_ptr();
+            *buffer_len = m.len() as u32;
+            return 1;
+        }
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
+    return 0;
+}
