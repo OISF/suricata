@@ -5,7 +5,6 @@ Set, unset, toggle and check for bits stored per host or ip_pair.
 
 Syntax::
 
-    xbits:noalert;
     xbits:<set|unset|isset|toggle>,<name>,track <ip_src|ip_dst|ip_pair>;
     xbits:<set|unset|isset|toggle>,<name>,track <ip_src|ip_dst|ip_pair> \
         [,expire <seconds>];
