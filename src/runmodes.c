@@ -135,8 +135,6 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "NAPATECH";
         case RUNMODE_UNITTEST:
             return "UNITTEST";
-        case RUNMODE_TILERA_MPIPE:
-            return "MPIPE";
         case RUNMODE_AFP_DEV:
             return "AF_PACKET_DEV";
         case RUNMODE_NETMAP:
@@ -224,7 +222,6 @@ void RunModeRegisterRunModes(void)
     RunModeIdsAFPRegister();
     RunModeIdsNetmapRegister();
     RunModeIdsNflogRegister();
-    RunModeTileMpipeRegister();
     RunModeUnixSocketRegister();
     RunModeIpsWinDivertRegister();
 #ifdef UNITTESTS
@@ -316,9 +313,6 @@ void RunModeDispatch(int runmode, const char *custom_mode)
                 break;
             case RUNMODE_DAG:
                 custom_mode = RunModeErfDagGetDefaultMode();
-                break;
-            case RUNMODE_TILERA_MPIPE:
-                custom_mode = RunModeTileMpipeGetDefaultMode();
                 break;
             case RUNMODE_NAPATECH:
                 custom_mode = RunModeNapatechGetDefaultMode();

@@ -88,9 +88,7 @@ uint32_t FUNC_NAME(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
         size_t index = 0 ;
         index = SINDEX(index, state);
         state = SLOAD(state_table + index + c);
-#ifndef __tile__
         if (likely(i+1 < buflen))
-#endif
             c = xlate[buf[i+1]];
         if (unlikely(SCHECK(state))) {
             matches = CheckMatch(ctx, pmq, buf, buflen, state, i, matches, mpm_bitarray);

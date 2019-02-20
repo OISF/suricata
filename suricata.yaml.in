@@ -1820,33 +1820,6 @@ napatech:
     #   a range of streams (e.g. streams: ["0-3"])
     streams: ["0-3"]
 
-# Tilera mpipe configuration. for use on Tilera TILE-Gx.
-mpipe:
-
-  # Load balancing modes: "static", "dynamic", "sticky", or "round-robin".
-  load-balance: dynamic
-
-  # Number of Packets in each ingress packet queue. Must be 128, 512, 2028 or 65536
-  iqueue-packets: 2048
-
-  # List of interfaces we will listen on.
-  inputs:
-  - interface: xgbe2
-  - interface: xgbe3
-  - interface: xgbe4
-
-
-  # Relative weight of memory for packets of each mPipe buffer size.
-  stack:
-    size128: 0
-    size256: 9
-    size512: 0
-    size1024: 0
-    size1664: 7
-    size4096: 0
-    size10386: 0
-    size16384: 0
-
 ##
 ## Configure Suricata to load Suricata-Update managed rules.
 ##

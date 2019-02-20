@@ -43,8 +43,7 @@
 
 /* test if we have atomic operations support */
 #if (!defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4) || \
-     !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1)) && \
-  !defined(__tile__)
+     !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1))
 
 /* Do not have atomic operations support, so implement them with locks. */
 
