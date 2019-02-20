@@ -789,7 +789,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
         return TM_ECODE_FAILED;
     }
 
-    json_object_set_new(answer, "message", json_string("handler added"));
+    json_object_set_new(answer, "message", json_string("handler removed"));
     return TM_ECODE_OK;
 }
 
