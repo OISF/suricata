@@ -508,7 +508,7 @@ uint16_t PatternMatchDefaultMatcher(void)
  done:
 #ifdef __tile__
     if (mpm_algo_val == MPM_AC)
-        mpm_algo_val = MPM_AC_TILE;
+        mpm_algo_val = MPM_AC_KS;
 #endif
 
     return mpm_algo_val;

@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef __UTIL_MPM_AC_TILE__H__
-#define __UTIL_MPM_AC_TILE__H__
+#ifndef __UTIL_MPM_AC_KS__H__
+#define __UTIL_MPM_AC_KS__H__
 
 typedef struct SCACTilePatternList_ {
     uint8_t *cs;
@@ -155,4 +155,4 @@ typedef struct SCACTileThreadCtx_ {
 
 void MpmACTileRegister(void);
 
-#endif /* __UTIL_MPM_AC_TILE__H__ */
+#endif /* __UTIL_MPM_AC_KS__H__ */

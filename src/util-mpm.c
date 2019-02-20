@@ -269,13 +269,13 @@ void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher)
 #ifdef BUILD_HYPERSCAN
 # define DEFAULT_MPM     MPM_HS
 # ifdef __tile__
-#  define DEFAULT_MPM_AC MPM_AC_TILE
+#  define DEFAULT_MPM_AC MPM_AC_KS
 # else
 #  define DEFAULT_MPM_AC MPM_AC
 # endif
 #else
 # ifdef __tile__
-#  define DEFAULT_MPM    MPM_AC_TILE
+#  define DEFAULT_MPM    MPM_AC_KS
 # else
 #  define DEFAULT_MPM    MPM_AC
 # endif

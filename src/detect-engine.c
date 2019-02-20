@@ -1822,7 +1822,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     if (sgh_mpm_context == NULL || strcmp(sgh_mpm_context, "auto") == 0) {
         /* for now, since we still haven't implemented any intelligence into
          * understanding the patterns and distributing mpm_ctx across sgh */
-        if (de_ctx->mpm_matcher == MPM_AC || de_ctx->mpm_matcher == MPM_AC_TILE ||
+        if (de_ctx->mpm_matcher == MPM_AC || de_ctx->mpm_matcher == MPM_AC_KS ||
 #ifdef BUILD_HYPERSCAN
             de_ctx->mpm_matcher == MPM_HS ||
 #endif
