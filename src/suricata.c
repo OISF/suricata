@@ -1168,13 +1168,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
             LiveRegisterDeviceName(suri->pcap_dev);
         }
     } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
-#ifdef OS_WIN32
-        SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
-                "support is not (yet) supported on Windows.");
-        return TM_ECODE_FAILED;
-#else
         LiveRegisterDeviceName(suri->pcap_dev);
-#endif
     } else {
         SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                 "has been specified");
@@ -2633,14 +2627,45 @@ static int PostDeviceFinalizedSetup(SCInstance *suri)
     SCReturnInt(TM_ECODE_OK);
 }
 
+static void PostConfLoadedSetupHostMode(void)
+{
+    const char *hostmode = NULL;
+
+    if (ConfGetValue("host-mode", &hostmode) == 1) {
+        if (!strcmp(hostmode, "router")) {
+            host_mode = SURI_HOST_IS_ROUTER;
+        } else if (!strcmp(hostmode, "sniffer-only")) {
+            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+        } else {
+            if (strcmp(hostmode, "auto") != 0) {
+                WarnInvalidConfEntry("host-mode", "%s", "auto");
+            }
+            if (EngineModeIsIPS()) {
+                host_mode = SURI_HOST_IS_ROUTER;
+            } else {
+                host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+            }
+        }
+    } else {
+        if (EngineModeIsIPS()) {
+            host_mode = SURI_HOST_IS_ROUTER;
+            SCLogInfo("No 'host-mode': suricata is in IPS mode, using "
+                      "default setting 'router'");
+        } else {
+            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+            SCLogInfo("No 'host-mode': suricata is in IDS mode, using "
+                      "default setting 'sniffer-only'");
+        }
+    }
+
+}
+
 /**
  * This function is meant to contain code that needs
  * to be run once the configuration has been loaded.
  */
 static int PostConfLoadedSetup(SCInstance *suri)
 {
-    const char *hostmode = NULL;
-
     /* do this as early as possible #1577 #1955 */
 #ifdef HAVE_LUAJIT
     if (LuajitSetupStatesPool() != 0) {
@@ -2714,33 +2739,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     if (ConfigGetCaptureValue(suri) != TM_ECODE_OK) {
         SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    if (ConfGetValue("host-mode", &hostmode) == 1) {
-        if (!strcmp(hostmode, "router")) {
-            host_mode = SURI_HOST_IS_ROUTER;
-        } else if (!strcmp(hostmode, "sniffer-only")) {
-            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-        } else {
-            if (strcmp(hostmode, "auto") != 0) {
-                WarnInvalidConfEntry("host-mode", "%s", "auto");
-            }
-            if (EngineModeIsIPS()) {
-                host_mode = SURI_HOST_IS_ROUTER;
-            } else {
-                host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-            }
-        }
-    } else {
-        if (EngineModeIsIPS()) {
-            host_mode = SURI_HOST_IS_ROUTER;
-            SCLogInfo("No 'host-mode': suricata is in IPS mode, using "
-                      "default setting 'router'");
-        } else {
-            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-            SCLogInfo("No 'host-mode': suricata is in IDS mode, using "
-                      "default setting 'sniffer-only'");
-        }
     }
 
 #ifdef NFQ
@@ -2827,13 +2825,17 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     DecodeGlobalConfig();
 
-    PreRunInit(suri->run_mode);
-
     LiveDeviceFinalize();
 
+    /* set engine mode if L2 IPS */
     if (PostDeviceFinalizedSetup(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
+
+    /* hostmode depends on engine mode being set */
+    PostConfLoadedSetupHostMode();
+
+    PreRunInit(suri->run_mode);
 
     SCReturnInt(TM_ECODE_OK);
 }

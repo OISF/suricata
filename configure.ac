@@ -245,7 +245,7 @@
         *-*-linux*)
             RUST_LDADD="-ldl -lrt -lm"
             ;;
-        *-*-mingw32*)
+        *-*-mingw32*|*-*-msys)
             CFLAGS="${CFLAGS} -DOS_WIN32"
             LDFLAGS="${LDFLAGS} -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid"
             WINDOWS_PATH="yes"
@@ -903,10 +903,7 @@
             enable_jansson="no"
         else
             case $host in
-                *-*-mingw32*)
-                    enable_unixsocket="no"
-                    ;;
-                *-*-cygwin)
+                *-*-mingw32*|*-*-msys*|*-*-cygwin)
                     enable_unixsocket="no"
                     ;;
                 *)

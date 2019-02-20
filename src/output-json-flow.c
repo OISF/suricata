@@ -346,6 +346,10 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
                     break;
             }
             json_object_set_new(tjs, "state", json_string(tcp_state));
+            if (ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP)
+                json_object_set_new(tjs, "gap_ts", json_true());
+            if (ssn->server.flags & STREAMTCP_STREAM_FLAG_GAP)
+                json_object_set_new(tjs, "gap_tc", json_true());
         }
 
         json_object_set_new(js, "tcp", tjs);
