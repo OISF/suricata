@@ -830,7 +830,7 @@ causes lower memory usage, but decreases the performance. The opposite
 counts for a high hash-size: higher memory usage, but (generally)
 higher performance. The memory settings for hash size of the
 algorithms can vary from lowest (2048) - low (4096) - medium (8192) -
-high (16384) - higher (32768) – max (65536). (Higher is 'highest' in
+high (16384) - higher (32768) - max (65536). (Higher is 'highest' in
 YAML 1.0 -1.0.2)
 
 The bf_size option determines the size of the bloom filter, that is
@@ -1569,9 +1569,9 @@ A logging line exists of two parts. First it displays meta information
 
 ::
 
-  [27708] 15/10/2010 -- 11:40:07 - (suricata.c:425) <Info> (main) – This is Suricata version 1.0.2
+  [27708] 15/10/2010 -- 11:40:07 - (suricata.c:425) <Info> (main) - This is Suricata version 1.0.2
 
-(Here the part until the – is the meta info, “This is Suricata 1.0.2”
+(Here the part until the - is the meta info, 'This is Suricata 1.0.2'
 is the actual message.)
 
 It is possible to determine which information will be displayed in

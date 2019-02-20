@@ -127,7 +127,7 @@ Pcap processing mode
 This mode is one of main motivation behind this code. The idea is to
 be able to ask to Suricata to treat different pcap files without
 having to restart Suricata between the files. This provides you a huge
-gain in time as you don’t need to wait for the signature engine to
+gain in time as you don't need to wait for the signature engine to
 initialize.
 
 To use this mode, start suricata with your preferred YAML file and
@@ -169,7 +169,7 @@ You can add multiple files without waiting the result: they will be
 sequentially processed and the generated log/alert files will be put
 into the directory specified as second arguments of the pcap-file
 command. You need to provide absolute path to the files and directory
-as Suricata doesn’t know from where the script has been run. If you pass
+as Suricata doesn't know from where the script has been run. If you pass
 a directory instead of a file, all files in the directory will be processed. If
 using ``pcap-file-continuous`` and passing in a directory, the directory will
 be monitored for new files being added until you use ``pcap-interrupt`` or

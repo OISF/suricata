@@ -83,7 +83,7 @@ Automatic Protocol Detection
          than** 2 and **less than** 10".
 
    -  There is a request to have Suricata behave like Snort in future
-      versions –
+      versions -
       `https://redmine.openinfosecfoundation.org/issues/1416 <https://redmine.openinfosecfoundation.org/issues/1416>`_
 
       -  Currently on hold
@@ -166,7 +166,7 @@ Automatic Protocol Detection
 
 -  The HTTP 'Cookie' and 'Set-Cookie' headers are **NOT** included in
    the ``http_header`` buffer; instead they are extracted and put into
-   their own buffer – ``http_cookie``. See the `http_cookie Buffer`_
+   their own buffer - ``http_cookie``. See the `http_cookie Buffer`_
    section.
 
 -  The HTTP 'Cookie' and 'Set-Cookie' headers **ARE** included in the
@@ -315,7 +315,7 @@ See :doc:`http-keywords` for all HTTP keywords.
 
 -  For example, this Suricata rule looks for the string ".exe" at the
    end of the URI; to do the same thing in the normalized URI buffer in
-   Snort you would have to use a PCRE – ``pcre:"/\x2Eexe$/U";``
+   Snort you would have to use a PCRE - ``pcre:"/\x2Eexe$/U";``
 
    ::
 
@@ -332,7 +332,7 @@ Relative PCRE
 
      content:".php?sign="; http_uri; pcre:"/^[a-zA-Z0-9]{8}$/UR";
 
--  With Snort you can't combine the “relative” PCRE option ('R') with other buffer options like normalized URI ('U') – you get a syntax error.
+-  With Snort you can't combine the 'relative' PCRE option ('R') with other buffer options like normalized URI ('U') - you get a syntax error.
 
 ``tls*`` Keywords
 ------------------
@@ -566,7 +566,7 @@ certain rule keywords that only apply to packets only (``dsize``,
 only (``http_*``) and you can't mix packet and stream keywords. Rules
 that use packet keywords will inspect individual packets only and
 rules that use stream keywords will inspect streams only.  Snort is a
-little more forgiving when you mix these – for example, in Snort you can
+little more forgiving when you mix these - for example, in Snort you can
 use ``dsize`` (a packet keyword) with ``http_*`` (stream
 keywords) and Snort will allow it although, because of ``dsize``, it
 will only apply detection to individual packets (unless PAF is enabled
@@ -589,13 +589,13 @@ protocol, consider using the ``stream_size`` keyword and/or
 Suricata also supports these protocol values being used in rules and
 Snort does not:
 
--  ``tcp-pkt`` – example:
+-  ``tcp-pkt`` - example:
 
    -  ``alert tcp-pkt ...``
    -  This tells Suricata to only apply the rule to TCP packets and not
       the (reassembled) stream.
 
--  ``tcp-stream`` – example:
+-  ``tcp-stream`` - example:
 
    -  ``alert tcp-stream ...``
    -  This tells Suricata to inspect the (reassembled) TCP stream only.
