@@ -78,6 +78,15 @@ The set of existing commands is the following:
 * memcap-set: update memcap value of an item specified
 * memcap-show: show memcap value of an item specified
 * memcap-list: list all memcap values available
+* reload-rules: alias of ruleset-reload-rules
+* register-tenant-handler: register a tenant handler with the specified mapping
+* unregister-tenant-handler: unregister a tenant handler with the specified mapping
+* register-tenant: register tenant with a particular ID and filename
+* unregister-tenant: unregister tenant with a particular ID
+* reload-tenant: reload a tenant with specified ID and filename
+* add-hostbit: add hostbit on a host IP with a particular bit name and time of expiry
+* remove-hostbit: remove hostbit on a host IP with specified bit name
+* list-hostbit: list hostbit for a particular host IP
 
 You can access to these commands with the provided example script which
 is named ``suricatasc``. A typical session with ``suricatasc`` will looks like:
