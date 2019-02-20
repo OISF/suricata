@@ -34,11 +34,10 @@ def init_logger():
 
 def main():
     init_logger()
-    parser = argparse.ArgumentParser(description="Suricata Control Tool")
-    subparsers = parser.add_subparsers(
-        title="subcommands",
-        description="Commands")
-    filestore.register_args(subparsers.add_parser("filestore"))
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(help='sub-command help')
+    fs_parser = subparsers.add_parser("filestore", help="Filestore related commands")
+    filestore.register_args(parser=fs_parser)
     args = parser.parse_args()
     try:
         func = args.func
