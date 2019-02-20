@@ -31,10 +31,14 @@ class InvalidAgeFormatError(Exception):
 
 
 def register_args(parser):
-    parsers = parser.add_subparsers()
-    prune_parser = parsers.add_parser("prune")
-    prune_parser.add_argument("-d", "--directory", help="filestore directory")
-    prune_parser.add_argument("--age", help="prune files older than age")
+    subparser = parser.add_subparsers(help="sub-command help")
+    prune_parser = subparser.add_parser("prune",
+            help="Remove files in specified directory older than specified age")
+    required_args = prune_parser.add_argument_group("required arguments")
+    required_args.add_argument("-d", "--directory",
+            help="filestore directory", required=True)
+    required_args.add_argument("--age",
+            help="prune files older than age, units: s, m, h, d")
     prune_parser.add_argument(
         "-n", "--dry-run", action="store_true", default=False,
         help="only print what would happen")
@@ -57,15 +61,13 @@ def parse_age(age):
         raise InvalidAgeFormatError(age)
     val = int(matched_age.group(1))
     unit = matched_age.group(2)
-    if unit == "s":
-        return val
-    if unit == "m":
-        return val * 60
-    if unit == "h":
-        return val * 60 * 60
-    if unit == "d":
-        return val * 60 * 60 * 24
-    raise InvalidAgeFormatError("bad unit: %s" % (unit))
+    ts_units = ["s", "m", "h", "d"]
+    try:
+        idx = ts_units.index(unit)
+    except ValueError:
+        raise InvalidAgeFormatError("bad unit: %s" % (unit))
+    multiplier = 60 ** idx if idx != 3 else 24 * 60 ** 2
+    return val * multiplier
 
 
 def get_filesize(path):
@@ -81,7 +83,6 @@ def remove_file(path, dry_run):
 
 
 def prune(args):
-
     if args.verbose:
         logger.setLevel(logging.DEBUG)
     if args.quiet:
@@ -106,7 +107,6 @@ def prune(args):
         # Do not go into the tmp directory.
         if "tmp" in dirnames:
             dirnames.remove("tmp")
-
         for filename in filenames:
             path = os.path.join(dirpath, filename)
             mtime = os.path.getmtime(path)
@@ -115,6 +115,5 @@ def prune(args):
                 logger.debug("Deleting %s; age=%ds", path, this_age)
                 size += remove_file(path, args.dry_run)
                 count += 1
-
     logger.info("Removed %d files; %d bytes.", count, size)
     return 0
