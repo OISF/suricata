@@ -447,8 +447,8 @@ util-memrchr.c util-memrchr.h \
 util-misc.c util-misc.h \
 util-mpm-ac-bs.c util-mpm-ac-bs.h \
 util-mpm-ac.c util-mpm-ac.h \
-util-mpm-ac-tile.c util-mpm-ac-tile.h \
-util-mpm-ac-tile-small.c \
+util-mpm-ac-ks.c util-mpm-ac-ks.h \
+util-mpm-ac-ks-small.c \
 util-mpm-hs.c util-mpm-hs.h \
 util-mpm.c util-mpm.h \
 util-napatech.c util-napatech.h \

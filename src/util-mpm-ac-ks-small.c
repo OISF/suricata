@@ -20,12 +20,12 @@
  *
  * \author Ken Steele <suricata@tilera.com>
 
- * Included by util-mpm-ac-tile.c with different SLOAD, SINDEX and
+ * Included by util-mpm-ac-ks.c with different SLOAD, SINDEX and
  * FUNC_NAME
  *
  */
 
-/* Only included into util-mpm-ac-tile.c, which defines FUNC_NAME
+/* Only included into util-mpm-ac-ks.c, which defines FUNC_NAME
  *
  */
 #ifdef FUNC_NAME

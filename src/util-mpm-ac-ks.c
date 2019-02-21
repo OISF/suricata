@@ -78,7 +78,7 @@
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"
 #include "util-memcpy.h"
-#include "util-mpm-ac-tile.h"
+#include "util-mpm-ac-ks.h"
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 
@@ -1280,7 +1280,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchSmall256
 // y = 256 * (x & 0x7FFF)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 8, 15)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /* Search with Alphabet size of 128 */
 #undef FUNC_NAME
@@ -1288,7 +1288,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchSmall128
 // y = 128 * (x & 0x7FFF)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 7, 15)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /* Search with Alphabet size of 64 */
 #undef FUNC_NAME
@@ -1296,7 +1296,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchSmall64
 // y = 64 * (x & 0x7FFF)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 6, 15)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /* Search with Alphabet size of 32 */
 #undef FUNC_NAME
@@ -1304,7 +1304,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchSmall32
 // y = 32 * (x & 0x7FFF)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 5, 15)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /* Search with Alphabet size of 16 */
 #undef FUNC_NAME
@@ -1312,7 +1312,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchSmall16
 // y = 16 * (x & 0x7FFF)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 4, 15)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /* Search with Alphabet size of 8 */
 #undef FUNC_NAME
@@ -1320,7 +1320,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchSmall8
 // y = 8 * (x & 0x7FFF)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 3, 15)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /*
  * Search with Alphabet size of 256 and 8-bit next-state entries.
@@ -1334,7 +1334,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchTiny256
 // y = 256 * (x & 0x7F)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 8, 7)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /* Search with Alphabet size of 128 */
 #undef FUNC_NAME
@@ -1342,7 +1342,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchTiny128
 // y = 128 * (x & 0x7F)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 7, 7)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /* Search with Alphabet size of 64 */
 #undef FUNC_NAME
@@ -1350,7 +1350,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchTiny64
 // y = 64 * (x & 0x7F)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 6, 7)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /* Search with Alphabet size of 32 */
 #undef FUNC_NAME
@@ -1358,7 +1358,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchTiny32
 // y = 32 * (x & 0x7F)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 5, 7)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /* Search with Alphabet size of 16 */
 #undef FUNC_NAME
@@ -1366,7 +1366,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchTiny16
 // y = 16 * (x & 0x7F)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 4, 7)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 /* Search with Alphabet size of 8 */
 #undef FUNC_NAME
@@ -1374,7 +1374,7 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
 #define FUNC_NAME SCACTileSearchTiny8
 // y = 8 * (x & 0x7F)
 #define SINDEX(y,x) SINDEX_INTERNAL(y, x, 3, 7)
-#include "util-mpm-ac-tile-small.c"
+#include "util-mpm-ac-ks-small.c"
 
 
 /**
