@@ -70,21 +70,6 @@ __thread uint64_t rwr_lock_cnt;
 #define cpu_set_t cpuset_t
 #endif /* OS_FREEBSD */
 
-#ifdef OS_WIN32
-static inline void SleepUsec(uint64_t usec)
-{
-    uint64_t msec = 1;
-    if (usec > 1000) {
-        msec = usec / 1000;
-    }
-    Sleep(msec);
-}
-#define SleepMsec(msec) Sleep((msec))
-#else
-#define SleepUsec(usec) usleep((usec))
-#define SleepMsec(msec) usleep((msec) * 1000)
-#endif
-
 /* prototypes */
 static int SetCPUAffinity(uint16_t cpu);
 
