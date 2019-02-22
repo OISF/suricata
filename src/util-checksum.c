@@ -67,23 +67,26 @@ int ReCalculateChecksum(Packet *p)
  *  \retval 1 yes, offloading in place
  *  \retval 0 no, no offloading used
  */
-int ChecksumAutoModeCheck(uint32_t thread_count,
-        unsigned int iface_count, unsigned int iface_fail)
+int ChecksumAutoModeCheck(uint64_t thread_count,
+        uint64_t iface_count, uint64_t iface_fail)
 {
     if (thread_count == CHECKSUM_SAMPLE_COUNT) {
         if (iface_fail != 0) {
             if ((iface_count / iface_fail) < CHECKSUM_INVALID_RATIO) {
                 SCLogInfo("More than 1/%dth of packets have an invalid "
-                        "checksum, assuming checksum offloading is used (%u/%u)",
+                        "checksum, assuming checksum offloading is used "
+                        "(%"PRIu64"/%"PRIu64")",
                         CHECKSUM_INVALID_RATIO, iface_fail, iface_count);
                 return 1;
             } else {
                 SCLogInfo("Less than 1/%dth of packets have an invalid "
-                        "checksum, assuming checksum offloading is NOT used (%u/%u)",
-                        CHECKSUM_INVALID_RATIO, iface_fail, iface_count);
+                        "checksum, assuming checksum offloading is NOT used "
+                        "(%"PRIu64"/%"PRIu64")", CHECKSUM_INVALID_RATIO,
+                        iface_fail, iface_count);
             }
         } else {
-            SCLogInfo("No packets with invalid checksum, assuming checksum offloading is NOT used");
+            SCLogInfo("No packets with invalid checksum, assuming "
+                    "checksum offloading is NOT used");
         }
     }
     return 0;
