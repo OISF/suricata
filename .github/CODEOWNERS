@@ -8,8 +8,10 @@
 # additionally, it seems only the directoy syntax works.
 # e.g. '/src/source-*.[ch]  @regit' seems to have no effect.
 
-*                   @OISF/core-team
+*                   @OISF/oisf-team
 /doc/               @norg
+/python/            @jasonish @shivan1b
 /rust/              @victorjulien @jasonish
 /.github/           @victorjulien
+/ebpf/              @regit
 
