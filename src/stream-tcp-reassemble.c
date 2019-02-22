@@ -1400,69 +1400,68 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
     }
 
     /* this can only happen if the segment insert of our current 'p' failed */
-    if (mydata == NULL || mydata_len == 0) {
-        SCLogDebug("no data: %p/%u", mydata, mydata_len);
-        *progress_out = STREAM_RAW_PROGRESS(stream);
-        return 0;
-    }
-    if (mydata_offset >= packet_rightedge_abs ||
-        (packet_leftedge_abs >= (mydata_offset + mydata_len))) {
-        SCLogDebug("no data overlap: %p/%u", mydata, mydata_len);
-        *progress_out = STREAM_RAW_PROGRESS(stream);
-        return 0;
-    }
-
-    /* adjust buffer to match chunk_size */
-
     uint64_t mydata_rightedge_abs = mydata_offset + mydata_len;
-    SCLogDebug("chunk_size %u mydata_len %u", chunk_size, mydata_len);
-    if (mydata_len > chunk_size) {
-        uint32_t excess = mydata_len - chunk_size;
-        SCLogDebug("chunk_size %u mydata_len %u excess %u", chunk_size, mydata_len, excess);
+    if ((mydata == NULL || mydata_len == 0) || /* no data */
+            (mydata_offset >= packet_rightedge_abs || /* data all to the right */
+             packet_leftedge_abs >= mydata_rightedge_abs) || /* data all to the left */
+            (packet_leftedge_abs < mydata_offset || /* data missing at the start */
+             packet_rightedge_abs > mydata_rightedge_abs)) /* data missing at the end */
+    {
+        /* no data, or data is incomplete or wrong: use packet data */
+        mydata = p->payload;
+        mydata_offset = packet_leftedge_abs;
+        //mydata_rightedge_abs = packet_rightedge_abs;
+    } else {
+        /* adjust buffer to match chunk_size */
+        SCLogDebug("chunk_size %u mydata_len %u", chunk_size, mydata_len);
+        if (mydata_len > chunk_size) {
+            uint32_t excess = mydata_len - chunk_size;
+            SCLogDebug("chunk_size %u mydata_len %u excess %u", chunk_size, mydata_len, excess);
 
-        if (mydata_rightedge_abs == packet_rightedge_abs) {
-            mydata += excess;
-            mydata_len -= excess;
-            mydata_offset += excess;
-            SCLogDebug("cutting front of the buffer with %u", excess);
-        } else if (mydata_offset == packet_leftedge_abs) {
-            mydata_len -= excess;
-            SCLogDebug("cutting tail of the buffer with %u", excess);
-        } else {
-            uint32_t before = (uint32_t)(packet_leftedge_abs - mydata_offset);
-            uint32_t after = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs);
-            SCLogDebug("before %u after %u", before, after);
-
-            if (after >= (chunk_size - p->payload_len) / 2) {
-                // more trailing data than we need
-
-                if (before >= (chunk_size - p->payload_len) / 2) {
-                    // also more heading data, devide evenly
-                    before = after = (chunk_size - p->payload_len) / 2;
-                } else {
-                    // heading data is less than requested, give the
-                    // rest to the trailing data
-                    after = (chunk_size - p->payload_len) - before;
-                }
+            if (mydata_rightedge_abs == packet_rightedge_abs) {
+                mydata += excess;
+                mydata_len -= excess;
+                mydata_offset += excess;
+                SCLogDebug("cutting front of the buffer with %u", excess);
+            } else if (mydata_offset == packet_leftedge_abs) {
+                mydata_len -= excess;
+                SCLogDebug("cutting tail of the buffer with %u", excess);
             } else {
-                // less trailing data than requested
+                uint32_t before = (uint32_t)(packet_leftedge_abs - mydata_offset);
+                uint32_t after = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs);
+                SCLogDebug("before %u after %u", before, after);
 
-                if (before >= (chunk_size - p->payload_len) / 2) {
-                    before = (chunk_size - p->payload_len) - after;
+                if (after >= (chunk_size - p->payload_len) / 2) {
+                    // more trailing data than we need
+
+                    if (before >= (chunk_size - p->payload_len) / 2) {
+                        // also more heading data, devide evenly
+                        before = after = (chunk_size - p->payload_len) / 2;
+                    } else {
+                        // heading data is less than requested, give the
+                        // rest to the trailing data
+                        after = (chunk_size - p->payload_len) - before;
+                    }
                 } else {
-                    // both smaller than their requested size
-                }
-            }
+                    // less trailing data than requested
 
-            /* adjust the buffer */
-            uint32_t skip = (uint32_t)(packet_leftedge_abs - mydata_offset) - before;
-            uint32_t cut = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs) - after;
-            DEBUG_VALIDATE_BUG_ON(skip > mydata_len);
-            DEBUG_VALIDATE_BUG_ON(cut > mydata_len);
-            DEBUG_VALIDATE_BUG_ON(skip + cut > mydata_len);
-            mydata += skip;
-            mydata_len -= (skip + cut);
-            mydata_offset += skip;
+                    if (before >= (chunk_size - p->payload_len) / 2) {
+                        before = (chunk_size - p->payload_len) - after;
+                    } else {
+                        // both smaller than their requested size
+                    }
+                }
+
+                /* adjust the buffer */
+                uint32_t skip = (uint32_t)(packet_leftedge_abs - mydata_offset) - before;
+                uint32_t cut = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs) - after;
+                DEBUG_VALIDATE_BUG_ON(skip > mydata_len);
+                DEBUG_VALIDATE_BUG_ON(cut > mydata_len);
+                DEBUG_VALIDATE_BUG_ON(skip + cut > mydata_len);
+                mydata += skip;
+                mydata_len -= (skip + cut);
+                mydata_offset += skip;
+            }
         }
     }
 
