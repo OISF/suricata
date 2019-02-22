@@ -747,8 +747,8 @@ void StreamingBufferSBBGetData(const StreamingBuffer *sb,
     if (sbb->offset >= sb->stream_offset) {
         uint64_t offset = sbb->offset - sb->stream_offset;
         *data = sb->buf + offset;
-        if (offset + sbb->len > sb->buf_size)
-            *data_len = sb->buf_size - offset;
+        if (offset + sbb->len > sb->buf_offset)
+            *data_len = sb->buf_offset - offset;
         else
             *data_len = sbb->len;
         return;
