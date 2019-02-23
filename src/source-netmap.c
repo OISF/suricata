@@ -775,11 +775,13 @@ static int NetmapRingRead(NetmapThreadVars *ntv, int ring_id)
         } else if (ntv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
             if (ntv->livedev->ignore_checksum) {
                 p->flags |= PKT_IGNORE_CHECKSUM;
-            } else if (ChecksumAutoModeCheck(ntv->pkts,
-                        SC_ATOMIC_GET(ntv->livedev->pkts),
-                        SC_ATOMIC_GET(ntv->livedev->invalid_checksums))) {
-                ntv->livedev->ignore_checksum = 1;
-                p->flags |= PKT_IGNORE_CHECKSUM;
+            } else {
+                uint64_t pkts = SC_ATOMIC_GET(ntv->livedev->pkts);
+                if (ChecksumAutoModeCheck(pkts, pkts,
+                            SC_ATOMIC_GET(ntv->livedev->invalid_checksums))) {
+                    ntv->livedev->ignore_checksum = 1;
+                    p->flags |= PKT_IGNORE_CHECKSUM;
+                }
             }
         }
 
