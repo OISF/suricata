@@ -167,7 +167,7 @@ static MpmCtx *smtp_mpm_ctx = NULL;
 
 /* smtp reply codes.  If an entry is made here, please make a simultaneous
  * entry in smtp_reply_map */
-enum {
+enum SMTPCode {
     SMTP_REPLY_211,
     SMTP_REPLY_214,
     SMTP_REPLY_220,
@@ -931,8 +931,6 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
 {
     SCEnter();
 
-    uint64_t reply_code = 0;
-
     /* the reply code has to contain at least 3 bytes, to hold the 3 digit
      * reply code */
     if (state->current_line_len < 3) {
@@ -970,7 +968,9 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
                 state->current_line[0], state->current_line[1], state->current_line[2]);
         SCReturnInt(-1);
     }
-    reply_code = smtp_reply_map[td->pmq->rule_id_array[0]].enum_value;
+    enum SMTPCode reply_code = smtp_reply_map[td->pmq->rule_id_array[0]].enum_value;
+    SCLogDebug("REPLY: reply_code %u / %s", reply_code,
+            smtp_reply_map[reply_code].enum_name);
 
     if (state->cmds_idx == state->cmds_cnt) {
         if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
