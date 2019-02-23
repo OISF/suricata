@@ -129,6 +129,9 @@ typedef enum {
     HTTP_FIELD_VARY,
     HTTP_FIELD_WARNING,
     HTTP_FIELD_WWW_AUTHENTICATE,
+    HTTP_FIELD_TRUE_CLIENT_IP,
+    HTTP_FIELD_ORG_SRC_IP,
+    HTTP_FIELD_X_BLUECOAT_VIA,
     HTTP_FIELD_SIZE
 } HttpField;
 
@@ -187,6 +190,9 @@ struct {
     { "vary", "vary", 0 },
     { "warning", "warning", 0 },
     { "www_authenticate", "www-authenticate", 0 },
+    { "true_client_ip", "true-client-ip", LOG_HTTP_REQUEST },
+    { "org_src_ip", "org-src-ip", LOG_HTTP_REQUEST },
+    { "x_bluecoat_via", "x-bluecoat-via", LOG_HTTP_REQUEST },
 };
 
 static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
