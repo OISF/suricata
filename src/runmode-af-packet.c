@@ -494,6 +494,7 @@ static void *ParseAFPConfig(const char *iface)
                 aconf->xdp_mode = XDP_FLAGS_DRV_MODE;
             } else if (!strcmp(xdp_mode, "hw")) {
                 aconf->xdp_mode = XDP_FLAGS_HW_MODE;
+                aconf->ebpf_t_config.flags |= EBPF_XDP_HW_MODE;
             } else {
                 SCLogWarning(SC_ERR_INVALID_VALUE,
                              "Invalid xdp-mode value: '%s'", xdp_mode);
