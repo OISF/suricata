@@ -310,6 +310,16 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         return -1;
     }
 
+    if (config->flags & EBPF_XDP_HW_MODE) {
+        unsigned int ifindex = if_nametoindex(iface);
+        bpf_object__for_each_program(bpfprog, bpfobj) {
+            bpf_program__set_ifindex(bpfprog, ifindex);
+        }
+        bpf_map__for_each(map, bpfobj) {
+            bpf_map__set_ifindex(map, ifindex);
+        }
+    }
+
     /* Let's check that our section is here */
     bpf_object__for_each_program(bpfprog, bpfobj) {
         const char *title = bpf_program__title(bpfprog, 0);
