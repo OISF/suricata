@@ -25,5 +25,7 @@
 #define __OUTPUT_JSON_SIP_H__
 
 void JsonSIPLogRegister(void);
-
+#ifdef HAVE_RUST
+json_t *JsonSIPAddMetadata(const Flow *f, uint64_t tx_id);
+#endif /* HAVE_RUST */
 #endif /* __OUTPUT_JSON_SIP_H__ */

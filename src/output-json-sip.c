@@ -63,6 +63,19 @@ typedef struct LogSIPLogThread_ {
     MemBuffer          *buffer;
 } LogSIPLogThread;
 
+json_t *JsonSIPAddMetadata(const Flow *f, uint64_t tx_id)
+{
+    SIPState *state = FlowGetAppState(f);
+    if (state) {
+        SIPTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_SIP, state, tx_id);
+        if (tx) {
+            return rs_sip_log_json(state, tx);
+        }
+    }
+
+    return NULL;
+}
+
 static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
