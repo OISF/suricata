@@ -43,6 +43,8 @@
 #define CPUMAP_MAX_CPUS     64
 
 #define USE_PERCPU_HASH    1
+#define GOT_TX_PEER	1
+#define WRITE_MAP	1
 
 struct vlan_hdr {
     __u16	h_vlan_TCI;
@@ -123,6 +125,7 @@ struct bpf_map_def SEC("maps") cpus_count = {
 };
 #endif
 
+#if GOT_TX_PEER
 /* Map has only one element as we don't handle any sort of
  * routing for now. Key value set by user space is 0 and
  * value is the peer interface. */
@@ -142,6 +145,7 @@ struct bpf_map_def SEC("maps") tx_peer_int = {
 	.value_size = sizeof(int),
 	.max_entries = 1,
 };
+#endif
 
 #define USE_GLOBAL_BYPASS   0
 #if USE_GLOBAL_BYPASS
@@ -206,15 +210,19 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end,
     int sport;
     struct flowv4_keys tuple;
     struct pair *value;
+#if BUILD_CPUMAP || GOT_TX_PEER
     __u32 key0 = 0;
+#endif
 #if BUILD_CPUMAP
     __u32 cpu_dest;
     __u32 *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
     __u32 *cpu_selected;
     __u32 cpu_hash;
 #endif
+#if GOT_TX_PEER
     int *iface_peer;
     int tx_port = 0;
+#endif
 
     if ((void *)(iph + 1) > data_end)
         return XDP_PASS;
@@ -253,15 +261,21 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end,
         char fmt[] = "Data: t:%lu p:%lu n:%lu\n";
         bpf_trace_printk(fmt, sizeof(fmt), value->time, value->packets, value->bytes);
 #endif
+#if WRITE_MAP
         value->packets++;
         value->bytes += data_end - data;
+#endif
 
+#if GOT_TX_PEER
         iface_peer = bpf_map_lookup_elem(&tx_peer_int, &key0);
         if (!iface_peer) {
             return XDP_DROP;
         } else {
             return bpf_redirect_map(&tx_peer, tx_port, 0);
         }
+#else
+	return XDP_DROP;
+#endif
     }
 
 #if BUILD_CPUMAP
@@ -291,15 +305,19 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end,
     int sport;
     struct flowv6_keys tuple;
     struct pair *value;
+#if BUILD_CPUMAP || GOT_TX_PEER
     __u32 key0 = 0;
+#endif
 #if BUILD_CPUMAP
     __u32 cpu_dest;
     int *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
     __u32 *cpu_selected;
     __u32 cpu_hash;
 #endif
+#if GOT_TX_PEER
     int tx_port = 0;
     int *iface_peer;
+#endif
 
     if ((void *)(ip6h + 1) > data_end)
         return 0;
@@ -329,15 +347,21 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end,
         char fmt6[] = "Found IPv6 flow: %d -> %d\n";
         bpf_trace_printk(fmt6, sizeof(fmt6), sport, dport);
 #endif
+#if WRITE_MAP
         value->packets++;
         value->bytes += data_end - data;
+#endif
 
+#if GOT_TX_PEER
         iface_peer = bpf_map_lookup_elem(&tx_peer_int, &key0);
         if (!iface_peer) {
             return XDP_DROP;
         } else {
             return bpf_redirect_map(&tx_peer, tx_port, 0);
         }
+#else
+	return XDP_DROP;
+#endif
     }
 
 #if BUILD_CPUMAP
