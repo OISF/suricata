@@ -747,7 +747,14 @@ void RunModeInitializeOutputs(void)
             continue;
         }
 
-        if (strncmp(output->val, "unified-", sizeof("unified-") - 1) == 0) {
+        if (strcmp(output->val, "file-log") == 0) {
+            SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                    "file-log is no longer supported,"
+                    " use eve.files instead "
+                    "(see https://redmine.openinfosecfoundation.org/issues/2376"
+                    " for an explanation)");
+            continue;
+        } else if (strncmp(output->val, "unified-", sizeof("unified-") - 1) == 0) {
             SCLogWarning(SC_ERR_NOT_SUPPORTED,
                     "Unified1 is no longer supported,"
                     " use Unified2 instead "

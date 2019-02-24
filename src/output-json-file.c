@@ -52,7 +52,6 @@
 #include "util-byte.h"
 #include "util-validate.h"
 
-#include "log-file.h"
 #include "util-logopenfile.h"
 
 #include "output.h"

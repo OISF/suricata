@@ -8,7 +8,6 @@ Configuration
 
 In the suricata yaml:
 
-
 ::
 
 
@@ -19,16 +18,22 @@ In the suricata yaml:
          force-hash: [md5]  # force logging of md5 checksums
          #waldo: file.waldo # waldo file to store the file_id across runs
 
-Optionally, for JSON output:
-
+For JSON output:
 
 ::
 
+    outputs:
+      - eve-log:
+        enabled: yes
+        filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
+        filename: eve.json
+        types:
+          - files:
+            force-magic: no   # force logging magic on all logged files
+            # force logging of checksums, available hash functions are md5,
+            # sha1 and sha256
+            #force-hash: [md5]
 
-   - file-log:
-     enabled: yes
-     filename: files-json.log
-     append: no
 
 Other settings affecting :doc:`file-extraction`
 
