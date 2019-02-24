@@ -26,4 +26,8 @@
 
 void JsonSIPLogRegister(void);
 
+#ifdef HAVE_LIBJANSSON
+json_t *JsonSIPAddMetadata(const Flow *f, uint64_t tx_id);
+#endif /* HAVE_LIBJANSSON */
+
 #endif /* __OUTPUT_JSON_SIP_H__ */
