@@ -74,16 +74,13 @@ Make sure you have clang (>=3.9) installed on the system  ::
 libbpf
 ~~~~~~
 
-Suricata uses libbpf to interact with eBPF and XDP. This library is available
-in the Linux tree. Before Linux 4.16, a patched libbpf library is also needed::
+Suricata uses libbpf to interact with eBPF and XDP ::
 
- git clone -b libbpf-release  https://github.com/regit/linux.git
-
-If you have a recent enough kernel, you can skip this part.
+ git clone https://github.com/libbpf/libbpf.git
 
 Now, you can build and install the library ::
 
- cd linux/tools/lib/bpf/
+ cd libbpf/src/
  make && sudo make install
 
  sudo make install_headers
