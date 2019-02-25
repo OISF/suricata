@@ -46,8 +46,8 @@
 #define GOT_TX_PEER	1
 
 /* set to non 0 to load balance in hardware mode on RSS_QUEUE_NUMBERS queues
- * and unset BUILD_CPUMAP */
-#define RSS_QUEUE_NUMBERS   40
+ * and unset BUILD_CPUMAP (number must be a power of 2 for netronome) */
+#define RSS_QUEUE_NUMBERS   32
 
 struct vlan_hdr {
     __u16	h_vlan_TCI;
