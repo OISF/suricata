@@ -221,6 +221,9 @@ script:
     if [[ "$DO_CHECK_SETUP_SCRIPTS" == "yes" ]]; then
         (cd scripts && ./check-setup.sh)
     fi
+  - |
+    git clone https://github.com/OISF/suricata-verify.git verify
+    python ./verify/run.py
 
 before_install:
   - export PATH=$HOME/.cargo/bin:$PATH
