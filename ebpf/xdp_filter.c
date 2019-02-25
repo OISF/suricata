@@ -45,6 +45,10 @@
 #define USE_PERCPU_HASH    1
 #define GOT_TX_PEER	1
 
+/* set to non 0 to load balance in hardware mode on RSS_QUEUE_NUMBERS queues
+ * and unset BUILD_CPUMAP */
+#define RSS_QUEUE_NUMBERS   40
+
 struct vlan_hdr {
     __u16	h_vlan_TCI;
     __u16	h_vlan_encapsulated_proto;
@@ -202,7 +206,7 @@ static __always_inline int get_dport(void *trans_data, void *data_end,
     }
 }
 
-static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct iphdr *iph = data + nh_off;
     int dport;
@@ -296,11 +300,17 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end,
         return XDP_PASS;
     }
 #else
+#ifdef RSS_QUEUE_NUMBERS
+    /* IP-pairs + protocol (UDP/TCP/ICMP) hit same CPU */
+    __u32 xdp_hash = tuple.src + tuple.dst;
+    xdp_hash = SuperFastHash((char *)&xdp_hash, 4, INITVAL + iph->protocol);
+    ctx->rx_queue_index = xdp_hash % RSS_QUEUE_NUMBERS;
+#endif
         return XDP_PASS;
 #endif
 }
 
-static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
+static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct ipv6hdr *ip6h = data + nh_off;
     int dport;
@@ -388,6 +398,16 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end,
         return XDP_PASS;
     }
 #else
+#if RSS_QUEUE_NUMBERS
+    /* IP-pairs + protocol (UDP/TCP/ICMP) hit same CPU */
+    __u32 xdp_hash  = tuple.src[0] + tuple.dst[0];
+    xdp_hash += tuple.src[1] + tuple.dst[1];
+    xdp_hash += tuple.src[2] + tuple.dst[2];
+    xdp_hash += tuple.src[3] + tuple.dst[3];
+    xdp_hash = SuperFastHash((char *)&xdp_hash, 4, ip6h->nexthdr);
+    ctx->rx_queue_index = xdp_hash % RSS_QUEUE_NUMBERS;
+#endif
+
     return XDP_PASS;
 #endif
 }
@@ -447,9 +467,9 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
 	}
 
 	if (h_proto == __constant_htons(ETH_P_IP))
-		return filter_ipv4(data, nh_off, data_end, vlan0, vlan1);
+		return filter_ipv4(ctx, data, nh_off, data_end, vlan0, vlan1);
 	else if (h_proto == __constant_htons(ETH_P_IPV6))
-		return filter_ipv6(data, nh_off, data_end, vlan0, vlan1);
+		return filter_ipv6(ctx, data, nh_off, data_end, vlan0, vlan1);
 	else
 		rc = XDP_PASS;
 
