@@ -172,10 +172,10 @@ matrix:
         apt:
           packages:
             - *packages-without-jansson
-    # OSX 10.12, XCode 8.1
+    # OSX 10.13, XCode 8.3
     - os: osx
       compiler: gcc
-      osx_image: xcode8.1
+      osx_image: xcode8.3
       sudo: true
       env:
         - NAME="osx,gcc"
