@@ -38,6 +38,12 @@ addons:
       - *packages-without-jansson
       - libjansson-dev
 
+cache:
+  directories:
+    - /home/travis/.rustup
+    - /home/travis/.cargo
+    - /home/travis/.multirust
+
 # Define the default CFLAGS used by all builds as a YAML anchor.
 default-cflags: &default-cflags
   CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
