@@ -219,6 +219,7 @@ script:
             exit 1
         fi
     fi
+    (cd qa/coccinelle && make check)
   - |
     if [[ "$DO_DISTCHECK" == "yes" ]]; then
         make distcheck DISTCHECK_CONFIGURE_FLAGS="${ARGS}"
