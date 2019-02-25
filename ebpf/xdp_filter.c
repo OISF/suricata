@@ -44,7 +44,6 @@
 
 #define USE_PERCPU_HASH    1
 #define GOT_TX_PEER	1
-#define WRITE_MAP	1
 
 struct vlan_hdr {
     __u16	h_vlan_TCI;
@@ -261,9 +260,12 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end,
         char fmt[] = "Data: t:%lu p:%lu n:%lu\n";
         bpf_trace_printk(fmt, sizeof(fmt), value->time, value->packets, value->bytes);
 #endif
-#if WRITE_MAP
+#if USE_PERCPU_HASH
         value->packets++;
         value->bytes += data_end - data;
+#else
+	__sync_fetch_and_add(&value->packets, 1);
+	__sync_fetch_and_add(&value->bytes, data_end - data);
 #endif
 
 #if GOT_TX_PEER
@@ -347,9 +349,12 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end,
         char fmt6[] = "Found IPv6 flow: %d -> %d\n";
         bpf_trace_printk(fmt6, sizeof(fmt6), sport, dport);
 #endif
-#if WRITE_MAP
+#if USE_PERCPU_HASH
         value->packets++;
         value->bytes += data_end - data;
+#else
+	__sync_fetch_and_add(&value->packets, 1);
+	__sync_fetch_and_add(&value->bytes, data_end - data);
 #endif
 
 #if GOT_TX_PEER
