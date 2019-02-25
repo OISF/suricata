@@ -259,6 +259,7 @@ before_install:
         packages="$packages lua"
         packages="$packages pcre"
         packages="$packages hiredis"
+        packages="$packages jq"
         for package in $packages; do
             if brew ls $package --versions > /dev/null; then
                 brew unlink $package
@@ -271,5 +272,9 @@ before_install:
         # Now relink, becuase if a newer version of a package wasn't
         # installed above, it will remain unlinked.
         brew link $packages
+
+        curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+        sudo python ./get-pip.py
+        sudo pip install PyYAML
     fi
   - ./qa/travis-libhtp.sh
