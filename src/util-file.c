@@ -39,6 +39,12 @@
 
 extern int g_detect_disabled;
 
+/** \brief mask of file flags we'll not set
+ *  This mask is set based on global file settings and
+ *  cannot be overriden by detection.
+ */
+static uint16_t g_file_flow_mask = 0;
+
 /** \brief switch to force filestore on all files
  *         regardless of the rules.
  */
@@ -88,26 +94,31 @@ static void FileEndSha256(File *ff);
 void FileForceFilestoreEnable(void)
 {
     g_file_force_filestore = 1;
+    g_file_flow_mask |= (FLOWFILE_NO_STORE_TS|FLOWFILE_NO_STORE_TC);
 }
 
 void FileForceMagicEnable(void)
 {
     g_file_force_magic = 1;
+    g_file_flow_mask |= (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC);
 }
 
 void FileForceMd5Enable(void)
 {
     g_file_force_md5 = 1;
+    g_file_flow_mask |= (FLOWFILE_NO_MD5_TS|FLOWFILE_NO_MD5_TC);
 }
 
 void FileForceSha1Enable(void)
 {
     g_file_force_sha1 = 1;
+    g_file_flow_mask |= (FLOWFILE_NO_SHA1_TS|FLOWFILE_NO_SHA1_TC);
 }
 
 void FileForceSha256Enable(void)
 {
     g_file_force_sha256 = 1;
+    g_file_flow_mask |= (FLOWFILE_NO_SHA256_TS|FLOWFILE_NO_SHA256_TC);
 }
 
 int FileForceFilestore(void)
@@ -152,6 +163,7 @@ int FileForceSha256(void)
 void FileForceTrackingEnable(void)
 {
     g_file_force_tracking = 1;
+    g_file_flow_mask |= (FLOWFILE_NO_SIZE_TS|FLOWFILE_NO_SIZE_TC);
 }
 
 /**
@@ -1032,216 +1044,80 @@ int FileCloseFileById(FileContainer *ffc, uint32_t track_id,
     SCReturnInt(-1);
 }
 
-/**
- *  \brief disable file storage for a flow
+/** \brief set a flow's file flags
+ *  \param set_file_flags flags in both directions that are requested to set
  *
- *  \param f *LOCKED* flow
- *  \param direction flow direction
+ *  This function will ignore the flags for the irrelevant direction and
+ *  also mask the flags with the global settings.
  */
-void FileDisableStoring(Flow *f, uint8_t direction)
+/* coccinelle: FileUpdateFlowFileFlags():3,2:FLOWFILE_ */
+void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction)
 {
-    File *ptr = NULL;
-
     SCEnter();
-
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
-    if (direction == STREAM_TOSERVER)
-        f->file_flags |= FLOWFILE_NO_STORE_TS;
-    else
-        f->file_flags |= FLOWFILE_NO_STORE_TC;
-
-    FileContainer *ffc = AppLayerParserGetFiles(f, f->alstate, direction);
-    if (ffc != NULL) {
-        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            /* if we're already storing, we'll continue */
-            if (!(ptr->flags & FILE_STORE)) {
-                SCLogDebug("not storing this file");
-                ptr->flags |= FILE_NOSTORE;
-            }
-        }
+    /* remove flags not in our direction and
+       don't disable what is globally enabled */
+    if (direction == STREAM_TOSERVER) {
+        set_file_flags &= ~(FLOWFILE_NONE_TC|g_file_flow_mask);
+    } else {
+        set_file_flags &= ~(FLOWFILE_NONE_TS|g_file_flow_mask);
     }
-    SCReturn;
-}
+    f->file_flags |= set_file_flags;
 
-/**
- *  \brief disable file magic lookups for this flow
- *
- *  \param f *LOCKED* flow
- *  \param direction flow direction
- */
-void FileDisableMagic(Flow *f, uint8_t direction)
-{
-    File *ptr = NULL;
+    SCLogDebug("f->file_flags %04x set_file_flags %04x g_file_flow_mask %04x",
+            f->file_flags, set_file_flags, g_file_flow_mask);
 
-    SCEnter();
+    if (set_file_flags != 0 && f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL) {
+        uint16_t per_file_flags = 0;
+#ifdef HAVE_MAGIC
+        if (set_file_flags & (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC))
+            per_file_flags |= FILE_NOMAGIC;
+#endif
+#ifdef HAVE_NSS
+        if (set_file_flags & (FLOWFILE_NO_MD5_TS|FLOWFILE_NO_MD5_TC))
+            per_file_flags |= FILE_NOMD5;
+        if (set_file_flags & (FLOWFILE_NO_SHA1_TS|FLOWFILE_NO_SHA1_TC))
+            per_file_flags |= FILE_NOSHA1;
+        if (set_file_flags & (FLOWFILE_NO_SHA256_TS|FLOWFILE_NO_SHA256_TC))
+            per_file_flags |= FILE_NOSHA256;
+#endif
+        if (set_file_flags & (FLOWFILE_NO_SIZE_TS|FLOWFILE_NO_SIZE_TC))
+            per_file_flags |= FILE_NOTRACK;
+        if (set_file_flags & (FLOWFILE_NO_STORE_TS|FLOWFILE_NO_STORE_TC))
+            per_file_flags |= FILE_NOSTORE;
 
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
-    if (direction == STREAM_TOSERVER)
-        f->file_flags |= FLOWFILE_NO_MAGIC_TS;
-    else
-        f->file_flags |= FLOWFILE_NO_MAGIC_TC;
-
-    FileContainer *ffc = AppLayerParserGetFiles(f, f->alstate, direction);
-    if (ffc != NULL) {
-        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            SCLogDebug("disabling magic for file %p from direction %s",
-                    ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
-            ptr->flags |= FILE_NOMAGIC;
-        }
-    }
-
-    SCReturn;
-}
-
-/**
- *  \brief disable file md5 calc for this flow
- *
- *  \param f *LOCKED* flow
- *  \param direction flow direction
- */
-void FileDisableMd5(Flow *f, uint8_t direction)
-{
-    File *ptr = NULL;
-
-    SCEnter();
-
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
-    if (direction == STREAM_TOSERVER)
-        f->file_flags |= FLOWFILE_NO_MD5_TS;
-    else
-        f->file_flags |= FLOWFILE_NO_MD5_TC;
-
-    FileContainer *ffc = AppLayerParserGetFiles(f, f->alstate, direction);
-    if (ffc != NULL) {
-        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            SCLogDebug("disabling md5 for file %p from direction %s",
-                    ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
-            ptr->flags |= FILE_NOMD5;
+        FileContainer *ffc = AppLayerParserGetFiles(f, direction);
+        if (ffc != NULL) {
+            for (File *ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
+                ptr->flags |= per_file_flags;
 
 #ifdef HAVE_NSS
-            /* destroy any ctx we may have so far */
-            if (ptr->md5_ctx != NULL) {
-                HASH_Destroy(ptr->md5_ctx);
-                ptr->md5_ctx = NULL;
-            }
+                /* destroy any ctx we may have so far */
+                if ((per_file_flags & FILE_NOSHA256) &&
+                        ptr->sha256_ctx != NULL)
+                {
+                    HASH_Destroy(ptr->sha256_ctx);
+                    ptr->sha256_ctx = NULL;
+                }
+                if ((per_file_flags & FILE_NOSHA1) &&
+                    ptr->sha1_ctx != NULL)
+                {
+                    HASH_Destroy(ptr->sha1_ctx);
+                    ptr->sha1_ctx = NULL;
+                }
+                if ((per_file_flags & FILE_NOMD5) &&
+                        ptr->md5_ctx != NULL)
+                {
+                    HASH_Destroy(ptr->md5_ctx);
+                    ptr->md5_ctx = NULL;
+                }
 #endif
-        }
-    }
-
-    SCReturn;
-}
-
-/**
- *  \brief disable file sha1 calc for this flow
- *
- *  \param f *LOCKED* flow
- *  \param direction flow direction
-*/
-void FileDisableSha1(Flow *f, uint8_t direction)
-{
-    File *ptr = NULL;
-
-    SCEnter();
-
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
-    if (direction == STREAM_TOSERVER)
-        f->file_flags |= FLOWFILE_NO_SHA1_TS;
-    else
-        f->file_flags |= FLOWFILE_NO_SHA1_TC;
-
-    FileContainer *ffc = AppLayerParserGetFiles(f, f->alstate, direction);
-    if (ffc != NULL) {
-        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            SCLogDebug("disabling sha1 for file %p from direction %s",
-                    ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
-            ptr->flags |= FILE_NOSHA1;
-
-#ifdef HAVE_NSS
-            /* destroy any ctx we may have so far */
-            if (ptr->sha1_ctx != NULL) {
-                HASH_Destroy(ptr->sha1_ctx);
-                ptr->sha1_ctx = NULL;
             }
-#endif
         }
     }
-
-    SCReturn;
 }
 
-/**
- *  \brief disable file sha256 calc for this flow
- *
- *  \param f *LOCKED* flow
- *  \param direction flow direction
- */
-void FileDisableSha256(Flow *f, uint8_t direction)
-{
-    File *ptr = NULL;
-
-    SCEnter();
-
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
-    if (direction == STREAM_TOSERVER)
-        f->file_flags |= FLOWFILE_NO_SHA256_TS;
-    else
-        f->file_flags |= FLOWFILE_NO_SHA256_TC;
-
-    FileContainer *ffc = AppLayerParserGetFiles(f, f->alstate, direction);
-    if (ffc != NULL) {
-        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            SCLogDebug("disabling sha256 for file %p from direction %s",
-                    ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
-            ptr->flags |= FILE_NOSHA256;
-
-#ifdef HAVE_NSS
-            /* destroy any ctx we may have so far */
-            if (ptr->sha256_ctx != NULL) {
-                HASH_Destroy(ptr->sha256_ctx);
-                ptr->sha256_ctx = NULL;
-            }
-#endif
-        }
-    }
-
-    SCReturn;
-}
-
-/**
- *  \brief disable file size tracking for this flow
- *
- *  \param f *LOCKED* flow
- *  \param direction flow direction
- */
-void FileDisableFilesize(Flow *f, uint8_t direction)
-{
-    File *ptr = NULL;
-
-    SCEnter();
-
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
-    if (direction == STREAM_TOSERVER)
-        f->file_flags |= FLOWFILE_NO_SIZE_TS;
-    else
-        f->file_flags |= FLOWFILE_NO_SIZE_TC;
-
-    FileContainer *ffc = AppLayerParserGetFiles(f, f->alstate, direction);
-    if (ffc != NULL) {
-        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            SCLogDebug("disabling size tracking for file %p from direction %s",
-                    ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
-            ptr->flags |= FILE_NOTRACK;
-        }
-    }
-
-    SCReturn;
-}
 
 
 /**
