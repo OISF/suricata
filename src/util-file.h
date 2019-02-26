@@ -199,15 +199,6 @@ int FileSetTx(File *, uint64_t txid);
 void FileContainerSetTx(FileContainer *ffc, uint64_t tx_id);
 
 /**
- *  \brief disable file storage for a flow
- *
- *  \param f *LOCKED* flow
- */
-void FileDisableStoring(struct Flow_ *, uint8_t);
-
-void FileDisableFilesize(Flow *f, uint8_t direction);
-
-/**
  *  \brief disable file storing for a transaction
  *
  *  \param f flow
@@ -223,21 +214,19 @@ int FileForceFilestore(void);
 void FileReassemblyDepthEnable(uint32_t size);
 uint32_t FileReassemblyDepth(void);
 
-void FileDisableMagic(Flow *f, uint8_t);
 void FileForceMagicEnable(void);
 int FileForceMagic(void);
 
-void FileDisableMd5(Flow *f, uint8_t);
 void FileForceMd5Enable(void);
 int FileForceMd5(void);
 
-void FileDisableSha1(Flow *f, uint8_t);
 void FileForceSha1Enable(void);
 int FileForceSha1(void);
 
-void FileDisableSha256(Flow *f, uint8_t);
 void FileForceSha256Enable(void);
 int FileForceSha256(void);
+
+void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction);
 
 void FileForceHashParseCfg(ConfNode *);
 
