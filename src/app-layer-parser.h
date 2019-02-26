@@ -230,7 +230,6 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *tctx, Flow *f, 
                    uint8_t flags, const uint8_t *input, uint32_t input_len);
 void AppLayerParserSetEOF(AppLayerParserState *pstate);
 bool AppLayerParserHasDecoderEvents(AppLayerParserState *pstate);
-int AppLayerParserIsTxAware(AppProto alproto);
 int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto);
 LoggerId AppLayerParserProtocolGetLoggerBits(uint8_t ipproto, AppProto alproto);
@@ -238,6 +237,7 @@ void AppLayerParserTriggerRawStreamReassembly(Flow *f, int direction);
 void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t stream_depth);
 uint32_t AppLayerParserGetStreamDepth(const Flow *f);
 void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *state, uint64_t tx_id, uint8_t flags);
+int AppLayerParserIsEnabled(AppProto alproto);
 
 /***** Cleanup *****/
 

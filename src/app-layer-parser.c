@@ -1341,10 +1341,10 @@ bool AppLayerParserHasDecoderEvents(AppLayerParserState *pstate)
     return false;
 }
 
-/** \brief simpler way to globally test if a alproto is registered
+/** \brief simple way to globally test if a alproto is registered
  *         and fully enabled in the configuration.
  */
-int AppLayerParserIsTxAware(AppProto alproto)
+int AppLayerParserIsEnabled(AppProto alproto)
 {
     return (alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto]
             .StateGetProgressCompletionStatus != NULL);

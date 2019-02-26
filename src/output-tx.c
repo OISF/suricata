@@ -72,12 +72,11 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            ThreadDeinitFunc ThreadDeinit,
                            void (*ThreadExitPrintStats)(ThreadVars *, void *))
 {
-    if (alproto != ALPROTO_UNKNOWN && !(AppLayerParserIsTxAware(alproto))) {
+    if (alproto != ALPROTO_UNKNOWN && !(AppLayerParserIsEnabled(alproto))) {
         SCLogNotice("%s logger not enabled: protocol %s is disabled",
             name, AppProtoToString(alproto));
         return -1;
     }
-
     OutputTxLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
