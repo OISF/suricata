@@ -663,8 +663,7 @@ static int DeStateSigTest03(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(!(PacketAlertCheck(p, 1)));
 
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
 
     File *file = files->head;
@@ -741,8 +740,7 @@ static int DeStateSigTest04(void)
     FAIL_IF_NULL(http_state);
     FAIL_IF_NULL(http_state->files_ts);
 
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
     File *file = files->head;
     FAIL_IF_NULL(file);
@@ -818,8 +816,7 @@ static int DeStateSigTest05(void)
     FAIL_IF_NULL(http_state);
     FAIL_IF_NULL(http_state->files_ts);
 
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
     File *file = files->head;
     FAIL_IF_NULL(file);
@@ -896,8 +893,7 @@ static int DeStateSigTest06(void)
     FAIL_IF_NULL(http_state);
     FAIL_IF_NULL(http_state->files_ts);
 
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
     File *file = files->head;
     FAIL_IF_NULL(file);
@@ -979,8 +975,7 @@ static int DeStateSigTest07(void)
     FAIL_IF_NULL(http_state);
     FAIL_IF_NULL(http_state->files_ts);
 
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
     File *file = files->head;
     FAIL_IF_NULL(file);
@@ -1077,8 +1072,7 @@ static int DeStateSigTest08(void)
     FAIL_IF_NULL(http_state);
     FAIL_IF_NULL(http_state->files_ts);
 
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
     File *file = files->head;
     FAIL_IF_NULL(file);
@@ -1102,8 +1096,7 @@ static int DeStateSigTest08(void)
     FAIL_IF_NULL(http_state);
     FAIL_IF_NULL(http_state->files_ts);
 
-    files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
     file = files->head;
     FAIL_IF_NULL(file);
@@ -1202,8 +1195,7 @@ static int DeStateSigTest09(void)
     FAIL_IF_NULL(http_state);
     FAIL_IF_NULL(http_state->files_ts);
 
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
     File *file = files->head;
     FAIL_IF_NULL(file);
@@ -1227,8 +1219,7 @@ static int DeStateSigTest09(void)
     FAIL_IF_NULL(http_state);
     FAIL_IF_NULL(http_state->files_ts);
 
-    files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
     file = files->head;
     FAIL_IF_NULL(file);
@@ -1325,8 +1316,7 @@ static int DeStateSigTest10(void)
     FAIL_IF_NULL(http_state);
     FAIL_IF_NULL(http_state->files_ts);
 
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
     File *file = files->head;
     FAIL_IF_NULL(file);
@@ -1350,8 +1340,7 @@ static int DeStateSigTest10(void)
     FAIL_IF_NULL(http_state);
     FAIL_IF_NULL(http_state->files_ts);
 
-    files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    files = AppLayerParserGetFiles(p->flow, STREAM_TOSERVER);
     FAIL_IF_NULL(files);
     file = files->head;
     FAIL_IF_NULL(file);

@@ -179,8 +179,8 @@ static void FlowPruneFiles(Packet *p)
 {
     if (p->flow && p->flow->alstate) {
         Flow *f = p->flow;
-        FileContainer *fc = AppLayerParserGetFiles(p->proto, f->alproto,
-            f->alstate, PKT_IS_TOSERVER(p) ? STREAM_TOSERVER : STREAM_TOCLIENT);
+        FileContainer *fc = AppLayerParserGetFiles(f,
+                PKT_IS_TOSERVER(p) ? STREAM_TOSERVER : STREAM_TOCLIENT);
         if (fc != NULL) {
             FilePrune(fc);
         }

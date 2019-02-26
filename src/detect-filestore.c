@@ -226,8 +226,7 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
                                          flags);
     }
 
-    FileContainer *ffc = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                p->flow->alstate, flags);
+    FileContainer *ffc = AppLayerParserGetFiles(p->flow, flags);
 
     /* filestore for single files only */
     if (s->filestore_ctx == NULL) {

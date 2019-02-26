@@ -198,8 +198,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
 AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(AppLayerParserState *pstate);
 void AppLayerParserSetDecoderEvents(AppLayerParserState *pstate, AppLayerDecoderEvents *devents);
 AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alproto, void *tx);
-FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
-                           void *alstate, uint8_t direction);
+FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction);
 int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
                         void *alstate, uint8_t direction);
 uint64_t AppLayerParserGetTxCnt(const Flow *, void *alstate);

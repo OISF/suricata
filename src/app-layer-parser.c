@@ -875,18 +875,16 @@ AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alp
     SCReturnPtr(ptr, "AppLayerDecoderEvents *");
 }
 
-FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
-                           void *alstate, uint8_t direction)
+FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
 {
     SCEnter();
 
     FileContainer *ptr = NULL;
 
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-        StateGetFiles != NULL)
+    if (alp_ctx.ctxs[f->protomap][f->alproto].StateGetFiles != NULL)
     {
-        ptr = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-            StateGetFiles(alstate, direction);
+        ptr = alp_ctx.ctxs[f->protomap][f->alproto].
+            StateGetFiles(f->alstate, direction);
     }
 
     SCReturnPtr(ptr, "FileContainer *");
@@ -2020,10 +2018,21 @@ static void TestProtocolStateFree(void *s)
     SCFree(s);
 }
 
-static uint64_t TestProtocolGetTxCnt(void *state)
+static uint64_t TestGetTxCnt(void *state)
 {
     /* single tx */
     return 1;
+}
+
+static void TestStateTransactionFree(void *state, uint64_t tx_id)
+{
+    /* do nothing */
+}
+
+static void *TestGetTx(void *state, uint64_t tx_id)
+{
+    TestState *test_state = (TestState *)state;
+    return test_state;
 }
 
 void AppLayerParserRegisterProtocolUnittests(uint8_t ipproto, AppProto alproto,
@@ -2073,7 +2082,9 @@ static int AppLayerParserTest01(void)
                       TestProtocolParser);
     AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_TEST,
                           TestProtocolStateAlloc, TestProtocolStateFree);
-    AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEST, TestProtocolGetTxCnt);
+    AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_TEST, TestStateTransactionFree);
+    AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TEST, TestGetTx);
+    AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEST, TestGetTxCnt);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
     if (f == NULL)
@@ -2128,7 +2139,9 @@ static int AppLayerParserTest02(void)
                       TestProtocolParser);
     AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_TEST,
                           TestProtocolStateAlloc, TestProtocolStateFree);
-    AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TEST, TestProtocolGetTxCnt);
+    AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_TEST, TestStateTransactionFree);
+    AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_TEST, TestGetTx);
+    AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TEST, TestGetTxCnt);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
     if (f == NULL)

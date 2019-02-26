@@ -415,8 +415,7 @@ static int DetectEngineInspectFiledata(
         transforms = engine->v2.transforms;
     }
 
-    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto,
-                                                f->alstate, flags);
+    FileContainer *ffc = AppLayerParserGetFiles(f, flags);
     if (ffc == NULL) {
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
@@ -484,8 +483,7 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
-    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto,
-                                                f->alstate, flags);
+    FileContainer *ffc = AppLayerParserGetFiles(f, flags);
     int local_file_id = 0;
     if (ffc != NULL) {
         File *file = ffc->head;

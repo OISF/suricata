@@ -227,10 +227,8 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
             (p->flowflags & FLOW_PKT_TOCLIENT));
     const bool file_trunc = StreamTcpReassembleDepthReached(p);
 
-    FileContainer *ffc_ts = AppLayerParserGetFiles(p->proto, f->alproto,
-                                                   f->alstate, STREAM_TOSERVER);
-    FileContainer *ffc_tc = AppLayerParserGetFiles(p->proto, f->alproto,
-                                                   f->alstate, STREAM_TOCLIENT);
+    FileContainer *ffc_ts = AppLayerParserGetFiles(f, STREAM_TOSERVER);
+    FileContainer *ffc_tc = AppLayerParserGetFiles(f, STREAM_TOCLIENT);
     SCLogDebug("ffc_ts %p", ffc_ts);
     OutputFiledataLogFfc(tv, store, p, ffc_ts, STREAM_TOSERVER, file_close_ts, file_trunc, STREAM_TOSERVER);
     SCLogDebug("ffc_tc %p", ffc_tc);

@@ -49,6 +49,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
+#include "util-validate.h"
 
 
 /**
@@ -218,16 +219,13 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 int DetectFileInspectGeneric(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
+        Flow *f, uint8_t flags, void *_alstate, void *tx, uint64_t tx_id)
 {
     SCEnter();
-
-    if (alstate == NULL) {
-        SCReturnInt(DETECT_ENGINE_INSPECT_SIG_NO_MATCH);
-    }
+    DEBUG_VALIDATE_BUG_ON(f->alstate != _alstate);
 
     const uint8_t direction = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
-    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, alstate, direction);
+    FileContainer *ffc = AppLayerParserGetFiles(f, direction);
     if (ffc == NULL || ffc->head == NULL) {
         SCReturnInt(DETECT_ENGINE_INSPECT_SIG_NO_MATCH);
     }
