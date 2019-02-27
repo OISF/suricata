@@ -267,7 +267,7 @@ static int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, 
     /* file can be NULL when a rule with filestore scope > file
      * matches. */
     if (file != NULL) {
-        file_id = file->file_store_id;
+        file_id = file->file_track_id;
         if (file->sid != NULL && s->id > 0) {
             if (file->sid_cnt >= file->sid_max) {
                 void *p = SCRealloc(file->sid, sizeof(uint32_t) * (file->sid_max + 8));
