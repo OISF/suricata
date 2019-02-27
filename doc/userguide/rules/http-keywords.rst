@@ -60,6 +60,8 @@ http_header                    Modifier                 Both
 http_raw_header                Modifier                 Both
 http_cookie                    Modifier                 Both
 http_server_body               Modifier                 Response
+http.server                    Modifier                 Response
+http.location                  Modifier                 Response
 file_data                      Sticky Buffer            Response
 http_content_type              Sticky Buffer            Both
 http_content_len               Sticky Buffer            Both
@@ -589,6 +591,29 @@ Notes
 -  Corresponding PCRE modifier: ``Q``
 
 -  further notes at the ``file_data`` section below.
+
+http.server
+-----------
+
+Sticky buffer to match on the HTTP Server headers. Only contains the
+header value. The \\r\\n after the header are not part of the buffer.
+
+Example::
+
+    alert http any any -> any any (flow:to_client; \
+            http.server; content:"Microsoft-IIS/6.0"; sid:1;)
+
+http.location
+-------------
+
+Sticky buffer to match on the HTTP Location headers. Only contains the
+header value. The \\r\\n after the header are not part of the buffer.
+
+Example::
+
+    alert http any any -> any any (flow:to_client; \
+            http.location; content:"http://www.google.com"; sid:1;)
+
 
 http_host and http_raw_host
 ---------------------------
