@@ -165,7 +165,6 @@ typedef struct NetmapDevice_
     char ifname[IFNAMSIZ];
     void *mem;
     size_t memsize;
-    struct netmap_if *nif;
     int rings_cnt;
     int rx_rings_cnt;
     int tx_rings_cnt;
@@ -268,6 +267,7 @@ static int NetmapOpen(char *ifname, int promisc, NetmapDevice **pdevice, int ver
 {
     NetmapDevice *pdev = NULL;
     struct nmreq nm_req;
+    struct netmap_if *nifp = NULL;
 
     *pdevice = NULL;
 
@@ -385,14 +385,14 @@ static int NetmapOpen(char *ifname, int promisc, NetmapDevice **pdevice, int ver
                            strerror(errno));
                 break;
             }
-            pdev->nif = NETMAP_IF(pdev->mem, nm_req.nr_offset);
         }
+        nifp = NETMAP_IF(pdev->mem, nm_req.nr_offset);
 
         if ((i < pdev->rx_rings_cnt) || (i == pdev->rings_cnt)) {
-            pring->rx = NETMAP_RXRING(pdev->nif, i);
+            pring->rx = NETMAP_RXRING(nifp, i);
         }
         if ((i < pdev->tx_rings_cnt) || (i == pdev->rings_cnt)) {
-            pring->tx = NETMAP_TXRING(pdev->nif, i);
+            pring->tx = NETMAP_TXRING(nifp, i);
         }
         SCSpinInit(&pring->tx_lock, 0);
         success_cnt++;
