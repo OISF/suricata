@@ -1256,7 +1256,7 @@ void FileStoreFileById(FileContainer *fc, uint32_t file_id)
 
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
-            if (ptr->file_store_id == file_id) {
+            if (ptr->file_track_id == file_id) {
                 FileStore(ptr);
             }
         }
