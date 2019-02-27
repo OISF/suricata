@@ -179,12 +179,14 @@ detect-http-headers.c detect-http-headers.h detect-http-headers-stub.h \
 detect-http-header-common.c detect-http-header-common.h \
 detect-http-header-names.c detect-http-header-names.h \
 detect-http-hh.c detect-http-hh.h \
+detect-http-location.c detect-http-location.h \
 detect-http-method.c detect-http-method.h \
 detect-http-protocol.c detect-http-protocol.h \
 detect-http-raw-header.c detect-http-raw-header.h \
 detect-http-referer.c detect-http-referer.h \
 detect-http-request-line.c detect-http-request-line.h \
 detect-http-response-line.c detect-http-response-line.h \
+detect-http-server.c detect-http-server.h \
 detect-http-server-body.c detect-http-server-body.h \
 detect-http-start.c detect-http-start.h \
 detect-http-stat-code.c detect-http-stat-code.h \
