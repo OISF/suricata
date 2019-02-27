@@ -21,6 +21,8 @@
 #include "detect-http-connection.h"
 #include "detect-http-content-len.h"
 #include "detect-http-content-type.h"
+#include "detect-http-location.h"
+#include "detect-http-server.h"
 #include "detect-http-referer.h"
 #include "detect-http-headers.h"
 
@@ -33,5 +35,7 @@ void DetectHttpHeadersRegister(void)
     RegisterHttpHeadersConnection();
     RegisterHttpHeadersContentLen();
     RegisterHttpHeadersContentType();
+    RegisterHttpHeadersServer();
+    RegisterHttpHeadersLocation();
 }
 
