@@ -1409,6 +1409,7 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
     {
         /* no data, or data is incomplete or wrong: use packet data */
         mydata = p->payload;
+        mydata_len = p->payload_len;
         mydata_offset = packet_leftedge_abs;
         //mydata_rightedge_abs = packet_rightedge_abs;
     } else {
