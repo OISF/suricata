@@ -1441,7 +1441,9 @@ static int AFPTryReopen(AFPThreadVars *ptv)
         return -1;
     }
 
+    SCPrivsRaise();
     int afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);
+    SCPrivsDrop();
     if (afp_activate_r != 0) {
         if (ptv->down_count % AFP_DOWN_COUNTER_INTERVAL == 0) {
             SCLogWarning(SC_ERR_AFP_CREATE, "Can not open iface '%s'",
@@ -1490,7 +1492,9 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                 break;
             }
         }
+        SCPrivsRaise();
         r = AFPCreateSocket(ptv, ptv->iface, 1);
+        SCPrivsDrop();
         if (r < 0) {
             switch (-r) {
                 case AFP_FATAL_ERROR:
@@ -1687,7 +1691,10 @@ int AFPGetLinkType(const char *ifname)
 {
     int ltype;
 
+    SCPrivsRaise();
     int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    SCPrivsDrop();
+
     if (fd == -1) {
         SCLogError(SC_ERR_AFP_CREATE, "Couldn't create a AF_PACKET socket, error %s", strerror(errno));
         return LINKTYPE_RAW;

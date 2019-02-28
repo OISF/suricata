@@ -36,6 +36,10 @@
 #ifndef HAVE_LIBCAP_NG
 #define SCDropCaps(...)
 #define SCDropMainThreadCaps(...)
+
+void SCPrivsRaise(void);
+void SCPrivsDrop(void);
+
 #else
 #include "threadvars.h"
 #include "util-debug.h"
@@ -89,10 +93,21 @@ void SCDropCaps(ThreadVars *tv);
 */
 void SCDropMainThreadCaps(uint32_t , uint32_t );
 
+#define SCPrivsRaise(...)
+#define SCPrivsDrop(...)
+
 #endif /* HAVE_LIBCAP_NG */
 
 int SCGetUserID(const char *, const char *, uint32_t *, uint32_t *);
 int SCGetGroupID(const char *, uint32_t *);
+
+#ifdef OS_WIN32
+#define SCPrivsInit(...)
+#define SCPrivsRaise(...)
+#define SCPrivsDrop(...)
+#else /* OS_WIN32 */
+void SCPrivsInit(const uint8_t do_setuid, const uint8_t do_setgid, const uid_t uid, const gid_t gid);
+#endif /* OS_WIN32 */
 
 #ifdef __OpenBSD__
 int SCPledge(void);

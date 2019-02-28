@@ -645,10 +645,10 @@ static void PrintUsage(const char *progname)
     printf("\t--pfring-cluster-type <type>         : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
 #endif /* HAVE_PFRING */
     printf("\t--simulate-ips                       : force engine into IPS mode. Useful for QA\n");
-#ifdef HAVE_LIBCAP_NG
+#ifndef OS_WIN32
     printf("\t--user <user>                        : run suricata as this user after init\n");
     printf("\t--group <group>                      : run suricata as this group after init\n");
-#endif /* HAVE_LIBCAP_NG */
+#endif /* !OS_WIN32 */
     printf("\t--erf-in <path>                      : process an ERF file\n");
 #ifdef HAVE_DAG
     printf("\t--dag <dagX:Y>                       : process ERF records from DAG interface X, stream Y\n");
@@ -1710,24 +1710,24 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* UNITTESTS */
             }
             else if(strcmp((long_opts[option_index]).name, "user") == 0) {
-#ifndef HAVE_LIBCAP_NG
-                SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
-                        " drop privileges, but it was not compiled into Suricata.");
+#ifdef OS_WIN32
+                SCLogError(SC_ERR_INVALID_ARGUMENTS, "--user option cannot be"
+                        " used on Windows platforms.");
                 return TM_ECODE_FAILED;
 #else
                 suri->user_name = optarg;
                 suri->do_setuid = TRUE;
-#endif /* HAVE_LIBCAP_NG */
+#endif /* OS_WIN32 */
             }
             else if(strcmp((long_opts[option_index]).name, "group") == 0) {
-#ifndef HAVE_LIBCAP_NG
-                SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
-                        " drop privileges, but it was not compiled into Suricata.");
+#ifdef OS_WIN32
+                SCLogError(SC_ERR_INVALID_ARGUMENTS, "--group option cannot be"
+                        " used on Windows platforms.");
                 return TM_ECODE_FAILED;
 #else
                 suri->group_name = optarg;
                 suri->do_setgid = TRUE;
-#endif /* HAVE_LIBCAP_NG */
+#endif /* OS_WIN32 */
             }
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 suri->run_mode = RUNMODE_ERF_FILE;
@@ -2792,8 +2792,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
-
-
+    
 #ifdef HAVE_NSS
     if (suri->run_mode != RUNMODE_CONF_TEST) {
         /* init NSS for hashing */
@@ -2982,7 +2981,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    SCDropMainThreadCaps(suricata.userid, suricata.groupid);
+    SCPrivsInit(suricata.do_setuid, suricata.do_setgid, suricata.userid, suricata.groupid);
     PreRunPostPrivsDropInit(suricata.run_mode);
 
     PostConfLoadedDetectSetup(&suricata);
