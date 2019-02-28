@@ -134,14 +134,20 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
     if (*str_ptr == 'x' || *str_ptr == 'X') {
         int r = ByteExtractStringSigned(&tos, 16, 0, str_ptr + 1);
         if (r < 0) {
+            pcre_free_substring(str_ptr);
             goto error;
         }
     } else {
         int r = ByteExtractStringSigned(&tos, 10, 0, str_ptr);
         if (r < 0) {
+            pcre_free_substring(str_ptr);
             goto error;
         }
     }
+
+    /* Temporary buffer no longer needed */
+    pcre_free_substring(str_ptr);
+
     if (!(tos >= DETECT_IPTOS_MIN && tos <= DETECT_IPTOS_MAX)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid tos argument - "
                    "%s.  The tos option value must be in the range "
