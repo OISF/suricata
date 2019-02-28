@@ -246,6 +246,7 @@ detect-snmp-community.c detect-snmp-community.h \
 detect-snmp-pdu_type.c detect-snmp-pdu_type.h \
 detect-snmp-version.c detect-snmp-version.h \
 detect-sip-method.c detect-sip-method.h \
+detect-sip-uri.c detect-sip-uri.h \
 detect-ssh-proto.c detect-ssh-proto.h \
 detect-ssh-proto-version.c detect-ssh-proto-version.h \
 detect-ssh-software.c detect-ssh-software.h \

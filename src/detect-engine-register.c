@@ -180,6 +180,7 @@
 #include "detect-krb5-msgtype.h"
 #include "detect-krb5-sname.h"
 #include "detect-sip-method.h"
+#include "detect-sip-uri.h"
 #include "detect-target.h"
 #include "detect-template-rust-buffer.h"
 #include "detect-snmp-version.h"
@@ -546,6 +547,7 @@ void SigTableSetup(void)
     DetectKrb5MsgTypeRegister();
     DetectKrb5SNameRegister();
     DetectSipMethodRegister();
+    DetectSipUriRegister();
     DetectTargetRegister();
     DetectTemplateRustBufferRegister();
     DetectSNMPVersionRegister();
