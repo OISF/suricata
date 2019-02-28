@@ -236,6 +236,26 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
     return 0;
 }
 
+int SCSetUserID(const uint32_t uid, const uint32_t gid)
+{
+    int ret = setresgid(gid, gid, gid);
+
+    if (ret != 0) {
+        SCLogError(SC_ERR_GID_FAILED, "unable to set the group ID,"
+                " check permissions!! gid=%u ret=%i errno=%i", gid, ret, errno);
+        exit(EXIT_FAILURE);
+    }
+
+    ret = setresuid(uid, uid, uid);
+
+    if (ret != 0) {
+        SCLogError(SC_ERR_UID_FAILED, "unable to set the user ID,"
+                " check permissions!! uid=%u ret=%i errno=%i", uid, ret, errno);
+    }
+
+    return 0;
+}
+
 #ifdef __OpenBSD__
 int SCPledge(void)
 {

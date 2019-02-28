@@ -3023,6 +3023,7 @@ int main(int argc, char **argv)
 #endif
 #endif
 
+    SCSetUserID(suricata.userid, suricata.groupid);
     SCPledge();
     SuricataMainLoop(&suricata);
 
