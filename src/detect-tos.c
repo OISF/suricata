@@ -121,7 +121,7 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
         goto error;
     }
 
-    const char *str_ptr;
+    const char *str_ptr = NULL;
     res = pcre_get_substring((char *)arg, ov, MAX_SUBSTRINGS, 1,
                              &str_ptr);
     if (res < 0) {
@@ -134,20 +134,24 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
     if (*str_ptr == 'x' || *str_ptr == 'X') {
         int r = ByteExtractStringSigned(&tos, 16, 0, str_ptr + 1);
         if (r < 0) {
-            goto error;
+            goto error_free;
         }
     } else {
         int r = ByteExtractStringSigned(&tos, 10, 0, str_ptr);
         if (r < 0) {
-            goto error;
+            goto error_free;
         }
     }
+
     if (!(tos >= DETECT_IPTOS_MIN && tos <= DETECT_IPTOS_MAX)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid tos argument - "
                    "%s.  The tos option value must be in the range "
                    "%u - %u", str_ptr, DETECT_IPTOS_MIN, DETECT_IPTOS_MAX);
-        goto error;
+        goto error_free;
     }
+
+    /* Temporary buffer no longer needed */
+    pcre_free_substring(str_ptr);
 
     tosd = SCMalloc(sizeof(DetectTosData));
     if (unlikely(tosd == NULL))
@@ -157,6 +161,9 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
 
     return tosd;
 
+error_free:
+    if (str_ptr)
+        pcre_free_substring(str_ptr);
 error:
     return NULL;
 }
