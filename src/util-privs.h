@@ -94,5 +94,11 @@ void SCDropMainThreadCaps(uint32_t , uint32_t );
 int SCGetUserID(const char *, const char *, uint32_t *, uint32_t *);
 int SCGetGroupID(const char *, uint32_t *);
 
+#ifdef __OpenBSD__
+int SCPledge(void);
+#else /* __OpenBSD__ */
+#define SCPledge(...)
+#endif /* __OpenBSD__ */
+
 #endif	/* _UTIL_PRIVS_H */
 

@@ -3023,6 +3023,7 @@ int main(int argc, char **argv)
 #endif
 #endif
 
+    SCPledge();
     SuricataMainLoop(&suricata);
 
     /* Update the engine stage/status flag */
