@@ -18,7 +18,7 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use std::ptr;
-
+use core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use sip::sip::SIPTransaction;
 
 #[no_mangle]
@@ -58,6 +58,49 @@ pub unsafe extern "C" fn rs_sip_tx_get_uri(tx:  &mut SIPTransaction,
                 *buffer = p.as_ptr();
                 *buffer_len = p.len() as u32;
                 return 1;
+            }
+        }
+        _ => {}
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_sip_tx_get_protocol(tx:  &mut SIPTransaction,
+                                                buffer: *mut *const u8,
+                                                buffer_len: *mut u32,
+                                                direction: u8)
+                                                -> u8
+{
+    match direction {
+        STREAM_TOSERVER => {
+            match tx.request {
+                Some(ref r) => {
+                    let v = &r.version;
+                    if v.len() > 0 {
+                        *buffer = v.as_ptr();
+                        *buffer_len = v.len() as u32;
+                        return 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+        STREAM_TOCLIENT => {
+            match tx.response {
+                Some (ref r) => {
+                    let v = &r.version;
+                    if v.len() > 0 {
+                        *buffer = v.as_ptr();
+                        *buffer_len = v.len() as u32;
+                        return 1;
+                    }
+                }
+                _ => {}
             }
         }
         _ => {}
