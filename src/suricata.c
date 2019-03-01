@@ -680,7 +680,7 @@ static void PrintBuildInfo(void)
 {
     const char *bits = "<unknown>-bits";
     const char *endian = "<unknown>-endian";
-    char features[2048] = "";
+    char features[2048] = "TFO "; //WIP
     const char *tls = "pthread key";
 
 #ifdef REVISION
