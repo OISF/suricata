@@ -306,7 +306,7 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
     xdp_hash = SuperFastHash((char *)&xdp_hash, 4, INITVAL + iph->protocol);
     ctx->rx_queue_index = xdp_hash % RSS_QUEUE_NUMBERS;
 #endif
-        return XDP_PASS;
+    return XDP_PASS;
 #endif
 }
 
