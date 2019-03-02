@@ -539,31 +539,31 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
          * its counters and lastseen if needed */
         FlowKey flow_key;
         if (tcfg->mode == AFP_MODE_XDP_BYPASS) {
-            flow_key.sp = ntohs(key.port16[0]);
-            flow_key.dp = ntohs(key.port16[1]);
+            flow_key.sp = ntohs(next_key.port16[0]);
+            flow_key.dp = ntohs(next_key.port16[1]);
         } else {
-            flow_key.sp = key.port16[0];
-            flow_key.dp = key.port16[1];
+            flow_key.sp = next_key.port16[0];
+            flow_key.dp = next_key.port16[1];
         }
         flow_key.src.family = AF_INET;
-        flow_key.src.addr_data32[0] = key.src;
+        flow_key.src.addr_data32[0] = next_key.src;
         flow_key.src.addr_data32[1] = 0;
         flow_key.src.addr_data32[2] = 0;
         flow_key.src.addr_data32[3] = 0;
         flow_key.dst.family = AF_INET;
-        flow_key.dst.addr_data32[0] = key.dst;
+        flow_key.dst.addr_data32[0] = next_key.dst;
         flow_key.dst.addr_data32[1] = 0;
         flow_key.dst.addr_data32[2] = 0;
         flow_key.dst.addr_data32[3] = 0;
-        flow_key.vlan_id[0] = key.vlan_id[0];
-        flow_key.vlan_id[1] = key.vlan_id[1];
-        flow_key.proto = key.ip_proto;
+        flow_key.vlan_id[0] = next_key.vlan_id[0];
+        flow_key.vlan_id[1] = next_key.vlan_id[1];
+        flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
         pkts_cnt = EBPFUpdateFlowForKey(flowstats, &flow_key, values_array[0].hash,
                                         pkts_cnt, bytes_cnt);
         if (pkts_cnt > 0) {
             SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
-            EBPFDeleteKey(mapfd, &key);
+            EBPFDeleteKey(mapfd, &next_key);
             found = 1;
         }
         key = next_key;
@@ -624,31 +624,31 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
          * its counters  and lastseen if needed */
         FlowKey flow_key;
         if (tcfg->mode == AFP_MODE_XDP_BYPASS) {
-            flow_key.sp = ntohs(key.port16[0]);
-            flow_key.dp = ntohs(key.port16[1]);
+            flow_key.sp = ntohs(next_key.port16[0]);
+            flow_key.dp = ntohs(next_key.port16[1]);
         } else {
-            flow_key.sp = key.port16[0];
-            flow_key.dp = key.port16[1];
+            flow_key.sp = next_key.port16[0];
+            flow_key.dp = next_key.port16[1];
         }
         flow_key.src.family = AF_INET6;
-        flow_key.src.addr_data32[0] = key.src[0];
-        flow_key.src.addr_data32[1] = key.src[1];
-        flow_key.src.addr_data32[2] = key.src[2];
-        flow_key.src.addr_data32[3] = key.src[3];
+        flow_key.src.addr_data32[0] = next_key.src[0];
+        flow_key.src.addr_data32[1] = next_key.src[1];
+        flow_key.src.addr_data32[2] = next_key.src[2];
+        flow_key.src.addr_data32[3] = next_key.src[3];
         flow_key.dst.family = AF_INET6;
-        flow_key.dst.addr_data32[0] = key.dst[0];
-        flow_key.dst.addr_data32[1] = key.dst[1];
-        flow_key.dst.addr_data32[2] = key.dst[2];
-        flow_key.dst.addr_data32[3] = key.dst[3];
-        flow_key.vlan_id[0] = key.vlan_id[0];
-        flow_key.vlan_id[1] = key.vlan_id[1];
-        flow_key.proto = key.ip_proto;
+        flow_key.dst.addr_data32[0] = next_key.dst[0];
+        flow_key.dst.addr_data32[1] = next_key.dst[1];
+        flow_key.dst.addr_data32[2] = next_key.dst[2];
+        flow_key.dst.addr_data32[3] = next_key.dst[3];
+        flow_key.vlan_id[0] = next_key.vlan_id[0];
+        flow_key.vlan_id[1] = next_key.vlan_id[1];
+        flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
         pkts_cnt = EBPFUpdateFlowForKey(flowstats, &flow_key, values_array[0].hash,
                                         pkts_cnt, bytes_cnt);
         if (pkts_cnt > 0) {
             SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
-            EBPFDeleteKey(mapfd, &key);
+            EBPFDeleteKey(mapfd, &next_key);
             found = 1;
         }
         key = next_key;
