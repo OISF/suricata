@@ -241,6 +241,7 @@ detect-sip-method.c detect-sip-method.h \
 detect-sip-uri.c detect-sip-uri.h \
 detect-sip-protocol.c detect-sip-protocol.h \
 detect-sip-stat-code.c detect-sip-stat-code.h \
+detect-sip-stat-msg.c detect-sip-stat-msg.h \
 detect-ssh-proto.c detect-ssh-proto.h \
 detect-ssh-proto-version.c detect-ssh-proto-version.h \
 detect-ssh-software.c detect-ssh-software.h \
