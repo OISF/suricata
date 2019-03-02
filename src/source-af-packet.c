@@ -1704,7 +1704,7 @@ static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
         }
     }
 
-    ptv->req.tp_frame_size = TPACKET_ALIGN(snaplen +TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
+    ptv->req3.tp_frame_size = TPACKET_ALIGN(snaplen +TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
     frames_per_block = ptv->req3.tp_block_size / ptv->req3.tp_frame_size;
 
     if (frames_per_block == 0) {
