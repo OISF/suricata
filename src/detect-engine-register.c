@@ -179,6 +179,7 @@
 #include "detect-sip-method.h"
 #include "detect-sip-uri.h"
 #include "detect-sip-protocol.h"
+#include "detect-sip-stat-code.h"
 #include "detect-target.h"
 #include "detect-template-rust-buffer.h"
 #include "detect-snmp-version.h"
@@ -543,6 +544,7 @@ void SigTableSetup(void)
     DetectSipMethodRegister();
     DetectSipUriRegister();
     DetectSipProtocolRegister();
+    DetectSipStatCodeRegister();
     DetectTargetRegister();
     DetectTemplateRustBufferRegister();
     DetectSNMPVersionRegister();
