@@ -120,3 +120,24 @@ pub unsafe extern "C" fn rs_sip_tx_get_stat_code(tx:  &mut SIPTransaction,
 
     return 0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_sip_tx_get_stat_msg(tx:  &mut SIPTransaction,
+                                                buffer: *mut *const u8,
+                                                buffer_len: *mut u32)
+                                                -> u8
+{
+    if let Some(ref r) = tx.response {
+        let re = &r.reason;
+        if re.len() > 0 {
+            *buffer = re.as_ptr();
+            *buffer_len = re.len() as u32;
+            return 1;
+        }
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
+    return 0;
+}
