@@ -392,6 +392,10 @@ static void GlobalsDestroy(SCInstance *suri)
     AFPPeersListClean();
 #endif
 
+#ifdef NFQ
+    NFQContextsClean();
+#endif
+
     SC_ATOMIC_DESTROY(engine_stage);
 
 #ifdef BUILD_HYPERSCAN

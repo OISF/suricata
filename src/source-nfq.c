@@ -801,14 +801,6 @@ TmEcode ReceiveNFQThreadDeinit(ThreadVars *t, void *data)
 
     NFQDestroyQueue(nq);
 
-    SCMutexLock(&nfq_init_lock);
-    if (--receive_queue_num == 0) {
-        // No more active queues, we may now free global contexts
-        SCFree(g_nfq_t);
-        SCFree(g_nfq_q);
-    }
-    SCMutexUnlock(&nfq_init_lock);
-
     return TM_ECODE_OK;
 }
 
@@ -959,7 +951,7 @@ int NFQParseAndRegisterQueues(const char *queues)
  */
 void *NFQGetQueue(int number)
 {
-    if (number >= receive_queue_num)
+    if (unlikely(number < 0 || number >= receive_queue_num || g_nfq_q == NULL))
         return NULL;
 
     return (void *)&g_nfq_q[number];
@@ -977,7 +969,7 @@ void *NFQGetQueue(int number)
  */
 void *NFQGetThread(int number)
 {
-    if (number >= receive_queue_num)
+    if (unlikely(number < 0 || number >= receive_queue_num || g_nfq_t == NULL))
         return NULL;
 
     return (void *)&g_nfq_t[number];
@@ -1309,6 +1301,22 @@ TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data)
     if (data != NULL)
         DecodeThreadVarsFree(tv, data);
     SCReturnInt(TM_ECODE_OK);
+}
+
+/**
+ * \brief Clean global contexts. Must be called on exit.
+ */
+void NFQContextsClean()
+{
+    if (g_nfq_q != NULL) {
+        SCFree(g_nfq_q);
+        g_nfq_q = NULL;
+    }
+
+    if (g_nfq_t != NULL) {
+        SCFree(g_nfq_t);
+        g_nfq_t = NULL;
+    }
 }
 
 #endif /* NFQ */
