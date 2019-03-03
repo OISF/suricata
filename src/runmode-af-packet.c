@@ -438,7 +438,9 @@ static void *ParseAFPConfig(const char *iface)
                     aconf->iface);
             aconf->flags |= AFP_BYPASS;
             RunModeEnablesBypassManager();
-            BypassedFlowManagerRegisterCheckFunc(EBPFCheckBypassedFlowTimeout, (void *) &(aconf->ebpf_t_config));
+            BypassedFlowManagerRegisterCheckFunc(EBPFCheckBypassedFlowTimeout,
+                                                 NULL,
+                                                 (void *) &(aconf->ebpf_t_config));
             BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow, NULL);
 #else
             SCLogError(SC_ERR_UNIMPLEMENTED, "Bypass set but eBPF support is not built-in");
@@ -477,7 +479,10 @@ static void *ParseAFPConfig(const char *iface)
                     aconf->iface);
             aconf->flags |= AFP_XDPBYPASS;
             RunModeEnablesBypassManager();
-            BypassedFlowManagerRegisterCheckFunc(EBPFCheckBypassedFlowTimeout, (void *) &(aconf->ebpf_t_config));
+            /* TODO move that to get it conditional on pinned maps */
+            BypassedFlowManagerRegisterCheckFunc(EBPFCheckBypassedFlowTimeout,
+                                                 EBPFCheckBypassedFlowCreate,
+                                                 (void *) &(aconf->ebpf_t_config));
             BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow, NULL);
         }
 #else
