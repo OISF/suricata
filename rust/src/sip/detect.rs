@@ -161,3 +161,23 @@ pub unsafe extern "C" fn rs_sip_tx_get_request_line(tx:  &mut SIPTransaction,
 
     return 0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_sip_tx_get_response_line(tx:  &mut SIPTransaction,
+                                                     buffer: *mut *const u8,
+                                                     buffer_len: *mut u32)
+                                                     -> u8
+{
+    if let Some(ref r) = tx.response_line {
+        if r.len() > 0 {
+            *buffer = r.as_ptr();
+            *buffer_len = r.len() as u32;
+            return 1;
+        }
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
+    return 0;
+}
