@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -659,6 +659,18 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
         SC_ATOMIC_SET(bpfdata->ipv6_hash_count, hash_cnt);
     }
     return found;
+}
+
+
+int EBPFCheckBypassedFlowCreate(struct timespec *curtime, void *data)
+{
+    /* loop on v4 table */
+    /* create flow key*/
+    /* look for flow in hash, create entry if not found */
+
+    /* loop on v6*/
+
+    return 0;
 }
 
 /**
