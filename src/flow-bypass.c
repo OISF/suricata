@@ -40,6 +40,7 @@ typedef struct BypassedFlowManagerThreadData_ {
 
 typedef struct BypassedCheckFuncItem_ {
     BypassedCheckFunc Func;
+    BypassedCheckFuncInit FuncInit;
     void *data;
 } BypassedCheckFuncItem;
 
@@ -58,11 +59,22 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 {
 #ifdef HAVE_PACKET_EBPF
     int tcount = 0;
+    int i;
     BypassedFlowManagerThreadData *ftd = thread_data;
+    struct timespec curtime = {0, 0};
+
+    if (clock_gettime(CLOCK_MONOTONIC, &curtime) != 0) {
+        SCLogWarning(SC_ERR_INVALID_VALUE, "Can't get time: %s (%d)",
+                strerror(errno), errno);
+    }
+    for (i = 0; i < g_bypassed_func_max_index; i++) {
+        if (BypassedFuncList[i].FuncInit) {
+            BypassedFuncList[i].FuncInit(&curtime, BypassedFuncList[i].data);
+        }
+    }
+
     while (1) {
-        int i;
         SCLogDebug("Dumping the table");
-        struct timespec curtime;
         if (clock_gettime(CLOCK_MONOTONIC, &curtime) != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE, "Can't get time: %s (%d)",
                          strerror(errno), errno);
@@ -156,6 +168,7 @@ void BypassedFlowManagerThreadSpawn()
 }
 
 int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc,
+                                         BypassedCheckFuncInit CheckFuncInit,
                                          void *data)
 {
     if (!CheckFunc) {
@@ -163,6 +176,7 @@ int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc,
     }
     if (g_bypassed_func_max_index < BYPASSFUNCMAX) {
         BypassedFuncList[g_bypassed_func_max_index].Func = CheckFunc;
+        BypassedFuncList[g_bypassed_func_max_index].FuncInit = CheckFuncInit;
         BypassedFuncList[g_bypassed_func_max_index].data = data;
         g_bypassed_func_max_index++;
     } else {
