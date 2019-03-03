@@ -456,13 +456,31 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
 }
 
 static int EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
-                               uint32_t hash, uint64_t pkts_cnt, uint64_t bytes_cnt)
+                                uint32_t hash, struct timespec *ctime,
+                                uint64_t pkts_cnt, uint64_t bytes_cnt)
 {
+    Flow *f = FlowGetFromFlowKey(flow_key, ctime, hash);
+    if (f == NULL)
+        return 0;
+
+    /* set accounting, we can't now the side, so let's just start to server
+     * then if we already have something in to server to client. We need
+     * these numbers as we will use it to see if we have new traffic coming
+     * on the flow */
+    if (f->todstbytecnt == 0) {
+        f->todstpktcnt = pkts_cnt;
+        f->todstbytecnt = bytes_cnt;
+    } else {
+        f->tosrcpktcnt = pkts_cnt;
+        f->tosrcbytecnt = bytes_cnt;
+    }
+    FLOWLOCK_UNLOCK(f);
     return 0;
 }
 
 static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
-                               uint32_t hash, uint64_t pkts_cnt, uint64_t bytes_cnt)
+                                uint32_t hash, struct timespec *ctime,
+                                uint64_t pkts_cnt, uint64_t bytes_cnt)
 {
     Flow *f = FlowGetExistingtFlowFromHash(flow_key, hash);
     if (f != NULL) {
@@ -507,7 +525,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
                                   struct timespec *ctime,
                                   struct ebpf_timeout_config *tcfg,
-                                  int (*EBPFOpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key, uint32_t hash, uint64_t pkts_cnt, uint64_t bytes_cnt)
+                                  int (*EBPFOpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key, uint32_t hash, struct timespec *ctime, uint64_t pkts_cnt, uint64_t bytes_cnt)
                                   )
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
@@ -568,7 +586,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
         pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key, values_array[0].hash,
-                                        pkts_cnt, bytes_cnt);
+                                    ctime, pkts_cnt, bytes_cnt);
         if (pkts_cnt > 0) {
             SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
             EBPFDeleteKey(mapfd, &next_key);
@@ -595,7 +613,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
                                   struct timespec *ctime,
                                   struct ebpf_timeout_config *tcfg,
-                                  int (*EBPFOpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key, uint32_t hash, uint64_t pkts_cnt, uint64_t bytes_cnt)
+                                  int (*EBPFOpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key, uint32_t hash, struct timespec *ctime, uint64_t pkts_cnt, uint64_t bytes_cnt)
                                   )
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
@@ -655,7 +673,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
         flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
         pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key, values_array[0].hash,
-                                        pkts_cnt, bytes_cnt);
+                                    ctime, pkts_cnt, bytes_cnt);
         if (pkts_cnt > 0) {
             SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
             EBPFDeleteKey(mapfd, &next_key);
