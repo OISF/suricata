@@ -455,6 +455,12 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
     return 0;
 }
 
+static int EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
+                               uint32_t hash, uint64_t pkts_cnt, uint64_t bytes_cnt)
+{
+    return 0;
+}
+
 static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
                                uint32_t hash, uint64_t pkts_cnt, uint64_t bytes_cnt)
 {
@@ -500,7 +506,9 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
 static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
                                   struct timespec *ctime,
-                                  struct ebpf_timeout_config *tcfg)
+                                  struct ebpf_timeout_config *tcfg,
+                                  int (*EBPFOpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key, uint32_t hash, uint64_t pkts_cnt, uint64_t bytes_cnt)
+                                  )
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
     struct flowv4_keys key = {}, next_key;
@@ -559,7 +567,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         flow_key.vlan_id[1] = next_key.vlan_id[1];
         flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
-        pkts_cnt = EBPFUpdateFlowForKey(flowstats, &flow_key, values_array[0].hash,
+        pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key, values_array[0].hash,
                                         pkts_cnt, bytes_cnt);
         if (pkts_cnt > 0) {
             SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
@@ -586,7 +594,9 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
 static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
                                   struct timespec *ctime,
-                                  struct ebpf_timeout_config *tcfg)
+                                  struct ebpf_timeout_config *tcfg,
+                                  int (*EBPFOpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key, uint32_t hash, uint64_t pkts_cnt, uint64_t bytes_cnt)
+                                  )
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
     struct flowv6_keys key = {}, next_key;
@@ -644,7 +654,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
         flow_key.vlan_id[1] = next_key.vlan_id[1];
         flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
-        pkts_cnt = EBPFUpdateFlowForKey(flowstats, &flow_key, values_array[0].hash,
+        pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key, values_array[0].hash,
                                         pkts_cnt, bytes_cnt);
         if (pkts_cnt > 0) {
             SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
@@ -664,11 +674,17 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
 
 int EBPFCheckBypassedFlowCreate(struct timespec *curtime, void *data)
 {
-    /* loop on v4 table */
-    /* create flow key*/
-    /* look for flow in hash, create entry if not found */
-        
-    /* loop on v6*/
+    struct flows_stats local_bypassstats = { 0, 0, 0};
+    LiveDevice *ldev = NULL, *ndev;
+    struct ebpf_timeout_config *cfg = (struct ebpf_timeout_config *)data;
+    while(LiveDeviceForEach(&ldev, &ndev)) {
+        EBPFForEachFlowV4Table(ldev, "flow_table_v4",
+                &local_bypassstats, curtime,
+                cfg, EBPFCreateFlowForKey);
+        EBPFForEachFlowV6Table(ldev, "flow_table_v6",
+                &local_bypassstats, curtime,
+                cfg, EBPFCreateFlowForKey);
+    }
 
     return 0;
 }
@@ -699,7 +715,7 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
     while(LiveDeviceForEach(&ldev, &ndev)) {
         tcount = EBPFForEachFlowV4Table(ldev, "flow_table_v4",
                                         &local_bypassstats, curtime,
-                                        cfg);
+                                        cfg, EBPFUpdateFlowForKey);
         if (tcount) {
             bypassstats->count = local_bypassstats.count;
             bypassstats->packets = local_bypassstats.packets ;
@@ -709,7 +725,7 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
         memset(&local_bypassstats, 0, sizeof(local_bypassstats));
         tcount = EBPFForEachFlowV6Table(ldev, "flow_table_v6",
                                         &local_bypassstats, curtime,
-                                        cfg);
+                                        cfg, EBPFUpdateFlowForKey);
         if (tcount) {
             bypassstats->count += local_bypassstats.count;
             bypassstats->packets += local_bypassstats.packets ;
