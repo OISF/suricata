@@ -64,6 +64,8 @@ void DetectStreamSizeRegister(void)
     sigmatch_table[DETECT_STREAM_SIZE].Free = DetectStreamSizeFree;
     sigmatch_table[DETECT_STREAM_SIZE].RegisterTests = DetectStreamSizeRegisterTests;
 
+    SCSetModule("detect-stream_size");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

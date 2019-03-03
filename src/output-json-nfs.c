@@ -132,6 +132,8 @@ void JsonNFSLogRegister(void)
         JsonNFSLogger, JsonLogThreadInit,
         JsonLogThreadDeinit, NULL);
 
+    SCSetModule("output-json-nfs");
+
     SCLogDebug("NFS JSON logger registered.");
 }
 

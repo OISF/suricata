@@ -95,6 +95,8 @@ void DetectHttpStatMsgRegister (void)
     sigmatch_table[DETECT_HTTP_STAT_MSG].Setup = DetectHttpStatMsgSetupSticky;
     sigmatch_table[DETECT_HTTP_STAT_MSG].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-http.stat_msg");
+
     DetectAppLayerInspectEngineRegister2("http_stat_msg", ALPROTO_HTTP,
             SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
             DetectEngineInspectBufferGeneric, GetData);

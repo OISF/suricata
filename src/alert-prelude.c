@@ -1036,7 +1036,6 @@ static TmEcode AlertPreludeThreadInit(ThreadVars *t, const void *initdata, void 
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    SCSetSubsystem("alert-prelude");
     *data = (void *)aun;
     SCReturnInt(TM_ECODE_OK);
 }
@@ -1300,5 +1299,7 @@ void AlertPreludeRegister (void)
     OutputRegisterPacketModule(LOGGER_PRELUDE, "AlertPrelude", "alert-prelude",
         AlertPreludeInitCtx, AlertPreludeLogger, AlertPreludeCondition,
         AlertPreludeThreadInit, AlertPreludeThreadDeinit, NULL);
+
+    SCSetModule("alert-prelude");
 }
 #endif /* PRELUDE */

@@ -711,5 +711,7 @@ void LogFilestoreRegister (void)
 
     SC_ATOMIC_INIT(filestore_open_file_cnt);
     SC_ATOMIC_SET(filestore_open_file_cnt, 0);
+
+    SCSetModule("log-filestore");
     SCLogDebug("registered");
 }

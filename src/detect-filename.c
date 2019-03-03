@@ -92,6 +92,8 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
     sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
+    SCSetModule("detect-filename");
+
     DetectAppLayerInspectEngineRegister("files",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
             DetectFileInspectGeneric);

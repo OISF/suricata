@@ -952,6 +952,8 @@ static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data)
 void LuaLogRegister(void) {
     /* register as separate module */
     OutputRegisterModule(MODULE_NAME, "lua", OutputLuaLogInit);
+
+    SCSetModule("output-lua");
 }
 
 #else

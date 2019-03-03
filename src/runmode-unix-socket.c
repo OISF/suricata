@@ -587,6 +587,8 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 void RunModeUnixSocketRegister(void)
 {
 #ifdef BUILD_UNIX_SOCKET
+    SCSetModule("runmode-unix-socket");
+
     /* a bit of a hack, but register twice to --list-runmodes shows both */
     RunModeRegisterNewRunMode(RUNMODE_UNIX_SOCKET, "single",
                               "Unix socket mode",

@@ -75,6 +75,8 @@ void DetectTagRegister(void)
     sigmatch_table[DETECT_TAG].RegisterTests = DetectTagRegisterTests;
     sigmatch_table[DETECT_TAG].flags |= SIGMATCH_IPONLY_COMPAT;
 
+    SCSetModule("detect-tag");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

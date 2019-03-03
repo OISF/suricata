@@ -447,6 +447,8 @@ void JsonDropLogRegister (void)
         "eve-log.drop", JsonDropLogInitCtxSub, JsonDropLogger,
         JsonDropLogCondition, JsonDropLogThreadInit, JsonDropLogThreadDeinit,
         NULL);
+
+    SCSetModule("output-json-drop");
 }
 
 #else

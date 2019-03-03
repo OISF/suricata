@@ -61,6 +61,9 @@ void RunModeNapatechRegister(void)
 {
 #ifdef HAVE_NAPATECH
     default_mode = "autofp";
+
+    SCSetModule("runmode-napatech");
+
     RunModeRegisterNewRunMode(RUNMODE_NAPATECH, "autofp",
             "Multi threaded Napatech mode.  Packets from "
             "each flow are assigned to a single detect "

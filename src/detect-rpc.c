@@ -67,6 +67,8 @@ void DetectRpcRegister (void)
     sigmatch_table[DETECT_RPC].Free  = DetectRpcFree;
     sigmatch_table[DETECT_RPC].RegisterTests = DetectRpcRegisterTests;
 
+    SCSetModule("detect-rpc");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

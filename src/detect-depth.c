@@ -59,6 +59,8 @@ void DetectDepthRegister (void)
     sigmatch_table[DETECT_STARTS_WITH].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#startswith";
     sigmatch_table[DETECT_STARTS_WITH].Setup = DetectStartsWithSetup;
     sigmatch_table[DETECT_STARTS_WITH].flags |= SIGMATCH_NOOPT;
+
+    SCSetModule("detect-depth");
 }
 
 static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *depthstr)

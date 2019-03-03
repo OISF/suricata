@@ -138,6 +138,8 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_HTTP_URI_RAW].Setup = DetectHttpRawUriSetupSticky;
     sigmatch_table[DETECT_HTTP_URI_RAW].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-http.uri.raw");
+
     DetectAppLayerInspectEngineRegister2("http_raw_uri", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
             DetectEngineInspectBufferGeneric, GetRawData);

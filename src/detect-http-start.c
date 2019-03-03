@@ -303,6 +303,8 @@ void DetectHttpStartRegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_START].flags |= SIGMATCH_NOOPT ;
 
+    SCSetModule("detect-http_start");
+
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestStartRegister);
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,

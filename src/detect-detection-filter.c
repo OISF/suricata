@@ -73,6 +73,8 @@ void DetectDetectionFilterRegister (void)
     sigmatch_table[DETECT_DETECTION_FILTER].flags |= SIGMATCH_IPONLY_COMPAT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+
+    SCSetModule("detect-detection_filter");
 }
 
 static int DetectDetectionFilterMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx,

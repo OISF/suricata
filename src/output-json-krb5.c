@@ -180,6 +180,8 @@ void JsonKRB5LogRegister(void)
         JsonKRB5Logger, JsonKRB5LogThreadInit,
         JsonKRB5LogThreadDeinit, NULL);
 
+
+    SCSetModule("output-json-krb5");
     SCLogDebug("KRB5 JSON logger registered.");
 }
 

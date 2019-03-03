@@ -63,6 +63,8 @@ void DetectReferenceRegister(void)
     sigmatch_table[DETECT_REFERENCE].Free  = NULL;
     sigmatch_table[DETECT_REFERENCE].RegisterTests = ReferenceRegisterTests;
 
+    SCSetModule("detect-reference");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

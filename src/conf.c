@@ -124,6 +124,8 @@ void ConfInit(void)
         exit(EXIT_FAILURE);
     }
     SCLogDebug("configuration module initialized");
+
+    SCSetModule("configuration");
 }
 
 /**

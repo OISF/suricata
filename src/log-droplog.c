@@ -496,6 +496,8 @@ void LogDropLogRegister (void)
     OutputRegisterPacketModule(LOGGER_DROP, MODULE_NAME, "drop",
         LogDropLogInitCtx, LogDropLogger, LogDropCondition,
         LogDropLogThreadInit, LogDropLogThreadDeinit, LogDropLogExitPrintStats);
+
+    SCSetModule("log-droplog");
 #ifdef UNITTESTS
     LogDropLogRegisterTests();
 #endif

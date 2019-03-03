@@ -1010,6 +1010,8 @@ void JsonAlertLogRegister (void)
         "eve-log.alert", JsonAlertLogInitCtxSub, JsonAlertLogger,
         JsonAlertLogCondition, JsonAlertLogThreadInit, JsonAlertLogThreadDeinit,
         NULL);
+
+    SCSetModule("output-json-alert");
 }
 
 #else

@@ -52,6 +52,8 @@ void RunModeIpsIPFWRegister(void)
 {
     default_mode = "autofp";
 
+    SCSetModule("runmode-ipfw");
+
     RunModeRegisterNewRunMode(RUNMODE_IPFW, "autofp",
                               "Multi threaded IPFW IPS mode with respect to flow",
                               RunModeIpsIPFWAutoFp);

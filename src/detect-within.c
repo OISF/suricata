@@ -57,6 +57,8 @@ void DetectWithinRegister(void)
     sigmatch_table[DETECT_WITHIN].Setup = DetectWithinSetup;
     sigmatch_table[DETECT_WITHIN].Free  = NULL;
     sigmatch_table[DETECT_WITHIN].RegisterTests = DetectWithinRegisterTests;
+
+    SCSetModule("detect-within");
 }
 
 /** \brief Setup within pattern (content/uricontent) modifier.

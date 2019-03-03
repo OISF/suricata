@@ -66,6 +66,8 @@ void DetectWindowRegister (void)
     sigmatch_table[DETECT_WINDOW].Free  = DetectWindowFree;
     sigmatch_table[DETECT_WINDOW].RegisterTests = DetectWindowRegisterTests;
 
+    SCSetModule("detect-window");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

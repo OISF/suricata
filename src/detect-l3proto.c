@@ -58,6 +58,8 @@ void DetectL3ProtoRegister(void)
     sigmatch_table[DETECT_L3PROTO].Free  = NULL;
     sigmatch_table[DETECT_L3PROTO].RegisterTests = DetectL3protoRegisterTests;
 
+    SCSetModule("detect-l3_proto");
+
     return;
 }
 /**

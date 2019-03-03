@@ -292,4 +292,6 @@ void LogStatsLogRegister (void)
     OutputRegisterStatsModule(LOGGER_STATS, MODULE_NAME, "stats",
         LogStatsLogInitCtx, LogStatsLogger, LogStatsLogThreadInit,
         LogStatsLogThreadDeinit, NULL);
+
+    SCSetModule("log-stats");
 }

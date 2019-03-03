@@ -91,6 +91,8 @@ void DetectHttpServerBodyRegister(void)
     sigmatch_table[DETECT_HTTP_RESPONSE_BODY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_RESPONSE_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
+    SCSetModule("detect-http_server_body");
+
     g_file_data_buffer_id = DetectBufferTypeRegister("file_data");
 }
 

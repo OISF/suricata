@@ -94,6 +94,8 @@ void DetectPcreRegister (void)
     sigmatch_table[DETECT_PCRE].RegisterTests  = DetectPcreRegisterTests;
     sigmatch_table[DETECT_PCRE].flags = (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
 
+    SCSetModule("detect-pcre");
+
     intmax_t val = 0;
 
     if (!ConfGetInt("pcre.match-limit", &val)) {

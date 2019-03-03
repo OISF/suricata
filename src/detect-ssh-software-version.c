@@ -98,6 +98,8 @@ void DetectSshSoftwareVersionRegister(void)
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].RegisterTests = DetectSshSoftwareVersionRegisterTests;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].flags = SIGMATCH_QUOTES_OPTIONAL;
 
+    SCSetModule("detect-ssh.softwareversion");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     g_ssh_banner_list_id = DetectBufferTypeRegister("ssh_banner");

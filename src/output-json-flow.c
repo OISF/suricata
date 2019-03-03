@@ -512,6 +512,8 @@ void JsonFlowLogRegister (void)
     OutputRegisterFlowSubModule(LOGGER_JSON_FLOW, "eve-log", "JsonFlowLog",
         "eve-log.flow", OutputFlowLogInitSub, JsonFlowLogger,
         JsonFlowLogThreadInit, JsonFlowLogThreadDeinit, NULL);
+
+    SCSetModule("output-json-flow");
 }
 
 #else

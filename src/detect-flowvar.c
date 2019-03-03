@@ -67,6 +67,8 @@ void DetectFlowvarRegister (void)
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Free  = DetectFlowvarDataFree;
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].RegisterTests  = NULL;
 
+    SCSetModule("detect-flowvar");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

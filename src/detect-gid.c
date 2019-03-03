@@ -51,6 +51,8 @@ void DetectGidRegister (void)
     sigmatch_table[DETECT_GID].Setup = DetectGidSetup;
     sigmatch_table[DETECT_GID].Free  = NULL;
     sigmatch_table[DETECT_GID].RegisterTests = GidRegisterTests;
+
+    SCSetModule("detect-gid");
 }
 
 /**

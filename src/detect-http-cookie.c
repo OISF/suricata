@@ -102,6 +102,8 @@ void DetectHttpCookieRegister(void)
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
+    SCSetModule("detect-http.cookie");
+
     DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
             DetectEngineInspectBufferGeneric, GetRequestData);

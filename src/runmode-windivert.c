@@ -47,6 +47,8 @@ void RunModeIpsWinDivertRegister(void)
 {
     default_mode = "autofp";
 
+    SCSetModule("runmode-windrivert");
+
     RunModeRegisterNewRunMode(
             RUNMODE_WINDIVERT, "autofp",
             "Multi-threaded WinDivert IPS mode load-balanced by flow",

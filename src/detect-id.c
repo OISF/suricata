@@ -74,6 +74,8 @@ void DetectIdRegister (void)
     sigmatch_table[DETECT_ID].SupportsPrefilter = PrefilterIdIsPrefilterable;
     sigmatch_table[DETECT_ID].SetupPrefilter = PrefilterSetupId;
 
+    SCSetModule("detect-id");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

@@ -792,6 +792,8 @@ void JsonHttpLogRegister (void)
     OutputRegisterTxSubModule(LOGGER_JSON_HTTP, "eve-log", "JsonHttpLog",
         "eve-log.http", OutputHttpLogInitSub, ALPROTO_HTTP, JsonHttpLogger,
         JsonHttpLogThreadInit, JsonHttpLogThreadDeinit, NULL);
+
+    SCSetModule("output-json-http");
 }
 
 #else

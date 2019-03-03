@@ -64,6 +64,8 @@ const char *RunModeNetmapGetDefaultMode(void)
 
 void RunModeIdsNetmapRegister(void)
 {
+    SCSetModule("runmode-netmap");
+
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "single",
             "Single threaded netmap mode",
             RunModeIdsNetmapSingle);

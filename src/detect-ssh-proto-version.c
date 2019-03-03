@@ -84,6 +84,8 @@ void DetectSshVersionRegister(void)
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].RegisterTests = DetectSshVersionRegisterTests;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].flags = SIGMATCH_QUOTES_OPTIONAL;
 
+    SCSetModule("detect-ssh.protoversion");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     g_ssh_banner_list_id = DetectBufferTypeRegister("ssh_banner");

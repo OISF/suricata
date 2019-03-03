@@ -88,6 +88,8 @@ void DetectSslStateRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX1, &parse_regex1, &parse_regex1_study);
     DetectSetupParseRegexes(PARSE_REGEX2, &parse_regex2, &parse_regex2_study);
 
+    SCSetModule("detect-ssl_state");
+
     g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
 
     DetectBufferTypeSetDescriptionByName("tls_generic",

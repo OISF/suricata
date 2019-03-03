@@ -239,6 +239,9 @@ void Unified2AlertRegister(void)
     OutputRegisterPacketModule(LOGGER_UNIFIED2, MODULE_NAME, "unified2-alert",
         Unified2AlertInitCtx, Unified2Logger, Unified2Condition,
         Unified2AlertThreadInit, Unified2AlertThreadDeinit, NULL);
+
+    SCSetModule("alert-unifed2");
+
     Unified2RegisterTests();
 }
 

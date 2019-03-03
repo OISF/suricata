@@ -179,6 +179,8 @@ void JsonDHCPLogRegister(void)
         "eve-log.dhcp", OutputDHCPLogInitSub, ALPROTO_DHCP,
         JsonDHCPLogger, JsonDHCPLogThreadInit,
         JsonDHCPLogThreadDeinit, NULL);
+
+    SCSetModule("output-json-dhcp");
 }
 
 #else /* No JSON support. */

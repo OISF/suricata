@@ -120,6 +120,8 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].Free  = DetectLuaFree;
     sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
 
+    SCSetModule("detect-lua");
+
     g_smtp_generic_list_id = DetectBufferTypeRegister("smtp_generic");
 
     DetectAppLayerInspectEngineRegister("smtp_generic",
