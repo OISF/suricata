@@ -77,6 +77,8 @@ void DetectTlsSubjectRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-tls_cert_subject");
+
    DetectAppLayerInspectEngineRegister2("tls_cert_subject", ALPROTO_TLS,
             SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectBufferGeneric, GetData);

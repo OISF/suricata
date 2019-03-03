@@ -72,6 +72,8 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILEMAGIC].url = "https://suricata.readthedocs.io/en/latest/rules/file-keywords.html#filemagic";
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetupNoSupport;
     sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
+
+    SCSetModule("detect-filemagic");
 }
 
 #else /* HAVE_MAGIC */
@@ -98,6 +100,8 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
+
+    SCSetModule("detect-filemagic");
 
 	SCLogDebug("registering filemagic rule option");
     return;

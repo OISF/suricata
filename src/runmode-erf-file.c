@@ -42,6 +42,8 @@ void RunModeErfFileRegister(void)
 {
     default_mode = "autofp";
 
+    SCSetModule("runmode-erf-file");
+
     RunModeRegisterNewRunMode(RUNMODE_ERF_FILE, "single",
         "Single threaded ERF file mode",
         RunModeErfFileSingle);

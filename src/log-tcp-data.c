@@ -66,6 +66,8 @@ void LogTcpDataLogRegister (void) {
     OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "http-body-data",
         LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_HTTP_BODIES,
         LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit, NULL);
+
+    SCSetModule("log-tcp-data");
 }
 
 typedef struct LogTcpDataFileCtx_ {

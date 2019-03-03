@@ -419,5 +419,7 @@ void LogTlsStoreRegister (void)
 
     SC_ATOMIC_INIT(cert_id);
 
+    SCSetModule("log-tlsstore");
+
     SCLogDebug("registered");
 }

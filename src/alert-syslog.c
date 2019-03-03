@@ -398,5 +398,7 @@ void AlertSyslogRegister (void)
     OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog",
         AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition,
         AlertSyslogThreadInit, AlertSyslogThreadDeinit, NULL);
+
+    SCSetModule("alert-syslog");
 #endif /* !OS_WIN32 */
 }

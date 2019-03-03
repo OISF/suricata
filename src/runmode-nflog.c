@@ -44,6 +44,9 @@ const char *RunModeIdsNflogGetDefaultMode(void)
 void RunModeIdsNflogRegister(void)
 {
     default_mode = "autofp";
+
+    SCSetModule("runmode-nflog");
+
     RunModeRegisterNewRunMode(RUNMODE_NFLOG, "autofp",
                               "Multi threaded nflog mode",
                               RunModeIdsNflogAutoFp);

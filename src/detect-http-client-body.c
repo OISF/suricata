@@ -98,6 +98,8 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
+    SCSetModule("detect-http_client_body");
+
     DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
             DetectEngineInspectBufferGeneric,

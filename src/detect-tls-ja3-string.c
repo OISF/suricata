@@ -81,6 +81,8 @@ void DetectTlsJa3StringRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-ja3_string");
+
     DetectAppLayerInspectEngineRegister2("ja3_string", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 

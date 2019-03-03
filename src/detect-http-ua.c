@@ -95,6 +95,8 @@ void DetectHttpUARegister(void)
     sigmatch_table[DETECT_HTTP_UA].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_UA].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
+    SCSetModule("detect-http.user_agent");
+
     DetectAppLayerInspectEngineRegister2("http_user_agent", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
             DetectEngineInspectBufferGeneric, GetData);

@@ -51,6 +51,8 @@ void RunModeErfDagRegister(void)
 {
     default_mode = "autofp";
 
+    SCSetModule("runmode-erf-dag");
+
     RunModeRegisterNewRunMode(RUNMODE_DAG, "autofp",
         "Multi threaded DAG mode.  Packets from "
         "each flow are assigned to a single detect "

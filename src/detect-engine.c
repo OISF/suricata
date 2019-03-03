@@ -175,6 +175,8 @@ void DetectAppLayerInspectEngineRegister(const char *name,
 
         t->next = new_engine;
     }
+
+    SCSetModule("detect-engine");
 }
 
 /** \brief register inspect engine at start up time

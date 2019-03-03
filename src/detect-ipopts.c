@@ -62,6 +62,8 @@ void DetectIpOptsRegister (void)
     sigmatch_table[DETECT_IPOPTS].Free  = DetectIpOptsFree;
     sigmatch_table[DETECT_IPOPTS].RegisterTests = IpOptsRegisterTests;
 
+    SCSetModule("detect-ipopts");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

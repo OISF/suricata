@@ -70,6 +70,8 @@ void DetectReplaceRegister (void)
     sigmatch_table[DETECT_REPLACE].Free  = NULL;
     sigmatch_table[DETECT_REPLACE].RegisterTests = DetectReplaceRegisterTests;
     sigmatch_table[DETECT_REPLACE].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
+
+    SCSetModule("detect-replace");
 }
 
 int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replacestr)

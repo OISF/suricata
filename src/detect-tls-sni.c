@@ -77,6 +77,8 @@ void DetectTlsSniRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-tls_sni");
+
     DetectAppLayerInspectEngineRegister2("tls_sni", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 

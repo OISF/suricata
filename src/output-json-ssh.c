@@ -273,6 +273,8 @@ void JsonSshLogRegister (void)
         OutputSshLogInitSub, ALPROTO_SSH, JsonSshLogger,
         SSH_STATE_BANNER_DONE, SSH_STATE_BANNER_DONE,
         JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
+
+    SCSetModule("output-json-ssh");
 }
 
 #else

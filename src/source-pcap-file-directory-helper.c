@@ -495,8 +495,9 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
 
 TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
 {
-    SCEnter();
     SCSetModule("pcap-dir-dispatch");
+
+    SCEnter();
 
     DIR *directory_check = NULL;
 

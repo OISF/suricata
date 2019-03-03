@@ -69,6 +69,8 @@ const char *RunModeAFPGetDefaultMode(void)
 
 void RunModeIdsAFPRegister(void)
 {
+    SCSetModule("runmode-af-packet");
+
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "single",
                               "Single threaded af-packet mode",
                               RunModeIdsAFPSingle);

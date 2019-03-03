@@ -469,6 +469,8 @@ void JsonNetFlowLogRegister(void)
     OutputRegisterFlowSubModule(LOGGER_JSON_NETFLOW, "eve-log", "JsonNetFlowLog",
         "eve-log.netflow", OutputNetFlowLogInitSub, JsonNetFlowLogger,
         JsonNetFlowLogThreadInit, JsonNetFlowLogThreadDeinit, NULL);
+
+    SCSetModule("output-json-netflow");
 }
 
 #else

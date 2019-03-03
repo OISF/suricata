@@ -1446,6 +1446,8 @@ void JsonDnsLogRegister (void)
         MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub, ALPROTO_DNS,
         JsonDnsLoggerToClient, 1, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
         NULL);
+
+    SCSetModule("output-json-dns");
 }
 
 #else

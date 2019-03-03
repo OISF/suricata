@@ -68,6 +68,8 @@ void LogHttpLogRegister (void)
     OutputRegisterTxModule(LOGGER_HTTP, MODULE_NAME, "http-log",
         LogHttpLogInitCtx, ALPROTO_HTTP, LogHttpLogger, LogHttpLogThreadInit,
         LogHttpLogThreadDeinit, NULL);
+
+    SCSetModule("log-httplog");
 }
 
 #define LOG_HTTP_CF_REQUEST_HOST 'h'

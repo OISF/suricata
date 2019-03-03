@@ -374,6 +374,8 @@ void LogDnsLogRegister (void)
         LogDnsLogInitCtx, ALPROTO_DNS, LogDnsResponseLogger, 1, 1,
         LogDnsLogThreadInit, LogDnsLogThreadDeinit, LogDnsLogExitPrintStats);
 
+
+    SCSetModule("log-dnslog");
     /* enable the logger for the app layer */
     SCLogDebug("registered %s", MODULE_NAME);
 #endif /* !HAVE_RUST */

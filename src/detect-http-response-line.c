@@ -84,6 +84,8 @@ void DetectHttpResponseLineRegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-http_response_line");
+
     DetectAppLayerMpmRegister("http_response_line", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxHttpResponseLineRegister);
 

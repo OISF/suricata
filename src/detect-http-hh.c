@@ -97,6 +97,8 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_HTTP_HOST].Setup = DetectHttpHostSetup;
     sigmatch_table[DETECT_HTTP_HOST].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-http_host");
+
     DetectAppLayerInspectEngineRegister2("http_host", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
             DetectEngineInspectBufferGeneric, GetData);

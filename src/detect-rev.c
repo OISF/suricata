@@ -40,6 +40,8 @@ void DetectRevRegister (void)
     sigmatch_table[DETECT_REV].Setup = DetectRevSetup;
     sigmatch_table[DETECT_REV].Free  = NULL;
     sigmatch_table[DETECT_REV].RegisterTests = NULL;
+
+    SCSetModule("detect-rev");
 }
 
 static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)

@@ -71,6 +71,8 @@ void DetectTtlRegister(void)
     sigmatch_table[DETECT_TTL].SupportsPrefilter = PrefilterTtlIsPrefilterable;
     sigmatch_table[DETECT_TTL].SetupPrefilter = PrefilterSetupTtl;
 
+    SCSetModule("detect-ttl");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
     return;
 }

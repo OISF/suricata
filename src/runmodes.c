@@ -209,6 +209,8 @@ const char *RunModeGetMainMode(void)
  */
 void RunModeRegisterRunModes(void)
 {
+    SCSetModule("runmodes");
+
     memset(runmodes, 0, sizeof(runmodes));
 
     RunModeIdsPcapRegister();

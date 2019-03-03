@@ -95,6 +95,8 @@ void DetectDceIfaceRegister(void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
+    SCSetModule("detect-dce_iface");
+
     g_dce_generic_list_id = DetectBufferTypeRegister("dce_generic");
 
     DetectAppLayerInspectEngineRegister("dce_generic",

@@ -522,6 +522,8 @@ void JsonStatsLogRegister(void) {
     OutputRegisterStatsSubModule(LOGGER_JSON_STATS, "eve-log", MODULE_NAME,
         "eve-log.stats", OutputStatsLogInitSub, JsonStatsLogger,
         JsonStatsLogThreadInit, JsonStatsLogThreadDeinit, NULL);
+
+    SCSetModule("output-json-stats");
 }
 
 #else

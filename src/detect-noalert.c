@@ -39,12 +39,14 @@ void DetectNoalertRegister (void)
     sigmatch_table[DETECT_NOALERT].RegisterTests = NULL;
 
     sigmatch_table[DETECT_NOALERT].flags |= SIGMATCH_NOOPT;
+
+    SCSetModule("detect-noalert");
 }
 
 static int DetectNoalertSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     if (nullstr != NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
+        SCLogError(SC_ERR_INVALID_VALUE, "noalert has no value");
         return -1;
     }
 
