@@ -159,3 +159,26 @@ pub unsafe extern "C" fn rs_sip_tx_get_stat_msg(tx:  &mut SIPTransaction,
 
     return 0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_sip_tx_get_request_line(tx:  &mut SIPTransaction,
+                                                    buffer: *mut *const u8,
+                                                    buffer_len: *mut u32)
+                                                    -> u8
+{
+    match tx.request_line {
+        Some(ref r) => {
+            if r.len() > 0 {
+                *buffer = r.as_ptr();
+                *buffer_len = r.len() as u32;
+                return 1;
+            }
+        }
+        _ => {}
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
+    return 0;
+}
