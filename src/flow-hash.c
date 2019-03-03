@@ -609,6 +609,72 @@ static inline int FlowCompareKey(Flow *f, FlowKey *key)
     return CMP_FLOW(f, key);
 }
 
+Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t hash)
+{
+    Flow *f = NULL;
+
+    f = FlowGetExistingFlowFromHash(key, hash);
+    if (f != NULL) {
+        return f;
+    }
+
+    /* No existing flow so let's get one new */
+    f = FlowDequeue(&flow_spare_q);
+    if (f == NULL) {
+        return NULL;
+        /* now see if we can alloc a new flow */
+        f = FlowAlloc();
+        if (f == NULL) {
+            SCLogError(SC_ERR_FLOW_INIT, "Can't get a spare flow at start");
+            return NULL;
+        }
+    }
+    f->proto = key->proto;
+    f->vlan_id[0] = key->vlan_id[0];
+    f->vlan_id[1] = key->vlan_id[1];
+    f->src.addr_data32[0] = key->src.addr_data32[0];
+    f->src.addr_data32[1] = key->src.addr_data32[1];
+    f->src.addr_data32[2] = key->src.addr_data32[2];
+    f->src.addr_data32[3] = key->src.addr_data32[3];
+    f->dst.addr_data32[0] = key->dst.addr_data32[0];
+    f->dst.addr_data32[1] = key->dst.addr_data32[1];
+    f->dst.addr_data32[2] = key->dst.addr_data32[2];
+    f->dst.addr_data32[3] = key->dst.addr_data32[3];
+    f->sp = key->sp;
+    f->dp = key->dp;
+    f->recursion_level = 0;
+    f->flow_hash = hash;
+    if (key->src.family == AF_INET) {
+        f->flags |= FLOW_IPV4;
+    }
+    if (key->src.family == AF_INET6) {
+        f->flags |= FLOW_IPV6;
+    }
+    FlowUpdateState(f, FLOW_STATE_CAPTURE_BYPASSED);
+
+    f->protomap = FlowGetProtoMapping(f->proto);
+    /* set timestamp to now */
+    f->startts.tv_sec = ttime->tv_sec;
+    f->startts.tv_usec = ttime->tv_nsec * 1000;
+    f->lastts = f->startts;
+
+    FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
+    FBLOCK_LOCK(fb);
+    f->fb = fb;
+    if (fb->head == NULL) {
+        fb->head = f;
+        fb->tail = f;
+    } else {
+        f->hprev = fb->tail;
+        f->hprev->hnext = f;
+        fb->tail = f;
+    }
+    FLOWLOCK_WRLOCK(f);
+    FBLOCK_UNLOCK(fb);
+
+    return f;
+}
+
 /** \brief Look for existing Flow using a FlowKey
  *
  * Hash retrieval function for flows. Looks up the hash bucket containing the
