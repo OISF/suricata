@@ -74,6 +74,7 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags);
 int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
                                         struct timespec *curtime,
                                         void *data);
+int EBPFCheckBypassedFlowCreate(struct timespec *curtime, void *data);
 
 void EBPFRegisterExtension(void);
 
