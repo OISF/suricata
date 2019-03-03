@@ -96,6 +96,7 @@ int NFQGetQueueCount(void);
 void *NFQGetQueue(int number);
 int NFQGetQueueNum(int number);
 void *NFQGetThread(int number);
+void NFQContextsClean(void);
 #endif /* NFQ */
 #endif /* __SOURCE_NFQ_H__ */
 
