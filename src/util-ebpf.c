@@ -493,13 +493,13 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
                 f->todstbytecnt = bytes_cnt;
                 /* interval based so no meaning to update the millisecond.
                  * Let's keep it fast and simple */
-                f->lastts.tv_sec = time(NULL);
+                f->lastts.tv_sec = ctime->tv_sec;
             }
         } else {
             if (pkts_cnt != f->tosrcpktcnt) {
                 f->tosrcpktcnt = pkts_cnt;
                 f->tosrcbytecnt = bytes_cnt;
-                f->lastts.tv_sec = time(NULL);
+                f->lastts.tv_sec = ctime->tv_sec;
             }
         }
         FLOWLOCK_UNLOCK(f);
