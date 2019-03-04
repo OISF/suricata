@@ -52,7 +52,33 @@ alert http any any -> any any (msg:"SURICATA HTTP Request line with leading whit
 alert http any any -> any any (msg:"SURICATA HTTP Request too many encoding layers"; flow:established,to_server; app-layer-event:http.too_many_encoding_layers; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221032; rev:1;)
 alert http any any -> any any (msg:"SURICATA HTTP Request abnormal Content-Encoding header"; flow:established,to_server; app-layer-event:http.abnormal_ce_header; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221033; rev:1;)
 
+alert http any any -> any any (msg:"SURICATA HTTP Request unrecognized authorization method"; flow:established,to_server; app-layer-event:http.request_auth_unrecognized; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221034; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Request excessive header repetition"; flow:established,to_server; app-layer-event:http.request_header_repetition; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221035; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP Response excessive header repetition"; flow:established,to_client; app-layer-event:http.response_header_repetition; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221036; rev:1;)
+
+# This is a suricata limitation rather than anomaly traffic
+# alert http any any -> any any (msg:"SURICATA HTTP Response multipart/byteranges"; flow:established,to_client; app-layer-event:http.response_multipart_byteranges; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221037; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Response abnormal chunked for transfer-encoding"; flow:established,to_client; app-layer-event:http.response_abnormal_transfer_encoding; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221038; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Response chunked with HTTP 0.9 or 1.0"; flow:established,to_client; app-layer-event:http.response_chunked_old_proto; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221039; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Response invalid protocol"; flow:established,to_client; app-layer-event:http.response_invalid_protocol; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221040; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP Response invalid status"; flow:established,to_client; app-layer-event:http.response_invalid_status; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221041; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Request line incomplete"; flow:established,to_server; app-layer-event:http.request_line_incomplete; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221042; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Request double encoded URI"; flow:established,to_server; app-layer-event:http.double_encoded_uri; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221043; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Invalid Request line"; flow:established,to_server; app-layer-event:http.request_line_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221044; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP Unexpected Request body"; flow:established,to_server; app-layer-event:http.request_body_unexpected; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221045; rev:1;)
 
 alert http any any -> any any (msg:"SURICATA HTTP LZMA reached its memory limit"; flow:established; app-layer-event:http.lzma_memlimit_reached; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221046; rev:1;)
 
-# next sid 2221047
+alert http any any -> any any (msg:"SURICATA HTTP duplicate content length field in request"; flow:established,to_server; app-layer-event:http.duplicate_content_length_field_in_request; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221047; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP duplicate content length field in response"; flow:established,to_client; app-layer-event:http.duplicate_content_length_field_in_response; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221048; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP compression bomb"; flow:established; app-layer-event:http.compression_bomb; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221049; rev:1;)
+
+# next sid 2221050
