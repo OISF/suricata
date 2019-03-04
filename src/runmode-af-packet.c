@@ -394,7 +394,7 @@ static void *ParseAFPConfig(const char *iface)
                         aconf->iface);
             aconf->ebpf_t_config.flags |= EBPF_PINNED_MAPS;
         }
-        const char *pinned_maps_name;
+        const char *pinned_maps_name = NULL;
         if (ConfGetChildValueWithDefault(if_root, if_default,
                     "pinned-maps-name",
                     &pinned_maps_name) != 1) {
