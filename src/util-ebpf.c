@@ -516,6 +516,10 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
     }
 }
 
+typedef int (*OpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key,
+                            uint32_t hash, struct timespec *ctime,
+                            uint64_t pkts_cnt, uint64_t bytes_cnt);
+
 /**
  * Bypassed flows cleaning for IPv4
  *
@@ -526,7 +530,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
                                   struct timespec *ctime,
                                   struct ebpf_timeout_config *tcfg,
-                                  int (*EBPFOpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key, uint32_t hash, struct timespec *ctime, uint64_t pkts_cnt, uint64_t bytes_cnt)
+                                  OpFlowForKey EBPFOpFlowForKey
                                   )
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
@@ -614,7 +618,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
                                   struct timespec *ctime,
                                   struct ebpf_timeout_config *tcfg,
-                                  int (*EBPFOpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key, uint32_t hash, struct timespec *ctime, uint64_t pkts_cnt, uint64_t bytes_cnt)
+                                  OpFlowForKey EBPFOpFlowForKey
                                   )
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
