@@ -74,4 +74,7 @@ alert http any any -> any any (msg:"SURICATA HTTP Request double encoded URI"; f
 alert http any any -> any any (msg:"SURICATA HTTP Invalid Request line"; flow:established,to_server; app-layer-event:http.request_line_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221044; rev:1;)
 alert http any any -> any any (msg:"SURICATA HTTP Unexpected Request body"; flow:established,to_server; app-layer-event:http.request_body_unexpected; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221045; rev:1;)
 
-# next sid 2221046
+alert http any any -> any any (msg:"SURICATA HTTP duplicate content length field in request"; flow:established,to_server; app-layer-event:http.duplicate_content_length_field_in_request; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221046; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP duplicate content length field in response"; flow:established,to_client; app-layer-event:http.duplicate_content_length_field_in_response; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221047; rev:1;)
+
+# next sid 2221048
