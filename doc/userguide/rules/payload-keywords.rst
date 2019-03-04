@@ -275,7 +275,7 @@ Format::
 
 
 +----------------+------------------------------------------------------------------------------+
-| <num of bytes> | The number of bytes selected from the packet to be converted		|
+| <num of bytes> | The number of bytes selected from the packet to be converted			|
 +----------------+------------------------------------------------------------------------------+
 | <operator>	 | 										|
 |		 | - [!] Negation can prefix other operators					|
