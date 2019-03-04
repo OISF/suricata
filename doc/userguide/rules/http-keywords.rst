@@ -595,66 +595,25 @@ Notes
 http.server
 -----------
 
-With the ``http.server`` content modifier, it is possible to
-match specifically and only on the HTTP response body. The keyword can
-be used in combination with all previously mentioned content modifiers
-like ``distance``, ``offset``, ``nocase``, ``within``, etc.
+Sticky buffer to match on the HTTP Server headers. Only contains the
+header value. The \\r\\n after the header are not part of the buffer.
 
-Note: how much of the response/server body is inspected is controlled
-in your :ref:`libhtp configuration section
-<suricata-yaml-configure-libhtp>` via the ``response-body-limit``
-setting.
+Example::
 
-Notes
-~~~~~
-
--  Using ``http.server`` is similar to having content matches
-   that come after ``file_data`` except that it doesn't permanently
-   (unless reset) set the detection pointer to the beginning of the
-   server response body. i.e. it is not a sticky buffer.
-
--  ``http.server`` will match on gzip decoded data just like
-   ``file_data`` does.
-
--  Since ``http.server`` matches on a server response, it
-   can't be used with the ``to_server`` or ``from_client`` flow
-   directives.
-
--  Corresponding PCRE modifier: ``Q``
-
--  further notes at the ``file_data`` section below.
+    alert http any any -> any any (flow:to_client; \
+            http.server; content:"Microsoft-IIS/6.0"; sid:1;)
 
 http.location
 -------------
 
-With the ``http.location`` content modifier, it is possible to
-match specifically and only on the HTTP response body. The keyword can
-be used in combination with all previously mentioned content modifiers
-like ``distance``, ``offset``, ``nocase``, ``within``, etc.
+Sticky buffer to match on the HTTP Location headers. Only contains the
+header value. The \\r\\n after the header are not part of the buffer.
 
-Note: how much of the response/server body is inspected is controlled
-in your :ref:`libhtp configuration section
-<suricata-yaml-configure-libhtp>` via the ``response-body-limit``
-setting.
+Example::
 
-Notes
-~~~~~
+    alert http any any -> any any (flow:to_client; \
+            http.location; content:"http://www.google.com"; sid:1;)
 
--  Using ``http.location`` is similar to having content matches
-   that come after ``file_data`` except that it doesn't permanently
-   (unless reset) set the detection pointer to the beginning of the
-   server response body. i.e. it is not a sticky buffer.
-
--  ``http.location`` will match on gzip decoded data just like
-   ``file_data`` does.
-
--  Since ``http..location`` matches on a server response, it
-   can't be used with the ``to_server`` or ``from_client`` flow
-   directives.
-
--  Corresponding PCRE modifier: ``Q``
-
--  further notes at the ``file_data`` section below.
 
 http_host and http_raw_host
 ---------------------------
