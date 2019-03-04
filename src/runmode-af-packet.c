@@ -402,6 +402,8 @@ static void *ParseAFPConfig(const char *iface)
         } else {
             aconf->ebpf_t_config.pinned_maps_name = NULL;
         }
+    } else {
+        aconf->ebpf_t_config.pinned_maps_name = NULL;
     }
 #endif
 
