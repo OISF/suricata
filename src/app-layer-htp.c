@@ -511,6 +511,7 @@ struct {
     { "C-E gzip has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "C-E deflate has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
+    { "Ambiguous C-L value", HTP_REQUEST_INVALID_C_L},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
