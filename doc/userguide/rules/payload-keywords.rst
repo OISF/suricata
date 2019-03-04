@@ -266,7 +266,7 @@ example of dsize in a rule:
 
 byte_test
 ---------
-The ``byte_test`` keyword extracts ``<num of bytes>`` and performs an opertion selected with ``<operator>`` against the value in ``<test value>`` at a particular ``<offset>``.
+The ``byte_test`` keyword extracts ``<num of bytes>`` and performs an operation selected with ``<operator>`` against the value in ``<test value>`` at a particular ``<offset>``.
 
 Format::
   
@@ -275,7 +275,7 @@ Format::
 
 
 +----------------+------------------------------------------------------------------------------+
-| <num of bytes> | The number of bytes selected from the packet to be converted.		|
+| <num of bytes> | The number of bytes selected from the packet to be converted		|
 +----------------+------------------------------------------------------------------------------+
 | <operator>	 | 										|
 |		 | - [!] Negation can prefix other operators					|
@@ -287,11 +287,11 @@ Format::
 |		 | - & bitwise AND								|
 |		 | - ^ bitwise OR								|
 +----------------+------------------------------------------------------------------------------+
-| <value>	 | Value to test teh converted value against [hex or decimal accepted]		|
+| <value>	 | Value to test the converted value against [hex or decimal accepted]		|
 +----------------+------------------------------------------------------------------------------+
-| <offset>	 | Number of bytes into the payload.						|
+| <offset>	 | Number of bytes into the payload						|
 +----------------+------------------------------------------------------------------------------+
-| [relative]	 | Offset relative to last content match.					|
+| [relative]	 | Offset relative to last content match					|
 +----------------+------------------------------------------------------------------------------+
 | [endian]	 | Type of number being read:							|	
 |		 | - big (Most significant byte at lowest address)				|
@@ -302,9 +302,9 @@ Format::
 |		 | - dec - Converted string represented in dedimal				|
 |		 | - oct - Converted string represented in octal				|
 +----------------+------------------------------------------------------------------------------+
-| [dce]		 | Allow the DCE module determine the byte order. 				|
+| [dce]		 | Allow the DCE module determine the byte order 				|
 +----------------+------------------------------------------------------------------------------+
-| [bitmask]	 | Applies the AND operator on the bytes converted.				|
+| [bitmask]	 | Applies the AND operator on the bytes converted				|
 +----------------+------------------------------------------------------------------------------+
 
 
@@ -337,7 +337,7 @@ Example::
 byte_jump
 ---------
 
-The ``byte_jump`` keyword alows for the ability to select a ``<num of bytes>`` from an ``<offset>`` and moves the detection pointer to that position.  Content matches will then be based off the new position.
+The ``byte_jump`` keyword allows for the ability to select a ``<num of bytes>`` from an ``<offset>`` and moves the detection pointer to that position.  Content matches will then be based off the new position.
 
 Format::
 
@@ -346,7 +346,7 @@ Format::
         [, post_offset <value>][, dce][, bitmask <value>];
 
 +-----------------------+-----------------------------------------------------------------------+
-| <num of bytes>	| The number of bytes selected from the packet to be converted.		|
+| <num of bytes>	| The number of bytes selected from the packet to be converted		|
 +-----------------------+-----------------------------------------------------------------------+
 | <offset>		| Number of bytes into the payload.					|
 +-----------------------+-----------------------------------------------------------------------+
@@ -373,10 +373,10 @@ Format::
 | [post_offset] <value>	| After the jump operation has been performed, it will			|
 |			| jump an additional number of bytes specified by <value>		|
 +-----------------------+-----------------------------------------------------------------------+
-| [dce]			| Allow the DCE module determine the byte order.			|
+| [dce]			| Allow the DCE module determine the byte order				|
 +-----------------------+-----------------------------------------------------------------------+
 | [bitmask] <value>	| The AND operator will be applied by <value> and the			|
-|			| converted bytes, then jump operation is performed.			|
+|			| converted bytes, then jump operation is performed			|
 +-----------------------+-----------------------------------------------------------------------+
 
 Example::
