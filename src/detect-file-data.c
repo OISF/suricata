@@ -89,7 +89,7 @@ void DetectFiledataRegister(void)
 #endif
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
-    SCSetModule("detect-file_data");
+    SCSetModule("file-data");
 
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL,

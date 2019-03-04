@@ -58,6 +58,8 @@ void DetectCipServiceRegister(void)
     sigmatch_table[DETECT_CIPSERVICE].RegisterTests
             = DetectCipServiceRegisterTests;
 
+    SCSetModule("cip_service");
+
     DetectAppLayerInspectEngineRegister("cip",
             ALPROTO_ENIP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectCIP);

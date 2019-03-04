@@ -458,8 +458,8 @@ static SCError SCLogMessageGetBuffer(
                 }
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               fmt_string, substr, green,
-                              _sc_subsystem == NULL ? "<null subsys>" : _sc_subsystem,
-                              module == NULL ? "<null mod>" : module,
+                              _sc_subsystem == NULL ? "" : _sc_subsystem,
+                              module == NULL ? "" : module,
                               reset);
                 if (cw < 0)
                     return SC_ERR_SPRINTF;

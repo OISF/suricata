@@ -72,6 +72,8 @@ void DetectKrb5MsgTypeRegister(void) {
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Free = DetectKrb5MsgTypeFree;
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].RegisterTests = DetectKrb5MsgTypeRegisterTests;
 
+    SCSetModule("krb5_msg_type");
+
     DetectAppLayerInspectEngineRegister("krb5_msg_type",
             ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectKRB5Generic);

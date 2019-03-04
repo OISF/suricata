@@ -94,7 +94,7 @@ void DetectHttpMethodRegister(void)
     sigmatch_table[DETECT_HTTP_METHOD].Setup = DetectHttpMethodSetupSticky;
     sigmatch_table[DETECT_HTTP_METHOD].flags |= SIGMATCH_NOOPT;
 
-    SCSetModule("detect-http_method");
+    SCSetModule("http_method");
 
     DetectAppLayerInspectEngineRegister2("http_method", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,

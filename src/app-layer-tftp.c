@@ -217,6 +217,7 @@ static int TFTPSetTxDetectState(void *vtx,
 void RegisterTFTPParsers(void)
 {
     const char *proto_name = "tftp";
+    SCSetModule("app-tftp");
 
     /* Check if TFTP UDP detection is enabled. If it does not exist in
      * the configuration file then it will be enabled by default. */

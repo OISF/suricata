@@ -81,7 +81,7 @@ void DetectFilestoreRegister(void)
     sigmatch_table[DETECT_FILESTORE].RegisterTests = DetectFilestoreRegisterTests;
     sigmatch_table[DETECT_FILESTORE].flags = SIGMATCH_OPTIONAL_OPT;
 
-    SCSetModule("detect-filestore");
+    SCSetModule("filestore");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 

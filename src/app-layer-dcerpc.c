@@ -2059,6 +2059,8 @@ void RegisterDCERPCParsers(void)
 {
     const char *proto_name = "dcerpc";
 
+    SCSetModule("app-dcerpc");
+
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DCERPC, proto_name);
         if (DCERPCRegisterPatternsForProtocolDetection() < 0)

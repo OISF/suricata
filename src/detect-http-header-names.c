@@ -379,7 +379,7 @@ void DetectHttpHeaderNamesRegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].flags |= SIGMATCH_NOOPT ;
 
-    SCSetModule("detect-http_header_names");
+    SCSetModule(KEYWORD_NAME);
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestHeaderNamesRegister);
@@ -400,6 +400,8 @@ void DetectHttpHeaderNamesRegister(void)
 
     g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(KEYWORD_NAME,
             HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
+
+    SCSetModule(KEYWORD_NAME);
 
     SCLogDebug("keyword %s registered. Thread id %d. "
             "Buffer %s registered. Buffer id %d",

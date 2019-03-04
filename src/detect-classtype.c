@@ -58,7 +58,7 @@ void DetectClasstypeRegister(void)
     sigmatch_table[DETECT_CLASSTYPE].Free  = NULL;
     sigmatch_table[DETECT_CLASSTYPE].RegisterTests = DetectClasstypeRegisterTests;
 
-    SCSetModule("detect-classtype");
+    SCSetModule("classtype");
 
     DetectSetupParseRegexes(PARSE_REGEX, &regex, &regex_study);
 }

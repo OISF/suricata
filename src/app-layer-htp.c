@@ -2938,6 +2938,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
  */
 void RegisterHTPParsers(void)
 {
+    SCSetModule("app-htp");
     SCEnter();
 
     const char *proto_name = "http";

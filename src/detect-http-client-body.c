@@ -115,6 +115,8 @@ void DetectHttpClientBodyRegister(void)
     DetectBufferTypeRegisterSetupCallback("http_client_body",
             DetectHttpClientBodySetupCallback);
 
+    SCSetModule("http_client_body");
+
     g_http_client_body_buffer_id = DetectBufferTypeGetByName("http_client_body");
 }
 

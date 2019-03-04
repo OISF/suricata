@@ -1571,6 +1571,7 @@ int DNP3PrefixIsSize(uint8_t prefix_code)
  */
 void RegisterDNP3Parsers(void)
 {
+    SCSetModule("app-dnp3");
     SCEnter();
 
     const char *proto_name = "dnp3";

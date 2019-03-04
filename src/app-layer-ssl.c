@@ -2807,6 +2807,8 @@ void RegisterSSLParsers(void)
 {
     const char *proto_name = "tls";
 
+    SCSetModule("app-ssl");
+
     /** SSLv2  and SSLv23*/
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_TLS, proto_name);

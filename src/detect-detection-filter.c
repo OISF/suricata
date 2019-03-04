@@ -72,6 +72,8 @@ void DetectDetectionFilterRegister (void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_DETECTION_FILTER].flags |= SIGMATCH_IPONLY_COMPAT;
 
+    SCSetModule("detection_filter");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     SCSetModule("detect-detection_filter");

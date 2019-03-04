@@ -394,6 +394,8 @@ void RegisterDNSUDPParsers(void)
     return RegisterRustDNSUDPParsers();
 #else
     const char *proto_name = "dns";
+
+    SCSetModule("app-dns-udp");
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNS, proto_name);

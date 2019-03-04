@@ -88,6 +88,8 @@ void DetectDceOpnumRegister(void)
     sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
     sigmatch_table[DETECT_DCE_OPNUM].RegisterTests = DetectDceOpnumRegisterTests;
 
+    SCSetModule("dce_opnum");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     SCSetModule("detect-dce_opnum");

@@ -878,6 +878,8 @@ void RegisterDCERPCUDPParsers(void)
 {
     const char *proto_name = "dcerpc";
 
+    SCSetModule("app-dcerpc-udp");
+
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DCERPC, proto_name);
         if (DCERPCUDPRegisterPatternsForProtocolDetection() < 0)

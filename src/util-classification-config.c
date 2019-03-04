@@ -62,6 +62,8 @@ void SCClassConfInit(void)
     int eo;
     int opts = 0;
 
+    SCSetModule("util-classification-config");
+
     regex = pcre_compile(DETECT_CLASSCONFIG_REGEX, opts, &eb, &eo, NULL);
     if (regex == NULL) {
         SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",

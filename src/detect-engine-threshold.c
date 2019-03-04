@@ -79,6 +79,8 @@ int ThresholdHostStorageId(void)
 
 void ThresholdInit(void)
 {
+    SCSetModule("engine-threshold");
+
     host_threshold_id = HostStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
     if (host_threshold_id == -1) {
         SCLogError(SC_ERR_HOST_INIT, "Can't initiate host storage for thresholding");

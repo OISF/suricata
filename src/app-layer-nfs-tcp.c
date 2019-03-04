@@ -270,6 +270,7 @@ static SuricataFileContext sfc = { &sbcfg };
 
 void RegisterNFSTCPParsers(void)
 {
+    SCSetModule("app-nfs-tcp");
     const char *proto_name = "nfs";
 
     /* Check if NFSTCP TCP detection is enabled. If it does not exist in

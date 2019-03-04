@@ -68,6 +68,8 @@ void DetectBypassRegister(void)
     sigmatch_table[DETECT_BYPASS].Free  = NULL;
     sigmatch_table[DETECT_BYPASS].RegisterTests = DetectBypassRegisterTests;
     sigmatch_table[DETECT_BYPASS].flags = SIGMATCH_NOOPT;
+
+    SCSetModule("bypass");
 }
 
 static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)

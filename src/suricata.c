@@ -2268,6 +2268,9 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     TmThreadKillThreadsFamily(TVT_PPT);
     TmThreadClearThreadsFamily(TVT_PPT);
 
+    /* Reset for shutdown */
+    SCSetSubsystem("Suricata-main");
+
     PacketPoolDestroy();
 
     /* mgt and ppt threads killed, we can run non thread-safe
@@ -2876,6 +2879,8 @@ int main(int argc, char **argv)
 
     /* Set subsystem name - TLS for main thread */
     SCSetSubsystem("Suricata-main");
+
+    SCSetModule("main");
 
     /* Ignore SIGUSR2 as early as possble. We redeclare interest
      * once we're done launching threads. The goal is to either die

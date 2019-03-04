@@ -376,6 +376,7 @@ static uint16_t ENIPProbingParser(Flow *f, uint8_t *input, uint32_t input_len)
  */
 void RegisterENIPUDPParsers(void)
 {
+    SCSetModule("app-enip");
     SCEnter();
     const char *proto_name = "enip";
 

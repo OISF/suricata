@@ -512,6 +512,8 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngi
  */
 int LuaRegisterExtensions(lua_State *lua_state)
 {
+    SCSetModule("lua_extensions");
+
     lua_pushcfunction(lua_state, LuaGetFlowvar);
     lua_setglobal(lua_state, "ScFlowvarGet");
 

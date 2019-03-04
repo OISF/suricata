@@ -74,7 +74,7 @@ void DetectFlowRegister (void)
     sigmatch_table[DETECT_FLOW].SupportsPrefilter = PrefilterFlowIsPrefilterable;
     sigmatch_table[DETECT_FLOW].SetupPrefilter = PrefilterSetupFlow;
 
-    SCSetModule("detect-flow");
+    SCSetModule("flow");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

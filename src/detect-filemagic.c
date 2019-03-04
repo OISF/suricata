@@ -99,6 +99,8 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILEMAGIC].RegisterTests = DetectFilemagicRegisterTests;
     sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
 
+    SCSetModule("filemagic");
+
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
     SCSetModule("detect-filemagic");

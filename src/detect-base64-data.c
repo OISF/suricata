@@ -38,6 +38,8 @@ void DetectBase64DataRegister(void)
     sigmatch_table[DETECT_BASE64_DATA].RegisterTests =
         DetectBase64DataRegisterTests;
 
+    SCSetModule("base64_data");
+
     sigmatch_table[DETECT_BASE64_DATA].flags |= SIGMATCH_NOOPT;
 }
 

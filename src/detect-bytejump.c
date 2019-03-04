@@ -75,7 +75,7 @@ void DetectBytejumpRegister (void)
     sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;
     sigmatch_table[DETECT_BYTEJUMP].RegisterTests = DetectBytejumpRegisterTests;
 
-	SCSetModule("detect-byte_jump");
+    SCSetModule("byte_jump");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

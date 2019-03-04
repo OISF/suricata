@@ -180,6 +180,8 @@ DefragContextNew(void)
     if (unlikely(dc == NULL))
         return NULL;
 
+    SCSetModule("defrag");
+
     /* Initialize the pool of trackers. */
     intmax_t tracker_pool_size;
     if (!ConfGetInt("defrag.trackers", &tracker_pool_size) || tracker_pool_size == 0) {

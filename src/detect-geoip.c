@@ -55,6 +55,8 @@ void DetectGeoipRegister(void)
     sigmatch_table[DETECT_GEOIP].Setup = DetectGeoipSetupNoSupport;
     sigmatch_table[DETECT_GEOIP].Free = NULL;
     sigmatch_table[DETECT_GEOIP].RegisterTests = NULL;
+
+    SCSetModule("geoip");
 }
 
 #else /* HAVE_GEOIP */
@@ -78,6 +80,8 @@ void DetectGeoipRegister(void)
     sigmatch_table[DETECT_GEOIP].Setup = DetectGeoipSetup;
     sigmatch_table[DETECT_GEOIP].Free = DetectGeoipDataFree;
     sigmatch_table[DETECT_GEOIP].RegisterTests = DetectGeoipRegisterTests;
+
+    SCSetModule("geoip");
 }
 
 /**

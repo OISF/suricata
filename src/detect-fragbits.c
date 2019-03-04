@@ -93,7 +93,7 @@ void DetectFragBitsRegister (void)
     sigmatch_table[DETECT_FRAGBITS].SetupPrefilter = PrefilterSetupFragBits;
     sigmatch_table[DETECT_FRAGBITS].SupportsPrefilter = PrefilterFragBitsIsPrefilterable;
 
-    SCSetModule("detect-fragbits");
+    SCSetModule("fragbits");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

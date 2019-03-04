@@ -427,7 +427,7 @@ void DetectHttpHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    SCSetModule("detect-http.header");
+    SCSetModule("http_header");
 
     DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,

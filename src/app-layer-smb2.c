@@ -598,6 +598,7 @@ void RegisterSMB2Parsers(void)
 {
     /** SMB2 */
     const char *proto_name = "smb2";
+    SCSetModule("app-smb2");
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOSERVER, SMB2Parse);

@@ -755,6 +755,7 @@ void AppLayerListSupportedProtocols(void)
 
 int AppLayerSetup(void)
 {
+    SCSetModule("app-layer");
     SCEnter();
 
     AppLayerProtoDetectSetup();

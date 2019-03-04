@@ -160,6 +160,7 @@ void DefragTrackerClearMemory(DefragTracker *dt)
  *  \warning Not thread safe */
 void DefragInitConfig(char quiet)
 {
+    SCSetModule("defrag-hash");
     SCLogDebug("initializing defrag engine...");
 
     memset(&defrag_config,  0, sizeof(defrag_config));

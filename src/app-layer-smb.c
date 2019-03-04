@@ -53,6 +53,7 @@
 #include "app-layer-smb-tcp-rust.h"
 void RegisterSMBParsers(void)
 {
+    SCSetModule("app-smb");
     RegisterRustSMBTCPParsers();
 }
 

@@ -161,6 +161,8 @@ uint16_t UtilCpuGetNumProcessorsMax(void)
  */
 void UtilCpuPrintSummary(void)
 {
+    SCSetModule("util-cpu");
+
     uint16_t cpus_conf = UtilCpuGetNumProcessorsConfigured();
     uint16_t cpus_online = UtilCpuGetNumProcessorsOnline();
 

@@ -563,6 +563,8 @@ static void DetectDNP3DataRegister(void)
 
 void DetectDNP3Register(void)
 {
+    SCSetModule("detect-dnp3");
+
     DetectDNP3DataRegister();
 
     DetectDNP3FuncRegister();

@@ -58,6 +58,7 @@ void DetectBsizeRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_BSIZE].RegisterTests = DetectBsizeRegisterTests;
 #endif
+    SCSetModule("bsize");
 }
 
 #define DETECT_BSIZE_LT 0

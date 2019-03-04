@@ -269,6 +269,8 @@ void DetectAppLayerProtocolRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].flags =
         (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
 
+    SCSetModule("app-layer-protocol");
+
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].SetupPrefilter =
         PrefilterSetupAppProto;
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].SupportsPrefilter =

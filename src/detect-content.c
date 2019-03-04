@@ -62,6 +62,8 @@ void DetectContentRegister (void)
     sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
     sigmatch_table[DETECT_CONTENT].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
+
+    SCSetModule("content");
 }
 
 /**

@@ -67,7 +67,7 @@ void DetectIcmpIdRegister (void)
     sigmatch_table[DETECT_ICMP_ID].SupportsPrefilter = PrefilterIcmpIdIsPrefilterable;
     sigmatch_table[DETECT_ICMP_ID].SetupPrefilter = PrefilterSetupIcmpId;
 
-    SCSetModule("detect-icmp_id");
+    SCSetModule("icmp_id");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

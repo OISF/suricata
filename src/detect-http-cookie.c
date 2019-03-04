@@ -121,6 +121,8 @@ void DetectHttpCookieRegister(void)
     DetectBufferTypeSetDescriptionByName("http_cookie",
             "http cookie header");
 
+    SCSetModule("http_cookie");
+
     g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
 }
 

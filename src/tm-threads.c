@@ -2102,6 +2102,8 @@ TmEcode TmThreadWaitOnThreadInit(void)
     uint16_t mgt_num = 0;
     uint16_t ppt_num = 0;
 
+    SCSetModule("tm-threads");
+
     struct timeval start_ts;
     struct timeval cur_ts;
     gettimeofday(&start_ts, NULL);

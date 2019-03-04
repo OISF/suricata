@@ -906,6 +906,8 @@ void RegisterFTPParsers(void)
     const char *proto_name = "ftp";
     const char *proto_data_name = "ftp-data";
 
+    SCSetModule("app-ftp");
+
     /** FTP */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_FTP, proto_name);

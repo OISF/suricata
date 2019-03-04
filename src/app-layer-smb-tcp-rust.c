@@ -217,6 +217,7 @@ static uint32_t stream_depth = SMB_CONFIG_DEFAULT_STREAM_DEPTH;
 void RegisterRustSMBTCPParsers(void)
 {
     const char *proto_name = "smb";
+    SCSetModule("app-smp-tcp-rust");
 
     /** SMB */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {

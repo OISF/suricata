@@ -50,6 +50,7 @@ void DetectBase64DecodeRegister(void)
 
     sigmatch_table[DETECT_BASE64_DECODE].flags |= SIGMATCH_OPTIONAL_OPT;
 
+    SCSetModule("base64_decode");
     DetectSetupParseRegexes(decode_pattern, &decode_pcre, &decode_pcre_study);
 }
 

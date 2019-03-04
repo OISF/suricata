@@ -72,6 +72,8 @@ void DetectFileextRegister(void)
     sigmatch_table[DETECT_FILEEXT].RegisterTests = DetectFileextRegisterTests;
     sigmatch_table[DETECT_FILEEXT].flags = SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION;
 
+    SCSetModule("fileext");
+
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
 	SCLogDebug("registering fileext rule option");

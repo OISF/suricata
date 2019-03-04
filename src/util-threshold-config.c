@@ -1104,6 +1104,8 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
     char line[8192] = "";
     int rule_num = 0;
 
+    SCSetModule("util-threshold-config");
+
     /* position of "\", on multiline rules */
     int esc_pos = 0;
 

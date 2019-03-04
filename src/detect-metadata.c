@@ -46,6 +46,8 @@ void DetectMetadataRegister (void)
     sigmatch_table[DETECT_METADATA].Setup = DetectMetadataSetup;
     sigmatch_table[DETECT_METADATA].Free  = NULL;
     sigmatch_table[DETECT_METADATA].RegisterTests = DetectMetadataRegisterTests;
+
+    SCSetModule("metadata");
 }
 
 /**

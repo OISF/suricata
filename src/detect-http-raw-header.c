@@ -92,7 +92,7 @@ void DetectHttpRawHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    SCSetModule("detect-http.header.raw");
+    SCSetModule("http_raw_header");
 
     DetectAppLayerInspectEngineRegister2("http_raw_header", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS+1,

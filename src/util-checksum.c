@@ -71,6 +71,7 @@ int ChecksumAutoModeCheck(uint64_t thread_count,
         uint64_t iface_count, uint64_t iface_fail)
 {
     if (thread_count == CHECKSUM_SAMPLE_COUNT) {
+        SCSetModule("util-checksum");
         if (iface_fail != 0) {
             if ((iface_count / iface_fail) < CHECKSUM_INVALID_RATIO) {
                 SCLogInfo("More than 1/%dth of packets have an invalid "

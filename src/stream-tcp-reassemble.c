@@ -357,6 +357,8 @@ int StreamTcpAppLayerIsDisabled(Flow *f)
 
 static int StreamTcpReassemblyConfig(char quiet)
 {
+    SCSetModule("stream-tcp-reassemble");
+
     uint32_t segment_prealloc = 2048;
     ConfNode *seg = ConfGetNode("stream.reassembly.segment-prealloc");
     if (seg) {

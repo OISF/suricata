@@ -86,7 +86,7 @@ void DetectHostbitsRegister (void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_HOSTBITS].flags |= SIGMATCH_IPONLY_COMPAT;
 
-    SCSetModule("detect-hostbits");
+    SCSetModule("hostbits");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

@@ -504,6 +504,8 @@ void SCRConfReferenceHashFree(void *data)
  */
 int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
+    SCSetModule("util-reference-config");
+
     fd = SCRConfInitContextAndLocalResources(de_ctx, fd);
     if (fd == NULL) {
 #ifdef UNITTESTS

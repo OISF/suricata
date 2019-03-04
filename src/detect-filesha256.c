@@ -52,6 +52,8 @@ void DetectFileSha256Register(void)
     sigmatch_table[DETECT_FILESHA256].RegisterTests = NULL;
     sigmatch_table[DETECT_FILESHA256].flags = SIGMATCH_NOT_BUILT;
 
+    SCSetModule("filesha256");
+
     SCLogDebug("registering filesha256 rule option");
     return;
 }
@@ -74,6 +76,8 @@ void DetectFileSha256Register(void)
     sigmatch_table[DETECT_FILESHA256].Setup = DetectFileSha256Setup;
     sigmatch_table[DETECT_FILESHA256].Free  = DetectFileHashFree;
     sigmatch_table[DETECT_FILESHA256].RegisterTests = DetectFileSha256RegisterTests;
+
+    SCSetModule("filesha256");
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
 

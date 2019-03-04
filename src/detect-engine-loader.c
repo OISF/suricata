@@ -271,6 +271,8 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
  */
 int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_exclusive)
 {
+    SCSetModule("detect-engine-loader");
+
     SCEnter();
 
     ConfNode *rule_files;
@@ -474,7 +476,6 @@ void DetectLoadersInit(void)
     }
     num_loaders = (int32_t)setting;
 
-    SCSetModule("detect-loader");
     SCLogInfo("using %d detect loader threads", num_loaders);
 
     BUG_ON(loaders != NULL);

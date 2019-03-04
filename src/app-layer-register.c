@@ -88,6 +88,7 @@ AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *p, int e
 
 int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
 {
+    SCSetModule("app-layer-register");
     const char *ip_proto_str = NULL;
 
     if (p == NULL)

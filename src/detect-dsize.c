@@ -75,6 +75,8 @@ void DetectDsizeRegister (void)
     sigmatch_table[DETECT_DSIZE].SupportsPrefilter = PrefilterDsizeIsPrefilterable;
     sigmatch_table[DETECT_DSIZE].SetupPrefilter = PrefilterSetupDsize;
 
+    SCSetModule("dsize");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     SCSetModule("detect-dsize");

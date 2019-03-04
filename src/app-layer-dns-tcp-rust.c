@@ -118,6 +118,8 @@ void RegisterRustDNSTCPParsers(void)
 {
     const char *proto_name = "dns";
 
+    SCSetModule("app-dns-tcp-rust");
+
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNS, proto_name);

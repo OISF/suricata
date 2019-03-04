@@ -76,7 +76,7 @@ void DetectBytetestRegister (void)
     sigmatch_table[DETECT_BYTETEST].Free  = DetectBytetestFree;
     sigmatch_table[DETECT_BYTETEST].RegisterTests = DetectBytetestRegisterTests;
 
-	SCSetModule("detect-byte_test");
+    SCSetModule("byte_test");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

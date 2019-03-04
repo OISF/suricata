@@ -213,6 +213,8 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
 {
+    SCSetModule("detect-engine-mpm");
+
     const DetectMpmAppLayerRegistery *list = g_app_mpms_list;
     while (list != NULL) {
         DetectMpmAppLayerRegistery *n = SCCalloc(1, sizeof(*n));

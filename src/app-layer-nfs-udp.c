@@ -263,6 +263,7 @@ static SuricataFileContext sfc = { &sbcfg };
 
 void RegisterNFSUDPParsers(void)
 {
+    SCSetModule("app-nfs-udp");
     const char *proto_name = "nfs";
 
     /* Check if NFS TCP detection is enabled. If it does not exist in

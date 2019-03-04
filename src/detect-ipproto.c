@@ -66,7 +66,7 @@ void DetectIPProtoRegister(void)
     sigmatch_table[DETECT_IPPROTO].RegisterTests = DetectIPProtoRegisterTests;
     sigmatch_table[DETECT_IPPROTO].flags = SIGMATCH_QUOTES_OPTIONAL;
 
-    SCSetModule("detect-ip_proto");
+    SCSetModule("ip_proto");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

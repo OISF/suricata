@@ -168,6 +168,8 @@ TmEcode PcapDirectoryDone(PcapFileDirectoryVars *ptv)
 
 TmEcode PcapDetermineDirectoryOrFile(char *filename, DIR **directory)
 {
+    SCSetModule("pcap-dir-helper");
+
     DIR *temp_dir = NULL;
     TmEcode return_code = TM_ECODE_FAILED;
 

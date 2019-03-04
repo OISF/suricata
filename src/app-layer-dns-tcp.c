@@ -702,6 +702,7 @@ void RegisterDNSTCPParsers(void)
     return;
 #else
     const char *proto_name = "dns";
+    SCSetModule("app-dns-tcp");
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNS, proto_name);

@@ -93,6 +93,8 @@ void DetectDceIfaceRegister(void)
     sigmatch_table[DETECT_DCE_IFACE].Free  = DetectDceIfaceFree;
     sigmatch_table[DETECT_DCE_IFACE].RegisterTests = DetectDceIfaceRegisterTests;
 
+    SCSetModule("dce_iface");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     SCSetModule("detect-dce_iface");

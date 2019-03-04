@@ -51,6 +51,8 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].RegisterTests = NULL;
     sigmatch_table[DETECT_FILEMD5].flags = SIGMATCH_NOT_BUILT;
 
+    SCSetModule("filemd5");
+
     SCLogDebug("registering filemd5 rule option");
     return;
 }
@@ -74,6 +76,8 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].Setup = DetectFileMd5Setup;
     sigmatch_table[DETECT_FILEMD5].Free  = DetectFileHashFree;
     sigmatch_table[DETECT_FILEMD5].RegisterTests = DetectFileMd5RegisterTests;
+
+    SCSetModule("filemd5");
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
 

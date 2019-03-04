@@ -71,7 +71,7 @@ void DetectICodeRegister (void)
     sigmatch_table[DETECT_ICODE].SupportsPrefilter = PrefilterICodeIsPrefilterable;
     sigmatch_table[DETECT_ICODE].SetupPrefilter = PrefilterSetupICode;
 
-    SCSetModule("detect-icode");
+    SCSetModule("icode");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

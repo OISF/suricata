@@ -71,7 +71,7 @@ void DetectFilesizeRegister(void)
     sigmatch_table[DETECT_FILESIZE].Free = DetectFilesizeFree;
     sigmatch_table[DETECT_FILESIZE].RegisterTests = DetectFilesizeRegisterTests;
 
-    SCSetModule("detect-filesize");
+    SCSetModule("filesize");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 

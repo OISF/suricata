@@ -76,6 +76,8 @@ void DetectFtpdataRegister(void) {
     /* registers unittests into the system */
     sigmatch_table[DETECT_FTPDATA].RegisterTests = DetectFtpdataRegisterTests;
 
+    SCSetModule("ftpdata_command");
+
     DetectAppLayerInspectEngineRegister("ftpdata_command",
             ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectFtpdataGeneric);

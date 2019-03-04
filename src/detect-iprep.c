@@ -68,7 +68,7 @@ void DetectIPRepRegister (void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_IPREP].flags |= SIGMATCH_IPONLY_COMPAT;
 
-    SCSetModule("detect-iprep");
+    SCSetModule("iprep");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

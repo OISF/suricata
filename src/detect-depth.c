@@ -60,7 +60,7 @@ void DetectDepthRegister (void)
     sigmatch_table[DETECT_STARTS_WITH].Setup = DetectStartsWithSetup;
     sigmatch_table[DETECT_STARTS_WITH].flags |= SIGMATCH_NOOPT;
 
-    SCSetModule("detect-depth");
+    SCSetModule("depth");
 }
 
 static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *depthstr)

@@ -69,7 +69,7 @@ void DetectFlowbitsRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
-    SCSetModule("detect-flowbits");
+    SCSetModule("flowbits");
 }
 
 

@@ -72,6 +72,8 @@ void DetectKrb5ErrCodeRegister(void) {
     sigmatch_table[DETECT_AL_KRB5_ERRCODE].Free = DetectKrb5ErrCodeFree;
     sigmatch_table[DETECT_AL_KRB5_ERRCODE].RegisterTests = DetectKrb5ErrCodeRegisterTests;
 
+    SCSetModule("krb5_errcode");
+
     DetectAppLayerInspectEngineRegister("krb5_err_code",
             ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectKRB5Generic);

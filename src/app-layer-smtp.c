@@ -1731,6 +1731,7 @@ static void SMTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
 void RegisterSMTPParsers(void)
 {
     const char *proto_name = "smtp";
+    SCSetModule("app-smtp");
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SMTP, proto_name);

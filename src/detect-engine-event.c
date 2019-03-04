@@ -78,7 +78,7 @@ void DetectEngineEventRegister (void)
     sigmatch_table[DETECT_STREAM_EVENT].Setup = DetectStreamEventSetup;
     sigmatch_table[DETECT_STREAM_EVENT].Free  = DetectEngineEventFree;
 
-    SCSetModule("detect-engine-event");
+    SCSetModule("engine-event");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

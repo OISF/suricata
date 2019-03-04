@@ -1461,6 +1461,7 @@ static int ModbusSetTxDetectState(void *vtx, DetectEngineState *s)
  */
 void RegisterModbusParsers(void)
 {
+    SCSetModule("app-modbus");
     SCEnter();
     const char *proto_name = "modbus";
 

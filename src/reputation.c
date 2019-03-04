@@ -584,6 +584,8 @@ int SRepInit(DetectEngineCtx *de_ctx)
     int init = 0;
     int i = 0;
 
+    SCSetModule("reputation");
+
     de_ctx->srepCIDR_ctx = (SRepCIDRTree *)SCMalloc(sizeof(SRepCIDRTree));
     if (de_ctx->srepCIDR_ctx == NULL)
         exit(EXIT_FAILURE);

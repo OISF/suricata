@@ -69,7 +69,7 @@ void DetectFragOffsetRegister (void)
     sigmatch_table[DETECT_FRAGOFFSET].SupportsPrefilter = PrefilterFragOffsetIsPrefilterable;
     sigmatch_table[DETECT_FRAGOFFSET].SetupPrefilter = PrefilterSetupFragOffset;
 
-    SCSetModule("detect-fragoffset");
+    SCSetModule("fragoffset");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

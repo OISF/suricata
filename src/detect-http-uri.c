@@ -124,6 +124,8 @@ void DetectHttpUriRegister (void)
 
     g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
 
+    SCSetModule("http_uri");
+
     /* http_raw_uri content modifier */
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].name = "http_raw_uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].desc = "content modifier to match on the raw HTTP uri";

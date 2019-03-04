@@ -39,6 +39,7 @@
 int32_t CoredumpLoadConfig (void)
 {
 #ifdef HAVE_SYS_RESOURCE_H
+    SCSetModule("coredump-conf");
     /* get core dump configuration settings for suricata */
     const char *dump_size_config = NULL;
     rlim_t max_dump = 0;

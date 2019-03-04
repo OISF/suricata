@@ -59,7 +59,7 @@ void DetectMarkRegister (void)
     sigmatch_table[DETECT_MARK].Free  = DetectMarkDataFree;
     sigmatch_table[DETECT_MARK].RegisterTests = MarkRegisterTests;
 
-    SCSetModule("detect-nfq_set_mark");
+    SCSetModule("nfq_set_mark");
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }

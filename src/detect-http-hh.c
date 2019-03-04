@@ -128,6 +128,8 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_HTTP_HOST_RAW].Setup = DetectHttpHostRawSetupSticky;
     sigmatch_table[DETECT_HTTP_HOST_RAW].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("http_host");
+
     DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
             DetectEngineInspectBufferGeneric, GetRawData);

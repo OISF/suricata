@@ -72,6 +72,7 @@ void DetectAppLayerEventRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Free = DetectAppLayerEventFree;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].RegisterTests =
         DetectAppLayerEventRegisterTests;
+    SCSetModule("detect-app-layer-event");
 
     DetectAppLayerInspectEngineRegister("app-layer-events",
             ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER, 0,

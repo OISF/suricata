@@ -328,6 +328,8 @@ SCConfLogOpenGeneric(ConfNode *conf,
         return -1;
     }
 
+    SCSetModule("util-logopen");
+
     // Resolve the given config
     filename = ConfNodeLookupChildValue(conf, "filename");
     if (filename == NULL)
