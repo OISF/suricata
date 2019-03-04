@@ -149,10 +149,14 @@ impl IKEV2State {
                 // use init_spi as transaction identifier
                 tx.xid = hdr.init_spi;
                 tx.hdr = (*hdr).clone();
+                self.transactions.push(tx);
+                let mut payload_types = Vec::new();
+                let mut errors = 0;
+                let mut notify_types = Vec::new();
                 match parse_ikev2_payload_list(rem,hdr.next_payload) {
                     IResult::Done(_,Ok(ref p)) => {
                         for payload in p {
-                            tx.payload_types.push(payload.hdr.next_payload_type);
+                            payload_types.push(payload.hdr.next_payload_type);
                             match payload.content {
                                 IkeV2PayloadContent::Dummy => (),
                                 IkeV2PayloadContent::SA(ref prop) => {
@@ -172,9 +176,9 @@ impl IKEV2State {
                                 IkeV2PayloadContent::Notify(ref n) => {
                                     SCLogDebug!("Notify: {:?}", n);
                                     if n.notify_type.is_error() {
-                                        tx.errors += 1;
+                                        errors += 1;
                                     }
-                                    tx.notify_types.push(n.notify_type);
+                                    notify_types.push(n.notify_type);
                                 },
                                 // XXX CertificateRequest
                                 // XXX Certificate
@@ -187,11 +191,16 @@ impl IKEV2State {
                                 },
                             }
                             self.connection_state = self.connection_state.advance(payload);
+                            if let Some(tx) = self.transactions.last_mut() {
+                                // borrow back tx to update it
+                                tx.payload_types.append(&mut payload_types);
+                                tx.errors = errors;
+                                tx.notify_types.append(&mut notify_types);
+                            }
                         };
                     },
                     e => { SCLogDebug!("parse_ikev2_payload_with_type: {:?}",e); () },
                 }
-                self.transactions.push(tx);
                 1
             },
             IResult::Incomplete(_) => {
@@ -235,6 +244,8 @@ impl IKEV2State {
         if let Some(tx) = self.transactions.last_mut() {
             let ev = event as u8;
             core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+        } else {
+            SCLogDebug!("IKEv2: trying to set event {} on non-existing transaction", event as u32);
         }
     }
 
