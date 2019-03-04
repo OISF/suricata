@@ -544,10 +544,15 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         return 0;
     }
 
+    uint64_t pkts_cnt = 0;
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
-        uint64_t pkts_cnt = 0;
         uint64_t bytes_cnt = 0;
         hash_cnt++;
+        if (pkts_cnt > 0) {
+            SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
+            EBPFDeleteKey(mapfd, &key);
+        }
+        pkts_cnt = 0;
         /* We use a per CPU structure so we will get a array of values. But if nr_cpus
          * is 1 then we have a global hash. */
         struct pair values_array[tcfg->cpus_count];
@@ -593,11 +598,14 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key, values_array[0].hash,
                                     ctime, pkts_cnt, bytes_cnt);
         if (pkts_cnt > 0) {
-            SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
-            EBPFDeleteKey(mapfd, &next_key);
             found = 1;
         }
         key = next_key;
+    }
+    if (pkts_cnt > 0) {
+        SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
+        EBPFDeleteKey(mapfd, &key);
+        found = 1;
     }
 
     struct bpf_maps_info *bpfdata = LiveDevGetStorageById(dev, g_livedev_storage_id);
