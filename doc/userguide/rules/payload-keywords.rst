@@ -271,7 +271,7 @@ The ``byte_test`` keyword extracts ``<num of bytes>`` and performs an operation 
 Format::
   
   byte_test:<num of bytes>, [!]<operator>, <test value>, <offset> [,relative] \
-  [,<endian>][, string, <num type>][, dce][, bitmask <bitmask value>];
+  [,<endian>][, string, <num type>][, dce][, bitmask <bitmask value>]; 
 
 
 +----------------+------------------------------------------------------------------------------+
