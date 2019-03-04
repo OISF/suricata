@@ -379,7 +379,7 @@ void DetectHttpHeaderNamesRegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].flags |= SIGMATCH_NOOPT ;
 
-    SCSetModule("detect-http_header_names");
+    SCSetModule("detect-" KEYWORD_NAME);
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestHeaderNamesRegister);

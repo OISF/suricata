@@ -331,6 +331,8 @@ static void DetectHttpHeadersRegisterStub(void)
     sigmatch_table[KEYWORD_ID].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
     sigmatch_table[KEYWORD_ID].Setup = DetectHttpHeadersSetup;
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT;
+
+	SCSetModule("detect" KEYWORD_NAME);
 #ifdef KEYWORD_TOSERVER
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestHeaderRegister);
