@@ -115,7 +115,12 @@ static void BypassedListFree(void *ifl)
 
 static void EBPFDeleteKey(int fd, void *key)
 {
-    bpf_map_delete_elem(fd, key);
+    int ret = bpf_map_delete_elem(fd, key);
+    if (ret < 0) {
+        SCLogNotice("Unable to delete entry: %s (%d)",
+                    strerror(errno),
+                    errno);
+    }
 }
 
 static struct bpf_maps_info *EBPFGetBpfMap(const char *iface)
