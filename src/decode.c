@@ -403,7 +403,9 @@ void PacketBypassCallback(Packet *p)
      * if we have failed to do it once */
     int state = SC_ATOMIC_GET(p->flow->flow_state);
     if ((state == FLOW_STATE_LOCAL_BYPASSED) ||
-           (state == FLOW_STATE_CAPTURE_BYPASSED)) {
+           (state == FLOW_STATE_CAPTURE_BYPASSED) ||
+           (state == FLOW_STATE_MAP_BYPASSED)
+           ) {
         return;
     }
 

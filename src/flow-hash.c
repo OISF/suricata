@@ -651,7 +651,6 @@ Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t ha
     if (key->src.family == AF_INET6) {
         f->flags |= FLOW_IPV6;
     }
-    FlowUpdateState(f, FLOW_STATE_CAPTURE_BYPASSED);
 
     f->protomap = FlowGetProtoMapping(f->proto);
     /* set timestamp to now */
@@ -803,6 +802,8 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
         else if (state == FLOW_STATE_CLOSED)
             f->flow_end_flags |= FLOW_END_FLAG_STATE_CLOSED;
         else if (state == FLOW_STATE_CAPTURE_BYPASSED)
+            f->flow_end_flags |= FLOW_END_FLAG_STATE_BYPASSED;
+        else if (state == FLOW_STATE_MAP_BYPASSED)
             f->flow_end_flags |= FLOW_END_FLAG_STATE_BYPASSED;
         else if (state == FLOW_STATE_LOCAL_BYPASSED)
             f->flow_end_flags |= FLOW_END_FLAG_STATE_BYPASSED;
