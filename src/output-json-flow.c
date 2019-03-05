@@ -252,6 +252,10 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
                 json_object_set_new(hjs, "bypass",
                         json_string("capture"));
                 break;
+            case FLOW_STATE_MAP_BYPASSED:
+                json_object_set_new(hjs, "bypass",
+                        json_string("map"));
+                break;
             default:
                 SCLogError(SC_ERR_INVALID_VALUE,
                            "Invalid flow state: %d, contact developers",

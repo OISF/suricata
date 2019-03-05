@@ -73,6 +73,7 @@ static inline TmEcode FlowUpdate(Packet *p)
 
     int state = SC_ATOMIC_GET(p->flow->flow_state);
     switch (state) {
+        case FLOW_STATE_MAP_BYPASSED:
         case FLOW_STATE_CAPTURE_BYPASSED:
         case FLOW_STATE_LOCAL_BYPASSED:
             return TM_ECODE_DONE;

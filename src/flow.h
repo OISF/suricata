@@ -457,6 +457,7 @@ enum FlowState {
     FLOW_STATE_CLOSED,
     FLOW_STATE_LOCAL_BYPASSED,
     FLOW_STATE_CAPTURE_BYPASSED,
+    FLOW_STATE_MAP_BYPASSED,
 };
 
 typedef struct FlowProtoTimeout_ {

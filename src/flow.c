@@ -333,7 +333,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
 
     int state = SC_ATOMIC_GET(f->flow_state);
 
-    if (state != FLOW_STATE_CAPTURE_BYPASSED) {
+    if ((state != FLOW_STATE_CAPTURE_BYPASSED) &&
+        (state != FLOW_STATE_MAP_BYPASSED)) {
         /* update the last seen timestamp of this flow */
         COPY_TIMESTAMP(&p->ts, &f->lastts);
     } else {

@@ -468,6 +468,7 @@ static int EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
     if (f == NULL)
         return 0;
 
+    FlowUpdateState(f, FLOW_STATE_MAP_BYPASSED);
     /* set accounting, we can't now the side, so let's just start to server
      * then if we already have something in to server to client. We need
      * these numbers as we will use it to see if we have new traffic coming
