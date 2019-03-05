@@ -138,6 +138,8 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
     { "RESPONSE_FIELD_TOO_LONG",
         HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
+    { "REQUEST_LINE_INVALID",
+        HTTP_DECODER_EVENT_REQUEST_LINE_INVALID},
     { "REQUEST_SERVER_PORT_TCP_PORT_MISMATCH",
         HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
     { "REQUEST_URI_HOST_INVALID",
@@ -485,6 +487,9 @@ struct {
 /*    { "Invalid authority port", HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT}, htp no longer returns this error */
     { "Request buffer over", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
     { "Response buffer over", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
+    { "Request line: unknown method only", HTTP_DECODER_EVENT_REQUEST_LINE_INVALID},
+    { "Request line: unknown method and no protocol", HTTP_DECODER_EVENT_REQUEST_LINE_INVALID},
+    { "Request line: unknown method and invalid protocol", HTTP_DECODER_EVENT_REQUEST_LINE_INVALID},
 };
 
 struct {
@@ -741,6 +746,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     /* pass the new data to the htp parser */
     if (input_len > 0) {
         const int r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
+        HTPHandleError(hstate);
         switch (r) {
             case HTP_STREAM_ERROR:
                 ret = -1;
@@ -748,7 +754,6 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             default:
                 break;
         }
-        HTPHandleError(hstate);
     }
 
     /* if the TCP connection is closed, then close the HTTP connection */
@@ -803,6 +808,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     if (input_len > 0) {
         const int r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
+        HTPHandleError(hstate);
         switch (r) {
             case HTP_STREAM_ERROR:
                 ret = -1;
@@ -810,7 +816,6 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
             default:
                 break;
         }
-        HTPHandleError(hstate);
     }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
