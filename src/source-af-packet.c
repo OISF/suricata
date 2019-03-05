@@ -2409,7 +2409,7 @@ static int AFPBypassCallback(Packet *p)
         key.port16[0] = GET_TCP_SRC_PORT(p);
         key.port16[1] = GET_TCP_DST_PORT(p);
         key.ip_proto = IPV6_GET_NH(p);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
                               p->flow->todstbytecnt, p->afp_v.nr_cpus) == 0) {
             return 0;
         }
@@ -2419,7 +2419,7 @@ static int AFPBypassCallback(Packet *p)
         }
         key.port16[0] = GET_TCP_DST_PORT(p);
         key.port16[1] = GET_TCP_SRC_PORT(p);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash, p->flow->tosrcpktcnt,
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash, p->flow->tosrcpktcnt,
                               p->flow->tosrcbytecnt, p->afp_v.nr_cpus) == 0) {
             return 0;
         }
@@ -2498,7 +2498,7 @@ static int AFPXDPBypassCallback(Packet *p)
         key.port16[0] = htons(GET_TCP_SRC_PORT(p));
         key.port16[1] = htons(GET_TCP_DST_PORT(p));
         key.ip_proto = IPV6_GET_NH(p);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
                               p->flow->todstbytecnt, p->afp_v.nr_cpus) == 0) {
             return 0;
         }
@@ -2508,7 +2508,7 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         key.port16[0] = htons(GET_TCP_DST_PORT(p));
         key.port16[1] = htons(GET_TCP_SRC_PORT(p));
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash, p->flow->tosrcpktcnt,
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash, p->flow->tosrcpktcnt,
                               p->flow->tosrcbytecnt, p->afp_v.nr_cpus) == 0) {
             return 0;
         }
