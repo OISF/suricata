@@ -71,6 +71,8 @@ void DetectITypeRegister (void)
     sigmatch_table[DETECT_ITYPE].SupportsPrefilter = PrefilterITypeIsPrefilterable;
     sigmatch_table[DETECT_ITYPE].SetupPrefilter = PrefilterSetupIType;
 
+    SCSetModule("detect-itype");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

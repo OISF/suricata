@@ -185,6 +185,8 @@ void JsonTemplateRustLogRegister(void)
         OutputTemplateLogInitSub, ALPROTO_TEMPLATE_RUST, JsonTemplateLogger,
         JsonTemplateLogThreadInit, JsonTemplateLogThreadDeinit, NULL);
 
+    SCSetModule("output-json-template-rust");
+
     SCLogNotice("Template JSON logger registered.");
 }
 

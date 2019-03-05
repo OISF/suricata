@@ -72,6 +72,8 @@ void DetectTosRegister(void)
     sigmatch_table[DETECT_TOS].url =
         DOC_URL DOC_VERSION "/rules/header-keywords.html#tos";
 
+    SCSetModule("detect-tos");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

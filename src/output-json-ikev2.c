@@ -180,6 +180,8 @@ void JsonIKEv2LogRegister(void)
         JsonIKEv2LogThreadDeinit, NULL);
 
     SCLogDebug("IKEv2 JSON logger registered.");
+
+    SCSetModule("output-json-ikev2");
 }
 
 #else /* No JSON support. */

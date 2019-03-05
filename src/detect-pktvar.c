@@ -52,6 +52,8 @@ void DetectPktvarRegister (void)
     sigmatch_table[DETECT_PKTVAR].Free  = NULL;
     sigmatch_table[DETECT_PKTVAR].RegisterTests  = NULL;
 
+    SCSetModule("detect-pktvar");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

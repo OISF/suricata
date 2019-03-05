@@ -90,6 +90,8 @@ void DetectDceOpnumRegister(void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
+    SCSetModule("detect-dce_opnum");
+
     g_dce_generic_list_id = DetectBufferTypeRegister("dce_generic");
 }
 

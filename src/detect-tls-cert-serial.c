@@ -81,6 +81,8 @@ void DetectTlsSerialRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-tls_cert_serial");
+
     DetectAppLayerInspectEngineRegister2("tls_cert_serial", ALPROTO_TLS,
             SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectBufferGeneric, GetData);

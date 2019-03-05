@@ -47,6 +47,8 @@ void DetectMsgRegister (void)
     sigmatch_table[DETECT_MSG].Free = NULL;
     sigmatch_table[DETECT_MSG].RegisterTests = DetectMsgRegisterTests;
     sigmatch_table[DETECT_MSG].flags = SIGMATCH_QUOTES_MANDATORY;
+
+    SCSetModule("detect-msg");
 }
 
 static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, const char *msgstr)

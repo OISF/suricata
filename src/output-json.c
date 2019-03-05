@@ -104,6 +104,8 @@ void OutputJsonRegister (void)
 
     traffic_id_prefix_len = strlen(TRAFFIC_ID_PREFIX);
     traffic_label_prefix_len = strlen(TRAFFIC_LABEL_PREFIX);
+
+    SCSetModule("output-json");
 }
 
 json_t *SCJsonBool(int val)

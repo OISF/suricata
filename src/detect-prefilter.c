@@ -45,6 +45,8 @@ void DetectPrefilterRegister(void)
     sigmatch_table[DETECT_PREFILTER].RegisterTests = NULL;
 
     sigmatch_table[DETECT_PREFILTER].flags |= SIGMATCH_NOOPT;
+
+    SCSetModule("detect-prefilter");
 }
 
 /**

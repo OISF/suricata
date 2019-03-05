@@ -79,6 +79,8 @@ void DetectSslVersionRegister(void)
     sigmatch_table[DETECT_AL_SSL_VERSION].Free  = DetectSslVersionFree;
     sigmatch_table[DETECT_AL_SSL_VERSION].RegisterTests = DetectSslVersionRegisterTests;
 
+    SCSetModule("detect-ssl_version");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");

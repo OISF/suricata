@@ -1300,5 +1300,7 @@ void AlertPreludeRegister (void)
     OutputRegisterPacketModule(LOGGER_PRELUDE, "AlertPrelude", "alert-prelude",
         AlertPreludeInitCtx, AlertPreludeLogger, AlertPreludeCondition,
         AlertPreludeThreadInit, AlertPreludeThreadDeinit, NULL);
+
+    SCSetModule("alert-prelude");
 }
 #endif /* PRELUDE */

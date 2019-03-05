@@ -503,4 +503,6 @@ void LogTlsLogRegister(void)
         LogTlsLogInitCtx, ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE,
         TLS_HANDSHAKE_DONE, LogTlsLogThreadInit, LogTlsLogThreadDeinit,
         LogTlsLogExitPrintStats);
+
+    SCSetModule("log-tlslog");
 }

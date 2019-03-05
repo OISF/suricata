@@ -276,6 +276,9 @@ void JsonSmtpLogRegister (void) {
     OutputRegisterTxSubModule(LOGGER_JSON_SMTP, "eve-log", "JsonSmtpLog",
         "eve-log.smtp", OutputSmtpLogInitSub, ALPROTO_SMTP, JsonSmtpLogger,
         JsonSmtpLogThreadInit, JsonSmtpLogThreadDeinit, NULL);
+
+    SCSetModule("output-json-smtp");
+
 }
 
 #else

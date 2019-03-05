@@ -179,6 +179,8 @@ void JsonTFTPLogRegister(void)
                               JsonTFTPLogThreadInit, JsonTFTPLogThreadDeinit,
                               NULL);
 
+    SCSetModule("output-json-tftp");
+
     SCLogDebug("TFTP JSON logger registered.");
 }
 #else /* HAVE_RUST */

@@ -397,6 +397,8 @@ void JsonFileLogRegister (void)
     OutputRegisterFileSubModule(LOGGER_JSON_FILE, "eve-log", "JsonFileLog",
         "eve-log.files", OutputFileLogInitSub, JsonFileLogger,
         JsonFileLogThreadInit, JsonFileLogThreadDeinit, NULL);
+
+    SCSetModule("output-json-file");
 }
 
 #else

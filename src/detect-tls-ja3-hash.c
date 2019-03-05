@@ -85,6 +85,8 @@ void DetectTlsJa3HashRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-ja3_hash");
+
     DetectAppLayerInspectEngineRegister2("ja3_hash", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 

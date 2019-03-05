@@ -80,6 +80,8 @@ void DetectHttpRequestLineRegister(void)
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].Setup = DetectHttpRequestLineSetup;
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].RegisterTests = DetectHttpRequestLineRegisterTests;
 
+    SCSetModule("detect-http_request_line");
+
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerInspectEngineRegister2("http_request_line",

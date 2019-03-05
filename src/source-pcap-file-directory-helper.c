@@ -495,6 +495,8 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
 
 TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
 {
+    SCSetModule("pcap-dir-dispatch");
+
     SCEnter();
     SCSetModule("pcap-dir-dispatch");
 

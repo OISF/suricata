@@ -60,6 +60,8 @@ void DetectSeqRegister(void)
 
     sigmatch_table[DETECT_SEQ].SupportsPrefilter = PrefilterTcpSeqIsPrefilterable;
     sigmatch_table[DETECT_SEQ].SetupPrefilter = PrefilterSetupTcpSeq;
+
+    SCSetModule("detect-seq");
 }
 
 /**

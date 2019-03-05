@@ -44,6 +44,8 @@ void DetectSidRegister (void)
     sigmatch_table[DETECT_SID].Setup = DetectSidSetup;
     sigmatch_table[DETECT_SID].Free = NULL;
     sigmatch_table[DETECT_SID].RegisterTests = DetectSidRegisterTests;
+
+    SCSetModule("detect-sid");
 }
 
 static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *sidstr)

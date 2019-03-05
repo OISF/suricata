@@ -81,6 +81,8 @@ void DetectIsdataatRegister(void)
     sigmatch_table[DETECT_ENDS_WITH].Setup = DetectEndsWithSetup;
     sigmatch_table[DETECT_ENDS_WITH].flags = SIGMATCH_NOOPT;
 
+    SCSetModule("detect-isdataat");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

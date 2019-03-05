@@ -80,6 +80,8 @@ void DetectTlsVersionRegister (void)
     sigmatch_table[DETECT_AL_TLS_VERSION].Free  = DetectTlsVersionFree;
     sigmatch_table[DETECT_AL_TLS_VERSION].RegisterTests = DetectTlsVersionRegisterTests;
 
+    SCSetModule("detect-tls.version");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");

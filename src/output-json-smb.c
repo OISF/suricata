@@ -106,6 +106,8 @@ void JsonSMBLogRegister(void)
         JsonSMBLogger, JsonLogThreadInit,
         JsonLogThreadDeinit, NULL);
 
+    SCSetModule("output-json-smb");
+
     SCLogDebug("SMB JSON logger registered.");
 }
 

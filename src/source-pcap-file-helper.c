@@ -118,6 +118,8 @@ const char *PcapFileGetFilename(void)
  */
 TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
 {
+    SCSetModule("pcap-file-dispatch");
+
     SCEnter();
     SCSetModule("pcap-file-dispatch");
 

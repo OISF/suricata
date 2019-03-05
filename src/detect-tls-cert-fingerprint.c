@@ -81,6 +81,8 @@ void DetectTlsFingerprintRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-tls_cert_fingerprint");
+
     DetectAppLayerInspectEngineRegister2("tls_cert_fingerprint", ALPROTO_TLS,
             SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectBufferGeneric, GetData);

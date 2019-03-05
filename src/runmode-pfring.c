@@ -49,6 +49,8 @@ const char *RunModeIdsPfringGetDefaultMode(void)
 
 void RunModeIdsPfringRegister(void)
 {
+    SCSetModule("runmode-pfring");
+
     RunModeRegisterNewRunMode(RUNMODE_PFRING, "autofp",
                               "Multi threaded pfring mode.  Packets from "
                               "each flow are assigned to a single detect "

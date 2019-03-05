@@ -49,6 +49,9 @@ const char *RunModeIpsNFQGetDefaultMode(void)
 void RunModeIpsNFQRegister(void)
 {
     default_mode = "autofp";
+
+    SCSetModule("runmode-nfq");
+
     RunModeRegisterNewRunMode(RUNMODE_NFQ, "autofp",
                               "Multi threaded NFQ IPS mode with respect to flow",
                               RunModeIpsNFQAutoFp);

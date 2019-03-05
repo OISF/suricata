@@ -69,6 +69,8 @@ void DetectFlowintRegister(void)
     sigmatch_table[DETECT_FLOWINT].Free = DetectFlowintFree;
     sigmatch_table[DETECT_FLOWINT].RegisterTests = DetectFlowintRegisterTests;
 
+    SCSetModule("detect-flowint");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

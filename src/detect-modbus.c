@@ -522,6 +522,8 @@ void DetectModbusRegister(void)
     sigmatch_table[DETECT_AL_MODBUS].Free          = DetectModbusFree;
     sigmatch_table[DETECT_AL_MODBUS].RegisterTests = DetectModbusRegisterTests;
 
+    SCSetModule("detect-modbus");
+
     DetectSetupParseRegexes(PARSE_REGEX_UNIT_ID,
             &unit_id_parse_regex, &unit_id_parse_regex_study);
     DetectSetupParseRegexes(PARSE_REGEX_FUNCTION,

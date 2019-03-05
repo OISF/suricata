@@ -95,6 +95,8 @@ void DetectHttpStatCodeRegister (void)
     sigmatch_table[DETECT_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetupSticky;
     sigmatch_table[DETECT_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-http.stat_code");
+
     DetectAppLayerInspectEngineRegister2("http_stat_code", ALPROTO_HTTP,
             SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
             DetectEngineInspectBufferGeneric, GetData);

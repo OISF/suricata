@@ -55,6 +55,8 @@ void DetectPriorityRegister (void)
     sigmatch_table[DETECT_PRIORITY].Free = NULL;
     sigmatch_table[DETECT_PRIORITY].RegisterTests = SCPriorityRegisterTests;
 
+    SCSetModule("detect-priority");
+
     DetectSetupParseRegexes(PARSE_REGEX, &regex, &regex_study);
 }
 

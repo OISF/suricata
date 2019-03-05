@@ -627,6 +627,8 @@ void JsonTlsLogRegister (void)
         "JsonTlsLog", "eve-log.tls", OutputTlsLogInitSub, ALPROTO_TLS,
         JsonTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE,
         JsonTlsLogThreadInit, JsonTlsLogThreadDeinit, NULL);
+
+    SCSetModule("output-json-tls");
 }
 
 #else

@@ -1036,6 +1036,9 @@ void OutputRegisterRootLoggers(void)
  */
 void OutputRegisterLoggers(void)
 {
+
+    SCSetModule("output");
+
     /* custom format log*/
     LogCustomFormatRegister();
 

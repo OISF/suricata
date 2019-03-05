@@ -45,6 +45,8 @@ void DetectRawbytesRegister (void)
     sigmatch_table[DETECT_RAWBYTES].name = "rawbytes";
     sigmatch_table[DETECT_RAWBYTES].Setup = DetectRawbytesSetup;
     sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_NOOPT;
+
+    SCSetModule("detect-rawbytes");
 }
 
 static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)

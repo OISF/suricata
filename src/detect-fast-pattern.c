@@ -170,6 +170,8 @@ void DetectFastPatternRegister(void)
 
     sigmatch_table[DETECT_FAST_PATTERN].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-fast_pattern");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

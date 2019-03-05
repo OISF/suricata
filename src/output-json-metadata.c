@@ -289,6 +289,8 @@ void JsonMetadataLogRegister (void)
         "eve-log.vars", JsonMetadataLogInitCtxSub, JsonMetadataLogger,
         JsonMetadataLogCondition, JsonMetadataLogThreadInit,
         JsonMetadataLogThreadDeinit, NULL);
+
+    SCSetModule("output-json-metadata");
 }
 
 #else

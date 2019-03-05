@@ -330,6 +330,8 @@ TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data)
  */
 TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
+    SCSetModule("receive-pcap");
+
     SCEnter();
     SCSetModule("receive-pcap");
     PcapIfaceConfig *pcapconfig = (PcapIfaceConfig *)initdata;

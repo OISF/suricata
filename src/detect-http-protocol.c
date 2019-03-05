@@ -214,6 +214,8 @@ void DetectHttpProtocolRegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].flags |= SIGMATCH_NOOPT ;
 
+    SCSetModule("detect-" KEYWORD_NAME);
+
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestProtocolRegister);
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,

@@ -51,6 +51,8 @@ void DetectOffsetRegister (void)
     sigmatch_table[DETECT_OFFSET].Setup = DetectOffsetSetup;
     sigmatch_table[DETECT_OFFSET].Free  = NULL;
     sigmatch_table[DETECT_OFFSET].RegisterTests = NULL;
+
+    SCSetModule("detect-offset");
 }
 
 int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offsetstr)

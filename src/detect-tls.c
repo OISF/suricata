@@ -152,6 +152,8 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_STORE].RegisterTests = NULL;
     sigmatch_table[DETECT_AL_TLS_STORE].flags |= SIGMATCH_NOOPT;
 
+    SCSetModule("detect-tls");
+
     DetectSetupParseRegexes(PARSE_REGEX,
             &subject_parse_regex, &subject_parse_regex_study);
     DetectSetupParseRegexes(PARSE_REGEX,

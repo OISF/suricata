@@ -187,6 +187,8 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
 
 TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
+    SCSetModule("receive-pcap-file");
+
     SCEnter();
     SCSetModule("receive-pcap-file");
 

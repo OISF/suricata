@@ -449,6 +449,8 @@ void JsonDNP3LogRegister(void)
         "JsonDNP3Log", "eve-log.dnp3", OutputDNP3LogInitSub, ALPROTO_DNP3,
         JsonDNP3LoggerToClient, 1, 1, JsonDNP3LogThreadInit,
         JsonDNP3LogThreadDeinit, NULL);
+
+    SCSetModule("output-json-dnp3");
 }
 
 #else

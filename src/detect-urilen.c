@@ -72,6 +72,8 @@ void DetectUrilenRegister(void)
     sigmatch_table[DETECT_AL_URILEN].Free = DetectUrilenFree;
     sigmatch_table[DETECT_AL_URILEN].RegisterTests = DetectUrilenRegisterTests;
 
+    SCSetModule("detect-urilen");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");

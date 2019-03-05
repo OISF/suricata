@@ -203,6 +203,8 @@ void JsonTemplateLogRegister(void)
         JsonTemplateLogger, JsonTemplateLogThreadInit,
         JsonTemplateLogThreadDeinit, NULL);
 
+    SCSetModule("output-json-template");
+
     SCLogNotice("Template JSON logger registered.");
 }
 

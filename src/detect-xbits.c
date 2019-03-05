@@ -74,6 +74,8 @@ void DetectXbitsRegister (void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_XBITS].flags |= SIGMATCH_IPONLY_COMPAT;
 
+    SCSetModule("detect-xbits");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

@@ -89,6 +89,8 @@ void DetectFiledataRegister(void)
 #endif
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
+    SCSetModule("detect-file_data");
+
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMTP, 0);

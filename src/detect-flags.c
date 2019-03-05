@@ -81,6 +81,8 @@ void DetectFlagsRegister (void)
     sigmatch_table[DETECT_FLAGS].SupportsPrefilter = PrefilterTcpFlagsIsPrefilterable;
     sigmatch_table[DETECT_FLAGS].SetupPrefilter = PrefilterSetupTcpFlags;
 
+    SCSetModule("detect-flags");
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
