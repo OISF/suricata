@@ -138,6 +138,10 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
     { "RESPONSE_FIELD_TOO_LONG",
         HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
+    { "REQUEST_LINE_INVALID",
+        HTTP_DECODER_EVENT_REQUEST_LINE_INVALID},
+    { "REQUEST_BODY_UNEXPECTED",
+        HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED},
     { "REQUEST_SERVER_PORT_TCP_PORT_MISMATCH",
         HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
     { "REQUEST_URI_HOST_INVALID",
@@ -511,6 +515,10 @@ struct {
     { "C-E gzip has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "C-E deflate has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
+    { "Request line: unknown method only", HTTP_DECODER_EVENT_REQUEST_LINE_INVALID},
+    { "Request line: unknown method and no protocol", HTTP_DECODER_EVENT_REQUEST_LINE_INVALID},
+    { "Request line: unknown method and invalid protocol", HTTP_DECODER_EVENT_REQUEST_LINE_INVALID},
+    { "Unexpected request body", HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
