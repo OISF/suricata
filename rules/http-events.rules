@@ -71,5 +71,7 @@ alert http any any -> any any (msg:"SURICATA HTTP Request line incomplete"; flow
 
 alert http any any -> any any (msg:"SURICATA HTTP Request double encoded URI"; flow:established,to_server; app-layer-event:http.double_encoded_uri; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221043; rev:1;)
 
-# next sid 2221044
+alert http any any -> any any (msg:"SURICATA HTTP Invalid Request line"; flow:established,to_server; app-layer-event:http.request_line_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221044; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP Unexpected Request body"; flow:established,to_server; app-layer-event:http.request_body_unexpected; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221045; rev:1;)
 
+# next sid 2221046
