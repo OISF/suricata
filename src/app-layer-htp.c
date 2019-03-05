@@ -138,6 +138,10 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
     { "RESPONSE_FIELD_TOO_LONG",
         HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
+    { "REQUEST_LINE_INVALID",
+        HTTP_DECODER_EVENT_REQUEST_LINE_INVALID},
+    { "REQUEST_BODY_UNEXPECTED",
+        HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED},
     { "REQUEST_SERVER_PORT_TCP_PORT_MISMATCH",
         HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
     { "REQUEST_URI_HOST_INVALID",
@@ -539,6 +543,7 @@ struct {
     { "Invalid response line: invalid protocol", HTTP_DECODER_EVENT_RESPONSE_INVALID_PROTOCOL},
     { "Invalid response line: invalid response status", HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS},
     { "Request line incomplete", HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE},
+    { "Unexpected request body", HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
@@ -673,8 +678,15 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
-
         HTPSetEvent(s, htud, HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED);
+    }
+    if (tx->is_protocol_0_9 && tx->request_method_number == HTP_M_UNKNOWN &&
+        (tx->request_protocol_number == HTP_PROTOCOL_INVALID ||
+         tx->request_protocol_number == HTP_PROTOCOL_UNKNOWN)) {
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (htud == NULL)
+            return;
+        HTPSetEvent(s, htud, HTTP_DECODER_EVENT_REQUEST_LINE_INVALID);
     }
 }
 
