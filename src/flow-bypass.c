@@ -63,7 +63,7 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
     BypassedFlowManagerThreadData *ftd = thread_data;
     struct timespec curtime = {0, 0};
 
-    if (clock_gettime(CLOCK_MONOTONIC, &curtime) != 0) {
+    if (clock_gettime(CLOCK_REALTIME, &curtime) != 0) {
         SCLogWarning(SC_ERR_INVALID_VALUE, "Can't get time: %s (%d)",
                 strerror(errno), errno);
     }
@@ -75,7 +75,7 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 
     while (1) {
         SCLogDebug("Dumping the table");
-        if (clock_gettime(CLOCK_MONOTONIC, &curtime) != 0) {
+        if (clock_gettime(CLOCK_REALTIME, &curtime) != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE, "Can't get time: %s (%d)",
                          strerror(errno), errno);
             usleep(10000);
