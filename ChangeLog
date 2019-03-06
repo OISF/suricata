@@ -1,3 +1,20 @@
+4.1.3 -- 2019-03-07
+
+Bug #2225: when stats info dumping in redis,the decoder.ipv4.trunc_pkt can't output.In the same time, in the stats.log this can output
+Bug #2362: rule reload with workers mode and NFQUEUE not working stable
+Bug #2761: Include ebpf files in distributed sources
+Bug #2762: SSLv3 - AddressSanitizer heap-buffer-overflow
+Bug #2770: TCP FIN/ACK, RST/ACK in HTTP - detection bypass
+Bug #2788: afpacket doesn't wait for all capture threads to start
+Bug #2805: dns v1/2 with rust results in less app layer data available in the alert record (for dns related alerts/rules) (4.1.x)
+Bug #2811: netmap/afpacket IPS: stream.inline: auto broken
+Bug #2823: configure.ac: broken --{enable,disable}-xxx options (4.1.x)
+Bug #2842: IPS mode crash under load
+Bug #2855: Suricata does not bridge host <-> hw rings (Affects FreeBSD 11-STABLE, FreeBSD 12 and FreeBSD 13-CURRENT)
+Bug #2862: pcre related FP in HTTP inspection (4.1.x)
+Bug #2865: Suricata rule sid:2224005 SURICATA IKEv2 weak cryptographic parameters (Diffie-Hellman) not works (4.1.x)
+Feature #2774: pcap multi dev support for Windows
+
 4.1.2 -- 2018-12-21
 
 Feature #1863: smtp: improve pipelining support
