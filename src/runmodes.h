@@ -65,6 +65,7 @@ extern const char *thread_name_single;
 extern const char *thread_name_workers;
 extern const char *thread_name_verdict;
 extern const char *thread_name_flow_mgr;
+extern const char *thread_name_flow_bypass;
 extern const char *thread_name_flow_rec;
 extern const char *thread_name_unix_socket;
 extern const char *thread_name_detect_loader;

@@ -153,7 +153,7 @@ void BypassedFlowManagerThreadSpawn()
 #endif
 
     ThreadVars *tv_flowmgr = NULL;
-    tv_flowmgr = TmThreadCreateMgmtThreadByName("BypassedFlowManager",
+    tv_flowmgr = TmThreadCreateMgmtThreadByName(thread_name_flow_bypass,
             "BypassedFlowManager", 0);
     BUG_ON(tv_flowmgr == NULL);
 
