@@ -1,3 +1,19 @@
+4.0.7 -- 2019-03-06
+
+Bug #2714: Failed Assertion, Suricata Abort - util-mpm-hs.c line 163
+Bug #2735: unix runmode deadlock when using too many threads (4.0.x)
+Bug #2794: Python 3 unicode issue in Rust C header generator on FreeBSD
+Bug #2824: rule reload with workers mode and NFQUEUE not working stable (4.0.x)
+Bug #2825: TCP FIN/ACK, RST/ACK in HTTP - detection bypass (4.0.x)
+Bug #2826: afpacket doesn't wait for all capture threads to start (4.0.x)
+Bug #2827: DNS Golden Transaction ID - detection bypass (4.0.x)
+Bug #2828: Invalid detect-engine config could lead to segfault (4.0.x)
+Bug #2830: suricata.c ConfigGetCaptureValue - PCAP/AFP fallthrough to strip_trailing_plus (4.0.x)
+Bug #2831: Stats interval are 1 second too early each tick (4.0.x)
+Bug #2832: rust/dns/lua - The Lua calls for DNS values when using Rust don't behave the same as the C implementation. (4.0.x)
+Bug #2863: out of bounds read in detection
+Feature #2829: smtp: improve pipelining support (4.0.x)
+
 4.0.6 -- 2018-11-06
 
 Bug #2658: smtp segmentation fault (4.0.x)
