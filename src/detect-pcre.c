@@ -861,6 +861,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
                         goto error;
                     }
                     s->alproto = alproto;
+                    s->flags |= SIG_FLAG_APPLAYER;
                 }
                 sm_list = parsed_sm_list;
                 break;
