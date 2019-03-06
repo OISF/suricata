@@ -144,6 +144,8 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_URI_HOST_INVALID},
     { "REQUEST_HEADER_HOST_INVALID",
         HTTP_DECODER_EVENT_HEADER_HOST_INVALID},
+    { "REQUEST_AUTH_UNRECOGNIZED",
+        HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED},
     { "URI_DELIM_NON_COMPLIANT",
         HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
     { "METHOD_DELIM_NON_COMPLIANT",
@@ -640,6 +642,13 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
         if (tx->flags & HTP_HOSTH_INVALID)
             HTPSetEvent(s, htud,
                     HTTP_DECODER_EVENT_HEADER_HOST_INVALID);
+    }
+    if (tx->request_auth_type == HTP_AUTH_UNRECOGNIZED) {
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (htud == NULL)
+            return;
+
+        HTPSetEvent(s, htud, HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED);
     }
 }
 
@@ -2250,7 +2259,6 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_register_response_complete(cfg_prec->cfg, HTPCallbackResponse);
 
     htp_config_set_parse_request_cookies(cfg_prec->cfg, 0);
-    htp_config_set_parse_request_auth(cfg_prec->cfg, 0);
 
     /* don't convert + to space by default */
     htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
