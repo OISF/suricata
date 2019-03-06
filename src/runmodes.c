@@ -64,6 +64,7 @@ const char *thread_name_workers = "W";
 const char *thread_name_verdict = "TX";
 const char *thread_name_flow_mgr = "FM";
 const char *thread_name_flow_rec = "FR";
+const char *thread_name_flow_bypass = "FB";
 const char *thread_name_unix_socket = "US";
 const char *thread_name_detect_loader = "DL";
 const char *thread_name_counter_stats = "CS";
