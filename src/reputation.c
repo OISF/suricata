@@ -311,7 +311,7 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
     }
 
     int v = atoi(ptrs[2]);
-    if (v < 0 || v > 127) {
+    if (v < 0 || v > SREP_MAX_VAL) {
         return -1;
     }
 
