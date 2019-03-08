@@ -52,6 +52,8 @@ uint8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint
 void SRepResetVersion(void);
 int SRepLoadCatFileFromFD(FILE *fp);
 int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp);
+int SRepIPReputationAppendEntryFromUnix(const char *ip_addr, int cat, int val);
+void SRepIPReputationFlush(void);
 
 void SCReputationRegisterTests(void);
 

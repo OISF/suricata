@@ -405,6 +405,7 @@ static void GlobalsDestroy(SCInstance *suri)
     SCLogDeInitLogModule();
     DetectParseFreeRegexes();
     SCThresholdConfGlobalFree();
+    SRepIPReputationFlush();
 
     SCPidfileRemove(suri->pid_filename);
 }

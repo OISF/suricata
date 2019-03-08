@@ -37,6 +37,27 @@
 #include "conf.h"
 #include "detect.h"
 #include "reputation.h"
+#include "queue.h"
+
+#define ENTRIES_MAX         500
+#define ENTRIES_MAX_PENDING 100
+
+typedef struct IPReputationEntry_ {
+    char *ip_addr;
+    int cat;
+    int value;
+
+    TAILQ_ENTRY(IPReputationEntry_) next;
+} IPReputationEntry;
+
+typedef struct IPReputationList_ {
+    int entries_max;
+    int entries_max_pending;
+    SCMutex m;
+    TAILQ_HEAD(, IPReputationEntry_) entry;
+} IPReputationList;
+
+IPReputationList iprep_entries;
 
 /** effective reputation version, atomic as the host
  *  time out code will use it to check if a host's
@@ -65,6 +86,54 @@ void SRepResetVersion(void)
 static uint32_t SRepGetEffectiveVersion(void)
 {
     return SC_ATOMIC_GET(srep_eversion);
+}
+
+int SRepIPReputationAppendEntryFromUnix(const char *ip_addr, int cat, int val)
+{
+    SCMutexLock(&iprep_entries.m);
+    if (iprep_entries.entries_max_pending > ENTRIES_MAX_PENDING) {
+        SCMutexUnlock(&iprep_entries.m);
+        return -1;
+    }
+    if (iprep_entries.entries_max > ENTRIES_MAX) {
+        SCMutexUnlock(&iprep_entries.m);
+        return -2;
+    }
+    iprep_entries.entries_max_pending++;
+    iprep_entries.entries_max++;
+
+    IPReputationEntry *entry = SCMalloc(sizeof(IPReputationEntry));
+    if (unlikely(entry == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc memory for a new entry");
+        return 0;
+    }
+
+    entry->ip_addr = SCStrdup(ip_addr);
+    if (unlikely(entry->ip_addr == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't alloc memory for ip address");
+        SCFree(entry);
+        return 0;
+    }
+    entry->cat = cat;
+    entry->value = val;
+
+    TAILQ_INSERT_TAIL(&iprep_entries.entry, entry, next);
+    SCMutexUnlock(&iprep_entries.m);
+
+    return 1;
+}
+
+void SRepIPReputationFlush(void)
+{
+    IPReputationEntry *entry, *tentry;
+
+    TAILQ_FOREACH_SAFE(entry, &iprep_entries.entry, next, tentry)
+    {
+        if (entry->ip_addr)
+            SCFree(entry->ip_addr);
+        SCFree(entry);
+    }
+    SCMutexDestroy(&iprep_entries.m);
 }
 
 static void SRepCIDRFreeUserData(void *data)
@@ -262,12 +331,72 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
 
 }
 
+static int SRepAddIPReputation(SRepCIDRTree *cidr_ctx, char *ip_addr, uint8_t cat, uint8_t val)
+{
+    if (strchr(ip_addr, '/') != NULL && cidr_ctx != NULL) {
+        SRepCIDRAddNetblock(cidr_ctx, ip_addr, cat, val);
+    } else {
+        Address ip;
+        memset(&ip, 0x00, sizeof(ip));
+        if (inet_pton(AF_INET, ip_addr, &ip.address) == 1) {
+            ip.family = AF_INET;
+        } else if (inet_pton(AF_INET6, ip_addr, &ip.address) == 1) {
+            ip.family = AF_INET6;
+        } else {
+            return -1;
+        }
+
+        Host *h = HostGetHostFromHash(&ip);
+        if (h == NULL) {
+            SCLogError(SC_ERR_NO_REPUTATION, "failed to get a host, increase host.memcap");
+            return -1;
+        }
+
+        if (h->iprep == NULL) {
+            h->iprep = SCMalloc(sizeof(SReputation));
+            if (h->iprep != NULL) {
+                memset(h->iprep, 0x00, sizeof(SReputation));
+                HostIncrUsecnt(h);
+            }
+        }
+        if (h->iprep != NULL) {
+            SReputation *rep = h->iprep;
+
+            /* if version is outdated, it's an older entry that we'll
+             * now replace. */
+            if (rep->version != SRepGetVersion()) {
+                memset(rep, 0x00, sizeof(SReputation));
+            }
+
+            rep->version = SRepGetVersion();
+            rep->rep[cat] = val;
+
+            SCLogDebug("host %p iprep %p setting cat %u to value %u",
+                h, h->iprep, cat, val);
+#ifdef DEBUG
+            if (SCLogDebugEnabled()) {
+                int i;
+                for (i = 0; i < SREP_MAX_CATS; i++) {
+                    if (rep->rep[i] == 0)
+                        continue;
+
+                    SCLogDebug("--> host %p iprep %p cat %d to value %u",
+                        h, h->iprep, i, rep->rep[i]);
+                }
+            }
+#endif
+        }
+        HostRelease(h);
+    }
+    return 1;
+}
+
 /**
  *  \retval 0 valid
  *  \retval 1 header
  *  \retval -1 bad line
  */
-static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_t *cat, uint8_t *value)
+static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, char **ip_addr, uint8_t *cat, uint8_t *value)
 {
     size_t line_len = strlen(line);
     char *ptrs[3] = {NULL,NULL,NULL};
@@ -305,6 +434,11 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
     if (strcmp(ptrs[0], "ip") == 0)
         return 1;
 
+    *ip_addr = ptrs[0];
+    if (ip_addr == NULL) {
+        return -1;
+    }
+
     int c = atoi(ptrs[1]);
     if (c < 0 || c >= SREP_MAX_CATS) {
         return -1;
@@ -315,21 +449,8 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
         return -1;
     }
 
-    if (strchr(ptrs[0], '/') != NULL) {
-        SRepCIDRAddNetblock(cidr_ctx, ptrs[0], c, v);
-        return 1;
-    } else {
-        if (inet_pton(AF_INET, ptrs[0], &ip->address) == 1) {
-            ip->family = AF_INET;
-        } else if (inet_pton(AF_INET6, ptrs[0], &ip->address) == 1) {
-            ip->family = AF_INET6;
-        } else {
-            return -1;
-        }
-
-        *cat = c;
-        *value = v;
-    }
+    *cat = c;
+    *value = v;
 
     return 0;
 }
@@ -368,9 +489,6 @@ static int SRepLoadCatFile(const char *filename)
 int SRepLoadCatFileFromFD(FILE *fp)
 {
     char line[8192] = "";
-    Address a;
-    memset(&a, 0x00, sizeof(a));
-    a.family = AF_INET;
     memset(&srep_cat_table, 0x00, sizeof(srep_cat_table));
 
     BUG_ON(SRepGetVersion() > 0);
@@ -459,65 +577,14 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
             line[len - 1] = '\0';
         }
 
+        char *ip_addr = NULL;
         uint8_t cat = 0, value = 0;
-        int r = SRepSplitLine(cidr_ctx, line, &a, &cat, &value);
+        int r = SRepSplitLine(cidr_ctx, line, &ip_addr, &cat, &value);
         if (r < 0) {
             SCLogError(SC_ERR_NO_REPUTATION, "bad line \"%s\"", line);
         } else if (r == 0) {
-            if (a.family == AF_INET) {
-                char ipstr[16];
-                PrintInet(AF_INET, (const void *)&a.address, ipstr, sizeof(ipstr));
-                SCLogDebug("%s %u %u", ipstr, cat, value);
-            } else {
-                char ipstr[128];
-                PrintInet(AF_INET6, (const void *)&a.address, ipstr, sizeof(ipstr));
-                SCLogDebug("%s %u %u", ipstr, cat, value);
-            }
-
-            Host *h = HostGetHostFromHash(&a);
-            if (h == NULL) {
-                SCLogError(SC_ERR_NO_REPUTATION, "failed to get a host, increase host.memcap");
-                break;
-            } else {
-                //SCLogInfo("host %p", h);
-
-                if (h->iprep == NULL) {
-                    h->iprep = SCMalloc(sizeof(SReputation));
-                    if (h->iprep != NULL) {
-                        memset(h->iprep, 0x00, sizeof(SReputation));
-
-                        HostIncrUsecnt(h);
-                    }
-                }
-                if (h->iprep != NULL) {
-                    SReputation *rep = h->iprep;
-
-                    /* if version is outdated, it's an older entry that we'll
-                     * now replace. */
-                    if (rep->version != SRepGetVersion()) {
-                        memset(rep, 0x00, sizeof(SReputation));
-                    }
-
-                    rep->version = SRepGetVersion();
-                    rep->rep[cat] = value;
-
-                    SCLogDebug("host %p iprep %p setting cat %u to value %u",
-                        h, h->iprep, cat, value);
-#ifdef DEBUG
-                    if (SCLogDebugEnabled()) {
-                        int i;
-                        for (i = 0; i < SREP_MAX_CATS; i++) {
-                            if (rep->rep[i] == 0)
-                                continue;
-
-                            SCLogDebug("--> host %p iprep %p cat %d to value %u",
-                                    h, h->iprep, i, rep->rep[i]);
-                        }
-                    }
-#endif
-                }
-
-                HostRelease(h);
+            if (SRepAddIPReputation(cidr_ctx, ip_addr, cat, value) != 1) {
+                SCLogError(SC_ERR_NO_REPUTATION, "failed to add IP address \"%s\"", ip_addr);
             }
         }
     }
@@ -583,6 +650,7 @@ int SRepInit(DetectEngineCtx *de_ctx)
     const char *filename = NULL;
     int init = 0;
     int i = 0;
+    IPReputationEntry *entry;
 
     de_ctx->srepCIDR_ctx = (SRepCIDRTree *)SCMalloc(sizeof(SRepCIDRTree));
     if (de_ctx->srepCIDR_ctx == NULL)
@@ -614,6 +682,11 @@ int SRepInit(DetectEngineCtx *de_ctx)
     }
 
     if (init) {
+        iprep_entries.entries_max = 0;
+        iprep_entries.entries_max_pending = 0;
+        SCMutexInit(&iprep_entries.m, NULL);
+        TAILQ_INIT(&iprep_entries.entry);
+
         if (filename == NULL) {
             SCLogError(SC_ERR_NO_REPUTATION, "\"reputation-categories-file\" not set");
             return -1;
@@ -648,6 +721,12 @@ int SRepInit(DetectEngineCtx *de_ctx)
             }
         }
     }
+
+    TAILQ_FOREACH(entry, &iprep_entries.entry, next) {
+        SRepAddIPReputation(de_ctx->srepCIDR_ctx, entry->ip_addr, entry->cat, entry->value);
+    }
+    // here rule reloading is supposed to be executed
+    iprep_entries.entries_max_pending = 0;
 
     /* Set effective rep version.
      * On live reload we will handle this after de_ctx has been swapped */
