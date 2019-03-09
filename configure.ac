@@ -108,6 +108,28 @@
     fi
     AM_CONDITIONAL([HAVE_PYTHON], [test "x$enable_python" = "xyes"])
 
+    # Check for python-distutils (setup).
+    have_python_distutils="no"
+    if test "x$enable_python" = "xyes"; then
+        AC_MSG_CHECKING([for python-distutils])
+	if $HAVE_PYTHON -c "import distutils; from distutils.core import setup" 2>/dev/null; then
+	   AC_MSG_RESULT([yes])
+	   have_python_distutils="yes"
+	else
+	   AC_MSG_RESULT([no])
+	fi
+    fi
+    AM_CONDITIONAL([HAVE_PYTHON_DISTUTILS],
+	[test "x$have_python_distutils" = "xyes"])
+    if test "$have_python_distutils" = "no"; then
+       echo ""
+       echo "    Warning: Python distutils not found. Python tools will"
+       echo "        not be installed."
+       echo ""
+       echo "    Ubuntu/Debian: apt install `basename ${HAVE_PYTHON}`-distutils"
+       echo ""
+    fi
+
     # Check for python-yaml.
     have_python_yaml="no"
     if test "x$enable_python" = "xyes"; then
@@ -1518,7 +1540,6 @@
     AM_CONDITIONAL([HAVE_SURICATA_UPDATE],
         [test "x$have_suricata_update" != "xno"])
 
-    install_suricata_update="no"
     if test "$have_suricata_update" = "yes"; then
         if test "$have_python_yaml" != "yes"; then
 	    echo ""
@@ -1530,7 +1551,6 @@
 	    echo "    CentOS/RHEL: yum install python-yaml"
 	    echo ""
 	else
-	    install_suricata_update="yes"
             SURICATA_UPDATE_DIR="suricata-update"
             AC_SUBST(SURICATA_UPDATE_DIR)
             AC_OUTPUT(suricata-update/Makefile)
@@ -1538,6 +1558,28 @@
             no_suricata_update_comment=""
             has_suricata_update_comment="#"
 	fi
+    fi
+
+    # Test to see if suricatactl (and suricatasc) can be installed.
+    if test "x$enable_python" != "xyes"; then
+        install_suricatactl="requires python"
+    elif test "x$have_python_distutils" != "xyes"; then
+        install_suricatactl="requires distutils"
+    else
+        install_suricatactl="yes"
+    fi
+
+    # Test to see if suricata-update can be installed.
+    if test "x$have_suricata_update" != "xyes"; then
+        install_suricata_update="not bundled"
+    elif test "x$enable_python" != "xyes"; then
+        install_suricata_update="requires python"
+    elif test "x$have_python_distutils" != "xyes"; then
+        install_suricata_update="requires distutils"
+    elif test "x$have_python_yaml" != "xyes"; then
+        install_suricata_update="requires pyyaml"
+    else
+        install_suricata_update="yes"
     fi
 
   # libhtp
@@ -2546,7 +2588,10 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Python support:                          ${enable_python}
   Python path:                             ${python_path}
   Python version:                          ${python_version}
-  Install suricatasc:                      ${enable_python}
+  Python distutils                         ${have_python_distutils}
+  Python yaml                              ${have_python_yaml}
+  Install suricatactl:                     ${install_suricatactl}
+  Install suricatasc:                      ${install_suricatactl}
   Install suricata-update:                 ${install_suricata_update}
 
   Profiling enabled:                       ${enable_profiling}
