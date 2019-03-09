@@ -18,6 +18,7 @@
 #include "suricata-common.h"
 #include "tm-threads.h"
 #include "conf.h"
+#include "reputation.h"
 #include "runmodes.h"
 #include "runmode-pcap-file.h"
 #include "output.h"
@@ -1408,6 +1409,56 @@ TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
 
     json_object_set_new(answer, "message", jmemcaps);
     SCReturnInt(TM_ECODE_OK);
+}
+TmEcode UnixSocketIPRepAddEntry(json_t *cmd, json_t* answer, void *data)
+{
+    #define ERR_ENTRIES_MAX         -2
+    #define ERR_ENTRIES_MAX_PENDING -1
+
+    /* 1 get ip address */
+    json_t *jarg = json_object_get(cmd, "ipaddress");
+    if (!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("ipaddress is not an string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *ipaddress = json_string_value(jarg);
+
+    /* 2 get category */
+    jarg = json_object_get(cmd, "category");
+    if (!json_is_integer(jarg)) {
+        json_object_set_new(answer, "message", json_string("category is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int cat = json_integer_value(jarg);
+    if (cat < 0 || cat >= SREP_MAX_CATS) {
+        json_object_set_new(answer, "message", json_string("invalid category number"));
+        return TM_ECODE_FAILED;
+    }
+
+    /* 3 get value */
+    jarg = json_object_get(cmd, "value");
+    if (!json_is_integer(jarg)) {
+        json_object_set_new(answer, "message", json_string("value is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int value = json_integer_value(jarg);
+    if (value < 0 || value > SREP_MAX_VAL) {
+        json_object_set_new(answer, "message", json_string("invalid value"));
+        return TM_ECODE_FAILED;
+    }
+
+    int r = SRepIPReputationAppendEntryFromUnix(ipaddress, cat, value);
+    if (r == 1) {
+        json_object_set_new(answer, "message", json_string("IP address added but changes will take accout after 'reload-rules'."));
+        SCReturnInt(TM_ECODE_OK);
+    } else if (r == ERR_ENTRIES_MAX) {
+        json_object_set_new(answer, "message", json_string("Cannot add this entry: maximum number of IPs reached."));
+    } else if (r == ERR_ENTRIES_MAX_PENDING) {
+        json_object_set_new(answer, "message", json_string("Too many IPs in pending, please run 'reload-rules'."));
+    } else {
+        json_object_set_new(answer, "message", json_string("Cannot add this entry: no memory available."));
+    }
+    SCReturnInt(TM_ECODE_FAILED);
 }
 #endif /* BUILD_UNIX_SOCKET */
 
