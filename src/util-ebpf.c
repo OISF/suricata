@@ -560,7 +560,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         pkts_cnt = 0;
         /* We use a per CPU structure so we will get a array of values. But if nr_cpus
          * is 1 then we have a global hash. */
-        struct pair values_array[tcfg->cpus_count];
+        BPF_DECLARE_PERCPU(struct pair, values_array, tcfg->cpus_count);
         memset(values_array, 0, sizeof(values_array));
         int res = bpf_map_lookup_elem(mapfd, &next_key, values_array);
         if (res < 0) {
@@ -572,9 +572,10 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         for (i = 0; i < tcfg->cpus_count; i++) {
             /* let's start accumulating value so we can compute the counters */
             SCLogDebug("%d: Adding pkts %lu bytes %lu", i,
-                       values_array[i].packets, values_array[i].bytes);
-            pkts_cnt += values_array[i].packets;
-            bytes_cnt += values_array[i].bytes;
+                       BPF_PERCPU(values_array, i).packets,
+                       BPF_PERCPU(values_array, i).bytes);
+            pkts_cnt += BPF_PERCPU(values_array, i).packets;
+            bytes_cnt += BPF_PERCPU(values_array, i).bytes;
         }
         /* Get the corresponding Flow in the Flow table to compare and update
          * its counters and lastseen if needed */
@@ -600,7 +601,8 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         flow_key.vlan_id[1] = next_key.vlan_id[1];
         flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
-        pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key, values_array[0].hash,
+        pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key,
+                                    BPF_PERCPU(values_array, 0).hash,
                                     ctime, pkts_cnt, bytes_cnt);
         if (pkts_cnt > 0) {
             found = 1;
@@ -656,7 +658,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
         pkts_cnt = 0;
         /* We use a per CPU structure so we will get a array of values. But if nr_cpus
          * is 1 then we have a global hash. */
-        struct pair values_array[tcfg->cpus_count];
+        BPF_DECLARE_PERCPU(struct pair, values_array, tcfg->cpus_count);
         memset(values_array, 0, sizeof(values_array));
         int res = bpf_map_lookup_elem(mapfd, &next_key, values_array);
         if (res < 0) {
@@ -667,9 +669,10 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
         for (i = 0; i < tcfg->cpus_count; i++) {
             /* let's start accumulating value so we can compute the counters */
             SCLogDebug("%d: Adding pkts %lu bytes %lu", i,
-                       values_array[i].packets, values_array[i].bytes);
-            pkts_cnt += values_array[i].packets;
-            bytes_cnt += values_array[i].bytes;
+                       BPF_PERCPU(values_array, i).packets,
+                       BPF_PERCPU(values_array, i).bytes);
+            pkts_cnt += BPF_PERCPU(values_array, i).packets;
+            bytes_cnt += BPF_PERCPU(values_array, i).bytes;
         }
         /* Get the corresponding Flow in the Flow table to compare and update
          * its counters  and lastseen if needed */
@@ -695,7 +698,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
         flow_key.vlan_id[1] = next_key.vlan_id[1];
         flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
-        pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key, values_array[0].hash,
+        pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key, BPF_PERCPU(values_array, 0).hash,
                                     ctime, pkts_cnt, bytes_cnt);
         if (pkts_cnt > 0) {
             found = 1;

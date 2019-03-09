@@ -2299,7 +2299,7 @@ static int AFPInsertHalfFlow(int mapd, void *key, uint32_t hash,
                              uint64_t pkts_cnt, uint64_t bytes_cnt,
                              unsigned int nr_cpus)
 {
-    struct pair value[nr_cpus];
+    BPF_DECLARE_PERCPU(struct pair, value, nr_cpus);
     unsigned int i;
 
     if (mapd == -1) {
@@ -2310,12 +2310,13 @@ static int AFPInsertHalfFlow(int mapd, void *key, uint32_t hash,
      * is not duplicating the data on each CPU by itself. We set the first entry to
      * the actual flow pkts and bytes count as we need to continue from actual point
      * to detect an absence of packets in the future. */
-    value[0].packets = pkts_cnt;
-    value[0].bytes = bytes_cnt;
-    value[0].hash = hash;
+    BPF_PERCPU(value,0).packets = pkts_cnt;
+    BPF_PERCPU(value,0).bytes = bytes_cnt;
+    BPF_PERCPU(value,0).hash = hash;
     for (i = 1; i < nr_cpus; i++) {
-        value[i].packets = 0;
-        value[i].bytes = 0;
+        BPF_PERCPU(value, i).packets = 0;
+        BPF_PERCPU(value, i).bytes = 0;
+        BPF_PERCPU(value, i).hash = hash;
     }
     if (bpf_map_update_elem(mapd, key, value, BPF_NOEXIST) != 0) {
         switch (errno) {
