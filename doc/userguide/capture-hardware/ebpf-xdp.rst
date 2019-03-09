@@ -411,6 +411,44 @@ filter will switch to global bypass mode. Set key `0` to `0` to send traffic to 
 The switch must be activated on all sniffing interface. For an interface named `eth0` the global
 switch map will be `/sys/fs/bpf/suricata-eth0-global_bypass`.
 
+Hardware bypass with Netronome
+------------------------------
+
+Netronome card supports hardware bypass. In this case the eBPF code is running in the card
+itself. This introduces some architectural differences compared to driver mode and the configuration
+and eBPF filter need to be updated.
+
+On eBPF side, as of Linux 4.19 CPU maps and interfaces redirect are not supported and these features
+need to be disabled. By architecture, per CPU hash should not be used and have to be disabled.
+To achieve this, edit the beginning of `ebpf/xdp_filter.c` and do ::
+
+ #define BUILD_CPUMAP        0
+ /* Increase CPUMAP_MAX_CPUS if ever you have more than 64 CPUs */
+ #define CPUMAP_MAX_CPUS     64
+
+ #define USE_PERCPU_HASH    0
+ #define GOT_TX_PEER    0
+
+Then build the bpf file with `make` and install it in the expected place.
+
+On Suricata configuration side, this is rather simple as you need to activate
+hardware mode and the `no-percpu-hash` option in the `af-packet` configuration
+of the interface ::
+
+    xdp-mode: hw
+    no-percpu-hash: true
+
+The load  balancing will be done on IP pairs inside the eBPF code, so
+using `cluster_qm` as cluster type is a good idea ::
+
+    cluster-type: cluster_qm
+
+As of Linux 4.19, the number of threads must be a power of 2. So set
+`threads` variable interface of the `af-packet` interface to a power
+of 2 and in the eBPF filter set the following variable accordingly ::
+
+ #define RSS_QUEUE_NUMBERS   32
+
 Getting live info about bypass
 ------------------------------
 
