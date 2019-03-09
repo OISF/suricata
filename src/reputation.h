@@ -28,8 +28,8 @@
 
 #include "host.h"
 
-#define SREP_MAX_CATS 60
-#define SREP_MAX_VAL 127
+#define SREP_MAX_CATS 120
+#define SREP_MAX_VAL 255
 
 typedef struct SRepCIDRTree_ {
     SCRadixTree *srepIPV4_tree[SREP_MAX_CATS];
