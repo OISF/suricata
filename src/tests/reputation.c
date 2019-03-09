@@ -143,6 +143,22 @@ static int SRepTest07(void) {
     PASS;
 }
 
+static int SRepTest08(void)
+{
+    TEST_INIT;
+
+    char ipstr[16];
+    char str[] = "1.2.3.4,100,255";
+    FAIL_IF(SRepSplitLine(de_ctx->srepCIDR_ctx, str, &a, &cat, &value) != 0);
+    PrintInet(AF_INET, (const void *)&a.address, ipstr, sizeof(ipstr));
+    FAIL_IF(strcmp(ipstr, "1.2.3.4") != 0);
+    FAIL_IF(cat != 100);
+    FAIL_IF(value != 255);
+
+    TEST_CLEANUP;
+    PASS;
+}
+
 /** Register the following unittests for the Reputation module */
 void SCReputationRegisterTests(void)
 {
@@ -153,4 +169,5 @@ void SCReputationRegisterTests(void)
     UtRegisterTest("SRepTest05", SRepTest05);
     UtRegisterTest("SRepTest06", SRepTest06);
     UtRegisterTest("SRepTest07", SRepTest07);
+    UtRegisterTest("SRepTest08", SRepTest08);
 }
