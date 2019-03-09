@@ -2377,6 +2377,8 @@ static int AFPBypassCallback(Packet *p)
         key.dst = htonl(GET_IPV4_DST_ADDR_U32(p));
         key.port16[0] = GET_TCP_SRC_PORT(p);
         key.port16[1] = GET_TCP_DST_PORT(p);
+        key.vlan_id[0] = p->vlan_id[0];
+        key.vlan_id[1] = p->vlan_id[1];
 
         key.ip_proto = IPV4_GET_IPPROTO(p);
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
@@ -2409,6 +2411,8 @@ static int AFPBypassCallback(Packet *p)
         }
         key.port16[0] = GET_TCP_SRC_PORT(p);
         key.port16[1] = GET_TCP_DST_PORT(p);
+        key.vlan_id[0] = p->vlan_id[0];
+        key.vlan_id[1] = p->vlan_id[1];
         key.ip_proto = IPV6_GET_NH(p);
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
                               p->flow->todstbytecnt, p->afp_v.nr_cpus) == 0) {
@@ -2468,6 +2472,8 @@ static int AFPXDPBypassCallback(Packet *p)
          * (as in eBPF filter) so we need to pass from host to network order */
         key.port16[0] = htons(p->flow->sp);
         key.port16[1] = htons(p->flow->dp);
+        key.vlan_id[0] = p->vlan_id[0];
+        key.vlan_id[1] = p->vlan_id[1];
         key.ip_proto = IPV4_GET_IPPROTO(p);
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
                               p->flow->todstbytecnt, p->afp_v.nr_cpus) == 0) {
@@ -2498,6 +2504,8 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         key.port16[0] = htons(GET_TCP_SRC_PORT(p));
         key.port16[1] = htons(GET_TCP_DST_PORT(p));
+        key.vlan_id[0] = p->vlan_id[0];
+        key.vlan_id[1] = p->vlan_id[1];
         key.ip_proto = IPV6_GET_NH(p);
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
                               p->flow->todstbytecnt, p->afp_v.nr_cpus) == 0) {
