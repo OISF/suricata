@@ -341,6 +341,10 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     name = NULL;
     pcre_free_substring(cmd_str);
     cmd_str = NULL;
+    pcre_free_substring(op_str);
+    op_str = NULL;
+    pcre_free_substring(value);
+    value = NULL;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -360,6 +364,10 @@ error:
         pcre_free_substring(name);
     if (cmd_str != NULL)
         pcre_free_substring(cmd_str);
+    if (op_str != NULL)
+        pcre_free_substring(op_str);
+    if (value != NULL)
+        pcre_free_substring(value);
     if (cd != NULL)
         SCFree(cd);
     if (sm != NULL)
