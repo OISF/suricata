@@ -166,4 +166,20 @@ argsd = {
             "required": 1,
         },
     ],
+    "iprep-add": [
+        {
+            "name": "ipaddress",
+            "required": 1,
+        },
+        {
+            "name": "category",
+            "type": int,
+            "required": 1,
+        },
+        {
+            "name": "value",
+            "type": int,
+            "required": 1,
+        },
+    ],
     }
