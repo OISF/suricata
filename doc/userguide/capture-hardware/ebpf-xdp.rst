@@ -107,16 +107,21 @@ Then you need to add the ebpf flags to configure ::
  sudo ldconfig
  sudo mkdir /etc/suricata/ebpf/
 
+Clang compiler is needed if you want to build eBPF files as the build
+is done via a specific eBPF backend available only in llvm/clang suite.
+
 Setup bypass
 ------------
 
-If you plan to use eBPF or XDP for a kernel/hardware level bypass, you need to do
-the following:
+If you plan to use eBPF or XDP for a kernel/hardware level bypass, you need to enable
+some of the following  features:
 
 First, enable `bypass` in the `stream` section ::
 
  stream:
    bypass: true
+
+This will bypass flows as soon as the stream depth will be reached.
 
 If you want, you can also bypass encrypted flows by setting `encrypt-handling` to `bypass`
 in the app-layer tls section ::
@@ -129,6 +134,13 @@ in the app-layer tls section ::
           dp: 443
   
         encrypt-handling: bypass
+
+Another solution is to use a set of signatures using the ``bypass`` keyword to obtain
+a selective bypass. Suricata traffic ID defines flowbits that can be used in other signatures.
+For instance one could use ::
+
+ alert any any -> any any (msg:"bypass video"; flowbits:isset,traffic/label/video; noalert; bypass; sid:1000000; rev:1;)
+ alert any any -> any any (msg:"bypass Skype"; flowbits:isset,traffic/id/skype; noalert; bypass; sid:1000001; rev:1;)
 
 Setup eBPF filter
 -----------------
@@ -257,8 +269,8 @@ from one card to the second card without going by the kernel network stack.
 If you are using hardware XDP offload you may have to use the ``no-percpu-hash`` function and
 build and install the XDP filter file after setting ``USE_PERCPU_HASH`` to 0.
 
-Setup symmetric hashing on the NIC
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Intel NIC setup
+~~~~~~~~~~~~~~~
 
 Intel network card don't support symmetric hashing but it is possible to emulate
 it by using a specific hashing function.
@@ -408,7 +420,7 @@ To use it you need to set `#define USE_GLOBAL_BYPASS   1` (instead of 0) in the 
 the eBPF code and install the eBPF file in the correct place. If you write `1` as key `0` then the XDP
 filter will switch to global bypass mode. Set key `0` to `0` to send traffic to Suricata.
 
-The switch must be activated on all sniffing interface. For an interface named `eth0` the global
+The switch must be activated on all sniffing interfaces. For an interface named `eth0` the global
 switch map will be `/sys/fs/bpf/suricata-eth0-global_bypass`.
 
 Hardware bypass with Netronome
@@ -453,6 +465,29 @@ Getting live info about bypass
 ------------------------------
 
 You can get information about bypass via the stats event and through the unix socket.
-`ìface-stat` will return the number of bypassed packets (adding packets for a flow when it timeout).
-`ebpf-bypassed-stats` command will return the number of elements in IPv4 and IPv6 flow tables for
-each interfaces.
+``iface-stat`` will return the number of bypassed packets (adding packets for a flow when it timeout) ::
+
+ suricatasc -c "iface-stat enp94s0np0" | jq
+ {
+   "message": {
+     "pkts": 56529854964,
+     "drop": 932328611,
+     "bypassed": 1569467248,
+     "invalid-checksums": 0
+   },
+   "return": "OK"
+ }
+
+``ebpf-bypassed-stats`` command will return the number of elements in IPv4 and IPv6 flow tables for
+each interfaces ::
+
+ # suricatasc
+ >>> ebpf-bypassed-stats
+ Success:
+ {   
+     "enp94s0np0": {
+         "ipv4_count": 42524,
+         "ipv6_count": 3304
+     }
+ }
+ 
