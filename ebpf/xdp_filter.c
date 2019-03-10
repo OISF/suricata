@@ -107,24 +107,24 @@ struct bpf_map_def SEC("maps") flow_table_v6 = {
 #if BUILD_CPUMAP
 /* Special map type that can XDP_REDIRECT frames to another CPU */
 struct bpf_map_def SEC("maps") cpu_map = {
-	.type		= BPF_MAP_TYPE_CPUMAP,
-	.key_size	= sizeof(__u32),
-	.value_size	= sizeof(__u32),
-	.max_entries	= CPUMAP_MAX_CPUS,
+    .type		= BPF_MAP_TYPE_CPUMAP,
+    .key_size	= sizeof(__u32),
+    .value_size	= sizeof(__u32),
+    .max_entries	= CPUMAP_MAX_CPUS,
 };
 
 struct bpf_map_def SEC("maps") cpus_available = {
-	.type		= BPF_MAP_TYPE_ARRAY,
-	.key_size	= sizeof(__u32),
-	.value_size	= sizeof(__u32),
-	.max_entries	= CPUMAP_MAX_CPUS,
+    .type		= BPF_MAP_TYPE_ARRAY,
+    .key_size	= sizeof(__u32),
+    .value_size	= sizeof(__u32),
+    .max_entries	= CPUMAP_MAX_CPUS,
 };
 
 struct bpf_map_def SEC("maps") cpus_count = {
-	.type		= BPF_MAP_TYPE_ARRAY,
-	.key_size	= sizeof(__u32),
-	.value_size	= sizeof(__u32),
-	.max_entries	= 1,
+    .type		= BPF_MAP_TYPE_ARRAY,
+    .key_size	= sizeof(__u32),
+    .value_size	= sizeof(__u32),
+    .max_entries	= 1,
 };
 #endif
 
@@ -133,20 +133,20 @@ struct bpf_map_def SEC("maps") cpus_count = {
  * routing for now. Key value set by user space is 0 and
  * value is the peer interface. */
 struct bpf_map_def SEC("maps") tx_peer = {
-	.type = BPF_MAP_TYPE_DEVMAP,
-	.key_size = sizeof(int),
-	.value_size = sizeof(int),
-	.max_entries = 1,
+    .type = BPF_MAP_TYPE_DEVMAP,
+    .key_size = sizeof(int),
+    .value_size = sizeof(int),
+    .max_entries = 1,
 };
 
 /* single entry to indicate if we have peer, key value
  * set in user space is 0. It is only used to see if
  * a interface has a peer we need to send the information to */
 struct bpf_map_def SEC("maps") tx_peer_int = {
-	.type = BPF_MAP_TYPE_ARRAY,
-	.key_size = sizeof(int),
-	.value_size = sizeof(int),
-	.max_entries = 1,
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(int),
+    .value_size = sizeof(int),
+    .max_entries = 1,
 };
 #endif
 
@@ -154,10 +154,10 @@ struct bpf_map_def SEC("maps") tx_peer_int = {
 #if USE_GLOBAL_BYPASS
 /* single entry to indicate if global bypass switch is on */
 struct bpf_map_def SEC("maps") global_bypass = {
-	.type = BPF_MAP_TYPE_ARRAY,
-	.key_size = sizeof(char),
-	.value_size = sizeof(char),
-	.max_entries = 1,
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(char),
+    .value_size = sizeof(char),
+    .max_entries = 1,
 };
 #endif
 
@@ -268,8 +268,8 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
         value->packets++;
         value->bytes += data_end - data;
 #else
-	__sync_fetch_and_add(&value->packets, 1);
-	__sync_fetch_and_add(&value->bytes, data_end - data);
+        __sync_fetch_and_add(&value->packets, 1);
+        __sync_fetch_and_add(&value->bytes, data_end - data);
 #endif
 
 #if GOT_TX_PEER
@@ -280,7 +280,7 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
             return bpf_redirect_map(&tx_peer, tx_port, 0);
         }
 #else
-	return XDP_DROP;
+        return XDP_DROP;
 #endif
     }
 
@@ -363,8 +363,8 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
         value->packets++;
         value->bytes += data_end - data;
 #else
-	__sync_fetch_and_add(&value->packets, 1);
-	__sync_fetch_and_add(&value->bytes, data_end - data);
+        __sync_fetch_and_add(&value->packets, 1);
+        __sync_fetch_and_add(&value->bytes, data_end - data);
 #endif
 
 #if GOT_TX_PEER
@@ -375,7 +375,7 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
             return bpf_redirect_map(&tx_peer, tx_port, 0);
         }
 #else
-	return XDP_DROP;
+        return XDP_DROP;
 #endif
     }
 
@@ -439,39 +439,39 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
     }
 #endif
 
-	nh_off = sizeof(*eth);
-	if (data + nh_off > data_end)
-		return rc;
+    nh_off = sizeof(*eth);
+    if (data + nh_off > data_end)
+        return rc;
 
-	h_proto = eth->h_proto;
+    h_proto = eth->h_proto;
 
-	if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
-		struct vlan_hdr *vhdr;
+    if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
+        struct vlan_hdr *vhdr;
 
-		vhdr = data + nh_off;
-		nh_off += sizeof(struct vlan_hdr);
-		if (data + nh_off > data_end)
-			return rc;
-		h_proto = vhdr->h_vlan_encapsulated_proto;
-		vlan0 = vhdr->h_vlan_TCI & 0x0fff;
-	}
-	if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
-		struct vlan_hdr *vhdr;
+        vhdr = data + nh_off;
+        nh_off += sizeof(struct vlan_hdr);
+        if (data + nh_off > data_end)
+            return rc;
+        h_proto = vhdr->h_vlan_encapsulated_proto;
+        vlan0 = vhdr->h_vlan_TCI & 0x0fff;
+    }
+    if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
+        struct vlan_hdr *vhdr;
 
-		vhdr = data + nh_off;
-		nh_off += sizeof(struct vlan_hdr);
-		if (data + nh_off > data_end)
-			return rc;
-		h_proto = vhdr->h_vlan_encapsulated_proto;
-		vlan1 = vhdr->h_vlan_TCI & 0x0fff;
-	}
+        vhdr = data + nh_off;
+        nh_off += sizeof(struct vlan_hdr);
+        if (data + nh_off > data_end)
+            return rc;
+        h_proto = vhdr->h_vlan_encapsulated_proto;
+        vlan1 = vhdr->h_vlan_TCI & 0x0fff;
+    }
 
-	if (h_proto == __constant_htons(ETH_P_IP))
-		return filter_ipv4(ctx, data, nh_off, data_end, vlan0, vlan1);
-	else if (h_proto == __constant_htons(ETH_P_IPV6))
-		return filter_ipv6(ctx, data, nh_off, data_end, vlan0, vlan1);
-	else
-		rc = XDP_PASS;
+    if (h_proto == __constant_htons(ETH_P_IP))
+        return filter_ipv4(ctx, data, nh_off, data_end, vlan0, vlan1);
+    else if (h_proto == __constant_htons(ETH_P_IPV6))
+        return filter_ipv6(ctx, data, nh_off, data_end, vlan0, vlan1);
+    else
+        rc = XDP_PASS;
 
     return rc;
 }
