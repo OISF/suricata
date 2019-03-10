@@ -215,8 +215,14 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
     if (config->mode == AFP_MODE_XDP_BYPASS) {
         bpf_map_data->array[0].fd = fd_v4;
         bpf_map_data->array[0].name = SCStrdup("flow_table_v4");
+        if (bpf_map_data->array[0].name == NULL) {
+            goto alloc_error;
+        }
         bpf_map_data->array[1].fd = fd_v6;
         bpf_map_data->array[1].name = SCStrdup("flow_table_v6");
+        if (bpf_map_data->array[1].name == NULL) {
+            goto alloc_error;
+        }
         bpf_map_data->last = 2;
     } else {
         bpf_map_data->last = 0;
@@ -227,24 +233,36 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
     if (fd >= 0) {
         bpf_map_data->array[bpf_map_data->last].fd = fd;
         bpf_map_data->array[bpf_map_data->last].name = SCStrdup("cpu_map");
+        if (bpf_map_data->array[bpf_map_data->last].name == NULL) {
+            goto alloc_error;
+        }
         bpf_map_data->last++;
     }
     fd = EBPFLoadPinnedMapsFile(livedev, "cpus_available");
     if (fd >= 0) {
         bpf_map_data->array[bpf_map_data->last].fd = fd;
         bpf_map_data->array[bpf_map_data->last].name = SCStrdup("cpus_available");
+        if (bpf_map_data->array[bpf_map_data->last].name == NULL) {
+            goto alloc_error;
+        }
         bpf_map_data->last++;
     }
     fd = EBPFLoadPinnedMapsFile(livedev, "tx_peer");
     if (fd >= 0) {
         bpf_map_data->array[bpf_map_data->last].fd = fd;
         bpf_map_data->array[bpf_map_data->last].name = SCStrdup("tx_peer");
+        if (bpf_map_data->array[bpf_map_data->last].name == NULL) {
+            goto alloc_error;
+        }
         bpf_map_data->last++;
     }
     fd = EBPFLoadPinnedMapsFile(livedev, "tx_peer_int");
     if (fd >= 0) {
         bpf_map_data->array[bpf_map_data->last].fd = fd;
         bpf_map_data->array[bpf_map_data->last].name = SCStrdup("tx_peer_int");
+        if (bpf_map_data->array[bpf_map_data->last].name == NULL) {
+            goto alloc_error;
+        }
         bpf_map_data->last++;
     }
 
@@ -252,6 +270,14 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
     LiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
 
     return 0;
+
+alloc_error:
+    for (int i = 0; i < bpf_map_data->last; i++) {
+        SCFree(bpf_map_data->array[i].name);
+    }
+    bpf_map_data->last = 0;
+    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bpf map name");
+    return -1;
 }
 
 /**
