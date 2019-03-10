@@ -107,16 +107,21 @@ Then you need to add the ebpf flags to configure ::
  sudo ldconfig
  sudo mkdir /etc/suricata/ebpf/
 
+The ``clang`` compiler is needed if you want to build eBPF files as the build
+is done via a specific eBPF backend available only in llvm/clang suite.
+
 Setup bypass
 ------------
 
-If you plan to use eBPF or XDP for a kernel/hardware level bypass, you need to do
-the following:
+If you plan to use eBPF or XDP for a kernel/hardware level bypass, you need to enable
+some of the following features:
 
 First, enable `bypass` in the `stream` section ::
 
  stream:
    bypass: true
+
+This will bypass flows as soon as the stream depth will be reached.
 
 If you want, you can also bypass encrypted flows by setting `encrypt-handling` to `bypass`
 in the app-layer tls section ::
@@ -129,6 +134,13 @@ in the app-layer tls section ::
           dp: 443
   
         encrypt-handling: bypass
+
+Another solution is to use a set of signatures using the ``bypass`` keyword to obtain
+a selective bypass. Suricata traffic ID defines flowbits that can be used in other signatures.
+For instance one could use ::
+
+ alert any any -> any any (msg:"bypass video"; flowbits:isset,traffic/label/video; noalert; bypass; sid:1000000; rev:1;)
+ alert any any -> any any (msg:"bypass Skype"; flowbits:isset,traffic/id/skype; noalert; bypass; sid:1000001; rev:1;)
 
 Setup eBPF filter
 -----------------
@@ -247,7 +259,7 @@ also use the ``/etc/suricata/ebpf/xdp_filter.bpf`` (in our example TCP offloadin
     use-mmap: yes
     ring-size: 200000
     # Uncomment the following if you are using hardware XDP with
-    # card like Netronome
+    # a card like Netronome
     # no-percpu-hash: yes 
 
 
@@ -257,8 +269,8 @@ from one card to the second card without going by the kernel network stack.
 If you are using hardware XDP offload you may have to use the ``no-percpu-hash`` function and
 build and install the XDP filter file after setting ``USE_PERCPU_HASH`` to 0.
 
-Setup symmetric hashing on the NIC
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Intel NIC setup
+~~~~~~~~~~~~~~~
 
 Intel network card don't support symmetric hashing but it is possible to emulate
 it by using a specific hashing function.
@@ -356,7 +368,7 @@ Confirm you have the XDP filter engaged in the output (example)::
 Pinned maps usage
 -----------------
 
-Pinned maps stay attached to the system if the creating process disappear and
+Pinned maps stay attached to the system if the creating process disappears and
 they can also be accessed by external tools. In Suricata bypass case, this can be
 used to keep active bypassed flow tables so Suricata is not hit by previsouly bypassed flows when
 restarting. In the socket filter case, this can be used to maintain a map from tools outside
@@ -366,10 +378,16 @@ To used pinned maps, you first have to mount the `bpf` pseudo filesystem ::
 
   sudo mount -t bpf none /sys/fs/bpf
 
-Pinned maps will be accessible as file from the `/sys/fs/bpf` directory. Suricata
-will pinned them under the name `suricata-$IFACE_NAME-$MAP_NAME`.
+You can also add to you `/etc/fstab/` ::
 
-To active pinned maps for a interface, set `pinned-maps` to `true` in the `af-packet`
+ bpffs                      /sys/fs/bpf             bpf     defaults 0 0
+
+and run `sudo mount -a`.
+
+Pinned maps will be accessible as file from the `/sys/fs/bpf` directory. Suricata
+will pin them under the name `suricata-$IFACE_NAME-$MAP_NAME`.
+
+To activate pinned maps for a interface, set `pinned-maps` to `true` in the `af-packet`
 configuration of this interface ::
 
   - interface: eth3
@@ -388,33 +406,33 @@ If XDP bypass is activated, Suricata will try at start to open the pinned maps
 is still there and Suricata will just use them instead of attaching the XDP file to
 the interface.
 
-So it you want to reload the XDP filter, you need to remove the files from `/sys/fs/bpf/`
+So if you want to reload the XDP filter, you need to remove the files from `/sys/fs/bpf/`
 before starting Suricata.
 
 In case, you are not using bypass, this means that the used maps are managed from outside
-Suricata. As their names are not known by Suricata, you need to specify a name of map to look
-for that will be used to check for the presence of the XDP filter ::
+Suricata. As their names are not known by Suricata, you need to specify a name of a map to look
+for, that will be used to check for the presence of the XDP filter ::
 
   - interface: eth3
     pinned-maps: true
     pinned-maps-name: ipv4_drop
     xdp-filter-file: /etc/suricata/ebpf/xdp_filter.bpf
 
-If XDP bypass is used in IPS mode stopping Suricata will trigger a interruption in the traffic.
+If XDP bypass is used in IPS mode stopping Suricata will trigger an interruption in the traffic.
 To fix that, the provided XDP filter `xdp_filter.bpf` is containing a map that will trigger
 a global bypass if set to 1. You need to use `pinned-maps` to benefit of this feature.
 
 To use it you need to set `#define USE_GLOBAL_BYPASS   1` (instead of 0) in the `xdp_filter.c` file and rebuild
 the eBPF code and install the eBPF file in the correct place. If you write `1` as key `0` then the XDP
-filter will switch to global bypass mode. Set key `0` to `0` to send traffic to Suricata.
+filter will switch to global bypass mode. Set key `0` to value `0` to send traffic to Suricata.
 
-The switch must be activated on all sniffing interface. For an interface named `eth0` the global
+The switch must be activated on all sniffing interfaces. For an interface named `eth0` the global
 switch map will be `/sys/fs/bpf/suricata-eth0-global_bypass`.
 
 Hardware bypass with Netronome
 ------------------------------
 
-Netronome card supports hardware bypass. In this case the eBPF code is running in the card
+Netronome cards support hardware bypass. In this case the eBPF code is running in the card
 itself. This introduces some architectural differences compared to driver mode and the configuration
 and eBPF filter need to be updated.
 
@@ -453,6 +471,29 @@ Getting live info about bypass
 ------------------------------
 
 You can get information about bypass via the stats event and through the unix socket.
-`ìface-stat` will return the number of bypassed packets (adding packets for a flow when it timeout).
-`ebpf-bypassed-stats` command will return the number of elements in IPv4 and IPv6 flow tables for
-each interfaces.
+``iface-stat`` will return the number of bypassed packets (adding packets for a flow when it timeout) ::
+
+ suricatasc -c "iface-stat enp94s0np0" | jq
+ {
+   "message": {
+     "pkts": 56529854964,
+     "drop": 932328611,
+     "bypassed": 1569467248,
+     "invalid-checksums": 0
+   },
+   "return": "OK"
+ }
+
+``ebpf-bypassed-stats`` command will return the number of elements in IPv4 and IPv6 flow tables for
+each interfaces ::
+
+ # suricatasc
+ >>> ebpf-bypassed-stats
+ Success:
+ {   
+     "enp94s0np0": {
+         "ipv4_count": 42524,
+         "ipv6_count": 3304
+     }
+ }
+ 
