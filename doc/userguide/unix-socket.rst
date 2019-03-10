@@ -87,6 +87,7 @@ The set of existing commands is the following:
 * add-hostbit: add hostbit on a host IP with a particular bit name and time of expiry
 * remove-hostbit: remove hostbit on a host IP with specified bit name
 * list-hostbit: list hostbit for a particular host IP
+* iprep-add: add an IP address to the IP reputation module
 
 You can access to these commands with the provided example script which
 is named ``suricatasc``. A typical session with ``suricatasc`` will looks like:
