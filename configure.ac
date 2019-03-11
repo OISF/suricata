@@ -558,6 +558,9 @@
         if test "$ZLIB" = "no"; then
             echo
             echo "   ERROR!  zlib library not found, go get it"
+            echo "   Debian/Ubuntu: apt install zlib1g-dev"
+            echo "   Fedora: dnf install zlib-devel"
+            echo "   CentOS/RHEL: yum install zlib-devel"
             echo
             exit 1
         fi
@@ -569,7 +572,7 @@
 
     AC_ARG_WITH(liblzma_includes,
             [  --with-liblzma-includes=DIR  liblzma include directory],
-            [with_liblzma_includes="$withval"],[with_liblzma_includes=no])
+            [with_liblzma_includes="$withval"],[with_liblzma_includes="no"])
     AC_ARG_WITH(liblzma_libraries,
             [  --with-liblzma-libraries=DIR    liblzma library directory],
             [with_liblzma_libraries="$withval"],[with_liblzma_libraries="no"])
@@ -583,30 +586,32 @@
         if test "$with_liblzma_libraries" != "no"; then
             LDFLAGS="${LDFLAGS}  -L${with_liblzma_libraries}"
         fi
-
+    fi
         # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
         # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
         LIBLZMA=""
         TMPLIBS="${LIBS}"
         AC_CHECK_LIB(lzma,lzma_code,,LIBLZMA="no")
 
-        if test "$LIBLZMA" = "no"; then
-            echo
-            echo "   Warning! liblzma library not found, you will not be"
-            echo "   able to decompress flash file compressed with lzma."
-            echo
-            enable_liblzma=no
-        else
-            enable_liblzma=yes
-            AC_DEFINE([HAVE_LIBLZMA],[1],[liblzma available])
-            LIBS="${TMPLIBS} -llzma"
-        fi
+    if test "$LIBLZMA" = "no"; then
+        echo
+        echo "   Warning! liblzma library not found, you will not be"
+        echo "   able to decompress flash file compressed with lzma."
+        echo "   Debian/Ubuntu: apt install liblzma-dev"
+        echo "   Fedora: dnf install xz-devel"
+        echo "   CentOS/RHEL: yum install xz-devel"
+        echo
+        enable_liblzma=no
+    else
+        enable_liblzma=yes
+        AC_DEFINE([HAVE_LIBLZMA],[1],[liblzma available])
+        LIBS="${TMPLIBS} -llzma"
     fi
 
   #libpcre
     AC_ARG_WITH(libpcre_includes,
             [  --with-libpcre-includes=DIR  libpcre include directory],
-            [with_libpcre_includes="$withval"],[with_libpcre_includes=no])
+            [with_libpcre_includes="$withval"],[with_libpcre_includes="no"])
     AC_ARG_WITH(libpcre_libraries,
             [  --with-libpcre-libraries=DIR    libpcre library directory],
             [with_libpcre_libraries="$withval"],[with_libpcre_libraries="no"])
@@ -620,11 +625,14 @@
         LDFLAGS="${LDFLAGS} -L${with_libpcre_libraries}"
     fi
     PCRE=""
-    AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no")
+    AC_CHECK_LIB(pcre, pcre_get_substring,,PCRE="no")
     if test "$PCRE" = "no"; then
         echo
         echo "   ERROR!  pcre library not found, go get it"
-        echo "   from www.pcre.org."
+        echo "   from www.pcre.org. Or from packages:"
+        echo "   Debian/Ubuntu: apt install libpcre3-dev"
+        echo "   Fedora: dnf install pcre-devel"
+        echo "   CentOS/RHEL: yum install pcre-devel"
         echo
         exit 1
     fi
@@ -881,7 +889,10 @@
             echo
             echo "   Jansson >= 2.2 is required for features like unix socket"
             echo "   Go get it from your distribution or from:"
-            echo "     http://www.digip.org/jansson/"
+            echo "   http://www.digip.org/jansson/"
+            echo "   Ubuntu: apt-get install libjansson-dev"
+            echo "   Fedora: dnf install jansson-devel"
+            echo "   CentOS/RHEL: yum install jansson-devel"
             echo
             if test "x$enable_unixsocket" = "xyes"; then
                 exit 1
@@ -906,6 +917,9 @@
             echo "   Jansson >= 2.2 is required for features like unix socket"
             echo "   Go get it from your distribution or from:"
             echo "     http://www.digip.org/jansson/"
+            echo "   Ubuntu: apt-get install libjansson-dev"
+            echo "   Fedora: dnf install jansson-devel"
+            echo "   CentOS/RHEL: yum install jansson-devel"
             echo
             exit 1
         fi
@@ -957,6 +971,9 @@
                 echo "   we automatically append libnetfilter_queue/ when searching"
                 echo "   for headers etc. when the --with-libnfnetlink-includes directive"
                 echo "   is used"
+                echo "   Ubuntu: apt-get install libnetfilter-queue-dev"
+                echo "   Fedora: dnf install libnetfilter_queue-devel"
+                echo "   CentOS/RHEL: yum install libnetfilter_queue-devel"
                 echo
             fi
             ;;
@@ -1025,6 +1042,9 @@
             echo "   we automatically append libnetfilter_queue/ when searching"
             echo "   for headers etc. when the --with-libnfq-includes directive"
             echo "   is used"
+            echo "   Ubuntu: apt-get install libnetfilter-queue-dev"
+            echo "   Fedora: dnf install libnetfilter_queue-devel"
+            echo "   CentOS/RHEL: yum install libnetfilter_queue-devel"
             echo
             exit 1
         fi
@@ -1524,7 +1544,7 @@
 	    echo "    Debian/Ubuntu: apt install python-yaml"
 	    echo "    Fedora: dnf install python-yaml"
 	    echo "    CentOS/RHEL: yum install python-yaml"
-	    echo ""
+	    echo
 	else
 	    install_suricata_update="yes"
             SURICATA_UPDATE_DIR="suricata-update"
@@ -2284,7 +2304,7 @@ fi
         echo "   ERROR! Rust support requires Python."
         echo
         echo "   Ubuntu: apt install python"
-        echo ""
+        echo
         exit 1
       fi
       enable_rust="no"
@@ -2297,7 +2317,7 @@ fi
         echo "   Ubuntu: apt-get install libjansson-dev"
         echo "   Fedora: dnf install jansson-devel"
         echo "   CentOS/RHEL: yum install jansson-devel"
-        echo ""
+        echo
         if test "x$enable_rust" = "xyes"; then
             exit 1
         fi
@@ -2317,7 +2337,7 @@ fi
         echo "   Ubuntu: apt-get install cargo"
         echo "   Fedora: dnf install cargo"
         echo "   CentOS/RHEL: yum install cargo"
-        echo ""
+        echo
         if test "x$enable_rust" = "xyes"; then
             exit 1
         fi
@@ -2333,7 +2353,7 @@ fi
         echo "   Debian 10: apt-get install rustc"
         echo "   Fedora: dnf install rust"
         echo "   CentOS/RHEL: yum install rust"
-        echo ""
+        echo
         if test "x$enable_rust" = "xyes"; then
             exit 1
         fi
