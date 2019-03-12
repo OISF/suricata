@@ -163,7 +163,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
             }
         }
 
-        SCLogDebug("comparing base %d string 0x%" PRIx64 " %s%c 0x%" PRIx64 "",
+        SCLogDebug("comparing base %d string 0x%" PRIx64 " %s%u 0x%" PRIx64,
                data->base, val, (neg ? "!" : ""), data->op, data->value);
     }
     else {
@@ -176,7 +176,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
             SCReturnInt(-1);
         }
 
-        SCLogDebug("comparing numeric 0x%" PRIx64 " %s%c 0x%" PRIx64 "",
+        SCLogDebug("comparing numeric 0x%" PRIx64 " %s%u 0x%" PRIx64,
                val, (neg ? "!" : ""), data->op, data->value);
     }
 
