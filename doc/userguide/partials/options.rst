@@ -46,7 +46,8 @@
 
    After the -i option you can enter the interface card you would like
    to use to sniff packets from.  This option will try to use the best
-   capture method available.
+   capture method available. Can be used several times to sniff packets from
+   several interfaces.
 
 .. option:: --pcap[=<device>]
 
