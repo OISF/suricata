@@ -1773,8 +1773,8 @@
         if test "$LIBBPF" = "no"; then
             echo
             echo "   libbpf library and development headers not found but"
-            echo "   but needed to use eBPF code. It can be found in the"
-            echo "   Linux kernel tree under tools/lib/bpf"
+            echo "   needed to use eBPF code. It can be found at"
+            echo "   https://github.com/libbpf/libbpf"
             echo
             exit 1
         fi;
