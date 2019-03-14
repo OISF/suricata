@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -89,7 +89,7 @@ void TmModuleDecodePfringRegister (void)
 }
 
 /**
- * \brief this funciton prints an error message and exits.
+ * \brief this function prints an error message and exits.
  * \param tv pointer to ThreadVars
  * \param initdata pointer to the interface passed from the user
  * \param data pointer gets populated with PfringThreadVars
@@ -217,7 +217,7 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
  * \brief Pfring Packet Process function.
  *
  * This function fills in our packet structure from libpfring.
- * From here the packets are picked up by the  DecodePfring thread.
+ * From here the packets are picked up by the DecodePfring thread.
  *
  * \param user pointer to PfringThreadVars
  * \param h pointer to pfring packet header
@@ -253,7 +253,7 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
      * PF_RING should put it back in all cases, but as a extra
      * precaution keep the check here. If the vlan header is
      * part of the raw packet, the vlan_offset will be set.
-     * So is it is not set, use the parsed info from PF_RING's
+     * So if it is not set, use the parsed info from PF_RING's
      * extended header.
      */
     if ((!ptv->vlan_disabled) &&
@@ -614,8 +614,9 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
             SCMutexUnlock(&pfring_bpf_set_filter_lock);
 
             if (rc < 0) {
-                SCLogInfo("Set PF_RING bpf filter \"%s\" failed.",
-                          ptv->bpf_filter);
+                SCLogError(SC_ERR_INVALID_VALUE, "Failed to compile BPF \"%s\"",
+                           ptv->bpf_filter);
+                return TM_ECODE_FAILED;
             }
         }
     }
