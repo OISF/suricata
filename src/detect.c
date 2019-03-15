@@ -164,11 +164,6 @@ static void DetectRunPostMatch(ThreadVars *tv,
             smd++;
         }
     }
-
-    if (s->flags & SIG_FLAG_FILESTORE)
-        DetectFilestorePostMatch(tv, det_ctx, p, s);
-
-    return;
 }
 
 /**
