@@ -92,6 +92,13 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
         goto end;
     }
 
+    // Make sure we still have enough data. While we only need 1 byte to test
+    // for IPv4 and IPv4, we need for to check for ethernet.
+    if (len < MPLS_PW_LEN) {
+        ENGINE_SET_INVALID_EVENT(p, MPLS_PKT_TOO_SMALL);
+        return TM_ECODE_FAILED;
+    }
+
     /* Best guess at inner packet. */
     switch (pkt[0] >> 4) {
     case MPLS_PROTO_IPV4:
@@ -152,6 +159,54 @@ static int DecodeMPLSTestHeaderTooSmall(void)
 
     SCFree(p);
     return ret;
+}
+
+static int DecodeMPLSTestPacketTooSmall(void)
+{
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv,  0, sizeof(ThreadVars));
+
+    Packet *p0 = SCCalloc(1, SIZE_OF_PACKET);
+    memset(p0, 0, SIZE_OF_PACKET);
+    uint8_t pkt0[] = { 0x00, 0x01, 0x51, 0xff };
+    DecodeMPLS(&tv, &dtv, p0, pkt0, sizeof(pkt0), NULL);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p0, MPLS_PKT_TOO_SMALL));
+    SCFree(p0);
+
+    Packet *p1 = SCCalloc(1, SIZE_OF_PACKET);
+    FAIL_IF_NULL(p1);
+    uint8_t pkt1[] = { 0x00, 0x01, 0x51, 0xff, 0x45 };
+    DecodeMPLS(&tv, &dtv, p1, pkt1, sizeof(pkt1), NULL);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p1, MPLS_PKT_TOO_SMALL));
+    SCFree(p1);
+
+    Packet *p2 = SCCalloc(1, SIZE_OF_PACKET);
+    FAIL_IF_NULL(p2);
+    uint8_t pkt2[] = { 0x00, 0x01, 0x51, 0xff, 0x45, 0x01 };
+    DecodeMPLS(&tv, &dtv, p2, pkt2, sizeof(pkt2), NULL);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p2, MPLS_PKT_TOO_SMALL));
+    SCFree(p2);
+
+    Packet *p3 = SCCalloc(1, SIZE_OF_PACKET);
+    FAIL_IF_NULL(p3);
+    uint8_t pkt3[] = { 0x00, 0x01, 0x51, 0xff, 0x45, 0x01, 0x02 };
+    DecodeMPLS(&tv, &dtv, p3, pkt3, sizeof(pkt3), NULL);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p3, MPLS_PKT_TOO_SMALL));
+    SCFree(p3);
+
+    // This should not create a too small event is it has one more byte
+    // than required.
+    Packet *p4 = SCCalloc(1, SIZE_OF_PACKET);
+    FAIL_IF_NULL(p4);
+    uint8_t pkt4[] = { 0x00, 0x01, 0x51, 0xff, 0x45, 0x01, 0x02, 0x03 };
+    DecodeMPLS(&tv, &dtv, p4, pkt4, sizeof(pkt4), NULL);
+    FAIL_IF(ENGINE_ISSET_EVENT(p4, MPLS_PKT_TOO_SMALL));
+    SCFree(p4);
+
+    PASS;
 }
 
 static int DecodeMPLSTestBadLabelRouterAlert(void)
@@ -325,6 +380,8 @@ void DecodeMPLSRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("DecodeMPLSTestHeaderTooSmall",
                    DecodeMPLSTestHeaderTooSmall);
+    UtRegisterTest("DecodeMPLSTestPacketTooSmall",
+                   DecodeMPLSTestPacketTooSmall);
     UtRegisterTest("DecodeMPLSTestBadLabelRouterAlert",
                    DecodeMPLSTestBadLabelRouterAlert);
     UtRegisterTest("DecodeMPLSTestBadLabelImplicitNull",
