@@ -69,7 +69,10 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
     uint32_t line_len = input_len;
 
     /* is it the version line? */
-    if (line_len >= 4 && SCMemcmp("SSH-", line_ptr, 4) != 0) {
+    if (line_len < 4) {
+        SCReturnInt(-1);
+    }
+    if (SCMemcmp("SSH-", line_ptr, 4) != 0) {
         SCReturnInt(-1);
     }
 
@@ -2803,6 +2806,38 @@ end:
     return result;
 }
 
+/** \test Send a malformed banner */
+static int SSHParserTest25(void)
+{
+    Flow f;
+    uint8_t sshbuf[] = "\n";
+    uint32_t sshlen = sizeof(sshbuf) - 1;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
+    FAIL_IF(r != -1);
+
+    SshState *ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+
+    FAIL_IF_NOT(!(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED));
+    FAIL_IF(ssh_state->cli_hdr.software_version);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    PASS;
+}
 
 #endif /* UNITTESTS */
 
@@ -2833,6 +2868,7 @@ void SSHParserRegisterTests(void)
     UtRegisterTest("SSHParserTest22", SSHParserTest22);
     UtRegisterTest("SSHParserTest23", SSHParserTest23);
     UtRegisterTest("SSHParserTest24", SSHParserTest24);
+    UtRegisterTest("SSHParserTest25", SSHParserTest25);
 #endif /* UNITTESTS */
 }
 
