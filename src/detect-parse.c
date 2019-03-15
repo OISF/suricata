@@ -183,6 +183,12 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
                    sigmatch_table[sm_type].name);
         goto end;
     }
+    if (cd->flags & DETECT_CONTENT_REPLACE) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s rule can not "
+                   "be used with the replace rule keyword",
+                   sigmatch_table[sm_type].name);
+        goto end;
+    }
     if (cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) {
         SigMatch *pm = DetectGetLastSMByListPtr(s, sm->prev,
             DETECT_CONTENT, DETECT_PCRE, -1);
@@ -1543,7 +1549,7 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head)
 static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
     uint32_t sig_flags = 0;
-    SigMatch *sm, *pm;
+    SigMatch *sm;
     const int nlists = s->init_data->smlists_array_size;
 
     SCEnter();
@@ -1656,15 +1662,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     }
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
-        pm = DetectGetLastSMFromLists(s, DETECT_REPLACE, -1);
-        if (pm != NULL && SigMatchListSMBelongsTo(s, pm) != DETECT_SM_LIST_PMATCH) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature has"
-                " replace keyword linked with a modified content"
-                " keyword (http_*, dce_*). It only supports content on"
-                " raw payload");
-            SCReturnInt(0);
-        }
-
         for (int i = 0; i < nlists; i++) {
             if (s->init_data->smlists[i] == NULL)
                 continue;

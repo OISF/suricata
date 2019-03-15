@@ -165,8 +165,6 @@ static void DetectRunPostMatch(ThreadVars *tv,
         }
     }
 
-    DetectReplaceExecute(p, det_ctx);
-
     if (s->flags & SIG_FLAG_FILESTORE)
         DetectFilestorePostMatch(tv, det_ctx, p, s);
 
