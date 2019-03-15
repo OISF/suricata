@@ -53,7 +53,7 @@
     xbits:set,bitname,track ip_pair,expire 60
  */
 
-#define PARSE_REGEX     "([a-z]+)" "(?:,\\s*([^,]+))?" "(?:,\\s*(?:track\\s+([^,]+)))" "(?:,\\s*(?:expire\\s+([^,]+)))?"
+#define PARSE_REGEX     "^([a-z]+)" "(?:,\\s*([^,]+))?" "(?:,\\s*(?:track\\s+([^,]+)))" "(?:,\\s*(?:expire\\s+([^,]+)))?"
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
@@ -527,6 +527,10 @@ static int XBitsTestSig02(void)
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (xbits:toggle,abc,track ip_dst; content:\"GET \"; sid:5;)");
     FAIL_IF_NULL(s);
+
+    s = DetectEngineAppendSig(de_ctx,
+            "alert ip any any -> any any (xbits:!set,abc,track ip_dst; content:\"GET \"; sid:6;)");
+    FAIL_IF_NOT_NULL(s);
 
     DetectEngineCtxFree(de_ctx);
     PASS;

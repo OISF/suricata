@@ -113,25 +113,6 @@ recommended.
 
 Each file that is stored will have a name "file.<id>". The id will be reset and files will be overwritten unless the waldo option is used. A "file.<id>.meta" file is generated containing file metadata if write-meta is set to yes (default). If the include-pid option is set, the files will instead have a name "file.<pid>.<id>", and metafiles will be "file.<pid>.<id>.meta". Files will additionally have the suffix ".tmp" while they are open, which is only removed when they are finalized.
 
-File-Log (Deprecated)
----------------------
-
-The file-log is a standalone logger that logs information about files
-extracted. It is now deprecated and should not be used. It has been
-replaced by ``eve.files`` in the :ref:`suricata-yaml-outputs-eve`
-output.
-
-::
-
-    - file-log:
-        enabled: yes
-        filename: files-json.log
-        append: yes
-        #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-        force-magic: no   # force logging magic on all logged files
-        force-hash: [md5] # force logging of md5 checksums
-
-
 Rules
 ~~~~~
 

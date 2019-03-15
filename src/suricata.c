@@ -93,7 +93,6 @@
 
 #include "source-af-packet.h"
 #include "source-netmap.h"
-#include "source-mpipe.h"
 
 #include "source-windivert.h"
 #include "source-windivert-prototypes.h"
@@ -654,9 +653,6 @@ static void PrintUsage(const char *progname)
 #ifdef BUILD_UNIX_SOCKET
     printf("\t--unix-socket[=<file>]               : use unix socket to control suricata work\n");
 #endif
-#ifdef HAVE_MPIPE
-    printf("\t--mpipe                              : run with tilegx mpipe interface(s)\n");
-#endif
 #ifdef WINDIVERT
     printf("\t--windivert <filter>                 : run in inline WinDivert mode\n");
     printf("\t--windivert-forward <filter>         : run in inline WinDivert mode, as a gateway\n");
@@ -773,9 +769,6 @@ static void PrintBuildInfo(void)
 #if defined(__SSE3__)
     strlcat(features, "SSE_3 ", sizeof(features));
 #endif
-#if defined(__tile__)
-    strlcat(features, "Tilera ", sizeof(features));
-#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
@@ -887,11 +880,6 @@ void RegisterAllModules(void)
     /* pcap file */
     TmModuleReceivePcapFileRegister();
     TmModuleDecodePcapFileRegister();
-#ifdef HAVE_MPIPE
-    /* mpipe */
-    TmModuleReceiveMpipeRegister();
-    TmModuleDecodeMpipeRegister();
-#endif
     /* af-packet */
     TmModuleReceiveAFPRegister();
     TmModuleDecodeAFPRegister();
@@ -959,21 +947,6 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
                 SCReturnInt(TM_ECODE_FAILED);
             }
         }
-#ifdef HAVE_MPIPE
-    } else if (runmode == RUNMODE_TILERA_MPIPE) {
-        if (strlen(pcap_dev)) {
-            if (ConfSetFinal("mpipe.single_mpipe_dev", pcap_dev) != 1) {
-                fprintf(stderr, "ERROR: Failed to set mpipe.single_mpipe_dev\n");
-                SCReturnInt(TM_ECODE_FAILED);
-            }
-        } else {
-            int ret = LiveBuildDeviceList("mpipe.inputs");
-            if (ret == 0) {
-                fprintf(stderr, "ERROR: No interface found in config for mpipe\n");
-                SCReturnInt(TM_ECODE_FAILED);
-            }
-        }
-#endif
     } else if (runmode == RUNMODE_PFRING) {
         /* FIXME add backward compat support */
         /* iface has been set on command line */
@@ -1168,13 +1141,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
             LiveRegisterDeviceName(suri->pcap_dev);
         }
     } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
-#ifdef OS_WIN32
-        SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
-                "support is not (yet) supported on Windows.");
-        return TM_ECODE_FAILED;
-#else
         LiveRegisterDeviceName(suri->pcap_dev);
-#endif
     } else {
         SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                 "has been specified");
@@ -1537,9 +1504,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"dag", required_argument, 0, 0},
         {"napatech", 0, 0, 0},
         {"build-info", 0, &build_info, 1},
-#ifdef HAVE_MPIPE
-        {"mpipe", optional_argument, 0, 0},
-#endif
 #ifdef WINDIVERT
         {"windivert", required_argument, 0, 0},
         {"windivert-forward", required_argument, 0, 0},
@@ -1801,25 +1765,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 suri->run_mode = RUNMODE_PRINT_BUILDINFO;
                 return TM_ECODE_OK;
             }
-#ifdef HAVE_MPIPE
-            else if(strcmp((long_opts[option_index]).name , "mpipe") == 0) {
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_TILERA_MPIPE;
-                    if (optarg != NULL) {
-                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-                        strlcpy(suri->pcap_dev, optarg,
-                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                        LiveRegisterDeviceName(optarg);
-                    }
-                } else {
-                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
-                               "more than one run mode has been specified");
-                    PrintUsage(argv[0]);
-                    exit(EXIT_FAILURE);
-                }
-            }
-#endif
             else if(strcmp((long_opts[option_index]).name, "windivert-forward") == 0) {
 #ifdef WINDIVERT
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
@@ -2510,7 +2455,11 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 
                     if (strip_trailing_plus) {
                         size_t len = strlen(dev);
-                        if (len && dev[len-1] == '+') {
+                        if (len &&
+                                (dev[len-1] == '+' ||
+                                 dev[len-1] == '^' ||
+                                 dev[len-1] == '*'))
+                        {
                             dev[len-1] = '\0';
                         }
                     }
@@ -2633,14 +2582,45 @@ static int PostDeviceFinalizedSetup(SCInstance *suri)
     SCReturnInt(TM_ECODE_OK);
 }
 
+static void PostConfLoadedSetupHostMode(void)
+{
+    const char *hostmode = NULL;
+
+    if (ConfGetValue("host-mode", &hostmode) == 1) {
+        if (!strcmp(hostmode, "router")) {
+            host_mode = SURI_HOST_IS_ROUTER;
+        } else if (!strcmp(hostmode, "sniffer-only")) {
+            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+        } else {
+            if (strcmp(hostmode, "auto") != 0) {
+                WarnInvalidConfEntry("host-mode", "%s", "auto");
+            }
+            if (EngineModeIsIPS()) {
+                host_mode = SURI_HOST_IS_ROUTER;
+            } else {
+                host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+            }
+        }
+    } else {
+        if (EngineModeIsIPS()) {
+            host_mode = SURI_HOST_IS_ROUTER;
+            SCLogInfo("No 'host-mode': suricata is in IPS mode, using "
+                      "default setting 'router'");
+        } else {
+            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
+            SCLogInfo("No 'host-mode': suricata is in IDS mode, using "
+                      "default setting 'sniffer-only'");
+        }
+    }
+
+}
+
 /**
  * This function is meant to contain code that needs
  * to be run once the configuration has been loaded.
  */
 static int PostConfLoadedSetup(SCInstance *suri)
 {
-    const char *hostmode = NULL;
-
     /* do this as early as possible #1577 #1955 */
 #ifdef HAVE_LUAJIT
     if (LuajitSetupStatesPool() != 0) {
@@ -2714,33 +2694,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     if (ConfigGetCaptureValue(suri) != TM_ECODE_OK) {
         SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    if (ConfGetValue("host-mode", &hostmode) == 1) {
-        if (!strcmp(hostmode, "router")) {
-            host_mode = SURI_HOST_IS_ROUTER;
-        } else if (!strcmp(hostmode, "sniffer-only")) {
-            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-        } else {
-            if (strcmp(hostmode, "auto") != 0) {
-                WarnInvalidConfEntry("host-mode", "%s", "auto");
-            }
-            if (EngineModeIsIPS()) {
-                host_mode = SURI_HOST_IS_ROUTER;
-            } else {
-                host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-            }
-        }
-    } else {
-        if (EngineModeIsIPS()) {
-            host_mode = SURI_HOST_IS_ROUTER;
-            SCLogInfo("No 'host-mode': suricata is in IPS mode, using "
-                      "default setting 'router'");
-        } else {
-            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-            SCLogInfo("No 'host-mode': suricata is in IDS mode, using "
-                      "default setting 'sniffer-only'");
-        }
     }
 
 #ifdef NFQ
@@ -2827,13 +2780,17 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     DecodeGlobalConfig();
 
-    PreRunInit(suri->run_mode);
-
     LiveDeviceFinalize();
 
+    /* set engine mode if L2 IPS */
     if (PostDeviceFinalizedSetup(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
+
+    /* hostmode depends on engine mode being set */
+    PostConfLoadedSetupHostMode();
+
+    PreRunInit(suri->run_mode);
 
     SCReturnInt(TM_ECODE_OK);
 }

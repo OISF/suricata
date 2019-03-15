@@ -79,6 +79,85 @@ Metadata::
                 # Log the raw rule text.
                 #raw: false
 
+HTTP
+~~~~
+
+HTTP transaction logging.
+
+Config::
+
+    - http:
+        extended: yes     # enable this for extended logging information
+        # custom allows additional http fields to be included in eve-log
+        # the example below adds three additional fields when uncommented
+        #custom: [Accept-Encoding, Accept-Language, Authorization]
+        # set this value to one among {both, request, response} to dump all
+        # http headers for every http request and/or response
+        # dump-all-headers: [both, request, response]
+
+List of custom fields:
+
+======================  ======================
+Yaml Option             HTTP Header
+======================  ======================
+accept                  accept
+accept_charset          accept-charset
+accept_encoding         accept-encoding
+accept_language         accept-language
+accept_datetime         accept-datetime
+authorization           authorization
+cache_control           cache-control
+cookie                  cookie
+from                    from
+max_forwards            max-forwards
+origin                  origin
+pragma                  pragma
+proxy_authorization     proxy-authorization
+range                   range
+te                      te
+via                     via
+x_requested_with        x-requested-with
+dnt                     dnt
+x_forwarded_proto       x-forwarded-proto
+x_authenticated_user    x-authenticated-user
+x_flash_version         x-flash-version
+accept_range            accept-range
+age                     age
+allow                   allow
+connection              connection
+content_encoding        content-encoding
+content_language        content-language
+content_length          content-length
+content_location        content-location
+content_md5             content-md5
+content_range           content-range
+content_type            content-type
+date                    date
+etag                    etags
+expires                 expires
+last_modified           last-modified
+link                    link
+location                location
+proxy_authenticate      proxy-authenticate
+referrer                referrer
+refresh                 refresh
+retry_after             retry-after
+server                  server
+set_cookie              set-cookie
+trailer                 trailer
+transfer_encoding       transfer-encoding
+upgrade                 upgrade
+vary                    vary
+warning                 warning
+www_authenticate        www-authenticate
+true_client_ip          true-client-ip
+org_src_ip              org-src-ip
+x_bluecoat_via          x-bluecoat-via
+======================  ======================
+
+In the ``custom`` option values from both columns can be used. The
+``HTTP Header`` column is case insensitive.
+
 DNS
 ~~~
 

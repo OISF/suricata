@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef __UTIL_MPM_AC_TILE__H__
-#define __UTIL_MPM_AC_TILE__H__
+#ifndef __UTIL_MPM_AC_KS__H__
+#define __UTIL_MPM_AC_KS__H__
 
 typedef struct SCACTilePatternList_ {
     uint8_t *cs;
@@ -90,9 +90,9 @@ typedef struct SCACTileCtx_ {
     int32_t (*goto_table)[256];
     int32_t *failure_table;
 
-    /* Number of states used by ac-tile */
+    /* Number of states used */
     uint32_t state_count;
-    /* Number of states allocated for ac-tile. */
+    /* Number of states allocated. */
     uint32_t allocated_state_count;
 
     uint32_t alpha_hist[256];
@@ -135,7 +135,7 @@ typedef struct SCACTileSearchCtx_ {
     /* Number of bytes in the array of bits. One bit per pattern in this MPM. */
     uint32_t mpm_bitarray_size;
 
-    /* Number of states used by ac-tile */
+    /* Number of states used */
     uint32_t state_count;
 
     uint32_t pattern_cnt;
@@ -155,4 +155,4 @@ typedef struct SCACTileThreadCtx_ {
 
 void MpmACTileRegister(void);
 
-#endif /* __UTIL_MPM_AC_TILE__H__ */
+#endif /* __UTIL_MPM_AC_KS__H__ */

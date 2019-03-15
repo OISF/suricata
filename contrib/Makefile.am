@@ -1,3 +1,3 @@
-SUBDIRS = file_processor tile_pcie_logd
+SUBDIRS = file_processor
 
 EXTRA_DIST = suri-graphite

@@ -19,8 +19,7 @@ import os
 import argparse
 import logging
 
-from suricata.ctl import filestore
-from suricata.ctl import loghandler
+from suricata.ctl import filestore, loghandler
 
 def init_logger():
     """ Initialize logging, use colour if on a tty. """
@@ -34,17 +33,14 @@ def init_logger():
             format="%(asctime)s - <%(levelname)s> - %(message)s")
 
 def main():
-
     init_logger()
-
-    parser = argparse.ArgumentParser(description="Suricata Control Tool")
-
-    subparsers = parser.add_subparsers(
-        title="subcommands",
-        description="Commands")
-
-    filestore.register_args(subparsers.add_parser("filestore"))
-
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(help='sub-command help')
+    fs_parser = subparsers.add_parser("filestore", help="Filestore related commands")
+    filestore.register_args(parser=fs_parser)
     args = parser.parse_args()
-
-    args.func(args)
+    try:
+        func = args.func
+    except AttributeError:
+        parser.error("too few arguments")
+    func(args)

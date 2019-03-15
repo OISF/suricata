@@ -223,10 +223,6 @@
 
    Enable packet capture using the Napatech Streams API.
 
-.. option:: --mpipe
-
-   Enable packet capture using the TileGX mpipe interface.
-
 .. option:: --erf-in=<file>
 
    Run in offline mode reading the specific ERF file (Endace

@@ -61,6 +61,8 @@
 #include "rust-ftp-mod-gen.h"
 #endif
 
+#include "output-json.h"
+
 uint64_t ftp_config_memcap = 0;
 
 SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
@@ -995,10 +997,10 @@ json_t *JsonFTPDataAddMetadata(const Flow *f)
     if (ftpd == NULL)
         return NULL;
     if (ftp_state->file_name) {
-        char *s = BytesToString(ftp_state->file_name, ftp_state->file_len);
-        json_object_set_new(ftpd, "filename", json_string(s));
-        if (s != NULL)
-            SCFree(s);
+        size_t size = ftp_state->file_len * 2 + 1;
+        char string[size];
+        BytesToStringBuffer(ftp_state->file_name, ftp_state->file_len, string, size);
+        json_object_set_new(ftpd, "filename", SCJsonString(string));
     }
     switch (ftp_state->command) {
         case FTP_COMMAND_STOR:

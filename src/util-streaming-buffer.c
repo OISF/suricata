@@ -68,7 +68,7 @@ int SBBCompare(struct StreamingBufferBlock *a, struct StreamingBufferBlock *b)
 static inline int InclusiveCompare(StreamingBufferBlock *lookup, StreamingBufferBlock *intree) {
     const uint64_t lre = lookup->offset + lookup->len;
     const uint64_t tre = intree->offset + intree->len;
-    if (lre < intree->offset)   // entirely before
+    if (lre <= intree->offset)   // entirely before
         return -1;
     else if (lre >= intree->offset && lre <= tre)    // (some) overlap
         return 0;
@@ -747,8 +747,8 @@ void StreamingBufferSBBGetData(const StreamingBuffer *sb,
     if (sbb->offset >= sb->stream_offset) {
         uint64_t offset = sbb->offset - sb->stream_offset;
         *data = sb->buf + offset;
-        if (offset + sbb->len > sb->buf_size)
-            *data_len = sb->buf_size - offset;
+        if (offset + sbb->len > sb->buf_offset)
+            *data_len = sb->buf_offset - offset;
         else
             *data_len = sbb->len;
         return;

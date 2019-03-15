@@ -50,7 +50,6 @@
 
 #include "output.h"
 
-#include "log-file.h"
 #include "log-filestore.h"
 #include "util-logopenfile.h"
 

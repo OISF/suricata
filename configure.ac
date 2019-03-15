@@ -85,24 +85,50 @@
         exit 1
     fi
 
+    python_version="not set"
+    python_path="not set"
+
     AC_ARG_ENABLE(python,
-           AS_HELP_STRING([--enable-python], [Enable python]),[enable_python=$enableval],[enable_python=yes])
-    AC_PATH_PROGS(HAVE_PYTHON, python python2 python2.7, "no")
-    if test "x$enable_python" = "xno" ; then
-        echo
-        echo "   Warning! python disabled, you will not be      "
-        echo "   able to install suricatasc unix socket client   "
-        echo
+           AS_HELP_STRING([--enable-python], [Enable python]),
+	   [enable_python=$enableval],[enable_python=yes])
+    if test "x$enable_python" != "xyes"; then
         enable_python="no"
-    fi
-    if test "$HAVE_PYTHON" = "no"; then
-        echo
-        echo "   Warning! python not found, you will not be     "
-        echo "   able to install suricatasc unix socket client   "
-        echo
-        enable_python="no"
+    else
+        AC_PATH_PROGS(HAVE_PYTHON, python3 python2.7 python2 python, "no")
+        if test "$HAVE_PYTHON" = "no"; then
+            echo
+            echo "   Warning! python not found, you will not be     "
+            echo "   able to install suricatasc unix socket client   "
+            echo
+            enable_python="no"
+	else
+	    python_path="$HAVE_PYTHON"
+	    python_version="$($HAVE_PYTHON --version)"
+        fi
     fi
     AM_CONDITIONAL([HAVE_PYTHON], [test "x$enable_python" = "xyes"])
+
+    # Check for python-distutils (setup).
+    have_python_distutils="no"
+    if test "x$enable_python" = "xyes"; then
+        AC_MSG_CHECKING([for python-distutils])
+	if $HAVE_PYTHON -c "import distutils; from distutils.core import setup" 2>/dev/null; then
+	   AC_MSG_RESULT([yes])
+	   have_python_distutils="yes"
+	else
+	   AC_MSG_RESULT([no])
+	fi
+    fi
+    AM_CONDITIONAL([HAVE_PYTHON_DISTUTILS],
+	[test "x$have_python_distutils" = "xyes"])
+    if test "$have_python_distutils" = "no"; then
+       echo ""
+       echo "    Warning: Python distutils not found. Python tools will"
+       echo "        not be installed."
+       echo ""
+       echo "    Ubuntu/Debian: apt install `basename ${HAVE_PYTHON}`-distutils"
+       echo ""
+    fi
 
     # Check for python-yaml.
     have_python_yaml="no"
@@ -245,7 +271,7 @@
         *-*-linux*)
             RUST_LDADD="-ldl -lrt -lm"
             ;;
-        *-*-mingw32*)
+        *-*-mingw32*|*-*-msys)
             CFLAGS="${CFLAGS} -DOS_WIN32"
             LDFLAGS="${LDFLAGS} -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid"
             WINDOWS_PATH="yes"
@@ -529,9 +555,6 @@
         AC_DEFINE([HAVE_DETECT_DISABLED], [1], [Detection is disabled])
     ])
 
-  # Tilera PCIE logging
-    AM_CONDITIONAL([BUILD_PCIE_LOGGING], [test ! -z "$TILERA_ROOT"])
-
 # libraries
 
   # zlib
@@ -605,16 +628,6 @@
             LIBS="${TMPLIBS} -llzma"
         fi
     fi
-
-    AC_MSG_CHECKING([for Mpipe])
-    AC_COMPILE_IFELSE(
-        [AC_LANG_PROGRAM([[#include <gxio/mpipe.h>]])],
-        [
-        AC_MSG_RESULT([yes])
-        AC_DEFINE([HAVE_MPIPE],[1],[mPIPE support is available])
-        LDFLAGS="$LDFLAGS -lgxpci -lgxio -ltmc"
-        ],
-        [AC_MSG_RESULT([no])])
 
   #libpcre
     AC_ARG_WITH(libpcre_includes,
@@ -903,10 +916,7 @@
             enable_jansson="no"
         else
             case $host in
-                *-*-mingw32*)
-                    enable_unixsocket="no"
-                    ;;
-                *-*-cygwin)
+                *-*-mingw32*|*-*-msys*|*-*-cygwin)
                     enable_unixsocket="no"
                     ;;
                 *)
@@ -1448,6 +1458,67 @@
         fi
 
         AC_CHECK_HEADER(net/netmap_user.h,,[AC_ERROR(net/netmap_user.h not found ...)],)
+
+        have_recent_netmap="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+        #include <net/netmap_user.h>
+        ],[
+        #ifndef NETMAP_API
+        #error "outdated netmap, need one with NETMAP_API"
+        #endif
+        #if NETMAP_API < 11
+        #error "outdated netmap, need at least api version 11"
+        #endif
+        ])], [have_recent_netmap="yes"])
+        if test "x$have_recent_netmap" != "xyes"; then
+            echo "ERROR: outdated netmap"
+            exit 1
+        fi
+        have_netmap_version="unknown"
+        have_v11_netmap="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+        #include <net/netmap_user.h>
+        ],[
+        #if NETMAP_API != 11
+        #error "not 11"
+        #endif
+        ])], [have_v11_netmap="yes"])
+        if test "x$have_v11_netmap" = "xyes"; then
+            have_netmap_version="v11"
+        fi
+        have_v12_netmap="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+        #include <net/netmap_user.h>
+        ],[
+        #if NETMAP_API != 12
+        #error "not 12"
+        #endif
+        ])], [have_v12_netmap="yes"])
+        if test "x$have_v12_netmap" = "xyes"; then
+            have_netmap_version="v12"
+        fi
+        have_v13_netmap="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+        #include <net/netmap_user.h>
+        ],[
+        #if NETMAP_API != 13
+        #error "not 13"
+        #endif
+        ])], [have_v13_netmap="yes"])
+        if test "x$have_v13_netmap" = "xyes"; then
+            have_netmap_version="v13"
+        fi
+        have_gtv13_netmap="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+        #include <net/netmap_user.h>
+        ],[
+        #if NETMAP_API <= 13
+        #error "not gt 13"
+        #endif
+        ])], [have_gtv13_netmap="yes"])
+        if test "x$have_gtv13_netmap" = "xyes"; then
+            have_netmap_version="> v13"
+        fi
   ])
 
   # Suricata-Update.
@@ -1469,7 +1540,6 @@
     AM_CONDITIONAL([HAVE_SURICATA_UPDATE],
         [test "x$have_suricata_update" != "xno"])
 
-    install_suricata_update="no"
     if test "$have_suricata_update" = "yes"; then
         if test "$have_python_yaml" != "yes"; then
 	    echo ""
@@ -1481,7 +1551,6 @@
 	    echo "    CentOS/RHEL: yum install python-yaml"
 	    echo ""
 	else
-	    install_suricata_update="yes"
             SURICATA_UPDATE_DIR="suricata-update"
             AC_SUBST(SURICATA_UPDATE_DIR)
             AC_OUTPUT(suricata-update/Makefile)
@@ -1489,6 +1558,28 @@
             no_suricata_update_comment=""
             has_suricata_update_comment="#"
 	fi
+    fi
+
+    # Test to see if suricatactl (and suricatasc) can be installed.
+    if test "x$enable_python" != "xyes"; then
+        install_suricatactl="requires python"
+    elif test "x$have_python_distutils" != "xyes"; then
+        install_suricatactl="requires distutils"
+    else
+        install_suricatactl="yes"
+    fi
+
+    # Test to see if suricata-update can be installed.
+    if test "x$have_suricata_update" != "xyes"; then
+        install_suricata_update="not bundled"
+    elif test "x$enable_python" != "xyes"; then
+        install_suricata_update="requires python"
+    elif test "x$have_python_distutils" != "xyes"; then
+        install_suricata_update="requires distutils"
+    elif test "x$have_python_yaml" != "xyes"; then
+        install_suricata_update="requires pyyaml"
+    else
+        install_suricata_update="yes"
     fi
 
   # libhtp
@@ -2247,6 +2338,14 @@ fi
     if test "x$enable_rust" != "xyes" && test "x$enable_rust" != "xyes (default)"; then
       enable_rust="no"
     elif test "x$enable_python" != "xyes" && test ! -f rust/gen/c-headers/rust-core-gen.h; then
+      if test "x$enable_rust" = "xyes"; then
+        echo ""
+        echo "   ERROR! Rust support requires Python."
+        echo
+        echo "   Ubuntu: apt install python"
+        echo ""
+        exit 1
+      fi
       enable_rust="no"
     else
       # Rust require jansson (json support).
@@ -2457,7 +2556,7 @@ AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(CONFIGURE_DATAROOTDIR)
 AC_SUBST(PACKAGE_VERSION)
 
-AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service python/Makefile python/suricata/config/defaults.py ebpf/Makefile)
+AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service python/Makefile python/suricata/config/defaults.py ebpf/Makefile)
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
@@ -2467,7 +2566,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   NFQueue support:                         ${enable_nfqueue}
   NFLOG support:                           ${enable_nflog}
   IPFW support:                            ${enable_ipfw}
-  Netmap support:                          ${enable_netmap}
+  Netmap support:                          ${enable_netmap} ${have_netmap_version}
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
   WinDivert enabled:                       ${enable_windivert}
@@ -2499,7 +2598,13 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Rust compiler:                           ${rust_compiler_version}
   Rust cargo:                              ${rust_cargo_version}
 
-  Install suricatasc:                      ${enable_python}
+  Python support:                          ${enable_python}
+  Python path:                             ${python_path}
+  Python version:                          ${python_version}
+  Python distutils                         ${have_python_distutils}
+  Python yaml                              ${have_python_yaml}
+  Install suricatactl:                     ${install_suricatactl}
+  Install suricatasc:                      ${install_suricatactl}
   Install suricata-update:                 ${install_suricata_update}
 
   Profiling enabled:                       ${enable_profiling}

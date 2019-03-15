@@ -30,7 +30,7 @@
 /* include pattern matchers */
 #include "util-mpm-ac.h"
 #include "util-mpm-ac-bs.h"
-#include "util-mpm-ac-tile.h"
+#include "util-mpm-ac-ks.h"
 #include "util-mpm-hs.h"
 #include "util-hashlist.h"
 
@@ -267,18 +267,10 @@ void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher)
 /* MPM matcher to use by default, i.e. when "mpm-algo" is set to "auto".
  * If Hyperscan is available, use it. Otherwise, use AC. */
 #ifdef BUILD_HYPERSCAN
-# define DEFAULT_MPM     MPM_HS
-# ifdef __tile__
-#  define DEFAULT_MPM_AC MPM_AC_TILE
-# else
-#  define DEFAULT_MPM_AC MPM_AC
-# endif
+# define DEFAULT_MPM    MPM_HS
+# define DEFAULT_MPM_AC MPM_AC
 #else
-# ifdef __tile__
-#  define DEFAULT_MPM    MPM_AC_TILE
-# else
-#  define DEFAULT_MPM    MPM_AC
-# endif
+# define DEFAULT_MPM    MPM_AC
 #endif
 
 void MpmTableSetup(void)

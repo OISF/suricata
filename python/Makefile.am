@@ -4,6 +4,7 @@ EXTRA_DIST =	setup.py \
 		suricatasc
 
 if HAVE_PYTHON
+if HAVE_PYTHON_DISTUTILS
 all-local:
 	cd $(srcdir) && \
 		$(HAVE_PYTHON) setup.py build --build-base $(abs_builddir)
@@ -29,4 +30,5 @@ clean-local:
 
 distclean-local:
 	rm -f version
+endif
 endif

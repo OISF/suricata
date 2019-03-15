@@ -52,7 +52,6 @@
 #include "util-byte.h"
 #include "util-validate.h"
 
-#include "log-file.h"
 #include "util-logopenfile.h"
 
 #include "output.h"
@@ -145,10 +144,22 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
         return NULL;
     }
 
-    char *s = BytesToString(ff->name, ff->name_len);
-    json_object_set_new(fjs, "filename", SCJsonString(s));
-    if (s != NULL)
-        SCFree(s);
+    size_t filename_size = ff->name_len * 2 + 1;
+    char filename_string[filename_size];
+    BytesToStringBuffer(ff->name, ff->name_len, filename_string, filename_size);
+    json_object_set_new(fjs, "filename", SCJsonString(filename_string));
+
+    json_t *sig_ids = json_array();
+    if (unlikely(sig_ids == NULL)) {
+        json_decref(js);
+        return NULL;
+    }
+
+    for (uint32_t i = 0; ff->sid != NULL && i < ff->sid_cnt; i++) {
+        json_array_append(sig_ids, json_integer(ff->sid[i]));
+    }
+    json_object_set_new(fjs, "sid", sig_ids);
+
 #ifdef HAVE_MAGIC
     if (ff->magic)
         json_object_set_new(fjs, "magic", json_string((char *)ff->magic));
