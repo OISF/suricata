@@ -200,8 +200,9 @@ static int DetectMarkSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     sm->type = DETECT_MARK;
     sm->ctx = (SigMatchCtx *)data;
 
-    /* Append it to the list of tags */
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TMATCH);
+    /* Append it to the list of post match, so the mark is set if the
+     * full signature matches. */
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
     return 0;
 #endif
 }
