@@ -661,8 +661,11 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 {
     SCEnter();
 
-    int r = 0;
+    if (f->alproto == ALPROTO_FAILED) {
+        SCReturnInt(0);
+    }
 
+    int r = 0;
     uint8_t flags = 0;
     if (p->flowflags & FLOW_PKT_TOSERVER) {
         flags |= STREAM_TOSERVER;
@@ -670,11 +673,8 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         flags |= STREAM_TOCLIENT;
     }
 
-    if (f->alproto == ALPROTO_FAILED) {
-        SCReturnInt(0);
-
     /* if the protocol is still unknown, run detection */
-    } else if (f->alproto == ALPROTO_UNKNOWN) {
+    if (f->alproto == ALPROTO_UNKNOWN) {
         SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
                    p->payload_len);
 
