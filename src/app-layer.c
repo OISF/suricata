@@ -673,6 +673,8 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         flags |= STREAM_TOCLIENT;
     }
 
+    AppLayerProfilingReset(tctx);
+
     /* if the protocol is still unknown, run detection */
     if (f->alproto == ALPROTO_UNKNOWN) {
         SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
@@ -680,8 +682,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 
         PACKET_PROFILING_APP_PD_START(tctx);
         f->alproto = AppLayerProtoDetectGetProto(tctx->alpd_tctx,
-                                  f,
-                                  p->payload, p->payload_len,
+                                  f, p->payload, p->payload_len,
                                   IPPROTO_UDP, flags);
         PACKET_PROFILING_APP_PD_END(tctx);
 
@@ -692,12 +693,12 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
                                     flags, p->payload, p->payload_len);
             PACKET_PROFILING_APP_END(tctx, f->alproto);
-            PACKET_PROFILING_APP_STORE(tctx, p);
         } else {
             f->alproto = ALPROTO_FAILED;
             AppLayerIncFlowCounter(tv, f);
             SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
         }
+        PACKET_PROFILING_APP_STORE(tctx, p);
         /* we do only inspection in one direction, so flag both
          * sides as done here */
         FlagPacketFlow(p, f, STREAM_TOSERVER);
