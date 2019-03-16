@@ -330,6 +330,10 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
         fstate->command = FTP_COMMAND_PORT;
     }
 
+    if (input_len >= 4 && SCMemcmpLowercase("eprt", input, 4) == 0) {
+        fstate->command = FTP_COMMAND_EPRT;
+    }
+
     if (input_len >= 8 && SCMemcmpLowercase("auth tls", input, 8) == 0) {
         fstate->command = FTP_COMMAND_AUTH_TLS;
     }
@@ -375,6 +379,55 @@ static void FtpTransferCmdFree(void *data)
 }
 
 /**
+ * \brief This function is extract a port number from the command input line for IPv6 FTP usage
+ * \param input input line of the command
+ * \param input_len length of the request
+ *
+ * \retval 0 if a port number could not be extracted; otherwise, thed ynamic port number
+ */
+static uint16_t FTPGetV6PortNumber(uint8_t *input, uint32_t input_len)
+{
+    uint8_t *ptr = memrchr(input, '|', input_len);
+    if (ptr == NULL) {
+        return 0;
+    }
+
+    int n_length =  ptr - input - 1;
+    if (n_length < 4)
+        return 0;
+
+    ptr = memrchr(input, '|', n_length);
+    if (ptr == NULL)
+        return 0;
+
+    return atoi((char *)ptr + 1);
+}
+
+/**
+ * \brief This function is extract a port number from the command input line for IPv4 FTP usage
+ * \param input input line of the command
+ * \param input_len length of the request
+ *
+ * \retval 0 if a port number could not be extracted; otherwise, thed ynamic port number
+ */
+static int FTPGetV4PortNumber(uint8_t *input, uint32_t input_len)
+{
+    uint16_t part1, part2;
+    uint8_t *ptr = memrchr(input, ',', input_len);
+    if (ptr == NULL)
+        return 0;
+
+    part2 = atoi((char *)ptr + 1);
+    ptr = memrchr(input, ',', (ptr - input) - 1);
+    if (ptr == NULL)
+        return 0;
+    part1 = atoi((char *)ptr + 1);
+
+    return 256 * part1 + part2;
+}
+
+
+/**
  * \brief This function is called to retrieve a ftp request
  * \param ftp_state the ftp state structure for the parser
  * \param input input line of the command
@@ -410,10 +463,13 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
         FTPParseRequestCommand(state,
                                state->current_line, state->current_line_len);
         switch (state->command) {
+            case FTP_COMMAND_EPRT:
+                // fallthrough
             case FTP_COMMAND_PORT:
                 if (state->current_line_len > state->port_line_size) {
+                    /* Allocate an extra byte for a NULL terminator */
                     ptmp = FTPRealloc(state->port_line, state->port_line_size,
-                                      state->current_line_len);
+                                      state->current_line_len + 1);
                     if (ptmp == NULL) {
                         FTPFree(state->port_line, state->port_line_size);
                         state->port_line = NULL;
@@ -421,12 +477,12 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                         return 0;
                     }
                     state->port_line = ptmp;
-
                     state->port_line_size = state->current_line_len;
                 }
                 memcpy(state->port_line, state->current_line,
                         state->current_line_len);
                 state->port_line_len = state->current_line_len;
+                state->port_line[state->port_line_len] = 0;
                 break;
             case FTP_COMMAND_RETR:
                 /* change direction (default to server) so expectation will handle
@@ -455,18 +511,23 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                     memcpy(data->file_name, state->current_line + 5, state->current_line_len - 5);
                     data->cmd = state->command;
                     data->flow_id = FlowGetId(f);
-                    int ret = AppLayerExpectationCreate(f, direction, 0,
-                                                         state->dyn_port,
-                                                         ALPROTO_FTPDATA, data);
+                    int ret = AppLayerExpectationCreate(f,
+                                            state->active ? STREAM_TOSERVER : direction,
+                                            0, state->dyn_port, ALPROTO_FTPDATA, data);
                     if (ret == -1) {
                         FTPFree(data, sizeof(struct FtpTransferCmd));
                         SCLogDebug("No expectation created.");
                         SCReturnInt(-1);
                     } else {
-                        SCLogDebug("Expectation created.");
+                        SCLogDebug("Expectation created [direction: %s, dynamic port %"PRIu16"].",
+                            direction == STREAM_TOCLIENT ? "to client" : "to server",
+                            state->dyn_port);
                     }
+
                     /* reset the dyn port to avoid duplicate */
                     state->dyn_port = 0;
+                    /* reset active/passive indicator */
+                    state->active = 0;
                 }
                 break;
             default:
@@ -481,25 +542,17 @@ static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uin
 {
     uint16_t dyn_port;
 
+    dyn_port =
 #ifdef HAVE_RUST
-    dyn_port = rs_ftp_pasv_response(input, input_len);
+            rs_ftp_pasv_response(input, input_len);
+#else
+            FTPGetV4PortNumber(input, input_len);
+#endif
     if (dyn_port == 0) {
         return -1;
     }
-#else
-    uint16_t part1, part2;
-    uint8_t *ptr = memrchr(input, ',', input_len);
-    if (ptr == NULL)
-        return -1;
-
-    part2 = atoi((char *)ptr + 1);
-    ptr = memrchr(input, ',', (ptr - input) - 1);
-    if (ptr == NULL)
-        return -1;
-    part1 = atoi((char *)ptr + 1);
-
-    dyn_port = 256 * part1 + part2;
-#endif
+    SCLogDebug("FTP passive mode (v4): dynamic port %"PRIu16"", dyn_port);
+    state->active = 0;
     state->dyn_port = dyn_port;
 
     return 0;
@@ -507,27 +560,19 @@ static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uin
 
 static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, uint8_t *input, uint32_t input_len)
 {
+    uint16_t dyn_port;
+    dyn_port =
 #ifdef HAVE_RUST
-    uint16_t dyn_port = rs_ftp_epsv_response(input, input_len);
+            rs_ftp_epsv_response(input, input_len);
+#else
+            FTPGetV6PortNumber(input, input_len);
+#endif
     if (dyn_port == 0) {
         return -1;
     }
-
+    SCLogDebug("FTP passive mode (v6): dynamic port %"PRIu16"", dyn_port);
+    state->active = 0;
     state->dyn_port = dyn_port;
-#else
-    uint8_t *ptr = memrchr(input, '|', input_len);
-    if (ptr == NULL) {
-        return -1;
-    } else {
-        int n_length =  ptr - input - 1;
-        if (n_length < 4)
-            return -1;
-        ptr = memrchr(input, '|', n_length);
-        if (ptr == NULL)
-            return -1;
-    }
-    state->dyn_port = atoi((char *)ptr + 1);
-#endif
     return 0;
 }
 
@@ -552,6 +597,29 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         }
     }
 
+    if (state->command == FTP_COMMAND_EPRT) {
+        uint16_t dyn_port;
+        dyn_port = FTPGetV6PortNumber(state->port_line, state->port_line_len);
+        if (dyn_port == 0) {
+            return 0;
+        }
+        state->dyn_port = dyn_port;
+        state->active = 1;
+        SCLogDebug("FTP active mode (v6): dynamic port %"PRIu16"", dyn_port);
+    }
+
+    if (state->command == FTP_COMMAND_PORT) {
+        if ((flags & STREAM_TOCLIENT)) {
+            uint16_t dyn_port;
+            dyn_port = FTPGetV4PortNumber(state->port_line, state->port_line_len);
+            if (dyn_port == 0) {
+                return 0;
+            }
+            state->dyn_port = dyn_port;
+            state->active = 1;
+            SCLogDebug("FTP active mode (v4): dynamic port %"PRIu16"", dyn_port);
+        }
+    }
     if (state->command == FTP_COMMAND_PASV) {
         if (input_len >= 4 && SCMemcmp("227 ", input, 4) == 0) {
             FTPParsePassiveResponse(f, ftp_state, input, input_len);
