@@ -610,11 +610,23 @@ static inline int FlowCompareKey(Flow *f, FlowKey *key)
     return CMP_FLOW(f, key);
 }
 
+/** \brief Get or create a Flow using a FlowKey 
+ *
+ * Hash retrieval function for flows. Looks up the hash bucket containing the
+ * flow pointer. Then compares the packet with the found flow to see if it is
+ * the flow we need. If it isn't, walk the list until the right flow is found.
+ * Return a new Flow if ever no Flow was found.
+ *
+ *
+ *  \param key Pointer to FlowKey build using flow to look for
+ *  \param ttime time to use for flow creation
+ *  \param hash Value of the flow hash
+ *  \retval f *LOCKED* flow or NULL
+ */
+
 Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t hash)
 {
-    Flow *f = NULL;
-
-    f = FlowGetExistingtFlowFromHash(key, hash);
+    Flow *f = FlowGetExistingtFlowFromHash(key, hash);
     if (f != NULL) {
         return f;
     }
@@ -622,11 +634,10 @@ Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t ha
     /* No existing flow so let's get one new */
     f = FlowDequeue(&flow_spare_q);
     if (f == NULL) {
-        return NULL;
         /* now see if we can alloc a new flow */
         f = FlowAlloc();
         if (f == NULL) {
-            SCLogError(SC_ERR_FLOW_INIT, "Can't get a spare flow at start");
+            SCLogDebug("Can't get a spare flow at start");
             return NULL;
         }
     }
@@ -647,8 +658,7 @@ Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t ha
     f->flow_hash = hash;
     if (key->src.family == AF_INET) {
         f->flags |= FLOW_IPV4;
-    }
-    if (key->src.family == AF_INET6) {
+    } else if (key->src.family == AF_INET6) {
         f->flags |= FLOW_IPV6;
     }
     FlowUpdateState(f, FLOW_STATE_CAPTURE_BYPASSED);
@@ -683,12 +693,12 @@ Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t ha
  * the flow we need. If it isn't, walk the list until the right flow is found.
  *
  *
+ *  \param key Pointer to FlowKey build using flow to look for
+ *  \param hash Value of the flow hash
  *  \retval f *LOCKED* flow or NULL
  */
 Flow *FlowGetExistingtFlowFromHash(FlowKey *key, const uint32_t hash)
 {
-    Flow *f = NULL;
-
     /* get our hash bucket and lock it */
     FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
     FBLOCK_LOCK(fb);
@@ -702,7 +712,7 @@ Flow *FlowGetExistingtFlowFromHash(FlowKey *key, const uint32_t hash)
     }
 
     /* ok, we have a flow in the bucket. Let's find out if it is our flow */
-    f = fb->head;
+    Flow *f = fb->head;
 
     /* see if this is the flow we are looking for */
     if (FlowCompareKey(f, key) == 0) {
