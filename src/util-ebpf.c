@@ -130,9 +130,10 @@ static void EBPFDeleteKey(int fd, void *key)
 {
     int ret = bpf_map_delete_elem(fd, key);
     if (ret < 0) {
-        SCLogNotice("Unable to delete entry: %s (%d)",
-                    strerror(errno),
-                    errno);
+        SCLogWarning(SC_ERR_SYSCALL,
+                     "Unable to delete entry: %s (%d)",
+                     strerror(errno),
+                     errno);
     }
 }
 
@@ -171,8 +172,6 @@ int EBPFGetMapFDByName(const char *iface, const char *name)
             return bpf_maps->array[i].fd;
         }
     }
-
-    /* Fallback by getting pinned maps ? */
 
     return -1;
 }
