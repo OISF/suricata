@@ -66,7 +66,7 @@ struct bpf_map_item {
     char iface[IFNAMSIZ];
     char * name;
     int fd;
-    uint8_t unlink;
+    uint8_t to_unlink;
 };
 
 struct bpf_maps_info {
@@ -87,7 +87,7 @@ static void BpfMapsInfoFree(void *bpf)
     int i;
     for (i = 0; i < bpfinfo->last; i ++) {
         if (bpfinfo->array[i].name) {
-            if (bpfinfo->array[i].unlink) {
+            if (bpfinfo->array[i].to_unlink) {
                 char pinnedpath[1024];
                 snprintf(pinnedpath, sizeof(pinnedpath),
                         "/sys/fs/bpf/suricata-%s-%s",
@@ -418,7 +418,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             BpfMapsInfoFree(bpf_map_data);
             return -1;
         }
-        bpf_map_data->array[bpf_map_data->last].unlink = 0;
+        bpf_map_data->array[bpf_map_data->last].to_unlink = 0;
         if (config->flags & EBPF_PINNED_MAPS) {
             SCLogConfig("Pinning: %d to %s", bpf_map_data->array[bpf_map_data->last].fd,
                     bpf_map_data->array[bpf_map_data->last].name);
@@ -431,9 +431,9 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             }
             /* Don't unlink pinned maps in XDP mode to avoid a state reset */
             if (config->flags & EBPF_XDP_CODE) {
-                bpf_map_data->array[bpf_map_data->last].unlink = 0;
+                bpf_map_data->array[bpf_map_data->last].to_unlink = 0;
             } else {
-                bpf_map_data->array[bpf_map_data->last].unlink = 1;
+                bpf_map_data->array[bpf_map_data->last].to_unlink = 1;
             }
         }
         bpf_map_data->last++;
