@@ -88,13 +88,26 @@ static void BpfMapsInfoFree(void *bpf)
     for (i = 0; i < bpfinfo->last; i ++) {
         if (bpfinfo->array[i].name) {
             if (bpfinfo->array[i].to_unlink) {
-                char pinnedpath[1024];
-                snprintf(pinnedpath, sizeof(pinnedpath),
+                char pinnedpath[PATH_MAX];
+                int ret = snprintf(pinnedpath, sizeof(pinnedpath),
                         "/sys/fs/bpf/suricata-%s-%s",
                         bpfinfo->array[i].iface,
                         bpfinfo->array[i].name);
-                /* Unlink the pinned entry */
-                unlink(pinnedpath);
+                if (ret > 0) {
+                    /* Unlink the pinned entry */
+                    ret = unlink(pinnedpath);
+                    if (ret == -1) {
+                        int error = errno;
+                        SCLogWarning(SC_ERR_SYSCALL,
+                                     "Unable to remove %s: %s (%d)",
+                                     pinnedpath,
+                                     strerror(error),
+                                     error);
+                    }
+                } else {
+                    SCLogWarning(SC_ERR_SPRINTF, "Unable to remove map %s",
+                                 bpfinfo->array[i].name);
+                }
             }
             SCFree(bpfinfo->array[i].name);
         }
