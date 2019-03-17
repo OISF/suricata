@@ -545,7 +545,8 @@ static void *ParseAFPConfig(const char *iface)
                         SCLogConfig("Setting up CPU map XDP");
                         ConfNode *node = ConfGetChildWithDefault(if_root, if_default, "xdp-cpu-redirect");
                         if (node == NULL) {
-                            SCLogError(SC_ERR_INVALID_VALUE, "Should not be there");
+                            SCLogError(SC_ERR_INVALID_VALUE,
+                                       "Previously found node has disappeared");
                         } else {
                             EBPFBuildCPUSet(node, aconf->iface);
                         }
