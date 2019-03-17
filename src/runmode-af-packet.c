@@ -470,7 +470,6 @@ static void *ParseAFPConfig(const char *iface)
         aconf->ebpf_t_config.mode = AFP_MODE_XDP_BYPASS;
         aconf->ebpf_t_config.flags |= EBPF_XDP_CODE;
         aconf->xdp_filter_file = ebpf_file;
-        /* TODO FIXME Do we really have a usage of setting XDP and not bypassing ? */
         ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
         if (conf_val) {
             SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
