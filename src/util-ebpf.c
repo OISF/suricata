@@ -181,8 +181,7 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
 
     /* First try to load the eBPF check map and return if found */
     if (config->pinned_maps_name) {
-        int ret = -1;
-        ret = EBPFLoadPinnedMapsFile(livedev, config->pinned_maps_name);
+        int ret = EBPFLoadPinnedMapsFile(livedev, config->pinned_maps_name);
         if (ret == 0) {
             /* pinned maps found, let's just exit as XDP filter is in place */
             return ret;
