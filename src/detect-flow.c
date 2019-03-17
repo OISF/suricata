@@ -376,8 +376,6 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
     sm->type = DETECT_FLOW;
     sm->ctx = (SigMatchCtx *)fd;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-
     /* set the signature direction flags */
     if (fd->flags & DETECT_FLOW_FLAG_TOSERVER) {
         s->flags |= SIG_FLAG_TOSERVER;
@@ -395,12 +393,17 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
     } else if (fd->flags == DETECT_FLOW_FLAG_TOSERVER ||
                fd->flags == DETECT_FLOW_FLAG_TOCLIENT)
     {
-        // no direct flow is needed for just direction
-
+        /* no direct flow is needed for just direction,
+         * no sigmatch is needed either. */
+        SigMatchFree(sm);
+        sm = NULL;
     } else {
         s->init_data->init_flags |= SIG_FLAG_INIT_FLOW;
     }
 
+    if (sm != NULL) {
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    }
     return 0;
 
 error:

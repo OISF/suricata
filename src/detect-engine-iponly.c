@@ -54,6 +54,7 @@
 #include "util-unittest-helper.h"
 #include "util-print.h"
 #include "util-profiling.h"
+#include "util-validate.h"
 
 #ifdef OS_WIN32
 #include <winsock.h>
@@ -949,7 +950,7 @@ int IPOnlyMatchCompatSMs(ThreadVars *tv,
     SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
     if (smd) {
         while (1) {
-            BUG_ON(!(sigmatch_table[smd->type].flags & SIGMATCH_IPONLY_COMPAT));
+            DEBUG_VALIDATE_BUG_ON(!(sigmatch_table[smd->type].flags & SIGMATCH_IPONLY_COMPAT));
             KEYWORD_PROFILING_START;
             if (sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx) > 0) {
                 KEYWORD_PROFILING_END(det_ctx, smd->type, 1);

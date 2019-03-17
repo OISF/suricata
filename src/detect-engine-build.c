@@ -192,6 +192,12 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
+    /* if flow dir is set we can't process it in ip-only */
+    if (!(((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == 0) ||
+            (s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) ==
+            (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)))
+        return 0;
+
     /* for now assume that all registered buffer types are incompatible */
     const int nlists = s->init_data->smlists_array_size;
     for (int i = 0; i < nlists; i++) {
