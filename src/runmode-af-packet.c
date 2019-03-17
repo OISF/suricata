@@ -507,8 +507,9 @@ static void *ParseAFPConfig(const char *iface)
             }
         }
 
-        if (ConfGetChildValueBoolWithDefault(if_root, if_default, "no-percpu-hash", (int *)&boolval) == 1) {
-            if (boolval) {
+        boolval = true;
+        if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-percpu-hash", (int *)&boolval) == 1) {
+            if (boolval == false) {
                 SCLogConfig("Not using percpu hash on iface %s",
                         aconf->iface);
                 aconf->ebpf_t_config.cpus_count = 1;
