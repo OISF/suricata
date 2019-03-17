@@ -483,7 +483,7 @@ static void *ParseAFPConfig(const char *iface)
             BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow, NULL);
         }
 #else
-	SCLogError(SC_ERR_UNIMPLEMENTED, "XDP filter set but XDP support is not built-in");
+        SCLogWarning(SC_ERR_UNIMPLEMENTED, "XDP filter set but XDP support is not built-in");
 #endif
 #ifdef HAVE_PACKET_XDP
         const char *xdp_mode;
