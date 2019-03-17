@@ -45,7 +45,7 @@ typedef struct BypassedCheckFuncItem_ {
 } BypassedCheckFuncItem;
 
 int g_bypassed_func_max_index = 0;
-BypassedCheckFuncItem BypassedFuncList[BYPASSFUNCMAX];
+BypassedCheckFuncItem bypassedfunclist[BYPASSFUNCMAX];
 
 typedef struct BypassedUpdateFuncItem_ {
     BypassedUpdateFunc Func;
@@ -53,7 +53,7 @@ typedef struct BypassedUpdateFuncItem_ {
 } BypassedUpdateFuncItem;
 
 int g_bypassed_update_max_index = 0;
-BypassedUpdateFuncItem UpdateFuncList[BYPASSFUNCMAX];
+BypassedUpdateFuncItem updatefunclist[BYPASSFUNCMAX];
 
 static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 {
@@ -69,8 +69,8 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
         return TM_ECODE_FAILED;
     }
     for (i = 0; i < g_bypassed_func_max_index; i++) {
-        if (BypassedFuncList[i].FuncInit) {
-            BypassedFuncList[i].FuncInit(&curtime, BypassedFuncList[i].data);
+        if (bypassedfunclist[i].FuncInit) {
+            bypassedfunclist[i].FuncInit(&curtime, bypassedfunclist[i].data);
         }
     }
 
@@ -82,7 +82,7 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
         }
         for (i = 0; i < g_bypassed_func_max_index; i++) {
             struct flows_stats bypassstats = { 0, 0, 0};
-            tcount = BypassedFuncList[i].Func(&bypassstats, &curtime, BypassedFuncList[i].data);
+            tcount = bypassedfunclist[i].Func(&bypassstats, &curtime, bypassedfunclist[i].data);
             if (tcount) {
                 StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)bypassstats.count);
                 StatsAddUI64(th_v, ftd->flow_bypassed_pkts, (uint64_t)bypassstats.packets);
@@ -112,7 +112,7 @@ void BypassedFlowUpdate(Flow *f, Packet *p)
     int i;
 
     for (i = 0; i < g_bypassed_update_max_index; i++) {
-        if (UpdateFuncList[i].Func(f, p, UpdateFuncList[i].data)) {
+        if (updatefunclist[i].Func(f, p, updatefunclist[i].data)) {
             return;
         }
     }
@@ -170,9 +170,9 @@ int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc,
         return -1;
     }
     if (g_bypassed_func_max_index < BYPASSFUNCMAX) {
-        BypassedFuncList[g_bypassed_func_max_index].Func = CheckFunc;
-        BypassedFuncList[g_bypassed_func_max_index].FuncInit = CheckFuncInit;
-        BypassedFuncList[g_bypassed_func_max_index].data = data;
+        bypassedfunclist[g_bypassed_func_max_index].Func = CheckFunc;
+        bypassedfunclist[g_bypassed_func_max_index].FuncInit = CheckFuncInit;
+        bypassedfunclist[g_bypassed_func_max_index].data = data;
         g_bypassed_func_max_index++;
     } else {
         return -1;
@@ -187,8 +187,8 @@ int BypassedFlowManagerRegisterUpdateFunc(BypassedUpdateFunc UpdateFunc,
         return -1;
     }
     if (g_bypassed_update_max_index < BYPASSFUNCMAX) {
-        UpdateFuncList[g_bypassed_update_max_index].Func = UpdateFunc;
-        UpdateFuncList[g_bypassed_update_max_index].data = data;
+        updatefunclist[g_bypassed_update_max_index].Func = UpdateFunc;
+        updatefunclist[g_bypassed_update_max_index].data = data;
         g_bypassed_update_max_index++;
     } else {
         return -1;
