@@ -420,14 +420,14 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         }
         bpf_map_data->array[bpf_map_data->last].unlink = 0;
         if (config->flags & EBPF_PINNED_MAPS) {
-            SCLogNotice("Pinning: %d to %s", bpf_map_data->array[bpf_map_data->last].fd,
+            SCLogConfig("Pinning: %d to %s", bpf_map_data->array[bpf_map_data->last].fd,
                     bpf_map_data->array[bpf_map_data->last].name);
             char buf[1024];
             snprintf(buf, sizeof(buf), "/sys/fs/bpf/suricata-%s-%s", iface,
                     bpf_map_data->array[bpf_map_data->last].name);
             int ret = bpf_obj_pin(bpf_map_data->array[bpf_map_data->last].fd, buf);
             if (ret != 0) {
-                SCLogError(SC_ERR_AFP_CREATE, "Can not pin: %s", strerror(errno));
+                SCLogWarning(SC_ERR_AFP_CREATE, "Can not pin: %s", strerror(errno));
             }
             /* Don't unlink pinned maps in XDP mode to avoid a state reset */
             if (config->flags & EBPF_XDP_CODE) {
@@ -778,11 +778,7 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
     LiveDevice *ldev = NULL, *ndev;
     struct ebpf_timeout_config *cfg = (struct ebpf_timeout_config *)data;
 
-    if (cfg == NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Programming error, contact developer");
-        return 0;
-    }
+    BUG_ON(cfg == NULL);
 
     while(LiveDeviceForEach(&ldev, &ndev)) {
         tcount = EBPFForEachFlowV4Table(ldev, "flow_table_v4",
