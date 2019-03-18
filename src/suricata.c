@@ -398,6 +398,9 @@ static void GlobalsDestroy(SCInstance *suri)
     MpmHSGlobalCleanup();
 #endif
 
+    /* The pid file name may be in config memory, but is needed later. */
+    if (suri->pid_filename != NULL)
+        suri->pid_filename = strdup(suri->pid_filename);
     ConfDeInit();
 #ifdef HAVE_LUAJIT
     LuajitFreeStatesPool();
@@ -407,6 +410,8 @@ static void GlobalsDestroy(SCInstance *suri)
     SCThresholdConfGlobalFree();
 
     SCPidfileRemove(suri->pid_filename);
+    free((char *)suri->pid_filename);
+    suri->pid_filename = NULL;
 }
 
 /** \brief make sure threads can stop the engine by calling this
