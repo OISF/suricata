@@ -201,6 +201,7 @@ volatile uint8_t suricata_ctl_flags = 0;
 
 /** Run mode selected */
 int run_mode = RUNMODE_UNKNOWN;
+Runmodes run_modes = { {RUNMODE_UNKNOWN, RUNMODE_UNKNOWN}, 0, 0};
 
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
@@ -257,17 +258,101 @@ void EngineModeSetIDS(void)
     g_engine_mode = ENGINE_MODE_IDS;
 }
 
-int RunmodeIsUnittests(void)
+void RunmodesSet(Runmodes *runmodes, enum RunModes runmode)
 {
-    if (run_mode == RUNMODE_UNITTEST)
-        return 1;
-
-    return 0;
+    if (runmodes->cnt < RUNMODES_MAX) {
+        runmodes->run_mode[runmodes->idx] = runmode;
+        runmodes->cnt++;
+        switch (runmode) {
+        case RUNMODE_AFP_DEV:
+        case RUNMODE_NETMAP:
+        case RUNMODE_NFQ:
+        case RUNMODE_NFLOG:
+            if (runmodes->idx+1 < RUNMODES_MAX) {
+                runmodes->idx++;
+            }
+            break;
+        default:
+            break;
+        }
+    }
 }
 
-int RunmodeGetCurrent(void)
+int RunmodesGet(Runmodes *runmodes, int index)
 {
-    return run_mode;
+    if (index < RUNMODES_MAX) {
+        return runmodes->run_mode[index];
+    }
+    return RUNMODE_UNKNOWN;
+}
+
+int RunmodesGetPrimary(Runmodes *runmodes)
+{
+    return RunmodesGet(runmodes, 0);
+}
+
+int RunmodesGetSecondary(Runmodes *runmodes)
+{
+    return RunmodesGet(runmodes, 1);
+}
+
+int RunmodesCount(Runmodes *runmodes)
+{
+    return runmodes->cnt;
+}
+
+bool RunmodesMax(Runmodes *runmodes)
+{
+    return (runmodes->cnt < RUNMODES_MAX) ? false : true;
+}
+
+bool RunmodeIsSet(Runmodes *runmodes, int runmode)
+{
+    for (int i = 0; i < RunmodesCount(runmodes); i++) {
+        if (RunmodesGet(runmodes, i) == runmode) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool RunmodeIsUnittests(void)
+{
+    return (RunmodesGetPrimary(&run_modes) == RUNMODE_UNITTEST);
+}
+
+int RunmodeGetCurrent(Runmodes *runmodes)
+{
+    return runmodes->run_mode[runmodes->idx];
+}
+
+/* helper functions */
+
+static bool RunmodeIsUnknown(Runmodes *runmodes)
+{
+    return (RunmodesGetPrimary(runmodes) == RUNMODE_UNKNOWN);
+}
+
+static bool RunmodesAreUnknown(Runmodes *runmodes)
+{
+    for (int i = 0; i < RUNMODES_MAX; i++) {
+        if (RunmodesGet(runmodes, i) == RUNMODE_UNKNOWN) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void RunmodesDispatch(Runmodes *runmodes, const char *custom_mode)
+{
+    for (int i = 0; i < RunmodesCount(runmodes); i++)
+    {
+        int runmode = RunmodesGet(runmodes, i);
+        if (runmode != RUNMODE_UNKNOWN) {
+            RunModeDispatch(runmode, custom_mode);
+        }
+    }
 }
 
 /** signal handlers

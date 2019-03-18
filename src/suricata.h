@@ -125,6 +125,14 @@ enum {
 
 #include "runmodes.h"
 
+#define RUNMODES_MAX 2
+
+typedef struct Runmodes_ {
+    enum RunModes run_mode[RUNMODES_MAX];
+    int cnt;
+    int idx;
+} Runmodes;
+
 /* queue's between various other threads
  * XXX move to the TmQueue structure later
  */
@@ -181,13 +189,21 @@ extern int g_disable_randomness;
 void EngineStop(void);
 void EngineDone(void);
 
-int RunmodeIsUnittests(void);
-int RunmodeGetCurrent(void);
+void RunmodesSet(Runmodes *runmodes, enum RunModes runmode);
+int RunmodesGet(Runmodes *runmodes, int index);
+int RunmodesGetPrimary(Runmodes *runmodes);
+int RunmodesGetSecondary(Runmodes *runmodes);
+int RunmodesCount(Runmodes *runmodes);
+bool RunmodesMax(Runmodes *runmodes);
+bool RunmodeIsSet(Runmodes *runmodes, int runmode);
+bool RunmodeIsUnittests(void);
+int RunmodeGetCurrent(Runmodes *runmodes);
 int IsRuleReloadSet(int quiet);
 
 int SuriHasSigFile(void);
 
 extern int run_mode;
+extern Runmodes run_modes;
 
 void PreRunInit(const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);
