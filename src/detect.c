@@ -242,7 +242,6 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
                                             DetectEngineThreadCtx *det_ctx)
 {
     SigIntId mpm, nonmpm;
-    det_ctx->match_array_cnt = 0;
     SigIntId *mpm_ptr = det_ctx->pmq.rule_id_array;
     SigIntId *nonmpm_ptr = det_ctx->non_pf_id_array;
     uint32_t m_cnt = det_ctx->pmq.rule_id_array_cnt;
@@ -927,6 +926,7 @@ static DetectRunScratchpad DetectRunSetup(
     det_ctx->filestore_cnt = 0;
     det_ctx->base64_decoded_len = 0;
     det_ctx->raw_stream_progress = 0;
+    det_ctx->match_array_cnt = 0;
 
 #ifdef DEBUG
     if (p->flags & PKT_STREAM_ADD) {
