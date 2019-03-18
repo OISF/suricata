@@ -29,6 +29,21 @@
 #include "tm-threads-common.h"
 #include "tm-modules.h"
 
+#ifdef OS_WIN32
+static inline void SleepUsec(uint64_t usec)
+{
+    uint64_t msec = 1;
+    if (usec > 1000) {
+        msec = usec / 1000;
+    }
+    Sleep(msec);
+}
+#define SleepMsec(msec) Sleep((msec))
+#else
+#define SleepUsec(usec) usleep((usec))
+#define SleepMsec(msec) usleep((msec) * 1000)
+#endif
+
 #define TM_QUEUE_NAME_MAX 16
 #define TM_THREAD_NAME_MAX 16
 

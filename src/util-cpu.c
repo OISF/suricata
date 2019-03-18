@@ -180,13 +180,6 @@ void UtilCpuPrintSummary(void)
  * \todo We'll have to deal with removig ticks from the extra cpuids inbetween
  *       2 calls.
  */
-#if defined(__tile__)
-#include <arch/cycle.h>
-uint64_t UtilCpuGetTicks(void)
-{
-  return get_cycle_count();
-}
-#else
 uint64_t UtilCpuGetTicks(void)
 {
     uint64_t val;
@@ -229,4 +222,3 @@ uint64_t UtilCpuGetTicks(void)
 #endif
     return val;
 }
-#endif /* __tile__ */

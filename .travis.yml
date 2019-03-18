@@ -38,6 +38,12 @@ addons:
       - *packages-without-jansson
       - libjansson-dev
 
+cache:
+  directories:
+    - /home/travis/.rustup
+    - /home/travis/.cargo
+    - /home/travis/.multirust
+
 # Define the default CFLAGS used by all builds as a YAML anchor.
 default-cflags: &default-cflags
   CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
@@ -166,10 +172,10 @@ matrix:
         apt:
           packages:
             - *packages-without-jansson
-    # OSX 10.12, XCode 8.1
+    # OSX 10.13, XCode 8.3
     - os: osx
       compiler: gcc
-      osx_image: xcode8.1
+      osx_image: xcode8.3
       sudo: true
       env:
         - NAME="osx,gcc"
@@ -213,6 +219,7 @@ script:
             exit 1
         fi
     fi
+    (cd qa/coccinelle && make check)
   - |
     if [[ "$DO_DISTCHECK" == "yes" ]]; then
         make distcheck DISTCHECK_CONFIGURE_FLAGS="${ARGS}"
@@ -221,6 +228,9 @@ script:
     if [[ "$DO_CHECK_SETUP_SCRIPTS" == "yes" ]]; then
         (cd scripts && ./check-setup.sh)
     fi
+  - |
+    git clone https://github.com/OISF/suricata-verify.git verify
+    python ./verify/run.py
 
 before_install:
   - export PATH=$HOME/.cargo/bin:$PATH
@@ -250,6 +260,7 @@ before_install:
         packages="$packages lua"
         packages="$packages pcre"
         packages="$packages hiredis"
+        packages="$packages jq"
         for package in $packages; do
             if brew ls $package --versions > /dev/null; then
                 brew unlink $package
@@ -262,5 +273,9 @@ before_install:
         # Now relink, becuase if a newer version of a package wasn't
         # installed above, it will remain unlinked.
         brew link $packages
+
+        curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+        sudo python ./get-pip.py
+        sudo pip install PyYAML
     fi
   - ./qa/travis-libhtp.sh

@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
 * \file
 *
 * \author Aleksey Katargin <gureedo@gmail.com>
+* \author Victor Julien <victor@inliniac.net>
 */
 
 #ifndef __SOURCE_NETMAP_H__
@@ -40,10 +41,14 @@ typedef struct NetmapIfaceSettings_
     /* real inner interface name */
     char iface[NETMAP_IFACE_NAME_LENGTH];
 
-    int threads;
     /* sw ring flag for out_iface */
-    int sw_ring;
-    int promisc;
+    bool sw_ring;
+    bool promisc;
+    bool real;      /**< real iface or not. Not in case of vale, pipe */
+    bool ips;       /**< set to true if checksum_mode != NETMAP_COPY_MODE_NONE */
+    bool threads_auto;
+
+    int threads;
     int copy_mode;
     ChecksumValidationMode checksum_mode;
     const char *bpf_filter;
@@ -57,9 +62,6 @@ typedef struct NetmapIfaceConfig_
     /* settings for out capture device*/
     NetmapIfaceSettings in;
 
-    /* semantic interface name */
-    char *out_iface_name;
-
     /* settings for outgoing iface for IPS/TAP */
     NetmapIfaceSettings out;
 
@@ -69,9 +71,6 @@ typedef struct NetmapIfaceConfig_
 
 typedef struct NetmapPacketVars_
 {
-    int ring_id;
-    int slot_id;
-    int dst_ring_id;
     /* NetmapThreadVars */
     void *ntv;
 } NetmapPacketVars;

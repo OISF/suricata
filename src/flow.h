@@ -289,19 +289,9 @@ typedef struct FlowAddress_ {
 #define addr_data16 address.address_un_data16
 #define addr_data8  address.address_un_data8
 
-#ifdef __tile__
-/* Atomic Ints performance better on Tile. */
-typedef unsigned int FlowRefCount;
-#else
 typedef unsigned short FlowRefCount;
-#endif
 
-#ifdef __tile__
-/* Atomic Ints performance better on Tile. */
-typedef unsigned int FlowStateType;
-#else
 typedef unsigned short FlowStateType;
-#endif
 
 /** Local Thread ID */
 typedef uint16_t FlowThreadId;

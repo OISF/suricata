@@ -532,18 +532,6 @@ outputs:
       #max-open-files: 1000
       include-pid: no # set to yes to include pid in file names
 
-  # output module to log files tracked in a easily parsable JSON format
-  - file-log:
-      enabled: no
-      filename: files-json.log
-      append: yes
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-
-      force-magic: no   # force logging magic on all logged files
-      # force logging of checksums, available hash functions are md5,
-      # sha1 and sha256
-      #force-hash: [md5]
-
   # Log TCP data after stream normalization
   # 2 types: file or dir. File logs into a single logfile. Dir creates
   # 2 files per TCP session and stores the raw TCP data into them.
@@ -1680,7 +1668,7 @@ capture:
 
 # Netmap support
 #
-# Netmap operates with NIC directly in driver, so you need FreeBSD which have
+# Netmap operates with NIC directly in driver, so you need FreeBSD 11+ which have
 # built-in netmap support or compile and install netmap module and appropriate
 # NIC driver on your Linux system.
 # To reach maximum throughput disable all receive-, segmentation-,
@@ -1692,7 +1680,9 @@ capture:
 netmap:
    # To specify OS endpoint add plus sign at the end (e.g. "eth0+")
  - interface: eth2
-   # Number of receive threads. "auto" uses number of RSS queues on interface.
+   # Number of capture threads. "auto" uses number of RSS queues on interface.
+   # Warning: unless the RSS hashing is symmetrical, this will lead to
+   # accuracy issues.
    #threads: auto
    # You can use the following variables to activate netmap tap or IPS mode.
    # If copy-mode is set to ips or tap, the traffic coming to the current
@@ -1862,33 +1852,6 @@ napatech:
     # This has no effect if auto-config is disabled.
     #
     hashmode: hash5tuplesorted
-# Tilera mpipe configuration. for use on Tilera TILE-Gx.
-mpipe:
-
-  # Load balancing modes: "static", "dynamic", "sticky", or "round-robin".
-  load-balance: dynamic
-
-  # Number of Packets in each ingress packet queue. Must be 128, 512, 2028 or 65536
-  iqueue-packets: 2048
-
-  # List of interfaces we will listen on.
-  inputs:
-  - interface: xgbe2
-  - interface: xgbe3
-  - interface: xgbe4
-
-
-  # Relative weight of memory for packets of each mPipe buffer size.
-  stack:
-    size128: 0
-    size256: 9
-    size512: 0
-    size1024: 0
-    size1664: 7
-    size4096: 0
-    size10386: 0
-    size16384: 0
-
 ##
 ## Configure Suricata to load Suricata-Update managed rules.
 ##

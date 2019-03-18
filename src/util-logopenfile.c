@@ -31,7 +31,6 @@
 #include "util-byte.h"
 #include "util-path.h"
 #include "util-logopenfile.h"
-#include "util-logopenfile-tile.h"
 
 #if defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_SOCKET_H) && defined(HAVE_SYS_TYPES_H)
 #define BUILD_WITH_UNIXSOCKET
@@ -296,24 +295,6 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
     return ret;
 }
 
-/** \brief open the indicated file remotely over PCIe to a host
- *  \param path filesystem path to open
- *  \param append_setting open file with O_APPEND: "yes" or "no"
- *  \retval FILE* on success
- *  \retval NULL on error
- */
-static PcieFile *SCLogOpenPcieFp(LogFileCtx *log_ctx, const char *path, 
-                                 const char *append_setting)
-{
-#ifndef __tile__
-    SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, 
-               "PCIe logging only supported on Tile-Gx Architecture.");
-    return NULL;
-#else
-    return TileOpenPcieFp(log_ctx, path, append_setting);
-#endif
-}
-
 /** \brief open a generic output "log file", which may be a regular file or a socket
  *  \param conf ConfNode structure for the output section in question
  *  \param log_ctx Log file context allocated by caller
@@ -463,10 +444,6 @@ SCConfLogOpenGeneric(ConfNode *conf,
         if (rotate) {
             OutputRegisterFileRotationFlag(&log_ctx->rotation_flag);
         }
-    } else if (strcasecmp(filetype, "pcie") == 0) {
-        log_ctx->pcie_fp = SCLogOpenPcieFp(log_ctx, log_path, append);
-        if (log_ctx->pcie_fp == NULL)
-            return -1; // Error already logged by Open...Fp routine
 #ifdef HAVE_LIBHIREDIS
     } else if (strcasecmp(filetype, "redis") == 0) {
         ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");

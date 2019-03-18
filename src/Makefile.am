@@ -286,7 +286,6 @@ ippair-storage.c ippair-storage.h \
 ippair-timeout.c ippair-timeout.h \
 log-dnslog.c log-dnslog.h \
 log-droplog.c log-droplog.h \
-log-file.c log-file.h \
 log-filestore.c log-filestore.h \
 log-cf-common.c log-cf-common.h \
 log-httplog.c log-httplog.h \
@@ -348,7 +347,6 @@ runmode-pcap-file.c runmode-pcap-file.h \
 runmode-pfring.c runmode-pfring.h \
 runmode-unittests.c runmode-unittests.h \
 runmode-unix-socket.c runmode-unix-socket.h \
-runmode-tile.c runmode-tile.h \
 runmode-windivert.c runmode-windivert.h \
 runmodes.c runmodes.h \
 rust.h \
@@ -356,7 +354,6 @@ source-af-packet.c source-af-packet.h \
 source-erf-dag.c source-erf-dag.h \
 source-erf-file.c source-erf-file.h \
 source-ipfw.c source-ipfw.h \
-source-mpipe.c source-mpipe.h \
 source-napatech.c source-napatech.h \
 source-netmap.c source-netmap.h \
 source-nfq.c source-nfq.h \
@@ -375,7 +372,7 @@ stream-tcp-reassemble.c stream-tcp-reassemble.h \
 stream-tcp-sack.c stream-tcp-sack.h \
 stream-tcp-util.c stream-tcp-util.h \
 suricata.c suricata.h \
-threads.c threads.h threads-arch-tile.h \
+threads.c threads.h \
 threads-debug.h threads-profile.h \
 tm-modules.c tm-modules.h \
 tmqh-flow.c tmqh-flow.h \
@@ -429,7 +426,6 @@ util-ioctl.h util-ioctl.c \
 util-ip.h util-ip.c \
 util-ja3.h util-ja3.c \
 util-logopenfile.h util-logopenfile.c \
-util-logopenfile-tile.h util-logopenfile-tile.c \
 util-log-redis.h util-log-redis.c \
 util-lua.c util-lua.h \
 util-luajit.c util-luajit.h \
@@ -450,8 +446,8 @@ util-memrchr.c util-memrchr.h \
 util-misc.c util-misc.h \
 util-mpm-ac-bs.c util-mpm-ac-bs.h \
 util-mpm-ac.c util-mpm-ac.h \
-util-mpm-ac-tile.c util-mpm-ac-tile.h \
-util-mpm-ac-tile-small.c \
+util-mpm-ac-ks.c util-mpm-ac-ks.h \
+util-mpm-ac-ks-small.c \
 util-mpm-hs.c util-mpm-hs.h \
 util-mpm.c util-mpm.h \
 util-napatech.c util-napatech.h \

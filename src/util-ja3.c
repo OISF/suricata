@@ -77,10 +77,6 @@ static int Ja3BufferResizeIfFull(JA3Buffer *buffer, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(buffer == NULL);
 
-    if (len == 0) {
-        return 0;
-    }
-
     while (buffer->used + len + 2 > buffer->size)
     {
         buffer->size *= 2;

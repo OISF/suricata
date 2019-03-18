@@ -62,7 +62,6 @@ enum PktSrcEnum {
 #include "source-ipfw.h"
 #include "source-pcap.h"
 #include "source-af-packet.h"
-#include "source-mpipe.h"
 #include "source-netmap.h"
 #include "source-windivert.h"
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
@@ -463,10 +462,6 @@ typedef struct Packet_
 #ifdef AF_PACKET
         AFPPacketVars afp_v;
 #endif
-#ifdef HAVE_MPIPE
-        /* tilegx mpipe stuff */
-        MpipePacketVars mpipe_v;
-#endif
 #ifdef HAVE_NETMAP
         NetmapPacketVars netmap_v;
 #endif
@@ -609,12 +604,7 @@ typedef struct Packet_
 #ifdef HAVE_NAPATECH
     NapatechPacketVars ntpv;
 #endif
-}
-#ifdef HAVE_MPIPE
-    /* mPIPE requires packet buffers to be aligned to 128 byte boundaries. */
-    __attribute__((aligned(128)))
-#endif
-Packet;
+} Packet;
 
 /** highest mtu of the interfaces we monitor */
 extern int g_default_mtu;
@@ -1131,6 +1121,9 @@ void DecodeUnregisterCounters(void);
 
 #define PKT_PSEUDO_DETECTLOG_FLUSH      (1<<27)     /**< Detect/log flush for protocol upgrade */
 
+/** Packet is part of stream in known bad condition (loss, wrong thread),
+ *  so flag it for not setting stream events */
+#define PKT_STREAM_NO_EVENTS            (1<<28)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) \
