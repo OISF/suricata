@@ -137,7 +137,7 @@ typedef struct SCInstance_ {
     char pcap_dev[128];
     char *sig_file;
     int sig_file_exclusive;
-    const char *pid_filename;
+    char *pid_filename;
     char *regex_arg;
 
     char *keyword_info;
