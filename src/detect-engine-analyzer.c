@@ -1063,6 +1063,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                         (DETECT_CONTENT_OFFSET | DETECT_CONTENT_DEPTH)) {
                         rule_content_offset_depth++;
                     }
+                } else {
+                    rule_content += 1;
                 }
             }
             else if (sm->type == DETECT_FLOW) {
@@ -1246,7 +1248,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         if (warn_encoding_norm_http_buf) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule may contain percent encoded content for a normalized http buffer match.\n");
         }
-        if (warn_tcp_no_flow /*rule_flow == 0 && rule_flow == 0
+        if (warn_tcp_no_flow /*rule_flow == 0 && rule_flags == 0
                 && !(s->proto.flags & DETECT_PROTO_ANY) && DetectProtoContainsProto(&s->proto, IPPROTO_TCP)*/) {
             fprintf(rule_engine_analysis_FD, "    Warning: TCP rule without a flow or flags option.\n"
                                              "             -Consider adding flow or flags to improve performance of this rule.\n");
