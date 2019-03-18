@@ -407,6 +407,8 @@ static void GlobalsDestroy(SCInstance *suri)
     SCThresholdConfGlobalFree();
 
     SCPidfileRemove(suri->pid_filename);
+    SCFree(suri->pid_filename);
+    suri->pid_filename = NULL;
 }
 
 /** \brief make sure threads can stop the engine by calling this
@@ -1682,7 +1684,12 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
 #endif /* OS_WIN32 */
             else if(strcmp((long_opts[option_index]).name, "pidfile") == 0) {
-                suri->pid_filename = optarg;
+                suri->pid_filename = SCStrdup(optarg);
+                if (suri->pid_filename == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "strdup failed: %s",
+                        strerror(errno));
+                    return TM_ECODE_FAILED;
+                }
             }
             else if(strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
                 g_detect_disabled = suri->disabled_detect = 1;
@@ -2125,14 +2132,23 @@ static int WindowsInitService(int argc, char **argv)
 static int MayDaemonize(SCInstance *suri)
 {
     if (suri->daemon == 1 && suri->pid_filename == NULL) {
-        if (ConfGet("pid-file", &suri->pid_filename) == 1) {
-            SCLogInfo("Use pid file %s from config file.", suri->pid_filename);
+        const char *pid_filename;
+
+        if (ConfGet("pid-file", &pid_filename) == 1) {
+            SCLogInfo("Use pid file %s from config file.", pid_filename);
         } else {
-            suri->pid_filename = DEFAULT_PID_FILENAME;
+            pid_filename = DEFAULT_PID_FILENAME;
+        }
+        /* The pid file name may be in config memory, but is needed later. */
+        suri->pid_filename = SCStrdup(pid_filename);
+        if (suri->pid_filename == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "strdup failed: %s", strerror(errno));
+            return TM_ECODE_FAILED;
         }
     }
 
     if (suri->pid_filename != NULL && SCPidfileTestRunning(suri->pid_filename) != 0) {
+        SCFree(suri->pid_filename);
         suri->pid_filename = NULL;
         return TM_ECODE_FAILED;
     }
@@ -2143,6 +2159,7 @@ static int MayDaemonize(SCInstance *suri)
 
     if (suri->pid_filename != NULL) {
         if (SCPidfileCreate(suri->pid_filename) != 0) {
+            SCFree(suri->pid_filename);
             suri->pid_filename = NULL;
             SCLogError(SC_ERR_PIDFILE_DAEMON,
                     "Unable to create PID file, concurrent run of"
