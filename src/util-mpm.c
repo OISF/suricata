@@ -79,7 +79,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             exit(EXIT_FAILURE);
         }
         memset(item[0].mpm_ctx_ts, 0, sizeof(MpmCtx));
-        item[0].mpm_ctx_ts->global = 1;
+        item[0].mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
 
         /* toclient */
         item[0].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
@@ -88,7 +88,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             exit(EXIT_FAILURE);
         }
         memset(item[0].mpm_ctx_tc, 0, sizeof(MpmCtx));
-        item[0].mpm_ctx_tc->global = 1;
+        item[0].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
 
         /* our id starts from 0 always.  Helps us with the ctx retrieval from
          * the array */
@@ -113,7 +113,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
                         exit(EXIT_FAILURE);
                     }
                     memset(items[i].mpm_ctx_ts, 0, sizeof(MpmCtx));
-                    items[i].mpm_ctx_ts->global = 1;
+                    items[i].mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
                 }
                 if (items[i].mpm_ctx_tc == NULL) {
                     items[i].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
@@ -122,7 +122,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
                         exit(EXIT_FAILURE);
                     }
                     memset(items[i].mpm_ctx_tc, 0, sizeof(MpmCtx));
-                    items[i].mpm_ctx_tc->global = 1;
+                    items[i].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
                 }
                 return items[i].id;
             }
@@ -151,7 +151,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             exit(EXIT_FAILURE);
         }
         memset(new_item[0].mpm_ctx_ts, 0, sizeof(MpmCtx));
-        new_item[0].mpm_ctx_ts->global = 1;
+        new_item[0].mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
 
         /* toclient */
         new_item[0].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
@@ -160,7 +160,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             exit(EXIT_FAILURE);
         }
         memset(new_item[0].mpm_ctx_tc, 0, sizeof(MpmCtx));
-        new_item[0].mpm_ctx_tc->global = 1;
+        new_item[0].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
 
         new_item[0].id = de_ctx->mpm_ctx_factory_container->no_of_items;
         de_ctx->mpm_ctx_factory_container->no_of_items++;
@@ -555,6 +555,17 @@ int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
             goto error;
 
         mpm_ctx->pattern_cnt++;
+
+        if (!(mpm_ctx->flags & MPMCTX_FLAGS_NODEPTH)) {
+            if (depth) {
+                mpm_ctx->maxdepth = MAX(mpm_ctx->maxdepth, depth);
+                SCLogDebug("%p: depth %u max %u", mpm_ctx, depth, mpm_ctx->maxdepth);
+            } else {
+                mpm_ctx->flags |= MPMCTX_FLAGS_NODEPTH;
+                mpm_ctx->maxdepth = 0;
+                SCLogDebug("%p: alas, no depth for us", mpm_ctx);
+            }
+        }
 
         if (mpm_ctx->maxlen < patlen)
             mpm_ctx->maxlen = patlen;

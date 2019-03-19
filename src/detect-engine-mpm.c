@@ -863,7 +863,7 @@ static void MpmStoreFreeFunc(void *ptr)
 {
     MpmStore *ms = ptr;
     if (ms != NULL) {
-        if (ms->mpm_ctx != NULL && !ms->mpm_ctx->global)
+        if (ms->mpm_ctx != NULL && !(ms->mpm_ctx->flags & MPMCTX_FLAGS_GLOBAL))
         {
             SCLogDebug("destroying mpm_ctx %p", ms->mpm_ctx);
             mpm_table[ms->mpm_ctx->mpm_type].DestroyCtx(ms->mpm_ctx);
