@@ -778,3 +778,28 @@ Example::
       ]
     }
   }
+
+
+Event type: SSH
+----------------
+
+Fields
+~~~~~~
+
+* "proto_version": The protocol version transported with the ssh protocol (1.x, 2.x)
+* "software_version": The software version used by end user
+
+Example of SSH logging:
+
+::
+
+  "ssh": {
+    "client": {
+        "proto_version": "2.0",
+        "software_version": "OpenSSH_6.7",
+     },
+    "server": {
+        "proto_version": "2.0",
+        "software_version": "OpenSSH_6.7",
+     }
+  }
