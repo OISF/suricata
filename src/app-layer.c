@@ -77,15 +77,8 @@ typedef struct AppLayerCounterNames_ {
     char tx_name[MAX_COUNTER_SIZE];
 } AppLayerCounterNames;
 
-typedef struct AppLayerCounters_ {
-    uint16_t counter_id;
-    uint16_t counter_tx_id;
-} AppLayerCounters;
-
 /* counter names. Only used at init. */
 AppLayerCounterNames applayer_counter_names[FLOW_PROTO_APPLAYER_MAX][ALPROTO_MAX];
-/* counter id's. Used that runtime. */
-AppLayerCounters applayer_counters[FLOW_PROTO_APPLAYER_MAX][ALPROTO_MAX];
 
 void AppLayerSetupCounters(void);
 void AppLayerDeSetupCounters(void);
@@ -104,7 +97,7 @@ static inline int ProtoDetectDone(const Flow *f, const TcpSession *ssn, uint8_t 
  */
 static void AppLayerIncFlowCounter(ThreadVars *tv, Flow *f)
 {
-    const uint16_t id = applayer_counters[f->protomap][f->alproto].counter_id;
+    const uint16_t id = tv->applayer_counters[f->protomap][f->alproto].counter_id;
     if (likely(tv && id > 0)) {
         StatsIncr(tv, id);
     }
@@ -112,7 +105,7 @@ static void AppLayerIncFlowCounter(ThreadVars *tv, Flow *f)
 
 void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
 {
-    const uint16_t id = applayer_counters[f->protomap][f->alproto].counter_tx_id;
+    const uint16_t id = tv->applayer_counters[f->protomap][f->alproto].counter_tx_id;
     if (likely(tv && id > 0)) {
         StatsAddUI64(tv, id, step);
     }
@@ -927,15 +920,15 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
 
         for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
             if (alprotos[alproto] == 1) {
-                applayer_counters[ipproto_map][alproto].counter_id =
+                tv->applayer_counters[ipproto_map][alproto].counter_id =
                     StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
 
                 if (AppLayerParserProtocolIsTxAware(ipprotos[ipproto], alproto)) {
-                    applayer_counters[ipproto_map][alproto].counter_tx_id =
+                    tv->applayer_counters[ipproto_map][alproto].counter_tx_id =
                         StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].tx_name, tv);
                 }
             } else if (alproto == ALPROTO_FAILED) {
-                applayer_counters[ipproto_map][alproto].counter_id =
+                tv->applayer_counters[ipproto_map][alproto].counter_id =
                     StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
             }
         }
@@ -945,7 +938,6 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
 void AppLayerDeSetupCounters()
 {
     memset(applayer_counter_names, 0, sizeof(applayer_counter_names));
-    memset(applayer_counters, 0, sizeof(applayer_counters));
 }
 
 /***** Unittests *****/
