@@ -104,6 +104,9 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     p->payload = NULL;
     p->payload_len = 0;
 
+    /* apply reversed flow logic after setting direction to the packet */
+    direction ^= ((f->flags & FLOW_DIR_REVERSED) != 0);
+
     if (FLOW_IS_IPV4(f)) {
         if (direction == 0) {
             FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src, &p->src);
