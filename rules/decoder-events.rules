@@ -123,6 +123,7 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 invalid protocol"; d
 
 # MPLS rules
 alert pkthdr any any -> any any (msg:"SURICATA MPLS header too small"; decode-event:mpls.header_too_small; classtype:protocol-command-decode; sid:2200111; rev:2;)
+alert pkthdr any any -> any any (msg:"SURICATA MPLS packet too small"; decode-event:mpls.pkt_too_small; classtype:protocol-command-decode; sid:2200114; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA MPLS bad router alert label"; decode-event:mpls.bad_label_router_alert; classtype:protocol-command-decode; sid:2200098; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA MPLS bad implicit null label"; decode-event:mpls.bad_label_implicit_null; classtype:protocol-command-decode; sid:2200099; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA MPLS reserved label"; decode-event:mpls.bad_label_reserved; classtype:protocol-command-decode; sid:2200100; rev:2;)
@@ -142,5 +143,5 @@ alert pkthdr any any -> any any (msg:"SURICATA ERSPAN too many vlan layers"; dec
 # Cisco Fabric Path/DCE
 alert pkthdr any any -> any any (msg:"SURICATA DCE packet too small"; decode-event:dce.pkt_too_small; classtype:protocol-command-decode; sid:2200110; rev:2;)
 
-# next sid is 2200113
+# next sid is 2200114
 
