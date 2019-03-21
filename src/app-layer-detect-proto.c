@@ -1661,6 +1661,8 @@ int AppLayerProtoDetectDeSetup(void)
                 sig = pm_ctx->map[id];
                 AppLayerProtoDetectPMFreeSignature(sig);
             }
+            SCFree(pm_ctx->map);
+            pm_ctx->map = NULL;
         }
     }
 
