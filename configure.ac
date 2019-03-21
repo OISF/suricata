@@ -886,7 +886,6 @@
     fi
 
   # libjansson
-    enable_jansson="no"
     AC_ARG_WITH(libjansson_includes,
             [  --with-libjansson-includes=DIR  libjansson include directory],
             [with_libjansson_includes="$withval"],[with_libjansson_includes=no])
@@ -898,19 +897,34 @@
         CPPFLAGS="${CPPFLAGS} -I${with_libjansson_includes}"
     fi
 
-    enable_jansson="no"
+    if test "$with_libjansson_libraries" != "no"; then
+        LDFLAGS="${LDFLAGS}  -L${with_libjansson_libraries}"
+    fi
+
+    AC_CHECK_HEADER(jansson.h,JANSSON="yes",JANSSON="no")
+    AC_CHECK_LIB(jansson, json_dump_callback,, JANSSON="no")
+
+    if test "$JANSSON" = "no"; then
+       echo ""
+       echo "    ERROR: Jannson is now required."
+       echo ""
+       echo "    Go get it from your distribution or from:"
+       echo "      http://www.digip.org/jansson/"
+       echo ""
+       echo "    Ubuntu/Debian: apt install libjansson-dev"
+       echo "    CentOS: yum install jansson-devel"
+       echo "    Fedora: dnf install jansson-devel"
+       echo ""
+       exit 1
+    fi
+
+    enable_jansson="yes"
     enable_unixsocket="no"
 
     AC_ARG_ENABLE(unix-socket,
            AS_HELP_STRING([--enable-unix-socket], [Enable unix socket [default=test]]),[enable_unixsocket="$enableval"],[enable_unixsocket=test])
 
-    AC_CHECK_HEADER(jansson.h,JANSSON="yes",JANSSON="no")
     if test "$JANSSON" = "yes"; then
-        if test "$with_libjansson_libraries" != "no"; then
-            LDFLAGS="${LDFLAGS}  -L${with_libjansson_libraries}"
-        fi
-
-	    AC_CHECK_LIB(jansson, json_dump_callback,, JANSSON="no")
         enable_jansson="yes"
         if test "$JANSSON" = "no"; then
             echo
