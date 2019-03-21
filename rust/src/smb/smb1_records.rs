@@ -543,7 +543,7 @@ named!(pub parse_smb_create_andx_request_record<SmbRequestCreateAndXRecord>,
        >> _skip3: take!(28)
        >> disposition: le_u32
        >> create_options: le_u32
-       >> _skip2: take!(8)
+       >> _skip2: take!(7)
        >> file_name: take!(file_name_len)
        >> _skip3: rest
        >> (SmbRequestCreateAndXRecord {
