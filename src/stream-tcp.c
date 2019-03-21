@@ -8313,7 +8313,7 @@ static int StreamTcpTest18 (void)
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     IPV4Hdr ipv4h;
     int ret = 0;
 
@@ -8362,7 +8362,7 @@ static int StreamTcpTest19 (void)
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     IPV4Hdr ipv4h;
     int ret = 0;
 
@@ -8414,7 +8414,7 @@ static int StreamTcpTest20 (void)
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     IPV4Hdr ipv4h;
     int ret = 0;
 
@@ -8466,7 +8466,7 @@ static int StreamTcpTest21 (void)
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     IPV4Hdr ipv4h;
     int ret = 0;
 
@@ -8518,7 +8518,7 @@ static int StreamTcpTest22 (void)
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     IPV4Hdr ipv4h;
     int ret = 0;
 
@@ -8637,6 +8637,7 @@ static int StreamTcpTest24(void)
     TCPHdr tcph;
     uint8_t packet[1460] = "";
     ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
 
@@ -8645,7 +8646,6 @@ static int StreamTcpTest24(void)
 
     memset(p, 0, SIZE_OF_PACKET);
     memset(&f, 0, sizeof (Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
     memset(&tcph, 0, sizeof (TCPHdr));
     FLOW_INITIALIZE(&f);
     ssn.client.os_policy = OS_POLICY_BSD;

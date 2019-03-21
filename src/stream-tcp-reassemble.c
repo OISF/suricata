@@ -2164,6 +2164,7 @@ static int StreamTcpReassembleTest37(void)
     uint8_t packet[1460] = "";
     PacketQueue pq;
     ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
@@ -2712,10 +2713,8 @@ static int StreamTcpReassembleTest39 (void)
 
 static int StreamTcpReassembleTest40 (void)
 {
-    int ret = 0;
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     Flow *f = NULL;
     TCPHdr tcph;
     TcpSession ssn;
@@ -2728,7 +2727,8 @@ static int StreamTcpReassembleTest40 (void)
     StreamTcpInitConfig(TRUE);
     StreamTcpUTSetupSession(&ssn);
 
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(&tv);
+    FAIL_IF_NULL(ra_ctx);
 
     uint8_t httpbuf1[] = "P";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -2748,8 +2748,7 @@ static int StreamTcpReassembleTest40 (void)
     ssn.client.isn = 9;
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     p->flow = f;
@@ -2760,19 +2759,13 @@ static int StreamTcpReassembleTest40 (void)
     tcph.th_flags = TH_ACK|TH_PUSH;
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
-
     p->payload = httpbuf1;
     p->payload_len = httplen1;
     ssn.state = TCP_ESTABLISHED;
+    TcpStream *s = &ssn.client;
+    SCLogDebug("1 -- start");
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
 
-    TcpStream *s = NULL;
-    s = &ssn.client;
-
-    FLOWLOCK_WRLOCK(f);
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (1): ");
-        goto end;
-    }
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload = httpbuf2;
     p->payload_len = httplen2;
@@ -2780,11 +2773,8 @@ static int StreamTcpReassembleTest40 (void)
     tcph.th_ack = htonl(11);
     s = &ssn.server;
     ssn.server.last_ack = 11;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (3): ");
-        goto end;
-    }
+    SCLogDebug("2 -- start");
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
 
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = httpbuf3;
@@ -2793,11 +2783,8 @@ static int StreamTcpReassembleTest40 (void)
     tcph.th_ack = htonl(55);
     s = &ssn.client;
     ssn.client.last_ack = 55;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (5): ");
-        goto end;
-    }
+    SCLogDebug("3 -- start");
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload = httpbuf2;
@@ -2806,11 +2793,8 @@ static int StreamTcpReassembleTest40 (void)
     tcph.th_ack = htonl(12);
     s = &ssn.server;
     ssn.server.last_ack = 12;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (6): ");
-        goto end;
-    }
+    SCLogDebug("4 -- start");
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
 
     /* check is have the segment in the list and flagged or not */
     TcpSegment *seg = RB_MIN(TCPSEG, &ssn.client.seg_tree);
@@ -2824,11 +2808,8 @@ static int StreamTcpReassembleTest40 (void)
     tcph.th_ack = htonl(100);
     s = &ssn.client;
     ssn.client.last_ack = 100;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (10): ");
-        goto end;
-    }
+    SCLogDebug("5 -- start");
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload = httpbuf2;
@@ -2837,11 +2818,8 @@ static int StreamTcpReassembleTest40 (void)
     tcph.th_ack = htonl(13);
     s = &ssn.server;
     ssn.server.last_ack = 13;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (11): ");
-        goto end;
-    }
+    SCLogDebug("6 -- start");
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
 
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = httpbuf5;
@@ -2850,11 +2828,8 @@ static int StreamTcpReassembleTest40 (void)
     tcph.th_ack = htonl(145);
     s = &ssn.client;
     ssn.client.last_ack = 145;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (14): ");
-        goto end;
-    }
+    SCLogDebug("7 -- start");
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload = httpbuf2;
@@ -2863,25 +2838,16 @@ static int StreamTcpReassembleTest40 (void)
     tcph.th_ack = htonl(16);
     s = &ssn.server;
     ssn.server.last_ack = 16;
+    SCLogDebug("8 -- start");
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1);
+    FAIL_IF(f->alproto != ALPROTO_HTTP);
 
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet (15): ");
-        goto end;
-    }
-    if (f->alproto != ALPROTO_HTTP) {
-        printf("app layer proto has not been detected (18): ");
-        goto end;
-    }
-
-    ret = 1;
-end:
     StreamTcpUTClearSession(&ssn);
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
-    FLOWLOCK_UNLOCK(f);
     UTHFreeFlow(f);
-    return ret;
+    PASS;
 }
 
 /** \test   Test the memcap incrementing/decrementing and memcap check */
@@ -3007,7 +2973,7 @@ static int StreamTcpReassembleTest47 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     StreamTcpInitConfig(TRUE);
     StreamTcpUTSetupSession(&ssn);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(&tv);
 
     uint8_t httpbuf1[] = "GET /EVILSUFF HTTP/1.1\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
