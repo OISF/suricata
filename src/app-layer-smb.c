@@ -1512,7 +1512,8 @@ static int SMBGetAlstateProgress(void *tx, uint8_t direction)
 
 #define SMB_PROBING_PARSER_MIN_DEPTH 8
 
-static uint16_t SMBProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
+static uint16_t SMBProbingParser(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t ilen, uint8_t *rdir)
 {
     int32_t len;
     int32_t input_len = ilen;
@@ -2298,10 +2299,11 @@ static int SMBParserTest05(void)
     AppLayerProtoDetectPrepareState();
     alpd_tctx = AppLayerProtoDetectGetCtxThread();
 
+    bool reverse_flow = false;
     alproto = AppLayerProtoDetectGetProto(alpd_tctx,
                                           &f,
                                           smbbuf1, smblen1,
-                                          IPPROTO_TCP, STREAM_TOSERVER);
+                                          IPPROTO_TCP, STREAM_TOSERVER, &reverse_flow);
     if (alproto != ALPROTO_UNKNOWN) {
         printf("alproto is %"PRIu16 ".  Should be ALPROTO_UNKNOWN\n",
                alproto);
@@ -2311,7 +2313,7 @@ static int SMBParserTest05(void)
     alproto = AppLayerProtoDetectGetProto(alpd_tctx,
                                           &f,
                                           smbbuf2, smblen2,
-                                          IPPROTO_TCP, STREAM_TOSERVER);
+                                          IPPROTO_TCP, STREAM_TOSERVER, &reverse_flow);
     if (alproto != ALPROTO_SMB) {
         printf("alproto is %"PRIu16 ".  Should be ALPROTO_SMB\n",
                alproto);
@@ -2382,10 +2384,11 @@ static int SMBParserTest06(void)
     AppLayerProtoDetectPrepareState();
     alpd_tctx = AppLayerProtoDetectGetCtxThread();
 
+    bool reverse_flow = false;
     alproto = AppLayerProtoDetectGetProto(alpd_tctx,
                                           &f,
                                           smbbuf1, smblen1,
-                                          IPPROTO_TCP, STREAM_TOSERVER);
+                                          IPPROTO_TCP, STREAM_TOSERVER, &reverse_flow);
     if (alproto != ALPROTO_UNKNOWN) {
         printf("alproto is %"PRIu16 ".  Should be ALPROTO_UNKNOWN\n",
                alproto);
@@ -2395,7 +2398,7 @@ static int SMBParserTest06(void)
     alproto = AppLayerProtoDetectGetProto(alpd_tctx,
                                           &f,
                                           smbbuf2, smblen2,
-                                          IPPROTO_TCP, STREAM_TOSERVER);
+                                          IPPROTO_TCP, STREAM_TOSERVER, &reverse_flow);
     if (alproto != ALPROTO_SMB) {
         printf("alproto is %"PRIu16 ".  Should be ALPROTO_SMB\n",
                alproto);

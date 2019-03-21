@@ -109,7 +109,8 @@ static AppLayerDecoderEvents *NFSGetEvents(void *state, uint64_t id)
  * \retval ALPROTO_NFS if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto NFSProbingParserTS(Flow *f, uint8_t *input, uint32_t input_len)
+static AppProto NFSProbingParser(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t input_len, uint8_t *rdir)
 {
     SCLogDebug("probing");
     if (input_len < NFS_MIN_FRAME_LEN) {
@@ -117,28 +118,12 @@ static AppProto NFSProbingParserTS(Flow *f, uint8_t *input, uint32_t input_len)
         return ALPROTO_UNKNOWN;
     }
 
-    int8_t r = rs_nfs_probe_udp_ts(input, input_len);
-    if (r == 1) {
-        SCLogDebug("nfs");
-        return ALPROTO_NFS;
-    } else if (r == -1) {
-        SCLogDebug("failed");
-        return ALPROTO_FAILED;
-    }
+    int8_t r = 0;
+    if (direction & STREAM_TOSERVER)
+        r = rs_nfs_probe_udp_ts(input, input_len);
+    else
+        r = rs_nfs_probe_udp_tc(input, input_len);
 
-    SCLogDebug("Protocol not detected as ALPROTO_NFS.");
-    return ALPROTO_UNKNOWN;
-}
-
-static AppProto NFSProbingParserTC(Flow *f, uint8_t *input, uint32_t input_len)
-{
-    SCLogDebug("probing");
-    if (input_len < NFS_MIN_FRAME_LEN) {
-        SCLogDebug("unknown");
-        return ALPROTO_UNKNOWN;
-    }
-
-    int8_t r = rs_nfs_probe_tc(input, input_len);
     if (r == 1) {
         SCLogDebug("nfs");
         return ALPROTO_NFS;
@@ -280,21 +265,21 @@ void RegisterNFSUDPParsers(void)
             SCLogDebug("Unittest mode, registering default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_UDP, NFS_DEFAULT_PORT,
                 ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN, STREAM_TOSERVER,
-                NFSProbingParserTS, NFSProbingParserTC);
+                NFSProbingParser, NFSProbingParser);
 
         }
         else {
 
             if (!AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
                     proto_name, ALPROTO_NFS, 0, NFS_MIN_FRAME_LEN,
-                    NFSProbingParserTS, NFSProbingParserTC)) {
+                    NFSProbingParser, NFSProbingParser)) {
                 SCLogDebug("No NFS app-layer configuration, enabling NFS"
                     " detection TCP detection on port %s.",
                     NFS_DEFAULT_PORT);
                 AppLayerProtoDetectPPRegister(IPPROTO_UDP,
                     NFS_DEFAULT_PORT, ALPROTO_NFS, 0,
                     NFS_MIN_FRAME_LEN, STREAM_TOSERVER,
-                    NFSProbingParserTS, NFSProbingParserTC);
+                    NFSProbingParser, NFSProbingParser);
             }
 
         }

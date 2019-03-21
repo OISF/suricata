@@ -257,8 +257,10 @@ export_tx_set_detect_state!(
 #[no_mangle]
 pub extern "C" fn rs_template_probing_parser(
     _flow: *const Flow,
+    _direction: u8,
     input: *const libc::uint8_t,
     input_len: u32,
+    _rdir: *mut u8
 ) -> AppProto {
     // Need at least 2 bytes.
     if input_len > 1 && input != std::ptr::null_mut() {

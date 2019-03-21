@@ -68,6 +68,11 @@ enum AppProtoEnum {
 /* not using the enum as that is a unsigned int, so 4 bytes */
 typedef uint16_t AppProto;
 
+static inline bool AppProtoIsValid(AppProto a)
+{
+    return ((a > ALPROTO_UNKNOWN && a < ALPROTO_FAILED));
+}
+
 /**
  * \brief Maps the ALPROTO_*, to its string equivalent.
  *

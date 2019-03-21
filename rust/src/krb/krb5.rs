@@ -405,7 +405,11 @@ pub extern "C" fn rs_krb5_state_get_event_info(event_name: *const libc::c_char,
 static mut ALPROTO_KRB5 : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow, input:*const libc::uint8_t, input_len: u32) -> AppProto {
+pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
+        _direction: u8,
+        input:*const libc::uint8_t, input_len: u32,
+        _rdir: *mut u8) -> AppProto
+{
     let slice = build_slice!(input,input_len as usize);
     let alproto = unsafe{ ALPROTO_KRB5 };
     if slice.len() <= 10 { return unsafe{ALPROTO_FAILED}; }
@@ -439,14 +443,19 @@ pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow, input:*const libc::
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow, input:*const libc::uint8_t, input_len: u32) -> AppProto {
+pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
+        direction: u8,
+        input:*const libc::uint8_t, input_len: u32,
+        rdir: *mut u8) -> AppProto
+{
     let slice = build_slice!(input,input_len as usize);
     if slice.len() <= 14 { return unsafe{ALPROTO_FAILED}; }
     match be_u32(slice) {
         Ok((rem, record_mark)) => {
             // protocol implementations forbid very large requests
             if record_mark > 16384 { return unsafe{ALPROTO_FAILED}; }
-            return rs_krb5_probing_parser(_flow, rem.as_ptr(), rem.len() as u32);
+            return rs_krb5_probing_parser(_flow, direction,
+                    rem.as_ptr(), rem.len() as u32, rdir);
         },
         Err(nom::Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;

@@ -78,8 +78,8 @@ static int RustSMBTCPParseResponse(Flow *f, void *state,
     return res;
 }
 
-static uint16_t RustSMBTCPProbe(Flow *f,
-        uint8_t *input, uint32_t len)
+static uint16_t RustSMBTCPProbe(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     SCLogDebug("RustSMBTCPProbe");
 
@@ -87,7 +87,7 @@ static uint16_t RustSMBTCPProbe(Flow *f,
         return ALPROTO_UNKNOWN;
     }
 
-    const int r = rs_smb_probe_tcp(input, len);
+    const int r = rs_smb_probe_tcp(direction, input, len, rdir);
     switch (r) {
         case 1:
             return ALPROTO_SMB;
@@ -184,22 +184,28 @@ static int RustSMBRegisterPatternsForProtocolDetection(void)
 {
     int r = 0;
     /* SMB1 */
-    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
-            "|ff|SMB", 8, 4, STREAM_TOSERVER);
-    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
-            "|ff|SMB", 8, 4, STREAM_TOCLIENT);
+    r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+            "|ff|SMB", 8, 4, STREAM_TOSERVER, RustSMBTCPProbe,
+            MIN_REC_SIZE, MIN_REC_SIZE);
+    r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+            "|ff|SMB", 8, 4, STREAM_TOCLIENT, RustSMBTCPProbe,
+            MIN_REC_SIZE, MIN_REC_SIZE);
 
     /* SMB2/3 */
-    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
-            "|fe|SMB", 8, 4, STREAM_TOSERVER);
-    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
-            "|fe|SMB", 8, 4, STREAM_TOCLIENT);
+    r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+            "|fe|SMB", 8, 4, STREAM_TOSERVER, RustSMBTCPProbe,
+            MIN_REC_SIZE, MIN_REC_SIZE);
+    r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+            "|fe|SMB", 8, 4, STREAM_TOCLIENT, RustSMBTCPProbe,
+            MIN_REC_SIZE, MIN_REC_SIZE);
 
     /* SMB3 encrypted records */
-    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
-            "|fd|SMB", 8, 4, STREAM_TOSERVER);
-    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
-            "|fd|SMB", 8, 4, STREAM_TOCLIENT);
+    r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+            "|fd|SMB", 8, 4, STREAM_TOSERVER, RustSMBTCPProbe,
+            MIN_REC_SIZE, MIN_REC_SIZE);
+    r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
+            "|fd|SMB", 8, 4, STREAM_TOCLIENT, RustSMBTCPProbe,
+            MIN_REC_SIZE, MIN_REC_SIZE);
     return r == 0 ? 0 : -1;
 }
 

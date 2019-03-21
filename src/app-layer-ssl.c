@@ -2624,7 +2624,8 @@ static void SSLStateTransactionFree(void *state, uint64_t tx_id)
     /* do nothing */
 }
 
-static uint16_t SSLProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
+static AppProto SSLProbingParser(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t ilen, uint8_t *rdir)
 {
     /* probably a rst/fin sending an eof */
     if (ilen == 0)

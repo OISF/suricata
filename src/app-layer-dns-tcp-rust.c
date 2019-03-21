@@ -52,7 +52,8 @@ static int RustDNSTCPParseResponse(Flow *f, void *state,
             local_data);
 }
 
-static uint16_t RustDNSTCPProbe(Flow *f, uint8_t *input, uint32_t len)
+static uint16_t RustDNSTCPProbe(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     SCLogDebug("RustDNSTCPProbe");
     if (len == 0 || len < sizeof(DNSHeader)) {

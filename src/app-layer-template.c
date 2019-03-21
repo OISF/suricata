@@ -194,7 +194,8 @@ static AppLayerDecoderEvents *TemplateGetEvents(void *statev, uint64_t tx_id)
  * \retval ALPROTO_TEMPLATE if it looks like template, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto TemplateProbingParser(Flow *f, uint8_t *input, uint32_t input_len)
+static AppProto TemplateProbingParser(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t input_len, uint8_t *rdir)
 {
     /* Very simple test - if there is input, this is template. */
     if (input_len >= TEMPLATE_MIN_FRAME_LEN) {

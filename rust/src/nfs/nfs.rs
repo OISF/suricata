@@ -1681,6 +1681,26 @@ pub extern "C" fn rs_nfs_init(context: &'static mut SuricataFileContext)
     }
 }
 
+fn nfs_probe_dir(i: &[u8], rdir: *mut u8) -> i8 {
+    match parse_rpc_packet_header(i) {
+        Ok((_, ref hdr)) => {
+            let dir = if hdr.msgtype == 0 {
+                STREAM_TOSERVER
+            } else {
+                STREAM_TOCLIENT
+            };
+            unsafe { *rdir = dir };
+            return 1;
+        },
+        Err(nom::Err::Incomplete(_)) => {
+            return 0;
+        },
+        Err(_) => {
+            return -1;
+        },
+    }
+}
+
 pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
     if direction == STREAM_TOCLIENT {
         match parse_rpc_reply(i) {
@@ -1768,6 +1788,33 @@ pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
             Err(_) => {
                 return -1;
             },
+        }
+    }
+}
+
+/// MIDSTREAM
+#[no_mangle]
+pub extern "C" fn rs_nfs_probe_ms(input: *const libc::uint8_t,
+        len: libc::uint32_t, rdir: *mut u8) -> libc::int8_t
+{
+    let slice: &[u8] = unsafe {
+        std::slice::from_raw_parts(input as *mut u8, len as usize)
+    };
+    let mut direction : u8 = 0;
+    match nfs_probe_dir(slice, &mut direction) {
+        1 => {
+            let r = nfs_probe(slice, direction);
+            if r == 1 {
+                unsafe { *rdir = direction; }
+                return 1;
+            }
+            return r;
+        },
+        0 => {
+            return 0;
+        },
+        _ => {
+            return -1;
         }
     }
 }

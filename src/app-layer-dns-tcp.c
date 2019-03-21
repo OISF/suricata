@@ -63,7 +63,9 @@ struct DNSTcpHeader_ {
 } __attribute__((__packed__));
 typedef struct DNSTcpHeader_ DNSTcpHeader;
 
-static uint16_t DNSTcpProbingParser(Flow *f, uint8_t *input, uint32_t ilen);
+static uint16_t DNSTcpProbingParser(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t ilen,
+        uint8_t *rdir);
 
 /** \internal
  *  \param input_len at least enough for the DNSTcpHeader
@@ -317,7 +319,8 @@ static int DNSTCPRequestParse(Flow *f, void *dstate,
 
     /* Clear gap state. */
     if (dns_state->gap_ts) {
-        if (DNSTcpProbingParser(f, input, input_len) == ALPROTO_DNS) {
+        if (DNSTcpProbingParser(f, STREAM_TOSERVER,
+                    input, input_len, NULL) == ALPROTO_DNS) {
             SCLogDebug("New data probed as DNS, clearing gap state.");
             BufferReset(dns_state);
             dns_state->gap_ts = 0;
@@ -557,7 +560,8 @@ static int DNSTCPResponseParse(Flow *f, void *dstate,
 
     /* Clear gap state. */
     if (dns_state->gap_tc) {
-        if (DNSTcpProbingParser(f, input, input_len) == ALPROTO_DNS) {
+        if (DNSTcpProbingParser(f, STREAM_TOCLIENT,
+                    input, input_len, NULL) == ALPROTO_DNS) {
             SCLogDebug("New data probed as DNS, clearing gap state.");
             BufferReset(dns_state);
             dns_state->gap_tc = 0;
@@ -639,7 +643,9 @@ bad_data:
     SCReturnInt(-1);
 }
 
-static uint16_t DNSTcpProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
+static uint16_t DNSTcpProbingParser(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t ilen,
+        uint8_t *rdir)
 {
     if (ilen == 0 || ilen < sizeof(DNSTcpHeader)) {
         SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)sizeof(DNSTcpHeader));
@@ -679,7 +685,9 @@ static uint16_t DNSTcpProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
  * This is a minimal parser that just checks that the input contains enough
  * data for a TCP DNS response.
  */
-static uint16_t DNSTcpProbeResponse(Flow *f, uint8_t *input, uint32_t len)
+static uint16_t DNSTcpProbeResponse(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t len,
+        uint8_t *rdir)
 {
     if (len == 0 || len < sizeof(DNSTcpHeader)) {
         return ALPROTO_UNKNOWN;

@@ -1870,17 +1870,68 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
 // probing parser
 // return 1 if found, 0 is not found
 #[no_mangle]
-pub extern "C" fn rs_smb_probe_tcp(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
+pub extern "C" fn rs_smb_probe_tcp(direction: libc::uint8_t,
+        input: *const libc::uint8_t, len: libc::uint32_t,
+        rdir: *mut libc::uint8_t)
+    -> libc::int8_t
 {
     let slice = build_slice!(input, len as usize);
     match search_smb_record(slice) {
-        Ok((_, _)) => {
+        Ok((_, ref data)) => {
             SCLogDebug!("smb found");
-            return 1;
+            match parse_smb_version(data) {
+                Ok((_, ref smb)) => {
+                    SCLogDebug!("SMB {:?}", smb);
+                    if smb.version == 0xff_u8 { // SMB1
+                        SCLogDebug!("SMBv1 record");
+                        match parse_smb_record(data) {
+                            Ok((_, ref smb_record)) => {
+                                if smb_record.flags & 0x80 != 0 {
+                                    SCLogDebug!("RESPONSE {:02x}", smb_record.flags);
+                                    if direction & STREAM_TOSERVER != 0 {
+                                        unsafe { *rdir = STREAM_TOCLIENT; }
+                                    }
+                                } else {
+                                    SCLogDebug!("REQUEST {:02x}", smb_record.flags);
+                                    if direction & STREAM_TOCLIENT != 0 {
+                                        unsafe { *rdir = STREAM_TOSERVER; }
+                                    }
+                                }
+                                return 1;
+                            },
+                            _ => { },
+                        }
+                    } else if smb.version == 0xfe_u8 { // SMB2
+                        SCLogDebug!("SMB2 record");
+                        match parse_smb2_record_direction(data) {
+                            Ok((_, ref smb_record)) => {
+                                if direction & STREAM_TOSERVER != 0 {
+                                    SCLogDebug!("direction STREAM_TOSERVER smb_record {:?}", smb_record);
+                                    if !smb_record.request {
+                                        unsafe { *rdir = STREAM_TOCLIENT; }
+                                    }
+                                } else {
+                                    SCLogDebug!("direction STREAM_TOCLIENT smb_record {:?}", smb_record);
+                                    if smb_record.request {
+                                        unsafe { *rdir = STREAM_TOSERVER; }
+                                    }
+                                }
+                            },
+                            _ => {},
+                        }
+                    }
+                    else if smb.version == 0xfd_u8 { // SMB3 transform
+                        SCLogDebug!("SMB3 record");
+                    }
+                    return 1;
+                },
+                    _ => {
+                        SCLogDebug!("smb not found in {:?}", slice);
+                    },
+            }
         },
         _ => {
-            SCLogDebug!("smb not found in {:?}", slice);
+            SCLogDebug!("no dice");
         },
     }
     match parse_nbss_record_partial(slice) {

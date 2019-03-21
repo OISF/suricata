@@ -112,7 +112,8 @@ static AppLayerDecoderEvents *TFTPGetEvents(void *state, uint64_t tx_id)
  * \retval ALPROTO_TFTP if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto TFTPProbingParser(Flow *f, uint8_t *input, uint32_t input_len)
+static AppProto TFTPProbingParser(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t input_len, uint8_t *rdir)
 {
     /* Very simple test - if there is input, this is tftp.
      * Also check if it's starting by a zero */

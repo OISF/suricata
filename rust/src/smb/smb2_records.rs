@@ -33,6 +33,21 @@ named!(pub parse_smb2_sec_blob<Smb2SecBlobRecord>,
 ));
 
 #[derive(Debug,PartialEq)]
+pub struct Smb2RecordDir<> {
+    pub request: bool,
+}
+
+named!(pub parse_smb2_record_direction<Smb2RecordDir>,
+    do_parse!(
+            _server_component: tag!(b"\xfeSMB")
+        >>  _skip: take!(12)
+        >>  flags: le_u8
+        >> (Smb2RecordDir {
+                request: flags & 0x01 == 0,
+           })
+));
+
+#[derive(Debug,PartialEq)]
 pub struct Smb2Record<'a> {
     pub direction: u8,    // 0 req, 1 res
     pub nt_status: u32,
