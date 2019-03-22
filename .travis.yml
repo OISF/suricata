@@ -54,7 +54,6 @@ matrix:
     - env:
         - NAME="linux,gcc,rust-stable"
         - *default-cflags
-        - ENABLE_RUST="yes"
         - RUST_VERSION="stable"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_CHECK_SETUP_SCRIPTS="yes"
@@ -84,7 +83,6 @@ matrix:
       env:
         - NAME="linux,gcc,rust-stable"
         - *default-cflags
-        - ENABLE_RUST="yes"
         - RUST_VERSION="stable"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_CHECK_SETUP_SCRIPTS="yes"
@@ -96,7 +94,6 @@ matrix:
       env:
         - NAME="linux,gcc,rust-1.31.0-disabled"
         - *default-cflags
-        - ENABLE_RUST="yes"
         - RUST_VERSION="1.31.0"
         - ARGS="--disable-rust"
         - DO_DISTCHECK="yes"
@@ -107,7 +104,6 @@ matrix:
       env:
         - NAME="linux,gcc,rust-1.31.0-auto"
         - *default-cflags
-        - ENABLE_RUST="yes"
         - RUST_VERSION="1.31.0"
         - ARGS=""
         - DO_DISTCHECK="yes"
@@ -118,7 +114,6 @@ matrix:
       env:
         - NAME="linux,gcc,rust-1.31.0"
         - *default-cflags
-        - ENABLE_RUST="yes"
         - RUST_VERSION="1.31.0"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_DISTCHECK="yes"
@@ -128,7 +123,6 @@ matrix:
       env:
         - NAME="linux,gcc,rust-1.24.1"
         - *default-cflags
-        - ENABLE_RUST="yes"
         - RUST_VERSION="1.24.1"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_DISTCHECK="yes"
@@ -248,13 +242,11 @@ script:
 before_install:
   - export PATH=$HOME/.cargo/bin:$PATH
   - |
-    if [[ "$ENABLE_RUST" == "yes" ]]; then
-        curl https://sh.rustup.rs -sSf | sh -s -- -y
-        if [[ "$RUST_VERSION" != "" ]]; then
-            rustup override set $RUST_VERSION
-        fi
-        rustc --version
+    curl https://sh.rustup.rs -sSf | sh -s -- -y
+    if [[ "$RUST_VERSION" != "" ]]; then
+        rustup override set $RUST_VERSION
     fi
+    rustc --version
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew update
