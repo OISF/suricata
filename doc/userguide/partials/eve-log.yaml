@@ -165,7 +165,7 @@ outputs:
             deltas: no        # include delta values
         - dhcp:
             # DHCP logging requires Rust.
-            enabled: @rust_config_enabled@
+            enabled: yes
             # When extended mode is on, all DHCP messages are logged
             # with full detail. When extended mode is off (the
             # default), just enough information to map a MAC address
