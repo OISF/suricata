@@ -472,7 +472,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
             }
         },
         SMB1_COMMAND_NT_CREATE_ANDX => {
-            match parse_smb_create_andx_request_record(r.data) {
+            match parse_smb_create_andx_request_record(r.data, r) {
                 Ok((_, cr)) => {
                     SCLogDebug!("Create AndX {:?}", cr);
                     let del = cr.create_options & 0x0000_1000 != 0;

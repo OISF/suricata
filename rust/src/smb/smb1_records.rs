@@ -530,28 +530,31 @@ named!(pub parse_smb_rename_request_record<SmbRequestRenameRecord>,
 );
 
 #[derive(Debug,PartialEq)]
-pub struct SmbRequestCreateAndXRecord<'a> {
+pub struct SmbRequestCreateAndXRecord<> {
     pub disposition: u32,
     pub create_options: u32,
-    pub file_name: &'a[u8],
+    pub file_name: Vec<u8>,
 }
 
-named!(pub parse_smb_create_andx_request_record<SmbRequestCreateAndXRecord>,
-    do_parse!(
+pub fn parse_smb_create_andx_request_record<'a>(i: &'a[u8], r: &SmbRecord)
+    -> IResult<&'a[u8], SmbRequestCreateAndXRecord<>>
+{
+    do_parse!(i,
           _skip1: take!(6)
        >> file_name_len: le_u16
        >> _skip3: take!(28)
        >> disposition: le_u32
        >> create_options: le_u32
-       >> _skip2: take!(7)
-       >> file_name: take!(file_name_len)
+       >> _skip2: take!(5)
+       >> bcc: le_u16
+       >> file_name: cond!(bcc >= file_name_len, apply!(smb1_get_string, r, (bcc - file_name_len) as usize))
        >> _skip3: rest
        >> (SmbRequestCreateAndXRecord {
                 disposition: disposition,
                 create_options: create_options,
-                file_name: file_name,
+                file_name: file_name.unwrap_or(Vec::new()),
            }))
-);
+}
 
 #[derive(Debug,PartialEq)]
 pub struct Trans2RecordParamSetFileInfoDisposition<> {
