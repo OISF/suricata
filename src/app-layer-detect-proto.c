@@ -1215,18 +1215,19 @@ static int AppLayerProtoDetectPMMapSignatures(AppLayerProtoDetectPMCtx *ctx)
     for (s = ctx->head; s != NULL; ) {
         next_s = s->next;
         s->id = id++;
-        SCLogDebug("s->id %u", s->id);
+        SCLogDebug("s->id %u offset %u depth %u",
+                s->id, s->cd->offset, s->cd->depth);
 
         if (s->cd->flags & DETECT_CONTENT_NOCASE) {
             mpm_ret = MpmAddPatternCI(&ctx->mpm_ctx,
-                                      s->cd->content, s->cd->content_len,
-                                      0, 0, s->cd->id, s->id, 0);
+                    s->cd->content, s->cd->content_len,
+                    s->cd->offset, s->cd->depth, s->cd->id, s->id, 0);
             if (mpm_ret < 0)
                 goto error;
         } else {
             mpm_ret = MpmAddPatternCS(&ctx->mpm_ctx,
-                                      s->cd->content, s->cd->content_len,
-                                      0, 0, s->cd->id, s->id, 0);
+                    s->cd->content, s->cd->content_len,
+                    s->cd->offset, s->cd->depth, s->cd->id, s->id, 0);
             if (mpm_ret < 0)
                 goto error;
         }
