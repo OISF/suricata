@@ -223,14 +223,13 @@ outputs:
             #md5: [body, subject]
 
         #- dnp3
-        @rust_config_comment@- nfs
-        @rust_config_comment@- smb
-        @rust_config_comment@- tftp
-        @rust_config_comment@- ikev2
-        @rust_config_comment@- krb5
+        - nfs
+        - smb
+        - tftp
+        - ikev2
+        - krb5
         - dhcp:
-            # DHCP logging requires Rust.
-            enabled: @rust_config_enabled@
+            enabled: yes
             # When extended mode is on, all DHCP messages are logged
             # with full detail. When extended mode is off (the
             # default), just enough information to map a MAC address
@@ -761,7 +760,7 @@ pcap-file:
 app-layer:
   protocols:
     krb5:
-      enabled: @rust_config_enabled@
+      enabled: yes
     ikev2:
       enabled: yes
     tls:
@@ -826,8 +825,6 @@ app-layer:
       enabled: detection-only
     msn:
       enabled: detection-only
-    # Note: --enable-rust is required for full SMB1/2 support. W/o rust
-    # only minimal SMB1 support is available.
     smb:
       enabled: yes
       detection-ports:
@@ -836,12 +833,10 @@ app-layer:
       # Stream reassembly size for SMB streams. By default track it completely.
       #stream-depth: 0
 
-    # Note: NFS parser depends on Rust support: pass --enable-rust
-    # to configure.
     nfs:
-      enabled: @rust_config_enabled@
+      enabled: yes
     tftp:
-      enabled: @rust_config_enabled@
+      enabled: yes
     dns:
       # memcaps. Globally and per flow/state.
       #global-memcap: 16mb
@@ -1012,12 +1007,11 @@ app-layer:
         dp: 44818
         sp: 44818
 
-    # Note: parser depends on Rust support
     ntp:
-      enabled: @rust_config_enabled@
+      enabled: yes
 
     dhcp:
-      enabled: @rust_config_enabled@
+      enabled: yes
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
