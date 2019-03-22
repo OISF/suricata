@@ -2345,120 +2345,73 @@ fi
     fi
     AM_CONDITIONAL([HAVE_PDFLATEX], [test "x$enable_pdflatex" != "xno"])
 
-# Cargo/Rust.
-    AC_ARG_ENABLE([rust], AS_HELP_STRING([--enable-rust], [Enable Rust support]),
-            [enable_rust="$enableval"], [enable_rust="yes (default)"])
+# Cargo/Rust
+    AC_PATH_PROG(RUSTC, rustc, "no")
+    if test "RUSTC" = "no"; then
+        echo ""
+        echo "    ERROR: Suricata now requires Rust to build."
+        echo ""
+        echo "    Ubuntu/Debian: apt install rustc cargo"
+        echo "    Fedora: dnf install rustc cargo"
+        echo "    CentOS: yum install rustc cargo (requires EPEL)"
+        echo ""
+        echo "    Rustup works as well: https://rustup.rs/"
+        echo ""
+        exit 1
+    fi
 
-    rust_config_enabled="no"        # used in suricata.yaml.in to enable/disable app-layers
-    rust_config_comment="#"         # used in suricata.yaml.in to enable/disable eve loggers
+    AC_PATH_PROG(CARGO, cargo, "no")
+    if test "CARGO" = "no"; then
+        AC_MSG_ERROR([cargo required])
+    fi
+
+    AC_DEFINE([HAVE_RUST],[1],[Enable Rust language])
+    AM_CONDITIONAL([HAVE_RUST],true)
+    AC_SUBST([CARGO], [$CARGO])
+
+    enable_rust="yes"
+    rust_compiler_version=$($RUSTC --version)
+    rust_cargo_version=$($CARGO --version)
+
     rust_vendor_comment="# "
     have_rust_vendor="no"
     rust_compiler_version="not set"
     rust_cargo_version="not set"
 
-
-    if test "x$enable_rust" != "xyes" && test "x$enable_rust" != "xyes (default)"; then
-      enable_rust="no"
-    elif test "x$enable_python" != "xyes" && test ! -f rust/gen/c-headers/rust-core-gen.h; then
-      if test "x$enable_rust" = "xyes"; then
+    # We may require Python if the Rust header stubs are not already
+    # generated.
+    if test "x$enable_python" != "xyes" && test ! -f rust/gen/c-headers/rust-core-gen.h; then
         echo ""
         echo "   ERROR! Rust support requires Python."
         echo
         echo "   Ubuntu: apt install python"
         echo
         exit 1
-      fi
-      enable_rust="no"
-    else
-      # Rust require jansson (json support).
-      if test "x$enable_jansson" = "xno"; then
-        echo ""
-        echo "   ERROR! Rust support requires libjansson."
-        echo
-        echo "   Ubuntu: apt-get install libjansson-dev"
-        echo "   Fedora: dnf install jansson-devel"
-        echo "   CentOS/RHEL: yum install jansson-devel"
-        echo
-        if test "x$enable_rust" = "xyes"; then
-            exit 1
-        fi
-        echo "   Rust support will be disabled."
-        enable_rust="no"
-      fi
-
-      AC_PATH_PROG(HAVE_CARGO, cargo, "no")
-      AC_PATH_PROG(HAVE_RUSTC, rustc, "no")
-
-      # Deal with the case where Rust was requested but rustc or cargo
-      # cannot be found.
-      if test "x$HAVE_CARGO" = "xno"; then
-        echo ""
-        echo "   ERROR! Rust support requested but cargo not found."
-        echo
-        echo "   Ubuntu: apt-get install cargo"
-        echo "   Fedora: dnf install cargo"
-        echo "   CentOS/RHEL: yum install cargo"
-        echo
-        if test "x$enable_rust" = "xyes"; then
-            exit 1
-        fi
-        echo "   Rust support will be disabled."
-        enable_rust="no"
-      fi
-      if test "x$HAVE_RUST" = "xno"; then
-        echo ""
-        echo "   ERROR! Rust support requested but rustc not found."
-        echo
-        echo "   Ubuntu: apt-get install rustc"
-        echo "   Debian <= 9: use rustup to install"
-        echo "   Debian 10: apt-get install rustc"
-        echo "   Fedora: dnf install rust"
-        echo "   CentOS/RHEL: yum install rust"
-        echo
-        if test "x$enable_rust" = "xyes"; then
-            exit 1
-        fi
-        echo "   Rust support will be disabled."
-        enable_rust="no"
-      fi
-
-      if test "x$enable_rust" != "xno"; then
-        if test "x$HAVE_CARGO" != "xno"; then
-          if test "x$HAVE_RUSTC" != "xno"; then
-            AC_DEFINE([HAVE_RUST],[1],[Enable Rust language])
-            if test "x$enable_debug" = "xyes"; then
-              RUST_SURICATA_LIB="../rust/target/debug/${RUST_SURICATA_LIBNAME}"
-            else
-              RUST_SURICATA_LIB="../rust/target/release/${RUST_SURICATA_LIBNAME}"
-            fi
-            RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
-            CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
-            AC_SUBST(RUST_SURICATA_LIB)
-            AC_SUBST(RUST_LDADD)
-            AC_SUBST([CARGO], [$HAVE_CARGO])
-            if test "x$CARGO_HOME" = "x"; then
-              AC_SUBST([CARGO_HOME], [~/.cargo])
-            else
-	          AC_SUBST([CARGO_HOME], [$CARGO_HOME])
-            fi
-            AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
-            if test "x$have_rust_vendor" = "xyes"; then
-	          rust_vendor_comment=""
-            fi
-
-            rust_config_enabled="yes"
-            rust_config_comment=""
-            rust_compiler_version=$(rustc --version)
-            rust_cargo_version=$(cargo --version)
-          fi
-        fi
-      fi
     fi
 
-    AM_CONDITIONAL([HAVE_RUST], [test "x$enable_rust" = "xyes" || test "x$enable_rust" = "xyes (default)"])
+    if test "x$enable_debug" = "xyes"; then
+      RUST_SURICATA_LIB="../rust/target/debug/${RUST_SURICATA_LIBNAME}"
+    else
+      RUST_SURICATA_LIB="../rust/target/release/${RUST_SURICATA_LIBNAME}"
+    fi
+    RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
+    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
+    AC_SUBST(RUST_SURICATA_LIB)
+    AC_SUBST(RUST_LDADD)
+    if test "x$CARGO_HOME" = "x"; then
+      AC_SUBST([CARGO_HOME], [~/.cargo])
+    else
+      AC_SUBST([CARGO_HOME], [$CARGO_HOME])
+    fi
+    AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
+    if test "x$have_rust_vendor" = "xyes"; then
+      rust_vendor_comment=""
+    fi
+
+    rust_compiler_version=$(rustc --version)
+    rust_cargo_version=$(cargo --version)
+
     AC_SUBST(rust_vendor_comment)
-    AC_SUBST(rust_config_enabled)
-    AC_SUBST(rust_config_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
 
     if test "x$enable_rust" = "xyes" || test "x$enable_rust" = "xyes (default)"; then
