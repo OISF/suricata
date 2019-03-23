@@ -531,6 +531,8 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
                     f->sp, f->dp);
         if (flow_key->sp == f->sp) {
             if (pkts_cnt != f->todstpktcnt) {
+                flowstats->packets += pkts_cnt - f->todstpktcnt;
+                flowstats->bytes += bytes_cnt - f->todstbytecnt;
                 f->todstpktcnt = pkts_cnt;
                 f->todstbytecnt = bytes_cnt;
                 /* interval based so no meaning to update the millisecond.
@@ -539,6 +541,8 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
             }
         } else {
             if (pkts_cnt != f->tosrcpktcnt) {
+                flowstats->packets += pkts_cnt - f->tosrcpktcnt;
+                flowstats->bytes += bytes_cnt - f->tosrcbytecnt;
                 f->tosrcpktcnt = pkts_cnt;
                 f->tosrcbytecnt = bytes_cnt;
                 f->lastts.tv_sec = ctime->tv_sec;
@@ -548,12 +552,12 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
         return 0;
     } else {
         /* Flow has disappeared so it has been removed due to timeout.
-         * We discard the flow and do accounting */
+         * This means we did not see any packet since bypassed_timeout/flow_dump_interval
+         * checks so we are highly probably have no packet to account.
+         * So we just discard the flow */
         SCLogDebug("No flow for %d -> %d", flow_key->sp, flow_key->dp);
         SCLogDebug("Dead with pkts %lu bytes %lu", pkts_cnt, bytes_cnt);
         flowstats->count++;
-        flowstats->packets += pkts_cnt;
-        flowstats->bytes += bytes_cnt;
         return pkts_cnt;
     }
 }
@@ -591,7 +595,6 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         uint64_t bytes_cnt = 0;
         hash_cnt++;
         if (pkts_cnt > 0) {
-            SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
             EBPFDeleteKey(mapfd, &key);
         }
         pkts_cnt = 0;
@@ -647,10 +650,10 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         key = next_key;
     }
     if (pkts_cnt > 0) {
-        SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
         EBPFDeleteKey(mapfd, &key);
         found = 1;
     }
+    SC_ATOMIC_ADD(dev->bypassed, flowstats->packets);
 
     struct bpf_maps_info *bpfdata = LiveDevGetStorageById(dev, g_livedev_storage_id);
     if (bpfdata) {
@@ -689,7 +692,6 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
         uint64_t bytes_cnt = 0;
         hash_cnt++;
         if (pkts_cnt > 0) {
-            SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
             EBPFDeleteKey(mapfd, &key);
         }
         pkts_cnt = 0;
@@ -743,10 +745,10 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
         key = next_key;
     }
     if (pkts_cnt > 0) {
-        SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
         EBPFDeleteKey(mapfd, &key);
         found = 1;
     }
+    SC_ATOMIC_ADD(dev->bypassed, flowstats->packets);
 
     struct bpf_maps_info *bpfdata = LiveDevGetStorageById(dev, g_livedev_storage_id);
     if (bpfdata) {
@@ -793,23 +795,24 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
     BUG_ON(cfg == NULL);
 
     while(LiveDeviceForEach(&ldev, &ndev)) {
+        memset(&local_bypassstats, 0, sizeof(local_bypassstats));
         tcount = EBPFForEachFlowV4Table(ldev, "flow_table_v4",
-                                        &local_bypassstats, curtime,
-                                        cfg, EBPFUpdateFlowForKey);
+                               &local_bypassstats, curtime,
+                               cfg, EBPFUpdateFlowForKey);
+        bypassstats->count = local_bypassstats.count;
+        bypassstats->packets = local_bypassstats.packets ;
+        bypassstats->bytes = local_bypassstats.bytes;
         if (tcount) {
-            bypassstats->count = local_bypassstats.count;
-            bypassstats->packets = local_bypassstats.packets ;
-            bypassstats->bytes = local_bypassstats.bytes;
             ret = 1;
         }
         memset(&local_bypassstats, 0, sizeof(local_bypassstats));
         tcount = EBPFForEachFlowV6Table(ldev, "flow_table_v6",
                                         &local_bypassstats, curtime,
                                         cfg, EBPFUpdateFlowForKey);
+        bypassstats->count += local_bypassstats.count;
+        bypassstats->packets += local_bypassstats.packets ;
+        bypassstats->bytes += local_bypassstats.bytes;
         if (tcount) {
-            bypassstats->count += local_bypassstats.count;
-            bypassstats->packets += local_bypassstats.packets ;
-            bypassstats->bytes += local_bypassstats.bytes;
             ret = 1;
         }
     }
