@@ -417,7 +417,6 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
     void *data_end = (void *)(long)ctx->data_end;
     void *data = (void *)(long)ctx->data;
     struct ethhdr *eth = data;
-    int rc = XDP_PASS;
     __u16 h_proto;
     __u64 nh_off;
     __u16 vlan0 = 0;
@@ -441,7 +440,7 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
 
     nh_off = sizeof(*eth);
     if (data + nh_off > data_end)
-        return rc;
+        return XDP_PASS;
 
     h_proto = eth->h_proto;
 
@@ -451,7 +450,7 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
         vhdr = data + nh_off;
         nh_off += sizeof(struct vlan_hdr);
         if (data + nh_off > data_end)
-            return rc;
+            return XDP_PASS;
         h_proto = vhdr->h_vlan_encapsulated_proto;
         vlan0 = vhdr->h_vlan_TCI & 0x0fff;
     }
@@ -461,7 +460,7 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
         vhdr = data + nh_off;
         nh_off += sizeof(struct vlan_hdr);
         if (data + nh_off > data_end)
-            return rc;
+            return XDP_PASS;
         h_proto = vhdr->h_vlan_encapsulated_proto;
         vlan1 = vhdr->h_vlan_TCI & 0x0fff;
     }
@@ -470,10 +469,8 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
         return filter_ipv4(ctx, data, nh_off, data_end, vlan0, vlan1);
     else if (h_proto == __constant_htons(ETH_P_IPV6))
         return filter_ipv6(ctx, data, nh_off, data_end, vlan0, vlan1);
-    else
-        rc = XDP_PASS;
 
-    return rc;
+    return XDP_PASS;
 }
 
 char __license[] SEC("license") = "GPL";
