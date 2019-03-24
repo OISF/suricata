@@ -34,6 +34,10 @@
         (f)->tosrcpktcnt = 0; \
         (f)->todstbytecnt = 0; \
         (f)->tosrcbytecnt = 0; \
+        (f)->todstbypasspktcnt = 0; \
+        (f)->tosrcbypasspktcnt = 0; \
+        (f)->todstbypassbytecnt = 0; \
+        (f)->tosrcbypassbytecnt = 0; \
     } while (0)
 
 #define FLOW_INITIALIZE(f) do { \

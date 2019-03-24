@@ -461,6 +461,10 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
+    uint32_t todstbypasspktcnt;
+    uint32_t tosrcbypasspktcnt;
+    uint64_t todstbypassbytecnt;
+    uint64_t tosrcbypassbytecnt;
 } Flow;
 
 enum FlowState {
