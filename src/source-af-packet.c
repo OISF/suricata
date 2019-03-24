@@ -2307,13 +2307,8 @@ static int AFPInsertHalfFlow(int mapd, void *key, uint32_t hash,
     }
 
     /* We use a per CPU structure so we have to set an array of values as the kernel
-     * is not duplicating the data on each CPU by itself. We set the first entry to
-     * the actual flow pkts and bytes count as we need to continue from actual point
-     * to detect an absence of packets in the future. */
-    BPF_PERCPU(value,0).packets = pkts_cnt;
-    BPF_PERCPU(value,0).bytes = bytes_cnt;
-    BPF_PERCPU(value,0).hash = hash;
-    for (i = 1; i < nr_cpus; i++) {
+     * is not duplicating the data on each CPU by itself. */
+    for (i = 0; i < nr_cpus; i++) {
         BPF_PERCPU(value, i).packets = 0;
         BPF_PERCPU(value, i).bytes = 0;
         BPF_PERCPU(value, i).hash = hash;

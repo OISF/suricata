@@ -66,6 +66,7 @@
 #include "util-hash-string.h"
 #include "output.h"
 #include "output-flow.h"
+#include "flow-storage.h"
 
 extern bool stats_decoder_events;
 const char *stats_decoder_events_prefix;
@@ -407,6 +408,12 @@ void PacketBypassCallback(Packet *p)
         return;
     }
 
+    FlowCounters *fc = SCCalloc(sizeof(FlowCounters), 1);
+    if (fc) {
+        FlowSetStorageById(p->flow, GetFlowBypassCounterID(), fc);
+    } else {
+        return;
+    }
     if (p->BypassPacketsFlow && p->BypassPacketsFlow(p)) {
         FlowUpdateState(p->flow, FLOW_STATE_CAPTURE_BYPASSED);
     } else {
