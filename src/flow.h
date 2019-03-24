@@ -482,6 +482,13 @@ typedef struct FlowProtoFreeFunc_ {
     void (*Freefunc)(void *);
 } FlowProtoFreeFunc;
 
+typedef struct FlowCounters_ {
+    uint64_t tosrcpktcnt;
+    uint64_t tosrcbytecnt;
+    uint64_t todstpktcnt;
+    uint64_t todstbytecnt;
+} FlowCounters;
+
 /** \brief prepare packet for a life with flow
  *  Set PKT_WANTS_FLOW flag to incidate workers should do a flow lookup
  *  and calc the hash value to be used in the lookup and autofp flow
@@ -521,6 +528,9 @@ void FlowUpdateState(Flow *f, enum FlowState s);
 int FlowSetMemcap(uint64_t size);
 uint64_t FlowGetMemcap(void);
 uint64_t FlowGetMemuse(void);
+
+int GetFlowBypassCounterID(void);
+void RegisterFlowBypassCounter(void);
 
 /** ----- Inline functions ----- */
 
