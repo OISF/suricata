@@ -200,7 +200,7 @@ SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 volatile uint8_t suricata_ctl_flags = 0;
 
 /** Run mode selected */
-Runmodes run_modes = { {RUNMODE_UNKNOWN, RUNMODE_UNKNOWN}, 0, 0};
+Runmodes run_modes = { {RUNMODE_UNKNOWN, RUNMODE_UNKNOWN}, {"", ""}, 0, 0};
 
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
@@ -352,6 +352,23 @@ static void RunmodesDispatch(Runmodes *runmodes, const char *custom_mode)
             RunModeDispatch(runmode, custom_mode);
         }
     }
+}
+
+static void RunmodesSetInterface(Runmodes *runmodes, char *pcap_dev)
+{
+    if (runmodes->idx < RUNMODES_MAX) {
+        memset(runmodes->pcap_dev[runmodes->idx], 0, sizeof(runmodes->pcap_dev[runmodes->idx]));
+        strlcpy(runmodes->pcap_dev[runmodes->idx], pcap_dev, sizeof(runmodes->pcap_dev[runmodes->idx]));
+    }
+}
+
+static char* RunmodesGetInterface(Runmodes *runmodes, enum RunModes runmode) {
+    for (int i = 0; i < RunmodesCount(runmodes); i++) {
+        if (runmodes->run_mode[i] == runmode) {
+            return runmodes->pcap_dev[i];
+        }
+    }
+    return NULL;
 }
 
 /** signal handlers
@@ -1024,13 +1041,14 @@ static TmEcode LoadYamlConfig(SCInstance *suri)
     SCReturnInt(TM_ECODE_OK);
 }
 
-static TmEcode ParseInterfacesList(Runmodes *run_modes, char *pcap_dev)
+static TmEcode ParseInterfacesList(Runmodes *runmodes)
 {
     SCEnter();
 
     /* run the selected runmode */
-    if (RunmodeIsSet(run_modes, RUNMODE_PCAP_DEV)) {
-        if (strlen(pcap_dev) == 0) {
+    if (RunmodeIsSet(runmodes, RUNMODE_PCAP_DEV)) {
+        const char *dev = RunmodesGetInterface(runmodes, RUNMODE_PCAP_DEV);
+        if (dev == NULL || strlen(dev) == 0) {
             int ret = LiveBuildDeviceList("pcap", RUNMODE_PCAP_DEV);
             if (ret == 0) {
                 SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for pcap");
@@ -1038,11 +1056,12 @@ static TmEcode ParseInterfacesList(Runmodes *run_modes, char *pcap_dev)
             }
         }
     }
-    if (RunmodeIsSet(run_modes, RUNMODE_PFRING)) {
+    if (RunmodeIsSet(runmodes, RUNMODE_PFRING)) {
         /* FIXME add backward compat support */
         /* iface has been set on command line */
-        if (strlen(pcap_dev)) {
-            if (ConfSetFinal("pfring.live-interface", pcap_dev) != 1) {
+        const char *dev = RunmodesGetInterface(runmodes, RUNMODE_PFRING);
+        if (dev && strlen(dev)) {
+            if (ConfSetFinal("pfring.live-interface", dev) != 1) {
                 SCLogError(SC_ERR_INITIALIZATION, "Failed to set pfring.live-interface");
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -1052,10 +1071,11 @@ static TmEcode ParseInterfacesList(Runmodes *run_modes, char *pcap_dev)
         }
     }
 #ifdef HAVE_AF_PACKET
-    if (RunmodeIsSet(run_modes, RUNMODE_AFP_DEV)) {
+    if (RunmodeIsSet(runmodes, RUNMODE_AFP_DEV)) {
         /* iface has been set on command line */
-        if (strlen(pcap_dev)) {
-            if (ConfSetFinal("af-packet.live-interface", pcap_dev) != 1) {
+        const char *dev = RunmodesGetInterface(runmodes, RUNMODE_AFP_DEV);
+        if (dev && strlen(dev)) {
+            if (ConfSetFinal("af-packet.live-interface", dev) != 1) {
                 SCLogError(SC_ERR_INITIALIZATION, "Failed to set af-packet.live-interface");
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -1069,10 +1089,11 @@ static TmEcode ParseInterfacesList(Runmodes *run_modes, char *pcap_dev)
     }
 #endif
 #ifdef HAVE_NETMAP
-    if (RunmodeIsSet(run_modes, RUNMODE_NETMAP)) {
+    if (RunmodeIsSet(runmodes, RUNMODE_NETMAP)) {
         /* iface has been set on command line */
-        if (strlen(pcap_dev)) {
-            if (ConfSetFinal("netmap.live-interface", pcap_dev) != 1) {
+        const char *dev = RunmodesGetInterface(runmodes, RUNMODE_NETMAP);
+        if (dev && strlen(dev)) {
+            if (ConfSetFinal("netmap.live-interface", dev) != 1) {
                 SCLogError(SC_ERR_INITIALIZATION, "Failed to set netmap.live-interface");
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -1086,7 +1107,7 @@ static TmEcode ParseInterfacesList(Runmodes *run_modes, char *pcap_dev)
     }
 #endif
 #ifdef HAVE_NFLOG
-    if (RunmodeIsSet(run_modes, RUNMODE_NFLOG)) {
+    if (RunmodeIsSet(runmodes, RUNMODE_NFLOG)) {
         int ret = LiveBuildDeviceListCustom("nflog", "group", RUNMODE_NFLOG);
         if (ret == 0) {
             SCLogError(SC_ERR_INITIALIZATION, "No group found in config for nflog");
@@ -1106,6 +1127,8 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
     suri->run_modes.run_mode[1] = RUNMODE_UNKNOWN;
     suri->run_modes.cnt = 0;
     suri->run_modes.idx = 0;
+    memset(suri->run_modes.pcap_dev[0], 0, sizeof(suri->run_modes.pcap_dev[0]));
+    memset(suri->run_modes.pcap_dev[1], 0, sizeof(suri->run_modes.pcap_dev[1]));
 
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
     suri->sig_file = NULL;
@@ -1184,12 +1207,13 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
     Runmodes *runmodes = &suri->run_modes;
     if (RunmodesAreUnknown(runmodes)) {
         if (!RunmodeIsSet(runmodes, RUNMODE_AFP_DEV)) {
-            RunmodesSet(runmodes, RUNMODE_AFP_DEV);
             if (in_arg) {
                 LiveRegisterDeviceName(in_arg, RUNMODE_AFP_DEV);
                 memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                 strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
+                RunmodesSetInterface(runmodes, suri->pcap_dev);
             }
+            RunmodesSet(runmodes, RUNMODE_AFP_DEV);
         } else {
             if (in_arg) {
                 LiveRegisterDeviceName(in_arg, RUNMODE_AFP_DEV);
@@ -1239,6 +1263,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
         RunmodesSet(runmodes, RUNMODE_PCAP_DEV);
         if (in_arg) {
             LiveRegisterDeviceName(suri->pcap_dev, RUNMODE_PCAP_DEV);
+            RunmodesSetInterface(runmodes, suri->pcap_dev);
         }
     } else if (RunmodeIsSet(runmodes, RUNMODE_PCAP_DEV)) {
         LiveRegisterDeviceName(suri->pcap_dev, RUNMODE_PCAP_DEV);
@@ -1630,14 +1655,15 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             if (strcmp((long_opts[option_index]).name , "pfring") == 0 ||
                 strcmp((long_opts[option_index]).name , "pfring-int") == 0) {
 #ifdef HAVE_PFRING
-                RunmodesSet(run_modes, RUNMODE_PFRING);
                 if (optarg != NULL) {
                     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                     strlcpy(suri->pcap_dev, optarg,
                             ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                              (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
                     LiveRegisterDeviceName(optarg, RUNMODE_PFRING);
+                    RunmodesSetInterface(runmodes, suri->pcap_dev);
                 }
+                RunmodesSet(runmodes, RUNMODE_PFRING);
 #else
                 SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
                         "to pass --enable-pfring to configure when building.");
@@ -1676,14 +1702,15 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else if (strcmp((long_opts[option_index]).name , "netmap") == 0){
 #ifdef HAVE_NETMAP
                 if (RunmodesAreUnknown(runmodes) && !RunmodeIsSet(runmodes, RUNMODE_NETMAP)) {
-                    RunmodesSet(runmodes, RUNMODE_NETMAP);
                     if (optarg) {
                         LiveRegisterDeviceName(optarg, RUNMODE_NETMAP);
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                         strlcpy(suri->pcap_dev, optarg,
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                                  (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
+                        RunmodesSetInterface(runmodes, suri->pcap_dev);
                     }
+                    RunmodesSet(runmodes, RUNMODE_NETMAP);
                 } else if (RunmodeIsSet(runmodes, RUNMODE_NETMAP)) {
                     if (optarg) {
                         LiveRegisterDeviceName(optarg, RUNMODE_NETMAP);
@@ -3061,7 +3088,7 @@ int main(int argc, char **argv)
     LogVersion();
     UtilCpuPrintSummary();
 
-    if (ParseInterfacesList(&suricata.aux_run_modes, suricata.pcap_dev) != TM_ECODE_OK) {
+    if (ParseInterfacesList(&suricata.aux_run_modes) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 

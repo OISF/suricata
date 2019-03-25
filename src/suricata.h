@@ -129,6 +129,7 @@ enum {
 
 typedef struct Runmodes_ {
     enum RunModes run_mode[RUNMODES_MAX];
+    char pcap_dev[2][128];
     int cnt;
     int idx;
 } Runmodes;
