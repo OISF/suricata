@@ -520,7 +520,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                         SCReturnInt(-1);
                     } else {
                         SCLogDebug("Expectation created [direction: %s, dynamic port %"PRIu16"].",
-                            direction == STREAM_TOCLIENT ? "to client" : "to server",
+                            state->active ? "to server" : "to client",
                             state->dyn_port);
                     }
 
