@@ -121,7 +121,7 @@ named!(pub parse_header<DHCPHeader>,
 named!(pub parse_clientid_option<DHCPOption>,
        do_parse!(
            code:   be_u8 >>
-           len:    be_u8 >>
+           len: verify!(be_u8, |v| v > 1) >>
            _htype: be_u8 >>
            data:   take!(len - 1) >>
                (
@@ -277,4 +277,41 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_parse_client_id_too_short() {
+        // Length field of 0.
+        let buf: &[u8] = &[
+            0x01,
+            0x00, // Length of 0.
+            0x01,
+            0x01, // Junk data start here.
+            0x02,
+            0x03,
+        ];
+        let r = parse_clientid_option(buf);
+        assert!(r.is_err());
+
+        // Length field of 1.
+        let buf: &[u8] = &[
+            0x01,
+            0x01, // Length of 1.
+            0x01,
+            0x41,
+        ];
+        let r = parse_clientid_option(buf);
+        assert!(r.is_err());
+
+        // Length field of 2 -- OK.
+        let buf: &[u8] = &[
+            0x01,
+            0x02, // Length of 2.
+            0x01,
+            0x41,
+        ];
+        let r = parse_clientid_option(buf);
+        match r {
+            Ok((rem, _)) => { assert_eq!(rem.len(), 0); },
+            _ => { panic!("failed"); }
+        }
+    }
 }
