@@ -299,7 +299,7 @@ typedef struct IPV4Options_ {
 /**
  * Decode/Validate IPv4 Options.
  */
-static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options *opts)
+static void DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options *opts)
 {
     uint16_t plen = len;
 
@@ -353,7 +353,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
             /* Option length is too big for packet */
             if (unlikely(*(pkt+1) > plen)) {
                 ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_INVALID_LEN);
-                return -1;
+                return;
             }
 
             IPV4Opt opt = {*pkt, *(pkt+1), plen > 2 ? (pkt + 2) : NULL };
@@ -363,7 +363,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
              * Also check for invalid lengths 0 and 1. */
             if (unlikely(opt.len > plen || opt.len < 2)) {
                 ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_INVALID_LEN);
-                return -1;
+                return;
             }
             /* we are parsing the most commonly used opts to prevent
              * us from having to walk the opts list for these all the
@@ -376,7 +376,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateTimestamp(p, &opt)) {
-                        return -1;
+                        return;
                     }
                     opts->o_ts = opt;
                     p->ip4vars.opts_set |= IPV4_OPT_FLAG_TS;
@@ -387,7 +387,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateRoute(p, &opt) != 0) {
-                        return -1;
+                        return;
                     }
                     opts->o_rr = opt;
                     p->ip4vars.opts_set |= IPV4_OPT_FLAG_RR;
@@ -398,7 +398,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateGeneric(p, &opt)) {
-                        return -1;
+                        return;
                     }
                     opts->o_qs = opt;
                     p->ip4vars.opts_set |= IPV4_OPT_FLAG_QS;
@@ -409,7 +409,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateGeneric(p, &opt)) {
-                        return -1;
+                        return;
                     }
                     opts->o_sec = opt;
                     p->ip4vars.opts_set |= IPV4_OPT_FLAG_SEC;
@@ -420,7 +420,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateRoute(p, &opt) != 0) {
-                        return -1;
+                        return;
                     }
                     opts->o_lsrr = opt;
                     p->ip4vars.opts_set |= IPV4_OPT_FLAG_LSRR;
@@ -431,7 +431,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateCIPSO(p, &opt) != 0) {
-                        return -1;
+                        return;
                     }
                     opts->o_cipso = opt;
                     p->ip4vars.opts_set |= IPV4_OPT_FLAG_CIPSO;
@@ -442,7 +442,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateGeneric(p, &opt)) {
-                        return -1;
+                        return;
                     }
                     opts->o_sid = opt;
                     p->ip4vars.opts_set |= IPV4_OPT_FLAG_SID;
@@ -453,7 +453,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateRoute(p, &opt) != 0) {
-                        return -1;
+                        return;
                     }
                     opts->o_ssrr = opt;
                     p->ip4vars.opts_set |= IPV4_OPT_FLAG_SSRR;
@@ -464,7 +464,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateGeneric(p, &opt)) {
-                        return -1;
+                        return;
                     }
                     opts->o_rtralt = opt;
                     p->ip4vars.opts_set |= IPV4_OPT_FLAG_RTRALT;
@@ -482,7 +482,6 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
         }
     }
 
-    return 0;
 }
 
 static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
@@ -632,8 +631,8 @@ static int DecodeIPV4OptionsNONETest01(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
 
     SCFree(p);
     PASS;
@@ -649,8 +648,8 @@ static int DecodeIPV4OptionsEOLTest01(void)
     FAIL_IF(unlikely(p == NULL));
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF (rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     SCFree(p);
     PASS;
 }
@@ -665,8 +664,8 @@ static int DecodeIPV4OptionsNOPTest01(void)
     FAIL_IF(unlikely(p == NULL));
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF (rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     SCFree(p);
     PASS;
 }
@@ -686,8 +685,8 @@ static int DecodeIPV4OptionsRRTest01(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     FAIL_IF(opts.o_rr.type != IPV4_OPT_RR);
     SCFree(p);
     PASS;
@@ -708,8 +707,8 @@ static int DecodeIPV4OptionsRRTest02(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_rr.type != 0);
     SCFree(p);
     PASS;
@@ -730,8 +729,8 @@ static int DecodeIPV4OptionsRRTest03(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_rr.type != 0);
     SCFree(p);
     PASS;
@@ -752,8 +751,8 @@ static int DecodeIPV4OptionsRRTest04(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_rr.type != 0);
     SCFree(p);
     PASS;
@@ -770,8 +769,8 @@ static int DecodeIPV4OptionsQSTest01(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     FAIL_IF(opts.o_qs.type != IPV4_OPT_QS);
     SCFree(p);
     PASS;
@@ -788,8 +787,8 @@ static int DecodeIPV4OptionsQSTest02(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_qs.type != 0);
     SCFree(p);
     PASS;
@@ -810,8 +809,8 @@ static int DecodeIPV4OptionsTSTest01(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     FAIL_IF(opts.o_ts.type != IPV4_OPT_TS);
     SCFree(p);
     PASS;
@@ -832,8 +831,8 @@ static int DecodeIPV4OptionsTSTest02(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_ts.type != 0);
     SCFree(p);
     PASS;
@@ -854,8 +853,8 @@ static int DecodeIPV4OptionsTSTest03(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_ts.type != 0);
     SCFree(p);
     PASS;
@@ -876,8 +875,8 @@ static int DecodeIPV4OptionsTSTest04(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_ts.type != 0);
     SCFree(p);
     PASS;
@@ -895,8 +894,8 @@ static int DecodeIPV4OptionsSECTest01(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     FAIL_IF(opts.o_sec.type != IPV4_OPT_SEC);
     SCFree(p);
     PASS;
@@ -914,8 +913,8 @@ static int DecodeIPV4OptionsSECTest02(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_sec.type != 0);
     SCFree(p);
     PASS;
@@ -936,8 +935,8 @@ static int DecodeIPV4OptionsLSRRTest01(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     FAIL_IF(opts.o_lsrr.type != IPV4_OPT_LSRR);
     SCFree(p);
     PASS;
@@ -958,8 +957,8 @@ static int DecodeIPV4OptionsLSRRTest02(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_lsrr.type != 0);
     SCFree(p);
     PASS;
@@ -980,8 +979,8 @@ static int DecodeIPV4OptionsLSRRTest03(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_lsrr.type != 0);
     SCFree(p);
     PASS;
@@ -1002,8 +1001,8 @@ static int DecodeIPV4OptionsLSRRTest04(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_lsrr.type != 0);
     SCFree(p);
     PASS;
@@ -1022,8 +1021,8 @@ static int DecodeIPV4OptionsCIPSOTest01(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     FAIL_IF(opts.o_cipso.type != IPV4_OPT_CIPSO);
     SCFree(p);
     PASS;
@@ -1040,8 +1039,8 @@ static int DecodeIPV4OptionsSIDTest01(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     FAIL_IF(opts.o_sid.type != IPV4_OPT_SID);
     SCFree(p);
     PASS;
@@ -1058,8 +1057,8 @@ static int DecodeIPV4OptionsSIDTest02(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_sid.type != 0);
     SCFree(p);
     PASS;
@@ -1080,8 +1079,8 @@ static int DecodeIPV4OptionsSSRRTest01(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     FAIL_IF(opts.o_ssrr.type != IPV4_OPT_SSRR);
     SCFree(p);
     PASS;
@@ -1102,8 +1101,8 @@ static int DecodeIPV4OptionsSSRRTest02(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_ssrr.type != 0);
     SCFree(p);
     PASS;
@@ -1124,8 +1123,8 @@ static int DecodeIPV4OptionsSSRRTest03(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_ssrr.type != 0);
     SCFree(p);
     PASS;
@@ -1146,8 +1145,8 @@ static int DecodeIPV4OptionsSSRRTest04(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_ssrr.type != 0);
     SCFree(p);
     PASS;
@@ -1164,8 +1163,8 @@ static int DecodeIPV4OptionsRTRALTTest01(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc != 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(p->flags & PKT_IS_INVALID);
     FAIL_IF(opts.o_rtralt.type != IPV4_OPT_RTRALT);
     SCFree(p);
     PASS;
@@ -1182,8 +1181,8 @@ static int DecodeIPV4OptionsRTRALTTest02(void)
 
     IPV4Options opts;
     memset(&opts, 0x00, sizeof(opts));
-    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
-    FAIL_IF(rc == 0);
+    DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF((p->flags & PKT_IS_INVALID) == 0);
     FAIL_IF(opts.o_rtralt.type != 0);
     SCFree(p);
     PASS;
