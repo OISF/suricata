@@ -811,7 +811,7 @@ static int SigParseProto(Signature *s, const char *protostr)
         else {
             SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
                        "in a signature.  Either detection for this protocol "
-                       "supported yet OR detection has been disabled for "
+                       "is not yet supported OR detection has been disabled for "
                        "protocol through the yaml option "
                        "app-layer.protocols.%s.detection-enabled", protostr,
                        protostr);
