@@ -47,7 +47,7 @@
     (dst).len  = (src).len; \
     (dst).data = (src).data
 
-static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t pktlen)
+static void DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t pktlen)
 {
     uint8_t tcp_opt_cnt = 0;
     TCPOpt tcp_opts[TCP_OPTMAX];
@@ -77,7 +77,7 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t pktlen)
              * Also check for invalid lengths 0 and 1. */
             if (unlikely(olen > plen || olen < 2)) {
                 ENGINE_SET_INVALID_EVENT(p, TCP_OPT_INVALID_LEN);
-                return -1;
+                return;
             }
 
             tcp_opts[tcp_opt_cnt].type = type;
@@ -158,7 +158,6 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t pktlen)
             tcp_opt_cnt++;
         }
     }
-    return 0;
 }
 
 static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
