@@ -99,6 +99,39 @@ static uint16_t RustSMBTCPProbe(Flow *f, uint8_t direction,
     }
 }
 
+/** \internal
+ *  \brief as SMB3 records have no direction indicator, fall
+ *         back to the port numbers for a hint
+ */
+static uint16_t RustSMB3TCPProbe(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    SCEnter();
+
+    AppProto p = RustSMBTCPProbe(f, direction, input, len, rdir);
+    if (p != ALPROTO_SMB) {
+        SCReturnUInt(p);
+    }
+
+    uint16_t fsp = (f->flags & FLOW_DIR_REVERSED) ? f->dp : f->sp;
+    uint16_t fdp = (f->flags & FLOW_DIR_REVERSED) ? f->sp : f->dp;
+    SCLogDebug("direction %s flow sp %u dp %u fsp %u fdp %u",
+            (direction & STREAM_TOSERVER) ? "toserver" : "toclient",
+            f->sp, f->dp, fsp, fdp);
+
+    if (fsp == 445 && fdp != 445) {
+        if (direction & STREAM_TOSERVER) {
+            *rdir = STREAM_TOCLIENT;
+        } else {
+            *rdir = STREAM_TOSERVER;
+        }
+    }
+    SCLogDebug("returning ALPROTO_SMB for dir %s with rdir %s",
+            (direction & STREAM_TOSERVER) ? "toserver" : "toclient",
+            (*rdir == STREAM_TOSERVER) ? "toserver" : "toclient");
+    SCReturnUInt(ALPROTO_SMB);
+}
+
 static int RustSMBGetAlstateProgress(void *tx, uint8_t direction)
 {
     return rs_smb_tx_get_alstate_progress(tx, direction);
@@ -201,10 +234,10 @@ static int RustSMBRegisterPatternsForProtocolDetection(void)
 
     /* SMB3 encrypted records */
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|fd|SMB", 8, 4, STREAM_TOSERVER, RustSMBTCPProbe,
+            "|fd|SMB", 8, 4, STREAM_TOSERVER, RustSMB3TCPProbe,
             MIN_REC_SIZE, MIN_REC_SIZE);
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|fd|SMB", 8, 4, STREAM_TOCLIENT, RustSMBTCPProbe,
+            "|fd|SMB", 8, 4, STREAM_TOCLIENT, RustSMB3TCPProbe,
             MIN_REC_SIZE, MIN_REC_SIZE);
     return r == 0 ? 0 : -1;
 }
