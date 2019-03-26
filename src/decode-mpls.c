@@ -58,7 +58,7 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
             ENGINE_SET_INVALID_EVENT(p, MPLS_HEADER_TOO_SMALL);
             return TM_ECODE_FAILED;
         }
-        shim = *(uint32_t *)pkt;
+        memcpy(&shim, pkt, sizeof(shim));
         pkt += MPLS_HEADER_LEN;
         len -= MPLS_HEADER_LEN;
     } while (MPLS_BOTTOM(shim) == 0);
