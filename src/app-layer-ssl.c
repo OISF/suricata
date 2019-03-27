@@ -2628,7 +2628,7 @@ static AppProto SSLProbingParser(Flow *f, uint8_t direction,
         uint8_t *input, uint32_t ilen, uint8_t *rdir)
 {
     /* probably a rst/fin sending an eof */
-    if (ilen == 0)
+    if (ilen < 3)
         return ALPROTO_UNKNOWN;
 
     /* for now just the 3 byte header ones */
