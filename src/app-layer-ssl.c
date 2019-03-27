@@ -2627,7 +2627,7 @@ static void SSLStateTransactionFree(void *state, uint64_t tx_id)
 static uint16_t SSLProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
 {
     /* probably a rst/fin sending an eof */
-    if (ilen == 0)
+    if (ilen < 3)
         return ALPROTO_UNKNOWN;
 
     /* for now just the 3 byte header ones */
