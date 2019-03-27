@@ -33,11 +33,20 @@ all-local:
 if HAVE_PYTHON
 	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
 endif
+if HAVE_CYGPATH
+	rustpath=`cygpath -a -t mixed $(abs_top_builddir)`
+	cd $(top_srcdir)/rust && \
+		CARGO_HOME=$(CARGO_HOME) \
+		CARGO_TARGET_DIR="$$rustpath/rust/target" \
+		$(CARGO) build $(RELEASE) $(FROZEN) \
+			--features "$(RUST_FEATURES)"
+else
 	cd $(top_srcdir)/rust && \
 		CARGO_HOME=$(CARGO_HOME) \
 		CARGO_TARGET_DIR=$(abs_top_builddir)/rust/target \
 		$(CARGO) build $(RELEASE) $(FROZEN) \
 			--features "$(RUST_FEATURES)"
+endif
 
 clean-local:
 	-rm -rf target
