@@ -1973,6 +1973,19 @@
             echo "  ERROR! libntapi library not found"
             echo
             exit 1
+        else
+            AC_CHECK_LIB(numa, numa_available,, LIBNUMA="no")
+            if test "$LIBNUMA" = "no"; then
+                echo
+                echo "  WARNING: libnuma is required to use Napatech auto-config"
+                echo "      libnuma is not found.  Go get it"
+                echo "      from http://github.com/numactl/numactl or your distribution:"
+                echo "          Ubuntu: apt-get install libnuma-dev"
+                echo "          Fedora: dnf install numactl-devel"
+                echo "          CentOS/RHEL: yum install numactl-devel"
+                echo
+                exit 1
+            fi
         fi
 
         AC_DEFINE([HAVE_NAPATECH],[1],(Napatech capture card support))
