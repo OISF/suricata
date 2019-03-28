@@ -2196,45 +2196,33 @@ end:
 static int SigTestPositiveTestContent(const char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, rule);
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF_NULL(det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1) != 1) {
-        goto end;
-    }
 
-    result = 1;
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
+    FAIL_IF(PacketAlertCheck(p, 1) != 1);
 
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /**
@@ -2522,7 +2510,11 @@ end:
  */
 static int SigTest41TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!\"GES\"; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+    return SigTestPositiveTestContent("alert tcp any any -> any any "
+            "(msg:\"HTTP URI cap\"; content:!\"GES\"; sid:1;)",
+
+            (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\n"
+            "GET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
 }
 
 /**
