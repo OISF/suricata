@@ -40,7 +40,6 @@ enum {
 };
 
 /* prototypes */
-int SigParse(DetectEngineCtx *, Signature *, const char *, uint8_t);
 Signature *SigAlloc(void);
 void SigFree(Signature *s);
 Signature *SigInit(DetectEngineCtx *, const char *sigstr);

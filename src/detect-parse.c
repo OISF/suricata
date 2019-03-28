@@ -1127,7 +1127,7 @@ error:
  *  \param -1 parse error
  *  \param 0 ok
  */
-int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr, uint8_t addrs_direction)
+static int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr, uint8_t addrs_direction)
 {
     SCEnter();
 
