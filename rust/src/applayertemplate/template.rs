@@ -16,7 +16,7 @@
  */
 
 use std;
-use core::{self, ALPROTO_UNKNOWN, AppProto, Flow};
+use core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use libc;
 use log::*;
 use std::mem::transmute;
@@ -515,7 +515,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const libc::c_char,
         default_port: default_port.as_ptr(),
-        ipproto: libc::IPPROTO_TCP,
+        ipproto: IPPROTO_TCP,
         probe_ts: rs_template_probing_parser,
         probe_tc: rs_template_probing_parser,
         min_depth: 0,

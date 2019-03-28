@@ -33,7 +33,7 @@ pub struct RustParser {
     /// Default port
     pub default_port:      *const c_char,
 
-    /// IP Protocol (libc::IPPROTO_UDP, libc::IPPROTO_TCP, etc.)
+    /// IP Protocol (core::IPPROTO_UDP, core::IPPROTO_TCP, etc.)
     pub ipproto:           c_int,
 
     /// Probing function, for packets going to server

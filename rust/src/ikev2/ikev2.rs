@@ -666,7 +666,7 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
     let parser = RustParser {
         name              : PARSER_NAME.as_ptr() as *const libc::c_char,
         default_port      : default_port.as_ptr(),
-        ipproto           : libc::IPPROTO_UDP,
+        ipproto           : core::IPPROTO_UDP,
         probe_ts          : rs_ikev2_probing_parser,
         probe_tc          : rs_ikev2_probing_parser,
         min_depth         : 0,

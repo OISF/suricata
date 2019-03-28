@@ -46,6 +46,9 @@ pub type AppProto = libc::c_int;
 pub const ALPROTO_UNKNOWN : AppProto = 0;
 pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
 
+pub const IPPROTO_TCP : i32 = 6;
+pub const IPPROTO_UDP : i32 = 17;
+
 macro_rules!BIT_U64 {
     ($x:expr) => (1 << $x);
 }

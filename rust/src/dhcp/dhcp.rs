@@ -17,7 +17,7 @@
 
 use applayer;
 use core;
-use core::{ALPROTO_UNKNOWN, AppProto, Flow};
+use core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
 use core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
 use dhcp::parser::*;
 use libc;
@@ -400,7 +400,7 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const libc::c_char,
         default_port: ports.as_ptr(),
-        ipproto: libc::IPPROTO_UDP,
+        ipproto: IPPROTO_UDP,
         probe_ts: rs_dhcp_probing_parser,
         probe_tc: rs_dhcp_probing_parser,
         min_depth: 0,
