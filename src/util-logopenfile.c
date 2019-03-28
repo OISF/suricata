@@ -500,7 +500,9 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
         return -1;
     }
 
-    fclose(log_ctx->fp);
+    if (log_ctx->fp != NULL) {
+        fclose(log_ctx->fp);
+    }
 
     /* Reopen the file. Append is forced in case the file was not
      * moved as part of a rotation process. */
