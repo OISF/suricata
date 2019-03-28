@@ -4,9 +4,38 @@ language: c
 
 addons:
   apt:
+    # Define the required packages without nss/nspr so we can do a
+    # build without nss/nspr
+    packages-without-nssnspr: &packages-without-nssnspr
+      - libpcre3
+      - libpcre3-dbg
+      - libpcre3-dev
+      - build-essential
+      - autoconf
+      - automake
+      - libtool
+      - libpcap-dev
+      - libnet1-dev
+      - libyaml-0-2
+      - libyaml-dev
+      - zlib1g
+      - zlib1g-dev
+      - libcap-ng-dev
+      - libcap-ng0
+      - make
+      - libmagic-dev
+      - libnetfilter-queue-dev
+      - libnetfilter-queue1
+      - libnfnetlink-dev
+      - libnfnetlink0
+      - libhiredis-dev
+      - libjansson-dev
+      - libevent-dev
+      - libevent-pthreads-2.0-5
     # Define the required packages without libjansson so we can do a
     # build without libjansson.
     packages-without-jansson: &packages-without-jansson
+      - libnss3-dev
       - libpcre3
       - libpcre3-dbg
       - libpcre3-dev
@@ -37,6 +66,7 @@ addons:
     packages: &packages
       - *packages-without-jansson
       - libjansson-dev
+      - libnss3-dev
 
 cache:
   directories:
@@ -172,6 +202,17 @@ matrix:
         apt:
           packages:
             - *packages-without-jansson
+    # Linux, gcc, no nss/nspr.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,no-nssnspr"
+        - *default-cflags
+        - ARGS="--disable-nss --disable-nspr"
+      addons:
+        apt:
+          packages:
+            - *packages-without-nssnspr
     # OSX 10.13, XCode 8.3
     - os: osx
       compiler: gcc
