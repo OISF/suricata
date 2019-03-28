@@ -1276,6 +1276,21 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
     return list;
 }
 
+void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
+{
+    /* see if the sig is dp only */
+    if (SignatureIsPDOnly(de_ctx, s) == 1) {
+        s->flags |= SIG_FLAG_PDONLY;
+
+    /* see if the sig is ip only */
+    } else if (SignatureIsIPOnly(de_ctx, s) == 1) {
+        s->flags |= SIG_FLAG_IPONLY;
+
+    } else if (SignatureIsDEOnly(de_ctx, s) == 1) {
+        s->init_data->init_flags |= SIG_FLAG_INIT_DEONLY;
+    }
+}
+
 /**
  * \brief Preprocess signature, classify ip-only, etc, build sig array
  *
@@ -1286,7 +1301,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
  */
 int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 {
-    Signature *tmp_s = NULL;
     uint32_t cnt_iponly = 0;
     uint32_t cnt_payload = 0;
     uint32_t cnt_applayer = 0;
@@ -1308,36 +1322,24 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
                de_ctx->sig_array_len, de_ctx->sig_array_size);
 
     /* now for every rule add the source group */
-    for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
-        de_ctx->sig_array[tmp_s->num] = tmp_s;
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        de_ctx->sig_array[s->num] = s;
 
-        SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
+        SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", s->id, s->num, s, de_ctx->sig_array[s->num]);
 
-        /* see if the sig is dp only */
-        if (SignatureIsPDOnly(de_ctx, tmp_s) == 1) {
-            tmp_s->flags |= SIG_FLAG_PDONLY;
-            SCLogDebug("Signature %"PRIu32" is considered \"PD only\"", tmp_s->id);
-
-        /* see if the sig is ip only */
-        } else if (SignatureIsIPOnly(de_ctx, tmp_s) == 1) {
-            tmp_s->flags |= SIG_FLAG_IPONLY;
+        if (s->flags & SIG_FLAG_PDONLY) {
+            SCLogDebug("Signature %"PRIu32" is considered \"PD only\"", s->id);
+        } else if (s->flags & SIG_FLAG_IPONLY) {
+            SCLogDebug("Signature %"PRIu32" is considered \"IP only\"", s->id);
             cnt_iponly++;
-
-            SCLogDebug("Signature %"PRIu32" is considered \"IP only\"", tmp_s->id);
-
-        /* see if any sig is inspecting the packet payload */
-        } else if (SignatureIsInspectingPayload(de_ctx, tmp_s) == 1) {
+        } else if (SignatureIsInspectingPayload(de_ctx, s) == 1) {
+            SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", s->id);
             cnt_payload++;
-
-            SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", tmp_s->id);
-        } else if (SignatureIsDEOnly(de_ctx, tmp_s) == 1) {
-            tmp_s->init_data->init_flags |= SIG_FLAG_INIT_DEONLY;
-            SCLogDebug("Signature %"PRIu32" is considered \"Decoder Event only\"", tmp_s->id);
+        } else if (s->init_data->init_flags & SIG_FLAG_INIT_DEONLY) {
+            SCLogDebug("Signature %"PRIu32" is considered \"Decoder Event only\"", s->id);
             cnt_deonly++;
-        }
-
-        if (tmp_s->flags & SIG_FLAG_APPLAYER) {
-            SCLogDebug("Signature %"PRIu32" is considered \"Applayer inspecting\"", tmp_s->id);
+        } else if (s->flags & SIG_FLAG_APPLAYER) {
+            SCLogDebug("Signature %"PRIu32" is considered \"Applayer inspecting\"", s->id);
             cnt_applayer++;
         }
 
@@ -1347,7 +1349,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             char copresent = 0;
             SigMatch *sm;
             DetectContentData *co;
-            for (sm = tmp_s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+            for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
                 if (sm->type != DETECT_CONTENT)
                     continue;
 
@@ -1358,39 +1360,39 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             }
 
             if (copresent && colen == 1) {
-                SCLogDebug("signature %8u content maxlen 1", tmp_s->id);
+                SCLogDebug("signature %8u content maxlen 1", s->id);
                 int proto;
                 for (proto = 0; proto < 256; proto++) {
-                    if (tmp_s->proto.proto[(proto/8)] & (1<<(proto%8)))
+                    if (s->proto.proto[(proto/8)] & (1<<(proto%8)))
                         SCLogDebug("=> proto %" PRId32 "", proto);
                 }
             }
         }
 #endif /* DEBUG */
 
-        if (RuleMpmIsNegated(tmp_s)) {
-            tmp_s->flags |= SIG_FLAG_MPM_NEG;
+        if (RuleMpmIsNegated(s)) {
+            s->flags |= SIG_FLAG_MPM_NEG;
         }
 
-        SignatureCreateMask(tmp_s);
-        DetectContentPropagateLimits(tmp_s);
-        SigParseApplyDsizeToContent(tmp_s);
+        SignatureCreateMask(s);
+        DetectContentPropagateLimits(s);
+        SigParseApplyDsizeToContent(s);
 
-        RuleSetWhitelist(tmp_s);
+        RuleSetWhitelist(s);
 
         /* if keyword engines are enabled in the config, handle them here */
         if (de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO &&
-            !(tmp_s->flags & SIG_FLAG_PREFILTER))
+                !(s->flags & SIG_FLAG_PREFILTER))
         {
             int i;
             int prefilter_list = DETECT_TBLSIZE;
 
             /* get the keyword supporting prefilter with the lowest type */
-            for (i = 0; i < (int)tmp_s->init_data->smlists_array_size; i++) {
-                SigMatch *sm = tmp_s->init_data->smlists[i];
+            for (i = 0; i < (int)s->init_data->smlists_array_size; i++) {
+                SigMatch *sm = s->init_data->smlists[i];
                 while (sm != NULL) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
-                        if (sigmatch_table[sm->type].SupportsPrefilter(tmp_s) == TRUE) {
+                        if (sigmatch_table[sm->type].SupportsPrefilter(s) == TRUE) {
                             prefilter_list = MIN(prefilter_list, sm->type);
                         }
                     }
@@ -1400,13 +1402,13 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             /* apply that keyword as prefilter */
             if (prefilter_list != DETECT_TBLSIZE) {
-                for (i = 0; i < (int)tmp_s->init_data->smlists_array_size; i++) {
-                    SigMatch *sm = tmp_s->init_data->smlists[i];
+                for (i = 0; i < (int)s->init_data->smlists_array_size; i++) {
+                    SigMatch *sm = s->init_data->smlists[i];
                     while (sm != NULL) {
                         if (sm->type == prefilter_list) {
-                            tmp_s->init_data->prefilter_sm = sm;
-                            tmp_s->flags |= SIG_FLAG_PREFILTER;
-                            SCLogConfig("sid %u: prefilter is on \"%s\"", tmp_s->id, sigmatch_table[sm->type].name);
+                            s->init_data->prefilter_sm = sm;
+                            s->flags |= SIG_FLAG_PREFILTER;
+                            SCLogConfig("sid %u: prefilter is on \"%s\"", s->id, sigmatch_table[sm->type].name);
                             break;
                         }
                         sm = sm->next;
@@ -1417,9 +1419,9 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         /* run buffer type callbacks if any */
         int x;
-        for (x = 0; x < (int)tmp_s->init_data->smlists_array_size; x++) {
-            if (tmp_s->init_data->smlists[x])
-                DetectBufferRunSetupCallback(de_ctx, x, tmp_s);
+        for (x = 0; x < (int)s->init_data->smlists_array_size; x++) {
+            if (s->init_data->smlists[x])
+                DetectBufferRunSetupCallback(de_ctx, x, s);
         }
 
         de_ctx->sig_cnt++;

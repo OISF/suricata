@@ -1855,6 +1855,9 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
         goto error;
     }
 
+    /* check what the type of this sig is */
+    SignatureSetType(de_ctx, sig);
+
     return sig;
 
 error:
