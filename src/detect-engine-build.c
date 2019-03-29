@@ -212,21 +212,12 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     /* TMATCH list can be ignored, it contains TAGs and
      * tags are compatible to IP-only. */
 
-    IPOnlyCIDRItem *cidr_item;
-    cidr_item = s->CidrSrc;
-    while (cidr_item != NULL) {
-        if (cidr_item->negated)
-            return 0;
-
-        cidr_item = cidr_item->next;
-    }
-    cidr_item = s->CidrDst;
-    while (cidr_item != NULL) {
-        if (cidr_item->negated)
-            return 0;
-
-        cidr_item = cidr_item->next;
-    }
+    /* if any of the addresses uses negation, we don't support
+     * it in ip-only */
+    if (s->init_data->src_contains_negation)
+        return 0;
+    if (s->init_data->dst_contains_negation)
+        return 0;
 
     SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     if (sm == NULL)

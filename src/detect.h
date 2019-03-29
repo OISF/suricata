@@ -450,6 +450,11 @@ typedef struct SignatureInitData_ {
      *  have the SIGMATCH_HANDLE_NEGATION flag set. */
     bool negated;
 
+    /* track if we saw any negation in the addresses. If so, we
+     * skip it for ip-only */
+    bool src_contains_negation;
+    bool dst_contains_negation;
+
     /* used to hold flags that are used during init */
     uint32_t init_flags;
     /* coccinelle: SignatureInitData:init_flags:SIG_FLAG_INIT_ */

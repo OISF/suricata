@@ -765,12 +765,18 @@ static int SigParseAddress(DetectEngineCtx *de_ctx,
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_SRC_ANY;
 
+        s->init_data->src_contains_negation =
+            (strchr(addrstr, '!') != NULL);
+
         s->init_data->src = DetectParseAddress(de_ctx, addrstr);
         if (s->init_data->src == NULL)
             goto error;
     } else {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_DST_ANY;
+
+        s->init_data->dst_contains_negation =
+            (strchr(addrstr, '!') != NULL);
 
         s->init_data->dst = DetectParseAddress(de_ctx, addrstr);
         if (s->init_data->dst == NULL)
