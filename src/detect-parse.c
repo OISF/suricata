@@ -1100,13 +1100,6 @@ static int SigParseBasics(DetectEngineCtx *de_ctx,
     if (SigParseAddress(de_ctx, s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
-    /* For IPOnly */
-    if (IPOnlySigParseAddress(de_ctx, s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
-        goto error;
-
-    if (IPOnlySigParseAddress(de_ctx, s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
-        goto error;
-
     /* By AWS - Traditionally we should be doing this only for tcp/udp/sctp,
      * but we do it for regardless of ip proto, since the dns/dnstcp/dnsudp
      * changes that we made sees to it that at this point of time we don't
@@ -1133,31 +1126,29 @@ error:
  *  \param -1 parse error
  *  \param 0 ok
  */
-static int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr, uint8_t addrs_direction)
+static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
+        const char *sigstr, uint8_t addrs_direction, SignatureParser *parser)
 {
     SCEnter();
-
-    SignatureParser parser;
-    memset(&parser, 0x00, sizeof(parser));
 
     s->sig_str = SCStrdup(sigstr);
     if (unlikely(s->sig_str == NULL)) {
         SCReturnInt(-1);
     }
 
-    int ret = SigParseBasics(de_ctx, s, sigstr, &parser, addrs_direction);
+    int ret = SigParseBasics(de_ctx, s, sigstr, parser, addrs_direction);
     if (ret < 0) {
         SCLogDebug("SigParseBasics failed");
         SCReturnInt(-1);
     }
 
     /* we can have no options, so make sure we have them */
-    if (strlen(parser.opts) > 0) {
-        size_t buffer_size = strlen(parser.opts) + 1;
+    if (strlen(parser->opts) > 0) {
+        size_t buffer_size = strlen(parser->opts) + 1;
         char input[buffer_size];
         char output[buffer_size];
         memset(input, 0x00, buffer_size);
-        memcpy(input, parser.opts, strlen(parser.opts)+1);
+        memcpy(input, parser->opts, strlen(parser->opts)+1);
 
         /* loop the option parsing. Each run processes one option
          * and returns the rest of the option string through the
@@ -1778,6 +1769,9 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
                                 uint8_t dir)
 {
+    SignatureParser parser;
+    memset(&parser, 0x00, sizeof(parser));
+
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
@@ -1785,7 +1779,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     /* default gid to 1 */
     sig->gid = 1;
 
-    if (SigParse(de_ctx, sig, sigstr, dir) < 0)
+    if (SigParse(de_ctx, sig, sigstr, dir, &parser) < 0)
         goto error;
 
     /* signature priority hasn't been overwritten.  Using default priority */
@@ -1864,6 +1858,14 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     /* check what the type of this sig is */
     SignatureSetType(de_ctx, sig);
 
+    if (sig->flags & SIG_FLAG_IPONLY) {
+        /* For IPOnly */
+        if (IPOnlySigParseAddress(de_ctx, sig, parser.src, SIG_DIREC_SRC ^ dir) < 0)
+            goto error;
+
+        if (IPOnlySigParseAddress(de_ctx, sig, parser.dst, SIG_DIREC_DST ^ dir) < 0)
+            goto error;
+    }
     return sig;
 
 error:
