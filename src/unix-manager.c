@@ -732,7 +732,18 @@ static TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
                                       json_t *server_msg, void *data)
 {
     SCEnter();
-    json_object_set_new(server_msg, "message", json_string(RunModeGetMainMode(0)));
+
+    json_t *js_runmodes_array = json_array();
+
+    if (js_runmodes_array == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    for (int i = 0; i < RunmodesCount(&run_modes); i++) {
+        json_array_append_new(js_runmodes_array, json_string(RunModeGetMainMode(i)));
+    }
+    json_object_set_new(server_msg, "message", js_runmodes_array);
     SCReturnInt(TM_ECODE_OK);
 }
 
