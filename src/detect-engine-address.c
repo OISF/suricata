@@ -240,9 +240,7 @@ int DetectAddressAdd(DetectAddress **head, DetectAddress *ag)
  */
 static int SetHeadPtr(DetectAddressHead *gh, DetectAddress *newhead)
 {
-    if (newhead->flags & ADDRESS_FLAG_ANY) {
-        gh->any_head = newhead;
-    } else if (newhead->ip.family == AF_INET) {
+    if (newhead->ip.family == AF_INET) {
         gh->ipv4_head = newhead;
     } else if (newhead->ip.family == AF_INET6) {
         gh->ipv6_head = newhead;
@@ -269,9 +267,7 @@ static DetectAddress *GetHeadPtr(DetectAddressHead *gh, DetectAddress *new)
 {
     DetectAddress *head = NULL;
 
-    if (new->flags & ADDRESS_FLAG_ANY)
-        head = gh->any_head;
-    else if (new->ip.family == AF_INET)
+    if (new->ip.family == AF_INET)
         head = gh->ipv4_head;
     else if (new->ip.family == AF_INET6)
         head = gh->ipv6_head;
@@ -303,8 +299,6 @@ int DetectAddressInsert(DetectEngineCtx *de_ctx, DetectAddressHead *gh,
 
     if (new == NULL)
         return 0;
-
-    BUG_ON(new->ip.family == 0 && !(new->flags & ADDRESS_FLAG_ANY));
 
     /* get our head ptr based on the address we want to insert */
     head = GetHeadPtr(gh, new);
@@ -538,12 +532,8 @@ int DetectAddressParseString(DetectAddress *dd, const char *str)
     while (*str != '\0' && *str == ' ')
         str++;
 
-    /* first handle 'any' */
-    if (strcasecmp(str, "any") == 0) {
-        dd->flags |= ADDRESS_FLAG_ANY;
-        SCLogDebug("address is \'any\'");
-        return 0;
-    }
+    /* shouldn't see 'any' here */
+    BUG_ON(strcasecmp(str, "any") == 0);
 
     strlcpy(ipstr, str, sizeof(ipstr));
     SCLogDebug("str %s", str);
@@ -748,6 +738,35 @@ static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
 {
     SCLogDebug("gh %p, s %s", gh, s);
 
+    if (strcasecmp(s, "any") == 0) {
+        SCLogDebug("adding 0.0.0.0/0 and ::/0 as we\'re handling \'any\'");
+
+        DetectAddress *ad = DetectAddressParseSingle("0.0.0.0/0");
+        if (ad == NULL)
+            return -1;
+
+        BUG_ON(ad->ip.family == 0);
+
+        if (DetectAddressInsert(NULL, gh, ad) < 0) {
+            SCLogDebug("DetectAddressInsert failed");
+            DetectAddressFree(ad);
+            return -1;
+        }
+
+        ad = DetectAddressParseSingle("::/0");
+        if (ad == NULL)
+            return -1;
+
+        BUG_ON(ad->ip.family == 0);
+
+        if (DetectAddressInsert(NULL, gh, ad) < 0) {
+            SCLogDebug("DetectAddressInsert failed");
+            DetectAddressFree(ad);
+            return -1;
+        }
+        return 0;
+    }
+
     /* parse the address */
     DetectAddress *ad = DetectAddressParseSingle(s);
     if (ad == NULL) {
@@ -755,8 +774,6 @@ static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
                 "failed to parse address \"%s\"", s);
         return -1;
     }
-
-    char any = (ad->flags & ADDRESS_FLAG_ANY);
 
     /* handle the not case, we apply the negation then insert the part(s) */
     if (ad->flags & ADDRESS_FLAG_NOT) {
@@ -787,38 +804,7 @@ static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
         return -1;
     }
     SCLogDebug("r %d",r);
-
-    /* if any, insert 0.0.0.0/0 and ::/0 as well */
-    if (r == 1 && any == TRUE) {
-        SCLogDebug("adding 0.0.0.0/0 and ::/0 as we\'re handling \'any\'");
-
-        ad = DetectAddressParseSingle("0.0.0.0/0");
-        if (ad == NULL)
-            goto error;
-
-        BUG_ON(ad->ip.family == 0);
-
-        if (DetectAddressInsert(NULL, gh, ad) < 0) {
-            SCLogDebug("DetectAddressInsert failed");
-            goto error;
-        }
-        ad = DetectAddressParseSingle("::/0");
-        if (ad == NULL)
-            goto error;
-
-        BUG_ON(ad->ip.family == 0);
-
-        if (DetectAddressInsert(NULL, gh, ad) < 0) {
-            SCLogDebug("DetectAddressInsert failed");
-            goto error;
-        }
-    }
     return 0;
-
-error:
-    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "DetectAddressSetup error");
-    /* XXX cleanup */
-    return -1;
 }
 
 /**
@@ -896,8 +882,8 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                      * applicable. Then insert the result into the ghn list. */
                     SCLogDebug("negated block");
 
-                    DetectAddressHead tmp_gh = { NULL, NULL, NULL };
-                    DetectAddressHead tmp_ghn = { NULL, NULL, NULL };
+                    DetectAddressHead tmp_gh = { NULL, NULL };
+                    DetectAddressHead tmp_ghn = { NULL, NULL };
 
                     if (DetectAddressParse2(de_ctx, &tmp_gh, &tmp_ghn, address, 0, var_list) < 0)
                         goto error;
@@ -1581,8 +1567,8 @@ DetectAddressHead *DetectAddressHeadInit(void)
 }
 
 /**
- * \brief Cleans a DetectAddressHead.  The functions frees the 3 address
- *        group heads(any, ipv4 and ipv6) inside the DetectAddressHead
+ * \brief Cleans a DetectAddressHead.  The functions frees the address
+ *        group heads(ipv4 and ipv6) inside the DetectAddressHead
  *        instance.
  *
  * \param gh Pointer to the DetectAddressHead instance that has to be
@@ -1591,10 +1577,6 @@ DetectAddressHead *DetectAddressHeadInit(void)
 void DetectAddressHeadCleanup(DetectAddressHead *gh)
 {
     if (gh != NULL) {
-        if (gh->any_head != NULL) {
-            DetectAddressCleanupList(gh->any_head);
-            gh->any_head = NULL;
-        }
         if (gh->ipv4_head != NULL) {
             DetectAddressCleanupList(gh->ipv4_head);
             gh->ipv4_head = NULL;
@@ -1700,10 +1682,7 @@ int DetectAddressCmp(DetectAddress *a, DetectAddress *b)
     if (a->ip.family != b->ip.family)
         return ADDRESS_ER;
 
-    /* check any */
-    if ((a->flags & ADDRESS_FLAG_ANY) && (b->flags & ADDRESS_FLAG_ANY))
-        return ADDRESS_EQ;
-    else if (a->ip.family == AF_INET)
+    if (a->ip.family == AF_INET)
         return DetectAddressCmpIPv4(a, b);
     else if (a->ip.family == AF_INET6)
         return DetectAddressCmpIPv6(a, b);
@@ -1894,10 +1873,10 @@ int DetectAddressMatch(DetectAddress *dd, Address *a)
 }
 
 /**
- * \brief Prints the address data held by the DetectAddress.  If the
- *        address data family is any, we print "ANY".  If the address data
- *        family is IPv4, we print the the ipv4 address and mask, and if the
- *        address data family is IPv6, we print the ipv6 address and mask.
+ * \brief Prints the address data held by the DetectAddress. If the address
+ *        data family is IPv4, we print the the ipv4 address and mask, and
+ *        if the address data family is IPv6, we print the ipv6 address and
+ *        mask.
  *
  * \param ad Pointer to the DetectAddress instance to be printed.
  */
@@ -1906,9 +1885,7 @@ void DetectAddressPrint(DetectAddress *gr)
     if (gr == NULL)
         return;
 
-    if (gr->flags & ADDRESS_FLAG_ANY) {
-        SCLogDebug("ANY");
-    } else if (gr->ip.family == AF_INET) {
+    if (gr->ip.family == AF_INET) {
         struct in_addr in;
         char ip[16], mask[16];
 
@@ -1948,7 +1925,7 @@ DetectAddress *DetectAddressLookupInHead(const DetectAddressHead *gh, Address *a
 {
     SCEnter();
 
-    DetectAddress *g;
+    DetectAddress *g = NULL;
 
     if (gh == NULL) {
         SCReturnPtr(NULL, "DetectAddress");
@@ -1961,9 +1938,6 @@ DetectAddress *DetectAddressLookupInHead(const DetectAddressHead *gh, Address *a
     } else if (a->family == AF_INET6) {
         SCLogDebug("IPv6");
         g = gh->ipv6_head;
-    } else {
-        SCLogDebug("ANY");
-        g = gh->any_head;
     }
 
     for ( ; g != NULL; g = g->next) {
@@ -2409,54 +2383,32 @@ static int AddressTestParse22(void)
 
 static int AddressTestParse23(void)
 {
-    DetectAddress *dd = DetectAddressParseSingle("any");
-
-    if (dd) {
-        DetectAddressFree(dd);
-        return 1;
-    }
-
-    return 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    FAIL_IF_NULL(gh);
+    int r = DetectAddressParse(NULL, gh, "any");
+    FAIL_IF_NOT(r == 0);
+    DetectAddressHeadFree(gh);
+    PASS;
 }
 
 static int AddressTestParse24(void)
 {
-    DetectAddress *dd = DetectAddressParseSingle("Any");
-
-    if (dd) {
-        DetectAddressFree(dd);
-        return 1;
-    }
-
-    return 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    FAIL_IF_NULL(gh);
+    int r = DetectAddressParse(NULL, gh, "Any");
+    FAIL_IF_NOT(r == 0);
+    DetectAddressHeadFree(gh);
+    PASS;
 }
 
 static int AddressTestParse25(void)
 {
-    DetectAddress *dd = DetectAddressParseSingle("ANY");
-
-    if (dd) {
-        DetectAddressFree(dd);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int AddressTestParse26(void)
-{
-    int result = 0;
-    DetectAddress *dd = DetectAddressParseSingle("any");
-
-    if (dd) {
-        if (dd->flags & ADDRESS_FLAG_ANY)
-            result = 1;
-
-        DetectAddressFree(dd);
-        return result;
-    }
-
-    return 0;
+    DetectAddressHead *gh = DetectAddressHeadInit();
+    FAIL_IF_NULL(gh);
+    int r = DetectAddressParse(NULL, gh, "ANY");
+    FAIL_IF_NOT(r == 0);
+    DetectAddressHeadFree(gh);
+    PASS;
 }
 
 static int AddressTestParse27(void)
@@ -5007,7 +4959,6 @@ void DetectAddressTests(void)
     UtRegisterTest("AddressTestParse23", AddressTestParse23);
     UtRegisterTest("AddressTestParse24", AddressTestParse24);
     UtRegisterTest("AddressTestParse25", AddressTestParse25);
-    UtRegisterTest("AddressTestParse26", AddressTestParse26);
     UtRegisterTest("AddressTestParse27", AddressTestParse27);
     UtRegisterTest("AddressTestParse28", AddressTestParse28);
     UtRegisterTest("AddressTestParse29", AddressTestParse29);

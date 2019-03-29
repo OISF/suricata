@@ -133,8 +133,7 @@ enum {
     ADDRESS_GT,      /**< bigger               [bbb] [aaa] */
 };
 
-#define ADDRESS_FLAG_ANY            0x01 /**< address is "any" */
-#define ADDRESS_FLAG_NOT            0x02 /**< address is negated */
+#define ADDRESS_FLAG_NOT            0x01 /**< address is negated */
 
 /** \brief address structure for use in the detection engine.
  *
@@ -156,7 +155,6 @@ typedef struct DetectAddress_ {
 
 /** Signature grouping head. Here 'any', ipv4 and ipv6 are split out */
 typedef struct DetectAddressHead_ {
-    DetectAddress *any_head;
     DetectAddress *ipv4_head;
     DetectAddress *ipv6_head;
 } DetectAddressHead;
