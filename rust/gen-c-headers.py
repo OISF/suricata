@@ -139,7 +139,9 @@ def convert_type(rs_type):
     raise Exception("Failed to parse Rust type: %s" % (rs_type))
 
 def make_output_filename(filename):
-    parts = filename.split(os.path.sep)[2:]
+    if filename.startswith("./"):
+        filename = filename[2:]
+    parts = filename.split(os.path.sep)[1:]
     last = os.path.splitext(parts.pop())[0]
     outpath = "./gen/c-headers/rust-%s-%s-gen.h" % (
         "-".join(parts), last)
