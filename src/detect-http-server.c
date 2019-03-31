@@ -33,6 +33,7 @@
  * used by the origin server to handle the request.
  */
 
+#define KEYWORD_NAME_LEGACY "http.server"
 #define KEYWORD_NAME "http.server"
 #define KEYWORD_DOC "http-keywords.html#http-server"
 #define BUFFER_NAME "http.server"

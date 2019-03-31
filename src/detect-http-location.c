@@ -33,6 +33,7 @@
  * a location other than the Request-URI for request completion.
  */
 
+#define KEYWORD_NAME_LEGACY "http.location"
 #define KEYWORD_NAME "http.location"
 #define KEYWORD_DOC "http-keywords.html#http-location"
 #define BUFFER_NAME "http.location"
