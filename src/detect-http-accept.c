@@ -30,7 +30,8 @@
  * Implements support http_header_*
  */
 
-#define KEYWORD_NAME "http_accept"
+#define KEYWORD_NAME_LEGACY "http_accept"
+#define KEYWORD_NAME "http.accept"
 #define KEYWORD_DOC "http-keywords.html#http-accept"
 #define BUFFER_NAME "http_accept"
 #define BUFFER_DESC "http accept header"
