@@ -30,7 +30,8 @@
  * Implements support http_referer sticky buffer
  */
 
-#define KEYWORD_NAME "http_referer"
+#define KEYWORD_NAME_LEGACY "http_referer"
+#define KEYWORD_NAME "http.referer"
 #define KEYWORD_DOC "http-keywords.html#http-referer"
 #define BUFFER_NAME "http_referer"
 #define BUFFER_DESC "http referer header"
