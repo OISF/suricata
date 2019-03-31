@@ -30,7 +30,8 @@
  * Implements http_content_len sticky buffer
  */
 
-#define KEYWORD_NAME "http_content_len"
+#define KEYWORD_NAME_LEGACY "http_content_len"
+#define KEYWORD_NAME "http.content_len"
 #define KEYWORD_DOC "http-keywords.html#http-content-len"
 #define BUFFER_NAME "http_content_len"
 #define BUFFER_DESC "http content length header"
