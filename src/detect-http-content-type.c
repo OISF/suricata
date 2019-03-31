@@ -30,7 +30,8 @@
  * Implement http_content_type sticky buffer
  */
 
-#define KEYWORD_NAME "http_content_type"
+#define KEYWORD_NAME_LEGACY "http_content_type"
+#define KEYWORD_NAME "http.content_type"
 #define KEYWORD_DOC "http-keywords.html#http-content-type"
 #define BUFFER_NAME "http_content_type"
 #define BUFFER_DESC "http content type header"

@@ -30,7 +30,8 @@
  * Implements the http_connection sticky buffer
  */
 
-#define KEYWORD_NAME "http_connection"
+#define KEYWORD_NAME_LEGACY "http_connection"
+#define KEYWORD_NAME "http.connection"
 #define KEYWORD_DOC "http-keywords.html#http-connection"
 #define BUFFER_NAME "http_connection"
 #define BUFFER_DESC "http connection header"
