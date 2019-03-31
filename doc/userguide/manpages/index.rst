@@ -5,3 +5,7 @@ Man Pages
    :maxdepth: 1
 
    suricata
+   suricatasc
+   suricatactl
+   suricatactl-filestore
+   suricatactlfilestore
