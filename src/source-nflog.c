@@ -368,6 +368,14 @@ TmEcode ReceiveNFLOGThreadDeinit(ThreadVars *tv, void *data)
         ntv->h = NULL;
     }
 
+    if (ntv->data != NULL) {
+        SCFree(ntv->data);
+        ntv->data = NULL;
+    }
+    ntv->datalen = 0;
+
+    SCFree(ntv);
+
     SCReturnInt(TM_ECODE_OK);
 }
 
