@@ -79,9 +79,21 @@ typedef enum {
     FTP_COMMAND_TYPE,
     FTP_COMMAND_UMASK,
     FTP_COMMAND_USER,
-    FTP_COMMAND_EPRT
+    FTP_COMMAND_EPRT,
+
+    /* must be last */
+    FTP_COMMAND_MAX
     /** \todo more if missing.. */
 } FtpRequestCommand;
+
+typedef struct FtpCommand_ {
+    FtpRequestCommand command;
+    const char *command_name_upper;
+    const char *command_name_lower;
+    const uint32_t command_length;
+} FtpCommand;
+extern const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1];
+
 typedef uint32_t FtpRequestCommandArgOfs;
 
 typedef uint16_t FtpResponseCode;
@@ -111,12 +123,45 @@ typedef struct FtpLineState_ {
     uint8_t current_line_lf_seen;
 } FtpLineState;
 
+#define REQUEST_LENGTH 64
+#define RESPONSE_LENGTH 64
+typedef struct FTPTransaction_  {
+    /** id of this tx, starting at 0 */
+    uint64_t tx_id;
+
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
+
+    /** indicates loggers done logging */
+    uint32_t logged;
+    bool done;
+
+    const FtpCommand *command_descriptor;
+
+    uint8_t direction;
+    uint16_t dyn_port;
+    bool active;
+
+    uint8_t request[REQUEST_LENGTH];
+    uint32_t request_length;
+    uint8_t response[RESPONSE_LENGTH];
+    uint32_t response_length;
+
+    DetectEngineState *de_state;
+
+    TAILQ_ENTRY(FTPTransaction_) next;
+} FTPTransaction;
+
 /** FTP State for app layer parser */
 typedef struct FtpState_ {
     uint8_t *input;
     int32_t input_len;
     uint8_t direction;
     bool active;
+
+    FTPTransaction *curr_tx;
+    TAILQ_HEAD(, FTPTransaction_) tx_list;  /**< transaction list */
+    uint64_t tx_cnt;
 
     /* --parser details-- */
     /** current line extracted by the parser from the call to FTPGetline() */
@@ -138,7 +183,6 @@ typedef struct FtpState_ {
     /* specifies which loggers are done logging */
     uint32_t logged;
 
-    DetectEngineState *de_state;
 } FtpState;
 
 enum {
