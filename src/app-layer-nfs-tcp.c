@@ -112,6 +112,32 @@ static AppLayerDecoderEvents *NFSTCPGetEvents(void *state, uint64_t id)
  * \retval ALPROTO_NFS if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
+static AppProto NFSTCPProbingParserMidstream(Flow *f,
+        uint8_t direction,
+        uint8_t *input, uint32_t input_len,
+        uint8_t *rdir)
+{
+    if (input_len < NFSTCP_MIN_FRAME_LEN) {
+        return ALPROTO_UNKNOWN;
+    }
+
+    int8_t r = rs_nfs_probe_ms(direction, input, input_len, rdir);
+    if (r == 1) {
+        return ALPROTO_NFS;
+    } else if (r == -1) {
+        return ALPROTO_FAILED;
+    }
+
+    SCLogDebug("Protocol not detected as ALPROTO_NFS.");
+    return ALPROTO_UNKNOWN;
+}
+
+/**
+ * \brief Probe the input to see if it looks like echo.
+ *
+ * \retval ALPROTO_NFS if it looks like echo, otherwise
+ *     ALPROTO_UNKNOWN.
+ */
 static AppProto NFSTCPProbingParser(Flow *f,
         uint8_t direction,
         uint8_t *input, uint32_t input_len,
@@ -121,12 +147,7 @@ static AppProto NFSTCPProbingParser(Flow *f,
         return ALPROTO_UNKNOWN;
     }
 
-    int8_t r = 0;
-    if (direction & STREAM_TOSERVER) {
-        r = rs_nfs_probe_ts(input, input_len);
-    } else {
-        r = rs_nfs_probe_tc(input, input_len);
-    }
+    int8_t r = rs_nfs_probe(direction, input, input_len);
     if (r == 1) {
         return ALPROTO_NFS;
     } else if (r == -1) {
@@ -282,10 +303,15 @@ void RegisterNFSTCPParsers(void)
 
         }
         else {
+            int midstream = 0;
+            ConfGetBool("stream.midstream", &midstream);
+            ProbingParserFPtr FuncPtr = NFSTCPProbingParser;
+            if (midstream)
+                FuncPtr = NFSTCPProbingParserMidstream;
 
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_NFS, 0, NFSTCP_MIN_FRAME_LEN,
-                    NFSTCPProbingParser, NFSTCPProbingParser)) {
+                    FuncPtr, FuncPtr)) {
                 SCLogDebug("No NFSTCP app-layer configuration, enabling NFSTCP"
                     " detection TCP detection on port %s.",
                     NFSTCP_DEFAULT_PORT);
@@ -293,7 +319,7 @@ void RegisterNFSTCPParsers(void)
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                     NFSTCP_DEFAULT_PORT, ALPROTO_NFS, 0,
                     NFSTCP_MIN_FRAME_LEN, STREAM_TOSERVER,
-                    NFSTCPProbingParser, NFSTCPProbingParser);
+                    FuncPtr, FuncPtr);
             }
 
         }

@@ -1794,18 +1794,26 @@ pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
 
 /// MIDSTREAM
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_ms(input: *const libc::uint8_t,
+pub extern "C" fn rs_nfs_probe_ms(
+        direction: libc::uint8_t, input: *const libc::uint8_t,
         len: libc::uint32_t, rdir: *mut u8) -> libc::int8_t
 {
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
-    let mut direction : u8 = 0;
-    match nfs_probe_dir(slice, &mut direction) {
+    let slice: &[u8] = build_slice!(input, len as usize);
+    SCLogDebug!("rs_nfs_probe_ms: probing direction {:02x}", direction);
+    let mut adirection : u8 = 0;
+    match nfs_probe_dir(slice, &mut adirection) {
         1 => {
-            let r = nfs_probe(slice, direction);
+            if adirection == STREAM_TOSERVER {
+                SCLogDebug!("nfs_probe_dir said STREAM_TOSERVER");
+            } else {
+                SCLogDebug!("nfs_probe_dir said STREAM_TOCLIENT");
+            }
+            let r = nfs_probe(slice, adirection);
             if r == 1 {
-                unsafe { *rdir = direction; }
+                SCLogDebug!("nfs_probe success: dir {:02x} adir {:02x}", direction, adirection);
+                if (direction & (STREAM_TOSERVER|STREAM_TOCLIENT)) != adirection {
+                    unsafe { *rdir = adirection; }
+                }
                 return 1;
             }
             return r;
@@ -1819,26 +1827,16 @@ pub extern "C" fn rs_nfs_probe_ms(input: *const libc::uint8_t,
     }
 }
 
-/// TOSERVER probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_ts(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
+pub extern "C" fn rs_nfs_probe(direction: libc::uint8_t,
+        input: *const libc::uint8_t, len: libc::uint32_t)
+    -> libc::int8_t
 {
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    return nfs_probe(slice, STREAM_TOSERVER);
-}
-
-/// TOCLIENT probe function
-#[no_mangle]
-pub extern "C" fn rs_nfs_probe_tc(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
-{
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
-    return nfs_probe(slice, STREAM_TOCLIENT);
+    SCLogDebug!("rs_nfs_probe: running probe");
+    return nfs_probe(slice, direction);
 }
 
 /// TOSERVER probe function
