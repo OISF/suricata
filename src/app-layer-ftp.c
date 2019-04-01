@@ -20,6 +20,7 @@
  *
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  * \author Eric Leblond <eric@regit.org>
+ * \author Jeff Lucovsky <jeff@lucovsky.org>
  *
  * App Layer Parser for FTP
  */
@@ -63,6 +64,60 @@
 
 #include "output-json.h"
 
+const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1] = {
+    /* Parsed and handled */
+    { FTP_COMMAND_PORT, "PORT", "port", 4},
+    { FTP_COMMAND_EPRT, "EPRT", "eprt", 4},
+    { FTP_COMMAND_AUTH_TLS, "AUTH TLS", "auth tls", 8},
+    { FTP_COMMAND_PASV, "PASV", "pasv", 4},
+    { FTP_COMMAND_RETR, "RETR", "retr", 4},
+    { FTP_COMMAND_EPSV, "EPSV", "epsv", 4},
+    { FTP_COMMAND_STOR, "STOR", "stor", 4},
+
+    /* Parsed, but not handled */
+    { FTP_COMMAND_ABOR, "ABOR", "abor", 4},
+    { FTP_COMMAND_ACCT, "ACCT", "acct", 4},
+    { FTP_COMMAND_ALLO, "ALLO", "allo", 4},
+    { FTP_COMMAND_APPE, "APPE", "appe", 4},
+    { FTP_COMMAND_CDUP, "CDUP", "cdup", 4},
+    { FTP_COMMAND_CHMOD, "CHMOD", "chmod", 5},
+    { FTP_COMMAND_CWD, "CWD", "cwd", 3},
+    { FTP_COMMAND_DELE, "DELE", "dele", 4},
+    { FTP_COMMAND_HELP, "HELP", "help", 4},
+    { FTP_COMMAND_IDLE, "IDLE", "idle", 4},
+    { FTP_COMMAND_LIST, "LIST", "list", 4},
+    { FTP_COMMAND_MAIL, "MAIL", "mail", 4},
+    { FTP_COMMAND_MDTM, "MDTM", "mdtm", 4},
+    { FTP_COMMAND_MKD, "MKD", "mkd", 3},
+    { FTP_COMMAND_MLFL, "MLFL", "mlfl", 4},
+    { FTP_COMMAND_MODE, "MODE", "mode", 4},
+    { FTP_COMMAND_MRCP, "MRCP", "mrcp", 4},
+    { FTP_COMMAND_MRSQ, "MRSQ", "mrsq", 4},
+    { FTP_COMMAND_MSAM, "MSAM", "msam", 4},
+    { FTP_COMMAND_MSND, "MSND", "msnd", 4},
+    { FTP_COMMAND_MSOM, "MSOM", "msom", 4},
+    { FTP_COMMAND_NLST, "NLST", "nlst", 4},
+    { FTP_COMMAND_NOOP, "NOOP", "noop", 4},
+    { FTP_COMMAND_PASS, "PASS", "pass", 4},
+    { FTP_COMMAND_PWD, "PWD", "pwd", 3},
+    { FTP_COMMAND_QUIT, "QUIT", "quit", 4},
+    { FTP_COMMAND_REIN, "REIN", "rein", 4},
+    { FTP_COMMAND_REST, "REST", "rest", 4},
+    { FTP_COMMAND_RMD, "RMD", "rmd", 3},
+    { FTP_COMMAND_RNFR, "RNFR", "rnfr", 4},
+    { FTP_COMMAND_RNTO, "RNTO", "rnto", 4},
+    { FTP_COMMAND_SITE, "SITE", "site", 4},
+    { FTP_COMMAND_SIZE, "SIZE", "size", 4},
+    { FTP_COMMAND_SMNT, "SMNT", "smnt", 4},
+    { FTP_COMMAND_STAT, "STAT", "stat", 4},
+    { FTP_COMMAND_STOU, "STOU", "stou", 4},
+    { FTP_COMMAND_STRU, "STRU", "stru", 4},
+    { FTP_COMMAND_SYST, "SYST", "syst", 4},
+    { FTP_COMMAND_TYPE, "TYPE", "type", 4},
+    { FTP_COMMAND_UMASK, "UMASK", "umask", 5},
+    { FTP_COMMAND_USER, "USER", "user", 4},
+    { FTP_COMMAND_UNKNOWN, NULL, NULL, 0}
+};
 uint64_t ftp_config_memcap = 0;
 
 SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
@@ -190,6 +245,61 @@ static void FTPFree(void *ptr, size_t size)
     FTPDecrMemuse((uint64_t)size);
 }
 
+static FTPString *FTPStringAlloc(void)
+{
+    return FTPCalloc(1, sizeof(FTPString));
+}
+
+static void FTPStringFree(FTPString *str)
+{
+    if (str->str) {
+        FTPFree(str->str, str->len);
+    }
+
+    FTPFree(str, sizeof(FTPString));
+}
+
+static FTPTransaction *FTPTransactionCreate(FtpState *state)
+{
+    SCEnter();
+    FTPTransaction *tx = FTPCalloc(1, sizeof(*tx));
+    if (tx == NULL) {
+        return NULL;
+    }
+
+    TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
+    tx->tx_id = state->tx_cnt++;
+
+    TAILQ_INIT(&tx->response_list);
+
+    SCLogDebug("new transaction %p (state tx cnt %"PRIu64")", tx, state->tx_cnt);
+    return tx;
+}
+
+static void FTPTransactionFree(FTPTransaction *tx)
+{
+    SCEnter();
+
+    if (tx->de_state != NULL) {
+        DetectEngineStateFree(tx->de_state);
+    }
+
+    if (tx->request) {
+        FTPFree(tx->request, tx->request_length);
+    }
+    if (tx->response) {
+        FTPFree(tx->response, tx->response_length);
+    }
+
+    FTPString *str = NULL;
+    while ((str = TAILQ_FIRST(&tx->response_list))) {
+        TAILQ_REMOVE(&tx->response_list, str, next);
+        FTPStringFree(str);
+    }
+
+    SCFree(tx);
+}
+
 static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
 {
     void *ptmp;
@@ -312,49 +422,32 @@ static int FTPGetLine(FtpState *state)
 
 /**
  * \brief This function is called to determine and set which command is being
- * transfered to the ftp server
- * \param ftp_state the ftp state structure for the parser
+ * transferred to the ftp server
  * \param input input line of the command
  * \param len of the command
+ * \param cmd_descriptor when the command has been parsed
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
-                                  uint32_t input_len)
+static int FTPParseRequestCommand(uint8_t *input, uint32_t input_len, const FtpCommand **cmd_descriptor)
 {
     SCEnter();
-    FtpState *fstate = (FtpState *)ftp_state;
-    fstate->command = FTP_COMMAND_UNKNOWN;
 
-    if (input_len >= 4 && SCMemcmpLowercase("port", input, 4) == 0) {
-        fstate->command = FTP_COMMAND_PORT;
+    *cmd_descriptor = NULL;
+
+    for (int i = 0; i < FTP_COMMAND_MAX; i++) {
+        if (!FtpCommands[i].command_length) {
+            break;
+        }
+        if (input_len >= FtpCommands[i].command_length &&
+                SCMemcmpLowercase(FtpCommands[i].command_name_lower,
+                                  input, FtpCommands[i].command_length) == 0) {
+
+            *cmd_descriptor = &FtpCommands[i];
+            return 1;
+        }
     }
-
-    if (input_len >= 4 && SCMemcmpLowercase("eprt", input, 4) == 0) {
-        fstate->command = FTP_COMMAND_EPRT;
-    }
-
-    if (input_len >= 8 && SCMemcmpLowercase("auth tls", input, 8) == 0) {
-        fstate->command = FTP_COMMAND_AUTH_TLS;
-    }
-
-    if (input_len >= 4 && SCMemcmpLowercase("pasv", input, 4) == 0) {
-        fstate->command = FTP_COMMAND_PASV;
-    }
-
-    if (input_len > 5 && SCMemcmpLowercase("retr", input, 4) == 0) {
-        fstate->command = FTP_COMMAND_RETR;
-    }
-
-    if (input_len >= 4 && SCMemcmpLowercase("epsv", input, 4) == 0) {
-        fstate->command = FTP_COMMAND_EPSV;
-    }
-
-    if (input_len > 5 && SCMemcmpLowercase("stor", input, 4) == 0) {
-        fstate->command = FTP_COMMAND_STOR;
-    }
-
-    return 1;
+    return 0;
 }
 
 struct FtpTransferCmd {
@@ -376,6 +469,26 @@ static void FtpTransferCmdFree(void *data)
         SCFree(cmd->file_name);
     }
     FTPFree(cmd, sizeof(struct FtpTransferCmd));
+}
+
+static uint32_t CopyCommandLine(uint8_t **dest, uint8_t *src, uint32_t length)
+{
+    if (likely(length)) {
+        uint8_t *where = FTPCalloc(length, sizeof(char));
+        if (unlikely(where == NULL)) {
+            return 0;
+        }
+        memcpy(where, src, length);
+
+        /* Remove trailing newlines/carriage returns */
+        if (isspace((unsigned char)where[length - 1])) {
+            while(length && isspace((unsigned char)where[--length]));
+            where[length] = '\0';
+        }
+        *dest = where;
+    }
+    /* either 0 or actual */
+    return length;
 }
 
 static uint16_t ftp_validate_port(int computed_port_value)
@@ -470,9 +583,30 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
 
     int direction = STREAM_TOSERVER;
     while (FTPGetLine(state) >= 0) {
-        FTPParseRequestCommand(state,
-                               state->current_line, state->current_line_len);
+        const FtpCommand *cmd_descriptor;
+
+        if (!FTPParseRequestCommand(state->current_line, state->current_line_len, &cmd_descriptor)) {
+            state->command = FTP_COMMAND_UNKNOWN;
+            continue;
+        }
+
+        state->command = cmd_descriptor->command;
+
+        FTPTransaction *tx = state->curr_tx;
+        if (tx == NULL || tx->done) {
+            tx = FTPTransactionCreate(state);
+            if (unlikely(tx == NULL))
+                return -1;
+            state->curr_tx = tx;
+        }
+
+        tx->command_descriptor = cmd_descriptor;
+        tx->request_length = CopyCommandLine(&tx->request, state->current_line, state->current_line_len);
+
         switch (state->command) {
+            case FTP_COMMAND_QUIT:
+                tx->done = true;
+                break;
             case FTP_COMMAND_EPRT:
                 // fallthrough
             case FTP_COMMAND_PORT:
@@ -564,6 +698,8 @@ static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uin
     SCLogDebug("FTP passive mode (v4): dynamic port %"PRIu16"", dyn_port);
     state->active = false;
     state->dyn_port = dyn_port;
+    state->curr_tx->dyn_port = dyn_port;
+    state->curr_tx->active = false;
 
     return 0;
 }
@@ -582,6 +718,8 @@ static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, uint8_t *input, u
     SCLogDebug("FTP passive mode (v6): dynamic port %"PRIu16"", dyn_port);
     state->active = false;
     state->dyn_port = dyn_port;
+    state->curr_tx->dyn_port = dyn_port;
+    state->curr_tx->active = false;
     return 0;
 }
 
@@ -599,6 +737,12 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
                             void *local_data, const uint8_t flags)
 {
     FtpState *state = (FtpState *)ftp_state;
+    FTPTransaction *tx = state->curr_tx;
+    int retcode = 1;
+
+    if (state->command == FTP_COMMAND_UNKNOWN) {
+        return 1;
+    }
 
     if (state->command == FTP_COMMAND_AUTH_TLS) {
         if (input_len >= 4 && SCMemcmp("234 ", input, 4) == 0) {
@@ -609,10 +753,13 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
     if (state->command == FTP_COMMAND_EPRT) {
         uint16_t dyn_port = FTPGetV6PortNumber(state->port_line, state->port_line_len);
         if (dyn_port == 0) {
-            return 0;
+            retcode = 0;
+            goto tx_complete;
         }
         state->dyn_port = dyn_port;
         state->active = true;
+        tx->dyn_port = dyn_port;
+        tx->active = true;
         SCLogDebug("FTP active mode (v6): dynamic port %"PRIu16"", dyn_port);
     }
 
@@ -620,13 +767,17 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         if ((flags & STREAM_TOCLIENT)) {
             uint16_t dyn_port = FTPGetV4PortNumber(state->port_line, state->port_line_len);
             if (dyn_port == 0) {
-                return 0;
+                retcode = 0;
+                goto tx_complete;
             }
             state->dyn_port = dyn_port;
             state->active = true;
+            tx->dyn_port = state->dyn_port;
+            tx->active = true;
             SCLogDebug("FTP active mode (v4): dynamic port %"PRIu16"", dyn_port);
         }
     }
+
     if (state->command == FTP_COMMAND_PASV) {
         if (input_len >= 4 && SCMemcmp("227 ", input, 4) == 0) {
             FTPParsePassiveResponse(f, ftp_state, input, input_len);
@@ -639,7 +790,18 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         }
     }
 
-    return 1;
+    if (likely(input_len)) {
+        FTPString *response = FTPStringAlloc();
+        if (likely(response)) {
+            response->len = CopyCommandLine(&response->str, input, input_len);
+            if (response->str)
+                TAILQ_INSERT_TAIL(&tx->response_list, response, next);
+        }
+    }
+
+tx_complete:
+    tx->done = true;
+    return retcode;
 }
 
 #ifdef DEBUG
@@ -650,11 +812,12 @@ static uint64_t ftp_state_memcnt = 0;
 
 static void *FTPStateAlloc(void)
 {
-    void *s = FTPMalloc(sizeof(FtpState));
+    void *s = FTPCalloc(1, sizeof(FtpState));
     if (unlikely(s == NULL))
         return NULL;
 
-    memset(s, 0, sizeof(FtpState));
+    FtpState *ftp_state = (FtpState *) s;
+    TAILQ_INIT(&ftp_state->tx_list);
 
 #ifdef DEBUG
     SCMutexLock(&ftp_state_mem_lock);
@@ -677,8 +840,10 @@ static void FTPStateFree(void *s)
 
     //AppLayerDecoderEventsFreeEvents(&s->decoder_events);
 
-    if (fstate->de_state != NULL) {
-        DetectEngineStateFree(fstate->de_state);
+    FTPTransaction *tx = NULL;
+    while ((tx = TAILQ_FIRST(&fstate->tx_list))) {
+        TAILQ_REMOVE(&fstate->tx_list, tx, next);
+        FTPTransactionFree(tx);
     }
 
     FTPFree(s, sizeof(FtpState));
@@ -692,32 +857,85 @@ static void FTPStateFree(void *s)
 
 static int FTPSetTxDetectState(void *vtx, DetectEngineState *de_state)
 {
-    FtpState *ftp_state = (FtpState *)vtx;
-    ftp_state->de_state = de_state;
+    FTPTransaction *tx = (FTPTransaction *)vtx;
+    tx->de_state = de_state;
     return 0;
-}
-
-static DetectEngineState *FTPGetTxDetectState(void *vtx)
-{
-    FtpState *ftp_state = (FtpState *)vtx;
-    return ftp_state->de_state;
-}
-
-static void FTPStateTransactionFree(void *state, uint64_t tx_id)
-{
-    /* do nothing */
 }
 
 static void *FTPGetTx(void *state, uint64_t tx_id)
 {
     FtpState *ftp_state = (FtpState *)state;
-    return ftp_state;
+    if (ftp_state) {
+        FTPTransaction *tx = NULL;
+
+        if (ftp_state->curr_tx == NULL)
+            return NULL;
+        if (ftp_state->curr_tx->tx_id == tx_id)
+            return ftp_state->curr_tx;
+
+        TAILQ_FOREACH(tx, &ftp_state->tx_list, next) {
+            if (tx->tx_id == tx_id)
+                return tx;
+        }
+    }
+    return NULL;
+
+}
+
+static DetectEngineState *FTPGetTxDetectState(void *vtx)
+{
+    FTPTransaction *tx = (FTPTransaction *)vtx;
+    return tx->de_state;
+}
+
+
+static uint64_t FTPGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    FTPTransaction *tx = (FTPTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return tx->detect_flags_ts;
+    } else {
+        return tx->detect_flags_tc;
+    }
+}
+
+static void FTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
+{
+    FTPTransaction *tx = (FTPTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        tx->detect_flags_ts = flags;
+    } else {
+        tx->detect_flags_tc = flags;
+    }
+}
+
+static void FTPStateTransactionFree(void *state, uint64_t tx_id)
+{
+    FtpState *ftp_state = state;
+    FTPTransaction *tx = NULL;
+    TAILQ_FOREACH(tx, &ftp_state->tx_list, next) {
+        if (tx_id < tx->tx_id)
+            break;
+        else if (tx_id > tx->tx_id)
+            continue;
+
+        if (tx == ftp_state->curr_tx)
+            ftp_state->curr_tx = NULL;
+        TAILQ_REMOVE(&ftp_state->tx_list, tx, next);
+        FTPTransactionFree(tx);
+        break;
+    }
 }
 
 static uint64_t FTPGetTxCnt(void *state)
 {
-    /* single tx */
-    return 1;
+    uint64_t cnt = 0;
+    FtpState *ftp_state = state;
+    if (ftp_state) {
+        cnt = ftp_state->tx_cnt;
+    }
+    SCLogDebug("returning state %p %"PRIu64, state, cnt);
+    return cnt;
 }
 
 static int FTPGetAlstateProgressCompletionStatus(uint8_t direction)
@@ -725,12 +943,13 @@ static int FTPGetAlstateProgressCompletionStatus(uint8_t direction)
     return FTP_STATE_FINISHED;
 }
 
-static int FTPGetAlstateProgress(void *tx, uint8_t direction)
+static int FTPGetAlstateProgress(void *vtx, uint8_t direction)
 {
-    FtpState *ftp_state = (FtpState *)tx;
+    SCLogDebug("tx %p", vtx);
+    FTPTransaction *tx = vtx;
 
     if (direction == STREAM_TOSERVER &&
-        ftp_state->command == FTP_COMMAND_PORT) {
+        tx->command_descriptor->command == FTP_COMMAND_PORT) {
         return FTP_STATE_PORT_DONE;
     }
 
@@ -863,6 +1082,17 @@ out:
     return ret;
 }
 
+static void FTPStateSetTxLogged(void *state, void *vtx, LoggerId logged)
+{
+    FTPTransaction *tx = vtx;
+    tx->logged = logged;
+}
+
+static LoggerId FTPStateGetTxLogged(void *state, void *vtx)
+{
+    FTPTransaction *tx = vtx;
+    return tx->logged;
+}
 static int FTPDataParseRequest(Flow *f, void *ftp_state,
         AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len,
@@ -889,12 +1119,12 @@ static uint64_t ftpdata_state_memcnt = 0;
 
 static void *FTPDataStateAlloc(void)
 {
-    void *s = FTPMalloc(sizeof(FtpDataState));
+    void *s = FTPCalloc(1, sizeof(FtpDataState));
     if (unlikely(s == NULL))
         return NULL;
 
-    memset(s, 0, sizeof(FtpDataState));
-    ((FtpDataState *)s)->state = FTPDATA_STATE_IN_PROGRESS;
+    FtpDataState *state = (FtpDataState *) s;
+    state->state = FTPDATA_STATE_IN_PROGRESS;
 
 #ifdef DEBUG
     SCMutexLock(&ftpdata_state_mem_lock);
@@ -938,6 +1168,7 @@ static DetectEngineState *FTPDataGetTxDetectState(void *vtx)
 {
     FtpDataState *ftp_state = (FtpDataState *)vtx;
     return ftp_state->de_state;
+
 }
 
 static void FTPDataStateTransactionFree(void *state, uint64_t tx_id)
@@ -1004,7 +1235,12 @@ void RegisterFTPParsers(void)
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_FTP,
                 FTPGetTxDetectState, FTPSetTxDetectState);
 
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_FTP,
+                                               FTPGetTxDetectFlags, FTPSetTxDetectFlags);
+
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_FTP, FTPGetTx);
+        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_FTP, FTPStateGetTxLogged,
+                                          FTPStateSetTxLogged);
 
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_FTP, FTPGetTxCnt);
 
@@ -1148,7 +1384,7 @@ end:
     return result;
 }
 
-/** \test Send a splitted get request. */
+/** \test Send a split get request. */
 static int FTPParserTest03(void)
 {
     int result = 1;
