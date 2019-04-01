@@ -417,6 +417,72 @@ Example of a old DNS answer with an IPv4 (resource record type 'A') return:
       "rdata": "199.16.156.6"
   }
 
+Event type: FTP
+---------------
+
+Fields
+~~~~~~
+
+* "command": The FTP command.
+* "command_data": The data accompanying the command.
+* "reply": The command reply, which may contain multiple lines, in array format.
+* "completion_code": The 3-digit completion code. The first digit indicates whether the response is good, bad or incomplete.
+* "dynamic_port": The dynamic port established for subsequent data transfers, when applicable, with a "PORT" or "EPRT" command.
+* "mode": The type of FTP connection. Most connections are "passive" but may be "active".
+
+Examples
+~~~~~~~~
+
+Example of regular FTP logging:
+
+::
+
+  "ftp": {
+    "command": "RETR",
+    "command_data": "index.html",
+    "reply": [
+      "Opening BINARY mode data connection for index.html (6712 bytes)",
+      "Transfer complete"
+    ],
+    "completion_code": "150"
+  }
+
+Example showing all fields
+
+::
+
+  "ftp": {
+    "command": "EPRT",
+    "command_data": "|2|2a01:e34:ee97:b130:8c3e:45ea:5ac6:e301|41813|",
+    "reply": [
+      "EPRT command successful. Consider using EPSV"
+    ],
+    "reply_code": "200",
+    "dynamic_port": 41813,
+    "mode": "active"
+  }
+
+Event type: FTP_DATA
+--------------------
+
+Fields
+~~~~~~
+
+* "command": The FTP command associated with the event.
+* "filename": The name of the involved file.
+
+Examples
+~~~~~~~~
+
+Example of FTP_DATA logging:
+
+::
+
+  "ftp_data": {
+    "filename": "temp.txt",
+    "command": "RETR"
+  }
+
 Event type: TLS
 ---------------
 
