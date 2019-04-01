@@ -88,6 +88,7 @@ typedef struct OutputJsonThreadCtx_ {
 
 json_t *SCJsonBool(int val);
 json_t *SCJsonString(const char *val);
+json_t *JsonAddStringN(const char *string, size_t size);
 void SCJsonDecref(json_t *js);
 
 void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,

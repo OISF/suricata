@@ -148,6 +148,22 @@ json_t *SCJsonString(const char *val)
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
+/**
+ * \brief Create a JSON string from a character sequence
+ *
+ * \param Pointer to character sequence
+ * \param Number of characters to use from the sequence
+ * \retval JSON object for the character sequence
+ */
+json_t *JsonAddStringN(const char *string, size_t size)
+{
+    char tmpbuf[size + 1];
+
+    memcpy(tmpbuf, string, size);
+    tmpbuf[size] = '\0';
+
+    return SCJsonString(tmpbuf);
+}
 static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
 {
     if (p == NULL || p->pktvar == NULL) {
