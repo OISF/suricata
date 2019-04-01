@@ -317,6 +317,7 @@ output-json-drop.c output-json-drop.h \
 output-json-email-common.c output-json-email-common.h \
 output-json-file.c output-json-file.h \
 output-json-flow.c output-json-flow.h \
+output-json-ftp.c output-json-ftp.h \
 output-json-netflow.c output-json-netflow.h \
 output-json-http.c output-json-http.h \
 output-json-smtp.c output-json-smtp.h \
