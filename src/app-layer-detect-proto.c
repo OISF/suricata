@@ -444,6 +444,39 @@ static AppProto AppLayerProtoDetectPEGetProto(Flow *f, uint8_t ipproto,
     return alproto;
 }
 
+static inline AppProto PPGetProto(
+        const AppLayerProtoDetectProbingParserElement *pe,
+        Flow *f, uint8_t direction,
+        uint8_t *buf, uint32_t buflen,
+        uint32_t *alproto_masks, uint8_t *rdir
+)
+{
+    while (pe != NULL) {
+        if ((buflen < pe->min_depth)  ||
+            (alproto_masks[0] & pe->alproto_mask)) {
+            pe = pe->next;
+            continue;
+        }
+
+        AppProto alproto = ALPROTO_UNKNOWN;
+        if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
+            alproto = pe->ProbingParserTs(f, direction, buf, buflen, rdir);
+        } else if (pe->ProbingParserTc != NULL) {
+            alproto = pe->ProbingParserTc(f, direction, buf, buflen, rdir);
+        }
+        if (AppProtoIsValid(alproto)) {
+            SCReturnUInt(alproto);
+        }
+        if (alproto == ALPROTO_FAILED ||
+            (pe->max_depth != 0 && buflen > pe->max_depth)) {
+            alproto_masks[0] |= pe->alproto_mask;
+        }
+        pe = pe->next;
+    }
+
+    SCReturnUInt(ALPROTO_UNKNOWN);
+}
+
 /**
  * \brief Call the probing parser if it exists for this flow.
  *
@@ -453,22 +486,28 @@ static AppProto AppLayerProtoDetectPEGetProto(Flow *f, uint8_t ipproto,
  */
 static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         uint8_t *buf, uint32_t buflen,
-        uint8_t ipproto, uint8_t direction,
+        uint8_t ipproto, const uint8_t idir,
         bool *reverse_flow)
 {
     const AppLayerProtoDetectProbingParserPort *pp_port_dp = NULL;
     const AppLayerProtoDetectProbingParserPort *pp_port_sp = NULL;
-    const AppLayerProtoDetectProbingParserElement *pe = NULL;
     const AppLayerProtoDetectProbingParserElement *pe1 = NULL;
     const AppLayerProtoDetectProbingParserElement *pe2 = NULL;
     AppProto alproto = ALPROTO_UNKNOWN;
     uint32_t *alproto_masks;
     uint32_t mask = 0;
+    uint8_t dir = idir;
+    uint16_t dp = f->protodetect_dp ? f->protodetect_dp : FLOW_GET_DP(f);
+    uint16_t sp = FLOW_GET_SP(f);
 
-    const uint16_t dp = f->protodetect_dp ? f->protodetect_dp : f->dp;
-    const uint16_t sp = f->sp;
+again_midstream:
+    if (idir != dir) {
+        SWAP_VARS(uint16_t, dp, sp); /* look up parsers in rev dir */
+    }
+    SCLogDebug("%u->%u %s", sp, dp,
+            (dir == STREAM_TOSERVER) ? "toserver" : "toclient");
 
-    if (direction & STREAM_TOSERVER) {
+    if (dir == STREAM_TOSERVER) {
         /* first try the destination port */
         pp_port_dp = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, dp);
         alproto_masks = &f->probing_parser_toserver_alproto_masks;
@@ -515,82 +554,62 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
 
     if (pe1 == NULL && pe2 == NULL) {
         SCLogDebug("%s - No probing parsers found for either port",
-                (direction & STREAM_TOSERVER) ? "toserver":"toclient");
-        FLOW_SET_PP_DONE(f, direction);
-        goto end;
+                (dir == STREAM_TOSERVER) ? "toserver":"toclient");
+        if (dir == idir)
+            FLOW_SET_PP_DONE(f, dir);
+        goto noparsers;
     }
 
-    /* run the parser(s) */
+    /* run the parser(s): always call with original direction */
     uint8_t rdir = 0;
-    pe = pe1;
-    while (pe != NULL) {
-        if ((buflen < pe->min_depth)  ||
-            (alproto_masks[0] & pe->alproto_mask)) {
-            pe = pe->next;
-            continue;
-        }
-
-        if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(f, direction, buf, buflen, &rdir);
-        } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(f, direction, buf, buflen, &rdir);
-        }
-        if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
-            goto end;
-        if (alproto == ALPROTO_FAILED ||
-            (pe->max_depth != 0 && buflen > pe->max_depth)) {
-            alproto_masks[0] |= pe->alproto_mask;
-        }
-        pe = pe->next;
-    }
-    pe = pe2;
-    while (pe != NULL) {
-        if ((buflen < pe->min_depth)  ||
-            (alproto_masks[0] & pe->alproto_mask)) {
-            pe = pe->next;
-            continue;
-        }
-
-        if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(f, direction, buf, buflen, &rdir);
-        } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(f, direction, buf, buflen, &rdir);
-        }
-        if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
-            goto end;
-        if (alproto == ALPROTO_FAILED ||
-            (pe->max_depth != 0 && buflen > pe->max_depth)) {
-            alproto_masks[0] |= pe->alproto_mask;
-        }
-        pe = pe->next;
-    }
+    alproto = PPGetProto(pe1, f, idir, buf, buflen, alproto_masks, &rdir);
+    if (AppProtoIsValid(alproto))
+        goto end;
+    alproto = PPGetProto(pe2, f, idir, buf, buflen, alproto_masks, &rdir);
+    if (AppProtoIsValid(alproto))
+        goto end;
 
     /* get the mask we need for this direction */
-    if (pp_port_dp && pp_port_sp)
-        mask = pp_port_dp->alproto_mask|pp_port_sp->alproto_mask;
-    else if (pp_port_dp)
-        mask = pp_port_dp->alproto_mask;
-    else if (pp_port_sp)
-        mask = pp_port_sp->alproto_mask;
+    if (dir == idir) {
+        if (pp_port_dp && pp_port_sp)
+            mask = pp_port_dp->alproto_mask|pp_port_sp->alproto_mask;
+        else if (pp_port_dp)
+            mask = pp_port_dp->alproto_mask;
+        else if (pp_port_sp)
+            mask = pp_port_sp->alproto_mask;
 
-    if (alproto_masks[0] == mask) {
-        FLOW_SET_PP_DONE(f, direction);
-        SCLogDebug("%s, mask is now %08x, needed %08x, so done",
-                (direction & STREAM_TOSERVER) ? "toserver":"toclient", alproto_masks[0], mask);
-    } else {
-        SCLogDebug("%s, mask is now %08x, need %08x",
-                (direction & STREAM_TOSERVER) ? "toserver":"toclient", alproto_masks[0], mask);
+        if (alproto_masks[0] == mask) {
+            FLOW_SET_PP_DONE(f, dir);
+            SCLogDebug("%s, mask is now %08x, needed %08x, so done",
+                    (dir == STREAM_TOSERVER) ? "toserver":"toclient",
+                    alproto_masks[0], mask);
+        } else {
+            SCLogDebug("%s, mask is now %08x, need %08x",
+                    (dir == STREAM_TOSERVER) ? "toserver":"toclient",
+                    alproto_masks[0], mask);
+        }
+    }
+
+ noparsers:
+    if (stream_config.midstream == true && idir == dir) {
+        if (idir == STREAM_TOSERVER) {
+            dir = STREAM_TOCLIENT;
+        } else {
+            dir = STREAM_TOSERVER;
+        }
+        SCLogDebug("no match + midstream, retry the other direction %s",
+                (dir == STREAM_TOSERVER) ? "toserver" : "toclient");
+        goto again_midstream;
     }
 
  end:
-    if (alproto != ALPROTO_FAILED && alproto != ALPROTO_UNKNOWN &&
-        rdir == (direction & (STREAM_TOSERVER|STREAM_TOCLIENT))) {
+    if (AppProtoIsValid(alproto) && rdir != 0 && rdir != idir) {
         SCLogDebug("PP found %u, is reverse flow", alproto);
         *reverse_flow = true;
     }
 
     SCLogDebug("%s, mask is now %08x",
-            (direction & STREAM_TOSERVER) ? "toserver":"toclient", alproto_masks[0]);
+            (idir == STREAM_TOSERVER) ? "toserver":"toclient", alproto_masks[0]);
     SCReturnUInt(alproto);
 }
 
@@ -1482,8 +1501,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
     if (!FLOW_IS_PM_DONE(f, direction)) {
         AppProto pm_results[ALPROTO_MAX];
         uint16_t pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
-                buf, buflen, direction,
-                pm_results, reverse_flow);
+                buf, buflen, direction, pm_results, reverse_flow);
         if (pm_matches > 0) {
             alproto = pm_results[0];
 
@@ -1500,13 +1518,13 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
 
     if (!FLOW_IS_PP_DONE(f, direction)) {
         bool rflow = false;
-        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen,
-                                                ipproto, direction,
-                                                &rflow);
-        if (alproto != ALPROTO_UNKNOWN)
+        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto,
+                direction & (STREAM_TOSERVER|STREAM_TOCLIENT), &rflow);
+        if (AppProtoIsValid(alproto)) {
+            if (rflow) {
+                *reverse_flow = true;
+            }
             goto end;
-        if (rflow) {
-            *reverse_flow = true;
         }
     }
 
@@ -1516,7 +1534,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
     }
 
  end:
-    if (alproto == ALPROTO_UNKNOWN)
+    if (!AppProtoIsValid(alproto))
         alproto = pm_alproto;
 
     SCReturnUInt(alproto);
