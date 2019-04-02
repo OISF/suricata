@@ -46,6 +46,7 @@
 #include "alert-prelude.h"
 #include "alert-syslog.h"
 #include "output-json-alert.h"
+#include "output-json-anomaly.h"
 #include "output-json-flow.h"
 #include "output-json-netflow.h"
 #include "log-cf-common.h"
@@ -1079,6 +1080,7 @@ void OutputRegisterLoggers(void)
     LogStatsLogRegister();
 
     JsonAlertLogRegister();
+    JsonAnomalyLogRegister();
     /* flow/netflow */
     JsonFlowLogRegister();
     JsonNetFlowLogRegister();

@@ -1297,6 +1297,7 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_ALERT_SYSLOG);
         CASE_CODE (LOGGER_DROP);
         CASE_CODE (LOGGER_JSON_ALERT);
+        CASE_CODE (LOGGER_JSON_ANOMALY);
         CASE_CODE (LOGGER_JSON_DROP);
         CASE_CODE (LOGGER_JSON_SSH);
         CASE_CODE (LOGGER_DNS_TS);
