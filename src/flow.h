@@ -135,6 +135,11 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_IS_IPV6(f) \
     (((f)->flags & FLOW_IPV6) == FLOW_IPV6)
 
+#define FLOW_GET_SP(f)  \
+    ((f)->flags & FLOW_DIR_REVERSED) ? (f)->dp : (f)->sp;
+#define FLOW_GET_DP(f)  \
+    ((f)->flags & FLOW_DIR_REVERSED) ? (f)->sp : (f)->dp;
+
 #define FLOW_COPY_IPV4_ADDR_TO_PACKET(fa, pa) do {      \
         (pa)->family = AF_INET;                         \
         (pa)->addr_data32[0] = (fa)->addr_data32[0];    \
