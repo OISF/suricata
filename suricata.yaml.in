@@ -154,6 +154,8 @@ outputs:
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
             tagged-packets: yes
+        - anomaly:
+            # packethdr: no            # enable dumping packet header
         - http:
             extended: yes     # enable this for extended logging information
             # custom allows additional http fields to be included in eve-log
