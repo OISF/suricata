@@ -61,7 +61,7 @@ static uint16_t RustDNSTCPProbe(Flow *f, uint8_t direction,
     }
 
     // Validate and return ALPROTO_FAILED if needed.
-    if (!rs_dns_probe_tcp(input, len)) {
+    if (!rs_dns_probe_tcp(direction, input, len, rdir)) {
         return ALPROTO_FAILED;
     }
 
@@ -126,7 +126,7 @@ void RegisterRustDNSTCPParsers(void)
         if (RunmodeIsUnittests()) {
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, "53", ALPROTO_DNS, 0,
                     sizeof(DNSHeader) + 2, STREAM_TOSERVER, RustDNSTCPProbe,
-                    NULL);
+                    RustDNSTCPProbe);
         } else {
             int have_cfg = AppLayerProtoDetectPPParseConfPorts("tcp",
                     IPPROTO_TCP, proto_name, ALPROTO_DNS, 0,

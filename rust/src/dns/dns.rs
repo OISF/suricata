@@ -432,7 +432,8 @@ impl DNSState {
     /// Returns the number of messages parsed.
     pub fn parse_request_tcp(&mut self, input: &[u8]) -> i8 {
         if self.gap {
-            if probe_tcp(input) {
+            let (is_dns, _) = probe_tcp(input);
+            if is_dns {
                 self.gap = false;
             } else {
                 return 0
@@ -472,7 +473,8 @@ impl DNSState {
     /// Returns the number of messages parsed.
     pub fn parse_response_tcp(&mut self, input: &[u8]) -> i8 {
         if self.gap {
-            if probe_tcp(input) {
+            let (is_dns, _) = probe_tcp(input);
+            if is_dns {
                 self.gap = false;
             } else {
                 return 0
@@ -520,19 +522,25 @@ impl DNSState {
 }
 
 /// Probe input to see if it looks like DNS.
-fn probe(input: &[u8]) -> bool {
-    parser::dns_parse_request(input).is_ok()
+fn probe(input: &[u8]) -> (bool, bool) {
+    match parser::dns_parse_request(input) {
+        Ok((_, request)) => {
+            let is_request = request.header.flags & 0x8000 == 0;
+            return (true, is_request);
+        },
+        Err(_) => (false, false),
+    }
 }
 
 /// Probe TCP input to see if it looks like DNS.
-pub fn probe_tcp(input: &[u8]) -> bool {
+pub fn probe_tcp(input: &[u8]) -> (bool, bool) {
     match nom::be_u16(input) {
         Ok((rem, _)) => {
             return probe(rem);
         },
         _ => {}
     }
-    return false;
+    return (false, false);
 }
 
 /// Returns *mut DNSState
@@ -821,27 +829,48 @@ pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_probe(input: *const libc::uint8_t, len: libc::uint32_t)
+pub extern "C" fn rs_dns_probe(input: *const libc::uint8_t,
+                               len: libc::uint32_t,
+                               rdir: *mut u8)
                                -> libc::uint8_t
 {
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    if probe(slice) {
+    let (is_dns, is_request) = probe(slice);
+    if is_dns {
+        let dir = if is_request {
+            core::STREAM_TOSERVER
+        } else {
+            core::STREAM_TOCLIENT
+        };
+        unsafe { *rdir = dir };
+
         return 1;
     }
     return 0;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_probe_tcp(input: *const libc::uint8_t,
-                                   len: libc::uint32_t)
+pub extern "C" fn rs_dns_probe_tcp(direction: libc::uint8_t,
+                                   input: *const libc::uint8_t,
+                                   len: libc::uint32_t,
+                                   rdir: *mut u8)
                                    -> libc::uint8_t
 {
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    if probe_tcp(slice) {
+    let (is_dns, is_request) = probe_tcp(slice);
+    if is_dns {
+        let dir = if is_request {
+            core::STREAM_TOSERVER
+        } else {
+            core::STREAM_TOCLIENT
+        };
+        if direction & (core::STREAM_TOSERVER|core::STREAM_TOCLIENT) != dir {
+            unsafe { *rdir = dir };
+        }
         return 1;
     }
     return 0;
