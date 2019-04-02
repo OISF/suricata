@@ -301,6 +301,7 @@ output-filedata.c output-filedata.h \
 output-filestore.c output-filestore.h \
 output-flow.c output-flow.h \
 output-json-alert.c output-json-alert.h \
+output-json-anomaly.c output-json-anomaly.h \
 output-json-dns.c output-json-dns.h \
 output-json-dnp3.c output-json-dnp3.h \
 output-json-dnp3-objects.c output-json-dnp3-objects.h \
