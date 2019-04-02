@@ -286,7 +286,11 @@ impl NFSState {
                     nfs_status = reply.status;
 
                     // cut off final eof field
-                    let d = &reply.data[..reply.data.len()-4 as usize];
+                    let d = if reply.data.len() >= 4 {
+                        &reply.data[..reply.data.len()-4 as usize]
+                    } else {
+                        reply.data
+                    };
 
                     // store all handle/filename mappings
                     match many0_nfs3_response_readdirplus_entries(d) {
