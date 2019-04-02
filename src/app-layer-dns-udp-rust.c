@@ -58,7 +58,7 @@ static uint16_t DNSUDPProbe(Flow *f, uint8_t direction,
     }
 
     // Validate and return ALPROTO_FAILED if needed.
-    if (!rs_dns_probe(input, len)) {
+    if (!rs_dns_probe(input, len, rdir)) {
         return ALPROTO_FAILED;
     }
 
@@ -132,11 +132,11 @@ void RegisterRustDNSUDPParsers(void)
         if (RunmodeIsUnittests()) {
             AppLayerProtoDetectPPRegister(IPPROTO_UDP, "53", ALPROTO_DNS, 0,
                     sizeof(DNSHeader), STREAM_TOSERVER, DNSUDPProbe,
-                    NULL);
+                    DNSUDPProbe);
         } else {
             int have_cfg = AppLayerProtoDetectPPParseConfPorts("udp",
                     IPPROTO_UDP, proto_name, ALPROTO_DNS, 0, sizeof(DNSHeader),
-                    DNSUDPProbe, NULL);
+                    DNSUDPProbe, DNSUDPProbe);
 
             /* If no config, enable on port 53. */
             if (!have_cfg) {
@@ -146,7 +146,7 @@ void RegisterRustDNSUDPParsers(void)
 #endif
                 AppLayerProtoDetectPPRegister(IPPROTO_UDP, "53", ALPROTO_DNS,
                         0, sizeof(DNSHeader), STREAM_TOSERVER,
-                        DNSUDPProbe, NULL);
+                        DNSUDPProbe, DNSUDPProbe);
             }
         }
     } else {
