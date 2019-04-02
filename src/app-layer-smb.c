@@ -1028,17 +1028,17 @@ static int SMBParseHeader(Flow *f, void *smb_state,
                     break;
                 /* fall through */
             case 9:
-                sstate->smb.status = *(p++) << 24;
+                sstate->smb.status = (uint32_t)*(p++) << 24;
                 if (!(--input_len))
                     break;
                 /* fall through */
             case 10:
-                sstate->smb.status |= *(p++) << 16;
+                sstate->smb.status |= (uint32_t)*(p++) << 16;
                 if (!(--input_len))
                     break;
                 /* fall through */
             case 11:
-                sstate->smb.status |= *(p++) << 8;
+                sstate->smb.status |= (uint32_t)*(p++) << 8;
                 if (!(--input_len))
                     break;
                 /* fall through */
