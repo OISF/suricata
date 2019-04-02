@@ -1832,9 +1832,7 @@ pub extern "C" fn rs_nfs_probe(direction: libc::uint8_t,
         input: *const libc::uint8_t, len: libc::uint32_t)
     -> libc::int8_t
 {
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice: &[u8] = build_slice!(input, len as usize);
     SCLogDebug!("rs_nfs_probe: running probe");
     return nfs_probe(slice, direction);
 }
@@ -1844,9 +1842,7 @@ pub extern "C" fn rs_nfs_probe(direction: libc::uint8_t,
 pub extern "C" fn rs_nfs_probe_udp_ts(input: *const libc::uint8_t, len: libc::uint32_t)
                                -> libc::int8_t
 {
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice: &[u8] = build_slice!(input, len as usize);
     return nfs_probe_udp(slice, STREAM_TOSERVER);
 }
 
@@ -1855,9 +1851,7 @@ pub extern "C" fn rs_nfs_probe_udp_ts(input: *const libc::uint8_t, len: libc::ui
 pub extern "C" fn rs_nfs_probe_udp_tc(input: *const libc::uint8_t, len: libc::uint32_t)
                                -> libc::int8_t
 {
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice: &[u8] = build_slice!(input, len as usize);
     return nfs_probe_udp(slice, STREAM_TOCLIENT);
 }
 
