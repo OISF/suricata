@@ -54,6 +54,8 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id)
 {
+    SCEnter();
+
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
@@ -64,7 +66,8 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
         htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
                                                           HEADER_NAME);
         if (h == NULL || h->value == NULL) {
-            SCLogDebug("HTTP cookie header not present in this request");
+            SCLogDebug("HTTP %s header not present in this request",
+                       HEADER_NAME);
             return NULL;
         }
 
@@ -84,6 +87,8 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id)
 {
+    SCEnter();
+
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
@@ -94,7 +99,8 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
         htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
                                                           HEADER_NAME);
         if (h == NULL || h->value == NULL) {
-            SCLogDebug("HTTP header not present in this request");
+            SCLogDebug("HTTP %s header not present in this request",
+                       HEADER_NAME);
             return NULL;
         }
 
@@ -110,25 +116,6 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
 #endif
 
 /**
- * \brief The setup function for the http_header keyword for a signature.
- *
- * \param de_ctx Pointer to the detection engine context.
- * \param s      Pointer to signature for the current Signature being parsed
- *               from the rules.
- * \param m      Pointer to the head of the SigMatchs for the current rule
- *               being parsed.
- * \param arg    Pointer to the string holding the keyword value.
- *
- * \retval  0 On success.
- * \retval -1 On failure.
- */
-static int DetectHttpHeadersSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
-{
-    s->init_data->list = g_buffer_id;
-    return 0;
-}
-
-/**
  * \brief this function setup the http.header keyword used in the rule
  *
  * \param de_ctx   Pointer to the Detection Engine Context
@@ -140,23 +127,26 @@ static int DetectHttpHeadersSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 static int DetectHttpHeadersSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectBufferSetActiveList(s, g_buffer_id);
-    s->alproto = ALPROTO_HTTP;
+    if (DetectBufferSetActiveList(s, g_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
+
     return 0;
 }
 
 static void DetectHttpHeadersRegisterStub(void)
 {
-    sigmatch_table[KEYWORD_ID].name = KEYWORD_NAME_LEGACY;
-    sigmatch_table[KEYWORD_ID].desc = KEYWORD_NAME_LEGACY " sticky buffer for the " BUFFER_DESC;
-    sigmatch_table[KEYWORD_ID].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
-    sigmatch_table[KEYWORD_ID].Setup = DetectHttpHeadersSetup;
-    sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT;
-
     sigmatch_table[KEYWORD_ID].name = KEYWORD_NAME;
+#ifdef KEYWORD_NAME_LEGACY
+    sigmatch_table[KEYWORD_ID].alias = KEYWORD_NAME_LEGACY;
+#endif
     sigmatch_table[KEYWORD_ID].desc = KEYWORD_NAME " sticky buffer for the " BUFFER_DESC;
     sigmatch_table[KEYWORD_ID].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
     sigmatch_table[KEYWORD_ID].Setup = DetectHttpHeadersSetupSticky;
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT;
+
 
 #ifdef KEYWORD_TOSERVER
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
