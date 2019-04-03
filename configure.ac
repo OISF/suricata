@@ -1877,51 +1877,56 @@
         fi
     fi
 
-  # libnss
+  # libnss (enabled by default)
+
     AC_ARG_ENABLE(nss,
             AS_HELP_STRING([--disable-nss],[Disable libnss support]),
             [enable_nss=$enableval],[enable_nss="yes"])
+
     AC_ARG_WITH(libnss_includes,
             [  --with-libnss-includes=DIR  libnss include directory],
             [with_libnss_includes="$withval"],[with_libnss_includes="no"])
+
     AC_ARG_WITH(libnss_libraries,
             [  --with-libnss-libraries=DIR    libnss library directory],
             [with_libnss_libraries="$withval"],[with_libnss_libraries="no"])
 
     if test "$enable_nss" != "no"; then
         # Try pkg-config first:
-        PKG_CHECK_MODULES([libnss], nss,, [with_pkgconfig_nss=no])
+        PKG_CHECK_MODULES([libnss],nss,,[with_pkgconfig_nss="no"])
+
         if test "$with_pkgconfig_nss" != "no"; then
             CPPFLAGS="${CPPFLAGS} ${libnss_CFLAGS}"
             LIBS="${LIBS} ${libnss_LIBS}"
         fi
+
         if test "$with_libnss_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_libnss_includes}"
         fi
+        TMPLIBS="${LIBS}"
 
-        AC_CHECK_HEADER(sechash.h,NSS="yes",NSS="no")
-        if test "$NSS" = "yes"; then
-            if test "$with_libnss_libraries" != "no"; then
-                LDFLAGS="${LDFLAGS}  -L${with_libnss_libraries}"
-            fi
+        AC_CHECK_HEADER(sechash.h,
+            AC_CHECK_LIB(nss3,HASH_Begin,[AC_DEFINE([HAVE_NSS],[1],[libnss available])
+            NSS="yes"
+           if test "$NSS" = "yes"; then
+                if test "$with_libnss_libraries" != "no"; then
+                    LDFLAGS="${LDFLAGS}  -L${with_libnss_libraries}"
+                   LIBS="${TMPLIBS}"
+               else
+                   LIBS="${TMPLIBS}"
+                fi
+           fi]),NSS="no")
 
-            AC_CHECK_LIB(nss3, HASH_Begin,, NSS="no")
-            if test "$NSS" = "no"; then
-                echo
-                echo "   ERROR!  libnss library not found, go get it"
-                echo "   from Mozilla or your distribution:"
-                echo
-                echo "   Ubuntu: apt-get install libnss3-dev"
-                echo "   Fedora: dnf install nss-devel"
-                echo "   CentOS/RHEL: yum install nss-devel"
-                echo
-                exit 1
-            fi
-
-            AC_DEFINE([HAVE_NSS],[1],[libnss available for md5/sha1/sha256])
-            enable_nss="yes"
-        else
-            enable_nss="no"
+        if test "$NSS" = "no"; then
+            echo
+            echo "   ERROR! libnss library not found, go get it"
+            echo "   from Mozilla or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libnss3-dev"
+            echo "   Fedora: dnf install nss-devel"
+            echo "   CentOS/RHEL: yum install nss-devel"
+            echo
+            exit 1
         fi
     fi
 
