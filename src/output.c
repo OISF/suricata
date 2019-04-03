@@ -53,7 +53,6 @@
 #include "output-json-drop.h"
 #include "log-httplog.h"
 #include "output-json-http.h"
-#include "log-dnslog.h"
 #include "output-json-dns.h"
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
@@ -1072,8 +1071,7 @@ void OutputRegisterLoggers(void)
     JsonFileLogRegister();
     LogFilestoreRegister();
     OutputFilestoreRegister();
-    /* dns log */
-    LogDnsLogRegister();
+    /* dns */
     JsonDnsLogRegister();
     /* tcp streaming data */
     LogTcpDataLogRegister();

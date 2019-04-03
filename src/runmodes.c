@@ -800,11 +800,9 @@ void RunModeInitializeOutputs(void)
             continue;
 #endif
         } else if (strcmp(output->val, "dns-log") == 0) {
-#ifdef HAVE_RUST
             SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "dns-log is not available when Rust is enabled.");
+                    "dns-log is not longer available as of Suricata 5.0");
             continue;
-#endif
         } else if (strcmp(output->val, "tls-log") == 0) {
             tls_log_enabled = 1;
         }
