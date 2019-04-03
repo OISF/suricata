@@ -1811,20 +1811,23 @@
         AC_DEFINE([HAVE_DAG],[1],(Endace DAG card support enabled))
     fi
 
-# libnspr
+# libnspr (enabled by default)
     AC_ARG_ENABLE(nspr,
             AS_HELP_STRING([--disable-nspr],[Disable libnspr support]),
             [enable_nspr=$enableval],[enable_nspr="yes"])
+
     AC_ARG_WITH(libnspr_includes,
             [  --with-libnspr-includes=DIR  libnspr include directory],
-            [with_libnspr_includes="$withval"],[with_libnspr_includes=no])
+            [with_libnspr_includes="$withval"],[with_libnspr_includes="no"])
+
     AC_ARG_WITH(libnspr_libraries,
             [  --with-libnspr-libraries=DIR    libnspr library directory],
             [with_libnspr_libraries="$withval"],[with_libnspr_libraries="no"])
 
     if test "$enable_nspr" != "no"; then
         # Try pkg-config first:
-        PKG_CHECK_MODULES([libnspr], nspr,, [with_pkgconfig_nspr=no])
+        PKG_CHECK_MODULES([libnspr],nspr,,[with_pkgconfig_nspr="no"])
+
         if test "$with_pkgconfig_nspr" != "no"; then
             CPPFLAGS="${CPPFLAGS} ${libnspr_CFLAGS}"
             LIBS="${LIBS} ${libnspr_LIBS}"
@@ -1833,28 +1836,29 @@
         if test "$with_libnspr_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_libnspr_includes}"
         fi
+        TMPLIBS="${LIBS}"
+        AC_CHECK_HEADER(nspr.h,
+           AC_CHECK_LIB(nspr4,PR_GetCurrentThread,[AC_DEFINE([HAVE_NSPR],[1],[libnspr available])
+           NSPR="yes"
+            if test "$NSPR" = "yes"; then
+                if test "$with_libnspr_libraries" != "no"; then
+                    LDFLAGS="${LDFLAGS}  -L${with_libnspr_libraries}"
+                   LIBS="${TMPLIBS}"
+                else
+                   LIBS="${TMPLIBS}"
+                fi
+            fi]),NSPR="no")
 
-        AC_CHECK_HEADER(nspr.h,NSPR="yes",NSPR="no")
-        if test "$NSPR" = "yes"; then
-            if test "$with_libnspr_libraries" != "no"; then
-                LDFLAGS="${LDFLAGS}  -L${with_libnspr_libraries}"
-            fi
-
-            AC_CHECK_LIB(nspr4, PR_GetCurrentThread,, NSPR="no")
-
-            if test "$NSPR" = "no"; then
-                echo
-                echo "   ERROR!  libnspr library not found, go get it"
-                echo "   from Mozilla or your distribution:"
-                echo
-                echo "   Ubuntu: apt-get install libnspr4-dev"
-                echo "   Fedora: dnf install nspr-devel"
-                echo "   CentOS/RHEL: yum install nspr-devel"
-                echo
-                exit 1
-            fi
-        else
-            enable_nspr="no"
+        if test "$NSPR" = "no"; then
+            echo
+            echo "   ERROR!  libnspr library not found, go get it"
+            echo "   from Mozilla or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libnspr4-dev"
+            echo "   Fedora: dnf install nspr-devel"
+            echo "   CentOS/RHEL: yum install nspr-devel"
+            echo
+            exit 1
         fi
     fi
 
