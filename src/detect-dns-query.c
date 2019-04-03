@@ -264,14 +264,13 @@ static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx,
  */
 void DetectDnsQueryRegister (void)
 {
-    sigmatch_table[DETECT_AL_DNS_QUERY].name = "dns_query";
-    sigmatch_table[DETECT_AL_DNS_QUERY].desc = "content modifier to match specifically and only on the DNS query-buffer";
-    sigmatch_table[DETECT_AL_DNS_QUERY].Match = NULL;
+    sigmatch_table[DETECT_AL_DNS_QUERY].name = "dns.query";
+    sigmatch_table[DETECT_AL_DNS_QUERY].alias = "dns_query";
+    sigmatch_table[DETECT_AL_DNS_QUERY].desc = "sticky buffer to match DNS query-buffer";
     sigmatch_table[DETECT_AL_DNS_QUERY].Setup = DetectDnsQuerySetup;
-    sigmatch_table[DETECT_AL_DNS_QUERY].Free  = NULL;
     sigmatch_table[DETECT_AL_DNS_QUERY].RegisterTests = DetectDnsQueryRegisterTests;
-
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMpmRegister2("dns_query", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmDnsQueryRegister, NULL,
@@ -302,7 +301,7 @@ void DetectDnsQueryRegister (void)
 
 
 /**
- * \brief this function setups the dns_query modifier keyword used in the rule
+ * \brief setup the dns_query sticky buffer keyword used in the rule
  *
  * \param de_ctx   Pointer to the Detection Engine Context
  * \param s        Pointer to the Signature to which the current keyword belongs
@@ -314,8 +313,10 @@ void DetectDnsQueryRegister (void)
 
 static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectBufferSetActiveList(s, g_dns_query_buffer_id);
-    s->alproto = ALPROTO_DNS;
+    if (DetectBufferSetActiveList(s, g_dns_query_buffer_id) < 0)
+        return -1;
+    if (DetectSignatureSetAppProto(s, ALPROTO_DNS) < 0)
+        return -1;
     return 0;
 }
 
