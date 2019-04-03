@@ -286,7 +286,6 @@ ippair-bit.c ippair-bit.h \
 ippair-queue.c ippair-queue.h \
 ippair-storage.c ippair-storage.h \
 ippair-timeout.c ippair-timeout.h \
-log-dnslog.c log-dnslog.h \
 log-droplog.c log-droplog.h \
 log-filestore.c log-filestore.h \
 log-cf-common.c log-cf-common.h \
