@@ -430,44 +430,6 @@ Example of a HTTP-log line with extended logging:
                                   # overwritten while restarting Suricata.
       extended: yes               # If set to yes more information is written about the event.
 
-A line based log of DNS queries and replies (dns.log)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This log keeps track of all DNS events (queries and replies). It
-contains the type of DNS activity that has been performed, the
-requested / replied domain name and relevant data suck as client,
-server, ttl, resource record data. This logging can also be performed
-through the use of the :ref:`Eve-log capability <eve-json-format>` which
-offers easier parsing.
-
-Example of the appearance of a DNS log of a query with a preceding reply:
-
-::
-
-  07/01/2014-04:07:08.768100 [**] Query TX 14bf [**] zeustracker.abuse.ch [**] A [**] 192.168.1.6:37681 -> 192.168.1.1:53
-  07/01/2014-04:07:08.768100 [**] Response TX 14bf [**] zeustracker.abuse.ch [**] A [**] TTL 60 [**] 205.188.95.206 [**] 192.168.1.1:53 -> 192.168.1.6:37681
-
-Non-existant domains and other DNS errors are recorded by the text
-representation of the rcode field in the reply (see RFC1035 and
-RFC2136 for a list).  In the example below a non-existent domain is
-resolved and the NXDOMAIN error logged:
-
-::
-
-  02/25/2015-22:58:40.499385 [**] Query TX a3ce [**] nosuchdomainwfqwdqwdqw.com [**] A [**] 192.168.40.10:48361 -> 192.168.40.2:53
-  02/25/2015-22:58:40.499385 [**] Response TX a3ce [**] NXDOMAIN [**] 192.168.40.2:53 -> 192.168.40.10:48361
-  02/25/2015-22:58:40.499385 [**] Response TX a3ce [**] NXDOMAIN [**] 192.168.40.2:53 -> 192.168.40.10:48361
-
-Configuration options:
-
-::
-
-  - dns-log:                      # The log-name
-      enabled: yes                # If this log is enabled. Set 'no' to disable
-      filename: dns.log           # Name of this file this log is written to in the default logging directory
-      append: yes                 # If this option is set to yes, the (if any exists) dns.log file wil not be overwritten while restarting Suricata.
-      filetype: regular / unix_stream / unix_dgram
-
 .. _suricata_yaml_pcap_log:
 
 Packet log (pcap-log)
