@@ -146,10 +146,9 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
     DetectFtpdataData *ftpcommandd = NULL;
     char arg1[5] = "";
 #define MAX_SUBSTRINGS 30
-    int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study,
+    int ret = pcre_exec(parse_regex, parse_regex_study,
                     ftpcommandstr, strlen(ftpcommandstr),
                     0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
@@ -157,7 +156,7 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
         goto error;
     }
 
-    res = pcre_copy_substring((char *) ftpcommandstr, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
+    int res = pcre_copy_substring((char *) ftpcommandstr, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
@@ -176,7 +175,6 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
         goto error;
     }
 
-
     return ftpcommandd;
 
 error:
@@ -191,40 +189,30 @@ error:
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param ftpcommandstr pointer to the user provided ftpcommand options
+ * \param str pointer to the user provided ftpcommand options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFtpdataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *ftpcommandstr)
+static int DetectFtpdataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectFtpdataData *ftpcommandd = NULL;
-    SigMatch *sm = NULL;
-
     if (DetectSignatureSetAppProto(s, ALPROTO_FTPDATA) != 0)
         return -1;
 
-    ftpcommandd = DetectFtpdataParse(ftpcommandstr);
+    DetectFtpdataData *ftpcommandd = DetectFtpdataParse(str);
     if (ftpcommandd == NULL)
-        goto error;
+        return -1;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectFtpdataFree(ftpcommandd);
+        return -1;
+    }
     sm->type = DETECT_FTPDATA;
     sm->ctx = (void *)ftpcommandd;
 
     SigMatchAppendSMToList(s, sm, g_ftpdata_buffer_id);
-
     return 0;
-
-error:
-    if (ftpcommandd != NULL)
-        DetectFtpdataFree(ftpcommandd);
-    if (sm != NULL)
-        SCFree(sm);
-    return -1;
 }
 
 /**
@@ -240,7 +228,7 @@ static void DetectFtpdataFree(void *ptr) {
     SCFree(ftpcommandd);
 }
 
-#if UNITTESTS
+#ifdef UNITTESTS
 
 static int DetectFtpdataParseTest01(void)
 {
@@ -258,6 +246,10 @@ static int DetectFtpdataSignatureTest01(void)
 
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (ftpdata_command:stor; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
+    sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (ftpdata_command:retr; sid:2; rev:1;)");
+    FAIL_IF_NULL(sig);
+    sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (ftpdata_command:xxx; sid:3; rev:1;)");
+    FAIL_IF_NOT_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
