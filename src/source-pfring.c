@@ -120,7 +120,7 @@ static SCMutex pfring_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 /**
  * \brief Structure to hold thread specific variables.
  */
-typedef struct PfringThreadVars_
+struct PfringThreadVars_
 {
     /* thread specific handle */
     pfring *pd;
@@ -154,7 +154,7 @@ typedef struct PfringThreadVars_
      ChecksumValidationMode checksum_mode;
 
     bool vlan_hdr_warned;
-} PfringThreadVars;
+};
 
 /**
  * \brief Registration Function for RecievePfring.
