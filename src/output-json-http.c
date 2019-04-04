@@ -261,6 +261,26 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
                 *p = '\0';
             json_object_set_new(js, "http_content_type", SCJsonString(string));
         }
+        htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
+        if (h_content_range != NULL) {
+            const size_t size = bstr_len(h_content_range->value) * 2 + 1;
+            char string[size];
+            BytesToStringBuffer(bstr_ptr(h_content_range->value), bstr_len(h_content_range->value), string, size);
+            json_t *crjs = json_object();
+            if (crjs != NULL) {
+                json_object_set_new(crjs, "raw", SCJsonString(string));
+                htp_content_range_t crparsed;
+                if (htp_parse_content_range(h_content_range->value, &crparsed) == HTP_OK) {
+                    if (crparsed.start >= 0)
+                    json_object_set_new(crjs, "start", json_integer(crparsed.start));
+                    if (crparsed.start >= 0)
+                    json_object_set_new(crjs, "end", json_integer(crparsed.end));
+                    if (crparsed.start >= 0)
+                    json_object_set_new(crjs, "size", json_integer(crparsed.size));
+                }
+                json_object_set_new(js, "http_content_range", crjs);
+            }
+        }
     }
 }
 
