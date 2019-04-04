@@ -8,7 +8,7 @@ environment:
       CONFIGURE: "--with-libpcap-libraries=/c/WpdPack/Lib/x64 --with-libpcap-includes=/c/WpdPack/Include --enable-windivert --with-windivert-include=/c/WinDivert-1.4.3-A/include --with-windivert-libraries=/c/WinDivert-1.4.3-A/x86_64 --enable-unittests"
       MINGW_DIR: c:\msys64\mingw64
       MINGW_ARCH: x86_64
-      RUST: disable
+      RUST: enable
       WINDIVERT: enable
       UNITTESTS: enable
       CFLAGS: -Werror -Wall -Wextra -Wno-unused-parameter -Wno-unused-function
@@ -21,7 +21,7 @@ environment:
       CONFIGURE: "--with-libpcap-libraries=/c/WpdPack/Lib --with-libpcap-includes=/c/WpdPack/Include"
       MINGW_DIR: c:\msys64\mingw32
       MINGW_ARCH: i686
-      RUST: disable
+      RUST: enable
       WINDIVERT: disable
       UNITTESTS: disable
       CFLAGS: -Werror -Wall -Wextra -Wno-unused-parameter -Wno-unused-function
@@ -34,7 +34,7 @@ environment:
       CONFIGURE: "--with-libpcap-libraries=/c/npcap/Lib/x64 --with-libpcap-includes=/c/npcap/Include"
       MINGW_DIR: c:\msys64\mingw64
       MINGW_ARCH: x86_64
-      RUST: disable
+      RUST: enable
       WINDIVERT: disable
       UNITTESTS: disable
       CFLAGS: -Werror -Wall -Wextra -Wno-unused-parameter -Wno-unused-function
