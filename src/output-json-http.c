@@ -40,6 +40,7 @@
 
 #include "output.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-file.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -260,6 +261,26 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
             if (p != NULL)
                 *p = '\0';
             json_object_set_new(js, "http_content_type", SCJsonString(string));
+        }
+        htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
+        if (h_content_range != NULL) {
+            const size_t size = bstr_len(h_content_range->value) * 2 + 1;
+            char string[size];
+            BytesToStringBuffer(bstr_ptr(h_content_range->value), bstr_len(h_content_range->value), string, size);
+            json_t *crjs = json_object();
+            if (crjs != NULL) {
+                json_object_set_new(crjs, "raw", SCJsonString(string));
+                HtpContentRange_t crparsed;
+                if (HTPParseContentRange(h_content_range->value, &crparsed) == 0) {
+                    if (crparsed.start >= 0)
+                        json_object_set_new(crjs, "start", json_integer(crparsed.start));
+                    if (crparsed.end >= 0)
+                        json_object_set_new(crjs, "end", json_integer(crparsed.end));
+                    if (crparsed.size >= 0)
+                        json_object_set_new(crjs, "size", json_integer(crparsed.size));
+                }
+                json_object_set_new(js, "content_range", crjs);
+            }
         }
     }
 }
