@@ -74,27 +74,31 @@ typedef struct JsonAnomalyLogThread_ {
     AnomalyJsonOutputCtx* json_output_ctx;
 } JsonAnomalyLogThread;
 
-static int AnomalyJsonDecoderEvent(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *p)
+static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *p)
 {
     uint8_t i;
     json_t *js;
+
+    if (p->events.cnt == 0) {
+        return TM_ECODE_OK;
+    }
     AnomalyJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
 
-    if (p->events.cnt == 0)
-        return TM_ECODE_OK;
-
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "anomaly");
-    if (js == NULL)
-        return TM_ECODE_OK;
 
     for (i = 0; i < p->events.cnt; i++) {
         MemBufferReset(aft->json_buffer);
+
+        js = CreateJSONHeader(p, LOG_DIR_PACKET, "anomaly");
+        if (unlikely(js == NULL))
+            return TM_ECODE_OK;
+
+        JsonAddCommonOptions(&json_output_ctx->cfg, p, p->flow, js);
 
         char buf[(32 * 3) + 1];
         PrintRawLineHexBuf(buf, sizeof(buf), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
 
         json_t *ajs = json_object();
-        if (ajs == NULL) {
+        if (unlikely(ajs == NULL)) {
             json_decref(js);
             return TM_ECODE_OK;
         }
@@ -118,21 +122,77 @@ static int AnomalyJsonDecoderEvent(ThreadVars *tv, JsonAnomalyLogThread *aft, co
         /* anomaly */
         json_object_set_new(js, "anomaly", ajs);
         OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
+
+        json_object_clear(js);
+        json_decref(js);
     }
-    json_object_clear(js);
-    json_decref(js);
+
+    return TM_ECODE_OK;
+}
+
+static int AnomalyJsonDecoderEvent(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *p)
+{
+    int i;
+    char timebuf[64];
+    json_t *js;
+
+    CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    /* "events.cnt" contains the actual event count */
+    for (i = 0; i < p->events.cnt; i++) {
+        MemBufferReset(aft->json_buffer);
+
+        char buf[(32 * 3) + 1];
+        PrintRawLineHexBuf(buf, sizeof(buf), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
+
+        js = json_object();
+        if (unlikely(js == NULL)) {
+            return TM_ECODE_OK;
+        }
+
+        json_t *ajs = json_object();
+        if (ajs == NULL) {
+            json_decref(js);
+            return TM_ECODE_OK;
+        }
+
+        json_object_set_new(js, "timestamp", json_string(timebuf));
+
+        //JsonFiveTuple((const Packet *)p, LOG_DIR_PACKET, js);
+
+        if (p->tenant_id > 0)
+            json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
+
+        uint8_t event_code = p->events.events[i];
+        const char *event;
+        if (EVENT_IS_DECODER_PACKET_ERROR(event_code)) {
+            event = DEvents[event_code].event_name;
+        } else {
+            event = (const char *) "unknown";
+        }
+        json_object_set_new(ajs, "decoder-event", json_string(event));
+
+        /* anomaly */
+        json_object_set_new(js, "anomaly", ajs);
+        OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
+
+        json_object_clear(js);
+        json_decref(js);
+    }
 
     return TM_ECODE_OK;
 }
 
 static int JsonAnomalyLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
-    if (p->events.cnt == 0) {
-        return 0;
-    }
-
     JsonAnomalyLogThread *aft = thread_data;
-    return AnomalyJsonDecoderEvent(tv, aft, p);
+    if (PKT_IS_IPV4(p) || PKT_IS_IPV6(p)) {
+        return AnomalyJson(tv, aft, p);
+    } else if (p->events.cnt > 0) {
+        return AnomalyJsonDecoderEvent(tv, aft, p);
+    }
+    return TM_ECODE_OK;
+
 }
 
 static int JsonAnomalyLogCondition(ThreadVars *tv, const Packet *p)
