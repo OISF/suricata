@@ -261,6 +261,13 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
                 *p = '\0';
             json_object_set_new(js, "http_content_type", SCJsonString(string));
         }
+        htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
+        if (h_content_range != NULL) {
+            const size_t size = bstr_len(h_content_range->value) * 2 + 1;
+            char string[size];
+            BytesToStringBuffer(bstr_ptr(h_content_range->value), bstr_len(h_content_range->value), string, size);
+            json_object_set_new(js, "http_content_range", SCJsonString(string));
+        }
     }
 }
 
