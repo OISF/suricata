@@ -739,6 +739,28 @@ int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
 }
 
 /**
+ *  \brief Sets the offset range for a file.
+ *
+ *  \param ffc the container
+ *  \param start start offset
+ *  \param end end offset
+ *
+ *  \retval  0 ok
+ *  \retval -1 error
+ */
+int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end)
+{
+    SCEnter();
+
+    if (ffc == NULL || ffc->tail == NULL) {
+        SCReturnInt(-1);
+    }
+    ffc->tail->start = start;
+    ffc->tail->end = end;
+    SCReturnInt(0);
+}
+
+/**
  *  \brief Open a new File
  *
  *  \param ffc flow container

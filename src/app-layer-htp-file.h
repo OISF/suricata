@@ -25,7 +25,15 @@
 #ifndef __APP_LAYER_HTP_FILE_H__
 #define __APP_LAYER_HTP_FILE_H__
 
+typedef struct HtpContentRange_ {
+    int64_t start;
+    int64_t end;
+    int64_t size;
+} HtpContentRange;
+
 int HTPFileOpen(HtpState *, const uint8_t *, uint16_t, const uint8_t *, uint32_t, uint64_t, uint8_t);
+int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range);
+int HTPFileSetRange(HtpState *, bstr *rawvalue);
 int HTPFileStoreChunk(HtpState *, const uint8_t *, uint32_t, uint8_t);
 int HTPFileClose(HtpState *, const uint8_t *, uint32_t, uint8_t, uint8_t);
 
