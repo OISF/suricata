@@ -2096,6 +2096,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         suri->run_mode = RUNMODE_ENGINE_ANALYSIS;
 
     suri->offline = IsRunModeOffline(suri->run_mode);
+    suri->system = IsRunModeSystem(suri->run_mode);
 
     ret = SetBpfString(optind, argv);
     if (ret != TM_ECODE_OK)

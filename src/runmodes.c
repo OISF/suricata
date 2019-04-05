@@ -492,6 +492,19 @@ int RunModeOutputFiledataEnabled(void)
     return filedata_logger_count > 0;
 }
 
+bool IsRunModeSystem(enum RunModes run_mode_to_check)
+{
+    switch (run_mode_to_check) {
+        case RUNMODE_PCAP_FILE:
+        case RUNMODE_ERF_FILE:
+        case RUNMODE_ENGINE_ANALYSIS:
+            return false;
+            break;
+        default:
+            return true;
+    }
+}
+
 bool IsRunModeOffline(int run_mode_to_check)
 {
     switch(run_mode_to_check) {
