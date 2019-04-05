@@ -283,7 +283,7 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
         if (mode != 0) {
             int r = chmod(filename, mode);
             if (r < 0) {
-                SCLogWarning(SC_WARN_CHMOD, "Could not chmod %s to %u: %s",
+                SCLogWarning(SC_WARN_CHMOD, "Could not chmod %s to %o: %s",
                              filename, mode, strerror(errno));
             }
         }
