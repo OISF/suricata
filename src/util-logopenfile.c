@@ -133,11 +133,9 @@ static int SCLogFileWriteSocket(const char *buffer, int buffer_len,
     int tries = 0;
     int ret = 0;
     bool reopen = false;
-#ifdef BUILD_WITH_UNIXSOCKET
     if (ctx->fp == NULL && ctx->is_sock) {
         SCLogUnixSocketReconnect(ctx);
     }
-#endif
 tryagain:
     ret = -1;
     reopen = 0;
