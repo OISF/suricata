@@ -1397,8 +1397,17 @@ void SCLogLoadConfig(int daemon, int verbose)
                     "Logging to file requires a filename");
                 exit(EXIT_FAILURE);
             }
+            char *path = NULL;
+            if (!(PathIsAbsolute(filename))) {
+                path = SCLogGetLogFilename(filename);
+            } else {
+                path = SCStrdup(filename);
+            }
+            if (path == NULL)
+                FatalError(SC_ERR_FATAL, "failed to setup output to file");
             have_logging = 1;
-            op_iface_ctx = SCLogInitFileOPIface(filename, format, level, type);
+            op_iface_ctx = SCLogInitFileOPIface(path, format, level, type);
+            SCFree(path);
         }
         else if (strcmp(output->name, "syslog") == 0) {
             int facility = SC_LOG_DEF_SYSLOG_FACILITY;
@@ -1454,16 +1463,11 @@ void SCLogLoadConfig(int daemon, int verbose)
  */
 static char *SCLogGetLogFilename(const char *filearg)
 {
-    const char *log_dir;
-    char *log_filename;
-
-    log_dir = ConfigGetLogDirectory();
-
-    log_filename = SCMalloc(PATH_MAX);
+    const char *log_dir = ConfigGetLogDirectory();
+    char *log_filename = SCMalloc(PATH_MAX);
     if (unlikely(log_filename == NULL))
         return NULL;
     snprintf(log_filename, PATH_MAX, "%s/%s", log_dir, filearg);
-
     return log_filename;
 }
 

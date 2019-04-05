@@ -596,7 +596,7 @@ logging:
   - file:
       enabled: yes
       level: info
-      filename: @e_logdir@suricata.log
+      filename: suricata.log
       # type: json
   - syslog:
       enabled: no

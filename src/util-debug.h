@@ -99,7 +99,7 @@ typedef enum {
 #define SC_LOG_DEF_LOG_OP_IFACE SC_LOG_OP_IFACE_CONSOLE
 
 /* The default log file to be used */
-#define SC_LOG_DEF_LOG_FILE "sc_ids_log.log"
+#define SC_LOG_DEF_LOG_FILE "suricata.log"
 
 /* The default syslog facility to be used */
 #define SC_LOG_DEF_SYSLOG_FACILITY_STR "local0"
