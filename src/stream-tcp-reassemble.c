@@ -419,8 +419,10 @@ void StreamTcpReassembleFree(char quiet)
     SCMutexDestroy(&segment_thread_pool_mutex);
 
 #ifdef DEBUG
-    SCLogInfo("segment_pool_memuse %"PRIu64"", segment_pool_memuse);
-    SCLogInfo("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
+    if (segment_pool_memuse > 0)
+        SCLogInfo("segment_pool_memuse %"PRIu64"", segment_pool_memuse);
+    if (segment_pool_memcnt > 0)
+        SCLogInfo("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
     SCMutexDestroy(&segment_pool_memuse_mutex);
 #endif
 }
