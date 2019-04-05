@@ -823,7 +823,7 @@ void RunModeInitializeOutputs(void)
                 OutputInitResult r = module->InitFunc(output_config);
                 if (!r.ok) {
                     FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
-                        "output module setup failed");
+                        "output module \"%s\": setup failed", output->val);
                     continue;
                 } else if (r.ctx == NULL) {
                     continue;
