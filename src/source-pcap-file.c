@@ -239,14 +239,14 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     }
 
     DIR *directory = NULL;
-    SCLogInfo("Checking file or directory %s", (char*)initdata);
+    SCLogDebug("checking file or directory %s", (char*)initdata);
     if(PcapDetermineDirectoryOrFile((char *)initdata, &directory) == TM_ECODE_FAILED) {
         CleanupPcapFileThreadVars(ptv);
         SCReturnInt(TM_ECODE_OK);
     }
 
     if(directory == NULL) {
-        SCLogInfo("Argument %s was a file", (char *)initdata);
+        SCLogDebug("argument %s was a file", (char *)initdata);
         PcapFileFileVars *pv = SCMalloc(sizeof(PcapFileFileVars));
         if (unlikely(pv == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate file vars");
