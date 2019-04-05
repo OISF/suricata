@@ -1058,14 +1058,18 @@ static TmEcode PrintVersion(void)
     return TM_ECODE_OK;
 }
 
-static TmEcode LogVersion(void)
+static TmEcode LogVersion(SCInstance *suri)
 {
+    const char *mode = suri->system ? "SYSTEM" : "USER";
 #ifdef REVISION
-    SCLogNotice("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+    SCLogNotice("This is %s version %s (rev %s) running in %s mode",
+            PROG_NAME, PROG_VER, xstr(REVISION), mode);
 #elif defined RELEASE
-    SCLogNotice("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
+    SCLogNotice("This is %s version %s RELEASE running in %s mode",
+            PROG_NAME, PROG_VER, mode);
 #else
-    SCLogNotice("This is %s version %s", PROG_NAME, PROG_VER);
+    SCLogNotice("This is %s version %s running in %s mode",
+            PROG_NAME, PROG_VER, mode);
 #endif
     return TM_ECODE_OK;
 }
@@ -2952,7 +2956,7 @@ int main(int argc, char **argv)
      * logging module. */
     SCLogLoadConfig(suricata.daemon, suricata.verbose);
 
-    LogVersion();
+    LogVersion(&suricata);
     UtilCpuPrintSummary();
 
     if (ParseInterfacesList(suricata.aux_run_mode, suricata.pcap_dev) != TM_ECODE_OK) {
