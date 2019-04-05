@@ -1422,7 +1422,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int conf_test_force_success = 0;
 #endif
     int engine_analysis = 0;
-    int set_log_directory = 0;
     int ret = TM_ECODE_OK;
 
 #ifdef UNITTESTS
@@ -1926,7 +1925,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         "exist. Shutting down the engine.", optarg, optarg);
                 return TM_ECODE_FAILED;
             }
-            set_log_directory = 1;
+            suri->set_logdir = true;
 
             break;
         case 'q':
@@ -2078,8 +2077,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     }
 #endif
 
-    if ((suri->run_mode == RUNMODE_UNIX_SOCKET) && set_log_directory) {
-        SCLogError(SC_ERR_INITIALIZATION, "can't use -l and unix socket runmode at the same time");
+    if ((suri->run_mode == RUNMODE_UNIX_SOCKET) && suri->set_logdir) {
+        SCLogError(SC_ERR_INITIALIZATION,
+                "can't use -l and unix socket runmode at the same time");
         return TM_ECODE_FAILED;
     }
 
@@ -2641,6 +2641,19 @@ static void PostConfLoadedSetupHostMode(void)
 
 }
 
+static void SetupUserMode(SCInstance *suri)
+{
+    /* apply 'user mode' config updates here */
+    if (suri->system == false) {
+        if (suri->set_logdir == false) {
+            /* override log dir to current work dir" */
+            if (ConfigSetLogDirectory((char *)".") != TM_ECODE_OK) {
+                FatalError(SC_ERR_LOGDIR_CONFIG, "could not set USER mode logdir");
+            }
+        }
+    }
+}
+
 /**
  * This function is meant to contain code that needs
  * to be run once the configuration has been loaded.
@@ -2951,6 +2964,8 @@ int main(int argc, char **argv)
         ConfDump();
         exit(EXIT_SUCCESS);
     }
+
+    SetupUserMode(&suricata);
 
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
