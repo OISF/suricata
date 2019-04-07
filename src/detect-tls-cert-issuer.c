@@ -20,7 +20,7 @@
  *
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  *
- * Implements support for tls_cert_issuer keyword.
+ * Implements support for tls.cert_issuer keyword.
  */
 
 #include "suricata-common.h"
@@ -63,11 +63,12 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 static int g_tls_cert_issuer_buffer_id = 0;
 
 /**
- * \brief Registration function for keyword: tls_cert_issuer
+ * \brief Registration function for keyword: tls.cert_issuer
  */
 void DetectTlsIssuerRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].name = "tls_cert_issuer";
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].name = "tls.cert_issuer";
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].alias = "tls_cert_issuer";
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].desc = "content modifier to match specifically and only on the TLS cert issuer buffer";
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-issuer";
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].Match = NULL;
@@ -76,19 +77,20 @@ void DetectTlsIssuerRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].RegisterTests = DetectTlsIssuerRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("tls_cert_issuer", ALPROTO_TLS,
+    DetectAppLayerInspectEngineRegister2("tls.cert_issuer", ALPROTO_TLS,
             SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("tls_cert_issuer", SIG_FLAG_TOCLIENT, 2,
+    DetectAppLayerMpmRegister2("tls.cert_issuer", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS,
             TLS_STATE_CERT_READY);
 
-    DetectBufferTypeSetDescriptionByName("tls_cert_issuer",
+    DetectBufferTypeSetDescriptionByName("tls.cert_issuer",
             "TLS certificate issuer");
 
-    g_tls_cert_issuer_buffer_id = DetectBufferTypeGetByName("tls_cert_issuer");
+    g_tls_cert_issuer_buffer_id = DetectBufferTypeGetByName("tls.cert_issuer");
 }
 
 
@@ -146,8 +148,8 @@ static int DetectTlsIssuerTest01(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tls any any -> any any "
-                               "(msg:\"Testing tls_cert_issuer\"; "
-                               "tls_cert_issuer; content:\"test\"; sid:1;)");
+                               "(msg:\"Testing tls.cert_issuer\"; "
+                               "tls.cert_issuer; content:\"test\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     /* sm should not be in the MATCH list */
@@ -423,8 +425,8 @@ static int DetectTlsIssuerTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_cert_issuer\"; "
-                              "tls_cert_issuer; content:\"google\"; nocase; "
+                              "(msg:\"Test tls.cert_issuer\"; "
+                              "tls.cert_issuer; content:\"google\"; nocase; "
                               "sid:1;)");
     FAIL_IF_NULL(s);
 

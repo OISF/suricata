@@ -20,7 +20,7 @@
  *
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  *
- * Implements support for tls_cert_serial keyword.
+ * Implements support for tls.cert_serial keyword.
  */
 
 #include "suricata-common.h"
@@ -67,11 +67,12 @@ static _Bool DetectTlsSerialValidateCallback(const Signature *s,
 static int g_tls_cert_serial_buffer_id = 0;
 
 /**
- * \brief Registration function for keyword: tls_cert_serial
+ * \brief Registration function for keyword: tls.cert_serial
  */
 void DetectTlsSerialRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].name = "tls_cert_serial";
+    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].name = "tls.cert_serial";
+    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].alias = "tls_cert_serial";
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].desc = "content modifier to match the TLS cert serial buffer";
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-serial";
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].Match = NULL;
@@ -80,25 +81,26 @@ void DetectTlsSerialRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].RegisterTests = DetectTlsSerialRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("tls_cert_serial", ALPROTO_TLS,
+    DetectAppLayerInspectEngineRegister2("tls.cert_serial", ALPROTO_TLS,
             SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("tls_cert_serial", SIG_FLAG_TOCLIENT, 2,
+    DetectAppLayerMpmRegister2("tls.cert_serial", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS,
             TLS_STATE_CERT_READY);
 
-    DetectBufferTypeSetDescriptionByName("tls_cert_serial",
+    DetectBufferTypeSetDescriptionByName("tls.cert_serial",
             "TLS certificate serial number");
 
-    DetectBufferTypeRegisterSetupCallback("tls_cert_serial",
+    DetectBufferTypeRegisterSetupCallback("tls.cert_serial",
             DetectTlsSerialSetupCallback);
 
-    DetectBufferTypeRegisterValidateCallback("tls_cert_serial",
+    DetectBufferTypeRegisterValidateCallback("tls.cert_serial",
             DetectTlsSerialValidateCallback);
 
-    g_tls_cert_serial_buffer_id = DetectBufferTypeGetByName("tls_cert_serial");
+    g_tls_cert_serial_buffer_id = DetectBufferTypeGetByName("tls.cert_serial");
 }
 
 /**
@@ -154,7 +156,7 @@ static _Bool DetectTlsSerialValidateCallback(const Signature *s,
         const DetectContentData *cd = (DetectContentData *)sm->ctx;
 
         if (cd->flags & DETECT_CONTENT_NOCASE) {
-            *sigerror = "tls_cert_serial should not be used together "
+            *sigerror = "tls.cert_serial should not be used together "
                         "with nocase, since the rule is automatically "
                         "uppercased anyway which makes nocase redundant.";
             SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
@@ -170,7 +172,7 @@ static _Bool DetectTlsSerialValidateCallback(const Signature *s,
                 return TRUE;
 
         *sigerror = "No colon delimiters ':' detected in content after "
-                    "tls_cert_serial. This rule will therefore never "
+                    "tls.cert_serial. This rule will therefore never "
                     "match.";
         SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
 
@@ -213,7 +215,7 @@ static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
 #ifdef UNITTESTS
 
 /**
- * \test Test that a signature containing tls_cert_serial is correctly parsed
+ * \test Test that a signature containing tls.cert_serial is correctly parsed
  *       and that the keyword is registered.
  */
 static int DetectTlsSerialTest01(void)
@@ -226,8 +228,8 @@ static int DetectTlsSerialTest01(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tls any any -> any any "
-                               "(msg:\"Testing tls_cert_serial\"; "
-                               "tls_cert_serial; content:\"XX:XX:XX\"; sid:1;)");
+                               "(msg:\"Testing tls.cert_serial\"; "
+                               "tls.cert_serial; content:\"XX:XX:XX\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     /* sm should not be in the MATCH list */
@@ -502,8 +504,8 @@ static int DetectTlsSerialTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_cert_serial\"; "
-                              "tls_cert_serial; "
+                              "(msg:\"Test tls.cert_serial\"; "
+                              "tls.cert_serial; "
                               "content:\"5C:19:B7:B1:32:3B:1C:A1\"; "
                               "sid:1;)");
     FAIL_IF_NULL(s);

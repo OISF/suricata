@@ -20,7 +20,7 @@
  *
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  *
- * Implements support for tls_sni keyword.
+ * Implements support for tls.sni keyword.
  */
 
 #include "suricata-common.h"
@@ -63,11 +63,12 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 static int g_tls_sni_buffer_id = 0;
 
 /**
- * \brief Registration function for keyword: tls_sni
+ * \brief Registration function for keyword: tls.sni
  */
 void DetectTlsSniRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_SNI].name = "tls_sni";
+    sigmatch_table[DETECT_AL_TLS_SNI].name = "tls.sni";
+    sigmatch_table[DETECT_AL_TLS_SNI].alias = "tls_sni";
     sigmatch_table[DETECT_AL_TLS_SNI].desc = "content modifier to match specifically and only on the TLS SNI buffer";
     sigmatch_table[DETECT_AL_TLS_SNI].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-sni";
     sigmatch_table[DETECT_AL_TLS_SNI].Match = NULL;
@@ -76,22 +77,23 @@ void DetectTlsSniRegister(void)
     sigmatch_table[DETECT_AL_TLS_SNI].RegisterTests = DetectTlsSniRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("tls_sni", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister2("tls.sni", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("tls_sni", SIG_FLAG_TOSERVER, 2,
+    DetectAppLayerMpmRegister2("tls.sni", SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
 
-    DetectBufferTypeSetDescriptionByName("tls_sni",
+    DetectBufferTypeSetDescriptionByName("tls.sni",
             "TLS Server Name Indication (SNI) extension");
 
-    g_tls_sni_buffer_id = DetectBufferTypeGetByName("tls_sni");
+    g_tls_sni_buffer_id = DetectBufferTypeGetByName("tls.sni");
 }
 
 
 /**
- * \brief this function setup the tls_sni modifier keyword used in the rule
+ * \brief this function setup the tls.sni modifier keyword used in the rule
  *
  * \param de_ctx   Pointer to the Detection Engine Context
  * \param s        Pointer to the Signature to which the current keyword belongs
@@ -190,8 +192,8 @@ static int DetectTlsSniTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_sni option\"; "
-                              "tls_sni; content:\"google.com\"; sid:1;)");
+                              "(msg:\"Test tls.sni option\"; "
+                              "tls.sni; content:\"google.com\"; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -282,14 +284,14 @@ static int DetectTlsSniTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_sni option\"; "
-                              "tls_sni; content:\"google\"; nocase; "
+                              "(msg:\"Test tls.sni option\"; "
+                              "tls.sni; content:\"google\"; nocase; "
                               "pcre:\"/google\\.com$/i\"; sid:1;)");
     FAIL_IF_NULL(s);
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_sni option\"; "
-                              "tls_sni; content:\"google\"; nocase; "
+                              "(msg:\"Test tls.sni option\"; "
+                              "tls.sni; content:\"google\"; nocase; "
                               "pcre:\"/^\\.[a-z]{2,3}$/iR\"; sid:2;)");
     FAIL_IF_NULL(s);
 
