@@ -3,7 +3,7 @@ SSH Keywords
 
 Suricata comes with several rule keywords to match on SSH connections.
 
-ssh_proto
+ssh.proto
 ---------
 
 Match on the version of the SSH protocol used.
@@ -11,29 +11,37 @@ Match on the version of the SSH protocol used.
 Example::
 
   alert ssh any any -> any any (msg:"match SSH protocol version"; \
-      ssh_proto; content:"2.0"; sid:1000010;)
+      ssh.proto; content:"2.0"; sid:1000010;)
 
 The example above matches on SSH connections with SSH version 2.
 
-``ssh_proto`` is a 'Sticky buffer'.
+``ssh.proto`` is a 'Sticky buffer'.
 
-``ssh_proto`` can be used as ``fast_pattern``.
+``ssh.proto`` can be used as ``fast_pattern``.
 
-ssh_version
------------
+``ssh.proto`` replaces the previous keyword name: ```ssh_proto``. You may continue
+to use the previous name, but it's recommended that rules be converted to use
+the new name.
+
+ssh.software
+------------
 
 Match on the software string from the SSH banner.
 
 Example::
 
   alert ssh any any -> any any (msg:"match SSH software string"; \
-      ssh_software: content:"openssh"; nocase; sid:1000020;)
+      ssh.software: content:"openssh"; nocase; sid:1000020;)
 
 The example above matches on SSH connections where the software string contains "openssh".
 
-``ssh_software`` is a 'Sticky buffer'.
+``ssh.software`` is a 'Sticky buffer'.
 
-``ssh_software`` can be used as ``fast_pattern``.
+``ssh.software`` can be used as ``fast_pattern``.
+
+``ssh.software`` replaces the previous keyword name: ```ssh_software``. You may continue
+to use the previous name, but it's recommended that rules be converted to use
+the new name.
 
 ssh.protoversion
 ----------------
