@@ -20,7 +20,7 @@
  *
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  *
- * Implements support for tls_cert_subject keyword.
+ * Implements support for tls.cert_subject keyword.
  */
 
 #include "suricata-common.h"
@@ -63,11 +63,12 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 static int g_tls_cert_subject_buffer_id = 0;
 
 /**
- * \brief Registration function for keyword: tls_cert_subject
+ * \brief Registration function for keyword: tls.cert_subject
  */
 void DetectTlsSubjectRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].name = "tls_cert_subject";
+    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].name = "tls.cert_subject";
+    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].alias = "tls_cert_subject";
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].desc = "content modifier to match specifically and only on the TLS cert subject buffer";
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-subject";
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].Match = NULL;
@@ -76,23 +77,24 @@ void DetectTlsSubjectRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-   DetectAppLayerInspectEngineRegister2("tls_cert_subject", ALPROTO_TLS,
+   DetectAppLayerInspectEngineRegister2("tls.cert_subject", ALPROTO_TLS,
             SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("tls_cert_subject", SIG_FLAG_TOCLIENT, 2,
+    DetectAppLayerMpmRegister2("tls.cert_subject", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS,
             TLS_STATE_CERT_READY);
 
-    DetectBufferTypeSetDescriptionByName("tls_cert_subject",
+    DetectBufferTypeSetDescriptionByName("tls.cert_subject",
             "TLS certificate subject");
 
-    g_tls_cert_subject_buffer_id = DetectBufferTypeGetByName("tls_cert_subject");
+    g_tls_cert_subject_buffer_id = DetectBufferTypeGetByName("tls.cert_subject");
 }
 
 /**
- * \brief this function setup the tls_cert_subject modifier keyword used in the rule
+ * \brief this function setup the tls.cert_subject modifier keyword used in the rule
  *
  * \param de_ctx   Pointer to the Detection Engine Context
  * \param s        Pointer to the Signature to which the current keyword belongs
@@ -132,7 +134,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 #ifdef UNITTESTS
 
 /**
- * \test Test that a signature containing a tls_cert_subject is correctly parsed
+ * \test Test that a signature containing a tls.cert_subject is correctly parsed
  *       and that the keyword is registered.
  */
 static int DetectTlsSubjectTest01(void)
@@ -145,8 +147,8 @@ static int DetectTlsSubjectTest01(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tls any any -> any any "
-                               "(msg:\"Testing tls_cert_subject\"; "
-                               "tls_cert_subject; content:\"test\"; sid:1;)");
+                               "(msg:\"Testing tls.cert_subject\"; "
+                               "tls.cert_subject; content:\"test\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     /* sm should not be in the MATCH list */
@@ -422,8 +424,8 @@ static int DetectTlsSubjectTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_cert_subject\"; "
-                              "tls_cert_subject; content:\"google\"; nocase; "
+                              "(msg:\"Test tls.cert_subject\"; "
+                              "tls.cert_subject; content:\"google\"; nocase; "
                               "sid:1;)");
     FAIL_IF_NULL(s);
 
