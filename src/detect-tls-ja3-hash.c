@@ -20,7 +20,7 @@
  *
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  *
- * Implements support for ja3_hash keyword.
+ * Implements support for ja3.hash keyword.
  */
 
 #include "suricata-common.h"
@@ -75,7 +75,8 @@ static int g_tls_ja3_hash_buffer_id = 0;
  */
 void DetectTlsJa3HashRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_JA3_HASH].name = "ja3_hash";
+    sigmatch_table[DETECT_AL_TLS_JA3_HASH].name = "ja3.hash";
+    sigmatch_table[DETECT_AL_TLS_JA3_HASH].alias = "ja3_hash";
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].desc = "content modifier to match the JA3 hash buffer";
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].url = DOC_URL DOC_VERSION "/rules/ja3-keywords.html#ja3-hash";
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].Match = NULL;
@@ -84,26 +85,27 @@ void DetectTlsJa3HashRegister(void)
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].RegisterTests = DetectTlsJa3HashRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TLS_JA3_HASH].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("ja3_hash", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister2("ja3.hash", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("ja3_hash", SIG_FLAG_TOSERVER, 2,
+    DetectAppLayerMpmRegister2("ja3.hash", SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
 
-    DetectBufferTypeSetDescriptionByName("ja3_hash", "TLS JA3 hash");
+    DetectBufferTypeSetDescriptionByName("ja3.hash", "TLS JA3 hash");
 
-    DetectBufferTypeRegisterSetupCallback("ja3_hash",
+    DetectBufferTypeRegisterSetupCallback("ja3.hash",
             DetectTlsJa3HashSetupCallback);
 
-    DetectBufferTypeRegisterValidateCallback("ja3_hash",
+    DetectBufferTypeRegisterValidateCallback("ja3.hash",
             DetectTlsJa3HashValidateCallback);
 
-    g_tls_ja3_hash_buffer_id = DetectBufferTypeGetByName("ja3_hash");
+    g_tls_ja3_hash_buffer_id = DetectBufferTypeGetByName("ja3.hash");
 }
 
 /**
- * \brief this function setup the ja3_hash modifier keyword used in the rule
+ * \brief this function setup the ja3.hash modifier keyword used in the rule
  *
  * \param de_ctx Pointer to the Detection Engine Context
  * \param s      Pointer to the Signature to which the current keyword belongs
@@ -160,7 +162,7 @@ static _Bool DetectTlsJa3HashValidateCallback(const Signature *s,
         const DetectContentData *cd = (DetectContentData *)sm->ctx;
 
         if (cd->flags & DETECT_CONTENT_NOCASE) {
-            *sigerror = "ja3_hash should not be used together with "
+            *sigerror = "ja3.hash should not be used together with "
                         "nocase, since the rule is automatically "
                         "lowercased anyway which makes nocase redundant.";
             SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
@@ -281,7 +283,7 @@ static int DetectTlsJa3HashTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test ja3_hash\"; ja3_hash; "
+                              "(msg:\"Test ja3.hash\"; ja3.hash; "
                               "content:\"e7eca2baf4458d095b7f45da28c16c34\"; "
                               "sid:1;)");
     FAIL_IF_NULL(s);
@@ -381,7 +383,7 @@ static int DetectTlsJa3HashTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test ja3_hash\"; ja3_hash; "
+                              "(msg:\"Test ja3.hash\"; ja3.hash; "
                               "content:\"bc6c386f480ee97b9d9e52d472b772d8\"; "
                               "sid:1;)");
     FAIL_IF_NULL(s);
