@@ -659,9 +659,6 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
             action = "blocked";
         }
 
-        char buf[(32 * 3) + 1];
-        PrintRawLineHexBuf(buf, sizeof(buf), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
-
         js = json_object();
         if (js == NULL)
             return TM_ECODE_OK;
