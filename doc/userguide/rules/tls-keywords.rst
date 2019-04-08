@@ -3,35 +3,43 @@ SSL/TLS Keywords
 
 Suricata comes with several rule keywords to match on various properties of TLS/SSL handshake. Matches are string inclusion matches.
 
-tls_cert_subject
+tls.cert_subject
 ----------------
 
 Match TLS/SSL certificate Subject field.
 
 Examples::
 
-  tls_cert_subject; content:"CN=*.googleusercontent.com"; isdataat:!1,relative;
-  tls_cert_subject; content:"google.com"; nocase; pcre:"/google.com$/";
+  tls.cert_subject; content:"CN=*.googleusercontent.com"; isdataat:!1,relative;
+  tls.cert_subject; content:"google.com"; nocase; pcre:"/google.com$/";
 
-``tls_cert_subject`` is a 'Sticky buffer'.
+``tls.cert_subject`` is a 'Sticky buffer'.
 
-``tls_cert_subject`` can be used as ``fast_pattern``.
+``tls.cert_subject`` can be used as ``fast_pattern``.
 
-tls_cert_issuer
+``tls.cert_subject`` replaces the previous keyword name: ``tls_cert_subject``. You may continue
+to use the previous name, but it's recommended that rules be converted to use
+the new name.
+
+tls.cert_issuer
 ---------------
 
 Match TLS/SSL certificate Issuer field.
 
 Examples::
 
-  tls_cert_issuer; content:"WoSign"; nocase; isdataat:!1,relative;
-  tls_cert_issuer; content:"StartCom"; nocase; pcre:"/StartCom$/";
+  tls.cert_issuer; content:"WoSign"; nocase; isdataat:!1,relative;
+  tls.cert_issuer; content:"StartCom"; nocase; pcre:"/StartCom$/";
 
-``tls_cert_issuer`` is a 'Sticky buffer'.
+``tls.cert_issuer`` is a 'Sticky buffer'.
 
-``tls_cert_issuer`` can be used as ``fast_pattern``.
+``tls.cert_issuer`` can be used as ``fast_pattern``.
 
-tls_cert_serial
+``tls.cert_issuer`` replaces the previous keyword name: ``tls_cert_issuer``. You may continue
+to use the previous name, but it's recommended that rules be converted to use
+the new name.
+
+tls.cert_serial
 ---------------
 
 Match on the serial number in a certificate.
@@ -39,13 +47,17 @@ Match on the serial number in a certificate.
 Example::
 
   alert tls any any -> any any (msg:"match cert serial"; \
-    tls_cert_serial; content:"5C:19:B7:B1:32:3B:1C:A1"; sid:200012;)
+    tls.cert_serial; content:"5C:19:B7:B1:32:3B:1C:A1"; sid:200012;)
 
-``tls_cert_serial`` is a 'Sticky buffer'.
+``tls.cert_serial`` is a 'Sticky buffer'.
 
-``tls_cert_serial`` can be used as ``fast_pattern``.
+``tls.cert_serial`` can be used as ``fast_pattern``.
 
-tls_cert_fingerprint
+``tls.cert_serial`` replaces the previous keyword name: ``tls_cert_serial``. You may continue
+to use the previous name, but it's recommended that rules be converted to use
+the new name.
+
+tls.cert_fingerprint
 --------------------
 
 Match on the SHA-1 fingerprint of the certificate.
@@ -53,27 +65,35 @@ Match on the SHA-1 fingerprint of the certificate.
 Example::
 
   alert tls any any -> any any (msg:"match cert fingerprint"; \
-    tls_cert_fingerprint; \
+    tls.cert_fingerprint; \
     content:"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18"; \
     sid:200023;)
 
-``tls_cert_fingerprint`` is a 'Sticky buffer'.
+``tls.cert_fingerprint`` is a 'Sticky buffer'.
 
-``tls_cert_fingerprint`` can be used as ``fast_pattern``.
+``tls.cert_fingerprint`` can be used as ``fast_pattern``.
 
-tls_sni
+``tls.cert_fingerprint`` replaces the previous keyword name: ``tls_cert_fingerprint`` may continue
+to use the previous name, but it's recommended that rules be converted to use
+the new name.
+
+tls.sni
 -------
 
 Match TLS/SSL Server Name Indication field.
 
 Examples::
 
-  tls_sni; content:"oisf.net"; nocase; isdataat:!1,relative;
-  tls_sni; content:"oisf.net"; nocase; pcre:"/oisf.net$/";
+  tls.sni; content:"oisf.net"; nocase; isdataat:!1,relative;
+  tls.sni; content:"oisf.net"; nocase; pcre:"/oisf.net$/";
 
-``tls_sni`` is a 'Sticky buffer'.
+``tls.sni`` is a 'Sticky buffer'.
 
-``tls_sni`` can be used as ``fast_pattern``.
+``tls.sni`` can be used as ``fast_pattern``.
+
+``tls.sni`` replaces the previous keyword name: ``tls_sni``. You may continue
+to use the previous name, but it's recommended that rules be converted to use
+the new name.
 
 tls_cert_notbefore
 ------------------
@@ -166,7 +186,7 @@ example:
 
 Case sensitive, can't use 'nocase'.
 
-Legacy keyword. ``tls_cert_subject`` is the replacement.
+Legacy keyword. ``tls.cert_subject`` is the replacement.
 
 tls.issuerdn
 ------------
@@ -182,7 +202,7 @@ example:
 
 Case sensitive, can't use 'nocase'.
 
-Legacy keyword. ``tls_cert_issuer`` is the replacement.
+Legacy keyword. ``tls.cert_issuer`` is the replacement.
 
 tls.fingerprint
 ---------------
