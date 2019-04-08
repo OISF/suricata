@@ -19,7 +19,7 @@ The example above matches on SSH connections with SSH version 2.
 
 ``ssh.proto`` can be used as ``fast_pattern``.
 
-``ssh.proto`` replaces the previous keyword name: ```ssh_proto``. You may continue
+``ssh.proto`` replaces the previous keyword name: ``ssh_proto``. You may continue
 to use the previous name, but it's recommended that rules be converted to use
 the new name.
 
@@ -39,7 +39,7 @@ The example above matches on SSH connections where the software string contains 
 
 ``ssh.software`` can be used as ``fast_pattern``.
 
-``ssh.software`` replaces the previous keyword name: ```ssh_software``. You may continue
+``ssh.software`` replaces the previous keyword name: ``ssh_software``. You may continue
 to use the previous name, but it's recommended that rules be converted to use
 the new name.
 
