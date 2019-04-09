@@ -73,7 +73,7 @@ Example::
 
 ``tls.cert_fingerprint`` can be used as ``fast_pattern``.
 
-``tls.cert_fingerprint`` replaces the previous keyword name: ``tls_cert_fingerprint may continue
+``tls.cert_fingerprint`` replaces the previous keyword name: ``tls_cert_fingerprint`` may continue
 to use the previous name, but it's recommended that rules be converted to use
 the new name.
 
