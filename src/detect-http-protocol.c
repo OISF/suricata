@@ -65,166 +65,81 @@
 
 #include "util-print.h"
 
-#define KEYWORD_NAME "http_protocol"
+#define KEYWORD_NAME "http.protocol"
+#define KEYWORD_NAME_LEGACY "http_protocol"
 #define KEYWORD_DOC "http-keywords.html#http-protocol"
 #define BUFFER_NAME "http_protocol"
 #define BUFFER_DESC "http protocol"
 static int g_buffer_id = 0;
 
-/** \brief HTTP Protocol Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxHttpRequestProtocol(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
-{
-    SCEnter();
-
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-
-    if (tx->request_protocol == NULL)
-        return;
-
-    uint32_t buffer_len = bstr_size(tx->request_protocol);
-    const uint8_t *buffer = bstr_ptr(tx->request_protocol);
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
-    }
-}
-
-static int PrefilterTxHttpRequestProtocolRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestProtocol,
-        ALPROTO_HTTP, HTP_REQUEST_LINE,
-        mpm_ctx, NULL, KEYWORD_NAME " (request)");
-    return r;
-}
-
-/** \brief HTTP Protocol Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxHttpResponseProtocol(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
-{
-    SCEnter();
-
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-
-    if (tx->response_protocol == NULL)
-        return;
-
-    uint32_t buffer_len = bstr_size(tx->response_protocol);
-    const uint8_t *buffer = bstr_ptr(tx->response_protocol);
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
-    }
-}
-
-static int PrefilterTxHttpResponseProtocolRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseProtocol,
-        ALPROTO_HTTP, HTP_RESPONSE_LINE,
-        mpm_ctx, NULL, KEYWORD_NAME " (response)");
-    return r;
-}
-
-static int InspectEngineHttpProtocol(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
-{
-    bstr *str = NULL;
-    htp_tx_t *http_tx = tx;
-
-    if (flags & STREAM_TOSERVER)
-        str = http_tx->request_protocol;
-    else if (flags & STREAM_TOCLIENT)
-        str = http_tx->response_protocol;
-
-    if (str == NULL)
-        goto end;
-
-    uint32_t buffer_len = bstr_size(str);
-    uint8_t *buffer = bstr_ptr(str);
-    if (buffer == NULL ||buffer_len == 0)
-        goto end;
-
-    det_ctx->buffer_offset = 0;
-    det_ctx->discontinue_matching = 0;
-    det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-                                          f,
-                                          buffer, buffer_len,
-                                          0, DETECT_CI_FLAGS_SINGLE,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-    if (r == 1)
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-
- end:
-    if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_LINE)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_LINE)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
 static int DetectHttpProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    s->init_data->list = g_buffer_id;
+    if (DetectBufferSetActiveList(s, g_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
+
     return 0;
 }
 
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t flow_flags, void *txv, const int list_id)
+{
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        bstr *str = NULL;
+        htp_tx_t *tx = (htp_tx_t *)txv;
+
+        if (flow_flags & STREAM_TOSERVER)
+            str = tx->request_protocol;
+        else if (flow_flags & STREAM_TOCLIENT)
+            str = tx->response_protocol;
+
+        if (str == NULL) {
+            SCLogDebug("HTTP protocol not set");
+            return NULL;
+        }
+
+        uint32_t data_len = bstr_size(str);
+        uint8_t *data = bstr_ptr(str);
+        if (data == NULL || data_len == 0) {
+            SCLogDebug("HTTP protocol not present");
+            return NULL;
+        }
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
+}
+
 /**
- * \brief Registers the keyword handlers for the "http_header" keyword.
+ * \brief Registers the keyword handlers for the "http.protocol" keyword.
  */
 void DetectHttpProtocolRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].alias = KEYWORD_NAME_LEGACY;
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].desc = BUFFER_NAME " sticky buffer";
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].Setup = DetectHttpProtocolSetup;
+    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].flags |= SIGMATCH_NOOPT ;
-
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterTxHttpRequestProtocolRegister);
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
-            PrefilterTxHttpResponseProtocolRegister);
-
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
-            InspectEngineHttpProtocol);
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
-            InspectEngineHttpProtocol);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
+            HTP_REQUEST_LINE);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP,
+            HTP_RESPONSE_LINE);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
+            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP,
+            SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
+            DetectEngineInspectBufferGeneric, GetData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
