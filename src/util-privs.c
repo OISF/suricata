@@ -239,7 +239,7 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
 #ifdef __OpenBSD__
 int SCPledge(void)
 {
-    int ret = pledge("stdio rpath wpath cpath unix dns bpf", NULL);
+    int ret = pledge("stdio rpath wpath cpath fattr unix dns bpf", NULL);
 
     if (ret != 0) {
         SCLogError(SC_ERR_PLEDGE_FAILED, "unable to pledge,"
