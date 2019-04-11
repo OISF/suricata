@@ -1710,24 +1710,12 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* UNITTESTS */
             }
             else if(strcmp((long_opts[option_index]).name, "user") == 0) {
-#ifndef HAVE_LIBCAP_NG
-                SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
-                        " drop privileges, but it was not compiled into Suricata.");
-                return TM_ECODE_FAILED;
-#else
                 suri->user_name = optarg;
                 suri->do_setuid = TRUE;
-#endif /* HAVE_LIBCAP_NG */
             }
             else if(strcmp((long_opts[option_index]).name, "group") == 0) {
-#ifndef HAVE_LIBCAP_NG
-                SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "libcap-ng is required to"
-                        " drop privileges, but it was not compiled into Suricata.");
-                return TM_ECODE_FAILED;
-#else
                 suri->group_name = optarg;
                 suri->do_setgid = TRUE;
-#endif /* HAVE_LIBCAP_NG */
             }
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 suri->run_mode = RUNMODE_ERF_FILE;
