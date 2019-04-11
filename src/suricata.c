@@ -3042,7 +3042,17 @@ int main(int argc, char **argv)
 #endif
 #endif
 
-    SCSetUserID(suricata.userid, suricata.groupid);
+    /* The user must have enough permissions to change the process group ID.
+     * Once done, the user ID can be changed to finalize privilege drops.
+     */
+    if (suricata.do_setgid == TRUE) {
+	SCSetGroupID(suricata.groupid);
+    }
+
+    if (suricata.do_setuid == TRUE) {
+	SCSetUserID(suricata.userid);
+    }
+
     SCPledge();
     SuricataMainLoop(&suricata);
 

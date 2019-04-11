@@ -236,7 +236,14 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
     return 0;
 }
 
-int SCSetUserID(const uint32_t uid, const uint32_t gid)
+/**
+ * \brief   Function to set real, effective and saved group ID
+ *
+ * \param   gid  value of the given group id
+ *
+ * \retval  upon success it returns 0
+ */
+int SCSetGroupID(const uint32_t gid)
 {
     int ret = setresgid(gid, gid, gid);
 
@@ -246,7 +253,19 @@ int SCSetUserID(const uint32_t uid, const uint32_t gid)
         exit(EXIT_FAILURE);
     }
 
-    ret = setresuid(uid, uid, uid);
+    return 0;
+}
+
+/**
+ * \brief   Function to set real, effective and saved user ID
+ *
+ * \param   uid  value of the given user id
+ *
+ * \retval  upon success it returns 0
+ */
+int SCSetUserID(const uint32_t uid)
+{
+    int ret = setresuid(uid, uid, uid);
 
     if (ret != 0) {
         SCLogError(SC_ERR_UID_FAILED, "unable to set the user ID,"
