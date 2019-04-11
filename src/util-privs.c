@@ -28,7 +28,12 @@
 
 #include <grp.h>
 #include <pwd.h>
+
 #include "suricata-common.h"
+/* suricata-common.h defines _GNU_SOURCE needed <unistd.h> */
+#include <sys/types.h>
+#include <unistd.h>
+
 #include "util-debug.h"
 #include "suricata.h"
 
