@@ -2793,7 +2793,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
 
-#ifndef HAVE_LIBCAP_NG
+#if !defined(HAVE_LIBCAP_NG) && !defined(OS_WIN32)
     /* RUNMODE_AFP_DEV does not run reliably when privileges without retaining
      * the appropriate capabilities. If the AFP interface goes down if will not
      * having enough permission to reopen a AF_PACKET socket.
@@ -2811,7 +2811,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
         default:
             break;
     }
-#endif /* HAVE_LIBCAP_NG */
+#endif /* !defined(HAVE_LIBCAP_NG) && !defined(OS_WIN32) */
 
 #ifdef HAVE_NSS
     if (suri->run_mode != RUNMODE_CONF_TEST) {
