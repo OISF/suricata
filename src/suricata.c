@@ -2793,6 +2793,25 @@ static int PostConfLoadedSetup(SCInstance *suri)
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
 
+#ifndef HAVE_LIBCAP_NG
+    /* RUNMODE_AFP_DEV does not run reliably when privileges without retaining
+     * the appropriate capabilities. If the AFP interface goes down if will not
+     * having enough permission to reopen a AF_PACKET socket.
+     */
+    switch (suri->run_mode) {
+        case RUNMODE_AFP_DEV:
+            if ((suri->do_setuid == TRUE && suri->userid != 0) ||
+                (suri->do_setgid == TRUE && suri->groupid != 0)) {
+                    SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "Runmode %s requires "
+                               "libcap-ng to run with dropped privileges",
+                               RunModeGetMainMode());
+
+                    SCReturnInt(TM_ECODE_FAILED);
+	    }
+        default:
+            break;
+    }
+#endif /* HAVE_LIBCAP_NG */
 
 #ifdef HAVE_NSS
     if (suri->run_mode != RUNMODE_CONF_TEST) {
