@@ -3042,6 +3042,7 @@ int main(int argc, char **argv)
 #endif
 #endif
 
+#ifndef OS_WIN32
     /* The user must have enough permissions to change the process group ID.
      * Once done, the user ID can be changed to finalize privilege drops.
      */
@@ -3052,6 +3053,7 @@ int main(int argc, char **argv)
     if (suricata.do_setuid == TRUE) {
 	SCSetUserID(suricata.userid);
     }
+#endif /* !OS_WIN32 */
 
     SCPledge();
     SuricataMainLoop(&suricata);
