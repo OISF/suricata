@@ -82,22 +82,32 @@ def remove_file(path, dry_run):
     return size
 
 
-def prune(args):
+def set_logger_level(args):
     if args.verbose:
         logger.setLevel(logging.DEBUG)
     if args.quiet:
         logger.setLevel(logging.WARNING)
 
-    if not args.directory:
-        print(
-            "error: the filestore directory must be provided with --directory",
-            file=sys.stderr)
-        return 1
 
-    if not args.age:
-        print("error: no age provided, nothing to do", file=sys.stderr)
-        return 1
+def perform_sanity_checks(args):
+    set_logger_level(args)
+    err_msg = {
+            "directory": "filestore directory must be provided",
+            "age": "no age provided, nothing to do",
+            }
+    for val, msg in err_msg.items():
+        if not getattr(args, val):
+            print("Error: {}".format(msg), file=sys.stderr)
+            sys.exit(1)
+    required_dirs = ["tmp", "00", "ff"]
+    for required_dir in required_dirs:
+        if not os.path.exists(os.path.join(args.directory, required_dir)):
+            logger.error("Provided directory is not a filestore directory")
+            sys.exit(1)
 
+
+def prune(args):
+    perform_sanity_checks(args)
     age = parse_age(args.age)
     now = time.time()
     size = 0
