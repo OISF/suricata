@@ -89,6 +89,10 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             DecodeMPLS(tv, dtv, p, pkt + ETHERNET_HEADER_LEN,
                        len - ETHERNET_HEADER_LEN, pq);
             break;
+        case ETHERNET_TYPE_BATMAN:
+            DecodeBatman(tv, dtv, p, pkt + ETHERNET_HEADER_LEN,
+                         len - ETHERNET_HEADER_LEN, pq);
+            break;
         case ETHERNET_TYPE_DCE:
             if (unlikely(len < ETHERNET_DCE_HEADER_LEN)) {
                 ENGINE_SET_INVALID_EVENT(p, DCE_PKT_TOO_SMALL);

@@ -78,6 +78,7 @@ decode-teredo.c decode-teredo.h \
 decode-udp.c decode-udp.h \
 decode-vlan.c decode-vlan.h \
 decode-mpls.c decode-mpls.h \
+decode-batman.c decode-batman.h \
 decode-template.c decode-template.h \
 defrag-config.c defrag-config.h \
 defrag.c defrag.h \

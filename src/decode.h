@@ -87,6 +87,7 @@ enum PktSrcEnum {
 #include "decode-null.h"
 #include "decode-vlan.h"
 #include "decode-mpls.h"
+#include "decode-batman.h"
 
 #include "detect-reference.h"
 
@@ -664,6 +665,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_pppoe;
     uint16_t counter_teredo;
     uint16_t counter_mpls;
+    uint16_t counter_batman;
     uint16_t counter_ipv4inipv6;
     uint16_t counter_ipv6inipv6;
     uint16_t counter_erspan;
@@ -943,6 +945,7 @@ int DecodeSCTP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, 
 int DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);
 int DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);
 int DecodeMPLS(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);
+int DecodeBatman(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);
 int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);
 int DecodeTEMPLATE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t, PacketQueue *);
 
