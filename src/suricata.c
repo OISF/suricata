@@ -2792,27 +2792,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
-
-#if !defined(HAVE_LIBCAP_NG) && !defined(OS_WIN32)
-    /* RUNMODE_AFP_DEV does not run reliably when privileges without retaining
-     * the appropriate capabilities. If the AFP interface goes down if will not
-     * having enough permission to reopen a AF_PACKET socket.
-     */
-    switch (suri->run_mode) {
-        case RUNMODE_AFP_DEV:
-            if ((suri->do_setuid == TRUE && suri->userid != 0) ||
-                (suri->do_setgid == TRUE && suri->groupid != 0)) {
-                    SCLogError(SC_ERR_LIBCAP_NG_REQUIRED, "Runmode %s requires "
-                               "libcap-ng to run with dropped privileges",
-                               RunModeGetMainMode());
-
-                    SCReturnInt(TM_ECODE_FAILED);
-	    }
-        default:
-            break;
-    }
-#endif /* !defined(HAVE_LIBCAP_NG) && !defined(OS_WIN32) */
-
+    
 #ifdef HAVE_NSS
     if (suri->run_mode != RUNMODE_CONF_TEST) {
         /* init NSS for hashing */
@@ -3001,7 +2981,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    SCDropMainThreadCaps(suricata.userid, suricata.groupid);
+    SCPrivsInit(suricata.do_setuid, suricata.do_setgid, suricata.userid, suricata.groupid);
     PreRunPostPrivsDropInit(suricata.run_mode);
 
     PostConfLoadedDetectSetup(&suricata);
@@ -3041,19 +3021,6 @@ int main(int argc, char **argv)
     print_mem_flag = 1;
 #endif
 #endif
-
-#ifndef OS_WIN32
-    /* The user must have enough permissions to change the process group ID.
-     * Once done, the user ID can be changed to finalize privilege drops.
-     */
-    if (suricata.do_setgid == TRUE) {
-	SCSetGroupID(suricata.groupid);
-    }
-
-    if (suricata.do_setuid == TRUE) {
-	SCSetUserID(suricata.userid);
-    }
-#endif /* !OS_WIN32 */
 
     SCPledge();
     SuricataMainLoop(&suricata);

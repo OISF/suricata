@@ -28,16 +28,24 @@
 
 #include <grp.h>
 #include <pwd.h>
-
-#include "suricata-common.h"
-/* suricata-common.h defines _GNU_SOURCE needed <unistd.h> */
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "suricata-common.h"
 #include "util-debug.h"
 #include "suricata.h"
 
 #include "util-privs.h"
+
+static struct PrivsCtx {
+    SCMutex lock;
+    uid_t uid;
+    gid_t gid;
+    uid_t svuid;
+    gid_t svgid;
+    uint8_t do_setuid;
+    uint8_t do_setgid;
+} g_privs_ctx;
 
 #ifdef HAVE_LIBCAP_NG
 
@@ -141,6 +149,84 @@ void SCDropCaps(ThreadVars *tv)
 #endif
 }
 
+#define SCPrivsRaise(...)
+#define SCPrivsDrop(...)
+#define _SCPrivsDrop(...)
+
+#else /* HAVE_LIBCAP_NG */
+
+static void SCSetGroupID(const uint32_t gid)
+{
+    int ret = setegid(gid);
+
+    if (ret != 0) {
+        SCLogError(SC_ERR_GID_FAILED, "unable to set the group ID,"
+                " check permissions!! gid=%u ret=%i errno=%i", gid, ret, errno);
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void SCSetUserID(const uint32_t uid)
+{
+    int ret = seteuid(uid);
+
+    if (ret != 0) {
+        SCLogError(SC_ERR_UID_FAILED, "unable to set the user ID,"
+                " check permissions!! uid=%u ret=%i errno=%i", uid, ret, errno);
+        exit(EXIT_FAILURE);
+    }
+}
+
+/**
+ * \brief   Function to temporarily elevate privileges
+ *
+ * This is call restores the effective user ID and group ID from the saved
+ * set-user-ID and saved set-group-ID.
+ * \see SCPrivsDrop
+ */
+void SCPrivsRaise(void)
+{
+    SCMutexLock(&g_privs_ctx.lock);
+
+    if (g_privs_ctx.do_setuid == TRUE) {
+        SCSetUserID(g_privs_ctx.svuid);
+    }
+
+    if (g_privs_ctx.do_setuid == TRUE || g_privs_ctx.do_setgid == TRUE) {
+        SCSetGroupID(g_privs_ctx.svgid);
+    }
+}
+
+static void _SCPrivsDrop(void)
+{
+    /* The user must have enough permissions to change the process group ID.
+     * Once done, the user ID can be changed to finalize privilege drops.
+     */
+    if (g_privs_ctx.do_setuid == TRUE || g_privs_ctx.do_setgid == TRUE) {
+        SCSetGroupID(g_privs_ctx.gid);
+    }
+
+    if (g_privs_ctx.do_setuid == TRUE) {
+        SCSetUserID(g_privs_ctx.uid);
+    }
+}
+
+/**
+ * \brief   Function to drop privileges
+ *
+ * This is call change the effective user ID and group ID to the value provided
+ * in the configuration.
+ * If the configuration specifies a user by no group, the user default group id
+ * will be applied instead.
+ * 
+ * \see SCPrivsRaise
+ */
+void SCPrivsDrop(void)
+{
+    _SCPrivsDrop();
+    SCMutexUnlock(&g_privs_ctx.lock);
+}
+
 #endif /* HAVE_LIBCAP_NG */
 
 /**
@@ -242,42 +328,44 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
 }
 
 /**
- * \brief   Function to set real, effective and saved group ID
+ * \brief   Function to initialize privilege handling
  *
- * \param   gid  value of the given group id
+ * \param   do_setuid   true if the process must change its uid settings
+ * \param   do_setgid   true if the process must change its gid settings
+ * \param   uid         value to set the effective user ID when privileges are dropped
+ * \param   gid         value to set the effective group ID when privileges are dropped
  *
- * \retval  upon success it returns 0
+ * This is call is required to initialize suricata privilege handling.
+ *
+ * If libcap-ng support is disabled, the privileges are dropped by setting the
+ * effective UID/GID. If an operation is requiring higher privileges is needed,
+ * SCPrivsRaise() can be used to temporarily raise the permissions to the saved
+ * user/group ID level.
+ * Once done, SCPrivsDrop() must be called to drop privileges back to reduced
+ * levels.
+ * As the effective uid/gid is set per-process, SCPrivsRaise() and SCPrivsDrop()
+ * are coupled with a mutex.
+ * 
+ * If libcap-ng support is on, the process capabilities are set and the user ID/
+ * group ID are set accordingly to ensure high privileges are dropped.
+ * In such case, the process UID/GID are stable for the lifetime of the process.
+ * 
  */
-int SCSetGroupID(const uint32_t gid)
+void SCPrivsInit(const uint8_t do_setuid, const uint8_t do_setgid, const uid_t uid, const gid_t gid)
 {
-    int ret = setegid(gid);
+    SCMutexInit(&g_privs_ctx.lock, NULL);
 
-    if (ret != 0) {
-        SCLogError(SC_ERR_GID_FAILED, "unable to set the group ID,"
-                " check permissions!! gid=%u ret=%i errno=%i", gid, ret, errno);
-        exit(EXIT_FAILURE);
-    }
+    g_privs_ctx.do_setuid = do_setuid;
+    g_privs_ctx.do_setgid = do_setgid;
 
-    return 0;
-}
+    g_privs_ctx.uid = uid;
+    g_privs_ctx.svuid = geteuid();
 
-/**
- * \brief   Function to set real, effective and saved user ID
- *
- * \param   uid  value of the given user id
- *
- * \retval  upon success it returns 0
- */
-int SCSetUserID(const uint32_t uid)
-{
-    int ret = seteuid(uid);
+    g_privs_ctx.gid = gid;
+    g_privs_ctx.svgid = getegid();
 
-    if (ret != 0) {
-        SCLogError(SC_ERR_UID_FAILED, "unable to set the user ID,"
-                " check permissions!! uid=%u ret=%i errno=%i", uid, ret, errno);
-    }
-
-    return 0;
+    SCDropMainThreadCaps(g_privs_ctx.uid, g_privs_ctx.gid);
+    _SCPrivsDrop();
 }
 
 #ifdef __OpenBSD__

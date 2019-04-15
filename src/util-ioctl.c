@@ -49,6 +49,7 @@
 #endif
 
 #include "util-ioctl.h"
+#include "util-privs.h"
 
 /**
  * \brief output a majorant of hardware header length
@@ -306,7 +307,7 @@ static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
 static int SetEthtoolValue(const char *dev, int cmd, uint32_t value)
 {
     struct ifreq ifr;
-    int fd;
+    int fd, ret;
     struct ethtool_value ethv;
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -318,7 +319,12 @@ static int SetEthtoolValue(const char *dev, int cmd, uint32_t value)
     ethv.cmd = cmd;
     ethv.data = value;
     ifr.ifr_data = (void *) &ethv;
-    if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
+
+    SCPrivsRaise();
+    ret = ioctl(fd, SIOCETHTOOL, (char *)&ifr);
+    SCPrivsDrop();
+
+    if (ret < 0) {
         SCLogWarning(SC_ERR_SYSCALL,
                   "Failure when trying to set feature via ioctl for '%s': %s (%d)",
                   dev, strerror(errno), errno);
