@@ -250,7 +250,7 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
  */
 int SCSetGroupID(const uint32_t gid)
 {
-    int ret = setresgid(gid, gid, gid);
+    int ret = setegid(gid);
 
     if (ret != 0) {
         SCLogError(SC_ERR_GID_FAILED, "unable to set the group ID,"
@@ -270,7 +270,7 @@ int SCSetGroupID(const uint32_t gid)
  */
 int SCSetUserID(const uint32_t uid)
 {
-    int ret = setresuid(uid, uid, uid);
+    int ret = seteuid(uid);
 
     if (ret != 0) {
         SCLogError(SC_ERR_UID_FAILED, "unable to set the user ID,"
