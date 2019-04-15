@@ -371,7 +371,7 @@ void SCPrivsInit(const uint8_t do_setuid, const uint8_t do_setgid, const uid_t u
 #ifdef __OpenBSD__
 int SCPledge(void)
 {
-    int ret = pledge("stdio rpath wpath cpath unix dns bpf", NULL);
+    int ret = pledge("stdio rpath wpath cpath unix dns bpf id", NULL);
 
     if (ret != 0) {
         SCLogError(SC_ERR_PLEDGE_FAILED, "unable to pledge,"
