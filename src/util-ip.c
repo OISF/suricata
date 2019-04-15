@@ -53,7 +53,7 @@ bool IPv4AddressStringIsValid(const char *str)
             dots++;
             alen = 0;
         } else {
-            if (alen >= 4) {
+            if (alen >= 3) {
                 SCLogDebug("too long");
                 return false;
             }
