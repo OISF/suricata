@@ -103,6 +103,8 @@ int SCGetGroupID(const char *, uint32_t *);
 
 #ifdef OS_WIN32
 #define SCPrivsInit(...)
+#define SCPrivsRaise(...)
+#define SCPrivsDrop(...)
 #else /* OS_WIN32 */
 void SCPrivsInit(const uint8_t do_setuid, const uint8_t do_setgid, const uid_t uid, const gid_t gid);
 #endif /* OS_WIN32 */
