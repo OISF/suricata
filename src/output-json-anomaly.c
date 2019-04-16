@@ -84,12 +84,7 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
     for (int i = 0; i < p->events.cnt; i++) {
         MemBufferReset(aft->json_buffer);
 
-        json_t *js;
-        if (is_IP_pkt) {
-            js = CreateJSONHeader(p, LOG_DIR_PACKET, "anomaly");
-        } else {
-            js = json_object();
-        }
+        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "anomaly");
 
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
@@ -118,15 +113,19 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
         }
 
         uint8_t event_code = p->events.events[i];
-        if (EVENT_IS_DECODER_PACKET_ERROR(event_code)) {
+        if (event_code < DECODE_EVENT_MAX) {
             const char *event = DEvents[event_code].event_name;
+            json_object_set_new(ajs, "type",
+                                EVENT_IS_DECODER_PACKET_ERROR(event_code) ? 
+                                    json_string("packet") : json_string("stream"));
             json_object_set_new(ajs, "event", json_string(event));
         } else {
             /* include event code with unrecognized events */
             uint32_t offset = 0;
-            char unknown_event_buf[32];
-            PrintBufferData(unknown_event_buf, &offset, 32, "%s(%d)", "Unknown", event_code);
-            json_object_set_new(ajs, "event", json_string(unknown_event_buf));
+            char unknown_event_buf[16];
+            json_object_set_new(ajs, "type", json_string("unknown"));
+            PrintBufferData(unknown_event_buf, &offset, 16, "%d", event_code);
+            json_object_set_new(ajs, "code", json_string(unknown_event_buf));
         }
 
         /* anomaly */

@@ -446,6 +446,9 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
                         srcip, sizeof(srcip));
                 PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
                         dstip, sizeof(dstip));
+            } else {
+                /* Not an IP packet so don't do anything */
+                return;
             }
             sp = p->sp;
             dp = p->dp;
