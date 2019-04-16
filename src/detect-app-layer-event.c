@@ -452,88 +452,48 @@ static int DetectAppLayerEventTest02(void)
                             DetectAppLayerEventTestGetEventInfo);
 
     AppLayerEventType event_type;
-    int result = 0;
     uint8_t ipproto_bitarray[256 / 8];
     memset(ipproto_bitarray, 0, sizeof(ipproto_bitarray));
     ipproto_bitarray[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
 
     DetectAppLayerEventData *aled = DetectAppLayerEventParse("smtp.event1",
                                                              &event_type);
-    if (aled == NULL)
-        goto end;
-    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-    if (aled->alproto != ALPROTO_SMTP ||
-        aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT1) {
-        printf("test failure.  Holding wrong state\n");
-        goto end;
-    }
+    FAIL_IF_NULL(aled);
+    FAIL_IF(DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0);
+    FAIL_IF(aled->alproto != ALPROTO_SMTP);
+    FAIL_IF(aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT1);
 
     aled = DetectAppLayerEventParse("smtp.event4",
                                     &event_type);
-    if (aled == NULL)
-        goto end;
-    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-    if (aled->alproto != ALPROTO_SMTP ||
-        aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT4) {
-        printf("test failure.  Holding wrong state\n");
-        goto end;
-    }
+    FAIL_IF_NULL(aled);
+    FAIL_IF(DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0);
+    FAIL_IF(aled->alproto != ALPROTO_SMTP);
+    FAIL_IF(aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT4);
 
     aled = DetectAppLayerEventParse("http.event2",
                                     &event_type);
-    if (aled == NULL)
-        goto end;
-    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-    if (aled->alproto != ALPROTO_HTTP ||
-        aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT2) {
-        printf("test failure.  Holding wrong state\n");
-        goto end;
-    }
+    FAIL_IF_NULL(aled);
+    FAIL_IF(DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0);
+    FAIL_IF(aled->alproto != ALPROTO_HTTP);
+    FAIL_IF(aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT2);
 
     aled = DetectAppLayerEventParse("smb.event3",
                                     &event_type);
-    if (aled == NULL)
-        goto end;
-    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-    if (aled->alproto != ALPROTO_SMB ||
-        aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT3) {
-        printf("test failure.  Holding wrong state\n");
-        goto end;
-    }
+    FAIL_IF_NULL(aled);
+    FAIL_IF(DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0);
+    FAIL_IF(aled->alproto != ALPROTO_SMB);
+    FAIL_IF(aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT3);
 
     aled = DetectAppLayerEventParse("ftp.event5",
                                     &event_type);
-    if (aled == NULL)
-        goto end;
-    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-    if (aled->alproto != ALPROTO_FTP ||
-        aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT5) {
-        printf("test failure.  Holding wrong state\n");
-        goto end;
-    }
+    FAIL_IF_NULL(aled);
+    FAIL_IF(DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0);
+    FAIL_IF(aled->alproto != ALPROTO_FTP);
+    FAIL_IF(aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT5);
 
-    result = 1;
-
- end:
     AppLayerParserRestoreParserTable();
-    if (aled != NULL)
-        DetectAppLayerEventFree(aled);
-    return result;
+    DetectAppLayerEventFree(aled);
+    PASS;
 }
 
 static int DetectAppLayerEventTest03(void)
