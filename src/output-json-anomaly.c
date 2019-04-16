@@ -84,12 +84,7 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
     for (int i = 0; i < p->events.cnt; i++) {
         MemBufferReset(aft->json_buffer);
 
-        json_t *js;
-        if (is_IP_pkt) {
-            js = CreateJSONHeader(p, LOG_DIR_PACKET, "anomaly");
-        } else {
-            js = json_object();
-        }
+        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "anomaly");
 
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
