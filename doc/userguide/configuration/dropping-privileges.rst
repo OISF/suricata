@@ -1,8 +1,23 @@
 Dropping Privileges After Startup
 =================================
 
-Currently, libcap-ng is needed for dropping privileges on Suricata
-after startup. For libcap, see status of feature request number #276
+Currently, dropping privileges can be either done via libcap-ng or with POSIX
+seteuid()/setegid().
+
+When the privilege drop is done by libcap-ng, the process real, effective and saved
+user/group ID is set to the values provided by the user configuration.
+Furthermore, process capabilities are set ensure that operations requiring
+higher permissions can be performed properly.
+Once done, the privilege level stays unchanged for the lifetime of the process.
+
+When libcap-ng support is disabled, privilege drop is done via
+seteuid()/setegid() on startup. Operations requiring higher permissions are
+placed between the functions SCPrivsRaise()/SCPrivsDrop().
+
+Between SCPrivsRaise() and SCPrivsDrop(), the process privileges are raised back
+to the saved user/group level during the process runtime.
+
+For libcap, see status of feature request number #276
 -- Libcap support for dropping privileges.
 
 Most distributions have ``libcap-ng`` in their repositories.
