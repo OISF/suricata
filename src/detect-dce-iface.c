@@ -246,26 +246,9 @@ static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
     return NULL;
 }
 
-#include "app-layer-smb.h"
 DCERPCState *DetectDceGetState(AppProto alproto, void *alstate)
 {
-#ifdef HAVE_RUST
     return alstate;
-#else
-    switch (alproto) {
-        case ALPROTO_DCERPC:
-            return alstate;
-        case ALPROTO_SMB: {
-            SMBState *smb_state = (SMBState *)alstate;
-            return &smb_state->ds;
-        }
-        case ALPROTO_SMB2:
-            // not implemented
-            return NULL;
-    }
-
-    return NULL;
-#endif
 }
 
 /**

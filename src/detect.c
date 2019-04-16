@@ -812,8 +812,8 @@ static inline void DetectRulePacketRules(
         if (likely(sflags & SIG_FLAG_APPLAYER)) {
             if (s->alproto != ALPROTO_UNKNOWN && s->alproto != scratch->alproto) {
                 if (s->alproto == ALPROTO_DCERPC) {
-                    if (scratch->alproto != ALPROTO_SMB && scratch->alproto != ALPROTO_SMB2) {
-                        SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
+                    if (scratch->alproto != ALPROTO_SMB) {
+                        SCLogDebug("DCERPC sig, alproto not SMB");
                         goto next;
                     }
                 } else {

@@ -46,10 +46,9 @@
 #include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-smb.h"
-#include "app-layer-smb2.h"
 #include "app-layer-dcerpc.h"
 #include "app-layer-dcerpc-udp.h"
+#include "app-layer-smb-tcp-rust.h"
 #include "app-layer-htp.h"
 #include "app-layer-ftp.h"
 #include "app-layer-ssl.h"
@@ -1481,11 +1480,9 @@ void AppLayerParserRegisterProtocolParsers(void)
 
     RegisterHTPParsers();
     RegisterSSLParsers();
-    RegisterSMBParsers();
-    /** \todo bug 719 */
-    //RegisterSMB2Parsers();
     RegisterDCERPCParsers();
     RegisterDCERPCUDPParsers();
+    RegisterRustSMBTCPParsers();
     RegisterFTPParsers();
     RegisterSSHParsers();
     RegisterSMTPParsers();

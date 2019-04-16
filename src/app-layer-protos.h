@@ -36,7 +36,6 @@ enum AppProtoEnum {
     ALPROTO_MSN,
     ALPROTO_JABBER,
     ALPROTO_SMB,
-    ALPROTO_SMB2,
     ALPROTO_DCERPC,
     ALPROTO_IRC,
 

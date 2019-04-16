@@ -60,9 +60,6 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_SMB:
             proto_name = "smb";
             break;
-        case ALPROTO_SMB2:
-            proto_name = "smb2";
-            break;
         case ALPROTO_DCERPC:
             proto_name = "dcerpc";
             break;
@@ -135,7 +132,6 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"msn")==0) return ALPROTO_MSN;
     if (strcmp(proto_name,"jabber")==0) return ALPROTO_JABBER;
     if (strcmp(proto_name,"smb")==0) return ALPROTO_SMB;
-    if (strcmp(proto_name,"smb2")==0) return ALPROTO_SMB2;
     if (strcmp(proto_name,"dcerpc")==0) return ALPROTO_DCERPC;
     if (strcmp(proto_name,"irc")==0) return ALPROTO_IRC;
     if (strcmp(proto_name,"dns")==0) return ALPROTO_DNS;

@@ -123,7 +123,6 @@
 #include "app-layer-ssh.h"
 #include "app-layer-ftp.h"
 #include "app-layer-smtp.h"
-#include "app-layer-smb.h"
 #include "app-layer-modbus.h"
 #include "app-layer-enip.h"
 #include "app-layer-dnp3.h"
