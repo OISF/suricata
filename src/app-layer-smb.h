@@ -15,10 +15,9 @@
  * 02110-1301, USA.
  */
 
-#ifndef __APP_LAYER_SMB_TCP_RUST_H__
-#define __APP_LAYER_SMB_TCP_RUST_H__
+#ifndef __APP_LAYER_SMB_H__
+#define __APP_LAYER_SMB_H__
 
-void RegisterRustSMBTCPParsers(void);
 void RegisterSMBParsers(void);
 
-#endif /* !__APP_LAYER_SMB_TCP_RUST_H__ */
+#endif /* !__APP_LAYER_SMB_H__ */

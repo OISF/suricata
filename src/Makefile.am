@@ -38,7 +38,7 @@ app-layer-htp-xff.c app-layer-htp-xff.h \
 app-layer-modbus.c app-layer-modbus.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-protos.c app-layer-protos.h \
-app-layer-smb-tcp-rust.c app-layer-smb-tcp-rust.h \
+app-layer-smb.c app-layer-smb.h \
 app-layer-smtp.c app-layer-smtp.h \
 app-layer-nfs-tcp.c app-layer-nfs-tcp.h \
 app-layer-nfs-udp.c app-layer-nfs-udp.h \

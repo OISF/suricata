@@ -24,20 +24,19 @@
 
 #include "util-unittest.h"
 
-#ifdef HAVE_RUST
 #include "rust.h"
-#include "app-layer-smb-tcp-rust.h"
+#include "app-layer-smb.h"
 #include "rust-smb-smb-gen.h"
 #include "rust-smb-files-gen.h"
 #include "util-misc.h"
 
 #define MIN_REC_SIZE 32+4 // SMB hdr + nbss hdr
 
-static int RustSMBTCPParseRequest(Flow *f, void *state,
+static int SMBTCPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
-    SCLogDebug("RustSMBTCPParseRequest");
+    SCLogDebug("SMBTCPParseRequest");
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
     rs_smb_setfileflags(0, state, file_flags|FILE_USE_DETECT);
 
@@ -55,15 +54,15 @@ static int RustSMBTCPParseRequest(Flow *f, void *state,
     return res;
 }
 
-static int RustSMBTCPParseResponse(Flow *f, void *state,
+static int SMBTCPParseResponse(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
-    SCLogDebug("RustSMBTCPParseResponse");
+    SCLogDebug("SMBTCPParseResponse");
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
     rs_smb_setfileflags(1, state, file_flags|FILE_USE_DETECT);
 
-    SCLogDebug("RustSMBTCPParseResponse %p/%u", input, input_len);
+    SCLogDebug("SMBTCPParseResponse %p/%u", input, input_len);
     int res;
     if (input == NULL && input_len > 0) {
         res = rs_smb_parse_response_tcp_gap(state, input_len);
@@ -78,10 +77,10 @@ static int RustSMBTCPParseResponse(Flow *f, void *state,
     return res;
 }
 
-static uint16_t RustSMBTCPProbe(Flow *f, uint8_t direction,
+static uint16_t SMBTCPProbe(Flow *f, uint8_t direction,
         uint8_t *input, uint32_t len, uint8_t *rdir)
 {
-    SCLogDebug("RustSMBTCPProbe");
+    SCLogDebug("SMBTCPProbe");
 
     if (len < MIN_REC_SIZE) {
         return ALPROTO_UNKNOWN;
@@ -103,12 +102,12 @@ static uint16_t RustSMBTCPProbe(Flow *f, uint8_t direction,
  *  \brief as SMB3 records have no direction indicator, fall
  *         back to the port numbers for a hint
  */
-static uint16_t RustSMB3TCPProbe(Flow *f, uint8_t direction,
+static uint16_t SMB3TCPProbe(Flow *f, uint8_t direction,
         uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     SCEnter();
 
-    AppProto p = RustSMBTCPProbe(f, direction, input, len, rdir);
+    AppProto p = SMBTCPProbe(f, direction, input, len, rdir);
     if (p != ALPROTO_SMB) {
         SCReturnUInt(p);
     }
@@ -132,22 +131,22 @@ static uint16_t RustSMB3TCPProbe(Flow *f, uint8_t direction,
     SCReturnUInt(ALPROTO_SMB);
 }
 
-static int RustSMBGetAlstateProgress(void *tx, uint8_t direction)
+static int SMBGetAlstateProgress(void *tx, uint8_t direction)
 {
     return rs_smb_tx_get_alstate_progress(tx, direction);
 }
 
-static uint64_t RustSMBGetTxCnt(void *alstate)
+static uint64_t SMBGetTxCnt(void *alstate)
 {
     return rs_smb_state_get_tx_count(alstate);
 }
 
-static void *RustSMBGetTx(void *alstate, uint64_t tx_id)
+static void *SMBGetTx(void *alstate, uint64_t tx_id)
 {
     return rs_smb_state_get_tx(alstate, tx_id);
 }
 
-static AppLayerGetTxIterTuple RustSMBGetTxIterator(
+static AppLayerGetTxIterTuple SMBGetTxIterator(
         const uint8_t ipproto, const AppProto alproto,
         void *alstate, uint64_t min_tx_id, uint64_t max_tx_id,
         AppLayerGetTxIterState *istate)
@@ -156,88 +155,88 @@ static AppLayerGetTxIterTuple RustSMBGetTxIterator(
 }
 
 
-static void RustSMBSetTxLogged(void *alstate, void *tx, uint32_t logger)
+static void SMBSetTxLogged(void *alstate, void *tx, uint32_t logger)
 {
     rs_smb_tx_set_logged(alstate, tx, logger);
 }
 
-static LoggerId RustSMBGetTxLogged(void *alstate, void *tx)
+static LoggerId SMBGetTxLogged(void *alstate, void *tx)
 {
     return rs_smb_tx_get_logged(alstate, tx);
 }
 
-static void RustSMBStateTransactionFree(void *state, uint64_t tx_id)
+static void SMBStateTransactionFree(void *state, uint64_t tx_id)
 {
     rs_smb_state_tx_free(state, tx_id);
 }
 
-static DetectEngineState *RustSMBGetTxDetectState(void *tx)
+static DetectEngineState *SMBGetTxDetectState(void *tx)
 {
     return rs_smb_state_get_tx_detect_state(tx);
 }
 
-static int RustSMBSetTxDetectState(void *tx, DetectEngineState *s)
+static int SMBSetTxDetectState(void *tx, DetectEngineState *s)
 {
     rs_smb_state_set_tx_detect_state(tx, s);
     return 0;
 }
 
-static FileContainer *RustSMBGetFiles(void *state, uint8_t direction)
+static FileContainer *SMBGetFiles(void *state, uint8_t direction)
 {
     return rs_smb_getfiles(direction, state);
 }
 
-static AppLayerDecoderEvents *RustSMBGetEvents(void *state, uint64_t id)
+static AppLayerDecoderEvents *SMBGetEvents(void *state, uint64_t id)
 {
     return rs_smb_state_get_events(state, id);
 }
 
-static int RustSMBGetEventInfo(const char *event_name, int *event_id,
+static int SMBGetEventInfo(const char *event_name, int *event_id,
     AppLayerEventType *event_type)
 {
     return rs_smb_state_get_event_info(event_name, event_id, event_type);
 }
 
-static void RustSMBSetDetectFlags(void *tx, uint8_t dir, uint64_t flags)
+static void SMBSetDetectFlags(void *tx, uint8_t dir, uint64_t flags)
 {
     rs_smb_tx_set_detect_flags(tx, dir, flags);
 }
 
-static uint64_t RustSMBGetDetectFlags(void *tx, uint8_t dir)
+static uint64_t SMBGetDetectFlags(void *tx, uint8_t dir)
 {
     return rs_smb_tx_get_detect_flags(tx, dir);
 }
 
-static void RustSMBStateTruncate(void *state, uint8_t direction)
+static void SMBStateTruncate(void *state, uint8_t direction)
 {
     return rs_smb_state_truncate(state, direction);
 }
 
-static int RustSMBRegisterPatternsForProtocolDetection(void)
+static int SMBRegisterPatternsForProtocolDetection(void)
 {
     int r = 0;
     /* SMB1 */
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|ff|SMB", 8, 4, STREAM_TOSERVER, RustSMBTCPProbe,
+            "|ff|SMB", 8, 4, STREAM_TOSERVER, SMBTCPProbe,
             MIN_REC_SIZE, MIN_REC_SIZE);
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|ff|SMB", 8, 4, STREAM_TOCLIENT, RustSMBTCPProbe,
+            "|ff|SMB", 8, 4, STREAM_TOCLIENT, SMBTCPProbe,
             MIN_REC_SIZE, MIN_REC_SIZE);
 
     /* SMB2/3 */
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|fe|SMB", 8, 4, STREAM_TOSERVER, RustSMBTCPProbe,
+            "|fe|SMB", 8, 4, STREAM_TOSERVER, SMBTCPProbe,
             MIN_REC_SIZE, MIN_REC_SIZE);
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|fe|SMB", 8, 4, STREAM_TOCLIENT, RustSMBTCPProbe,
+            "|fe|SMB", 8, 4, STREAM_TOCLIENT, SMBTCPProbe,
             MIN_REC_SIZE, MIN_REC_SIZE);
 
     /* SMB3 encrypted records */
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|fd|SMB", 8, 4, STREAM_TOSERVER, RustSMB3TCPProbe,
+            "|fd|SMB", 8, 4, STREAM_TOSERVER, SMB3TCPProbe,
             MIN_REC_SIZE, MIN_REC_SIZE);
     r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-            "|fd|SMB", 8, 4, STREAM_TOCLIENT, RustSMB3TCPProbe,
+            "|fd|SMB", 8, 4, STREAM_TOCLIENT, SMB3TCPProbe,
             MIN_REC_SIZE, MIN_REC_SIZE);
     return r == 0 ? 0 : -1;
 }
@@ -253,34 +252,34 @@ static void SMBParserRegisterTests(void);
 
 static uint32_t stream_depth = SMB_CONFIG_DEFAULT_STREAM_DEPTH;
 
-void RegisterRustSMBTCPParsers(void)
+void RegisterSMBParsers(void)
 {
     const char *proto_name = "smb";
 
     /** SMB */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SMB, proto_name);
-        if (RustSMBRegisterPatternsForProtocolDetection() < 0)
+        if (SMBRegisterPatternsForProtocolDetection() < 0)
             return;
 
         rs_smb_init(&sfc);
 
         if (RunmodeIsUnittests()) {
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, "445", ALPROTO_SMB, 0,
-                    MIN_REC_SIZE, STREAM_TOSERVER, RustSMBTCPProbe,
+                    MIN_REC_SIZE, STREAM_TOSERVER, SMBTCPProbe,
                     NULL);
         } else {
             int have_cfg = AppLayerProtoDetectPPParseConfPorts("tcp",
                     IPPROTO_TCP, proto_name, ALPROTO_SMB, 0,
-                    MIN_REC_SIZE, RustSMBTCPProbe, RustSMBTCPProbe);
+                    MIN_REC_SIZE, SMBTCPProbe, SMBTCPProbe);
             /* if we have no config, we enable the default port 445 */
             if (!have_cfg) {
                 SCLogWarning(SC_ERR_SMB_CONFIG, "no SMB TCP config found, "
                                                 "enabling SMB detection on "
                                                 "port 445.");
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP, "445", ALPROTO_SMB, 0,
-                        MIN_REC_SIZE, STREAM_TOSERVER, RustSMBTCPProbe,
-                        RustSMBTCPProbe);
+                        MIN_REC_SIZE, STREAM_TOSERVER, SMBTCPProbe,
+                        SMBTCPProbe);
             }
         }
     } else {
@@ -291,36 +290,36 @@ void RegisterRustSMBTCPParsers(void)
 
     if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB, STREAM_TOSERVER,
-                RustSMBTCPParseRequest);
+                SMBTCPParseRequest);
         AppLayerParserRegisterParser(IPPROTO_TCP , ALPROTO_SMB, STREAM_TOCLIENT,
-                RustSMBTCPParseResponse);
+                SMBTCPParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SMB,
                 rs_smb_state_new, rs_smb_state_free);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_SMB,
-                RustSMBStateTransactionFree);
+                SMBStateTransactionFree);
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMB,
-                RustSMBGetEvents);
+                SMBGetEvents);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMB,
-                RustSMBGetEventInfo);
+                SMBGetEventInfo);
 
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMB,
-                RustSMBGetTxDetectState, RustSMBSetTxDetectState);
-        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMB, RustSMBGetTx);
-        AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_SMB, RustSMBGetTxIterator);
+                SMBGetTxDetectState, SMBSetTxDetectState);
+        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMB, SMBGetTx);
+        AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_SMB, SMBGetTxIterator);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMB,
-                RustSMBGetTxCnt);
+                SMBGetTxCnt);
         AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_SMB,
-                RustSMBGetTxLogged, RustSMBSetTxLogged);
+                SMBGetTxLogged, SMBSetTxLogged);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMB,
-                RustSMBGetAlstateProgress);
+                SMBGetAlstateProgress);
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SMB,
                 rs_smb_state_progress_completion_status);
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SMB,
-                                               RustSMBGetDetectFlags, RustSMBSetDetectFlags);
+                                               SMBGetDetectFlags, SMBSetDetectFlags);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMB,
-                                          RustSMBStateTruncate);
-        AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_SMB, RustSMBGetFiles);
+                                          SMBStateTruncate);
+        AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_SMB, SMBGetFiles);
 
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_SMB,
@@ -515,4 +514,3 @@ static void SMBParserRegisterTests(void)
 }
 
 #endif /* UNITTESTS */
-#endif /* HAVE_RUST */
