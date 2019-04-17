@@ -25,7 +25,6 @@
 #define __OUTPUT_JSON_SMB_H__
 
 void JsonSMBLogRegister(void);
-#ifdef HAVE_RUST
 json_t *JsonSMBAddMetadata(const Flow *f, uint64_t tx_id);
-#endif /* HAVE_RUST */
+
 #endif /* __OUTPUT_JSON_SMB_H__ */

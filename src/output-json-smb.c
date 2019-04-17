@@ -45,7 +45,6 @@
 
 #include "output-json-smb.h"
 
-#ifdef HAVE_RUST
 #ifdef HAVE_LIBJANSSON
 #include "rust.h"
 #include "rust-smb-log-gen.h"
@@ -117,10 +116,3 @@ void JsonSMBLogRegister(void)
 
 #endif /* HAVE_LIBJANSSON */
 
-#else /* no rust */
-
-void JsonSMBLogRegister(void)
-{
-}
-
-#endif /* HAVE_RUST */
