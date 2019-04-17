@@ -54,10 +54,8 @@
 
 #include "stream-tcp.h"
 
-#ifdef HAVE_RUST
 #include "rust.h"
 #include "rust-smb-detect-gen.h"
-#endif
 
 #define BUFFER_NAME "dce_stub_data"
 #define KEYWORD_NAME "dce_stub_data"
@@ -85,17 +83,14 @@ static void PrefilterTxDceStubDataRequest(DetectEngineThreadCtx *det_ctx,
     uint8_t *buffer;
     uint32_t buffer_len;
 
-#ifdef HAVE_RUST
     if (f->alproto == ALPROTO_SMB) {
         if (rs_smb_tx_get_stub_data(txv, STREAM_TOSERVER, &buffer, &buffer_len) != 1) {
             SCLogDebug("have no data!");
             return;
         }
         SCLogDebug("have data!");
-    } else
-#endif
-    {
-        DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+    } else {
+        DCERPCState *dcerpc_state = f->alstate;
         if (dcerpc_state == NULL)
             return;
 
@@ -143,17 +138,14 @@ static void PrefilterTxDceStubDataResponse(DetectEngineThreadCtx *det_ctx,
     uint8_t *buffer;
     uint32_t buffer_len;
 
-#ifdef HAVE_RUST
     if (f->alproto == ALPROTO_SMB) {
         if (rs_smb_tx_get_stub_data(txv, STREAM_TOCLIENT, &buffer, &buffer_len) != 1) {
             SCLogDebug("have no data!");
             return;
         }
         SCLogDebug("have data!");
-    } else
-#endif
-    {
-        DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+    } else {
+        DCERPCState *dcerpc_state = f->alstate;
         if (dcerpc_state == NULL)
             return;
 
@@ -192,16 +184,14 @@ static int InspectEngineDceStubData(ThreadVars *tv,
     uint8_t *buffer = NULL;
     DCERPCState *dcerpc_state = NULL;
 
-#ifdef HAVE_RUST
     if (f->alproto == ALPROTO_SMB) {
         uint8_t dir = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
         if (rs_smb_tx_get_stub_data(tx, dir, &buffer, &buffer_len) != 1)
             goto end;
         SCLogDebug("have data!");
     } else
-#endif
     {
-        dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+        dcerpc_state = alstate;
         if (dcerpc_state == NULL)
             goto end;
 

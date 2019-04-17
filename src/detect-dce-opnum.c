@@ -48,25 +48,18 @@
 #include "util-unittest-helper.h"
 #include "stream-tcp.h"
 
-#ifdef HAVE_RUST
 #include "rust.h"
 #include "rust-smb-detect-gen.h"
-#endif
 
 #define PARSE_REGEX "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
 
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
 
-static int DetectDceOpnumMatch(ThreadVars *, DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
-        const Signature *, const SigMatchCtx *);
-#ifdef HAVE_RUST
 static int DetectDceOpnumMatchRust(ThreadVars *t,
                         DetectEngineThreadCtx *det_ctx,
                         Flow *f, uint8_t flags, void *state, void *txv,
                         const Signature *s, const SigMatchCtx *m);
-#endif
 static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDceOpnumFree(void *);
 static void DetectDceOpnumRegisterTests(void);
@@ -79,11 +72,7 @@ void DetectDceOpnumRegister(void)
 {
     sigmatch_table[DETECT_DCE_OPNUM].name = "dce_opnum";
     sigmatch_table[DETECT_DCE_OPNUM].Match = NULL;
-#ifdef HAVE_RUST
     sigmatch_table[DETECT_DCE_OPNUM].AppLayerTxMatch = DetectDceOpnumMatchRust;
-#else
-    sigmatch_table[DETECT_DCE_OPNUM].AppLayerTxMatch = DetectDceOpnumMatch;
-#endif
     sigmatch_table[DETECT_DCE_OPNUM].Setup = DetectDceOpnumSetup;
     sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
     sigmatch_table[DETECT_DCE_OPNUM].RegisterTests = DetectDceOpnumRegisterTests;
@@ -265,7 +254,7 @@ static int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     DetectDceOpnumData *dce_data = (DetectDceOpnumData *)m;
     DetectDceOpnumRange *dor = dce_data->range;
 
-    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+    DCERPCState *dcerpc_state = state;
     if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
         SCReturnInt(0);
@@ -288,7 +277,6 @@ static int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCReturnInt(0);
 }
 
-#ifdef HAVE_RUST
 static int DetectDceOpnumMatchRust(ThreadVars *t,
                         DetectEngineThreadCtx *det_ctx,
                         Flow *f, uint8_t flags, void *state, void *txv,
@@ -324,7 +312,6 @@ static int DetectDceOpnumMatchRust(ThreadVars *t,
 
     SCReturnInt(0);
 }
-#endif
 
 /**
  * \brief Creates a SigMatch for the "dce_opnum" keyword being sent as argument,
