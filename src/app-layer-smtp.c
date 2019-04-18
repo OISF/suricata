@@ -1231,6 +1231,11 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                 SCReturnInt(-1);
             }
             state->current_command = SMTP_COMMAND_OTHER_CMD;
+        } else if (state->current_line_len >= 4 &&
+                   SCMemcmpLowercase("rset", state->current_line, 4) == 0) {
+            // Resets chunk index in case of connection reuse
+            state->bdat_chunk_idx = 0;
+            state->curr_tx->done = 1;
         } else {
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         }
