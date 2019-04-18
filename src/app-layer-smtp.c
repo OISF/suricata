@@ -1566,6 +1566,42 @@ static int SMTPStateGetEventInfo(const char *event_name,
     return 0;
 }
 
+static AppProto SMTPProbingParserTc(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t ilen, uint8_t *rdir)
+{
+    // Server banner is 220, space or hyphen, name, protocol, server agent
+    // protocol can be either SMTP or ESTMP (extended SMTP)
+
+    // Skips response code
+    size_t pos = 4;
+    if (ilen < 4)
+        return ALPROTO_UNKNOWN;
+
+    // Skips name
+    while (pos < ilen && input[pos] != ' ')
+        pos++;
+    pos++;
+    if (pos + 4 >= ilen) {
+        return ALPROTO_UNKNOWN;
+    }
+    // Checks protocol
+    if (memcmp(input+pos, "SMTP", 4) == 0) {
+        return ALPROTO_SMTP;
+    }
+    if (pos + 5 >= ilen) {
+        // Be careful for packet splitting
+        if (memcmp(input+pos, "ESMT", 4) == 0) {
+            return ALPROTO_UNKNOWN;
+        }
+        return ALPROTO_FAILED;
+    }
+    if (memcmp(input+pos, "ESMTP", 5) == 0) {
+        return ALPROTO_SMTP;
+    }
+
+    return ALPROTO_FAILED;
+}
+
 static int SMTPRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
@@ -1580,6 +1616,19 @@ static int SMTPRegisterPatternsForProtocolDetection(void)
     }
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
                                                "QUIT", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    // limits banner detection to 256 characters
+    if (AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMTP,
+                                                  "220 ", 4, 0, STREAM_TOCLIENT,
+                                                  SMTPProbingParserTc, 4, 256) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMTP,
+                                                  "220-", 4, 0, STREAM_TOCLIENT,
+                                                  SMTPProbingParserTc, 4, 256) < 0)
     {
         return -1;
     }
