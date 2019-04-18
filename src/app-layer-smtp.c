@@ -1578,6 +1578,11 @@ static int SMTPRegisterPatternsForProtocolDetection(void)
     {
         return -1;
     }
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
+                                               "220 ", 4, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
 
     return 0;
 }
