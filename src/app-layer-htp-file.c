@@ -151,6 +151,40 @@ end:
 }
 
 /**
+ *  \brief Sets range for a file
+ *
+ *  \param s http state
+ *  \param start start offset
+ *  \param end end offset
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int HTPFileSetRange(HtpState *s, uint64_t start, uint64_t end)
+{
+    SCEnter();
+
+    int retval;
+    FileContainer *files;
+
+    if (s == NULL) {
+        SCReturnInt(-1);
+    }
+
+    files = s->files_tc;
+    if (files == NULL) {
+        SCLogDebug("no files in state");
+        SCReturnInt(-1);
+    }
+
+    retval = FileSetRange(files, start, end);
+    if (retval == -1) {
+        SCLogDebug("set range failed");
+    }
+    SCReturnInt(retval);
+}
+
+/**
  *  \brief Store a chunk of data in the flow
  *
  *  \param s http state

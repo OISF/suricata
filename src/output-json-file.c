@@ -217,6 +217,10 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
         json_object_set_new(fjs, "file_id", json_integer(ff->file_store_id));
     }
     json_object_set_new(fjs, "size", json_integer(FileTrackedSize(ff)));
+    if (ff->end > 0) {
+        json_object_set_new(fjs, "start", json_integer(ff->start));
+        json_object_set_new(fjs, "end", json_integer(ff->end));
+    }
     json_object_set_new(fjs, "tx_id", json_integer(ff->txid));
 
     /* xff header */

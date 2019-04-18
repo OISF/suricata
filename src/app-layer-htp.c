@@ -1633,6 +1633,16 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
                 htud->tcflags |= HTP_FILENAME_SET;
                 htud->tcflags &= ~HTP_DONTSTORE;
             }
+            //set range if present
+            htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
+            if (h_content_range != NULL) {
+                htp_content_range_t crparsed;
+                if (htp_parse_content_range(h_content_range->value, &crparsed) == HTP_OK) {
+                    if (crparsed.end > 0) {
+                        HTPFileSetRange(hstate, crparsed.start, crparsed.end);
+                    }
+                }
+            }
         }
     }
     else
