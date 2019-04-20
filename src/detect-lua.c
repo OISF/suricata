@@ -172,7 +172,7 @@ static int InspectSmtpGeneric(ThreadVars *tv,
 #define DATATYPE_SSH                        (1<<19)
 #define DATATYPE_SMTP                       (1<<20)
 
-#define DATATYPE_DNP3                       (1<<20)
+#define DATATYPE_DNP3                       (1<<21)
 
 #if 0
 /** \brief dump stack from lua state to screen */
