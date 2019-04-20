@@ -174,6 +174,8 @@ static int InspectSmtpGeneric(ThreadVars *tv,
 
 #define DATATYPE_DNP3                       (1<<21)
 
+#define DATATYPE_BUFFER                     (1<<22)
+
 #if 0
 /** \brief dump stack from lua state to screen */
 void LuaDumpStack(lua_State *state)
@@ -820,6 +822,14 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
             ld->flags |= DATATYPE_PACKET;
         } else if (strcmp(k, "payload") == 0 && strcmp(v, "true") == 0) {
             ld->flags |= DATATYPE_PAYLOAD;
+        } else if (strcmp(k, "buffer") == 0 && strcmp(v, "true") == 0) {
+            ld->flags |= DATATYPE_BUFFER;
+
+            ld->buffername = SCStrdup("buffer");
+            if (ld->buffername == NULL) {
+                SCLogError(SC_ERR_LUA_ERROR, "alloc error");
+                goto error;
+            }
         } else if (strcmp(k, "stream") == 0 && strcmp(v, "true") == 0) {
             ld->flags |= DATATYPE_STREAM;
 
@@ -997,8 +1007,17 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     if (lua->alproto == ALPROTO_UNKNOWN) {
         if (lua->flags & DATATYPE_STREAM)
             list = DETECT_SM_LIST_PMATCH;
-        else
-            list = DETECT_SM_LIST_MATCH;
+        else {
+            if (lua->flags & DATATYPE_BUFFER) {
+                if (DetectBufferGetActiveList(de_ctx, s) != -1) {
+                    list = s->init_data->list;
+                } else {
+                    SCLogError(SC_ERR_LUA_ERROR, "Lua and sticky buffer failure");
+                    goto error;
+                }
+            } else
+                list = DETECT_SM_LIST_MATCH;
+        }
 
     } else if (lua->alproto == ALPROTO_HTTP) {
         if (lua->flags & DATATYPE_HTTP_RESPONSE_BODY) {
