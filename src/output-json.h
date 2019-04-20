@@ -52,6 +52,7 @@ int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
+void JsonPacket(const Packet *p, json_t *js, unsigned long max_length);
 void JsonFiveTuple(const Packet *, enum OutputJsonLogDirection, json_t *);
 json_t *CreateJSONHeader(const Packet *p,
         enum OutputJsonLogDirection dir, const char *event_type);

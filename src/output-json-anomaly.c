@@ -52,14 +52,14 @@
 #include "util-proto-name.h"
 #include "util-optimize.h"
 #include "util-buffer.h"
+#include "util-crypt.h"
 #include "util-validate.h"
 
 #define MODULE_NAME "JsonAnomalyLog"
 
 #ifdef HAVE_LIBJANSSON
 
-#define LOG_JSON_PACKET            BIT_U16(0)
-#define JSON_STREAM_BUFFER_SIZE 4096
+#define LOG_JSON_PACKETHDR      BIT_U16(0)
 
 typedef struct AnomalyJsonOutputCtx_ {
     LogFileCtx* file_ctx;
@@ -76,7 +76,7 @@ typedef struct JsonAnomalyLogThread_ {
 
 static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *p)
 {
-    bool is_IP_pkt = PKT_IS_IPV4(p) || PKT_IS_IPV6(p);
+    bool is_ip_pkt = PKT_IS_IPV4(p) || PKT_IS_IPV6(p);
 
     char timebuf[64];
     CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
@@ -96,20 +96,15 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
             return TM_ECODE_OK;
         }
 
-        if (!is_IP_pkt) {
+        if (!is_ip_pkt) {
             json_object_set_new(js, "timestamp", json_string(timebuf));
         } else {
             JsonFiveTuple((const Packet *)p, LOG_DIR_PACKET, js);
             JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
         }
 
-        if (aft->json_output_ctx->flags & LOG_JSON_PACKET) {
-            char buf[(32 * 3) + 1];
-            PrintRawLineHexBuf(buf, sizeof(buf), GET_PKT_DATA(p),
-                               GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
-            json_object_set_new(js, "packethdr", json_string((char *)buf));
-
-            json_object_set_new(js, "linktype", json_integer(p->datalink));
+        if (aft->json_output_ctx->flags & LOG_JSON_PACKETHDR) {
+            JsonPacket(p, js, GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
         }
 
         uint8_t event_code = p->events.events[i];
@@ -122,9 +117,9 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
         } else {
             /* include event code with unrecognized events */
             uint32_t offset = 0;
-            char unknown_event_buf[16];
+            char unknown_event_buf[8];
             json_object_set_new(ajs, "type", json_string("unknown"));
-            PrintBufferData(unknown_event_buf, &offset, 16, "%d", event_code);
+            PrintBufferData(unknown_event_buf, &offset, 8, "%d", event_code);
             json_object_set_new(ajs, "code", json_string(unknown_event_buf));
         }
 
@@ -237,7 +232,7 @@ static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx,
 {
     uint16_t flags = 0;
     if (conf != NULL) {
-        SetFlag(conf, "packethdr", LOG_JSON_PACKET, &flags);
+        SetFlag(conf, "packethdr", LOG_JSON_PACKETHDR, &flags);
     }
     json_output_ctx->flags |= flags;
 }
@@ -318,10 +313,6 @@ static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *pare
     return result;
 
 error:
-    if (json_output_ctx != NULL) {
-        SCFree(json_output_ctx);
-    }
-
     SCFree(output_ctx);
 
     return result;
@@ -332,6 +323,7 @@ void JsonAnomalyLogRegister (void)
     OutputRegisterPacketModule(LOGGER_JSON_ANOMALY, MODULE_NAME, "anomaly-json-log",
         JsonAnomalyLogInitCtx, JsonAnomalyLogger, JsonAnomalyLogCondition,
         JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit, NULL);
+
     OutputRegisterPacketSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
         "eve-log.anomaly", JsonAnomalyLogInitCtxSub, JsonAnomalyLogger,
         JsonAnomalyLogCondition, JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit,
