@@ -398,6 +398,29 @@ void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
     }
 }
 
+/**
+ * \brief Jsonify a packet
+ *
+ * \param p Packet
+ * \param js JSON object
+ * \param max_length If non-zero, restricts the number of packet data bytes handled.
+ */
+void JsonPacket(const Packet *p, json_t *js, unsigned long max_length)
+{
+    unsigned long max_len = max_length == 0 ? GET_PKT_LEN(p) : max_length;
+    unsigned long len = 2 * max_len;
+    uint8_t encoded_packet[len];
+    Base64Encode((unsigned char*) GET_PKT_DATA(p), max_len, encoded_packet, &len);
+    json_object_set_new(js, "packet", json_string((char *)encoded_packet));
+
+    /* Create packet info. */
+    json_t *packetinfo_js = json_object();
+    if (unlikely(packetinfo_js == NULL)) {
+        return;
+    }
+    json_object_set_new(packetinfo_js, "linktype", json_integer(p->datalink));
+    json_object_set_new(js, "packet_info", packetinfo_js);
+}
 /** \brief jsonify tcp flags field
  *  Only add 'true' fields in an attempt to keep things reasonably compact.
  */

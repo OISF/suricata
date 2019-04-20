@@ -368,23 +368,6 @@ static void AlertJsonTunnel(const Packet *p, json_t *js)
     json_object_set_new(js, "tunnel", tunnel);
 }
 
-static void AlertJsonPacket(const Packet *p, json_t *js)
-{
-    unsigned long len = GET_PKT_LEN(p) * 2;
-    uint8_t encoded_packet[len];
-    Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p),
-        encoded_packet, &len);
-    json_object_set_new(js, "packet", json_string((char *)encoded_packet));
-
-    /* Create packet info. */
-    json_t *packetinfo_js = json_object();
-    if (unlikely(packetinfo_js == NULL)) {
-        return;
-    }
-    json_object_set_new(packetinfo_js, "linktype", json_integer(p->datalink));
-    json_object_set_new(js, "packet_info", packetinfo_js);
-}
-
 static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, json_t *js, const Packet *p)
 {
     if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
@@ -573,7 +556,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         /* base64-encoded full packet */
         if (json_output_ctx->flags & LOG_JSON_PACKET) {
-            AlertJsonPacket(p, js);
+            JsonPacket(p, js, 0);
         }
 
         /* signature text */
@@ -624,7 +607,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         MemBufferReset(aft->json_buffer);
         json_t *packetjs = CreateJSONHeader(p, LOG_DIR_PACKET, "packet");
         if (unlikely(packetjs != NULL)) {
-            AlertJsonPacket(p, packetjs);
+            JsonPacket(p, packetjs, 0);
             OutputJSONBuffer(packetjs, aft->file_ctx, &aft->json_buffer);
             json_decref(packetjs);
         }
