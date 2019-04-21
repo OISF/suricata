@@ -418,7 +418,7 @@ static int DetectEngineInspectFilename(
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     else
-        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
 }
 
 typedef struct PrefilterMpmFilename {
