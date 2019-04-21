@@ -42,8 +42,11 @@
 /* Increase CPUMAP_MAX_CPUS if ever you have more than 64 CPUs */
 #define CPUMAP_MAX_CPUS     64
 
-#define USE_PERCPU_HASH    1
-#define GOT_TX_PEER	1
+/* Set it to 0 if for example you plan to use the XDP filter in a
+ * network card that don't support per CPU value (like netronome) */
+#define USE_PERCPU_HASH     1
+/* Set it to 0 if your XDP subsytem don't handle XDP_REDIRECT (like netronome) */
+#define GOT_TX_PEER         1
 
 /* set to non 0 to load balance in hardware mode on RSS_QUEUE_NUMBERS queues
  * and unset BUILD_CPUMAP (number must be a power of 2 for netronome) */
