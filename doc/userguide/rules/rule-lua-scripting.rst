@@ -30,6 +30,7 @@ inspection. Currently the following are available:
 
 * packet -- entire packet, including headers
 * payload -- packet payload (not stream)
+* buffer -- the current sticky buffer
 * http.uri
 * http.uri.raw
 * http.request_line
