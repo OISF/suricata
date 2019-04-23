@@ -45,7 +45,7 @@
 /* Set it to 0 if for example you plan to use the XDP filter in a
  * network card that don't support per CPU value (like netronome) */
 #define USE_PERCPU_HASH     1
-/* Set it to 0 if your XDP subsytem don't handle XDP_REDIRECT (like netronome) */
+/* Set it to 0 if your XDP subsystem don't handle XDP_REDIRECT (like netronome) */
 #define GOT_TX_PEER         1
 
 /* set to non 0 to load balance in hardware mode on RSS_QUEUE_NUMBERS queues
