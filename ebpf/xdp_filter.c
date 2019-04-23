@@ -303,7 +303,7 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
         return XDP_PASS;
     }
 #else
-#ifdef RSS_QUEUE_NUMBERS
+#if RSS_QUEUE_NUMBERS
     /* IP-pairs + protocol (UDP/TCP/ICMP) hit same CPU */
     __u32 xdp_hash = tuple.src + tuple.dst;
     xdp_hash = SuperFastHash((char *)&xdp_hash, 4, INITVAL + iph->protocol);
