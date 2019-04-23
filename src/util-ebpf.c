@@ -71,8 +71,6 @@ struct bpf_map_item {
 
 struct bpf_maps_info {
     struct bpf_map_item array[BPF_MAP_MAX_COUNT];
-    SC_ATOMIC_DECLARE(uint64_t, ipv4_hash_count);
-    SC_ATOMIC_DECLARE(uint64_t, ipv6_hash_count);
     int last;
 };
 
@@ -221,8 +219,7 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
         SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bpf map array");
         return -1;
     }
-    SC_ATOMIC_INIT(bpf_map_data->ipv4_hash_count);
-    SC_ATOMIC_INIT(bpf_map_data->ipv6_hash_count);
+
     if (config->mode == AFP_MODE_XDP_BYPASS) {
         bpf_map_data->array[0].fd = fd_v4;
         bpf_map_data->array[0].name = SCStrdup("flow_table_v4");
@@ -279,6 +276,8 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
 
     /* Attach the bpf_maps_info to the LiveDevice via the device storage */
     LiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
+    /* Declare that device will use bypass stats */
+    LiveDevUseBypass(livedev);
 
     return 0;
 
@@ -411,8 +410,6 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bpf map array");
         return -1;
     }
-    SC_ATOMIC_INIT(bpf_map_data->ipv4_hash_count);
-    SC_ATOMIC_INIT(bpf_map_data->ipv6_hash_count);
 
     /* Store the maps in bpf_maps_info:: */
     bpf_map__for_each(map, bpfobj) {
@@ -453,6 +450,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
 
     /* Attach the bpf_maps_info to the LiveDevice via the device storage */
     LiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
+    LiveDevUseBypass(livedev);
 
     /* Finally we get the file descriptor for our eBPF program. We will use
      * the fd to attach the program to the socket (eBPF case) or to the device
@@ -655,10 +653,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
     }
     SC_ATOMIC_ADD(dev->bypassed, flowstats->packets);
 
-    struct bpf_maps_info *bpfdata = LiveDevGetStorageById(dev, g_livedev_storage_id);
-    if (bpfdata) {
-        SC_ATOMIC_SET(bpfdata->ipv4_hash_count, hash_cnt);
-    }
+    LiveDevSetBypassStats(dev, hash_cnt, AF_INET);
 
     return found;
 }
@@ -750,10 +745,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
     }
     SC_ATOMIC_ADD(dev->bypassed, flowstats->packets);
 
-    struct bpf_maps_info *bpfdata = LiveDevGetStorageById(dev, g_livedev_storage_id);
-    if (bpfdata) {
-        SC_ATOMIC_SET(bpfdata->ipv6_hash_count, hash_cnt);
-    }
+    LiveDevSetBypassStats(dev, hash_cnt, AF_INET6);
     return found;
 }
 
@@ -818,42 +810,6 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
     }
     return ret;
 }
-
-#ifdef BUILD_UNIX_SOCKET
-TmEcode EBPFGetBypassedStats(json_t *cmd, json_t *answer, void *data)
-{
-    LiveDevice *ldev = NULL, *ndev;
-
-    json_t *ifaces = NULL;
-    while(LiveDeviceForEach(&ldev, &ndev)) {
-        struct bpf_maps_info *bpfdata = LiveDevGetStorageById(ldev, g_livedev_storage_id);
-        if (bpfdata) {
-            uint64_t ipv4_hash_count = SC_ATOMIC_GET(bpfdata->ipv4_hash_count);
-            uint64_t ipv6_hash_count = SC_ATOMIC_GET(bpfdata->ipv6_hash_count);
-            json_t *iface = json_object();
-            if (ifaces == NULL) {
-                ifaces = json_object();
-                if (ifaces == NULL) {
-                    json_object_set_new(answer, "message",
-                            json_string("internal error at json object creation"));
-                    return TM_ECODE_FAILED;
-                }
-            }
-            json_object_set_new(iface, "ipv4_count", json_integer(ipv4_hash_count));
-            json_object_set_new(iface, "ipv6_count", json_integer(ipv6_hash_count));
-            json_object_set_new(ifaces, ldev->dev, iface);
-        }
-    }
-    if (ifaces) {
-        json_object_set_new(answer, "message", ifaces);
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    json_object_set_new(answer, "message",
-                        json_string("No interface using eBPF bypass"));
-    SCReturnInt(TM_ECODE_FAILED);
-}
-#endif
 
 void EBPFRegisterExtension(void)
 {
