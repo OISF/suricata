@@ -24,6 +24,8 @@
 
 #define MAX_DEVNAME 10
 
+static int g_bypass_storage_id = -1;
+
 /**
  * \file
  *
@@ -45,8 +47,14 @@ static TAILQ_HEAD(, LiveDevice_) live_devices =
 static TAILQ_HEAD(, LiveDeviceName_) pre_live_devices =
     TAILQ_HEAD_INITIALIZER(pre_live_devices);
 
+struct bypass_info {
+    SC_ATOMIC_DECLARE(uint64_t, ipv4_hash_count);
+    SC_ATOMIC_DECLARE(uint64_t, ipv6_hash_count);
+};
+
 /** if set to 0 when we don't have real devices */
 static int live_devices_stats = 1;
+
 
 static int LiveSafeDeviceName(const char *devname,
                               char *newdevname, size_t destlen);
@@ -452,3 +460,93 @@ void LiveDeviceFinalize(void)
         SCFree(ld);
     }
 }
+
+static void LiveDevExtensionFree(void *x)
+{
+    if (x)
+        SCFree(x);
+}
+
+/**
+ * Register bypass stats storage
+ */
+void LiveDevRegisterExtension(void)
+{
+    g_bypass_storage_id = LiveDevStorageRegister("bypass_stats", sizeof(void *),
+                                                 NULL, LiveDevExtensionFree);
+}
+
+/**
+ * Prepare a LiveDevice so we can set bypass stats
+ */
+int LiveDevUseBypass(LiveDevice *dev)
+{
+    struct bypass_info *bpinfo = SCCalloc(1, sizeof(*bpinfo));
+    if (bpinfo == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bypass info structure");
+        return -1;
+    }
+
+    SC_ATOMIC_INIT(bpinfo->ipv4_hash_count);
+    SC_ATOMIC_INIT(bpinfo->ipv4_hash_count);
+
+    LiveDevSetStorageById(dev, g_bypass_storage_id, bpinfo);
+    return 0;
+}
+
+/**
+ * Set number of currently bypassed flows for a protocol family
+ *
+ * \param dev pointer to LiveDevice to set stats for
+ * \param cnt number of currently bypassed flows
+ * \param family AF_INET to set IPv4 count or AF_INET6 to set IPv6 count
+ */
+void LiveDevSetBypassStats(LiveDevice *dev, uint64_t cnt, int family)
+{
+    struct bypass_info *bpfdata = LiveDevGetStorageById(dev, g_bypass_storage_id);
+    if (bpfdata) {
+        if (family == AF_INET) {
+            SC_ATOMIC_SET(bpfdata->ipv4_hash_count, cnt);
+        } else if (family == AF_INET6) {
+            SC_ATOMIC_SET(bpfdata->ipv6_hash_count, cnt);
+        }
+    }
+}
+
+#ifdef BUILD_UNIX_SOCKET
+TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
+{
+    LiveDevice *ldev = NULL, *ndev;
+
+    json_t *ifaces = NULL;
+    while(LiveDeviceForEach(&ldev, &ndev)) {
+        struct bypass_info *bpinfo = LiveDevGetStorageById(ldev, g_bypass_storage_id);
+        if (bpinfo) {
+            uint64_t ipv4_hash_count = SC_ATOMIC_GET(bpinfo->ipv4_hash_count);
+            uint64_t ipv6_hash_count = SC_ATOMIC_GET(bpinfo->ipv6_hash_count);
+            json_t *iface = json_object();
+            if (ifaces == NULL) {
+                ifaces = json_object();
+                if (ifaces == NULL) {
+                    json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+                    return TM_ECODE_FAILED;
+                }
+            }
+            json_object_set_new(iface, "ipv4_count", json_integer(ipv4_hash_count));
+            json_object_set_new(iface, "ipv6_count", json_integer(ipv6_hash_count));
+            json_object_set_new(ifaces, ldev->dev, iface);
+        }
+    }
+    if (ifaces) {
+        json_object_set_new(answer, "message", ifaces);
+        SCReturnInt(TM_ECODE_OK);
+    }
+
+    json_object_set_new(answer, "message",
+                        json_string("No interface using bypass"));
+    SCReturnInt(TM_ECODE_FAILED);
+}
+#endif
+
+
