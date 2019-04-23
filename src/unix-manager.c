@@ -1190,10 +1190,12 @@ void UnixManagerThreadSpawnNonRunmode(void)
             UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
                     UNIX_CMD_TAKE_ARGS);
             UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
+            UnixManagerRegisterCommand("iface-bypassed-stat",
+                                       LiveDeviceGetBypassedStats, NULL, 0);
+            /* For backward compatibility */
+            UnixManagerRegisterCommand("ebpf-bypassed-stat",
+                                       LiveDeviceGetBypassedStats, NULL, 0);
             UnixManagerThreadSpawn(0);
-#ifdef HAVE_PACKET_EBPF
-            UnixManagerRegisterCommand("ebpf-bypassed-stats", EBPFGetBypassedStats, NULL, 0);
-#endif
         }
     }
 }
