@@ -6,8 +6,11 @@ noinst_HEADERS = action-globals.h \
 	suricata-common.h threadvars.h tree.h \
     util-validate.h
 bin_PROGRAMS = suricata
+if BUILD_FUZZTARGETS
+    bin_PROGRAMS += fuzz_detectproto fuzz_layerparse
+endif
 
-suricata_SOURCES = \
+COMMON_SOURCES = \
 alert-debuglog.c alert-debuglog.h \
 alert-fastlog.c alert-fastlog.h \
 alert-prelude.c alert-prelude.h \
@@ -370,7 +373,6 @@ stream-tcp-list.c stream-tcp-list.h \
 stream-tcp-reassemble.c stream-tcp-reassemble.h \
 stream-tcp-sack.c stream-tcp-sack.h \
 stream-tcp-util.c stream-tcp-util.h \
-suricata.c suricata.h \
 threads.c threads.h \
 threads-debug.h threads-profile.h \
 tm-modules.c tm-modules.h \
@@ -503,13 +505,36 @@ EXTRA_DIST = tests
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
 
+suricata_SOURCES = suricata.c suricata.h $(COMMON_SOURCES)
+
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-suricata_LDADD = $(HTP_LDADD) $(RUST_LDADD)
+suricata_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
 
-if HAVE_RUST
-suricata_DEPENDENCIES = $(RUST_SURICATA_LIB)
+fuzz_detectproto_SOURCES = tests/fuzz/fuzz_detectproto.c $(COMMON_SOURCES)
+fuzz_detectproto_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_detectproto_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAVE_LIBFUZZINGENGINE
+    fuzz_detectproto_LDFLAGS += -lFuzzingEngine
+else
+    fuzz_detectproto_SOURCES += tests/fuzz/onefile.c
 endif
+# force usage of CXX for linker
+fuzz_detectproto_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_detectproto_LDFLAGS) $(LDFLAGS) -o $@
+
+fuzz_layerparse_SOURCES = tests/fuzz/fuzz_layerparse.c $(COMMON_SOURCES)
+fuzz_layerparse_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_layerparse_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAVE_LIBFUZZINGENGINE
+    fuzz_layerparse_LDFLAGS += -lFuzzingEngine
+else
+    fuzz_layerparse_SOURCES += tests/fuzz/onefile.c
+endif
+fuzz_layerparse_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_layerparse_LDFLAGS) $(LDFLAGS) -o $@
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \
