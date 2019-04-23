@@ -716,13 +716,15 @@ json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
     }
 
     /* vlan */
-    if (f->vlan_idx > 0) {
+    if (p->vlan_idx > 0) {
         json_t *js_vlan = json_array();
-        json_array_append_new(js_vlan, json_integer(f->vlan_id[0]));
-        if (f->vlan_idx > 1) {
-            json_array_append_new(js_vlan, json_integer(f->vlan_id[1]));
+        if (js_vlan) {
+            json_array_append_new(js_vlan, json_integer(p->vlan_id[0]));
+            if (p->vlan_idx > 1) {
+                json_array_append_new(js_vlan, json_integer(p->vlan_id[1]));
+            }
+            json_object_set_new(js, "vlan", js_vlan);
         }
-        json_object_set_new(js, "vlan", js_vlan);
     }
 
     /* 5-tuple */
