@@ -375,8 +375,6 @@ static int DetectEngineInspectFilename(
         const Signature *s,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    int r = 0;
-
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
         transforms = engine->v2.transforms;
@@ -388,9 +386,9 @@ static int DetectEngineInspectFilename(
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
 
+    int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     int local_file_id = 0;
-    File *file = ffc->head;
-    for (; file != NULL; file = file->next) {
+    for (File *file = ffc->head; file != NULL; file = file->next) {
         if (file->txid != tx_id)
             continue;
 
@@ -409,16 +407,13 @@ static int DetectEngineInspectFilename(
                                               buffer->inspect_offset, DETECT_CI_FLAGS_SINGLE,
                                               DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
         if (match == 1) {
-            r = 1;
-            break;
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        } else {
+            r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
         }
         local_file_id++;
     }
-
-    if (r == 1)
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-    else
-        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
+    return r;
 }
 
 typedef struct PrefilterMpmFilename {

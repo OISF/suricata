@@ -1231,7 +1231,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                 inspect_flags |= BIT_U32(engine->id);
-            } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
+            } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                 inspect_flags |= BIT_U32(engine->id);
                 file_no_match = 1;

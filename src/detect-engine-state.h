@@ -38,7 +38,10 @@
 #define DETECT_ENGINE_INSPECT_SIG_NO_MATCH 0
 #define DETECT_ENGINE_INSPECT_SIG_MATCH 1
 #define DETECT_ENGINE_INSPECT_SIG_CANT_MATCH 2
-#define DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE 3
+/** indicate that the file inspection portion of a sig didn't match.
+ *  This is used to handle state keeping as the detect engine is still
+ *  only marginally aware of files. */
+#define DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES 3
 /** hack to work around a file inspection limitation. Since there can be
  *  multiple files in a TX and the detection engine really don't know
  *  about that, we have to give the file inspection engine a way to
