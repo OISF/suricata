@@ -889,6 +889,8 @@
         exit 1
     fi
 
+    AC_CHECK_FUNCS([pthread_spin_unlock])
+
   # libjansson
     AC_ARG_WITH(libjansson_includes,
             [  --with-libjansson-includes=DIR  libjansson include directory],
