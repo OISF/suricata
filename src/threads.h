@@ -155,7 +155,7 @@ enum {
 #define SCCtrlCondDestroy pthread_cond_destroy
 
 /* spinlocks */
-#if ((_POSIX_SPIN_LOCKS - 200112L) < 0L) || defined HELGRIND
+#if ((_POSIX_SPIN_LOCKS - 200112L) < 0L) || defined HELGRIND || !defined(HAVE_PTHREAD_SPIN_UNLOCK)
 #define SCSpinlock                              SCMutex
 #define SCSpinLock(spin)                        SCMutexLock((spin))
 #define SCSpinTrylock(spin)                     SCMutexTrylock((spin))
