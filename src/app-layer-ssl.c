@@ -2902,7 +2902,7 @@ void RegisterSSLParsers(void)
 #ifndef HAVE_NSS
         if (ssl_config.enable_ja3) {
             SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
-                         "no MD5 calculation support built in, disabling JA3");
+                         "no MD5 calculation support built in (LibNSS), disabling JA3");
             ssl_config.enable_ja3 = 0;
         }
 #else
