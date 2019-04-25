@@ -28,5 +28,6 @@ Suricata Rules
    xbits
    thresholding
    ip-reputation-rules
+   datasets
    rule-lua-scripting
    differences-from-snort
