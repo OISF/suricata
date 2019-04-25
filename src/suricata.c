@@ -223,6 +223,8 @@ int sc_set_caps = FALSE;
 /** highest mtu of the interfaces we monitor */
 int g_default_mtu = 0;
 
+bool g_system = false;
+
 /** disable randomness to get reproducible results accross runs */
 #ifndef AFLFUZZ_NO_RANDOM
 int g_disable_randomness = 0;
@@ -2125,7 +2127,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         suri->run_mode = RUNMODE_ENGINE_ANALYSIS;
 
     suri->offline = IsRunModeOffline(suri->run_mode);
-    suri->system = IsRunModeSystem(suri->run_mode);
+    g_system = suri->system = IsRunModeSystem(suri->run_mode);
 
     ret = SetBpfString(optind, argv);
     if (ret != TM_ECODE_OK)
