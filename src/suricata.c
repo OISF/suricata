@@ -1520,6 +1520,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"dag", required_argument, 0, 0},
         {"napatech", 0, 0, 0},
         {"build-info", 0, &build_info, 1},
+        {"data-dir", required_argument, 0, 0},
 #ifdef WINDIVERT
         {"windivert", required_argument, 0, 0},
         {"windivert-forward", required_argument, 0, 0},
@@ -1852,6 +1853,24 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     return TM_ECODE_FAILED;
                 }
             }
+            else if (strcmp((long_opts[option_index]).name, "data-dir") == 0) {
+                if (optarg == NULL) {
+                    SCLogError(SC_ERR_INITIALIZATION, "no option argument (optarg) for -d");
+                    return TM_ECODE_FAILED;
+                }
+
+                if (ConfigSetDataDirectory(optarg) != TM_ECODE_OK) {
+                    SCLogError(SC_ERR_FATAL, "Failed to set data directory.");
+                    return TM_ECODE_FAILED;
+                }
+                if (ConfigCheckDataDirectory(optarg) != TM_ECODE_OK) {
+                    SCLogError(SC_ERR_LOGDIR_CMDLINE, "The data directory \"%s\""
+                            " supplied at the commandline (-d %s) doesn't "
+                            "exist. Shutting down the engine.", optarg, optarg);
+                    return TM_ECODE_FAILED;
+                }
+                suri->set_datadir = true;
+            }
             break;
         case 'c':
             suri->conf_filename = optarg;
@@ -1922,7 +1941,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
 
             if (ConfigSetLogDirectory(optarg) != TM_ECODE_OK) {
-                SCLogError(SC_ERR_FATAL, "Failed to set log directory.\n");
+                SCLogError(SC_ERR_FATAL, "Failed to set log directory.");
                 return TM_ECODE_FAILED;
             }
             if (ConfigCheckLogDirectory(optarg) != TM_ECODE_OK) {
@@ -2652,6 +2671,12 @@ static void SetupUserMode(SCInstance *suri)
             /* override log dir to current work dir" */
             if (ConfigSetLogDirectory((char *)".") != TM_ECODE_OK) {
                 FatalError(SC_ERR_LOGDIR_CONFIG, "could not set USER mode logdir");
+            }
+        }
+        if (suri->set_datadir == false) {
+            /* override data dir to current work dir" */
+            if (ConfigSetDataDirectory((char *)".") != TM_ECODE_OK) {
+                FatalError(SC_ERR_LOGDIR_CONFIG, "could not set USER mode datadir");
             }
         }
     }
