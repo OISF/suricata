@@ -275,7 +275,7 @@ int Ja3IsDisabled(const char *type)
 #ifndef HAVE_NSS
     else {
         SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
-                     "no MD5 calculation support build in, skipping %s",
+                     "no MD5 calculation support built in (LibNSS), skipping %s",
                      type);
         return 1;
     }
