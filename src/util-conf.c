@@ -61,7 +61,54 @@ TmEcode ConfigCheckLogDirectory(const char *log_dir)
     struct stat buf;
     if (stat(log_dir, &buf) != 0) {
 #endif /* OS_WIN32 */
-            SCReturnInt(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode ConfigSetDataDirectory(char *name)
+{
+    if (strlen(name) == 0)
+        return TM_ECODE_OK;
+
+    size_t size = strlen(name) + 1;
+    char tmp[size];
+    strlcpy(tmp, name, size);
+    if (tmp[size - 2] == '/')
+        tmp[size - 2] = '\0';
+
+    return ConfSetFinal("default-data-dir", tmp) ? TM_ECODE_OK : TM_ECODE_FAILED;
+}
+
+const char *ConfigGetDataDirectory()
+{
+    const char *data_dir = NULL;
+
+    if (ConfGet("default-data-dir", &data_dir) != 1) {
+#ifdef OS_WIN32
+        data_dir = _getcwd(NULL, 0);
+        if (data_dir == NULL) {
+            data_dir = DEFAULT_DATA_DIR;
+        }
+#else
+        data_dir = DEFAULT_DATA_DIR;
+#endif /* OS_WIN32 */
+    }
+
+    return data_dir;
+}
+
+TmEcode ConfigCheckDataDirectory(const char *data_dir)
+{
+    SCEnter();
+#ifdef OS_WIN32
+    struct _stat buf;
+    if (_stat(data_dir, &buf) != 0) {
+#else
+    struct stat buf;
+    if (stat(data_dir, &buf) != 0) {
+#endif /* OS_WIN32 */
+        SCReturnInt(TM_ECODE_FAILED);
     }
     SCReturnInt(TM_ECODE_OK);
 }
