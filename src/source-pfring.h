@@ -24,6 +24,8 @@
 #ifndef __SOURCE_PFRING_H__
 #define __SOURCE_PFRING_H__
 
+#define HAVE_RW_LOCK 1
+
 #define PFRING_IFACE_NAME_LENGTH 48
 
 #define PFRING_RING_PROTECT (1<<0)
