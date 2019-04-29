@@ -1,3 +1,83 @@
+5.0.0-beta1 -- 2019-04-30
+
+Feature #884: add man pages
+Feature #984: libhtp HTP_AUTH_UNRECOGNIZED
+Feature #1970: json: make libjansson mandatory
+Feature #2081: document byte_test
+Feature #2082: document byte_jump
+Feature #2083: document byte_extract
+Feature #2282: event log aka weird.log
+Feature #2332: Support for common http response headers - Location and Server
+Feature #2421: add system mode and user mode
+Feature #2459: Support of FTP active mode
+Feature #2484: no stream events after known pkt loss in flow
+Feature #2485: http: log byte range with file extraction
+Feature #2507: Make Rust mandatory
+Feature #2561: Add possibility for smtp raw extraction
+Feature #2563: Add dump of all headers in http eve-log
+Feature #2572: extend protocol detection to specify flow direction
+Feature #2741: netmap: add support for lb and vale switches
+Feature #2766: Simplified Napatech Configuration
+Feature #2820: pcap multi dev support for Windows (5.0.x)
+Feature #2837: Add more custom HTTP Header values for HTTP JSON Logging
+Feature #2895: OpenBSD pledge support
+Feature #2897: update http_content_type and others to new style sticky buffers
+Feature #2914: modernize tls sticky buffers
+Feature #2930: http_protocol: use mpm and content inspect v2 apis
+Feature #2937: sticky buffer access from lua script
+Optimization #2530: Print matching rule SID in filestore meta file
+Optimization #2632: remove C implementations where we have Rust as well
+Optimization #2793: Python 3 support for python tools
+Optimization #2808: Prefer Python 3 in ./configure
+Bug #1013: command line parsing
+Bug #1324: vlan tag in eve.json
+Bug #1427: configure with libnss and libnspr
+Bug #1694: unix-socket reading 0 size pcap
+Bug #1860: 2220005: SURICATA SMTP bdat chunk len exceeded when using SMTP connection caching
+Bug #2057: eve.json flow logs do not contain in_iface
+Bug #2432: engine-analysis does not print out the tls buffers
+Bug #2503: rust: nom 4.2 released
+Bug #2527: FTP file extraction only working in passive mode
+Bug #2605: engine-analysis warning on PCRE
+Bug #2733: rust/mingw: libc::IPPROTO_* not defined
+Bug #2751: Engine unable to disable detect thread, Killing engine. (in libpcap mode)
+Bug #2775: dns v1/2 with rust results in less app layer data available in the alert record (for dns related alerts/rules)
+Bug #2797: configure.ac: broken --{enable,disable}-xxx options
+Bug #2798: --engine-analysis is unaware of http_host buffer
+Bug #2800: Undocumented commands for suricatasc
+Bug #2812: suricatasc multiple python issues
+Bug #2813: suricatasc: failure with extra commands
+Bug #2817: Syricata.yaml encrypt-handling instead encryption-handling
+Bug #2821: netmap/afpacket IPS: stream.inline: auto broken (5.0.x)
+Bug #2822: SSLv3 - AddressSanitizer heap-buffer-overflow (5.0.x)
+Bug #2833: mem leak - rules loading hunt rules
+Bug #2838: 4.1.x gcc 9 compilation warnings
+Bug #2844: alignment issues in dnp3
+Bug #2846: IPS mode crash under load (5.0.x)
+Bug #2857: nfq asan heap-use-after-free error
+Bug #2877: rust: windows build fails in gen-c-headers.py
+Bug #2889: configure doesn't display additional information for missing requirements
+Bug #2896: smb 1 create andx request does not parse the filename correctly (master)
+Bug #2899: Suricata 4.1.2 and up to 5.x Dev branch - Make compile issue when using PF_ring library on Redhat only
+Bug #2901: pcap logging with lz4 coverity warning (master)
+Bug #2909: segfault on logrotation when the files cannot be opened
+Bug #2912: memleaks in nflog
+Bug #2915: modernize ssh sticky buffers
+Bug #2921: chmod file mode warning expressed in incorrect base
+Bug #2929: error messages regarding byte jump and byte extract
+Bug #2944: ssh: heap buffer overflow (master)
+Bug #2945: mpls: heapbuffer overflow in file decode-mpls.c (master)
+Bug #2946: decode-ethernet: heapbuffer overflow in file decode-ethernet.c (master)
+Bug #2947: rust/dhcp: panic in dhcp parser (master)
+Bug #2948: mpls: cast of misaligned data leads to undefined behvaviour (master)
+Bug #2949: rust/ftp: panic in ftp parser (master)
+Bug #2950: rust/nfs: integer underflow (master)
+Task #2297: deprecate: dns.log
+Task #2376: deprecate: files-json.log
+Task #2379: deprecate: Tilera / Tile support
+Task #2849: Remove C SMB parser.
+Task #2850: Remove C DNS parsers.
+
 4.1.2 -- 2018-12-21
 
 Feature #1863: smtp: improve pipelining support
