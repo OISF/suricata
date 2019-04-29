@@ -2571,9 +2571,6 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
         if (de_ctx->type == DETECT_ENGINE_TYPE_NORMAL) {
             if (LoadSignatures(de_ctx, suri) != TM_ECODE_OK)
                 exit(EXIT_FAILURE);
-            if (suri->run_mode == RUNMODE_ENGINE_ANALYSIS) {
-                exit(EXIT_SUCCESS);
-            }
         }
 
         gettimeofday(&de_ctx->last_reload, NULL);
@@ -2985,13 +2982,11 @@ int main(int argc, char **argv)
     PreRunPostPrivsDropInit(suricata.run_mode);
 
     PostConfLoadedDetectSetup(&suricata);
-
-    if (suricata.run_mode == RUNMODE_CONF_TEST){
+    if (suricata.run_mode == RUNMODE_ENGINE_ANALYSIS) {
+        goto out;
+    } else if (suricata.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
-#ifdef HAVE_MAGIC
-        MagicDeinit();
-#endif
-        exit(EXIT_SUCCESS);
+        goto out;
     }
 
     SCSetStartTime(&suricata);
@@ -3033,6 +3028,7 @@ int main(int argc, char **argv)
     /* kill remaining threads */
     TmThreadKillThreads();
 
+out:
     GlobalsDestroy(&suricata);
 
     exit(EXIT_SUCCESS);
