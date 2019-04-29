@@ -1,3 +1,16 @@
+4.1.4 -- 2019-04-30
+
+Bug #2870: pcap logging with lz4 coverity warning
+Bug #2883: ssh: heap buffer overflow
+Bug #2884: mpls: heapbuffer overflow in file decode-mpls.c
+Bug #2887: decode-ethernet: heapbuffer overflow in file decode-ethernet.c
+Bug #2888: 4.1.3 core in HCBDCreateSpace
+Bug #2894: smb 1 create andx request does not parse the filename correctly
+Bug #2902: rust/dhcp: panic in dhcp parser
+Bug #2903: mpls: cast of misaligned data leads to undefined behvaviour
+Bug #2904: rust/ftp: panic in ftp parser
+Bug #2943: rust/nfs: integer underflow
+
 4.1.3 -- 2019-03-07
 
 Bug #2225: when stats info dumping in redis,the decoder.ipv4.trunc_pkt can't output.In the same time, in the stats.log this can output
