@@ -83,19 +83,20 @@ void DetectHttpHHRegister(void)
 {
     /* http_host content modifier */
     sigmatch_table[DETECT_AL_HTTP_HOST].name = "http_host";
-    sigmatch_table[DETECT_AL_HTTP_HOST].desc = "content modifier to match only on the HTTP hostname";
+    sigmatch_table[DETECT_AL_HTTP_HOST].desc = "content modifier to match on the HTTP hostname";
     sigmatch_table[DETECT_AL_HTTP_HOST].Setup = DetectHttpHHSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_HOST].RegisterTests = DetectHttpHHRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT ;
+    sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_HOST].alternative = DETECT_HTTP_HOST;
 
     /* http.host sticky buffer */
     sigmatch_table[DETECT_HTTP_HOST].name = "http.host";
-    sigmatch_table[DETECT_HTTP_HOST].desc = "sticky buffer to match specifically and only on the HTTP Host buffer";
+    sigmatch_table[DETECT_HTTP_HOST].desc = "sticky buffer to match on the HTTP Host buffer";
     sigmatch_table[DETECT_HTTP_HOST].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-host";
     sigmatch_table[DETECT_HTTP_HOST].Setup = DetectHttpHostSetup;
-    sigmatch_table[DETECT_HTTP_HOST].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_host", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
