@@ -59,7 +59,7 @@
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"
 #include "detect-http-ua.h"
-#include "detect-http-hh.h"
+#include "detect-http-host.h"
 
 #include "detect-nfs-procedure.h"
 #include "detect-nfs-version.h"

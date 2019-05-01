@@ -176,7 +176,7 @@ detect-http-header.c detect-http-header.h \
 detect-http-headers.c detect-http-headers.h detect-http-headers-stub.h \
 detect-http-header-common.c detect-http-header-common.h \
 detect-http-header-names.c detect-http-header-names.h \
-detect-http-hh.c detect-http-hh.h \
+detect-http-host.c detect-http-host.h \
 detect-http-location.c detect-http-location.h \
 detect-http-method.c detect-http-method.h \
 detect-http-protocol.c detect-http-protocol.h \
