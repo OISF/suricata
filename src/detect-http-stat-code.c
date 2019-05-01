@@ -86,14 +86,15 @@ void DetectHttpStatCodeRegister (void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].RegisterTests = DetectHttpStatCodeRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].alternative = DETECT_HTTP_STAT_CODE;
 
     /* http.stat_code content modifier */
     sigmatch_table[DETECT_HTTP_STAT_CODE].name = "http.stat_code";
     sigmatch_table[DETECT_HTTP_STAT_CODE].desc = "sticky buffer to match only on HTTP stat-code-buffer";
     sigmatch_table[DETECT_HTTP_STAT_CODE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_stat-code";
     sigmatch_table[DETECT_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetupSticky;
-    sigmatch_table[DETECT_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_stat_code", ALPROTO_HTTP,
             SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
