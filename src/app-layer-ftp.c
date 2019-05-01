@@ -476,7 +476,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
             case FTP_COMMAND_EPRT:
                 // fallthrough
             case FTP_COMMAND_PORT:
-                if (state->current_line_len > state->port_line_size) {
+                if (state->current_line_len + 1 > state->port_line_size) {
                     /* Allocate an extra byte for a NULL terminator */
                     ptmp = FTPRealloc(state->port_line, state->port_line_size,
                                       state->current_line_len + 1);
@@ -493,6 +493,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                 }
                 memcpy(state->port_line, state->current_line,
                         state->current_line_len);
+                state->port_line[state->current_line_len] = '\0';
                 state->port_line_len = state->current_line_len;
                 break;
             case FTP_COMMAND_RETR:
