@@ -95,7 +95,8 @@ void DetectHttpUriRegister (void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_URI].RegisterTests = DetectHttpUriRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_URI].alternative = DETECT_HTTP_URI;
 
     /* http.uri sticky buffer */
     sigmatch_table[DETECT_HTTP_URI].name = "http.uri";
@@ -103,7 +104,7 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_HTTP_URI].desc = "sticky buffer to match specifically and only on the normalized HTTP URI buffer";
     sigmatch_table[DETECT_HTTP_URI].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#http-uri";
     sigmatch_table[DETECT_HTTP_URI].Setup = DetectHttpUriSetupSticky;
-    sigmatch_table[DETECT_HTTP_URI].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_URI].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_uri", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
@@ -129,14 +130,15 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].desc = "content modifier to match on the raw HTTP uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_uri-and-http_raw-uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].Setup = DetectHttpRawUriSetup;
-    sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_RAW_URI].alternative = DETECT_HTTP_URI_RAW;
 
     /* http.uri.raw sticky buffer */
     sigmatch_table[DETECT_HTTP_URI_RAW].name = "http.uri.raw";
     sigmatch_table[DETECT_HTTP_URI_RAW].desc = "sticky buffer to match specifically and only on the raw HTTP URI buffer";
     sigmatch_table[DETECT_HTTP_URI_RAW].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#http-uri";
     sigmatch_table[DETECT_HTTP_URI_RAW].Setup = DetectHttpRawUriSetupSticky;
-    sigmatch_table[DETECT_HTTP_URI_RAW].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_URI_RAW].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_raw_uri", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
