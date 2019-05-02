@@ -41,6 +41,9 @@ Major changes
   change for the default behavior in the Exception Policies: in IPS mode, if an
   exception policy is not set, it will fall back to the the master switch now,
   instead of being ignored. Prevent this by disabling the master switch.
+- Spaces are accepted in HTTP1 URIs instead of in the protocol version. That is:
+  `GET /a b HTTP/1.1` gets now URI as `/a b` and protocol as `HTTP/1.1` when
+  it used to be URI as `/a` and protocol as `b HTTP/1.1`
 
 Security changes
 ~~~~~~~~~~~~~~~~
