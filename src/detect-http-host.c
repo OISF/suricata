@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -116,16 +116,17 @@ void DetectHttpHHRegister(void)
 
     /* http_raw_host content modifier */
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].name = "http_raw_host";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].desc = "content modifier to match only on the HTTP host header or the raw hostname from the HTTP uri";
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].desc = "content modifier to match on the HTTP host header or the raw hostname from the HTTP uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].Setup = DetectHttpHRHSetup;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT ;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].alternative = DETECT_HTTP_HOST_RAW;
 
     /* http.host sticky buffer */
     sigmatch_table[DETECT_HTTP_HOST_RAW].name = "http.host.raw";
-    sigmatch_table[DETECT_HTTP_HOST_RAW].desc = "sticky buffer to match only on the HTTP host header or the raw hostname from the HTTP uri";
+    sigmatch_table[DETECT_HTTP_HOST_RAW].desc = "sticky buffer to match on the HTTP host header or the raw hostname from the HTTP uri";
     sigmatch_table[DETECT_HTTP_HOST_RAW].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-host";
     sigmatch_table[DETECT_HTTP_HOST_RAW].Setup = DetectHttpHostRawSetupSticky;
-    sigmatch_table[DETECT_HTTP_HOST_RAW].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_HOST_RAW].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
@@ -209,8 +210,10 @@ static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sig
  */
 static int DetectHttpHostSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectBufferSetActiveList(s, g_http_host_buffer_id);
-    s->alproto = ALPROTO_HTTP;
+    if (DetectBufferSetActiveList(s, g_http_host_buffer_id) < 0)
+        return -1;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+       return -1;
     return 0;
 }
 
@@ -267,8 +270,10 @@ int DetectHttpHRHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
  */
 static int DetectHttpHostRawSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectBufferSetActiveList(s, g_http_raw_host_buffer_id);
-    s->alproto = ALPROTO_HTTP;
+    if (DetectBufferSetActiveList(s, g_http_raw_host_buffer_id) < 0)
+        return -1;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+       return -1;
     return 0;
 }
 
