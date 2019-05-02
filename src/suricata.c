@@ -126,6 +126,8 @@
 #include "app-layer-modbus.h"
 #include "app-layer-enip.h"
 #include "app-layer-dnp3.h"
+#include "app-layer-smb.h"
+#include "app-layer-dcerpc.h"
 
 #include "util-decode-der.h"
 #include "util-ebpf.h"
