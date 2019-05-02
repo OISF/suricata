@@ -7,7 +7,7 @@ noinst_HEADERS = action-globals.h \
     util-validate.h
 bin_PROGRAMS = suricata
 if BUILD_FUZZTARGETS
-    bin_PROGRAMS += fuzz_detectproto fuzz_layerparse
+    bin_PROGRAMS += fuzz_applayerprotodetectgetproto fuzz_applayerparserparse
 endif
 
 COMMON_SOURCES = \
@@ -511,30 +511,30 @@ suricata_SOURCES = suricata.c suricata.h $(COMMON_SOURCES)
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
 suricata_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
 
-fuzz_detectproto_SOURCES = tests/fuzz/fuzz_detectproto.c $(COMMON_SOURCES)
-fuzz_detectproto_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-fuzz_detectproto_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c $(COMMON_SOURCES)
+fuzz_applayerprotodetectgetproto_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_applayerprotodetectgetproto_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
 if HAVE_LIBFUZZINGENGINE
-    fuzz_detectproto_LDFLAGS += -lFuzzingEngine
+    fuzz_applayerprotodetectgetproto_LDFLAGS += -lFuzzingEngine
 else
-    fuzz_detectproto_SOURCES += tests/fuzz/onefile.c
+    fuzz_applayerprotodetectgetproto_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
-fuzz_detectproto_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+fuzz_applayerprotodetectgetproto_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
     $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
-    $(fuzz_detectproto_LDFLAGS) $(LDFLAGS) -o $@
+    $(fuzz_applayerprotodetectgetproto_LDFLAGS) $(LDFLAGS) -o $@
 
-fuzz_layerparse_SOURCES = tests/fuzz/fuzz_layerparse.c $(COMMON_SOURCES)
-fuzz_layerparse_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-fuzz_layerparse_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c $(COMMON_SOURCES)
+fuzz_applayerparserparse_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_applayerparserparse_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
 if HAVE_LIBFUZZINGENGINE
-    fuzz_layerparse_LDFLAGS += -lFuzzingEngine
+    fuzz_applayerparserparse_LDFLAGS += -lFuzzingEngine
 else
-    fuzz_layerparse_SOURCES += tests/fuzz/onefile.c
+    fuzz_applayerparserparse_SOURCES += tests/fuzz/onefile.c
 endif
-fuzz_layerparse_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+fuzz_applayerparserparse_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
     $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
-    $(fuzz_layerparse_LDFLAGS) $(LDFLAGS) -o $@
+    $(fuzz_applayerparserparse_LDFLAGS) $(LDFLAGS) -o $@
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \
