@@ -2618,7 +2618,7 @@ void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
  *  \param de_ctx detection engine to register in
  *  \param name keyword name for error printing
  *  \param InitFunc function ptr
- *  \param data keyword init data to pass to Func
+ *  \param data keyword init data to pass to Func. Can be NULL.
  *  \param FreeFunc function ptr
  *  \param mode 0 normal (ctx per keyword instance) 1 shared (one ctx per det_ct)
  *
@@ -2631,7 +2631,7 @@ void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
  */
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int mode)
 {
-    BUG_ON(de_ctx == NULL || InitFunc == NULL || FreeFunc == NULL || data == NULL);
+    BUG_ON(de_ctx == NULL || InitFunc == NULL || FreeFunc == NULL);
 
     if (mode) {
         DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
