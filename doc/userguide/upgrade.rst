@@ -71,6 +71,9 @@ Major changes
   <https://forum.suricata.io/t/my-traffic-gets-blocked-after-upgrading-to-suricata-7>`_.
 - New protocols enabled by default: bittorrent-dht, quic, http2.
 - The telnet protocol is also enabled by default, but only for the ``app-layer``.
+- Spaces are accepted in HTTP1 URIs instead of in the protocol version. That is:
+  `GET /a b HTTP/1.1` gets now URI as `/a b` and protocol as `HTTP/1.1` when
+  it used to be URI as `/a` and protocol as `b HTTP/1.1`
 
 Security changes
 ~~~~~~~~~~~~~~~~
