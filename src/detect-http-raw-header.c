@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -77,11 +77,12 @@ void DetectHttpRawHeaderRegister(void)
 {
     /* http_raw_header content modifier */
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].name = "http_raw_header";
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].desc = "content modifier to match the raw HTTP header buffer";
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].RegisterTests = DetectHttpRawHeaderRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].alternative = DETECT_HTTP_RAW_HEADER;
 
     /* http.header.raw sticky buffer */
@@ -89,8 +90,7 @@ void DetectHttpRawHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_RAW_HEADER].desc = "sticky buffer to match the raw HTTP header buffer";
     sigmatch_table[DETECT_HTTP_RAW_HEADER].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-raw-header";
     sigmatch_table[DETECT_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetupSticky;
-    sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_raw_header", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS+1,
