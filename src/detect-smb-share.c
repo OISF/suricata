@@ -34,21 +34,25 @@
 #include "detect-engine-content-inspection.h"
 
 #include "detect-smb-share.h"
-#ifdef HAVE_RUST
 #include "rust.h"
 #include "rust-smb-detect-gen.h"
 
 #define BUFFER_NAME "smb_named_pipe"
-#define KEYWORD_NAME BUFFER_NAME
+#define KEYWORD_NAME "smb.named_pipe"
+#define KEYWORD_NAME_LEGACY BUFFER_NAME
 #define KEYWORD_ID DETECT_SMB_NAMED_PIPE
 
 static int g_smb_named_pipe_buffer_id = 0;
 
 static int DetectSmbNamedPipeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    int r = DetectBufferSetActiveList(s, g_smb_named_pipe_buffer_id);
-    s->alproto = ALPROTO_SMB;
-    return r;
+    if (DetectBufferSetActiveList(s, g_smb_named_pipe_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMB) < 0)
+        return -1;
+
+    return 0;
 }
 
 static InspectionBuffer *GetNamedPipeData(DetectEngineThreadCtx *det_ctx,
@@ -75,8 +79,9 @@ static InspectionBuffer *GetNamedPipeData(DetectEngineThreadCtx *det_ctx,
 void DetectSmbNamedPipeRegister(void)
 {
     sigmatch_table[KEYWORD_ID].name = KEYWORD_NAME;
+    sigmatch_table[KEYWORD_ID].alias = KEYWORD_NAME_LEGACY;
     sigmatch_table[KEYWORD_ID].Setup = DetectSmbNamedPipeSetup;
-    sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[KEYWORD_ID].desc = "sticky buffer to match on SMB named pipe in tree connect";
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
@@ -92,24 +97,25 @@ void DetectSmbNamedPipeRegister(void)
 
 #undef BUFFER_NAME
 #undef KEYWORD_NAME
+#undef KEYWORD_NAME_LEGACY
 #undef KEYWORD_ID
 
-#else /* NO RUST */
-void DetectSmbNamedPipeRegister(void) {}
-#endif
-
-#ifdef HAVE_RUST
 #define BUFFER_NAME "smb_share"
-#define KEYWORD_NAME BUFFER_NAME
+#define KEYWORD_NAME "smb.share"
+#define KEYWORD_NAME_LEGACY BUFFER_NAME
 #define KEYWORD_ID DETECT_SMB_SHARE
 
 static int g_smb_share_buffer_id = 0;
 
 static int DetectSmbShareSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    int r = DetectBufferSetActiveList(s, g_smb_share_buffer_id);
-    s->alproto = ALPROTO_SMB;
-    return r;
+    if (DetectBufferSetActiveList(s, g_smb_share_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SMB) < 0)
+        return -1;
+
+    return 0;
 }
 
 static InspectionBuffer *GetShareData(DetectEngineThreadCtx *det_ctx,
@@ -136,8 +142,9 @@ static InspectionBuffer *GetShareData(DetectEngineThreadCtx *det_ctx,
 void DetectSmbShareRegister(void)
 {
     sigmatch_table[KEYWORD_ID].name = KEYWORD_NAME;
+    sigmatch_table[KEYWORD_ID].alias = KEYWORD_NAME_LEGACY;
     sigmatch_table[KEYWORD_ID].Setup = DetectSmbShareSetup;
-    sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[KEYWORD_ID].desc = "sticky buffer to match on SMB share name in tree connect";
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
@@ -150,6 +157,3 @@ void DetectSmbShareRegister(void)
 
     g_smb_share_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
-#else
-void DetectSmbShareRegister(void) {}
-#endif
