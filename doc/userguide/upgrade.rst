@@ -36,6 +36,10 @@ Upgrading 6.0 to 7.0
 Major changes
 ~~~~~~~~~~~~~
 - Upgrade of PCRE1 to PCRE2. See :ref:`pcre-update-v1-to-v2` for more details.
+- Spaces are accepted in HTTP1 URIs instead of in the protocol version
+
+That is `GET /a b HTTP/1.1` gets now URI as `a b` and protocol as `HTTP/1.1` when
+it used to be URI as `a` and protocol as `b HTTP/1.1`
 
 Removals
 ~~~~~~~~
