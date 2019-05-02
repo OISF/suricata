@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -85,14 +85,15 @@ void DetectHttpMethodRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_METHOD].RegisterTests = DetectHttpMethodRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_METHOD].alternative = DETECT_HTTP_METHOD;
 
     /* http.method sticky buffer */
     sigmatch_table[DETECT_HTTP_METHOD].name = "http.method";
     sigmatch_table[DETECT_HTTP_METHOD].desc = "sticky buffer to match specifically and only on the HTTP method buffer";
     sigmatch_table[DETECT_HTTP_METHOD].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-method";
     sigmatch_table[DETECT_HTTP_METHOD].Setup = DetectHttpMethodSetupSticky;
-    sigmatch_table[DETECT_HTTP_METHOD].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_HTTP_METHOD].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_method", ALPROTO_HTTP,
             SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
@@ -143,8 +144,12 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
  */
 static int DetectHttpMethodSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectBufferSetActiveList(s, g_http_method_buffer_id);
-    s->alproto = ALPROTO_HTTP;
+    if (DetectBufferSetActiveList(s, g_http_method_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
+
     return 0;
 }
 
