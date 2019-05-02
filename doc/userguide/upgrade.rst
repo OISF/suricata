@@ -39,6 +39,9 @@ Major changes
 - IPS users: by default various new "exception policies" are set to DROP
   traffic. Please see :ref:`Exception Policies <exception policies>` for details
   on the settings and their scope.
+- Spaces are accepted in HTTP1 URIs instead of in the protocol version. That is:
+  `GET /a b HTTP/1.1` gets now URI as `/a b` and protocol as `HTTP/1.1` when
+  it used to be URI as `/a` and protocol as `b HTTP/1.1`
 
 Security changes
 ~~~~~~~~~~~~~~~~
