@@ -165,9 +165,10 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     det_ctx->inspection_recursion_counter = 0;
     det_ctx->replist = NULL;
 
-    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_PMATCH],
-                                      f, p->payload, p->payload_len, 0, DETECT_CI_FLAGS_SINGLE,
-                                      DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
+    r = DetectEngineContentInspection(de_ctx, det_ctx,
+            s, s->sm_arrays[DETECT_SM_LIST_PMATCH],
+            p, f, p->payload, p->payload_len, 0,
+            DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD);
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -208,8 +209,8 @@ static int DetectEngineInspectStreamUDPPayload(DetectEngineCtx *de_ctx,
     det_ctx->replist = NULL;
 
     r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, p->payload, p->payload_len, 0, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
+            p, f, p->payload, p->payload_len, 0, DETECT_CI_FLAGS_SINGLE,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD);
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -238,8 +239,8 @@ static int StreamContentInspectFunc(void *cb_data, const uint8_t *data, const ui
 
     r = DetectEngineContentInspection(smd->de_ctx, smd->det_ctx,
             smd->s, smd->s->sm_arrays[DETECT_SM_LIST_PMATCH],
-            smd->f, (uint8_t *)data, data_len, 0, 0, //TODO
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
+            NULL, smd->f, (uint8_t *)data, data_len, 0, 0, //TODO
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM);
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -296,8 +297,8 @@ static int StreamContentInspectEngineFunc(void *cb_data, const uint8_t *data, co
 
     r = DetectEngineContentInspection(smd->de_ctx, smd->det_ctx,
             smd->s, smd->smd,
-            smd->f, (uint8_t *)data, data_len, 0, 0, // TODO
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
+            NULL, smd->f, (uint8_t *)data, data_len, 0, 0, // TODO
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM);
     if (r == 1) {
         SCReturnInt(1);
     }

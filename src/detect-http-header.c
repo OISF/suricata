@@ -190,11 +190,9 @@ static int DetectEngineInspectBufferHttpHeader(
 
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx,
-                                          s, engine->smd,
-                                          f,
-                                          (uint8_t *)data, data_len, offset, DETECT_CI_FLAGS_SINGLE,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
+            NULL, f, (uint8_t *)data, data_len, offset,
+            DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     SCLogDebug("r = %d", r);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

@@ -182,7 +182,6 @@ static int InspectEngineDceStubData(ThreadVars *tv,
 {
     uint32_t buffer_len = 0;
     uint8_t *buffer = NULL;
-    DCERPCState *dcerpc_state = NULL;
     uint8_t ci_flags = DETECT_CI_FLAGS_SINGLE;
 
     if (f->alproto == ALPROTO_SMB) {
@@ -190,9 +189,8 @@ static int InspectEngineDceStubData(ThreadVars *tv,
         if (rs_smb_tx_get_stub_data(tx, dir, &buffer, &buffer_len) != 1)
             goto end;
         SCLogDebug("have data!");
-    } else
-    {
-        dcerpc_state = alstate;
+    } else {
+        DCERPCState *dcerpc_state = alstate;
         if (dcerpc_state == NULL)
             goto end;
 
@@ -216,11 +214,10 @@ static int InspectEngineDceStubData(ThreadVars *tv,
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-                                          f,
+                                          NULL, f,
                                           buffer, buffer_len,
                                           0, ci_flags,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE,
-                                          dcerpc_state);
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 

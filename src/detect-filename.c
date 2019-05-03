@@ -402,11 +402,11 @@ static int DetectEngineInspectFilename(
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
         int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
-                                              f,
+                                              NULL, f,
                                               (uint8_t *)buffer->inspect,
                                               buffer->inspect_len,
                                               buffer->inspect_offset, DETECT_CI_FLAGS_SINGLE,
-                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match == 1) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         } else {

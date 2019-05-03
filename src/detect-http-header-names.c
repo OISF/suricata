@@ -344,9 +344,9 @@ static int InspectEngineHttpHeaderNames(
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
-            f, (uint8_t *)data, data_len, offset,
+            NULL, f, (uint8_t *)data, data_len, offset,
             DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 

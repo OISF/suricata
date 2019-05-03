@@ -117,8 +117,8 @@ static int DetectEngineInspectTemplateRustBuffer(ThreadVars *tv,
 
     if (data != NULL) {
         ret = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, (uint8_t *)data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+            NULL, f, (uint8_t *)data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     }
 
     SCLogNotice("Returning %d.", ret);

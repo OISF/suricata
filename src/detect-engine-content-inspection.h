@@ -46,10 +46,10 @@ enum {
 
 int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                                   const Signature *s, const SigMatchData *smd,
-                                  Flow *f,
+                                  Packet *p, Flow *f,
                                   uint8_t *buffer, uint32_t buffer_len,
                                   uint32_t stream_start_offset, uint8_t flags,
-                                  uint8_t inspection_mode, void *data);
+                                  uint8_t inspection_mode);
 
 void DetectEngineContentInspectionRegisterTests(void);
 

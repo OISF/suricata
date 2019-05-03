@@ -1281,9 +1281,9 @@ int DetectEngineInspectBufferGeneric(
      * transaction at the app layer */
     int r = DetectEngineContentInspection(de_ctx, det_ctx,
                                           s, engine->smd,
-                                          f,
+                                          NULL, f,
                                           (uint8_t *)data, data_len, offset, ci_flags,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
