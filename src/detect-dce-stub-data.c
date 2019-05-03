@@ -183,6 +183,7 @@ static int InspectEngineDceStubData(ThreadVars *tv,
     uint32_t buffer_len = 0;
     uint8_t *buffer = NULL;
     DCERPCState *dcerpc_state = NULL;
+    uint8_t ci_flags = DETECT_CI_FLAGS_SINGLE;
 
     if (f->alproto == ALPROTO_SMB) {
         uint8_t dir = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
@@ -202,6 +203,11 @@ static int InspectEngineDceStubData(ThreadVars *tv,
             buffer_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
             buffer = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
         }
+        if (dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) {
+            ci_flags |= DETECT_CI_FLAGS_DCE_LE;
+        } else {
+            ci_flags |= DETECT_CI_FLAGS_DCE_BE;
+        }
     }
     if (buffer == NULL ||buffer_len == 0)
         goto end;
@@ -212,7 +218,7 @@ static int InspectEngineDceStubData(ThreadVars *tv,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           buffer, buffer_len,
-                                          0, DETECT_CI_FLAGS_SINGLE,
+                                          0, ci_flags,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE,
                                           dcerpc_state);
     if (r == 1)

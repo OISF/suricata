@@ -464,11 +464,10 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if (btflags & DETECT_BYTETEST_DCE && data != NULL) {
-            DCERPCState *dcerpc_state = (DCERPCState *)data;
+        if (btflags & DETECT_BYTETEST_DCE) {
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            btflags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
+            btflags |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
                       DETECT_BYTETEST_LITTLE: 0);
         }
 
@@ -490,11 +489,10 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if (bjflags & DETECT_BYTEJUMP_DCE && data != NULL) {
-            DCERPCState *dcerpc_state = (DCERPCState *)data;
+        if (bjflags & DETECT_BYTEJUMP_DCE) {
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            bjflags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
+            bjflags |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
                       DETECT_BYTEJUMP_LITTLE: 0);
         }
 
@@ -513,12 +511,12 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
         if ((bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) &&
-            endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE && data != NULL) {
+            endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE &&
+            flags & (DETECT_CI_FLAGS_DCE_LE|DETECT_CI_FLAGS_DCE_BE)) {
 
-            DCERPCState *dcerpc_state = (DCERPCState *)data;
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            endian |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
+            endian |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
                        DETECT_BYTE_EXTRACT_ENDIAN_LITTLE : DETECT_BYTE_EXTRACT_ENDIAN_BIG);
         }
 
