@@ -227,15 +227,14 @@ static int InspectEngineDceStubData(ThreadVars *tv,
 end:
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
+
 /**
  * \brief Registers the keyword handlers for the "dce_stub_data" keyword.
  */
 void DetectDceStubDataRegister(void)
 {
     sigmatch_table[DETECT_DCE_STUB_DATA].name = "dce_stub_data";
-    sigmatch_table[DETECT_DCE_STUB_DATA].Match = NULL;
     sigmatch_table[DETECT_DCE_STUB_DATA].Setup = DetectDceStubDataSetup;
-    sigmatch_table[DETECT_DCE_STUB_DATA].Free  = NULL;
     sigmatch_table[DETECT_DCE_STUB_DATA].RegisterTests = DetectDceStubDataRegisterTests;
 
     sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_NOOPT;
@@ -276,7 +275,8 @@ void DetectDceStubDataRegister(void)
 
 static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    s->init_data->list = g_dce_stub_data_buffer_id;
+    if (DetectBufferSetActiveList(s, g_dce_stub_data_buffer_id) < 0)
+        return -1;
     return 0;
 }
 
