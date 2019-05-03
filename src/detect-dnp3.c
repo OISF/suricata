@@ -23,6 +23,8 @@
 #include "detect-parse.h"
 #include "detect-dnp3.h"
 #include "detect-engine.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
 #include "app-layer-dnp3.h"
@@ -141,30 +143,35 @@ static char *TrimString(char *str)
     return str;
 }
 
-static int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd,
-    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t flow_flags,
+        void *txv, const int list_id)
 {
-    SCEnter();
-    DNP3Transaction *tx = (DNP3Transaction *)txv;
+    SCLogDebug("list_id %d", list_id);
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        DNP3Transaction *tx = (DNP3Transaction *)txv;
+        SCLogDebug("tx %p", tx);
 
-    int r = 0;
+        const uint8_t *data = NULL;
+        uint32_t data_len = 0;
 
-    /* Content match - should probably be put into its own file. */
-    if (flags & STREAM_TOSERVER && tx->request_buffer != NULL) {
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            smd, NULL, f, tx->request_buffer,
-            tx->request_buffer_len, 0, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        if (flow_flags & STREAM_TOSERVER) {
+            data = tx->request_buffer;
+            data_len = tx->request_buffer_len;
+        } else if (flow_flags & STREAM_TOCLIENT) {
+            data = tx->response_buffer;
+            data_len = tx->response_buffer_len;
+        }
+        if (data == NULL || data_len == 0)
+            return NULL;
+
+        SCLogDebug("tx %p data %p data_len %u", tx, data, data_len);
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
     }
-    else if (flags & STREAM_TOCLIENT && tx->response_buffer != NULL) {
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            smd, NULL, f, tx->response_buffer,
-            tx->response_buffer_len, 0, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-    }
-
-    SCReturnInt(r);
+    return buffer;
 }
 
 static int DetectEngineInspectDNP3(ThreadVars *tv, DetectEngineCtx *de_ctx,
@@ -533,7 +540,9 @@ static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (DetectSignatureSetAppProto(s, ALPROTO_DNP3) != 0)
         return -1;
 
-    DetectBufferSetActiveList(s, g_dnp3_data_buffer_id);
+    if (DetectBufferSetActiveList(s, g_dnp3_data_buffer_id) != 0)
+        return -1;
+
     SCReturnInt(0);
 }
 
@@ -541,21 +550,29 @@ static void DetectDNP3DataRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3DATA].name          = "dnp3_data";
-    sigmatch_table[DETECT_AL_DNP3DATA].Match         = NULL;
+    sigmatch_table[DETECT_AL_DNP3DATA].name          = "dnp3.data";
+    sigmatch_table[DETECT_AL_DNP3DATA].alias         = "dnp3_data";
     sigmatch_table[DETECT_AL_DNP3DATA].Setup         = DetectDNP3DataSetup;
-    sigmatch_table[DETECT_AL_DNP3DATA].Free          = NULL;
     sigmatch_table[DETECT_AL_DNP3DATA].RegisterTests =
         DetectDNP3DataRegisterTests;
 
-    sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister("dnp3_data",
+    DetectAppLayerInspectEngineRegister2("dnp3_data",
             ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectDNP3Data);
-    DetectAppLayerInspectEngineRegister("dnp3_data",
+            DetectEngineInspectBufferGeneric,
+            GetDNP3Data);
+    DetectAppLayerMpmRegister2("dnp3_data", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetDNP3Data,
+            ALPROTO_DNP3, 0);
+
+    DetectAppLayerInspectEngineRegister2("dnp3_data",
             ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectDNP3Data);
+            DetectEngineInspectBufferGeneric,
+            GetDNP3Data);
+    DetectAppLayerMpmRegister2("dnp3_data", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetDNP3Data,
+            ALPROTO_DNP3, 0);
 
     g_dnp3_data_buffer_id = DetectBufferTypeGetByName("dnp3_data");
     SCReturn;

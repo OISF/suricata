@@ -1568,6 +1568,27 @@ int DNP3PrefixIsSize(uint8_t prefix_code)
     }
 }
 
+static uint64_t DNP3GetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    DNP3Transaction *tx = (DNP3Transaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return tx->detect_flags_ts;
+    } else {
+        return tx->detect_flags_tc;
+    }
+}
+
+static void DNP3SetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags)
+{
+    DNP3Transaction *tx = (DNP3Transaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        tx->detect_flags_ts = detect_flags;
+    } else {
+        tx->detect_flags_tc = detect_flags;
+    }
+    return;
+}
+
 /**
  * \brief Register the DNP3 application protocol parser.
  */
@@ -1618,6 +1639,8 @@ void RegisterDNP3Parsers(void)
             DNP3GetEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxDetectState, DNP3SetTxDetectState);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_DNP3,
+            DNP3GetTxDetectFlags, DNP3SetTxDetectFlags);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTxCnt);
