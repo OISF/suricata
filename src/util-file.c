@@ -744,7 +744,7 @@ int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
  *
  *  \note filename is not a string, so it's not nul terminated.
  */
-File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
+static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
         const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags)
 {

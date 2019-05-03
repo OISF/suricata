@@ -744,10 +744,12 @@ static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                 break;
         }
 
-        if (FileOpenFile(ftpdata_state->files, &sbcfg,
-                         (uint8_t *) ftpdata_state->file_name,
+        /* open with fixed track_id 0 as we can have just one
+         * file per ftp-data flow. */
+        if (FileOpenFileWithId(ftpdata_state->files, &sbcfg,
+                         0ULL, (uint8_t *) ftpdata_state->file_name,
                          ftpdata_state->file_len,
-                         input, input_len, flags) == NULL) {
+                         input, input_len, flags) != 0) {
             SCLogDebug("Can't open file");
             ret = -1;
         }

@@ -123,9 +123,6 @@ void FileContainerAdd(FileContainer *, File *);
  *  It's the responsibility of the API user to make sure this tracker is
  *  properly updated.
  */
-File *FileOpenFile(FileContainer *, const StreamingBufferConfig *,
-        const uint8_t *name, uint16_t name_len,
-        const uint8_t *data, uint32_t data_len, uint16_t flags);
 int FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags);

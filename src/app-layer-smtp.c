@@ -447,8 +447,9 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 flags |= FILE_STORE;
             }
 
-            if (FileOpenFile(files, &smtp_config.sbcfg, (uint8_t *) entity->filename, entity->filename_len,
-                    (uint8_t *) chunk, len, flags) == NULL) {
+            if (FileOpenFileWithId(files, &smtp_config.sbcfg, smtp_state->file_track_id++,
+                        (uint8_t *) entity->filename, entity->filename_len,
+                        (uint8_t *) chunk, len, flags) != 0) {
                 ret = MIME_DEC_ERR_DATA;
                 SCLogDebug("FileOpenFile() failed");
             }

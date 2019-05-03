@@ -137,8 +137,9 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         sbcfg = &s->cfg->request.sbcfg;
     }
 
-    if (FileOpenFile(files, sbcfg, filename, filename_len,
-                data, data_len, flags) == NULL)
+    if (FileOpenFileWithId(files, sbcfg, s->file_track_id++,
+                filename, filename_len,
+                data, data_len, flags) != 0)
     {
         retval = -1;
     }
