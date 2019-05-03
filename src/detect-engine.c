@@ -1272,6 +1272,7 @@ int DetectEngineInspectBufferGeneric(
 
     uint8_t ci_flags = eof ? DETECT_CI_FLAGS_END : 0;
     ci_flags |= (offset == 0 ? DETECT_CI_FLAGS_START : 0);
+    ci_flags |= buffer->flags;
 
     det_ctx->discontinue_matching = 0;
     det_ctx->buffer_offset = 0;
