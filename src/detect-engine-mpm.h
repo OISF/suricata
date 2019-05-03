@@ -86,11 +86,25 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
  *
  *  \note direction must be set to either toserver or toclient.
  *        If both are needed, register the keyword twice.
+ *  \deprecated since 5.0.0
  */
 void DetectAppLayerMpmRegister(const char *name,
         int direction, int priority,
         int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
-            SigGroupHead *sgh, MpmCtx *mpm_ctx));
+            SigGroupHead *sgh, MpmCtx *mpm_ctx)) __attribute__((deprecated));
+
+/** \brief register an app layer keyword for mpm
+ *  \param name buffer name
+ *  \param direction SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT
+ *  \param priority mpm keyword priority
+ *  \param PrefilterRegister Prefilter api registration function
+ *  \param GetData callback to setup a InspectBuffer. May be NULL.
+ *  \param alproto AppProto this MPM engine inspects
+ *  \param tx_min_progress min tx progress needed to invoke this engine.
+ *
+ *  \note direction must be set to either toserver or toclient.
+ *        If both are needed, register the keyword twice.
+ */
 void DetectAppLayerMpmRegister2(const char *name,
         int direction, int priority,
         int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
