@@ -43,13 +43,6 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-#ifndef HAVE_RUST
-void DetectNfsVersionRegister(void)
-{
-}
-
-#else
-
 #include "app-layer-nfs-tcp.h"
 #include "rust.h"
 #include "rust-nfs-nfs-gen.h"
@@ -631,4 +624,3 @@ void DetectNfsVersionRegisterTests(void)
     UtRegisterTest("ValidityTestParse15", ValidityTestParse15);
 #endif /* UNITTESTS */
 }
-#endif /* HAVE_RUST */
