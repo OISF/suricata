@@ -79,4 +79,16 @@
    fun:*IfaceOffloadingLinux
    ...
 }
-
+{
+   Known warning, Hyperscan issue #149
+   Memcheck:Cond
+   fun:hs_alloc_scratch
+   fun:SCHSPreparePatterns
+   ...
+}
+{
+   Known warning, Hyperscan issue #149
+   Memcheck:Cond
+   fun:SCHSPreparePatterns
+   ...
+}
