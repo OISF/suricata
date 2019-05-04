@@ -24,13 +24,10 @@
 #ifndef __OUTPUT_JSON_FILE_H__
 #define __OUTPUT_JSON_FILE_H__
 
-void JsonFileLogRegister(void);
-
-#ifdef HAVE_LIBJANSSON
 #include "app-layer-htp-xff.h"
 
+void JsonFileLogRegister(void);
 json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
         const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg);
-#endif
 
 #endif /* __OUTPUT_JSON_FILE_H__ */

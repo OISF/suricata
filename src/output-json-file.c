@@ -68,8 +68,6 @@
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 
-#ifdef HAVE_LIBJANSSON
-
 typedef struct OutputFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t file_cnt;
@@ -118,7 +116,6 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             if (hjs)
                 json_object_set_new(js, "email", hjs);
             break;
-#ifdef HAVE_RUST
         case ALPROTO_NFS:
             hjs = JsonNFSAddMetadataRPC(p->flow, ff->txid);
             if (hjs)
@@ -132,7 +129,6 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             if (hjs)
                 json_object_set_new(js, "smb", hjs);
             break;
-#endif
     }
 
     json_object_set_new(js, "app_proto",
@@ -402,11 +398,3 @@ void JsonFileLogRegister (void)
         "eve-log.files", OutputFileLogInitSub, JsonFileLogger,
         JsonFileLogThreadInit, JsonFileLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonFileLogRegister (void)
-{
-}
-
-#endif
