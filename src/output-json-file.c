@@ -156,7 +156,7 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     }
 
     for (uint32_t i = 0; ff->sid != NULL && i < ff->sid_cnt; i++) {
-        json_array_append(sig_ids, json_integer(ff->sid[i]));
+        json_array_append_new(sig_ids, json_integer(ff->sid[i]));
     }
     json_object_set_new(fjs, "sid", sig_ids);
 
