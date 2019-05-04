@@ -154,7 +154,13 @@ outputs:
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
             tagged-packets: yes
-        - anomaly:
+        #- anomaly:
+            # Anomaly log records describe unexpected conditions such as truncated packets, packets with invalid
+            # IP/UDP/TCP length values, and other events that render the packet invalid for further processing 
+            # or describe unexpected behavior on an established stream. Networks which experience high
+            # occurrences of anomalies may experience packet processing degradation.
+
+            # Enable dumping of packet header
             # packethdr: no            # enable dumping of packet header
         - http:
             extended: yes     # enable this for extended logging information
