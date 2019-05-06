@@ -54,5 +54,8 @@ alert http any any -> any any (msg:"SURICATA HTTP Request abnormal Content-Encod
 
 alert http any any -> any any (msg:"SURICATA HTTP Request unrecognized authorization method"; flow:established,to_server; app-layer-event:http.request_auth_unrecognized; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221034; rev:1;)
 
-# next sid 2221035
+alert http any any -> any any (msg:"SURICATA HTTP Request excessive header repetition"; flow:established,to_server; app-layer-event:http.request_header_repetition; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221035; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP Response excessive header repetition"; flow:established,to_client; app-layer-event:http.response_header_repetition; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221036; rev:1;)
+
+# next sid 2221037
 

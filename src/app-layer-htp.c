@@ -146,6 +146,10 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_HEADER_HOST_INVALID},
     { "REQUEST_AUTH_UNRECOGNIZED",
         HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED},
+    { "REQUEST_HEADER_REPETITION",
+        HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION},
+    { "RESPONSE_HEADER_REPETITION",
+        HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION},
     { "URI_DELIM_NON_COMPLIANT",
         HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
     { "METHOD_DELIM_NON_COMPLIANT",
@@ -513,6 +517,8 @@ struct {
     { "C-E gzip has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "C-E deflate has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
+    { "Excessive request header repetitions", HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION},
+    { "Excessive response header repetitions", HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
