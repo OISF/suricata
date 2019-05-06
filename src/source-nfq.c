@@ -917,20 +917,24 @@ int NFQParseAndRegisterQueues(const char *queues)
         num_queues = queue_end - queue_start + 1; // +1 due to inclusive range
     }
 
-    g_nfq_t = (NFQThreadVars *)SCCalloc(num_queues, sizeof(NFQThreadVars));
-
-    if (g_nfq_t == NULL) {
+    // We do realloc() to preserve previously registered queues
+    void *ptmp = SCRealloc(g_nfq_t, (receive_queue_num + num_queues) * sizeof(NFQThreadVars));
+    if (ptmp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate NFQThreadVars");
+        NFQContextsClean();
         exit(EXIT_FAILURE);
     }
 
-    g_nfq_q = (NFQQueueVars *)SCCalloc(num_queues, sizeof(NFQQueueVars));
+    g_nfq_t = (NFQThreadVars *)ptmp;
 
-    if (g_nfq_q == NULL) {
+    ptmp = SCRealloc(g_nfq_q, (receive_queue_num + num_queues) * sizeof(NFQQueueVars));
+    if (ptmp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate NFQQueueVars");
-        SCFree(g_nfq_t);
+        NFQContextsClean();
         exit(EXIT_FAILURE);
     }
+
+    g_nfq_q = (NFQQueueVars *)ptmp;
 
     do {
         if (NFQRegisterQueue(queue_start) != 0) {
