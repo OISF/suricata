@@ -19,11 +19,11 @@ void fuzz_openFile(const char * name) {
 
 AppLayerProtoDetectThreadCtx *alpd_tctx = NULL;
 
-int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     Flow f;
     TcpSession ssn;
 
-    if (Size < HEADER_LEN) {
+    if (size < HEADER_LEN) {
         return 0;
     }
 
@@ -44,14 +44,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     f.flags |= FLOW_IPV4;
     f.src.addr_data32[0] = 0x01020304;
     f.dst.addr_data32[0] = 0x05060708;
-    f.sp = (Data[2] << 8) | Data[3];
-    f.dp = (Data[4] << 8) | Data[5];
-    f.proto = Data[1];
+    f.sp = (data[2] << 8) | data[3];
+    f.dp = (data[4] << 8) | data[5];
+    f.proto = data[1];
     memset(&ssn, 0, sizeof(TcpSession));
     f.protoctx = &ssn;
     f.protomap = FlowGetProtoMapping(f.proto);
 
-    AppLayerProtoDetectGetProto(alpd_tctx, &f, Data+HEADER_LEN, Size-HEADER_LEN, f.proto, Data[0], NULL);
+    AppLayerProtoDetectGetProto(alpd_tctx, &f, data+HEADER_LEN, size-HEADER_LEN, f.proto, data[0], NULL);
     //printf("proto %d\n", r);
 
     return 0;

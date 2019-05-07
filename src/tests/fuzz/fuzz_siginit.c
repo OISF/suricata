@@ -16,7 +16,7 @@ void fuzz_openFile(const char * name) {
 
 DetectEngineCtx *de_ctx = NULL;
 
-int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     if (de_ctx == NULL) {
         //global init
         InitGlobal();
@@ -29,11 +29,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
         de_ctx = DetectEngineCtxInit();
     }
 
-    uint8_t * buffer = malloc(Size+1);
+    uint8_t * buffer = malloc(size+1);
     if (buffer) {
-        memcpy(buffer, Data, Size);
+        memcpy(buffer, data, size);
         //null terminate string
-        buffer[Size] = 0;
+        buffer[size] = 0;
         Signature *s = SigInit(de_ctx, buffer);
         if (s != NULL) {
             SigFree(s);

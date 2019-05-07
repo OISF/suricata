@@ -17,11 +17,11 @@ void fuzz_openFile(const char * name) {
 
 AppLayerParserThreadCtx *alp_tctx = NULL;
 
-int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     Flow * f;
     TcpSession ssn;
 
-    if (Size < HEADER_LEN) {
+    if (size < HEADER_LEN) {
         return 0;
     }
 
@@ -37,20 +37,20 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
         alp_tctx = AppLayerParserThreadCtxAlloc();
     }
 
-    if (Data[0] >= ALPROTO_MAX) {
+    if (data[0] >= ALPROTO_MAX) {
         return 0;
     }
     f = FlowAlloc();
     f->flags |= FLOW_IPV4;
     f->src.addr_data32[0] = 0x01020304;
     f->dst.addr_data32[0] = 0x05060708;
-    f->sp = (Data[2] << 8) | Data[3];
-    f->dp = (Data[4] << 8) | Data[5];
-    f->proto = Data[1];
+    f->sp = (data[2] << 8) | data[3];
+    f->dp = (data[4] << 8) | data[5];
+    f->proto = data[1];
     memset(&ssn, 0, sizeof(TcpSession));
     f->protoctx = &ssn;
     f->protomap = FlowGetProtoMapping(f->proto);
-    f->alproto = Data[0];
+    f->alproto = data[0];
 
     int start = 1;
     int flip = 0;
@@ -70,14 +70,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
             flags |= STREAM_START;
             start = 0;
         }
-        if (Size < offset + 2) {
+        if (size < offset + 2) {
             onesize = 0;
             done = 1;
         } else {
-            onesize = ((Data[offset]) << 8) | (Data[offset+1]);
+            onesize = ((data[offset]) << 8) | (data[offset+1]);
             offset += 2;
-            if (Size < offset + onesize) {
-                onesize = Size - offset;
+            if (size < offset + onesize) {
+                onesize = size - offset;
                 done = 1;
             }
         }
@@ -85,7 +85,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
             flags |= STREAM_EOF;
         }
 
-        (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, Data+offset, onesize);
+        (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, data+offset, onesize);
         offset += onesize;
         if (done)
             break;
