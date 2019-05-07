@@ -2739,15 +2739,15 @@ int main(int argc, char **argv)
     ParseSizeInit();
     RunModeRegisterRunModes();
 
+    /* Initialize the configuration module. */
+    ConfInit();
+
 #ifdef OS_WIN32
     /* service initialization */
     if (WindowsInitService(argc, argv) != 0) {
         exit(EXIT_FAILURE);
     }
 #endif /* OS_WIN32 */
-
-    /* Initialize the configuration module. */
-    ConfInit();
 
     if (ParseCommandLine(argc, argv, &suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
