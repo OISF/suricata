@@ -162,11 +162,6 @@
 
 #include "util-lua.h"
 
-#ifdef HAVE_RUST
-#include "rust.h"
-#include "rust-core-gen.h"
-#endif
-
 /*
  * we put this here, because we only use it here in main.
  */
@@ -2698,49 +2693,9 @@ int main(int argc, char **argv)
 {
     SCInstanceInit(&suricata, argv[0]);
 
-#ifdef HAVE_RUST
-    SuricataContext context;
-    context.SCLogMessage = SCLogMessage;
-    context.DetectEngineStateFree = DetectEngineStateFree;
-    context.AppLayerDecoderEventsSetEventRaw =
-        AppLayerDecoderEventsSetEventRaw;
-    context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
-
-    context.FileOpenFileWithId = FileOpenFileWithId;
-    context.FileCloseFileById = FileCloseFileById;
-    context.FileAppendDataById = FileAppendDataById;
-    context.FileAppendGAPById = FileAppendGAPById;
-    context.FileContainerRecycle = FileContainerRecycle;
-    context.FilePrune = FilePrune;
-    context.FileSetTx = FileContainerSetTx;
-
-    rs_init(&context);
-#endif
-
-    SC_ATOMIC_INIT(engine_stage);
-
-    /* initialize the logging subsys */
-    SCLogInitLogModule(NULL);
-
-    (void)SCSetThreadName("Suricata-Main");
-
-    /* Ignore SIGUSR2 as early as possble. We redeclare interest
-     * once we're done launching threads. The goal is to either die
-     * completely or handle any and all SIGUSR2s correctly.
-     */
-#ifndef OS_WIN32
-    UtilSignalHandlerSetup(SIGUSR2, SIG_IGN);
-    if (UtilSignalBlock(SIGUSR2)) {
-        SCLogError(SC_ERR_INITIALIZATION, "SIGUSR2 initialization error");
+    if (initGlobal() != 0) {
         exit(EXIT_FAILURE);
     }
-#endif
-
-    ParseSizeInit();
-    RunModeRegisterRunModes();
-
-    /* Initialize the configuration module. */
-    ConfInit();
 
 #ifdef OS_WIN32
     /* service initialization */

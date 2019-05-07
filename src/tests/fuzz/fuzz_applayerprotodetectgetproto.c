@@ -29,6 +29,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
 
     if (alpd_tctx == NULL) {
         //global init
+        initGlobal();
         run_mode = RUNMODE_UNITTEST;
         MpmTableSetup();
         SpmTableSetup();
@@ -50,7 +51,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     f.protoctx = &ssn;
     f.protomap = FlowGetProtoMapping(f.proto);
 
-    int r = AppLayerProtoDetectGetProto(alpd_tctx, &f, Data+HEADER_LEN, Size-HEADER_LEN, f.proto, Data[0], NULL);
+    AppLayerProtoDetectGetProto(alpd_tctx, &f, Data+HEADER_LEN, Size-HEADER_LEN, f.proto, Data[0], NULL);
     //printf("proto %d\n", r);
 
     return 0;
