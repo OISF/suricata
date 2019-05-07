@@ -92,11 +92,9 @@ static DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
 {
     DetectDceOpnumRange *dor = NULL;
 
-    if ( (dor = SCMalloc(sizeof(DetectDceOpnumRange))) == NULL)
+    if ( (dor = SCCalloc(1, sizeof(DetectDceOpnumRange))) == NULL)
         return NULL;
-    memset(dor, 0, sizeof(DetectDceOpnumRange));
     dor->range1 = dor->range2 = DCE_OPNUM_RANGE_UNINITIALIZED;
-
     return dor;
 }
 
@@ -252,15 +250,15 @@ static int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     DetectDceOpnumData *dce_data = (DetectDceOpnumData *)m;
-    DetectDceOpnumRange *dor = dce_data->range;
 
     DCERPCState *dcerpc_state = state;
     if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
         SCReturnInt(0);
     }
-    uint16_t opnum = dcerpc_state->dcerpc.dcerpcrequest.opnum;
 
+    uint16_t opnum = dcerpc_state->dcerpc.dcerpcrequest.opnum;
+    DetectDceOpnumRange *dor = dce_data->range;
     for ( ; dor != NULL; dor = dor->next) {
         if (dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED) {
             if (dor->range1 == opnum) {
@@ -303,8 +301,7 @@ static int DetectDceOpnumMatchRust(ThreadVars *t,
                 SCReturnInt(1);
             }
         } else {
-            if (dor->range1 <= opnum && dor->range2 >= opnum)
-            {
+            if (dor->range1 <= opnum && dor->range2 >= opnum) {
                 SCReturnInt(1);
             }
         }
