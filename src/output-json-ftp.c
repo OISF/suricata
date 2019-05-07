@@ -109,6 +109,8 @@ static void JsonFTPLogJSON(json_t *tjs, Flow *f, FTPTransaction *tx)
                 json_object_set_new(cjs, "mode",
                         json_string((char*)(tx->active ? "active" : "passive")));
             }
+            json_object_set_new(cjs, "reply_received",
+                    json_string((char*)(tx->done ? "yes" : "no")));
         }
     }
 
