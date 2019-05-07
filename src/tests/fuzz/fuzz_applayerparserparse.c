@@ -41,6 +41,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         return 0;
     }
     f = FlowAlloc();
+    if (f == NULL) {
+        return 0;
+    }
     f->flags |= FLOW_IPV4;
     f->src.addr_data32[0] = 0x01020304;
     f->dst.addr_data32[0] = 0x05060708;
