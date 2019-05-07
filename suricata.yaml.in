@@ -232,7 +232,7 @@ outputs:
             #md5: [body, subject]
 
         #- dnp3
-        #- ftp
+        - ftp
         - nfs
         - smb
         - tftp
