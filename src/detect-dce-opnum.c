@@ -70,8 +70,8 @@ static int g_dce_generic_list_id = 0;
  */
 void DetectDceOpnumRegister(void)
 {
-    sigmatch_table[DETECT_DCE_OPNUM].name = "dce_opnum";
-    sigmatch_table[DETECT_DCE_OPNUM].Match = NULL;
+    sigmatch_table[DETECT_DCE_OPNUM].name = "dcerpc.opnum";
+    sigmatch_table[DETECT_DCE_OPNUM].alias = "dce_opnum";
     sigmatch_table[DETECT_DCE_OPNUM].AppLayerTxMatch = DetectDceOpnumMatchRust;
     sigmatch_table[DETECT_DCE_OPNUM].Setup = DetectDceOpnumSetup;
     sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
