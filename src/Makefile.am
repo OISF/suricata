@@ -7,7 +7,7 @@ noinst_HEADERS = action-globals.h \
     util-validate.h
 bin_PROGRAMS = suricata
 if BUILD_FUZZTARGETS
-    bin_PROGRAMS += fuzz_applayerprotodetectgetproto fuzz_applayerparserparse
+    bin_PROGRAMS += fuzz_applayerprotodetectgetproto fuzz_applayerparserparse fuzz_siginit
 endif
 
 COMMON_SOURCES = \
@@ -536,6 +536,19 @@ endif
 fuzz_applayerparserparse_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
     $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
     $(fuzz_applayerparserparse_LDFLAGS) $(LDFLAGS) -o $@
+
+fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c $(COMMON_SOURCES)
+fuzz_siginit_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_siginit_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAVE_LIBFUZZINGENGINE
+    fuzz_siginit_LDFLAGS += -lFuzzingEngine
+else
+    fuzz_siginit_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_siginit_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_siginit_LDFLAGS) $(LDFLAGS) -o $@
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \
