@@ -183,6 +183,8 @@ extern uint8_t host_mode;
 /** Suricata instance */
 SCInstance suricata;
 
+int initGlobal(void);
+
 #include <ctype.h>
 #define u8_tolower(c) tolower((uint8_t)(c))
 

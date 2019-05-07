@@ -9,12 +9,6 @@
 #include "app-layer-detect-proto.h"
 #include "flow-util.h"
 #include "app-layer-parser.h"
-#include "util-misc.h"
-
-#ifdef HAVE_RUST
-#include "rust.h"
-#include "rust-core-gen.h"
-#endif
 
 #define HEADER_LEN 6
 
@@ -22,9 +16,6 @@ void fuzz_openFile(const char * name) {
 }
 
 AppLayerParserThreadCtx *alp_tctx = NULL;
-#ifdef HAVE_RUST
-SuricataContext rscontext;
-#endif
 
 int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     Flow * f;
@@ -35,29 +26,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     }
 
     if (alp_tctx == NULL) {
+        initGlobal();
         run_mode = RUNMODE_UNITTEST;
-#ifdef HAVE_RUST
-        rscontext.SCLogMessage = SCLogMessage;
-        rscontext.DetectEngineStateFree = DetectEngineStateFree;
-        rscontext.AppLayerDecoderEventsSetEventRaw = AppLayerDecoderEventsSetEventRaw;
-        rscontext.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
-        rscontext.FileOpenFileWithId = FileOpenFileWithId;
-        rscontext.FileCloseFileById = FileCloseFileById;
-        rscontext.FileAppendDataById = FileAppendDataById;
-        rscontext.FileAppendGAPById = FileAppendGAPById;
-        rscontext.FileContainerRecycle = FileContainerRecycle;
-        rscontext.FilePrune = FilePrune;
-        rscontext.FileSetTx = FileContainerSetTx;
-        rs_init(&rscontext);
-#endif
-        SC_ATOMIC_INIT(engine_stage);
-        SCLogInitLogModule(NULL);
-        (void)SCSetThreadName("Suricata-Fuzz");
-        ParseSizeInit();
-        RunModeRegisterRunModes();
-        ConfInit();
         FlowInitConfig(FLOW_QUIET);
-        //global init
         MpmTableSetup();
         SpmTableSetup();
         AppLayerProtoDetectSetup();

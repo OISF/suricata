@@ -26,6 +26,13 @@
 #include "defrag.h"
 #include "app-layer.h"
 #include "suricata.h"
+#include "util-signal.h"
+#include "util-misc.h"
+
+#ifdef HAVE_RUST
+#include "rust.h"
+#include "rust-core-gen.h"
+#endif
 
 #ifndef AFLFUZZ_NO_RANDOM
 int g_disable_randomness = 0;
@@ -200,4 +207,54 @@ int RunmodeIsUnittests(void)
 int SuriHasSigFile(void)
 {
     return (suricata.sig_file != NULL);
+}
+
+SuricataContext context;
+
+// Global initialization common to all runmodes
+int initGlobal() {
+#ifdef HAVE_RUST
+    context.SCLogMessage = SCLogMessage;
+    context.DetectEngineStateFree = DetectEngineStateFree;
+    context.AppLayerDecoderEventsSetEventRaw =
+    AppLayerDecoderEventsSetEventRaw;
+    context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
+
+    context.FileOpenFileWithId = FileOpenFileWithId;
+    context.FileCloseFileById = FileCloseFileById;
+    context.FileAppendDataById = FileAppendDataById;
+    context.FileAppendGAPById = FileAppendGAPById;
+    context.FileContainerRecycle = FileContainerRecycle;
+    context.FilePrune = FilePrune;
+    context.FileSetTx = FileContainerSetTx;
+
+    rs_init(&context);
+#endif
+
+    SC_ATOMIC_INIT(engine_stage);
+
+    /* initialize the logging subsys */
+    SCLogInitLogModule(NULL);
+
+    (void)SCSetThreadName("Suricata-Main");
+
+    /* Ignore SIGUSR2 as early as possble. We redeclare interest
+     * once we're done launching threads. The goal is to either die
+     * completely or handle any and all SIGUSR2s correctly.
+     */
+#ifndef OS_WIN32
+    UtilSignalHandlerSetup(SIGUSR2, SIG_IGN);
+    if (UtilSignalBlock(SIGUSR2)) {
+        SCLogError(SC_ERR_INITIALIZATION, "SIGUSR2 initialization error");
+        return EXIT_FAILURE;
+    }
+#endif
+
+    ParseSizeInit();
+    RunModeRegisterRunModes();
+
+    /* Initialize the configuration module. */
+    ConfInit();
+
+    return 0;
 }
