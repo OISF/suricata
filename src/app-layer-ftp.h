@@ -19,6 +19,7 @@
  * \file
  *
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
+ * \author Jeff Lucovsky <jeff@lucovsky.org>
  */
 
 #ifndef __APP_LAYER_FTP_H__
@@ -151,8 +152,6 @@ typedef struct FTPTransaction_  {
 
     /* Handle multiple responses */
     TAILQ_HEAD(, FTPString_) response_list;
-    uint8_t *response;
-    uint32_t response_length;
 
     DetectEngineState *de_state;
 

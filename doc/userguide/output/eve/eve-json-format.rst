@@ -429,6 +429,8 @@ Fields
 * "completion_code": The 3-digit completion code. The first digit indicates whether the response is good, bad or incomplete.
 * "dynamic_port": The dynamic port established for subsequent data transfers, when applicable, with a "PORT" or "EPRT" command.
 * "mode": The type of FTP connection. Most connections are "passive" but may be "active".
+* "reply_received": Indicates whether a response was matched to the command. In some non-typical cases, a command may lack a
+response.
 
 Examples
 ~~~~~~~~
