@@ -212,7 +212,7 @@ int SuriHasSigFile(void)
 SuricataContext context;
 
 // Global initialization common to all runmodes
-int initGlobal() {
+int InitGlobal() {
 #ifdef HAVE_RUST
     context.SCLogMessage = SCLogMessage;
     context.DetectEngineStateFree = DetectEngineStateFree;

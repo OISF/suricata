@@ -29,7 +29,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
 
     if (alpd_tctx == NULL) {
         //global init
-        initGlobal();
+        InitGlobal();
         run_mode = RUNMODE_UNITTEST;
         MpmTableSetup();
         SpmTableSetup();

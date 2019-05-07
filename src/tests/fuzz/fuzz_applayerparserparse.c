@@ -26,7 +26,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     }
 
     if (alp_tctx == NULL) {
-        initGlobal();
+        InitGlobal();
         run_mode = RUNMODE_UNITTEST;
         FlowInitConfig(FLOW_QUIET);
         MpmTableSetup();

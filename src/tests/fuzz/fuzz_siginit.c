@@ -19,7 +19,7 @@ DetectEngineCtx *de_ctx = NULL;
 int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     if (de_ctx == NULL) {
         //global init
-        initGlobal();
+        InitGlobal();
         run_mode = RUNMODE_UNITTEST;
         MpmTableSetup();
         SpmTableSetup();

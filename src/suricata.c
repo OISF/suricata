@@ -2693,7 +2693,7 @@ int main(int argc, char **argv)
 {
     SCInstanceInit(&suricata, argv[0]);
 
-    if (initGlobal() != 0) {
+    if (InitGlobal() != 0) {
         exit(EXIT_FAILURE);
     }
 
