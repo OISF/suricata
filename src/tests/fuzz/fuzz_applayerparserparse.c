@@ -5,23 +5,11 @@
  */
 
 
-#include <errno.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-
 #include "suricata-common.h"
 #include "app-layer-detect-proto.h"
 #include "flow-util.h"
-#include "stream-tcp-private.h"
 #include "app-layer-parser.h"
 #include "util-misc.h"
-#include "runmodes.h"
 
 #ifdef HAVE_RUST
 #include "rust.h"
@@ -29,59 +17,6 @@
 #endif
 
 #define HEADER_LEN 6
-
-
-int g_detect_disabled = 0;
-int g_disable_randomness = 1;
-intmax_t max_pending_packets = 1;
-int run_mode = RUNMODE_UNITTEST;
-volatile uint8_t suricata_ctl_flags = 0;
-int g_ut_covered = 0;
-int g_ut_modules = 0;
-int coverage_unittests = 0;
-uint8_t host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-
-SC_ATOMIC_DECLARE(unsigned int, engine_stage);
-
-void EngineDone(void)
-{
-}
-
-void EngineStop(void)
-{
-}
-
-int EngineModeIsIPS(void)
-{
-    return 0;
-}
-
-void PostRunDeinit(const int runmode, struct timeval *start_time)
-{
-}
-
-void PreRunInit(const int runmode)
-{
-}
-
-void PreRunPostPrivsDropInit(const int runmode)
-{
-}
-
-int RunmodeGetCurrent(void)
-{
-    return RUNMODE_UNITTEST;
-}
-
-int RunmodeIsUnittests(void)
-{
-    return 1;
-}
-
-int SuriHasSigFile(void)
-{
-    return 0;
-}
 
 void fuzz_openFile(const char * name) {
 }
@@ -100,6 +35,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     }
 
     if (alp_tctx == NULL) {
+        run_mode = RUNMODE_UNITTEST;
 #ifdef HAVE_RUST
         rscontext.SCLogMessage = SCLogMessage;
         rscontext.DetectEngineStateFree = DetectEngineStateFree;

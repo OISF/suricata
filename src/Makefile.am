@@ -282,6 +282,7 @@ host-bit.c host-bit.h \
 host-queue.c host-queue.h \
 host-storage.c host-storage.h \
 host-timeout.c host-timeout.h \
+init.c \
 ippair.c ippair.h \
 ippair-bit.c ippair-bit.h \
 ippair-queue.c ippair-queue.h \
