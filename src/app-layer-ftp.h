@@ -19,6 +19,7 @@
  * \file
  *
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
+ * \author Jeff Lucovsky <jeff@lucovsky.org>
  */
 
 #ifndef __APP_LAYER_FTP_H__
@@ -138,21 +139,22 @@ typedef struct FTPTransaction_  {
 
     /** indicates loggers done logging */
     uint32_t logged;
-    bool done;
 
+    /* for the request */
+    uint32_t request_length;
+    uint8_t *request;
+
+    /* for the command description */
     const FtpCommand *command_descriptor;
 
-    uint8_t direction;
-    uint16_t dyn_port;
-    bool active;
+    uint16_t dyn_port; /* dynamic port, if applicable */
+    bool done; /* transaction complete? */
+    bool active; /* active or passive mode */
 
-    uint8_t *request;
-    uint32_t request_length;
+    uint8_t direction;
 
     /* Handle multiple responses */
     TAILQ_HEAD(, FTPString_) response_list;
-    uint8_t *response;
-    uint32_t response_length;
 
     DetectEngineState *de_state;
 
