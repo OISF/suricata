@@ -2377,7 +2377,12 @@ fi
 
     AC_ARG_ENABLE(fuzztargets,
         AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
-    AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" != "xno"])
+    AS_IF([test "x$enable_fuzztargets" = "xyes"], [
+        echo "   lolfuzz required"
+        AM_CONDITIONAL([BUILD_FUZZTARGETS], true)
+        AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
+    ])
+
 
 # Cargo/Rust
     AC_PATH_PROG(RUSTC, rustc, "no")
