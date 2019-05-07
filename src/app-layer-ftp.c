@@ -123,6 +123,8 @@ uint64_t ftp_config_memcap = 0;
 SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
 SC_ATOMIC_DECLARE(uint64_t, ftp_memcap);
 
+static void *FTPGetOldestTx(FtpState *);
+
 static void FTPParseMemcap(void)
 {
     const char *conf_val;
@@ -286,9 +288,6 @@ static void FTPTransactionFree(FTPTransaction *tx)
 
     if (tx->request) {
         FTPFree(tx->request, tx->request_length);
-    }
-    if (tx->response) {
-        FTPFree(tx->response, tx->response_length);
     }
 
     FTPString *str = NULL;
@@ -592,13 +591,10 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
 
         state->command = cmd_descriptor->command;
 
-        FTPTransaction *tx = state->curr_tx;
-        if (tx == NULL || tx->done) {
-            tx = FTPTransactionCreate(state);
-            if (unlikely(tx == NULL))
-                return -1;
-            state->curr_tx = tx;
-        }
+        FTPTransaction *tx = FTPTransactionCreate(state);
+        if (unlikely(tx == NULL))
+            return -1;
+        state->curr_tx = tx;
 
         tx->command_descriptor = cmd_descriptor;
         tx->request_length = CopyCommandLine(&tx->request, state->current_line, state->current_line_len);
@@ -734,13 +730,14 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
                             void *local_data, const uint8_t flags)
 {
     FtpState *state = (FtpState *)ftp_state;
-    FTPTransaction *tx = state->curr_tx;
     int retcode = 1;
 
     if (state->command == FTP_COMMAND_UNKNOWN) {
         return 1;
     }
 
+    FTPTransaction *tx = FTPGetOldestTx(state);
+    state->curr_tx = tx;
     if (state->command == FTP_COMMAND_AUTH_TLS) {
         if (input_len >= 4 && SCMemcmp("234 ", input, 4) == 0) {
             AppLayerRequestProtocolTLSUpgrade(f);
@@ -791,8 +788,7 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         FTPString *response = FTPStringAlloc();
         if (likely(response)) {
             response->len = CopyCommandLine(&response->str, input, input_len);
-            if (response->str)
-                TAILQ_INSERT_TAIL(&tx->response_list, response, next);
+            TAILQ_INSERT_TAIL(&tx->response_list, response, next);
         }
     }
 
@@ -840,6 +836,10 @@ static void FTPStateFree(void *s)
     FTPTransaction *tx = NULL;
     while ((tx = TAILQ_FIRST(&fstate->tx_list))) {
         TAILQ_REMOVE(&fstate->tx_list, tx, next);
+        SCLogDebug("[%s] state %p id %"PRIu64", Freeing %d bytes at %p",
+            tx->command_descriptor->command_name_upper,
+            s, tx->tx_id,
+            tx->request_length, tx->request);
         FTPTransactionFree(tx);
     }
 
@@ -859,6 +859,36 @@ static int FTPSetTxDetectState(void *vtx, DetectEngineState *de_state)
     return 0;
 }
 
+/**
+ * \brief This function returns the oldest open transaction; if none
+ * are open, then the oldest transaction is returned
+ * \param ftp_state the ftp state structure for the parser
+ *
+ * \retval transaction pointer when a transaction was found; NULL otherwise.
+ */
+static void *FTPGetOldestTx(FtpState *ftp_state)
+{
+    if (unlikely(!ftp_state)) {
+        SCLogDebug("NULL state object; no transactions available");
+        return NULL;
+    }
+    FTPTransaction *tx = NULL;
+    FTPTransaction *lasttx = NULL;
+    TAILQ_FOREACH(tx, &ftp_state->tx_list, next) {
+        /* Return oldest open tx */
+        if (!tx->done) {
+            SCLogDebug("Returning tx %p id %"PRIu64, tx, tx->tx_id);
+            return tx;
+        }
+        /* save for the end */
+        lasttx = tx;
+    }
+    /* All tx are closed; return last element */
+    if (lasttx)
+        SCLogDebug("Returning OLDEST tx %p id %"PRIu64, lasttx, lasttx->tx_id);
+    return lasttx;
+}
+
 static void *FTPGetTx(void *state, uint64_t tx_id)
 {
     FtpState *ftp_state = (FtpState *)state;
@@ -876,7 +906,6 @@ static void *FTPGetTx(void *state, uint64_t tx_id)
         }
     }
     return NULL;
-
 }
 
 static DetectEngineState *FTPGetTxDetectState(void *vtx)
