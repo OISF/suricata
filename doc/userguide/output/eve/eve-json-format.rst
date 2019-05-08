@@ -109,6 +109,62 @@ the signature.
        "port": 80
      },
 
+Event type: Anomaly
+-------------------
+
+Events with type "anomaly"
+
+Fields
+------
+
+* "type": Either "packet" or "stream". In rare cases, type will be "unknown".
+  When this occurs, an additional field named "code" will be present.
+* "event" The name of the anomalous event. Events of type "packet" are prefixed
+  with "decoder"; events of type "stream" are prefixed with "stream".
+* "code" If "type" is "unknown", than "code" contains the unrecognized event code.
+
+When ```packethdr``` is enabled, the first 32 bytes of the packet are included as a byte64-encoded blob in the main part of
+record.
+
+Examples
+--------
+
+::
+
+	"anomaly": {
+	  "type": "packet",
+	  "event": "decoder.icmpv4.unknown_type"
+	}
+
+	"anomaly": {
+	  "type": "packet",
+	  "event": "decoder.udp.pkt_too_small"
+	}
+
+	"anomaly": {
+	  "type": "packet",
+	  "event": "decoder.ipv4.wrong_ip_version"
+	}
+
+	{
+	  "timestamp": "1969-12-31T16:04:21.000000-0800",
+	  "pcap_cnt": 9262,
+	  "event_type": "anomaly",
+	  "src_ip": "208.21.2.184",
+	  "src_port": 0,
+	  "dest_ip": "10.1.1.99",
+	  "dest_port": 0,
+	  "proto": "UDP",
+	  "packet": "////////AQEBAQEBCABFAAA8xZ5AAP8R1+DQFQK4CgE=",
+	  "packet_info": {
+		"linktype": 1
+	  },
+	  "anomaly": {
+		"type": "packet",
+		"event": "decoder.udp.pkt_too_small"
+	  }
+	}
+
 Event type: HTTP
 ----------------
 
@@ -127,7 +183,7 @@ In addition to these fields, if the extended logging is enabled in the suricata.
 * "status": HTTP status code
 * "protocol": Protocol / Version of HTTP (ex: HTTP/1.1)
 * "http_method": The HTTP method (ex: GET, POST, HEAD)
-* "http_refer": The referer for this action
+* "http_refer": The referrer for this action
 
 In addition to the extended logging fields one can also choose to enable/add from more than 50 additional custom logging HTTP fields enabled in the suricata.yaml file. The additional fields can be enabled as following:
 
