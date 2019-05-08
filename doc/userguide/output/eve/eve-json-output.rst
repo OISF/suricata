@@ -3,7 +3,7 @@
 Eve JSON Output
 ===============
 
-The EVE output facility outputs alerts, metadata, file info and protocol
+The EVE output facility outputs alerts, anomalies, metadata, file info and protocol
 specific records through JSON.
 
 The most common way to use this is through 'EVE', which is a firehose approach
@@ -78,6 +78,27 @@ Metadata::
 
                 # Log the raw rule text.
                 #raw: false
+
+Anomaly
+-------
+
+Anomalies are event records created when packets with unexpected or anomalous
+values are handled. These events include conditions such as incorrect protocol
+values, incorrect protocol length values, and other conditions which render the
+packet suspect. Other conditions may occur during the normal progression of a stream;
+these are termed ```stream``` events are include control sequences with incorrect
+values or that occur out of expected sequence.
+
+Metadata::
+
+        #- anomaly:
+            # Anomaly log records describe unexpected conditions such as truncated packets, packets with invalid
+            # IP/UDP/TCP length values, and other events that render the packet invalid for further processing 
+            # or describe unexpected behavior on an established stream. Networks which experience high
+            # occurrences of anomalies may experience packet processing degradation.
+
+            # Enable dumping of packet header
+            # packethdr: no            # enable dumping of packet header
 
 HTTP
 ~~~~
