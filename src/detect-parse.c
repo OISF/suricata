@@ -647,6 +647,18 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     }
     s->init_data->negated = false;
 
+    if (st->flags & SIGMATCH_INFO_DEPRECATED) {
+#define URL "https://suricata-ids.org/about/deprecation-policy/"
+        if (st->alternative == 0)
+            SCLogWarning(SC_WARN_DEPRECATED, "keyword '%s' is deprecated "
+                    "and will be removed soon. See %s", st->name, URL);
+        else
+            SCLogWarning(SC_WARN_DEPRECATED, "keyword '%s' is deprecated "
+                    "and will be removed soon. Use '%s' instead. "
+                    "See %s", st->name, sigmatch_table[st->alternative].name, URL);
+#undef URL
+    }
+
     /* Validate double quoting, trimming trailing white space along the way. */
     if (optvalue != NULL && strlen(optvalue) > 0) {
         size_t ovlen = strlen(optvalue);
