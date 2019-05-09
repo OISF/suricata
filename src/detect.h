@@ -1350,6 +1350,8 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_INFO_CONTENT_MODIFIER  BIT_U16(8)
 /** keyword is a sticky buffer */
 #define SIGMATCH_INFO_STICKY_BUFFER     BIT_U16(9)
+/** keyword is deprecated: used to suggest an alternative */
+#define SIGMATCH_INFO_DEPRECATED        BIT_U16(10)
 
 enum DetectEngineTenantSelectors
 {
