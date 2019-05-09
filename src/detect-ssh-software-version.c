@@ -96,7 +96,7 @@ void DetectSshSoftwareVersionRegister(void)
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Setup = DetectSshSoftwareVersionSetup;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Free  = DetectSshSoftwareVersionFree;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].RegisterTests = DetectSshSoftwareVersionRegisterTests;
-    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].flags = SIGMATCH_QUOTES_OPTIONAL;
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].flags = SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_INFO_DEPRECATED;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].alternative = DETECT_AL_SSH_SOFTWARE;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
