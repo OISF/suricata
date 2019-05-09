@@ -1299,7 +1299,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
             fprintf(rule_engine_analysis_FD, "    Warning: Rule has no direction indicator.\n");
         }
         if (warn_both_direction) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule is inspecting both directions.\n");
+            fprintf(rule_engine_analysis_FD, "    Warning: Rule is inspecting both the request and the response.\n");
         }
         if (rule_warning == 0) {
             fprintf(rule_engine_analysis_FD, "    No warnings for this rule.\n");
