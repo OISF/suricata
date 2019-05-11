@@ -56,6 +56,10 @@
  * and unset BUILD_CPUMAP (number must be a power of 2 for netronome) */
 #define RSS_QUEUE_NUMBERS   32
 
+/* no vlan tracking: set it to 0 if you don't use VLAN for tracking. Can
+ * also be used as workaround of some hardware offload issue */
+#define VLAN_TRACKING    1
+
 struct vlan_hdr {
     __u16	h_vlan_TCI;
     __u16	h_vlan_encapsulated_proto;
@@ -509,7 +513,11 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
         if (data + nh_off > data_end)
             return XDP_PASS;
         h_proto = vhdr->h_vlan_encapsulated_proto;
+#if VLAN_TRACKING
         vlan0 = vhdr->h_vlan_TCI & 0x0fff;
+#else
+        vlan0 = 0;
+#endif
     }
     if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
         struct vlan_hdr *vhdr;
@@ -519,7 +527,11 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
         if (data + nh_off > data_end)
             return XDP_PASS;
         h_proto = vhdr->h_vlan_encapsulated_proto;
+#if VLAN_TRACKING
         vlan1 = vhdr->h_vlan_TCI & 0x0fff;
+#else
+        vlan1 = 0;
+#endif
     }
 
     if (h_proto == __constant_htons(ETH_P_IP))
