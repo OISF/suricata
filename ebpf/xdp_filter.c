@@ -42,6 +42,10 @@
 /* Increase CPUMAP_MAX_CPUS if ever you have more than 64 CPUs */
 #define CPUMAP_MAX_CPUS     64
 
+/* Set to 1 to bypass encrypted packets of TLS sessions. Suricata will
+ * be blind to these packets or forged packets looking alike. */
+#define ENCRYPTED_TLS_BYPASS    0
+
 /* Set it to 0 if for example you plan to use the XDP filter in a
  * network card that don't support per CPU value (like netronome) */
 #define USE_PERCPU_HASH     1
@@ -106,6 +110,20 @@ struct bpf_map_def SEC("maps") flow_table_v6 = {
     .value_size = sizeof(struct pair),
     .max_entries = 32768,
 };
+
+
+#if ENCRYPTED_TLS_BYPASS
+struct bpf_map_def SEC("maps") tls_bypass_count = {
+#if USE_PERCPU_HASH
+    .type		= BPF_MAP_TYPE_PERCPU_ARRAY,
+#else
+    .type		= BPF_MAP_TYPE_ARRAY,
+#endif
+    .key_size	= sizeof(__u32),
+    .value_size	= sizeof(__u64),
+    .max_entries	= 1,
+};
+#endif
 
 #if BUILD_CPUMAP
 /* Special map type that can XDP_REDIRECT frames to another CPU */
@@ -219,6 +237,10 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
 #if BUILD_CPUMAP || GOT_TX_PEER
     __u32 key0 = 0;
 #endif
+#if ENCRYPTED_TLS_BYPASS
+    __u32 key1 = 0;
+    __u32 *tls_count = NULL;
+#endif
 #if BUILD_CPUMAP
     __u32 cpu_dest;
     __u32 *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
@@ -286,6 +308,38 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
         return XDP_DROP;
 #endif
     }
+
+#if ENCRYPTED_TLS_BYPASS
+    if ((dport == __constant_ntohs(443)) || (sport == __constant_ntohs(443))) {
+        __u8 *app_data;
+        /* drop application data for tls 1.2 */
+        /* FIXME better parsing */
+        nh_off += sizeof(struct iphdr) + sizeof(struct tcphdr);
+        if (data_end > data + nh_off + 4) {
+            app_data = data + nh_off;
+            if (app_data[0] == 0x17 && app_data[1] == 0x3 && app_data[2] == 0x3) {
+                tls_count = bpf_map_lookup_elem(&tls_bypass_count, &key1);
+                if (tls_count) {
+#if USE_PERCPU_HASH
+                    tls_count++;
+#else
+                    __sync_fetch_and_add(tls_count, 1);
+#endif
+                }
+#if GOT_TX_PEER
+                iface_peer = bpf_map_lookup_elem(&tx_peer_int, &key0);
+                if (!iface_peer) {
+                    return XDP_DROP;
+                } else {
+                    return bpf_redirect_map(&tx_peer, tx_port, 0);
+                }
+#else
+                return XDP_DROP;
+#endif
+            }
+        }
+    }
+#endif
 
 #if BUILD_CPUMAP
     /* IP-pairs + protocol (UDP/TCP/ICMP) hit same CPU */
