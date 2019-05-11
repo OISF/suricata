@@ -67,6 +67,9 @@ alert tcp any any -> any any (msg:"SURICATA STREAM SHUTDOWN RST invalid ack"; st
 alert tcp any any -> any any (msg:"SURICATA STREAM reassembly overlap with different data"; stream-event:reassembly_overlap_different_data; classtype:protocol-command-decode; sid:2210050; rev:2;)
 # Bad Window Update: see bug 1238 for an explanation
 alert tcp any any -> any any (msg:"SURICATA STREAM bad window update"; stream-event:pkt_bad_window_update; classtype:protocol-command-decode; sid:2210056; rev:1;)
+# RST injection suspected. Alerts on packets *after* the RST, as these indicate the target
+# rejected/ignored the RST.
+alert tcp any any -> any any (msg:"SURICATA STREAM suspected RST injection"; stream-event:suspected_rst_inject; classtype:protocol-command-decode; sid:2210058; rev:1;)
 
 # retransmission detection
 #
@@ -85,6 +88,8 @@ alert tcp any any -> any any (msg:"SURICATA STREAM reassembly segment before bas
 alert tcp any any -> any any (msg:"SURICATA STREAM Packet is retransmission"; stream-event:pkt_retransmission; flowint:tcp.retransmission.count,+,1; noalert; classtype:protocol-command-decode; sid:2210053; rev:1;)
 # rule to alert if a stream has excessive retransmissions
 alert tcp any any -> any any (msg:"SURICATA STREAM excessive retransmissions"; flowbits:isnotset,tcp.retransmission.alerted; flowint:tcp.retransmission.count,>=,10; flowbits:set,tcp.retransmission.alerted; classtype:protocol-command-decode; sid:2210054; rev:1;)
+# Packet on wrong thread. Fires at most once per flow.
+alert tcp any any -> any any (msg:"SURICATA STREAM pkt seen on wrong thread"; stream-event:wrong_thread; sid:2210059; rev:1;)
 
-# next sid 2210058
+# next sid 2210060
 

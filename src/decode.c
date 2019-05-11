@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -63,12 +63,16 @@
 #include "util-profiling.h"
 #include "pkt-var.h"
 #include "util-mpm-ac.h"
-
+#include "util-hash-string.h"
 #include "output.h"
 #include "output-flow.h"
 
+extern bool stats_decoder_events;
+const char *stats_decoder_events_prefix;
+extern bool stats_stream_events;
+
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        uint8_t *pkt, uint16_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
+        uint8_t *pkt, uint32_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
@@ -76,6 +80,7 @@ int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case DECODE_TUNNEL_IPV4:
             return DecodeIPV4(tv, dtv, p, pkt, len, pq);
         case DECODE_TUNNEL_IPV6:
+        case DECODE_TUNNEL_IPV6_TEREDO:
             return DecodeIPV6(tv, dtv, p, pkt, len, pq);
         case DECODE_TUNNEL_VLAN:
             return DecodeVLAN(tv, dtv, p, pkt, len, pq);
@@ -84,7 +89,7 @@ int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case DECODE_TUNNEL_ERSPAN:
             return DecodeERSPAN(tv, dtv, p, pkt, len, pq);
         default:
-            SCLogInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
+            SCLogDebug("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
             break;
     }
     return TM_ECODE_OK;
@@ -106,18 +111,24 @@ void PacketFree(Packet *p)
  * functions when decoding has been succesful.
  *
  */
-
 void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
-
     if (p->flags & PKT_IS_INVALID) {
         StatsIncr(tv, dtv->counter_invalid);
-        int i = 0;
-        for (i = 0; i < p->events.cnt; i++) {
-            if (EVENT_IS_DECODER_PACKET_ERROR(p->events.events[i])) {
-                StatsIncr(tv, dtv->counter_invalid_events[p->events.events[i]]);
-            }
-        }
+    }
+}
+
+void PacketUpdateEngineEventCounters(ThreadVars *tv,
+        DecodeThreadVars *dtv, Packet *p)
+{
+    for (uint8_t i = 0; i < p->events.cnt; i++) {
+        const uint8_t e = p->events.events[i];
+
+        if (e <= DECODE_EVENT_PACKET_MAX && !stats_decoder_events)
+            continue;
+        else if (e > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
+            continue;
+        StatsIncr(tv, dtv->counter_engine_events[e]);
     }
 }
 
@@ -203,7 +214,7 @@ inline int PacketCallocExtPkt(Packet *p, int datalen)
  *  \param Pointer to the data to copy
  *  \param Length of the data to copy
  */
-inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen)
+inline int PacketCopyDataOffset(Packet *p, uint32_t offset, uint8_t *data, uint32_t datalen)
 {
     if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE)) {
         /* too big */
@@ -212,7 +223,11 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
 
     /* Do we have already an packet with allocated data */
     if (! p->ext_pkt) {
-        if (offset + datalen <= (int)default_packet_size) {
+        uint32_t newsize = offset + datalen;
+        // check overflow
+        if (newsize < offset)
+            return -1;
+        if (newsize <= default_packet_size) {
             /* data will fit in memory allocated with packet */
             memcpy(GET_PKT_DIRECT_DATA(p) + offset, data, datalen);
         } else {
@@ -240,7 +255,7 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
  *  \param Pointer to the data to copy
  *  \param Length of the data to copy
  */
-inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
+inline int PacketCopyData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
@@ -257,7 +272,7 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
  *  \retval p the pseudo packet or NULL if out of memory
  */
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             uint8_t *pkt, uint16_t len, enum DecodeTunnelProto proto,
+                             uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto,
                              PacketQueue *pq)
 {
     int ret;
@@ -290,8 +305,12 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
                        GET_PKT_LEN(p), pq, proto);
 
-    if (unlikely(ret != TM_ECODE_OK)) {
-        /* Not a tunnel packet, just a pseudo packet */
+    if (unlikely(ret != TM_ECODE_OK) ||
+            (proto == DECODE_TUNNEL_IPV6_TEREDO && (p->flags & PKT_IS_INVALID)))
+    {
+        /* Not a (valid) tunnel packet */
+        SCLogDebug("tunnel packet is invalid");
+
         p->root = NULL;
         UNSET_TUNNEL_PKT(p);
         TmqhOutputPacketpool(tv, p);
@@ -326,7 +345,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
  *
  *  \retval p the pseudo packet or NULL if out of memory
  */
-Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
+Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint32_t len, uint8_t proto)
 {
     SCEnter();
 
@@ -395,6 +414,42 @@ void PacketBypassCallback(Packet *p)
     }
 }
 
+/** \brief switch direction of a packet */
+void PacketSwap(Packet *p)
+{
+    if (PKT_IS_TOSERVER(p)) {
+        p->flowflags &= ~FLOW_PKT_TOSERVER;
+        p->flowflags |= FLOW_PKT_TOCLIENT;
+
+        if (p->flowflags & FLOW_PKT_TOSERVER_FIRST) {
+            p->flowflags &= ~FLOW_PKT_TOSERVER_FIRST;
+            p->flowflags |= FLOW_PKT_TOCLIENT_FIRST;
+        }
+    } else {
+        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+        p->flowflags |= FLOW_PKT_TOSERVER;
+
+        if (p->flowflags & FLOW_PKT_TOCLIENT_FIRST) {
+            p->flowflags &= ~FLOW_PKT_TOCLIENT_FIRST;
+            p->flowflags |= FLOW_PKT_TOSERVER_FIRST;
+        }
+    }
+}
+
+/* counter name store */
+static HashTable *g_counter_table = NULL;
+static SCMutex g_counter_table_mutex = SCMUTEX_INITIALIZER;
+
+void DecodeUnregisterCounters(void)
+{
+    SCMutexLock(&g_counter_table_mutex);
+    if (g_counter_table) {
+        HashTableFree(g_counter_table);
+        g_counter_table = NULL;
+    }
+    SCMutexUnlock(&g_counter_table_mutex);
+}
+
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 {
     /* register counters */
@@ -448,11 +503,54 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_defrag_max_hit =
         StatsRegisterCounter("defrag.max_frag_hits", tv);
 
-    int i = 0;
-    for (i = 0; i < DECODE_EVENT_PACKET_MAX; i++) {
+    for (int i = 0; i < DECODE_EVENT_MAX; i++) {
         BUG_ON(i != (int)DEvents[i].code);
-        dtv->counter_invalid_events[i] = StatsRegisterCounter(
-                DEvents[i].event_name, tv);
+
+        if (i <= DECODE_EVENT_PACKET_MAX && !stats_decoder_events)
+            continue;
+        else if (i > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
+            continue;
+
+        if (i < DECODE_EVENT_PACKET_MAX &&
+                strncmp(DEvents[i].event_name, "decoder.", 8) == 0)
+        {
+            SCMutexLock(&g_counter_table_mutex);
+            if (g_counter_table == NULL) {
+                g_counter_table = HashTableInit(256, StringHashFunc,
+                        StringHashCompareFunc,
+                        StringHashFreeFunc);
+                if (g_counter_table == NULL) {
+                    FatalError(SC_ERR_INITIALIZATION, "decoder counter hash "
+                            "table init failed");
+                }
+            }
+
+            char name[256];
+            char *dot = index(DEvents[i].event_name, '.');
+            BUG_ON(!dot);
+            snprintf(name, sizeof(name), "%s.%s",
+                    stats_decoder_events_prefix, dot+1);
+
+            const char *found = HashTableLookup(g_counter_table, name, 0);
+            if (!found) {
+                char *add = SCStrdup(name);
+                if (add == NULL)
+                    FatalError(SC_ERR_INITIALIZATION, "decoder counter hash "
+                            "table name init failed");
+                int r = HashTableAdd(g_counter_table, add, 0);
+                if (r != 0)
+                    FatalError(SC_ERR_INITIALIZATION, "decoder counter hash "
+                            "table name add failed");
+                found = add;
+            }
+            dtv->counter_engine_events[i] = StatsRegisterCounter(
+                    found, tv);
+
+            SCMutexUnlock(&g_counter_table_mutex);
+        } else {
+            dtv->counter_engine_events[i] = StatsRegisterCounter(
+                    DEvents[i].event_name, tv);
+        }
     }
 
     return;
@@ -538,7 +636,7 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
  *  \param Pointer to the data
  *  \param Length of the data
  */
-inline int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen)
+inline int PacketSetData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
     if (unlikely(!pktdata)) {

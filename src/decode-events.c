@@ -170,6 +170,7 @@ const struct DecodeEvents_ DEvents[] = {
 
     /* MPLS events */
     { "decoder.mpls.header_too_small", MPLS_HEADER_TOO_SMALL, },
+    { "decoder.mpls.pkt_too_small", MPLS_PKT_TOO_SMALL, },
     { "decoder.mpls.bad_label_router_alert", MPLS_BAD_LABEL_ROUTER_ALERT, },
     { "decoder.mpls.bad_label_implicit_null", MPLS_BAD_LABEL_IMPLICIT_NULL, },
     { "decoder.mpls.bad_label_reserved", MPLS_BAD_LABEL_RESERVED, },
@@ -188,7 +189,7 @@ const struct DecodeEvents_ DEvents[] = {
     { "stream.3whs_async_wrong_seq", STREAM_3WHS_ASYNC_WRONG_SEQ, },
     { "stream.3whs_right_seq_wrong_ack_evasion", STREAM_3WHS_RIGHT_SEQ_WRONG_ACK_EVASION, },
     { "stream.3whs_synack_in_wrong_direction", STREAM_3WHS_SYNACK_IN_WRONG_DIRECTION, },
-    { "stream.3whs_synack_resend_with_different_ack", STREAM_3WHS_SYNACK_RESEND_WITH_DIFFERENT_ACK, },
+    { "stream.3whs_synack_resend_with_diff_ack", STREAM_3WHS_SYNACK_RESEND_WITH_DIFFERENT_ACK, },
     { "stream.3whs_synack_resend_with_diff_seq", STREAM_3WHS_SYNACK_RESEND_WITH_DIFF_SEQ, },
     { "stream.3whs_synack_toserver_on_syn_recv", STREAM_3WHS_SYNACK_TOSERVER_ON_SYN_RECV, },
     { "stream.3whs_synack_with_wrong_ack", STREAM_3WHS_SYNACK_WITH_WRONG_ACK, },
@@ -210,7 +211,7 @@ const struct DecodeEvents_ DEvents[] = {
     { "stream.est_packet_out_of_window", STREAM_EST_PACKET_OUT_OF_WINDOW, },
     { "stream.est_pkt_before_last_ack", STREAM_EST_PKT_BEFORE_LAST_ACK, },
     { "stream.est_synack_resend", STREAM_EST_SYNACK_RESEND, },
-    { "stream.est_synack_resend_with_different_ack", STREAM_EST_SYNACK_RESEND_WITH_DIFFERENT_ACK, },
+    { "stream.est_synack_resend_with_diff_ack", STREAM_EST_SYNACK_RESEND_WITH_DIFFERENT_ACK, },
     { "stream.est_synack_resend_with_diff_seq", STREAM_EST_SYNACK_RESEND_WITH_DIFF_SEQ, },
     { "stream.est_synack_toserver", STREAM_EST_SYNACK_TOSERVER, },
     { "stream.est_syn_resend", STREAM_EST_SYN_RESEND, },
@@ -231,17 +232,21 @@ const struct DecodeEvents_ DEvents[] = {
     { "stream.rst_but_no_session", STREAM_RST_BUT_NO_SESSION, },
     { "stream.timewait_ack_wrong_seq", STREAM_TIMEWAIT_ACK_WRONG_SEQ, },
     { "stream.timewait_invalid_ack", STREAM_TIMEWAIT_INVALID_ACK, },
+    { "stream.shutdown_syn_resend", STREAM_SHUTDOWN_SYN_RESEND, },
     { "stream.pkt_invalid_timestamp", STREAM_PKT_INVALID_TIMESTAMP, },
     { "stream.pkt_invalid_ack", STREAM_PKT_INVALID_ACK, },
     { "stream.pkt_broken_ack", STREAM_PKT_BROKEN_ACK, },
     { "stream.rst_invalid_ack", STREAM_RST_INVALID_ACK, },
-    { "stream.shutdown_syn_resend", STREAM_SHUTDOWN_SYN_RESEND, },
     { "stream.pkt_retransmission", STREAM_PKT_RETRANSMISSION, },
+    { "stream.pkt_bad_window_update", STREAM_PKT_BAD_WINDOW_UPDATE, },
+
+    { "stream.suspected_rst_inject", STREAM_SUSPECTED_RST_INJECT, },
+    { "stream.wrong_thread", STREAM_WRONG_THREAD, },
+
     { "stream.reassembly_segment_before_base_seq", STREAM_REASSEMBLY_SEGMENT_BEFORE_BASE_SEQ, },
     { "stream.reassembly_no_segment", STREAM_REASSEMBLY_NO_SEGMENT, },
     { "stream.reassembly_seq_gap", STREAM_REASSEMBLY_SEQ_GAP, },
     { "stream.reassembly_overlap_different_data", STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA, },
-    { "stream.pkt_bad_window_update", STREAM_PKT_BAD_WINDOW_UPDATE, },
 
     { NULL, 0 },
 };

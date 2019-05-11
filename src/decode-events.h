@@ -177,6 +177,7 @@ enum {
 
     /* MPLS decode events. */
     MPLS_HEADER_TOO_SMALL,
+    MPLS_PKT_TOO_SMALL,
     MPLS_BAD_LABEL_ROUTER_ALERT,
     MPLS_BAD_LABEL_IMPLICIT_NULL,
     MPLS_BAD_LABEL_RESERVED,
@@ -191,7 +192,7 @@ enum {
     DCE_PKT_TOO_SMALL,
 
     /* END OF DECODE EVENTS ON SINGLE PACKET */
-    DECODE_EVENT_PACKET_MAX,
+    DECODE_EVENT_PACKET_MAX = DCE_PKT_TOO_SMALL,
 
     /* STREAM EVENTS */
     STREAM_3WHS_ACK_IN_WRONG_DIR,
@@ -249,11 +250,12 @@ enum {
     STREAM_PKT_RETRANSMISSION,
     STREAM_PKT_BAD_WINDOW_UPDATE,
 
+    STREAM_SUSPECTED_RST_INJECT,
+    STREAM_WRONG_THREAD,
+
     STREAM_REASSEMBLY_SEGMENT_BEFORE_BASE_SEQ,
     STREAM_REASSEMBLY_NO_SEGMENT,
-
     STREAM_REASSEMBLY_SEQ_GAP,
-
     STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA,
 
     /* should always be last! */
@@ -269,6 +271,7 @@ struct DecodeEvents_ {
     const char *event_name;
     uint8_t code;
 };
-extern const struct DecodeEvents_ DEvents[DECODE_EVENT_MAX];
+/* +1 for the end of table marker */
+extern const struct DecodeEvents_ DEvents[DECODE_EVENT_MAX + 1];
 
 #endif /* __DECODE_EVENTS_H__ */

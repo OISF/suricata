@@ -15,9 +15,10 @@
  * 02110-1301, USA.
  */
 
+use nom;
+
 use core::*;
 use log::*;
-use nom::IResult;
 
 use smb::smb::*;
 use smb::smb2_records::*;
@@ -116,12 +117,18 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
     smb2_read_response_record_generic(state, r);
 
-    if r.nt_status != SMB_NTSTATUS_SUCCESS {
-        return;
-    }
-
     match parse_smb2_response_read(r.data) {
-        IResult::Done(_, rd) => {
+        Ok((_, rd)) => {
+            if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
+                SCLogDebug!("SMBv2/READ: incomplete record, expecting a follow up");
+                // fall through
+
+            } else if r.nt_status != SMB_NTSTATUS_SUCCESS {
+                SCLogDebug!("SMBv2: read response error code received: skip record");
+                state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
+                return;
+            }
+
             SCLogDebug!("SMBv2: read response => {:?}", rd);
 
             // get the request info. If we don't have it, there is nothing
@@ -150,19 +157,45 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 },
                 None => { false },
             };
+            SCLogDebug!("existing file tx? {}", found);
             if !found {
                 let tree_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_SHARE);
-                let (share_name, is_pipe) = match state.ssn2tree_map.get(&tree_key) {
+                let (share_name, mut is_pipe) = match state.ssn2tree_map.get(&tree_key) {
                     Some(n) => (n.name.to_vec(), n.is_pipe),
                     _ => { (Vec::new(), false) },
                 };
-                let is_dcerpc = is_pipe && match state.get_service_for_guid(&file_guid) {
-                    (_, x) => x,
+                let mut is_dcerpc = if is_pipe || (share_name.len() == 0 && !is_pipe) {
+                    match state.get_service_for_guid(&file_guid) {
+                        (_, x) => x,
+                    }
+                } else {
+                    false
                 };
+                SCLogDebug!("SMBv2/READ: share_name {:?} is_pipe {} is_dcerpc {}",
+                        share_name, is_pipe, is_dcerpc);
+
+                if share_name.len() == 0 && !is_pipe {
+                    SCLogDebug!("SMBv2/READ: no tree connect seen, we don't know if we are a pipe");
+
+                    if smb_dcerpc_probe(rd.data) == true {
+                        SCLogDebug!("SMBv2/READ: looks like dcerpc");
+                        // insert fake tree to assist in follow up lookups
+                        let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
+                        state.ssn2tree_map.insert(tree_key, tree);
+                        if !is_dcerpc {
+                            state.guid2name_map.insert(file_guid.to_vec(), b"suricata::dcerpc".to_vec());
+                        }
+                        is_pipe = true;
+                        is_dcerpc = true;
+                    } else {
+                        SCLogDebug!("SMBv2/READ: not DCERPC");
+                    }
+                }
+
                 if is_pipe && is_dcerpc {
                     SCLogDebug!("SMBv2 DCERPC read");
                     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
-                    let vercmd = SMBVerCmdStat::new2(SMB2_COMMAND_READ);
+                    let vercmd = SMBVerCmdStat::new2_with_ntstatus(SMB2_COMMAND_READ, r.nt_status);
                     smb_read_dcerpc_record(state, vercmd, hdr, &file_guid, rd.data);
                 } else if is_pipe {
                     SCLogDebug!("non-DCERPC pipe");
@@ -189,6 +222,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             state.set_file_left(STREAM_TOCLIENT, rd.len, rd.data.len() as u32, file_guid.to_vec());
         }
         _ => {
+            SCLogDebug!("SMBv2: failed to parse read response");
             state.set_event(SMBEvent::MalformedData);
         }
     }
@@ -196,13 +230,14 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
 pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
+    SCLogDebug!("SMBv2/WRITE: request record");
     if smb2_create_new_tx(r.command) {
         let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
         let tx = state.new_generic_tx(2, r.command, tx_key);
         tx.request_done = true;
     }
     match parse_smb2_request_write(r.data) {
-        IResult::Done(_, wr) => {
+        Ok((_, wr)) => {
             /* update key-guid map */
             let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GUID);
             state.ssn2vec_map.insert(guid_key, wr.guid.to_vec());
@@ -227,13 +262,39 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             };
             if !found {
                 let tree_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_SHARE);
-                let is_pipe = match state.ssn2tree_map.get(&tree_key) {
-                    Some(n) => { n.is_pipe },
-                    _ => { false },
+                let (share_name, mut is_pipe) = match state.ssn2tree_map.get(&tree_key) {
+                    Some(n) => { (n.name.to_vec(), n.is_pipe) },
+                    _ => { (Vec::new(), false) },
                 };
-                let is_dcerpc = is_pipe && match state.get_service_for_guid(&wr.guid) {
-                    (_, x) => x,
+                let mut is_dcerpc = if is_pipe || (share_name.len() == 0 && !is_pipe) {
+                    match state.get_service_for_guid(&wr.guid) {
+                        (_, x) => x,
+                    }
+                } else {
+                    false
                 };
+                SCLogDebug!("SMBv2/WRITE: share_name {:?} is_pipe {} is_dcerpc {}",
+                        share_name, is_pipe, is_dcerpc);
+
+                // if we missed the TREE connect we can't be sure if 'is_dcerpc' is correct
+                if share_name.len() == 0 && !is_pipe {
+                    SCLogDebug!("SMBv2/WRITE: no tree connect seen, we don't know if we are a pipe");
+
+                    if smb_dcerpc_probe(wr.data) == true {
+                        SCLogDebug!("SMBv2/WRITE: looks like we have dcerpc");
+
+                        let tree = SMBTree::new(b"suricata::dcerpc".to_vec(), true);
+                        state.ssn2tree_map.insert(tree_key, tree);
+                        if !is_dcerpc {
+                            state.guid2name_map.insert(file_guid.to_vec(),
+                                    b"suricata::dcerpc".to_vec());
+                        }
+                        is_pipe = true;
+                        is_dcerpc = true;
+                    } else {
+                        SCLogDebug!("SMBv2/WRITE: not DCERPC");
+                    }
+                }
                 if is_pipe && is_dcerpc {
                     SCLogDebug!("SMBv2 DCERPC write");
                     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
@@ -274,7 +335,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_SET_INFO => {
             SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", r);
             let have_si_tx = match parse_smb2_request_setinfo(r.data) {
-                IResult::Done(_, rd) => {
+                Ok((_, rd)) => {
                     SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", rd);
 
                     if let Some(ref ren) = rd.rename {
@@ -294,12 +355,13 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         false
                     }
                 },
-                IResult::Incomplete(_n) => {
+                Err(nom::Err::Incomplete(_n)) => {
                     SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", _n);
                     events.push(SMBEvent::MalformedData);
                     false
                 },
-                IResult::Error(_e) => {
+                Err(nom::Err::Error(_e)) |
+                Err(nom::Err::Failure(_e)) => {
                     SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", _e);
                     events.push(SMBEvent::MalformedData);
                     false
@@ -318,7 +380,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         }
         SMB2_COMMAND_NEGOTIATE_PROTOCOL => {
             match parse_smb2_request_negotiate_protocol(r.data) {
-                IResult::Done(_, rd) => {
+                Ok((_, rd)) => {
                     let mut dialects : Vec<Vec<u8>> = Vec::new();
                     for d in rd.dialects_vec {
                         SCLogDebug!("dialect {:x} => {}", d, &smb2_dialect_string(d));
@@ -355,7 +417,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         },
         SMB2_COMMAND_TREE_CONNECT => {
             match parse_smb2_request_tree_connect(r.data) {
-                IResult::Done(_, tr) => {
+                Ok((_, tr)) => {
                     let name_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_TREE);
                     let mut name_val = tr.share_name.to_vec();
                     name_val.retain(|&i|i != 0x00);
@@ -376,7 +438,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         },
         SMB2_COMMAND_READ => {
             match parse_smb2_request_read(r.data) {
-                IResult::Done(_, rd) => {
+                Ok((_, rd)) => {
                     SCLogDebug!("SMBv2 READ: GUID {:?} requesting {} bytes at offset {}",
                             rd.guid, rd.rd_len, rd.rd_offset);
 
@@ -393,7 +455,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         },
         SMB2_COMMAND_CREATE => {
             match parse_smb2_request_create(r.data) {
-                IResult::Done(_, cr) => {
+                Ok((_, cr)) => {
                     let del = cr.create_options & 0x0000_1000 != 0;
                     let dir = cr.create_options & 0x0000_0001 != 0;
 
@@ -421,7 +483,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         },
         SMB2_COMMAND_CLOSE => {
             match parse_smb2_request_close(r.data) {
-                IResult::Done(_, cd) => {
+                Ok((_, cd)) => {
                     let found_ts = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), STREAM_TOSERVER) {
                         Some((tx, files, flags)) => {
                             if !tx.request_done {
@@ -497,7 +559,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             if r.nt_status == SMB_NTSTATUS_SUCCESS {
                 match parse_smb2_response_write(r.data)
                 {
-                    IResult::Done(_, wr) => {
+                    Ok((_, wr)) => {
                         SCLogDebug!("SMBv2: Write response => {:?}", wr);
 
                         /* search key-guid map */
@@ -520,7 +582,8 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             false // the request may have created a generic tx, so handle that here
         },
         SMB2_COMMAND_READ => {
-            if r.nt_status == SMB_NTSTATUS_SUCCESS {
+            if r.nt_status == SMB_NTSTATUS_SUCCESS ||
+               r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
                 smb2_read_response_record(state, &r);
                 false
 
@@ -560,7 +623,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_CREATE => {
             if r.nt_status == SMB_NTSTATUS_SUCCESS {
                 match parse_smb2_response_create(r.data) {
-                    IResult::Done(_, cr) => {
+                    Ok((_, cr)) => {
                         SCLogDebug!("SMBv2: Create response => {:?}", cr);
 
                         let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_FILENAME);
@@ -607,7 +670,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_TREE_CONNECT => {
             if r.nt_status == SMB_NTSTATUS_SUCCESS {
                 match parse_smb2_response_tree_connect(r.data) {
-                    IResult::Done(_, tr) => {
+                    Ok((_, tr)) => {
                         let name_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_TREE);
                         let mut share_name = Vec::new();
                         let is_pipe = tr.share_type == 2;
@@ -659,7 +722,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 parse_smb2_response_negotiate_protocol_error(r.data)
             };
             match res {
-                IResult::Done(_, rd) => {
+                Ok((_, rd)) => {
                     SCLogDebug!("SERVER dialect => {}", &smb2_dialect_string(rd.dialect));
 
                     state.dialect = rd.dialect;

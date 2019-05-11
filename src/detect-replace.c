@@ -62,32 +62,41 @@ extern int run_mode;
 static int DetectReplaceSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectReplaceRegisterTests(void);
 
+static int DetectReplacePostMatch(ThreadVars *tv,
+        DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *ctx);
+
 void DetectReplaceRegister (void)
 {
     sigmatch_table[DETECT_REPLACE].name = "replace";
-    sigmatch_table[DETECT_REPLACE].Match = NULL;
+    sigmatch_table[DETECT_REPLACE].Match = DetectReplacePostMatch;
     sigmatch_table[DETECT_REPLACE].Setup = DetectReplaceSetup;
     sigmatch_table[DETECT_REPLACE].Free  = NULL;
     sigmatch_table[DETECT_REPLACE].RegisterTests = DetectReplaceRegisterTests;
     sigmatch_table[DETECT_REPLACE].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
 }
 
+static int DetectReplacePostMatch(ThreadVars *tv,
+        DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+{
+    if (det_ctx->replist) {
+        DetectReplaceExecuteInternal(p, det_ctx->replist);
+        det_ctx->replist = NULL;
+    }
+    return 1;
+}
+
 int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replacestr)
 {
     uint8_t *content = NULL;
     uint16_t len = 0;
-    SigMatch *pm = NULL;
-    DetectContentData *ud = NULL;
 
     if (s->init_data->negated) {
         SCLogError(SC_ERR_INVALID_VALUE, "Can't negate replacement string: %s",
                    replacestr);
-        goto error;
+        return -1;
     }
-
-    int ret = DetectContentDataParse("replace", replacestr, &content, &len);
-    if (ret == -1)
-        goto error;
 
     switch (run_mode) {
         case RUNMODE_NFQ:
@@ -101,8 +110,12 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
             return 0;
     }
 
+    int ret = DetectContentDataParse("replace", replacestr, &content, &len);
+    if (ret == -1)
+        return -1;
+
     /* add to the latest "content" keyword from pmatch */
-    pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH,
+    const SigMatch *pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH,
             DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "replace needs"
@@ -112,7 +125,7 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
     }
 
     /* we can remove this switch now with the unified structure */
-    ud = (DetectContentData *)pm->ctx;
+    DetectContentData *ud = (DetectContentData *)pm->ctx;
     if (ud == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
         SCFree(content);
@@ -141,10 +154,22 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
      */
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
     SCFree(content);
+    content = NULL;
 
+    SigMatch *sm = SigMatchAlloc();
+    if (unlikely(sm == NULL)) {
+        SCFree(ud->replace);
+        ud->replace = NULL;
+        goto error;
+    }
+    sm->type = DETECT_REPLACE;
+    sm->ctx = NULL;
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
     return 0;
 
 error:
+    SCFree(ud->replace);
+    ud->replace = NULL;
     SCFree(content);
     return -1;
 }

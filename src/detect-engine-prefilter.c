@@ -183,6 +183,7 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT1);
     }
+    SCReturn;
 }
 
 int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
@@ -348,13 +349,17 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     BUG_ON(PatternMatchPrepareGroup(de_ctx, sgh) != 0);
 
-    if (de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO) {
-        int i = 0;
-        for (i = 0; i < DETECT_TBLSIZE; i++)
+    /* set up engines if needed - when prefilter is set to auto we run
+     * all engines, otherwise only those that have been forced by the
+     * prefilter keyword. */
+    const enum DetectEnginePrefilterSetting setting = de_ctx->prefilter_setting;
+    for (int i = 0; i < DETECT_TBLSIZE; i++)
+    {
+        if (sigmatch_table[i].SetupPrefilter != NULL &&
+                (setting == DETECT_PREFILTER_AUTO ||
+                 de_ctx->sm_types_prefilter[i]))
         {
-            if (sigmatch_table[i].SetupPrefilter != NULL) {
-                sigmatch_table[i].SetupPrefilter(de_ctx, sgh);
-            }
+            sigmatch_table[i].SetupPrefilter(de_ctx, sgh);
         }
     }
 

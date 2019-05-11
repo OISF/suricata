@@ -37,8 +37,8 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv6 DSTOPTS unknown option"; dec
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 DSTOPTS only padding"; decode-event:ipv6.dstopts_only_padding; classtype:protocol-command-decode; sid:2200089; rev:2;)
 # Type 0 Routing header deprecated per RFC 5095
 alert ipv6 any any -> any any (msg:"SURICATA RH Type 0"; decode-event:ipv6.rh_type_0; classtype:protocol-command-decode; sid:2200093; rev:2;)
-# padN option with zero length field
-alert ipv6 any any -> any any (msg:"SURICATA zero length padN option"; decode-event:ipv6.zero_len_padn; classtype:protocol-command-decode; sid:2200094; rev:2;)
+# padN option with zero length field. This is not uncommon, so disabled by default.
+#alert ipv6 any any -> any any (msg:"SURICATA zero length padN option"; decode-event:ipv6.zero_len_padn; classtype:protocol-command-decode; sid:2200094; rev:2;)
 # Frag Header 'length' field is reserved and should be 0
 alert ipv6 any any -> any any (msg:"SURICATA reserved field in Frag Header not zero"; decode-event:ipv6.fh_non_zero_reserved_field; classtype:protocol-command-decode; sid:2200095; rev:2;)
 # Data after the 'none' header (59) is suspicious.
@@ -123,6 +123,7 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 invalid protocol"; d
 
 # MPLS rules
 alert pkthdr any any -> any any (msg:"SURICATA MPLS header too small"; decode-event:mpls.header_too_small; classtype:protocol-command-decode; sid:2200111; rev:2;)
+alert pkthdr any any -> any any (msg:"SURICATA MPLS packet too small"; decode-event:mpls.pkt_too_small; classtype:protocol-command-decode; sid:2200114; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA MPLS bad router alert label"; decode-event:mpls.bad_label_router_alert; classtype:protocol-command-decode; sid:2200098; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA MPLS bad implicit null label"; decode-event:mpls.bad_label_implicit_null; classtype:protocol-command-decode; sid:2200099; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA MPLS reserved label"; decode-event:mpls.bad_label_reserved; classtype:protocol-command-decode; sid:2200100; rev:2;)
@@ -142,5 +143,5 @@ alert pkthdr any any -> any any (msg:"SURICATA ERSPAN too many vlan layers"; dec
 # Cisco Fabric Path/DCE
 alert pkthdr any any -> any any (msg:"SURICATA DCE packet too small"; decode-event:dce.pkt_too_small; classtype:protocol-command-decode; sid:2200110; rev:2;)
 
-# next sid is 2200113
+# next sid is 2200114
 

@@ -61,7 +61,7 @@ TODO:
     hostbits:set,bitname,both,120;
  */
 
-#define PARSE_REGEX "([a-z]+)"          /* Action */                    \
+#define PARSE_REGEX "^([a-z]+)"          /* Action */                    \
     "(?:\\s*,\\s*([^\\s,]+))?(?:\\s*)?" /* Name. */                     \
     "(?:\\s*,\\s*([^,\\s]+))?(?:\\s*)?" /* Direction. */                \
     "(.+)?"                             /* Any remainding data. */
@@ -418,6 +418,11 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
             /* modifiers, only run when entire sig has matched */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
             break;
+
+        // suppress coverity warning as scan-build-7 warns w/o this.
+        // coverity[deadcode : FALSE]
+        default:
+            goto error;
     }
 
     return 0;
@@ -613,6 +618,10 @@ static int HostBitsTestSig02(void)
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:isnotset,abc,dst; content:\"GET \"; sid:2;)");
     FAIL_IF_NULL(s);
+
+    s = DetectEngineAppendSig(de_ctx,
+            "alert ip any any -> any any (hostbits:!isset,abc,dst; content:\"GET \"; sid:3;)");
+    FAIL_IF_NOT_NULL(s);
 
 /* TODO reenable after both is supported
     s = DetectEngineAppendSig(de_ctx,

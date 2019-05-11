@@ -62,12 +62,10 @@
 
 static int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpResponseLineRegisterTests(void);
-static int PrefilterTxHttpResponseLineRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-static int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id);
 static int g_http_response_line_id = 0;
 
 /**
@@ -75,21 +73,23 @@ static int g_http_response_line_id = 0;
  */
 void DetectHttpResponseLineRegister(void)
 {
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].name = "http_response_line";
+    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].name = "http.response_line";
+    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].alias = "http_response_line";
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].desc = "content modifier to match only on the HTTP response line";
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_response-line";
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].Match = NULL;
+    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-response-line";
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].Setup = DetectHttpResponseLineSetup;
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].RegisterTests = DetectHttpResponseLineRegisterTests;
 
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMpmRegister("http_response_line", SIG_FLAG_TOCLIENT, 2,
-            PrefilterTxHttpResponseLineRegister);
-
-    DetectAppLayerInspectEngineRegister("http_response_line",
+    DetectAppLayerInspectEngineRegister2("http_response_line",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
-            DetectEngineInspectHttpResponseLine);
+            DetectEngineInspectBufferGeneric,
+            GetData);
+
+    DetectAppLayerMpmRegister2("http_response_line", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetData,
+            ALPROTO_HTTP, HTP_RESPONSE_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_response_line",
             "http response line");
@@ -112,101 +112,33 @@ void DetectHttpResponseLineRegister(void)
  */
 static int DetectHttpResponseLineSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    s->init_data->list = g_http_response_line_id;
-    s->alproto = ALPROTO_HTTP;
+    if (DetectBufferSetActiveList(s, g_http_response_line_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
+
     return 0;
 }
 
-/** \brief HTTP response line Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxHttpResponseLine(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id)
 {
-    SCEnter();
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+        if (unlikely(tx->response_line == NULL)) {
+            return NULL;
+        }
+        const uint32_t data_len = bstr_len(tx->response_line);
+        const uint8_t *data = bstr_ptr(tx->response_line);
 
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-
-    if (tx->response_line == NULL)
-        return;
-
-    const uint32_t buffer_len = bstr_len(tx->response_line);
-    const uint8_t *buffer = bstr_ptr(tx->response_line);
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
     }
-}
-
-static int PrefilterTxHttpResponseLineRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseLine,
-        ALPROTO_HTTP, HTP_RESPONSE_LINE,
-        mpm_ctx, NULL, "http_response_line");
-}
-
-/**
- * \brief Do the content inspection & validation for a signature
- *
- * \param de_ctx Detection engine context
- * \param det_ctx Detection engine thread context
- * \param s Signature to inspect
- * \param sm SigMatch to inspect
- * \param f Flow
- * \param flags app layer flags
- * \param state App layer state
- *
- * \retval 0 no match.
- * \retval 1 match.
- * \retval 2 Sig can't match.
- */
-int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    htp_tx_t *tx = (htp_tx_t *)txv;
-
-    if (tx->response_line == NULL) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_RESPONSE_LINE)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-        else
-            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    }
-
-    det_ctx->discontinue_matching = 0;
-    det_ctx->buffer_offset = 0;
-    det_ctx->inspection_recursion_counter = 0;
-
-#if 0
-    PrintRawDataFp(stdout, (uint8_t *)bstr_ptr(tx->response_line),
-            bstr_len(tx->response_line));
-#endif
-
-    /* run the inspection against the buffer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-                                          f,
-                                          bstr_ptr(tx->response_line),
-                                          bstr_len(tx->response_line),
-                                          0, DETECT_CI_FLAGS_SINGLE,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-    if (r == 1) {
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-    } else {
-        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    }
+    return buffer;
 }
 
 /************************************Unittests*********************************/

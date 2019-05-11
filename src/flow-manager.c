@@ -156,15 +156,18 @@ void FlowDisableFlowManagerThread(void)
     }
     SCMutexUnlock(&tv_root_lock);
 
-    double total_wait_time = 0;
-    /* value in seconds */
-    #define THREAD_KILL_MAX_WAIT_TIME 60
-    /* value in microseconds */
-    #define WAIT_TIME 100
+    struct timeval start_ts;
+    struct timeval cur_ts;
+    gettimeofday(&start_ts, NULL);
 
 again:
-    SCMutexLock(&tv_root_lock);
+    gettimeofday(&cur_ts, NULL);
+    if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
+        FatalError(SC_ERR_SHUTDOWN, "unable to get all flow manager "
+                "threads to shutdown in time");
+    }
 
+    SCMutexLock(&tv_root_lock);
     tv = tv_root[TVT_MGMT];
     while (tv != NULL)
     {
@@ -173,15 +176,8 @@ again:
         {
             if (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
                 SCMutexUnlock(&tv_root_lock);
-
-                usleep(WAIT_TIME);
-                total_wait_time += WAIT_TIME / 1000000.0;
-                if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
-                    SCLogError(SC_ERR_FATAL, "Engine unable to "
-                            "disable detect thread - \"%s\".  "
-                            "Killing engine", tv->name);
-                    exit(EXIT_FAILURE);
-                }
+                /* sleep outside lock */
+                SleepMsec(1);
                 goto again;
             }
         }
@@ -1052,13 +1048,17 @@ void FlowDisableFlowRecyclerThread(void)
     }
     SCMutexUnlock(&tv_root_lock);
 
-    double total_wait_time = 0;
-    /* value in seconds */
-#define THREAD_KILL_MAX_WAIT_TIME 60
-    /* value in microseconds */
-#define WAIT_TIME 100
+    struct timeval start_ts;
+    struct timeval cur_ts;
+    gettimeofday(&start_ts, NULL);
 
 again:
+    gettimeofday(&cur_ts, NULL);
+    if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
+        FatalError(SC_ERR_SHUTDOWN, "unable to get all flow recycler "
+                "threads to shutdown in time");
+    }
+
     SCMutexLock(&tv_root_lock);
     tv = tv_root[TVT_MGMT];
     while (tv != NULL)
@@ -1067,26 +1067,19 @@ again:
             strlen(thread_name_flow_rec)) == 0)
         {
             if (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
-                if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
-                    SCLogError(SC_ERR_FATAL, "Engine unable to "
-                            "disable detect thread - \"%s\".  "
-                            "Killing engine", tv->name);
-                    exit(EXIT_FAILURE);
-                }
                 SCMutexUnlock(&tv_root_lock);
-                usleep(WAIT_TIME);
-                total_wait_time += WAIT_TIME / 1000000.0;
+                /* sleep outside lock */
+                SleepMsec(1);
                 goto again;
             }
         }
         tv = tv->next;
     }
+    SCMutexUnlock(&tv_root_lock);
 
     /* wake up threads, another try */
     for (u = 0; u < flowrec_number; u++)
         SCCtrlCondSignal(&flow_recycler_ctrl_cond);
-
-    SCMutexUnlock(&tv_root_lock);
 
     /* reset count, so we can kill and respawn (unix socket) */
     SC_ATOMIC_SET(flowrec_cnt, 0);
@@ -1196,7 +1189,7 @@ static int FlowMgrTest02 (void)
     memset(&fb, 0, sizeof(FlowBucket));
     memset(&ts, 0, sizeof(ts));
     memset(&seg, 0, sizeof(TcpSegment));
-    memset(&client, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpStream));
 
     FBLOCK_INIT(&fb);
     FLOW_INITIALIZE(&f);
@@ -1204,9 +1197,7 @@ static int FlowMgrTest02 (void)
 
     TimeGet(&ts);
     TCP_SEG_LEN(&seg) = 3;
-    seg.next = NULL;
-    seg.prev = NULL;
-    client.seg_list = &seg;
+    TCPSEG_RB_INSERT(&client.seg_tree, &seg);
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
@@ -1302,7 +1293,7 @@ static int FlowMgrTest04 (void)
     memset(&fb, 0, sizeof(FlowBucket));
     memset(&ts, 0, sizeof(ts));
     memset(&seg, 0, sizeof(TcpSegment));
-    memset(&client, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpStream));
 
     FBLOCK_INIT(&fb);
     FLOW_INITIALIZE(&f);
@@ -1310,9 +1301,7 @@ static int FlowMgrTest04 (void)
 
     TimeGet(&ts);
     TCP_SEG_LEN(&seg) = 3;
-    seg.next = NULL;
-    seg.prev = NULL;
-    client.seg_list = &seg;
+    TCPSEG_RB_INSERT(&client.seg_tree, &seg);
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;

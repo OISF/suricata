@@ -84,7 +84,7 @@ typedef struct IPV4Hdr_
         } ip4_un1;
         uint16_t ip_addrs[4];
     } ip4_hdrun1;
-} __attribute__((__packed__)) IPV4Hdr;
+} IPV4Hdr;
 
 
 #define s_ip_src                          ip4_hdrun1.ip4_un1.ip_src

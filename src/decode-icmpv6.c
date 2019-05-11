@@ -187,7 +187,7 @@ int ICMPv6GetCounterpart(uint8_t type)
  * \retval void No return value
  */
 int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                  uint8_t *pkt, uint16_t len, PacketQueue *pq)
+                  uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     int full_hdr = 0;
     StatsIncr(tv, dtv->counter_icmpv6);
@@ -220,6 +220,9 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) > ICMP6_DST_UNREACH_REJECTROUTE) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
+                if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
+                    return TM_ECODE_FAILED;
+                }
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
                 full_hdr = 1;
@@ -232,6 +235,9 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
+                if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
+                    return TM_ECODE_FAILED;
+                }
                 p->icmpv6vars.mtu = ICMPV6_GET_MTU(p);
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
@@ -245,6 +251,9 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) > ICMP6_TIME_EXCEED_REASSEMBLY) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
+                if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
+                    return TM_ECODE_FAILED;
+                }
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
                 full_hdr = 1;
@@ -257,6 +266,9 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) > ICMP6_PARAMPROB_OPTION) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
+                if (unlikely(len > ICMPV6_HEADER_LEN + USHRT_MAX)) {
+                    return TM_ECODE_FAILED;
+                }
                 p->icmpv6vars.error_ptr= ICMPV6_GET_ERROR_PTR(p);
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );

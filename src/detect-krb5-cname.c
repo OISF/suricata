@@ -33,7 +33,6 @@
 
 #include "detect-krb5-cname.h"
 
-#ifdef HAVE_RUST
 #include "rust.h"
 #include "app-layer-krb5.h"
 #include "rust-krb-detect-gen.h"
@@ -47,39 +46,13 @@ struct Krb5PrincipalNameDataArgs {
 
 static int DetectKrb5CNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectBufferSetActiveList(s, g_krb5_cname_buffer_id);
+    if (DetectBufferSetActiveList(s, g_krb5_cname_buffer_id) < 0)
+        return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)
         return -1;
 
     return 0;
-}
-
-/** \brief get an InspectionBuffer. Make space if we have to. */
-static InspectionBuffer *GetBuffer(InspectionBufferMultipleForList *fb, uint32_t id)
-{
-    if (id >= fb->size) {
-        uint32_t old_size = fb->size;
-        uint32_t new_size = id + 1;
-        uint32_t grow_by = new_size - old_size;
-        SCLogDebug("size is %u, need %u, so growing by %u",
-                old_size, new_size, grow_by);
-
-        void *ptr = SCRealloc(fb->inspection_buffers, (id + 1) * sizeof(InspectionBuffer));
-        if (ptr == NULL)
-            return NULL;
-
-        InspectionBuffer *to_zero = (InspectionBuffer *)ptr + old_size;
-        SCLogDebug("fb->inspection_buffers %p ptr %p to_zero %p",
-                fb->inspection_buffers, ptr, to_zero);
-        memset((uint8_t *)to_zero, 0, (grow_by * sizeof(InspectionBuffer)));
-        fb->inspection_buffers = ptr;
-        fb->size = new_size;
-    }
-
-    InspectionBuffer *buffer = &fb->inspection_buffers[id];
-    SCLogDebug("using file_data buffer %p", buffer);
-    return buffer;
 }
 
 static InspectionBuffer *GetKrb5CNameData(DetectEngineThreadCtx *det_ctx,
@@ -89,8 +62,8 @@ static InspectionBuffer *GetKrb5CNameData(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    InspectionBufferMultipleForList *fb = &det_ctx->multi_inspect_buffers[list_id];
-    InspectionBuffer *buffer = GetBuffer(fb, cbdata->local_id);
+    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, cbdata->local_id);
     if (buffer == NULL)
         return NULL;
     if (!first && buffer->inspect != NULL)
@@ -136,11 +109,11 @@ static int DetectEngineInspectKrb5CName(
         det_ctx->inspection_recursion_counter = 0;
 
         const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
-                                              f,
+                                              NULL, f,
                                               (uint8_t *)buffer->inspect,
                                               buffer->inspect_len,
                                               buffer->inspect_offset, DETECT_CI_FLAGS_SINGLE,
-                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match == 1) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
@@ -219,9 +192,10 @@ static int PrefilterMpmKrb5CNameRegister(DetectEngineCtx *de_ctx,
 
 void DetectKrb5CNameRegister(void)
 {
-    sigmatch_table[DETECT_AL_KRB5_CNAME].name = "krb5_cname";
+    sigmatch_table[DETECT_AL_KRB5_CNAME].name = "krb5.cname";
+    sigmatch_table[DETECT_AL_KRB5_CNAME].alias = "krb5_cname";
     sigmatch_table[DETECT_AL_KRB5_CNAME].Setup = DetectKrb5CNameSetup;
-    sigmatch_table[DETECT_AL_KRB5_CNAME].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_KRB5_CNAME].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[DETECT_AL_KRB5_CNAME].desc = "sticky buffer to match on Kerberos 5 client name";
 
     DetectAppLayerMpmRegister2("krb5_cname", SIG_FLAG_TOCLIENT, 2,
@@ -237,9 +211,3 @@ void DetectKrb5CNameRegister(void)
 
     g_krb5_cname_buffer_id = DetectBufferTypeGetByName("krb5_cname");
 }
-
-#else /* NO RUST */
-
-void DetectKrb5CNameRegister(void) {}
-
-#endif

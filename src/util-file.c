@@ -454,6 +454,13 @@ static File *FileAlloc(const uint8_t *name, uint16_t name_len)
     new->name_len = name_len;
     memcpy(new->name, name, name_len);
 
+    new->sid_cnt = 0;
+    new->sid_max = 8;
+    /* SCMalloc() is allowed to fail here because sid well be checked later on */
+    new->sid = SCMalloc(sizeof(uint32_t) * new->sid_max);
+    if (new->sid == NULL)
+        new->sid_max = 0;
+
     return new;
 }
 
@@ -464,6 +471,8 @@ static void FileFree(File *ff)
 
     if (ff->name != NULL)
         SCFree(ff->name);
+    if (ff->sid != NULL)
+        SCFree(ff->sid);
 #ifdef HAVE_MAGIC
     /* magic returned by libmagic is strdup'd by MagicLookup. */
     if (ff->magic != NULL)
@@ -730,6 +739,28 @@ int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
 }
 
 /**
+ *  \brief Sets the offset range for a file.
+ *
+ *  \param ffc the container
+ *  \param start start offset
+ *  \param end end offset
+ *
+ *  \retval  0 ok
+ *  \retval -1 error
+ */
+int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end)
+{
+    SCEnter();
+
+    if (ffc == NULL || ffc->tail == NULL) {
+        SCReturnInt(-1);
+    }
+    ffc->tail->start = start;
+    ffc->tail->end = end;
+    SCReturnInt(0);
+}
+
+/**
  *  \brief Open a new File
  *
  *  \param ffc flow container
@@ -744,7 +775,7 @@ int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
  *
  *  \note filename is not a string, so it's not nul terminated.
  */
-File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
+static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
         const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags)
 {
@@ -1247,7 +1278,7 @@ void FileStoreFileById(FileContainer *fc, uint32_t file_id)
 
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
-            if (ptr->file_store_id == file_id) {
+            if (ptr->file_track_id == file_id) {
                 FileStore(ptr);
             }
         }

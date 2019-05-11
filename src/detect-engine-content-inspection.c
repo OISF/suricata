@@ -82,6 +82,7 @@
  * \param det_ctx         Detection engine thread context
  * \param s               Signature to inspect
  * \param sm              SigMatch to inspect
+ * \param p               Packet. Can be NULL.
  * \param f               Flow (for pcre flowvar storage)
  * \param buffer          Ptr to the buffer to inspect
  * \param buffer_len      Length of the payload
@@ -92,19 +93,17 @@
  * \param inspection_mode Refers to the engine inspection mode we are currently
  *                        inspecting.  Can be payload, stream, one of the http
  *                        buffer inspection modes or dce inspection mode.
- * \param data            Used to send some custom data.  For example in
- *                        payload inspection mode, data contains packet ptr,
- *                        and under dce inspection mode, contains dce state.
+ * \param flags           DETECT_CI_FLAG_*
  *
  *  \retval 0 no match
  *  \retval 1 match
  */
 int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                                   const Signature *s, const SigMatchData *smd,
-                                  Flow *f,
+                                  Packet *p, Flow *f,
                                   uint8_t *buffer, uint32_t buffer_len,
                                   uint32_t stream_start_offset, uint8_t flags,
-                                  uint8_t inspection_mode, void *data)
+                                  uint8_t inspection_mode)
 {
     SCEnter();
     KEYWORD_PROFILING_START;
@@ -333,8 +332,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                      * search for another occurence of this content and see
                      * if the others match then until we run out of matches */
                     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
-                            f, buffer, buffer_len, stream_start_offset, flags,
-                            inspection_mode, data);
+                            p, f, buffer, buffer_len, stream_start_offset, flags,
+                            inspection_mode);
                     if (r == 1) {
                         SCReturnInt(1);
                     }
@@ -415,9 +414,6 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         det_ctx->pcre_match_start_offset = 0;
         do {
-            Packet *p = NULL;
-            if (inspection_mode == DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD)
-                p = (Packet *)data;
             r = DetectPcrePayloadMatch(det_ctx, s, smd, p, f,
                                        buffer, buffer_len);
             if (r == 0) {
@@ -437,8 +433,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
              * search for another occurence of this pcre and see
              * if the others match, until we run out of matches */
             r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
-                    f, buffer, buffer_len, stream_start_offset, flags,
-                    inspection_mode, data);
+                    p, f, buffer, buffer_len, stream_start_offset, flags,
+                    inspection_mode);
             if (r == 1) {
                 SCReturnInt(1);
             }
@@ -464,11 +460,10 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if (btflags & DETECT_BYTETEST_DCE && data != NULL) {
-            DCERPCState *dcerpc_state = (DCERPCState *)data;
+        if (btflags & DETECT_BYTETEST_DCE) {
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            btflags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
+            btflags |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
                       DETECT_BYTETEST_LITTLE: 0);
         }
 
@@ -490,11 +485,10 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if (bjflags & DETECT_BYTEJUMP_DCE && data != NULL) {
-            DCERPCState *dcerpc_state = (DCERPCState *)data;
+        if (bjflags & DETECT_BYTEJUMP_DCE) {
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            bjflags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
+            bjflags |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
                       DETECT_BYTEJUMP_LITTLE: 0);
         }
 
@@ -513,12 +507,12 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
         if ((bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) &&
-            endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE && data != NULL) {
+            endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE &&
+            flags & (DETECT_CI_FLAGS_DCE_LE|DETECT_CI_FLAGS_DCE_BE)) {
 
-            DCERPCState *dcerpc_state = (DCERPCState *)data;
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            endian |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
+            endian |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
                        DETECT_BYTE_EXTRACT_ENDIAN_LITTLE : DETECT_BYTE_EXTRACT_ENDIAN_BIG);
         }
 
@@ -620,8 +614,8 @@ match:
     if (!smd->is_last) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
         int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
-                f, buffer, buffer_len, stream_start_offset, flags,
-                inspection_mode, data);
+                p, f, buffer, buffer_len, stream_start_offset, flags,
+                inspection_mode);
         SCReturnInt(r);
     }
 final_match:

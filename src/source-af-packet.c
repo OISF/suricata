@@ -28,8 +28,6 @@
  *
  * AF_PACKET socket acquisition support
  *
- * \todo watch other interface event to detect suppression of the monitored
- *       interface
  */
 
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
@@ -85,6 +83,8 @@ struct bpf_program {
 #include <pcap/pcap.h>
 #endif
 
+#include "util-bpf.h"
+
 #if HAVE_LINUX_IF_ETHER_H
 #include <linux/if_ether.h>
 #endif
@@ -131,7 +131,6 @@ void TmModuleReceiveAFPRegister (void)
 
 /**
  * \brief Registration Function for DecodeAFP.
- * \todo Unit tests are needed for this module.
  */
 void TmModuleDecodeAFPRegister (void)
 {
@@ -177,13 +176,11 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #define TP_STATUS_VLAN_VALID (1 << 4)
 #endif
 
-/** protect pfring_set_bpf_filter, as it is not thread safe */
-static SCMutex afpacket_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
-
 enum {
     AFP_READ_OK,
     AFP_READ_FAILURE,
-    AFP_FAILURE,
+    /** Error during treatment by other functions of Suricata */
+    AFP_SURI_FAILURE,
     AFP_KERNEL_DROP,
 };
 
@@ -209,10 +206,10 @@ static int AFPXDPBypassCallback(Packet *p);
  */
 typedef struct AFPThreadVars_
 {
-    union {
-        char *ring_v2;
-        struct iovec *ring_v3;
-    };
+    union AFPRing {
+        char *v2;
+        struct iovec *v3;
+    } ring;
 
     /* counters */
     uint64_t pkts;
@@ -237,6 +234,7 @@ typedef struct AFPThreadVars_
     /* references to packet and drop counters */
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
+    uint16_t capture_errors;
 
     /* handle state */
     uint8_t afp_state;
@@ -277,12 +275,12 @@ typedef struct AFPThreadVars_
 
     int threads;
 
-    union {
-        struct tpacket_req req;
+    union AFPTpacketReq {
+        struct tpacket_req v2;
 #ifdef HAVE_TPACKET_V3
-        struct tpacket_req3 req3;
+        struct tpacket_req3 v3;
 #endif
-    };
+    } req;
 
     char iface[AFP_IFACE_NAME_LENGTH];
     /* IPS output iface */
@@ -293,8 +291,6 @@ typedef struct AFPThreadVars_
     uint8_t *ring_buf;
 
     uint8_t xdp_mode;
-
-    int map_fd[MAX_MAPS];
 
 } AFPThreadVars;
 
@@ -628,7 +624,7 @@ static int AFPRead(AFPThreadVars *ptv)
 
     p = PacketGetFromQueueOrAlloc();
     if (p == NULL) {
-        SCReturnInt(AFP_FAILURE);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
     if (ptv->flags & AFP_BYPASS) {
@@ -668,7 +664,7 @@ static int AFPRead(AFPThreadVars *ptv)
     SET_PKT_LEN(p, caplen + offset);
     if (PacketCopyData(p, ptv->data, GET_PKT_LEN(p)) == -1) {
         TmqhOutputPacketpool(ptv->tv, p);
-        SCReturnInt(AFP_FAILURE);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
     SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
                GET_PKT_LEN(p), p, GET_PKT_DATA(p));
@@ -708,7 +704,7 @@ static int AFPRead(AFPThreadVars *ptv)
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
         TmqhOutputPacketpool(ptv->tv, p);
-        SCReturnInt(AFP_FAILURE);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
     SCReturnInt(AFP_READ_OK);
 }
@@ -871,9 +867,11 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         }
 
         /* Read packet from ring */
-        h.raw = (((union thdr **)ptv->ring_v2)[ptv->frame_offset]);
-        if (h.raw == NULL) {
-            SCReturnInt(AFP_FAILURE);
+        h.raw = (((union thdr **)ptv->ring.v2)[ptv->frame_offset]);
+        if (unlikely(h.raw == NULL)) {
+            /* Impossible we reach this point in normal condition, so trigger
+             * a failure in reading */
+            SCReturnInt(AFP_READ_FAILURE);
         }
 
         if ((! h.h2->tp_status) || (h.h2->tp_status & TP_STATUS_USER_BUSY)) {
@@ -883,7 +881,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
                 } else if (unlikely(loop_start == (int)ptv->frame_offset)) {
                     SCReturnInt(AFP_READ_OK);
                 }
-                if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+                if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
                     ptv->frame_offset = 0;
                 }
                 continue;
@@ -911,7 +909,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
 
         p = PacketGetFromQueueOrAlloc();
         if (p == NULL) {
-            SCReturnInt(AFP_FAILURE);
+            SCReturnInt(AFP_SURI_FAILURE);
         }
         PKT_SET_SRC(p, PKT_SRC_WIRE);
         if (ptv->flags & AFP_BYPASS) {
@@ -954,7 +952,7 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         if (ptv->flags & AFP_ZERO_COPY) {
             if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
                 TmqhOutputPacketpool(ptv->tv, p);
-                SCReturnInt(AFP_FAILURE);
+                SCReturnInt(AFP_SURI_FAILURE);
             } else {
                 p->afp_v.relptr = h.raw;
                 p->ReleasePacket = AFPReleasePacket;
@@ -970,8 +968,15 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             }
         } else {
             if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
+                /* As we can possibly fail to copy the data due to invalid data, let's
+                 * skip this packet and switch to the next one.
+                 */
+                h.h2->tp_status = TP_STATUS_KERNEL;
+                if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
+                    ptv->frame_offset = 0;
+                }
                 TmqhOutputPacketpool(ptv->tv, p);
-                SCReturnInt(AFP_FAILURE);
+                SCReturnInt(AFP_SURI_FAILURE);
             }
         }
 
@@ -1010,15 +1015,15 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
 
         if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
             h.h2->tp_status = TP_STATUS_KERNEL;
-            if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+            if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
                 ptv->frame_offset = 0;
             }
             TmqhOutputPacketpool(ptv->tv, p);
-            SCReturnInt(AFP_FAILURE);
+            SCReturnInt(AFP_SURI_FAILURE);
         }
 
 next_frame:
-        if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+        if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
             ptv->frame_offset = 0;
             /* Get out of loop to be sure we will reach maintenance tasks */
             SCReturnInt(AFP_READ_OK);
@@ -1038,7 +1043,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
 {
     Packet *p = PacketGetFromQueueOrAlloc();
     if (p == NULL) {
-        SCReturnInt(AFP_FAILURE);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
     if (ptv->flags & AFP_BYPASS) {
@@ -1047,8 +1052,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
 #endif
-    }
-    if (ptv->flags & AFP_XDPBYPASS) {
+    } else if (ptv->flags & AFP_XDPBYPASS) {
         p->BypassPacketsFlow = AFPXDPBypassCallback;
 #ifdef HAVE_PACKET_EBPF
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
@@ -1070,7 +1074,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     if (ptv->flags & AFP_ZERO_COPY) {
         if (PacketSetData(p, (unsigned char*)ppd + ppd->tp_mac, ppd->tp_snaplen) == -1) {
             TmqhOutputPacketpool(ptv->tv, p);
-            SCReturnInt(AFP_FAILURE);
+            SCReturnInt(AFP_SURI_FAILURE);
         }
         p->afp_v.relptr = ppd;
         p->ReleasePacket = AFPReleasePacketV3;
@@ -1086,7 +1090,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     } else {
         if (PacketCopyData(p, (unsigned char*)ppd + ppd->tp_mac, ppd->tp_snaplen) == -1) {
             TmqhOutputPacketpool(ptv->tv, p);
-            SCReturnInt(AFP_FAILURE);
+            SCReturnInt(AFP_SURI_FAILURE);
         }
     }
     /* Timestamp */
@@ -1115,7 +1119,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
         TmqhOutputPacketpool(ptv->tv, p);
-        SCReturnInt(AFP_FAILURE);
+        SCReturnInt(AFP_SURI_FAILURE);
     }
 
     SCReturnInt(AFP_READ_OK);
@@ -1125,12 +1129,23 @@ static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pb
 {
     int num_pkts = pbd->hdr.bh1.num_pkts, i;
     uint8_t *ppd;
+    int ret = 0;
 
     ppd = (uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt;
     for (i = 0; i < num_pkts; ++i) {
-        if (unlikely(AFPParsePacketV3(ptv, pbd,
-                             (struct tpacket3_hdr *)ppd) == AFP_FAILURE)) {
-            SCReturnInt(AFP_READ_FAILURE);
+        ret = AFPParsePacketV3(ptv, pbd,
+                               (struct tpacket3_hdr *)ppd);
+        switch (ret) {
+            case AFP_READ_OK:
+                break;
+            case AFP_SURI_FAILURE:
+                /* Internal error but let's just continue and
+                 * treat thenext packet */
+                break;
+            case AFP_READ_FAILURE:
+                SCReturnInt(AFP_READ_FAILURE);
+            default:
+                SCReturnInt(ret);
         }
         ppd = ppd + ((struct tpacket3_hdr *)ppd)->tp_next_offset;
     }
@@ -1152,6 +1167,7 @@ static int AFPReadFromRingV3(AFPThreadVars *ptv)
 {
 #ifdef HAVE_TPACKET_V3
     struct tpacket_block_desc *pbd;
+    int ret = 0;
 
     /* Loop till we have packets available */
     while (1) {
@@ -1160,20 +1176,21 @@ static int AFPReadFromRingV3(AFPThreadVars *ptv)
             break;
         }
 
-        pbd = (struct tpacket_block_desc *) ptv->ring_v3[ptv->frame_offset].iov_base;
+        pbd = (struct tpacket_block_desc *) ptv->ring.v3[ptv->frame_offset].iov_base;
 
         /* block is not ready to be read */
         if ((pbd->hdr.bh1.block_status & TP_STATUS_USER) == 0) {
             SCReturnInt(AFP_READ_OK);
         }
 
-        if (unlikely(AFPWalkBlock(ptv, pbd) != AFP_READ_OK)) {
+        ret = AFPWalkBlock(ptv, pbd);
+        if (unlikely(ret != AFP_READ_OK)) {
             AFPFlushBlock(pbd);
-            SCReturnInt(AFP_READ_FAILURE);
+            SCReturnInt(ret);
         }
 
         AFPFlushBlock(pbd);
-        ptv->frame_offset = (ptv->frame_offset + 1) % ptv->req3.tp_block_nr;
+        ptv->frame_offset = (ptv->frame_offset + 1) % ptv->req.v3.tp_block_nr;
         /* return to maintenance task after one loop on the ring */
         if (ptv->frame_offset == 0) {
             SCReturnInt(AFP_READ_OK);
@@ -1229,16 +1246,16 @@ static void AFPSwitchState(AFPThreadVars *ptv, int state)
     if (state == AFP_STATE_DOWN) {
 #ifdef HAVE_TPACKET_V3
         if (ptv->flags & AFP_TPACKET_V3) {
-            if (!ptv->ring_v3) {
-                SCFree(ptv->ring_v3);
-                ptv->ring_v3 = NULL;
+            if (!ptv->ring.v3) {
+                SCFree(ptv->ring.v3);
+                ptv->ring.v3 = NULL;
             }
         } else {
 #endif
-            if (ptv->ring_v2) {
+            if (ptv->ring.v2) {
                 /* only used in reading phase, we can free it */
-                SCFree(ptv->ring_v2);
-                ptv->ring_v2 = NULL;
+                SCFree(ptv->ring.v2);
+                ptv->ring.v2 = NULL;
             }
 #ifdef HAVE_TPACKET_V3
         }
@@ -1246,7 +1263,7 @@ static void AFPSwitchState(AFPThreadVars *ptv, int state)
         if (ptv->socket != -1) {
             /* we need to wait for all packets to return data */
             if (SC_ATOMIC_SUB(ptv->mpeer->sock_usage, 1) == 0) {
-                SCLogInfo("Cleaning socket connected to '%s'", ptv->iface);
+                SCLogDebug("Cleaning socket connected to '%s'", ptv->iface);
                 munmap(ptv->ring_buf, ptv->ring_buflen);
                 close(ptv->socket);
                 ptv->socket = -1;
@@ -1312,18 +1329,26 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
 
 #ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
+        int ret = 0;
         struct tpacket_block_desc *pbd;
-        pbd = (struct tpacket_block_desc *) ptv->ring_v3[ptv->frame_offset].iov_base;
+        pbd = (struct tpacket_block_desc *) ptv->ring.v3[ptv->frame_offset].iov_base;
         *discarded_pkts += pbd->hdr.bh1.num_pkts;
+        struct tpacket3_hdr *ppd =
+            (struct tpacket3_hdr *)((uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt);
+        if (((time_t)ppd->tp_sec > synctv->tv_sec) ||
+                ((time_t)ppd->tp_sec == synctv->tv_sec &&
+                 (suseconds_t) (ppd->tp_nsec / 1000) > (suseconds_t)synctv->tv_usec)) {
+            ret = 1;
+        }
         AFPFlushBlock(pbd);
-        ptv->frame_offset = (ptv->frame_offset + 1) % ptv->req3.tp_block_nr;
-        return 1;
+        ptv->frame_offset = (ptv->frame_offset + 1) % ptv->req.v3.tp_block_nr;
+        return ret;
 
     } else
 #endif
     {
         /* Read packet from ring */
-        h.raw = (((union thdr **)ptv->ring_v2)[ptv->frame_offset]);
+        h.raw = (((union thdr **)ptv->ring.v2)[ptv->frame_offset]);
         if (h.raw == NULL) {
             return -1;
         }
@@ -1335,7 +1360,7 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
         }
 
         h.h2->tp_status = TP_STATUS_KERNEL;
-        if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+        if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
             ptv->frame_offset = 0;
         }
     }
@@ -1355,7 +1380,6 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
  */
 static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
 {
-    int r;
     struct timeval synctv;
     struct pollfd fds;
 
@@ -1367,7 +1391,7 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
     synctv.tv_usec = 0xffffffff;
 
     while (1) {
-        r = poll(&fds, 1, POLL_TIMEOUT);
+        int r = poll(&fds, 1, POLL_TIMEOUT);
         if (r > 0 &&
                 (fds.revents & (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL))) {
             SCLogWarning(SC_ERR_AFP_READ, "poll failed %02x",
@@ -1410,8 +1434,6 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
  */
 static int AFPTryReopen(AFPThreadVars *ptv)
 {
-    int afp_activate_r;
-
     ptv->down_count++;
 
     /* Don't reconnect till we have packet that did not release data */
@@ -1419,7 +1441,7 @@ static int AFPTryReopen(AFPThreadVars *ptv)
         return -1;
     }
 
-    afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);
+    int afp_activate_r = AFPCreateSocket(ptv, ptv->iface, 0);
     if (afp_activate_r != 0) {
         if (ptv->down_count % AFP_DOWN_COUNTER_INTERVAL == 0) {
             SCLogWarning(SC_ERR_AFP_CREATE, "Can not open iface '%s'",
@@ -1482,9 +1504,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     }
     if (ptv->afp_state == AFP_STATE_UP) {
         SCLogDebug("Thread %s using socket %d", tv->name, ptv->socket);
-        if ((ptv->flags & AFP_TPACKET_V3) != 0) {
-            AFPSynchronizeStart(ptv, &discarded_pkts);
-        }
+        AFPSynchronizeStart(ptv, &discarded_pkts);
         /* let's reset counter as we will start the capture at the
          * next function call */
 #ifdef PACKET_STATISTICS
@@ -1546,7 +1566,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                 if (recv(ptv->socket, &c, sizeof c, MSG_PEEK) != -1)
                     continue; /* what, no error? */
                 SCLogError(SC_ERR_AFP_READ,
-                           "Error reading data from iface '%s': (%d" PRIu32 ") %s",
+                           "Error reading data from iface '%s': (%d) %s",
                            ptv->iface, errno, strerror(errno));
                 AFPSwitchState(ptv, AFP_STATE_DOWN);
                 continue;
@@ -1569,13 +1589,12 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                 case AFP_READ_FAILURE:
                     /* AFPRead in error: best to reset the socket */
                     SCLogError(SC_ERR_AFP_READ,
-                           "AFPRead error reading data from iface '%s': (%d" PRIu32 ") %s",
+                           "AFPRead error reading data from iface '%s': (%d) %s",
                            ptv->iface, errno, strerror(errno));
                     AFPSwitchState(ptv, AFP_STATE_DOWN);
                     continue;
-                case AFP_FAILURE:
-                    AFPSwitchState(ptv, AFP_STATE_DOWN);
-                    SCReturnInt(TM_ECODE_FAILED);
+                case AFP_SURI_FAILURE:
+                    StatsIncr(ptv->tv, ptv->capture_errors);
                     break;
                 case AFP_KERNEL_DROP:
                     AFPDumpCounters(ptv);
@@ -1592,7 +1611,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             TmThreadsCaptureInjectPacket(tv, ptv->slot, NULL);
 
         } else if ((r < 0) && (errno != EINTR)) {
-            SCLogError(SC_ERR_AFP_READ, "Error reading data from iface '%s': (%d" PRIu32 ") %s",
+            SCLogError(SC_ERR_AFP_READ, "Error reading data from iface '%s': (%d) %s",
                        ptv->iface,
                        errno, strerror(errno));
             AFPSwitchState(ptv, AFP_STATE_DOWN);
@@ -1717,28 +1736,28 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
         }
     }
 
-    ptv->req.tp_frame_size = TPACKET_ALIGN(snaplen +TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
-    ptv->req.tp_block_size = getpagesize() << order;
-    int frames_per_block = ptv->req.tp_block_size / ptv->req.tp_frame_size;
+    ptv->req.v2.tp_frame_size = TPACKET_ALIGN(snaplen +TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
+    ptv->req.v2.tp_block_size = getpagesize() << order;
+    int frames_per_block = ptv->req.v2.tp_block_size / ptv->req.v2.tp_frame_size;
     if (frames_per_block == 0) {
         SCLogError(SC_ERR_INVALID_VALUE, "Frame size bigger than block size");
         return -1;
     }
-    ptv->req.tp_frame_nr = ptv->ring_size;
-    ptv->req.tp_block_nr = ptv->req.tp_frame_nr / frames_per_block + 1;
+    ptv->req.v2.tp_frame_nr = ptv->ring_size;
+    ptv->req.v2.tp_block_nr = ptv->req.v2.tp_frame_nr / frames_per_block + 1;
     /* exact division */
-    ptv->req.tp_frame_nr = ptv->req.tp_block_nr * frames_per_block;
+    ptv->req.v2.tp_frame_nr = ptv->req.v2.tp_block_nr * frames_per_block;
     SCLogPerf("AF_PACKET RX Ring params: block_size=%d block_nr=%d frame_size=%d frame_nr=%d",
-              ptv->req.tp_block_size, ptv->req.tp_block_nr,
-              ptv->req.tp_frame_size, ptv->req.tp_frame_nr);
+              ptv->req.v2.tp_block_size, ptv->req.v2.tp_block_nr,
+              ptv->req.v2.tp_frame_size, ptv->req.v2.tp_frame_nr);
     return 1;
 }
 
 #ifdef HAVE_TPACKET_V3
 static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
 {
-    ptv->req3.tp_block_size = ptv->block_size;
-    ptv->req3.tp_frame_size = 2048;
+    ptv->req.v3.tp_block_size = ptv->block_size;
+    ptv->req.v3.tp_frame_size = 2048;
     int frames_per_block = 0;
     int tp_hdrlen = sizeof(struct tpacket3_hdr);
     int snaplen = default_packet_size;
@@ -1752,24 +1771,24 @@ static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
         }
     }
 
-    ptv->req.tp_frame_size = TPACKET_ALIGN(snaplen +TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
-    frames_per_block = ptv->req3.tp_block_size / ptv->req3.tp_frame_size;
+    ptv->req.v3.tp_frame_size = TPACKET_ALIGN(snaplen +TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
+    frames_per_block = ptv->req.v3.tp_block_size / ptv->req.v3.tp_frame_size;
 
     if (frames_per_block == 0) {
         SCLogError(SC_ERR_INVALID_VALUE,
                    "Block size is too small, it should be at least %d",
-                   ptv->req3.tp_frame_size);
+                   ptv->req.v3.tp_frame_size);
         return -1;
     }
-    ptv->req3.tp_block_nr = ptv->ring_size / frames_per_block + 1;
+    ptv->req.v3.tp_block_nr = ptv->ring_size / frames_per_block + 1;
     /* exact division */
-    ptv->req3.tp_frame_nr = ptv->req3.tp_block_nr * frames_per_block;
-    ptv->req3.tp_retire_blk_tov = ptv->block_timeout;
-    ptv->req3.tp_feature_req_word = TP_FT_REQ_FILL_RXHASH;
+    ptv->req.v3.tp_frame_nr = ptv->req.v3.tp_block_nr * frames_per_block;
+    ptv->req.v3.tp_retire_blk_tov = ptv->block_timeout;
+    ptv->req.v3.tp_feature_req_word = TP_FT_REQ_FILL_RXHASH;
     SCLogPerf("AF_PACKET V3 RX Ring params: block_size=%d block_nr=%d frame_size=%d frame_nr=%d (mem: %d)",
-              ptv->req3.tp_block_size, ptv->req3.tp_block_nr,
-              ptv->req3.tp_frame_size, ptv->req3.tp_frame_nr,
-              ptv->req3.tp_block_size * ptv->req3.tp_block_nr
+              ptv->req.v3.tp_block_size, ptv->req.v3.tp_block_nr,
+              ptv->req.v3.tp_frame_size, ptv->req.v3.tp_frame_nr,
+              ptv->req.v3.tp_block_size * ptv->req.v3.tp_block_nr
               );
     return 1;
 }
@@ -1850,7 +1869,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
             return AFP_FATAL_ERROR;
         }
         r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING,
-                (void *) &ptv->req3, sizeof(ptv->req3));
+                (void *) &ptv->req.v3, sizeof(ptv->req.v3));
         if (r < 0) {
             SCLogError(SC_ERR_MEM_ALLOC,
                     "Unable to allocate RX Ring for iface %s: (%d) %s",
@@ -1898,10 +1917,10 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     /* Allocate the Ring */
 #ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
-        ptv->ring_buflen = ptv->req3.tp_block_nr * ptv->req3.tp_block_size;
+        ptv->ring_buflen = ptv->req.v3.tp_block_nr * ptv->req.v3.tp_block_size;
     } else {
 #endif
-        ptv->ring_buflen = ptv->req.tp_block_nr * ptv->req.tp_block_size;
+        ptv->ring_buflen = ptv->req.v2.tp_block_nr * ptv->req.v2.tp_block_size;
 #ifdef HAVE_TPACKET_V3
     }
 #endif
@@ -1917,32 +1936,32 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     }
 #ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
-        ptv->ring_v3 = SCMalloc(ptv->req3.tp_block_nr * sizeof(*ptv->ring_v3));
-        if (!ptv->ring_v3) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to malloc ptv ring_v3");
+        ptv->ring.v3 = SCMalloc(ptv->req.v3.tp_block_nr * sizeof(*ptv->ring.v3));
+        if (!ptv->ring.v3) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to malloc ptv ring.v3");
             goto postmmap_err;
         }
-        for (i = 0; i < ptv->req3.tp_block_nr; ++i) {
-            ptv->ring_v3[i].iov_base = ptv->ring_buf + (i * ptv->req3.tp_block_size);
-            ptv->ring_v3[i].iov_len = ptv->req3.tp_block_size;
+        for (i = 0; i < ptv->req.v3.tp_block_nr; ++i) {
+            ptv->ring.v3[i].iov_base = ptv->ring_buf + (i * ptv->req.v3.tp_block_size);
+            ptv->ring.v3[i].iov_len = ptv->req.v3.tp_block_size;
         }
     } else {
 #endif
         /* allocate a ring for each frame header pointer*/
-        ptv->ring_v2 = SCMalloc(ptv->req.tp_frame_nr * sizeof (union thdr *));
-        if (ptv->ring_v2 == NULL) {
+        ptv->ring.v2 = SCMalloc(ptv->req.v2.tp_frame_nr * sizeof (union thdr *));
+        if (ptv->ring.v2 == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate frame buf");
             goto postmmap_err;
         }
-        memset(ptv->ring_v2, 0, ptv->req.tp_frame_nr * sizeof (union thdr *));
+        memset(ptv->ring.v2, 0, ptv->req.v2.tp_frame_nr * sizeof (union thdr *));
         /* fill the header ring with proper frame ptr*/
         ptv->frame_offset = 0;
-        for (i = 0; i < ptv->req.tp_block_nr; ++i) {
-            void *base = &(ptv->ring_buf[i * ptv->req.tp_block_size]);
+        for (i = 0; i < ptv->req.v2.tp_block_nr; ++i) {
+            void *base = &(ptv->ring_buf[i * ptv->req.v2.tp_block_size]);
             unsigned int j;
-            for (j = 0; j < ptv->req.tp_block_size / ptv->req.tp_frame_size; ++j, ++ptv->frame_offset) {
-                (((union thdr **)ptv->ring_v2)[ptv->frame_offset]) = base;
-                base += ptv->req.tp_frame_size;
+            for (j = 0; j < ptv->req.v2.tp_block_size / ptv->req.v2.tp_frame_size; ++j, ++ptv->frame_offset) {
+                (((union thdr **)ptv->ring.v2)[ptv->frame_offset]) = base;
+                base += ptv->req.v2.tp_frame_size;
             }
         }
         ptv->frame_offset = 0;
@@ -1954,10 +1973,10 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
 
 postmmap_err:
     munmap(ptv->ring_buf, ptv->ring_buflen);
-    if (ptv->ring_v2)
-        SCFree(ptv->ring_v2);
-    if (ptv->ring_v3)
-        SCFree(ptv->ring_v3);
+    if (ptv->ring.v2)
+        SCFree(ptv->ring.v2);
+    if (ptv->ring.v3)
+        SCFree(ptv->ring.v3);
 mmap_err:
     /* Packet mmap does the cleaning when socket is closed */
     return AFP_FATAL_ERROR;
@@ -2046,7 +2065,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     if_idx = AFPGetIfnumByDev(ptv->socket, devname, verbose);
 
     if (if_idx == -1) {
-        goto error;
+        goto socket_err;
     }
 
     /* bind socket */
@@ -2184,7 +2203,6 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 
     TmEcode rc = AFPSetBPFFilter(ptv);
     if (rc == TM_ECODE_FAILED) {
-        SCLogError(SC_ERR_AFP_CREATE, "Set AF_PACKET bpf filter \"%s\" failed.", ptv->bpf_filter);
         ret = AFP_FATAL_ERROR;
         goto socket_err;
     }
@@ -2197,14 +2215,14 @@ socket_err:
     close(ptv->socket);
     ptv->socket = -1;
     if (ptv->flags & AFP_TPACKET_V3) {
-        if (ptv->ring_v3) {
-            SCFree(ptv->ring_v3);
-            ptv->ring_v3 = NULL;
+        if (ptv->ring.v3) {
+            SCFree(ptv->ring.v3);
+            ptv->ring.v3 = NULL;
         }
     } else {
-        if (ptv->ring_v2) {
-            SCFree(ptv->ring_v2);
-            ptv->ring_v2 = NULL;
+        if (ptv->ring.v2) {
+            SCFree(ptv->ring.v2);
+            ptv->ring.v2 = NULL;
         }
     }
 
@@ -2227,27 +2245,22 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     if (!ptv->bpf_filter)
         return TM_ECODE_OK;
 
-    SCMutexLock(&afpacket_bpf_set_filter_lock);
-
     SCLogInfo("Using BPF '%s' on iface '%s'",
               ptv->bpf_filter,
               ptv->iface);
-    if (pcap_compile_nopcap(default_packet_size,  /* snaplen_arg */
+
+    char errbuf[PCAP_ERRBUF_SIZE];
+    if (SCBPFCompile(default_packet_size,  /* snaplen_arg */
                 ptv->datalink,    /* linktype_arg */
                 &filter,       /* program */
                 ptv->bpf_filter, /* const char *buf */
                 1,             /* optimize */
-                0              /* mask */
-                ) == -1) {
-        SCLogError(SC_ERR_AFP_CREATE, "Filter compilation failed.");
-        SCMutexUnlock(&afpacket_bpf_set_filter_lock);
-        return TM_ECODE_FAILED;
-    }
-    SCMutexUnlock(&afpacket_bpf_set_filter_lock);
-
-    if (filter.bf_insns == NULL) {
-        SCLogError(SC_ERR_AFP_CREATE, "Filter badly setup.");
-        pcap_freecode(&filter);
+                0,              /* mask */
+                errbuf,
+                sizeof(errbuf)) == -1) {
+        SCLogError(SC_ERR_AFP_CREATE, "Failed to compile BPF \"%s\": %s",
+                   ptv->bpf_filter,
+                   errbuf);
         return TM_ECODE_FAILED;
     }
 
@@ -2256,7 +2269,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 
     rc = setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_FILTER, &fcode, sizeof(fcode));
 
-    pcap_freecode(&filter);
+    SCBPFFree(&filter);
     if(rc == -1) {
         SCLogError(SC_ERR_AFP_CREATE, "Failed to attach filter: %s", strerror(errno));
         return TM_ECODE_FAILED;
@@ -2585,6 +2598,8 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
             ptv->tv);
     ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
             ptv->tv);
+    ptv->capture_errors = StatsRegisterCounter("capture.errors",
+            ptv->tv);
 #endif
 
     ptv->copy_mode = afpconfig->copy_mode;
@@ -2677,11 +2692,11 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
     ptv->datalen = 0;
 
     ptv->bpf_filter = NULL;
-    if ((ptv->flags & AFP_TPACKET_V3) && ptv->ring_v3) {
-        SCFree(ptv->ring_v3);
+    if ((ptv->flags & AFP_TPACKET_V3) && ptv->ring.v3) {
+        SCFree(ptv->ring.v3);
     } else {
-        if (ptv->ring_v2)
-            SCFree(ptv->ring_v2);
+        if (ptv->ring.v2)
+            SCFree(ptv->ring.v2);
     }
 
     SCFree(ptv);

@@ -139,7 +139,9 @@ def convert_type(rs_type):
     raise Exception("Failed to parse Rust type: %s" % (rs_type))
 
 def make_output_filename(filename):
-    parts = filename.split(os.path.sep)[2:]
+    if filename.startswith("./"):
+        filename = filename[2:]
+    parts = filename.split(os.path.sep)[1:]
     last = os.path.splitext(parts.pop())[0]
     outpath = "./gen/c-headers/rust-%s-%s-gen.h" % (
         "-".join(parts), last)
@@ -169,7 +171,7 @@ def gen_headers(filename):
     if not should_regen(filename, output_filename):
         return
 
-    buf = open(filename).read()
+    buf = open(filename, "rb").read().decode("utf-8")
     writer = StringIO()
 
     for fn in re.findall(
@@ -183,7 +185,7 @@ def gen_headers(filename):
         fnName = fn[1]
 
         for arg in fn[2].split(","):
-            if not arg:
+            if not arg.strip():
                 continue
             arg_name, rs_type = arg.split(":", 1)
             arg_name = arg_name.strip()

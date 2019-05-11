@@ -32,8 +32,7 @@
 
 int ListKeywords(const char *keyword_info)
 {
-    if (ConfYamlLoadFile(DEFAULT_CONF_FILE) != -1)
-        SCLogLoadConfig(0, 0);
+    SCLogLoadConfig(0, 0);
     MpmTableSetup();
     SpmTableSetup();
     AppLayerSetup();

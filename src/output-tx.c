@@ -205,7 +205,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                     "tc_log_progress %d", logger, logger->LogCondition,
                     logger->ts_log_progress, logger->tc_log_progress);
             if (logger->alproto == alproto &&
-                (tx_logged & (1<<logger->logger_id)) == 0)
+                (tx_logged_old & (1<<logger->logger_id)) == 0)
             {
                 SCLogDebug("alproto match, logging tx_id %"PRIu64, tx_id);
 
@@ -270,6 +270,7 @@ next_logger:
 next_tx:
         if (!ires.has_next)
             break;
+        tx_id++;
     }
 
     /* Update the the last ID that has been logged with all

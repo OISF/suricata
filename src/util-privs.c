@@ -235,4 +235,19 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
 
     return 0;
 }
+
+#ifdef __OpenBSD__
+int SCPledge(void)
+{
+    int ret = pledge("stdio rpath wpath cpath fattr unix dns bpf", NULL);
+
+    if (ret != 0) {
+        SCLogError(SC_ERR_PLEDGE_FAILED, "unable to pledge,"
+                " check permissions!! ret=%i errno=%i", ret, errno);
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+#endif /* __OpenBSD__ */
 #endif /* OS_WIN32 */

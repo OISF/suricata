@@ -59,6 +59,8 @@
 #ifndef __UTIL_STREAMING_BUFFER_H__
 #define __UTIL_STREAMING_BUFFER_H__
 
+#include "tree.h"
+
 #define STREAMING_BUFFER_NOFLAGS     0
 #define STREAMING_BUFFER_AUTOSLIDE  (1<<0)
 
@@ -77,11 +79,18 @@ typedef struct StreamingBufferConfig_ {
 /**
  *  \brief block of continues data
  */
-typedef struct StreamingBufferBlock_ {
+typedef struct StreamingBufferBlock {
     uint64_t offset;
+    RB_ENTRY(StreamingBufferBlock) rb;
     uint32_t len;
-    struct StreamingBufferBlock_ *next;
-} StreamingBufferBlock;
+} __attribute__((__packed__)) StreamingBufferBlock;
+
+int SBBCompare(struct StreamingBufferBlock *a, struct StreamingBufferBlock *b);
+
+/* red-black tree prototype for SACK records */
+RB_HEAD(SBB, StreamingBufferBlock);
+RB_PROTOTYPE(SBB, StreamingBufferBlock, rb, SBBCompare);
+StreamingBufferBlock *SBB_RB_FIND_INCLUSIVE(struct SBB *head, StreamingBufferBlock *elm);
 
 typedef struct StreamingBuffer_ {
     const StreamingBufferConfig *cfg;
@@ -91,22 +100,22 @@ typedef struct StreamingBuffer_ {
     uint32_t buf_size;      /**< size of memory block */
     uint32_t buf_offset;    /**< how far we are in buf_size */
 
-    StreamingBufferBlock *block_list;
-    StreamingBufferBlock *block_list_tail;
+    struct SBB sbb_tree;    /**< red black tree of Stream Buffer Blocks */
+    StreamingBufferBlock *head; /**< head, should always be the same as RB_MIN */
 #ifdef DEBUG
     uint32_t buf_size_max;
 #endif
 } StreamingBuffer;
 
 #ifndef DEBUG
-#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, NULL, NULL};
+#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, { NULL }, NULL, };
 #else
-#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, NULL, NULL, 0 };
+#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, { NULL }, NULL, 0 };
 #endif
 
 typedef struct StreamingBufferSegment_ {
-    uint64_t stream_offset;
     uint32_t segment_len;
+    uint64_t stream_offset;
 } __attribute__((__packed__)) StreamingBufferSegment;
 
 StreamingBuffer *StreamingBufferInit(const StreamingBufferConfig *cfg);

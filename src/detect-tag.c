@@ -283,29 +283,22 @@ error:
  */
 int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, const char *tagstr)
 {
-    DetectTagData *td = NULL;
-    SigMatch *sm = NULL;
+    DetectTagData *td = DetectTagParse(tagstr);
+    if (td == NULL)
+        return -1;
 
-    td = DetectTagParse(tagstr);
-    if (td == NULL) goto error;
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectTagDataFree(td);
+        return -1;
+    }
 
     sm->type = DETECT_TAG;
     sm->ctx = (SigMatchCtx *)td;
 
     /* Append it to the list of tags */
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TMATCH);
-
     return 0;
-
-error:
-    if (td != NULL) DetectTagDataFree(td);
-    if (sm != NULL) SCFree(sm);
-    return -1;
-
 }
 
 /** \internal

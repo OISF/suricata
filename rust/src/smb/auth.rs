@@ -21,32 +21,25 @@ use log::*;
 use smb::ntlmssp_records::*;
 use smb::smb::*;
 
+use nom;
 use nom::{IResult, ErrorKind};
 use der_parser;
 
 fn parse_secblob_get_spnego(blob: &[u8]) -> IResult<&[u8], &[u8]>
 {
-    let (rem, base_o) = match der_parser::parse_der(blob) {
-        IResult::Done(rem, o) => (rem, o),
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
+    let (rem, base_o) = der_parser::parse_der(blob)?;
     SCLogDebug!("parse_secblob_get_spnego: base_o {:?}", base_o);
     let d = match base_o.content.as_slice() {
-        Err(_) => { return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_NOT_SPNEGO))); },
+        Err(_) => { return Err(nom::Err::Error(error_position!(blob,ErrorKind::Custom(SECBLOB_NOT_SPNEGO)))); },
         Ok(d) => d,
     };
-    let (next, o) = match der_parser::parse_der_oid(d) {
-        IResult::Done(rem,y) => { (rem,y) },
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
+    let (next, o) = der_parser::parse_der_oid(d)?;
     SCLogDebug!("parse_secblob_get_spnego: sub_o {:?}", o);
 
     let oid = match o.content.as_oid() {
         Ok(oid) => oid,
         Err(_) => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_NOT_SPNEGO)));
+            return Err(nom::Err::Error(error_position!(blob,ErrorKind::Custom(SECBLOB_NOT_SPNEGO))));
         },
     };
     SCLogDebug!("oid {}", oid.to_string());
@@ -56,35 +49,28 @@ fn parse_secblob_get_spnego(blob: &[u8]) -> IResult<&[u8], &[u8]>
             SCLogDebug!("SPNEGO {}", oid);
         },
         _ => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_NOT_SPNEGO)));
+            return Err(nom::Err::Error(error_position!(blob,ErrorKind::Custom(SECBLOB_NOT_SPNEGO))));
         },
     }
 
     SCLogDebug!("parse_secblob_get_spnego: next {:?}", next);
     SCLogDebug!("parse_secblob_get_spnego: DONE");
-    IResult::Done(rem, next)
+    Ok((rem, next))
 }
 
 fn parse_secblob_spnego_start(blob: &[u8]) -> IResult<&[u8], &[u8]>
 {
-    let (rem, o) = match der_parser::parse_der(blob) {
-        IResult::Done(rem,o) => {
-            SCLogDebug!("o {:?}", o);
-            (rem, o)
-        },
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
+    let (rem, o) = der_parser::parse_der(blob)?;
     let d = match o.content.as_slice() {
         Ok(d) => {
             SCLogDebug!("d: next data len {}",d.len());
             d
         },
         _ => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_NOT_SPNEGO)));
+            return Err(nom::Err::Error(error_position!(blob,ErrorKind::Custom(SECBLOB_NOT_SPNEGO))));
         },
     };
-    IResult::Done(rem, d)
+    Ok((rem, d))
 }
 
 pub struct SpnegoRequest {
@@ -100,7 +86,7 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
     let mut ntlmssp : Option<NtlmsspData> = None;
 
     let o = match der_parser::parse_der_sequence(blob) {
-        IResult::Done(_, o) => o,
+        Ok((_, o)) => o,
         _ => { return None; },
     };
     for s in o {
@@ -111,7 +97,7 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
             _ => { continue; },
         };
         let o = match der_parser::parse_der(n) {
-            IResult::Done(_,x) => x,
+            Ok((_,x)) => x,
             _ => { continue; },
         };
         SCLogDebug!("o {:?}", o);
@@ -140,7 +126,7 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
             der_parser::DerObjectContent::OctetString(ref os) => {
                 if have_kerberos {
                     match parse_kerberos5_request(os) {
-                        IResult::Done(_, t) => {
+                        Ok((_, t)) => {
                             kticket = Some(t)
                         },
                         _ => { },
@@ -178,7 +164,7 @@ fn parse_ntlmssp_blob(blob: &[u8]) -> Option<NtlmsspData>
 
     SCLogDebug!("NTLMSSP {:?}", blob);
     match parse_ntlmssp(blob) {
-        IResult::Done(_, nd) => {
+        Ok((_, nd)) => {
             SCLogDebug!("NTLMSSP TYPE {}/{} nd {:?}",
                     nd.msg_type, &ntlmssp_type_string(nd.msg_type), nd);
             match nd.msg_type {
@@ -186,7 +172,7 @@ fn parse_ntlmssp_blob(blob: &[u8]) -> Option<NtlmsspData>
                 },
                 NTLMSSP_AUTH => {
                     match parse_ntlm_auth_record(nd.data) {
-                        IResult::Done(_, ad) => {
+                        Ok((_, ad)) => {
                             SCLogDebug!("auth data {:?}", ad);
                             let mut host = ad.host.to_vec();
                             host.retain(|&i|i != 0x00);
@@ -218,9 +204,9 @@ fn parse_ntlmssp_blob(blob: &[u8]) -> Option<NtlmsspData>
 pub fn parse_secblob(blob: &[u8]) -> Option<SpnegoRequest>
 {
     match parse_secblob_get_spnego(blob) {
-        IResult::Done(_, spnego) => {
+        Ok((_, spnego)) => {
             match parse_secblob_spnego_start(spnego) {
-                IResult::Done(_, spnego_start) => {
+                Ok((_, spnego_start)) => {
                     parse_secblob_spnego(spnego_start)
                 },
                 _ => {

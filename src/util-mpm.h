@@ -34,7 +34,7 @@ enum {
     /* aho-corasick */
     MPM_AC,
     MPM_AC_BS,
-    MPM_AC_TILE,
+    MPM_AC_KS,
     MPM_HS,
     /* table size */
     MPM_TABLE_SIZE,
@@ -79,15 +79,19 @@ typedef struct MpmPattern_ {
     struct MpmPattern_ *next;
 } MpmPattern;
 
+/* Indicates if this a global mpm_ctx.  Global mpm_ctx is the one that
+ * is instantiated when we use "single".  Non-global is "full", i.e.
+ * one per sgh. */
+#define MPMCTX_FLAGS_GLOBAL     BIT_U8(0)
+#define MPMCTX_FLAGS_NODEPTH    BIT_U8(1)
+
 typedef struct MpmCtx_ {
     void *ctx;
-    uint16_t mpm_type;
+    uint8_t mpm_type;
 
-    /* Indicates if this a global mpm_ctx.  Global mpm_ctx is the one that
-     * is instantiated when we use "single".  Non-global is "full", i.e.
-     * one per sgh.  We are using a uint16_t here to avoiding using a pad.
-     * You can use a uint8_t here as well. */
-    uint16_t global;
+    uint8_t flags;
+
+    uint16_t maxdepth;
 
     /* unique patterns */
     uint32_t pattern_cnt;

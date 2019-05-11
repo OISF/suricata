@@ -229,6 +229,53 @@ with the -l command line parameter, enter the following:
 
 .. _suricata_yaml_outputs:
 
+Stats
+~~~~~
+
+Engine statistics such as packet counters, memory use counters and others
+can be logged in several ways. A separate text log 'stats.log' and an EVE
+record type 'stats' are enabled by default.
+
+The stats have a global configuration and a per logger configuration. Here
+the global config is documented.
+
+::
+
+    # global stats configuration
+    stats:
+      enabled: yes
+      # The interval field (in seconds) controls at what interval
+      # the loggers are invoked.
+      interval: 8
+      # Add decode events as stats.
+      #decoder-events: true
+      # Decoder event prefix in stats. Has been 'decoder' before, but that leads
+      # to missing events in the eve.stats records. See issue #2225.
+      decoder-events-prefix: "decoder.event"
+      # Add stream events as stats.
+      #stream-events: false
+
+Statistics can be `enabled` or disabled here.
+
+Statistics are dumped on an `interval`. Setting this below 3 or 4 seconds is
+not useful due to how threads are synchronized internally.
+
+The decoder events that the decoding layer generates, can create a counter per
+event type. This behaviour is enabled by default. The `decoder-events` option
+can be set to `false` to disable.
+
+In 4.1.x there is a naming clash between the regular decoder counters and
+the decoder-event counters. This leads to a fair amount of decoder-event
+counters not being shown in the EVE.stats records. To address this without
+breaking existing setups, a config option `decoder-events-prefix` is added
+to change the naming of the decoder-events from decoder.<proto>.<event> to
+decoder.event.<proto>.<event>. In 5.0 which will become the default.
+See `issue 2225 <https://redmine.openinfosecfoundation.org/issues/2225>`_.
+
+Similar to the `decoder-events` option, the `stream-events` option controls
+whether the stream-events are added as counters as well. This is disabled by
+default.
+
 Outputs
 ~~~~~~~
 
@@ -383,44 +430,6 @@ Example of a HTTP-log line with extended logging:
                                   # overwritten while restarting Suricata.
       extended: yes               # If set to yes more information is written about the event.
 
-A line based log of DNS queries and replies (dns.log)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This log keeps track of all DNS events (queries and replies). It
-contains the type of DNS activity that has been performed, the
-requested / replied domain name and relevant data suck as client,
-server, ttl, resource record data. This logging can also be performed
-through the use of the :ref:`Eve-log capability <eve-json-format>` which
-offers easier parsing.
-
-Example of the appearance of a DNS log of a query with a preceding reply:
-
-::
-
-  07/01/2014-04:07:08.768100 [**] Query TX 14bf [**] zeustracker.abuse.ch [**] A [**] 192.168.1.6:37681 -> 192.168.1.1:53
-  07/01/2014-04:07:08.768100 [**] Response TX 14bf [**] zeustracker.abuse.ch [**] A [**] TTL 60 [**] 205.188.95.206 [**] 192.168.1.1:53 -> 192.168.1.6:37681
-
-Non-existant domains and other DNS errors are recorded by the text
-representation of the rcode field in the reply (see RFC1035 and
-RFC2136 for a list).  In the example below a non-existent domain is
-resolved and the NXDOMAIN error logged:
-
-::
-
-  02/25/2015-22:58:40.499385 [**] Query TX a3ce [**] nosuchdomainwfqwdqwdqw.com [**] A [**] 192.168.40.10:48361 -> 192.168.40.2:53
-  02/25/2015-22:58:40.499385 [**] Response TX a3ce [**] NXDOMAIN [**] 192.168.40.2:53 -> 192.168.40.10:48361
-  02/25/2015-22:58:40.499385 [**] Response TX a3ce [**] NXDOMAIN [**] 192.168.40.2:53 -> 192.168.40.10:48361
-
-Configuration options:
-
-::
-
-  - dns-log:                      # The log-name
-      enabled: yes                # If this log is enabled. Set 'no' to disable
-      filename: dns.log           # Name of this file this log is written to in the default logging directory
-      append: yes                 # If this option is set to yes, the (if any exists) dns.log file wil not be overwritten while restarting Suricata.
-      filetype: regular / unix_stream / unix_dgram
-
 .. _suricata_yaml_pcap_log:
 
 Packet log (pcap-log)
@@ -548,10 +557,11 @@ want the output-data to be written to the log file.
                                   #(default-log-dir) it will result in /var/log/suricata/stats.log.
                                   #This directory can be overruled with a absolute path. (A
                                   #directory starting with / ).
-       interval: 8                #The default amount of time after which the file will be
-                                  #refreshed.
        append: yes/no             #If this option is set to yes, the last filled fast.log-file will not be
                                   #overwritten while restarting Suricata.
+
+The interval and several other options depend on the global stats
+section as described above.
 
 Syslog
 ~~~~~~
@@ -2171,6 +2181,25 @@ unlimited.
       modbus:
         # Stream reassembly size for modbus, default is 0
         stream-depth: 0
+
+SMTP
+~~~~~~
+
+SMTP parsers can extract files from attachments.
+It is also possible to extract raw conversations as files with the
+key ``raw-extraction``. Note that in this case the whole conversation
+will be stored as a file, including SMTP headers and body content. The filename
+will be set to "rawmsg". Usual file-related signatures will match on the raw
+content of the email.
+This configuration parameter has a ``false`` default value. It is
+incompatible with ``decode-mime``. If both are enabled,
+``raw-extraction`` will be automatically disabled.
+
+::
+
+      smtp:
+        # extract messages in raw format from SMTP
+        raw-extraction: true
 
 Decoder
 -------

@@ -50,7 +50,6 @@
 
 #include "output.h"
 
-#include "log-file.h"
 #include "log-filestore.h"
 #include "util-logopenfile.h"
 
@@ -461,6 +460,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
             if (FileGetMaxOpenFiles() > 0) {
                 StatsIncr(tv, aft->counter_max_hits);
             }
+            ff->fd = -1;
         }
     /* we can get called with a NULL ffd when we need to close */
     } else if (data != NULL) {
@@ -521,6 +521,7 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, const void *initdata, vo
     struct stat stat_buf;
     if (stat(g_logfile_base_dir, &stat_buf) != 0) {
         int ret;
+        // coverity[toctou : FALSE]
         ret = SCMkDir(g_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
         if (ret != 0) {
             int err = errno;

@@ -83,7 +83,8 @@ typedef enum MimeDecRetCode {
     MIME_DEC_MORE = 1,
     MIME_DEC_ERR_DATA = -1,
     MIME_DEC_ERR_MEM = -2,
-    MIME_DEC_ERR_PARSE = -3
+    MIME_DEC_ERR_PARSE = -3,
+    MIME_DEC_ERR_STATE = -4,    /**< parser in error state */
 } MimeDecRetCode;
 
 /**

@@ -30,14 +30,6 @@ DetectReplaceList * DetectReplaceAddToList(DetectReplaceList *replist, uint8_t *
 void DetectReplaceExecuteInternal(Packet *p, DetectReplaceList *replist);
 void DetectReplaceFreeInternal(DetectReplaceList *replist);
 
-static inline void DetectReplaceExecute(Packet *p, DetectEngineThreadCtx *det_ctx)
-{
-    if (p == NULL || det_ctx->replist == NULL)
-        return;
-    DetectReplaceExecuteInternal(p, det_ctx->replist);
-    det_ctx->replist = NULL;
-}
-
 static inline void DetectReplaceFree(DetectEngineThreadCtx *det_ctx)
 {
     if (det_ctx->replist) {

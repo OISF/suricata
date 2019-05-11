@@ -144,8 +144,6 @@ static void OutputFileLogFfc(ThreadVars *tv,
                 }
             }
         }
-
-        FilePrune(ffc);
     }
 }
 
@@ -179,6 +177,11 @@ static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data)
 
     OutputFileLogFfc(tv, op_thread_data, p, ffc_ts, file_close_ts, file_trunc, STREAM_TOSERVER);
     OutputFileLogFfc(tv, op_thread_data, p, ffc_tc, file_close_tc, file_trunc, STREAM_TOCLIENT);
+
+    if (ffc_ts && (p->flowflags & FLOW_PKT_TOSERVER))
+        FilePrune(ffc_ts);
+    if (ffc_tc && (p->flowflags & FLOW_PKT_TOCLIENT))
+        FilePrune(ffc_tc);
 
     return TM_ECODE_OK;
 }

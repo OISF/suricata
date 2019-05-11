@@ -3,7 +3,7 @@ noinst_HEADERS = action-globals.h \
     debug.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
 	source-windivert-prototypes.h \
-	suricata-common.h threadvars.h util-binsearch.h \
+	suricata-common.h threadvars.h tree.h \
     util-validate.h
 bin_PROGRAMS = suricata
 
@@ -38,9 +38,7 @@ app-layer-htp-xff.c app-layer-htp-xff.h \
 app-layer-modbus.c app-layer-modbus.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-protos.c app-layer-protos.h \
-app-layer-smb2.c app-layer-smb2.h \
 app-layer-smb.c app-layer-smb.h \
-app-layer-smb-tcp-rust.c app-layer-smb-tcp-rust.h \
 app-layer-smtp.c app-layer-smtp.h \
 app-layer-nfs-tcp.c app-layer-nfs-tcp.h \
 app-layer-nfs-udp.c app-layer-nfs-udp.h \
@@ -51,6 +49,7 @@ app-layer-ikev2.c app-layer-ikev2.h \
 app-layer-krb5.c app-layer-krb5.h \
 app-layer-dhcp.c app-layer-dhcp.h \
 app-layer-template.c app-layer-template.h \
+app-layer-template-rust.c app-layer-template-rust.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
 conf.c conf.h \
@@ -125,23 +124,10 @@ detect-engine-build.c detect-engine-build.h \
 detect-engine-content-inspection.c detect-engine-content-inspection.h \
 detect-engine-dcepayload.c detect-engine-dcepayload.h \
 detect-engine-dns.c detect-engine-dns.h \
-detect-engine-tls.c detect-engine-tls.h \
 detect-engine-modbus.c detect-engine-modbus.h \
 detect-engine-enip.c detect-engine-enip.h \
 detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
-detect-engine-filedata.c detect-engine-filedata.h \
-detect-engine-hcbd.c detect-engine-hcbd.h \
-detect-engine-hcd.c detect-engine-hcd.h \
-detect-engine-hhhd.c detect-engine-hhhd.h \
-detect-engine-hmd.c detect-engine-hmd.h \
-detect-engine-hrhd.c detect-engine-hrhd.h \
-detect-engine-hrhhd.c detect-engine-hrhhd.h \
-detect-engine-hrud.c detect-engine-hrud.h \
-detect-engine-hsbd.c detect-engine-hsbd.h \
-detect-engine-hscd.c detect-engine-hscd.h \
-detect-engine-hsmd.c detect-engine-hsmd.h \
-detect-engine-hua.c detect-engine-hua.h \
 detect-engine-iponly.c detect-engine-iponly.h \
 detect-engine-loader.c detect-engine-loader.h \
 detect-engine-mpm.c detect-engine-mpm.h \
@@ -157,7 +143,6 @@ detect-engine-sigorder.c detect-engine-sigorder.h \
 detect-engine-state.c detect-engine-state.h \
 detect-engine-tag.c detect-engine-tag.h \
 detect-engine-threshold.c detect-engine-threshold.h \
-detect-engine-uri.c detect-engine-uri.h \
 detect-fast-pattern.c detect-fast-pattern.h \
 detect-file-data.c detect-file-data.h \
 detect-file-hash-common.c detect-file-hash-common.h \
@@ -192,15 +177,15 @@ detect-http-header.c detect-http-header.h \
 detect-http-headers.c detect-http-headers.h detect-http-headers-stub.h \
 detect-http-header-common.c detect-http-header-common.h \
 detect-http-header-names.c detect-http-header-names.h \
-detect-http-hh.c detect-http-hh.h \
-detect-http-hrh.c detect-http-hrh.h \
+detect-http-host.c detect-http-host.h \
+detect-http-location.c detect-http-location.h \
 detect-http-method.c detect-http-method.h \
 detect-http-protocol.c detect-http-protocol.h \
 detect-http-raw-header.c detect-http-raw-header.h \
-detect-http-raw-uri.c detect-http-raw-uri.h \
 detect-http-referer.c detect-http-referer.h \
 detect-http-request-line.c detect-http-request-line.h \
 detect-http-response-line.c detect-http-response-line.h \
+detect-http-server.c detect-http-server.h \
 detect-http-server-body.c detect-http-server-body.h \
 detect-http-start.c detect-http-start.h \
 detect-http-stat-code.c detect-http-stat-code.h \
@@ -256,7 +241,9 @@ detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
 detect-target.c detect-target.h \
 detect-template.c detect-template.h \
+detect-template2.c detect-template2.h \
 detect-ftpdata.c detect-ftpdata.h \
+detect-template-rust-buffer.c detect-template-rust-buffer.h \
 detect-template-buffer.c detect-template-buffer.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \
@@ -265,6 +252,8 @@ detect-tls-version.c detect-tls-version.h \
 detect-tos.c detect-tos.h \
 detect-transform-compress-whitespace.c detect-transform-compress-whitespace.h \
 detect-transform-strip-whitespace.c detect-transform-strip-whitespace.h \
+detect-transform-md5.c detect-transform-md5.h \
+detect-transform-sha1.c detect-transform-sha1.h \
 detect-transform-sha256.c detect-transform-sha256.h \
 detect-ttl.c detect-ttl.h \
 detect-uricontent.c detect-uricontent.h \
@@ -296,9 +285,7 @@ ippair-bit.c ippair-bit.h \
 ippair-queue.c ippair-queue.h \
 ippair-storage.c ippair-storage.h \
 ippair-timeout.c ippair-timeout.h \
-log-dnslog.c log-dnslog.h \
 log-droplog.c log-droplog.h \
-log-file.c log-file.h \
 log-filestore.c log-filestore.h \
 log-cf-common.c log-cf-common.h \
 log-httplog.c log-httplog.h \
@@ -313,6 +300,7 @@ output-filedata.c output-filedata.h \
 output-filestore.c output-filestore.h \
 output-flow.c output-flow.h \
 output-json-alert.c output-json-alert.h \
+output-json-anomaly.c output-json-anomaly.h \
 output-json-dns.c output-json-dns.h \
 output-json-dnp3.c output-json-dnp3.h \
 output-json-dnp3-objects.c output-json-dnp3-objects.h \
@@ -333,6 +321,7 @@ output-json-ikev2.c output-json-ikev2.h \
 output-json-krb5.c output-json-krb5.h \
 output-json-dhcp.c output-json-dhcp.h \
 output-json-template.c output-json-template.h \
+output-json-template-rust.c output-json-template-rust.h \
 output-json-metadata.c output-json-metadata.h \
 output-lua.c output-lua.h \
 output-packet.c output-packet.h \
@@ -340,6 +329,7 @@ output-stats.c output-stats.h \
 output-streaming.c output-streaming.h \
 output-tx.c output-tx.h \
 output-json.c output-json.h \
+output-json-common.c \
 packet-queue.c packet-queue.h \
 pkt-var.c pkt-var.h \
 reputation.c reputation.h \
@@ -358,7 +348,6 @@ runmode-pcap-file.c runmode-pcap-file.h \
 runmode-pfring.c runmode-pfring.h \
 runmode-unittests.c runmode-unittests.h \
 runmode-unix-socket.c runmode-unix-socket.h \
-runmode-tile.c runmode-tile.h \
 runmode-windivert.c runmode-windivert.h \
 runmodes.c runmodes.h \
 rust.h \
@@ -366,7 +355,6 @@ source-af-packet.c source-af-packet.h \
 source-erf-dag.c source-erf-dag.h \
 source-erf-file.c source-erf-file.h \
 source-ipfw.c source-ipfw.h \
-source-mpipe.c source-mpipe.h \
 source-napatech.c source-napatech.h \
 source-netmap.c source-netmap.h \
 source-nfq.c source-nfq.h \
@@ -385,7 +373,7 @@ stream-tcp-reassemble.c stream-tcp-reassemble.h \
 stream-tcp-sack.c stream-tcp-sack.h \
 stream-tcp-util.c stream-tcp-util.h \
 suricata.c suricata.h \
-threads.c threads.h threads-arch-tile.h \
+threads.c threads.h \
 threads-debug.h threads-profile.h \
 tm-modules.c tm-modules.h \
 tmqh-flow.c tmqh-flow.h \
@@ -401,6 +389,7 @@ util-atomic.c util-atomic.h \
 util-base64.c util-base64.h \
 util-bloomfilter-counting.c util-bloomfilter-counting.h \
 util-bloomfilter.c util-bloomfilter.h \
+util-bpf.c util-bpf.h \
 util-buffer.c util-buffer.h \
 util-byte.c util-byte.h \
 util-checksum.c util-checksum.h \
@@ -430,6 +419,7 @@ util-fmemopen.c util-fmemopen.h \
 util-hash.c util-hash.h \
 util-hashlist.c util-hashlist.h \
 util-hash-lookup3.c util-hash-lookup3.h \
+util-hash-string.c util-hash-string.h \
 util-host-os-info.c util-host-os-info.h \
 util-host-info.c util-host-info.h \
 util-hyperscan.c util-hyperscan.h \
@@ -437,7 +427,6 @@ util-ioctl.h util-ioctl.c \
 util-ip.h util-ip.c \
 util-ja3.h util-ja3.c \
 util-logopenfile.h util-logopenfile.c \
-util-logopenfile-tile.h util-logopenfile-tile.c \
 util-log-redis.h util-log-redis.c \
 util-lua.c util-lua.h \
 util-luajit.c util-luajit.h \
@@ -458,8 +447,8 @@ util-memrchr.c util-memrchr.h \
 util-misc.c util-misc.h \
 util-mpm-ac-bs.c util-mpm-ac-bs.h \
 util-mpm-ac.c util-mpm-ac.h \
-util-mpm-ac-tile.c util-mpm-ac-tile.h \
-util-mpm-ac-tile-small.c \
+util-mpm-ac-ks.c util-mpm-ac-ks.h \
+util-mpm-ac-ks-small.c \
 util-mpm-hs.c util-mpm-hs.h \
 util-mpm.c util-mpm.h \
 util-napatech.c util-napatech.h \

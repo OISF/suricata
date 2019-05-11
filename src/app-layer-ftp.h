@@ -78,7 +78,8 @@ typedef enum {
     FTP_COMMAND_SYST,
     FTP_COMMAND_TYPE,
     FTP_COMMAND_UMASK,
-    FTP_COMMAND_USER
+    FTP_COMMAND_USER,
+    FTP_COMMAND_EPRT
     /** \todo more if missing.. */
 } FtpRequestCommand;
 typedef uint32_t FtpRequestCommandArgOfs;
@@ -115,6 +116,7 @@ typedef struct FtpState_ {
     uint8_t *input;
     int32_t input_len;
     uint8_t direction;
+    bool active;
 
     /* --parser details-- */
     /** current line extracted by the parser from the call to FTPGetline() */

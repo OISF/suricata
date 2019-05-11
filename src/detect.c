@@ -49,13 +49,8 @@
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
 
-#include "detect-engine-filedata.h"
-
-
 #include "detect-engine-payload.h"
 #include "detect-engine-event.h"
-#include "detect-engine-hcbd.h"
-#include "detect-engine-hsbd.h"
 
 #include "detect-filestore.h"
 #include "detect-flowvar.h"
@@ -169,13 +164,6 @@ static void DetectRunPostMatch(ThreadVars *tv,
             smd++;
         }
     }
-
-    DetectReplaceExecute(p, det_ctx);
-
-    if (s->flags & SIG_FLAG_FILESTORE)
-        DetectFilestorePostMatch(tv, det_ctx, p, s);
-
-    return;
 }
 
 /**
@@ -242,7 +230,6 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
                                             DetectEngineThreadCtx *det_ctx)
 {
     SigIntId mpm, nonmpm;
-    det_ctx->match_array_cnt = 0;
     SigIntId *mpm_ptr = det_ctx->pmq.rule_id_array;
     SigIntId *nonmpm_ptr = det_ctx->non_pf_id_array;
     uint32_t m_cnt = det_ctx->pmq.rule_id_array_cnt;
@@ -359,7 +346,7 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
 
     det_ctx->match_array_cnt = match_array - det_ctx->match_array;
 
-    BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_pf_id_cnt) < det_ctx->match_array_cnt);
+    DEBUG_VALIDATE_BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_pf_id_cnt) < det_ctx->match_array_cnt);
 }
 
 static inline void
@@ -371,7 +358,7 @@ DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMa
          * so build the non_mpm array only for match candidates */
         const SignatureMask rule_mask = det_ctx->non_pf_store_ptr[x].mask;
         const uint8_t rule_alproto = det_ctx->non_pf_store_ptr[x].alproto;
-        if ((rule_mask & mask) == rule_mask && (rule_alproto == 0 || rule_alproto == alproto)) { // TODO dce?
+        if ((rule_mask & mask) == rule_mask && (rule_alproto == 0 || rule_alproto == alproto)) {
             det_ctx->non_pf_id_array[det_ctx->non_pf_id_cnt++] = det_ctx->non_pf_store_ptr[x].id;
         }
     }
@@ -596,6 +583,8 @@ static inline int DetectRunInspectRuleHeader(
      * and if so, if we actually have any in the flow. If not, the sig
      * can't match and we skip it. */
     if ((p->flags & PKT_HAS_FLOW) && (sflags & SIG_FLAG_REQUIRE_FLOWVAR)) {
+        DEBUG_VALIDATE_BUG_ON(f == NULL);
+
         int m  = f->flowvar ? 1 : 0;
 
         /* no flowvars? skip this sig */
@@ -683,21 +672,19 @@ static inline int DetectRunInspectRulePacketMatches(
         SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
 
         SCLogDebug("running match functions, sm %p", smd);
-        if (smd != NULL) {
-            while (1) {
-                KEYWORD_PROFILING_START;
-                if (sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx) <= 0) {
-                    KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
-                    SCLogDebug("no match");
-                    return 0;
-                }
-                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                if (smd->is_last) {
-                    SCLogDebug("match and is_last");
-                    break;
-                }
-                smd++;
+        while (1) {
+            KEYWORD_PROFILING_START;
+            if (sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx) <= 0) {
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
+                SCLogDebug("no match");
+                return 0;
             }
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+            if (smd->is_last) {
+                SCLogDebug("match and is_last");
+                break;
+            }
+            smd++;
         }
     }
     return 1;
@@ -802,8 +789,8 @@ static inline void DetectRulePacketRules(
 
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
-        if (sflags & SIG_FLAG_STATE_MATCH) {
-            goto next; // TODO skip and handle in DetectRunTx
+        if (s->app_inspect != NULL) {
+            goto next; // handle sig in DetectRunTx
         }
 
         /* don't run mask check for stateful rules.
@@ -825,8 +812,8 @@ static inline void DetectRulePacketRules(
         if (likely(sflags & SIG_FLAG_APPLAYER)) {
             if (s->alproto != ALPROTO_UNKNOWN && s->alproto != scratch->alproto) {
                 if (s->alproto == ALPROTO_DCERPC) {
-                    if (scratch->alproto != ALPROTO_SMB && scratch->alproto != ALPROTO_SMB2) {
-                        SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
+                    if (scratch->alproto != ALPROTO_SMB) {
+                        SCLogDebug("DCERPC sig, alproto not SMB");
                         goto next;
                     }
                 } else {
@@ -842,7 +829,7 @@ static inline void DetectRulePacketRules(
 
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
-        if (!(sflags & SIG_FLAG_STATE_MATCH) && s->sm_arrays[DETECT_SM_LIST_PMATCH] != NULL) {
+        if (s->sm_arrays[DETECT_SM_LIST_PMATCH] != NULL) {
             KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_PMATCH);
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
@@ -925,6 +912,7 @@ static DetectRunScratchpad DetectRunSetup(
     det_ctx->filestore_cnt = 0;
     det_ctx->base64_decoded_len = 0;
     det_ctx->raw_stream_progress = 0;
+    det_ctx->match_array_cnt = 0;
 
 #ifdef DEBUG
     if (p->flags & PKT_STREAM_ADD) {
@@ -934,6 +922,8 @@ static DetectRunScratchpad DetectRunSetup(
 
     /* grab the protocol state we will detect on */
     if (p->flags & PKT_HAS_FLOW) {
+        DEBUG_VALIDATE_BUG_ON(pflow == NULL);
+
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             flow_flags = STREAM_TOSERVER;
             SCLogDebug("flag STREAM_TOSERVER set");
@@ -984,6 +974,7 @@ static DetectRunScratchpad DetectRunSetup(
             if (p->proto == IPPROTO_TCP && pflow->protoctx &&
                     StreamReassembleRawHasDataReady(pflow->protoctx, p)) {
                 p->flags |= PKT_DETECT_HAS_STREAMDATA;
+                flow_flags |= STREAM_FLUSH;
             }
             SCLogDebug("alproto %u", alproto);
         } else {
@@ -1033,19 +1024,12 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
     PacketPatternCleanup(det_ctx);
 
     if (pflow != NULL) {
-        // TODO clean this up
-        const int nlists = det_ctx->de_ctx->buffer_type_id;
-        for (int i = 0; i < nlists; i++) {
-            InspectionBuffer *buffer = &det_ctx->inspect_buffers[i];
-            buffer->inspect = NULL;
-        }
-
         /* update inspected tracker for raw reassembly */
-        if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL) {
+        if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL &&
+            (p->flags & PKT_STREAM_EST))
+        {
             StreamReassembleRawUpdateProgress(pflow->protoctx, p,
                     det_ctx->raw_stream_progress);
-
-            DetectEngineCleanHCBDBuffers(det_ctx);
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
@@ -1140,7 +1124,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx,
         Packet *p,
         Flow *f,
-        const uint8_t flow_flags,   // direction, EOF, etc
+        const uint8_t in_flow_flags,   // direction, EOF, etc
         void *alstate,
         DetectTransaction *tx,
         const Signature *s,
@@ -1148,6 +1132,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         RuleMatchCandidateTx *can,
         DetectRunScratchpad *scratch)
 {
+    uint8_t flow_flags = in_flow_flags;
     const int direction = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
     uint32_t inspect_flags = stored_flags ? *stored_flags : 0;
     int total_matches = 0;
@@ -1155,6 +1140,10 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     bool retval = false;
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
+
+    /* see if we want to pass on the FLUSH flag */
+    if ((s->flags & SIG_FLAG_FLUSH) == 0)
+        flow_flags &=~ STREAM_FLUSH;
 
     TRACE_SID_TXS(s->id, tx, "starting %s", direction ? "toclient" : "toserver");
 
@@ -1182,6 +1171,14 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 direction == engine->dir)
         {
+            const bool skip_engine = (engine->alproto != 0 && engine->alproto != f->alproto);
+            /* special case: file_data on 'alert tcp' will have engines
+             * in the list that are not for us. */
+            if (unlikely(skip_engine)) {
+                engine = engine->next;
+                continue;
+            }
+
             /* engines are sorted per progress, except that the one with
              * mpm/prefilter enabled is first */
             if (tx->tx_progress < engine->progress) {
@@ -1202,13 +1199,6 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             if (unlikely(engine->stream && can->stream_stored)) {
                 match = can->stream_result;
                 TRACE_SID_TXS(s->id, tx, "stream skipped, stored result %d used instead", match);
-            /* special case: file_data on 'alert tcp' will have engines
-             * in the list that are not for us. Bypass with assume match */
-            } else if (unlikely(engine->alproto != 0 && engine->alproto != f->alproto)) {
-                inspect_flags |= BIT_U32(engine->id);
-                engine = engine->next;
-                total_matches++;
-                continue;
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 if (engine->Callback) {
@@ -1241,7 +1231,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                 inspect_flags |= BIT_U32(engine->id);
-            } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
+            } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                 inspect_flags |= BIT_U32(engine->id);
                 file_no_match = 1;
@@ -1419,7 +1409,7 @@ static void DetectRunTx(ThreadVars *tv,
         uint32_t x = array_idx;
         for (uint32_t i = 0; i < det_ctx->match_array_cnt; i++) {
             const Signature *s = det_ctx->match_array[i];
-            if (s->flags & SIG_FLAG_STATE_MATCH) {
+            if (s->app_inspect != NULL) {
                 const SigIntId id = s->num;
                 det_ctx->tx_candidates[array_idx].s = s;
                 det_ctx->tx_candidates[array_idx].id = id;
@@ -1589,6 +1579,8 @@ static void DetectRunTx(ThreadVars *tv,
                     flow_flags, new_detect_flags);
         }
 next:
+        InspectionBufferClean(det_ctx);
+
         if (!ires.has_next)
             break;
     }

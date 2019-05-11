@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,7 +20,6 @@
  *
  * @{
  */
-
 
 /**
  * \file
@@ -65,7 +64,8 @@
 
 #include "util-print.h"
 
-#define KEYWORD_NAME "http_start"
+#define KEYWORD_NAME "http.start"
+#define KEYWORD_NAME_LEGACY "http_start"
 #define KEYWORD_DOC "http-keywords.html#http-start"
 #define BUFFER_NAME "http_start"
 #define BUFFER_DESC "http start: request/response line + headers"
@@ -77,9 +77,8 @@ static int g_keyword_thread_id = 0;
 static HttpHeaderThreadDataConfig g_td_config = { BUFFER_TX_STEP, BUFFER_SIZE_STEP };
 
 static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Flow *f, HtpState *htp_state, uint8_t flags,
-        uint32_t *buffer_len)
+        DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, uint32_t *buffer_len)
 {
     *buffer_len = 0;
 
@@ -129,19 +128,6 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         htp_header_t *h = htp_table_get_index(headers, i, NULL);
         size_t size1 = bstr_size(h->name);
         size_t size2 = bstr_size(h->value);
-#if 0
-        if (flags & STREAM_TOSERVER) {
-            if (size1 == 6 &&
-                SCMemcmpLowercase("cookie", bstr_ptr(h->name), 6) == 0) {
-                continue;
-            }
-        } else {
-            if (size1 == 10 &&
-                SCMemcmpLowercase("set-cookie", bstr_ptr(h->name), 10) == 0) {
-                continue;
-            }
-        }
-#endif
         size_t size = size1 + size2 + 4;
         if (i + 1 == no_of_headers)
             size += 2;
@@ -169,7 +155,13 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     return buf->buffer;
 }
 
-/** \brief HTTP Start Mpm prefilter callback
+typedef struct PrefilterMpmHttpStartCtx {
+    int list_id;
+    const MpmCtx *mpm_ctx;
+    const DetectEngineTransforms *transforms;
+} PrefilterMpmHttpStartCtx;
+
+/** \brief HTTP Headers Mpm prefilter callback
  *
  *  \param det_ctx detection engine thread ctx
  *  \param p packet to inspect
@@ -184,33 +176,66 @@ static void PrefilterTxHttpRequestStart(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
+    const PrefilterMpmHttpStartCtx *ctx = pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    SCLogDebug("running on list %d", ctx->list_id);
 
-    HtpState *htp_state = f->alstate;
-    uint32_t buffer_len = 0;
-    const uint8_t *buffer = GetBufferForTX(tx, idx,
-            NULL, det_ctx, f, htp_state,
-            flags, &buffer_len);
+    const int list_id = ctx->list_id;
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t rawdata_len = 0;
+        uint8_t *rawdata = GetBufferForTX(txv, idx, det_ctx,
+                f, flags, &rawdata_len);
+        if (rawdata_len == 0)
+            return;
 
-    if (buffer_len >= mpm_ctx->minlen) {
+        /* setup buffer and apply transforms */
+        InspectionBufferSetup(buffer, rawdata, rawdata_len);
+        InspectionBufferApplyTransforms(buffer, ctx->transforms);
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+
+    SCLogDebug("mpm'ing buffer:");
+    //PrintRawDataFp(stdout, data, data_len);
+
+    if (data != NULL && data_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+                &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
     }
 }
 
+static void PrefilterMpmHttpHeaderFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
 static int PrefilterTxHttpRequestStartRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
+        SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectMpmAppLayerRegistery *mpm_reg, int list_id)
 {
     SCEnter();
 
+    PrefilterMpmHttpStartCtx *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->v2.transforms;
+
     int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestStart,
-        ALPROTO_HTTP, HTP_REQUEST_HEADERS,
-        mpm_ctx, NULL, KEYWORD_NAME " (request)");
+            mpm_reg->v2.alproto, HTP_REQUEST_HEADERS,
+            pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
+    if (r != 0) {
+        SCFree(pectx);
+        return r;
+    }
+
     return r;
 }
 
-/** \brief HTTP Start Mpm prefilter callback
+/** \brief HTTP Headers Mpm prefilter callback
  *
  *  \param det_ctx detection engine thread ctx
  *  \param p packet to inspect
@@ -225,61 +250,109 @@ static void PrefilterTxHttpResponseStart(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
+    const PrefilterMpmHttpStartCtx *ctx = pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    SCLogDebug("running on list %d", ctx->list_id);
 
-    HtpState *htp_state = f->alstate;
-    uint32_t buffer_len = 0;
-    const uint8_t *buffer = GetBufferForTX(tx, idx, NULL, det_ctx,
-            f, htp_state, flags, &buffer_len);
+    const int list_id = ctx->list_id;
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t rawdata_len = 0;
+        uint8_t *rawdata = GetBufferForTX(txv, idx, det_ctx,
+                f, flags, &rawdata_len);
+        if (rawdata_len == 0)
+            return;
 
-    if (buffer_len >= mpm_ctx->minlen) {
+        /* setup buffer and apply transforms */
+        InspectionBufferSetup(buffer, rawdata, rawdata_len);
+        InspectionBufferApplyTransforms(buffer, ctx->transforms);
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+
+    SCLogDebug("mpm'ing buffer:");
+    //PrintRawDataFp(stdout, data, data_len);
+
+    if (data != NULL && data_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+                &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
     }
 }
 
 static int PrefilterTxHttpResponseStartRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
+        SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectMpmAppLayerRegistery *mpm_reg, int list_id)
 {
     SCEnter();
 
+    PrefilterMpmHttpStartCtx *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->v2.transforms;
+
     int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseStart,
-        ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
-        mpm_ctx, NULL, KEYWORD_NAME " (response)");
+            mpm_reg->v2.alproto, HTP_RESPONSE_HEADERS,
+            pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
+    if (r != 0) {
+        SCFree(pectx);
+        return r;
+    }
+
     return r;
 }
 
-static int InspectEngineHttpStart(ThreadVars *tv,
+static int InspectEngineHttpStart(
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
+        const DetectEngineAppInspectionEngine *engine,
+        const Signature *s,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    HtpState *htp_state = (HtpState *)alstate;
-    uint32_t buffer_len = 0;
-    uint8_t *buffer = GetBufferForTX(tx, tx_id,
-            de_ctx, det_ctx, f, htp_state,
-            flags, &buffer_len);
-    if (buffer_len == 0)
-        goto end;
+    const int list_id = engine->sm_list;
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        SCLogDebug("setting up inspect buffer %d", list_id);
+
+        /* if prefilter didn't already run, we need to consider transformations */
+        const DetectEngineTransforms *transforms = NULL;
+        if (!engine->mpm) {
+            transforms = engine->v2.transforms;
+        }
+
+        uint32_t rawdata_len = 0;
+        uint8_t *rawdata = GetBufferForTX(txv, tx_id, det_ctx,
+                f, flags, &rawdata_len);
+        if (rawdata_len == 0) {
+            SCLogDebug("no data");
+            goto end;
+        }
+        /* setup buffer and apply transforms */
+        InspectionBufferSetup(buffer, rawdata, rawdata_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+    const uint64_t offset = buffer->inspect_offset;
 
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-                                          f,
-                                          buffer, buffer_len,
-                                          0, DETECT_CI_FLAGS_SINGLE,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
+            NULL, f, (uint8_t *)data, data_len, offset,
+            DETECT_CI_FLAGS_SINGLE,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
  end:
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_REQUEST_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_RESPONSE_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -287,7 +360,12 @@ static int InspectEngineHttpStart(ThreadVars *tv,
 
 static int DetectHttpStartSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    s->init_data->list = g_buffer_id;
+    if (DetectBufferSetActiveList(s, g_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
+
     return 0;
 }
 
@@ -297,23 +375,25 @@ static int DetectHttpStartSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 void DetectHttpStartRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_START].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_HTTP_START].alias = KEYWORD_NAME_LEGACY;
     sigmatch_table[DETECT_AL_HTTP_START].desc = BUFFER_NAME " sticky buffer";
     sigmatch_table[DETECT_AL_HTTP_START].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_HTTP_START].Setup = DetectHttpStartSetup;
+    sigmatch_table[DETECT_AL_HTTP_START].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    sigmatch_table[DETECT_AL_HTTP_START].flags |= SIGMATCH_NOOPT ;
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
+            PrefilterTxHttpRequestStartRegister, NULL, ALPROTO_HTTP,
+            HTP_REQUEST_HEADERS);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
+            PrefilterTxHttpResponseStartRegister, NULL, ALPROTO_HTTP,
+            HTP_RESPONSE_HEADERS);
 
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterTxHttpRequestStartRegister);
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
-            PrefilterTxHttpResponseStartRegister);
-
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
             ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
-            InspectEngineHttpStart);
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
+            InspectEngineHttpStart, NULL);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS,
-            InspectEngineHttpStart);
+            InspectEngineHttpStart, NULL);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);

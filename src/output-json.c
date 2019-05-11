@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -59,6 +59,7 @@
 #include "util-log-redis.h"
 #include "util-device.h"
 #include "util-validate.h"
+#include "util-crypt.h"
 
 #include "flow-var.h"
 #include "flow-bit.h"
@@ -87,8 +88,10 @@ void OutputJsonRegister (void)
 #define MODULE_NAME "OutputJSON"
 
 #define OUTPUT_BUFFER_SIZE 65536
+#define MAX_JSON_SIZE 2048
 
 static void OutputJsonDeInitCtx(OutputCtx *);
+static void CreateJSONCommunityFlowId(json_t *js, const Flow *f, const uint16_t seed);
 
 static const char *TRAFFIC_ID_PREFIX = "traffic/id/";
 static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
@@ -115,6 +118,31 @@ json_t *SCJsonBool(int val)
 void SCJsonDecref(json_t *json)
 {
     json_decref(json);
+}
+
+json_t *SCJsonString(const char *val)
+{
+    if (val == NULL){
+        return NULL;
+    }
+    json_t * retval = json_string(val);
+    char retbuf[MAX_JSON_SIZE] = {0};
+    if (retval == NULL) {
+        uint32_t u = 0;
+        uint32_t offset = 0;
+        for (u = 0; u < strlen(val); u++) {
+            if (isprint(val[u])) {
+                PrintBufferData(retbuf, &offset, MAX_JSON_SIZE-1, "%c",
+                        val[u]);
+            } else {
+                PrintBufferData(retbuf, &offset, MAX_JSON_SIZE-1,
+                        "\\x%02X", val[u]);
+            }
+        }
+        retbuf[offset] = '\0';
+        retval = json_string(retbuf);
+    }
+    return retval;
 }
 
 /* Default Sensor ID value */
@@ -338,7 +366,7 @@ static void JsonAddFlowVars(const Flow *f, json_t *js_root, json_t **js_traffic)
 /**
  * \brief Add top-level metadata to the eve json object.
  */
-void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
+static void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
 {
     if ((p && p->pktvar) || (f && f->flowvar)) {
         json_t *js_vars = json_object();
@@ -359,6 +387,40 @@ void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
     }
 }
 
+void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
+        const Packet *p, const Flow *f, json_t *js)
+{
+    if (cfg->include_metadata) {
+        JsonAddMetadata(p, f, js);
+    }
+    if (cfg->include_community_id && f != NULL) {
+        CreateJSONCommunityFlowId(js, f, cfg->community_id_seed);
+    }
+}
+
+/**
+ * \brief Jsonify a packet
+ *
+ * \param p Packet
+ * \param js JSON object
+ * \param max_length If non-zero, restricts the number of packet data bytes handled.
+ */
+void JsonPacket(const Packet *p, json_t *js, unsigned long max_length)
+{
+    unsigned long max_len = max_length == 0 ? GET_PKT_LEN(p) : max_length;
+    unsigned long len = 2 * max_len;
+    uint8_t encoded_packet[len];
+    Base64Encode((unsigned char*) GET_PKT_DATA(p), max_len, encoded_packet, &len);
+    json_object_set_new(js, "packet", json_string((char *)encoded_packet));
+
+    /* Create packet info. */
+    json_t *packetinfo_js = json_object();
+    if (unlikely(packetinfo_js == NULL)) {
+        return;
+    }
+    json_object_set_new(packetinfo_js, "linktype", json_integer(p->datalink));
+    json_object_set_new(js, "packet_info", packetinfo_js);
+}
 /** \brief jsonify tcp flags field
  *  Only add 'true' fields in an attempt to keep things reasonably compact.
  */
@@ -391,12 +453,9 @@ void JsonTcpFlags(uint8_t flags, json_t *js)
  */
 void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
 {
-    char srcip[46], dstip[46];
+    char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
     char proto[16];
-
-    srcip[0] = '\0';
-    dstip[0] = '\0';
 
     switch (dir) {
         case LOG_DIR_PACKET:
@@ -410,6 +469,9 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
                         srcip, sizeof(srcip));
                 PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
                         dstip, sizeof(dstip));
+            } else {
+                /* Not an IP packet so don't do anything */
+                return;
             }
             sp = p->sp;
             dp = p->dp;
@@ -515,6 +577,124 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
     json_object_set_new(js, "proto", json_string(proto));
 }
 
+static void CreateJSONCommunityFlowIdv4(json_t *js, const Flow *f,
+        const uint16_t seed)
+{
+    struct {
+        uint16_t seed;
+        uint32_t src;
+        uint32_t dst;
+        uint8_t proto;
+        uint8_t pad0;
+        uint16_t sp;
+        uint16_t dp;
+    } __attribute__((__packed__)) ipv4;
+
+    uint32_t src = f->src.addr_data32[0];
+    uint32_t dst = f->dst.addr_data32[0];
+    uint16_t sp = f->sp;
+    if (f->proto == IPPROTO_ICMP)
+        sp = f->icmp_s.type;
+    sp = htons(sp);
+    uint16_t dp = f->dp;
+    if (f->proto == IPPROTO_ICMP)
+        dp = f->icmp_d.type;
+    dp = htons(dp);
+
+    ipv4.seed = htons(seed);
+    if (ntohl(src) < ntohl(dst) || (src == dst && sp < dp)) {
+        ipv4.src = src;
+        ipv4.dst = dst;
+        ipv4.sp = sp;
+        ipv4.dp = dp;
+    } else {
+        ipv4.src = dst;
+        ipv4.dst = src;
+        ipv4.sp = dp;
+        ipv4.dp = sp;
+    }
+    ipv4.proto = f->proto;
+    ipv4.pad0 = 0;
+
+    uint8_t hash[20];
+    if (ComputeSHA1((const uint8_t *)&ipv4, sizeof(ipv4), hash, sizeof(hash)) == 1) {
+        unsigned char base64buf[64] = "1:";
+        unsigned long out_len = sizeof(base64buf) - 2;
+        if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
+            json_object_set_new(js, "community_id", json_string((const char *)base64buf));
+        }
+    }
+}
+
+static inline bool FlowHashRawAddressIPv6LtU32(const uint32_t *a, const uint32_t *b)
+{
+    for (int i = 0; i < 4; i++) {
+        if (a[i] < b[i])
+            return true;
+        if (a[i] > b[i])
+            break;
+    }
+
+    return false;
+}
+
+static void CreateJSONCommunityFlowIdv6(json_t *js, const Flow *f,
+        const uint16_t seed)
+{
+    struct {
+        uint16_t seed;
+        uint32_t src[4];
+        uint32_t dst[4];
+        uint8_t proto;
+        uint8_t pad0;
+        uint16_t sp;
+        uint16_t dp;
+    } __attribute__((__packed__)) ipv6;
+
+    uint16_t sp = f->sp;
+    if (f->proto == IPPROTO_ICMPV6)
+        sp = f->icmp_s.type;
+    sp = htons(sp);
+    uint16_t dp = f->dp;
+    if (f->proto == IPPROTO_ICMPV6)
+        dp = f->icmp_d.type;
+    dp = htons(dp);
+
+    ipv6.seed = htons(seed);
+    if (FlowHashRawAddressIPv6LtU32(f->src.addr_data32, f->dst.addr_data32) ||
+            ((memcmp(&f->src, &f->dst, sizeof(f->src)) == 0) && sp < dp))
+    {
+        memcpy(&ipv6.src, &f->src.addr_data32, 16);
+        memcpy(&ipv6.dst, &f->dst.addr_data32, 16);
+        ipv6.sp = sp;
+        ipv6.dp = dp;
+    } else {
+        memcpy(&ipv6.src, &f->dst.addr_data32, 16);
+        memcpy(&ipv6.dst, &f->src.addr_data32, 16);
+        ipv6.sp = dp;
+        ipv6.dp = sp;
+    }
+    ipv6.proto = f->proto;
+    ipv6.pad0 = 0;
+
+    uint8_t hash[20];
+    if (ComputeSHA1((const uint8_t *)&ipv6, sizeof(ipv6), hash, sizeof(hash)) == 1) {
+        unsigned char base64buf[64] = "1:";
+        unsigned long out_len = sizeof(base64buf) - 2;
+        if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
+            json_object_set_new(js, "community_id", json_string((const char *)base64buf));
+        }
+    }
+}
+
+static void CreateJSONCommunityFlowId(json_t *js, const Flow *f, const uint16_t seed)
+{
+    if (f->flags & FLOW_IPV4)
+        return CreateJSONCommunityFlowIdv4(js, f, seed);
+    else if (f->flags & FLOW_IPV6)
+        return CreateJSONCommunityFlowIdv6(js, f, seed);
+}
+
 void CreateJSONFlowId(json_t *js, const Flow *f)
 {
     if (f == NULL)
@@ -563,25 +743,13 @@ json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
 
     /* vlan */
     if (p->vlan_idx > 0) {
-        json_t *js_vlan;
-        switch (p->vlan_idx) {
-            case 1:
-                json_object_set_new(js, "vlan",
-                                    json_integer(VLAN_GET_ID1(p)));
-                break;
-            case 2:
-                js_vlan = json_array();
-                if (unlikely(js != NULL)) {
-                    json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID1(p)));
-                    json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID2(p)));
-                    json_object_set_new(js, "vlan", js_vlan);
-                }
-                break;
-            default:
-                /* shouldn't get here */
-                break;
+        json_t *js_vlan = json_array();
+        if (js_vlan) {
+            json_array_append_new(js_vlan, json_integer(p->vlan_id[0]));
+            if (p->vlan_idx > 1) {
+                json_array_append_new(js_vlan, json_integer(p->vlan_id[1]));
+            }
+            json_object_set_new(js, "vlan", js_vlan);
         }
     }
 
@@ -674,7 +842,12 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
 OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
-    OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));;
+
+    OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_ctx == NULL)) {
+        SCLogDebug("could not create new OutputJsonCtx");
+        return result;
+    }
 
     /* First lookup a sensor-name value in this outputs configuration
      * node (deprecated). If that fails, lookup the global one. */
@@ -686,11 +859,6 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
     }
     else {
         (void)ConfGet("sensor-name", &sensor_name);
-    }
-
-    if (unlikely(json_ctx == NULL)) {
-        SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");
-        return result;
     }
 
     json_ctx->file_ctx = LogFileNewCtx();
@@ -840,7 +1008,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             if (ByteExtractStringUint64((uint64_t *)&sensor_id, 10, 0, sensor_id_s) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Failed to initialize JSON output, "
-                           "invalid sensor-is: %s", sensor_id_s);
+                           "invalid sensor-id: %s", sensor_id_s);
                 exit(EXIT_FAILURE);
             }
         }
@@ -849,9 +1017,29 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         const ConfNode *metadata = ConfNodeLookupChild(conf, "metadata");
         if (metadata && metadata->val && ConfValIsFalse(metadata->val)) {
             SCLogConfig("Disabling eve metadata logging.");
-            json_ctx->include_metadata = false;
+            json_ctx->cfg.include_metadata = false;
         } else {
-            json_ctx->include_metadata = true;
+            json_ctx->cfg.include_metadata = true;
+        }
+
+        /* See if we want to enable the community id */
+        const ConfNode *community_id = ConfNodeLookupChild(conf, "community-id");
+        if (community_id && community_id->val && ConfValIsTrue(community_id->val)) {
+            SCLogConfig("Enabling eve community_id logging.");
+            json_ctx->cfg.include_community_id = true;
+        } else {
+            json_ctx->cfg.include_community_id = false;
+        }
+        const char *cid_seed = ConfNodeLookupChildValue(conf, "community-id-seed");
+        if (cid_seed != NULL) {
+            if (ByteExtractStringUint16(&json_ctx->cfg.community_id_seed,
+                        10, 0, cid_seed) == -1)
+            {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                           "Failed to initialize JSON output, "
+                           "invalid community-id-seed: %s", cid_seed);
+                exit(EXIT_FAILURE);
+            }
         }
 
         /* Do we have a global eve xff configuration? */

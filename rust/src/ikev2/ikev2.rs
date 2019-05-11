@@ -29,7 +29,7 @@ use std::ffi::{CStr,CString};
 
 use log::*;
 
-use nom::IResult;
+use nom;
 
 #[repr(u32)]
 pub enum IKEV2Event {
@@ -126,9 +126,9 @@ impl IKEV2State {
     /// Parse an IKEV2 request message
     ///
     /// Returns The number of messages parsed, or -1 on error
-    fn parse(&mut self, i: &[u8], direction: u8) -> i8 {
+    fn parse(&mut self, i: &[u8], direction: u8) -> i32 {
         match parse_ikev2_header(i) {
-            IResult::Done(rem,ref hdr) => {
+            Ok((rem,ref hdr)) => {
                 if rem.len() == 0 && hdr.length == 28 {
                     return 1;
                 }
@@ -149,10 +149,14 @@ impl IKEV2State {
                 // use init_spi as transaction identifier
                 tx.xid = hdr.init_spi;
                 tx.hdr = (*hdr).clone();
+                self.transactions.push(tx);
+                let mut payload_types = Vec::new();
+                let mut errors = 0;
+                let mut notify_types = Vec::new();
                 match parse_ikev2_payload_list(rem,hdr.next_payload) {
-                    IResult::Done(_,Ok(ref p)) => {
+                    Ok((_,Ok(ref p))) => {
                         for payload in p {
-                            tx.payload_types.push(payload.hdr.next_payload_type);
+                            payload_types.push(payload.hdr.next_payload_type);
                             match payload.content {
                                 IkeV2PayloadContent::Dummy => (),
                                 IkeV2PayloadContent::SA(ref prop) => {
@@ -172,9 +176,9 @@ impl IKEV2State {
                                 IkeV2PayloadContent::Notify(ref n) => {
                                     SCLogDebug!("Notify: {:?}", n);
                                     if n.notify_type.is_error() {
-                                        tx.errors += 1;
+                                        errors += 1;
                                     }
-                                    tx.notify_types.push(n.notify_type);
+                                    notify_types.push(n.notify_type);
                                 },
                                 // XXX CertificateRequest
                                 // XXX Certificate
@@ -187,19 +191,24 @@ impl IKEV2State {
                                 },
                             }
                             self.connection_state = self.connection_state.advance(payload);
+                            if let Some(tx) = self.transactions.last_mut() {
+                                // borrow back tx to update it
+                                tx.payload_types.append(&mut payload_types);
+                                tx.errors = errors;
+                                tx.notify_types.append(&mut notify_types);
+                            }
                         };
                     },
                     e => { SCLogDebug!("parse_ikev2_payload_with_type: {:?}",e); () },
                 }
-                self.transactions.push(tx);
                 1
             },
-            IResult::Incomplete(_) => {
+            Err(nom::Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing IKEV2 data");
                 self.set_event(IKEV2Event::MalformedData);
                 -1
             },
-            IResult::Error(_) => {
+            Err(_) => {
                 SCLogDebug!("Error while parsing IKEV2 data");
                 self.set_event(IKEV2Event::MalformedData);
                 -1
@@ -235,6 +244,8 @@ impl IKEV2State {
         if let Some(tx) = self.transactions.last_mut() {
             let ev = event as u8;
             core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
+        } else {
+            SCLogDebug!("IKEv2: trying to set event {} on non-existing transaction", event as u32);
         }
     }
 
@@ -406,6 +417,9 @@ impl IKEV2Transaction {
         if self.events != std::ptr::null_mut() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
+        if let Some(state) = self.de_state {
+            core::sc_detect_engine_state_free(state);
+        }
     }
 }
 
@@ -444,7 +458,7 @@ pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
                                        _data: *const libc::c_void,
-                                       _flags: u8) -> i8 {
+                                       _flags: u8) -> i32 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,IKEV2State);
     state.parse(buf, STREAM_TOSERVER)
@@ -457,7 +471,7 @@ pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
                                        _data: *const libc::c_void,
-                                       _flags: u8) -> i8 {
+                                       _flags: u8) -> i32 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,IKEV2State);
     let res = state.parse(buf, STREAM_TOCLIENT);
@@ -610,11 +624,15 @@ pub extern "C" fn rs_ikev2_state_get_event_info(event_name: *const libc::c_char,
 static mut ALPROTO_IKEV2 : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow, input:*const libc::uint8_t, input_len: u32, _offset: *const u32) -> AppProto {
+pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow,
+        _direction: u8,
+        input:*const libc::uint8_t, input_len: u32,
+        _rdir: *mut u8) -> AppProto
+{
     let slice = build_slice!(input,input_len as usize);
     let alproto = unsafe{ ALPROTO_IKEV2 };
     match parse_ikev2_header(slice) {
-        IResult::Done(_, ref hdr) => {
+        Ok((_, ref hdr)) => {
             if hdr.maj_ver != 2 || hdr.min_ver != 0 {
                 SCLogDebug!("ipsec_probe: could be ipsec, but with unsupported/invalid version {}.{}",
                         hdr.maj_ver, hdr.min_ver);
@@ -631,10 +649,10 @@ pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow, input:*const libc:
             }
             return alproto;
         },
-        IResult::Incomplete(_) => {
+        Err(nom::Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;
         },
-        IResult::Error(_) => {
+        Err(_) => {
             return unsafe{ALPROTO_FAILED};
         },
     }
@@ -648,7 +666,7 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
     let parser = RustParser {
         name              : PARSER_NAME.as_ptr() as *const libc::c_char,
         default_port      : default_port.as_ptr(),
-        ipproto           : libc::IPPROTO_UDP,
+        ipproto           : core::IPPROTO_UDP,
         probe_ts          : rs_ikev2_probing_parser,
         probe_tc          : rs_ikev2_probing_parser,
         min_depth         : 0,

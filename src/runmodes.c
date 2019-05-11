@@ -64,6 +64,7 @@ const char *thread_name_workers = "W";
 const char *thread_name_verdict = "TX";
 const char *thread_name_flow_mgr = "FM";
 const char *thread_name_flow_rec = "FR";
+const char *thread_name_flow_bypass = "FB";
 const char *thread_name_unix_socket = "US";
 const char *thread_name_detect_loader = "DL";
 const char *thread_name_counter_stats = "CS";
@@ -135,8 +136,6 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "NAPATECH";
         case RUNMODE_UNITTEST:
             return "UNITTEST";
-        case RUNMODE_TILERA_MPIPE:
-            return "MPIPE";
         case RUNMODE_AFP_DEV:
             return "AF_PACKET_DEV";
         case RUNMODE_NETMAP:
@@ -224,7 +223,6 @@ void RunModeRegisterRunModes(void)
     RunModeIdsAFPRegister();
     RunModeIdsNetmapRegister();
     RunModeIdsNflogRegister();
-    RunModeTileMpipeRegister();
     RunModeUnixSocketRegister();
     RunModeIpsWinDivertRegister();
 #ifdef UNITTESTS
@@ -316,9 +314,6 @@ void RunModeDispatch(int runmode, const char *custom_mode)
                 break;
             case RUNMODE_DAG:
                 custom_mode = RunModeErfDagGetDefaultMode();
-                break;
-            case RUNMODE_TILERA_MPIPE:
-                custom_mode = RunModeTileMpipeGetDefaultMode();
                 break;
             case RUNMODE_NAPATECH:
                 custom_mode = RunModeNapatechGetDefaultMode();
@@ -497,6 +492,19 @@ int RunModeOutputFiledataEnabled(void)
     return filedata_logger_count > 0;
 }
 
+bool IsRunModeSystem(enum RunModes run_mode_to_check)
+{
+    switch (run_mode_to_check) {
+        case RUNMODE_PCAP_FILE:
+        case RUNMODE_ERF_FILE:
+        case RUNMODE_ENGINE_ANALYSIS:
+            return false;
+            break;
+        default:
+            return true;
+    }
+}
+
 bool IsRunModeOffline(int run_mode_to_check)
 {
     switch(run_mode_to_check) {
@@ -662,6 +670,22 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
         /* Error is no registered loggers with this name
          * were found .*/
         if (!sub_count) {
+#ifndef HAVE_RUST
+            const char *rust_types[] = { "eve-log.smb", "eve-log.nfs",
+                "eve-log.dhcp", "eve-log.krb5", "eve-log.ikev2",
+                "eve-log.tftp", NULL, };
+            const char **iter = rust_types;
+            bool is_rust = false;
+            while (*iter) {
+                is_rust |= (strcmp(*iter, subname) == 0);
+                iter++;
+            }
+            if (is_rust) {
+                SCLogWarning(SC_WARN_RUST_NOT_AVAILABLE, "output "
+                    "module '%s' depends on Rust support", subname);
+                continue;
+            }
+#endif
             FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
                     "No output module named %s", subname);
             continue;
@@ -737,7 +761,14 @@ void RunModeInitializeOutputs(void)
             continue;
         }
 
-        if (strncmp(output->val, "unified-", sizeof("unified-") - 1) == 0) {
+        if (strcmp(output->val, "file-log") == 0) {
+            SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                    "file-log is no longer supported,"
+                    " use eve.files instead "
+                    "(see https://redmine.openinfosecfoundation.org/issues/2376"
+                    " for an explanation)");
+            continue;
+        } else if (strncmp(output->val, "unified-", sizeof("unified-") - 1) == 0) {
             SCLogWarning(SC_ERR_NOT_SUPPORTED,
                     "Unified1 is no longer supported,"
                     " use Unified2 instead "
@@ -769,11 +800,9 @@ void RunModeInitializeOutputs(void)
             continue;
 #endif
         } else if (strcmp(output->val, "dns-log") == 0) {
-#ifdef HAVE_RUST
             SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "dns-log is not available when Rust is enabled.");
+                    "dns-log is not longer available as of Suricata 5.0");
             continue;
-#endif
         } else if (strcmp(output->val, "tls-log") == 0) {
             tls_log_enabled = 1;
         }
@@ -792,7 +821,7 @@ void RunModeInitializeOutputs(void)
                 OutputInitResult r = module->InitFunc(output_config);
                 if (!r.ok) {
                     FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
-                        "output module setup failed");
+                        "output module \"%s\": setup failed", output->val);
                     continue;
                 } else if (r.ctx == NULL) {
                     continue;

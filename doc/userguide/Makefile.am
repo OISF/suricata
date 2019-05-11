@@ -1,4 +1,6 @@
 EXTRA_DIST = \
+	_static \
+	3rd-party-integration \
 	acknowledgements.rst \
 	capture-hardware \
 	command-line-options.rst \

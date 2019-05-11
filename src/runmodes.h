@@ -36,7 +36,6 @@ enum RunModes {
     RUNMODE_DAG,
     RUNMODE_AFP_DEV,
     RUNMODE_NETMAP,
-    RUNMODE_TILERA_MPIPE,
     RUNMODE_UNITTEST,
     RUNMODE_NAPATECH,
     RUNMODE_UNIX_SOCKET,
@@ -66,6 +65,7 @@ extern const char *thread_name_single;
 extern const char *thread_name_workers;
 extern const char *thread_name_verdict;
 extern const char *thread_name_flow_mgr;
+extern const char *thread_name_flow_bypass;
 extern const char *thread_name_flow_rec;
 extern const char *thread_name_unix_socket;
 extern const char *thread_name_detect_loader;
@@ -90,6 +90,7 @@ int RunModeOutputFileEnabled(void);
 int RunModeOutputFiledataEnabled(void);
 /** bool indicating if run mode is offline */
 bool IsRunModeOffline(int run_mode_to_check);
+bool IsRunModeSystem(enum RunModes run_mode_to_check);
 
 void RunModeEnablesBypassManager(void);
 int RunModeNeedsBypassManager(void);
@@ -97,7 +98,6 @@ int RunModeNeedsBypassManager(void);
 #include "runmode-pcap.h"
 #include "runmode-pcap-file.h"
 #include "runmode-pfring.h"
-#include "runmode-tile.h"
 #include "runmode-nfq.h"
 #include "runmode-ipfw.h"
 #include "runmode-erf-file.h"

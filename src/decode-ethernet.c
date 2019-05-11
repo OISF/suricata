@@ -39,12 +39,16 @@
 #include "util-debug.h"
 
 int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   uint8_t *pkt, uint16_t len, PacketQueue *pq)
+                   uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_eth);
 
     if (unlikely(len < ETHERNET_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, ETHERNET_PKT_TOO_SMALL);
+        return TM_ECODE_FAILED;
+    }
+
+    if (unlikely(len > ETHERNET_HEADER_LEN + USHRT_MAX)) {
         return TM_ECODE_FAILED;
     }
 
@@ -142,6 +146,70 @@ static int DecodeEthernetTest01 (void)
     SCFree(p);
     return 1;
 }
+
+/**
+ * Test a DCE ethernet frame that is too small.
+ */
+static int DecodeEthernetTestDceTooSmall(void)
+{
+    uint8_t raw_eth[] = {
+        0x00, 0x10, 0x94, 0x55, 0x00, 0x01, 0x00, 0x10,
+        0x94, 0x56, 0x00, 0x01, 0x89, 0x03,
+    };
+
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv,  0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+
+    DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
+
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, DCE_PKT_TOO_SMALL));
+
+    SCFree(p);
+    PASS;
+}
+
+/**
+ * Test that a DCE ethernet frame, followed by data that is too small
+ * for an ethernet header.
+ *
+ * Redmine issue:
+ * https://redmine.openinfosecfoundation.org/issues/2887
+ */
+static int DecodeEthernetTestDceNextTooSmall(void)
+{
+    uint8_t raw_eth[] = {
+        0x00, 0x10, 0x94, 0x55, 0x00, 0x01, 0x00, 0x10,
+        0x94, 0x56, 0x00, 0x01, 0x89, 0x03, //0x88, 0x64,
+
+        0x00, 0x00,
+
+        0x00, 0x10, 0x94, 0x55, 0x00, 0x01, 0x00, 0x10,
+        0x94, 0x56, 0x00, 0x01,
+    };
+
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv,  0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+
+    DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
+
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, ETHERNET_PKT_TOO_SMALL));
+
+    SCFree(p);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 
@@ -153,6 +221,10 @@ void DecodeEthernetRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DecodeEthernetTest01", DecodeEthernetTest01);
+    UtRegisterTest("DecodeEthernetTestDceNextTooSmall",
+            DecodeEthernetTestDceNextTooSmall);
+    UtRegisterTest("DecodeEthernetTestDceTooSmall",
+            DecodeEthernetTestDceTooSmall);
 #endif /* UNITTESTS */
 }
 /**

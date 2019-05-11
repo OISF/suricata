@@ -418,10 +418,12 @@ ConfYamlLoadFile(const char *filename)
         if (stat_buf.st_mode & S_IFDIR) {
             SCLogError(SC_ERR_FATAL, "yaml argument is not a file but a directory: %s. "
                     "Please specify the yaml file in your -c option.", filename);
+            yaml_parser_delete(&parser);
             return -1;
         }
     }
 
+    // coverity[toctou : FALSE]
     infile = fopen(filename, "r");
     if (infile == NULL) {
         SCLogError(SC_ERR_FATAL, "failed to open file: %s: %s", filename,

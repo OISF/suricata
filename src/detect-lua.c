@@ -49,6 +49,7 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
+#include "app-layer-htp.h"
 
 #include "stream-tcp.h"
 
@@ -112,7 +113,7 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].name = "lua";
     sigmatch_table[DETECT_LUA].alias = "luajit";
     sigmatch_table[DETECT_LUA].desc = "match via a lua script";
-    sigmatch_table[DETECT_LUA].url = "https://suricata.readthedocs.io/en/latest/rules/rule-lua-scripting.html";
+    sigmatch_table[DETECT_LUA].url = DOC_URL DOC_VERSION "/rules/rule-lua-scripting.html";
     sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
     sigmatch_table[DETECT_LUA].AppLayerTxMatch = DetectLuaAppTxMatch;
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetup;
@@ -171,7 +172,9 @@ static int InspectSmtpGeneric(ThreadVars *tv,
 #define DATATYPE_SSH                        (1<<19)
 #define DATATYPE_SMTP                       (1<<20)
 
-#define DATATYPE_DNP3                       (1<<20)
+#define DATATYPE_DNP3                       (1<<21)
+
+#define DATATYPE_BUFFER                     (1<<22)
 
 #if 0
 /** \brief dump stack from lua state to screen */
@@ -819,6 +822,14 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
             ld->flags |= DATATYPE_PACKET;
         } else if (strcmp(k, "payload") == 0 && strcmp(v, "true") == 0) {
             ld->flags |= DATATYPE_PAYLOAD;
+        } else if (strcmp(k, "buffer") == 0 && strcmp(v, "true") == 0) {
+            ld->flags |= DATATYPE_BUFFER;
+
+            ld->buffername = SCStrdup("buffer");
+            if (ld->buffername == NULL) {
+                SCLogError(SC_ERR_LUA_ERROR, "alloc error");
+                goto error;
+            }
         } else if (strcmp(k, "stream") == 0 && strcmp(v, "true") == 0) {
             ld->flags |= DATATYPE_STREAM;
 
@@ -996,8 +1007,17 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     if (lua->alproto == ALPROTO_UNKNOWN) {
         if (lua->flags & DATATYPE_STREAM)
             list = DETECT_SM_LIST_PMATCH;
-        else
-            list = DETECT_SM_LIST_MATCH;
+        else {
+            if (lua->flags & DATATYPE_BUFFER) {
+                if (DetectBufferGetActiveList(de_ctx, s) != -1) {
+                    list = s->init_data->list;
+                } else {
+                    SCLogError(SC_ERR_LUA_ERROR, "Lua and sticky buffer failure");
+                    goto error;
+                }
+            } else
+                list = DETECT_SM_LIST_MATCH;
+        }
 
     } else if (lua->alproto == ALPROTO_HTTP) {
         if (lua->flags & DATATYPE_HTTP_RESPONSE_BODY) {

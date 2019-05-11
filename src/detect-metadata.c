@@ -31,7 +31,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-metadata.h"
-
+#include "util-hash-string.h"
 #include "util-unittest.h"
 
 static int DetectMetadataSetup (DetectEngineCtx *, Signature *, const char *);
@@ -58,38 +58,6 @@ void DetectMetadataFree(DetectMetadata *mdata)
     SCFree(mdata);
 
     SCReturn;
-}
-
-/* djb2 string hashing */
-static uint32_t StringHashFunc(HashTable *ht, void *data, uint16_t datalen)
-{
-    uint32_t hash = 5381;
-    int c;
-
-    while ((c = *(char *)data++))
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-    hash = hash % ht->array_size;
-
-    return hash;
-}
-
-static char StringHashCompareFunc(void *data1, uint16_t datalen1,
-                               void *data2, uint16_t datalen2)
-{
-    int len1 = strlen((char *)data1);
-    int len2 = strlen((char *)data2);
-
-    if (len1 == len2 && memcmp(data1, data2, len1) == 0) {
-        return 1;
-    }
-
-    return 0;
-}
-
-static void StringHashFreeFunc(void *data)
-{
-    SCFree(data);
 }
 
 int DetectMetadataHashInit(DetectEngineCtx *de_ctx)

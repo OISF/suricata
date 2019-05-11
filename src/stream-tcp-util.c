@@ -180,102 +180,64 @@ end:
 
 static int StreamTcpUtilStreamTest01(void)
 {
-    int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
-    ThreadVars tv;
     TcpStream stream;
-
+    ThreadVars tv;
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
     StreamTcpUTSetupStream(&stream, 1);
 
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  2, 'A', 5) == -1) {
-        printf("failed to add segment 1: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  7, 'B', 5) == -1) {
-        printf("failed to add segment 2: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream, 12, 'C', 5) == -1) {
-        printf("failed to add segment 3: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  2, 'A', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  7, 'B', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream, 12, 'C', 5) == -1);
 
-    TcpSegment *seg = stream.seg_list;
-    if (seg->seq != 2) {
-        printf("first seg in the list should have seq 2: ");
-        goto end;
-    }
+    TcpSegment *seg = RB_MIN(TCPSEG, &stream.seg_tree);
+    FAIL_IF_NULL(seg);
+    FAIL_IF(seg->seq != 2);
 
-    seg = seg->next;
-    if (seg->seq != 7) {
-        printf("first seg in the list should have seq 7: ");
-        goto end;
-    }
+    seg = TCPSEG_RB_NEXT(seg);
+    FAIL_IF_NULL(seg);
+    FAIL_IF(seg->seq != 7);
 
-    seg = seg->next;
-    if (seg->seq != 12) {
-        printf("first seg in the list should have seq 12: ");
-        goto end;
-    }
+    seg = TCPSEG_RB_NEXT(seg);
+    FAIL_IF_NULL(seg);
+    FAIL_IF(seg->seq != 12);
 
-    ret = 1;
-end:
     StreamTcpUTClearStream(&stream);
     StreamTcpUTDeinit(ra_ctx);
-    return ret;
+    PASS;
 }
 
 static int StreamTcpUtilStreamTest02(void)
 {
-    int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
-    ThreadVars tv;
     TcpStream stream;
-
+    ThreadVars tv;
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
     StreamTcpUTSetupStream(&stream, 1);
 
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  7, 'B', 5) == -1) {
-        printf("failed to add segment 2: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream, 12, 'C', 5) == -1) {
-        printf("failed to add segment 3: ");
-        goto end;
-    }
-    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  2, 'A', 5) == -1) {
-        printf("failed to add segment 1: ");
-        goto end;
-    }
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  7, 'B', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream, 12, 'C', 5) == -1);
+    FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &stream,  2, 'A', 5) == -1);
 
-    TcpSegment *seg = stream.seg_list;
-    if (seg->seq != 2) {
-        printf("first seg in the list should have seq 2: ");
-        goto end;
-    }
+    TcpSegment *seg = RB_MIN(TCPSEG, &stream.seg_tree);
+    FAIL_IF_NULL(seg);
+    FAIL_IF(seg->seq != 2);
 
-    seg = seg->next;
-    if (seg->seq != 7) {
-        printf("first seg in the list should have seq 7: ");
-        goto end;
-    }
+    seg = TCPSEG_RB_NEXT(seg);
+    FAIL_IF_NULL(seg);
+    FAIL_IF(seg->seq != 7);
 
-    seg = seg->next;
-    if (seg->seq != 12) {
-        printf("first seg in the list should have seq 12: ");
-        goto end;
-    }
+    seg = TCPSEG_RB_NEXT(seg);
+    FAIL_IF_NULL(seg);
+    FAIL_IF(seg->seq != 12);
 
-    ret = 1;
-end:
     StreamTcpUTClearStream(&stream);
     StreamTcpUTDeinit(ra_ctx);
-    return ret;
+    PASS;
 }
 
 #endif

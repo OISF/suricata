@@ -77,11 +77,14 @@ static void PrefilterPktStream(DetectEngineThreadCtx *det_ctx,
 
     /* for established packets inspect any stream we may have queued up */
     if (p->flags & PKT_DETECT_HAS_STREAMDATA) {
+        SCLogDebug("PRE det_ctx->raw_stream_progress %"PRIu64,
+                det_ctx->raw_stream_progress);
         struct StreamMpmData stream_mpm_data = { det_ctx, mpm_ctx };
         StreamReassembleRaw(p->flow->protoctx, p,
                 StreamMpmFunc, &stream_mpm_data,
-                &det_ctx->raw_stream_progress);
-        SCLogDebug("det_ctx->raw_stream_progress %"PRIu64,
+                &det_ctx->raw_stream_progress,
+                false /* mpm doesn't use min inspect depth */);
+        SCLogDebug("POST det_ctx->raw_stream_progress %"PRIu64,
                 det_ctx->raw_stream_progress);
     } else {
         SCLogDebug("NOT p->flags & PKT_DETECT_HAS_STREAMDATA");
@@ -162,9 +165,10 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     det_ctx->inspection_recursion_counter = 0;
     det_ctx->replist = NULL;
 
-    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_PMATCH],
-                                      f, p->payload, p->payload_len, 0, DETECT_CI_FLAGS_SINGLE,
-                                      DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
+    r = DetectEngineContentInspection(de_ctx, det_ctx,
+            s, s->sm_arrays[DETECT_SM_LIST_PMATCH],
+            p, f, p->payload, p->payload_len, 0,
+            DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD);
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -205,8 +209,8 @@ static int DetectEngineInspectStreamUDPPayload(DetectEngineCtx *de_ctx,
     det_ctx->replist = NULL;
 
     r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, p->payload, p->payload_len, 0, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
+            p, f, p->payload, p->payload_len, 0, DETECT_CI_FLAGS_SINGLE,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD);
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -235,8 +239,8 @@ static int StreamContentInspectFunc(void *cb_data, const uint8_t *data, const ui
 
     r = DetectEngineContentInspection(smd->de_ctx, smd->det_ctx,
             smd->s, smd->s->sm_arrays[DETECT_SM_LIST_PMATCH],
-            smd->f, (uint8_t *)data, data_len, 0, 0, //TODO
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
+            NULL, smd->f, (uint8_t *)data, data_len, 0, 0, //TODO
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM);
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -266,7 +270,7 @@ int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
     struct StreamContentInspectData inspect_data = { de_ctx, det_ctx, s, f };
     int r = StreamReassembleRaw(f->protoctx, p,
             StreamContentInspectFunc, &inspect_data,
-            &unused);
+            &unused, ((s->flags & SIG_FLAG_FLUSH) != 0));
     return r;
 }
 
@@ -293,8 +297,8 @@ static int StreamContentInspectEngineFunc(void *cb_data, const uint8_t *data, co
 
     r = DetectEngineContentInspection(smd->de_ctx, smd->det_ctx,
             smd->s, smd->smd,
-            smd->f, (uint8_t *)data, data_len, 0, 0, // TODO
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
+            NULL, smd->f, (uint8_t *)data, data_len, 0, 0, // TODO
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM);
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -330,11 +334,13 @@ int DetectEngineInspectStream(ThreadVars *tv,
     if (ssn == NULL)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
 
+    SCLogDebug("pre-inspect det_ctx->raw_stream_progress %"PRIu64,
+            det_ctx->raw_stream_progress);
     uint64_t unused;
     struct StreamContentInspectEngineData inspect_data = { de_ctx, det_ctx, s, smd, f };
     int match = StreamReassembleRaw(f->protoctx, p,
             StreamContentInspectEngineFunc, &inspect_data,
-            &unused);
+            &unused, ((s->flags & SIG_FLAG_FLUSH) != 0));
 
     bool is_last = false;
     if (flags & STREAM_TOSERVER) {

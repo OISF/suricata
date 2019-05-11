@@ -15,7 +15,8 @@
  * 02110-1301, USA.
  */
 
-use nom::{rest, le_u8, le_u16, le_u32, le_u64, AsBytes, IResult};
+use nom;
+use nom::{rest, le_u8, le_u16, le_u32, le_u64, IResult};
 use smb::smb::*;
 
 #[derive(Debug,PartialEq)]
@@ -29,6 +30,21 @@ named!(pub parse_smb2_sec_blob<Smb2SecBlobRecord>,
          >> ( Smb2SecBlobRecord {
                 data: data,
             })
+));
+
+#[derive(Debug,PartialEq)]
+pub struct Smb2RecordDir<> {
+    pub request: bool,
+}
+
+named!(pub parse_smb2_record_direction<Smb2RecordDir>,
+    do_parse!(
+            _server_component: tag!(b"\xfeSMB")
+        >>  _skip: take!(12)
+        >>  flags: le_u8
+        >> (Smb2RecordDir {
+                request: flags & 0x01 == 0,
+           })
 ));
 
 #[derive(Debug,PartialEq)]
@@ -51,13 +67,13 @@ impl<'a> Smb2Record<'a> {
 
 named!(pub parse_smb2_request_record<Smb2Record>,
     do_parse!(
-            server_component: tag!(b"\xfeSMB")
+            _server_component: tag!(b"\xfeSMB")
         >>  hlen: le_u16
-        >>  credit_charge: le_u16
-        >>  channel_seq: le_u16
-        >>  reserved: take!(2)
+        >>  _credit_charge: le_u16
+        >>  _channel_seq: le_u16
+        >>  _reserved: take!(2)
         >>  command: le_u16
-        >>  credits_requested: le_u16
+        >>  _credits_requested: le_u16
         >>  flags: bits!(tuple!(
                 take_bits!(u8, 2),      // reserved / unused
                 take_bits!(u8, 1),      // replay op
@@ -70,10 +86,10 @@ named!(pub parse_smb2_request_record<Smb2Record>,
             ))
         >> chain_offset: le_u32
         >> message_id: le_u64
-        >> process_id: le_u32
+        >> _process_id: le_u32
         >> tree_id: le_u32
         >> session_id: le_u64
-        >> signature: take!(16)
+        >> _signature: take!(16)
         // there is probably a cleaner way to do this
         >> data_c: cond!(chain_offset > hlen as u32, take!(chain_offset - hlen as u32))
         >> data_r: cond!(chain_offset <= hlen as u32, rest)
@@ -97,15 +113,15 @@ pub struct Smb2NegotiateProtocolRequestRecord<'a> {
 
 named!(pub parse_smb2_request_negotiate_protocol<Smb2NegotiateProtocolRequestRecord>,
     do_parse!(
-            struct_size: take!(2)
+            _struct_size: take!(2)
         >>  dialects_count: le_u16
-        >>  sec_mode: le_u16
-        >>  reserved1: le_u16
-        >>  capabilities: le_u32
+        >>  _sec_mode: le_u16
+        >>  _reserved1: le_u16
+        >>  _capabilities: le_u32
         >>  client_guid: take!(16)
-        >>  ctx_offset: le_u32
-        >>  ctx_cnt: le_u16
-        >>  reserved2: le_u16
+        >>  _ctx_offset: le_u32
+        >>  _ctx_cnt: le_u16
+        >>  _reserved2: le_u16
         >>  dia_vec: count!(le_u16, dialects_count as usize)
         >>  (Smb2NegotiateProtocolRequestRecord {
                 dialects_vec: dia_vec,
@@ -121,21 +137,21 @@ pub struct Smb2NegotiateProtocolResponseRecord<'a> {
 
 named!(pub parse_smb2_response_negotiate_protocol<Smb2NegotiateProtocolResponseRecord>,
     do_parse!(
-            struct_size: take!(2)
-        >>  skip1: take!(2)
+            _struct_size: take!(2)
+        >>  _skip1: take!(2)
         >>  dialect: le_u16
-        >>  ctx_cnt: le_u16
+        >>  _ctx_cnt: le_u16
         >>  server_guid: take!(16)
         >>  (Smb2NegotiateProtocolResponseRecord {
-                dialect: dialect,
-                server_guid: server_guid,
+                dialect,
+                server_guid
             })
 ));
 
 named!(pub parse_smb2_response_negotiate_protocol_error<Smb2NegotiateProtocolResponseRecord>,
     do_parse!(
-            struct_size: take!(2)
-        >>  skip1: take!(2)
+            _struct_size: take!(2)
+        >>  _skip1: take!(2)
         >>  (Smb2NegotiateProtocolResponseRecord {
                 dialect: 0,
                 server_guid: &[],
@@ -150,14 +166,14 @@ pub struct Smb2SessionSetupRequestRecord<'a> {
 
 named!(pub parse_smb2_request_session_setup<Smb2SessionSetupRequestRecord>,
     do_parse!(
-            struct_size: take!(2)
-        >>  flags: le_u8
-        >>  security_mode: le_u8
-        >>  capabilities: le_u32
-        >>  channel: le_u32
-        >>  sec_offset: le_u16
-        >>  sec_len: le_u16
-        >>  prev_ssn_id: take!(8)
+            _struct_size: take!(2)
+        >>  _flags: le_u8
+        >>  _security_mode: le_u8
+        >>  _capabilities: le_u32
+        >>  _channel: le_u32
+        >>  _sec_offset: le_u16
+        >>  _sec_len: le_u16
+        >>  _prev_ssn_id: take!(8)
         >>  data: rest
         >>  (Smb2SessionSetupRequestRecord {
                 data:data,
@@ -172,8 +188,8 @@ pub struct Smb2TreeConnectRequestRecord<'a> {
 
 named!(pub parse_smb2_request_tree_connect<Smb2TreeConnectRequestRecord>,
     do_parse!(
-            struct_size: take!(2)
-        >>  offset_length: take!(4)
+            _struct_size: take!(2)
+        >>  _offset_length: take!(4)
         >>  data: rest
         >>  (Smb2TreeConnectRequestRecord {
                 share_name:data,
@@ -187,13 +203,13 @@ pub struct Smb2TreeConnectResponseRecord<> {
 
 named!(pub parse_smb2_response_tree_connect<Smb2TreeConnectResponseRecord>,
     do_parse!(
-            struct_size: take!(2)
+            _struct_size: take!(2)
         >>  share_type: le_u8
-        >>  share_flags: le_u32
-        >>  share_caps: le_u32
-        >>  access_mask: le_u32
+        >>  _share_flags: le_u32
+        >>  _share_caps: le_u32
+        >>  _access_mask: le_u32
         >>  (Smb2TreeConnectResponseRecord {
-                share_type:share_type,
+                share_type
             })
 ));
 
@@ -207,18 +223,18 @@ pub struct Smb2CreateRequestRecord<'a> {
 
 named!(pub parse_smb2_request_create<Smb2CreateRequestRecord>,
     do_parse!(
-            skip1: take!(36)
+            _skip1: take!(36)
         >>  disposition: le_u32
         >>  create_options: le_u32
-        >>  file_name_offset: le_u16
+        >>  _file_name_offset: le_u16
         >>  file_name_length: le_u16
-        >>  skip2: take!(8)
+        >>  _skip2: take!(8)
         >>  data: take!(file_name_length)
-        >>  skip3: rest
+        >>  _skip3: rest
         >>  (Smb2CreateRequestRecord {
-                disposition: disposition,
-                create_options: create_options,
-                data:data,
+                disposition,
+                create_options,
+                data
             })
 ));
 
@@ -232,15 +248,15 @@ pub struct Smb2IOCtlRequestRecord<'a> {
 
 named!(pub parse_smb2_request_ioctl<Smb2IOCtlRequestRecord>,
     do_parse!(
-            skip: take!(2)  // structure size
+            _skip: take!(2)  // structure size
         >>  take!(2)        // reserved
         >>  func: le_u32
         >>  guid: take!(16)
-        >>  indata_offset: le_u32
+        >>  _indata_offset: le_u32
         >>  indata_len: le_u32
         >>  take!(4)
-        >>  outdata_offset: le_u32
-        >>  outdata_len: le_u32
+        >>  _outdata_offset: le_u32
+        >>  _outdata_len: le_u32
         >>  take!(12)
         >>  data: take!(indata_len)
         >>  (Smb2IOCtlRequestRecord {
@@ -264,7 +280,7 @@ pub struct Smb2IOCtlResponseRecord<'a> {
 
 named!(pub parse_smb2_response_ioctl<Smb2IOCtlResponseRecord>,
     do_parse!(
-            skip: take!(2)  // structure size
+            _skip: take!(2)  // structure size
         >>  take!(2)        // reserved
         >>  func: le_u32
         >>  guid: take!(16)
@@ -293,10 +309,10 @@ pub struct Smb2CloseRequestRecord<'a> {
 
 named!(pub parse_smb2_request_close<Smb2CloseRequestRecord>,
     do_parse!(
-            skip: take!(8)
+            _skip: take!(8)
         >>  guid: take!(16)
         >>  (Smb2CloseRequestRecord {
-                guid:guid,
+                guid
             })
 ));
 
@@ -307,13 +323,13 @@ pub struct Smb2SetInfoRequestRenameRecord<'a> {
 
 named!(pub parse_smb2_request_setinfo_rename<Smb2SetInfoRequestRenameRecord>,
     do_parse!(
-            replace: le_u8
+            _replace: le_u8
         >>  _reserved: take!(7)
         >>  _root_handle: take!(8)
         >>  name_len: le_u32
         >>  name: take!(name_len)
         >> (Smb2SetInfoRequestRenameRecord {
-                name: name,
+                name
             })
 ));
 
@@ -327,13 +343,13 @@ pub struct Smb2SetInfoRequestRecord<'a> {
 
 named!(pub parse_smb2_request_setinfo<Smb2SetInfoRequestRecord>,
     do_parse!(
-            struct_size: le_u16
+            _struct_size: le_u16
         >>  class: le_u8
         >>  infolvl: le_u8
         >>  setinfo_size: le_u32
-        >>  setinfo_offset: le_u16
+        >>  _setinfo_offset: le_u16
         >>  _reserved: take!(2)
-        >>  additional_info: le_u32
+        >>  _additional_info: le_u32
         >>  guid: take!(16)
         >>  rename: cond!(class == 1 && infolvl == 10, flat_map!(take!(setinfo_size),parse_smb2_request_setinfo_rename))
         >> (Smb2SetInfoRequestRecord {
@@ -355,14 +371,14 @@ pub struct Smb2WriteRequestRecord<'a> {
 // can be called on incomplete records
 named!(pub parse_smb2_request_write<Smb2WriteRequestRecord>,
     do_parse!(
-            skip1: take!(4)
+            _skip1: take!(4)
         >>  wr_len: le_u32
         >>  wr_offset: le_u64
         >>  guid: take!(16)
-        >>  channel: le_u32
-        >>  remaining_bytes: le_u32
-        >>  write_flags: le_u32
-        >>  skip2: take!(4)
+        >>  _channel: le_u32
+        >>  _remaining_bytes: le_u32
+        >>  _write_flags: le_u32
+        >>  _skip2: take!(4)
         >>  data: apply!(parse_smb2_data, wr_len)
         >>  (Smb2WriteRequestRecord {
                 wr_len:wr_len,
@@ -381,14 +397,14 @@ pub struct Smb2ReadRequestRecord<'a> {
 
 named!(pub parse_smb2_request_read<Smb2ReadRequestRecord>,
     do_parse!(
-            skip1: take!(4)
+            _skip1: take!(4)
         >>  rd_len: le_u32
         >>  rd_offset: le_u64
         >>  guid: take!(16)
-        >>  min_count: le_u32
-        >>  channel: le_u32
-        >>  remaining_bytes: le_u32
-        >>  skip2: take!(4)
+        >>  _min_count: le_u32
+        >>  _channel: le_u32
+        >>  _remaining_bytes: le_u32
+        >>  _skip2: take!(4)
         >>  (Smb2ReadRequestRecord {
                 rd_len:rd_len,
                 rd_offset:rd_offset,
@@ -418,10 +434,10 @@ fn parse_smb2_data<'a>(i: &'a[u8], len: u32)
 // can be called on incomplete records
 named!(pub parse_smb2_response_read<Smb2ReadResponseRecord>,
     do_parse!(
-            struct_size: le_u16
-        >>  data_offset: le_u16
+            _struct_size: le_u16
+        >>  _data_offset: le_u16
         >>  rd_len: le_u32
-        >>  rd_rem: le_u32
+        >>  _rd_rem: le_u32
         >>  _padding: take!(4)
         >>  data: apply!(parse_smb2_data, rd_len)
         >>  (Smb2ReadResponseRecord {
@@ -442,20 +458,20 @@ pub struct Smb2CreateResponseRecord<'a> {
 
 named!(pub parse_smb2_response_create<Smb2CreateResponseRecord>,
     do_parse!(
-            ssize: le_u16
-        >>  oplock: le_u8
-        >>  resp_flags: le_u8
-        >>  create_action: le_u32
+            _ssize: le_u16
+        >>  _oplock: le_u8
+        >>  _resp_flags: le_u8
+        >>  _create_action: le_u32
         >>  create_ts: le_u64
         >>  last_access_ts: le_u64
         >>  last_write_ts: le_u64
         >>  last_change_ts: le_u64
-        >>  alloc_size: le_u64
+        >>  _alloc_size: le_u64
         >>  eof: le_u64
-        >>  attrs: le_u32
-        >>  padding: take!(4)
+        >>  _attrs: le_u32
+        >>  _padding: take!(4)
         >>  guid: take!(16)
-        >>  skip2: take!(8)
+        >>  _skip2: take!(8)
         >>  (Smb2CreateResponseRecord {
                 guid : guid,
                 create_ts: SMBFiletime::new(create_ts),
@@ -473,9 +489,9 @@ pub struct Smb2WriteResponseRecord<> {
 
 named!(pub parse_smb2_response_write<Smb2WriteResponseRecord>,
     do_parse!(
-            skip1: take!(4)
+            _skip1: take!(4)
         >>  wr_cnt: le_u32
-        >>  skip2: take!(6)
+        >>  _skip2: take!(6)
         >>  (Smb2WriteResponseRecord {
                 wr_cnt : wr_cnt,
             })
@@ -485,10 +501,10 @@ named!(pub parse_smb2_response_record<Smb2Record>,
     do_parse!(
             tag!(b"\xfeSMB")
         >>  hlen: le_u16
-        >>  credit_charge: le_u16
+        >>  _credit_charge: le_u16
         >>  nt_status: le_u32
         >>  command: le_u16
-        >>  credit_granted: le_u16
+        >>  _credit_granted: le_u16
         >>  flags: bits!(tuple!(
                 take_bits!(u8, 2),      // reserved / unused
                 take_bits!(u8, 1),      // replay op
@@ -501,11 +517,11 @@ named!(pub parse_smb2_response_record<Smb2Record>,
             ))
         >> chain_offset: le_u32
         >> message_id: le_u64
-        >> process_id: cond!(flags.6==0, le_u32)
+        >> _process_id: cond!(flags.6==0, le_u32)
         >> tree_id: cond!(flags.6==0, le_u32)
         >> async_id: cond!(flags.6==1, le_u64)
         >> session_id: le_u64
-        >> signature: take!(16)
+        >> _signature: take!(16)
         // there is probably a cleaner way to do this
         >> data_c: cond!(chain_offset > hlen as u32, take!(chain_offset - hlen as u32))
         >> data_r: cond!(chain_offset <= hlen as u32, rest)
@@ -521,18 +537,15 @@ named!(pub parse_smb2_response_record<Smb2Record>,
            })
 ));
 
-#[derive(Debug,PartialEq)]
-pub struct SmbRecordPostGap<'a> {
-    pub data: &'a[u8],
+pub fn search_smb_record<'a>(i: &'a [u8]) -> nom::IResult<&'a [u8], &'a [u8]> {
+    let mut d = i;
+    while d.len() >= 4 {
+        if &d[1..4] == b"SMB" &&
+            (d[0] == 0xfe || d[0] == 0xff || d[0] == 0xfd)
+        {
+            return Ok((&d[4..], d));
+        }
+        d = &d[1..];
+    }
+    Err(nom::Err::Incomplete(nom::Needed::Size(4 as usize - d.len())))
 }
-
-named!(pub search_smb_record<SmbRecordPostGap>,
-    do_parse!(
-           alt!(take_until!([0xfe, 0x53, 0x4d, 0x42].as_bytes())|    // SMB2
-                take_until!([0xff, 0x53, 0x4d, 0x42].as_bytes())|    // SMB1
-                take_until!([0xfd, 0x53, 0x4d, 0x42].as_bytes()))    // SMB3 transform hdr
-        >> data : rest
-        >> ( SmbRecordPostGap {
-                data:data,
-           })
-));

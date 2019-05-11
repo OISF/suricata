@@ -21,24 +21,27 @@ import os
 import os.path
 import time
 import re
-import glob
 import logging
 
 logger = logging.getLogger("filestore")
 
+
 class InvalidAgeFormatError(Exception):
     pass
 
+
 def register_args(parser):
-
-    parsers = parser.add_subparsers()
-
-    prune_parser = parsers.add_parser("prune")
-    prune_parser.add_argument("-d", "--directory", help="filestore directory")
-    prune_parser.add_argument("--age", help="prune files older than age")
+    subparser = parser.add_subparsers(help="sub-command help")
+    prune_parser = subparser.add_parser("prune",
+            help="Remove files in specified directory older than specified age")
+    required_args = prune_parser.add_argument_group("required arguments")
+    required_args.add_argument("-d", "--directory",
+            help="filestore directory", required=True)
+    required_args.add_argument("--age",
+            help="prune files older than age, units: s, m, h, d")
     prune_parser.add_argument(
         "-n", "--dry-run", action="store_true", default=False,
-        help="only print what would happen");
+        help="only print what would happen")
     prune_parser.add_argument(
         "-v", "--verbose", action="store_true",
         default=False, help="increase verbosity")
@@ -47,29 +50,29 @@ def register_args(parser):
         help="be quiet, log warnings and errors only")
     prune_parser.set_defaults(func=prune)
 
+
 def is_fileinfo(path):
     return path.endswith(".json")
 
-def parse_age(age):
-    m = re.match("(\d+)\s*(\w+)", age)
-    if not m:
-        raise InvalidAgeFormatError(age)
-    val = int(m.group(1))
-    unit = m.group(2)
 
-    if unit == "s":
-        return val
-    elif unit == "m":
-        return val * 60
-    elif unit == "h":
-        return val * 60 * 60
-    elif unit == "d":
-        return val * 60 * 60 * 24
-    else:
+def parse_age(age):
+    matched_age = re.match(r"(\d+)\s*(\w+)", age)
+    if not matched_age:
+        raise InvalidAgeFormatError(age)
+    val = int(matched_age.group(1))
+    unit = matched_age.group(2)
+    ts_units = ["s", "m", "h", "d"]
+    try:
+        idx = ts_units.index(unit)
+    except ValueError:
         raise InvalidAgeFormatError("bad unit: %s" % (unit))
+    multiplier = 60 ** idx if idx != 3 else 24 * 60 ** 2
+    return val * multiplier
+
 
 def get_filesize(path):
     return os.stat(path).st_size
+
 
 def remove_file(path, dry_run):
     size = 0
@@ -78,8 +81,8 @@ def remove_file(path, dry_run):
         os.unlink(path)
     return size
 
-def prune(args):
 
+def prune(args):
     if args.verbose:
         logger.setLevel(logging.DEBUG)
     if args.quiet:
@@ -90,7 +93,7 @@ def prune(args):
             "error: the filestore directory must be provided with --directory",
             file=sys.stderr)
         return 1
-    
+
     if not args.age:
         print("error: no age provided, nothing to do", file=sys.stderr)
         return 1
@@ -101,18 +104,16 @@ def prune(args):
     count = 0
 
     for dirpath, dirnames, filenames in os.walk(args.directory, topdown=True):
-
         # Do not go into the tmp directory.
         if "tmp" in dirnames:
             dirnames.remove("tmp")
-
         for filename in filenames:
             path = os.path.join(dirpath, filename)
             mtime = os.path.getmtime(path)
             this_age = now - mtime
             if this_age > age:
-                logger.debug("Deleting %s; age=%ds" % (path, this_age))
+                logger.debug("Deleting %s; age=%ds", path, this_age)
                 size += remove_file(path, args.dry_run)
                 count += 1
-
-    logger.info("Removed %d files; %d bytes." % (count, size))
+    logger.info("Removed %d files; %d bytes.", count, size)
+    return 0

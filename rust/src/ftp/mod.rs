@@ -18,7 +18,7 @@
 extern crate libc;
 extern crate nom;
 
-use nom::{digit};
+use nom::digit;
 use std::str;
 use std;
 use std::str::FromStr;
@@ -46,9 +46,9 @@ named!(pub ftp_pasv_response<u16>,
             take_until_and_consume!("(") >>
             digit >> tag!(",") >> digit >> tag!(",") >>
             digit >> tag!(",") >> digit >> tag!(",") >>
-            part1: getu16 >>
+            part1: verify!(getu16, |v| v <= std::u8::MAX as u16) >>
             tag!(",") >>
-            part2: getu16 >>
+            part2: verify!(getu16, |v| v <= std::u8::MAX as u16) >>
             alt! (tag!(").") | tag!(")")) >>
             (
                 part1 * 256 + part2
@@ -61,14 +61,14 @@ named!(pub ftp_pasv_response<u16>,
 pub extern "C" fn rs_ftp_pasv_response(input: *const libc::uint8_t, len: libc::uint32_t) -> u16 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
     match ftp_pasv_response(buf) {
-        nom::IResult::Done(_, dport) => {
+        Ok((_, dport)) => {
             return dport;
         }
-        nom::IResult::Incomplete(_) => {
+        Err(nom::Err::Incomplete(_)) => {
             let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("pasv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
-        nom::IResult::Error(_) => {
+        Err(_) => {
             let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("pasv error on '{:?}'", String::from_utf8_lossy(buf));
         },
@@ -93,18 +93,39 @@ named!(pub ftp_epsv_response<u16>,
 pub extern "C" fn rs_ftp_epsv_response(input: *const libc::uint8_t, len: libc::uint32_t) -> u16 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
     match ftp_epsv_response(buf) {
-        nom::IResult::Done(_, dport) => {
+        Ok((_, dport)) => {
             return dport;
         },
-        nom::IResult::Incomplete(_) => {
+        Err(nom::Err::Incomplete(_)) => {
             let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
-        nom::IResult::Error(_) => {
+        Err(_) => {
             let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
             SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
         },
 
     }
     return 0;
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_pasv_response_valid() {
+        let port = ftp_pasv_response("227 Entering Passive Mode (212,27,32,66,221,243).".as_bytes());
+        assert_eq!(port, Ok((&b""[..], 56819)));
+    }
+
+    // A port that is too large for a u16.
+    #[test]
+    fn test_pasv_response_too_large() {
+        let port = ftp_pasv_response("227 Entering Passive Mode (212,27,32,66,257,243).".as_bytes());
+        assert!(port.is_err());
+
+        let port = ftp_pasv_response("227 Entering Passive Mode (212,27,32,66,255,65535).".as_bytes());
+        assert!(port.is_err());
+    }
 }

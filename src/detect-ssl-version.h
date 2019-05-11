@@ -33,9 +33,10 @@ enum {
     TLS10 = 2,
     TLS11 = 3,
     TLS12 = 4,
+    TLS13 = 5,
 
-    TLS_SIZE = 5,
-    TLS_UNKNOWN = 6,
+    TLS_SIZE = 6,
+    TLS_UNKNOWN = 7,
 };
 
 typedef struct SSLVersionData_ {

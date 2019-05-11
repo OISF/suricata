@@ -650,6 +650,8 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
         if (copy_comp->buffer == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s",
                     strerror(errno));
+            SCFree(copy->h);
+            SCFree(copy);
             return NULL;
         }
         copy_comp->pcap_buf = SCMalloc(copy_comp->pcap_buf_size);
@@ -657,6 +659,8 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
             SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s",
                     strerror(errno));
             SCFree(copy_comp->buffer);
+            SCFree(copy->h);
+            SCFree(copy);
             return NULL;
         }
         copy_comp->pcap_buf_wrapper = SCFmemopen(copy_comp->pcap_buf,
@@ -665,6 +669,8 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
             SCLogError(SC_ERR_FOPEN, "SCFmemopen failed: %s", strerror(errno));
             SCFree(copy_comp->buffer);
             SCFree(copy_comp->pcap_buf);
+            SCFree(copy->h);
+            SCFree(copy);
             return NULL;
         }
 
@@ -679,6 +685,8 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
             fclose(copy_comp->pcap_buf_wrapper);
             SCFree(copy_comp->buffer);
             SCFree(copy_comp->pcap_buf);
+            SCFree(copy->h);
+            SCFree(copy);
             return NULL;
         }
 
@@ -1401,14 +1409,14 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             SCLogError(SC_ERR_INVALID_ARGUMENT, "lz4 compression was selected "
                     "in pcap-log, but suricata was not compiled with lz4 "
                     "support.");
+            PcapLogDataFree(pl);
             return result;
 #endif /* HAVE_LIBLZ4 */
         }
         else {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Unsupported pcap-log "
                     "compression format: %s", compression_str);
-            SCFree(pl->h);
-            SCFree(pl);
+            PcapLogDataFree(pl);
             return result;
         }
 

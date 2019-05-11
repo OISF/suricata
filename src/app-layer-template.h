@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,20 +31,20 @@
 void RegisterTemplateParsers(void);
 void TemplateParserRegisterTests(void);
 
-typedef struct TemplateTransaction_ {
+typedef struct TemplateTransaction
+{
+    /** Internal transaction ID. */
+    uint64_t tx_id;
 
-    uint64_t tx_id;             /*<< Internal transaction ID. */
-
-    AppLayerDecoderEvents *decoder_events; /*<< Application layer
-                                            * events that occurred
-                                            * while parsing this
-                                            * transaction. */
+    /** Application layer events that occurred
+     *  while parsing this transaction. */
+    AppLayerDecoderEvents *decoder_events;
 
     uint8_t *request_buffer;
     uint32_t request_buffer_len;
 
-    /* flags indicating which loggers that have logged */
-    uint32_t logged;
+    /** flags indicating which loggers that have logged */
+    LoggerId logged;
 
     uint8_t *response_buffer;
     uint32_t response_buffer_len;
@@ -54,25 +54,20 @@ typedef struct TemplateTransaction_ {
 
     DetectEngineState *de_state;
 
-    TAILQ_ENTRY(TemplateTransaction_) next;
+    TAILQ_ENTRY(TemplateTransaction) next;
 
 } TemplateTransaction;
 
-typedef struct TemplateState_ {
+typedef struct TemplateState {
 
-    TAILQ_HEAD(, TemplateTransaction_) tx_list; /**< List of Template transactions
-                                       * associated with this
-                                       * state. */
+    /** List of Template transactions associated with this
+     *  state. */
+    TAILQ_HEAD(, TemplateTransaction) tx_list;
 
-    uint64_t transaction_max; /**< A count of the number of
-                               * transactions created.  The
-                               * transaction ID for each transaction
-                               * is allocted by incrementing this
-                               * value. */
-
-    uint16_t events; /**< Number of application layer events created
-                      * for this state. */
-
+    /** A count of the number of transactions created. The
+     *  transaction ID for each transaction is allocted
+     *  by incrementing this value. */
+    uint64_t transaction_max;
 } TemplateState;
 
 #endif /* __APP_LAYER_TEMPLATE_H__ */

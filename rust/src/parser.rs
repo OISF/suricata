@@ -33,7 +33,7 @@ pub struct RustParser {
     /// Default port
     pub default_port:      *const c_char,
 
-    /// IP Protocol (libc::IPPROTO_UDP, libc::IPPROTO_TCP, etc.)
+    /// IP Protocol (core::IPPROTO_UDP, core::IPPROTO_TCP, etc.)
     pub ipproto:           c_int,
 
     /// Probing function, for packets going to server
@@ -124,8 +124,8 @@ pub type ParseFn      = extern "C" fn (flow: *const Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        data: *const c_void,
-                                       flags: u8) -> i8;
-pub type ProbeFn      = extern "C" fn (flow: *const Flow,input:*const u8, input_len: u32, offset: *const u32) -> AppProto;
+                                       flags: u8) -> i32;
+pub type ProbeFn      = extern "C" fn (flow: *const Flow,direction: u8,input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
 pub type StateAllocFn = extern "C" fn () -> *mut c_void;
 pub type StateFreeFn  = extern "C" fn (*mut c_void);
 pub type StateTxFreeFn  = extern "C" fn (*mut c_void, u64);
@@ -171,5 +171,6 @@ pub const APP_LAYER_PARSER_BYPASS_READY : u8 = 0b1000;
 
 extern {
     pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u8);
+    pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u8) -> c_int;
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
 }

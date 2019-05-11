@@ -47,159 +47,85 @@
 #include "app-layer-ssh.h"
 #include "detect-ssh-software.h"
 
-#define KEYWORD_NAME "ssh_software"
-#define KEYWORD_DOC "ssh-keywords#ssh-software"
+#define KEYWORD_NAME "ssh.software"
+#define KEYWORD_NAME_LEGACY "ssh_software"
+#define KEYWORD_DOC "ssh-keywords.html#ssh-software"
 #define BUFFER_NAME "ssh_software"
 #define BUFFER_DESC "ssh software"
 static int g_buffer_id = 0;
 
-/** \brief SSH Software Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxSshRequestSoftware(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
+static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t flow_flags, void *txv, const int list_id)
 {
     SCEnter();
 
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    const SshState *ssh_state = txv;
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
 
-    if (ssh_state->cli_hdr.software_version == NULL)
-        return;
+    if (buffer->inspect == NULL) {
+        uint8_t *software = NULL;
+        SshState *ssh_state = (SshState *) txv;
 
-    uint32_t buffer_len = strlen((char *)ssh_state->cli_hdr.software_version);
-    const uint8_t *buffer = ssh_state->cli_hdr.software_version;
+        if (flow_flags & STREAM_TOSERVER)
+            software = ssh_state->cli_hdr.software_version;
+        else if (flow_flags & STREAM_TOCLIENT)
+            software = ssh_state->srv_hdr.software_version;
 
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+        if (software == NULL) {
+            SCLogDebug("SSL software version not set");
+            return NULL;
+        }
+
+        uint32_t data_len = strlen((char *)software);
+        uint8_t *data = software;
+        if (data == NULL || data_len == 0) {
+            SCLogDebug("SSL software version not present");
+            return NULL;
+        }
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
     }
-}
 
-static int PrefilterTxSshRequestSoftwareRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxSshRequestSoftware,
-        ALPROTO_SSH, SSH_STATE_BANNER_DONE,
-        mpm_ctx, NULL, KEYWORD_NAME " (request)");
-    return r;
-}
-
-/** \brief SSH Software Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxSshResponseSoftware(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
-{
-    SCEnter();
-
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    const SshState *ssh_state = txv;
-
-    if (ssh_state->srv_hdr.software_version == NULL)
-        return;
-
-    uint32_t buffer_len = strlen((char *)ssh_state->srv_hdr.software_version);
-    const uint8_t *buffer = ssh_state->srv_hdr.software_version;
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
-    }
-}
-
-static int PrefilterTxSshResponseSoftwareRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxSshResponseSoftware,
-        ALPROTO_SSH, SSH_STATE_BANNER_DONE,
-        mpm_ctx, NULL, KEYWORD_NAME " (response)");
-    return r;
-}
-
-static int InspectEngineSshSoftware(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
-{
-    uint8_t *software = NULL;
-    SshState *ssh_state = alstate;
-
-    if (flags & STREAM_TOSERVER)
-        software = ssh_state->cli_hdr.software_version;
-    else if (flags & STREAM_TOCLIENT)
-        software = ssh_state->srv_hdr.software_version;
-    if (software == NULL)
-        goto end;
-
-    uint32_t buffer_len = strlen((char *)software);
-    uint8_t *buffer = software;
-    if (buffer == NULL ||buffer_len == 0)
-        goto end;
-
-    det_ctx->buffer_offset = 0;
-    det_ctx->discontinue_matching = 0;
-    det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-                                          f,
-                                          buffer, buffer_len,
-                                          0, DETECT_CI_FLAGS_SINGLE,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-    if (r == 1)
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-
- end:
-    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_SSH, tx, flags) >= SSH_STATE_BANNER_DONE)
-        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    return buffer;
 }
 
 static int DetectSshSoftwareSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    s->init_data->list = g_buffer_id;
+    if (DetectBufferSetActiveList(s, g_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_SSH) < 0)
+        return -1;
+
     return 0;
 }
+
 
 void DetectSshSoftwareRegister(void)
 {
     sigmatch_table[DETECT_AL_SSH_SOFTWARE].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_SSH_SOFTWARE].alias = KEYWORD_NAME_LEGACY;
     sigmatch_table[DETECT_AL_SSH_SOFTWARE].desc = BUFFER_NAME " sticky buffer";
     sigmatch_table[DETECT_AL_SSH_SOFTWARE].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SSH_SOFTWARE].Setup = DetectSshSoftwareSetup;
-    sigmatch_table[DETECT_AL_SSH_SOFTWARE].flags |= SIGMATCH_NOOPT ;
+    sigmatch_table[DETECT_AL_SSH_SOFTWARE].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterTxSshRequestSoftwareRegister);
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
-            PrefilterTxSshResponseSoftwareRegister);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetSshData,
+			ALPROTO_SSH, SSH_STATE_BANNER_DONE),
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetSshData,
+			ALPROTO_SSH, SSH_STATE_BANNER_DONE),
 
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
             ALPROTO_SSH, SIG_FLAG_TOSERVER, SSH_STATE_BANNER_DONE,
-            InspectEngineSshSoftware);
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
+            DetectEngineInspectBufferGeneric, GetSshData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
             ALPROTO_SSH, SIG_FLAG_TOCLIENT, SSH_STATE_BANNER_DONE,
-            InspectEngineSshSoftware);
+            DetectEngineInspectBufferGeneric, GetSshData);
 
-    DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
-            BUFFER_DESC);
+    DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }

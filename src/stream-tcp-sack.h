@@ -33,26 +33,10 @@
  *  \param stream Stream to get the size for.
  *
  *  \retval size the size
- *
- *  Optimized for case where SACK is not in use in the
- *  stream, as it *should* only be used in case of packet
- *  loss.
  */
 static inline uint32_t StreamTcpSackedSize(TcpStream *stream)
 {
-    if (likely(stream->sack_head == NULL)) {
-        SCReturnUInt(0U);
-    } else {
-        uint32_t size = 0;
-
-        StreamTcpSackRecord *rec = NULL;
-
-        for (rec = stream->sack_head; rec != NULL; rec = rec->next) {
-            size += (rec->re - rec->le);
-        }
-
-        SCReturnUInt(size);
-    }
+    SCReturnUInt(stream->sack_size);
 }
 
 int StreamTcpSackUpdatePacket(TcpStream *, Packet *);

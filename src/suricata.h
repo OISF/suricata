@@ -69,7 +69,7 @@
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
-#define PROG_VER "4.1.0-dev"
+#define PROG_VER "5.0.0-dev"
 
 /* workaround SPlint error (don't know __gnuc_va_list) */
 #ifdef S_SPLINT_S
@@ -86,7 +86,7 @@
 #define DOC_URL "https://suricata.readthedocs.io/en/"
 
 #if defined RELEASE
-#define DOC_VERSION PROG_VER
+#define DOC_VERSION "suricata-" PROG_VER
 #else
 #define DOC_VERSION "latest"
 #endif
@@ -132,11 +132,12 @@ PacketQueue trans_q[256];
 
 typedef struct SCInstance_ {
     enum RunModes run_mode;
+    enum RunModes aux_run_mode;
 
     char pcap_dev[128];
     char *sig_file;
     int sig_file_exclusive;
-    const char *pid_filename;
+    char *pid_filename;
     char *regex_arg;
 
     char *keyword_info;
@@ -149,6 +150,10 @@ typedef struct SCInstance_ {
     uint32_t userid;
     uint32_t groupid;
 #endif /* OS_WIN32 */
+
+    bool system;
+    bool set_logdir;
+
     int delayed_detect;
     int disabled_detect;
     int daemon;

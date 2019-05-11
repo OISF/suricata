@@ -21,6 +21,7 @@
 #include "runmodes.h"
 #include "runmode-pcap-file.h"
 #include "output.h"
+#include "output-json.h"
 
 #include "util-debug.h"
 #include "util-time.h"
@@ -163,7 +164,7 @@ static TmEcode UnixSocketPcapFilesList(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
     TAILQ_FOREACH(file, &this->files, next) {
-        json_array_append_new(jarray, json_string(file->filename));
+        json_array_append_new(jarray, SCJsonString(file->filename));
         i++;
     }
     json_object_set_new(jdata, "count", json_integer(i));
@@ -568,15 +569,16 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     this->current_file = cfile;
 
+    SCLogInfo("Starting run for '%s'", this->current_file->filename);
+
     PreRunInit(RUNMODE_PCAP_FILE);
     PreRunPostPrivsDropInit(RUNMODE_PCAP_FILE);
     RunModeDispatch(RUNMODE_PCAP_FILE, NULL);
 
     /* Un-pause all the paused threads */
     TmThreadWaitOnThreadInit();
+    PacketPoolPostRunmodes();
     TmThreadContinueThreads();
-
-    SCLogInfo("Starting run for '%s'", this->current_file->filename);
 
     return TM_ECODE_OK;
 }
@@ -599,10 +601,12 @@ void RunModeUnixSocketRegister(void)
 TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
 {
 #ifdef BUILD_UNIX_SOCKET
-    SCCtrlMutexLock(&unix_manager_pcap_last_processed_mutex);
-    unix_manager_pcap_last_processed.tv_sec = last_processed->tv_sec;
-    unix_manager_pcap_last_processed.tv_nsec = last_processed->tv_nsec;
-    SCCtrlMutexUnlock(&unix_manager_pcap_last_processed_mutex);
+    if(last_processed) {
+        SCCtrlMutexLock(&unix_manager_pcap_last_processed_mutex);
+        unix_manager_pcap_last_processed.tv_sec = last_processed->tv_sec;
+        unix_manager_pcap_last_processed.tv_nsec = last_processed->tv_nsec;
+        SCCtrlMutexUnlock(&unix_manager_pcap_last_processed_mutex);
+    }
     switch (tm) {
         case TM_ECODE_DONE:
             SCLogInfo("Marking current task as done");
@@ -613,7 +617,7 @@ TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
             unix_manager_pcap_task_running = 0;
             unix_manager_pcap_task_failed = 1;
             //if we return failed, we can't stop the thread and suricata will fail to close
-            return TM_ECODE_DONE;
+            return TM_ECODE_FAILED;
         case TM_ECODE_OK:
             if (unix_manager_pcap_task_interrupted == 1) {
                 SCLogInfo("Interrupting current run mode");
@@ -787,7 +791,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
         return TM_ECODE_FAILED;
     }
 
-    json_object_set_new(answer, "message", json_string("handler added"));
+    json_object_set_new(answer, "message", json_string("handler removed"));
     return TM_ECODE_OK;
 }
 

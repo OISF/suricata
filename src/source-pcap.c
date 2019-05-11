@@ -94,6 +94,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *, const void *, void **);
 void ReceivePcapThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
 TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
+TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data);
 
 TmEcode DecodePcapThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
@@ -113,7 +114,7 @@ void TmModuleReceivePcapRegister (void)
     tmm_modules[TMM_RECEIVEPCAP].ThreadInit = ReceivePcapThreadInit;
     tmm_modules[TMM_RECEIVEPCAP].Func = NULL;
     tmm_modules[TMM_RECEIVEPCAP].PktAcqLoop = ReceivePcapLoop;
-    tmm_modules[TMM_RECEIVEPCAP].PktAcqBreakLoop = NULL;
+    tmm_modules[TMM_RECEIVEPCAP].PktAcqBreakLoop = ReceivePcapBreakLoop;
     tmm_modules[TMM_RECEIVEPCAP].ThreadExitPrintStats = ReceivePcapThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAP].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEPCAP].RegisterTests = NULL;
@@ -299,6 +300,20 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 }
 
 /**
+ * \brief PCAP Break Loop function.
+ */
+TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data)
+{
+    SCEnter();
+    PcapThreadVars *ptv = (PcapThreadVars *)data;
+    if (ptv->pcap_handle == NULL) {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    pcap_breakloop(ptv->pcap_handle);
+    SCReturnInt(TM_ECODE_OK);
+}
+
+/**
  * \brief Init function for ReceivePcap.
  *
  * This is a setup function for recieving packets
@@ -408,9 +423,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
     }
 #ifdef HAVE_PCAP_SET_BUFF
     ptv->pcap_buffer_size = pcapconfig->buffer_size;
-    if (ptv->pcap_buffer_size >= 0 && ptv->pcap_buffer_size <= INT_MAX) {
-        if (ptv->pcap_buffer_size > 0)
-            SCLogInfo("Going to use pcap buffer size of %" PRId32 "", ptv->pcap_buffer_size);
+    if (ptv->pcap_buffer_size > 0) {
+        SCLogInfo("Going to use pcap buffer size of %" PRId32 "", ptv->pcap_buffer_size);
 
         int pcap_set_buffer_size_r = pcap_set_buffer_size(ptv->pcap_handle,ptv->pcap_buffer_size);
         //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_buffer_size_r);

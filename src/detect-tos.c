@@ -69,6 +69,8 @@ void DetectTosRegister(void)
     sigmatch_table[DETECT_TOS].RegisterTests = DetectTosRegisterTests;
     sigmatch_table[DETECT_TOS].flags =
         (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
+    sigmatch_table[DETECT_TOS].url =
+        DOC_URL DOC_VERSION "/rules/header-keywords.html#tos";
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
@@ -119,31 +121,33 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
         goto error;
     }
 
-    const char *str_ptr;
-    res = pcre_get_substring((char *)arg, ov, MAX_SUBSTRINGS, 1,
-                             &str_ptr);
+    /* For TOS value */
+    char tosbytes_str[64] = "";
+    res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS, 1,
+                             tosbytes_str, sizeof(tosbytes_str));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
     int64_t tos = 0;
 
-    if (*str_ptr == 'x' || *str_ptr == 'X') {
-        int r = ByteExtractStringSigned(&tos, 16, 0, str_ptr + 1);
+    if (tosbytes_str[0] == 'x' || tosbytes_str[0] == 'X') {
+        int r = ByteExtractStringSigned(&tos, 16, 0, &tosbytes_str[1]);
         if (r < 0) {
             goto error;
         }
     } else {
-        int r = ByteExtractStringSigned(&tos, 10, 0, str_ptr);
+        int r = ByteExtractStringSigned(&tos, 10, 0, &tosbytes_str[0]);
         if (r < 0) {
             goto error;
         }
     }
+
     if (!(tos >= DETECT_IPTOS_MIN && tos <= DETECT_IPTOS_MAX)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid tos argument - "
                    "%s.  The tos option value must be in the range "
-                   "%u - %u", str_ptr, DETECT_IPTOS_MIN, DETECT_IPTOS_MAX);
+                   "%u - %u", tosbytes_str, DETECT_IPTOS_MIN, DETECT_IPTOS_MAX);
         goto error;
     }
 

@@ -60,9 +60,7 @@
 
 #include "util-unittest-helper.h"
 
-#ifdef HAVE_RUST
 #include "rust-dns-dns-gen.h"
-#endif
 
 static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectDnsQueryRegisterTests(void);
@@ -70,39 +68,8 @@ static int g_dns_query_buffer_id = 0;
 
 struct DnsQueryGetDataArgs {
     int local_id;  /**< used as index into thread inspect array */
-#ifdef HAVE_RUST
     void *txv;
-#else
-    const DNSQueryEntry *query;
-#endif
 };
-
-/** \brief get an InspectionBuffer. Make space if we have to. */
-static InspectionBuffer *GetBuffer(InspectionBufferMultipleForList *fb, uint32_t id)
-{
-    if (id >= fb->size) {
-        uint32_t old_size = fb->size;
-        uint32_t new_size = id + 1;
-        uint32_t grow_by = new_size - old_size;
-        SCLogDebug("size is %u, need %u, so growing by %u",
-                old_size, new_size, grow_by);
-
-        void *ptr = SCRealloc(fb->inspection_buffers, (id + 1) * sizeof(InspectionBuffer));
-        if (ptr == NULL)
-            return NULL;
-
-        InspectionBuffer *to_zero = (InspectionBuffer *)ptr + old_size;
-        SCLogDebug("fb->inspection_buffers %p ptr %p to_zero %p",
-                fb->inspection_buffers, ptr, to_zero);
-        memset((uint8_t *)to_zero, 0, (grow_by * sizeof(InspectionBuffer)));
-        fb->inspection_buffers = ptr;
-        fb->size = new_size;
-    }
-
-    InspectionBuffer *buffer = &fb->inspection_buffers[id];
-    SCLogDebug("using file_data buffer %p", buffer);
-    return buffer;
-}
 
 static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
@@ -110,8 +77,8 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    InspectionBufferMultipleForList *fb = &det_ctx->multi_inspect_buffers[list_id];
-    InspectionBuffer *buffer = GetBuffer(fb, cbdata->local_id);
+    InspectionBufferMultipleForList *fb = InspectionBufferGetMulti(det_ctx, list_id);
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(fb, cbdata->local_id);
     if (buffer == NULL)
         return NULL;
     if (!first && buffer->inspect != NULL)
@@ -119,16 +86,10 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
 
     const uint8_t *data;
     uint32_t data_len;
-#ifdef HAVE_RUST
     if (rs_dns_tx_get_query_name(cbdata->txv, (uint16_t)cbdata->local_id,
                 (uint8_t **)&data, &data_len) == 0) {
         return NULL;
     }
-#else
-    const DNSQueryEntry *query = cbdata->query;
-    data = (const uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
-    data_len = query->len;
-#endif
     InspectionBufferSetup(buffer, data, data_len);
     InspectionBufferApplyTransforms(buffer, transforms);
 
@@ -148,7 +109,6 @@ static int DetectEngineInspectDnsQuery(
         transforms = engine->v2.transforms;
     }
 
-#ifdef HAVE_RUST
     while(1) {
         struct DnsQueryGetDataArgs cbdata = { local_id, txv, };
         InspectionBuffer *buffer = DnsQueryGetData(det_ctx,
@@ -161,43 +121,16 @@ static int DetectEngineInspectDnsQuery(
         det_ctx->inspection_recursion_counter = 0;
 
         const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
-                                              f,
+                                              NULL, f,
                                               (uint8_t *)buffer->inspect,
                                               buffer->inspect_len,
                                               buffer->inspect_offset, DETECT_CI_FLAGS_SINGLE,
-                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match == 1) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
         local_id++;
     }
-#else
-    DNSTransaction *tx = (DNSTransaction *)txv;
-    DNSQueryEntry *query = NULL;
-    TAILQ_FOREACH(query, &tx->query_list, next)
-    {
-        struct DnsQueryGetDataArgs cbdata = { local_id, query };
-        InspectionBuffer *buffer = DnsQueryGetData(det_ctx,
-            transforms, f, &cbdata, engine->sm_list, false);
-        if (buffer == NULL || buffer->inspect == NULL)
-            break;
-
-        det_ctx->buffer_offset = 0;
-        det_ctx->discontinue_matching = 0;
-        det_ctx->inspection_recursion_counter = 0;
-
-        const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
-                                              f,
-                                              (uint8_t *)buffer->inspect,
-                                              buffer->inspect_len,
-                                              buffer->inspect_offset, DETECT_CI_FLAGS_SINGLE,
-                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-        if (match == 1) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
-        }
-        local_id++;
-    }
-#endif
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
@@ -227,7 +160,6 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
     const int list_id = ctx->list_id;
 
     int local_id = 0;
-#ifdef HAVE_RUST
     while(1) {
         // loop until we get a NULL
 
@@ -245,23 +177,6 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
 
         local_id++;
     }
-#else
-    const DNSTransaction *tx = (DNSTransaction *)txv;
-    const DNSQueryEntry *query = NULL;
-    TAILQ_FOREACH(query, &tx->query_list, next)
-    {
-        struct DnsQueryGetDataArgs cbdata = { local_id, query };
-        InspectionBuffer *buffer = DnsQueryGetData(det_ctx, ctx->transforms,
-                f, &cbdata, list_id, true);
-
-        if (buffer != NULL && buffer->inspect_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                    &det_ctx->mtcu, &det_ctx->pmq,
-                    buffer->inspect, buffer->inspect_len);
-        }
-        local_id++;
-    }
-#endif
 }
 
 static void PrefilterMpmDnsQueryFree(void *ptr)
@@ -291,14 +206,13 @@ static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx,
  */
 void DetectDnsQueryRegister (void)
 {
-    sigmatch_table[DETECT_AL_DNS_QUERY].name = "dns_query";
-    sigmatch_table[DETECT_AL_DNS_QUERY].desc = "content modifier to match specifically and only on the DNS query-buffer";
-    sigmatch_table[DETECT_AL_DNS_QUERY].Match = NULL;
+    sigmatch_table[DETECT_AL_DNS_QUERY].name = "dns.query";
+    sigmatch_table[DETECT_AL_DNS_QUERY].alias = "dns_query";
+    sigmatch_table[DETECT_AL_DNS_QUERY].desc = "sticky buffer to match DNS query-buffer";
     sigmatch_table[DETECT_AL_DNS_QUERY].Setup = DetectDnsQuerySetup;
-    sigmatch_table[DETECT_AL_DNS_QUERY].Free  = NULL;
     sigmatch_table[DETECT_AL_DNS_QUERY].RegisterTests = DetectDnsQueryRegisterTests;
-
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMpmRegister2("dns_query", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmDnsQueryRegister, NULL,
@@ -329,7 +243,7 @@ void DetectDnsQueryRegister (void)
 
 
 /**
- * \brief this function setups the dns_query modifier keyword used in the rule
+ * \brief setup the dns_query sticky buffer keyword used in the rule
  *
  * \param de_ctx   Pointer to the Detection Engine Context
  * \param s        Pointer to the Signature to which the current keyword belongs
@@ -341,8 +255,10 @@ void DetectDnsQueryRegister (void)
 
 static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectBufferSetActiveList(s, g_dns_query_buffer_id);
-    s->alproto = ALPROTO_DNS;
+    if (DetectBufferSetActiveList(s, g_dns_query_buffer_id) < 0)
+        return -1;
+    if (DetectSignatureSetAppProto(s, ALPROTO_DNS) < 0)
+        return -1;
     return 0;
 }
 
@@ -359,7 +275,7 @@ static int DetectDnsQueryTest01(void)
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    DNSState *dns_state = NULL;
+    RSDNSState *dns_state = NULL;
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -464,7 +380,7 @@ static int DetectDnsQueryTest02(void)
                         0x65, 0x03, 0x6E, 0x65, 0x74, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    DNSState *dns_state = NULL;
+    RSDNSState *dns_state = NULL;
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -618,7 +534,7 @@ static int DetectDnsQueryTest03(void)
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    DNSState *dns_state = NULL;
+    RSDNSState *dns_state = NULL;
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -654,7 +570,7 @@ static int DetectDnsQueryTest03(void)
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                               "(msg:\"Test dns_query option\"; "
-                              "content:\"google\"; nocase; dns_query; sid:1;)");
+                              "dns_query; content:\"google\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -707,7 +623,7 @@ static int DetectDnsQueryTest04(void)
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    DNSState *dns_state = NULL;
+    RSDNSState *dns_state = NULL;
     Packet *p1 = NULL, *p2 = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -848,7 +764,7 @@ static int DetectDnsQueryTest05(void)
                         0x65, 0x03, 0x6E, 0x65, 0x74, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    DNSState *dns_state = NULL;
+    RSDNSState *dns_state = NULL;
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL, *p4 = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -1034,7 +950,7 @@ static int DetectDnsQueryTest06(void)
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    DNSState *dns_state = NULL;
+    RSDNSState *dns_state = NULL;
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -1150,7 +1066,7 @@ static int DetectDnsQueryTest07(void)
                         0x65, 0x03, 0x6E, 0x65, 0x74, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    DNSState *dns_state = NULL;
+    RSDNSState *dns_state = NULL;
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     Signature *s = NULL;
     ThreadVars tv;

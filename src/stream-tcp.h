@@ -96,6 +96,8 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_rst;
     /** midstream pickups */
     uint16_t counter_tcp_midstream_pickups;
+    /** wrong thread */
+    uint16_t counter_tcp_wrong_thread;
 
     /** tcp reassembly thread data */
     TcpReassemblyThreadCtx *ra_ctx;
@@ -132,7 +134,8 @@ int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
         uint64_t progress_in,
         uint64_t *progress_out, bool eof);
 int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
-        StreamReassembleRawFunc Callback, void *cb_data, uint64_t *progress_out);
+        StreamReassembleRawFunc Callback, void *cb_data,
+        uint64_t *progress_out, bool respect_inspect_depth);
 void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress);
 
 void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueue *pq);
@@ -159,38 +162,6 @@ static inline int StreamTcpCheckFlowDrops(Packet *p)
         return 1;
 
     return 0;
-}
-
-/**
- *  \brief  Function to flip the direction When we missed the SYN packet,
- *          SYN/ACK is considered as sent by server, but our engine flagged the
- *          packet as from client for the host whose packet is received first in
- *          the session.
- *
- *  \param  ssn TcpSession to whom this packet belongs
- *  \param  p   Packet whose flag has to be changed
- */
-static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
-{
-    SCLogDebug("ssn %p: switching pkt direction", ssn);
-
-    if (PKT_IS_TOSERVER(p)) {
-        p->flowflags &= ~FLOW_PKT_TOSERVER;
-        p->flowflags |= FLOW_PKT_TOCLIENT;
-
-        if (p->flowflags & FLOW_PKT_TOSERVER_FIRST) {
-            p->flowflags &= ~FLOW_PKT_TOSERVER_FIRST;
-            p->flowflags |= FLOW_PKT_TOCLIENT_FIRST;
-        }
-    } else {
-        p->flowflags &= ~FLOW_PKT_TOCLIENT;
-        p->flowflags |= FLOW_PKT_TOSERVER;
-
-        if (p->flowflags & FLOW_PKT_TOCLIENT_FIRST) {
-            p->flowflags &= ~FLOW_PKT_TOCLIENT_FIRST;
-            p->flowflags |= FLOW_PKT_TOSERVER_FIRST;
-        }
-    }
 }
 
 enum {

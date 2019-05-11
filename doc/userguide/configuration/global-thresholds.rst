@@ -190,7 +190,7 @@ Threshold/event_filter
 When applied to a specific signature, thresholds and event_filters
 (threshold from now on) will override the signature setting. This can
 be useful for when the default in a signature doesn't suit your
-evironment.
+environment.
 
 ::
 

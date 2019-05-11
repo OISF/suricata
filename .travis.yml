@@ -4,9 +4,9 @@ language: c
 
 addons:
   apt:
-    # Define the required packages without libjansson so we can do a
-    # build without libjansson.
-    packages-without-jansson: &packages-without-jansson
+    # Define the required packages without nss/nspr so we can do a
+    # build without nss/nspr
+    packages-without-nssnspr: &packages-without-nssnspr
       - libpcre3
       - libpcre3-dbg
       - libpcre3-dev
@@ -32,11 +32,45 @@ addons:
       - libjansson-dev
       - libevent-dev
       - libevent-pthreads-2.0-5
+    # Define the required packages without libjansson so we can do a
+    # build without libjansson.
+    packages-without-jansson: &packages-without-jansson
+      - libnss3-dev
+      - libpcre3
+      - libpcre3-dbg
+      - libpcre3-dev
+      - build-essential
+      - autoconf
+      - automake
+      - libtool
+      - libpcap-dev
+      - libnet1-dev
+      - libyaml-0-2
+      - libyaml-dev
+      - zlib1g
+      - zlib1g-dev
+      - libcap-ng-dev
+      - libcap-ng0
+      - make
+      - libmagic-dev
+      - libnetfilter-queue-dev
+      - libnetfilter-queue1
+      - libnfnetlink-dev
+      - libnfnetlink0
+      - libhiredis-dev
+      - libevent-dev
+      - libevent-pthreads-2.0-5
     # Now define the default set of packages which is those above, and
     # libjansson.
     packages: &packages
       - *packages-without-jansson
       - libjansson-dev
+
+cache:
+  directories:
+    - /home/travis/.rustup
+    - /home/travis/.cargo
+    - /home/travis/.multirust
 
 # Define the default CFLAGS used by all builds as a YAML anchor.
 default-cflags: &default-cflags
@@ -49,7 +83,6 @@ matrix:
     - env:
         - NAME="linux,gcc,rust-stable"
         - *default-cflags
-        - ENABLE_RUST="yes"
         - RUST_VERSION="stable"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_CHECK_SETUP_SCRIPTS="yes"
@@ -79,30 +112,47 @@ matrix:
       env:
         - NAME="linux,gcc,rust-stable"
         - *default-cflags
-        - ENABLE_RUST="yes"
         - RUST_VERSION="stable"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_CHECK_SETUP_SCRIPTS="yes"
         - DO_DISTCHECK="yes"
-    # Linux, gcc, Rust.
-    # - Rust 1.23.0, the latest known working version.
+    # Linux, gcc, Rust (auto detect).
+    # - Rust 1.31.0, the latest known working version.
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,rust-1.23.0"
+        - NAME="linux,gcc,rust-1.31.0-disabled"
         - *default-cflags
-        - ENABLE_RUST="yes"
-        - RUST_VERSION="1.23.0"
+        - RUST_VERSION="1.31.0"
+        - ARGS="--disable-rust"
+        - DO_DISTCHECK="yes"
+    # Linux, gcc, Rust (auto detect).
+    # - Rust 1.31.0, the latest known working version.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,rust-1.31.0-auto"
+        - *default-cflags
+        - RUST_VERSION="1.31.0"
+        - ARGS=""
+        - DO_DISTCHECK="yes"
+    # Linux, gcc, Rust.
+    # - Rust 1.31.0, the latest known working version.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,rust-1.31.0"
+        - *default-cflags
+        - RUST_VERSION="1.31.0"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_DISTCHECK="yes"
-    # Linux, gcc, Rust (1.21.0 - oldest supported).
+    # Linux, gcc, Rust (1.24.1 - oldest supported).
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,rust-1.21.0"
+        - NAME="linux,gcc,rust-1.24.1"
         - *default-cflags
-        - ENABLE_RUST="yes"
-        - RUST_VERSION="1.21.0"
+        - RUST_VERSION="1.24.1"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_DISTCHECK="yes"
     # Linux, gcc, -DNDEBUG.
@@ -138,30 +188,50 @@ matrix:
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,no-json"
+        - NAME="linux,gcc,no-jansson"
         - *default-cflags
+        - CONFIGURE_SHOULD_FAIL="yes"
       addons:
         apt:
           packages:
             - *packages-without-jansson
-    # OSX 10.12, XCode 8.1
+    # OSX 10.13, XCode 8.3
     - os: osx
       compiler: gcc
-      osx_image: xcode8.1
+      osx_image: xcode8.3
       sudo: true
       env:
         - NAME="osx,gcc"
         - *default-cflags
+    # Linux, gcc, no nss/nspr.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,no-nssnspr"
+        - *default-cflags
+        - ARGS="--disable-nss --disable-nspr"
+      addons:
+        apt:
+          packages:
+            - *packages-without-nssnspr
 
 script:
-  - sh ./autogen.sh
   - |
+    sh ./autogen.sh
+
     if [[ "${NO_UNITTESTS}" != "yes" ]]; then
         ARGS="${ARGS} --enable-unittests"
     fi
+
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         export CFLAGS="${CFLAGS} ${EXTRA_CFLAGS}"
-        ./configure --enable-nfqueue --enable-hiredis ${ARGS}
+        if ! ./configure --enable-nfqueue --enable-hiredis ${ARGS}; then
+            if [[ "${CONFIGURE_SHOULD_FAIL}" = "yes" ]]; then
+                EXIT_CODE=0
+            else
+                EXIT_CODE=1
+            fi
+        fi
     elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         export CFLAGS="${CFLAGS} ${EXTRA_CFLAGS}"
         ./configure --enable-hiredis --enable-ipfw \
@@ -173,13 +243,17 @@ script:
             --with-libnspr-includes=/usr/local/opt/nspr/include/nspr \
             --with-libnspr-libraries=/usr/local/opt/nspr/lib ${ARGS}
     fi
-  - |
+
+    if [[ "${EXIT_CODE}" ]]; then
+        exit "${EXIT_CODE}"
+    fi
+
     # Linux container builds have 2 cores, make use of them.
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         j="-j 2"
     fi
     make ${j}
-  - |
+
     # Like "make check", but fail on first error. We redirect the output
     # so Travis doesn't fail the build with a too much output error.
     if [[ "${NO_UNITTESTS}" != "yes" ]]; then
@@ -191,25 +265,28 @@ script:
             exit 1
         fi
     fi
-  - |
+
+    (cd qa/coccinelle && make check)
+
     if [[ "$DO_DISTCHECK" == "yes" ]]; then
         make distcheck DISTCHECK_CONFIGURE_FLAGS="${ARGS}"
     fi
-  - |
+
     if [[ "$DO_CHECK_SETUP_SCRIPTS" == "yes" ]]; then
         (cd scripts && ./check-setup.sh)
     fi
 
+    git clone https://github.com/OISF/suricata-verify.git verify
+    python ./verify/run.py
+
 before_install:
   - export PATH=$HOME/.cargo/bin:$PATH
   - |
-    if [[ "$ENABLE_RUST" == "yes" ]]; then
-        curl https://sh.rustup.rs -sSf | sh -s -- -y
-        if [[ "$RUST_VERSION" != "" ]]; then
-            rustup override set $RUST_VERSION
-        fi
-        rustc --version
+    curl https://sh.rustup.rs -sSf | sh -s -- -y
+    if [[ "$RUST_VERSION" != "" ]]; then
+        rustup override set $RUST_VERSION
     fi
+    rustc --version
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew update
@@ -228,6 +305,7 @@ before_install:
         packages="$packages lua"
         packages="$packages pcre"
         packages="$packages hiredis"
+        packages="$packages jq"
         for package in $packages; do
             if brew ls $package --versions > /dev/null; then
                 brew unlink $package
@@ -240,5 +318,9 @@ before_install:
         # Now relink, becuase if a newer version of a package wasn't
         # installed above, it will remain unlinked.
         brew link $packages
+
+        curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+        sudo python ./get-pip.py
+        sudo pip install PyYAML
     fi
   - ./qa/travis-libhtp.sh

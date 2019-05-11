@@ -209,7 +209,7 @@ TmEcode PcapDetermineDirectoryOrFile(char *filename, DIR **directory)
                 break;
 
             case ENOTDIR: //no error checking the directory, just is a plain file
-                SCLogInfo("%s: Plain file, not a directory", filename);
+                SCLogDebug("%s: plain file, not a directory", filename);
                 return_code = TM_ECODE_OK;
                 break;
 

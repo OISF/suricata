@@ -60,9 +60,6 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_SMB:
             proto_name = "smb";
             break;
-        case ALPROTO_SMB2:
-            proto_name = "smb2";
-            break;
         case ALPROTO_DCERPC:
             proto_name = "dcerpc";
             break;
@@ -105,6 +102,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_TEMPLATE:
             proto_name = "template";
             break;
+        case ALPROTO_TEMPLATE_RUST:
+            proto_name = "template-rust";
+            break;
         case ALPROTO_FAILED:
             proto_name = "failed";
             break;
@@ -132,7 +132,6 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"msn")==0) return ALPROTO_MSN;
     if (strcmp(proto_name,"jabber")==0) return ALPROTO_JABBER;
     if (strcmp(proto_name,"smb")==0) return ALPROTO_SMB;
-    if (strcmp(proto_name,"smb2")==0) return ALPROTO_SMB2;
     if (strcmp(proto_name,"dcerpc")==0) return ALPROTO_DCERPC;
     if (strcmp(proto_name,"irc")==0) return ALPROTO_IRC;
     if (strcmp(proto_name,"dns")==0) return ALPROTO_DNS;
@@ -145,6 +144,7 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"krb5")==0) return ALPROTO_KRB5;
     if (strcmp(proto_name,"dhcp")==0) return ALPROTO_DHCP;
     if (strcmp(proto_name,"template")==0) return ALPROTO_TEMPLATE;
+    if (strcmp(proto_name,"template-rust")==0) return ALPROTO_TEMPLATE_RUST;
     if (strcmp(proto_name,"failed")==0) return ALPROTO_FAILED;
 
     return ALPROTO_UNKNOWN;

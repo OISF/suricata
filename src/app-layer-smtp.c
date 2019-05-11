@@ -63,6 +63,8 @@
 /* content-inspect-window default value */
 #define FILEDATA_CONTENT_INSPECT_WINDOW 4096
 
+/* raw extraction default value */
+#define SMTP_RAW_EXTRACTION_DEFAULT_VALUE 0
 #define SMTP_MAX_REQUEST_AND_REPLY_LINE_LENGTH 510
 
 #define SMTP_COMMAND_BUFFER_STEPS 5
@@ -81,6 +83,8 @@
 #define SMTP_PARSER_STATE_FIRST_REPLY_SEEN        0x04
 /* Used to indicate that the parser is parsing a multiline reply */
 #define SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY 0x08
+/* Used to indicate that the server supports pipelining */
+#define SMTP_PARSER_STATE_PIPELINING_SERVER        0x10
 
 /* Various SMTP commands
  * We currently have var-ified just STARTTLS and DATA, since we need to them
@@ -163,7 +167,7 @@ static MpmCtx *smtp_mpm_ctx = NULL;
 
 /* smtp reply codes.  If an entry is made here, please make a simultaneous
  * entry in smtp_reply_map */
-enum {
+enum SMTPCode {
     SMTP_REPLY_211,
     SMTP_REPLY_214,
     SMTP_REPLY_220,
@@ -229,7 +233,7 @@ SCEnumCharMap smtp_reply_map[ ] = {
 };
 
 /* Create SMTP config structure */
-SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0, STREAMING_BUFFER_CONFIG_INITIALIZER};
+SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0, 0, STREAMING_BUFFER_CONFIG_INITIALIZER};
 
 static SMTPString *SMTPStringAlloc(void);
 
@@ -324,6 +328,18 @@ static void SMTPConfigure(void) {
     }
 
     smtp_config.sbcfg.buf_size = content_limit ? content_limit : 256;
+
+    if (ConfGetBool("app-layer.protocols.smtp.raw-extraction",
+            &smtp_config.raw_extraction) != 1) {
+        smtp_config.raw_extraction = SMTP_RAW_EXTRACTION_DEFAULT_VALUE;
+    }
+    if (smtp_config.raw_extraction && smtp_config.decode_mime) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR,
+                "\"decode-mime\" and \"raw-extraction\" "
+                "options can't be enabled at the same time, "
+                "disabling raw extraction");
+        smtp_config.raw_extraction = 0;
+    }
 
     SCReturn;
 }
@@ -445,8 +461,9 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 flags |= FILE_STORE;
             }
 
-            if (FileOpenFile(files, &smtp_config.sbcfg, (uint8_t *) entity->filename, entity->filename_len,
-                    (uint8_t *) chunk, len, flags) == NULL) {
+            if (FileOpenFileWithId(files, &smtp_config.sbcfg, smtp_state->file_track_id++,
+                        (uint8_t *) entity->filename, entity->filename_len,
+                        (uint8_t *) chunk, len, flags) != 0) {
                 ret = MIME_DEC_ERR_DATA;
                 SCLogDebug("FileOpenFile() failed");
             }
@@ -799,6 +816,44 @@ static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
     SCReturnInt(0);
 }
 
+static void SetMimeEvents(SMTPState *state)
+{
+    if (state->curr_tx->mime_state->msg == NULL) {
+        return;
+    }
+
+    /* Generate decoder events */
+    MimeDecEntity *msg = state->curr_tx->mime_state->msg;
+    if (msg->anomaly_flags & ANOM_INVALID_BASE64) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_BASE64);
+    }
+    if (msg->anomaly_flags & ANOM_INVALID_QP) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_QP);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_LINE) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_LINE);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_ENC_LINE) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_ENC_LINE);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_HEADER_NAME) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_HEADER_VALUE) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE);
+    }
+    if (msg->anomaly_flags & ANOM_MALFORMED_MSG) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_BOUNDARY) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
+    }
+}
+
+/**
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
 static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
                                   AppLayerParserState *pstate)
 {
@@ -816,57 +871,48 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
          * the command buffer to be used by the reply handler to match
          * the reply received */
         SMTPInsertCommandIntoCommandBuffer(SMTP_COMMAND_DATA_MODE, state, f);
-
-        if (smtp_config.decode_mime && state->curr_tx->mime_state != NULL) {
+        if (smtp_config.raw_extraction) {
+            /* we use this as the signal that message data is complete. */
+            FileCloseFile(state->files_ts, NULL, 0, 0);
+        } else if (smtp_config.decode_mime &&
+                state->curr_tx->mime_state != NULL) {
             /* Complete parsing task */
             int ret = MimeDecParseComplete(state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
-
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_PARSE_FAILED);
                 SCLogDebug("MimeDecParseComplete() function failed");
             }
 
             /* Generate decoder events */
-            MimeDecEntity *msg = state->curr_tx->mime_state->msg;
-            if (msg->anomaly_flags & ANOM_INVALID_BASE64) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_BASE64);
-            }
-            if (msg->anomaly_flags & ANOM_INVALID_QP) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_QP);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_LINE) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_LINE);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_ENC_LINE) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_ENC_LINE);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_HEADER_NAME) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_HEADER_VALUE) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE);
-            }
-            if (msg->anomaly_flags & ANOM_MALFORMED_MSG) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_BOUNDARY) {
-                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
-            }
+            SetMimeEvents(state);
         }
         state->curr_tx->done = 1;
         SCLogDebug("marked tx as done");
+    } else if (smtp_config.raw_extraction) {
+        // message not over, store the line. This is a substitution of
+        // ProcessDataChunk
+        FileAppendData(state->files_ts, state->current_line,
+                state->current_line_len+state->current_line_delimiter_len);
     }
 
     /* If DATA, then parse out a MIME message */
     if (state->current_command == SMTP_COMMAND_DATA &&
             (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
-        if (smtp_config.decode_mime && state->curr_tx->mime_state) {
+        if (smtp_config.decode_mime && state->curr_tx->mime_state != NULL) {
             int ret = MimeDecParseLine((const uint8_t *) state->current_line,
                     state->current_line_len, state->current_line_delimiter_len,
                     state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
-                SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);
+                if (ret != MIME_DEC_ERR_STATE) {
+                    /* Generate decoder events */
+                    SetMimeEvents(state);
+
+                    SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);
+                    SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_PARSE_FAILED);
+                }
+                /* keep the parser in its error state so we can log that,
+                 * the parser will reject new data */
             }
         }
     }
@@ -885,8 +931,6 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
                             SMTPThreadCtx *td)
 {
     SCEnter();
-
-    uint64_t reply_code = 0;
 
     /* the reply code has to contain at least 3 bytes, to hold the 3 digit
      * reply code */
@@ -925,7 +969,9 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
                 state->current_line[0], state->current_line[1], state->current_line[2]);
         SCReturnInt(-1);
     }
-    reply_code = smtp_reply_map[td->pmq->rule_id_array[0]].enum_value;
+    enum SMTPCode reply_code = smtp_reply_map[td->pmq->rule_id_array[0]].enum_value;
+    SCLogDebug("REPLY: reply_code %u / %s", reply_code,
+            smtp_reply_map[reply_code].enum_name);
 
     if (state->cmds_idx == state->cmds_cnt) {
         if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -979,6 +1025,12 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
      * line of the multiline reply, following which we increment the index */
     if (!(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
         state->cmds_idx++;
+    } else if (state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        /* we check if the server is indicating pipelining support */
+        if (reply_code == SMTP_REPLY_250 && state->current_line_len == 14 &&
+            SCMemcmpLowercase("pipelining", state->current_line+4, 10) == 0) {
+            state->parser_state |= SMTP_PARSER_STATE_PIPELINING_SERVER;
+        }
     }
 
     /* if we have matched all the buffered commands, reset the cnt and index */
@@ -1138,7 +1190,31 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
         } else if (state->current_line_len >= 4 &&
                    SCMemcmpLowercase("data", state->current_line, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
-            if (smtp_config.decode_mime) {
+            if (smtp_config.raw_extraction) {
+                const char *msgname = "rawmsg"; /* XXX have a better name */
+                if (state->files_ts == NULL)
+                    state->files_ts = FileContainerAlloc();
+                if (state->files_ts == NULL) {
+                    return -1;
+                }
+                if (state->tx_cnt > 1 && !state->curr_tx->done) {
+                    // we did not close the previous tx, set error
+                    SMTPSetEvent(state, SMTP_DECODER_EVENT_UNPARSABLE_CONTENT);
+                    FileCloseFile(state->files_ts, NULL, 0, FILE_TRUNCATED);
+                    tx = SMTPTransactionCreate();
+                    if (tx == NULL)
+                        return -1;
+                    state->curr_tx = tx;
+                    TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
+                    tx->tx_id = state->tx_cnt++;
+                }
+                if (FileOpenFileWithId(state->files_ts, &smtp_config.sbcfg,
+                        state->file_track_id++,
+                        (uint8_t*) msgname, strlen(msgname), NULL, 0,
+                        FILE_NOMD5|FILE_NOMAGIC) == 0) {
+                    FlagDetectStateNewFile(state->curr_tx);
+                }
+            } else if (smtp_config.decode_mime) {
                 if (tx->mime_state) {
                     /* We have 2 chained mails and did not detect the end
                      * of first one. So we start a new transaction. */
@@ -1168,7 +1244,10 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                     tx->msg_tail = tx->mime_state->msg;
                 }
             }
-
+            /* Enter immediately data mode without waiting for server reply */
+            if (state->parser_state & SMTP_PARSER_STATE_PIPELINING_SERVER) {
+                state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+            }
         } else if (state->current_line_len >= 4 &&
                    SCMemcmpLowercase("bdat", state->current_line, 4) == 0) {
             r = SMTPParseCommandBDAT(state);
@@ -1199,6 +1278,11 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                 SCReturnInt(-1);
             }
             state->current_command = SMTP_COMMAND_OTHER_CMD;
+        } else if (state->current_line_len >= 4 &&
+                   SCMemcmpLowercase("rset", state->current_line, 4) == 0) {
+            // Resets chunk index in case of connection reuse
+            state->bdat_chunk_idx = 0;
+            state->curr_tx->done = 1;
         } else {
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         }
@@ -1285,8 +1369,6 @@ static int SMTPParseServerRecord(Flow *f, void *alstate,
 
     /* first arg 1 is toclient */
     return SMTPParse(1, f, alstate, pstate, input, input_len, local_data);
-
-    return 0;
 }
 
 /**
@@ -1960,8 +2042,6 @@ static int SMTPParserTest02(void)
         0x61, 0x5f, 0x73, 0x6c, 0x61, 0x63, 0x6b, 0x5f,
         0x76, 0x6d, 0x31, 0x2e, 0x6c, 0x6f, 0x63, 0x61,
         0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e, 0x0d,
-        0x0a, 0x32, 0x35, 0x30, 0x2d, 0x50, 0x49, 0x50,
-        0x45, 0x4c, 0x49, 0x4e, 0x49, 0x4e, 0x47, 0x0d,
         0x0a, 0x32, 0x35, 0x30, 0x2d, 0x53, 0x49, 0x5a,
         0x45, 0x20, 0x31, 0x30, 0x32, 0x34, 0x30, 0x30,
         0x30, 0x30, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d,
@@ -2768,6 +2848,7 @@ static int SMTPParserTest03(void)
     /* MAIL FROM:pbsf@asdfs.com<CR><LF>
      * RCPT TO:pbsf@asdfs.com<CR><LF>
      * DATA<CR><LF>
+     * Immediate data
      */
     uint8_t request2[] = {
         0x4d, 0x41, 0x49, 0x4c, 0x20, 0x46, 0x52, 0x4f,
@@ -2776,7 +2857,9 @@ static int SMTPParserTest03(void)
         0x0d, 0x0a, 0x52, 0x43, 0x50, 0x54, 0x20, 0x54,
         0x4f, 0x3a, 0x70, 0x62, 0x73, 0x66, 0x40, 0x61,
         0x73, 0x64, 0x66, 0x73, 0x2e, 0x63, 0x6f, 0x6d,
-        0x0d, 0x0a, 0x44, 0x41, 0x54, 0x41, 0x0d, 0x0a
+        0x0d, 0x0a, 0x44, 0x41, 0x54, 0x41, 0x0d, 0x0a,
+        0x49, 0x6d, 0x6d, 0x65, 0x64, 0x69, 0x61, 0x74,
+        0x65, 0x20, 0x64, 0x61, 0x74, 0x61, 0x0d, 0x0a,
     };
     uint32_t request2_len = sizeof(request2);
     /* 250 2.1.0 Ok<CR><LF>
@@ -2862,7 +2945,8 @@ static int SMTPParserTest03(void)
     if (smtp_state->input_len != 0 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        smtp_state->parser_state != ( SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                      SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2882,7 +2966,9 @@ static int SMTPParserTest03(void)
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
         smtp_state->cmds[1] != SMTP_COMMAND_OTHER_CMD ||
         smtp_state->cmds[2] != SMTP_COMMAND_DATA ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -2900,7 +2986,8 @@ static int SMTPParserTest03(void)
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
-                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3160,7 +3247,8 @@ static int SMTPParserTest05(void)
     if (smtp_state->input_len != 0 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3178,7 +3266,8 @@ static int SMTPParserTest05(void)
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_STARTTLS ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3195,7 +3284,8 @@ static int SMTPParserTest05(void)
     if (smtp_state->input_len != 0 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3220,7 +3310,8 @@ static int SMTPParserTest05(void)
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
-        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3237,7 +3328,8 @@ static int SMTPParserTest05(void)
     if (smtp_state->input_len != 0 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
-        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
@@ -3324,8 +3416,6 @@ static int SMTPParserTest06(void)
         0x5d, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d, 0x53,
         0x49, 0x5a, 0x45, 0x20, 0x32, 0x39, 0x36, 0x39,
         0x36, 0x30, 0x30, 0x30, 0x0d, 0x0a, 0x32, 0x35,
-        0x30, 0x2d, 0x50, 0x49, 0x50, 0x45, 0x4c, 0x49,
-        0x4e, 0x49, 0x4e, 0x47, 0x0d, 0x0a, 0x32, 0x35,
         0x30, 0x2d, 0x38, 0x62, 0x69, 0x74, 0x6d, 0x69,
         0x6d, 0x65, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d,
         0x42, 0x49, 0x4e, 0x41, 0x52, 0x59, 0x4d, 0x49,
@@ -4475,8 +4565,6 @@ static int SMTPParserTest14(void)
             0x61, 0x5f, 0x73, 0x6c, 0x61, 0x63, 0x6b, 0x5f,
             0x76, 0x6d, 0x31, 0x2e, 0x6c, 0x6f, 0x63, 0x61,
             0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e, 0x0d,
-            0x0a, 0x32, 0x35, 0x30, 0x2d, 0x50, 0x49, 0x50,
-            0x45, 0x4c, 0x49, 0x4e, 0x49, 0x4e, 0x47, 0x0d,
             0x0a, 0x32, 0x35, 0x30, 0x2d, 0x53, 0x49, 0x5a,
             0x45, 0x20, 0x31, 0x30, 0x32, 0x34, 0x30, 0x30,
             0x30, 0x30, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d,

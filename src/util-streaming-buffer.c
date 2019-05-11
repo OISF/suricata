@@ -19,6 +19,7 @@
 #include "util-streaming-buffer.h"
 #include "util-unittest.h"
 #include "util-print.h"
+#include "util-validate.h"
 
 /**
  * \file
@@ -40,6 +41,63 @@
     (cfg)->Free ? (cfg)->Free((ptr), (s)) : SCFree((ptr))
 
 static void SBBFree(StreamingBuffer *sb);
+
+RB_GENERATE(SBB, StreamingBufferBlock, rb, SBBCompare);
+
+int SBBCompare(struct StreamingBufferBlock *a, struct StreamingBufferBlock *b)
+{
+    SCLogDebug("a %"PRIu64" len %u, b %"PRIu64" len %u",
+            a->offset, a->len, b->offset, b->len);
+
+    if (a->offset > b->offset)
+        SCReturnInt(1);
+    else if (a->offset < b->offset)
+        SCReturnInt(-1);
+    else {
+        if (a->len == 0 || b->len == 0 || a->len ==  b->len)
+            SCReturnInt(0);
+        else if (a->len > b->len)
+            SCReturnInt(1);
+        else
+            SCReturnInt(-1);
+    }
+}
+
+/* inclusive compare function that also considers the right edge,
+ * not just the offset. */
+static inline int InclusiveCompare(StreamingBufferBlock *lookup, StreamingBufferBlock *intree) {
+    const uint64_t lre = lookup->offset + lookup->len;
+    const uint64_t tre = intree->offset + intree->len;
+    if (lre <= intree->offset)   // entirely before
+        return -1;
+    else if (lre >= intree->offset && lre <= tre)    // (some) overlap
+        return 0;
+    else
+        return 1;   // entirely after
+}
+
+StreamingBufferBlock *SBB_RB_FIND_INCLUSIVE(struct SBB *head, StreamingBufferBlock *elm)
+{
+    SCLogDebug("looking up %"PRIu64, elm->offset);
+
+    struct StreamingBufferBlock *tmp = RB_ROOT(head);
+    struct StreamingBufferBlock *res = NULL;
+    while (tmp) {
+        SCLogDebug("compare with %"PRIu64"/%u", tmp->offset, tmp->len);
+        const int comp = InclusiveCompare(elm, tmp);
+        SCLogDebug("compare result: %d", comp);
+        if (comp < 0) {
+            res = tmp;
+            tmp = RB_LEFT(tmp, rb);
+        } else if (comp > 0) {
+            tmp = RB_RIGHT(tmp, rb);
+        } else {
+            return tmp;
+        }
+    }
+    return res;
+}
+
 
 static inline int InitBuffer(StreamingBuffer *sb)
 {
@@ -93,19 +151,18 @@ void StreamingBufferFree(StreamingBuffer *sb)
 }
 
 #ifdef DEBUG
-static void SBBPrintList(const StreamingBuffer *sb)
+static void SBBPrintList(StreamingBuffer *sb)
 {
-    const StreamingBufferBlock *sbb = sb->block_list;
-    while (sbb) {
+    StreamingBufferBlock *sbb = NULL;
+    RB_FOREACH(sbb, SBB, &sb->sbb_tree) {
         SCLogDebug("sbb: offset %"PRIu64", len %u", sbb->offset, sbb->len);
-        if (sbb->next) {
-            if ((sbb->offset + sbb->len) != sbb->next->offset) {
+        StreamingBufferBlock *next = SBB_RB_NEXT(sbb);
+        if (next) {
+            if ((sbb->offset + sbb->len) != next->offset) {
                 SCLogDebug("gap: offset %"PRIu64", len %"PRIu64, (sbb->offset + sbb->len),
-                        sbb->next->offset - (sbb->offset + sbb->len));
+                        next->offset - (sbb->offset + sbb->len));
             }
         }
-
-        sbb = sbb->next;
     }
 }
 #endif
@@ -117,8 +174,8 @@ static void SBBPrintList(const StreamingBuffer *sb)
 static void SBBInit(StreamingBuffer *sb,
                     uint32_t rel_offset, uint32_t data_len)
 {
-    BUG_ON(sb->block_list != NULL);
-    BUG_ON(sb->buf_offset > sb->stream_offset + rel_offset);
+    DEBUG_VALIDATE_BUG_ON(!RB_EMPTY(&sb->sbb_tree));
+    DEBUG_VALIDATE_BUG_ON(sb->buf_offset > sb->stream_offset + rel_offset);
 
     /* need to set up 2: existing data block and new data block */
     StreamingBufferBlock *sbb = CALLOC(sb->cfg, 1, sizeof(*sbb));
@@ -136,9 +193,9 @@ static void SBBInit(StreamingBuffer *sb,
     sbb2->offset = sb->stream_offset + rel_offset;
     sbb2->len = data_len;
 
-    sb->block_list = sbb;
-    sbb->next = sbb2;
-    sb->block_list_tail = sbb2;
+    sb->head = sbb;
+    SBB_RB_INSERT(&sb->sbb_tree, sbb);
+    SBB_RB_INSERT(&sb->sbb_tree, sbb2);
 
     SCLogDebug("sbb1 %"PRIu64", len %u, sbb2 %"PRIu64", len %u",
             sbb->offset, sbb->len, sbb2->offset, sbb2->len);
@@ -155,7 +212,7 @@ static void SBBInit(StreamingBuffer *sb,
 static void SBBInitLeadingGap(StreamingBuffer *sb,
                               uint64_t offset, uint32_t data_len)
 {
-    BUG_ON(sb->block_list != NULL);
+    DEBUG_VALIDATE_BUG_ON(!RB_EMPTY(&sb->sbb_tree));
 
     StreamingBufferBlock *sbb = CALLOC(sb->cfg, 1, sizeof(*sbb));
     if (sbb == NULL)
@@ -163,8 +220,8 @@ static void SBBInitLeadingGap(StreamingBuffer *sb,
     sbb->offset = offset;
     sbb->len = data_len;
 
-    sb->block_list = sbb;
-    sb->block_list_tail = sbb;
+    sb->head = sbb;
+    SBB_RB_INSERT(&sb->sbb_tree, sbb);
 
     SCLogDebug("sbb %"PRIu64", len %u",
             sbb->offset, sbb->len);
@@ -173,302 +230,200 @@ static void SBBInitLeadingGap(StreamingBuffer *sb,
 #endif
 }
 
-static int IsBefore(StreamingBufferBlock *me, StreamingBufferBlock *you)
+static inline void ConsolidateFwd(StreamingBuffer *sb,
+        struct SBB *tree, StreamingBufferBlock *sa)
 {
-    if ((me->offset + me->len) < you->offset) {
-        return 1;
-    }
-    return 0;
-}
+    uint64_t sa_re = sa->offset + sa->len;
+    StreamingBufferBlock *tr, *s = sa;
+    RB_FOREACH_FROM(tr, SBB, s) {
+        if (sa == tr)
+            continue;
 
-static int StartsBefore(StreamingBufferBlock *me, StreamingBufferBlock *you)
-{
-    if (me->offset < you->offset)
-        return 1;
-    return 0;
-}
+        const uint64_t tr_re = tr->offset + tr->len;
+        SCLogDebug("-> (fwd) tr %p %"PRIu64"/%u re %"PRIu64,
+                tr, tr->offset, tr->len, tr_re);
 
-static int IsAfter(StreamingBufferBlock *me, StreamingBufferBlock *you)
-{
-    if (you->offset + you->len < me->offset)
-        return 1;
-    return 0;
-}
+        if (sa_re < tr->offset)
+            break; // entirely before
 
-static int IsOverlappedBy(StreamingBufferBlock *me, StreamingBufferBlock *you)
-{
-    if (you->offset <= me->offset && (you->offset + you->len) >= (me->offset + me->len))
-        return 1;
-    return 0;
-}
-
-static int EndsAfter(StreamingBufferBlock *me, StreamingBufferBlock *you)
-{
-    if ((me->offset + me->len) > (you->offset + you->len))
-        return 1;
-    return 0;
-}
-
-static StreamingBufferBlock *GetNew(StreamingBuffer *sb,
-                                    uint64_t offset, uint32_t len,
-                                    StreamingBufferBlock *next)
-{
-    StreamingBufferBlock *new_sbb = CALLOC(sb->cfg, 1, sizeof(*new_sbb));
-    if (new_sbb == NULL)
-        return NULL;
-    new_sbb->offset = offset;
-    new_sbb->len = len;
-    new_sbb->next = next;
-    return new_sbb;
-}
-
-/* expand our sbb forward if possible */
-static int SBBUpdateLookForward(StreamingBuffer *sb,
-                                StreamingBufferBlock *sbb,
-                                StreamingBufferBlock *my_block)
-{
-    SCLogDebug("EndsAfter: consider next");
-
-    while (sbb->offset + sbb->len == sbb->next->offset)
-    {
-        SCLogDebug("EndsAfter: gobble up next: %"PRIu64"/%u", sbb->next->offset, sbb->next->len);
-        uint64_t right_edge = sbb->next->offset + sbb->next->len;
-        uint32_t expand_by = right_edge - (sbb->offset + sbb->len);
-        sbb->len += expand_by;
-        SCLogDebug("EndsAfter: expand_by %u (part 2)", expand_by);
-        SCLogDebug("EndsAfter: (loop) sbb now %"PRIu64"/%u", sbb->offset, sbb->len);
-
-        /* we can gobble up next */
-        StreamingBufferBlock *to_free = sbb->next;
-        sbb->next = sbb->next->next;
-        FREE(sb->cfg, to_free, sizeof(StreamingBufferBlock));
-        if (sbb->next == NULL)
-            sb->block_list_tail = sbb;
-
-        /* update my block */
-        if (expand_by >= my_block->len) {
-            return 1;
-        }
-
-        my_block->len -= expand_by;
-        my_block->offset += expand_by;
-
-        if (sbb->next == NULL) {
-            /* if we have nothing left in the list we're almost done,
-             * except we need to check if we have some of our block
-             * left */
-            sbb->len += my_block->len;
-            my_block->offset += my_block->len;
-            my_block->len = 0;
-            return 1;
-        } else {
-            /* if next is not directly connected and we have some
-             * block len left, expand sbb further */
-            uint32_t gap = sbb->next->offset - (sbb->offset + sbb->len);
-            SCLogDebug("EndsAfter: we now have a gap of %u and a block of %"PRIu64"/%u", gap, my_block->offset, my_block->len);
-
-            if (my_block->len < gap) {
-                sbb->len += my_block->len;
-                my_block->offset += my_block->len;
-                my_block->len = 0;
-                return 1;
-            } else {
-                sbb->len += gap;
-                my_block->offset += gap;
-                my_block->len -= gap;
-                SCLogDebug("EndsAfter: (loop) block at %"PRIu64"/%u, sbb %"PRIu64"/%u", my_block->offset, my_block->len, sbb->offset, sbb->len);
-                SCLogDebug("EndsAfter: (loop) sbb->next %"PRIu64"/%u", sbb->next->offset, sbb->next->len);
-            }
+        /*
+            sa:     [   ]
+            tr: [           ]
+            sa:     [   ]
+            tr:     [       ]
+            sa:     [   ]
+            tr: [       ]
+        */
+        if (sa->offset >= tr->offset && sa_re <= tr_re) {
+            sa->len = tr->len;
+            sa->offset = tr->offset;
+            sa_re = sa->offset + sa->len;
+            SCLogDebug("-> (fwd) tr %p %"PRIu64"/%u REMOVED ECLIPSED2", tr, tr->offset, tr->len);
+            SBB_RB_REMOVE(tree, tr);
+            FREE(sb->cfg, tr, sizeof(StreamingBufferBlock));
+        /*
+            sa: [         ]
+            tr: [         ]
+            sa: [         ]
+            tr:    [      ]
+            sa: [         ]
+            tr:    [   ]
+        */
+        } else if (sa->offset <= tr->offset && sa_re >= tr_re) {
+            SCLogDebug("-> (fwd) tr %p %"PRIu64"/%u REMOVED ECLIPSED", tr, tr->offset, tr->len);
+            SBB_RB_REMOVE(tree, tr);
+            FREE(sb->cfg, tr, sizeof(StreamingBufferBlock));
+        /*
+            sa: [         ]
+            tr:      [         ]
+            sa: [       ]
+            tr:         [       ]
+        */
+        } else if (sa->offset < tr->offset && // starts before
+                   sa_re >= tr->offset && sa_re < tr_re) // ends inside
+        {
+            // merge
+            sa->len = tr_re - sa->offset;
+            sa_re = sa->offset + sa->len;
+            SCLogDebug("-> (fwd) tr %p %"PRIu64"/%u REMOVED MERGED", tr, tr->offset, tr->len);
+            SBB_RB_REMOVE(tree, tr);
+            FREE(sb->cfg, tr, sizeof(StreamingBufferBlock));
         }
     }
+}
+
+static inline void ConsolidateBackward(StreamingBuffer *sb,
+        struct SBB *tree, StreamingBufferBlock *sa)
+{
+    uint64_t sa_re = sa->offset + sa->len;
+    StreamingBufferBlock *tr, *s = sa;
+    RB_FOREACH_REVERSE_FROM(tr, SBB, s) {
+        if (sa == tr)
+            continue;
+        const uint64_t tr_re = tr->offset + tr->len;
+        SCLogDebug("-> (bwd) tr %p %"PRIu64"/%u", tr, tr->offset, tr->len);
+
+        if (sa->offset > tr_re)
+            break; // entirely after
+
+        if (sa->offset >= tr->offset && sa_re <= tr_re) {
+            sa->len = tr->len;
+            sa->offset = tr->offset;
+            sa_re = sa->offset + sa->len;
+            SCLogDebug("-> (bwd) tr %p %"PRIu64"/%u REMOVED ECLIPSED2", tr, tr->offset, tr->len);
+            if (sb->head == tr)
+                sb->head = sa;
+            SBB_RB_REMOVE(tree, tr);
+            FREE(sb->cfg, tr, sizeof(StreamingBufferBlock));
+        /*
+            sa: [         ]
+            tr: [         ]
+            sa:    [      ]
+            tr: [         ]
+            sa:    [   ]
+            tr: [         ]
+        */
+        } else if (sa->offset <= tr->offset && sa_re >= tr_re) {
+            SCLogDebug("-> (bwd) tr %p %"PRIu64"/%u REMOVED ECLIPSED", tr, tr->offset, tr->len);
+            if (sb->head == tr)
+                sb->head = sa;
+            SBB_RB_REMOVE(tree, tr);
+            FREE(sb->cfg, tr, sizeof(StreamingBufferBlock));
+        /*
+            sa:     [   ]
+            tr: [   ]
+            sa:    [    ]
+            tr: [   ]
+        */
+        } else if (sa->offset > tr->offset && sa_re > tr_re && sa->offset <= tr_re) {
+            // merge
+            sa->len = sa_re - tr->offset;
+            sa->offset = tr->offset;
+            sa_re = sa->offset + sa->len;
+            SCLogDebug("-> (bwd) tr %p %"PRIu64"/%u REMOVED MERGED", tr, tr->offset, tr->len);
+            if (sb->head == tr)
+                sb->head = sa;
+            SBB_RB_REMOVE(tree, tr);
+            FREE(sb->cfg, tr, sizeof(StreamingBufferBlock));
+        }
+    }
+}
+
+static int Insert(StreamingBuffer *sb, struct SBB *tree,
+        uint32_t rel_offset, uint32_t len)
+{
+    SCLogDebug("* inserting: %u/%u\n", rel_offset, len);
+
+    StreamingBufferBlock *sbb = CALLOC(sb->cfg, 1, sizeof(*sbb));
+    if (sbb == NULL)
+        return -1;
+    sbb->offset = sb->stream_offset + rel_offset;
+    sbb->len = len;
+    StreamingBufferBlock *res = SBB_RB_INSERT(tree, sbb);
+    if (res) {
+        // exact overlap
+        SCLogDebug("* insert failed: exact match in tree with %p %"PRIu64"/%u", res, res->offset, res->len);
+        FREE(sb->cfg, sbb, sizeof(StreamingBufferBlock));
+        return 0;
+    }
+    if (SBB_RB_PREV(sbb) == NULL) {
+        sb->head = sbb;
+    } else {
+        ConsolidateBackward(sb, tree, sbb);
+    }
+    ConsolidateFwd(sb, tree, sbb);
+#ifdef DEBUG
+    SBBPrintList(sb);
+#endif
     return 0;
 }
 
 static void SBBUpdate(StreamingBuffer *sb,
                       uint32_t rel_offset, uint32_t data_len)
 {
-    StreamingBufferBlock my_block = { .offset = sb->stream_offset + rel_offset,
-                                      .len = data_len,
-                                      .next = NULL  };
-    const uint64_t my_block_right_edge = my_block.offset + my_block.len;
-
-    StreamingBufferBlock *tail = sb->block_list_tail;
-
-    /* fast path 1: expands tail */
-    if (tail && ((tail->offset + tail->len) == my_block.offset))
-    {
-        tail->len = my_block_right_edge - tail->offset;
-        goto done;
-    }
-    /* fast path 2: new isolated block after tail */
-    else if (tail && IsAfter(&my_block, tail)) {
-        StreamingBufferBlock *new_sbb = GetNew(sb, my_block.offset, my_block.len, NULL);
-        sb->block_list_tail = tail->next = new_sbb;
-        SCLogDebug("tail: new block at %"PRIu64"/%u", my_block.offset, my_block.len);
-        goto done;
-    }
-
-    BUG_ON(sb->block_list == NULL);
-#ifdef DEBUG
-    SBBPrintList(sb);
-#endif
-    SCLogDebug("PreInsert: block at %"PRIu64"/%u", my_block.offset, my_block.len);
-    StreamingBufferBlock *sbb = sb->block_list, *prev = NULL;
-    while (sbb) {
-        SCLogDebug("sbb %"PRIu64"/%u data %"PRIu64"/%u. Next %s", sbb->offset, sbb->len,
-                my_block.offset, my_block.len, sbb->next ? "true" : "false");
-
-        if (IsBefore(&my_block, sbb)) {
-            StreamingBufferBlock *new_sbb = GetNew(sb, my_block.offset, my_block.len, sbb);
-
-            /* place before, maybe replace list head */
-            if (prev == NULL) {
-                sb->block_list = new_sbb;
-            } else {
-                prev->next = new_sbb;
-            }
-            SCLogDebug("IsBefore: new block at %"PRIu64"/%u", my_block.offset, my_block.len);
-            break;
-
-        } else if (IsOverlappedBy(&my_block, sbb)) {
-            /* nothing to do */
-            SCLogDebug("IsOverlappedBy: overlapped block at %"PRIu64"/%u", my_block.offset, my_block.len);
-            break;
-
-        } else if (IsAfter(&my_block, sbb)) {
-
-            /* if no next, place after, otherwise, iterate */
-            if (sbb->next == NULL) {
-                StreamingBufferBlock *new_sbb = GetNew(sb, my_block.offset, my_block.len, NULL);
-                sbb->next = new_sbb;
-                sb->block_list_tail = new_sbb;
-                SCLogDebug("new block at %"PRIu64"/%u", my_block.offset, my_block.len);
-                break;
-            }
-            SCLogDebug("IsAfter: block at %"PRIu64"/%u, is after sbb", my_block.offset, my_block.len);
-
-        } else {
-
-            /* those were the simple cases */
-
-            if (StartsBefore(&my_block, sbb)) {
-                /* expand sbb */
-                uint32_t expand_by = sbb->offset - my_block.offset;
-                SCLogDebug("StartsBefore: expand_by %u", expand_by);
-                sbb->offset = my_block.offset;
-                sbb->len += expand_by;
-
-                /* if my_block ends before sbb right edge, we are done */
-                if (my_block_right_edge <= (sbb->offset + sbb->len))
-                    break;
-
-                my_block.offset = sbb->offset + sbb->len;
-                my_block.len = my_block_right_edge - my_block.offset;
-                SCLogDebug("StartsBefore: block now %"PRIu64"/%u", my_block.offset, my_block.len);
-
-                if (sbb->next == NULL) {
-                    sbb->len += my_block.len;
-                    break;
-                }
-                /* expand, but consider next */
-                uint64_t right_edge = my_block_right_edge;
-                if (right_edge > sbb->next->offset) {
-                    right_edge = sbb->next->offset;
-                }
-
-                expand_by = right_edge - (sbb->offset + sbb->len);
-                SCLogDebug("EndsAfter: expand_by %u", expand_by);
-                sbb->len += expand_by;
-                SCLogDebug("EndsAfter: sbb now %"PRIu64"/%u", sbb->offset, sbb->len);
-
-                my_block.offset = sbb->offset + sbb->len;
-                my_block.len = my_block_right_edge - my_block.offset;
-                SCLogDebug("StartsBefore: sbb now %"PRIu64"/%u", sbb->offset, sbb->len);
-
-            } else if (EndsAfter(&my_block, sbb)) {
-                /* expand sbb, but we need to mind "next" */
-
-                if (sbb->next == NULL) {
-                    /* last, so just expand sbb */
-                    sbb->len = my_block_right_edge - sbb->offset;
-                    break;
-                }
-
-                /* expand, but consider next */
-                uint64_t right_edge = my_block_right_edge;
-                if (right_edge > sbb->next->offset) {
-                    right_edge = sbb->next->offset;
-                }
-
-                uint32_t expand_by = right_edge - (sbb->offset + sbb->len);
-                SCLogDebug("EndsAfter: expand_by %u", expand_by);
-                sbb->len += expand_by;
-                SCLogDebug("EndsAfter: sbb now %"PRIu64"/%u", sbb->offset, sbb->len);
-
-                my_block.offset = sbb->offset + sbb->len;
-                my_block.len = my_block_right_edge - my_block.offset;
-            }
-
-            if (sbb->next != NULL) {
-                SCLogDebug("EndsAfter: consider next");
-
-                if (SBBUpdateLookForward(sb, sbb, &my_block) == 1)
-                    goto done;
-            }
-
-            SCLogDebug("EndsAfter: block at %"PRIu64"/%u, is after sbb", my_block.offset, my_block.len);
-
-            if (my_block.len == 0)
-                break;
-        }
-        prev = sbb;
-        sbb = sbb->next;
-    }
-done:
-    SCLogDebug("PostInsert: block at %"PRIu64"/%u", my_block.offset, my_block.len);
-    SCLogDebug("PostInsert");
-#ifdef DEBUG
-    SBBPrintList(sb);
-#endif
+    Insert(sb, &sb->sbb_tree, rel_offset, data_len);
 }
 
 static void SBBFree(StreamingBuffer *sb)
 {
-    StreamingBufferBlock *sbb = sb->block_list;
-    while (sbb) {
-        StreamingBufferBlock *next = sbb->next;
+    StreamingBufferBlock *sbb = NULL, *safe = NULL;
+    RB_FOREACH_SAFE(sbb, SBB, &sb->sbb_tree, safe) {
+        SBB_RB_REMOVE(&sb->sbb_tree, sbb);
         FREE(sb->cfg, sbb, sizeof(StreamingBufferBlock));
-        sbb = next;
     }
-    sb->block_list = NULL;
+    sb->head = NULL;
 }
 
 static void SBBPrune(StreamingBuffer *sb)
 {
-    StreamingBufferBlock *sbb = sb->block_list;
-    while (sbb) {
+    SCLogDebug("pruning %p to %"PRIu64, sb, sb->stream_offset);
+    StreamingBufferBlock *sbb = NULL, *safe = NULL;
+    RB_FOREACH_SAFE(sbb, SBB, &sb->sbb_tree, safe) {
         /* completely beyond window, we're done */
-        if (sbb->offset > sb->stream_offset)
+        if (sbb->offset > sb->stream_offset) {
+            sb->head = sbb;
             break;
+        }
 
         /* partly before, partly beyond. Adjust */
         if (sbb->offset < sb->stream_offset &&
             sbb->offset + sbb->len > sb->stream_offset) {
             uint32_t shrink_by = sb->stream_offset - sbb->offset;
-            BUG_ON(shrink_by > sbb->len);
-            sbb->len -=  shrink_by;
-            sbb->offset += shrink_by;
-            BUG_ON(sbb->offset != sb->stream_offset);
+            DEBUG_VALIDATE_BUG_ON(shrink_by > sbb->len);
+            if (sbb->len >= shrink_by) {
+                sbb->len -=  shrink_by;
+                sbb->offset += shrink_by;
+                DEBUG_VALIDATE_BUG_ON(sbb->offset != sb->stream_offset);
+            }
+            sb->head = sbb;
             break;
         }
 
-        StreamingBufferBlock *next = sbb->next;
+        SBB_RB_REMOVE(&sb->sbb_tree, sbb);
+        /* either we set it again for the next sbb, or there isn't any */
+        sb->head = NULL;
+        SCLogDebug("sb %p removed %p %"PRIu64", %u", sb, sbb, sbb->offset, sbb->len);
         FREE(sb->cfg, sbb, sizeof(StreamingBufferBlock));
-
-        sbb = next;
-        sb->block_list = next;
-        if (sbb && sbb->next == NULL)
-            sb->block_list_tail = NULL;
     }
 }
 
@@ -610,7 +565,7 @@ StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb, const uint
         uint32_t rel_offset = sb->buf_offset;
         sb->buf_offset += data_len;
 
-        if (sb->block_list) {
+        if (!RB_EMPTY(&sb->sbb_tree)) {
             SBBUpdate(sb, rel_offset, data_len);
         }
         return seg;
@@ -652,7 +607,7 @@ int StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
     uint32_t rel_offset = sb->buf_offset;
     sb->buf_offset += data_len;
 
-    if (sb->block_list) {
+    if (!RB_EMPTY(&sb->sbb_tree)) {
         SBBUpdate(sb, rel_offset, data_len);
     }
     return 0;
@@ -691,7 +646,7 @@ int StreamingBufferAppendNoTrack(StreamingBuffer *sb,
     uint32_t rel_offset = sb->buf_offset;
     sb->buf_offset += data_len;
 
-    if (sb->block_list) {
+    if (!RB_EMPTY(&sb->sbb_tree)) {
         SBBUpdate(sb, rel_offset, data_len);
     }
     return 0;
@@ -739,7 +694,7 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
     SCLogDebug("rel_offset %u sb->stream_offset %"PRIu64", buf_offset %u",
             rel_offset, sb->stream_offset, sb->buf_offset);
 
-    if (sb->block_list == NULL) {
+    if (RB_EMPTY(&sb->sbb_tree)) {
         SCLogDebug("empty sbb list");
 
         if (sb->stream_offset == offset) {
@@ -792,8 +747,8 @@ void StreamingBufferSBBGetData(const StreamingBuffer *sb,
     if (sbb->offset >= sb->stream_offset) {
         uint64_t offset = sbb->offset - sb->stream_offset;
         *data = sb->buf + offset;
-        if (offset + sbb->len > sb->buf_size)
-            *data_len = sb->buf_size - offset;
+        if (offset + sbb->len > sb->buf_offset)
+            *data_len = sb->buf_offset - offset;
         else
             *data_len = sbb->len;
         return;
@@ -986,6 +941,7 @@ static int StreamingBufferTest01(void)
     FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg1,(const uint8_t *)"ABCDEFGH", 8));
     FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg2,(const uint8_t *)"01234567", 8));
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment *seg3 = StreamingBufferAppendRaw(sb, (const uint8_t *)"QWERTY", 6);
     FAIL_IF(sb->stream_offset != 8);
@@ -996,6 +952,7 @@ static int StreamingBufferTest01(void)
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg3));
     FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg3,(const uint8_t *)"QWERTY", 6));
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment *seg4 = StreamingBufferAppendRaw(sb, (const uint8_t *)"KLM", 3);
     FAIL_IF(sb->stream_offset != 14);
@@ -1007,6 +964,7 @@ static int StreamingBufferTest01(void)
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg4));
     FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg4,(const uint8_t *)"KLM", 3));
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment *seg5 = StreamingBufferAppendRaw(sb, (const uint8_t *)"!@#$%^&*()_+<>?/,.;:'[]{}-=", 27);
     FAIL_IF(sb->stream_offset != 17);
@@ -1019,6 +977,7 @@ static int StreamingBufferTest01(void)
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg5));
     FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg5,(const uint8_t *)"!@#$%^&*()_+<>?/,.;:'[]{}-=", 27));
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment *seg6 = StreamingBufferAppendRaw(sb, (const uint8_t *)"UVWXYZ", 6);
     FAIL_IF(sb->stream_offset != 17);
@@ -1032,6 +991,7 @@ static int StreamingBufferTest01(void)
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,seg6));
     FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,seg6,(const uint8_t *)"UVWXYZ", 6));
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     SCFree(seg1);
     SCFree(seg2);
@@ -1062,8 +1022,10 @@ static int StreamingBufferTest02(void)
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSlide(sb, 6);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
     FAIL_IF(StreamingBufferAppend(sb, &seg3, (const uint8_t *)"QWERTY", 6) != 0);
@@ -1077,6 +1039,7 @@ static int StreamingBufferTest02(void)
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
     DumpSegment(sb, &seg3);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSlide(sb, 6);
     FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
@@ -1086,6 +1049,7 @@ static int StreamingBufferTest02(void)
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
     DumpSegment(sb, &seg3);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferFree(sb);
     PASS;
@@ -1110,6 +1074,7 @@ static int StreamingBufferTest03(void)
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"QWERTY", 6, 8) != 0);
@@ -1123,6 +1088,7 @@ static int StreamingBufferTest03(void)
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
     DumpSegment(sb, &seg3);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSlide(sb, 10);
     FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
@@ -1132,6 +1098,7 @@ static int StreamingBufferTest03(void)
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
     DumpSegment(sb, &seg3);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferFree(sb);
     PASS;
@@ -1145,7 +1112,7 @@ static int StreamingBufferTest04(void)
 
     StreamingBufferSegment seg1;
     FAIL_IF(StreamingBufferAppend(sb, &seg1, (const uint8_t *)"ABCDEFGH", 8) != 0);
-    FAIL_IF(sb->block_list != NULL);
+    FAIL_IF(!RB_EMPTY(&sb->sbb_tree));
     StreamingBufferSegment seg2;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"01234567", 8, 14) != 0);
     FAIL_IF(sb->stream_offset != 0);
@@ -1154,15 +1121,21 @@ static int StreamingBufferTest04(void)
     FAIL_IF(seg2.stream_offset != 14);
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 8);
-    FAIL_IF(sb->block_list->next == NULL);
-    FAIL_IF(sb->block_list->next->offset != 14);
-    FAIL_IF(sb->block_list->next->len != 8);
+    FAIL_IF(RB_EMPTY(&sb->sbb_tree));
+    StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF(sbb1 != sb->head);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 8);
+    StreamingBufferBlock *sbb2 = SBB_RB_NEXT(sbb1);
+    FAIL_IF_NULL(sbb2);
+    FAIL_IF(sbb2 == sb->head);
+    FAIL_IF(sbb2->offset != 14);
+    FAIL_IF(sbb2->len != 8);
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"QWERTY", 6, 8) != 0);
@@ -1172,14 +1145,17 @@ static int StreamingBufferTest04(void)
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 22);
-    FAIL_IF(sb->block_list->next != NULL);
+    sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1 != sb->head);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 22);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
     DumpSegment(sb, &seg3);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     /* far ahead of curve: */
     StreamingBufferSegment seg4;
@@ -1192,15 +1168,18 @@ static int StreamingBufferTest04(void)
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
     FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg4));
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 22);
-    FAIL_IF(sb->block_list->next == NULL);
+    sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1 != sb->head);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 22);
+    FAIL_IF(!SBB_RB_NEXT(sbb1));
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
     DumpSegment(sb, &seg3);
     DumpSegment(sb, &seg4);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,&seg1,(const uint8_t *)"ABCDEFGH", 8));
     FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,&seg2,(const uint8_t *)"01234567", 8));
@@ -1235,9 +1214,11 @@ static int StreamingBufferTest05(void)
     FAIL_IF(!StreamingBufferSegmentCompareRawData(&sb,seg3,(const uint8_t *)"CCCCCCCC", 8));
     FAIL_IF(!StreamingBufferSegmentCompareRawData(&sb,seg4,(const uint8_t *)"DDDDDDDD", 8));
     Dump(&sb);
+    FAIL_IF_NOT(sb.head == RB_MIN(SBB, &sb.sbb_tree));
     StreamingBufferSegment *seg5 = StreamingBufferAppendRaw(&sb, (const uint8_t *)"EEEEEEEE", 8);
     FAIL_IF(!StreamingBufferSegmentCompareRawData(&sb,seg5,(const uint8_t *)"EEEEEEEE", 8));
     Dump(&sb);
+    FAIL_IF_NOT(sb.head == RB_MIN(SBB, &sb.sbb_tree));
 
     SCFree(seg1);
     SCFree(seg2);
@@ -1260,30 +1241,37 @@ static int StreamingBufferTest06(void)
     StreamingBufferSegment seg2;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"C", 1, 2) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"F", 1, 5) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg4;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"H", 1, 7) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg5;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
     Dump(sb);
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 10);
-    FAIL_IF(sb->block_list->next != NULL);
+    StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 10);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg6;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg6, (const uint8_t *)"abcdefghij", 10, 0) != 0);
     Dump(sb);
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 10);
-    FAIL_IF(sb->block_list->next != NULL);
+    sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 10);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferFree(sb);
     PASS;
@@ -1301,30 +1289,37 @@ static int StreamingBufferTest07(void)
     StreamingBufferSegment seg2;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"D", 1, 3) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"F", 1, 5) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg4;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"H", 1, 7) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg5;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
     Dump(sb);
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 10);
-    FAIL_IF(sb->block_list->next != NULL);
+    StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 10);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg6;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg6, (const uint8_t *)"abcdefghij", 10, 0) != 0);
     Dump(sb);
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 10);
-    FAIL_IF(sb->block_list->next != NULL);
+    sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 10);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferFree(sb);
     PASS;
@@ -1342,30 +1337,37 @@ static int StreamingBufferTest08(void)
     StreamingBufferSegment seg2;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"D", 1, 3) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"F", 1, 5) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg4;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"H", 1, 7) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg5;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
     Dump(sb);
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 10);
-    FAIL_IF(sb->block_list->next != NULL);
+    StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 10);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg6;
     FAIL_IF(StreamingBufferAppend(sb, &seg6, (const uint8_t *)"abcdefghij", 10) != 0);
     Dump(sb);
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 20);
-    FAIL_IF(sb->block_list->next != NULL);
+    sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 20);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferFree(sb);
     PASS;
@@ -1383,30 +1385,37 @@ static int StreamingBufferTest09(void)
     StreamingBufferSegment seg2;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"D", 1, 3) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg3;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"H", 1, 7) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg4;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"F", 1, 5) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg5;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg5, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
     Dump(sb);
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 10);
-    FAIL_IF(sb->block_list->next != NULL);
+    StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 10);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg6;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg6, (const uint8_t *)"abcdefghij", 10, 0) != 0);
     Dump(sb);
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 10);
-    FAIL_IF(sb->block_list->next != NULL);
+    sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 10);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferFree(sb);
     PASS;
@@ -1421,10 +1430,10 @@ static int StreamingBufferTest10(void)
 
     StreamingBufferSegment seg1;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg1, (const uint8_t *)"A", 1, 0) != 0);
+    Dump(sb);
     StreamingBufferSegment seg2;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"D", 1, 3) != 0);
     Dump(sb);
-
     StreamingBufferSegment seg3;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"H", 1, 7) != 0);
     Dump(sb);
@@ -1438,22 +1447,26 @@ static int StreamingBufferTest10(void)
     StreamingBufferSegment seg6;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg6, (const uint8_t *)"G", 1, 6) != 0);
     Dump(sb);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSegment seg7;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg7, (const uint8_t *)"ABCDEFGHIJ", 10, 0) != 0);
     Dump(sb);
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 10);
-    FAIL_IF(sb->block_list->next != NULL);
+    StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 10);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
 
     StreamingBufferSegment seg8;
     FAIL_IF(StreamingBufferInsertAt(sb, &seg8, (const uint8_t *)"abcdefghij", 10, 0) != 0);
     Dump(sb);
-    FAIL_IF(sb->block_list == NULL);
-    FAIL_IF(sb->block_list->offset != 0);
-    FAIL_IF(sb->block_list->len != 10);
-    FAIL_IF(sb->block_list->next != NULL);
+    sbb1 = RB_MIN(SBB, &sb->sbb_tree);
+    FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
+    FAIL_IF_NULL(sbb1);
+    FAIL_IF(sbb1->offset != 0);
+    FAIL_IF(sbb1->len != 10);
+    FAIL_IF(SBB_RB_NEXT(sbb1));
 
     StreamingBufferFree(sb);
     PASS;

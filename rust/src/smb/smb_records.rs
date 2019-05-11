@@ -15,7 +15,8 @@
  * 02110-1301, USA.
  */
 
-use nom::{IResult, ErrorKind};
+use nom;
+use nom::{ErrorKind, IResult};
 use log::*;
 
 /// parse a UTF16 string that is null terminated. Normally by 2 null
@@ -30,18 +31,18 @@ pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>>
         if c.len() == 1 && c[0] == 0 {
             let rem = &c[1..];
             SCLogDebug!("get_unicode_string: name {:?}", name);
-            return IResult::Done(rem, name)
+            return Ok((rem, name))
         } else if c.len() == 1 {
             break;
         } else if c[0] == 0 && c[1] == 0 {
             let rem = &c[2..];
             SCLogDebug!("get_unicode_string: name {:?}", name);
-            return IResult::Done(rem, name)
+            return Ok((rem, name))
         }
         name.push(c[0]);
         c = &c[2..];
     }
-    IResult::Error(error_code!(ErrorKind::Custom(130)))
+    Err(nom::Err::Error(error_position!(blob,ErrorKind::Custom(130))))
 }
 
 /// parse an ASCII string that is null terminated

@@ -54,7 +54,7 @@
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
-    bool include_metadata;
+    OutputJsonCommonSettings cfg;
 } LogJsonFileCtx;
 
 typedef struct JsonFlowLogThread_ {
@@ -66,7 +66,7 @@ typedef struct JsonFlowLogThread_ {
 static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
 {
     char timebuf[64];
-    char srcip[46], dstip[46];
+    char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
 
     json_t *js = json_object();
@@ -79,18 +79,27 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
 
     CreateIsoTimeString(&tv, timebuf, sizeof(timebuf));
 
-    srcip[0] = '\0';
-    dstip[0] = '\0';
-    if (FLOW_IS_IPV4(f)) {
-        PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
-        PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
-    } else if (FLOW_IS_IPV6(f)) {
-        PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
-        PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+    if ((f->flags & FLOW_DIR_REVERSED) == 0) {
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+        }
+        sp = f->sp;
+        dp = f->dp;
+    } else {
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), dstip, sizeof(dstip));
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)&(f->dst.address), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)&(f->src.address), dstip, sizeof(dstip));
+        }
+        sp = f->dp;
+        dp = f->sp;
     }
-
-    sp = f->sp;
-    dp = f->dp;
 
     char proto[16];
     if (SCProtoNameValid(f->proto) == TRUE) {
@@ -109,34 +118,26 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
     if (sensor_id >= 0)
         json_object_set_new(js, "sensor_id", json_integer(sensor_id));
 #endif
+
+    /* input interface */
+    if (f->livedev) {
+        json_object_set_new(js, "in_iface", json_string(f->livedev->dev));
+    }
+
     if (event_type) {
         json_object_set_new(js, "event_type", json_string(event_type));
     }
-#if 0
+
     /* vlan */
-    if (f->vlan_id[0] > 0) {
-        json_t *js_vlan;
-        switch (f->vlan_idx) {
-            case 1:
-                json_object_set_new(js, "vlan",
-                                    json_integer(f->vlan_id[0]));
-                break;
-            case 2:
-                js_vlan = json_array();
-                if (unlikely(js != NULL)) {
-                    json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID1(p)));
-                    json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID2(p)));
-                    json_object_set_new(js, "vlan", js_vlan);
-                }
-                break;
-            default:
-                /* shouldn't get here */
-                break;
+    if (f->vlan_idx > 0) {
+        json_t *js_vlan = json_array();
+        json_array_append_new(js_vlan, json_integer(f->vlan_id[0]));
+        if (f->vlan_idx > 1) {
+            json_array_append_new(js_vlan, json_integer(f->vlan_id[1]));
         }
+        json_object_set_new(js, "vlan", js_vlan);
     }
-#endif
+
     /* tuple */
     json_object_set_new(js, "src_ip", json_string(srcip));
     switch(f->proto) {
@@ -274,12 +275,12 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
             json_string(reason));
 
     json_object_set_new(hjs, "alerted", json_boolean(FlowHasAlerts(f)));
+    if (f->flags & FLOW_WRONG_THREAD)
+        json_object_set_new(hjs, "wrong_thread", json_true());
 
     json_object_set_new(js, "flow", hjs);
 
-    if (flow_ctx->include_metadata) {
-        JsonAddMetadata(NULL, f, js);
-    }
+    JsonAddCommonOptions(&flow_ctx->cfg, NULL, f, js);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {
@@ -346,6 +347,10 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
                     break;
             }
             json_object_set_new(tjs, "state", json_string(tcp_state));
+            if (ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP)
+                json_object_set_new(tjs, "gap_ts", json_true());
+            if (ssn->server.flags & STREAMTCP_STREAM_FLAG_GAP)
+                json_object_set_new(tjs, "gap_tc", json_true());
         }
 
         json_object_set_new(js, "tcp", tjs);
@@ -444,7 +449,7 @@ static OutputInitResult OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_c
     }
 
     flow_ctx->file_ctx = ojc->file_ctx;
-    flow_ctx->include_metadata = ojc->include_metadata;
+    flow_ctx->cfg = ojc->cfg;
 
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputFlowLogDeinitSub;

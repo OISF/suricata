@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-use nom::IResult;
 use log::*;
 use smb::smb::*;
 use smb::smb2::*;
@@ -59,14 +58,13 @@ impl SMBState {
 // IOCTL responses ASYNC don't set the tree id
 pub fn smb2_ioctl_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
+    let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_request_ioctl(r.data) {
-        IResult::Done(_, rd) => {
+        Ok((_, rd)) => {
             SCLogDebug!("IOCTL request data: {:?}", rd);
             let is_dcerpc = rd.is_pipe && match state.get_service_for_guid(&rd.guid) {
                 (_, x) => x,
             };
-            let hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
-                    r.session_id, 0, r.message_id);
             if is_dcerpc {
                 SCLogDebug!("IOCTL request data is_pipe. Calling smb_write_dcerpc_record");
                 let vercmd = SMBVerCmdStat::new2(SMB2_COMMAND_IOCTL);
@@ -78,8 +76,6 @@ pub fn smb2_ioctl_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             }
         },
         _ => {
-            let hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
-                    r.session_id, 0, r.message_id);
             let tx = state.new_generic_tx(2, r.command, hdr);
             tx.set_event(SMBEvent::MalformedData);
         },
@@ -89,8 +85,9 @@ pub fn smb2_ioctl_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 // IOCTL responses ASYNC don't set the tree id
 pub fn smb2_ioctl_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
+    let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_response_ioctl(r.data) {
-        IResult::Done(_, rd) => {
+        Ok((_, rd)) => {
             SCLogDebug!("IOCTL response data: {:?}", rd);
 
             let is_dcerpc = rd.is_pipe && match state.get_service_for_guid(&rd.guid) {
@@ -98,16 +95,12 @@ pub fn smb2_ioctl_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             };
             if is_dcerpc {
                 SCLogDebug!("IOCTL response data is_pipe. Calling smb_read_dcerpc_record");
-                let hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
-                        r.session_id, 0, r.message_id);
                 let vercmd = SMBVerCmdStat::new2_with_ntstatus(SMB2_COMMAND_IOCTL, r.nt_status);
                 SCLogDebug!("TODO passing empty GUID");
                 smb_read_dcerpc_record(state, vercmd, hdr, &[],rd.data);
             } else {
-                let tx_key = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
-                        r.session_id, 0, r.message_id);
-                SCLogDebug!("SMB2_COMMAND_IOCTL/SMB_NTSTATUS_PENDING looking for {:?}", tx_key);
-                match state.get_generic_tx(2, SMB2_COMMAND_IOCTL, &tx_key) {
+                SCLogDebug!("SMB2_COMMAND_IOCTL/SMB_NTSTATUS_PENDING looking for {:?}", hdr);
+                match state.get_generic_tx(2, SMB2_COMMAND_IOCTL, &hdr) {
                     Some(tx) => {
                         tx.set_status(r.nt_status, false);
                         if r.nt_status != SMB_NTSTATUS_PENDING {
@@ -119,10 +112,8 @@ pub fn smb2_ioctl_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             }
         },
         _ => {
-            let tx_key = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
-                    r.session_id, 0, r.message_id);
-            SCLogDebug!("SMB2_COMMAND_IOCTL/SMB_NTSTATUS_PENDING looking for {:?}", tx_key);
-            match state.get_generic_tx(2, SMB2_COMMAND_IOCTL, &tx_key) {
+            SCLogDebug!("SMB2_COMMAND_IOCTL/SMB_NTSTATUS_PENDING looking for {:?}", hdr);
+            match state.get_generic_tx(2, SMB2_COMMAND_IOCTL, &hdr) {
                 Some(tx) => {
                     SCLogDebug!("updated status of tx {}", tx.id);
                     tx.set_status(r.nt_status, false);

@@ -98,6 +98,12 @@ static uint32_t stats_tts = STATS_MGMTT_TTS;
 /** is the stats counter enabled? */
 static char stats_enabled = TRUE;
 
+/**< add decoder events as stats? enabled by default */
+bool stats_decoder_events = true;
+const char *stats_decoder_events_prefix = "decoder";
+/**< add stream events as stats? disabled by default */
+bool stats_stream_events = false;
+
 static int StatsOutput(ThreadVars *tv);
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *);
 void StatsReleaseCounters(StatsCounter *head);
@@ -219,7 +225,7 @@ static ConfNode *GetConfig(void) {
 /**
  * \brief Initializes stats context
  */
-static void StatsInitCtx(void)
+static void StatsInitCtxPreOutput(void)
 {
     SCEnter();
 #ifdef AFLFUZZ_DISABLE_MGTTHREADS
@@ -237,6 +243,41 @@ static void StatsInitCtx(void)
         const char *interval = ConfNodeLookupChildValue(stats, "interval");
         if (interval != NULL)
             stats_tts = (uint32_t) atoi(interval);
+
+        int b;
+        int ret = ConfGetChildValueBool(stats, "decoder-events", &b);
+        if (ret) {
+            stats_decoder_events = (b == 1);
+        }
+        ret = ConfGetChildValueBool(stats, "stream-events", &b);
+        if (ret) {
+            stats_stream_events = (b == 1);
+        }
+
+        const char *prefix = NULL;
+        if (ConfGet("stats.decoder-events-prefix", &prefix) != 1) {
+            prefix = "decoder";
+            SCLogWarning(SC_WARN_DEFAULT_WILL_CHANGE, "in 5.0 the default "
+                    "for decoder event stats will go from "
+                    "'decoder.<proto>.<event>' to 'decoder.event.<proto>.<event>'. "
+                    "See ticket #2225. To suppress this message, "
+                    "set stats.decoder-events-prefix in the yaml.");
+        }
+        stats_decoder_events_prefix = prefix;
+    }
+    SCReturn;
+}
+
+static void StatsInitCtxPostOutput(void)
+{
+    SCEnter();
+    /* Store the engine start time */
+    time(&stats_start_time);
+
+    /* init the lock used by StatsThreadStore */
+    if (SCMutexInit(&stats_ctx->sts_lock, NULL) != 0) {
+        SCLogError(SC_ERR_INITIALIZATION, "error initializing sts mutex");
+        exit(EXIT_FAILURE);
     }
 
     if (!OutputStatsLoggersRegistered()) {
@@ -249,15 +290,6 @@ static void StatsInitCtx(void)
             stats_enabled = FALSE;
             SCReturn;
         }
-    }
-
-    /* Store the engine start time */
-    time(&stats_start_time);
-
-    /* init the lock used by StatsThreadStore */
-    if (SCMutexInit(&stats_ctx->sts_lock, NULL) != 0) {
-        SCLogError(SC_ERR_INITIALIZATION, "error initializing sts mutex");
-        exit(EXIT_FAILURE);
     }
 
     SCReturn;
@@ -325,7 +357,6 @@ static void *StatsMgmtThread(void *arg)
 {
     ThreadVars *tv_local = (ThreadVars *)arg;
     uint8_t run = 1;
-    struct timespec cond_time;
 
     /* Set the thread name */
     if (SCSetThreadName(tv_local->name) < 0) {
@@ -366,8 +397,11 @@ static void *StatsMgmtThread(void *arg)
             TmThreadsUnsetFlag(tv_local, THV_PAUSED);
         }
 
-        cond_time.tv_sec = time(NULL) + stats_tts;
-        cond_time.tv_nsec = 0;
+        struct timeval cur_timev;
+        gettimeofday(&cur_timev, NULL);
+
+        struct timespec cond_time = FROM_TIMEVAL(cur_timev);
+        cond_time.tv_sec += (stats_tts);
 
         /* wait for the set time, or until we are woken up by
          * the shutdown procedure */
@@ -831,10 +865,16 @@ void StatsInit(void)
     StatsPublicThreadContextInit(&stats_ctx->global_counter_ctx);
 }
 
-void StatsSetupPostConfig(void)
+void StatsSetupPostConfigPreOutput(void)
 {
-    StatsInitCtx();
+    StatsInitCtxPreOutput();
 }
+
+void StatsSetupPostConfigPostOutput(void)
+{
+    StatsInitCtxPostOutput();
+}
+
 
 /**
  * \brief Spawns the wakeup, and the management thread used by the stats api

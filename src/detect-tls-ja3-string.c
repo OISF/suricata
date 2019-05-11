@@ -20,7 +20,7 @@
  *
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  *
- * Implements support for ja3_string keyword.
+ * Implements support for ja3.string keyword.
  */
 
 #include "suricata-common.h"
@@ -67,33 +67,35 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 static int g_tls_ja3_str_buffer_id = 0;
 
 /**
- * \brief Registration function for keyword: ja3_string
+ * \brief Registration function for keyword: ja3.string
  */
 void DetectTlsJa3StringRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_JA3_STRING].name = "ja3_string";
+    sigmatch_table[DETECT_AL_TLS_JA3_STRING].name = "ja3.string";
+    sigmatch_table[DETECT_AL_TLS_JA3_STRING].alias = "ja3_string";
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].desc = "content modifier to match the JA3 string buffer";
-    sigmatch_table[DETECT_AL_TLS_JA3_STRING].url = DOC_URL DOC_VERSION "/rules/ja3-keywords.html#ja3_string";
+    sigmatch_table[DETECT_AL_TLS_JA3_STRING].url = DOC_URL DOC_VERSION "/rules/ja3-keywords.html#ja3-string";
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].Setup = DetectTlsJa3StringSetup;
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].Free = NULL;
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].RegisterTests = DetectTlsJa3StringRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TLS_JA3_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("ja3_string", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister2("ja3.string", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("ja3_string", SIG_FLAG_TOSERVER, 2,
+    DetectAppLayerMpmRegister2("ja3.string", SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
 
-    DetectBufferTypeSetDescriptionByName("ja3_string", "TLS JA3 string");
+    DetectBufferTypeSetDescriptionByName("ja3.string", "TLS JA3 string");
 
-    g_tls_ja3_str_buffer_id = DetectBufferTypeGetByName("ja3_string");
+    g_tls_ja3_str_buffer_id = DetectBufferTypeGetByName("ja3.string");
 }
 
 /**
- * \brief this function setup the ja3_string modifier keyword used in the rule
+ * \brief this function setup the ja3.string modifier keyword used in the rule
  *
  * \param de_ctx Pointer to the Detection Engine Context
  * \param s      Pointer to the Signature to which the current keyword belongs
@@ -120,9 +122,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id)
 {
-    BUG_ON(det_ctx->inspect_buffers == NULL);
-    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
-
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         SSLState *ssl_state = (SSLState *)_f->alstate;
 
@@ -213,7 +213,7 @@ static int DetectTlsJa3StringTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-            "(msg:\"Test ja3_string\"; ja3_string; "
+            "(msg:\"Test ja3.string\"; ja3.string; "
             "content:\"-65-68-69-102-103-104-105-106-107-132-135-255,0,,\"; "
             "sid:1;)");
     FAIL_IF_NULL(s);

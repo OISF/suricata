@@ -4,7 +4,7 @@ version = "@PACKAGE_VERSION@"
 
 [lib]
 crate-type = ["staticlib"]
-path = "@abs_srcdir@/src/lib.rs"
+path = "@e_rustdir@/src/lib.rs"
 
 [profile.release]
 debug = true
@@ -15,11 +15,11 @@ strict = []
 debug = []
 
 [dependencies]
-nom = "~3.2.1"
+nom = "4.2"
 libc = "^0.2.36"
-crc = "~1.7.0"
-der-parser = "0.5.2"
-kerberos-parser = "0.1.3"
+crc = "1.8"
+der-parser = "1.1"
+kerberos-parser = "0.2"
 
-ntp-parser = "0.2.0"
-ipsec-parser = "~0.3.0"
+ntp-parser = "0.3"
+ipsec-parser = "0.4"

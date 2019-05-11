@@ -1,4 +1,6 @@
 if HAVE_PYTHON
+if HAVE_PYTHON_DISTUTILS
+if HAVE_PYTHON_YAML
 
 install-exec-local:
 	cd $(srcdir) && \
@@ -19,4 +21,6 @@ clean-local:
 
 distclean-local:
 
+endif
+endif
 endif

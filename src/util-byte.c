@@ -27,6 +27,7 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-validate.h"
 
 /** \brief Turn byte array into string.
  *
@@ -69,6 +70,53 @@ char *BytesToString(const uint8_t *bytes, size_t nbytes)
         }
     }
     return string;
+}
+
+/** \brief Turn byte array into string.
+ *
+ *  All non-printables are copied over, except for '\0', which is
+ *  turned into literal \0 in the string.
+ *
+ *  \param bytes byte array
+ *  \param nbytes number of bytes
+ *  \param outstr[out] buffer to fill
+ *  \param outlen size of outstr. Must be at least 2 * nbytes + 1 in size
+ */
+void BytesToStringBuffer(const uint8_t *bytes, size_t nbytes, char *outstr, size_t outlen)
+{
+    DEBUG_VALIDATE_BUG_ON(outlen < (nbytes * 2 + 1));
+
+    size_t n = nbytes + 1;
+    size_t nulls = 0;
+
+    size_t u;
+    for (u = 0; u < nbytes; u++) {
+        if (bytes[u] == '\0')
+            nulls++;
+    }
+    n += nulls;
+
+    char string[n];
+
+    if (nulls == 0) {
+        /* no nulls */
+        memcpy(string, bytes, nbytes);
+        string[nbytes] = '\0';
+    } else {
+        /* nulls present */
+        char *dst = string;
+        for (u = 0; u < nbytes; u++) {
+            if (bytes[u] == '\0') {
+                *dst++ = '\\';
+                *dst++ = '0';
+            } else {
+                *dst++ = bytes[u];
+            }
+        }
+        *dst = '\0';
+    }
+
+    strlcpy(outstr, string, outlen);
 }
 
 int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
@@ -149,7 +197,7 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
     char strbuf[24];
 
     if (len > 23) {
-        SCLogError(SC_ERR_ARG_LEN_LONG, "len too large (23 max)");
+        SCLogDebug("len too large (23 max)");
         return -1;
     }
 
@@ -164,15 +212,15 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
     *res = strtoull(ptr, &endptr, base);
 
     if (errno == ERANGE) {
-        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range");
+        SCLogDebug("numeric value out of range");
         return -1;
         /* If there is no numeric value in the given string then strtoull(), makes
         endptr equals to ptr and return 0 as result */
     } else if (endptr == ptr && *res == 0) {
-        SCLogDebug("No numeric value");
+        SCLogDebug("no numeric value");
         return -1;
     } else if (endptr == ptr) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "Invalid numeric value");
+        SCLogDebug("invalid numeric value");
         return -1;
     }
     /* This will interfere with some rules that do not know the length
@@ -196,9 +244,8 @@ int ByteExtractStringUint64(uint64_t *res, int base, uint16_t len, const char *s
 int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const char *str)
 {
     uint64_t i64;
-    int ret;
 
-    ret = ByteExtractString(&i64, base, len, str);
+    int ret = ByteExtractString(&i64, base, len, str);
     if (ret <= 0) {
         return ret;
     }
@@ -206,8 +253,8 @@ int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const char *s
     *res = (uint32_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
-                   "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)UINT_MAX);
+        SCLogDebug("Numeric value out of range (%" PRIu64 " > %" PRIuMAX ")",
+                i64, (uintmax_t)UINT_MAX);
         return -1;
     }
 
@@ -217,9 +264,8 @@ int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const char *s
 int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *str)
 {
     uint64_t i64;
-    int ret;
 
-    ret = ByteExtractString(&i64, base, len, str);
+    int ret = ByteExtractString(&i64, base, len, str);
     if (ret <= 0) {
         return ret;
     }
@@ -227,8 +273,8 @@ int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *s
     *res = (uint16_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
-                   "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)USHRT_MAX);
+        SCLogDebug("Numeric value out of range (%" PRIu64 " > %" PRIuMAX ")",
+                i64, (uintmax_t)USHRT_MAX);
         return -1;
     }
 
@@ -238,9 +284,8 @@ int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *s
 int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str)
 {
     uint64_t i64;
-    int ret;
 
-    ret = ByteExtractString(&i64, base, len, str);
+    int ret = ByteExtractString(&i64, base, len, str);
     if (ret <= 0) {
         return ret;
     }
@@ -248,8 +293,8 @@ int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str
     *res = (uint8_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
-                   "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)UCHAR_MAX);
+        SCLogDebug("Numeric value out of range (%" PRIu64 " > %" PRIuMAX ")",
+                i64, (uintmax_t)UCHAR_MAX);
         return -1;
     }
 

@@ -221,6 +221,32 @@ Example of fragoffset in a rule:
 
    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET EXPLOIT Invalid non-fragmented packet with fragment offset>0"; fragbits: M; :example-rule-emphasis:`fragoffset: >0;` reference:url,doc.emergingthreats.net/bin/view/Main/2001022; classtype:bad-unknown; sid:2001022; rev:5; metadata:created_at 2010_07_30, updated_at 2010_07_30;)
 
+tos
+^^^
+
+The tos keyword can match on specific decimal values of the IP header TOS
+field. The tos keyword can be have a value from 0 - 255. This field of the
+IP header has been updated by `rfc2474 <https://tools.ietf.org/html/rfc2474>`_
+to include functionality for
+`Differentiated services <https://en.wikipedia.org/wiki/Differentiated_services>`_.
+
+Format of tos::
+
+  tos:[!]<number>;
+
+Example of tos in a rule:
+
+.. container:: example-rule
+
+    alert ip any any -> any any (msg:"Differentiated Services Codepoint: Class Selector 1 (8)"; flow:established; :example-rule-emphasis:`tos:8;` classtype:not-suspicious; sid:2600115; rev:1;)
+
+Example of tos with negated values:
+
+.. container:: example-rule
+
+    alert ip any any -> any any (msg:"TGI HUNT non-DiffServ aware TOS setting"; flow:established,to_server; :example-rule-emphasis:`tos:!0; tos:!8; tos:!16; tos:!24; tos:!32; tos:!40; tos:!48; tos:!56;` threshold:type limit, track by_src, seconds 60, count 1; classtype:bad-unknown; sid:2600124; rev:1;)
+
+
 TCP keywords
 ------------
 

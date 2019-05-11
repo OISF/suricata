@@ -19,7 +19,8 @@
 
 extern crate libc;
 
-use nom::{IResult, be_u32};
+use nom;
+use nom::be_u32;
 
 use core::*;
 use log::*;
@@ -123,6 +124,32 @@ impl NFSState {
         }
     }
 
+    fn new_tx_v4<'b>(&mut self, r: &RpcPacket<'b>,
+            xidmap: &NFSRequestXidMap, procedure: u32,
+            _aux_opcodes: &Vec<u32>)
+    {
+        let mut tx = self.new_tx();
+        tx.xid = r.hdr.xid;
+        tx.procedure = procedure;
+        tx.request_done = true;
+        tx.file_name = xidmap.file_name.to_vec();
+        tx.nfs_version = r.progver as u16;
+        tx.file_handle = xidmap.file_handle.to_vec();
+
+        tx.auth_type = r.creds_flavor;
+        match r.creds {
+            RpcRequestCreds::Unix(ref u) => {
+                tx.request_machine_name = u.machine_name_buf.to_vec();
+                tx.request_uid = u.uid;
+                tx.request_gid = u.gid;
+            },
+            _ => { },
+        }
+        SCLogDebug!("NFSv4: TX created: ID {} XID {} PROCEDURE {}",
+                tx.id, tx.xid, tx.procedure);
+        self.transactions.push(tx);
+    }
+
     /* A normal READ request looks like: PUTFH (file handle) READ (read opts).
      * We need the file handle for the READ.
      */
@@ -131,12 +158,15 @@ impl NFSState {
             xidmap: &mut NFSRequestXidMap)
     {
         let mut last_putfh : Option<&'b[u8]> = None;
+        let mut main_opcode : u32 = 0;
+        let mut aux_opcodes : Vec<u32> = Vec::new();
 
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);
             match c {
                 &Nfs4RequestContent::PutFH(ref rd) => {
                     last_putfh = Some(rd.value);
+                    aux_opcodes.push(NFSPROC4_PUTFH);
                 }
                 &Nfs4RequestContent::Read(ref rd) => {
                     SCLogDebug!("READv4: {:?}", rd);
@@ -169,6 +199,19 @@ impl NFSState {
                 &Nfs4RequestContent::Close(ref rd) => {
                     SCLogDebug!("CLOSEv4: {:?}", rd);
                 }
+                &Nfs4RequestContent::Create(ref rd) => {
+                    SCLogDebug!("CREATEv4: {:?}", rd);
+                    if let Some(fh) = last_putfh {
+                        xidmap.file_handle = fh.to_vec();
+                    }
+                    xidmap.file_name = rd.filename.to_vec();
+                    main_opcode = NFSPROC4_CREATE;
+                }
+                &Nfs4RequestContent::Remove(ref rd) => {
+                    SCLogDebug!("REMOVEv4: {:?}", rd);
+                    xidmap.file_name = rd.to_vec();
+                    main_opcode = NFSPROC4_REMOVE;
+                }
                 &Nfs4RequestContent::SetClientId(ref rd) => {
                     SCLogDebug!("SETCLIENTIDv4: client id {} r_netid {} r_addr {}",
                             String::from_utf8_lossy(&rd.client_id),
@@ -177,6 +220,10 @@ impl NFSState {
                 }
                 &_ => { },
             }
+        }
+
+        if main_opcode != 0 {
+            self.new_tx_v4(r, &xidmap, main_opcode, &aux_opcodes);
         }
     }
 
@@ -201,33 +248,42 @@ impl NFSState {
                 if creds.procedure == 0  && creds.service == 2 {
                     SCLogDebug!("GSS INTEGRITIY: {:?}", creds);
                     match parse_rpc_gssapi_integrity(r.prog_data) {
-                        IResult::Done(_rem, rec) => {
+                        Ok((_rem, rec)) => {
                             SCLogDebug!("GSS INTEGRITIY wrapper: {:?}", rec);
                             data = rec.data;
                             // store proc and serv for the reply
                             xidmap.gssapi_proc = creds.procedure;
                             xidmap.gssapi_service = creds.service;
                         },
-                        IResult::Incomplete(_n) => {
+                        Err(nom::Err::Incomplete(_n)) => {
                             SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: INCOMPLETE {:?}", _n);
                             self.set_event(NFSEvent::MalformedData);
                             return 0;
                         },
-                        IResult::Error(e) => { panic!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}",e);  },
+                        Err(nom::Err::Error(_e)) |
+                        Err(nom::Err::Failure(_e)) => {
+                            SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}", _e);
+                            self.set_event(NFSEvent::MalformedData);
+                            return 0;
+                        },
                     }
                 }
             }
 
             match parse_nfs4_request_compound(data) {
-                IResult::Done(_, rd) => {
+                Ok((_, rd)) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: {:?}", rd);
                     self.compound_request(&r, &rd, &mut xidmap);
                 },
-                IResult::Incomplete(_n) => {
+                Err(nom::Err::Incomplete(_n)) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: INCOMPLETE {:?}", _n);
                     self.set_event(NFSEvent::MalformedData);
                 },
-                IResult::Error(e) => { panic!("NFSPROC4_COMPOUND: Parsing failed: {:?}",e);  },
+                Err(nom::Err::Error(_e)) |
+                Err(nom::Err::Failure(_e)) => {
+                    SCLogDebug!("NFSPROC4_COMPOUND: Parsing failed: {:?}", _e);
+                    self.set_event(NFSEvent::MalformedData);
+                },
             };
         }
 
@@ -240,6 +296,8 @@ impl NFSState {
             xidmap: &mut NFSRequestXidMap)
     {
         let mut insert_filename_with_getfh = false;
+        let mut main_opcode_status : u32 = 0;
+        let mut main_opcode_status_set : bool = false;
 
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);
@@ -258,6 +316,13 @@ impl NFSState {
                 }
                 &Nfs4ResponseContent::Remove(s) => {
                     SCLogDebug!("REMOVE4: status {}", s);
+                    main_opcode_status = s;
+                    main_opcode_status_set = true;
+                },
+                &Nfs4ResponseContent::Create(s) => {
+                    SCLogDebug!("CREATE4: status {}", s);
+                    main_opcode_status = s;
+                    main_opcode_status_set = true;
                 },
                 &Nfs4ResponseContent::Read(s, ref rd) => {
                     if let &Some(ref rd) = rd {
@@ -289,8 +354,19 @@ impl NFSState {
                         }
                     }
                 },
+                &Nfs4ResponseContent::PutRootFH(s) => {
+                    if s == NFS4_OK && xidmap.file_name.len() == 0 {
+                        xidmap.file_name = b"<mount_root>".to_vec();
+                        SCLogDebug!("filename {:?}", xidmap.file_name);
+                    }
+                },
                 &_ => { },
             }
+        }
+
+        if main_opcode_status_set {
+            let resp_handle = Vec::new();
+            self.mark_response_tx_done(r.hdr.xid, r.reply_state, main_opcode_status, &resp_handle);
         }
     }
 
@@ -303,27 +379,36 @@ impl NFSState {
 
                 SCLogDebug!("GSS INTEGRITIY as set by call: {:?}", xidmap);
                 match parse_rpc_gssapi_integrity(r.prog_data) {
-                    IResult::Done(_rem, rec) => {
+                    Ok((_rem, rec)) => {
                         SCLogDebug!("GSS INTEGRITIY wrapper: {:?}", rec);
                         data = rec.data;
                     },
-                    IResult::Incomplete(_n) => {
+                    Err(nom::Err::Incomplete(_n)) => {
                         SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: INCOMPLETE {:?}", _n);
                         self.set_event(NFSEvent::MalformedData);
                         return 0;
                     },
-                    IResult::Error(e) => { panic!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}",e);  },
+                    Err(nom::Err::Error(_e)) |
+                    Err(nom::Err::Failure(_e)) => {
+                        SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}", _e);
+                        self.set_event(NFSEvent::MalformedData);
+                        return 0;
+                    },
                 }
             }
             match parse_nfs4_response_compound(data) {
-                IResult::Done(_, rd) => {
+                Ok((_, rd)) => {
                     SCLogDebug!("COMPOUNDv4: {:?}", rd);
                     self.compound_response(&r, &rd, xidmap);
                 },
-                IResult::Incomplete(_) => {
+                Err(nom::Err::Incomplete(_)) => {
                     self.set_event(NFSEvent::MalformedData);
                 },
-                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+                Err(nom::Err::Error(_e)) |
+                Err(nom::Err::Failure(_e)) => {
+                    SCLogDebug!("Parsing failed: {:?}", _e);
+                    self.set_event(NFSEvent::MalformedData);
+                },
             };
         }
         0

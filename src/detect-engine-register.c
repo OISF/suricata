@@ -45,7 +45,6 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
-#include "detect-engine-uri.h"
 #include "detect-dns-query.h"
 #include "detect-tls-sni.h"
 #include "detect-tls-cert-fingerprint.h"
@@ -56,13 +55,11 @@
 #include "detect-tls-ja3-string.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
-#include "detect-engine-filedata.h"
 
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"
 #include "detect-http-ua.h"
-#include "detect-http-hh.h"
-#include "detect-http-hrh.h"
+#include "detect-http-host.h"
 
 #include "detect-nfs-procedure.h"
 #include "detect-nfs-version.h"
@@ -152,21 +149,9 @@
 #include "detect-http-uri.h"
 #include "detect-http-protocol.h"
 #include "detect-http-start.h"
-#include "detect-http-raw-uri.h"
 #include "detect-http-stat-msg.h"
 #include "detect-http-request-line.h"
 #include "detect-http-response-line.h"
-#include "detect-engine-hcbd.h"
-#include "detect-engine-hsbd.h"
-#include "detect-engine-hrhd.h"
-#include "detect-engine-hmd.h"
-#include "detect-engine-hcd.h"
-#include "detect-engine-hrud.h"
-#include "detect-engine-hsmd.h"
-#include "detect-engine-hscd.h"
-#include "detect-engine-hua.h"
-#include "detect-engine-hhhd.h"
-#include "detect-engine-hrhhd.h"
 #include "detect-byte-extract.h"
 #include "detect-file-data.h"
 #include "detect-pkt-data.h"
@@ -178,11 +163,13 @@
 #include "detect-geoip.h"
 #include "detect-app-layer-protocol.h"
 #include "detect-template.h"
+#include "detect-template2.h"
 #include "detect-krb5-cname.h"
 #include "detect-krb5-errcode.h"
 #include "detect-krb5-msgtype.h"
 #include "detect-krb5-sname.h"
 #include "detect-target.h"
+#include "detect-template-rust-buffer.h"
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -190,6 +177,8 @@
 
 #include "detect-transform-compress-whitespace.h"
 #include "detect-transform-strip-whitespace.h"
+#include "detect-transform-md5.h"
+#include "detect-transform-sha1.h"
 #include "detect-transform-sha256.h"
 
 #include "util-rule-vars.h"
@@ -243,7 +232,7 @@
 
 static void PrintFeatureList(const SigTableElmt *e, char sep)
 {
-    const uint8_t flags = e->flags;
+    const uint16_t flags = e->flags;
 
     int prev = 0;
     if (flags & SIGMATCH_NOOPT) {
@@ -260,6 +249,24 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         if (prev == 1)
             printf("%c", sep);
         printf("compatible with decoder event only rule");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_CONTENT_MODIFIER) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("content modifier");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_INFO_STICKY_BUFFER) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("sticky buffer");
+        prev = 1;
+    }
+    if (e->Transform) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("transform");
         prev = 1;
     }
     if (e->SupportsPrefilter) {
@@ -283,6 +290,9 @@ static void SigMultilinePrint(int i, const char *prefix)
     if (sigmatch_table[i].url) {
         printf("\n%sDocumentation: %s", prefix, sigmatch_table[i].url);
     }
+    if (sigmatch_table[i].alternative) {
+        printf("\n%sReplaced by: %s", prefix, sigmatch_table[sigmatch_table[i].alternative].name);
+    }
     printf("\n");
 }
 
@@ -294,22 +304,30 @@ void SigTableList(const char *keyword)
     if (keyword == NULL) {
         printf("=====Supported keywords=====\n");
         for (i = 0; i < size; i++) {
-            if (sigmatch_table[i].name != NULL) {
+            const char *name = sigmatch_table[i].name;
+            if (name != NULL && strlen(name) > 0) {
+                if (name[0] == '_' || strcmp(name, "template") == 0)
+                    continue;
+
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
-                    printf("- %s (not built-in)\n", sigmatch_table[i].name);
+                    printf("- %s (not built-in)\n", name);
                 } else {
-                    printf("- %s\n", sigmatch_table[i].name);
+                    printf("- %s\n", name);
                 }
             }
         }
     } else if (strcmp("csv", keyword) == 0) {
         printf("name;description;app layer;features;documentation\n");
         for (i = 0; i < size; i++) {
-            if (sigmatch_table[i].name != NULL) {
+            const char *name = sigmatch_table[i].name;
+            if (name != NULL && strlen(name) > 0) {
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
                     continue;
                 }
-                printf("%s;", sigmatch_table[i].name);
+                if (name[0] == '_' || strcmp(name, "template") == 0)
+                    continue;
+
+                printf("%s;", name);
                 if (sigmatch_table[i].desc) {
                     printf("%s", sigmatch_table[i].desc);
                 }
@@ -326,7 +344,10 @@ void SigTableList(const char *keyword)
         }
     } else if (strcmp("all", keyword) == 0) {
         for (i = 0; i < size; i++) {
-            if (sigmatch_table[i].name != NULL) {
+            const char *name = sigmatch_table[i].name;
+            if (name != NULL && strlen(name) > 0) {
+                if (name[0] == '_' || strcmp(name, "template") == 0)
+                    continue;
                 printf("%s:\n", sigmatch_table[i].name);
                 SigMultilinePrint(i, "\t");
             }
@@ -384,7 +405,6 @@ void SigTableSetup(void)
     DetectHttpRawHeaderRegister();
     DetectHttpMethodRegister();
     DetectHttpCookieRegister();
-    DetectHttpRawUriRegister();
 
     DetectFilenameRegister();
     DetectFileextRegister();
@@ -397,7 +417,6 @@ void SigTableSetup(void)
 
     DetectHttpUARegister();
     DetectHttpHHRegister();
-    DetectHttpHRHRegister();
 
     DetectHttpStatMsgRegister();
     DetectHttpStatCodeRegister();
@@ -494,16 +513,20 @@ void SigTableSetup(void)
     DetectBase64DecodeRegister();
     DetectBase64DataRegister();
     DetectTemplateRegister();
+    DetectTemplate2Register();
     DetectKrb5CNameRegister();
     DetectKrb5ErrCodeRegister();
     DetectKrb5MsgTypeRegister();
     DetectKrb5SNameRegister();
     DetectTargetRegister();
+    DetectTemplateRustBufferRegister();
     DetectTemplateBufferRegister();
     DetectBypassRegister();
 
     DetectTransformCompressWhitespaceRegister();
     DetectTransformStripWhitespaceRegister();
+    DetectTransformMd5Register();
+    DetectTransformSha1Register();
     DetectTransformSha256Register();
 
     /* close keyword registration */

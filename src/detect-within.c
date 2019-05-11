@@ -39,6 +39,7 @@
 
 #include "flow-var.h"
 
+#include "util-byte.h"
 #include "util-debug.h"
 #include "detect-pcre.h"
 #include "detect-within.h"
@@ -112,7 +113,12 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
         cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         cd->flags |= DETECT_CONTENT_WITHIN_BE;
     } else {
-        cd->within = strtol(str, NULL, 10);
+        if (ByteExtractStringInt32(&cd->within, 0, 0, str) != (int)strlen(str)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                      "invalid value for within: %s", str);
+            goto end;
+        }
+
         if (cd->within < (int32_t)cd->content_len) {
             SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
                        "less than the content length \"%"PRIu32"\" which is invalid, since "
@@ -162,7 +168,6 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
  */
 static int DetectWithinTestPacket01 (void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
                     "User-Agent: Wget/1.11.4"
                     "Accept: */*"
@@ -170,49 +175,41 @@ static int DetectWithinTestPacket01 (void)
                     "Connection: Keep-Alive"
                     "Date: Mon, 04 Jan 2010 17:29:39 GMT";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p;
-    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    if (p == NULL)
-        goto end;
+    Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with within "
                  "modifier\"; pcre:\"/AllWorkAndNoPlayMakesWillADullBoy/\";"
                  " content:\"HTTP\"; within:5; sid:49; rev:1;)";
-
-    result = UTHPacketMatchSig(p, sig);
+    int result = UTHPacketMatchSig(p, sig);
+    FAIL_IF_NOT(result == 1);
 
     UTHFreePacket(p);
-end:
-    return result;
+    PASS;
 }
 
 
 static int DetectWithinTestPacket02 (void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *)"Zero Five Ten Fourteen";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p;
-    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    if (p == NULL)
-        goto end;
+    Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with within "
                  "modifier\"; content:\"Five\"; content:\"Ten\"; within:3; distance:1; sid:1;)";
 
-    result = UTHPacketMatchSig(p, sig);
+    int result = UTHPacketMatchSig(p, sig);
+    FAIL_IF_NOT(result == 1);
 
     UTHFreePacket(p);
-end:
-    return result;
+    PASS;
 }
 
 static int DetectWithinTestVarSetup(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
     char sig[] = "alert tcp any any -> any any ( "
         "msg:\"test rule\"; "
         "content:\"abc\"; "
@@ -223,23 +220,14 @@ static int DetectWithinTestVarSetup(void)
         "http_client_body; "
         "sid:4; rev:1;)";
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-    de_ctx->sig_list = SigInit(de_ctx, sig);
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
-    result = 1;
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 #endif /* UNITTESTS */

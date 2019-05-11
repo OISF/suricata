@@ -52,7 +52,6 @@
 #include "util-byte.h"
 #include "util-validate.h"
 
-#include "log-file.h"
 #include "util-logopenfile.h"
 
 #include "output.h"
@@ -68,8 +67,6 @@
 #include "app-layer-htp-xff.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
-
-#ifdef HAVE_LIBJANSSON
 
 typedef struct OutputFileCtx_ {
     LogFileCtx *file_ctx;
@@ -119,7 +116,6 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             if (hjs)
                 json_object_set_new(js, "email", hjs);
             break;
-#ifdef HAVE_RUST
         case ALPROTO_NFS:
             hjs = JsonNFSAddMetadataRPC(p->flow, ff->txid);
             if (hjs)
@@ -133,7 +129,6 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             if (hjs)
                 json_object_set_new(js, "smb", hjs);
             break;
-#endif
     }
 
     json_object_set_new(js, "app_proto",
@@ -145,10 +140,22 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
         return NULL;
     }
 
-    char *s = BytesToString(ff->name, ff->name_len);
-    json_object_set_new(fjs, "filename", json_string(s));
-    if (s != NULL)
-        SCFree(s);
+    size_t filename_size = ff->name_len * 2 + 1;
+    char filename_string[filename_size];
+    BytesToStringBuffer(ff->name, ff->name_len, filename_string, filename_size);
+    json_object_set_new(fjs, "filename", SCJsonString(filename_string));
+
+    json_t *sig_ids = json_array();
+    if (unlikely(sig_ids == NULL)) {
+        json_decref(js);
+        return NULL;
+    }
+
+    for (uint32_t i = 0; ff->sid != NULL && i < ff->sid_cnt; i++) {
+        json_array_append_new(sig_ids, json_integer(ff->sid[i]));
+    }
+    json_object_set_new(fjs, "sid", sig_ids);
+
 #ifdef HAVE_MAGIC
     if (ff->magic)
         json_object_set_new(fjs, "magic", json_string((char *)ff->magic));
@@ -206,6 +213,10 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
         json_object_set_new(fjs, "file_id", json_integer(ff->file_store_id));
     }
     json_object_set_new(fjs, "size", json_integer(FileTrackedSize(ff)));
+    if (ff->end > 0) {
+        json_object_set_new(fjs, "start", json_integer(ff->start));
+        json_object_set_new(fjs, "end", json_integer(ff->end));
+    }
     json_object_set_new(fjs, "tx_id", json_integer(ff->txid));
 
     /* xff header */
@@ -387,11 +398,3 @@ void JsonFileLogRegister (void)
         "eve-log.files", OutputFileLogInitSub, JsonFileLogger,
         JsonFileLogThreadInit, JsonFileLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonFileLogRegister (void)
-{
-}
-
-#endif

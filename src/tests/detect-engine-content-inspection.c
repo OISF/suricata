@@ -47,9 +47,9 @@
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);                       \
     FAIL_IF_NULL(det_ctx);                                                                  \
     int r = DetectEngineContentInspection(de_ctx, det_ctx,                                  \
-                s, s->sm_arrays[DETECT_SM_LIST_PMATCH], &f,                                 \
+                s, s->sm_arrays[DETECT_SM_LIST_PMATCH], NULL, &f,                           \
                 (uint8_t *)(buf), (buflen), 0, DETECT_CI_FLAGS_SINGLE,                      \
-                DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, NULL);                       \
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD);                             \
     FAIL_IF_NOT(r == (match));                                                              \
     FAIL_IF_NOT(det_ctx->inspection_recursion_counter == (steps));                          \
     DetectEngineThreadCtxDeinit(&tv, det_ctx);                                              \

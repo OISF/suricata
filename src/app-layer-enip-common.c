@@ -44,7 +44,7 @@
 static int ENIPExtractUint8(uint8_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
 {
 
-    if (*offset > (input_len - sizeof(uint8_t)))
+    if (input_len < sizeof(uint8_t) || *offset > (input_len - sizeof(uint8_t)))
     {
         SCLogDebug("ENIPExtractUint8: Parsing beyond payload length");
         return 0;
@@ -64,7 +64,7 @@ static int ENIPExtractUint8(uint8_t *res, uint8_t *input, uint16_t *offset, uint
 static int ENIPExtractUint16(uint16_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
 {
 
-    if (*offset > (input_len - sizeof(uint16_t)))
+    if (input_len < sizeof(uint16_t) || *offset > (input_len - sizeof(uint16_t)))
     {
         SCLogDebug("ENIPExtractUint16: Parsing beyond payload length");
         return 0;
@@ -85,7 +85,7 @@ static int ENIPExtractUint16(uint16_t *res, uint8_t *input, uint16_t *offset, ui
 static int ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
 {
 
-    if (*offset > (input_len - sizeof(uint32_t)))
+    if (input_len < sizeof(uint32_t) || *offset > (input_len - sizeof(uint32_t)))
     {
         SCLogDebug("ENIPExtractUint32: Parsing beyond payload length");
         return 0;
@@ -106,7 +106,7 @@ static int ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset, ui
 static int ENIPExtractUint64(uint64_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
 {
 
-    if (*offset > (input_len - sizeof(uint64_t)))
+    if (input_len < sizeof(uint64_t) || *offset > (input_len - sizeof(uint64_t)))
     {
         SCLogDebug("ENIPExtractUint64: Parsing beyond payload length");
         return 0;

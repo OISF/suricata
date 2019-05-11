@@ -32,12 +32,6 @@
 
 #include "detect-filestore.h"
 
-#include "detect-engine-uri.h"
-#include "detect-engine-hcbd.h"
-#include "detect-engine-hrhd.h"
-#include "detect-engine-hmd.h"
-#include "detect-engine-hcd.h"
-#include "detect-engine-hrud.h"
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-file.h"
 
@@ -48,7 +42,6 @@
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
-#include "app-layer-smb.h"
 #include "app-layer-dcerpc-common.h"
 #include "app-layer-dcerpc.h"
 #include "app-layer-smtp.h"
@@ -154,7 +147,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                         FileMatch(tv, det_ctx, f, flags, file, s, smd->ctx);
                     KEYWORD_PROFILING_END(det_ctx, smd->type, (match > 0));
                     if (match == 0) {
-                        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+                        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
                         break;
                     } else if (smd->is_last) {
                         r = DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -171,11 +164,6 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
              * results though */
             if (r == DETECT_ENGINE_INSPECT_SIG_MATCH)
                 store_r = DETECT_ENGINE_INSPECT_SIG_MATCH;
-
-            /* if this is a filestore sig, and the sig can't match
-             * return 3 so we can distinguish */
-            if ((s->flags & SIG_FLAG_FILESTORE) && r == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH)
-                r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
 
             /* continue, this file may (or may not) be unable to match
              * maybe we have more that can :) */
@@ -251,9 +239,9 @@ int DetectFileInspectGeneric(ThreadVars *tv,
     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
         SCLogDebug("sid %u can't match on this transaction", s->id);
         r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
-        SCLogDebug("sid %u can't match on this transaction (filestore sig)", s->id);
-        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
+    } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES) {
+        SCLogDebug("sid %u can't match on this transaction (file sig)", s->id);
+        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
     } else if (match == DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES) {
         SCLogDebug("match with more files ahead");
         r = match;

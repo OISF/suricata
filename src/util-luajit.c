@@ -77,7 +77,7 @@ int LuajitSetupStatesPool(void)
             ConfNode *decnf = ConfGetNode("detect-engine");
             if (decnf != NULL) {
                 TAILQ_FOREACH(denode, &decnf->head, next) {
-                    if (strcmp(denode->val, "luajit-states") == 0) {
+                    if (denode->val && strcmp(denode->val, "luajit-states") == 0) {
                         ConfGetChildValueInt(denode, "luajit-states", &cnt);
                     }
                 }

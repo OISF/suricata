@@ -50,15 +50,20 @@ uint32_t FileGetSwfDecompressedLen(const uint8_t *buffer,
         return 0;
     }
 
-    int a = buffer[4];
-    int b = buffer[5];
-    int c = buffer[6];
-    int d = buffer[7];
+    uint32_t a = buffer[4];
+    uint32_t b = buffer[5];
+    uint32_t c = buffer[6];
+    uint32_t d = buffer[7];
 
-    uint32_t value = (((a & 0xff) << 24) | ((b & 0xff) << 16) | ((c & 0xff) << 8) | (d & 0xff));
+    uint32_t value = (((a & 0xff) << 24UL) |
+                      ((b & 0xff) << 16UL) |
+                      ((c & 0xff) << 8UL) |
+                       (d & 0xff));
 
-    uint32_t len = (((value >> 24) & 0x000000FF) | ((value >> 8) & 0x0000FF00) |
-                   ((value << 8) & 0x00FF0000) | ((value << 24) & 0xFF000000));
+    uint32_t len = (((value >> 24) & 0x000000FFUL) |
+                    ((value >> 8)  & 0x0000FF00UL) |
+                    ((value << 8)  & 0x00FF0000UL) |
+                    ((value << 24) & 0xFF000000UL));
 
     return MIN(MAX_SWF_DECOMPRESSED_LEN, len);
 }

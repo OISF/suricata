@@ -27,9 +27,9 @@
 
 typedef struct AppLayerProtoDetectThreadCtx_ AppLayerProtoDetectThreadCtx;
 
-typedef AppProto (*ProbingParserFPtr)(Flow *f,
+typedef AppProto (*ProbingParserFPtr)(Flow *f, uint8_t dir,
                                       uint8_t *input, uint32_t input_len,
-                                      uint32_t *offset);
+                                      uint8_t *rdir);
 
 /***** Protocol Retrieval *****/
 
@@ -42,13 +42,15 @@ typedef AppProto (*ProbingParserFPtr)(Flow *f,
  * \param buflen The length of the above buffer.
  * \param ipproto The ip protocol.
  * \param direction The direction bitfield - STREAM_TOSERVER/STREAM_TOCLIENT.
+ * \param[out] reverse_flow true if flow is detected to be reversed
  *
  * \retval The app layer protocol.
  */
 AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
                                      Flow *f,
                                      uint8_t *buf, uint32_t buflen,
-                                     uint8_t ipproto, uint8_t direction);
+                                     uint8_t ipproto, uint8_t direction,
+                                     bool *reverse_flow);
 
 /***** State Preparation *****/
 
@@ -85,9 +87,14 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
  * \brief Registers a case-sensitive pattern for protocol detection.
  */
 int AppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto,
-                                           const char *pattern,
-                                           uint16_t depth, uint16_t offset,
-                                           uint8_t direction);
+        const char *pattern, uint16_t depth, uint16_t offset,
+        uint8_t direction);
+int AppLayerProtoDetectPMRegisterPatternCSwPP(uint8_t ipproto, AppProto alproto,
+        const char *pattern, uint16_t depth, uint16_t offset,
+        uint8_t direction,
+        ProbingParserFPtr PPFunc,
+        uint16_t pp_min_depth, uint16_t pp_max_depth);
+
 /**
  * \brief Registers a case-insensitive pattern for protocol detection.
  */

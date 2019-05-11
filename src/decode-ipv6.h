@@ -47,7 +47,7 @@ typedef struct IPV6Hdr_
         } ip6_un2;
         uint16_t ip6_addrs[16];
     } ip6_hdrun2;
-} __attribute__((__packed__)) IPV6Hdr;
+} IPV6Hdr;
 
 #define s_ip6_src                       ip6_hdrun2.ip6_un2.ip6_src
 #define s_ip6_dst                       ip6_hdrun2.ip6_un2.ip6_dst

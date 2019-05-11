@@ -50,7 +50,7 @@
 extern int rule_reload;
 extern int engine_analysis;
 static int fp_engine_analysis_set = 0;
-static int rule_engine_analysis_set = 0;
+int rule_engine_analysis_set = 0;
 
 /**
  *  \brief Create the path if default-rule-path was specified

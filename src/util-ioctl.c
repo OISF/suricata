@@ -592,7 +592,22 @@ static int DisableIfaceOffloadingBSD(LiveDevice *ldev)
         SCLogPerf("%s: disabling rxcsum offloading", ifname);
         set_caps &= ~IFCAP_RXCSUM;
     }
-
+    if (if_caps & IFCAP_TXCSUM) {
+        SCLogPerf("%s: disabling txcsum offloading", ifname);
+        set_caps &= ~IFCAP_TXCSUM;
+    }
+#ifdef IFCAP_RXCSUM_IPV6
+    if (if_caps & IFCAP_RXCSUM_IPV6) {
+        SCLogPerf("%s: disabling rxcsum6 offloading", ifname);
+        set_caps &= ~IFCAP_RXCSUM_IPV6;
+    }
+#endif
+#ifdef IFCAP_TXCSUM_IPV6
+    if (if_caps & IFCAP_TXCSUM_IPV6) {
+        SCLogPerf("%s: disabling txcsum6 offloading", ifname);
+        set_caps &= ~IFCAP_TXCSUM_IPV6;
+    }
+#endif
 #ifdef IFCAP_TOE
     if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
         SCLogPerf("%s: disabling tso|toe|lro offloading", ifname);
@@ -691,6 +706,9 @@ int GetIfaceOffloading(const char *dev, int csum, int other)
 
 int DisableIfaceOffloading(LiveDevice *dev, int csum, int other)
 {
+    /* already set */
+    if (dev->offload_orig != 0)
+        return 0;
 #if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
     return DisableIfaceOffloadingLinux(dev, csum, other);
 #elif defined SIOCSIFCAP

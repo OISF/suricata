@@ -46,7 +46,7 @@ void DetectTransformSha256Register(void)
     sigmatch_table[DETECT_TRANSFORM_SHA256].desc =
         "convert to sha256 hash of the buffer";
     sigmatch_table[DETECT_TRANSFORM_SHA256].url =
-        DOC_URL DOC_VERSION "/rules/transformations.html#to_sha256";
+        DOC_URL DOC_VERSION "/rules/transforms.html#to-sha256";
     sigmatch_table[DETECT_TRANSFORM_SHA256].Setup =
         DetectTransformToSha256Setup;
 #ifdef HAVE_NSS

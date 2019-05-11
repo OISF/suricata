@@ -50,9 +50,9 @@ typedef struct OutputJSONMemBufferWrapper_ {
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
-void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js);
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
+void JsonPacket(const Packet *p, json_t *js, unsigned long max_length);
 void JsonFiveTuple(const Packet *, enum OutputJsonLogDirection, json_t *);
 json_t *CreateJSONHeader(const Packet *p,
         enum OutputJsonLogDirection dir, const char *event_type);
@@ -61,18 +61,37 @@ json_t *CreateJSONHeaderWithTxId(const Packet *p,
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputInitResult OutputJsonInitCtx(ConfNode *);
 
+OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);
+TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
+TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
+
+typedef struct OutputJsonCommonSettings_ {
+    bool include_metadata;
+    bool include_community_id;
+    uint16_t community_id_seed;
+} OutputJsonCommonSettings;
+
 /*
  * Global configuration context data
  */
 typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
     enum LogFileType json_out;
-    bool include_metadata;
+    OutputJsonCommonSettings cfg;
     HttpXFFCfg *xff_cfg;
 } OutputJsonCtx;
 
+typedef struct OutputJsonThreadCtx_ {
+    OutputJsonCtx *ctx;
+    MemBuffer *buffer;
+} OutputJsonThreadCtx;
+
 json_t *SCJsonBool(int val);
+json_t *SCJsonString(const char *val);
 void SCJsonDecref(json_t *js);
+
+void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
+        const Packet *p, const Flow *f, json_t *js);
 
 #endif /* HAVE_LIBJANSSON */
 

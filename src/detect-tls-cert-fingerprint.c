@@ -67,11 +67,12 @@ static _Bool DetectTlsFingerprintValidateCallback(const Signature *s,
 static int g_tls_cert_fingerprint_buffer_id = 0;
 
 /**
- * \brief Registration function for keyword: tls_cert_fingerprint
+ * \brief Registration function for keyword: tls.cert_fingerprint
  */
 void DetectTlsFingerprintRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].name = "tls_cert_fingerprint";
+    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].name = "tls.cert_fingerprint";
+    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].alias = "tls_cert_fingerprint";
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].desc = "content modifier to match the TLS cert fingerprint buffer";
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-fingerprint";
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].Match = NULL;
@@ -80,25 +81,26 @@ void DetectTlsFingerprintRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].RegisterTests = DetectTlsFingerprintRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("tls_cert_fingerprint", ALPROTO_TLS,
+    DetectAppLayerInspectEngineRegister2("tls.cert_fingerprint", ALPROTO_TLS,
             SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("tls_cert_fingerprint", SIG_FLAG_TOCLIENT, 2,
+    DetectAppLayerMpmRegister2("tls.cert_fingerprint", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS,
             TLS_STATE_CERT_READY);
 
-    DetectBufferTypeSetDescriptionByName("tls_cert_fingerprint",
+    DetectBufferTypeSetDescriptionByName("tls.cert_fingerprint",
             "TLS certificate fingerprint");
 
-    DetectBufferTypeRegisterSetupCallback("tls_cert_fingerprint",
+    DetectBufferTypeRegisterSetupCallback("tls.cert_fingerprint",
             DetectTlsFingerprintSetupCallback);
 
-    DetectBufferTypeRegisterValidateCallback("tls_cert_fingerprint",
+    DetectBufferTypeRegisterValidateCallback("tls.cert_fingerprint",
             DetectTlsFingerprintValidateCallback);
 
-    g_tls_cert_fingerprint_buffer_id = DetectBufferTypeGetByName("tls_cert_fingerprint");
+    g_tls_cert_fingerprint_buffer_id = DetectBufferTypeGetByName("tls.cert_fingerprint");
 }
 
 /**
@@ -125,9 +127,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id)
 {
-    BUG_ON(det_ctx->inspect_buffers == NULL);
-    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
-
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         SSLState *ssl_state = (SSLState *)_f->alstate;
 
@@ -175,14 +175,14 @@ static _Bool DetectTlsFingerprintValidateCallback(const Signature *s,
 
         if (have_delimiters == FALSE) {
             *sigerror = "No colon delimiters ':' detected in content after "
-                        "tls_cert_fingerprint. This rule will therefore "
+                        "tls.cert_fingerprint. This rule will therefore "
                         "never match.";
             SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
             return FALSE;
         }
 
         if (cd->flags & DETECT_CONTENT_NOCASE) {
-            *sigerror = "tls_cert_fingerprint should not be used together "
+            *sigerror = "tls.cert_fingerprint should not be used together "
                         "with nocase, since the rule is automatically "
                         "lowercased anyway which makes nocase redundant.";
             SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
@@ -238,8 +238,8 @@ static int DetectTlsFingerprintTest01(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tls any any -> any any "
-                               "(msg:\"Testing tls_cert_fingerprint\"; "
-                               "tls_cert_fingerprint; "
+                               "(msg:\"Testing tls.cert_fingerprint\"; "
+                               "tls.cert_fingerprint; "
                                "content:\"11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00\"; "
                                "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
@@ -516,8 +516,8 @@ static int DetectTlsFingerprintTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_cert_fingerprint\"; "
-                              "tls_cert_fingerprint; "
+                              "(msg:\"Test tls.cert_fingerprint\"; "
+                              "tls.cert_fingerprint; "
                               "content:\"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18\"; "
                               "sid:1;)");
     FAIL_IF_NULL(s);

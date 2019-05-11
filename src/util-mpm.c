@@ -30,7 +30,7 @@
 /* include pattern matchers */
 #include "util-mpm-ac.h"
 #include "util-mpm-ac-bs.h"
-#include "util-mpm-ac-tile.h"
+#include "util-mpm-ac-ks.h"
 #include "util-mpm-hs.h"
 #include "util-hashlist.h"
 
@@ -79,7 +79,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             exit(EXIT_FAILURE);
         }
         memset(item[0].mpm_ctx_ts, 0, sizeof(MpmCtx));
-        item[0].mpm_ctx_ts->global = 1;
+        item[0].mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
 
         /* toclient */
         item[0].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
@@ -88,7 +88,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             exit(EXIT_FAILURE);
         }
         memset(item[0].mpm_ctx_tc, 0, sizeof(MpmCtx));
-        item[0].mpm_ctx_tc->global = 1;
+        item[0].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
 
         /* our id starts from 0 always.  Helps us with the ctx retrieval from
          * the array */
@@ -113,7 +113,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
                         exit(EXIT_FAILURE);
                     }
                     memset(items[i].mpm_ctx_ts, 0, sizeof(MpmCtx));
-                    items[i].mpm_ctx_ts->global = 1;
+                    items[i].mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
                 }
                 if (items[i].mpm_ctx_tc == NULL) {
                     items[i].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
@@ -122,7 +122,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
                         exit(EXIT_FAILURE);
                     }
                     memset(items[i].mpm_ctx_tc, 0, sizeof(MpmCtx));
-                    items[i].mpm_ctx_tc->global = 1;
+                    items[i].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
                 }
                 return items[i].id;
             }
@@ -151,7 +151,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             exit(EXIT_FAILURE);
         }
         memset(new_item[0].mpm_ctx_ts, 0, sizeof(MpmCtx));
-        new_item[0].mpm_ctx_ts->global = 1;
+        new_item[0].mpm_ctx_ts->flags |= MPMCTX_FLAGS_GLOBAL;
 
         /* toclient */
         new_item[0].mpm_ctx_tc = SCMalloc(sizeof(MpmCtx));
@@ -160,7 +160,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             exit(EXIT_FAILURE);
         }
         memset(new_item[0].mpm_ctx_tc, 0, sizeof(MpmCtx));
-        new_item[0].mpm_ctx_tc->global = 1;
+        new_item[0].mpm_ctx_tc->flags |= MPMCTX_FLAGS_GLOBAL;
 
         new_item[0].id = de_ctx->mpm_ctx_factory_container->no_of_items;
         de_ctx->mpm_ctx_factory_container->no_of_items++;
@@ -267,18 +267,10 @@ void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher)
 /* MPM matcher to use by default, i.e. when "mpm-algo" is set to "auto".
  * If Hyperscan is available, use it. Otherwise, use AC. */
 #ifdef BUILD_HYPERSCAN
-# define DEFAULT_MPM     MPM_HS
-# ifdef __tile__
-#  define DEFAULT_MPM_AC MPM_AC_TILE
-# else
-#  define DEFAULT_MPM_AC MPM_AC
-# endif
+# define DEFAULT_MPM    MPM_HS
+# define DEFAULT_MPM_AC MPM_AC
 #else
-# ifdef __tile__
-#  define DEFAULT_MPM    MPM_AC_TILE
-# else
-#  define DEFAULT_MPM    MPM_AC
-# endif
+# define DEFAULT_MPM    MPM_AC
 #endif
 
 void MpmTableSetup(void)
@@ -457,7 +449,7 @@ static inline int MpmInitHashAdd(MpmCtx *ctx, MpmPattern *p)
     uint32_t hash = MpmInitHash(p);
 
     if (ctx->init_hash == NULL) {
-        return 0;
+        return -1;
     }
 
     if (ctx->init_hash[hash] == NULL) {
@@ -559,9 +551,21 @@ int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
         }
 
         /* put in the pattern hash */
-        MpmInitHashAdd(mpm_ctx, p);
+        if (MpmInitHashAdd(mpm_ctx, p) != 0)
+            goto error;
 
         mpm_ctx->pattern_cnt++;
+
+        if (!(mpm_ctx->flags & MPMCTX_FLAGS_NODEPTH)) {
+            if (depth) {
+                mpm_ctx->maxdepth = MAX(mpm_ctx->maxdepth, depth);
+                SCLogDebug("%p: depth %u max %u", mpm_ctx, depth, mpm_ctx->maxdepth);
+            } else {
+                mpm_ctx->flags |= MPMCTX_FLAGS_NODEPTH;
+                mpm_ctx->maxdepth = 0;
+                SCLogDebug("%p: alas, no depth for us", mpm_ctx);
+            }
+        }
 
         if (mpm_ctx->maxlen < patlen)
             mpm_ctx->maxlen = patlen;

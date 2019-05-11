@@ -58,6 +58,7 @@
 #include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
+#include "app-layer-htp.h"
 
 #include "util-classification-config.h"
 #include "util-unittest.h"
@@ -179,6 +180,12 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
     if (cd->flags & DETECT_CONTENT_RAWBYTES) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "%s rule can not "
                    "be used with the rawbytes rule keyword",
+                   sigmatch_table[sm_type].name);
+        goto end;
+    }
+    if (cd->flags & DETECT_CONTENT_REPLACE) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s rule can not "
+                   "be used with the replace rule keyword",
                    sigmatch_table[sm_type].name);
         goto end;
     }
@@ -678,7 +685,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         }
         /* if quoting is mandatory, enforce it */
         if (st->flags & SIGMATCH_QUOTES_MANDATORY && ovlen && *ptr != '"') {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formattingto %s keyword: "
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting to %s keyword: "
                     "value must be double quoted \'%s\'", optname, optstr);
             goto error;
         }
@@ -758,12 +765,18 @@ static int SigParseAddress(DetectEngineCtx *de_ctx,
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_SRC_ANY;
 
+        s->init_data->src_contains_negation =
+            (strchr(addrstr, '!') != NULL);
+
         s->init_data->src = DetectParseAddress(de_ctx, addrstr);
         if (s->init_data->src == NULL)
             goto error;
     } else {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_DST_ANY;
+
+        s->init_data->dst_contains_negation =
+            (strchr(addrstr, '!') != NULL);
 
         s->init_data->dst = DetectParseAddress(de_ctx, addrstr);
         if (s->init_data->dst == NULL)
@@ -804,7 +817,7 @@ static int SigParseProto(Signature *s, const char *protostr)
         else {
             SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
                        "in a signature.  Either detection for this protocol "
-                       "supported yet OR detection has been disabled for "
+                       "is not yet supported OR detection has been disabled for "
                        "protocol through the yaml option "
                        "app-layer.protocols.%s.detection-enabled", protostr,
                        protostr);
@@ -1087,13 +1100,6 @@ static int SigParseBasics(DetectEngineCtx *de_ctx,
     if (SigParseAddress(de_ctx, s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
-    /* For IPOnly */
-    if (IPOnlySigParseAddress(de_ctx, s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
-        goto error;
-
-    if (IPOnlySigParseAddress(de_ctx, s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
-        goto error;
-
     /* By AWS - Traditionally we should be doing this only for tcp/udp/sctp,
      * but we do it for regardless of ip proto, since the dns/dnstcp/dnsudp
      * changes that we made sees to it that at this point of time we don't
@@ -1120,31 +1126,29 @@ error:
  *  \param -1 parse error
  *  \param 0 ok
  */
-int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr, uint8_t addrs_direction)
+static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
+        const char *sigstr, uint8_t addrs_direction, SignatureParser *parser)
 {
     SCEnter();
-
-    SignatureParser parser;
-    memset(&parser, 0x00, sizeof(parser));
 
     s->sig_str = SCStrdup(sigstr);
     if (unlikely(s->sig_str == NULL)) {
         SCReturnInt(-1);
     }
 
-    int ret = SigParseBasics(de_ctx, s, sigstr, &parser, addrs_direction);
+    int ret = SigParseBasics(de_ctx, s, sigstr, parser, addrs_direction);
     if (ret < 0) {
         SCLogDebug("SigParseBasics failed");
         SCReturnInt(-1);
     }
 
     /* we can have no options, so make sure we have them */
-    if (strlen(parser.opts) > 0) {
-        size_t buffer_size = strlen(parser.opts) + 1;
+    if (strlen(parser->opts) > 0) {
+        size_t buffer_size = strlen(parser->opts) + 1;
         char input[buffer_size];
         char output[buffer_size];
         memset(input, 0x00, buffer_size);
-        memcpy(input, parser.opts, strlen(parser.opts)+1);
+        memcpy(input, parser->opts, strlen(parser->opts)+1);
 
         /* loop the option parsing. Each run processes one option
          * and returns the rest of the option string through the
@@ -1542,10 +1546,20 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head)
 static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
     uint32_t sig_flags = 0;
-    SigMatch *sm, *pm;
+    SigMatch *sm;
     const int nlists = s->init_data->smlists_array_size;
 
     SCEnter();
+
+    /* check for sticky buffers that were set w/o matches
+     * e.g. alert ... (file_data; sid:1;) */
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        if (s->init_data->smlists[s->init_data->list] == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u setup buffer %s but didn't add matches to it",
+                    s->id, DetectBufferTypeGetNameById(de_ctx, s->init_data->list));
+            SCReturnInt(0);
+        }
+    }
 
     /* run buffer type validation callbacks if any */
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
@@ -1564,7 +1578,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->init_data->smlists[x]) {
             const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
             for ( ; app != NULL; app = app->next) {
-                if (app->sm_list == x && s->alproto == app->alproto) {
+                if (app->sm_list == x && ((s->alproto == app->alproto) || s->alproto == 0)) {
                     SCLogDebug("engine %s dir %d alproto %d",
                             DetectBufferTypeGetNameById(de_ctx, app->sm_list),
                             app->dir, app->alproto);
@@ -1644,54 +1658,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCReturnInt(0);
     }
 
-    //if (s->alproto != ALPROTO_UNKNOWN) {
-    //    if (s->flags & SIG_FLAG_STATE_MATCH) {
-    //        if (s->alproto == ALPROTO_DNS) {
-    //            if (al_proto_table[ALPROTO_DNS_UDP].to_server == 0 ||
-    //                al_proto_table[ALPROTO_DNS_UDP].to_client == 0 ||
-    //                al_proto_table[ALPROTO_DNS_TCP].to_server == 0 ||
-    //                al_proto_table[ALPROTO_DNS_TCP].to_client == 0) {
-    //                SCLogInfo("Signature uses options that need the app layer "
-    //                          "parser for dns, but the parser's disabled "
-    //                          "for the protocol.  Please check if you have "
-    //                          "disabled it through the option "
-    //                          "\"app-layer.protocols.dcerpc[udp|tcp].enabled\""
-    //                          "or internally the parser has been disabled in "
-    //                          "the code.  Invalidating signature.");
-    //                SCReturnInt(0);
-    //            }
-    //        } else {
-    //            if (al_proto_table[s->alproto].to_server == 0 ||
-    //                al_proto_table[s->alproto].to_client == 0) {
-    //                const char *proto_name = AppProtoToString(s->alproto);
-    //                SCLogInfo("Signature uses options that need the app layer "
-    //                          "parser for \"%s\", but the parser's disabled "
-    //                          "for the protocol.  Please check if you have "
-    //                          "disabled it through the option "
-    //                          "\"app-layer.protocols.%s.enabled\" or internally "
-    //                          "there the parser has been disabled in the code.   "
-    //                          "Invalidating signature.", proto_name, proto_name);
-    //                SCReturnInt(0);
-    //            }
-    //        }
-    //    }
-    //
-    //
-    //
-    //
-    //
-    //}
-
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
-        pm = DetectGetLastSMFromLists(s, DETECT_REPLACE, -1);
-        if (pm != NULL && SigMatchListSMBelongsTo(s, pm) != DETECT_SM_LIST_PMATCH) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature has"
-                " replace keyword linked with a modified content"
-                " keyword (http_*, dce_*). It only supports content on"
-                " raw payload");
-            SCReturnInt(0);
-        }
-
         for (int i = 0; i < nlists; i++) {
             if (s->init_data->smlists[i] == NULL)
                 continue;
@@ -1802,6 +1769,9 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
                                 uint8_t dir)
 {
+    SignatureParser parser;
+    memset(&parser, 0x00, sizeof(parser));
+
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
@@ -1809,7 +1779,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     /* default gid to 1 */
     sig->gid = 1;
 
-    if (SigParse(de_ctx, sig, sigstr, dir) < 0)
+    if (SigParse(de_ctx, sig, sigstr, dir, &parser) < 0)
         goto error;
 
     /* signature priority hasn't been overwritten.  Using default priority */
@@ -1862,8 +1832,10 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     }
 
     if (!(sig->init_data->init_flags & SIG_FLAG_INIT_FLOW)) {
-        sig->flags |= SIG_FLAG_TOSERVER;
-        sig->flags |= SIG_FLAG_TOCLIENT;
+        if ((sig->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == 0) {
+            sig->flags |= SIG_FLAG_TOSERVER;
+            sig->flags |= SIG_FLAG_TOCLIENT;
+        }
     }
 
     SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
@@ -1883,6 +1855,17 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
         goto error;
     }
 
+    /* check what the type of this sig is */
+    SignatureSetType(de_ctx, sig);
+
+    if (sig->flags & SIG_FLAG_IPONLY) {
+        /* For IPOnly */
+        if (IPOnlySigParseAddress(de_ctx, sig, parser.src, SIG_DIREC_SRC ^ dir) < 0)
+            goto error;
+
+        if (IPOnlySigParseAddress(de_ctx, sig, parser.dst, SIG_DIREC_DST ^ dir) < 0)
+            goto error;
+    }
     return sig;
 
 error:

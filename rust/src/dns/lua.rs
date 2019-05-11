@@ -41,14 +41,12 @@ pub extern "C" fn rs_dns_lua_get_rrname(clua: &mut CLuaState,
         lua: clua,
     };
 
-    for request in &tx.request {
+    if let &Some(ref request) = &tx.request {
         for query in &request.queries {
             lua.pushstring(&String::from_utf8_lossy(&query.name));
             return 1;
         }
-    }
-
-    for response in &tx.response {
+    } else if let &Some(ref response) = &tx.response {
         for query in &response.queries {
             lua.pushstring(&String::from_utf8_lossy(&query.name));
             return 1;
@@ -69,14 +67,13 @@ pub extern "C" fn rs_dns_lua_get_query_table(clua: &mut CLuaState,
 
     let mut i: i64 = 0;
 
-    for request in &tx.request {
+    // Create table now to be consistent with C that always returns
+    // table even in the absence of any authorities.
+    lua.newtable();
 
-        if request.queries.len() == 0 {
-            break;
-        }
-
-        lua.newtable();
-
+    // We first look in the request for queries. However, if there is
+    // no request, check the response for queries.
+    if let &Some(ref request) = &tx.request {
         for query in &request.queries {
             lua.pushinteger(i);
             i += 1;
@@ -93,11 +90,28 @@ pub extern "C" fn rs_dns_lua_get_query_table(clua: &mut CLuaState,
 
             lua.settable(-3);
         }
+    } else if let &Some(ref response) = &tx.response {
+        for query in &response.queries {
+            lua.pushinteger(i);
+            i += 1;
 
-        return 1;
+            lua.newtable();
+
+            lua.pushstring("type");
+            lua.pushstring(&dns_rrtype_string(query.rrtype));
+            lua.settable(-3);
+
+            lua.pushstring("rrname");
+            lua.pushstring(&String::from_utf8_lossy(&query.name));
+            lua.settable(-3);
+
+            lua.settable(-3);
+        }
     }
 
-    return 0;
+    // Again, always return 1 to be consistent with C, even if the
+    // table is empty.
+    return 1;
 }
 
 #[no_mangle]
@@ -111,14 +125,11 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
 
     let mut i: i64 = 0;
 
-    for response in &tx.response {
+    // Create table now to be consistent with C that always returns
+    // table even in the absence of any authorities.
+    lua.newtable();
 
-        if response.answers.len() == 0 {
-            break;
-        }
-
-        lua.newtable();
-
+    if let &Some(ref response) = &tx.response {
         for answer in &response.answers {
             lua.pushinteger(i);
             i += 1;
@@ -150,11 +161,11 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
             }
             lua.settable(-3);
         }
-
-        return 1;
     }
 
-    return 0;
+    // Again, always return 1 to be consistent with C, even if the
+    // table is empty.
+    return 1;
 }
 
 #[no_mangle]
@@ -168,14 +179,11 @@ pub extern "C" fn rs_dns_lua_get_authority_table(clua: &mut CLuaState,
 
     let mut i: i64 = 0;
 
-    for response in &tx.response {
+    // Create table now to be consistent with C that always returns
+    // table even in the absence of any authorities.
+    lua.newtable();
 
-        if response.authorities.len() == 0 {
-            break;
-        }
-
-        lua.newtable();
-
+    if let &Some(ref response) = &tx.response {
         for answer in &response.authorities {
             lua.pushinteger(i);
             i += 1;
@@ -195,9 +203,9 @@ pub extern "C" fn rs_dns_lua_get_authority_table(clua: &mut CLuaState,
 
             lua.settable(-3);
         }
-
-        return 1;
     }
 
-    return 0;
+    // Again, always return 1 to be consistent with C, even if the
+    // table is empty.
+    return 1;
 }

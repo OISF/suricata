@@ -60,6 +60,8 @@ http_header                    Modifier                 Both
 http_raw_header                Modifier                 Both
 http_cookie                    Modifier                 Both
 http_server_body               Modifier                 Response
+http.server                    Modifier                 Response
+http.location                  Modifier                 Response
 file_data                      Sticky Buffer            Response
 http_content_type              Sticky Buffer            Both
 http_content_len               Sticky Buffer            Both
@@ -241,6 +243,15 @@ will contain 'HTTP/1.0'.
 Example::
 
     alert http any any -> any any (flow:to_server; http_protocol; content:"HTTP/1.0"; sid:1;)
+
+``http.protocol`` replaces the previous keyword name: ```http_protocol``. You may continue
++to use the previous name, but it's recommended that rules be converted to use
++the new name.
+
+Example::
+
+    alert http any any -> any any (flow:to_server; http.protocol; content:"HTTP/1.0"; sid:1;)
+
 
 http_request_line
 -----------------
@@ -452,7 +463,7 @@ http_start
 ----------
 
 Inspect the start of a HTTP request or response. This will contain the
-request/reponse line plus the request/response headers. Use flow:to_server
+request/response line plus the request/response headers. Use flow:to_server
 or flow:to_client to force inspection of request or response.
 
 Example::
@@ -589,6 +600,29 @@ Notes
 -  Corresponding PCRE modifier: ``Q``
 
 -  further notes at the ``file_data`` section below.
+
+http.server
+-----------
+
+Sticky buffer to match on the HTTP Server headers. Only contains the
+header value. The \\r\\n after the header are not part of the buffer.
+
+Example::
+
+    alert http any any -> any any (flow:to_client; \
+            http.server; content:"Microsoft-IIS/6.0"; sid:1;)
+
+http.location
+-------------
+
+Sticky buffer to match on the HTTP Location headers. Only contains the
+header value. The \\r\\n after the header are not part of the buffer.
+
+Example::
+
+    alert http any any -> any any (flow:to_client; \
+            http.location; content:"http://www.google.com"; sid:1;)
+
 
 http_host and http_raw_host
 ---------------------------

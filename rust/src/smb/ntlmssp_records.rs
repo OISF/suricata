@@ -58,29 +58,29 @@ pub struct NTLMSSPAuthRecord<'a> {
 
 named!(pub parse_ntlm_auth_record<NTLMSSPAuthRecord>,
     do_parse!(
-            lm_blob_len: le_u16
-         >> lm_blob_maxlen: le_u16
-         >> lm_blob_offset: le_u32
+            _lm_blob_len: le_u16
+         >> _lm_blob_maxlen: le_u16
+         >> _lm_blob_offset: le_u32
 
-         >> ntlmresp_blob_len: le_u16
-         >> ntlmresp_blob_maxlen: le_u16
-         >> ntlmresp_blob_offset: le_u32
+         >> _ntlmresp_blob_len: le_u16
+         >> _ntlmresp_blob_maxlen: le_u16
+         >> _ntlmresp_blob_offset: le_u32
 
          >> domain_blob_len: le_u16
-         >> domain_blob_maxlen: le_u16
+         >> _domain_blob_maxlen: le_u16
          >> domain_blob_offset: le_u32
 
          >> user_blob_len: le_u16
-         >> user_blob_maxlen: le_u16
-         >> user_blob_offset: le_u32
+         >> _user_blob_maxlen: le_u16
+         >> _user_blob_offset: le_u32
 
          >> host_blob_len: le_u16
-         >> host_blob_maxlen: le_u16
-         >> host_blob_offset: le_u32
+         >> _host_blob_maxlen: le_u16
+         >> _host_blob_offset: le_u32
 
-         >> ssnkey_blob_len: le_u16
-         >> ssnkey_blob_maxlen: le_u16
-         >> ssnkey_blob_offset: le_u32
+         >> _ssnkey_blob_len: le_u16
+         >> _ssnkey_blob_maxlen: le_u16
+         >> _ssnkey_blob_offset: le_u32
 
          >> nego_flags: bits!(tuple!(take_bits!(u8, 6),take_bits!(u8,1),take_bits!(u32,25)))
          >> version: cond!(nego_flags.1==1, parse_ntlm_auth_version)

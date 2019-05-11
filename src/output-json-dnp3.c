@@ -50,7 +50,7 @@ typedef struct LogDNP3FileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
     uint8_t     include_object_data;
-    bool        include_metadata;
+    OutputJsonCommonSettings cfg;
 } LogDNP3FileCtx;
 
 typedef struct LogDNP3LogThread_ {
@@ -316,9 +316,9 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
-        if (thread->dnp3log_ctx->include_metadata) {
-            JsonAddMetadata(p, f, js);
-        }
+
+        JsonAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
+
         json_t *dnp3js = JsonDNP3LogRequest(tx);
         if (dnp3js != NULL) {
             json_object_set_new(js, "dnp3", dnp3js);
@@ -345,9 +345,9 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
-        if (thread->dnp3log_ctx->include_metadata) {
-            JsonAddMetadata(p, f, js);
-        }
+
+        JsonAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
+
         json_t *dnp3js = JsonDNP3LogResponse(tx);
         if (dnp3js != NULL) {
             json_object_set_new(js, "dnp3", dnp3js);
@@ -379,7 +379,7 @@ static OutputInitResult OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_c
         return result;
     }
     dnp3log_ctx->file_ctx = json_ctx->file_ctx;
-    dnp3log_ctx->include_metadata = json_ctx->include_metadata;
+    dnp3log_ctx->cfg = json_ctx->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {

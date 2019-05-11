@@ -152,7 +152,7 @@ int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
 
     const DetectFlowData *fd = (const DetectFlowData *)ctx;
 
-    int ret = FlowMatch(p->flags, p->flowflags, det_ctx->flags, fd->flags, fd->match_cnt);;
+    const int ret = FlowMatch(p->flags, p->flowflags, det_ctx->flags, fd->flags, fd->match_cnt);
     SCLogDebug("returning %" PRId32 " fd->match_cnt %" PRId32 " fd->flags 0x%02X p->flowflags 0x%02X",
         ret, fd->match_cnt, fd->flags, p->flowflags);
     SCReturnInt(ret);
@@ -323,8 +323,8 @@ int DetectFlowSetupImplicit(Signature *s, uint32_t flags)
     BUG_ON(flags & ~SIG_FLAG_BOTH);
     BUG_ON((flags & SIG_FLAG_BOTH) == SIG_FLAG_BOTH);
 
-    SCLogDebug("want %08x", flags & SIG_FLAG_BOTH);
-    SCLogDebug("have %08x", s->flags & SIG_FLAG_BOTH);
+    SCLogDebug("want %08lx", flags & SIG_FLAG_BOTH);
+    SCLogDebug("have %08lx", s->flags & SIG_FLAG_BOTH);
 
     if (flags & SIG_FLAG_TOSERVER) {
         if ((s->flags & SIG_FLAG_BOTH) == SIG_FLAG_BOTH) {
@@ -359,29 +359,22 @@ int DetectFlowSetupImplicit(Signature *s, uint32_t flags)
  */
 int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
 {
-    DetectFlowData *fd = NULL;
-    SigMatch *sm = NULL;
-
-    fd = DetectFlowParse(flowstr);
-    if (fd == NULL)
-        goto error;
-
-    /*ensure only one flow option*/
+    /* ensure only one flow option */
     if (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) {
         SCLogError (SC_ERR_INVALID_SIGNATURE, "A signature may have only one flow option.");
-        goto error;
+        return -1;
     }
 
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
-    sm = SigMatchAlloc();
+    DetectFlowData *fd = DetectFlowParse(flowstr);
+    if (fd == NULL)
+        return -1;
+
+    SigMatch *sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
 
     sm->type = DETECT_FLOW;
     sm->ctx = (SigMatchCtx *)fd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     /* set the signature direction flags */
     if (fd->flags & DETECT_FLOW_FLAG_TOSERVER) {
@@ -397,17 +390,25 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
     }
     if (fd->flags & DETECT_FLOW_FLAG_NOSTREAM) {
         s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    } else if (fd->flags == DETECT_FLOW_FLAG_TOSERVER ||
+               fd->flags == DETECT_FLOW_FLAG_TOCLIENT)
+    {
+        /* no direct flow is needed for just direction,
+         * no sigmatch is needed either. */
+        SigMatchFree(sm);
+        sm = NULL;
     } else {
         s->init_data->init_flags |= SIG_FLAG_INIT_FLOW;
     }
 
+    if (sm != NULL) {
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    }
     return 0;
 
 error:
     if (fd != NULL)
         DetectFlowFree(fd);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 
 }

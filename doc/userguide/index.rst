@@ -23,6 +23,7 @@ Suricata User Guide
    public-data-sets
    capture-hardware/index.rst
    unix-socket.rst
+   3rd-party-integration/index.rst
    manpages/index.rst
    acknowledgements
    licenses/index.rst

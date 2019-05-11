@@ -373,7 +373,7 @@ int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
 typedef struct _FakeIPv4Hdr {
     IPV4Hdr ip4h;
     TCPHdr tcph;
-} __attribute__((__packed__)) FakeIPv4Hdr;
+} FakeIPv4Hdr;
 
 static int Unified2ForgeFakeIPv4Header(FakeIPv4Hdr *fakehdr, const Packet *p, int pkt_len, char invert)
 {
@@ -403,7 +403,7 @@ static int Unified2ForgeFakeIPv4Header(FakeIPv4Hdr *fakehdr, const Packet *p, in
 typedef struct _FakeIPv6Hdr {
     IPV6Hdr ip6h;
     TCPHdr tcph;
-} __attribute__((__packed__)) FakeIPv6Hdr;
+} FakeIPv6Hdr;
 
 /**
  *  \param payload_len length of the payload
@@ -1277,15 +1277,14 @@ OutputInitResult Unified2AlertInitCtx(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
     int ret = 0;
-    LogFileCtx* file_ctx = NULL;
     OutputCtx* output_ctx = NULL;
     HttpXFFCfg *xff_cfg = NULL;
     int nostamp = 0;
 
-    file_ctx = LogFileNewCtx();
+    LogFileCtx* file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
         SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC, "Couldn't create new file_ctx");
-        goto error;
+        return result;
     }
 
     const char *filename = NULL;
@@ -1402,6 +1401,8 @@ OutputInitResult Unified2AlertInitCtx(ConfNode *conf)
     return result;
 
 error:
+    LogFileFreeCtx(file_ctx);
+
     if (xff_cfg != NULL) {
         SCFree(xff_cfg);
     }

@@ -144,6 +144,12 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_URI_HOST_INVALID},
     { "REQUEST_HEADER_HOST_INVALID",
         HTTP_DECODER_EVENT_HEADER_HOST_INVALID},
+    { "REQUEST_AUTH_UNRECOGNIZED",
+        HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED},
+    { "REQUEST_HEADER_REPETITION",
+        HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION},
+    { "RESPONSE_HEADER_REPETITION",
+        HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION},
     { "URI_DELIM_NON_COMPLIANT",
         HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
     { "METHOD_DELIM_NON_COMPLIANT",
@@ -511,6 +517,8 @@ struct {
     { "C-E gzip has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "C-E deflate has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
+    { "Excessive request header repetitions", HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION},
+    { "Excessive response header repetitions", HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
@@ -641,6 +649,13 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
             HTPSetEvent(s, htud,
                     HTTP_DECODER_EVENT_HEADER_HOST_INVALID);
     }
+    if (tx->request_auth_type == HTP_AUTH_UNRECOGNIZED) {
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (htud == NULL)
+            return;
+
+        HTPSetEvent(s, htud, HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED);
+    }
 }
 
 static int Setup(Flow *f, HtpState *hstate)
@@ -695,6 +710,10 @@ static int Setup(Flow *f, HtpState *hstate)
 
     htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, &f->startts);
 
+    StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER,
+            htp_cfg_rec->request.inspect_min_size);
+    StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOCLIENT,
+            htp_cfg_rec->response.inspect_min_size);
     return 0;
 error:
     return -1;
@@ -1629,6 +1648,11 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
                 htud->tcflags |= HTP_FILENAME_SET;
                 htud->tcflags &= ~HTP_DONTSTORE;
             }
+            //set range if present
+            htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
+            if (h_content_range != NULL) {
+                HTPFileSetRange(hstate, h_content_range->value);
+            }
         }
     }
     else
@@ -1760,9 +1784,41 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             HtpRequestBodyHandlePUT(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
         }
 
+    } else {
+        if (tx_ud->tsflags & HTP_FILENAME_SET) {
+            SCLogDebug("closing file that was being stored");
+            (void)HTPFileClose(hstate, NULL, 0, FILE_TRUNCATED, STREAM_TOSERVER);
+            tx_ud->tsflags &= ~HTP_FILENAME_SET;
+        }
     }
 
 end:
+    if (hstate->conn != NULL) {
+        SCLogDebug("checking body size %"PRIu64" against inspect limit %u (cur %"PRIu64", last %"PRIu64")",
+                tx_ud->request_body.content_len_so_far,
+                hstate->cfg->request.inspect_min_size,
+                (uint64_t)hstate->conn->in_data_counter, hstate->last_request_data_stamp);
+
+        /* if we reach the inspect_min_size we'll trigger inspection,
+         * so make sure that raw stream is also inspected. Set the
+         * data to be used to the amount of raw bytes we've seen to
+         * get here. */
+        if (tx_ud->request_body.body_inspected == 0 &&
+            tx_ud->request_body.content_len_so_far >= hstate->cfg->request.inspect_min_size) {
+            if ((uint64_t)hstate->conn->in_data_counter > hstate->last_request_data_stamp &&
+                (uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp < (uint64_t)UINT_MAX)
+            {
+                uint32_t x = (uint32_t)((uint64_t)hstate->conn->in_data_counter - hstate->last_request_data_stamp);
+
+                /* body still in progress, but due to min inspect size we need to inspect now */
+                StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, x);
+                AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
+            }
+        /* after the start of the body, disable the depth logic */
+        } else if (tx_ud->request_body.body_inspected > 0) {
+            StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER, 0);
+        }
+    }
     SCReturnInt(HTP_OK);
 }
 
@@ -1834,6 +1890,31 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         }
     }
 
+    if (hstate->conn != NULL) {
+        SCLogDebug("checking body size %"PRIu64" against inspect limit %u (cur %"PRIu64", last %"PRIu64")",
+                tx_ud->response_body.content_len_so_far,
+                hstate->cfg->response.inspect_min_size,
+                (uint64_t)hstate->conn->in_data_counter, hstate->last_response_data_stamp);
+        /* if we reach the inspect_min_size we'll trigger inspection,
+         * so make sure that raw stream is also inspected. Set the
+         * data to be used to the amount of raw bytes we've seen to
+         * get here. */
+        if (tx_ud->response_body.body_inspected == 0 &&
+            tx_ud->response_body.content_len_so_far >= hstate->cfg->response.inspect_min_size) {
+            if ((uint64_t)hstate->conn->out_data_counter > hstate->last_response_data_stamp &&
+                (uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp < (uint64_t)UINT_MAX)
+            {
+                uint32_t x = (uint32_t)((uint64_t)hstate->conn->out_data_counter - hstate->last_response_data_stamp);
+
+                /* body still in progress, but due to min inspect size we need to inspect now */
+                StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, x);
+                AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOCLIENT);
+            }
+        /* after the start of the body, disable the depth logic */
+        } else if (tx_ud->response_body.body_inspected > 0) {
+            StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT, 0);
+        }
+    }
     SCReturnInt(HTP_OK);
 }
 
@@ -1896,6 +1977,41 @@ static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
     return HTP_OK;
 }
 
+/**\internal
+ * \brief called at start of request
+ * Set min inspect size.
+ */
+static int HTPCallbackRequestStart(htp_tx_t *tx)
+{
+    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    if (hstate == NULL) {
+        SCReturnInt(HTP_ERROR);
+    }
+
+    if (hstate->cfg)
+        StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
+                hstate->cfg->request.inspect_min_size);
+    SCReturnInt(HTP_OK);
+}
+
+/**\internal
+ * \brief called at start of response
+ * Set min inspect size.
+ */
+static int HTPCallbackResponseStart(htp_tx_t *tx)
+{
+    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    if (hstate == NULL) {
+        SCReturnInt(HTP_ERROR);
+    }
+
+    if (hstate->cfg)
+        StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT,
+                hstate->cfg->response.inspect_min_size);
+    SCReturnInt(HTP_OK);
+}
+
+
 /**
  *  \brief  callback for request to store the recent incoming request
             in to the recent_in_tx for the given htp state
@@ -1928,9 +2044,12 @@ static int HTPCallbackRequest(htp_tx_t *tx)
             SCLogDebug("closing file that was being stored");
             (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER);
             htud->tsflags &= ~HTP_FILENAME_SET;
+            StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
+                    (uint32_t)hstate->conn->in_data_counter);
         }
     }
 
+    hstate->last_request_data_stamp = (uint64_t)hstate->conn->in_data_counter;
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
     AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
@@ -1986,6 +2105,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
         }
     }
 
+    hstate->last_response_data_stamp = (uint64_t)hstate->conn->out_data_counter;
     SCReturnInt(HTP_OK);
 }
 
@@ -2143,11 +2263,13 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_register_request_body_data(cfg_prec->cfg, HTPCallbackRequestBodyData);
     htp_config_register_response_body_data(cfg_prec->cfg, HTPCallbackResponseBodyData);
 
+    htp_config_register_request_start(cfg_prec->cfg, HTPCallbackRequestStart);
     htp_config_register_request_complete(cfg_prec->cfg, HTPCallbackRequest);
+
+    htp_config_register_response_start(cfg_prec->cfg, HTPCallbackResponseStart);
     htp_config_register_response_complete(cfg_prec->cfg, HTPCallbackResponse);
 
     htp_config_set_parse_request_cookies(cfg_prec->cfg, 0);
-    htp_config_set_parse_request_auth(cfg_prec->cfg, 0);
 
     /* don't convert + to space by default */
     htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
@@ -6817,6 +6939,115 @@ static int HTPParserTest24(void)
     PASS;
 }
 
+/** \test multi transactions and cleanup */
+static int HTPParserTest25(void)
+{
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    StreamTcpInitConfig(TRUE);
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof(ssn));
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    const char *str = "GET / HTTP/1.1\r\nHost: www.google.com\r\nUser-Agent: Suricata/1.0\r\n\r\n";
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+
+    str = "HTTP 1.1 200 OK\r\nServer: Suricata/1.0\r\nContent-Length: 8\r\n\r\nSuricata";
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT | STREAM_START, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+
+    AppLayerParserTransactionsCleanup(f);
+
+    uint64_t ret[4];
+    UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
+    FAIL_IF_NOT(ret[0] == 8); // inspect_id[0]
+    FAIL_IF_NOT(ret[1] == 8); // inspect_id[1]
+    FAIL_IF_NOT(ret[2] == 8); // log_id
+    FAIL_IF_NOT(ret[3] == 8); // min_id
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_EOF, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    AppLayerParserTransactionsCleanup(f);
+
+    UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
+    FAIL_IF_NOT(ret[0] == 8); // inspect_id[0] not updated by ..Cleanup() until full tx is done
+    FAIL_IF_NOT(ret[1] == 8); // inspect_id[1]
+    FAIL_IF_NOT(ret[2] == 8); // log_id
+    FAIL_IF_NOT(ret[3] == 8); // min_id
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOCLIENT | STREAM_EOF, (uint8_t *)str, strlen(str));
+    FAIL_IF_NOT(r == 0);
+    AppLayerParserTransactionsCleanup(f);
+
+    UTHAppLayerParserStateGetIds(f->alparser, &ret[0], &ret[1], &ret[2], &ret[3]);
+    FAIL_IF_NOT(ret[0] == 9); // inspect_id[0]
+    FAIL_IF_NOT(ret[1] == 9); // inspect_id[1]
+    FAIL_IF_NOT(ret[2] == 9); // log_id
+    FAIL_IF_NOT(ret[3] == 9); // min_id
+
+    HtpState *http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreeFlow(f);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -6873,6 +7104,7 @@ void HTPParserRegisterTests(void)
     UtRegisterTest("HTPParserTest22", HTPParserTest22);
     UtRegisterTest("HTPParserTest23", HTPParserTest23);
     UtRegisterTest("HTPParserTest24", HTPParserTest24);
+    UtRegisterTest("HTPParserTest25", HTPParserTest25);
 
     HTPFileParserRegisterTests();
     HTPXFFParserRegisterTests();

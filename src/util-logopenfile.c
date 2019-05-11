@@ -31,7 +31,6 @@
 #include "util-byte.h"
 #include "util-path.h"
 #include "util-logopenfile.h"
-#include "util-logopenfile-tile.h"
 
 #if defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_SOCKET_H) && defined(HAVE_SYS_TYPES_H)
 #define BUILD_WITH_UNIXSOCKET
@@ -134,11 +133,9 @@ static int SCLogFileWriteSocket(const char *buffer, int buffer_len,
     int tries = 0;
     int ret = 0;
     bool reopen = false;
-#ifdef BUILD_WITH_UNIXSOCKET
     if (ctx->fp == NULL && ctx->is_sock) {
         SCLogUnixSocketReconnect(ctx);
     }
-#endif
 tryagain:
     ret = -1;
     reopen = 0;
@@ -286,7 +283,7 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
         if (mode != 0) {
             int r = chmod(filename, mode);
             if (r < 0) {
-                SCLogWarning(SC_WARN_CHMOD, "Could not chmod %s to %u: %s",
+                SCLogWarning(SC_WARN_CHMOD, "Could not chmod %s to %o: %s",
                              filename, mode, strerror(errno));
             }
         }
@@ -294,24 +291,6 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
 
     SCFree(filename);
     return ret;
-}
-
-/** \brief open the indicated file remotely over PCIe to a host
- *  \param path filesystem path to open
- *  \param append_setting open file with O_APPEND: "yes" or "no"
- *  \retval FILE* on success
- *  \retval NULL on error
- */
-static PcieFile *SCLogOpenPcieFp(LogFileCtx *log_ctx, const char *path, 
-                                 const char *append_setting)
-{
-#ifndef __tile__
-    SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, 
-               "PCIe logging only supported on Tile-Gx Architecture.");
-    return NULL;
-#else
-    return TileOpenPcieFp(log_ctx, path, append_setting);
-#endif
 }
 
 /** \brief open a generic output "log file", which may be a regular file or a socket
@@ -463,10 +442,6 @@ SCConfLogOpenGeneric(ConfNode *conf,
         if (rotate) {
             OutputRegisterFileRotationFlag(&log_ctx->rotation_flag);
         }
-    } else if (strcasecmp(filetype, "pcie") == 0) {
-        log_ctx->pcie_fp = SCLogOpenPcieFp(log_ctx, log_path, append);
-        if (log_ctx->pcie_fp == NULL)
-            return -1; // Error already logged by Open...Fp routine
 #ifdef HAVE_LIBHIREDIS
     } else if (strcasecmp(filetype, "redis") == 0) {
         ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");
@@ -523,7 +498,9 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
         return -1;
     }
 
-    fclose(log_ctx->fp);
+    if (log_ctx->fp != NULL) {
+        fclose(log_ctx->fp);
+    }
 
     /* Reopen the file. Append is forced in case the file was not
      * moved as part of a rotation process. */

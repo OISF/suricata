@@ -89,6 +89,12 @@ typedef struct File_ {
                                      *   flag is set */
     uint64_t content_stored;
     uint64_t size;
+    uint64_t start;
+    uint64_t end;
+
+    uint32_t *sid; /* signature id of a rule that triggered the filestore event */
+    uint32_t sid_cnt;
+    uint32_t sid_max;
 } File;
 
 typedef struct FileContainer_ {
@@ -123,9 +129,6 @@ void FileContainerAdd(FileContainer *, File *);
  *  It's the responsibility of the API user to make sure this tracker is
  *  properly updated.
  */
-File *FileOpenFile(FileContainer *, const StreamingBufferConfig *,
-        const uint8_t *name, uint16_t name_len,
-        const uint8_t *data, uint32_t data_len, uint16_t flags);
 int FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags);
@@ -164,6 +167,18 @@ int FileAppendDataById(FileContainer *, uint32_t track_id,
         const uint8_t *data, uint32_t data_len);
 int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
         const uint8_t *data, uint32_t data_len);
+
+/**
+ *  \brief Sets the offset range for a file.
+ *
+ *  \param ffc the container
+ *  \param start start offset
+ *  \param end end offset
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int FileSetRange(FileContainer *, uint64_t start, uint64_t end);
 
 /**
  *  \brief Tag a file for storing

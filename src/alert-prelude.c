@@ -628,13 +628,15 @@ static int PacketToDataV6(const Packet *p, const PacketAlert *pa, idmef_alert_t 
  * \param alert IDMEF alert
  * \return 0 if ok
  */
-static int JsonToAdditionalData(const char * key, json_t * value, idmef_alert_t *alert) {
-    int ret;
+static int JsonToAdditionalData(const char * key, json_t * value, idmef_alert_t *alert)
+{
+    SCEnter();
+
+    int ret = 0;
     const char *key_js;
     char local_key[128];
     json_t *value_js;
     size_t index;
-    SCEnter();
 
     if (!json_is_object(value) && key == NULL)
         SCReturnInt(-1);

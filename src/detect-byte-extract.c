@@ -164,8 +164,8 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
                 SCLogDebug("No Numeric value");
                 return 0;
             } else {
-                SCLogError(SC_ERR_INVALID_NUM_BYTES, "Error extracting %d "
-                        "bytes of string data: %d", data->nbytes, extbytes);
+                SCLogDebug("error extracting %d bytes of string data: %d",
+                        data->nbytes, extbytes);
                 return -1;
             }
         }
@@ -174,8 +174,8 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
                           BYTE_BIG_ENDIAN : BYTE_LITTLE_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
         if (extbytes != data->nbytes) {
-            SCLogError(SC_ERR_INVALID_NUM_BYTES, "Error extracting %d bytes "
-                   "of numeric data: %d\n", data->nbytes, extbytes);
+            SCLogDebug("error extracting %d bytes of numeric data: %d",
+                    data->nbytes, extbytes);
             return 0;
         }
     }

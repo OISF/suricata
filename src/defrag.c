@@ -100,6 +100,8 @@ static int default_policy = DEFRAG_POLICY_BSD;
  * context. */
 static DefragContext *defrag_context;
 
+RB_GENERATE(IP_FRAGMENTS, Frag_, rb, DefragRbFragCompare);
+
 /**
  * Utility/debugging function to dump the frags associated with a
  * tracker.  Only enable when unit tests are enabled.
@@ -149,15 +151,13 @@ DefragFragInit(void *data, void *initdata)
 void
 DefragTrackerFreeFrags(DefragTracker *tracker)
 {
-    Frag *frag;
+    Frag *frag, *tmp;
 
     /* Lock the frag pool as we'll be return items to it. */
     SCMutexLock(&defrag_context->frag_pool_lock);
 
-    while ((frag = TAILQ_FIRST(&tracker->frags)) != NULL) {
-        TAILQ_REMOVE(&tracker->frags, frag, next);
-
-        /* Don't SCFree the frag, just give it back to its pool. */
+    RB_FOREACH_SAFE(frag, IP_FRAGMENTS, &tracker->fragment_tree, tmp) {
+        RB_REMOVE(IP_FRAGMENTS, &tracker->fragment_tree, frag);
         DefragFragReset(frag);
         PoolReturn(defrag_context->frag_pool, frag);
     }
@@ -262,27 +262,16 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
 
     /* Check that we have all the data. Relies on the fact that
      * fragments are inserted if frag_offset order. */
-    Frag *frag;
+    Frag *frag = NULL;
     int len = 0;
-    TAILQ_FOREACH(frag, &tracker->frags, next) {
-        if (frag->skip)
-            continue;
-
-        if (frag == TAILQ_FIRST(&tracker->frags)) {
-            if (frag->offset != 0) {
-                goto done;
-            }
-            len = frag->data_len;
+    RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
+        if (frag->offset > len) {
+            /* This fragment starts after the end of the previous
+             * fragment.  We have a hole. */
+            goto done;
         }
         else {
-            if (frag->offset > len) {
-                /* This fragment starts after the end of the previous
-                 * fragment.  We have a hole. */
-                goto done;
-            }
-            else {
-                len += frag->data_len;
-            }
+            len += frag->data_len;
         }
     }
 
@@ -302,13 +291,14 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     int fragmentable_len = 0;
     int hlen = 0;
     int ip_hdr_offset = 0;
-    TAILQ_FOREACH(frag, &tracker->frags, next) {
+
+    RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
         SCLogDebug("frag %p, data_len %u, offset %u, pcap_cnt %"PRIu64,
                 frag, frag->data_len, frag->offset, frag->pcap_cnt);
 
         if (frag->skip)
             continue;
-        if (frag->data_len - frag->ltrim <= 0)
+        if (frag->ltrim >= frag->data_len)
             continue;
         if (frag->offset == 0) {
 
@@ -386,13 +376,15 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
 
     /* Check that we have all the data. Relies on the fact that
      * fragments are inserted if frag_offset order. */
-    Frag *frag;
     int len = 0;
-    TAILQ_FOREACH(frag, &tracker->frags, next) {
-        if (frag->skip)
+    Frag *first = RB_MIN(IP_FRAGMENTS, &tracker->fragment_tree);
+    Frag *frag = NULL;
+    RB_FOREACH_FROM(frag, IP_FRAGMENTS, first) {
+        if (frag->skip) {
             continue;
+        }
 
-        if (frag == TAILQ_FIRST(&tracker->frags)) {
+        if (frag == first) {
             if (frag->offset != 0) {
                 goto done;
             }
@@ -426,7 +418,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     int fragmentable_len = 0;
     int ip_hdr_offset = 0;
     uint8_t next_hdr = 0;
-    TAILQ_FOREACH(frag, &tracker->frags, next) {
+    RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
         if (frag->skip)
             continue;
         if (frag->data_len - frag->ltrim <= 0)
@@ -495,6 +487,20 @@ error_remove_tracker:
     if (rp != NULL)
         PacketFreeOrRelease(rp);
     return NULL;
+}
+
+/**
+ * The RB_TREE compare function for fragments.
+ *
+ * When it comes to adding fragments, we want subsequent ones with the
+ * same offset to be treated as greater than, so we don't have an
+ * equal return value here.
+ */
+int DefragRbFragCompare(struct Frag_ *a, struct Frag_ *b) {
+    if (a->offset < b->offset) {
+        return -1;
+    }
+    return 1;
 }
 
 /**
@@ -604,15 +610,29 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     tracker->timeout.tv_sec = p->ts.tv_sec + tracker->host_timeout;
     tracker->timeout.tv_usec = p->ts.tv_usec;
 
-    Frag *prev = NULL, *next;
+    Frag *prev = NULL, *next = NULL;
     int overlap = 0;
     ltrim = 0;
-    if (!TAILQ_EMPTY(&tracker->frags)) {
-        TAILQ_FOREACH(prev, &tracker->frags, next) {
-            if (prev->skip) {
-                continue;
+
+    if (!RB_EMPTY(&tracker->fragment_tree)) {
+        Frag key = {
+            .offset = frag_offset - 1,
+        };
+        next = RB_NFIND(IP_FRAGMENTS, &tracker->fragment_tree, &key);
+        if (next == NULL) {
+            prev = RB_MIN(IP_FRAGMENTS, &tracker->fragment_tree);
+            next = IP_FRAGMENTS_RB_NEXT(prev);
+        } else {
+            prev = IP_FRAGMENTS_RB_PREV(next);
+            if (prev == NULL) {
+                prev = next;
+                next = IP_FRAGMENTS_RB_NEXT(prev);
             }
-            next = TAILQ_NEXT(prev, next);
+        }
+        while (prev != NULL) {
+            if (prev->skip) {
+                goto next;
+            }
 
             switch (tracker->policy) {
             case DEFRAG_POLICY_BSD:
@@ -659,6 +679,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                         frag_end > prev->offset + prev->ltrim) {
                     prev->ltrim += frag_end - (prev->offset + prev->ltrim);
                     overlap++;
+                    goto insert;
                 }
 
                 /* If the new fragment completely overlaps the
@@ -669,7 +690,9 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 if (frag_offset + ltrim <= prev->offset + prev->ltrim &&
                         frag_end >= prev->offset + prev->data_len) {
                     prev->skip = 1;
+                    goto insert;
                 }
+
                 break;
             case DEFRAG_POLICY_WINDOWS:
                 /* If new fragment fits inside a previous fragment, drop it. */
@@ -753,10 +776,29 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             default:
                 break;
             }
+
+        next:
+            prev = next;
+            if (next != NULL) {
+                next = IP_FRAGMENTS_RB_NEXT(next);
+            }
+            continue;
+
+        insert:
+            /* If existing fragment has been trimmed up completely
+             * (complete overlap), remove it now instead of holding
+             * onto it. */
+            if (prev->skip || prev->ltrim >= prev->data_len) {
+                RB_REMOVE(IP_FRAGMENTS, &tracker->fragment_tree, prev);
+                DefragFragReset(prev);
+                SCMutexLock(&defrag_context->frag_pool_lock);
+                PoolReturn(defrag_context->frag_pool, prev);
+                SCMutexUnlock(&defrag_context->frag_pool_lock);
+            }
+            break;
         }
     }
 
-insert:
     if (ltrim > data_len) {
         /* Full packet has been trimmed due to the overlap policy. Overlap
          * already set. */
@@ -811,17 +853,7 @@ insert:
     new->pcap_cnt = pcap_cnt;
 #endif
 
-    Frag *frag;
-    TAILQ_FOREACH(frag, &tracker->frags, next) {
-        if (new->offset < frag->offset)
-            break;
-    }
-    if (frag == NULL) {
-        TAILQ_INSERT_TAIL(&tracker->frags, new, next);
-    }
-    else {
-        TAILQ_INSERT_BEFORE(frag, new, next);
-    }
+    IP_FRAGMENTS_RB_INSERT(&tracker->fragment_tree, new);
 
     if (!more_frags) {
         tracker->seen_last = 1;

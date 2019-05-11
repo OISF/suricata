@@ -78,8 +78,7 @@
 static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
                                                            int direction,
                                                            Flow *f,
-                                                           TcpSession *ssn,
-                                                           int dummy)
+                                                           TcpSession *ssn)
 {
     p->tenant_id = f->tenant_id;
     p->datalink = DLT_RAW;
@@ -89,6 +88,10 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     p->flags |= PKT_STREAM_EOF;
     p->flags |= PKT_HAS_FLOW;
     p->flags |= PKT_PSEUDO_STREAM_END;
+    p->vlan_id[0] = f->vlan_id[0];
+    p->vlan_id[1] = f->vlan_id[1];
+    p->vlan_idx = f->vlan_idx;
+    p->livedev = (struct LiveDevice_ *)f->livedev;
 
     if (f->flags & FLOW_NOPACKET_INSPECTION) {
         DecodeSetNoPacketInspectionFlag(p);
@@ -104,6 +107,9 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->payload = NULL;
     p->payload_len = 0;
+
+    /* apply reversed flow logic after setting direction to the packet */
+    direction ^= ((f->flags & FLOW_DIR_REVERSED) != 0);
 
     if (FLOW_IS_IPV4(f)) {
         if (direction == 0) {
@@ -215,28 +221,16 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         p->tcph->th_sport = htons(f->sp);
         p->tcph->th_dport = htons(f->dp);
 
-        if (dummy) {
-            p->tcph->th_seq = htonl(ssn->client.next_seq);
-            p->tcph->th_ack = htonl(ssn->server.last_ack);
-        } else {
-            p->tcph->th_seq = htonl(ssn->client.next_seq);
-            p->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
-                                    TCP_SEG_LEN(ssn->server.seg_list_tail));
-        }
+        p->tcph->th_seq = htonl(ssn->client.next_seq);
+        p->tcph->th_ack = htonl(ssn->server.last_ack);
 
         /* to client */
     } else {
         p->tcph->th_sport = htons(f->dp);
         p->tcph->th_dport = htons(f->sp);
 
-        if (dummy) {
-            p->tcph->th_seq = htonl(ssn->server.next_seq);
-            p->tcph->th_ack = htonl(ssn->client.last_ack);
-        } else {
-            p->tcph->th_seq = htonl(ssn->server.next_seq);
-            p->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
-                                    TCP_SEG_LEN(ssn->client.seg_list_tail));
-        }
+        p->tcph->th_seq = htonl(ssn->server.next_seq);
+        p->tcph->th_ack = htonl(ssn->client.last_ack);
     }
 
     if (FLOW_IS_IPV4(f)) {
@@ -265,8 +259,7 @@ error:
 
 static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
                                                          Flow *f,
-                                                         TcpSession *ssn,
-                                                         int dummy)
+                                                         TcpSession *ssn)
 {
     PacketPoolWait();
     Packet *p = PacketPoolGetPacket();
@@ -276,7 +269,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
 
     PACKET_PROFILING_START(p);
 
-    return FlowForceReassemblyPseudoPacketSetup(p, direction, f, ssn, dummy);
+    return FlowForceReassemblyPseudoPacketSetup(p, direction, f, ssn);
 }
 
 /**
@@ -291,20 +284,12 @@ static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
  */
 int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
 {
-    TcpSession *ssn;
-
-    if (f == NULL) {
+    if (f == NULL || f->protoctx == NULL) {
         *server = *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NONE;
         SCReturnInt(0);
     }
 
-    /* Get the tcp session for the flow */
-    ssn = (TcpSession *)f->protoctx;
-    if (ssn == NULL) {
-        *server = *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NONE;
-        SCReturnInt(0);
-    }
-
+    TcpSession *ssn = (TcpSession *)f->protoctx;
     *client = StreamNeedsReassembly(ssn, STREAM_TOSERVER);
     *server = StreamNeedsReassembly(ssn, STREAM_TOCLIENT);
 
@@ -320,7 +305,7 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
     if (f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL &&
         AppLayerParserProtocolSupportsTxs(f->proto, f->alproto))
     {
-        uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
+        const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
 
         if (AppLayerParserGetTransactionActive(f, f->alparser, STREAM_TOCLIENT) < total_txs)
         {
@@ -356,18 +341,14 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
 int FlowForceReassemblyForFlow(Flow *f, int server, int client)
 {
     Packet *p1 = NULL, *p2 = NULL;
-    TcpSession *ssn;
 
     /* looks like we have no flows in this queue */
-    if (f == NULL) {
+    if (f == NULL || f->protoctx == NULL) {
         return 0;
     }
 
     /* Get the tcp session for the flow */
-    ssn = (TcpSession *)f->protoctx;
-    if (ssn == NULL) {
-        return 0;
-    }
+    TcpSession *ssn = (TcpSession *)f->protoctx;
 
     /* The packets we use are based on what segments in what direction are
      * unprocessed.
@@ -379,14 +360,14 @@ int FlowForceReassemblyForFlow(Flow *f, int server, int client)
 
     /* insert a pseudo packet in the toserver direction */
     if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
-        p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
+        p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn);
         if (p1 == NULL) {
             goto done;
         }
         PKT_SET_SRC(p1, PKT_SRC_FFR);
 
         if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
-            p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
+            p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn);
             if (p2 == NULL) {
                 FlowDeReference(&p1->flow);
                 TmqhOutputPacketpool(NULL, p1);
@@ -396,7 +377,7 @@ int FlowForceReassemblyForFlow(Flow *f, int server, int client)
         }
     } else {
         if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
-            p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
+            p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn);
             if (p1 == NULL) {
                 goto done;
             }
@@ -443,20 +424,14 @@ done:
  */
 static inline void FlowForceReassemblyForHash(void)
 {
-    Flow *f;
-    TcpSession *ssn;
-    int client_ok = 0;
-    int server_ok = 0;
-    uint32_t idx = 0;
-
-    for (idx = 0; idx < flow_config.hash_size; idx++) {
+    for (uint32_t idx = 0; idx < flow_config.hash_size; idx++) {
         FlowBucket *fb = &flow_hash[idx];
 
         PacketPoolWaitForN(9);
         FBLOCK_LOCK(fb);
 
         /* get the topmost flow from the QUEUE */
-        f = fb->head;
+        Flow *f = fb->head;
 
         /* we need to loop through all the flows in the queue */
         while (f != NULL) {
@@ -465,8 +440,7 @@ static inline void FlowForceReassemblyForHash(void)
             FLOWLOCK_WRLOCK(f);
 
             /* Get the tcp session for the flow */
-            ssn = (TcpSession *)f->protoctx;
-
+            TcpSession *ssn = (TcpSession *)f->protoctx;
             /* \todo Also skip flows that shouldn't be inspected */
             if (ssn == NULL) {
                 FLOWLOCK_UNLOCK(f);
@@ -474,6 +448,8 @@ static inline void FlowForceReassemblyForHash(void)
                 continue;
             }
 
+            int client_ok = 0;
+            int server_ok = 0;
             if (FlowForceReassemblyNeedReassembly(f, &server_ok, &client_ok) == 1) {
                 FlowForceReassemblyForFlow(f, server_ok, client_ok);
             }
@@ -497,4 +473,3 @@ void FlowForceReassembly(void)
     FlowForceReassemblyForHash();
     return;
 }
-

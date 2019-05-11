@@ -36,25 +36,24 @@
 #include "suricata-common.h"
 #include "stream.h"
 #include "conf.h"
+#include "app-layer-detect-proto.h"
+#include "app-layer-parser.h"
+#include "app-layer-template.h"
 
 #include "util-unittest.h"
 
-#include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
-
-#include "app-layer-template.h"
 
 /* The default port to probe for echo traffic if not provided in the
  * configuration file. */
 #define TEMPLATE_DEFAULT_PORT "7"
 
-/* The minimum size for an echo message. For some protocols this might
+/* The minimum size for a message. For some protocols this might
  * be the size of a header. */
 #define TEMPLATE_MIN_FRAME_LEN 1
 
-/* Enum of app-layer events for an echo protocol. Normally you might
+/* Enum of app-layer events for the protocol. Normally you might
  * have events for errors in parsing data, like unexpected data being
- * received. For echo we'll make something up, and log an app-layer
+ * received. For template we'll make something up, and log an app-layer
  * level alert if an empty message is received.
  *
  * Example rule:
@@ -73,7 +72,7 @@ SCEnumCharMap template_decoder_event_table[] = {
     { NULL, -1 },
 };
 
-static TemplateTransaction *TemplateTxAlloc(TemplateState *echo)
+static TemplateTransaction *TemplateTxAlloc(TemplateState *state)
 {
     TemplateTransaction *tx = SCCalloc(1, sizeof(TemplateTransaction));
     if (unlikely(tx == NULL)) {
@@ -82,26 +81,26 @@ static TemplateTransaction *TemplateTxAlloc(TemplateState *echo)
 
     /* Increment the transaction ID on the state each time one is
      * allocated. */
-    tx->tx_id = echo->transaction_max++;
+    tx->tx_id = state->transaction_max++;
 
-    TAILQ_INSERT_TAIL(&echo->tx_list, tx, next);
+    TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
 
     return tx;
 }
 
-static void TemplateTxFree(void *tx)
+static void TemplateTxFree(void *txv)
 {
-    TemplateTransaction *templatetx = tx;
+    TemplateTransaction *tx = txv;
 
-    if (templatetx->request_buffer != NULL) {
-        SCFree(templatetx->request_buffer);
+    if (tx->request_buffer != NULL) {
+        SCFree(tx->request_buffer);
     }
 
-    if (templatetx->response_buffer != NULL) {
-        SCFree(templatetx->response_buffer);
+    if (tx->response_buffer != NULL) {
+        SCFree(tx->response_buffer);
     }
 
-    AppLayerDecoderEventsFreeEvents(&templatetx->decoder_events);
+    AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
 
     SCFree(tx);
 }
@@ -135,14 +134,14 @@ static void TemplateStateFree(void *state)
  * \param state a void pointer to the TemplateState object.
  * \param tx_id the transaction ID to free.
  */
-static void TemplateStateTxFree(void *state, uint64_t tx_id)
+static void TemplateStateTxFree(void *statev, uint64_t tx_id)
 {
-    TemplateState *echo = state;
+    TemplateState *state = statev;
     TemplateTransaction *tx = NULL, *ttx;
 
     SCLogNotice("Freeing transaction %"PRIu64, tx_id);
 
-    TAILQ_FOREACH_SAFE(tx, &echo->tx_list, next, ttx) {
+    TAILQ_FOREACH_SAFE(tx, &state->tx_list, next, ttx) {
 
         /* Continue if this is not the transaction we are looking
          * for. */
@@ -151,7 +150,7 @@ static void TemplateStateTxFree(void *state, uint64_t tx_id)
         }
 
         /* Remove and free the transaction. */
-        TAILQ_REMOVE(&echo->tx_list, tx, next);
+        TAILQ_REMOVE(&state->tx_list, tx, next);
         TemplateTxFree(tx);
         return;
     }
@@ -175,12 +174,12 @@ static int TemplateStateGetEventInfo(const char *event_name, int *event_id,
     return 0;
 }
 
-static AppLayerDecoderEvents *TemplateGetEvents(void *state, uint64_t tx_id)
+static AppLayerDecoderEvents *TemplateGetEvents(void *statev, uint64_t tx_id)
 {
-    TemplateState *template_state = state;
+    TemplateState *state = statev;
     TemplateTransaction *tx;
 
-    TAILQ_FOREACH(tx, &template_state->tx_list, next) {
+    TAILQ_FOREACH(tx, &state->tx_list, next) {
         if (tx->tx_id == tx_id) {
             return tx->decoder_events;
         }
@@ -190,15 +189,15 @@ static AppLayerDecoderEvents *TemplateGetEvents(void *state, uint64_t tx_id)
 }
 
 /**
- * \brief Probe the input to see if it looks like echo.
+ * \brief Probe the input to see if it looks like template.
  *
- * \retval ALPROTO_TEMPLATE if it looks like echo, otherwise
+ * \retval ALPROTO_TEMPLATE if it looks like template, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto TemplateProbingParser(Flow *f, uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto TemplateProbingParser(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t input_len, uint8_t *rdir)
 {
-    /* Very simple test - if there is input, this is echo. */
+    /* Very simple test - if there is input, this is template. */
     if (input_len >= TEMPLATE_MIN_FRAME_LEN) {
         SCLogNotice("Detected as ALPROTO_TEMPLATE.");
         return ALPROTO_TEMPLATE;
@@ -208,13 +207,13 @@ static AppProto TemplateProbingParser(Flow *f, uint8_t *input, uint32_t input_le
     return ALPROTO_UNKNOWN;
 }
 
-static int TemplateParseRequest(Flow *f, void *state,
+static int TemplateParseRequest(Flow *f, void *statev,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
-    TemplateState *echo = state;
+    TemplateState *state = statev;
 
-    SCLogNotice("Parsing echo request: len=%"PRIu32, input_len);
+    SCLogNotice("Parsing template request: len=%"PRIu32, input_len);
 
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
@@ -248,13 +247,13 @@ static int TemplateParseRequest(Flow *f, void *state,
      * may need to look for the transaction that this newly recieved
      * data belongs to.
      */
-    TemplateTransaction *tx = TemplateTxAlloc(echo);
+    TemplateTransaction *tx = TemplateTxAlloc(state);
     if (unlikely(tx == NULL)) {
         SCLogNotice("Failed to allocate new Template tx.");
         goto end;
     }
     SCLogNotice("Allocated Template tx %"PRIu64".", tx->tx_id);
-    
+
     /* Make a copy of the request. */
     tx->request_buffer = SCCalloc(1, input_len);
     if (unlikely(tx->request_buffer == NULL)) {
@@ -270,19 +269,18 @@ static int TemplateParseRequest(Flow *f, void *state,
         SCLogNotice("Creating event for empty message.");
         AppLayerDecoderEventsSetEventRaw(&tx->decoder_events,
             TEMPLATE_DECODER_EVENT_EMPTY_MESSAGE);
-        echo->events++;
     }
 
-end:    
+end:
     return 0;
 }
 
-static int TemplateParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
+static int TemplateParseResponse(Flow *f, void *statev, AppLayerParserState *pstate,
     uint8_t *input, uint32_t input_len, void *local_data,
     const uint8_t flags)
 {
-    TemplateState *echo = state;
-    TemplateTransaction *tx = NULL, *ttx;;
+    TemplateState *state = statev;
+    TemplateTransaction *tx = NULL, *ttx;
 
     SCLogNotice("Parsing Template response.");
 
@@ -305,18 +303,18 @@ static int TemplateParseResponse(Flow *f, void *state, AppLayerParserState *psta
     /* We should just grab the last transaction, but this is to
      * illustrate how you might traverse the transaction list to find
      * the transaction associated with this response. */
-    TAILQ_FOREACH(ttx, &echo->tx_list, next) {
+    TAILQ_FOREACH(ttx, &state->tx_list, next) {
         tx = ttx;
     }
-    
+
     if (tx == NULL) {
-        SCLogNotice("Failed to find transaction for response on echo state %p.",
-            echo);
+        SCLogNotice("Failed to find transaction for response on state %p.",
+            state);
         goto end;
     }
 
-    SCLogNotice("Found transaction %"PRIu64" for response on echo state %p.",
-        tx->tx_id, echo);
+    SCLogNotice("Found transaction %"PRIu64" for response on state %p.",
+        tx->tx_id, state);
 
     /* If the protocol requires multiple chunks of data to complete, you may
      * run into the case where you have existing response data.
@@ -346,21 +344,21 @@ end:
     return 0;
 }
 
-static uint64_t TemplateGetTxCnt(void *state)
+static uint64_t TemplateGetTxCnt(void *statev)
 {
-    TemplateState *echo = state;
-    SCLogNotice("Current tx count is %"PRIu64".", echo->transaction_max);
-    return echo->transaction_max;
+    const TemplateState *state = statev;
+    SCLogNotice("Current tx count is %"PRIu64".", state->transaction_max);
+    return state->transaction_max;
 }
 
-static void *TemplateGetTx(void *state, uint64_t tx_id)
+static void *TemplateGetTx(void *statev, uint64_t tx_id)
 {
-    TemplateState *echo = state;
+    TemplateState *state = statev;
     TemplateTransaction *tx;
 
     SCLogNotice("Requested tx ID %"PRIu64".", tx_id);
 
-    TAILQ_FOREACH(tx, &echo->tx_list, next) {
+    TAILQ_FOREACH(tx, &state->tx_list, next) {
         if (tx->tx_id == tx_id) {
             SCLogNotice("Transaction %"PRIu64" found, returning tx object %p.",
                 tx_id, tx);
@@ -380,7 +378,7 @@ static void TemplateSetTxLogged(void *state, void *vtx, LoggerId logged)
 
 static LoggerId TemplateGetTxLogged(void *state, void *vtx)
 {
-    TemplateTransaction *tx = (TemplateTransaction *)vtx;
+    const TemplateTransaction *tx = (TemplateTransaction *)vtx;
     return tx->logged;
 }
 
@@ -406,18 +404,18 @@ static int TemplateGetAlstateProgressCompletionStatus(uint8_t direction) {
  * needs to be seen.  The response_done flag is set on response for
  * checking here.
  */
-static int TemplateGetStateProgress(void *tx, uint8_t direction)
+static int TemplateGetStateProgress(void *txv, uint8_t direction)
 {
-    TemplateTransaction *echotx = tx;
+    TemplateTransaction *tx = txv;
 
     SCLogNotice("Transaction progress requested for tx ID %"PRIu64
-        ", direction=0x%02x", echotx->tx_id, direction);
+        ", direction=0x%02x", tx->tx_id, direction);
 
-    if (direction & STREAM_TOCLIENT && echotx->response_done) {
+    if (direction & STREAM_TOCLIENT && tx->response_done) {
         return 1;
     }
     else if (direction & STREAM_TOSERVER) {
-        /* For echo, just the existence of the transaction means the
+        /* For the template, just the existence of the transaction means the
          * request is done. */
         return 1;
     }
@@ -426,7 +424,7 @@ static int TemplateGetStateProgress(void *tx, uint8_t direction)
 }
 
 /**
- * \brief ???
+ * \brief retrieve the detection engine per tx state
  */
 static DetectEngineState *TemplateGetTxDetectState(void *vtx)
 {
@@ -435,7 +433,7 @@ static DetectEngineState *TemplateGetTxDetectState(void *vtx)
 }
 
 /**
- * \brief ???
+ * \brief get the detection engine per tx state
  */
 static int TemplateSetTxDetectState(void *vtx,
     DetectEngineState *s)
@@ -475,7 +473,7 @@ void RegisterTemplateParsers(void)
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN,
                     TemplateProbingParser, NULL)) {
-                SCLogNotice("No echo app-layer configuration, enabling echo"
+                SCLogNotice("No template app-layer configuration, enabling echo"
                     " detection TCP detection on port %s.",
                     TEMPLATE_DEFAULT_PORT);
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
@@ -493,7 +491,7 @@ void RegisterTemplateParsers(void)
         return;
     }
 
-    if (AppLayerParserConfParserEnabled("udp", proto_name)) {
+    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
 
         SCLogNotice("Registering Template protocol parser.");
 

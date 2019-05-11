@@ -41,7 +41,4 @@ typedef struct DetectFilestoreData_ {
 /* prototypes */
 void DetectFilestoreRegister (void);
 
-int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *);
-
 #endif /* __DETECT_FILESTORE_H__ */

@@ -53,7 +53,7 @@
 
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;
-    bool include_metadata;
+    OutputJsonCommonSettings cfg;
 } LogJsonFileCtx;
 
 typedef struct JsonNetFlowLogThread_ {
@@ -67,7 +67,7 @@ typedef struct JsonNetFlowLogThread_ {
 static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, int dir)
 {
     char timebuf[64];
-    char srcip[46], dstip[46];
+    char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
 
     json_t *js = json_object();
@@ -80,8 +80,9 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, i
 
     CreateIsoTimeString(&tv, timebuf, sizeof(timebuf));
 
-    srcip[0] = '\0';
-    dstip[0] = '\0';
+    /* reverse header direction if the flow started out wrong */
+    dir ^= ((f->flags & FLOW_DIR_REVERSED) != 0);
+
     if (FLOW_IS_IPV4(f)) {
         if (dir == 0) {
             PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
@@ -125,34 +126,26 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, i
     if (sensor_id >= 0)
         json_object_set_new(js, "sensor_id", json_integer(sensor_id));
 #endif
+
+    /* input interface */
+    if (f->livedev) {
+        json_object_set_new(js, "in_iface", json_string(f->livedev->dev));
+    }
+
     if (event_type) {
         json_object_set_new(js, "event_type", json_string(event_type));
     }
-#if 0
+
     /* vlan */
-    if (f->vlan_id[0] > 0) {
-        json_t *js_vlan;
-        switch (f->vlan_idx) {
-            case 1:
-                json_object_set_new(js, "vlan",
-                                    json_integer(f->vlan_id[0]));
-                break;
-            case 2:
-                js_vlan = json_array();
-                if (unlikely(js != NULL)) {
-                    json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID1(p)));
-                    json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID2(p)));
-                    json_object_set_new(js, "vlan", js_vlan);
-                }
-                break;
-            default:
-                /* shouldn't get here */
-                break;
+    if (f->vlan_idx > 0) {
+        json_t *js_vlan = json_array();
+        json_array_append_new(js_vlan, json_integer(f->vlan_id[0]));
+        if (f->vlan_idx > 1) {
+            json_array_append_new(js_vlan, json_integer(f->vlan_id[1]));
         }
+        json_object_set_new(js, "vlan", js_vlan);
     }
-#endif
+
     /* tuple */
     json_object_set_new(js, "src_ip", json_string(srcip));
     switch(f->proto) {
@@ -313,9 +306,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToServer(jhl, js, f);
-    if (netflow_ctx->include_metadata) {
-        JsonAddMetadata(NULL, f, js);
-    }
+    JsonAddCommonOptions(&netflow_ctx->cfg, NULL, f, js);
     OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "netflow");
     json_object_clear(js);
@@ -329,9 +320,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
         JsonNetFlowLogJSONToClient(jhl, js, f);
-        if (netflow_ctx->include_metadata) {
-            JsonAddMetadata(NULL, f, js);
-        }
+        JsonAddCommonOptions(&netflow_ctx->cfg, NULL, f, js);
         OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
         json_object_del(js, "netflow");
         json_object_clear(js);
@@ -409,7 +398,7 @@ static OutputInitResult OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *paren
     }
 
     flow_ctx->file_ctx = ojc->file_ctx;
-    flow_ctx->include_metadata = ojc->include_metadata;
+    flow_ctx->cfg = ojc->cfg;
 
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputNetFlowLogDeinitSub;

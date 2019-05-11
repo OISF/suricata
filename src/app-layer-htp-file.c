@@ -137,8 +137,9 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         sbcfg = &s->cfg->request.sbcfg;
     }
 
-    if (FileOpenFile(files, sbcfg, filename, filename_len,
-                data, data_len, flags) == NULL)
+    if (FileOpenFileWithId(files, sbcfg, s->file_track_id++,
+                filename, filename_len,
+                data, data_len, flags) != 0)
     {
         retval = -1;
     }
@@ -147,6 +148,111 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
 
     FilePrune(files);
 end:
+    SCReturnInt(retval);
+}
+
+/**
+ * Performs parsing of the content-range value
+ *
+ * @param[in] rawvalue
+ * @param[out] range
+ *
+ * @return HTP_OK on success, HTP_ERROR on failure.
+ */
+int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range)
+{
+    unsigned char *data = bstr_ptr(rawvalue);
+    size_t len = bstr_len(rawvalue);
+    size_t pos = 0;
+    size_t last_pos;
+
+    // skip spaces and units
+    while (pos < len && data[pos] == ' ')
+        pos++;
+    while (pos < len && data[pos] != ' ')
+        pos++;
+    while (pos < len && data[pos] == ' ')
+        pos++;
+
+    // initialize to unseen
+    range->start = -1;
+    range->end = -1;
+    range->size = -1;
+
+    if (pos == len) {
+        // missing data
+        return -1;
+    }
+
+    if (data[pos] == '*') {
+        // case with size only
+        if (len < pos + 1 || data[pos+1] != '/') {
+            range->size = -1;
+            return -1;
+        }
+        pos += 2;
+        range->size = bstr_util_mem_to_pint(data + pos, len - pos, 10, &last_pos);
+    } else {
+        // case with start and end
+        range->start = bstr_util_mem_to_pint(data + pos, len - pos, 10, &last_pos);
+        pos += last_pos;
+        if (len < pos || data[pos] != '-') {
+            return -1;
+        }
+        pos++;
+        range->end = bstr_util_mem_to_pint(data + pos, len - pos, 10, &last_pos);
+        pos += last_pos;
+        if (len < pos || data[pos] != '/') {
+            return -1;
+        }
+        pos++;
+        if (data[pos] != '*') {
+            // case with size
+            range->size = bstr_util_mem_to_pint(data + pos, len - pos, 10, &last_pos);
+        }
+    }
+
+    return 0;
+}
+
+/**
+ *  \brief Sets range for a file
+ *
+ *  \param s http state
+ *  \param rawvalue raw header value
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ *  \retval -2 error parsing
+ *  \retval -3 error negative end in range
+ */
+int HTPFileSetRange(HtpState *s, bstr *rawvalue)
+{
+    SCEnter();
+
+    if (s == NULL) {
+        SCReturnInt(-1);
+    }
+
+    FileContainer * files = s->files_tc;
+    if (files == NULL) {
+        SCLogDebug("no files in state");
+        SCReturnInt(-1);
+    }
+
+    HtpContentRange crparsed;
+    if (HTPParseContentRange(rawvalue, &crparsed) != 0) {
+        SCLogDebug("parsing range failed");
+        SCReturnInt(-2);
+    }
+    if (crparsed.end <= 0) {
+        SCLogDebug("negative end in range");
+        SCReturnInt(-3);
+    }
+    int retval = FileSetRange(files, crparsed.start, crparsed.end);
+    if (retval == -1) {
+        SCLogDebug("set range failed");
+    }
     SCReturnInt(retval);
 }
 

@@ -48,19 +48,19 @@ pub struct Smb1WriteRequestRecord<'a> {
 
 named!(pub parse_smb1_write_request_record<Smb1WriteRequestRecord>,
     do_parse!(
-            wct: le_u8
+            _wct: le_u8
         >>  fid: take!(2)
-        >>  count: le_u16
+        >>  _count: le_u16
         >>  offset: le_u32
-        >>  remaining: le_u16
-        >>  bcc: le_u16
-        >>  buffer_format: le_u8
+        >>  _remaining: le_u16
+        >>  _bcc: le_u16
+        >>  _buffer_format: le_u8
         >>  data_len: le_u16
         >>  file_data: take!(data_len)
         >> (Smb1WriteRequestRecord {
                 offset: offset as u64,
                 len: data_len as u32,
-                fid:fid,
+                fid,
                 data:file_data,
             }))
 );
@@ -68,44 +68,44 @@ named!(pub parse_smb1_write_request_record<Smb1WriteRequestRecord>,
 named!(pub parse_smb1_write_andx_request_record<Smb1WriteRequestRecord>,
     do_parse!(
             wct: le_u8
-        >>  andx_command: le_u8
+        >>  _andx_command: le_u8
         >>  take!(1)    // reserved
-        >>  andx_offset: le_u16
+        >>  _andx_offset: le_u16
         >>  fid: take!(2)
         >>  offset: le_u32
         >>  take!(4)    // reserved
-        >>  write_mode: le_u16
-        >>  remaining: le_u16
+        >>  _write_mode: le_u16
+        >>  _remaining: le_u16
         >>  data_len_high: le_u16
         >>  data_len_low: le_u16
-        >>  data_offset: le_u16
+        >>  _data_offset: le_u16
         >>  high_offset: cond!(wct==14,le_u32)
         >>  bcc: le_u16
         //>>  padding: cond!(data_offset > 32, take!(data_offset - 32))
-        >>  padding: cond!(bcc > data_len_low, take!(bcc - data_len_low)) // TODO figure out how this works with data_len_high
+        >>  _padding: cond!(bcc > data_len_low, take!(bcc - data_len_low)) // TODO figure out how this works with data_len_high
         >>  file_data: rest
         >> (Smb1WriteRequestRecord {
                 offset: if high_offset != None { ((high_offset.unwrap() as u64) << 32)|(offset as u64) } else { 0 },
                 len: (((data_len_high as u32) << 16) as u32)|(data_len_low as u32),
-                fid:fid,
+                fid,
                 data:file_data,
             }))
 );
 
 named!(pub parse_smb1_write_and_close_request_record<Smb1WriteRequestRecord>,
     do_parse!(
-            wct: le_u8
+            _wct: le_u8
         >>  fid: take!(2)
         >>  count: le_u16
         >>  offset: le_u32
-        >>  last_write: take!(4)
+        >>  _last_write: take!(4)
         >>  bcc: le_u16
-        >>  padding: cond!(bcc > count, take!(bcc - count))
+        >>  _padding: cond!(bcc > count, take!(bcc - count))
         >>  file_data: take!(count)
         >> (Smb1WriteRequestRecord {
                 offset: offset as u64,
                 len: count as u32,
-                fid:fid,
+                fid,
                 data:file_data,
             }))
 );
@@ -118,8 +118,8 @@ pub struct Smb1NegotiateProtocolResponseRecord<'a> {
 
 named!(pub parse_smb1_negotiate_protocol_response_record_error<Smb1NegotiateProtocolResponseRecord>,
     do_parse!(
-            wct: le_u8
-         >> bcc: le_u16
+            _wct: le_u8
+         >> _bcc: le_u16
          >> ( Smb1NegotiateProtocolResponseRecord {
                 dialect_idx: 0,
                 server_guid: &[],
@@ -128,18 +128,18 @@ named!(pub parse_smb1_negotiate_protocol_response_record_error<Smb1NegotiateProt
 
 named!(pub parse_smb1_negotiate_protocol_response_record_ok<Smb1NegotiateProtocolResponseRecord>,
     do_parse!(
-            wct: le_u8
+            _wct: le_u8
         >>  dialect_idx: le_u16
-        >>  sec_mode: le_u8
+        >>  _sec_mode: le_u8
         >>  take!(16)
-        >>  caps: le_u32
-        >>  sys_time: le_u64
-        >>  server_tz: le_u16
-        >>  challenge_len: le_u8
+        >>  _caps: le_u32
+        >>  _sys_time: le_u64
+        >>  _server_tz: le_u16
+        >>  _challenge_len: le_u8
         >>  bcc: le_u16
         >>  server_guid: cond!(bcc >= 16, take!(16))
         >> (Smb1NegotiateProtocolResponseRecord {
-                dialect_idx:dialect_idx,
+                dialect_idx,
                 server_guid: server_guid.unwrap_or(&[]),
             }))
 );
@@ -157,12 +157,12 @@ pub struct Smb1NegotiateProtocolRecord<'a> {
 
 named!(pub parse_smb1_negotiate_protocol_record<Smb1NegotiateProtocolRecord>,
     do_parse!(
-        wtc: le_u8
-        >> bcc: le_u16
+           _wtc: le_u8
+        >> _bcc: le_u16
         // dialects is a list of [1 byte buffer format][string][0 terminator]
-        >> dialects: many1!(take_until_and_consume!("\0"))
+        >> dialects: many1!(complete!(take_until_and_consume!("\0")))
         >> (Smb1NegotiateProtocolRecord {
-                dialects:dialects,
+                dialects
             }))
 );
 
@@ -176,17 +176,17 @@ pub struct Smb1ResponseRecordTreeConnectAndX<'a> {
 named!(pub parse_smb_connect_tree_andx_response_record<Smb1ResponseRecordTreeConnectAndX>,
     do_parse!(
             wct: le_u8
-        >>  andx_command: le_u8
+        >>  _andx_command: le_u8
         >>  take!(1)    // reserved
-        >>  andx_offset: le_u16
+        >>  _andx_offset: le_u16
         >>  cond!(wct >= 3, take!(2))   // optional support
         >>  cond!(wct == 7, take!(8))   // access masks
-        >>  bcc: le_u16
+        >>  _bcc: le_u16
         >>  service: take_until_and_consume!("\x00")
         >>  nativefs: take_until_and_consume!("\x00")
         >> (Smb1ResponseRecordTreeConnectAndX {
-                service:service,
-                nativefs:nativefs,
+                service,
+                nativefs
            }))
 );
 
@@ -205,8 +205,8 @@ pub fn parse_smb_connect_tree_andx_record<'a>(i: &'a[u8], r: &SmbRecord) -> IRes
        >> path: apply!(smb1_get_string, r, 11 + pwlen as usize)
        >> service: take_until_and_consume!("\x00")
        >> (SmbRecordTreeConnectAndX {
-                path: path,
-                service: service,
+                path,
+                service
            }))
 }
 
@@ -230,7 +230,7 @@ named!(pub parse_smb_trans_request_record_pipe<SmbPipeProtocolRecord>,
         >>  fid: take!(2)
         >> (SmbPipeProtocolRecord {
                 function: fun,
-                fid: fid,
+                fid
             })
     )
 );
@@ -249,14 +249,14 @@ pub struct SmbRecordTransRequestParams<> {
 named!(pub parse_smb_trans_request_record_params<(SmbRecordTransRequestParams, Option<SmbPipeProtocolRecord>)>,
     do_parse!(
           wct: le_u8
-       >> total_param_cnt: le_u16
-       >> total_data_count: le_u16
-       >> max_param_cnt: le_u16
+       >> _total_param_cnt: le_u16
+       >> _total_data_count: le_u16
+       >> _max_param_cnt: le_u16
        >> max_data_cnt: le_u16
-       >> max_setup_cnt: le_u8
+       >> _max_setup_cnt: le_u8
        >> take!(1) // reserved
        >> take!(2) // flags
-       >> timeout: le_u32
+       >> _timeout: le_u32
        >> take!(2) // reserved
        >> param_cnt: le_u16
        >> param_offset: le_u16
@@ -267,12 +267,12 @@ named!(pub parse_smb_trans_request_record_params<(SmbRecordTransRequestParams, O
        >> pipe: cond!(wct == 16 && setup_cnt == 2, parse_smb_trans_request_record_pipe)
        >> bcc: le_u16
        >> (( SmbRecordTransRequestParams {
-                max_data_cnt:max_data_cnt,
-                param_cnt:param_cnt,
-                param_offset:param_offset,
-                data_cnt:data_cnt,
-                data_offset:data_offset,
-                bcc:bcc,
+                max_data_cnt,
+                param_cnt,
+                param_offset,
+                data_cnt,
+                data_offset,
+                bcc
             },
             pipe)))
 );
@@ -300,19 +300,11 @@ pub fn parse_smb_trans_request_record_data(i: &[u8],
 pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
     -> IResult<&'a[u8], SmbRecordTransRequest<'a>>
 {
-    let (rem, (params, pipe)) = match parse_smb_trans_request_record_params(i) {
-        IResult::Done(rem, (rd, p)) => (rem, (rd, p)),
-        IResult::Incomplete(ii) => { return IResult::Incomplete(ii); }
-        IResult::Error(e) => { return IResult::Error(e); }
-    };
+    let (rem, (params, pipe)) = parse_smb_trans_request_record_params(i)?;
     let mut offset = 32 + (i.len() - rem.len()); // init with SMB header
     SCLogDebug!("params {:?}: offset {}", params, offset);
 
-    let (rem2, n) = match smb1_get_string(rem, r, offset) {
-        IResult::Done(rem, rd) => (rem, rd),
-        IResult::Incomplete(ii) => { return IResult::Incomplete(ii); }
-        IResult::Error(e) => { return IResult::Error(e); }
-    };
+    let (rem2, n) = smb1_get_string(rem, r, offset)?;
     offset += rem.len() - rem2.len();
     SCLogDebug!("n {:?}: offset {}", n, offset);
 
@@ -340,9 +332,8 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
 
         let d = match parse_smb_trans_request_record_data(rem2,
                 pad1, params.param_cnt, pad2, params.data_cnt) {
-            IResult::Done(_, rd) => rd,
-            IResult::Incomplete(ii) => { return IResult::Incomplete(ii); }
-            IResult::Error(e) => { return IResult::Error(e); }
+            Ok((_, rd)) => rd,
+            Err(e) => { return Err(e); }
         };
         SCLogDebug!("d {:?}", d);
         d
@@ -353,7 +344,7 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
     let res = SmbRecordTransRequest {
         params: params, pipe: pipe, txname: n, data: recdata,
     };
-    IResult::Done(&rem, res)
+    Ok((&rem, res))
 }
 
 
@@ -366,7 +357,7 @@ pub struct SmbRecordTransResponse<'a> {
 
 named!(pub parse_smb_trans_response_error_record<SmbRecordTransResponse>,
     do_parse!(
-          wct: le_u8
+          _wct: le_u8
        >> bcc: le_u16
        >> (SmbRecordTransResponse {
                 data_cnt:0,
@@ -377,25 +368,25 @@ named!(pub parse_smb_trans_response_error_record<SmbRecordTransResponse>,
 
 named!(pub parse_smb_trans_response_regular_record<SmbRecordTransResponse>,
     do_parse!(
-          wct: le_u8
-       >> total_param_cnt: le_u16
-       >> total_data_count: le_u16
+          _wct: le_u8
+       >> _total_param_cnt: le_u16
+       >> _total_data_count: le_u16
        >> take!(2) // reserved
-       >> param_cnt: le_u16
-       >> param_offset: le_u16
-       >> param_displacement: le_u16
+       >> _param_cnt: le_u16
+       >> _param_offset: le_u16
+       >> _param_displacement: le_u16
        >> data_cnt: le_u16
-       >> data_offset: le_u16
-       >> data_displacement: le_u16
-       >> setup_cnt: le_u8
+       >> _data_offset: le_u16
+       >> _data_displacement: le_u16
+       >> _setup_cnt: le_u8
        >> take!(1) // reserved
        >> bcc: le_u16
        >> take!(1) // padding
        >> data: take!(data_cnt)
        >> (SmbRecordTransResponse {
-                data_cnt:data_cnt,
-                bcc:bcc,
-                data:data,
+                data_cnt,
+                bcc,
+                data
            }))
 );
 
@@ -412,13 +403,13 @@ pub struct SmbRecordSetupAndX<'a> {
 
 named!(pub parse_smb_setup_andx_record<SmbRecordSetupAndX>,
     do_parse!(
-       skip1: take!(15)
+          _skip1: take!(15)
        >> sec_blob_len: le_u16
-       >> skip2: take!(8)
-       >> bcc: le_u16
+       >> _skip2: take!(8)
+       >> _bcc: le_u16
        >> sec_blob: take!(sec_blob_len)
        >> (SmbRecordSetupAndX {
-                sec_blob:sec_blob,
+                sec_blob
            }))
 );
 
@@ -429,19 +420,19 @@ pub struct SmbResponseRecordSetupAndX<'a> {
 
 named!(response_setup_andx_record<SmbResponseRecordSetupAndX>,
     do_parse!(
-       skip1: take!(7)
+          _skip1: take!(7)
        >> sec_blob_len: le_u16
-       >> bcc: le_u16
+       >> _bcc: le_u16
        >> sec_blob: take!(sec_blob_len)
        >> (SmbResponseRecordSetupAndX {
-                sec_blob:sec_blob,
+                sec_blob
            }))
 );
 
 named!(response_setup_andx_wct3_record<SmbResponseRecordSetupAndX>,
     do_parse!(
-       skip1: take!(7)
-       >> bcc: le_u16
+          _skip1: take!(7)
+       >> _bcc: le_u16
        >> (SmbResponseRecordSetupAndX {
                 sec_blob:&[],
            }))
@@ -449,8 +440,8 @@ named!(response_setup_andx_wct3_record<SmbResponseRecordSetupAndX>,
 
 named!(response_setup_andx_error_record<SmbResponseRecordSetupAndX>,
     do_parse!(
-          wct: le_u8
-       >> bcc: le_u16
+          _wct: le_u8
+       >> _bcc: le_u16
        >> (SmbResponseRecordSetupAndX {
                 sec_blob: &[],
            }))
@@ -473,9 +464,9 @@ pub struct SmbRequestReadAndXRecord<'a> {
 named!(pub parse_smb_read_andx_request_record<SmbRequestReadAndXRecord>,
     do_parse!(
             wct: le_u8
-        >>  andx_command: le_u8
+        >>  _andx_command: le_u8
         >>  take!(1)    // reserved
-        >>  andx_offset: le_u16
+        >>  _andx_offset: le_u16
         >>  fid: take!(2)
         >>  offset: le_u32
         >>  max_count_low: le_u16
@@ -484,7 +475,7 @@ named!(pub parse_smb_read_andx_request_record<SmbRequestReadAndXRecord>,
         >>  take!(2)
         >>  high_offset: cond!(wct==12,le_u32) // only from wct ==12?
         >> (SmbRequestReadAndXRecord {
-                fid:fid,
+                fid,
                 size: (((max_count_high as u64) << 16)|max_count_low as u64),
                 offset: if high_offset != None { ((high_offset.unwrap() as u64) << 32)|(offset as u64) } else { 0 },
            }))
@@ -498,17 +489,17 @@ pub struct SmbResponseReadAndXRecord<'a> {
 
 named!(pub parse_smb_read_andx_response_record<SmbResponseReadAndXRecord>,
     do_parse!(
-            wct: le_u8
-        >>  andx_command: le_u8
+            _wct: le_u8
+        >>  _andx_command: le_u8
         >>  take!(1)    // reserved
-        >>  andx_offset: le_u16
+        >>  _andx_offset: le_u16
         >>  take!(6)
         >>  data_len_low: le_u16
-        >>  data_offset: le_u16
+        >>  _data_offset: le_u16
         >>  data_len_high: le_u32
         >>  take!(6)    // reserved
         >>  bcc: le_u16
-        >>  padding: cond!(bcc > data_len_low, take!(bcc - data_len_low)) // TODO figure out how this works with data_len_high
+        >>  _padding: cond!(bcc > data_len_low, take!(bcc - data_len_low)) // TODO figure out how this works with data_len_high
         >>  file_data: rest
 
         >> (SmbResponseReadAndXRecord {
@@ -525,42 +516,45 @@ pub struct SmbRequestRenameRecord {
 
 named!(pub parse_smb_rename_request_record<SmbRequestRenameRecord>,
     do_parse!(
-            wct: le_u8
-        >>  search_attr: le_u16
-        >>  bcc: le_u16
-        >>  oldtype: le_u8
+            _wct: le_u8
+        >>  _search_attr: le_u16
+        >>  _bcc: le_u16
+        >>  _oldtype: le_u8
         >>  oldname: smb_get_unicode_string
-        >>  newtype: le_u8
+        >>  _newtype: le_u8
         >>  newname: apply!(smb_get_unicode_string_with_offset, 1) // HACK if we assume oldname is a series of utf16 chars offset would be 1
         >> (SmbRequestRenameRecord {
-                oldname: oldname,
-                newname: newname,
+                oldname,
+                newname
            }))
 );
 
 #[derive(Debug,PartialEq)]
-pub struct SmbRequestCreateAndXRecord<'a> {
+pub struct SmbRequestCreateAndXRecord<> {
     pub disposition: u32,
     pub create_options: u32,
-    pub file_name: &'a[u8],
+    pub file_name: Vec<u8>,
 }
 
-named!(pub parse_smb_create_andx_request_record<SmbRequestCreateAndXRecord>,
-    do_parse!(
-       skip1: take!(6)
+pub fn parse_smb_create_andx_request_record<'a>(i: &'a[u8], r: &SmbRecord)
+    -> IResult<&'a[u8], SmbRequestCreateAndXRecord<>>
+{
+    do_parse!(i,
+          _skip1: take!(6)
        >> file_name_len: le_u16
-       >> skip3: take!(28)
+       >> _skip3: take!(28)
        >> disposition: le_u32
        >> create_options: le_u32
-       >> skip2: take!(8)
-       >> file_name: take!(file_name_len)
-       >> skip3: rest
+       >> _skip2: take!(5)
+       >> bcc: le_u16
+       >> file_name: cond!(bcc >= file_name_len, apply!(smb1_get_string, r, (bcc - file_name_len) as usize))
+       >> _skip3: rest
        >> (SmbRequestCreateAndXRecord {
                 disposition: disposition,
                 create_options: create_options,
-                file_name: file_name,
+                file_name: file_name.unwrap_or(Vec::new()),
            }))
-);
+}
 
 #[derive(Debug,PartialEq)]
 pub struct Trans2RecordParamSetFileInfoDisposition<> {
@@ -602,7 +596,7 @@ named!(pub parse_trans2_request_data_set_file_info_rename<Trans2RecordParamSetFi
     do_parse!(
             replace: le_u8
         >>  _reserved: take!(3)
-        >>  root_dir: take!(4)
+        >>  _root_dir: take!(4)
         >>  newname_len: le_u32
         >>  newname: take!(newname_len)
         >> (Trans2RecordParamSetFileInfoRename {
@@ -623,8 +617,8 @@ named!(pub parse_trans2_request_params_set_path_info<Trans2RecordParamSetPathInf
         >>  _reserved: take!(4)
         >>  oldname: call!(smb_get_unicode_string)
         >> (Trans2RecordParamSetPathInfo {
-                loi:loi,
-                oldname:oldname,
+                loi,
+                oldname
             })
 ));
 
@@ -638,12 +632,12 @@ named!(pub parse_trans2_request_data_set_path_info_rename<Trans2RecordParamSetPa
     do_parse!(
             replace: le_u8
         >>  _reserved: take!(3)
-        >>  root_dir: take!(4)
+        >>  _root_dir: take!(4)
         >>  newname_len: le_u32
         >>  newname: take!(newname_len)
         >> (Trans2RecordParamSetPathInfoRename {
                 replace: replace==1,
-                newname: newname,
+                newname
             })
 ));
 
@@ -656,32 +650,32 @@ pub struct SmbRequestTrans2Record<'a> {
 
 named!(pub parse_smb_trans2_request_record<SmbRequestTrans2Record>,
     do_parse!(
-            wct: le_u8
-        >>  total_param_cnt: le_u16
-        >>  total_data_cnt: le_u16
-        >>  max_param_cnt: le_u16
-        >>  max_data_cnt: le_u16
-        >>  max_setup_cnt: le_u8
+            _wct: le_u8
+        >>  _total_param_cnt: le_u16
+        >>  _total_data_cnt: le_u16
+        >>  _max_param_cnt: le_u16
+        >>  _max_data_cnt: le_u16
+        >>  _max_setup_cnt: le_u8
         >>  _reserved1: take!(1)
-        >>  flags: le_u16
-        >>  timeout: le_u32
+        >>  _flags: le_u16
+        >>  _timeout: le_u32
         >>  _reserved2: take!(2)
         >>  param_cnt: le_u16
-        >>  param_offset: le_u16
+        >>  _param_offset: le_u16
         >>  data_cnt: le_u16
-        >>  data_offset: le_u16
-        >>  setup_cnt: le_u8
+        >>  _data_offset: le_u16
+        >>  _setup_cnt: le_u8
         >>  _reserved3: take!(1)
         >>  subcmd: le_u16
-        >>  bcc: le_u16
+        >>  _bcc: le_u16
         >>  _padding: take!(3)
         >>  setup_blob: take!(param_cnt)
         >>  data_blob: take!(data_cnt)
 
         >> (SmbRequestTrans2Record {
-                subcmd: subcmd,
-                setup_blob: setup_blob,
-                data_blob: data_blob,
+                subcmd,
+                setup_blob,
+                data_blob
            }))
 );
 
@@ -698,24 +692,24 @@ pub struct SmbResponseCreateAndXRecord<'a> {
 named!(pub parse_smb_create_andx_response_record<SmbResponseCreateAndXRecord>,
     do_parse!(
             wct: le_u8
-        >>  andx_command: le_u8
+        >>  _andx_command: le_u8
         >>  take!(1)    // reserved
-        >>  andx_offset: le_u16
-        >>  oplock_level: le_u8
+        >>  _andx_offset: le_u16
+        >>  _oplock_level: le_u8
         >>  fid: take!(2)
-        >>  create_action: le_u32
+        >>  _create_action: le_u32
         >>  create_ts: le_u64
         >>  last_access_ts: le_u64
         >>  last_write_ts: le_u64
         >>  last_change_ts: le_u64
         >>  take!(4)
         >>  file_size: le_u64
-        >>  eof: le_u64
-        >>  file_type: le_u16
-        >>  ipc_state: le_u16
-        >>  is_dir: le_u8
+        >>  _eof: le_u64
+        >>  _file_type: le_u16
+        >>  _ipc_state: le_u16
+        >>  _is_dir: le_u8
         >>  cond!(wct == 42, take!(32))
-        >>  bcc: le_u16
+        >>  _bcc: le_u16
         >> (SmbResponseCreateAndXRecord {
                 fid:fid,
                 create_ts: SMBFiletime::new(create_ts),
@@ -789,8 +783,8 @@ named!(pub parse_smb_record<SmbRecord>,
         >>  flags:le_u8
         >>  flags2:le_u16
         >>  process_id_high:le_u16
-        >>  signature:take!(8)
-        >>  reserved:take!(2)
+        >>  _signature:take!(8)
+        >>  _reserved:take!(2)
         >>  tree_id:le_u16
         >>  process_id:le_u16
         >>  user_id:le_u16

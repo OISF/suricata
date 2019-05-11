@@ -158,7 +158,6 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
         return;
     }
 
-#ifdef HAVE_LIBJANSSON
     if (ctx->fileinfo) {
         char js_metadata_filename[PATH_MAX];
         if (snprintf(js_metadata_filename, sizeof(js_metadata_filename),
@@ -176,7 +175,6 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
             }
         }
     }
-#endif
 }
 
 static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
@@ -223,6 +221,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
             if (FileGetMaxOpenFiles() > 0) {
                 StatsIncr(tv, aft->counter_max_hits);
             }
+            ff->fd = -1;
         }
     /* we can get called with a NULL ffd when we need to close */
     } else if (data != NULL) {
@@ -353,7 +352,13 @@ static bool InitFilestoreDirectory(const char *dir)
 
     for (int i = 0; i <= dir_count; i++) {
         char leaf[PATH_MAX];
-        snprintf(leaf, sizeof(leaf) - 1, "%s/%02x", dir, i);
+        int n = snprintf(leaf, sizeof(leaf), "%s/%02x", dir, i);
+        if (n < 0 || n >= PATH_MAX) {
+            SCLogError(SC_ERR_CREATE_DIRECTORY,
+                    "Filestore (v2) failed to create leaf directory: "
+                    "path too long");
+            return false;
+        }
         if (!SCPathExists(leaf)) {
             SCLogInfo("Filestore (v2) creating directory %s", leaf);
             if (SCDefaultMkDir(leaf) != 0) {
@@ -367,7 +372,12 @@ static bool InitFilestoreDirectory(const char *dir)
 
     /* Make sure the tmp directory exists. */
     char tmpdir[PATH_MAX];
-    snprintf(tmpdir, sizeof(tmpdir) - 1, "%s/tmp", dir);
+    int n = snprintf(tmpdir, sizeof(tmpdir), "%s/tmp", dir);
+    if (n < 0 || n >= PATH_MAX) {
+        SCLogError(SC_ERR_CREATE_DIRECTORY,
+                "Filestore (v2) failed to create tmp directory: path too long");
+        return false;
+    }
     if (!SCPathExists(tmpdir)) {
         SCLogInfo("Filestore (v2) creating directory %s", tmpdir);
         if (SCDefaultMkDir(tmpdir) != 0) {
@@ -439,13 +449,8 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
     const char *write_fileinfo = ConfNodeLookupChildValue(conf,
             "write-fileinfo");
     if (write_fileinfo != NULL && ConfValIsTrue(write_fileinfo)) {
-#ifdef HAVE_LIBJANSSON
         SCLogConfig("Filestore (v2) will output fileinfo records.");
         ctx->fileinfo = true;
-#else
-        SCLogWarning(SC_ERR_NO_JSON_SUPPORT,
-                "Filestore (v2) requires JSON support to log fileinfo records");
-#endif
     }
 
     const char *force_filestore = ConfNodeLookupChildValue(conf,

@@ -17,7 +17,7 @@
 
 //! Nom parsers for RPC & NFSv3
 
-use nom::{be_u32, be_u64, rest};
+use nom::{IResult, be_u32, be_u64, rest};
 use nfs::nfs_records::*;
 
 #[derive(Debug,PartialEq)]
@@ -114,7 +114,7 @@ named!(pub parse_nfs3_request_remove<Nfs3RequestRemove>,
             handle: parse_nfs3_handle
         >>  name_len: be_u32
         >>  name: take!(name_len)
-        >>  fill_bytes: rest
+        >>  _fill_bytes: rest
         >> (
             Nfs3RequestRemove {
                 handle:handle,
@@ -135,7 +135,7 @@ named!(pub parse_nfs3_request_rmdir<Nfs3RequestRmdir>,
             dir_handle: parse_nfs3_handle
         >>  name_len: be_u32
         >>  name: take!(name_len)
-        >>  fill_bytes: cond!(name_len % 4 != 0, take!(4 - name_len % 4))
+        >>  _fill_bytes: cond!(name_len % 4 != 0, take!(4 - name_len % 4))
         >> (
             Nfs3RequestRmdir {
                 handle:dir_handle,
@@ -155,8 +155,8 @@ named!(pub parse_nfs3_request_mkdir<Nfs3RequestMkdir>,
             dir_handle: parse_nfs3_handle
         >>  name_len: be_u32
         >>  name: take!(name_len)
-        >>  fill_bytes: cond!(name_len % 4 != 0, take!(4 - name_len % 4))
-        >>  attributes: rest
+        >>  _fill_bytes: cond!(name_len % 4 != 0, take!(4 - name_len % 4))
+        >>  _attributes: rest
         >> (
             Nfs3RequestMkdir {
                 handle:dir_handle,
@@ -178,16 +178,16 @@ named!(pub parse_nfs3_request_rename<Nfs3RequestRename>,
             from_handle: parse_nfs3_handle
         >>  from_name_len: be_u32
         >>  from_name: take!(from_name_len)
-        >>  from_fill_bytes: cond!(from_name_len % 4 != 0, take!(4 - from_name_len % 4))
+        >>  _from_fill_bytes: cond!(from_name_len % 4 != 0, take!(4 - from_name_len % 4))
         >>  to_handle: parse_nfs3_handle
         >>  to_name_len: be_u32
         >>  to_name: take!(to_name_len)
-        >>  to_fill_bytes: rest
+        >>  _to_fill_bytes: rest
         >> (
             Nfs3RequestRename {
-                from_handle:from_handle,
+                from_handle,
                 from_name_vec:from_name.to_vec(),
-                to_handle:to_handle,
+                to_handle,
                 to_name_vec:to_name.to_vec(),
             }
         ))
@@ -234,11 +234,11 @@ pub struct Nfs3RequestCommit<'a> {
 named!(pub parse_nfs3_request_commit<Nfs3RequestCommit>,
     do_parse!(
             handle: parse_nfs3_handle
-        >>  offset: be_u64
-        >>  count: be_u32
+        >>  _offset: be_u64
+        >>  _count: be_u32
         >> (
             Nfs3RequestCommit {
-                handle:handle,
+                handle
             }
         ))
 );
@@ -253,11 +253,11 @@ named!(pub parse_nfs3_request_read<Nfs3RequestRead>,
     do_parse!(
             handle: parse_nfs3_handle
         >>  offset: be_u64
-        >>  count: be_u32
+        >>  _count: be_u32
         >> (
             Nfs3RequestRead {
-                handle:handle,
-                offset:offset,
+                handle,
+                offset
             }
         ))
 );
@@ -274,10 +274,10 @@ named!(pub parse_nfs3_request_lookup<Nfs3RequestLookup>,
             handle: parse_nfs3_handle
         >>  name_len: be_u32
         >>  name_contents: take!(name_len)
-        >>  name_padding: rest
+        >>  _name_padding: rest
         >> (
             Nfs3RequestLookup {
-                handle:handle,
+                handle,
                 name_vec:name_contents.to_vec(),
             }
         ))
@@ -292,19 +292,19 @@ pub struct Nfs3ResponseReaddirplusEntryC<'a> {
 
 named!(pub parse_nfs3_response_readdirplus_entry<Nfs3ResponseReaddirplusEntryC>,
     do_parse!(
-        file_id: be_u64
+           _file_id: be_u64
         >> name_len: be_u32
         >> name_content: take!(name_len)
-        >> fill_bytes: cond!(name_len % 4 != 0, take!(4 - name_len % 4))
-        >> cookie: take!(8)
+        >> _fill_bytes: cond!(name_len % 4 != 0, take!(4 - name_len % 4))
+        >> _cookie: take!(8)
         >> attr_value_follows: be_u32
-        >> attr: cond!(attr_value_follows==1, take!(84))
+        >> _attr: cond!(attr_value_follows==1, take!(84))
         >> handle_value_follows: be_u32
         >> handle: cond!(handle_value_follows==1, parse_nfs3_handle)
         >> (
                 Nfs3ResponseReaddirplusEntryC {
                     name_vec:name_content.to_vec(),
-                    handle:handle,
+                    handle,
                 }
            )
         )
@@ -317,11 +317,11 @@ pub struct Nfs3ResponseReaddirplusEntry<'a> {
 
 named!(pub parse_nfs3_response_readdirplus_entry_cond<Nfs3ResponseReaddirplusEntry>,
     do_parse!(
-        value_follows: be_u32
+           value_follows: be_u32
         >> entry: cond!(value_follows==1, parse_nfs3_response_readdirplus_entry)
         >> (
             Nfs3ResponseReaddirplusEntry {
-                entry:entry,
+                entry
             }
            ))
 );
@@ -336,15 +336,19 @@ named!(pub parse_nfs3_response_readdirplus<Nfs3ResponseReaddirplus>,
     do_parse!(
         status: be_u32
         >> dir_attr_follows: be_u32
-        >> dir_attr: cond!(dir_attr_follows == 1, take!(84))
-        >> verifier: take!(8)
+        >> _dir_attr: cond!(dir_attr_follows == 1, take!(84))
+        >> _verifier: take!(8)
         >> data: rest
 
         >> ( Nfs3ResponseReaddirplus {
-                status:status,
-                data:data,
+                status,
+                data
         } ))
 );
+
+pub(crate) fn many0_nfs3_response_readdirplus_entries<'a>(input: &'a [u8]) -> IResult<&'a[u8], Vec<Nfs3ResponseReaddirplusEntry<'a>>> {
+    many0!(input, complete!(parse_nfs3_response_readdirplus_entry_cond))
+}
 
 #[derive(Debug,PartialEq)]
 pub struct Nfs3RequestReaddirplus<'a> {

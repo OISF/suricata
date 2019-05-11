@@ -289,7 +289,13 @@ latex_documents = [
 man_pages = [
     # (master_doc, 'suricata', u'Suricata Documentation',
     #  [author], 1)
-    ("manpages/suricata", "suricata", "Suricata", [], 1)
+    ("manpages/suricata", "suricata", "Suricata", [], 1),
+    ("manpages/suricatasc", "suricatasc",
+     "Tool to interact via unix socket", [], 1),
+    ("manpages/suricatactl", "suricatactl",
+     "Suricata Control", [], 1),
+    ("manpages/suricatactl-filestore", "suricatactl-filestore",
+     "Perform actions on filestore", [], 1),
 ]
 
 # If true, show URL addresses after external links.

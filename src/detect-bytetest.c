@@ -157,13 +157,13 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("No Numeric value");
                 SCReturnInt(0);
             } else {
-                SCLogError(SC_ERR_INVALID_NUM_BYTES, "Error extracting %d "
+                SCLogDebug("error extracting %d "
                         "bytes of string data: %d", data->nbytes, extbytes);
                 SCReturnInt(-1);
             }
         }
 
-        SCLogDebug("comparing base %d string 0x%" PRIx64 " %s%c 0x%" PRIx64 "",
+        SCLogDebug("comparing base %d string 0x%" PRIx64 " %s%u 0x%" PRIx64,
                data->base, val, (neg ? "!" : ""), data->op, data->value);
     }
     else {
@@ -171,12 +171,12 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
                           BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
         if (extbytes != data->nbytes) {
-            SCLogError(SC_ERR_INVALID_NUM_BYTES, "Error extracting %d bytes "
-                   "of numeric data: %d\n", data->nbytes, extbytes);
+            SCLogDebug("error extracting %d bytes "
+                   "of numeric data: %d", data->nbytes, extbytes);
             SCReturnInt(-1);
         }
 
-        SCLogDebug("comparing numeric 0x%" PRIx64 " %s%c 0x%" PRIx64 "",
+        SCLogDebug("comparing numeric 0x%" PRIx64 " %s%u 0x%" PRIx64,
                val, (neg ? "!" : ""), data->op, data->value);
     }
 
@@ -433,12 +433,11 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 {
     SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
-    DetectBytetestData *data = NULL;
     char *value = NULL;
     char *offset = NULL;
     int ret = -1;
 
-    data = DetectBytetestParse(optstr, &value, &offset);
+    DetectBytetestData *data = DetectBytetestParse(optstr, &value, &offset);
     if (data == NULL)
         goto error;
 
@@ -513,6 +512,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         data->value = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         data->flags |= DETECT_BYTETEST_VALUE_BE;
         SCFree(value);
+        value = NULL;
     }
 
     if (offset != NULL) {
@@ -525,6 +525,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         data->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         data->flags |= DETECT_BYTETEST_OFFSET_BE;
         SCFree(offset);
+        offset = NULL;
     }
 
     sm = SigMatchAlloc();
@@ -551,6 +552,10 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     ret = 0;
     return ret;
  error:
+    if (offset)
+        SCFree(offset);
+    if (value)
+        SCFree(value);
     DetectBytetestFree(data);
     return ret;
 }

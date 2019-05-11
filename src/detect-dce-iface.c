@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -47,25 +47,18 @@
 #include "util-unittest-helper.h"
 #include "stream-tcp.h"
 
-#ifdef HAVE_RUST
 #include "rust.h"
 #include "rust-smb-detect-gen.h"
-#endif
 
 #define PARSE_REGEX "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,(<|>|=|!)([0-9]{1,5}))?(?:\\s*,(any_frag))?\\s*$"
 
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
 
-static int DetectDceIfaceMatch(ThreadVars *, DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
-        const Signature *, const SigMatchCtx *);
-#ifdef HAVE_RUST
 static int DetectDceIfaceMatchRust(ThreadVars *t,
         DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, void *txv,
         const Signature *s, const SigMatchCtx *m);
-#endif
 static int DetectDceIfaceSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDceIfaceFree(void *);
 static void DetectDceIfaceRegisterTests(void);
@@ -84,11 +77,7 @@ void DetectDceIfaceRegister(void)
 {
     sigmatch_table[DETECT_DCE_IFACE].name = "dce_iface";
     sigmatch_table[DETECT_DCE_IFACE].Match = NULL;
-#ifdef HAVE_RUST
     sigmatch_table[DETECT_DCE_IFACE].AppLayerTxMatch = DetectDceIfaceMatchRust;
-#else
-    sigmatch_table[DETECT_DCE_IFACE].AppLayerTxMatch = DetectDceIfaceMatch;
-#endif
     sigmatch_table[DETECT_DCE_IFACE].Setup = DetectDceIfaceSetup;
     sigmatch_table[DETECT_DCE_IFACE].Free  = DetectDceIfaceFree;
     sigmatch_table[DETECT_DCE_IFACE].RegisterTests = DetectDceIfaceRegisterTests;
@@ -246,28 +235,6 @@ static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
     return NULL;
 }
 
-#include "app-layer-smb.h"
-DCERPCState *DetectDceGetState(AppProto alproto, void *alstate)
-{
-#ifdef HAVE_RUST
-    return alstate;
-#else
-    switch (alproto) {
-        case ALPROTO_DCERPC:
-            return alstate;
-        case ALPROTO_SMB: {
-            SMBState *smb_state = (SMBState *)alstate;
-            return &smb_state->ds;
-        }
-        case ALPROTO_SMB2:
-            // not implemented
-            return NULL;
-    }
-
-    return NULL;
-#endif
-}
-
 /**
  * \internal
  * \brief Internal function that compares the dce interface version for this
@@ -278,8 +245,8 @@ DCERPCState *DetectDceGetState(AppProto alproto, void *alstate)
  * \param dce_data Pointer to the Signature's dce_iface keyword
  *                 state(DetectDceIfaceData *).
  */
-static inline int DetectDceIfaceMatchIfaceVersion(uint16_t version,
-                                                  DetectDceIfaceData *dce_data)
+static inline int DetectDceIfaceMatchIfaceVersion(const uint16_t version,
+                                                  const DetectDceIfaceData *dce_data)
 {
     switch (dce_data->op) {
         case DETECT_DCE_IFACE_OP_LT:
@@ -316,11 +283,10 @@ static int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     int ret = 0;
-    DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m;
+    const DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m;
 
     DCERPCUuidEntry *item = NULL;
-    int i = 0;
-    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+    const DCERPCState *dcerpc_state = state;
     if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
         SCReturnInt(0);
@@ -330,7 +296,8 @@ static int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (!dcerpc_state->dcerpc.dcerpcrequest.first_request_seen)
         goto end;
 
-    if (!(dcerpc_state->dcerpc.dcerpchdr.type == REQUEST))
+    if (!(dcerpc_state->dcerpc.dcerpchdr.type == REQUEST ||
+          dcerpc_state->dcerpc.dcerpchdr.type == RESPONSE))
         goto end;
 
     TAILQ_FOREACH(item, &dcerpc_state->dcerpc.dcerpcbindbindack.accepted_uuid_list, next) {
@@ -348,7 +315,7 @@ static int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             continue;
 
         /* check the interface uuid */
-        for (i = 0; i < 16; i++) {
+        for (int i = 0; i < 16; i++) {
             if (dce_data->uuid[i] != item->uuid[i]) {
                 ret = 0;
                 break;
@@ -373,7 +340,6 @@ end:
     SCReturnInt(ret);
 }
 
-#ifdef HAVE_RUST
 static int DetectDceIfaceMatchRust(ThreadVars *t,
         DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, void *txv,
@@ -398,7 +364,6 @@ static int DetectDceIfaceMatchRust(ThreadVars *t,
     }
     SCReturnInt(ret);
 }
-#endif
 
 /**
  * \brief Creates a SigMatch for the "dce_iface" keyword being sent as argument,
@@ -414,34 +379,24 @@ static int DetectDceIfaceMatchRust(ThreadVars *t,
 
 static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectDceIfaceData *did = NULL;
-    SigMatch *sm = NULL;
-
-//    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
-//        return -1;
-
-    did = DetectDceIfaceArgParse(arg);
+    DetectDceIfaceData *did = DetectDceIfaceArgParse(arg);
     if (did == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dec_iface option in "
                    "signature");
         return -1;
     }
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectDceIfaceFree(did);
+        return -1;
+    }
 
     sm->type = DETECT_DCE_IFACE;
     sm->ctx = (void *)did;
 
     SigMatchAppendSMToList(s, sm, g_dce_generic_list_id);
     return 0;
-
- error:
-    DetectDceIfaceFree(did);
-    if (sm != NULL)
-        SCFree(sm);
-    return -1;
 }
 
 static void DetectDceIfaceFree(void *ptr)

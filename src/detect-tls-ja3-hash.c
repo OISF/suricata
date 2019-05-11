@@ -20,7 +20,7 @@
  *
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  *
- * Implements support for ja3_hash keyword.
+ * Implements support for ja3.hash keyword.
  */
 
 #include "suricata-common.h"
@@ -75,35 +75,37 @@ static int g_tls_ja3_hash_buffer_id = 0;
  */
 void DetectTlsJa3HashRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_JA3_HASH].name = "ja3_hash";
+    sigmatch_table[DETECT_AL_TLS_JA3_HASH].name = "ja3.hash";
+    sigmatch_table[DETECT_AL_TLS_JA3_HASH].alias = "ja3_hash";
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].desc = "content modifier to match the JA3 hash buffer";
-    sigmatch_table[DETECT_AL_TLS_JA3_HASH].url = DOC_URL DOC_VERSION "/rules/ja3-keywords.html#ja3_hash";
+    sigmatch_table[DETECT_AL_TLS_JA3_HASH].url = DOC_URL DOC_VERSION "/rules/ja3-keywords.html#ja3-hash";
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].Setup = DetectTlsJa3HashSetup;
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].Free = NULL;
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].RegisterTests = DetectTlsJa3HashRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TLS_JA3_HASH].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("ja3_hash", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister2("ja3.hash", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("ja3_hash", SIG_FLAG_TOSERVER, 2,
+    DetectAppLayerMpmRegister2("ja3.hash", SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
 
-    DetectBufferTypeSetDescriptionByName("ja3_hash", "TLS JA3 hash");
+    DetectBufferTypeSetDescriptionByName("ja3.hash", "TLS JA3 hash");
 
-    DetectBufferTypeRegisterSetupCallback("ja3_hash",
+    DetectBufferTypeRegisterSetupCallback("ja3.hash",
             DetectTlsJa3HashSetupCallback);
 
-    DetectBufferTypeRegisterValidateCallback("ja3_hash",
+    DetectBufferTypeRegisterValidateCallback("ja3.hash",
             DetectTlsJa3HashValidateCallback);
 
-    g_tls_ja3_hash_buffer_id = DetectBufferTypeGetByName("ja3_hash");
+    g_tls_ja3_hash_buffer_id = DetectBufferTypeGetByName("ja3.hash");
 }
 
 /**
- * \brief this function setup the ja3_hash modifier keyword used in the rule
+ * \brief this function setup the ja3.hash modifier keyword used in the rule
  *
  * \param de_ctx Pointer to the Detection Engine Context
  * \param s      Pointer to the Signature to which the current keyword belongs
@@ -130,9 +132,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id)
 {
-    BUG_ON(det_ctx->inspect_buffers == NULL);
-    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
-
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         SSLState *ssl_state = (SSLState *)_f->alstate;
 
@@ -162,7 +162,7 @@ static _Bool DetectTlsJa3HashValidateCallback(const Signature *s,
         const DetectContentData *cd = (DetectContentData *)sm->ctx;
 
         if (cd->flags & DETECT_CONTENT_NOCASE) {
-            *sigerror = "ja3_hash should not be used together with "
+            *sigerror = "ja3.hash should not be used together with "
                         "nocase, since the rule is automatically "
                         "lowercased anyway which makes nocase redundant.";
             SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
@@ -283,7 +283,7 @@ static int DetectTlsJa3HashTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test ja3_hash\"; ja3_hash; "
+                              "(msg:\"Test ja3.hash\"; ja3.hash; "
                               "content:\"e7eca2baf4458d095b7f45da28c16c34\"; "
                               "sid:1;)");
     FAIL_IF_NULL(s);
@@ -317,12 +317,112 @@ static int DetectTlsJa3HashTest01(void)
     PASS;
 }
 
+/**
+ * \test Test matching on a simple client hello packet
+ */
+static int DetectTlsJa3HashTest02(void)
+{
+    /* Client hello */
+    uint8_t buf[] = { 0x16, 0x03, 0x01, 0x00, 0xc0, 0x01, 0x00, 0x00, 0xbc,
+                      0x03, 0x03, 0x03, 0xb7, 0x16, 0x16, 0x5a, 0xe7, 0xc1,
+                      0xbd, 0x46, 0x2f, 0xff, 0xf3, 0x68, 0xb8, 0x6f, 0x6e,
+                      0x93, 0xdf, 0x06, 0x6a, 0xa7, 0x2d, 0xa0, 0xea, 0x9f,
+                      0x48, 0xb5, 0xe7, 0x91, 0x20, 0xd7, 0x25, 0x00, 0x00,
+                      0x1c, 0x0a, 0x0a, 0xc0, 0x2b, 0xc0, 0x2f, 0xc0, 0x2c,
+                      0xc0, 0x30, 0xcc, 0xa9, 0xcc, 0xa8, 0xc0, 0x13, 0xc0,
+                      0x14, 0x00, 0x9c, 0x00, 0x9d, 0x00, 0x2f, 0x00, 0x35,
+                      0x00, 0x0a, 0x01, 0x00, 0x00, 0x77, 0x1a, 0x1a, 0x00,
+                      0x00, 0xff, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+                      0x12, 0x00, 0x10, 0x00, 0x00, 0x0d, 0x77, 0x77, 0x77,
+                      0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x6e,
+                      0x6f, 0x00, 0x17, 0x00, 0x00, 0x00, 0x23, 0x00, 0x00,
+                      0x00, 0x0d, 0x00, 0x14, 0x00, 0x12, 0x04, 0x03, 0x08,
+                      0x04, 0x04, 0x01, 0x05, 0x03, 0x08, 0x05, 0x05, 0x01,
+                      0x08, 0x06, 0x06, 0x01, 0x02, 0x01, 0x00, 0x05, 0x00,
+                      0x05, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x00,
+                      0x00, 0x00, 0x10, 0x00, 0x0e, 0x00, 0x0c, 0x02, 0x68,
+                      0x32, 0x08, 0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e,
+                      0x31, 0x00, 0x0b, 0x00, 0x02, 0x01, 0x00, 0x00, 0x0a,
+                      0x00, 0x0a, 0x00, 0x08, 0xba, 0xba, 0x00, 0x1d, 0x00,
+                      0x17, 0x00, 0x18, 0x0a, 0x0a, 0x00, 0x01, 0x00 };
+
+    Flow f;
+    SSLState *ssl_state = NULL;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_TCP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 443);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
+    f.protomap = FlowGetProtoMapping(f.proto);
+
+    p->flow = &f;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flowflags |= FLOW_PKT_TOSERVER|FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_TLS;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->mpm_matcher = mpm_default_matcher;
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
+                              "(msg:\"Test ja3.hash\"; ja3.hash; "
+                              "content:\"bc6c386f480ee97b9d9e52d472b772d8\"; "
+                              "sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, buf, sizeof(buf));
+    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF(r != 0);
+
+    ssl_state = f.alstate;
+    FAIL_IF_NULL(ssl_state);
+
+    FAIL_IF_NULL(ssl_state->ja3_hash);
+
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+
+    PASS;
+}
 #endif /* UNITTESTS */
 
 static void DetectTlsJa3HashRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectTlsJa3HashTest01", DetectTlsJa3HashTest01);
+    UtRegisterTest("DetectTlsJa3HashTest02", DetectTlsJa3HashTest02);
 #endif /* UNITTESTS */
 }
 

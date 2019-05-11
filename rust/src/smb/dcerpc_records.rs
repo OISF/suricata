@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use nom;
 use nom::{rest, le_u8, be_u16, le_u16, le_u32, IResult, ErrorKind, Endianness};
 
 #[derive(Debug,PartialEq)]
@@ -28,7 +29,7 @@ pub fn parse_dcerpc_response_record(i:&[u8], frag_len: u16 )
     -> IResult<&[u8], DceRpcResponseRecord>
 {
     if frag_len < 24 {
-        return IResult::Error(error_code!(ErrorKind::Custom(128)));
+        return Err(nom::Err::Error(error_position!(i,ErrorKind::Custom(128))));
     }
     do_parse!(i,
                 take!(8)
@@ -51,7 +52,7 @@ pub fn parse_dcerpc_request_record(i:&[u8], frag_len: u16, little: bool)
     -> IResult<&[u8], DceRpcRequestRecord>
 {
     if frag_len < 24 {
-        return IResult::Error(error_code!(ErrorKind::Custom(128)));
+        return Err(nom::Err::Error(error_position!(i,ErrorKind::Custom(128))));
     }
     do_parse!(i,
                 take!(6)
@@ -74,8 +75,8 @@ pub struct DceRpcBindIface<'a> {
 
 named!(pub parse_dcerpc_bind_iface<DceRpcBindIface>,
     do_parse!(
-            ctx_id: le_u16
-        >>  num_trans_items: le_u8
+            _ctx_id: le_u16
+        >>  _num_trans_items: le_u8
         >>  take!(1) // reserved
         >>  interface: take!(16)
         >>  ver: le_u16
@@ -90,8 +91,8 @@ named!(pub parse_dcerpc_bind_iface<DceRpcBindIface>,
 
 named!(pub parse_dcerpc_bind_iface_big<DceRpcBindIface>,
     do_parse!(
-            ctx_id: le_u16
-        >>  num_trans_items: le_u8
+            _ctx_id: le_u16
+        >>  _num_trans_items: le_u8
         >>  take!(1) // reserved
         >>  interface: take!(16)
         >>  ver_min: be_u16
@@ -112,9 +113,9 @@ pub struct DceRpcBindRecord<'a> {
 
 named!(pub parse_dcerpc_bind_record<DceRpcBindRecord>,
     do_parse!(
-            max_xmit_frag: le_u16
-        >>  max_recv_frag: le_u16
-        >>  assoc_group: take!(4)
+            _max_xmit_frag: le_u16
+        >>  _max_recv_frag: le_u16
+        >>  _assoc_group: take!(4)
         >>  num_ctx_items: le_u8
         >>  take!(3) // reserved
         >>  ifaces: count!(parse_dcerpc_bind_iface, num_ctx_items as usize)
@@ -126,9 +127,9 @@ named!(pub parse_dcerpc_bind_record<DceRpcBindRecord>,
 
 named!(pub parse_dcerpc_bind_record_big<DceRpcBindRecord>,
     do_parse!(
-            max_xmit_frag: be_u16
-        >>  max_recv_frag: be_u16
-        >>  assoc_group: take!(4)
+            _max_xmit_frag: be_u16
+        >>  _max_recv_frag: be_u16
+        >>  _assoc_group: take!(4)
         >>  num_ctx_items: le_u8
         >>  take!(3) // reserved
         >>  ifaces: count!(parse_dcerpc_bind_iface_big, num_ctx_items as usize)
@@ -168,9 +169,9 @@ pub struct DceRpcBindAckRecord<'a> {
 
 named!(pub parse_dcerpc_bindack_record<DceRpcBindAckRecord>,
     do_parse!(
-            max_xmit_frag: le_u16
-        >>  max_recv_frag: le_u16
-        >>  assoc_group: take!(4)
+            _max_xmit_frag: le_u16
+        >>  _max_recv_frag: le_u16
+        >>  _assoc_group: take!(4)
         >>  sec_addr_len: le_u16
         >>  take!(sec_addr_len)
         >>  cond!((sec_addr_len+2) % 4 != 0, take!(4 - (sec_addr_len+2) % 4))
@@ -216,7 +217,7 @@ named!(pub parse_dcerpc_record<DceRpcRecord>,
                 take_bits!(u32, 28)))
         >>  endian: value!(if data_rep.1 == 0 { Endianness::Big } else { Endianness::Little })
         >>  frag_len: u16!(endian)
-        >>  auth: u16!(endian)
+        >>  _auth: u16!(endian)
         >>  call_id: u32!(endian)
         >>  data:rest
         >> (DceRpcRecord {

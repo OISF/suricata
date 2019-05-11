@@ -1,61 +1,73 @@
-# Based on https://github.com/redis/hiredis/blob/master/appveyor.yml
-# and https://github.com/dokan-dev/dokany/pull/336/files
-# Appveyor configuration file for CI build of hiredis on Windows (under Cygwin)
 environment:
-    matrix:
-#       - CYG_ROOT: C:\cygwin64
-#         CYG_SETUP: setup-x86_64.exe
-#         CYG_MIRROR: http://cygwin.mirror.constant.com
-#         CYG_CACHE: C:\cygwin64\var\cache\setup
-#         CYG_BASH: C:\cygwin64\bin\bash
-#         CC: gcc
-        - CYG_ROOT: C:\cygwin
-          CYG_SETUP: setup-x86.exe
-          CYG_MIRROR: http://cygwin.mirror.constant.com
-          CYG_CACHE: C:\cygwin\var\cache\setup
-          CYG_BASH: C:\cygwin\bin\bash
-          CC: gcc
-          CFLAGS: -Wall -Wextra -Werror -Wshadow -Wno-unused-parameter -Wno-unused-function
+  matrix:
+    - COMPILER: mingw-w64
+      PCAP_URL: https://www.winpcap.org/install/bin/WpdPack_4_1_2.zip
+      PCAP_FILE: WpdPack_4_1_2.zip
+      PCAP_EXTRACT: c:\
+      PCAP_PATH: "c:\\WpdPack\\Lib\\x64;c:\\WinDivert-1.4.3-A\\x86_64"
+      CONFIGURE: "--with-libpcap-libraries=/c/WpdPack/Lib/x64 --with-libpcap-includes=/c/WpdPack/Include --enable-windivert --with-windivert-include=/c/WinDivert-1.4.3-A/include --with-windivert-libraries=/c/WinDivert-1.4.3-A/x86_64 --enable-unittests"
+      MINGW_DIR: c:\msys64\mingw64
+      MINGW_ARCH: x86_64
+      RUST: enable
+      WINDIVERT: enable
+      UNITTESTS: enable
+      CFLAGS: -Werror -Wall -Wextra -Wno-unused-parameter -Wno-unused-function
 
-# Cache Cygwin files to speed up build
-cache:
-    - '%CYG_CACHE%'
-clone_depth: 1
+    - COMPILER: mingw
+      PCAP_URL: https://www.winpcap.org/install/bin/WpdPack_4_1_2.zip
+      PCAP_FILE: WpdPack_4_1_2.zip
+      PCAP_EXTRACT: c:\
+      PCAP_PATH: "c:\\WpdPack\\Lib"
+      CONFIGURE: "--with-libpcap-libraries=/c/WpdPack/Lib --with-libpcap-includes=/c/WpdPack/Include"
+      MINGW_DIR: c:\msys64\mingw32
+      MINGW_ARCH: i686
+      RUST: enable
+      WINDIVERT: disable
+      UNITTESTS: disable
+      CFLAGS: -Werror -Wall -Wextra -Wno-unused-parameter -Wno-unused-function
 
-# Attempt to ensure we don't try to convert line endings to Win32 CRLF as this will cause build to fail
-init:
-    - git config --global core.autocrlf input
-#    - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+    - COMPILER: mingw-w64
+      PCAP_URL: https://nmap.org/npcap/dist/npcap-sdk-1.01.zip
+      PCAP_FILE: npcap-sdk-1.01.zip
+      PCAP_EXTRACT: c:\npcap\
+      PCAP_PATH: "c:\\npcap\\Lib\\x64"
+      CONFIGURE: "--with-libpcap-libraries=/c/npcap/Lib/x64 --with-libpcap-includes=/c/npcap/Include"
+      MINGW_DIR: c:\msys64\mingw64
+      MINGW_ARCH: x86_64
+      RUST: enable
+      WINDIVERT: disable
+      UNITTESTS: disable
+      CFLAGS: -Werror -Wall -Wextra -Wno-unused-parameter -Wno-unused-function
 
-# Install needed build dependencies. First update cygwin to avoid weird dll issues.
+before_build:
+  - set Path=%MINGW_DIR%\bin;%Path%
+  - c:\msys64\usr\bin\pacman -Su --noconfirm libyaml-devel pcre-devel jansson-devel
+  - c:\msys64\usr\bin\pacman -Su --noconfirm mingw-w64-"%MINGW_ARCH%"-libyaml
+  - c:\msys64\usr\bin\pacman -Su --noconfirm mingw-w64-"%MINGW_ARCH%"-pcre
+  - c:\msys64\usr\bin\pacman -Su --noconfirm mingw-w64-"%MINGW_ARCH%"-rust
+  - c:\msys64\usr\bin\pacman -Su --noconfirm mingw-w64-"%MINGW_ARCH%"-jansson
+  - c:\msys64\usr\bin\pacman -Su --noconfirm mingw-w64-"%MINGW_ARCH%"-nss
+  - c:\msys64\usr\bin\pacman -Su --noconfirm mingw-w64-"%MINGW_ARCH%"-nspr
+
 install:
-    - ps: 'Start-FileDownload "http://cygwin.com/$env:CYG_SETUP" -FileName "$env:CYG_SETUP"'
-    - '%CYG_SETUP% -gqnNdO --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" > NUL 2>&1'
-    - '%CYG_SETUP% --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" --packages automake,bison,gcc-core,libtool,make,gettext-devel,gettext,intltool,pkg-config,clang,llvm,libpcre-devel,file-devel,wget,zlib-devel,libnss-devel,libnspr-devel,libGeoIP-devel,libyaml-devel,luajit-devel,unzip,libiconv,libiconv-devel > NUL 2>&1'
-    - '%CYG_BASH% -lc "cygcheck -dc cygwin"'
-    - '%CYG_BASH% -lc "wget https://www.winpcap.org/install/bin/WpdPack_4_1_2.zip && ls && unzip WpdPack_4_1_2.zip"'
-    - '%CYG_BASH% -lc "cp WpdPack/Lib/libpacket.a /usr/lib/"'
-    - '%CYG_BASH% -lc "cp WpdPack/Lib/libwpcap.a /usr/lib/libpcap.a"' # so -lpcap works
-#    - '%CYG_BASH% -lc "cp WpdPack/Lib/libwpcap.a /usr/lib/libwpcap.a"'
-    - '%CYG_BASH% -lc "cp WpdPack/Lib/Packet.lib /usr/lib/"'
-    - '%CYG_BASH% -lc "cp WpdPack/Lib/wpcap.lib /usr/lib/"'
-    - '%CYG_BASH% -lc "mkdir -p /usr/include/pcap"'
-    - '%CYG_BASH% -lc "cp -r WpdPack/Include/* /usr/include/"'
-    - choco install winpcap # userspace
+  - choco install winpcap # winpcap userspace
+  - if not exist "%PCAP_FILE%" appveyor DownloadFile "%PCAP_URL%" -FileName "%PCAP_FILE%"
+  - 7z x -y -o%PCAP_EXTRACT% "%PCAP_FILE%"
+  - if "%WINDIVERT%"=="enable" appveyor DownloadFile https://reqrypt.org/download/WinDivert-1.4.3-A.zip -FileName windivert.zip 
+  - if "%WINDIVERT%"=="enable" 7z x -y -oc:\ windivert.zip
 
 build_script:
-    - 'echo building...'
-    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; bash ./qa/travis-libhtp.sh"'
-    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; ./autogen.sh"'
-    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; ./configure --enable-unittests --disable-shared --disable-gccmarch-native --enable-luajit --enable-geoip"'
-    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; make -j3 LDFLAGS=$LDFLAGS CC=$CC CFLAGS=$CFLAGS"'
-    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; file src/suricata.exe"'
-    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; ldd src/suricata.exe"'
-    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; src/suricata.exe --build-info"'
-    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; src/suricata.exe -u -l /tmp/"'
-    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; make -j3 DISTCHECK_CONFIGURE_FLAGS="--enable-unittests --disable-shared --disable-gccmarch-native" LDFLAGS=$LDFLAGS CC=$CC distcheck CFLAGS=$CFLAGS"'
+  - set Path=%MINGW_DIR%\bin;c:\msys64\usr\bin;%PCAP_PATH%;%Path%
+  - git clone https://github.com/OISF/libhtp -b 0.5.x
+  - bash autogen.sh
+  - bash configure %CONFIGURE% --disable-shared --%RUST%-rust
+  - make -j3
+  - ldd src\suricata
+  - src\suricata --build-info
+  - if "%UNITTESTS%"=="enable" src\suricata -u -l %TEMP% --fatal-unittests
+
+artifacts:
+  - path: '*.zip'
 
 #on_finish:
-#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-#    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; cat config.log"'
-
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))

@@ -160,7 +160,7 @@ void PacketPoolWait(void)
         cc_barrier();
 }
 
-/** \brief Wait until we have the requested ammount of packets in the pool
+/** \brief Wait until we have the requested amount of packets in the pool
  *
  *  In some cases waiting for packets is undesirable. Especially when
  *  a wait would happen under a lock of some kind, other parts of the

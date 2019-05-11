@@ -323,11 +323,13 @@ static int TCPProtoDetect(ThreadVars *tv,
     }
 #endif
 
+    bool reverse_flow = false;
     PACKET_PROFILING_APP_PD_START(app_tctx);
     *alproto = AppLayerProtoDetectGetProto(app_tctx->alpd_tctx,
             f, data, data_len,
-            IPPROTO_TCP, flags);
+            IPPROTO_TCP, flags, &reverse_flow);
     PACKET_PROFILING_APP_PD_END(app_tctx);
+    SCLogDebug("alproto %u rev %s", *alproto, reverse_flow ? "true" : "false");
 
     if (*alproto != ALPROTO_UNKNOWN) {
         if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
@@ -353,6 +355,15 @@ static int TCPProtoDetect(ThreadVars *tv,
         TcpSessionSetReassemblyDepth(ssn,
                 AppLayerParserGetStreamDepth(f));
         FlagPacketFlow(p, f, flags);
+        /* if protocol detection indicated that we need to reverse
+         * the direction of the flow, do it now. We flip the flow,
+         * packet and the direction flags */
+        if (reverse_flow) {
+            SCLogDebug("reversing flow after proto detect told us so");
+            PacketSwap(p);
+            FlowSwap(f);
+            SWAP_FLAGS(flags, STREAM_TOSERVER, STREAM_TOCLIENT);
+        }
 
         /* account flow if we have both sides */
         if (*alproto_otherdir != ALPROTO_UNKNOWN) {
@@ -661,8 +672,11 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 {
     SCEnter();
 
-    int r = 0;
+    if (f->alproto == ALPROTO_FAILED) {
+        SCReturnInt(0);
+    }
 
+    int r = 0;
     uint8_t flags = 0;
     if (p->flowflags & FLOW_PKT_TOSERVER) {
         flags |= STREAM_TOSERVER;
@@ -670,23 +684,29 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         flags |= STREAM_TOCLIENT;
     }
 
-    if (f->alproto == ALPROTO_FAILED) {
-        SCReturnInt(0);
+    AppLayerProfilingReset(tctx);
 
     /* if the protocol is still unknown, run detection */
-    } else if (f->alproto == ALPROTO_UNKNOWN) {
+    if (f->alproto == ALPROTO_UNKNOWN) {
         SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
                    p->payload_len);
 
+        bool reverse_flow = false;
         PACKET_PROFILING_APP_PD_START(tctx);
         f->alproto = AppLayerProtoDetectGetProto(tctx->alpd_tctx,
-                                  f,
-                                  p->payload, p->payload_len,
-                                  IPPROTO_UDP, flags);
+                                  f, p->payload, p->payload_len,
+                                  IPPROTO_UDP, flags, &reverse_flow);
         PACKET_PROFILING_APP_PD_END(tctx);
 
         if (f->alproto != ALPROTO_UNKNOWN) {
             AppLayerIncFlowCounter(tv, f);
+
+            if (reverse_flow) {
+                SCLogDebug("reversing flow after proto detect told us so");
+                PacketSwap(p);
+                FlowSwap(f);
+                SWAP_FLAGS(flags, STREAM_TOSERVER, STREAM_TOCLIENT);
+            }
 
             PACKET_PROFILING_APP_START(tctx, f->alproto);
             r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
@@ -697,6 +717,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             AppLayerIncFlowCounter(tv, f);
             SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
         }
+        PACKET_PROFILING_APP_STORE(tctx, p);
         /* we do only inspection in one direction, so flag both
          * sides as done here */
         FlagPacketFlow(p, f, STREAM_TOSERVER);
@@ -710,9 +731,8 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
                 flags, p->payload, p->payload_len);
         PACKET_PROFILING_APP_END(tctx, f->alproto);
+        PACKET_PROFILING_APP_STORE(tctx, p);
     }
-
-    PACKET_PROFILING_APP_STORE(tctx, p);
 
     SCReturnInt(r);
 }
@@ -832,9 +852,6 @@ void AppLayerProfilingStoreInternal(AppLayerThreadCtx *app_tctx, Packet *p)
  */
 void AppLayerRegisterGlobalCounters(void)
 {
-    StatsRegisterGlobalCounter("dns.memuse", DNSMemcapGetMemuseCounter);
-    StatsRegisterGlobalCounter("dns.memcap_state", DNSMemcapGetMemcapStateCounter);
-    StatsRegisterGlobalCounter("dns.memcap_global", DNSMemcapGetMemcapGlobalCounter);
     StatsRegisterGlobalCounter("http.memuse", HTPMemuseGlobalCounter);
     StatsRegisterGlobalCounter("http.memcap", HTPMemcapGlobalCounter);
     StatsRegisterGlobalCounter("ftp.memuse", FTPMemuseGlobalCounter);

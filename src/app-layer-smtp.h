@@ -100,6 +100,8 @@ typedef struct SMTPConfig {
     uint32_t content_inspect_min_size;
     uint32_t content_inspect_window;
 
+    int raw_extraction;
+
     StreamingBufferConfig sbcfg;
 } SMTPConfig;
 
@@ -157,13 +159,14 @@ typedef struct SMTPState_ {
      *  handler */
     uint16_t cmds_idx;
 
+    /* HELO of HELO message content */
+    uint16_t helo_len;
+    uint8_t *helo;
+
     /* SMTP Mime decoding and file extraction */
     /** the list of files sent to the server */
     FileContainer *files_ts;
-
-    /* HELO of HELO message content */
-    uint8_t *helo;
-    uint16_t helo_len;
+    uint32_t file_track_id;
 } SMTPState;
 
 /* Create SMTP config structure */
