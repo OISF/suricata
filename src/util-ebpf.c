@@ -527,22 +527,27 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
     if (f != NULL) {
         SCLogDebug("bypassed flow found %d -> %d, doing accounting",
                     f->sp, f->dp);
+        FlowCounters *fc = FlowGetStorageById(f, GetFlowBypassCounterID());
+        if (fc == NULL) {
+            FLOWLOCK_UNLOCK(f);
+            return 0;
+        }
         if (flow_key->sp == f->sp) {
-            if (pkts_cnt != f->todstbypasspktcnt) {
-                flowstats->packets += pkts_cnt - f->todstbypasspktcnt;
-                flowstats->bytes += bytes_cnt - f->todstbypassbytecnt;
-                f->todstbypasspktcnt = pkts_cnt;
-                f->todstbypassbytecnt = bytes_cnt;
+            if (pkts_cnt != fc->todstpktcnt) {
+                flowstats->packets += pkts_cnt - fc->todstpktcnt;
+                flowstats->bytes += bytes_cnt - fc->todstbytecnt;
+                fc->todstpktcnt = pkts_cnt;
+                fc->todstbytecnt = bytes_cnt;
                 /* interval based so no meaning to update the millisecond.
                  * Let's keep it fast and simple */
                 f->lastts.tv_sec = ctime->tv_sec;
             }
         } else {
-            if (pkts_cnt != f->tosrcbypasspktcnt) {
-                flowstats->packets += pkts_cnt - f->tosrcbypasspktcnt;
-                flowstats->bytes += bytes_cnt - f->tosrcbypassbytecnt;
-                f->tosrcbypasspktcnt = pkts_cnt;
-                f->tosrcbypassbytecnt = bytes_cnt;
+            if (pkts_cnt != fc->tosrcpktcnt) {
+                flowstats->packets += pkts_cnt - fc->tosrcpktcnt;
+                flowstats->bytes += bytes_cnt - fc->tosrcbytecnt;
+                fc->tosrcpktcnt = pkts_cnt;
+                fc->tosrcbytecnt = bytes_cnt;
                 f->lastts.tv_sec = ctime->tv_sec;
             }
         }

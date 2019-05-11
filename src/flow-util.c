@@ -203,3 +203,22 @@ void FlowInit(Flow *f, const Packet *p)
 
     SCReturn;
 }
+
+int g_bypass_counter_id = -1;
+
+int GetFlowBypassCounterID(void)
+{
+    return g_bypass_counter_id;
+}
+
+static void FlowCounterFree(void *x)
+{
+    if (x)
+        SCFree(x);
+}
+
+void RegisterFlowBypassCounter(void)
+{
+    g_bypass_counter_id = FlowStorageRegister("bypass_counters", sizeof(void *),
+                                              NULL, FlowCounterFree);
+}
