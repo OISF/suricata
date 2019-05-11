@@ -336,6 +336,8 @@ static void *ParseAFPConfig(const char *iface)
     } else if (strcmp(tmpctype, "cluster_rollover") == 0) {
         SCLogConfig("Using rollover based cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
+        SCLogWarning(SC_WARN_UNCOMMON, "Rollover mode is causing severe flow "
+                                       "tracking issues, use it at your own risk.");
         aconf->cluster_type = PACKET_FANOUT_ROLLOVER;
         cluster_type = PACKET_FANOUT_ROLLOVER;
 #ifdef HAVE_PACKET_EBPF
@@ -355,6 +357,8 @@ static void *ParseAFPConfig(const char *iface)
         SCLogConfig("Using rollover kernel functionality for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type |= PACKET_FANOUT_FLAG_ROLLOVER;
+        SCLogWarning(SC_WARN_UNCOMMON, "Rollover option is causing severe flow "
+                                       "tracking issues, use it at your own risk.");
     }
 
     /*load af_packet bpf filter*/
