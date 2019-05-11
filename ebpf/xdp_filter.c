@@ -181,7 +181,7 @@ static __always_inline int get_sport(void *trans_data, void *data_end,
             uh = (struct udphdr *)trans_data;
             if ((void *)(uh + 1) > data_end)
                 return -1;
-            return uh->dest;
+            return uh->source;
         default:
             return 0;
     }
