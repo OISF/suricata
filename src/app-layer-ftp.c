@@ -373,7 +373,7 @@ static void FtpTransferCmdFree(void *data)
     if (cmd == NULL)
         return;
     if (cmd->file_name) {
-        SCFree(cmd->file_name);
+        FTPFree(cmd->file_name, cmd->file_len);
     }
     FTPFree(cmd, sizeof(struct FtpTransferCmd));
 }
@@ -515,7 +515,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                     /* Min size has been checked in FTPParseRequestCommand */
                     data->file_name = FTPCalloc(state->current_line_len - 4, sizeof(char));
                     if (data->file_name == NULL) {
-                        FTPFree(data, sizeof(struct FtpTransferCmd));
+                        FtpTransferCmdFree(data);
                         SCReturnInt(-1);
                     }
                     data->file_name[state->current_line_len - 5] = 0;
@@ -527,7 +527,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                                             state->active ? STREAM_TOSERVER : direction,
                                             0, state->dyn_port, ALPROTO_FTPDATA, data);
                     if (ret == -1) {
-                        FTPFree(data, sizeof(struct FtpTransferCmd));
+                        FtpTransferCmdFree(data);
                         SCLogDebug("No expectation created.");
                         SCReturnInt(-1);
                     } else {
