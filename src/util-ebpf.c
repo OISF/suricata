@@ -508,12 +508,20 @@ static int EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
      * then if we already have something in to server to client. We need
      * these numbers as we will use it to see if we have new traffic coming
      * on the flow */
-    if (f->todstbytecnt == 0) {
-        f->todstpktcnt = pkts_cnt;
-        f->todstbytecnt = bytes_cnt;
+    FlowCounters *fc = FlowGetStorageById(f, GetFlowBypassCounterID());
+    if (fc == NULL) {
+        fc = SCCalloc(sizeof(FlowCounters), 1);
+        if (fc) {
+            FlowSetStorageById(f, GetFlowBypassCounterID(), fc);
+            fc->todstpktcnt = pkts_cnt;
+            fc->todstbytecnt = bytes_cnt;
+        } else {
+            FLOWLOCK_UNLOCK(f);
+            return 0;
+        }
     } else {
-        f->tosrcpktcnt = pkts_cnt;
-        f->tosrcbytecnt = bytes_cnt;
+        fc->tosrcpktcnt = pkts_cnt;
+        fc->tosrcbytecnt = bytes_cnt;
     }
     FLOWLOCK_UNLOCK(f);
     return 0;
@@ -527,22 +535,27 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
     if (f != NULL) {
         SCLogDebug("bypassed flow found %d -> %d, doing accounting",
                     f->sp, f->dp);
+        FlowCounters *fc = FlowGetStorageById(f, GetFlowBypassCounterID());
+        if (fc == NULL) {
+            FLOWLOCK_UNLOCK(f);
+            return 0;
+        }
         if (flow_key->sp == f->sp) {
-            if (pkts_cnt != f->todstbypasspktcnt) {
-                flowstats->packets += pkts_cnt - f->todstbypasspktcnt;
-                flowstats->bytes += bytes_cnt - f->todstbypassbytecnt;
-                f->todstbypasspktcnt = pkts_cnt;
-                f->todstbypassbytecnt = bytes_cnt;
+            if (pkts_cnt != fc->todstpktcnt) {
+                flowstats->packets += pkts_cnt - fc->todstpktcnt;
+                flowstats->bytes += bytes_cnt - fc->todstbytecnt;
+                fc->todstpktcnt = pkts_cnt;
+                fc->todstbytecnt = bytes_cnt;
                 /* interval based so no meaning to update the millisecond.
                  * Let's keep it fast and simple */
                 f->lastts.tv_sec = ctime->tv_sec;
             }
         } else {
-            if (pkts_cnt != f->tosrcbypasspktcnt) {
-                flowstats->packets += pkts_cnt - f->tosrcbypasspktcnt;
-                flowstats->bytes += bytes_cnt - f->tosrcbypassbytecnt;
-                f->tosrcbypasspktcnt = pkts_cnt;
-                f->tosrcbypassbytecnt = bytes_cnt;
+            if (pkts_cnt != fc->tosrcpktcnt) {
+                flowstats->packets += pkts_cnt - fc->tosrcpktcnt;
+                flowstats->bytes += bytes_cnt - fc->tosrcbytecnt;
+                fc->tosrcpktcnt = pkts_cnt;
+                fc->tosrcbytecnt = bytes_cnt;
                 f->lastts.tv_sec = ctime->tv_sec;
             }
         }
