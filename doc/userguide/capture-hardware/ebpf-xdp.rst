@@ -123,7 +123,7 @@ First, enable `bypass` in the `stream` section ::
 
 This will bypass flows as soon as the stream depth will be reached.
 
-If you want, you can also bypass encrypted flows by setting `encrypt-handling` to `bypass`
+If you want, you can also bypass encrypted flows by setting `encryption-handling` to `bypass`
 in the app-layer tls section ::
 
   app-layer:
@@ -133,7 +133,7 @@ in the app-layer tls section ::
         detection-ports:
           dp: 443
   
-        encrypt-handling: bypass
+        encryption-handling: bypass
 
 Another solution is to use a set of signatures using the ``bypass`` keyword to obtain
 a selective bypass. Suricata traffic ID defines flowbits that can be used in other signatures.
@@ -268,6 +268,12 @@ from one card to the second card without going by the ker nel network stack.
 
 If you are using hardware XDP offload you may have to set ``use-percpu-hash`` to false and
 build and install the XDP filter file after setting ``USE_PERCPU_HASH`` to 0.
+
+In the XDP filter file, you can set ``ENCRYPTED_TLS_BYPASS`` to 0 if you don't want to bypass
+the encrypted TLS 1.2 packetsin the eBPF code.
+
+If you are not using vlan tracking (``vlan.use-for-tracking`` set to false in suricata.yaml) then you have also to set
+the VLAN_TRACKING define to 0 in ``xdp_filter.c``.
 
 Intel NIC setup
 ~~~~~~~~~~~~~~~
@@ -484,11 +490,11 @@ You can get information about bypass via the stats event and through the unix so
    "return": "OK"
  }
 
-``ebpf-bypassed-stats`` command will return the number of elements in IPv4 and IPv6 flow tables for
+``iface-bypassed-stats`` command will return the number of elements in IPv4 and IPv6 flow tables for
 each interfaces ::
 
  # suricatasc
- >>> ebpf-bypassed-stats
+ >>> iface-bypassed-stats
  Success:
  {   
      "enp94s0np0": {
