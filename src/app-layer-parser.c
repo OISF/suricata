@@ -109,6 +109,8 @@ typedef struct AppLayerParserProtoCtx_
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
     AppLayerGetTxIteratorFunc StateGetTxIterator;
     int (*StateGetProgressCompletionStatus)(uint8_t direction);
+    int (*StateGetEventInfoById)(int event_id, const char **event_name,
+                                 AppLayerEventType *event_type);
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);
 
@@ -546,6 +548,17 @@ void AppLayerParserRegisterGetStateProgressCompletionStatus(AppProto alproto,
     SCReturn;
 }
 
+void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
+    int (*StateGetEventInfoById)(int event_id, const char **event_name,
+                                 AppLayerEventType *event_type))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+        StateGetEventInfoById = StateGetEventInfoById;
+
+    SCReturn;
+}
 void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
     int (*StateGetEventInfo)(const char *event_name, int *event_id,
                              AppLayerEventType *event_type))
@@ -1043,6 +1056,17 @@ int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *ev
     int ipproto_map = FlowGetProtoMapping(ipproto);
     int r = (alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfo == NULL) ?
                 -1 : alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfo(event_name, event_id, event_type);
+    SCReturnInt(r);
+}
+
+int AppLayerParserGetEventInfoById(uint8_t ipproto, AppProto alproto, int event_id,
+                    const char **event_name, AppLayerEventType *event_type)
+{
+    SCEnter();
+    int ipproto_map = FlowGetProtoMapping(ipproto);
+    *event_name = (const char *)NULL;
+    int r = (alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfoById == NULL) ?
+                -1 : alp_ctx.ctxs[ipproto_map][alproto].StateGetEventInfoById(event_id, event_name, event_type);
     SCReturnInt(r);
 }
 
