@@ -161,6 +161,9 @@ void AppLayerParserRegisterGetStateProgressCompletionStatus(AppProto alproto,
 void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
     int (*StateGetEventInfo)(const char *event_name, int *event_id,
                              AppLayerEventType *event_type));
+void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
+    int (*StateGetEventInfoById)(int event_id, const char **event_name,
+                                 AppLayerEventType *event_type));
 void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
         DetectEngineState *(*GetTxDetectState)(void *tx),
         int (*SetTxDetectState)(void *tx, DetectEngineState *));
@@ -208,6 +211,8 @@ void *AppLayerParserGetTx(uint8_t ipproto, AppProto alproto, void *alstate, uint
 int AppLayerParserGetStateProgressCompletionStatus(AppProto alproto, uint8_t direction);
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
                     int *event_id, AppLayerEventType *event_type);
+int AppLayerParserGetEventInfoById(uint8_t ipproto, AppProto alproto, int event_id,
+                    const char **event_name, AppLayerEventType *event_type);
 
 uint64_t AppLayerParserGetTransactionActive(const Flow *f, AppLayerParserState *pstate, uint8_t direction);
 
