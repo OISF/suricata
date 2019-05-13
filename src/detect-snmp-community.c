@@ -20,7 +20,7 @@
  *
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  *
- * Set up of the "snmp_community" keyword to allow content
+ * Set up of the "snmp.community" keyword to allow content
  * inspections on the decoded snmp community.
  */
 
@@ -32,14 +32,6 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-snmp-community.h"
 #include "app-layer-parser.h"
-
-#ifndef HAVE_RUST
-
-void DetectSNMPCommunityRegister(void)
-{
-}
-
-#else
 
 #include "rust-snmp-snmp-gen.h"
 #include "rust-snmp-detect-gen.h"
@@ -55,34 +47,33 @@ static int g_snmp_rust_id = 0;
 
 void DetectSNMPCommunityRegister(void)
 {
-    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].name = "snmp_community";
+    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].name = "snmp.community";
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].desc =
         "SNMP content modififier to match on the snmp community";
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].Setup =
         DetectSNMPCommunitySetup;
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].RegisterTests =
         DetectSNMPCommunityRegisterTests;
-    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp_community";
+    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp.community";
 
-    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     /* register inspect engines */
-    DetectAppLayerInspectEngineRegister("snmp_community",
+    DetectAppLayerInspectEngineRegister("snmp.community",
             ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectSNMPCommunity);
-    DetectAppLayerInspectEngineRegister("snmp_community",
+    DetectAppLayerInspectEngineRegister("snmp.community",
             ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectSNMPCommunity);
 
-    g_snmp_rust_id = DetectBufferTypeGetByName("snmp_community");
-
-    SCLogDebug("SNMP community detect registered.");
+    g_snmp_rust_id = DetectBufferTypeGetByName("snmp.community");
 }
 
 static int DetectSNMPCommunitySetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
-    s->init_data->list = g_snmp_rust_id;
+    if (DetectBufferSetActiveList(s, g_snmp_rust_id) < 0)
+        return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0)
         return -1;
@@ -107,8 +98,8 @@ static int DetectEngineInspectSNMPCommunity(ThreadVars *tv,
 
     if (data != NULL) {
         ret = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, (uint8_t *)data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+            NULL, f, (uint8_t *)data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     }
 
     return ret;
@@ -170,7 +161,7 @@ static int DetectSNMPCommunityTest(void)
     s = DetectEngineAppendSig(de_ctx,
         "alert snmp any any -> any any ("
         "msg:\"SNMP Test Rule\"; "
-        "snmp_community; content:\"[R0_C@cti!]\"; "
+        "snmp.community; content:\"[R0_C@cti!]\"; "
         "sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
@@ -178,7 +169,7 @@ static int DetectSNMPCommunityTest(void)
     s = DetectEngineAppendSig(de_ctx,
         "alert snmp any any -> any any ("
         "msg:\"SNMP Test Rule\"; "
-        "snmp_community; content:\"private\"; "
+        "snmp.community; content:\"private\"; "
         "sid:2; rev:1;)");
     FAIL_IF_NULL(s);
 
@@ -222,5 +213,3 @@ static void DetectSNMPCommunityRegisterTests(void)
         DetectSNMPCommunityTest);
 #endif /* UNITTESTS */
 }
-
-#endif

@@ -30,19 +30,11 @@
 #include "detect-snmp-version.h"
 #include "app-layer-parser.h"
 
-#ifndef HAVE_RUST
-
-void DetectSNMPVersionRegister(void)
-{
-}
-
-#else
-
 #include "rust-snmp-snmp-gen.h"
 #include "rust-snmp-detect-gen.h"
 
 /**
- *   [snmp_version]:[<|>|<=|>=]<version>;
+ *   [snmp.version]:[<|>|<=|>=]<version>;
  */
 #define PARSE_REGEX "^\\s*(<=|>=|<|>)?\\s*([0-9]+)\\s*$"
 static pcre *parse_regex;
@@ -78,33 +70,31 @@ static int DetectSNMPVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *
                                    const SigMatchCtx *);
 
 /**
- * \brief Registration function for snmp_procedure keyword.
+ * \brief Registration function for snmp.procedure keyword.
  */
 void DetectSNMPVersionRegister (void)
 {
-    sigmatch_table[DETECT_AL_SNMP_VERSION].name = "snmp_version";
+    sigmatch_table[DETECT_AL_SNMP_VERSION].name = "snmp.version";
     sigmatch_table[DETECT_AL_SNMP_VERSION].desc = "match SNMP version";
-    sigmatch_table[DETECT_AL_SNMP_VERSION].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp_version";
+    sigmatch_table[DETECT_AL_SNMP_VERSION].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp.version";
     sigmatch_table[DETECT_AL_SNMP_VERSION].Match = NULL;
     sigmatch_table[DETECT_AL_SNMP_VERSION].AppLayerTxMatch = DetectSNMPVersionMatch;
     sigmatch_table[DETECT_AL_SNMP_VERSION].Setup = DetectSNMPVersionSetup;
     sigmatch_table[DETECT_AL_SNMP_VERSION].Free = DetectSNMPVersionFree;
     sigmatch_table[DETECT_AL_SNMP_VERSION].RegisterTests = DetectSNMPVersionRegisterTests;
-
+    sigmatch_table[DETECT_AL_SNMP_VERSION].flags |= SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
-    DetectAppLayerInspectEngineRegister("snmp_version",
+    DetectAppLayerInspectEngineRegister("snmp.version",
             ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectSNMPRequestGeneric);
 
-    DetectAppLayerInspectEngineRegister("snmp_version",
+    DetectAppLayerInspectEngineRegister("snmp.version",
             ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectSNMPRequestGeneric);
 
-    g_snmp_version_buffer_id = DetectBufferTypeGetByName("snmp_version");
-
-    SCLogDebug("g_snmp_version_buffer_id %d", g_snmp_version_buffer_id);
+    g_snmp_version_buffer_id = DetectBufferTypeGetByName("snmp.version");
 }
 
 static int DetectEngineInspectSNMPRequestGeneric(ThreadVars *tv,
@@ -181,7 +171,7 @@ static int DetectSNMPVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
 
 /**
  * \internal
- * \brief Function to parse options passed via snmp_version keywords.
+ * \brief Function to parse options passed via snmp.version keywords.
  *
  * \param rawstr Pointer to the user provided options.
  *
@@ -243,7 +233,7 @@ static DetectSNMPVersionData *DetectSNMPVersionParse (const char *rawstr)
     dd->version = strtoul(value1, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
-                   "to snmp_version keyword");
+                   "to snmp.version keyword");
         goto error;
     }
 
@@ -292,7 +282,7 @@ static int DetectSNMPVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_SNMP_VERSION;
     sm->ctx = (void *)dd;
 
-    SCLogDebug("snmp_version %d", dd->version);
+    SCLogDebug("snmp.version %d", dd->version);
     SigMatchAppendSMToList(s, sm, g_snmp_version_buffer_id);
     return 0;
 
@@ -360,5 +350,3 @@ static void DetectSNMPVersionRegisterTests(void)
     UtRegisterTest("SNMPValidityTestParse02", SNMPValidityTestParse02);
 #endif /* UNITTESTS */
 }
-
-#endif
