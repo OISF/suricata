@@ -48,6 +48,22 @@ SCEnumCharMap app_layer_event_pkt_table[ ] = {
       -1 },
 };
 
+int AppLayerGetEventInfoById(int event_id, const char **event_name,
+                                     AppLayerEventType *event_type)
+{
+    *event_name = SCMapEnumValueToName(event_id, app_layer_event_pkt_table);
+    if (*event_name == NULL) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
+                   "app-layer-event's enum map table.",  event_id);
+        /* yes this is fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_PACKET;
+
+    return 0;
+}
+
 int AppLayerGetPktEventInfo(const char *event_name, int *event_id)
 {
     *event_id = SCMapEnumNameToValue(event_name, app_layer_event_pkt_table);
