@@ -30,14 +30,6 @@
 #include "detect-snmp-pdu_type.h"
 #include "app-layer-parser.h"
 
-#ifndef HAVE_RUST
-
-void DetectSNMPPduTypeRegister(void)
-{
-}
-
-#else
-
 #include "rust-snmp-snmp-gen.h"
 #include "rust-snmp-detect-gen.h"
 
@@ -71,6 +63,7 @@ static int DetectSNMPPduTypeMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *
 void DetectSNMPPduTypeRegister(void)
 {
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].name = "snmp_pdu_type";
+    sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].alias = "snmp.pdu_type";
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].desc = "match SNMP Pdu type";
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp_pdu_type";
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].Match = NULL;
@@ -78,6 +71,7 @@ void DetectSNMPPduTypeRegister(void)
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].Setup = DetectSNMPPduTypeSetup;
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].Free = DetectSNMPPduTypeFree;
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].RegisterTests = DetectSNMPPduTypeRegisterTests;
+    sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
@@ -274,5 +268,3 @@ static void DetectSNMPPduTypeRegisterTests(void)
     UtRegisterTest("SNMPValidityTestParse01", SNMPValidityTestParse01);
 #endif /* UNITTESTS */
 }
-
-#endif

@@ -30,14 +30,6 @@
 #include "detect-snmp-version.h"
 #include "app-layer-parser.h"
 
-#ifndef HAVE_RUST
-
-void DetectSNMPVersionRegister(void)
-{
-}
-
-#else
-
 #include "rust-snmp-snmp-gen.h"
 #include "rust-snmp-detect-gen.h"
 
@@ -82,7 +74,8 @@ static int DetectSNMPVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *
  */
 void DetectSNMPVersionRegister (void)
 {
-    sigmatch_table[DETECT_AL_SNMP_VERSION].name = "snmp_version";
+    sigmatch_table[DETECT_AL_SNMP_VERSION].name = "snmp.version";
+    sigmatch_table[DETECT_AL_SNMP_VERSION].alias = "snmp_version";
     sigmatch_table[DETECT_AL_SNMP_VERSION].desc = "match SNMP version";
     sigmatch_table[DETECT_AL_SNMP_VERSION].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp_version";
     sigmatch_table[DETECT_AL_SNMP_VERSION].Match = NULL;
@@ -90,7 +83,7 @@ void DetectSNMPVersionRegister (void)
     sigmatch_table[DETECT_AL_SNMP_VERSION].Setup = DetectSNMPVersionSetup;
     sigmatch_table[DETECT_AL_SNMP_VERSION].Free = DetectSNMPVersionFree;
     sigmatch_table[DETECT_AL_SNMP_VERSION].RegisterTests = DetectSNMPVersionRegisterTests;
-
+    sigmatch_table[DETECT_AL_SNMP_VERSION].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
@@ -360,5 +353,3 @@ static void DetectSNMPVersionRegisterTests(void)
     UtRegisterTest("SNMPValidityTestParse02", SNMPValidityTestParse02);
 #endif /* UNITTESTS */
 }
-
-#endif

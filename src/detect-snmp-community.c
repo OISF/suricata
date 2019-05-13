@@ -33,14 +33,6 @@
 #include "detect-snmp-community.h"
 #include "app-layer-parser.h"
 
-#ifndef HAVE_RUST
-
-void DetectSNMPCommunityRegister(void)
-{
-}
-
-#else
-
 #include "rust-snmp-snmp-gen.h"
 #include "rust-snmp-detect-gen.h"
 
@@ -55,7 +47,8 @@ static int g_snmp_rust_id = 0;
 
 void DetectSNMPCommunityRegister(void)
 {
-    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].name = "snmp_community";
+    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].name = "snmp.community";
+    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].alias = "snmp_community";
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].desc =
         "SNMP content modififier to match on the snmp community";
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].Setup =
@@ -64,7 +57,7 @@ void DetectSNMPCommunityRegister(void)
         DetectSNMPCommunityRegisterTests;
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp_community";
 
-    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     /* register inspect engines */
     DetectAppLayerInspectEngineRegister("snmp_community",
@@ -82,7 +75,8 @@ void DetectSNMPCommunityRegister(void)
 static int DetectSNMPCommunitySetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
-    s->init_data->list = g_snmp_rust_id;
+    if (DetectBufferSetActiveList(s, g_snmp_rust_id) < 0)
+        return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0)
         return -1;
@@ -107,8 +101,8 @@ static int DetectEngineInspectSNMPCommunity(ThreadVars *tv,
 
     if (data != NULL) {
         ret = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, (uint8_t *)data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+            NULL, f, (uint8_t *)data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     }
 
     return ret;
@@ -222,5 +216,3 @@ static void DetectSNMPCommunityRegisterTests(void)
         DetectSNMPCommunityTest);
 #endif /* UNITTESTS */
 }
-
-#endif
