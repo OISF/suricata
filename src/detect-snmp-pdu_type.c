@@ -30,19 +30,11 @@
 #include "detect-snmp-pdu_type.h"
 #include "app-layer-parser.h"
 
-#ifndef HAVE_RUST
-
-void DetectSNMPPduTypeRegister(void)
-{
-}
-
-#else
-
 #include "rust-snmp-snmp-gen.h"
 #include "rust-snmp-detect-gen.h"
 
 /**
- *   [snmp_pdu_type]:<type>;
+ *   [snmp.pdu_type]:<type>;
  */
 #define PARSE_REGEX "^\\s*([0-9]+)\\s*$"
 static pcre *parse_regex;
@@ -70,28 +62,27 @@ static int DetectSNMPPduTypeMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *
 
 void DetectSNMPPduTypeRegister(void)
 {
-    sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].name = "snmp_pdu_type";
+    sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].name = "snmp.pdu_type";
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].desc = "match SNMP Pdu type";
-    sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp_pdu_type";
+    sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp.pdu_type";
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].Match = NULL;
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].AppLayerTxMatch = DetectSNMPPduTypeMatch;
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].Setup = DetectSNMPPduTypeSetup;
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].Free = DetectSNMPPduTypeFree;
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].RegisterTests = DetectSNMPPduTypeRegisterTests;
+    sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].flags |= SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
-    DetectAppLayerInspectEngineRegister("snmp_pdu_type",
+    DetectAppLayerInspectEngineRegister("snmp.pdu_type",
             ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectSNMPRequestGeneric);
 
-    DetectAppLayerInspectEngineRegister("snmp_pdu_type",
+    DetectAppLayerInspectEngineRegister("snmp.pdu_type",
             ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectSNMPRequestGeneric);
 
-    g_snmp_pdu_type_buffer_id = DetectBufferTypeGetByName("snmp_pdu_type");
-
-    SCLogDebug("g_snmp_pdu_type_buffer_id %d", g_snmp_pdu_type_buffer_id);
+    g_snmp_pdu_type_buffer_id = DetectBufferTypeGetByName("snmp.pdu_type");
 }
 
 static int DetectEngineInspectSNMPRequestGeneric(ThreadVars *tv,
@@ -139,7 +130,7 @@ static int DetectSNMPPduTypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
 
 /**
  * \internal
- * \brief Function to parse options passed via snmp_pdu_type keywords.
+ * \brief Function to parse options passed via snmp.pdu_type keywords.
  *
  * \param rawstr Pointer to the user provided options.
  *
@@ -177,7 +168,7 @@ static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
     dd->pdu_type = strtoul(value1, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
-                   "to snmp_pdu_type keyword");
+                   "to snmp.pdu_type keyword");
         goto error;
     }
 
@@ -224,7 +215,7 @@ static int DetectSNMPPduTypeSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_SNMP_PDU_TYPE;
     sm->ctx = (void *)dd;
 
-    SCLogDebug("snmp_pdu_type %d", dd->pdu_type);
+    SCLogDebug("snmp.pdu_type %d", dd->pdu_type);
     SigMatchAppendSMToList(s, sm, g_snmp_pdu_type_buffer_id);
     return 0;
 
@@ -274,5 +265,3 @@ static void DetectSNMPPduTypeRegisterTests(void)
     UtRegisterTest("SNMPValidityTestParse01", SNMPValidityTestParse01);
 #endif /* UNITTESTS */
 }
-
-#endif
