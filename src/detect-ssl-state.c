@@ -731,12 +731,10 @@ static int DetectSslStateTest07(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                             STREAM_TOSERVER | STREAM_START, chello_buf,
                             chello_buf_len);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     ssl_state = f.alstate;
     FAIL_IF(ssl_state == NULL);
@@ -751,11 +749,9 @@ static int DetectSslStateTest07(void)
     FAIL_IF(PacketAlertCheck(p, 4));
     FAIL_IF(PacketAlertCheck(p, 5));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             shello_buf, shello_buf_len);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     p->alerts.cnt = 0;
@@ -769,12 +765,10 @@ static int DetectSslStateTest07(void)
     FAIL_IF(PacketAlertCheck(p, 4));
     FAIL_IF(!PacketAlertCheck(p, 5));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             client_change_cipher_spec_buf,
                             client_change_cipher_spec_buf_len);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     p->alerts.cnt = 0;
@@ -785,12 +779,10 @@ static int DetectSslStateTest07(void)
     FAIL_IF(!PacketAlertCheck(p, 3));
     FAIL_IF(PacketAlertCheck(p, 4));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_change_cipher_spec_buf,
                             server_change_cipher_spec_buf_len);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     p->alerts.cnt = 0;
@@ -801,11 +793,9 @@ static int DetectSslStateTest07(void)
     FAIL_IF(PacketAlertCheck(p, 3));
     FAIL_IF(PacketAlertCheck(p, 4));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             toserver_app_data_buf, toserver_app_data_buf_len);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     /* do detect */
     p->alerts.cnt = 0;

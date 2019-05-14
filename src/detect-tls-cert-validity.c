@@ -1191,7 +1191,6 @@ static int ValidityTestDetect01(void)
     Packet *p1 = NULL;
     Packet *p2 = NULL;
     Packet *p3 = NULL;
-    Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1238,9 +1237,9 @@ static int ValidityTestDetect01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_cert_notbefore\"; "
-                              "tls_cert_notbefore:<2016-07-20; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
+                                     "(msg:\"Test tls_cert_notbefore\"; "
+                                     "tls_cert_notbefore:<2016-07-20; sid:1;)");
     FAIL_IF_NULL(s);
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
@@ -1522,7 +1521,6 @@ static int ExpiredTestDetect01(void)
     Packet *p1 = NULL;
     Packet *p2 = NULL;
     Packet *p3 = NULL;
-    Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1571,9 +1569,9 @@ static int ExpiredTestDetect01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_cert_expired\"; "
-                              "tls_cert_expired; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
+                                         "(msg:\"Test tls_cert_expired\"; "
+                                         "tls_cert_expired; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -1831,7 +1829,6 @@ static int ValidTestDetect01(void)
     Packet *p1 = NULL;
     Packet *p2 = NULL;
     Packet *p3 = NULL;
-    Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1880,9 +1877,9 @@ static int ValidTestDetect01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_cert_valid\"; "
-                              "tls_cert_valid; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
+                                         "(msg:\"Test tls_cert_valid\"; "
+                                         "tls_cert_valid; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);

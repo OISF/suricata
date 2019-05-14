@@ -220,10 +220,7 @@ static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
  */
 static int DetectTlsSerialTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    SigMatch *sm = NULL;
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
@@ -233,7 +230,7 @@ static int DetectTlsSerialTest01(void)
     FAIL_IF_NULL(de_ctx->sig_list);
 
     /* sm should not be in the MATCH list */
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
     FAIL_IF_NOT_NULL(sm);
 
     sm = de_ctx->sig_list->sm_lists[g_tls_cert_serial_buffer_id];
@@ -243,7 +240,6 @@ static int DetectTlsSerialTest01(void)
     FAIL_IF_NOT_NULL(sm->next);
 
     SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     PASS;
@@ -455,7 +451,6 @@ static int DetectTlsSerialTest02(void)
     Packet *p1 = NULL;
     Packet *p2 = NULL;
     Packet *p3 = NULL;
-    Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -503,7 +498,7 @@ static int DetectTlsSerialTest02(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
                               "(msg:\"Test tls.cert_serial\"; "
                               "tls.cert_serial; "
                               "content:\"5C:19:B7:B1:32:3B:1C:A1\"; "
@@ -513,11 +508,9 @@ static int DetectTlsSerialTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, client_hello,
                                 sizeof(client_hello));
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(r != 0);
 
@@ -528,10 +521,8 @@ static int DetectTlsSerialTest02(void)
 
     FAIL_IF(PacketAlertCheck(p1, 1));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_hello, sizeof(server_hello));
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(r != 0);
 
@@ -539,10 +530,8 @@ static int DetectTlsSerialTest02(void)
 
     FAIL_IF(PacketAlertCheck(p2, 1));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             certificate, sizeof(certificate));
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(r != 0);
 

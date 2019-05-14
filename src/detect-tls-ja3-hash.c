@@ -248,7 +248,6 @@ static int DetectTlsJa3HashTest01(void)
     Flow f;
     SSLState *ssl_state = NULL;
     Packet *p = NULL;
-    Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     TcpSession ssn;
@@ -281,7 +280,7 @@ static int DetectTlsJa3HashTest01(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
                               "(msg:\"Test ja3.hash\"; ja3.hash; "
                               "content:\"e7eca2baf4458d095b7f45da28c16c34\"; "
                               "sid:1;)");
@@ -290,10 +289,8 @@ static int DetectTlsJa3HashTest01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf, sizeof(buf));
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     ssl_state = f.alstate;
@@ -347,8 +344,6 @@ static int DetectTlsJa3HashTest02(void)
 
     Flow f;
     SSLState *ssl_state = NULL;
-    Packet *p = NULL;
-    Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     TcpSession ssn;
@@ -358,9 +353,9 @@ static int DetectTlsJa3HashTest02(void)
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
-    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_TCP,
-                           "192.168.1.5", "192.168.1.1",
-                           41424, 443);
+    Packet *p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_TCP,
+                                   "192.168.1.5", "192.168.1.1",
+                                   41424, 443);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -381,7 +376,7 @@ static int DetectTlsJa3HashTest02(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
                               "(msg:\"Test ja3.hash\"; ja3.hash; "
                               "content:\"bc6c386f480ee97b9d9e52d472b772d8\"; "
                               "sid:1;)");
@@ -390,10 +385,8 @@ static int DetectTlsJa3HashTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, buf, sizeof(buf));
-    FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
     ssl_state = f.alstate;
