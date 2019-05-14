@@ -63,7 +63,9 @@ static int DetectTlsVersionMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, const char *);
+#ifdef UNITTESTS
 static void DetectTlsVersionRegisterTests(void);
+#endif
 static void DetectTlsVersionFree(void *);
 static int g_tls_generic_list_id = 0;
 
@@ -78,7 +80,9 @@ void DetectTlsVersionRegister (void)
     sigmatch_table[DETECT_AL_TLS_VERSION].AppLayerTxMatch = DetectTlsVersionMatch;
     sigmatch_table[DETECT_AL_TLS_VERSION].Setup = DetectTlsVersionSetup;
     sigmatch_table[DETECT_AL_TLS_VERSION].Free  = DetectTlsVersionFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_TLS_VERSION].RegisterTests = DetectTlsVersionRegisterTests;
+#endif
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
@@ -276,235 +280,6 @@ static void DetectTlsVersionFree(void *ptr)
     SCFree(id_d);
 }
 
-#ifdef UNITTESTS /* UNITTESTS */
-
-/**
- * \test DetectTlsVersionTestParse01 is a test to make sure that we parse the "id"
- *       option correctly when given valid id option
- */
-static int DetectTlsVersionTestParse01 (void)
-{
-    DetectTlsVersionData *tls = NULL;
-    tls = DetectTlsVersionParse("1.0");
-    FAIL_IF_NULL(tls);
-    FAIL_IF_NOT(tls->ver == TLS_VERSION_10);
-    DetectTlsVersionFree(tls);
-    PASS;
-}
-
-/**
- * \test DetectTlsVersionTestParse02 is a test to make sure that we parse the "id"
- *       option correctly when given an invalid id option
- *       it should return id_d = NULL
- */
-static int DetectTlsVersionTestParse02 (void)
-{
-    DetectTlsVersionData *tls = NULL;
-    tls = DetectTlsVersionParse("2.5");
-    FAIL_IF_NOT_NULL(tls);
-    DetectTlsVersionFree(tls);
-    PASS;
-}
-
-#include "stream-tcp-reassemble.h"
-
-/** \test Send a get request in three chunks + more data. */
-static int DetectTlsVersionTestDetect01(void)
-{
-    Flow f;
-    uint8_t tlsbuf1[] = { 0x16 };
-    uint32_t tlslen1 = sizeof(tlsbuf1);
-    uint8_t tlsbuf2[] = { 0x03 };
-    uint32_t tlslen2 = sizeof(tlsbuf2);
-    uint8_t tlsbuf3[] = { 0x01 };
-    uint32_t tlslen3 = sizeof(tlsbuf3);
-    uint8_t tlsbuf4[] = { 0x01, 0x00, 0x00, 0xad, 0x03, 0x01 };
-    uint32_t tlslen4 = sizeof(tlsbuf4);
-    TcpSession ssn;
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_TLS;
-
-    StreamTcpInitConfig(TRUE);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tls any any -> any any (msg:\"TLS\"; tls.version:1.0; sid:1;)");
-    FAIL_IF_NULL(s);
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
-                                STREAM_TOSERVER, tlsbuf1, tlslen1);
-    FAIL_IF(r != 0);
-
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
-                            tlsbuf2, tlslen2);
-    FAIL_IF(r != 0);
-
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
-                            tlsbuf3, tlslen3);
-    FAIL_IF(r != 0);
-
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
-                            tlsbuf4, tlslen4);
-    FAIL_IF(r != 0);
-
-    SSLState *ssl_state = f.alstate;
-    FAIL_IF_NULL(ssl_state);
-
-    FAIL_IF(ssl_state->client_connp.content_type != 0x16);
-
-    FAIL_IF(ssl_state->client_connp.version != TLS_VERSION_10);
-
-    SCLogDebug("ssl_state is at %p, ssl_state->server_version 0x%02X "
-               "ssl_state->client_version 0x%02X",
-               ssl_state, ssl_state->server_connp.version,
-               ssl_state->client_connp.version);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
-    FAIL_IF_NOT(PacketAlertCheck(p, 1));
-
-    AppLayerParserThreadCtxFree(alp_tctx);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-
-    UTHFreePackets(&p, 1);
-
-    PASS;
-}
-
-static int DetectTlsVersionTestDetect02(void)
-{
-    Flow f;
-    uint8_t tlsbuf1[] = { 0x16 };
-    uint32_t tlslen1 = sizeof(tlsbuf1);
-    uint8_t tlsbuf2[] = { 0x03 };
-    uint32_t tlslen2 = sizeof(tlsbuf2);
-    uint8_t tlsbuf3[] = { 0x01 };
-    uint32_t tlslen3 = sizeof(tlsbuf3);
-    uint8_t tlsbuf4[] = { 0x01, 0x00, 0x00, 0xad, 0x03, 0x02 };
-    uint32_t tlslen4 = sizeof(tlsbuf4);
-    TcpSession ssn;
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_TLS;
-
-    StreamTcpInitConfig(TRUE);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tls any any -> any any (msg:\"TLS\"; tls.version:1.0; sid:1;)");
-    FAIL_IF_NULL(s);
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
-                                STREAM_TOSERVER, tlsbuf1, tlslen1);
-    FAIL_IF(r != 0);
-
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
-                            tlsbuf2, tlslen2);
-    FAIL_IF(r != 0);
-
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
-                            tlsbuf3, tlslen3);
-    FAIL_IF(r != 0);
-
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
-                            tlsbuf4, tlslen4);
-    FAIL_IF(r != 0);
-
-    SSLState *ssl_state = f.alstate;
-    FAIL_IF_NULL(ssl_state);
-
-    FAIL_IF(ssl_state->client_connp.content_type != 0x16);
-
-    FAIL_IF(ssl_state->client_connp.version != TLS_VERSION_10);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
-    FAIL_IF_NOT(PacketAlertCheck(p, 1));
-
-    AppLayerParserThreadCtxFree(alp_tctx);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-
-    UTHFreePackets(&p, 1);
-
-    PASS;
-}
-#endif /* UNITTESTS */
-
-/**
- * \brief this function registers unit tests for DetectTlsVersion
- */
-static void DetectTlsVersionRegisterTests(void)
-{
-#ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectTlsVersionTestParse01", DetectTlsVersionTestParse01);
-    UtRegisterTest("DetectTlsVersionTestParse02", DetectTlsVersionTestParse02);
-    UtRegisterTest("DetectTlsVersionTestDetect01",
-                   DetectTlsVersionTestDetect01);
-    UtRegisterTest("DetectTlsVersionTestDetect02",
-                   DetectTlsVersionTestDetect02);
-#endif /* UNITTESTS */
-}
-
+#ifdef UNITTESTS
+#include "tests/detect-tls-version.c"
+#endif
