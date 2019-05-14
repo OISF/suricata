@@ -230,10 +230,7 @@ static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
  */
 static int DetectTlsFingerprintTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    SigMatch *sm = NULL;
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
@@ -245,7 +242,7 @@ static int DetectTlsFingerprintTest01(void)
     FAIL_IF_NULL(de_ctx->sig_list);
 
     /* sm should not be in the MATCH list */
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
     FAIL_IF_NOT_NULL(sm);
 
     sm = de_ctx->sig_list->sm_lists[g_tls_cert_fingerprint_buffer_id];
@@ -255,7 +252,6 @@ static int DetectTlsFingerprintTest01(void)
     FAIL_IF_NOT_NULL(sm->next);
 
     SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     PASS;
@@ -467,7 +463,6 @@ static int DetectTlsFingerprintTest02(void)
     Packet *p1 = NULL;
     Packet *p2 = NULL;
     Packet *p3 = NULL;
-    Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -515,7 +510,7 @@ static int DetectTlsFingerprintTest02(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
                               "(msg:\"Test tls.cert_fingerprint\"; "
                               "tls.cert_fingerprint; "
                               "content:\"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18\"; "
@@ -525,11 +520,9 @@ static int DetectTlsFingerprintTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, client_hello,
                                 sizeof(client_hello));
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(r != 0);
 
@@ -540,10 +533,8 @@ static int DetectTlsFingerprintTest02(void)
 
     FAIL_IF(PacketAlertCheck(p1, 1));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_hello, sizeof(server_hello));
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(r != 0);
 
@@ -551,10 +542,8 @@ static int DetectTlsFingerprintTest02(void)
 
     FAIL_IF(PacketAlertCheck(p2, 1));
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             certificate, sizeof(certificate));
-    FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(r != 0);
 

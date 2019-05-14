@@ -355,7 +355,6 @@ static int DetectTlsVersionTestDetect01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, tlsbuf1, tlslen1);
     FAIL_IF(r != 0);
@@ -371,7 +370,6 @@ static int DetectTlsVersionTestDetect01(void)
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             tlsbuf4, tlslen4);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     SSLState *ssl_state = f.alstate;
     FAIL_IF_NULL(ssl_state);
@@ -451,7 +449,6 @@ static int DetectTlsVersionTestDetect02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, tlsbuf1, tlslen1);
     FAIL_IF(r != 0);
@@ -467,7 +464,6 @@ static int DetectTlsVersionTestDetect02(void)
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             tlsbuf4, tlslen4);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
 
     SSLState *ssl_state = f.alstate;
     FAIL_IF_NULL(ssl_state);
