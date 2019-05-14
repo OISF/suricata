@@ -120,11 +120,8 @@ static int DetectTlsJa3HashSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
         return -1;
 
-    if (RunmodeIsUnittests())
-        return 0;
-
     /* Check if JA3 is disabled */
-    if (Ja3IsDisabled("rule"))
+    if (!RunmodeIsUnittests() && Ja3IsDisabled("rule"))
         return -1;
 
     return 0;
