@@ -52,9 +52,32 @@ int DNSStateGetEventInfo(const char *event_name,
     return 0;
 }
 
+int DNSStateGetEventInfoById(int event_id, const char **event_name,
+                             AppLayerEventType *event_type)
+{
+    *event_name = SCMapEnumValueToName(event_id, dns_decoder_event_table);
+    if (*event_name == NULL) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
+                   "dns's enum map table.",  event_id);
+        /* this should be treated as fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+
+    return 0;
+}
+
 void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto)
 {
     AppLayerParserRegisterGetEventInfo(ipproto, alproto, DNSStateGetEventInfo);
+
+    return;
+}
+
+void DNSAppLayerRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto)
+{
+    AppLayerParserRegisterGetEventInfoById(ipproto, alproto, DNSStateGetEventInfoById);
 
     return;
 }
