@@ -58,7 +58,7 @@ static int DetectTlsSniSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSniRegisterTests(void);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        const DetectEngineTransforms *transforms,
-       Flow *_f, const uint8_t _flow_flags,
+       Flow *f, const uint8_t flow_flags,
        void *txv, const int list_id);
 static int g_tls_sni_buffer_id = 0;
 
@@ -109,12 +109,12 @@ static int DetectTlsSniSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *f,
+        const uint8_t flow_flags, void *txv, const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        SSLState *ssl_state = (SSLState *)_f->alstate;
+        SSLState *ssl_state = (SSLState *)f->alstate;
 
         if (ssl_state->client_connp.sni == NULL) {
             return NULL;
