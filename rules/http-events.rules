@@ -57,5 +57,16 @@ alert http any any -> any any (msg:"SURICATA HTTP Request unrecognized authoriza
 alert http any any -> any any (msg:"SURICATA HTTP Request excessive header repetition"; flow:established,to_server; app-layer-event:http.request_header_repetition; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221035; rev:1;)
 alert http any any -> any any (msg:"SURICATA HTTP Response excessive header repetition"; flow:established,to_client; app-layer-event:http.response_header_repetition; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221036; rev:1;)
 
-# next sid 2221037
+alert http any any -> any any (msg:"SURICATA HTTP Response multipart/byteranges"; flow:established,to_client; app-layer-event:http.response_multipart_byteranges; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221037; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Response abnormal chunked for transfer-encoding"; flow:established,to_client; app-layer-event:http.response_abnormal_transfer_encoding; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221038; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Response chunked with HTTP 0.9 or 1.0"; flow:established,to_client; app-layer-event:http.response_chunked_old_proto; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221039; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Response invalid protocol"; flow:established,to_client; app-layer-event:http.response_invalid_protocol; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221040; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP Response invalid status"; flow:established,to_client; app-layer-event:http.response_invalid_status; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221041; rev:1;)
+
+alert http any any -> any any (msg:"SURICATA HTTP Request line incomplete"; flow:established,to_server; app-layer-event:http.request_line_incomplete; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221042; rev:1;)
+
+# next sid 2221043
 
