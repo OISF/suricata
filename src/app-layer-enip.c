@@ -144,6 +144,22 @@ static int ENIPStateGetEventInfo(const char *event_name, int *event_id, AppLayer
     return 0;
 }
 
+static int ENIPStateGetEventInfoById(int event_id, const char **event_name,
+                                     AppLayerEventType *event_type)
+{
+    *event_name = SCMapEnumValueToName(event_id, enip_decoder_event_table);
+    if (*event_name == NULL) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
+                   "enip's enum map table.",  event_id);
+        /* yes this is fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+
+    return 0;
+}
+
 /** \brief Allocate enip state
  *
  *  return state
@@ -441,6 +457,7 @@ void RegisterENIPUDPParsers(void)
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_ENIP, ENIPGetAlstateProgressCompletionStatus);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_ENIP, ENIPStateGetEventInfo);
+        AppLayerParserRegisterGetEventInfoById(IPPROTO_UDP, ALPROTO_ENIP, ENIPStateGetEventInfoById);
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_UDP,
                 ALPROTO_ENIP, STREAM_TOSERVER | STREAM_TOCLIENT);

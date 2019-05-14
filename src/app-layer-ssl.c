@@ -2669,6 +2669,22 @@ static int SSLStateGetEventInfo(const char *event_name,
     return 0;
 }
 
+static int SSLStateGetEventInfoById(int event_id, const char **event_name,
+                                    AppLayerEventType *event_type)
+{
+    *event_name = SCMapEnumValueToName(event_id, tls_decoder_event_table);
+    if (*event_name == NULL) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
+                   "ssl's enum map table.",  event_id);
+        /* yes this is fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+
+    return 0;
+}
+
 static int SSLRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_TLS,
@@ -2855,6 +2871,7 @@ void RegisterSSLParsers(void)
                                      SSLParseServerRecord);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_TLS, SSLStateGetEventInfo);
+        AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_TLS, SSLStateGetEventInfoById);
 
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 
