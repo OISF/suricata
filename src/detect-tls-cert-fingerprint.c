@@ -75,9 +75,7 @@ void DetectTlsFingerprintRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].alias = "tls_cert_fingerprint";
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].desc = "content modifier to match the TLS cert fingerprint buffer";
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-fingerprint";
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
-    sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].Free = NULL;
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].RegisterTests = DetectTlsFingerprintRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].flags |= SIGMATCH_NOOPT;

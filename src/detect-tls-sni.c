@@ -71,9 +71,7 @@ void DetectTlsSniRegister(void)
     sigmatch_table[DETECT_AL_TLS_SNI].alias = "tls_sni";
     sigmatch_table[DETECT_AL_TLS_SNI].desc = "content modifier to match specifically and only on the TLS SNI buffer";
     sigmatch_table[DETECT_AL_TLS_SNI].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-sni";
-    sigmatch_table[DETECT_AL_TLS_SNI].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_SNI].Setup = DetectTlsSniSetup;
-    sigmatch_table[DETECT_AL_TLS_SNI].Free  = NULL;
     sigmatch_table[DETECT_AL_TLS_SNI].RegisterTests = DetectTlsSniRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_NOOPT;

@@ -75,9 +75,7 @@ void DetectTlsJa3StringRegister(void)
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].alias = "ja3_string";
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].desc = "content modifier to match the JA3 string buffer";
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].url = DOC_URL DOC_VERSION "/rules/ja3-keywords.html#ja3-string";
-    sigmatch_table[DETECT_AL_TLS_JA3_STRING].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].Setup = DetectTlsJa3StringSetup;
-    sigmatch_table[DETECT_AL_TLS_JA3_STRING].Free = NULL;
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].RegisterTests = DetectTlsJa3StringRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_JA3_STRING].flags |= SIGMATCH_NOOPT;
