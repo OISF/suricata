@@ -186,6 +186,23 @@ static int ModbusStateGetEventInfo(const char *event_name, int *event_id, AppLay
     return 0;
 }
 
+static int ModbusStateGetEventInfoById(int event_id, const char **event_name,
+                                       AppLayerEventType *event_type)
+{
+    *event_name = SCMapEnumValueToName(event_id, modbus_decoder_event_table);
+
+    if (*event_name == NULL) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
+                   "modbus's enum map table.",  event_id);
+        /* yes this is fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+
+    return 0;
+}
+
 static void ModbusSetEvent(ModbusState *modbus, uint8_t e)
 {
     if (modbus && modbus->curr) {
@@ -1538,6 +1555,7 @@ void RegisterModbusParsers(void)
                                                                 ModbusGetAlstateProgressCompletionStatus);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateGetEventInfo);
+        AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateGetEventInfoById);
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_MODBUS, STREAM_TOSERVER);
 

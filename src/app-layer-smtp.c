@@ -1569,6 +1569,22 @@ static int SMTPStateGetEventInfo(const char *event_name,
     return 0;
 }
 
+static int SMTPStateGetEventInfoById(int event_id, const char **event_name,
+                                     AppLayerEventType *event_type)
+{
+    *event_name = SCMapEnumValueToName(event_id, smtp_decoder_event_table);
+    if (*event_name == NULL) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
+                   "smtp's enum map table.",  event_id);
+        /* yes this is fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+
+    return 0;
+}
+
 static int SMTPRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
@@ -1759,6 +1775,7 @@ void RegisterSMTPParsers(void)
                                      SMTPParseServerRecord);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfo);
+        AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfoById);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP,
                                                SMTPGetTxDetectState, SMTPSetTxDetectState);

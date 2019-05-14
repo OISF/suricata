@@ -2892,6 +2892,22 @@ static int HTPStateGetEventInfo(const char *event_name,
     return 0;
 }
 
+static int HTPStateGetEventInfoById(int event_id, const char **event_name,
+                                    AppLayerEventType *event_type)
+{
+    *event_name = SCMapEnumValueToName(event_id, http_decoder_event_table);
+    if (*event_name == NULL) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%d\" not present in "
+                   "http's enum map table.",  event_id);
+        /* this should be treated as fatal */
+        return -1;
+    }
+
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+
+    return 0;
+}
+
 static void HTPStateTruncate(void *state, uint8_t direction)
 {
     FileContainer *fc = HTPStateGetFiles(state, direction);
@@ -3037,6 +3053,7 @@ void RegisterHTPParsers(void)
                                                                HTPStateGetAlstateProgressCompletionStatus);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPGetEvents);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetEventInfo);
+        AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetEventInfoById);
 
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateTruncate);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_HTTP,
