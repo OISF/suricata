@@ -13,7 +13,7 @@ Examples::
   tls.cert_subject; content:"CN=*.googleusercontent.com"; isdataat:!1,relative;
   tls.cert_subject; content:"google.com"; nocase; pcre:"/google.com$/";
 
-``tls.cert_subject`` is a 'Sticky buffer'.
+``tls.cert_subject`` is a 'sticky buffer'.
 
 ``tls.cert_subject`` can be used as ``fast_pattern``.
 
@@ -31,7 +31,7 @@ Examples::
   tls.cert_issuer; content:"WoSign"; nocase; isdataat:!1,relative;
   tls.cert_issuer; content:"StartCom"; nocase; pcre:"/StartCom$/";
 
-``tls.cert_issuer`` is a 'Sticky buffer'.
+``tls.cert_issuer`` is a 'sticky buffer'.
 
 ``tls.cert_issuer`` can be used as ``fast_pattern``.
 
@@ -49,7 +49,7 @@ Example::
   alert tls any any -> any any (msg:"match cert serial"; \
     tls.cert_serial; content:"5C:19:B7:B1:32:3B:1C:A1"; sid:200012;)
 
-``tls.cert_serial`` is a 'Sticky buffer'.
+``tls.cert_serial`` is a 'sticky buffer'.
 
 ``tls.cert_serial`` can be used as ``fast_pattern``.
 
@@ -69,7 +69,7 @@ Example::
     content:"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18"; \
     sid:200023;)
 
-``tls.cert_fingerprint`` is a 'Sticky buffer'.
+``tls.cert_fingerprint`` is a 'sticky buffer'.
 
 ``tls.cert_fingerprint`` can be used as ``fast_pattern``.
 
@@ -87,7 +87,7 @@ Examples::
   tls.sni; content:"oisf.net"; nocase; isdataat:!1,relative;
   tls.sni; content:"oisf.net"; nocase; pcre:"/oisf.net$/";
 
-``tls.sni`` is a 'Sticky buffer'.
+``tls.sni`` is a 'sticky buffer'.
 
 ``tls.sni`` can be used as ``fast_pattern``.
 
