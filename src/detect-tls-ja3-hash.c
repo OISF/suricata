@@ -111,12 +111,16 @@ void DetectTlsJa3HashRegister(void)
  * \param s      Pointer to the Signature to which the current keyword belongs
  * \param str    Should hold an empty string always
  *
- * \retval 0 On success
+ * \retval 0  On success
+ * \retval -1 On failure
  */
 static int DetectTlsJa3HashSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectBufferSetActiveList(s, g_tls_ja3_hash_buffer_id);
-    s->alproto = ALPROTO_TLS;
+    if (DetectBufferSetActiveList(s, g_tls_ja3_hash_buffer_id) < 0)
+        return -1;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
+        return -1;
 
     if (RunmodeIsUnittests())
         return 0;
