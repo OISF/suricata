@@ -75,9 +75,7 @@ void DetectTlsSerialRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].alias = "tls_cert_serial";
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].desc = "content modifier to match the TLS cert serial buffer";
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-serial";
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].Setup = DetectTlsSerialSetup;
-    sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].Free = NULL;
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].RegisterTests = DetectTlsSerialRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].flags |= SIGMATCH_NOOPT;

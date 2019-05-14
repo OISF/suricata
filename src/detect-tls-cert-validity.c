@@ -88,7 +88,6 @@ void DetectTlsValidityRegister (void)
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].name = "tls_cert_notbefore";
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].desc = "match TLS certificate notBefore field";
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-notbefore";
-    sigmatch_table[DETECT_AL_TLS_NOTBEFORE].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].AppLayerTxMatch = DetectTlsValidityMatch;
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].Setup = DetectTlsNotBeforeSetup;
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].Free = DetectTlsValidityFree;
@@ -97,7 +96,6 @@ void DetectTlsValidityRegister (void)
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].name = "tls_cert_notafter";
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].desc = "match TLS certificate notAfter field";
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-notafter";
-    sigmatch_table[DETECT_AL_TLS_NOTAFTER].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].AppLayerTxMatch = DetectTlsValidityMatch;
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].Setup = DetectTlsNotAfterSetup;
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].Free = DetectTlsValidityFree;
@@ -106,7 +104,6 @@ void DetectTlsValidityRegister (void)
     sigmatch_table[DETECT_AL_TLS_EXPIRED].name = "tls_cert_expired";
     sigmatch_table[DETECT_AL_TLS_EXPIRED].desc = "match expired TLS certificates";
     sigmatch_table[DETECT_AL_TLS_EXPIRED].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-expired";
-    sigmatch_table[DETECT_AL_TLS_EXPIRED].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_EXPIRED].AppLayerTxMatch = DetectTlsValidityMatch;
     sigmatch_table[DETECT_AL_TLS_EXPIRED].Setup = DetectTlsExpiredSetup;
     sigmatch_table[DETECT_AL_TLS_EXPIRED].Free = DetectTlsValidityFree;
@@ -116,7 +113,6 @@ void DetectTlsValidityRegister (void)
     sigmatch_table[DETECT_AL_TLS_VALID].name = "tls_cert_valid";
     sigmatch_table[DETECT_AL_TLS_VALID].desc = "match valid TLS certificates";
     sigmatch_table[DETECT_AL_TLS_VALID].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-valid";
-    sigmatch_table[DETECT_AL_TLS_VALID].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_VALID].AppLayerTxMatch = DetectTlsValidityMatch;
     sigmatch_table[DETECT_AL_TLS_VALID].Setup = DetectTlsValidSetup;
     sigmatch_table[DETECT_AL_TLS_VALID].Free = DetectTlsValidityFree;
