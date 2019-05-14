@@ -30,6 +30,8 @@
 #include "flow.h"
 #include "conf.h"
 #include "app-layer.h"
+#include "app-layer-events.h"
+#include "app-layer-parser.h"
 
 #include "threads.h"
 #include "tm-threads.h"
@@ -47,7 +49,7 @@
 #include "output-json-anomaly.h"
 
 #include "util-byte.h"
-#include "util-byte.h"
+#include "util-enum.h"
 #include "util-privs.h"
 #include "util-print.h"
 #include "util-proto-name.h"
@@ -60,6 +62,7 @@
 
 #ifdef HAVE_LIBJANSSON
 
+#define ANOMALY_EVENT_TYPE      "anomaly"
 #define LOG_JSON_PACKETHDR      BIT_U16(0)
 
 typedef struct AnomalyJsonOutputCtx_ {
@@ -85,7 +88,7 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft, con
     for (int i = 0; i < p->events.cnt; i++) {
         MemBufferReset(aft->json_buffer);
 
-        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "anomaly");
+        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE);
 
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
@@ -125,7 +128,7 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft, con
         }
 
         /* anomaly */
-        json_object_set_new(js, "anomaly", ajs);
+        json_object_set_new(js, ANOMALY_EVENT_TYPE, ajs);
         OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
 
         json_object_clear(js);
@@ -135,46 +138,81 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft, con
     return TM_ECODE_OK;
 }
 
-extern SCEnumCharMap http_decoder_event_table[];
-static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft, const Packet *p, AppLayerDecoderEvents *decoder_events)
+#if 0
+static int JsonAnomalyTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
+    SCLogInfo("Here we are");
+    return TM_ECODE_OK;
+}
+#endif
+
+static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft, const Packet *p, AppLayerDecoderEvents *decoder_events, bool is_applayer)
+{
+    const char *alprotoname;
+
+    if (likely(p->flow)) {
+        alprotoname = AppLayerGetProtoName(p->flow->alproto);
+    } else {
+        alprotoname = NULL;
+    }
+
     for (int i = 0; i < decoder_events->cnt; i++) {
         MemBufferReset(aft->json_buffer);
 
-        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "app_anomaly");
-
+        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
+
         json_t *ajs = json_object();
         if (unlikely(ajs == NULL)) {
             json_decref(js);
             return TM_ECODE_OK;
         }
+
         JsonFiveTuple((const Packet *)p, LOG_DIR_PACKET, js);
-        JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+        if (p->flow)
+            JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+
+        /* Use app layer proto name if available */
+        if (alprotoname) {
+            json_object_set_new(ajs, "alproto", json_string(alprotoname));
+        } else {
+            json_object_set_new(ajs, "alproto",
+                p->flow ? json_integer(p->flow->alproto) : json_string("unknown"));
+        }
+
+        const char *event_name = NULL;
         uint8_t event_code = decoder_events->events[i];
-        #if 0
-        int r;
         AppLayerEventType event_type;
-        r = AppLayerParserGetEventInfo(p->flow->proto, p->flow->alproto, 1, event_code, &event_type);
-        printf("r is %d\n", r);
-        #endif
-        /* include event code with unrecognized events */
-        uint32_t offset = 0;
-        char unknown_event_buf[8];
-        json_object_set_new(ajs, "type", json_string(http_decoder_event_table[event_code].enum_name));
-        json_object_set_new(ajs, "alproto", json_string(AppLayerGetProtoName(p->flow->alproto)));
-        PrintBufferData(unknown_event_buf, &offset, 8, "%d", event_code);
-        json_object_set_new(ajs, "code", json_string(unknown_event_buf));
+        int r;
+        if (is_applayer) {
+            r = AppLayerGetEventInfoById(event_code, &event_name, &event_type);
+        } else {
+            r = AppLayerParserGetEventInfoById(p->flow->proto, p->flow->alproto,
+                                               event_code, &event_name, &event_type);
+        }
+        json_object_set_new(ajs, "layer",
+                            json_string(is_applayer ? "applayer" : "applayer_parser"));
+        if (r == 0) {
+            json_object_set_new(ajs, "type",
+                                json_string(event_type == APP_LAYER_EVENT_TYPE_TRANSACTION ?  "transaction" : "packet"));
+            json_object_set_new(ajs, "event", json_string(event_name));
+            /* XXX temporarily include code */
+            json_object_set_new(ajs, "code", json_integer(event_code));
+        } else {
+            json_object_set_new(ajs, "type", json_string("unknown"));
+            json_object_set_new(ajs, "code", json_integer(event_code));
+        }
 
         /* anomaly */
-        json_object_set_new(js, "app_anomaly", ajs);
+        json_object_set_new(js, ANOMALY_EVENT_TYPE, ajs);
         OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
 
         json_object_clear(js);
         json_decref(js);
     }
+
     return TM_ECODE_OK;
 }
 
@@ -189,33 +227,16 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
 
     if (p->app_layer_events != NULL) {
         SCLogInfo("We have some events");
-        rc = AnomalyAppLayerDecoderEventJson(aft, p, p->app_layer_events);
+        rc = AnomalyAppLayerDecoderEventJson(aft, p, p->app_layer_events, true);
     }
-    return rc;
-
-#if 0
-    if (rc == TM_ECODE_OK && p->flow) {
-        Flow *f = p->flow;
-        if (!AppLayerParserProtocolIsTxEventAware(f->proto, f->alproto)) {
-            return rc;
-        }
-
-        for (uint64_t i = i; i < AppLayerParserGetTxCnt(f, f->alstate); i++) {
-            AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(f->proto, f->alproto, f->alstate, i);
-            if (!(decoder_events && decoder_events->cnt)) {
-                continue;
-            }
-
-            rc = AnomalyAppLayerDecoderEventJson(aft, p, decoder_events);
-            if (rc != TM_ECODE_OK) {
-                break;
-            }
+    if (p->flow && p->flow->alparser) {
+        AppLayerDecoderEvents *parser_events = AppLayerParserGetDecoderEvents(p->flow->alparser);
+        if (parser_events) {
+            rc = AnomalyAppLayerDecoderEventJson(aft, p, parser_events, false);
         }
     }
     return rc;
-#endif
 }
-
 
 static int JsonAnomalyLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
@@ -410,6 +431,12 @@ void JsonAnomalyLogRegister (void)
         "eve-log.anomaly", JsonAnomalyLogInitCtxSub, JsonAnomalyLogger,
         JsonAnomalyLogCondition, JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit,
         NULL);
+
+#if 0
+    OutputRegisterTxSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
+        "eve-log.anomaly", JsonAnomalyLogInitCtxSub, JsonAnomalyTxLogger,
+        JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit, NULL);
+#endif
 }
 
 #else
