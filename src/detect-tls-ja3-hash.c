@@ -138,7 +138,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        SSLState *ssl_state = (SSLState *)f->alstate;
+        const SSLState *ssl_state = (SSLState *)f->alstate;
 
         if (ssl_state->ja3_hash == NULL) {
             return NULL;
