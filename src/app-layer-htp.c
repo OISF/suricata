@@ -160,6 +160,18 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_TOO_MANY_ENCODING_LAYERS},
     { "ABNORMAL_CE_HEADER",
         HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
+    { "RESPONSE_MULTIPART_BYTERANGES",
+        HTTP_DECODER_EVENT_RESPONSE_MULTIPART_BYTERANGES},
+    { "RESPONSE_ABNORMAL_TRANSFER_ENCODING",
+        HTTP_DECODER_EVENT_RESPONSE_ABNORMAL_TRANSFER_ENCODING},
+    { "RESPONSE_CHUNKED_OLD_PROTO",
+        HTTP_DECODER_EVENT_RESPONSE_CHUNKED_OLD_PROTO},
+    { "RESPONSE_INVALID_PROTOCOL",
+        HTTP_DECODER_EVENT_RESPONSE_INVALID_PROTOCOL},
+    { "RESPONSE_INVALID_STATUS",
+        HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS},
+    { "REQUEST_LINE_INCOMPLETE",
+        HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE},
 
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
@@ -491,6 +503,7 @@ struct {
 /*    { "Invalid authority port", HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT}, htp no longer returns this error */
     { "Request buffer over", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
     { "Response buffer over", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
+    { "C-T multipart/byteranges in responses not supported", HTTP_DECODER_EVENT_RESPONSE_MULTIPART_BYTERANGES},
 };
 
 struct {
@@ -519,6 +532,11 @@ struct {
     { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "Excessive request header repetitions", HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION},
     { "Excessive response header repetitions", HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION},
+    { "Transfer-encoding has abnormal chunked value", HTTP_DECODER_EVENT_RESPONSE_ABNORMAL_TRANSFER_ENCODING},
+    { "Chunked transfer-encoding on HTTP/0.9 or HTTP/1.0", HTTP_DECODER_EVENT_RESPONSE_CHUNKED_OLD_PROTO},
+    { "Invalid response line: invalid protocol", HTTP_DECODER_EVENT_RESPONSE_INVALID_PROTOCOL},
+    { "Invalid response line: invalid response status", HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS},
+    { "Request line incomplete", HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
