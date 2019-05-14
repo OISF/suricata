@@ -16,7 +16,7 @@ Example::
       ja3.hash; content:"e7eca2baf4458d095b7f45da28c16c34"; \
       sid:100001;)
 
-``ja3.hash`` is a 'Sticky buffer'.
+``ja3.hash`` is a 'sticky buffer'.
 
 ``ja3.hash`` can be used as ``fast_pattern``.
 
@@ -35,7 +35,7 @@ Example::
       ja3.string; content:"19-20-21-22"; \
       sid:100002;)
 
-``ja3.string`` is a 'Sticky buffer'.
+``ja3.string`` is a 'sticky buffer'.
 
 ``ja3.string`` can be used as ``fast_pattern``.
 
