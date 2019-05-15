@@ -1,0 +1,56 @@
+# HTTP event  rules
+#
+# SID's fall in the 2221000+ range. See http://doc.emergingthreats.net/bin/view/Main/SidAllocation
+#
+# These sigs fire at most once per HTTP transaction.
+#
+# A flowint http.anomaly.count is incremented for each match. By default it will be 0.
+#
+alert http any any -> any any (msg:"SURICATA HTTP unknown error"; flow:established; app-layer-event:http.unknown_error; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221000; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP gzip decompression failed"; flow:established; app-layer-event:http.gzip_decompression_failed; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221001; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP request field missing colon"; flow:established,to_server; app-layer-event:http.request_field_missing_colon; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221002; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP response field missing colon"; flow:established,to_client; app-layer-event:http.response_field_missing_colon; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221020; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP invalid request chunk len"; flow:established,to_server; app-layer-event:http.invalid_request_chunk_len; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221003; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP invalid response chunk len"; flow:established,to_client; app-layer-event:http.invalid_response_chunk_len; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221004; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP invalid transfer encoding value in request"; flow:established,to_server; app-layer-event:http.invalid_transfer_encoding_value_in_request; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221005; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP invalid transfer encoding value in response"; flow:established,to_client; app-layer-event:http.invalid_transfer_encoding_value_in_response; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221006; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP invalid content length field in request"; flow:established,to_server; app-layer-event:http.invalid_content_length_field_in_request; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221007; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP invalid content length field in response"; flow:established,to_client; app-layer-event:http.invalid_content_length_field_in_response; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221008; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP status 100-Continue already seen"; flow:established,to_client; app-layer-event:http.100_continue_already_seen; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221009; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP unable to match response to request"; flow:established,to_client; app-layer-event:http.unable_to_match_response_to_request; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221010; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP invalid server port in request"; flow:established,to_server; app-layer-event:http.invalid_server_port_in_request; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221011; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP invalid authority port"; flow:established; app-layer-event:http.invalid_authority_port; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221012; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP request header invalid"; flow:established,to_server; app-layer-event:http.request_header_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221013; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP response header invalid"; flow:established,to_client; app-layer-event:http.response_header_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221021; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP missing Host header"; flow:established,to_server; app-layer-event:http.missing_host_header; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221014; rev:1;)
+# Alert if hostname is both part of URL and Host header and they are not the same.
+alert http any any -> any any (msg:"SURICATA HTTP Host header ambiguous"; flow:established,to_server; app-layer-event:http.host_header_ambiguous; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221015; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP invalid request field folding"; flow:established,to_server; app-layer-event:http.invalid_request_field_folding; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221016; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP invalid response field folding"; flow:established,to_client; app-layer-event:http.invalid_response_field_folding; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221017; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP request buffer too long"; flow:established,to_server; app-layer-event:http.request_field_too_long; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221018; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP response buffer too long"; flow:established,to_client; app-layer-event:http.response_field_too_long; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221019; rev:1;)
+# Multipart parser detected generic error.
+alert http any any -> any any (msg:"SURICATA HTTP multipart generic error"; flow:established,to_server; app-layer-event:http.multipart_generic_error; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221022; rev:1;)
+# Multipart header claiming a file to present, but no actual filedata available.
+alert http any any -> any any (msg:"SURICATA HTTP multipart no filedata"; flow:established,to_server; app-layer-event:http.multipart_no_filedata; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221023; rev:1;)
+# Multipart header invalid.
+alert http any any -> any any (msg:"SURICATA HTTP multipart invalid header"; flow:established,to_server; app-layer-event:http.multipart_invalid_header; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221024; rev:1;)
+# Warn when the port in the Host: header doesn't match the actual TCP Server port.
+alert http any any -> any any (msg:"SURICATA HTTP request server port doesn't match TCP port"; flow:established,to_server; app-layer-event:http.request_server_port_tcp_port_mismatch; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221026; rev:1;)
+# Host part of URI is invalid
+alert http any any -> any any (msg:"SURICATA HTTP Host part of URI is invalid"; flow:established,to_server; app-layer-event:http.request_uri_host_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221027; rev:1;)
+# Host header is invalid
+alert http any any -> any any (msg:"SURICATA HTTP Host header invalid"; flow:established,to_server; app-layer-event:http.request_header_host_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221028; rev:1;)
+# URI is terminated by non-compliant characters. RFC allows for space (0x20), but many implementations permit others like tab and more.
+alert http any any -> any any (msg:"SURICATA HTTP URI terminated by non-compliant character"; flow:established,to_server; app-layer-event:http.uri_delim_non_compliant; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221029; rev:1;)
+# Method is terminated by non-compliant characters. RFC allows for space (0x20), but many implementations permit others like tab and more.
+alert http any any -> any any (msg:"SURICATA HTTP METHOD terminated by non-compliant character"; flow:established,to_server; app-layer-event:http.method_delim_non_compliant; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221030; rev:1;)
+# Request line started with whitespace
+alert http any any -> any any (msg:"SURICATA HTTP Request line with leading whitespace"; flow:established,to_server; app-layer-event:http.request_line_leading_whitespace; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221031; rev:1;)
+
+
+alert http any any -> any any (msg:"SURICATA HTTP Request too many encoding layers"; flow:established,to_server; app-layer-event:http.too_many_encoding_layers; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221032; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP Request abnormal Content-Encoding header"; flow:established,to_server; app-layer-event:http.abnormal_ce_header; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221033; rev:1;)
+
+# next sid 2221034
+

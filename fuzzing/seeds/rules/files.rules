@@ -1,0 +1,61 @@
+# Example rules for using the file handling and extraction functionality in Suricata.
+#
+# For storing files make sure you enable the "file" output.
+# Also, make sure you read the comments that go with it in the suricata.yaml file.
+
+# Alert on files with jpg or bmp extensions
+#alert http any any -> any any (msg:"FILEEXT JPG file claimed"; fileext:"jpg"; sid:1; rev:1;)
+#alert http any any -> any any (msg:"FILEEXT BMP file claimed"; fileext:"bmp"; sid:3; rev:1;)
+
+# Store all files with jpg or pdf extension.
+#alert http any any -> any any (msg:"FILESTORE jpg"; flow:established,to_server; fileext:"jpg"; filestore; sid:6; rev:1;)
+#alert http any any -> any any (msg:"FILESTORE pdf"; flow:established,to_server; fileext:"pdf"; filestore; sid:8; rev:1;)
+
+# Store all PDF files, regardless of their name.
+#alert http any any -> any any (msg:"FILEMAGIC pdf"; flow:established,to_server; filemagic:"PDF document"; filestore; sid:9; rev:1;)
+
+# Same for JPEG's.
+#alert http any any -> any any (msg:"FILEMAGIC jpg(1)"; flow:established,to_server; filemagic:"JPEG image data"; filestore; sid:10; rev:1;)
+#alert http any any -> any any (msg:"FILEMAGIC jpg(2)"; flow:established,to_server; filemagic:"JFIF"; filestore; sid:11; rev:1;)
+
+# Unually short file
+#alert http any any -> any any (msg:"FILEMAGIC short"; flow:established,to_server; filemagic:"very short file (no magic)"; filestore; sid:12; rev:1;)
+
+# Simply store all files we encounter, no alerts.
+#alert http any any -> any any (msg:"FILE store all"; filestore; noalert; sid:15; rev:1;)
+
+# Store all JPG files, don't alert.
+#alert http any any -> any any (msg:"FILE magic"; filemagic:"JFIF"; filestore; noalert; sid:16; rev:1;)
+#alert http any any -> any any (msg:"FILE magic"; filemagic:"GIF"; filestore; noalert; sid:23; rev:1;)
+#alert http any any -> any any (msg:"FILE magic"; filemagic:"PNG"; filestore; noalert; sid:17; rev:1;)
+
+# Store all Windows executables
+#alert http any any -> any any (msg:"FILE magic -- windows"; flow:established,to_client; filemagic:"executable for MS Windows"; filestore; sid:18; rev:1;)
+
+# Alert on PNG with 1x1 pixels (tracking)
+#alert http any any -> any any (msg:"FILE tracking PNG (1x1 pixel) (1)"; filemagic:"PNG image data, 1 x 1,"; sid:19; rev:1;)
+#alert http any any -> any any (msg:"FILE tracking PNG (1x1 pixel) (2)"; filemagic:"PNG image data, 1 x 1|00|"; sid:20; rev:1;)
+
+# Alert on GIT with 1x1 pixels (tracking)
+# The pattern matches on |00| which is the end of the magic buffer, this way we won't match on 1 x 128.
+#alert http any any -> any any (msg:"FILE tracking GIF (1x1 pixel)"; filemagic:"GIF image data, version 89a, 1 x 1|00|"; sid:21; rev:1;)
+
+# Alert and store pdf attachment but not pdf file
+#alert http any any -> any any (msg:"FILE pdf claimed, but not pdf"; flow:established,to_client; fileext:"pdf"; filemagic:!"PDF document"; filestore; sid:22; rev:1;)
+
+# Alert and store files over SMTP
+#alert smtp any any -> any any (msg:"File Found over SMTP and stored"; filestore; sid:27; rev:1;)
+
+# Alert and store files from black list checksum: md5 or sha1 or sha256
+#alert http any any -> any any (msg:"Black list checksum match and extract MD5"; filemd5:fileextraction-chksum.list; filestore; sid:28; rev:1;)
+#alert http any any -> any any (msg:"Black list checksum match and extract SHA1"; filesha1:fileextraction-chksum.list; filestore; sid:29; rev:1;)
+#alert http any any -> any any (msg:"Black list checksum match and extract SHA256"; filesha256:fileextraction-chksum.list; filestore; sid:30; rev:1;)
+
+# Alert and store files over FTP
+#alert ftp-data any any -> any any (msg:"File Found within FTP and stored"; filestore; filename:"password"; ftpdata_command:stor; sid:31; rev:1;)
+
+# Alert and store files over SMB (with RUST activated)
+#alert smb any any -> any any (msg:"File Found over SMB and stored"; filestore; sid:32; rev:1;)
+
+# Alert and store files over NFS (with RUST activated)
+#alert nfs any any -> any any (msg:"File found within NFS and stored"; filestore; sid:33; rev:1;)

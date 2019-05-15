@@ -1,0 +1,32 @@
+# SMTP event  rules
+#
+# SID's fall in the 2220000+ range. See http://doc.emergingthreats.net/bin/view/Main/SidAllocation
+#
+# These sigs fire at most once per connection.
+#
+# A flowint smtp.anomaly.count is incremented for each match. By default it will be 0.
+#
+alert smtp any any -> any any (msg:"SURICATA SMTP invalid reply"; flow:established,to_client; app-layer-event:smtp.invalid_reply; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220000; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP unable to match reply with request"; flow:established,to_client; app-layer-event:smtp.unable_to_match_reply_with_request; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220001; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP max command line len exceeded"; flow:established; app-layer-event:smtp.max_command_line_len_exceeded; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220002; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP max reply line len exceeded"; flow:established,to_client; app-layer-event:smtp.max_reply_line_len_exceeded; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220003; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP invalid pipelined sequence"; flow:established,to_server; app-layer-event:smtp.invalid_pipelined_sequence; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220004; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP bdat chunk len exceeded"; flow:established; app-layer-event:smtp.bdat_chunk_len_exceeded; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220005; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP no server welcome message"; flow:established,to_client; app-layer-event:smtp.no_server_welcome_message; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220006; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP tls rejected"; flow:established; app-layer-event:smtp.tls_rejected; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220007; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP data command rejected"; flow:established,to_client; app-layer-event:smtp.data_command_rejected; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220008; rev:1;)
+
+# SMTP MIME events
+#alert smtp any any -> any any (msg:"SURICATA SMTP Mime parser failed"; flow:established; app-layer-event:smtp.mime_parse_failed; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220009; rev:1;)
+#alert smtp any any -> any any (msg:"SURICATA SMTP Mime malformed message found"; flow:established; app-layer-event:smtp.mime_malformed_msg; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220010; rev:1;)
+#alert smtp any any -> any any (msg:"SURICATA SMTP Mime base64-decoding failed"; flow:established; app-layer-event:smtp.mime_invalid_base64; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220011; rev:1;)
+#alert smtp any any -> any any (msg:"SURICATA SMTP Mime header name len exceeded"; flow:established; app-layer-event:smtp.mime_long_header_name; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220012; rev:1;)
+#alert smtp any any -> any any (msg:"SURICATA SMTP Mime header value len exceeded"; flow:established; app-layer-event:smtp.mime_long_header_value; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220013; rev:1;)
+#alert smtp any any -> any any (msg:"SURICATA SMTP Mime quoted-printable-decoding failed"; flow:established; app-layer-event:smtp.mime_invalid_qp; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220014; rev:1;)
+#alert smtp any any -> any any (msg:"SURICATA SMTP Mime line len exceeded"; flow:established; app-layer-event:smtp.mime_long_line; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220015; rev:1;)
+#alert smtp any any -> any any (msg:"SURICATA SMTP Mime encoded line len exceeded"; flow:established; app-layer-event:smtp.mime_long_enc_line; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220016; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP Mime boundary length exceeded"; flow:established,to_server; app-layer-event:smtp.mime_long_boundary; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220017; rev:1;)
+
+alert smtp any any -> any any (msg:"SURICATA SMTP duplicate fields"; flow:established,to_server; app-layer-event:smtp.duplicate_fields; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220018; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP unparsable content"; flow:established,to_server; app-layer-event:smtp.unparsable_content; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220019; rev:1;)
+# next sid 2220020

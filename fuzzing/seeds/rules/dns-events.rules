@@ -1,0 +1,15 @@
+# Response (answer) we didn't see a Request for. Could be packet loss.
+alert dns any any -> any any (msg:"SURICATA DNS Unsolicited response"; flow:to_client; app-layer-event:dns.unsollicited_response; classtype:protocol-command-decode; sid:2240001; rev:2;)
+# Malformed data in request. Malformed means length fields are wrong, etc.
+alert dns any any -> any any (msg:"SURICATA DNS malformed request data"; flow:to_server; app-layer-event:dns.malformed_data; classtype:protocol-command-decode; sid:2240002; rev:2;)
+alert dns any any -> any any (msg:"SURICATA DNS malformed response data"; flow:to_client; app-layer-event:dns.malformed_data; classtype:protocol-command-decode; sid:2240003; rev:2;)
+# Response flag set on to_server packet
+alert dns any any -> any any (msg:"SURICATA DNS Not a request"; flow:to_server; app-layer-event:dns.not_a_request; classtype:protocol-command-decode; sid:2240004; rev:2;)
+# Response flag not set on to_client packet
+alert dns any any -> any any (msg:"SURICATA DNS Not a response"; flow:to_client; app-layer-event:dns.not_a_response; classtype:protocol-command-decode; sid:2240005; rev:2;)
+# Z flag (reserved) not 0
+alert dns any any -> any any (msg:"SURICATA DNS Z flag set"; app-layer-event:dns.z_flag_set; classtype:protocol-command-decode; sid:2240006; rev:2;)
+# Request Flood Detected
+alert dns any any -> any any (msg:"SURICATA DNS request flood detected"; flow:to_server; app-layer-event:dns.flooded; classtype:protocol-command-decode; sid:2240007; rev:2;)
+# Per-flow (state) memcap reached. Relates to the app-layer.protocols.dns.state-memcap setting.
+alert dns any any -> any any (msg:"SURICATA DNS flow memcap reached"; flow:to_server; app-layer-event:dns.state_memcap_reached; classtype:protocol-command-decode; sid:2240008; rev:3;)

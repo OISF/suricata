@@ -1,0 +1,46 @@
+Fuzzing Notes
+=============
+
+Heap buffer overflow (read) in ssh handling
+-------------------------------------------
+
+Fuzzer: fuzz_app
+Crashfile: crash-ssh-over-read
+
+In `app-layer-ssh.c' in function `SSHParseBanner' does not check whether
+`input' has enough bytes to compare against `SSH-'.
+
+  static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *input, uint32_t input_len)
+  {
+      const uint8_t *line_ptr = input;
+      uint32_t line_len = input_len;
+  
+      /* is it the version line? */
+      if (SCMemcmp("SSH-", line_ptr, 4) != 0) {
+                           ^~~~ not guarateed to hold 4 bytes.
+          SCReturnInt(-1);
+      }
+
+
+
+Heap buffer overflow (read) in DecodeENIPPDU (through integer overflow)
+-----------------------------------------------------------------------
+
+Fuzzer: fuzz_app
+Crashfile: crash-enip-parse
+
+In `app-layer-enip-commmon.c' the function `DecodeENIPPDU' incorrectly checks
+whether `input' has enough bytes to parse the `enip_data'.
+
+The incorrect check is in `ENIPExtractUint16':
+
+  if (*offset > (input_len - sizeof(uint16_t)))
+                 ^~~~ overflows if input_len == 1 and sizeof(uint16_t) == 2
+  {
+      SCLogDebug("ENIPExtractUint16: Parsing beyond payload length");
+      return 0;
+  }
+  [...]
+
+Therefore, the `if' condition is always false.
+

@@ -1,0 +1,7 @@
+# DHCP app-layer event rules.  See
+#
+# https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+# for SID allocation.
+
+alert dhcp any any -> any any (msg:"SURICATA DHCP malformed options"; app-layer-event:dhcp.malformed_options; classtype:protocol-command-decode; sid:2227000; rev:1;)
+alert dhcp any any -> any any (msg:"SURICATA DHCP truncated options"; app-layer-event:dhcp.truncated_options; classtype:protocol-command-decode; sid:2227001; rev:1;)

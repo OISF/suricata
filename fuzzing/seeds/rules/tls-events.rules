@@ -1,0 +1,31 @@
+# TLS event  rules
+#
+# SID's fall in the 2230000+ range. See http://doc.emergingthreats.net/bin/view/Main/SidAllocation
+#
+# These sigs fire at most once per connection.
+#
+# A flowint tls.anomaly.count is incremented for each match. By default it will be 0.
+#
+alert tls any any -> any any (msg:"SURICATA TLS invalid SSLv2 header"; flow:established; app-layer-event:tls.invalid_sslv2_header; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230000; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid TLS header"; flow:established; app-layer-event:tls.invalid_tls_header; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230001; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid record version"; flow:established; app-layer-event:tls.invalid_record_version; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230015; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid record type"; flow:established; app-layer-event:tls.invalid_record_type; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230002; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid handshake message"; flow:established; app-layer-event:tls.invalid_handshake_message; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230003; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid certificate"; flow:established; app-layer-event:tls.invalid_certificate; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230004; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS certificate missing element"; flow:established; app-layer-event:tls.certificate_missing_element; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230005; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS certificate unknown element"; flow:established; app-layer-event:tls.certificate_unknown_element; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230006; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS certificate invalid length"; flow:established; app-layer-event:tls.certificate_invalid_length; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230007; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS certificate invalid string"; flow:established; app-layer-event:tls.certificate_invalid_string; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230008; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS error message encountered"; flow:established; app-layer-event:tls.error_message_encountered; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230009; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid record/traffic"; flow:established; app-layer-event:tls.invalid_ssl_record; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230010; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS heartbeat encountered"; flow:established; app-layer-event:tls.heartbeat_message; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230011; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS overflow heartbeat encountered, possible exploit attempt (heartbleed)"; flow:established; app-layer-event:tls.overflow_heartbeat_message; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; reference:cve,2014-0160; sid:2230012; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid heartbeat encountered, possible exploit attempt (heartbleed)"; flow:established; app-layer-event:tls.invalid_heartbeat_message; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; reference:cve,2014-0160; sid:2230013; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid encrypted heartbeat encountered, possible exploit attempt (heartbleed)"; flow:established; app-layer-event:tls.dataleak_heartbeat_mismatch; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; reference:cve,2014-0160; sid:2230014; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS multiple SNI extensions"; flow:established,to_server; app-layer-event:tls.multiple_sni_extensions; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230016; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid SNI type"; flow:established,to_server; app-layer-event:tls.invalid_sni_type; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230017; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS invalid SNI length"; flow:established,to_server; app-layer-event:tls.invalid_sni_length; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230018; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS handshake invalid length"; flow:established; app-layer-event:tls.handshake_invalid_length; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230019; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS too many records in packet"; flow:established; app-layer-event:tls.too_many_records_in_packet; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230020; rev:1;)
+
+#next sid is 2230021

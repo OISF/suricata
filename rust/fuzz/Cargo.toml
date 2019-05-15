@@ -1,0 +1,58 @@
+
+[package]
+name = "suricata-fuzz"
+version = "0.0.1"
+authors = ["Automatically generated"]
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies.suricata]
+path = ".."
+[dependencies.libfuzzer-sys]
+git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "fuzz_dns"
+path = "fuzz_targets/fuzz_dns.rs"
+
+[[bin]]
+name = "fuzz_dhcp"
+path = "fuzz_targets/fuzz_dhcp.rs"
+
+[[bin]]
+name = "fuzz_ftp"
+path = "fuzz_targets/fuzz_ftp.rs"
+
+[[bin]]
+name = "fuzz_ikev2"
+path = "fuzz_targets/fuzz_ikev2.rs"
+
+[[bin]]
+name = "fuzz_krb"
+path = "fuzz_targets/fuzz_krb.rs"
+
+[[bin]]
+name = "fuzz_nfs"
+path = "fuzz_targets/fuzz_nfs.rs"
+
+[[bin]]
+name = "fuzz_ntp"
+path = "fuzz_targets/fuzz_ntp.rs"
+
+[[bin]]
+name = "fuzz_smb"
+path = "fuzz_targets/fuzz_smb.rs"
+
+[[bin]]
+name = "fuzz_tftp"
+path = "fuzz_targets/fuzz_tftp.rs"
+
+[[bin]]
+name = "fuzz_kerberos"
+path = "fuzz_targets/fuzz_kerberos.rs"

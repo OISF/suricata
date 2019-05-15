@@ -1,0 +1,26 @@
+# DNP3 application decoder event rules.
+#
+# This SIDs fall in the 2270000+ range. See:
+#    http://doc.emergingthreats.net/bin/view/Main/SidAllocation
+
+# Flooded.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Request flood detected"; \
+      app-layer-event:dnp3.flooded; classtype:protocol-command-decode; sid:2270000; rev:2;)
+
+# Length to small for PDU type. For example, link specifies the type
+# as user data, but the length field is not large enough for user
+# data.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Length too small"; \
+      app-layer-event:dnp3.len_too_small; classtype:protocol-command-decode; sid:2270001; rev:3;)
+
+# Bad link layer CRC.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Bad link CRC"; \
+      app-layer-event:dnp3.bad_link_crc; classtype:protocol-command-decode; sid:2270002; rev:2;)
+
+# Bad transport layer CRC.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Bad transport CRC"; \
+      app-layer-event:dnp3.bad_transport_crc; classtype:protocol-command-decode; sid:2270003; rev:2;)
+
+# Unknown object.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Unknown object"; \
+      app-layer-event:dnp3.unknown_object; classtype:protocol-command-decode; sid:2270004; rev:2;)
