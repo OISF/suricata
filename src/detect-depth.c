@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -76,7 +76,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
                    "http_method option, http_cookie, http_raw_uri, "
                    "http_stat_msg, http_stat_code, http_user_agent, "
                    "http_host, http_raw_host or "
-                   "file_data/dce_stub_data sticky buffer options");
+                   "file_data/dce_stub_data sticky buffer options.");
         goto end;
     }
 
@@ -96,19 +96,19 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                   "negated keyword set along with a fast_pattern");
+                   "negated keyword set along with a fast_pattern.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                   "keyword set along with a fast_pattern:only;");
+                   "keyword set along with a fast_pattern:only;.");
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
         SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(str, s);
         if (bed_sm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
-                       "seen in depth - %s\n", str);
+                       "seen in depth - %s\n.", str);
             goto end;
         }
         cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
@@ -117,13 +117,13 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
         if (ByteExtractStringUint16(&cd->depth, 0, 0, str) != (int)strlen(str))
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
-                      "invalid value for depth: %s", str);
+                      "invalid value for depth: %s.", str);
             goto end;
         }
 
         if (cd->depth < cd->content_len) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "depth:%u smaller than "
-                   "content of len %u", cd->depth, cd->content_len);
+                   "content of len %u.", cd->depth, cd->content_len);
             return -1;
         }
         /* Now update the real limit, as depth is relative to the offset */
@@ -145,7 +145,7 @@ static int DetectStartsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "startswith needs a "
-                   "preceding content option");
+                   "preceding content option.");
         goto end;
     }
 
@@ -154,7 +154,7 @@ static int DetectStartsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 
     if (cd->flags & DETECT_CONTENT_DEPTH) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple "
-                "depth/startswith settings for the same content");
+                "depth/startswith settings for the same content.");
         goto end;
     }
     if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
@@ -166,17 +166,17 @@ static int DetectStartsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                   "negated keyword set along with a fast_pattern");
+                   "negated keyword set along with a fast_pattern.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                   "keyword set along with a fast_pattern:only;");
+                   "keyword set along with a fast_pattern:only;.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_OFFSET) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix offset "
-                   "with startswith");
+                   "with startswith.");
         goto end;
     }
 
