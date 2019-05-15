@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -140,7 +140,7 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                     }
                     else if (str[i] != ',') {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid hex code in "
-                                    "content - %s, hex %c. Invalidating signature", str, str[i]);
+                                    "content - %s, hex %c. Invalidating signature.", str, str[i]);
                         goto error;
                     }
                 } else if (escape) {
@@ -158,7 +158,7 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                     escape = 0;
                     converted = 1;
                 } else if (str[i] == '"') {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid unescaped double quote within content section");
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid unescaped double quote within content section.");
                     goto error;
                 } else {
                     str[x] = str[i];
@@ -169,7 +169,7 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
 
         if (bin_count % 2 != 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid hex code assembly in "
-                       "%s - %s.  Invalidating signature", keyword, contentstr);
+                       "%s - %s.  Invalidating signature.", keyword, contentstr);
             goto error;
         }
 
@@ -395,13 +395,13 @@ _Bool DetectContentPMATCHValidateCallback(const Signature *s)
         uint32_t right_edge = cd->content_len + cd->offset;
         if (cd->content_len > max_right_edge) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "signature can't match as content length %u is bigger than dsize %u",
+                    "signature can't match as content length %u is bigger than dsize %u.",
                     cd->content_len, max_right_edge);
             return FALSE;
         }
         if (right_edge > max_right_edge) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "signature can't match as content length %u with offset %u (=%u) is bigger than dsize %u",
+                    "signature can't match as content length %u with offset %u (=%u) is bigger than dsize %u.",
                     cd->content_len, cd->offset, right_edge, max_right_edge);
             return FALSE;
         }
