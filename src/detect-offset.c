@@ -71,23 +71,23 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
     DetectContentData *cd = (DetectContentData *)pm->ctx;
 
     if (cd->flags & DETECT_CONTENT_STARTS_WITH) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use offset with startswith");
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use offset with startswith.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_OFFSET) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple offsets for the same content. ");
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple offsets for the same content.");
         goto end;
     }
     if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative "
-                   "keyword like within/distance with a absolute "
+                   "keyword like within/distance with an absolute "
                    "relative keyword like depth/offset for the same "
                    "content." );
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
-                   "negated keyword set along with a fast_pattern");
+                   "negated keyword set along with a fast_pattern.");
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
