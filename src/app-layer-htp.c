@@ -150,6 +150,8 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION},
     { "RESPONSE_HEADER_REPETITION",
         HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION},
+    { "DOUBLE_ENCODED_URI",
+        HTTP_DECODER_EVENT_DOUBLE_ENCODED_URI},
     { "URI_DELIM_NON_COMPLIANT",
         HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
     { "METHOD_DELIM_NON_COMPLIANT",
@@ -2158,26 +2160,40 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     return HTP_OK;
 }
 
-static int HTPCallbackDoubleDecodeQuery(htp_tx_t *tx)
+static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
 {
-    if (tx->parsed_uri == NULL || tx->parsed_uri->query == NULL)
+    if (tx->parsed_uri == NULL || part == NULL)
         return HTP_OK;
 
     uint64_t flags = 0;
-    htp_urldecode_inplace(tx->cfg, HTP_DECODER_URLENCODED, tx->parsed_uri->query, &flags);
+    size_t prevlen = bstr_len(part);
+    htp_status_t res = htp_urldecode_inplace(tx->cfg, HTP_DECODER_URLENCODED, part, &flags);
+    // shorter string means that uri was encoded
+    if (res == HTP_OK && prevlen > bstr_len(part)) {
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (likely(htud == NULL)) {
+            htud = HTPCalloc(1, sizeof(*htud));
+            if (unlikely(htud == NULL))
+                return HTP_OK;
+            htp_tx_set_user_data(tx, htud);
+        }
+        HtpState *s = htp_connp_get_user_data(tx->connp);
+        if (s == NULL)
+            return HTP_OK;
+        HTPSetEvent(s, htud, HTTP_DECODER_EVENT_DOUBLE_ENCODED_URI);
+    }
 
     return HTP_OK;
 }
 
+static int HTPCallbackDoubleDecodeQuery(htp_tx_t *tx)
+{
+    return HTPCallbackDoubleDecodeUriPart(tx, tx->parsed_uri->query);
+}
+
 static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
 {
-    if (tx->parsed_uri == NULL || tx->parsed_uri->path == NULL)
-        return HTP_OK;
-
-    uint64_t flags = 0;
-    htp_urldecode_inplace(tx->cfg, HTP_DECODER_URL_PATH, tx->parsed_uri->path, &flags);
-
-    return HTP_OK;
+    return HTPCallbackDoubleDecodeUriPart(tx, tx->parsed_uri->path);
 }
 
 static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
