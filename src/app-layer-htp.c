@@ -2462,13 +2462,13 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 exit(EXIT_FAILURE);
             }
 
-        } else if (strcasecmp("double-decode-path", p->name) == 0) {
+        } else if (strcasecmp("double-decode-query", p->name) == 0) {
             if (ConfValIsTrue(p->val)) {
                 htp_config_register_request_line(cfg_prec->cfg,
                                                  HTPCallbackDoubleDecodeQuery);
             }
 
-        } else if (strcasecmp("double-decode-query", p->name) == 0) {
+        } else if (strcasecmp("double-decode-path", p->name) == 0) {
             if (ConfValIsTrue(p->val)) {
                 htp_config_register_request_line(cfg_prec->cfg,
                                                  HTPCallbackDoubleDecodePath);
