@@ -71,7 +71,7 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            ThreadDeinitFunc ThreadDeinit,
                            void (*ThreadExitPrintStats)(ThreadVars *, void *))
 {
-    if (!(AppLayerParserIsTxAware(alproto))) {
+    if (alproto != ALPROTO_UNKNOWN && !(AppLayerParserIsTxAware(alproto))) {
         SCLogNotice("%s logger not enabled: protocol %s is disabled",
             name, AppProtoToString(alproto));
         return -1;
@@ -204,10 +204,11 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             SCLogDebug("logger %p, LogCondition %p, ts_log_progress %d "
                     "tc_log_progress %d", logger, logger->LogCondition,
                     logger->ts_log_progress, logger->tc_log_progress);
-            if (logger->alproto == alproto &&
+            /* match on proto or if logger is a wildcard */
+            if ((logger->alproto == alproto || logger->alproto == ALPROTO_UNKNOWN) &&
                 (tx_logged_old & (1<<logger->logger_id)) == 0)
             {
-                SCLogDebug("alproto match, logging tx_id %"PRIu64, tx_id);
+                SCLogDebug("alproto match %d, logging tx_id %"PRIu64, logger->alproto, tx_id);
 
                 if (!(AppLayerParserStateIssetFlag(f->alparser,
                                                    APP_LAYER_PARSER_EOF))) {
