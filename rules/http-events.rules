@@ -69,5 +69,7 @@ alert http any any -> any any (msg:"SURICATA HTTP Response invalid status"; flow
 
 alert http any any -> any any (msg:"SURICATA HTTP Request line incomplete"; flow:established,to_server; app-layer-event:http.request_line_incomplete; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221042; rev:1;)
 
-# next sid 2221043
+alert http any any -> any any (msg:"SURICATA HTTP Request double encoded URI"; flow:established,to_server; app-layer-event:http.double_encoded_uri; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221043; rev:1;)
+
+# next sid 2221044
 
