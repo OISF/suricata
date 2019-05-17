@@ -195,6 +195,9 @@ filter must expose `flow_table_v4` and `flow_table_v6` per CPU array maps with s
 as the one available in `bypass_filter.c`. These two maps will be accessed and
 maintained by Suricata to handle the lists of flow to bypass.
 
+If you are not using vlan tracking (``vlan.use-for-tracking`` set to false in suricata.yaml) then you have also to set
+the VLAN_TRACKING define to 0 in ``bypass_filter.c``.
+
 Setup eBPF load balancing
 -------------------------
 
