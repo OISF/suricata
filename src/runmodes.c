@@ -588,7 +588,14 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
                 module->ts_log_progress, module->TxLogCondition,
                 module->ThreadInit, module->ThreadDeinit,
                 module->ThreadExitPrintStats);
-        logger_bits[module->alproto] |= (1<<module->logger_id);
+        /* Ensure TX logger is applied to all app layer protocols */
+        if (module->alproto == ALPROTO_UNKNOWN) {
+            for (int a = 0; a < ALPROTO_MAX; a++) {
+                logger_bits[a] |= (1<<module->logger_id);
+            }
+        } else {
+            logger_bits[module->alproto] |= (1<<module->logger_id);
+        }
     } else if (module->FiledataLogFunc) {
         SCLogDebug("%s is a filedata logger", module->name);
         OutputRegisterFiledataLogger(module->logger_id, module->name,
