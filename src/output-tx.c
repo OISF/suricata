@@ -72,7 +72,7 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            ThreadDeinitFunc ThreadDeinit,
                            void (*ThreadExitPrintStats)(ThreadVars *, void *))
 {
-    if (!(AppLayerParserIsTxAware(alproto))) {
+    if (alproto != ALPROTO_UNKNOWN && !(AppLayerParserIsTxAware(alproto))) {
         SCLogNotice("%s logger not enabled: protocol %s is disabled",
             name, AppProtoToString(alproto));
         return -1;
@@ -200,13 +200,15 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         while (logger && store) {
             DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
 
-            SCLogDebug("logger %p, LogCondition %p, ts_log_progress %d "
-                    "tc_log_progress %d", logger, logger->LogCondition,
+            SCLogDebug("logger %p, Alproto %d LogCondition %p, ts_log_progress %d "
+                    "tc_log_progress %d", logger, logger->alproto, logger->LogCondition,
                     logger->ts_log_progress, logger->tc_log_progress);
-            if (logger->alproto == alproto &&
-                (tx_logged_old & (1<<logger->logger_id)) == 0)
-            {
-                SCLogDebug("alproto match, logging tx_id %"PRIu64, tx_id);
+            /* always invoke "wild card" tx loggers */
+            if (logger->alproto == ALPROTO_UNKNOWN || 
+                (logger->alproto == alproto &&
+                 (tx_logged_old & (1<<logger->logger_id)) == 0)) {
+
+                SCLogDebug("alproto match %d, logging tx_id %"PRIu64, logger->alproto, tx_id);
 
                 if (!(AppLayerParserStateIssetFlag(f->alparser,
                                                    APP_LAYER_PARSER_EOF))) {
@@ -229,13 +231,14 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                     }
                 }
 
-                SCLogDebug("Logging tx_id %"PRIu64" to logger %d", tx_id,
-                    logger->logger_id);
+                SCLogDebug("Logging tx_id %"PRIu64" to logger %d", tx_id, logger->logger_id);
                 PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
                 logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
                 PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
 
-                tx_logged |= (1<<logger->logger_id);
+                if (alproto != ALPROTO_UNKNOWN) {
+                    tx_logged |= (1<<logger->logger_id);
+                }
             }
 
 next_logger:
