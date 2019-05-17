@@ -209,7 +209,7 @@ typedef struct HtpTxUserData_ {
 
     AppLayerDecoderEvents *decoder_events;          /**< per tx events */
 
-    /** Holds the boundary identificator string if any (used on
+    /** Holds the boundary identification string if any (used on
      *  multipart/form-data only)
      */
     uint8_t *boundary;
@@ -228,7 +228,7 @@ typedef struct HtpState_ {
     htp_connp_t *connp;
     /* Connection structure for each connection */
     htp_conn_t *conn;
-    Flow *f;                /**< Needed to retrieve the original flow when usin HTPLib callbacks */
+    Flow *f;                /**< Needed to retrieve the original flow when using HTPLib callbacks */
     uint64_t transaction_cnt;
     uint64_t store_tx_id;
     FileContainer *files_ts;
