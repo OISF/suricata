@@ -588,7 +588,10 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
                 module->ts_log_progress, module->TxLogCondition,
                 module->ThreadInit, module->ThreadDeinit,
                 module->ThreadExitPrintStats);
-        logger_bits[module->alproto] |= (1<<module->logger_id);
+        /* Not used with wild card loggers */
+        if (module->alproto != ALPROTO_UNKNOWN) {
+            logger_bits[module->alproto] |= (1<<module->logger_id);
+        }
     } else if (module->FiledataLogFunc) {
         SCLogDebug("%s is a filedata logger", module->name);
         OutputRegisterFiledataLogger(module->logger_id, module->name,
