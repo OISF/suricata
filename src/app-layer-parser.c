@@ -1045,8 +1045,10 @@ int AppLayerParserGetStateProgressCompletionStatus(AppProto alproto,
 {
     SCEnter();
     int r = 0;
-    r = alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].
-                StateGetProgressCompletionStatus(direction);
+    if (alproto != ALPROTO_UNKNOWN) {
+        r = alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].
+                    StateGetProgressCompletionStatus(direction);
+    }
     SCReturnInt(r);
 }
 

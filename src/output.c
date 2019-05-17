@@ -308,7 +308,7 @@ static void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_nam
     module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
-    SCLogDebug("Tx logger \"%s\" registered.", name);
+    SCLogDebug("Tx logger for alproto %d \"%s\" registered.", alproto, name);
     return;
 error:
     SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
