@@ -78,7 +78,8 @@ typedef struct JsonAnomalyLogThread_ {
     AnomalyJsonOutputCtx* json_output_ctx;
 } JsonAnomalyLogThread;
 
-static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *p)
+static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
+                                  const Packet *p)
 {
     bool is_ip_pkt = PKT_IS_IPV4(p) || PKT_IS_IPV6(p);
 
@@ -138,23 +139,12 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft, con
     return TM_ECODE_OK;
 }
 
-#if 0
-static int JsonAnomalyTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
-{
-    SCLogInfo("Here we are");
-    return TM_ECODE_OK;
-}
-#endif
-
-static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft, const Packet *p, AppLayerDecoderEvents *decoder_events, bool is_applayer)
+static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
+                        const Packet *p, AppLayerDecoderEvents *decoder_events,
+                        bool is_applayer, const char *layer, uint64_t tx_id)
 {
     const char *alprotoname;
-
-    if (likely(p->flow)) {
-        alprotoname = AppLayerGetProtoName(p->flow->alproto);
-    } else {
-        alprotoname = NULL;
-    }
+    alprotoname = AppLayerGetProtoName(p->flow->alproto);
 
     for (int i = 0; i < decoder_events->cnt; i++) {
         MemBufferReset(aft->json_buffer);
@@ -171,8 +161,7 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft, const Pack
         }
 
         JsonFiveTuple((const Packet *)p, LOG_DIR_PACKET, js);
-        if (p->flow)
-            JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+        JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
 
         /* Use app layer proto name if available */
         if (alprotoname) {
@@ -192,18 +181,26 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft, const Pack
             r = AppLayerParserGetEventInfoById(p->flow->proto, p->flow->alproto,
                                                event_code, &event_name, &event_type);
         }
-        json_object_set_new(ajs, "layer",
-                            json_string(is_applayer ? "applayer" : "applayer_parser"));
         if (r == 0) {
             json_object_set_new(ajs, "type",
-                                json_string(event_type == APP_LAYER_EVENT_TYPE_TRANSACTION ?  "transaction" : "packet"));
+                        json_string(event_type == APP_LAYER_EVENT_TYPE_TRANSACTION ?
+                                    "transaction" : "packet"));
             json_object_set_new(ajs, "event", json_string(event_name));
-            /* XXX temporarily include code */
-            json_object_set_new(ajs, "code", json_integer(event_code));
         } else {
             json_object_set_new(ajs, "type", json_string("unknown"));
             json_object_set_new(ajs, "code", json_integer(event_code));
         }
+
+        /* log event number (and total */
+        uint32_t offset = 0;
+        char event_no_buf[32];
+        PrintBufferData(event_no_buf, &offset, 32, "%d (of %d)",
+                        i+1, decoder_events->cnt);
+        json_object_set_new(ajs, "event_no", json_string(event_no_buf));
+
+        if (tx_id != (uint64_t) -1)
+            json_object_set_new(ajs, "tx_id", json_integer(tx_id));
+        json_object_set_new(ajs, "layer", json_string(layer));
 
         /* anomaly */
         json_object_set_new(js, ANOMALY_EVENT_TYPE, ajs);
@@ -216,6 +213,28 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft, const Pack
     return TM_ECODE_OK;
 }
 
+static int JsonAnomalyTxLogger(ThreadVars *tv, void *thread_data, const Packet *p,
+                               Flow *f, void *state, void *tx, uint64_t tx_id)
+{
+    SCLogDebug("state %p, tx: %p, tx_id: %"PRIu64, state, tx, tx_id);
+
+    JsonAnomalyLogThread *aft = thread_data;
+    uint8_t proto = f->proto;
+    AppProto alproto = f->alproto;
+    AppLayerDecoderEvents *decoder_events;
+    decoder_events = AppLayerParserGetEventsByTx(proto, alproto, state, tx_id);
+    if (decoder_events)
+        AnomalyAppLayerDecoderEventJson(aft, p, decoder_events, false,
+                                        "applayer_parser", tx_id);
+    return TM_ECODE_OK;
+}
+
+static inline bool AnomalyHasParserEvents(const Packet *p)
+{
+    return (p->flow && p->flow->alparser &&
+            AppLayerParserHasDecoderEvents(p->flow->alparser));
+}
+
 static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *p)
 {
 
@@ -225,16 +244,22 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
         rc = AnomalyDecodeEventJson(tv, aft, p);
     }
 
-    if (p->app_layer_events != NULL) {
-        SCLogInfo("We have some events");
-        rc = AnomalyAppLayerDecoderEventJson(aft, p, p->app_layer_events, true);
+    /* app layer events */
+    if (p->app_layer_events && p->app_layer_events->cnt) {
+        rc = AnomalyAppLayerDecoderEventJson(aft, p, p->app_layer_events,
+                                             true, "app_layer", -1);
     }
-    if (p->flow && p->flow->alparser) {
+
+    /* parser state events */
+    if (AnomalyHasParserEvents(p)) {
+        SCLogDebug("Checking for anomaly events for alproto %d", p->flow->alproto);
         AppLayerDecoderEvents *parser_events = AppLayerParserGetDecoderEvents(p->flow->alparser);
-        if (parser_events) {
-            rc = AnomalyAppLayerDecoderEventJson(aft, p, parser_events, false);
+        if (parser_events && parser_events->cnt) {
+            rc = AnomalyAppLayerDecoderEventJson(aft, p, parser_events,
+                                                 false, "parser", -1);
         }
     }
+
     return rc;
 }
 
@@ -246,7 +271,7 @@ static int JsonAnomalyLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
 static int JsonAnomalyLogCondition(ThreadVars *tv, const Packet *p)
 {
-    return p->events.cnt > 0 || p->app_layer_events != NULL;
+    return p->events.cnt > 0 || p->app_layer_events || AnomalyHasParserEvents(p);
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
@@ -257,7 +282,7 @@ static TmEcode JsonAnomalyLogThreadInit(ThreadVars *t, const void *initdata, voi
         return TM_ECODE_FAILED;
     }
 
-    if(initdata == NULL) {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogAnomaly.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
@@ -432,11 +457,10 @@ void JsonAnomalyLogRegister (void)
         JsonAnomalyLogCondition, JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit,
         NULL);
 
-#if 0
     OutputRegisterTxSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
-        "eve-log.anomaly", JsonAnomalyLogInitCtxSub, JsonAnomalyTxLogger,
-        JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit, NULL);
-#endif
+        "eve-log.anomaly", JsonAnomalyLogInitCtxSub, ALPROTO_UNKNOWN,
+        JsonAnomalyTxLogger, JsonAnomalyLogThreadInit,
+        JsonAnomalyLogThreadDeinit, NULL);
 }
 
 #else
