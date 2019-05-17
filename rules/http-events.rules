@@ -57,5 +57,7 @@ alert http any any -> any any (msg:"SURICATA HTTP Request unrecognized authoriza
 alert http any any -> any any (msg:"SURICATA HTTP Request excessive header repetition"; flow:established,to_server; app-layer-event:http.request_header_repetition; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221035; rev:1;)
 alert http any any -> any any (msg:"SURICATA HTTP Response excessive header repetition"; flow:established,to_client; app-layer-event:http.response_header_repetition; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221036; rev:1;)
 
-# next sid 2221037
+alert http any any -> any any (msg:"SURICATA HTTP Request double encoded URI"; flow:established,to_server; app-layer-event:http.double_encoded_uri; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221037; rev:1;)
+
+# next sid 2221038
 
