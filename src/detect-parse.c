@@ -1032,6 +1032,10 @@ static inline int SigParseList(char **input, char *output,
             }
         }
     }
+    if (i == len) {
+        *input = NULL;
+        return 0;
+    }
     (*input)[i] = '\0';
     strlcpy(output, *input, output_size);
     *input = *input + i + 1;
