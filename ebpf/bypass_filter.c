@@ -213,38 +213,26 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb, __u16 vlan0, __u16
 int SEC("filter") hashfilter(struct __sk_buff *skb) {
     __u32 nhoff = ETH_HLEN;
 
-    void *data = (void *)(long)skb->data;
-    void *data_end = (void *)(long)skb->data_end;
-    __u64 proto = load_half(skb, 12);
-    __u16 vlan0 = 0;
+    __u16 proto = load_half(skb, offsetof(struct ethhdr, h_proto));
+    __u16 vlan0 = skb->vlan_tci & 0x0fff;
     __u16 vlan1 = 0;
 
-    if (proto == ETH_P_8021AD) {
+    if (proto == ETH_P_8021AD || proto == ETH_P_8021Q) {
         proto = load_half(skb, nhoff + offsetof(struct vlan_hdr,
-                    h_vlan_encapsulated_proto));
+                          h_vlan_encapsulated_proto));
 #if VLAN_TRACKING
-        if (data + nhoff <= data_end) {
-            vlan0 = ((struct vlan_hdr *)(data + nhoff))->h_vlan_TCI & 0x0fff;
-        }
+        /* one vlan layer is stripped by OS so get vlan 1 at first pass */
+        vlan1 = load_half(skb, nhoff + offsetof(struct vlan_hdr,
+                          h_vlan_TCI)) & 0x0fff;
 #endif
         nhoff += sizeof(struct vlan_hdr);
     }
 
-    if (proto == ETH_P_8021Q) {
-        proto = load_half(skb, nhoff + offsetof(struct vlan_hdr,
-                    h_vlan_encapsulated_proto));
-#if VLAN_TRACKING
-        if (data + nhoff <= data_end) {
-            vlan1 = ((struct vlan_hdr *)(data + nhoff))->h_vlan_TCI & 0x0fff;
-        }
-#endif
-        nhoff += sizeof(struct vlan_hdr);
-    }
     skb->cb[0] = nhoff;
-    switch (skb->protocol) {
-        case __constant_htons(ETH_P_IP):
+    switch (proto) {
+        case ETH_P_IP:
             return ipv4_filter(skb, vlan0, vlan1);
-        case __constant_htons(ETH_P_IPV6):
+        case ETH_P_IPV6:
             return ipv6_filter(skb, vlan0, vlan1);
         default:
 #if 0
