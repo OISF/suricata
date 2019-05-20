@@ -581,6 +581,7 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         if (bed_sm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
                        "seen in byte_jump - %s\n", offset);
+            SCFree(offset);
             goto error;
         }
         data->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
