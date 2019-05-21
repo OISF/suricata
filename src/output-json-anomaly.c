@@ -64,6 +64,7 @@
 
 #define ANOMALY_EVENT_TYPE      "anomaly"
 #define LOG_JSON_PACKETHDR      BIT_U16(0)
+#define TX_ID_UNUSED UINT64_MAX
 
 typedef struct AnomalyJsonOutputCtx_ {
     LogFileCtx* file_ctx;
@@ -104,7 +105,6 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
         if (!is_ip_pkt) {
             json_object_set_new(js, "timestamp", json_string(timebuf));
         } else {
-            JsonFiveTuple((const Packet *)p, LOG_DIR_PACKET, js);
             JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
         }
 
@@ -120,12 +120,8 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
                                     json_string("packet") : json_string("stream"));
             json_object_set_new(ajs, "event", json_string(event));
         } else {
-            /* include event code with unrecognized events */
-            uint32_t offset = 0;
-            char unknown_event_buf[8];
             json_object_set_new(ajs, "type", json_string("unknown"));
-            PrintBufferData(unknown_event_buf, &offset, 8, "%d", event_code);
-            json_object_set_new(ajs, "code", json_string(unknown_event_buf));
+            json_object_set_new(ajs, "code", json_integer(event_code));
         }
 
         /* anomaly */
@@ -143,13 +139,23 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
                         const Packet *p, AppLayerDecoderEvents *decoder_events,
                         bool is_applayer, const char *layer, uint64_t tx_id)
 {
-    const char *alprotoname;
-    alprotoname = AppLayerGetProtoName(p->flow->alproto);
+    const char *alprotoname = AppLayerGetProtoName(p->flow->alproto);
 
-    for (int i = 0; i < decoder_events->cnt; i++) {
+    SCLogDebug("decoder_events %p event_count %d (last logged %d) %s",
+                decoder_events, decoder_events->cnt,
+                decoder_events->event_last_logged,
+                tx_id != TX_ID_UNUSED ? "tx" : "no-tx");
+
+    for (int i = decoder_events->event_last_logged; i < decoder_events->cnt; i++) {
         MemBufferReset(aft->json_buffer);
 
-        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE);
+        json_t *js;
+        if (tx_id != TX_ID_UNUSED) {
+            js = CreateJSONHeaderWithTxId(p, LOG_DIR_PACKET,
+                                          ANOMALY_EVENT_TYPE, tx_id);
+        } else {
+            js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE);
+        }
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
@@ -160,7 +166,6 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
             return TM_ECODE_OK;
         }
 
-        JsonFiveTuple((const Packet *)p, LOG_DIR_PACKET, js);
         JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
 
         /* Use app layer proto name if available */
@@ -191,15 +196,11 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
             json_object_set_new(ajs, "code", json_integer(event_code));
         }
 
-        /* log event number (and total */
-        uint32_t offset = 0;
-        char event_no_buf[32];
-        PrintBufferData(event_no_buf, &offset, 32, "%d (of %d)",
+        /* log event number (and total) */
+        char event_no_buf[16];
+        snprintf(event_no_buf, sizeof(event_no_buf), "%d (of %d)",
                         i+1, decoder_events->cnt);
         json_object_set_new(ajs, "event_no", json_string(event_no_buf));
-
-        if (tx_id != (uint64_t) -1)
-            json_object_set_new(ajs, "tx_id", json_integer(tx_id));
         json_object_set_new(ajs, "layer", json_string(layer));
 
         /* anomaly */
@@ -208,6 +209,9 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
 
         json_object_clear(js);
         json_decref(js);
+
+        /* Current implementation assumes a single owner for this value */
+        decoder_events->event_last_logged++;
     }
 
     return TM_ECODE_OK;
@@ -216,16 +220,16 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
 static int JsonAnomalyTxLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                                Flow *f, void *state, void *tx, uint64_t tx_id)
 {
-    SCLogDebug("state %p, tx: %p, tx_id: %"PRIu64, state, tx, tx_id);
-
     JsonAnomalyLogThread *aft = thread_data;
     uint8_t proto = f->proto;
     AppProto alproto = f->alproto;
     AppLayerDecoderEvents *decoder_events;
     decoder_events = AppLayerParserGetEventsByTx(proto, alproto, state, tx_id);
-    if (decoder_events)
+    if (decoder_events && (decoder_events->event_last_logged < decoder_events->cnt)) {
+        SCLogDebug("state %p, tx: %p, tx_id: %"PRIu64, state, tx, tx_id);
         AnomalyAppLayerDecoderEventJson(aft, p, decoder_events, false,
                                         "applayer_parser", tx_id);
+    }
     return TM_ECODE_OK;
 }
 
@@ -245,18 +249,18 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
     }
 
     /* app layer events */
-    if (p->app_layer_events && p->app_layer_events->cnt) {
+    if (rc == TM_ECODE_OK && p->app_layer_events && p->app_layer_events->cnt) {
         rc = AnomalyAppLayerDecoderEventJson(aft, p, p->app_layer_events,
-                                             true, "app_layer", -1);
+                                             true, "app_layer", TX_ID_UNUSED);
     }
 
     /* parser state events */
-    if (AnomalyHasParserEvents(p)) {
-        SCLogDebug("Checking for anomaly events for alproto %d", p->flow->alproto);
+    if (rc == TM_ECODE_OK && AnomalyHasParserEvents(p)) {
+        SCLogDebug("Checking for anomaly events; alproto %d", p->flow->alproto);
         AppLayerDecoderEvents *parser_events = AppLayerParserGetDecoderEvents(p->flow->alparser);
-        if (parser_events && parser_events->cnt) {
+        if (parser_events && (parser_events->event_last_logged < parser_events->cnt)) {
             rc = AnomalyAppLayerDecoderEventJson(aft, p, parser_events,
-                                                 false, "parser", -1);
+                                                 false, "parser", TX_ID_UNUSED);
         }
     }
 
