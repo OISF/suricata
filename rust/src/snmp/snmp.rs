@@ -564,7 +564,7 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
     let mut parser = RustParser {
         name              : PARSER_NAME.as_ptr() as *const libc::c_char,
         default_port      : default_port.as_ptr(),
-        ipproto           : libc::IPPROTO_UDP,
+        ipproto           : core::IPPROTO_UDP,
         probe_ts          : rs_snmp_probing_parser,
         probe_tc          : rs_snmp_probing_parser,
         min_depth         : 0,
@@ -600,7 +600,7 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
-        AppLayerParserRegisterGetTxIterator(libc::IPPROTO_UDP as u8, alproto, rs_snmp_get_tx_iterator);
+        AppLayerParserRegisterGetTxIterator(core::IPPROTO_UDP as u8, alproto, rs_snmp_get_tx_iterator);
         // port 162
         let default_port_traps = CString::new("162").unwrap();
         parser.default_port = default_port_traps.as_ptr();
