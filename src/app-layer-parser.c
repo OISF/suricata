@@ -560,6 +560,7 @@ void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
 
     SCReturn;
 }
+
 void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
     int (*StateGetEventInfo)(const char *event_name, int *event_id,
                              AppLayerEventType *event_type))
