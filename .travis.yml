@@ -105,6 +105,7 @@ matrix:
             - *packages
             - coccinelle
             - gcc-7
+            - python3-sphinx
     # Linux, gcc, Rust (latest stable).
     # This is allowed to fail, update allow_failures if the env changes.
     - os: linux
