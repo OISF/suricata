@@ -64,7 +64,7 @@ static int DetectHttpServerBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 #ifdef UNITTESTS
 static void DetectHttpServerBodyRegisterTests(void);
 #endif
-static int g_file_data_buffer_id = 0;
+static int g_http_server_body_buffer_id = 0;
 
 /**
  * \brief Registers the keyword handlers for the "http_server_body" keyword.
@@ -91,7 +91,7 @@ void DetectHttpServerBodyRegister(void)
     sigmatch_table[DETECT_HTTP_RESPONSE_BODY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_RESPONSE_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    g_file_data_buffer_id = DetectBufferTypeRegister("file_data");
+    g_http_server_body_buffer_id = DetectBufferTypeRegister("http_server_body");
 }
 
 /**
@@ -111,7 +111,7 @@ int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_SERVER_BODY,
-                                                  g_file_data_buffer_id,
+                                                  g_http_server_body_buffer_id,
                                                   ALPROTO_HTTP);
 }
 
@@ -126,7 +126,7 @@ int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, const char 
  */
 static int DetectHttpServerBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(s, g_file_data_buffer_id) < 0)
+    if (DetectBufferSetActiveList(s, g_http_server_body_buffer_id) < 0)
         return -1;
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
