@@ -38,6 +38,8 @@ struct AppLayerDecoderEvents_ {
     uint8_t cnt;
     /* current event buffer size */
     uint8_t events_buffer_size;
+    /* last logged */
+    uint8_t event_last_logged;
 };
 
 /* app layer pkt level events */
