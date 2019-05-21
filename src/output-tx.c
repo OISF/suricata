@@ -236,7 +236,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
                 PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
 
-                if (alproto != ALPROTO_UNKNOWN) {
+                if (logger->alproto != ALPROTO_UNKNOWN) {
                     tx_logged |= (1<<logger->logger_id);
                 }
             }
