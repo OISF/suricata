@@ -47,7 +47,9 @@ typedef struct DetectSNMPPduTypeData_ {
 static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *);
 static int DetectSNMPPduTypeSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectSNMPPduTypeFree(void *);
+#ifdef UNITTESTS
 static void DetectSNMPPduTypeRegisterTests(void);
+#endif
 static int g_snmp_pdu_type_buffer_id = 0;
 
 static int DetectEngineInspectSNMPRequestGeneric(ThreadVars *tv,
@@ -69,7 +71,9 @@ void DetectSNMPPduTypeRegister(void)
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].AppLayerTxMatch = DetectSNMPPduTypeMatch;
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].Setup = DetectSNMPPduTypeSetup;
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].Free = DetectSNMPPduTypeFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].RegisterTests = DetectSNMPPduTypeRegisterTests;
+#endif
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].flags |= SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
@@ -235,33 +239,6 @@ static void DetectSNMPPduTypeFree(void *ptr)
     SCFree(ptr);
 }
 
-
 #ifdef UNITTESTS
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-/**
- * \test This is a test for a valid value 2.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int SNMPValidityTestParse01 (void)
-{
-    DetectSNMPPduTypeData *dd = NULL;
-    dd = DetectSNMPPduTypeParse("2");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->pdu_type == 2);
-    DetectSNMPPduTypeFree(dd);
-    PASS;
-}
-
-#endif
-
-static void DetectSNMPPduTypeRegisterTests(void)
-{
-#ifdef UNITTESTS
-    UtRegisterTest("SNMPValidityTestParse01", SNMPValidityTestParse01);
+#include "tests/detect-snmp-pdu_type.c"
 #endif /* UNITTESTS */
-}
