@@ -29,6 +29,8 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-mpm.h"
+#include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-snmp-community.h"
 #include "app-layer-parser.h"
@@ -38,10 +40,10 @@
 
 static int DetectSNMPCommunitySetup(DetectEngineCtx *, Signature *,
     const char *);
-static int DetectEngineInspectSNMPCommunity(ThreadVars *tv,
-    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-    const Signature *s, const SigMatchData *smd,
-    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+       const DetectEngineTransforms *transforms,
+       Flow *f, const uint8_t flow_flags,
+       void *txv, const int list_id);
 static void DetectSNMPCommunityRegisterTests(void);
 static int g_snmp_rust_id = 0;
 
@@ -49,7 +51,7 @@ void DetectSNMPCommunityRegister(void)
 {
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].name = "snmp.community";
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].desc =
-        "SNMP content modififier to match on the snmp community";
+        "SNMP content modififier to match on the SNMP community";
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].Setup =
         DetectSNMPCommunitySetup;
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].RegisterTests =
@@ -59,12 +61,18 @@ void DetectSNMPCommunityRegister(void)
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     /* register inspect engines */
-    DetectAppLayerInspectEngineRegister("snmp.community",
+    DetectAppLayerInspectEngineRegister2("snmp.community",
             ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectSNMPCommunity);
-    DetectAppLayerInspectEngineRegister("snmp.community",
+            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerMpmRegister2("snmp.community", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_SNMP, 0);
+    DetectAppLayerInspectEngineRegister2("snmp.community",
             ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectSNMPCommunity);
+            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerMpmRegister2("snmp.community", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_SNMP, 0);
+
+    DetectBufferTypeSetDescriptionByName("snmp.community", "SNMP Community identifier");
 
     g_snmp_rust_id = DetectBufferTypeGetByName("snmp.community");
 }
@@ -81,28 +89,25 @@ static int DetectSNMPCommunitySetup(DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 }
 
-static int DetectEngineInspectSNMPCommunity(ThreadVars *tv,
-    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-    const Signature *s, const SigMatchData *smd,
-    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f,
+        const uint8_t flow_flags, void *txv, const int list_id)
 {
-    int ret = 0;
-    const uint8_t *data = NULL;
-    uint32_t data_len = 0;
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t data_len = 0;
+        uint8_t *data = NULL;
 
-    if (flags & STREAM_TOSERVER) {
         rs_snmp_tx_get_community(txv, (uint8_t **)&data, &data_len);
-    } else if (flags & STREAM_TOCLIENT) {
-        rs_snmp_tx_get_community(txv, (uint8_t **)&data, &data_len);
+        if (data == NULL || data_len == 0) {
+            return NULL;
+        }
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
     }
 
-    if (data != NULL) {
-        ret = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            NULL, f, (uint8_t *)data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-    }
-
-    return ret;
+    return buffer;
 }
 
 #ifdef UNITTESTS
