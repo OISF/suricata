@@ -2184,6 +2184,18 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
     sw_dup->s = sig;
     sw_dup->s_prev = NULL;
 
+    if (de_ctx->sig_list != NULL) {
+        SigDuplWrapper sw_tmp;
+        memset(&sw_tmp, 0, sizeof(SigDuplWrapper));
+        sw_tmp.s = de_ctx->sig_list;
+        SigDuplWrapper *sw_old = HashListTableLookup(de_ctx->dup_sig_hash_table,
+                                                     (void *)&sw_tmp, 0);
+        if (sw_old->s != sw_dup->s) {
+            // Link on top of the list if there was another element
+            sw_old->s_prev = sig;
+        }
+    }
+
     /* this is duplicate, but a duplicate that replaced the existing sig entry */
     ret = 2;
 
@@ -4010,9 +4022,15 @@ static int SigParseBidirWithSameSrcAndDest02(void)
 
 #endif /* UNITTESTS */
 
+#ifdef UNITTESTS
+#include "tests/detect-parse.c"
+#endif
+
 void SigParseRegisterTests(void)
 {
 #ifdef UNITTESTS
+    DetectParseRegisterTests();
+
     UtRegisterTest("SigParseTest01", SigParseTest01);
     UtRegisterTest("SigParseTest02", SigParseTest02);
     UtRegisterTest("SigParseTest03", SigParseTest03);
