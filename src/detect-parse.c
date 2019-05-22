@@ -2184,6 +2184,16 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
     sw_dup->s = sig;
     sw_dup->s_prev = NULL;
 
+    SigDuplWrapper sw_tmp;
+    sw_tmp.s = de_ctx->sig_list;
+    SigDuplWrapper *sw_old = HashListTableLookup(de_ctx->dup_sig_hash_table,
+                                 (void *)&sw_tmp, 0);
+    if (sw_old != sw_dup) {
+        // Link on top of the list if there was another element
+        sw_old->s_prev = sig;
+    }
+
+
     /* this is duplicate, but a duplicate that replaced the existing sig entry */
     ret = 2;
 
