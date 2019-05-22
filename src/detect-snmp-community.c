@@ -44,7 +44,9 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        const DetectEngineTransforms *transforms,
        Flow *f, const uint8_t flow_flags,
        void *txv, const int list_id);
+#ifdef UNITTESTS
 static void DetectSNMPCommunityRegisterTests(void);
+#endif
 static int g_snmp_rust_id = 0;
 
 void DetectSNMPCommunityRegister(void)
@@ -54,8 +56,9 @@ void DetectSNMPCommunityRegister(void)
         "SNMP content modififier to match on the SNMP community";
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].Setup =
         DetectSNMPCommunitySetup;
-    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].RegisterTests =
-        DetectSNMPCommunityRegisterTests;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].RegisterTests = DetectSNMPCommunityRegisterTests;
+#endif
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp.community";
 
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
@@ -111,110 +114,5 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 }
 
 #ifdef UNITTESTS
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "app-layer-parser.h"
-#include "detect-engine.h"
-#include "detect-parse.h"
-#include "flow-util.h"
-#include "stream-tcp.h"
-
-static int DetectSNMPCommunityTest(void)
-{
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-    DetectEngineThreadCtx *det_ctx = NULL;
-    DetectEngineCtx *de_ctx = NULL;
-    Flow f;
-    Packet *p;
-    TcpSession tcp;
-    ThreadVars tv;
-    Signature *s;
-
-    /*uint8_t request[] = "\x30\x27\x02\x01\x01\x04\x0b\x5b\x52\x30\x5f\x43\x40\x63\x74\x69" \
-                        "\x21\x5d\xa1\x15\x02\x04\x2b\x13\x3f\x85\x02\x01\x00\x02\x01\x00" \
-                        "\x30\x07\x30\x05\x06\x01\x01\x05\x00";*/
-    uint8_t request[] = {
-        0x30, 0x27, 0x02, 0x01, 0x01, 0x04, 0x0b, 0x5b,
-        0x52, 0x30, 0x5f, 0x43, 0x40, 0x63, 0x74, 0x69,
-        0x21, 0x5d, 0xa1, 0x15, 0x02, 0x04, 0x2b, 0x13,
-        0x3f, 0x85, 0x02, 0x01, 0x00, 0x02, 0x01, 0x00,
-        0x30, 0x07, 0x30, 0x05, 0x06, 0x01, 0x01, 0x05,
-        0x00
-    };
-
-    /* Setup flow. */
-    memset(&f, 0, sizeof(Flow));
-    memset(&tcp, 0, sizeof(TcpSession));
-    memset(&tv, 0, sizeof(ThreadVars));
-    p = UTHBuildPacket(request, sizeof(request), IPPROTO_UDP);
-    FLOW_INITIALIZE(&f);
-    f.alproto = ALPROTO_SNMP;
-    f.protoctx = (void *)&tcp;
-    f.proto = IPPROTO_UDP;
-    f.protomap = FlowGetProtoMapping(f.proto);
-    f.flags |= FLOW_IPV4;
-    p->flow = &f;
-    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
-    p->flowflags |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
-    StreamTcpInitConfig(TRUE);
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    /* This rule should match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert snmp any any -> any any ("
-        "msg:\"SNMP Test Rule\"; "
-        "snmp.community; content:\"[R0_C@cti!]\"; "
-        "sid:1; rev:1;)");
-    FAIL_IF_NULL(s);
-
-    /* This rule should not match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert snmp any any -> any any ("
-        "msg:\"SNMP Test Rule\"; "
-        "snmp.community; content:\"private\"; "
-        "sid:2; rev:1;)");
-    FAIL_IF_NULL(s);
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
-
-    FLOWLOCK_WRLOCK(&f);
-    AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SNMP,
-                        STREAM_TOSERVER, request, sizeof(request));
-    FLOWLOCK_UNLOCK(&f);
-
-    /* Check that we have app-layer state. */
-    FAIL_IF_NULL(f.alstate);
-
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    FAIL_IF(!PacketAlertCheck(p, 1));
-    FAIL_IF(PacketAlertCheck(p, 2));
-
-    /* Cleanup. */
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePacket(p);
-
-    PASS;
-}
-
-#endif
-
-static void DetectSNMPCommunityRegisterTests(void)
-{
-#ifdef UNITTESTS
-    UtRegisterTest("DetectSNMPCommunityTest",
-        DetectSNMPCommunityTest);
+#include "tests/detect-snmp-community.c"
 #endif /* UNITTESTS */
-}
