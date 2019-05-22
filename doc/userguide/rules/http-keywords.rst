@@ -60,8 +60,8 @@ http_header                    Modifier                 Both
 http_raw_header                Modifier                 Both
 http_cookie                    Modifier                 Both
 http_server_body               Modifier                 Response
-http.server                    Sticky Buffer            Response
-http.location                  Sticky Buffer            Response
+http.server                    Modifier                 Response
+http.location                  Modifier                 Response
 file_data                      Sticky Buffer            Response
 http_content_type              Sticky Buffer            Both
 http_content_len               Sticky Buffer            Both
