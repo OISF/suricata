@@ -56,7 +56,9 @@ typedef struct DetectSNMPVersionData_ {
 static DetectSNMPVersionData *DetectSNMPVersionParse (const char *);
 static int DetectSNMPVersionSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectSNMPVersionFree(void *);
+#ifdef UNITTESTS
 static void DetectSNMPVersionRegisterTests(void);
+#endif
 static int g_snmp_version_buffer_id = 0;
 
 static int DetectEngineInspectSNMPRequestGeneric(ThreadVars *tv,
@@ -81,7 +83,9 @@ void DetectSNMPVersionRegister (void)
     sigmatch_table[DETECT_AL_SNMP_VERSION].AppLayerTxMatch = DetectSNMPVersionMatch;
     sigmatch_table[DETECT_AL_SNMP_VERSION].Setup = DetectSNMPVersionSetup;
     sigmatch_table[DETECT_AL_SNMP_VERSION].Free = DetectSNMPVersionFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SNMP_VERSION].RegisterTests = DetectSNMPVersionRegisterTests;
+#endif
     sigmatch_table[DETECT_AL_SNMP_VERSION].flags |= SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
@@ -304,49 +308,5 @@ static void DetectSNMPVersionFree(void *ptr)
 
 
 #ifdef UNITTESTS
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-/**
- * \test This is a test for a valid value 2.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int SNMPValidityTestParse01 (void)
-{
-    DetectSNMPVersionData *dd = NULL;
-    dd = DetectSNMPVersionParse("2");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->version == 2 && dd->mode == PROCEDURE_EQ);
-    DetectSNMPVersionFree(dd);
-    PASS;
-}
-
-/**
- * \test This is a test for a valid value >2.
- *
- * \retval 1 on success.
- * \retval 0 on failure.
- */
-static int SNMPValidityTestParse02 (void)
-{
-    DetectSNMPVersionData *dd = NULL;
-    dd = DetectSNMPVersionParse(">2");
-    FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->version == 2 && dd->mode == PROCEDURE_GT);
-    DetectSNMPVersionFree(dd);
-    PASS;
-}
-
-
-#endif
-
-static void DetectSNMPVersionRegisterTests(void)
-{
-#ifdef UNITTESTS
-    UtRegisterTest("SNMPValidityTestParse01", SNMPValidityTestParse01);
-    UtRegisterTest("SNMPValidityTestParse02", SNMPValidityTestParse02);
+#include "tests/detect-snmp-version.c"
 #endif /* UNITTESTS */
-}
