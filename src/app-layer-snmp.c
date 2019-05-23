@@ -35,35 +35,10 @@
 
 #include "app-layer-snmp.h"
 
-#ifdef HAVE_RUST
-
 #include "rust-snmp-snmp-gen.h"
-
-static void SNMPParserRegisterTests(void);
 
 void RegisterSNMPParsers(void)
 {
     rs_register_snmp_parser();
-
-#ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_SNMP,
-        SNMPParserRegisterTests);
-#endif
 }
 
-#ifdef UNITTESTS
-#endif
-
-static void SNMPParserRegisterTests(void)
-{
-#ifdef UNITTESTS
-#endif
-}
-
-#else /* HAVE_RUST */
-
-void RegisterSNMPParsers(void)
-{
-}
-
-#endif /* HAVE_RUST */
