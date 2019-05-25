@@ -146,84 +146,78 @@ Examples
 
 ::
 
-	"anomaly": {
-	  "type": "packet",
-	  "event": "decoder.udp.pkt_too_small"
-	}
+    "anomaly": {
+      "type": "packet",
+      "event": "decoder.icmpv4.unknown_type"
+    }
 
-	{
-	  "timestamp": "2016-01-17T13:26:30.841742-0800",
-	  "flow_id": 1848021463489450,
-	  "pcap_cnt": 1393890,
-	  "event_type": "anomaly",
-	  "src_ip": "192.168.81.128",
-	  "src_port": 50105,
-	  "dest_ip": "31.148.99.125",
-	  "dest_port": 80,
-	  "proto": "TCP",
-	  "anomaly": {
-		"type": "stream",
-		"event": "stream.reassembly_seq_gap"
-	  }
-	}
+    "anomaly": {
+      "type": "packet",
+      "event": "decoder.udp.pkt_too_small"
+    }
 
-	{
-	  "timestamp": "1969-12-31T16:04:21.000000-0800",
-	  "pcap_cnt": 9262,
-	  "event_type": "anomaly",
-	  "src_ip": "208.21.2.184",
-	  "src_port": 0,
-	  "dest_ip": "10.1.1.99",
-	  "dest_port": 0,
-	  "proto": "UDP",
-	  "packet": "////////AQEBAQEBCABFAAA8xZ5AAP8R1+DQFQK4CgE=",
-	  "packet_info": {
-		"linktype": 1
-	  },
-	  "anomaly": {
-		"type": "packet",
-		"event": "decoder.udp.pkt_too_small"
-	  }
-	}
+    "anomaly": {
+      "type": "packet",
+      "event": "decoder.ipv4.wrong_ip_version"
+    }
 
-	{
-	  "timestamp": "2016-01-11T05:10:54.612110-0800",
-	  "flow_id": 412547343494194,
-	  "pcap_cnt": 1391293,
-	  "event_type": "anomaly",
-	  "src_ip": "192.168.122.149",
-	  "src_port": 49324,
-	  "dest_ip": "69.195.71.174",
-	  "dest_port": 443,
-	  "proto": "TCP",
-	  "app_proto": "tls",
-	  "anomaly": {
-		"type": "applayer",
-		"event": "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION",
-		"event_no": "1 (of 1)",
-		"layer": "proto_detect"
-	  }
-	}
+    {
+      "timestamp": "1969-12-31T16:04:21.000000-0800",
+      "pcap_cnt": 9262,
+      "event_type": "anomaly",
+      "src_ip": "208.21.2.184",
+      "src_port": 0,
+      "dest_ip": "10.1.1.99",
+      "dest_port": 0,
+      "proto": "UDP",
+      "packet": "////////AQEBAQEBCABFAAA8xZ5AAP8R1+DQFQK4CgE=",
+      "packet_info": {
+        "linktype": 1
+      },
+      "anomaly": {
+        "type": "packet",
+        "event": "decoder.udp.pkt_too_small"
+      }
+    }
 
-	{
-	  "timestamp": "2016-01-11T05:10:52.828802-0800",
-	  "flow_id": 201217772575257,
-	  "pcap_cnt": 1391281,
-	  "event_type": "anomaly",
-	  "src_ip": "192.168.122.149",
-	  "src_port": 49323,
-	  "dest_ip": "69.195.71.174",
-	  "dest_port": 443,
-	  "proto": "TCP",
-	  "tx_id": 0,
-	  "app_proto": "tls",
-	  "anomaly": {
-		"type": "applayer",
-		"event": "INVALID_RECORD_TYPE",
-		"event_no": "1 (of 3)",
-		"layer": "proto_parser"
-	  }
-	}
+    {
+      "timestamp": "2016-01-11T05:10:54.612110-0800",
+      "flow_id": 412547343494194,
+      "pcap_cnt": 1391293,
+      "event_type": "anomaly",
+      "src_ip": "192.168.122.149",
+      "src_port": 49324,
+      "dest_ip": "69.195.71.174",
+      "dest_port": 443,
+      "proto": "TCP",
+      "app_proto": "tls",
+      "anomaly": {
+        "type": "applayer",
+        "event": "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION",
+        "event_no": "1 (of 1)",
+        "layer": "proto_detect"
+      }
+    }
+
+    {
+      "timestamp": "2016-01-11T05:10:52.828802-0800",
+      "flow_id": 201217772575257,
+      "pcap_cnt": 1391281,
+      "event_type": "anomaly",
+      "src_ip": "192.168.122.149",
+      "src_port": 49323,
+      "dest_ip": "69.195.71.174",
+      "dest_port": 443,
+      "proto": "TCP",
+      "tx_id": 0,
+      "app_proto": "tls",
+      "anomaly": {
+        "type": "applayer",
+        "event": "INVALID_RECORD_TYPE",
+        "event_no": "1 (of 3)",
+        "layer": "proto_parser"
+      }
+    }
 
 Event type: HTTP
 ----------------
