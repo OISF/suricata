@@ -190,18 +190,9 @@ static int TemplateStateGetEventInfoById(int event_id, const char **event_name,
     return 0;
 }
 
-static AppLayerDecoderEvents *TemplateGetEvents(void *statev, uint64_t tx_id)
+static AppLayerDecoderEvents *TemplateGetEvents(void *tx)
 {
-    TemplateState *state = statev;
-    TemplateTransaction *tx;
-
-    TAILQ_FOREACH(tx, &state->tx_list, next) {
-        if (tx->tx_id == tx_id) {
-            return tx->decoder_events;
-        }
-    }
-
-    return NULL;
+    return ((TemplateTransaction *)tx)->decoder_events;
 }
 
 /**

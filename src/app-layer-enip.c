@@ -112,20 +112,9 @@ static uint64_t ENIPGetTxCnt(void *alstate)
     return ((uint64_t) ((ENIPState *) alstate)->transaction_max);
 }
 
-static AppLayerDecoderEvents *ENIPGetEvents(void *state, uint64_t id)
+static AppLayerDecoderEvents *ENIPGetEvents(void *tx)
 {
-    ENIPState         *enip = (ENIPState *) state;
-    ENIPTransaction   *tx;
-
-    if (enip->curr && enip->curr->tx_num == (id + 1))
-        return enip->curr->decoder_events;
-
-    TAILQ_FOREACH(tx, &enip->tx_list, next) {
-        if (tx->tx_num == (id+1))
-            return tx->decoder_events;
-    }
-
-    return NULL;
+    return ((ENIPTransaction *)tx)->decoder_events;
 }
 
 static int ENIPStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type)
