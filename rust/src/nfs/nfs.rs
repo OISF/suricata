@@ -1589,18 +1589,11 @@ pub extern "C" fn rs_nfs_tx_get_detect_flags(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_events(state: &mut NFSState,
-                                          tx_id: u64)
+pub extern "C" fn rs_nfs_state_get_events(tx: *mut libc::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
-    match state.get_tx_by_id(tx_id) {
-        Some(tx) => {
-            return tx.events;
-        }
-        _ => {
-            return std::ptr::null_mut();
-        }
-    }
+    let tx = cast_pointer!(tx, NFSTransaction);
+    return tx.events;
 }
 
 #[no_mangle]

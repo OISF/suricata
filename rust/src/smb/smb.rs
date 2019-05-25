@@ -2104,18 +2104,11 @@ pub extern "C" fn rs_smb_state_truncate(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_events(state: &mut SMBState,
-                                          tx_id: u64)
+pub extern "C" fn rs_smb_state_get_events(tx: *mut libc::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
-    match state.get_tx_by_id(tx_id) {
-        Some(tx) => {
-            return tx.events;
-        }
-        _ => {
-            return std::ptr::null_mut();
-        }
-    }
+    let tx = cast_pointer!(tx, SMBTransaction);
+    return tx.events;
 }
 
 #[no_mangle]

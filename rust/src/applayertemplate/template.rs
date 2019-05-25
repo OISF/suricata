@@ -416,14 +416,10 @@ pub extern "C" fn rs_template_tx_set_logged(
 
 #[no_mangle]
 pub extern "C" fn rs_template_state_get_events(
-    state: *mut libc::c_void,
-    tx_id: u64,
+    tx: *mut libc::c_void
 ) -> *mut core::AppLayerDecoderEvents {
-    let state = cast_pointer!(state, TemplateState);
-    match state.get_tx(tx_id) {
-        Some(tx) => tx.events,
-        _ => std::ptr::null_mut(),
-    }
+    let tx = cast_pointer!(tx, TemplateTransaction);
+    return tx.events;
 }
 
 #[no_mangle]
