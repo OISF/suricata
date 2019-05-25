@@ -481,7 +481,7 @@ static uint32_t CopyCommandLine(uint8_t **dest, uint8_t *src, uint32_t length)
 
         /* Remove trailing newlines/carriage returns */
         if (isspace((unsigned char)where[length - 1])) {
-            while(length && isspace((unsigned char)where[--length]));
+            while(length && isspace((unsigned char)where[--length - 1]));
             where[length] = '\0';
         }
         *dest = where;
@@ -746,12 +746,26 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
 {
     FtpState *state = (FtpState *)ftp_state;
     int retcode = 1;
+    FTPTransaction *tx;
 
     if (state->command == FTP_COMMAND_UNKNOWN) {
-        return 1;
+        if (unlikely(input_len == 0)) {
+            return 1;
+        }
+
+        tx = FTPGetOldestTx(state);
+        if (tx == NULL) {
+            tx = FTPTransactionCreate(state);
+        }
+        if (unlikely(tx == NULL)) {
+            return -1;
+        }
+        /* unknown */
+        tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX -1];
+    } else {
+        tx = FTPGetOldestTx(state);
     }
 
-    FTPTransaction *tx = FTPGetOldestTx(state);
     state->curr_tx = tx;
     if (state->command == FTP_COMMAND_AUTH_TLS) {
         if (input_len >= 4 && SCMemcmp("234 ", input, 4) == 0) {
