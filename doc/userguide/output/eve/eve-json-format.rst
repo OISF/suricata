@@ -482,7 +482,8 @@ Fields
 * "command": The FTP command.
 * "command_data": The data accompanying the command.
 * "reply": The command reply, which may contain multiple lines, in array format.
-* "completion_code": The 3-digit completion code. The first digit indicates whether the response is good, bad or incomplete.
+* "completion_code": The 3-digit completion code. The first digit indicates whether the response is good, bad or incomplete. This
+  is also in array format and may contain multiple completion codes matching multiple reply lines.
 * "dynamic_port": The dynamic port established for subsequent data transfers, when applicable, with a "PORT" or "EPRT" command.
 * "mode": The type of FTP connection. Most connections are "passive" but may be "active".
 * "reply_received": Indicates whether a response was matched to the command. In some non-typical cases, a command may lack a response.
@@ -497,15 +498,17 @@ Example of regular FTP logging:
 
   "ftp": {
     "command": "RETR",
-    "command_data": "index.html",
+    "command_data": "100KB.zip",
     "reply": [
-      "Opening BINARY mode data connection for index.html (6712 bytes)",
-      "Transfer complete"
+      "Opening BINARY mode data connection for 100KB.zip (102400 bytes).",
+      "Transfer complete."
     ],
-    "completion_code": "150"
-  }
+    "completion_code": [
+      "150",
+      "226"
+    ],
 
-Example showing all fields
+Example showing all fields:
 
 ::
 
@@ -513,11 +516,14 @@ Example showing all fields
     "command": "EPRT",
     "command_data": "|2|2a01:e34:ee97:b130:8c3e:45ea:5ac6:e301|41813|",
     "reply": [
-      "EPRT command successful. Consider using EPSV"
+      "EPRT command successful. Consider using EPSV."
     ],
-    "reply_code": "200",
+    "completion_code": [
+      "200"
+    ],
     "dynamic_port": 41813,
-    "mode": "active"
+    "mode": "active",
+    "reply_received": "yes"
   }
 
 Event type: FTP_DATA
@@ -528,7 +534,6 @@ Fields
 
 * "command": The FTP command associated with the event.
 * "filename": The name of the involved file.
-
 
 Examples
 ~~~~~~~~
