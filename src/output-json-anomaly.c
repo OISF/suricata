@@ -137,7 +137,7 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
 
 static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
                         const Packet *p, AppLayerDecoderEvents *decoder_events,
-                        bool is_applayer, const char *layer, uint64_t tx_id)
+                        bool is_pktlayer, const char *layer, uint64_t tx_id)
 {
     const char *alprotoname = AppLayerGetProtoName(p->flow->alproto);
 
@@ -168,28 +168,20 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
 
         JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
 
-        /* Use app layer proto name if available */
-        if (alprotoname) {
-            json_object_set_new(ajs, "alproto", json_string(alprotoname));
-        } else {
-            json_object_set_new(ajs, "alproto",
-                p->flow ? json_integer(p->flow->alproto) : json_string("unknown"));
-        }
+        json_object_set_new(js, "app_proto", json_string(alprotoname));
 
         const char *event_name = NULL;
         uint8_t event_code = decoder_events->events[i];
         AppLayerEventType event_type;
         int r;
-        if (is_applayer) {
+        if (is_pktlayer) {
             r = AppLayerGetEventInfoById(event_code, &event_name, &event_type);
         } else {
             r = AppLayerParserGetEventInfoById(p->flow->proto, p->flow->alproto,
                                                event_code, &event_name, &event_type);
         }
         if (r == 0) {
-            json_object_set_new(ajs, "type",
-                        json_string(event_type == APP_LAYER_EVENT_TYPE_TRANSACTION ?
-                                    "transaction" : "packet"));
+            json_object_set_new(ajs, "type", json_string("applayer"));
             json_object_set_new(ajs, "event", json_string(event_name));
         } else {
             json_object_set_new(ajs, "type", json_string("unknown"));
@@ -220,15 +212,13 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
 static int JsonAnomalyTxLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                                Flow *f, void *state, void *tx, uint64_t tx_id)
 {
-    JsonAnomalyLogThread *aft = thread_data;
-    uint8_t proto = f->proto;
-    AppProto alproto = f->alproto;
     AppLayerDecoderEvents *decoder_events;
-    decoder_events = AppLayerParserGetEventsByTx(proto, alproto, state, tx_id);
-    if (decoder_events && (decoder_events->event_last_logged < decoder_events->cnt)) {
+    decoder_events = AppLayerParserGetEventsByTx(f->proto, f->alproto, tx);
+    if (decoder_events && decoder_events->event_last_logged < decoder_events->cnt) {
         SCLogDebug("state %p, tx: %p, tx_id: %"PRIu64, state, tx, tx_id);
+        JsonAnomalyLogThread *aft = thread_data;
         AnomalyAppLayerDecoderEventJson(aft, p, decoder_events, false,
-                                        "applayer_parser", tx_id);
+                                        "proto_parser", tx_id);
     }
     return TM_ECODE_OK;
 }
@@ -237,6 +227,11 @@ static inline bool AnomalyHasParserEvents(const Packet *p)
 {
     return (p->flow && p->flow->alparser &&
             AppLayerParserHasDecoderEvents(p->flow->alparser));
+}
+
+static inline bool AnomalyHasPacketAppLayerEvents(const Packet *p)
+{
+    return p->app_layer_events && p->app_layer_events->cnt;
 }
 
 static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *p)
@@ -249,9 +244,9 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
     }
 
     /* app layer events */
-    if (rc == TM_ECODE_OK && p->app_layer_events && p->app_layer_events->cnt) {
+    if (rc == TM_ECODE_OK && AnomalyHasPacketAppLayerEvents(p)) {
         rc = AnomalyAppLayerDecoderEventJson(aft, p, p->app_layer_events,
-                                             true, "app_layer", TX_ID_UNUSED);
+                                             true, "proto_detect", TX_ID_UNUSED);
     }
 
     /* parser state events */
@@ -275,7 +270,9 @@ static int JsonAnomalyLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
 static int JsonAnomalyLogCondition(ThreadVars *tv, const Packet *p)
 {
-    return p->events.cnt > 0 || p->app_layer_events || AnomalyHasParserEvents(p);
+    return p->events.cnt > 0 ||
+           (p->app_layer_events && p->app_layer_events->cnt > 0) ||
+           AnomalyHasParserEvents(p);
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
@@ -323,16 +320,6 @@ static TmEcode JsonAnomalyLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void JsonAnomalyLogDeInitCtx(OutputCtx *output_ctx)
-{
-    AnomalyJsonOutputCtx *json_output_ctx = (AnomalyJsonOutputCtx *) output_ctx->data;
-    if (json_output_ctx != NULL) {
-        LogFileFreeCtx(json_output_ctx->file_ctx);
-        SCFree(json_output_ctx);
-    }
-    SCFree(output_ctx);
-}
-
 static void JsonAnomalyLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
@@ -374,50 +361,6 @@ static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx,
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-static OutputInitResult JsonAnomalyLogInitCtx(ConfNode *conf)
-{
-    OutputInitResult result = { NULL, false };
-    AnomalyJsonOutputCtx *json_output_ctx = NULL;
-    LogFileCtx *logfile_ctx = LogFileNewCtx();
-    if (logfile_ctx == NULL) {
-        SCLogDebug("JsonAnomalyLogInitCtx: Could not create new LogFileCtx");
-        return result;
-    }
-
-    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
-        LogFileFreeCtx(logfile_ctx);
-        return result;
-    }
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        LogFileFreeCtx(logfile_ctx);
-        return result;
-    }
-
-    json_output_ctx = SCCalloc(1, sizeof(AnomalyJsonOutputCtx));
-    if (unlikely(json_output_ctx == NULL)) {
-        LogFileFreeCtx(logfile_ctx);
-        SCFree(output_ctx);
-        return result;
-    }
-
-    json_output_ctx->file_ctx = logfile_ctx;
-    JsonAnomalyLogConf(json_output_ctx, conf);
-
-    output_ctx->data = json_output_ctx;
-    output_ctx->DeInit = JsonAnomalyLogDeInitCtx;
-
-    result.ctx = output_ctx;
-    result.ok = true;
-    return result;
-}
-
-/**
- * \brief Create a new LogFileCtx for "fast" output style.
- * \param conf The configuration node for this output.
- * \return A LogFileCtx pointer on success, NULL on failure.
- */
 static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
@@ -452,10 +395,6 @@ error:
 
 void JsonAnomalyLogRegister (void)
 {
-    OutputRegisterPacketModule(LOGGER_JSON_ANOMALY, MODULE_NAME, "anomaly-json-log",
-        JsonAnomalyLogInitCtx, JsonAnomalyLogger, JsonAnomalyLogCondition,
-        JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit, NULL);
-
     OutputRegisterPacketSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
         "eve-log.anomaly", JsonAnomalyLogInitCtxSub, JsonAnomalyLogger,
         JsonAnomalyLogCondition, JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit,

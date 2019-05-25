@@ -116,9 +116,9 @@ static uint64_t RustDNSGetDetectFlags(void *tx, uint8_t dir)
     return rs_dns_tx_get_detect_flags(tx, dir);
 }
 
-static AppLayerDecoderEvents *RustDNSGetEvents(void *state, uint64_t id)
+static AppLayerDecoderEvents *RustDNSGetEvents(void *tx)
 {
-    return rs_dns_state_get_events(state, id);
+    return rs_dns_state_get_events(tx);
 }
 
 void RegisterRustDNSUDPParsers(void)
@@ -183,6 +183,7 @@ void RegisterRustDNSUDPParsers(void)
                 rs_dns_state_progress_completion_status);
 
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
+        DNSAppLayerRegisterGetEventInfoById(IPPROTO_UDP, ALPROTO_DNS);
 
 #if 0
         DNSUDPConfigure();
