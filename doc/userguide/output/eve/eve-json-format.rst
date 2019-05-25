@@ -131,39 +131,39 @@ Examples
 
 ::
 
-	"anomaly": {
-	  "type": "packet",
-	  "event": "decoder.icmpv4.unknown_type"
-	}
+    "anomaly": {
+      "type": "packet",
+      "event": "decoder.icmpv4.unknown_type"
+    }
 
-	"anomaly": {
-	  "type": "packet",
-	  "event": "decoder.udp.pkt_too_small"
-	}
+    "anomaly": {
+      "type": "packet",
+      "event": "decoder.udp.pkt_too_small"
+    }
 
-	"anomaly": {
-	  "type": "packet",
-	  "event": "decoder.ipv4.wrong_ip_version"
-	}
+    "anomaly": {
+      "type": "packet",
+      "event": "decoder.ipv4.wrong_ip_version"
+    }
 
-	{
-	  "timestamp": "1969-12-31T16:04:21.000000-0800",
-	  "pcap_cnt": 9262,
-	  "event_type": "anomaly",
-	  "src_ip": "208.21.2.184",
-	  "src_port": 0,
-	  "dest_ip": "10.1.1.99",
-	  "dest_port": 0,
-	  "proto": "UDP",
-	  "packet": "////////AQEBAQEBCABFAAA8xZ5AAP8R1+DQFQK4CgE=",
-	  "packet_info": {
-		"linktype": 1
-	  },
-	  "anomaly": {
-		"type": "packet",
-		"event": "decoder.udp.pkt_too_small"
-	  }
-	}
+    {
+      "timestamp": "1969-12-31T16:04:21.000000-0800",
+      "pcap_cnt": 9262,
+      "event_type": "anomaly",
+      "src_ip": "208.21.2.184",
+      "src_port": 0,
+      "dest_ip": "10.1.1.99",
+      "dest_port": 0,
+      "proto": "UDP",
+      "packet": "////////AQEBAQEBCABFAAA8xZ5AAP8R1+DQFQK4CgE=",
+      "packet_info": {
+        "linktype": 1
+      },
+      "anomaly": {
+        "type": "packet",
+        "event": "decoder.udp.pkt_too_small"
+      }
+    }
 
 Event type: HTTP
 ----------------
