@@ -2291,12 +2291,9 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
  *
  * \param mapfd file descriptor of the protocol bypass table
  * \param key data to use as key in the table
- * \param pkts_cnt packet count for the half flow
- * \param bytes_cnt bytes count for the half flow
  * \return 0 in case of error, 1 if success
  */
 static int AFPInsertHalfFlow(int mapd, void *key, uint32_t hash,
-                             uint64_t pkts_cnt, uint64_t bytes_cnt,
                              unsigned int nr_cpus)
 {
     BPF_DECLARE_PERCPU(struct pair, value, nr_cpus);
@@ -2376,16 +2373,16 @@ static int AFPBypassCallback(Packet *p)
         key.vlan_id[1] = p->vlan_id[1];
 
         key.ip_proto = IPV4_GET_IPPROTO(p);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
-                              p->flow->todstbytecnt, p->afp_v.nr_cpus) == 0) {
+        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash,
+                              p->afp_v.nr_cpus) == 0) {
             return 0;
         }
         key.src = htonl(GET_IPV4_DST_ADDR_U32(p));
         key.dst = htonl(GET_IPV4_SRC_ADDR_U32(p));
         key.port16[0] = GET_TCP_DST_PORT(p);
         key.port16[1] = GET_TCP_SRC_PORT(p);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash, p->flow->tosrcpktcnt,
-                              p->flow->tosrcbytecnt, p->afp_v.nr_cpus) == 0) {
+        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash,
+                              p->afp_v.nr_cpus) == 0) {
             return 0;
         }
         EBPFUpdateFlow(p->flow, p, NULL);
@@ -2409,8 +2406,8 @@ static int AFPBypassCallback(Packet *p)
         key.vlan_id[0] = p->vlan_id[0];
         key.vlan_id[1] = p->vlan_id[1];
         key.ip_proto = IPV6_GET_NH(p);
-        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
-                              p->flow->todstbytecnt, p->afp_v.nr_cpus) == 0) {
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash,
+                              p->afp_v.nr_cpus) == 0) {
             return 0;
         }
         for (i = 0; i < 4; i++) {
@@ -2419,11 +2416,12 @@ static int AFPBypassCallback(Packet *p)
         }
         key.port16[0] = GET_TCP_DST_PORT(p);
         key.port16[1] = GET_TCP_SRC_PORT(p);
-        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash, p->flow->tosrcpktcnt,
-                              p->flow->tosrcbytecnt, p->afp_v.nr_cpus) == 0) {
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash,
+                              p->afp_v.nr_cpus) == 0) {
             return 0;
         }
-        EBPFUpdateFlow(p->flow, p, NULL);
+        if (p->flow)
+            EBPFUpdateFlow(p->flow, p, NULL);
         return 1;
     }
 #endif
@@ -2461,25 +2459,25 @@ static int AFPXDPBypassCallback(Packet *p)
         if (p->afp_v.v4_map_fd == -1) {
             return 0;
         }
-        key.src = p->flow->src.addr_data32[0];
-        key.dst = p->flow->dst.addr_data32[0];
+        key.src = p->src.addr_data32[0];
+        key.dst = p->dst.addr_data32[0];
         /* In the XDP filter we get port from parsing of packet and not from skb
          * (as in eBPF filter) so we need to pass from host to network order */
-        key.port16[0] = htons(p->flow->sp);
-        key.port16[1] = htons(p->flow->dp);
+        key.port16[0] = htons(p->sp);
+        key.port16[1] = htons(p->dp);
         key.vlan_id[0] = p->vlan_id[0];
         key.vlan_id[1] = p->vlan_id[1];
         key.ip_proto = IPV4_GET_IPPROTO(p);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
-                              p->flow->todstbytecnt, p->afp_v.nr_cpus) == 0) {
+        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash,
+                              p->afp_v.nr_cpus) == 0) {
             return 0;
         }
-        key.src = p->flow->dst.addr_data32[0];
-        key.dst = p->flow->src.addr_data32[0];
-        key.port16[0] = htons(p->flow->dp);
-        key.port16[1] = htons(p->flow->sp);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash, p->flow->tosrcpktcnt,
-                              p->flow->tosrcbytecnt, p->afp_v.nr_cpus) == 0) {
+        key.src = p->dst.addr_data32[0];
+        key.dst = p->src.addr_data32[0];
+        key.port16[0] = htons(p->dp);
+        key.port16[1] = htons(p->sp);
+        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, p->flow_hash,
+                              p->afp_v.nr_cpus) == 0) {
             return 0;
         }
         return 1;
@@ -2502,8 +2500,8 @@ static int AFPXDPBypassCallback(Packet *p)
         key.vlan_id[0] = p->vlan_id[0];
         key.vlan_id[1] = p->vlan_id[1];
         key.ip_proto = IPV6_GET_NH(p);
-        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash, p->flow->todstpktcnt,
-                              p->flow->todstbytecnt, p->afp_v.nr_cpus) == 0) {
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash,
+                              p->afp_v.nr_cpus) == 0) {
             return 0;
         }
         for (i = 0; i < 4; i++) {
@@ -2512,8 +2510,8 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         key.port16[0] = htons(GET_TCP_DST_PORT(p));
         key.port16[1] = htons(GET_TCP_SRC_PORT(p));
-        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash, p->flow->tosrcpktcnt,
-                              p->flow->tosrcbytecnt, p->afp_v.nr_cpus) == 0) {
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, p->flow_hash,
+                              p->afp_v.nr_cpus) == 0) {
             return 0;
         }
         return 1;
