@@ -1309,23 +1309,9 @@ error:
     SCReturnInt(-1);
 }
 
-static AppLayerDecoderEvents *DNP3GetEvents(void *state, uint64_t tx_id)
+static AppLayerDecoderEvents *DNP3GetEvents(void *tx)
 {
-    DNP3State *dnp3 = state;
-    DNP3Transaction *tx;
-    uint64_t tx_num = tx_id + 1;
-
-    if (dnp3->curr && dnp3->curr->tx_num == tx_num) {
-        return dnp3->curr->decoder_events;
-    }
-
-    TAILQ_FOREACH(tx, &dnp3->tx_list, next) {
-        if (tx->tx_num == tx_num) {
-            return tx->decoder_events;
-        }
-    }
-
-    return NULL;
+    return ((DNP3Transaction *) tx)->decoder_events;
 }
 
 static void *DNP3GetTx(void *alstate, uint64_t tx_id)
