@@ -101,7 +101,7 @@ static int TFTPStateGetEventInfo(const char *event_name, int *event_id,
     return -1;
 }
 
-static AppLayerDecoderEvents *TFTPGetEvents(void *state, uint64_t tx_id)
+static AppLayerDecoderEvents *TFTPGetEvents(void *tx)
 {
     return NULL;
 }

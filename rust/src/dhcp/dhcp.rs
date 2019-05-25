@@ -328,15 +328,11 @@ pub extern "C" fn rs_dhcp_tx_set_logged(_state: *mut libc::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_get_events(state: *mut libc::c_void,
-                                           tx_id: libc::uint64_t)
+pub extern "C" fn rs_dhcp_state_get_events(tx: *mut libc::c_void)
                                            -> *mut core::AppLayerDecoderEvents
 {
-    let state = cast_pointer!(state, DHCPState);
-    match state.get_tx(tx_id) {
-        Some(tx) => tx.events,
-        _        => std::ptr::null_mut(),
-    }
+    let tx = cast_pointer!(tx, DHCPTransaction);
+    return tx.events;
 }
 
 #[no_mangle]
