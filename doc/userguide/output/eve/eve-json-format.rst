@@ -505,7 +505,7 @@ Example of regular FTP logging:
     "completion_code": "150"
   }
 
-Example showing all fields
+Example showing all fields:
 
 ::
 
@@ -528,7 +528,6 @@ Fields
 
 * "command": The FTP command associated with the event.
 * "filename": The name of the involved file.
-
 
 Examples
 ~~~~~~~~
