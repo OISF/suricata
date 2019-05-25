@@ -101,9 +101,17 @@ static int NFSTCPStateGetEventInfo(const char *event_name, int *event_id,
     return rs_nfs_state_get_event_info(event_name, event_id, event_type);
 }
 
-static AppLayerDecoderEvents *NFSTCPGetEvents(void *state, uint64_t id)
+static int NFSTCPStateGetEventInfoById(int event_id, const char **event_name,
+    AppLayerEventType *event_type)
 {
-    return rs_nfs_state_get_events(state, id);
+    *event_name = "NFS TCP event name (generic)";
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+    return 0;
+}
+
+static AppLayerDecoderEvents *NFSTCPGetEvents(void *tx)
+{
+    return rs_nfs_state_get_events(tx);
 }
 
 /**
@@ -378,6 +386,10 @@ void RegisterNFSTCPParsers(void)
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_NFS,
                 NFSTCPStateGetEventInfo);
+
+        AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_NFS,
+                NFSTCPStateGetEventInfoById);
+
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_NFS,
                 NFSTCPGetEvents);
 
