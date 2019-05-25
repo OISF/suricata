@@ -164,9 +164,10 @@ void SSLSetEvent(SSLState *ssl_state, uint8_t event)
     ssl_state->events++;
 }
 
-static AppLayerDecoderEvents *SSLGetEvents(void *state, uint64_t id)
+static AppLayerDecoderEvents *SSLGetEvents(void *tx)
 {
-    SSLState *ssl_state = (SSLState *)state;
+    /* for TLS, TX == state, see GetTx */
+    SSLState *ssl_state = (SSLState *)tx;
     return ssl_state->decoder_events;
 }
 

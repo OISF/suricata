@@ -283,19 +283,16 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud, uint8_t e)
     SCLogDebug("couldn't set event %u", e);
 }
 
-static AppLayerDecoderEvents *HTPGetEvents(void *state, uint64_t tx_id)
+static AppLayerDecoderEvents *HTPGetEvents(void *tx)
 {
-    SCLogDebug("get HTTP events for TX %"PRIu64, tx_id);
+    SCLogDebug("get HTTP events for TX %p", tx);
 
-    HtpState *s = (HtpState *)state;
-    htp_tx_t *tx = HTPStateGetTx(s, tx_id);
-    if (tx != NULL) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-        if (htud != NULL) {
-            SCLogDebug("has htud, htud->decoder_events %p", htud->decoder_events);
-            return htud->decoder_events;
-        }
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (htud != NULL) {
+        SCLogDebug("has htud, htud->decoder_events %p", htud->decoder_events);
+        return htud->decoder_events;
     }
+
     return NULL;
 }
 
@@ -6127,7 +6124,8 @@ libhtp:\n\
     FAIL_IF(tx->request_method_number != HTP_M_GET);
     FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
 
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, txtmp);
     FAIL_IF_NULL(decoder_events);
 
     FAIL_IF(decoder_events->events[0] != HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG);
@@ -6244,7 +6242,8 @@ libhtp:\n\
     }
 
     FLOWLOCK_WRLOCK(f);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, txtmp);
     if (decoder_events != NULL) {
         printf("app events: ");
         FLOWLOCK_UNLOCK(f);
@@ -6326,7 +6325,8 @@ static int HTPParserTest16(void)
     }
 
     FLOWLOCK_WRLOCK(f);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, txtmp);
     if (decoder_events == NULL) {
         printf("no app events: ");
         FLOWLOCK_UNLOCK(f);
