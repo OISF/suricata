@@ -98,9 +98,9 @@ static int NFSStateGetEventInfo(const char *event_name, int *event_id,
     return rs_nfs_state_get_event_info(event_name, event_id, event_type);
 }
 
-static AppLayerDecoderEvents *NFSGetEvents(void *state, uint64_t id)
+static AppLayerDecoderEvents *NFSGetEvents(void *tx)
 {
-    return rs_nfs_state_get_events(state, id);
+    return rs_nfs_state_get_events(tx);
 }
 
 /**

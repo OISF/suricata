@@ -1705,13 +1705,12 @@ static void SMTPStateTruncate(void *state, uint8_t direction)
     }
 }
 
-static AppLayerDecoderEvents *SMTPGetEvents(void *state, uint64_t tx_id)
+static AppLayerDecoderEvents *SMTPGetEvents(void *tx)
 {
-    SCLogDebug("get SMTP events for TX %"PRIu64, tx_id);
+    SCLogDebug("get SMTP events for TX %p", tx);
 
-    SMTPTransaction *tx = SMTPStateGetTx(state, tx_id);
     if (tx != NULL) {
-        return tx->decoder_events;
+        return ((SMTPTransaction *)tx)->decoder_events;
     }
     return NULL;
 }

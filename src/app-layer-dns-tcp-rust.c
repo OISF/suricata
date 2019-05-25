@@ -110,9 +110,9 @@ static int RustDNSSetTxDetectState(void *tx,
     return 0;
 }
 
-static AppLayerDecoderEvents *RustDNSGetEvents(void *state, uint64_t id)
+static AppLayerDecoderEvents *RustDNSGetEvents(void *tx)
 {
-    return rs_dns_state_get_events(state, id);
+    return rs_dns_state_get_events(tx);
 }
 
 void RegisterRustDNSTCPParsers(void)

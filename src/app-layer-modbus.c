@@ -214,17 +214,10 @@ static void ModbusSetEvent(ModbusState *modbus, uint8_t e)
         SCLogDebug("couldn't set event %u", e);
 }
 
-static AppLayerDecoderEvents *ModbusGetEvents(void *state, uint64_t id)
+static AppLayerDecoderEvents *ModbusGetEvents(void *tx)
 {
-    ModbusState         *modbus = (ModbusState *) state;
-    ModbusTransaction   *tx;
-
-    if (modbus->curr && modbus->curr->tx_num == (id + 1))
-        return modbus->curr->decoder_events;
-
-    TAILQ_FOREACH(tx, &modbus->tx_list, next) {
-        if (tx->tx_num == (id+1))
-            return tx->decoder_events;
+    if (likely(tx)) {
+        return ((ModbusTransaction *)tx)->decoder_events;
     }
 
     return NULL;
