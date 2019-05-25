@@ -367,15 +367,11 @@ pub extern "C" fn rs_krb5_state_get_tx_detect_state(
 
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_state_get_events(state: *mut libc::c_void,
-                                          tx_id: libc::uint64_t)
+pub extern "C" fn rs_krb5_state_get_events(tx: *mut libc::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
-    let state = cast_pointer!(state,KRB5State);
-    match state.get_tx_by_id(tx_id) {
-        Some(tx) => tx.events,
-        _        => std::ptr::null_mut(),
-    }
+    let tx = cast_pointer!(tx, KRB5Transaction);
+    return tx.events;
 }
 
 #[no_mangle]

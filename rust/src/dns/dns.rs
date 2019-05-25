@@ -745,18 +745,11 @@ pub extern "C" fn rs_dns_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_get_events(state: &mut DNSState,
-                                          tx_id: libc::uint64_t)
+pub extern "C" fn rs_dns_state_get_events(tx: *mut libc::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
-    match state.get_tx(tx_id) {
-        Some(tx) => {
-            return tx.events;
-        }
-        _ => {
-            return std::ptr::null_mut();
-        }
-    }
+    let tx = cast_pointer!(tx, DNSTransaction);
+    return tx.events;
 }
 
 #[no_mangle]

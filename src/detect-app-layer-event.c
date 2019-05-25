@@ -95,7 +95,7 @@ static int DetectEngineAptEventInspect(ThreadVars *tv,
     DetectAppLayerEventData *aled = NULL;
 
     alproto = f->alproto;
-    decoder_events = AppLayerParserGetEventsByTx(f->proto, alproto, alstate, tx_id);
+    decoder_events = AppLayerParserGetEventsByTx(f->proto, alproto, tx);
     if (decoder_events == NULL)
         goto end;
 

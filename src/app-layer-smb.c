@@ -186,9 +186,17 @@ static FileContainer *SMBGetFiles(void *state, uint8_t direction)
     return rs_smb_getfiles(direction, state);
 }
 
-static AppLayerDecoderEvents *SMBGetEvents(void *state, uint64_t id)
+static AppLayerDecoderEvents *SMBGetEvents(void *tx)
 {
-    return rs_smb_state_get_events(state, id);
+    return rs_smb_state_get_events(tx);
+}
+
+static int SMBGetEventInfoById(int event_id, const char **event_name,
+    AppLayerEventType *event_type)
+{
+    *event_name = "SMB event name (generic)";
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+    return 0;
 }
 
 static int SMBGetEventInfo(const char *event_name, int *event_id,
@@ -302,6 +310,8 @@ void RegisterSMBParsers(void)
                 SMBGetEvents);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMB,
                 SMBGetEventInfo);
+        AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_SMB,
+                SMBGetEventInfoById);
 
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMB,
                 SMBGetTxDetectState, SMBSetTxDetectState);
