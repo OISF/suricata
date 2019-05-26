@@ -130,10 +130,6 @@ static TmEcode BypassedFlowManagerThreadInit(ThreadVars *t, const void *initdata
     ftd->flow_bypassed_pkts = StatsRegisterCounter("flow_bypassed.pkts", t);
     ftd->flow_bypassed_bytes = StatsRegisterCounter("flow_bypassed.bytes", t);
 
-    /* TODO in the case of pinned maps and bypass we have to fetch current tables and 
-     * create bypassed flows
-     */
-
     return TM_ECODE_OK;
 }
 
