@@ -886,20 +886,16 @@ void AppLayerSetupCounters()
                     snprintf(applayer_counter_names[ipproto_map][alproto].name,
                             sizeof(applayer_counter_names[ipproto_map][alproto].name),
                             "%s%s%s", str, alproto_str, ipproto_suffix);
-                    if (AppLayerParserProtocolIsTxAware(ipprotos[ipproto], alproto)) {
-                        snprintf(applayer_counter_names[ipproto_map][alproto].tx_name,
-                                sizeof(applayer_counter_names[ipproto_map][alproto].tx_name),
-                                "%s%s%s", tx_str, alproto_str, ipproto_suffix);
-                    }
+                    snprintf(applayer_counter_names[ipproto_map][alproto].tx_name,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].tx_name),
+                            "%s%s%s", tx_str, alproto_str, ipproto_suffix);
                 } else {
                     snprintf(applayer_counter_names[ipproto_map][alproto].name,
                             sizeof(applayer_counter_names[ipproto_map][alproto].name),
                             "%s%s", str, alproto_str);
-                    if (AppLayerParserProtocolIsTxAware(ipprotos[ipproto], alproto)) {
-                        snprintf(applayer_counter_names[ipproto_map][alproto].tx_name,
-                                sizeof(applayer_counter_names[ipproto_map][alproto].tx_name),
-                                "%s%s", tx_str, alproto_str);
-                    }
+                    snprintf(applayer_counter_names[ipproto_map][alproto].tx_name,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].tx_name),
+                            "%s%s", tx_str, alproto_str);
                 }
             } else if (alproto == ALPROTO_FAILED) {
                 snprintf(applayer_counter_names[ipproto_map][alproto].name,
@@ -927,10 +923,8 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
                 applayer_counters[ipproto_map][alproto].counter_id =
                     StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
 
-                if (AppLayerParserProtocolIsTxAware(ipprotos[ipproto], alproto)) {
-                    applayer_counters[ipproto_map][alproto].counter_tx_id =
-                        StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].tx_name, tv);
-                }
+                applayer_counters[ipproto_map][alproto].counter_tx_id =
+                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].tx_name, tv);
             } else if (alproto == ALPROTO_FAILED) {
                 applayer_counters[ipproto_map][alproto].counter_id =
                     StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);

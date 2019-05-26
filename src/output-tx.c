@@ -143,8 +143,6 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
 
-    if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
-        goto end;
     if (AppLayerParserProtocolHasLogger(p->proto, alproto) == 0)
         goto end;
     const LoggerId logger_expectation = AppLayerParserProtocolGetLoggerBits(p->proto, alproto);

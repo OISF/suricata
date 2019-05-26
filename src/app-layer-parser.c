@@ -1177,9 +1177,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                    alstate, AppLayerGetProtoName(f->alproto));
     }
 
-    if (AppLayerParserProtocolIsTxAware(f->proto, alproto)) {
-        p_tx_cnt = AppLayerParserGetTxCnt(f, f->alstate);
-    }
+    p_tx_cnt = AppLayerParserGetTxCnt(f, f->alstate);
 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0 || (flags & STREAM_EOF)) {
@@ -1237,13 +1235,10 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         }
     }
 
-    if (AppLayerParserProtocolIsTxAware(f->proto, alproto)) {
-        if (likely(tv)) {
-            uint64_t cur_tx_cnt = AppLayerParserGetTxCnt(f, f->alstate);
-            if (cur_tx_cnt > p_tx_cnt) {
-                AppLayerIncTxCounter(tv, f, cur_tx_cnt - p_tx_cnt);
-            }
-        }
+    /* get the diff in tx cnt for stats keeping */
+    uint64_t cur_tx_cnt = AppLayerParserGetTxCnt(f, f->alstate);
+    if (cur_tx_cnt > p_tx_cnt && tv) {
+        AppLayerIncTxCounter(tv, f, cur_tx_cnt - p_tx_cnt);
     }
 
     /* stream truncated, inform app layer */
@@ -1301,27 +1296,11 @@ int AppLayerParserIsTxAware(AppProto alproto)
             .StateGetProgressCompletionStatus != NULL);
 }
 
-int AppLayerParserProtocolIsTxAware(uint8_t ipproto, AppProto alproto)
-{
-    SCEnter();
-    int ipproto_map = FlowGetProtoMapping(ipproto);
-    int r = (alp_ctx.ctxs[ipproto_map][alproto].StateGetTx == NULL) ? 0 : 1;
-    SCReturnInt(r);
-}
-
 int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
     int ipproto_map = FlowGetProtoMapping(ipproto);
     int r = (alp_ctx.ctxs[ipproto_map][alproto].StateGetEvents == NULL) ? 0 : 1;
-    SCReturnInt(r);
-}
-
-int AppLayerParserProtocolSupportsTxs(uint8_t ipproto, AppProto alproto)
-{
-    SCEnter();
-    int ipproto_map = FlowGetProtoMapping(ipproto);
-    int r = (alp_ctx.ctxs[ipproto_map][alproto].StateTransactionFree == NULL) ? 0 : 1;
     SCReturnInt(r);
 }
 
@@ -1412,6 +1391,7 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
 #define BOTH_SET(a, b) ((a) != NULL && (b) != NULL)
 #define BOTH_SET_OR_BOTH_UNSET(a, b) (((a) == NULL && (b) == NULL) || ((a) != NULL && (b) != NULL))
 #define THREE_SET_OR_THREE_UNSET(a, b, c) (((a) == NULL && (b) == NULL && (c) == NULL) || ((a) != NULL && (b) != NULL && (c) != NULL))
+#define THREE_SET(a, b, c) ((a) != NULL && (b) != NULL && (c) != NULL)
 
 static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
 {
@@ -1428,7 +1408,7 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
     if (!(BOTH_SET(ctx->StateFree, ctx->StateAlloc))) {
         goto bad;
     }
-    if (!(THREE_SET_OR_THREE_UNSET(ctx->StateGetTx, ctx->StateGetTxCnt, ctx->StateTransactionFree))) {
+    if (!(THREE_SET(ctx->StateGetTx, ctx->StateGetTxCnt, ctx->StateTransactionFree))) {
         goto bad;
     }
     /* special case: StateGetProgressCompletionStatus is used from 'default'. */
@@ -1445,11 +1425,9 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
     if (!(BOTH_SET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
         goto bad;
     }
-/*  TODO: not yet mandatory to use StateHasTxDetectState
-    if (!(THREE_SET_OR_THREE_UNSET(ctx->GetTxDetectState, ctx->SetTxDetectState, ctx->StateHasTxDetectState))) {
+    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
         goto bad;
     }
-*/
 
     return;
 bad:
@@ -1459,6 +1437,7 @@ bad:
 #undef BOTH_SET
 #undef BOTH_SET_OR_BOTH_UNSET
 #undef THREE_SET_OR_THREE_UNSET
+#undef THREE_SET
 
 static void ValidateParser(AppProto alproto)
 {

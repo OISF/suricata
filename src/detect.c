@@ -998,7 +998,7 @@ static inline void DetectRunPostRules(
     DetectRunScratchpad *scratch)
 {
     /* see if we need to increment the inspect_id and reset the de_state */
-    if (pflow && pflow->alstate && AppLayerParserProtocolSupportsTxs(p->proto, scratch->alproto)) {
+    if (pflow && pflow->alstate) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX_UPDATE);
         DeStateUpdateInspectTransactionId(pflow, scratch->flow_flags, (scratch->sgh == NULL));
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX_UPDATE);
@@ -1627,8 +1627,7 @@ static void DetectFlow(ThreadVars *tv,
          * update the inspect_id forward. So test for the condition here,
          * and call the update code if necessary. */
         const int pass = ((p->flow->flags & FLOW_NOPACKET_INSPECTION));
-        const AppProto alproto = FlowGetAppProtocol(p->flow);
-        if (pass && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
+        if (pass) {
             uint8_t flags;
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 flags = STREAM_TOSERVER;
