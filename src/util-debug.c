@@ -714,7 +714,7 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
         exit(EXIT_FAILURE);
     }
 
-    if (file == NULL || log_format == NULL) {
+    if (file == NULL) {
         goto error;
     }
 
@@ -730,7 +730,7 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
         goto error;
     }
 
-    if ((iface_ctx->log_format = SCStrdup(log_format)) == NULL) {
+    if (log_format != NULL && (iface_ctx->log_format = SCStrdup(log_format)) == NULL) {
         goto error;
     }
 
