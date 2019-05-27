@@ -3,7 +3,7 @@
     AC_CONFIG_HEADERS([config.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
     AC_CONFIG_MACRO_DIR(m4)
-    AM_INIT_AUTOMAKE
+    AM_INIT_AUTOMAKE([subdir-objects])
 
     AC_LANG([C])
     AC_PROG_CC_C99
@@ -2368,6 +2368,37 @@ fi
     fi
     AM_CONDITIONAL([HAVE_PDFLATEX], [test "x$enable_pdflatex" != "xno"])
 
+    AC_ARG_ENABLE(fuzztargets,
+        AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
+    AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
+    AC_ARG_VAR(FUZZ_LDFLAGS, Specify fuzz-specific LDFLAGS)
+    AS_IF([test "x$enable_fuzztargets" = "xyes"], [
+        AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
+        AC_MSG_CHECKING([whether $CXX accepts -fsanitize=fuzzer])
+        AC_LANG_PUSH(C++)
+        tmp_saved_flags=$[]_AC_LANG_PREFIX[]FLAGS
+        _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS -std=c++11 -fsanitize=fuzzer"
+        AC_LINK_IFELSE([AC_LANG_SOURCE([[
+#include <sys/types.h>
+extern "C" int LLVMFuzzerTestOneInput(const unsigned char *Data, size_t Size);
+extern "C" int LLVMFuzzerTestOneInput(const unsigned char *Data, size_t Size) {
+(void)Data;
+(void)Size;
+return 0;
+}
+            ]])],
+            [ AC_MSG_RESULT(yes)
+              FUZZ_LDFLAGS=-fsanitize=fuzzer
+              AC_SUBST(FUZZ_LDFLAGS)
+              has_sanitizefuzzer=yes],
+            AC_MSG_RESULT(no)
+        ])
+        _AC_LANG_PREFIX[]FLAGS=$tmp_saved_flags, []
+        AC_LANG_POP()
+    ])
+
+    AM_CONDITIONAL([HAS_FUZZLDFLAGS], [test "x$FUZZ_LDFLAGS" != "x"])
+
 # Cargo/Rust
     AC_PATH_PROG(RUSTC, rustc, "no")
     if test "$RUSTC" = "no"; then
@@ -2417,7 +2448,6 @@ fi
     else
       RUST_SURICATA_LIB="../rust/target/release/${RUST_SURICATA_LIBNAME}"
     fi
-    RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
     CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
