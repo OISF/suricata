@@ -1979,6 +1979,12 @@ static void TestProtocolStateFree(void *s)
     SCFree(s);
 }
 
+static uint64_t TestProtocolGetTxCnt(void *state)
+{
+    /* single tx */
+    return 1;
+}
+
 void AppLayerParserRegisterProtocolUnittests(uint8_t ipproto, AppProto alproto,
                                   void (*RegisterUnittests)(void))
 {
@@ -2026,6 +2032,7 @@ static int AppLayerParserTest01(void)
                       TestProtocolParser);
     AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_TEST,
                           TestProtocolStateAlloc, TestProtocolStateFree);
+    AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEST, TestProtocolGetTxCnt);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
     if (f == NULL)
@@ -2080,6 +2087,7 @@ static int AppLayerParserTest02(void)
                       TestProtocolParser);
     AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_TEST,
                           TestProtocolStateAlloc, TestProtocolStateFree);
+    AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TEST, TestProtocolGetTxCnt);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
     if (f == NULL)
