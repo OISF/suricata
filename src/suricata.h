@@ -176,6 +176,29 @@ extern volatile uint8_t suricata_ctl_flags;
 extern int g_disable_randomness;
 extern uint16_t g_vlan_mask;
 
+/** Engine mode: inline (ENGINE_MODE_IPS) or just
+ * detection mode (ENGINE_MODE_IDS by default) */
+extern enum EngineMode g_engine_mode;
+/** Host mode: set if box is sniffing only
+ * or is a router */
+extern uint8_t host_mode;
+/** Suricata instance */
+SCInstance suricata;
+
+int InitGlobal(void);
+int PostConfLoadedSetup(SCInstance *suri);
+
+extern volatile sig_atomic_t sigint_count;
+extern volatile sig_atomic_t sighup_count;
+extern volatile sig_atomic_t sigterm_count;
+extern volatile sig_atomic_t sigusr2_count;
+void SignalHandlerSigint(int sig);
+void SignalHandlerSigterm(int sig);
+#ifndef OS_WIN32
+void SignalHandlerSigusr2(int sig);
+void SignalHandlerSigHup(int sig);
+#endif
+
 #include <ctype.h>
 #define u8_tolower(c) tolower((uint8_t)(c))
 
