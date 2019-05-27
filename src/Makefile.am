@@ -6,8 +6,11 @@ noinst_HEADERS = action-globals.h \
 	suricata-common.h threadvars.h tree.h \
     util-validate.h
 bin_PROGRAMS = suricata
+if BUILD_FUZZTARGETS
+    bin_PROGRAMS += fuzz_applayerprotodetectgetproto fuzz_applayerparserparse fuzz_siginit fuzz_confyamlloadstring fuzz_decodepcapfile fuzz_sigyamlpcap
+endif
 
-suricata_SOURCES = \
+COMMON_SOURCES = \
 alert-debuglog.c alert-debuglog.h \
 alert-fastlog.c alert-fastlog.h \
 alert-prelude.c alert-prelude.h \
@@ -282,6 +285,7 @@ host-bit.c host-bit.h \
 host-queue.c host-queue.h \
 host-storage.c host-storage.h \
 host-timeout.c host-timeout.h \
+init.c \
 ippair.c ippair.h \
 ippair-bit.c ippair-bit.h \
 ippair-queue.c ippair-queue.h \
@@ -374,7 +378,6 @@ stream-tcp-list.c stream-tcp-list.h \
 stream-tcp-reassemble.c stream-tcp-reassemble.h \
 stream-tcp-sack.c stream-tcp-sack.h \
 stream-tcp-util.c stream-tcp-util.h \
-suricata.c suricata.h \
 threads.c threads.h \
 threads-debug.h threads-profile.h \
 tm-modules.c tm-modules.h \
@@ -507,13 +510,88 @@ EXTRA_DIST = tests
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
 
+suricata_SOURCES = suricata.c suricata.h $(COMMON_SOURCES)
+
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-suricata_LDADD = $(HTP_LDADD) $(RUST_LDADD)
+suricata_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
 
-if HAVE_RUST
-suricata_DEPENDENCIES = $(RUST_SURICATA_LIB)
+fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c $(COMMON_SOURCES)
+fuzz_applayerprotodetectgetproto_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_applayerprotodetectgetproto_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAVE_LIBFUZZINGENGINE
+    fuzz_applayerprotodetectgetproto_LDFLAGS += -lFuzzingEngine
+else
+    fuzz_applayerprotodetectgetproto_SOURCES += tests/fuzz/onefile.c
 endif
+# force usage of CXX for linker
+fuzz_applayerprotodetectgetproto_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_applayerprotodetectgetproto_LDFLAGS) $(LDFLAGS) -o $@
+
+fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c $(COMMON_SOURCES)
+fuzz_applayerparserparse_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_applayerparserparse_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAVE_LIBFUZZINGENGINE
+    fuzz_applayerparserparse_LDFLAGS += -lFuzzingEngine
+else
+    fuzz_applayerparserparse_SOURCES += tests/fuzz/onefile.c
+endif
+fuzz_applayerparserparse_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_applayerparserparse_LDFLAGS) $(LDFLAGS) -o $@
+
+fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c $(COMMON_SOURCES)
+fuzz_siginit_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_siginit_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAVE_LIBFUZZINGENGINE
+    fuzz_siginit_LDFLAGS += -lFuzzingEngine
+else
+    fuzz_siginit_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_siginit_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_siginit_LDFLAGS) $(LDFLAGS) -o $@
+
+fuzz_confyamlloadstring_SOURCES = tests/fuzz/fuzz_confyamlloadstring.c $(COMMON_SOURCES)
+fuzz_confyamlloadstring_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_confyamlloadstring_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAVE_LIBFUZZINGENGINE
+    fuzz_confyamlloadstring_LDFLAGS += -lFuzzingEngine
+else
+    fuzz_confyamlloadstring_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_confyamlloadstring_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_confyamlloadstring_LDFLAGS) $(LDFLAGS) -o $@
+
+fuzz_decodepcapfile_SOURCES = tests/fuzz/fuzz_decodepcapfile.c $(COMMON_SOURCES)
+fuzz_decodepcapfile_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_decodepcapfile_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAVE_LIBFUZZINGENGINE
+    fuzz_decodepcapfile_LDFLAGS += -lFuzzingEngine
+else
+    fuzz_decodepcapfile_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_decodepcapfile_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_decodepcapfile_LDFLAGS) $(LDFLAGS) -o $@
+
+fuzz_sigyamlpcap_SOURCES = tests/fuzz/fuzz_sigyamlpcap.c $(COMMON_SOURCES)
+fuzz_sigyamlpcap_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_sigyamlpcap_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAVE_LIBFUZZINGENGINE
+    fuzz_sigyamlpcap_LDFLAGS += -lFuzzingEngine
+else
+    fuzz_sigyamlpcap_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_sigyamlpcap_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_sigyamlpcap_LDFLAGS) $(LDFLAGS) -o $@
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \
