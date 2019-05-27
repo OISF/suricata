@@ -1487,7 +1487,7 @@ void AppLayerParserRegisterProtocolParsers(void)
         if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_IMAP,
                                   "1|20|capability", 12, 0, STREAM_TOSERVER) < 0)
         {
-            SCLogInfo("imap proto registration failure\n");
+            SCLogInfo("imap proto registration failure");
             exit(EXIT_FAILURE);
         }
     } else {
@@ -1501,7 +1501,7 @@ void AppLayerParserRegisterProtocolParsers(void)
         if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_MSN,
                                     "msn", 10, 6, STREAM_TOSERVER) < 0)
         {
-            SCLogInfo("msn proto registration failure\n");
+            SCLogInfo("msn proto registration failure");
             exit(EXIT_FAILURE);
         }
     } else {
@@ -1532,7 +1532,6 @@ void AppLayerParserStreamTruncated(uint8_t ipproto, AppProto alproto, void *alst
                                    uint8_t direction)
 {
     SCEnter();
-
 
     if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate != NULL)
         alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].Truncate(alstate, direction);
