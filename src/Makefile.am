@@ -6,8 +6,14 @@ noinst_HEADERS = action-globals.h \
 	suricata-common.h threadvars.h tree.h \
     util-validate.h
 bin_PROGRAMS = suricata
+if BUILD_FUZZTARGETS
+    bin_PROGRAMS += fuzz_applayerprotodetectgetproto \
+    fuzz_applayerparserparse fuzz_siginit \
+    fuzz_confyamlloadstring fuzz_decodepcapfile \
+    fuzz_sigpcap fuzz_mimedecparseline fuzz_decodeder
+endif
 
-suricata_SOURCES = \
+COMMON_SOURCES = \
 alert-debuglog.c alert-debuglog.h \
 alert-fastlog.c alert-fastlog.h \
 alert-prelude.c alert-prelude.h \
@@ -321,7 +327,6 @@ log-stats.c log-stats.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \
 log-tlsstore.c log-tlsstore.h \
-main.c \
 output.c output.h \
 output-file.c output-file.h \
 output-filedata.c output-filedata.h \
@@ -538,10 +543,115 @@ EXTRA_DIST = tests
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
 
+suricata_SOURCES = main.c $(COMMON_SOURCES)
+
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
 suricata_LDADD = $(HTP_LDADD) $(RUST_LDADD)
 suricata_DEPENDENCIES = $(RUST_SURICATA_LIB)
+
+nodist_fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c $(COMMON_SOURCES)
+fuzz_applayerprotodetectgetproto_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_applayerprotodetectgetproto_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAS_FUZZLDFLAGS
+    fuzz_applayerprotodetectgetproto_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    nodist_fuzz_applayerprotodetectgetproto_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_applayerprotodetectgetproto_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_applayerprotodetectgetproto_LDFLAGS) $(LDFLAGS) -o $@
+
+nodist_fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c $(COMMON_SOURCES)
+fuzz_applayerparserparse_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_applayerparserparse_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAS_FUZZLDFLAGS
+    fuzz_applayerparserparse_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    nodist_fuzz_applayerparserparse_SOURCES += tests/fuzz/onefile.c
+endif
+fuzz_applayerparserparse_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_applayerparserparse_LDFLAGS) $(LDFLAGS) -o $@
+
+nodist_fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c $(COMMON_SOURCES)
+fuzz_siginit_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_siginit_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAS_FUZZLDFLAGS
+    fuzz_siginit_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    nodist_fuzz_siginit_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_siginit_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_siginit_LDFLAGS) $(LDFLAGS) -o $@
+
+nodist_fuzz_confyamlloadstring_SOURCES = tests/fuzz/fuzz_confyamlloadstring.c $(COMMON_SOURCES)
+fuzz_confyamlloadstring_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_confyamlloadstring_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAS_FUZZLDFLAGS
+    fuzz_confyamlloadstring_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    nodist_fuzz_confyamlloadstring_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_confyamlloadstring_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_confyamlloadstring_LDFLAGS) $(LDFLAGS) -o $@
+
+nodist_fuzz_decodepcapfile_SOURCES = tests/fuzz/fuzz_decodepcapfile.c $(COMMON_SOURCES)
+fuzz_decodepcapfile_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_decodepcapfile_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAS_FUZZLDFLAGS
+    fuzz_decodepcapfile_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    nodist_fuzz_decodepcapfile_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_decodepcapfile_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_decodepcapfile_LDFLAGS) $(LDFLAGS) -o $@
+
+nodist_fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c $(COMMON_SOURCES)
+fuzz_sigpcap_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_sigpcap_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAS_FUZZLDFLAGS
+    fuzz_sigpcap_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    nodist_fuzz_sigpcap_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_sigpcap_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_sigpcap_LDFLAGS) $(LDFLAGS) -o $@
+
+nodist_fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c $(COMMON_SOURCES)
+fuzz_mimedecparseline_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_mimedecparseline_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAS_FUZZLDFLAGS
+    fuzz_mimedecparseline_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    nodist_fuzz_mimedecparseline_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_mimedecparseline_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_mimedecparseline_LDFLAGS) $(LDFLAGS) -o $@
+
+nodist_fuzz_decodeder_SOURCES = tests/fuzz/fuzz_decodeder.c $(COMMON_SOURCES)
+fuzz_decodeder_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_decodeder_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAS_FUZZLDFLAGS
+    fuzz_decodeder_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    nodist_fuzz_decodeder_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+fuzz_decodeder_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
+    $(fuzz_decodeder_LDFLAGS) $(LDFLAGS) -o $@
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \

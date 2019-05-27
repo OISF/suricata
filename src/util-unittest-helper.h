@@ -63,6 +63,7 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *, uint16_t , uint8_t ipproto, const char
 
 void * UTHmemsearch(const void *big, size_t big_len, const void *little, size_t little_len);
 int UTHParseSignature(const char *str, bool expect);
+int UTHbufferToFile(const char * name, const uint8_t *data, size_t size);
 #endif
 
 void UTHRegisterTests(void);
