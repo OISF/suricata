@@ -3,7 +3,7 @@
     AC_CONFIG_HEADERS([config.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
     AC_CONFIG_MACRO_DIR(m4)
-    AM_INIT_AUTOMAKE
+    AM_INIT_AUTOMAKE([subdir-objects])
 
     AC_LANG_C
     AC_PROG_CC_C99
@@ -2369,6 +2369,20 @@ fi
     fi
     AM_CONDITIONAL([HAVE_PDFLATEX], [test "x$enable_pdflatex" != "xno"])
 
+    AC_CHECK_LIB(FuzzingEngine, main,, LIBFUZZINGENGINE="no")
+    if test "$LIBFUZZINGENGINE" = "no"; then
+        libfuzzingengine=no
+    fi
+    AM_CONDITIONAL([HAVE_LIBFUZZINGENGINE], [test "x$libfuzzingengine" != "xno"])
+
+    AC_ARG_ENABLE(fuzztargets,
+        AS_HELP_STRING([--enable-fuzztargets], [Enable fuzz targets]),[enable_fuzztargets=$enableval],[enable_fuzztargets=no])
+    AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
+    AS_IF([test "x$enable_fuzztargets" = "xyes"], [
+        AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
+    ])
+
+
 # Cargo/Rust
     AC_PATH_PROG(RUSTC, rustc, "no")
     if test "$RUSTC" = "no"; then
@@ -2418,7 +2432,6 @@ fi
     else
       RUST_SURICATA_LIB="../rust/target/release/${RUST_SURICATA_LIBNAME}"
     fi
-    RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
     CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
