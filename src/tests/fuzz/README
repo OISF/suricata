@@ -1,0 +1,57 @@
+How to run fuzzing ?
+
+1) With oss-fuzz
+- install docker
+- run git clone --branch suricata --depth 1 https://github.com/catenacyber/oss-fuzz
+(we will use the original google repo once we merge this)
+- change directory into cloned repository : cd oss-fuzz
+- run python infra/helper.py build_image suricata
+- run python infra/helper.py build_fuzzers --sanitizer address suricata
+You can use undefined sanitizer (memory sanitizer does not work yet see https://github.com/google/oss-fuzz/issues/2145#issuecomment-485781098
+- run python infra/helper.py run_fuzzer suricata fuzz_siginit
+(or another fuzz target, try ls build/out/suricata/fuzz_*)
+
+To generate coverage :
+- run python infra/helper.py build_fuzzers --sanitizer=coverage suricata
+- get a corpus cf https://github.com/google/oss-fuzz/issues/2490
+- put your corpus in build/corpus/suricata/<fuzz_target_name>/
+- run python infra/helper.py coverage --no-corpus-download suricata
+
+2) With libfuzzer
+
+To compile the fuzz targets, you should do the following :
+```
+export CFLAGS="-g -fsanitize=address,fuzzer-no-link"
+export LDFLAGS="-g -fsanitize=address"
+export CC=clang
+./configure --enable-fuzztargets
+make
+```
+
+You can specify other sanitizers here such as undefined and memory
+
+Then you can run a target :
+./src/.libs/fuzz_target_x your_libfuzzer_options
+Where target_x is on file in `ls ./src/.libs/fuzz_*`
+
+If your clang does not support the compile flag "-fsanitize=fuzzer" (MacOS), you can run these same commands but you need first to install libfuzzer as libFuzzingEngine and you need to add `export LIB_FUZZING_ENGINE=/path/to/libFuzzer.a` before calling configure command
+
+To compile libFuzzer, you can do the following
+```
+svn co http://llvm.org/svn/llvm-project/compiler-rt/trunk/lib/fuzzer
+cd fuzzer
+./build.sh
+```
+
+
+3) With afl
+
+To compile the fuzz targets, you simply need to run
+```
+CC=afl-gcc ./configure --enable-fuzztargets
+CC=afl-gcc make
+```
+You can rather use afl-clang if needed.
+
+Then you can run afl as usual with each of the fuzz targets in ./src/.libs/
+afl-fuzz your_afl_options -- ./src/.libs/fuzz_target_x @@
