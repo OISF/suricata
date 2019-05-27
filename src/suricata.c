@@ -66,14 +66,11 @@
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
-#include "tm-threads.h"
 
 #include "tmqh-flow.h"
 
 #include "conf.h"
 #include "conf-yaml-loader.h"
-
-#include "stream-tcp.h"
 
 #include "source-nfq.h"
 #include "source-nfq-prototypes.h"
@@ -100,7 +97,6 @@
 #include "respond-reject.h"
 
 #include "flow.h"
-#include "flow-timeout.h"
 #include "flow-manager.h"
 #include "flow-bypass.h"
 #include "flow-var.h"
@@ -108,14 +104,12 @@
 #include "pkt-var.h"
 #include "host-bit.h"
 
-#include "ippair.h"
 #include "ippair-bit.h"
 
 #include "host.h"
 #include "unix-manager.h"
 
 #include "app-layer.h"
-#include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "app-layer-ssl.h"
 #include "app-layer-dns-tcp.h"
@@ -149,8 +143,6 @@
 
 #include "util-decode-mime.h"
 
-#include "defrag.h"
-
 #include "runmodes.h"
 #include "runmode-unittests.h"
 
@@ -165,19 +157,12 @@
 
 #include "util-privs.h"
 
-#include "tmqh-packetpool.h"
-
 #include "util-proto-name.h"
 #include "util-mpm-hs.h"
 #include "util-storage.h"
 #include "host-storage.h"
 
 #include "util-lua.h"
-
-#ifdef HAVE_RUST
-#include "rust.h"
-#include "rust-core-gen.h"
-#endif
 
 /*
  * we put this here, because we only use it here in main.
@@ -187,61 +172,18 @@ volatile sig_atomic_t sighup_count = 0;
 volatile sig_atomic_t sigterm_count = 0;
 volatile sig_atomic_t sigusr2_count = 0;
 
-/*
- * Flag to indicate if the engine is at the initialization
- * or already processing packets. 3 stages: SURICATA_INIT,
- * SURICATA_RUNTIME and SURICATA_FINALIZE
- */
-SC_ATOMIC_DECLARE(unsigned int, engine_stage);
-
 /* Max packets processed simultaniously per thread. */
 #define DEFAULT_MAX_PENDING_PACKETS 1024
 
-/** suricata engine control flags */
-volatile uint8_t suricata_ctl_flags = 0;
 
-/** Run mode selected */
-int run_mode = RUNMODE_UNKNOWN;
-
-/** Engine mode: inline (ENGINE_MODE_IPS) or just
-  * detection mode (ENGINE_MODE_IDS by default) */
-static enum EngineMode g_engine_mode = ENGINE_MODE_IDS;
-
-/** Host mode: set if box is sniffing only
- * or is a router */
-uint8_t host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-
-/** Maximum packets to simultaneously process. */
-intmax_t max_pending_packets;
-
-/** global indicating if detection is enabled */
-int g_detect_disabled = 0;
+extern intmax_t max_pending_packets;
+extern int g_detect_disabled;
 
 /** set caps or not */
 int sc_set_caps = FALSE;
 
 /** highest mtu of the interfaces we monitor */
 int g_default_mtu = 0;
-
-/** disable randomness to get reproducible results accross runs */
-#ifndef AFLFUZZ_NO_RANDOM
-int g_disable_randomness = 0;
-#else
-int g_disable_randomness = 1;
-#endif
-
-/** Suricata instance */
-SCInstance suricata;
-
-int SuriHasSigFile(void)
-{
-    return (suricata.sig_file != NULL);
-}
-
-int EngineModeIsIPS(void)
-{
-    return (g_engine_mode == ENGINE_MODE_IPS);
-}
 
 int EngineModeIsIDS(void)
 {
@@ -256,19 +198,6 @@ void EngineModeSetIPS(void)
 void EngineModeSetIDS(void)
 {
     g_engine_mode = ENGINE_MODE_IDS;
-}
-
-int RunmodeIsUnittests(void)
-{
-    if (run_mode == RUNMODE_UNITTEST)
-        return 1;
-
-    return 0;
-}
-
-int RunmodeGetCurrent(void)
-{
-    return run_mode;
 }
 
 /** signal handlers
@@ -414,25 +343,6 @@ static void GlobalsDestroy(SCInstance *suri)
     SCPidfileRemove(suri->pid_filename);
     SCFree(suri->pid_filename);
     suri->pid_filename = NULL;
-}
-
-/** \brief make sure threads can stop the engine by calling this
- *  function. Purpose: pcap file mode needs to be able to tell the
- *  engine the file eof is reached. */
-void EngineStop(void)
-{
-    suricata_ctl_flags |= SURICATA_STOP;
-}
-
-/**
- * \brief Used to indicate that the current task is done.
- *
- * This is mainly used by pcap-file to tell it has finished
- * to treat a pcap files when running in unix-socket mode.
- */
-void EngineDone(void)
-{
-    suricata_ctl_flags |= SURICATA_DONE;
 }
 
 static int SetBpfString(int argc, char *argv[])
@@ -858,10 +768,6 @@ static void PrintBuildInfo(void)
 #include "build-info.h"
 }
 
-int coverage_unittests;
-int g_ut_modules;
-int g_ut_covered;
-
 void RegisterAllModules(void)
 {
     // zero all module storage
@@ -1079,18 +985,6 @@ static void SCSetStartTime(SCInstance *suri)
 {
     memset(&suri->start_time, 0, sizeof(suri->start_time));
     gettimeofday(&suri->start_time, NULL);
-}
-
-static void SCPrintElapsedTime(struct timeval *start_time)
-{
-    if (start_time == NULL)
-        return;
-    struct timeval end_time;
-    memset(&end_time, 0, sizeof(end_time));
-    gettimeofday(&end_time, NULL);
-    uint64_t milliseconds = ((end_time.tv_sec - start_time->tv_sec) * 1000) +
-        (((1000000 + end_time.tv_usec - start_time->tv_usec) / 1000) - 1000);
-    SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 }
 
 static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
@@ -2228,92 +2122,6 @@ static int InitSignalHandler(SCInstance *suri)
     return TM_ECODE_OK;
 }
 
-/* initialization code for both the main modes and for
- * unix socket mode.
- *
- * Will be run once per pcap in unix-socket mode */
-void PreRunInit(const int runmode)
-{
-    if (runmode == RUNMODE_UNIX_SOCKET)
-        return;
-
-    StatsInit();
-#ifdef PROFILING
-    SCProfilingRulesGlobalInit();
-    SCProfilingKeywordsGlobalInit();
-    SCProfilingPrefilterGlobalInit();
-    SCProfilingSghsGlobalInit();
-    SCProfilingInit();
-#endif /* PROFILING */
-    DefragInit();
-    FlowInitConfig(FLOW_QUIET);
-    IPPairInitConfig(FLOW_QUIET);
-    StreamTcpInitConfig(STREAM_VERBOSE);
-    AppLayerParserPostStreamSetup();
-    AppLayerRegisterGlobalCounters();
-}
-
-/* tasks we need to run before packets start flowing,
- * but after we dropped privs */
-void PreRunPostPrivsDropInit(const int runmode)
-{
-    if (runmode == RUNMODE_UNIX_SOCKET)
-        return;
-
-    StatsSetupPostConfigPreOutput();
-    RunModeInitializeOutputs();
-    StatsSetupPostConfigPostOutput();
-}
-
-/* clean up / shutdown code for both the main modes and for
- * unix socket mode.
- *
- * Will be run once per pcap in unix-socket mode */
-void PostRunDeinit(const int runmode, struct timeval *start_time)
-{
-    if (runmode == RUNMODE_UNIX_SOCKET)
-        return;
-
-    /* needed by FlowForceReassembly */
-    PacketPoolInit();
-
-    /* handle graceful shutdown of the flow engine, it's helper
-     * threads and the packet threads */
-    FlowDisableFlowManagerThread();
-    TmThreadDisableReceiveThreads();
-    FlowForceReassembly();
-    TmThreadDisablePacketThreads();
-    SCPrintElapsedTime(start_time);
-    FlowDisableFlowRecyclerThread();
-
-    /* kill the stats threads */
-    TmThreadKillThreadsFamily(TVT_MGMT);
-    TmThreadClearThreadsFamily(TVT_MGMT);
-
-    /* kill packet threads -- already in 'disabled' state */
-    TmThreadKillThreadsFamily(TVT_PPT);
-    TmThreadClearThreadsFamily(TVT_PPT);
-
-    PacketPoolDestroy();
-
-    /* mgt and ppt threads killed, we can run non thread-safe
-     * shutdown functions */
-    StatsReleaseResources();
-    DecodeUnregisterCounters();
-    RunModeShutDown();
-    FlowShutdown();
-    IPPairShutdown();
-    HostCleanup();
-    StreamTcpFreeConfig(STREAM_VERBOSE);
-    DefragDestroy();
-
-    TmqResetQueues();
-#ifdef PROFILING
-    if (profiling_rules_enabled)
-        SCProfilingDump();
-    SCProfilingDestroy();
-#endif
-}
 
 
 static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
@@ -2884,46 +2692,9 @@ int main(int argc, char **argv)
 {
     SCInstanceInit(&suricata, argv[0]);
 
-#ifdef HAVE_RUST
-    SuricataContext context;
-    context.SCLogMessage = SCLogMessage;
-    context.DetectEngineStateFree = DetectEngineStateFree;
-    context.AppLayerDecoderEventsSetEventRaw =
-        AppLayerDecoderEventsSetEventRaw;
-    context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
-
-    context.FileOpenFileWithId = FileOpenFileWithId;
-    context.FileCloseFileById = FileCloseFileById;
-    context.FileAppendDataById = FileAppendDataById;
-    context.FileAppendGAPById = FileAppendGAPById;
-    context.FileContainerRecycle = FileContainerRecycle;
-    context.FilePrune = FilePrune;
-    context.FileSetTx = FileContainerSetTx;
-
-    rs_init(&context);
-#endif
-
-    SC_ATOMIC_INIT(engine_stage);
-
-    /* initialize the logging subsys */
-    SCLogInitLogModule(NULL);
-
-    (void)SCSetThreadName("Suricata-Main");
-
-    /* Ignore SIGUSR2 as early as possble. We redeclare interest
-     * once we're done launching threads. The goal is to either die
-     * completely or handle any and all SIGUSR2s correctly.
-     */
-#ifndef OS_WIN32
-    UtilSignalHandlerSetup(SIGUSR2, SIG_IGN);
-    if (UtilSignalBlock(SIGUSR2)) {
-        SCLogError(SC_ERR_INITIALIZATION, "SIGUSR2 initialization error");
+    if (InitGlobal() != 0) {
         exit(EXIT_FAILURE);
     }
-#endif
-
-    ParseSizeInit();
-    RunModeRegisterRunModes();
 
 #ifdef OS_WIN32
     /* service initialization */
@@ -2931,9 +2702,6 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 #endif /* OS_WIN32 */
-
-    /* Initialize the configuration module. */
-    ConfInit();
 
     if (ParseCommandLine(argc, argv, &suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
