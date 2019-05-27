@@ -1607,8 +1607,8 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                 AFPDumpCounters(ptv);
                 last_dump = current_time;
             }
-            /* poll timed out, lets see if we need to inject a fake packet  */
-            TmThreadsCaptureInjectPacket(tv, ptv->slot, NULL);
+            /* poll timed out, lets see handle our timeout path */
+            TmThreadsCaptureHandleTimeout(tv, ptv->slot, NULL);
 
         } else if ((r < 0) && (errno != EINTR)) {
             SCLogError(SC_ERR_AFP_READ, "Error reading data from iface '%s': (%d) %s",

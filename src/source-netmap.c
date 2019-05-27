@@ -639,8 +639,8 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
             NetmapDumpCounters(ntv);
             StatsSyncCountersIfSignalled(tv);
 
-            /* poll timed out, lets see if we need to inject a fake packet  */
-            TmThreadsCaptureInjectPacket(tv, ntv->slot, NULL);
+            /* poll timed out, lets handle the timeout */
+            TmThreadsCaptureHandleTimeout(tv, ntv->slot, NULL);
             continue;
         }
 

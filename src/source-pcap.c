@@ -288,7 +288,7 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
             SCLogError(SC_ERR_PCAP_DISPATCH, "Pcap callback PcapCallbackLoop failed");
             SCReturnInt(TM_ECODE_FAILED);
         } else if (unlikely(r == 0)) {
-            TmThreadsCaptureInjectPacket(tv, ptv->slot, NULL);
+            TmThreadsCaptureHandleTimeout(tv, ptv->slot, NULL);
         }
 
         StatsSyncCountersIfSignalled(tv);
