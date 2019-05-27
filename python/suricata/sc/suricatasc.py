@@ -156,6 +156,8 @@ class SuricataSC:
 
     def connect(self):
         try:
+            if self.socket == None:
+                self.socket = socket(AF_UNIX)
             self.socket.connect(self.sck_path)
         except error as err:
             raise SuricataNetException(err)
@@ -193,6 +195,7 @@ class SuricataSC:
 
     def close(self):
         self.socket.close()
+        self.socket = None
 
     def execute(self, command):
         full_cmd = command.split()
@@ -252,6 +255,7 @@ class SuricataSC:
                     # try to reconnect and resend command
                     print("Connection lost, trying to reconnect")
                     try:
+                        self.close()
                         self.connect()
                     except SuricataNetException as err:
                         print("Can't reconnect to suricata socket, discarding command")
