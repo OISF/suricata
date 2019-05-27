@@ -176,6 +176,17 @@ extern volatile uint8_t suricata_ctl_flags;
 extern int g_disable_randomness;
 extern uint16_t g_vlan_mask;
 
+/** Engine mode: inline (ENGINE_MODE_IPS) or just
+ * detection mode (ENGINE_MODE_IDS by default) */
+extern enum EngineMode g_engine_mode;
+/** Host mode: set if box is sniffing only
+ * or is a router */
+extern uint8_t host_mode;
+/** Suricata instance */
+SCInstance suricata;
+
+int InitGlobal(void);
+
 #include <ctype.h>
 #define u8_tolower(c) tolower((uint8_t)(c))
 
