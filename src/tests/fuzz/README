@@ -1,0 +1,11 @@
+How to run fuzzing ?
+
+- install docker
+- run git clone --branch suricata --depth 1 https://github.com/catenacyber/oss-fuzz
+(we will use the original google repo once we merge this)
+- change directory into cloned repository : cd oss-fuzz
+- run python infra/helper.py build_image suricata
+- run python infra/helper.py build_fuzzers --sanitizer address suricata
+You can use undefined sanitizer (memory sanitizer does not work yet see https://github.com/google/oss-fuzz/issues/2145#issuecomment-485781098
+- run python infra/helper.py run_fuzzer suricata fuzz_siginit
+(or another fuzz target, try ls build/out/suricata/fuzz_*)
