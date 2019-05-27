@@ -942,6 +942,27 @@ int UTHParseSignature(const char *str, bool expect)
     PASS;
 }
 
+/** \brief writes the contents of a buffer into a file */
+int UTHbufferToFile(const char * name, const uint8_t *Data, size_t Size) {
+    FILE * fd;
+    if (remove(name) != 0) {
+        if (errno != ENOENT) {
+            printf("failed remove, errno=%d\n", errno);
+            return -1;
+        }
+    }
+    fd = fopen(name, "wb");
+    if (fd == NULL) {
+        printf("failed open, errno=%d\n", errno);
+        return -2;
+    }
+    if (fwrite (Data, 1, Size, fd) != Size) {
+        fclose(fd);
+        return -3;
+    }
+    fclose(fd);
+    return 0;
+}
 
 /*
  * unittests for the unittest helpers
