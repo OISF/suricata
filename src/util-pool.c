@@ -171,8 +171,6 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
             }
             if (p->Init(pb->data, p->InitData) != 1) {
                 SCLogError(SC_ERR_POOL_INIT, "init error");
-                if (p->Cleanup)
-                    p->Cleanup(pb->data);
                 if (p->Free)
                     p->Free(pb->data);
                 else
@@ -195,8 +193,6 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
             pb->data = (char *)p->data_buffer + u32 * elt_size;
             if (p->Init(pb->data, p->InitData) != 1) {
                 SCLogError(SC_ERR_POOL_INIT, "init error");
-                if (p->Cleanup)
-                    p->Cleanup(pb->data);
                 pb->data = NULL;
                 goto error;
             }
@@ -303,8 +299,6 @@ void *PoolGet(Pool *p)
 
             if (pitem != NULL) {
                 if (p->Init(pitem, p->InitData) != 1) {
-                    if (p->Cleanup)
-                        p->Cleanup(pitem);
                     if (p->Free != NULL)
                         p->Free(pitem);
                     else
