@@ -733,30 +733,27 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
                             void *local_data, const uint8_t flags)
 {
     FtpState *state = (FtpState *)ftp_state;
-    FTPTransaction *tx = NULL;
-    int retcode = 1;
     FTPTransaction *tx;
+    int retcode = 1;
 
     if (state->command == FTP_COMMAND_UNKNOWN) {
         if (likely(input_len)) {
-            tx = FTPTransactionCreate(state);
+            tx = FTPGetOldestTx(state);
+            if (tx == NULL) {
+                tx = FTPTransactionCreate(state);
+            }
             if (unlikely(tx == NULL))
-                return -1;
-            tx->request = NULL;
-            tx->request_length = 0;
-            // should this iterate to find the FTP_COMMAND_UNKNOWN entry?
+                return 0;
             tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX - 1];
-            state->curr_tx = tx;
         } else {
             // no command and no response buffer: no transaction needed
             return 1;
         }
-    }
-    if (!tx) {
+    } else {
         tx = FTPGetOldestTx(state);
-        state->curr_tx = tx;
     }
 
+    state->curr_tx = tx;
     if (state->command == FTP_COMMAND_AUTH_TLS) {
         if (input_len >= 4 && SCMemcmp("234 ", input, 4) == 0) {
             AppLayerRequestProtocolTLSUpgrade(f);
