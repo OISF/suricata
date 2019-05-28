@@ -140,45 +140,6 @@ int PoolThreadExpand(PoolThread *pt)
     return (int)(newsize - 1);
 }
 
-/**
- *
- */
-int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size,
-        uint32_t elt_size, void *(*Alloc)(void), int (*Init)(void *, void *),
-        void *InitData, void (*Cleanup)(void *), void (*Free)(void *))
-{
-    if (pt == NULL || pt->array == NULL) {
-        SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
-        return -1;
-    }
-
-    size_t newsize = pt->size + 1;
-    SCLogDebug("newsize %"PRIuMAX, (uintmax_t)newsize);
-
-    void *ptmp = SCRealloc(pt->array, (newsize * sizeof(PoolThreadElement)));
-    if (ptmp == NULL) {
-        SCFree(pt->array);
-        pt->array = NULL;
-        SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
-        return -1;
-    }
-    pt->array = ptmp;
-    pt->size = newsize;
-
-    PoolThreadElement *e = &pt->array[newsize - 1];
-    memset(e, 0x00, sizeof(*e));
-    SCMutexInit(&e->lock, NULL);
-    SCMutexLock(&e->lock);
-    e->pool = PoolInit(size, prealloc_size, elt_size, Alloc, Init, InitData, Cleanup, Free);
-    SCMutexUnlock(&e->lock);
-    if (e->pool == NULL) {
-        SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
-        return -1;
-    }
-
-    return (int)(newsize - 1);
-}
-
 int PoolThreadSize(PoolThread *pt)
 {
     if (pt == NULL)
@@ -405,8 +366,7 @@ static int PoolThreadTestGrow01(void)
     if (pt == NULL)
         return 0;
 
-    if (PoolThreadGrow(pt,
-                       10, 5, 10, PoolThreadTestAlloc, NULL, NULL, NULL, NULL) < 0) {
+    if (PoolThreadExpand(pt) < 0) {
         PoolThreadFree(pt);
         return 0;
     }
@@ -424,8 +384,7 @@ static int PoolThreadTestGrow02(void)
     if (pt == NULL)
         return 0;
 
-    if (PoolThreadGrow(pt,
-                       10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree, NULL) < 0) {
+    if (PoolThreadExpand(pt) < 0) {
         PoolThreadFree(pt);
         return 0;
     }
@@ -444,8 +403,7 @@ static int PoolThreadTestGrow03(void)
     if (pt == NULL)
         return 0;
 
-    if (PoolThreadGrow(pt,
-                       10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree, NULL) < 0) {
+    if (PoolThreadExpand(pt) < 0) {
         PoolThreadFree(pt);
         return 0;
     }
