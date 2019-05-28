@@ -453,13 +453,7 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv)
                 ra_ctx->segment_thread_pool_id);
     } else {
         /* grow segment_thread_pool until we have a element for our thread id */
-        ra_ctx->segment_thread_pool_id = PoolThreadGrow(segment_thread_pool,
-                0, /* unlimited */
-                stream_config.prealloc_segments,
-                sizeof(TcpSegment),
-                TcpSegmentPoolAlloc,
-                TcpSegmentPoolInit, NULL,
-                TcpSegmentPoolCleanup, NULL);
+        ra_ctx->segment_thread_pool_id = PoolThreadExpand(segment_thread_pool);
         SCLogDebug("pool size %d, thread segment_thread_pool_id %d",
                 PoolThreadSize(segment_thread_pool),
                 ra_ctx->segment_thread_pool_id);
