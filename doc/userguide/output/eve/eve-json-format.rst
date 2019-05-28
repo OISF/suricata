@@ -860,3 +860,47 @@ Example of SSH logging:
         "software_version": "OpenSSH_6.7",
      }
   }
+
+Event type: Flow
+----------------
+
+Fields
+~~~~~~
+
+* "pkts_toserver": total number of packets to server, include bypassed packets
+* "pkts_toclient": total number of packets to client
+* "bytes_toserver": total bytes count to server
+* "bytes_toclient": total bytes count to client
+* "bypassed.pkts_toserver": number of bypassed packets to server
+* "bypassed.pkts_toclient": number of bypassed packets to client
+* "bypassed.bytes_toserver": bypassed bytes count to server
+* "bypassed.bytes_toclient": bypassed bytes count to client
+* "start": date of start of the flow
+* "end": date of end of flow (last seen packet)
+* "age": duration of the flow
+* "bypass": if the flow has been bypassed, it is set to "local" (internal bypass) or "capture"
+* "state": display state of the flow (include "new", "established", "closed", "bypassed")
+* "reason": mechanism that did trigger the end of the flow (include "timeout", "forced" and "shutdown")
+* "alerted": "true" or "false" depending if an alert has been seen on flow
+
+Example ::
+
+  "flow": {
+    "pkts_toserver": 23,
+    "pkts_toclient": 21,
+    "bytes_toserver": 4884,
+    "bytes_toclient": 7392,
+    "bypassed": {
+      "pkts_toserver": 10,
+      "pkts_toclient": 8,
+      "bytes_toserver": 1305,
+      "bytes_toclient": 984
+    },
+    "start": "2019-05-28T23:32:29.025256+0200",
+    "end": "2019-05-28T23:35:28.071281+0200",
+    "age": 179,
+    "bypass": "capture",
+    "state": "bypassed",
+    "reason": "timeout",
+    "alerted": false
+  }
