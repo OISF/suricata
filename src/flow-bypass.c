@@ -70,7 +70,7 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
     }
     for (i = 0; i < g_bypassed_func_max_index; i++) {
         if (bypassedfunclist[i].FuncInit) {
-            bypassedfunclist[i].FuncInit(&curtime, bypassedfunclist[i].data);
+            bypassedfunclist[i].FuncInit(th_v, &curtime, bypassedfunclist[i].data);
         }
     }
 
@@ -82,7 +82,7 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
         }
         for (i = 0; i < g_bypassed_func_max_index; i++) {
             struct flows_stats bypassstats = { 0, 0, 0};
-            tcount = bypassedfunclist[i].Func(&bypassstats, &curtime, bypassedfunclist[i].data);
+            tcount = bypassedfunclist[i].Func(th_v, &bypassstats, &curtime, bypassedfunclist[i].data);
             if (tcount) {
                 StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)bypassstats.count);
                 StatsAddUI64(th_v, ftd->flow_bypassed_pkts, (uint64_t)bypassstats.packets);
