@@ -49,6 +49,7 @@
 #include "flow-storage.h"
 #include "flow.h"
 #include "flow-hash.h"
+#include "tm-threads.h"
 
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
@@ -583,7 +584,7 @@ typedef int (*OpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key,
  * This function iterates on all the flows of the IPv4 table
  * looking for timeouted flow to delete from the flow table.
  */
-static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
+static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
                                   struct timespec *ctime,
                                   struct ebpf_timeout_config *tcfg,
@@ -658,6 +659,11 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         if (pkts_cnt > 0) {
             found = 1;
         }
+
+        if (TmThreadsCheckFlag(th_v, THV_KILL)) {
+            return 0;
+        }
+
         key = next_key;
     }
     if (pkts_cnt > 0) {
@@ -677,7 +683,8 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
  * This function iterates on all the flows of the IPv4 table
  * looking for timeouted flow to delete from the flow table.
  */
-static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
+static int EBPFForEachFlowV6Table(ThreadVars *th_v,
+                                  LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
                                   struct timespec *ctime,
                                   struct ebpf_timeout_config *tcfg,
@@ -750,6 +757,11 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
         if (pkts_cnt > 0) {
             found = 1;
         }
+
+        if (TmThreadsCheckFlag(th_v, THV_KILL)) {
+            return 0;
+        }
+
         key = next_key;
     }
     if (pkts_cnt > 0) {
@@ -763,16 +775,16 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
 }
 
 
-int EBPFCheckBypassedFlowCreate(struct timespec *curtime, void *data)
+int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void *data)
 {
     struct flows_stats local_bypassstats = { 0, 0, 0};
     LiveDevice *ldev = NULL, *ndev;
     struct ebpf_timeout_config *cfg = (struct ebpf_timeout_config *)data;
     while(LiveDeviceForEach(&ldev, &ndev)) {
-        EBPFForEachFlowV4Table(ldev, "flow_table_v4",
+        EBPFForEachFlowV4Table(th_v, ldev, "flow_table_v4",
                 &local_bypassstats, curtime,
                 cfg, EBPFCreateFlowForKey);
-        EBPFForEachFlowV6Table(ldev, "flow_table_v6",
+        EBPFForEachFlowV6Table(th_v, ldev, "flow_table_v6",
                 &local_bypassstats, curtime,
                 cfg, EBPFCreateFlowForKey);
     }
@@ -787,7 +799,7 @@ int EBPFCheckBypassedFlowCreate(struct timespec *curtime, void *data)
  * of entries in the kernel/userspace flow table if needed.
  *
  */
-int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
+int EBPFCheckBypassedFlowTimeout(ThreadVars *th_v, struct flows_stats *bypassstats,
                                         struct timespec *curtime,
                                         void *data)
 {
@@ -801,7 +813,7 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
 
     while(LiveDeviceForEach(&ldev, &ndev)) {
         memset(&local_bypassstats, 0, sizeof(local_bypassstats));
-        tcount = EBPFForEachFlowV4Table(ldev, "flow_table_v4",
+        tcount = EBPFForEachFlowV4Table(th_v, ldev, "flow_table_v4",
                                &local_bypassstats, curtime,
                                cfg, EBPFUpdateFlowForKey);
         bypassstats->count = local_bypassstats.count;
@@ -811,7 +823,7 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
             ret = 1;
         }
         memset(&local_bypassstats, 0, sizeof(local_bypassstats));
-        tcount = EBPFForEachFlowV6Table(ldev, "flow_table_v6",
+        tcount = EBPFForEachFlowV6Table(th_v, ldev, "flow_table_v6",
                                         &local_bypassstats, curtime,
                                         cfg, EBPFUpdateFlowForKey);
         bypassstats->count += local_bypassstats.count;
