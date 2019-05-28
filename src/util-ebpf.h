@@ -71,10 +71,10 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
                  int *val, struct ebpf_timeout_config *config);
 int EBPFSetupXDP(const char *iface, int fd, uint8_t flags);
 
-int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
+int EBPFCheckBypassedFlowTimeout(ThreadVars *th_v, struct flows_stats *bypassstats,
                                         struct timespec *curtime,
                                         void *data);
-int EBPFCheckBypassedFlowCreate(struct timespec *curtime, void *data);
+int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void *data);
 
 void EBPFRegisterExtension(void);
 
