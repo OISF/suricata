@@ -635,17 +635,19 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         if (tcfg->mode == AFP_MODE_XDP_BYPASS) {
             flow_key.sp = ntohs(next_key.port16[0]);
             flow_key.dp = ntohs(next_key.port16[1]);
+            flow_key.src.addr_data32[0] = next_key.src;
+            flow_key.dst.addr_data32[0] = next_key.dst;
         } else {
             flow_key.sp = next_key.port16[0];
             flow_key.dp = next_key.port16[1];
+            flow_key.src.addr_data32[0] = ntohl(next_key.src);
+            flow_key.dst.addr_data32[0] = ntohl(next_key.dst);
         }
         flow_key.src.family = AF_INET;
-        flow_key.src.addr_data32[0] = next_key.src;
         flow_key.src.addr_data32[1] = 0;
         flow_key.src.addr_data32[2] = 0;
         flow_key.src.addr_data32[3] = 0;
         flow_key.dst.family = AF_INET;
-        flow_key.dst.addr_data32[0] = next_key.dst;
         flow_key.dst.addr_data32[1] = 0;
         flow_key.dst.addr_data32[2] = 0;
         flow_key.dst.addr_data32[3] = 0;
@@ -734,20 +736,30 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
         if (tcfg->mode == AFP_MODE_XDP_BYPASS) {
             flow_key.sp = ntohs(next_key.port16[0]);
             flow_key.dp = ntohs(next_key.port16[1]);
+            flow_key.src.family = AF_INET6;
+            flow_key.src.addr_data32[0] = next_key.src[0];
+            flow_key.src.addr_data32[1] = next_key.src[1];
+            flow_key.src.addr_data32[2] = next_key.src[2];
+            flow_key.src.addr_data32[3] = next_key.src[3];
+            flow_key.dst.family = AF_INET6;
+            flow_key.dst.addr_data32[0] = next_key.dst[0];
+            flow_key.dst.addr_data32[1] = next_key.dst[1];
+            flow_key.dst.addr_data32[2] = next_key.dst[2];
+            flow_key.dst.addr_data32[3] = next_key.dst[3];
         } else {
             flow_key.sp = next_key.port16[0];
             flow_key.dp = next_key.port16[1];
+            flow_key.src.family = AF_INET6;
+            flow_key.src.addr_data32[0] = ntohl(next_key.src[0]);
+            flow_key.src.addr_data32[1] = ntohl(next_key.src[1]);
+            flow_key.src.addr_data32[2] = ntohl(next_key.src[2]);
+            flow_key.src.addr_data32[3] = ntohl(next_key.src[3]);
+            flow_key.dst.family = AF_INET6;
+            flow_key.dst.addr_data32[0] = ntohl(next_key.dst[0]);
+            flow_key.dst.addr_data32[1] = ntohl(next_key.dst[1]);
+            flow_key.dst.addr_data32[2] = ntohl(next_key.dst[2]);
+            flow_key.dst.addr_data32[3] = ntohl(next_key.dst[3]);
         }
-        flow_key.src.family = AF_INET6;
-        flow_key.src.addr_data32[0] = next_key.src[0];
-        flow_key.src.addr_data32[1] = next_key.src[1];
-        flow_key.src.addr_data32[2] = next_key.src[2];
-        flow_key.src.addr_data32[3] = next_key.src[3];
-        flow_key.dst.family = AF_INET6;
-        flow_key.dst.addr_data32[0] = next_key.dst[0];
-        flow_key.dst.addr_data32[1] = next_key.dst[1];
-        flow_key.dst.addr_data32[2] = next_key.dst[2];
-        flow_key.dst.addr_data32[3] = next_key.dst[3];
         flow_key.vlan_id[0] = next_key.vlan_id[0];
         flow_key.vlan_id[1] = next_key.vlan_id[1];
         flow_key.proto = next_key.ip_proto;
