@@ -70,6 +70,12 @@ PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, u
  *  \retval r id of new entry on succes, -1 on error */
 int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *));
 
+/** \brief grow a thread pool by one
+ *  \note copies settings from initial PoolThreadInit() call
+ *  \param pt thread pool to grow
+ *  \retval r id of new entry on succes, -1 on error */
+int PoolThreadExpand(PoolThread *pt);
+
 /** \brief destroy the thread pool
  *  \note wrapper around PoolFree()
  *  \param pt thread pool */

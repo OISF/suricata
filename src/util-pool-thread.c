@@ -86,6 +86,60 @@ error:
     return NULL;
 }
 
+/** \brief expand pool by one for a new thread
+ *  \retval -1 or pool thread id
+ */
+int PoolThreadExpand(PoolThread *pt)
+{
+    if (pt == NULL || pt->array == NULL || pt->size == 0) {
+        SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
+        return -1;
+    }
+
+    size_t newsize = pt->size + 1;
+    SCLogDebug("newsize %"PRIuMAX, (uintmax_t)newsize);
+
+    void *ptmp = SCRealloc(pt->array, (newsize * sizeof(PoolThreadElement)));
+    if (ptmp == NULL) {
+        SCFree(pt->array);
+        pt->array = NULL;
+        SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
+        return -1;
+    }
+    pt->array = ptmp;
+    pt->size = newsize;
+
+    /* copy settings from first thread that registered the pool */
+    Pool settings;
+    memset(&settings, 0x0, sizeof(settings));
+    PoolThreadElement *e = &pt->array[0];
+    SCMutexLock(&e->lock);
+    settings.max_buckets = e->pool->max_buckets;
+    settings.preallocated = e->pool->preallocated;
+    settings.elt_size = e->pool->elt_size;
+    settings.Alloc = e->pool->Alloc;
+    settings.Init = e->pool->Init;
+    settings.InitData = e->pool->InitData;
+    settings.Cleanup = e->pool->Cleanup;
+    settings.Free = e->pool->Free;
+    SCMutexUnlock(&e->lock);
+
+    e = &pt->array[newsize - 1];
+    memset(e, 0x00, sizeof(*e));
+    SCMutexInit(&e->lock, NULL);
+    SCMutexLock(&e->lock);
+    e->pool = PoolInit(settings.max_buckets, settings.preallocated,
+            settings.elt_size, settings.Alloc, settings.Init, settings.InitData,
+            settings.Cleanup, settings.Free);
+    SCMutexUnlock(&e->lock);
+    if (e->pool == NULL) {
+        SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
+        return -1;
+    }
+
+    return (int)(newsize - 1);
+}
+
 /**
  *
  */
