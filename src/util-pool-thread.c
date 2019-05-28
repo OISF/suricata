@@ -35,17 +35,21 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *))
+/**
+ *  \brief per thread Pool, initialization function
+ *  \param thread number of threads this is for. Can start with 1 and be expanded.
+ *  Other params are as for PoolInit()
+ */
+PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size,
+        uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *),
+        void *InitData,  void (*Cleanup)(void *), void (*Free)(void *))
 {
-    PoolThread *pt = NULL;
-    int i;
-
     if (threads <= 0) {
         SCLogDebug("error");
-        goto error;
+        return NULL;
     }
 
-    pt = SCMalloc(sizeof(*pt));
+    PoolThread *pt = SCCalloc(1, sizeof(*pt));
     if (unlikely(pt == NULL)) {
         SCLogDebug("memory alloc error");
         goto error;
@@ -59,7 +63,7 @@ PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, u
     }
     pt->size = threads;
 
-    for (i = 0; i < threads; i++) {
+    for (int i = 0; i < threads; i++) {
         PoolThreadElement *e = &pt->array[i];
 
         SCMutexInit(&e->lock, NULL);
@@ -85,20 +89,19 @@ error:
 /**
  *
  */
-int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *)) {
-    void *ptmp;
-    size_t newsize;
-    PoolThreadElement *e = NULL;
-
+int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size,
+        uint32_t elt_size, void *(*Alloc)(void), int (*Init)(void *, void *),
+        void *InitData, void (*Cleanup)(void *), void (*Free)(void *))
+{
     if (pt == NULL || pt->array == NULL) {
         SCLogError(SC_ERR_POOL_INIT, "pool grow failed");
         return -1;
     }
 
-    newsize = pt->size + 1;
+    size_t newsize = pt->size + 1;
     SCLogDebug("newsize %"PRIuMAX, (uintmax_t)newsize);
 
-    ptmp = SCRealloc(pt->array, (newsize * sizeof(PoolThreadElement)));
+    void *ptmp = SCRealloc(pt->array, (newsize * sizeof(PoolThreadElement)));
     if (ptmp == NULL) {
         SCFree(pt->array);
         pt->array = NULL;
@@ -106,10 +109,9 @@ int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size, uint32
         return -1;
     }
     pt->array = ptmp;
-
     pt->size = newsize;
 
-    e = &pt->array[newsize - 1];
+    PoolThreadElement *e = &pt->array[newsize - 1];
     memset(e, 0x00, sizeof(*e));
     SCMutexInit(&e->lock, NULL);
     SCMutexLock(&e->lock);
@@ -132,13 +134,11 @@ int PoolThreadSize(PoolThread *pt)
 
 void PoolThreadFree(PoolThread *pt)
 {
-    int i;
-
     if (pt == NULL)
         return;
 
     if (pt->array != NULL) {
-        for (i = 0; i < (int)pt->size; i++) {
+        for (int i = 0; i < (int)pt->size; i++) {
             PoolThreadElement *e = &pt->array[i];
             SCMutexLock(&e->lock);
             PoolFree(e->pool);
