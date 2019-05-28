@@ -231,12 +231,11 @@ void PoolThreadTestFree(void *data)
 static int PoolThreadTestInit01(void)
 {
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc, NULL, NULL, NULL, NULL);
-    if (pt == NULL)
-        return 0;
-
+                                    10, 5, 10, PoolThreadTestAlloc,
+                                    NULL, NULL, NULL, NULL);
+    FAIL_IF(pt == NULL);
     PoolThreadFree(pt);
-    return 1;
+    PASS;
 }
 
 static int PoolThreadTestInit02(void)
@@ -244,135 +243,89 @@ static int PoolThreadTestInit02(void)
     int i = 123;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
-    if (pt == NULL)
-        return 0;
-
+                                    10, 5, 10,
+                                    PoolThreadTestAlloc, PoolThreadTestInit,
+                                    &i, PoolThreadTestFree, NULL);
+    FAIL_IF(pt == NULL);
     PoolThreadFree(pt);
-    return 1;
+    PASS;
 }
 
 static int PoolThreadTestGet01(void)
 {
-    int result = 0;
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc, NULL, NULL, NULL, NULL);
-    if (pt == NULL)
-        return 0;
+                                    10, 5, 10, PoolThreadTestAlloc,
+                                    NULL, NULL, NULL, NULL);
+    FAIL_IF(pt == NULL);
 
     void *data = PoolThreadGetById(pt, 3);
-    if (data == NULL) {
-        printf("data == NULL: ");
-        goto end;
-    }
+    FAIL_IF_NULL(data);
 
     struct PoolThreadTestData *pdata = data;
-    if (pdata->res != 3) {
-        printf("res != 3, but %d: ", pdata->res);
-        goto end;
-    }
+    FAIL_IF(pdata->res != 3);
 
-    result = 1;
-end:
     PoolThreadFree(pt);
-    return result;
+    PASS;
 }
 
 static int PoolThreadTestGet02(void)
 {
     int i = 123;
-    int result = 0;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
-    if (pt == NULL)
-        return 0;
+                                    10, 5, 10, PoolThreadTestAlloc,
+                                    PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
+    FAIL_IF_NULL(pt);
 
     void *data = PoolThreadGetById(pt, 3);
-    if (data == NULL) {
-        printf("data == NULL: ");
-        goto end;
-    }
+    FAIL_IF_NULL(data);
 
     struct PoolThreadTestData *pdata = data;
-    if (pdata->res != 3) {
-        printf("res != 3, but %d: ", pdata->res);
-        goto end;
-    }
+    FAIL_IF_NOT (pdata->res == 3);
 
-    if (pdata->abc != 123) {
-        printf("abc != 123, but %d: ", pdata->abc);
-        goto end;
-    }
+    FAIL_IF_NOT (pdata->abc == 123);
 
-    result = 1;
-end:
     PoolThreadFree(pt);
-    return result;
+    PASS;
 }
 
 static int PoolThreadTestReturn01(void)
 {
     int i = 123;
-    int result = 0;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
-    if (pt == NULL)
-        return 0;
+                                    10, 5, 10, PoolThreadTestAlloc,
+                                    PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
+    FAIL_IF_NULL(pt);
 
     void *data = PoolThreadGetById(pt, 3);
-    if (data == NULL) {
-        printf("data == NULL: ");
-        goto end;
-    }
+    FAIL_IF_NULL(data);
 
     struct PoolThreadTestData *pdata = data;
-    if (pdata->res != 3) {
-        printf("res != 3, but %d: ", pdata->res);
-        goto end;
-    }
+    FAIL_IF_NOT (pdata->res == 3);
 
-    if (pdata->abc != 123) {
-        printf("abc != 123, but %d: ", pdata->abc);
-        goto end;
-    }
+    FAIL_IF_NOT (pdata->abc == 123);
 
-    if (pt->array[3].pool->outstanding != 1) {
-        printf("pool outstanding count wrong %u: ",
-                pt->array[3].pool->outstanding);
-        goto end;
-    }
+    FAIL_IF_NOT (pt->array[3].pool->outstanding == 1);
 
     PoolThreadReturn(pt, data);
 
-    if (pt->array[3].pool->outstanding != 0) {
-        printf("pool outstanding count wrong %u: ",
-                pt->array[3].pool->outstanding);
-        goto end;
-    }
+    FAIL_IF_NOT (pt->array[3].pool->outstanding == 0);
 
-
-    result = 1;
-end:
     PoolThreadFree(pt);
-    return result;
+    PASS;
 }
 
 static int PoolThreadTestGrow01(void)
 {
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc, NULL, NULL, NULL, NULL);
-    if (pt == NULL)
-        return 0;
-
-    if (PoolThreadExpand(pt) < 0) {
-        PoolThreadFree(pt);
-        return 0;
-    }
+                                    10, 5, 10, PoolThreadTestAlloc,
+                                    NULL, NULL, NULL, NULL);
+    FAIL_IF_NULL(pt);
+    FAIL_IF(PoolThreadExpand(pt) < 0);
 
     PoolThreadFree(pt);
-    return 1;
+    PASS;
 }
 
 static int PoolThreadTestGrow02(void)
@@ -380,70 +333,41 @@ static int PoolThreadTestGrow02(void)
     int i = 123;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
-    if (pt == NULL)
-        return 0;
-
-    if (PoolThreadExpand(pt) < 0) {
-        PoolThreadFree(pt);
-        return 0;
-    }
+                                    10, 5, 10, PoolThreadTestAlloc,
+                                    PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
+    FAIL_IF_NULL(pt);
+    FAIL_IF(PoolThreadExpand(pt) < 0);
 
     PoolThreadFree(pt);
-    return 1;
+    PASS;
 }
 
 static int PoolThreadTestGrow03(void)
 {
     int i = 123;
-    int result = 0;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
-    if (pt == NULL)
-        return 0;
-
-    if (PoolThreadExpand(pt) < 0) {
-        PoolThreadFree(pt);
-        return 0;
-    }
+                                    10, 5, 10, PoolThreadTestAlloc,
+                                    PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
+    FAIL_IF_NULL(pt);
+    FAIL_IF(PoolThreadExpand(pt) < 0);
 
     void *data = PoolThreadGetById(pt, 4);
-    if (data == NULL) {
-        printf("data == NULL: ");
-        goto end;
-    }
+    FAIL_IF_NULL(data);
 
     struct PoolThreadTestData *pdata = data;
-    if (pdata->res != 4) {
-        printf("res != 5, but %d: ", pdata->res);
-        goto end;
-    }
+    FAIL_IF_NOT(pdata->res == 4);
 
-    if (pdata->abc != 123) {
-        printf("abc != 123, but %d: ", pdata->abc);
-        goto end;
-    }
+    FAIL_IF_NOT(pdata->abc == 123);
 
-    if (pt->array[4].pool->outstanding != 1) {
-        printf("pool outstanding count wrong %u: ",
-                pt->array[4].pool->outstanding);
-        goto end;
-    }
+    FAIL_IF_NOT(pt->array[4].pool->outstanding == 1);
 
     PoolThreadReturn(pt, data);
 
-    if (pt->array[4].pool->outstanding != 0) {
-        printf("pool outstanding count wrong %u: ",
-                pt->array[4].pool->outstanding);
-        goto end;
-    }
+    FAIL_IF_NOT(pt->array[4].pool->outstanding == 0);
 
-
-    result = 1;
-end:
     PoolThreadFree(pt);
-    return result;
+    PASS;
 }
 
 #endif
