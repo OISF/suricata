@@ -433,6 +433,7 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Json
         DNS_RECORD_TYPE_CNAME |
         DNS_RECORD_TYPE_MX |
         DNS_RECORD_TYPE_TXT |
+        DNS_RECORD_TYPE_SRV |
         DNS_RECORD_TYPE_PTR => {
             jsa.set_string_from_bytes("rdata", &answer.data);
         },
@@ -503,6 +504,7 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
                     DNS_RECORD_TYPE_CNAME |
                     DNS_RECORD_TYPE_MX |
                     DNS_RECORD_TYPE_TXT |
+                    DNS_RECORD_TYPE_SRV |
                     DNS_RECORD_TYPE_PTR => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),
@@ -637,6 +639,7 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
         DNS_RECORD_TYPE_CNAME |
         DNS_RECORD_TYPE_MX |
         DNS_RECORD_TYPE_TXT |
+        DNS_RECORD_TYPE_SRV |
         DNS_RECORD_TYPE_PTR => {
             js.set_string_from_bytes("rdata", &answer.data);
         },

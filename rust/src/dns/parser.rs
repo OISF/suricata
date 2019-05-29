@@ -270,6 +270,17 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
                     (name)
             ))(input)
         },
+        DNS_RECORD_TYPE_SRV => {
+            // For SRV we skip over priority, weight and port (prov) fields before
+            // parsing out the name.
+            closure!(&'a [u8], do_parse!(
+                be_u16 >>
+                be_u16 >>
+                be_u16 >> // port we will need to parse it
+                name: apply!(dns_parse_name, message) >>
+                    (name)
+            ))(input)
+        },
         DNS_RECORD_TYPE_TXT => {
             closure!(&'a [u8], do_parse!(
                 len: be_u8 >>
