@@ -252,6 +252,13 @@ pub fn dns_parse_query<'a>(input: &'a [u8],
     ))(input);
 }
 
+pub fn dns_format_service<'a>(name: Vec<u8>, port: u16)
+    -> Vec<u8>
+{
+    let vname = String::from_utf8(name).unwrap();
+    format!("{}:{}", vname, port).into_bytes()
+}
+
 pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
     -> IResult<&'a [u8], Vec<u8>>
 {
@@ -276,9 +283,9 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
             closure!(&'a [u8], do_parse!(
                 be_u16 >>
                 be_u16 >>
-                be_u16 >> // port we will need to parse it
+                port: be_u16 >>
                 name: apply!(dns_parse_name, message) >>
-                    (name)
+                    (dns_format_service(name, port))
             ))(input)
         },
         DNS_RECORD_TYPE_TXT => {
