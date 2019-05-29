@@ -196,13 +196,13 @@ int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range)
         // case with start and end
         range->start = bstr_util_mem_to_pint(data + pos, len - pos, 10, &last_pos);
         pos += last_pos;
-        if (len < pos || data[pos] != '-') {
+        if (len < pos + 1 || data[pos] != '-') {
             return -1;
         }
         pos++;
         range->end = bstr_util_mem_to_pint(data + pos, len - pos, 10, &last_pos);
         pos += last_pos;
-        if (len < pos || data[pos] != '/') {
+        if (len < pos + 1 || data[pos] != '/') {
             return -1;
         }
         pos++;
