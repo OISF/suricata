@@ -32,6 +32,7 @@
 #include "detect-filemagic.h"
 #include "conf.h"
 #include "util-profiling.h"
+#include "util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
@@ -106,7 +107,7 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
     int file_logged = 0;
 
     while (logger && store) {
-        BUG_ON(logger->LogFunc == NULL);
+        DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
 
         SCLogDebug("logger %p", logger);
         PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
@@ -118,8 +119,8 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
         logger = logger->next;
         store = store->next;
 
-        BUG_ON(logger == NULL && store != NULL);
-        BUG_ON(logger != NULL && store == NULL);
+        DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+        DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
     }
     return file_logged;
 }
@@ -206,7 +207,7 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadStore *store,
 
 static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
-    BUG_ON(thread_data == NULL);
+    DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
 
     if (list == NULL) {
         /* No child loggers. */

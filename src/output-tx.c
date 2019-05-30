@@ -30,6 +30,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-profiling.h"
+#include "util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
@@ -129,7 +130,7 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
 
 static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
-    BUG_ON(thread_data == NULL);
+    DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
     if (list == NULL) {
         /* No child loggers registered. */
         return TM_ECODE_OK;
@@ -191,13 +192,13 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 
         const OutputTxLogger *logger = list;
         const OutputLoggerThreadStore *store = op_thread_data->store;
-#ifdef DEBUG_VALIDATION
-        BUG_ON(logger == NULL && store != NULL);
-        BUG_ON(logger != NULL && store == NULL);
-        BUG_ON(logger == NULL && store == NULL);
-#endif
+
+        DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+        DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+        DEBUG_VALIDATE_BUG_ON(logger == NULL && store == NULL);
+
         while (logger && store) {
-            BUG_ON(logger->LogFunc == NULL);
+            DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
 
             SCLogDebug("logger %p, LogCondition %p, ts_log_progress %d "
                     "tc_log_progress %d", logger, logger->LogCondition,
@@ -240,10 +241,9 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 next_logger:
             logger = logger->next;
             store = store->next;
-#ifdef DEBUG_VALIDATION
-            BUG_ON(logger == NULL && store != NULL);
-            BUG_ON(logger != NULL && store == NULL);
-#endif
+
+            DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+            DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
         }
 
         if (tx_logged != tx_logged_old) {

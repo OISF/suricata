@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "tm-modules.h"
 #include "output-stats.h"
+#include "util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
@@ -85,29 +86,27 @@ int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc,
 
 TmEcode OutputStatsLog(ThreadVars *tv, void *thread_data, StatsTable *st)
 {
-    BUG_ON(thread_data == NULL);
-    BUG_ON(list == NULL);
+    DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
+    DEBUG_VALIDATE_BUG_ON(list == NULL);
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputStatsLogger *logger = list;
     OutputLoggerThreadStore *store = op_thread_data->store;
 
-    BUG_ON(logger == NULL && store != NULL);
-    BUG_ON(logger != NULL && store == NULL);
-    BUG_ON(logger == NULL && store == NULL);
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+    DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store == NULL);
 
-    logger = list;
-    store = op_thread_data->store;
     while (logger && store) {
-        BUG_ON(logger->LogFunc == NULL);
+        DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
 
         logger->LogFunc(tv, store->thread_data, st);
 
         logger = logger->next;
         store = store->next;
 
-        BUG_ON(logger == NULL && store != NULL);
-        BUG_ON(logger != NULL && store == NULL);
+        DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+        DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
     }
 
     return TM_ECODE_OK;

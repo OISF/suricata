@@ -36,6 +36,7 @@
 #include "stream-tcp.h"
 #include "stream-tcp-inline.h"
 #include "stream-tcp-reassemble.h"
+#include "util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
@@ -114,18 +115,18 @@ typedef struct StreamerCallbackData_ {
 static int Streamer(void *cbdata, Flow *f, const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
 {
     StreamerCallbackData *streamer_cbdata = (StreamerCallbackData *)cbdata;
-    BUG_ON(streamer_cbdata == NULL);
+    DEBUG_VALIDATE_BUG_ON(streamer_cbdata == NULL);
     OutputStreamingLogger *logger = streamer_cbdata->logger;
     OutputLoggerThreadStore *store = streamer_cbdata->store;
     ThreadVars *tv = streamer_cbdata->tv;
 #ifdef PROFILING
     Packet *p = streamer_cbdata->p;
 #endif
-    BUG_ON(logger == NULL);
-    BUG_ON(store == NULL);
+    DEBUG_VALIDATE_BUG_ON(logger == NULL);
+    DEBUG_VALIDATE_BUG_ON(store == NULL);
 
     while (logger && store) {
-        BUG_ON(logger->LogFunc == NULL);
+        DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
 
         if (logger->type == streamer_cbdata->type) {
             SCLogDebug("logger %p", logger);
@@ -137,8 +138,8 @@ static int Streamer(void *cbdata, Flow *f, const uint8_t *data, uint32_t data_le
         logger = logger->next;
         store = store->next;
 
-        BUG_ON(logger == NULL && store != NULL);
-        BUG_ON(logger != NULL && store == NULL);
+        DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+        DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
     }
 
     return 0;
@@ -298,7 +299,7 @@ static int TcpDataLogger (Flow *f, TcpSession *ssn, TcpStream *stream,
 
 static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
-    BUG_ON(thread_data == NULL);
+    DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
 
     if (list == NULL) {
         /* No child loggers. */
@@ -311,9 +312,9 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data)
 
     StreamerCallbackData streamer_cbdata = { logger, store, tv, p , 0};
 
-    BUG_ON(logger == NULL && store != NULL);
-    BUG_ON(logger != NULL && store == NULL);
-    BUG_ON(logger == NULL && store == NULL);
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+    DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store == NULL);
 
     uint8_t flags = 0;
     Flow * const f = p->flow;

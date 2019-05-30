@@ -28,6 +28,7 @@
 #include "output.h"
 #include "output-packet.h"
 #include "util-profiling.h"
+#include "util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;
@@ -92,7 +93,7 @@ int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
 
 static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
-    BUG_ON(thread_data == NULL);
+    DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
 
     if (list == NULL) {
         /* No child loggers. */
@@ -103,12 +104,12 @@ static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
     OutputPacketLogger *logger = list;
     OutputLoggerThreadStore *store = op_thread_data->store;
 
-    BUG_ON(logger == NULL && store != NULL);
-    BUG_ON(logger != NULL && store == NULL);
-    BUG_ON(logger == NULL && store == NULL);
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+    DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store == NULL);
 
     while (logger && store) {
-        BUG_ON(logger->LogFunc == NULL || logger->ConditionFunc == NULL);
+        DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL || logger->ConditionFunc == NULL);
 
         if ((logger->ConditionFunc(tv, (const Packet *)p)) == TRUE) {
             PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
@@ -119,8 +120,8 @@ static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
         logger = logger->next;
         store = store->next;
 
-        BUG_ON(logger == NULL && store != NULL);
-        BUG_ON(logger != NULL && store == NULL);
+        DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+        DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
     }
 
     return TM_ECODE_OK;

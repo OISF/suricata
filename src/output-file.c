@@ -124,7 +124,7 @@ static void OutputFileLogFfc(ThreadVars *tv,
                 const OutputFileLogger *logger = list;
                 const OutputLoggerThreadStore *store = op_thread_data->store;
                 while (logger && store) {
-                    BUG_ON(logger->LogFunc == NULL);
+                    DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
 
                     SCLogDebug("logger %p", logger);
                     PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
@@ -135,8 +135,8 @@ static void OutputFileLogFfc(ThreadVars *tv,
                     logger = logger->next;
                     store = store->next;
 
-                    BUG_ON(logger == NULL && store != NULL);
-                    BUG_ON(logger != NULL && store == NULL);
+                    DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+                    DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
                 }
 
                 if (file_logged) {
