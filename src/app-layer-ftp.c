@@ -473,17 +473,21 @@ static void FtpTransferCmdFree(void *data)
 static uint32_t CopyCommandLine(uint8_t **dest, uint8_t *src, uint32_t length)
 {
     if (likely(length)) {
-        uint8_t *where = FTPCalloc(length, sizeof(char));
+        if (unlikely(length == UINT32_MAX)) {
+            return 0;
+        }
+        uint8_t *where = FTPCalloc(length + 1, sizeof(char));
         if (unlikely(where == NULL)) {
             return 0;
         }
         memcpy(where, src, length);
 
         /* Remove trailing newlines/carriage returns */
-        if (isspace((unsigned char)where[length - 1])) {
-            while(length && isspace((unsigned char)where[(--length) - 1]));
-            where[length] = '\0';
+        while (length && isspace((unsigned char) where[length - 1])) {
+            length--;
         }
+
+        where[length] = '\0';
         *dest = where;
     }
     /* either 0 or actual */
@@ -737,18 +741,19 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
     int retcode = 1;
 
     if (state->command == FTP_COMMAND_UNKNOWN) {
-        if (likely(input_len)) {
-            tx = FTPGetOldestTx(state);
-            if (tx == NULL) {
-                tx = FTPTransactionCreate(state);
-            }
-            if (unlikely(tx == NULL))
-                return 0;
-            tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX - 1];
-        } else {
-            // no command and no response buffer: no transaction needed
+        if (unlikely(input_len == 0)) {
             return 1;
         }
+
+        tx = FTPGetOldestTx(state);
+        if (tx == NULL) {
+            tx = FTPTransactionCreate(state);
+        }
+        if (unlikely(tx == NULL)) {
+            return -1;
+        }
+        /* unknown */
+        tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX -1];
     } else {
         tx = FTPGetOldestTx(state);
     }

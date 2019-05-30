@@ -66,17 +66,19 @@ static void JsonFTPLogJSON(json_t *tjs, Flow *f, FTPTransaction *tx)
     json_t *cjs = NULL;
     if (f->alproto == ALPROTO_FTPDATA) {
         cjs = JsonFTPDataAddMetadata(f);
-    } else if (tx->command_descriptor->command != FTP_COMMAND_UNKNOWN || !TAILQ_EMPTY(&tx->response_list)) {
+    } else {
         cjs = json_object();
         if (cjs) {
             json_object_set_new(cjs, "command",
                                 json_string(tx->command_descriptor->command_name_upper));
             uint32_t min_length = tx->command_descriptor->command_length + 1; /* command + space */
-            json_object_set_new(cjs, "command_data",
-                                tx->request_length >= min_length ? 
+            if (tx->request_length > min_length) {
+                json_object_set_new(cjs, "command_data",
                                     JsonAddStringN((const char *)tx->request + min_length,
-                                                   tx->request_length - min_length) :
-                                    json_string(NULL));
+                                                   tx->request_length - min_length));
+            } else {
+                json_object_set_new(cjs, "command_data", json_string(NULL));
+            }
             if (!TAILQ_EMPTY(&tx->response_list)) {
                 json_t *js_resplist = json_array();
                 if (likely(js_resplist != NULL)) {
