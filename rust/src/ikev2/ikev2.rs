@@ -429,11 +429,6 @@ impl Drop for IKEV2Transaction {
     }
 }
 
-
-
-
-
-
 /// Returns *mut IKEV2State
 #[no_mangle]
 pub extern "C" fn rs_ikev2_state_new() -> *mut libc::c_void {
