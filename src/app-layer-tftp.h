@@ -24,12 +24,7 @@
 #ifndef __APP_LAYER_TFTP_H__
 #define __APP_LAYER_TFTP_H__
 
-#include "detect-engine-state.h"
-
-#include "queue.h"
-
 void RegisterTFTPParsers(void);
-void TFTPParserRegisterTests(void);
 
 /** Opaque Rust types. */
 typedef struct TFTPState_ TFTPState;
