@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,11 +31,28 @@ pub struct TFTPTransaction {
     pub opcode : u8,
     pub filename : String,
     pub mode : String,
-    pub logged : LoggerFlags
+    pub logged : LoggerFlags,
+    id: u64,
 }
 
 pub struct TFTPState {
-    pub transactions : Vec<TFTPTransaction>
+    pub transactions : Vec<TFTPTransaction>,
+    /// tx counter for assigning incrementing id's to tx's
+    tx_id: u64,
+}
+
+impl TFTPState {
+    fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&TFTPTransaction> {
+        self.transactions.iter().find(|&tx| tx.id == tx_id + 1)
+    }
+
+    fn free_tx(&mut self, tx_id: u64) {
+        let tx = self.transactions.iter().position(|ref tx| tx.id == tx_id + 1);
+        debug_assert!(tx != None);
+        if let Some(idx) = tx {
+            let _ = self.transactions.remove(idx);
+        }
+    }
 }
 
 impl TFTPTransaction {
@@ -45,6 +62,7 @@ impl TFTPTransaction {
             filename : filename,
             mode : mode.to_lowercase(),
             logged : LoggerFlags::new(),
+            id : 0,
         }
     }
     pub fn is_mode_ok(&self) -> bool {
@@ -57,7 +75,7 @@ impl TFTPTransaction {
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_state_alloc() -> *mut libc::c_void {
-    let state = TFTPState { transactions : Vec::new() };
+    let state = TFTPState { transactions : Vec::new(), tx_id: 0, };
     let boxed = Box::new(state);
     return unsafe{transmute(boxed)};
 }
@@ -69,17 +87,17 @@ pub extern "C" fn rs_tftp_state_free(state: *mut libc::c_void) {
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_state_tx_free(state: &mut TFTPState,
-                                        tx_id: libc::uint32_t) {
-    state.transactions.remove(tx_id as usize);
+                                        tx_id: libc::uint64_t) {
+    state.free_tx(tx_id);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
                                     tx_id: libc::uint64_t) -> *mut libc::c_void {
-    if state.transactions.len() <= tx_id as usize {
-        return std::ptr::null_mut();
+    match state.get_tx_by_id(tx_id) {
+        Some(tx) => unsafe{std::mem::transmute(tx)},
+        None     => std::ptr::null_mut(),
     }
-    return unsafe{transmute(&state.transactions[tx_id as usize])};
 }
 
 #[no_mangle]
@@ -97,13 +115,8 @@ pub extern "C" fn rs_tftp_set_tx_logged(_state: &mut TFTPState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_tftp_has_event(state: &mut TFTPState) -> i64 {
-    return state.transactions.len() as i64;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_tftp_get_tx_cnt(state: &mut TFTPState) -> u64 {
-    return state.transactions.len() as u64;
+    return state.tx_id as u64;
 }
 
 named!(getstr<&str>, map_res!(
@@ -132,7 +145,9 @@ pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
                                   len: libc::uint32_t) -> i64 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
     return match tftp_request(buf) {
-        Ok((_, rqst)) => {
+        Ok((_, mut rqst)) => {
+            state.tx_id += 1;
+            rqst.id = state.tx_id;
             state.transactions.push(rqst);
             1
         },
