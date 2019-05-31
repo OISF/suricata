@@ -168,7 +168,7 @@ At the part where you can modify rules, type:
 
 ::
 
-  modifysid 2010495 “alert” | “drop”
+  modifysid 2010495 "alert" | "drop"
 
 The sid 2010495 is an example. Type the sid of the rule you desire to
 change, instead.

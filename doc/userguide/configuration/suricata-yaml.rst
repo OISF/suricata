@@ -1533,7 +1533,7 @@ A logging line exists of two parts. First it displays meta information
 
   [27708] 15/10/2010 -- 11:40:07 - (suricata.c:425) <Info> (main) – This is Suricata version 1.0.2
 
-(Here the part until the – is the meta info, “This is Suricata 1.0.2”
+(Here the part until the – is the meta info, "This is Suricata 1.0.2"
 is the actual message.)
 
 It is possible to determine which information will be displayed in

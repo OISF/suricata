@@ -24,8 +24,8 @@ For instance::
 
   User-agent: Mozilla/5.0 Badness;
 
-  content:”User-Agent|3A|”;
-  content:”Badness”; distance:0;
+  content:"User-Agent|3A|";
+  content:"Badness"; distance:0;
 
 In this example you see the first content is longer and more varied
 than the second one, so you know Suricata will use this content for
@@ -35,8 +35,8 @@ use the second content by using 'fast_pattern'.
 
 ::
 
-  content:”User-Agent|3A|”;
-  content:”Badness”; distance:0; fast_pattern;
+  content:"User-Agent|3A|";
+  content:"Badness"; distance:0; fast_pattern;
 
 The keyword fast_pattern modifies the content previous to it.
 
@@ -63,7 +63,7 @@ fast_pattern 'chop'.
 
 For example::
 
-  content: “aaaaaaaaabc”; fast_pattern:8,4;
+  content: "aaaaaaaaabc"; fast_pattern:8,4;
 
 This way, MPM uses only the last four characters.
 

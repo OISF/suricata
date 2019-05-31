@@ -158,9 +158,9 @@ in the stream.
 
 So we'll get an alert ONLY if usernamecount is over five.
 
-So now let’s say we want to get an alert as above but NOT if there
+So now let's say we want to get an alert as above but NOT if there
 have been more occurrences of that username logging out. Assuming this
-particular protocol indicates a log out with "jonkman logout", let’s
+particular protocol indicates a log out with "jonkman logout", let's
 try:
 
 ::
@@ -176,7 +176,7 @@ of what such a simple function can do for rule writing. I see a lot of
 applications in things like login tracking, IRC state machines,
 malware tracking, and brute force login detection.
 
-Let’s say we're tracking a protocol that normally allows five login
+Let's say we're tracking a protocol that normally allows five login
 fails per connection, but we have vulnerability where an attacker can
 continue to login after that five attempts and we need to know about
 it.
