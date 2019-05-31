@@ -25,7 +25,6 @@
 #define __APP_LAYER_IKEV2_H__
 
 void RegisterIKEV2Parsers(void);
-void IKEV2ParserRegisterTests(void);
 
 /** Opaque Rust types. */
 typedef struct IKEV2State_ IKEV2State;

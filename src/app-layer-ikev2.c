@@ -34,33 +34,9 @@
 
 #include "app-layer-ikev2.h"
 
-#ifdef HAVE_RUST
-
 #include "rust-ikev2-ikev2-gen.h"
 
 void RegisterIKEV2Parsers(void)
 {
     rs_register_ikev2_parser();
-
-#ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_IKEV2,
-        IKEV2ParserRegisterTests);
-#endif
 }
-
-#ifdef UNITTESTS
-#endif
-
-void IKEV2ParserRegisterTests(void)
-{
-#ifdef UNITTESTS
-#endif
-}
-
-#else /* HAVE_RUST */
-
-void RegisterIKEV2Parsers(void)
-{
-}
-
-#endif /* HAVE_RUST */
