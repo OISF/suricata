@@ -319,6 +319,21 @@ void SigTableList(const char *keyword)
                 }
             }
         }
+        /* print detect-engine-proto keywords */
+        printf("- tcp\n");
+        printf("- tcp-pkt\n");
+        printf("- tcp-stream\n");
+        printf("- udp\n");
+        printf("- icmpv4\n");
+        printf("- icmpv6\n");
+        printf("- icmp\n");
+        printf("- sctp\n");
+        printf("- ipv4\n");
+        printf("- ip4\n");
+        printf("- ipv6\n");
+        printf("- ip6\n");
+        printf("- ip\n");
+        printf("- pkthdr\n");
     } else if (strcmp("csv", keyword) == 0) {
         printf("name;description;app layer;features;documentation\n");
         for (i = 0; i < size; i++) {
