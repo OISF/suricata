@@ -332,7 +332,7 @@ Relative PCRE
 
      content:".php?sign="; http_uri; pcre:"/^[a-zA-Z0-9]{8}$/UR";
 
--  With Snort you can't combine the “relative” PCRE option ('R') with other buffer options like normalized URI ('U') – you get a syntax error.
+-  With Snort you can't combine the "relative" PCRE option ('R') with other buffer options like normalized URI ('U') – you get a syntax error.
 
 ``tls*`` Keywords
 ------------------
