@@ -3,7 +3,7 @@ Myricom
 
 From: https://blog.inliniac.net/2012/07/10/suricata-on-myricom-capture-cards/
 
-In this guide I’ll describe using the Myricom libpcap support. I’m going to assume you installed the card properly, installed the Sniffer driver and made sure that all works. Make sure that in your dmesg you see that the card is in sniffer mode:
+In this guide I'll describe using the Myricom libpcap support. I'm going to assume you installed the card properly, installed the Sniffer driver and made sure that all works. Make sure that in your dmesg you see that the card is in sniffer mode:
 
 ::
 
@@ -13,7 +13,7 @@ In this guide I’ll describe using the Myricom libpcap support. I’m going to 
 
 I have installed the Myricom runtime and libraries in /opt/snf
 
-Compile Suricata against Myricom’s libpcap:
+Compile Suricata against Myricom's libpcap:
 
 
 ::
@@ -23,7 +23,7 @@ Compile Suricata against Myricom’s libpcap:
   make
   sudo make install
 
-Next, configure the amount of ringbuffers. I’m going to work with 8 here, as my quad core + hyper threading has 8 logical CPU’s. *See below* for additional information about the buffer-size parameter.
+Next, configure the amount of ringbuffers. I'm going to work with 8 here, as my quad core + hyper threading has 8 logical CPUs. *See below* for additional information about the buffer-size parameter.
 
 
 ::
@@ -35,7 +35,7 @@ Next, configure the amount of ringbuffers. I’m going to work with 8 here, as m
       buffer-size: 512kb
       checksum-checks: no
 
-The 8 threads setting makes Suricata create 8 reader threads for eth5. The Myricom driver makes sure each of those is attached to it’s own ringbuffer.
+The 8 threads setting makes Suricata create 8 reader threads for eth5. The Myricom driver makes sure each of those is attached to its own ringbuffer.
 
 Then start Suricata as follows:
 
@@ -44,7 +44,7 @@ Then start Suricata as follows:
 
   SNF_NUM_RINGS=8 SNF_FLAGS=0x1 suricata -c suricata.yaml -i eth5 --runmode=workers
 
-If you want 16 ringbuffers, update the “threads” variable in your yaml to 16 and start Suricata:
+If you want 16 ringbuffers, update the "threads" variable in your yaml to 16 and start Suricata:
 
 ::
 
@@ -56,7 +56,7 @@ Note that the pcap.buffer-size yaml setting shown above is currently ignored whe
 ::
 
 
-  “The libpcap interface to Sniffer10G ignores the pcap_set_buffer_size() value.  The call to snf_open() uses zero as the dataring_size which informs the Sniffer library to use a default value or the value from the SNF_DATARING_SIZE environment variable."
+  "The libpcap interface to Sniffer10G ignores the pcap_set_buffer_size() value.  The call to snf_open() uses zero as the dataring_size which informs the Sniffer library to use a default value or the value from the SNF_DATARING_SIZE environment variable."
 
 The following pull request opened by Myricom in the libpcap project indicates that a future SNF software release could provide support for setting the SNF_DATARING_SIZE via the pcap.buffer-size yaml setting:
 

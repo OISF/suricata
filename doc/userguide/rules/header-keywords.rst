@@ -151,8 +151,8 @@ The syntax of geoip::
 So, you can see you can use the following to make clear on which
 direction you would like to match::
 
-  both: both directions have to match with the given geoip (geopip’s)
-  any: one of the directions have to match with the given geoip (’s).
+  both: both directions have to match with the given geoip (geopip's)
+  any: one of the directions have to match with the given geoip ('s).
   dest: if the destination matches with the given geoip.
   src: the source matches with the given geoip.
 
