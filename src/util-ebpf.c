@@ -539,7 +539,8 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
         FlowCounters *fc = FlowGetStorageById(f, GetFlowBypassCounterID());
         if (fc == NULL) {
             FLOWLOCK_UNLOCK(f);
-            return 0;
+            flowstats->count++;
+            return pkts_cnt;
         }
         if (flow_key->sp == f->sp) {
             if (pkts_cnt != fc->todstpktcnt) {
