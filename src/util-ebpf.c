@@ -496,13 +496,18 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
     return 0;
 }
 
-static int EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
+/**
+ * Create a Flow in the table for a Flowkey
+ *
+ * \return false (this create function never returns true)
+ */
+static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
                                 uint32_t hash, struct timespec *ctime,
                                 uint64_t pkts_cnt, uint64_t bytes_cnt)
 {
     Flow *f = FlowGetFromFlowKey(flow_key, ctime, hash);
     if (f == NULL)
-        return 0;
+        return false;
 
     FlowUpdateState(f, FLOW_STATE_CAPTURE_BYPASSED);
     /* set accounting, we can't know the direction, so let's just start to
@@ -518,17 +523,22 @@ static int EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
             fc->todstbytecnt = bytes_cnt;
         } else {
             FLOWLOCK_UNLOCK(f);
-            return 0;
+            return false;
         }
     } else {
         fc->tosrcpktcnt = pkts_cnt;
         fc->tosrcbytecnt = bytes_cnt;
     }
     FLOWLOCK_UNLOCK(f);
-    return 0;
+    return false;
 }
 
-static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
+/**
+ * Update a Flow in the Flow table for a Flowkey.
+ *
+ * \return false if Flow is in Flow table and true if not
+ */
+static bool EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
                                 uint32_t hash, struct timespec *ctime,
                                 uint64_t pkts_cnt, uint64_t bytes_cnt)
 {
@@ -540,7 +550,7 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
         if (fc == NULL) {
             FLOWLOCK_UNLOCK(f);
             flowstats->count++;
-            return pkts_cnt;
+            return true;
         }
         if (flow_key->sp == f->sp) {
             if (pkts_cnt != fc->todstpktcnt) {
@@ -562,7 +572,7 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
             }
         }
         FLOWLOCK_UNLOCK(f);
-        return 0;
+        return false;
     } else {
         /* Flow has disappeared so it has been removed due to timeout.
          * This means we did not see any packet since bypassed_timeout/flow_dump_interval
@@ -571,11 +581,11 @@ static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key
         SCLogDebug("No flow for %d -> %d", flow_key->sp, flow_key->dp);
         SCLogDebug("Dead with pkts %lu bytes %lu", pkts_cnt, bytes_cnt);
         flowstats->count++;
-        return pkts_cnt;
+        return true;
     }
 }
 
-typedef int (*OpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key,
+typedef bool (*OpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key,
                             uint32_t hash, struct timespec *ctime,
                             uint64_t pkts_cnt, uint64_t bytes_cnt);
 
@@ -603,14 +613,15 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         return 0;
     }
 
-    uint64_t pkts_cnt = 0;
+    bool dead_flow = false;
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
         uint64_t bytes_cnt = 0;
+        uint64_t pkts_cnt = 0;
         hash_cnt++;
-        if (pkts_cnt > 0) {
+        if (dead_flow) {
             EBPFDeleteKey(mapfd, &key);
+            dead_flow = false;
         }
-        pkts_cnt = 0;
         /* We use a per CPU structure so we will get a array of values. But if nr_cpus
          * is 1 then we have a global hash. */
         BPF_DECLARE_PERCPU(struct pair, values_array, tcfg->cpus_count);
@@ -656,10 +667,10 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         flow_key.vlan_id[1] = next_key.vlan_id[1];
         flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
-        pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key,
+        dead_flow = EBPFOpFlowForKey(flowstats, &flow_key,
                                     BPF_PERCPU(values_array, 0).hash,
                                     ctime, pkts_cnt, bytes_cnt);
-        if (pkts_cnt > 0) {
+        if (dead_flow) {
             found = 1;
         }
 
@@ -669,7 +680,7 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
 
         key = next_key;
     }
-    if (pkts_cnt > 0) {
+    if (dead_flow) {
         EBPFDeleteKey(mapfd, &key);
         found = 1;
     }
