@@ -112,19 +112,34 @@ the signature.
 Event type: Anomaly
 -------------------
 
-Events with type "anomaly"
+Events with type "anomaly" report unexpected conditions such as truncated packets, packets
+with invalid values, events that render the packet invalid for further processing or unexpected
+behaviors.
+
+Networks which experience high occurrences of anomalies may experience packet processing degradation
+when anomaly logging is enabled.
 
 Fields
 ------
 
-* "type": Either "packet" or "stream". In rare cases, type will be "unknown".
-  When this occurs, an additional field named "code" will be present.
+* "type": Either "packet", "stream" or "applayer". In rare cases, type will be "unknown".
+  When this occurs, an additional field named "code" will be present. Events with type
+  "applayer" are detected by the application layer parsers.
 * "event" The name of the anomalous event. Events of type "packet" are prefixed
   with "decoder"; events of type "stream" are prefixed with "stream".
-* "code" If "type" is "unknown", than "code" contains the unrecognized event code.
+* "code" If "type" is "unknown", than "code" contains the unrecognized event code. Otherwise,
+  this field is not present.
 
-When ```packethdr``` is enabled, the first 32 bytes of the packet are included as a byte64-encoded blob in the main part of
-record.
+The following fields are included when "type" has the value "applayer":
+
+* "layer"  Indicates the handling layer that detected the event. This will be "proto_parser"
+  (protocol parser), "proto_detect" (protocol detection) or "parser."
+* "event_no" This is an informational only field indicating the total number of events
+  detected and the ordinal number of the event being reported. It is presented as "N (of M)"
+  where "N" is the ordinal number of the event and "M" is the total number of events detected.
+
+When ``packethdr`` is enabled, the first 32 bytes of the packet are included as a byte64-encoded blob in the main part of
+record. This applies to events of "type" "packet" or "stream" only.
 
 Examples
 --------
@@ -133,17 +148,23 @@ Examples
 
 	"anomaly": {
 	  "type": "packet",
-	  "event": "decoder.icmpv4.unknown_type"
-	}
-
-	"anomaly": {
-	  "type": "packet",
 	  "event": "decoder.udp.pkt_too_small"
 	}
 
-	"anomaly": {
-	  "type": "packet",
-	  "event": "decoder.ipv4.wrong_ip_version"
+	{
+	  "timestamp": "2016-01-17T13:26:30.841742-0800",
+	  "flow_id": 1848021463489450,
+	  "pcap_cnt": 1393890,
+	  "event_type": "anomaly",
+	  "src_ip": "192.168.81.128",
+	  "src_port": 50105,
+	  "dest_ip": "31.148.99.125",
+	  "dest_port": 80,
+	  "proto": "TCP",
+	  "anomaly": {
+		"type": "stream",
+		"event": "stream.reassembly_seq_gap"
+	  }
 	}
 
 	{
@@ -162,6 +183,45 @@ Examples
 	  "anomaly": {
 		"type": "packet",
 		"event": "decoder.udp.pkt_too_small"
+	  }
+	}
+
+	{
+	  "timestamp": "2016-01-11T05:10:54.612110-0800",
+	  "flow_id": 412547343494194,
+	  "pcap_cnt": 1391293,
+	  "event_type": "anomaly",
+	  "src_ip": "192.168.122.149",
+	  "src_port": 49324,
+	  "dest_ip": "69.195.71.174",
+	  "dest_port": 443,
+	  "proto": "TCP",
+	  "app_proto": "tls",
+	  "anomaly": {
+		"type": "applayer",
+		"event": "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION",
+		"event_no": "1 (of 1)",
+		"layer": "proto_detect"
+	  }
+	}
+
+	{
+	  "timestamp": "2016-01-11T05:10:52.828802-0800",
+	  "flow_id": 201217772575257,
+	  "pcap_cnt": 1391281,
+	  "event_type": "anomaly",
+	  "src_ip": "192.168.122.149",
+	  "src_port": 49323,
+	  "dest_ip": "69.195.71.174",
+	  "dest_port": 443,
+	  "proto": "TCP",
+	  "tx_id": 0,
+	  "app_proto": "tls",
+	  "anomaly": {
+		"type": "applayer",
+		"event": "INVALID_RECORD_TYPE",
+		"event_no": "1 (of 3)",
+		"layer": "proto_parser"
 	  }
 	}
 
