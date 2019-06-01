@@ -446,7 +446,7 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
     cpu_hash += tuple.src[1] + tuple.dst[1];
     cpu_hash += tuple.src[2] + tuple.dst[2];
     cpu_hash += tuple.src[3] + tuple.dst[3];
-    cpu_hash = SuperFastHash((char *)&cpu_hash, 4, ip6h->nexthdr);
+    cpu_hash = SuperFastHash((char *)&cpu_hash, 4, INITVAL);
 
     if (cpu_max && *cpu_max) {
         cpu_dest = cpu_hash % *cpu_max;
@@ -465,7 +465,7 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
     xdp_hash += tuple.src[1] + tuple.dst[1];
     xdp_hash += tuple.src[2] + tuple.dst[2];
     xdp_hash += tuple.src[3] + tuple.dst[3];
-    xdp_hash = SuperFastHash((char *)&xdp_hash, 4, ip6h->nexthdr);
+    xdp_hash = SuperFastHash((char *)&xdp_hash, 4, INITVAL);
     ctx->rx_queue_index = xdp_hash % RSS_QUEUE_NUMBERS;
 #endif
 
