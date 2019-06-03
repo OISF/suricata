@@ -564,7 +564,7 @@ pub extern "C" fn rs_dns_state_free(state: *mut libc::c_void) {
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_tx_free(state: &mut DNSState,
-                                       tx_id: libc::uint64_t)
+                                       tx_id: u64)
 {
     state.free_tx(tx_id);
 }
@@ -574,10 +574,10 @@ pub extern "C" fn rs_dns_state_tx_free(state: &mut DNSState,
 pub extern "C" fn rs_dns_parse_request(_flow: *mut core::Flow,
                                        state: &mut DNSState,
                                        _pstate: *mut libc::c_void,
-                                       input: *mut libc::uint8_t,
-                                       input_len: libc::uint32_t,
+                                       input: *mut u8,
+                                       input_len: u32,
                                        _data: *mut libc::c_void)
-                                       -> libc::int8_t {
+                                       -> i8 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     if state.parse_request(buf) {
         1
@@ -590,10 +590,10 @@ pub extern "C" fn rs_dns_parse_request(_flow: *mut core::Flow,
 pub extern "C" fn rs_dns_parse_response(_flow: *mut core::Flow,
                                         state: &mut DNSState,
                                         _pstate: *mut libc::c_void,
-                                        input: *mut libc::uint8_t,
-                                        input_len: libc::uint32_t,
+                                        input: *mut u8,
+                                        input_len: u32,
                                         _data: *mut libc::c_void)
-                                        -> libc::int8_t {
+                                        -> i8 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     if state.parse_response(buf) {
         1
@@ -607,10 +607,10 @@ pub extern "C" fn rs_dns_parse_response(_flow: *mut core::Flow,
 pub extern "C" fn rs_dns_parse_request_tcp(_flow: *mut core::Flow,
                                            state: &mut DNSState,
                                            _pstate: *mut libc::c_void,
-                                           input: *mut libc::uint8_t,
-                                           input_len: libc::uint32_t,
+                                           input: *mut u8,
+                                           input_len: u32,
                                            _data: *mut libc::c_void)
-                                           -> libc::int8_t {
+                                           -> i8 {
     if input_len > 0 {
         if input != std::ptr::null_mut() {
             let buf = unsafe{
@@ -626,10 +626,10 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *mut core::Flow,
 pub extern "C" fn rs_dns_parse_response_tcp(_flow: *mut core::Flow,
                                             state: &mut DNSState,
                                             _pstate: *mut libc::c_void,
-                                            input: *mut libc::uint8_t,
-                                            input_len: libc::uint32_t,
+                                            input: *mut u8,
+                                            input_len: u32,
                                             _data: *mut libc::c_void)
-                                            -> libc::int8_t {
+                                            -> i8 {
     if input_len > 0 {
         if input != std::ptr::null_mut() {
             let buf = unsafe{
@@ -643,7 +643,7 @@ pub extern "C" fn rs_dns_parse_response_tcp(_flow: *mut core::Flow,
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_progress_completion_status(
-    _direction: libc::uint8_t)
+    _direction: u8)
     -> libc::c_int
 {
     SCLogDebug!("rs_dns_state_progress_completion_status");
@@ -652,8 +652,8 @@ pub extern "C" fn rs_dns_state_progress_completion_status(
 
 #[no_mangle]
 pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: &mut DNSTransaction,
-                                                 _direction: libc::uint8_t)
-                                                 -> libc::uint8_t
+                                                 _direction: u8)
+                                                 -> u8
 {
     // This is a stateless parser, just the existence of a transaction
     // means its complete.
@@ -663,8 +663,8 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: &mut DNSTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_dns_tx_set_detect_flags(tx: &mut DNSTransaction,
-                                             dir: libc::uint8_t,
-                                             flags: libc::uint64_t)
+                                             dir: u8,
+                                             flags: u64)
 {
     if dir & core::STREAM_TOSERVER != 0 {
         tx.detect_flags_ts = flags as u64;
@@ -675,20 +675,20 @@ pub extern "C" fn rs_dns_tx_set_detect_flags(tx: &mut DNSTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_dns_tx_get_detect_flags(tx: &mut DNSTransaction,
-                                             dir: libc::uint8_t)
-                                       -> libc::uint64_t
+                                             dir: u8)
+                                       -> u64
 {
     if dir & core::STREAM_TOSERVER != 0 {
-        return tx.detect_flags_ts as libc::uint64_t;
+        return tx.detect_flags_ts as u64;
     } else {
-        return tx.detect_flags_tc as libc::uint64_t;
+        return tx.detect_flags_tc as u64;
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dns_tx_set_logged(_state: &mut DNSState,
                                        tx: &mut DNSTransaction,
-                                       logged: libc::uint32_t)
+                                       logged: u32)
 {
     tx.logged.set(logged);
 }
@@ -703,7 +703,7 @@ pub extern "C" fn rs_dns_tx_get_logged(_state: &mut DNSState,
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_get_tx_count(state: &mut DNSState)
-                                            -> libc::uint64_t
+                                            -> u64
 {
     SCLogDebug!("rs_dns_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
@@ -711,7 +711,7 @@ pub extern "C" fn rs_dns_state_get_tx_count(state: &mut DNSState)
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_get_tx(state: &mut DNSState,
-                                      tx_id: libc::uint64_t)
+                                      tx_id: u64)
                                       -> *mut DNSTransaction
 {
     match state.get_tx(tx_id) {
@@ -749,7 +749,7 @@ pub extern "C" fn rs_dns_state_get_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_get_events(state: &mut DNSState,
-                                          tx_id: libc::uint64_t)
+                                          tx_id: u64)
                                           -> *mut core::AppLayerDecoderEvents
 {
     match state.get_tx(tx_id) {
@@ -764,17 +764,17 @@ pub extern "C" fn rs_dns_state_get_events(state: &mut DNSState,
 
 #[no_mangle]
 pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
-                                       i: libc::uint16_t,
-                                       buf: *mut *const libc::uint8_t,
-                                       len: *mut libc::uint32_t)
-                                       -> libc::uint8_t
+                                       i: u16,
+                                       buf: *mut *const u8,
+                                       len: *mut u32)
+                                       -> u8
 {
     if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
             let query = &request.queries[i as usize];
             if query.name.len() > 0 {
                 unsafe {
-                    *len = query.name.len() as libc::uint32_t;
+                    *len = query.name.len() as u32;
                     *buf = query.name.as_ptr();
                 }
                 return 1;
@@ -788,7 +788,7 @@ pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
 //
 /// extern uint16_t rs_dns_tx_get_tx_id(RSDNSTransaction *);
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> libc::uint16_t
+pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> u16
 {
     return tx.tx_id()
 }
@@ -798,16 +798,16 @@ pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> libc::uint16_t
 /// extern uint16_t rs_dns_tx_get_response_flags(RSDNSTransaction *);
 #[no_mangle]
 pub extern "C" fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction)
-                                           -> libc::uint16_t
+                                           -> u16
 {
     return tx.rcode();
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
-                                         i: libc::uint16_t,
-                                         rrtype: *mut libc::uint16_t)
-                                         -> libc::uint8_t
+                                         i: u16,
+                                         rrtype: *mut u16)
+                                         -> u8
 {
     if let &Some(ref request) = &tx.request {
         if (i as usize) < request.queries.len() {
@@ -824,8 +824,8 @@ pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_probe(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::uint8_t
+pub extern "C" fn rs_dns_probe(input: *const u8, len: u32)
+                               -> u8
 {
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
@@ -837,9 +837,9 @@ pub extern "C" fn rs_dns_probe(input: *const libc::uint8_t, len: libc::uint32_t)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_probe_tcp(input: *const libc::uint8_t,
-                                   len: libc::uint32_t)
-                                   -> libc::uint8_t
+pub extern "C" fn rs_dns_probe_tcp(input: *const u8,
+                                   len: u32)
+                                   -> u8
 {
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)

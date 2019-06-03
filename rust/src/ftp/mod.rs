@@ -58,7 +58,7 @@ named!(pub ftp_pasv_response<u16>,
 
 
 #[no_mangle]
-pub extern "C" fn rs_ftp_pasv_response(input: *const libc::uint8_t, len: libc::uint32_t) -> u16 {
+pub extern "C" fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
     match ftp_pasv_response(buf) {
         nom::IResult::Done(_, dport) => {
@@ -90,7 +90,7 @@ named!(pub ftp_epsv_response<u16>,
 );
 
 #[no_mangle]
-pub extern "C" fn rs_ftp_epsv_response(input: *const libc::uint8_t, len: libc::uint32_t) -> u16 {
+pub extern "C" fn rs_ftp_epsv_response(input: *const u8, len: u32) -> u16 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
     match ftp_epsv_response(buf) {
         nom::IResult::Done(_, dport) => {
