@@ -72,7 +72,7 @@ static InspectionBuffer *GetSMBData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t data_len = 0;
-        uint8_t *data = NULL;
+        const uint8_t *data = NULL;
         uint8_t dir = flow_flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
         if (rs_smb_tx_get_stub_data(txv, dir, &data, &data_len) != 1)
             return NULL;
