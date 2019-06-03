@@ -1684,6 +1684,8 @@ end:
     return result;
 }
 
+void AppLayerHtpFileRegisterTests (void);
+#include "tests/app-layer-htp-file.c"
 #endif /* UNITTESTS */
 
 void HTPFileParserRegisterTests(void)
