@@ -44,7 +44,7 @@ pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>>
     IResult::Error(error_code!(ErrorKind::Custom(130)))
 }
 
-/// parse an ASCII string that is null terminated
+// parse an ASCII string that is null terminated
 named!(pub smb_get_ascii_string<Vec<u8>>,
     do_parse!(
             s: take_until_and_consume!("\x00")
