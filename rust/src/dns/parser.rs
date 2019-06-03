@@ -21,7 +21,7 @@ use nom::{be_u8, be_u16, be_u32};
 use nom;
 use dns::dns::*;
 
-/// Parse a DNS header.
+// Parse a DNS header.
 named!(pub dns_parse_header<DNSHeader>,
        do_parse!(
            tx_id: be_u16 >>
