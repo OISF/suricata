@@ -1343,10 +1343,10 @@ pub extern "C" fn rs_nfs_state_free(state: *mut libc::c_void) {
 pub extern "C" fn rs_nfs_parse_request(_flow: *mut Flow,
                                        state: &mut NFSState,
                                        _pstate: *mut libc::c_void,
-                                       input: *mut libc::uint8_t,
-                                       input_len: libc::uint32_t,
+                                       input: *mut u8,
+                                       input_len: u32,
                                        _data: *mut libc::c_void)
-                                       -> libc::int8_t
+                                       -> i8
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
@@ -1361,8 +1361,8 @@ pub extern "C" fn rs_nfs_parse_request(_flow: *mut Flow,
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_request_tcp_gap(
                                         state: &mut NFSState,
-                                        input_len: libc::uint32_t)
-                                        -> libc::int8_t
+                                        input_len: u32)
+                                        -> i8
 {
     if state.parse_tcp_data_ts_gap(input_len as u32) == 0 {
         return 1;
@@ -1374,10 +1374,10 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
 pub extern "C" fn rs_nfs_parse_response(_flow: *mut Flow,
                                         state: &mut NFSState,
                                         _pstate: *mut libc::c_void,
-                                        input: *mut libc::uint8_t,
-                                        input_len: libc::uint32_t,
+                                        input: *mut u8,
+                                        input_len: u32,
                                         _data: *mut libc::c_void)
-                                        -> libc::int8_t
+                                        -> i8
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
@@ -1392,8 +1392,8 @@ pub extern "C" fn rs_nfs_parse_response(_flow: *mut Flow,
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_response_tcp_gap(
                                         state: &mut NFSState,
-                                        input_len: libc::uint32_t)
-                                        -> libc::int8_t
+                                        input_len: u32)
+                                        -> i8
 {
     if state.parse_tcp_data_tc_gap(input_len as u32) == 0 {
         return 1;
@@ -1406,10 +1406,10 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
 pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
                                        state: &mut NFSState,
                                        _pstate: *mut libc::c_void,
-                                       input: *mut libc::uint8_t,
-                                       input_len: libc::uint32_t,
+                                       input: *mut u8,
+                                       input_len: u32,
                                        _data: *mut libc::c_void)
-                                       -> libc::int8_t
+                                       -> i8
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
@@ -1425,10 +1425,10 @@ pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
 pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
                                         state: &mut NFSState,
                                         _pstate: *mut libc::c_void,
-                                        input: *mut libc::uint8_t,
-                                        input_len: libc::uint32_t,
+                                        input: *mut u8,
+                                        input_len: u32,
                                         _data: *mut libc::c_void)
-                                        -> libc::int8_t
+                                        -> i8
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
@@ -1442,7 +1442,7 @@ pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_get_tx_count(state: &mut NFSState)
-                                            -> libc::uint64_t
+                                            -> u64
 {
     SCLogDebug!("rs_nfs_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
@@ -1450,7 +1450,7 @@ pub extern "C" fn rs_nfs_state_get_tx_count(state: &mut NFSState)
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_get_tx(state: &mut NFSState,
-                                      tx_id: libc::uint64_t)
+                                      tx_id: u64)
                                       -> *mut NFSTransaction
 {
     match state.get_tx_by_id(tx_id) {
@@ -1467,8 +1467,8 @@ pub extern "C" fn rs_nfs_state_get_tx(state: &mut NFSState,
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_get_tx_iterator(
                                       state: &mut NFSState,
-                                      min_tx_id: libc::uint64_t,
-                                      istate: &mut libc::uint64_t)
+                                      min_tx_id: u64,
+                                      istate: &mut u64)
                                       -> applayer::AppLayerGetTxIterTuple
 {
     match state.get_tx_iterator(min_tx_id, istate) {
@@ -1485,14 +1485,14 @@ pub extern "C" fn rs_nfs_state_get_tx_iterator(
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_tx_free(state: &mut NFSState,
-                                       tx_id: libc::uint64_t)
+                                       tx_id: u64)
 {
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_progress_completion_status(
-    _direction: libc::uint8_t)
+    _direction: u8)
     -> libc::c_int
 {
     return 1;
@@ -1500,8 +1500,8 @@ pub extern "C" fn rs_nfs_state_progress_completion_status(
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
-                                                  direction: libc::uint8_t)
-                                                  -> libc::uint8_t
+                                                  direction: u8)
+                                                  -> u8
 {
     if direction == STREAM_TOSERVER && tx.request_done {
         //SCLogNotice!("TOSERVER progress 1");
@@ -1518,7 +1518,7 @@ pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_set_logged(_state: &mut NFSState,
                                        tx: &mut NFSTransaction,
-                                       logged: libc::uint32_t)
+                                       logged: u32)
 {
     tx.logged.set(logged);
 }
@@ -1559,8 +1559,8 @@ pub extern "C" fn rs_nfs_state_get_tx_detect_state(
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_set_detect_flags(
                                        tx: &mut NFSTransaction,
-                                       direction: libc::uint8_t,
-                                       flags: libc::uint64_t)
+                                       direction: u8,
+                                       flags: u64)
 {
     if (direction & STREAM_TOSERVER) != 0 {
         tx.detect_flags_ts = flags as u64;
@@ -1572,19 +1572,19 @@ pub extern "C" fn rs_nfs_tx_set_detect_flags(
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_get_detect_flags(
                                        tx: &mut NFSTransaction,
-                                       direction: libc::uint8_t)
-                                       -> libc::uint64_t
+                                       direction: u8)
+                                       -> u64
 {
     if (direction & STREAM_TOSERVER) != 0 {
-        return tx.detect_flags_ts as libc::uint64_t;
+        return tx.detect_flags_ts as u64;
     } else {
-        return tx.detect_flags_tc as libc::uint64_t;
+        return tx.detect_flags_tc as u64;
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_get_events(state: &mut NFSState,
-                                          tx_id: libc::uint64_t)
+                                          tx_id: u64)
                                           -> *mut AppLayerDecoderEvents
 {
     match state.get_tx_by_id(tx_id) {
@@ -1628,13 +1628,13 @@ pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const libc::c_char,
 /// Keep calling until 0 is returned.
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
-                                           i: libc::uint16_t,
-                                           procedure: *mut libc::uint32_t)
-                                           -> libc::uint8_t
+                                           i: u16,
+                                           procedure: *mut u32)
+                                           -> u8
 {
     if i == 0 {
         unsafe {
-            *procedure = tx.procedure as libc::uint32_t;
+            *procedure = tx.procedure as u32;
         }
         return 1;
     }
@@ -1650,7 +1650,7 @@ pub extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
         if idx < tdf.file_additional_procs.len() {
             let p = tdf.file_additional_procs[idx];
             unsafe {
-                *procedure = p as libc::uint32_t;
+                *procedure = p as u32;
             }
             return 1;
         }
@@ -1660,10 +1660,10 @@ pub extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_get_version(tx: &mut NFSTransaction,
-                                        version: *mut libc::uint32_t)
+                                        version: *mut u32)
 {
     unsafe {
-        *version = tx.nfs_version as libc::uint32_t;
+        *version = tx.nfs_version as u32;
     }
 }
 
@@ -1774,8 +1774,9 @@ pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
 
 /// TOSERVER probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_ts(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
+pub extern "C" fn rs_nfs_probe_ts(
+        input: *const u8,
+        len: u32) -> i8
 {
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
@@ -1785,8 +1786,7 @@ pub extern "C" fn rs_nfs_probe_ts(input: *const libc::uint8_t, len: libc::uint32
 
 /// TOCLIENT probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_tc(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
+pub extern "C" fn rs_nfs_probe_tc(input: *const u8, len: u32) -> i8
 {
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
@@ -1796,8 +1796,8 @@ pub extern "C" fn rs_nfs_probe_tc(input: *const libc::uint8_t, len: libc::uint32
 
 /// TOSERVER probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_udp_ts(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
+pub extern "C" fn rs_nfs_probe_udp_ts(input: *const u8, len: u32)
+                               -> i8
 {
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
@@ -1807,8 +1807,8 @@ pub extern "C" fn rs_nfs_probe_udp_ts(input: *const libc::uint8_t, len: libc::ui
 
 /// TOCLIENT probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_udp_tc(input: *const libc::uint8_t, len: libc::uint32_t)
-                               -> libc::int8_t
+pub extern "C" fn rs_nfs_probe_udp_tc(input: *const u8, len: u32)
+                               -> i8
 {
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)

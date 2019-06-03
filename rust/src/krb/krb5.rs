@@ -281,7 +281,7 @@ pub extern "C" fn rs_krb5_state_free(state: *mut libc::c_void) {
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_state_get_tx(state: *mut libc::c_void,
-                                      tx_id: libc::uint64_t)
+                                      tx_id: u64)
                                       -> *mut libc::c_void
 {
     let state = cast_pointer!(state,KRB5State);
@@ -293,7 +293,7 @@ pub extern "C" fn rs_krb5_state_get_tx(state: *mut libc::c_void,
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_state_get_tx_count(state: *mut libc::c_void)
-                                            -> libc::uint64_t
+                                            -> u64
 {
     let state = cast_pointer!(state,KRB5State);
     state.tx_id
@@ -301,7 +301,7 @@ pub extern "C" fn rs_krb5_state_get_tx_count(state: *mut libc::c_void)
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_state_tx_free(state: *mut libc::c_void,
-                                       tx_id: libc::uint64_t)
+                                       tx_id: u64)
 {
     let state = cast_pointer!(state,KRB5State);
     state.free_tx(tx_id);
@@ -309,7 +309,7 @@ pub extern "C" fn rs_krb5_state_tx_free(state: *mut libc::c_void,
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_state_progress_completion_status(
-    _direction: libc::uint8_t)
+    _direction: u8)
     -> libc::c_int
 {
     return 1;
@@ -317,7 +317,7 @@ pub extern "C" fn rs_krb5_state_progress_completion_status(
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_tx_get_alstate_progress(_tx: *mut libc::c_void,
-                                                 _direction: libc::uint8_t)
+                                                 _direction: u8)
                                                  -> libc::c_int
 {
     1
@@ -326,7 +326,7 @@ pub extern "C" fn rs_krb5_tx_get_alstate_progress(_tx: *mut libc::c_void,
 #[no_mangle]
 pub extern "C" fn rs_krb5_tx_set_logged(_state: *mut libc::c_void,
                                        tx: *mut libc::c_void,
-                                       logged: libc::uint32_t)
+                                       logged: u32)
 {
     let tx = cast_pointer!(tx,KRB5Transaction);
     tx.logged.set(logged);
@@ -367,7 +367,7 @@ pub extern "C" fn rs_krb5_state_get_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_state_get_events(state: *mut libc::c_void,
-                                          tx_id: libc::uint64_t)
+                                          tx_id: u64)
                                           -> *mut core::AppLayerDecoderEvents
 {
     let state = cast_pointer!(state,KRB5State);
@@ -404,7 +404,8 @@ pub extern "C" fn rs_krb5_state_get_event_info(event_name: *const libc::c_char,
 static mut ALPROTO_KRB5 : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow, input:*const libc::uint8_t, input_len: u32) -> AppProto {
+pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
+        input:*const u8, input_len: u32) -> AppProto {
     let slice = build_slice!(input,input_len as usize);
     let alproto = unsafe{ ALPROTO_KRB5 };
     if slice.len() <= 10 { return unsafe{ALPROTO_FAILED}; }
@@ -438,7 +439,8 @@ pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow, input:*const libc::
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow, input:*const libc::uint8_t, input_len: u32) -> AppProto {
+pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
+        input:*const u8, input_len: u32) -> AppProto {
     let slice = build_slice!(input,input_len as usize);
     if slice.len() <= 14 { return unsafe{ALPROTO_FAILED}; }
     match be_u32(slice) {
@@ -460,7 +462,7 @@ pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow, input:*const li
 pub extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
                                        state: *mut libc::c_void,
                                        _pstate: *mut libc::c_void,
-                                       input: *const libc::uint8_t,
+                                       input: *const u8,
                                        input_len: u32,
                                        _data: *const libc::c_void,
                                        _flags: u8) -> i32 {
@@ -473,7 +475,7 @@ pub extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
 pub extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
                                        state: *mut libc::c_void,
                                        _pstate: *mut libc::c_void,
-                                       input: *const libc::uint8_t,
+                                       input: *const u8,
                                        input_len: u32,
                                        _data: *const libc::c_void,
                                        _flags: u8) -> i32 {
@@ -486,7 +488,7 @@ pub extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
 pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                                        state: *mut libc::c_void,
                                        _pstate: *mut libc::c_void,
-                                       input: *const libc::uint8_t,
+                                       input: *const u8,
                                        input_len: u32,
                                        _data: *const libc::c_void,
                                        _flags: u8) -> i32 {
@@ -544,7 +546,7 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
 pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                                        state: *mut libc::c_void,
                                        _pstate: *mut libc::c_void,
-                                       input: *const libc::uint8_t,
+                                       input: *const u8,
                                        input_len: u32,
                                        _data: *const libc::c_void,
                                        _flags: u8) -> i32 {

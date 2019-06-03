@@ -220,7 +220,7 @@ impl DHCPState {
 
 #[no_mangle]
 pub extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
-                                         input: *const libc::uint8_t,
+                                         input: *const u8,
                                          input_len: u32) -> AppProto {
     if input_len < DHCP_MIN_FRAME_LEN {
         return ALPROTO_UNKNOWN;
@@ -239,21 +239,21 @@ pub extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
 
 #[no_mangle]
 pub extern "C" fn rs_dhcp_tx_get_alstate_progress(_tx: *mut libc::c_void,
-                                                  _direction: libc::uint8_t) -> libc::c_int {
+                                                  _direction: u8) -> libc::c_int {
     // As this is a stateless parser, simply use 1.
     return 1;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dhcp_state_progress_completion_status(
-    _direction: libc::uint8_t) -> libc::c_int {
+    _direction: u8) -> libc::c_int {
     // The presence of a transaction means we are complete.
     return 1;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dhcp_state_get_tx(state: *mut libc::c_void,
-                                       tx_id: libc::uint64_t) -> *mut libc::c_void {
+                                       tx_id: u64) -> *mut libc::c_void {
     let state = cast_pointer!(state, DHCPState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -266,7 +266,7 @@ pub extern "C" fn rs_dhcp_state_get_tx(state: *mut libc::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_state_get_tx_count(state: *mut libc::c_void) -> libc::uint64_t {
+pub extern "C" fn rs_dhcp_state_get_tx_count(state: *mut libc::c_void) -> u64 {
     let state = cast_pointer!(state, DHCPState);
     return state.tx_id;
 }
@@ -275,7 +275,7 @@ pub extern "C" fn rs_dhcp_state_get_tx_count(state: *mut libc::c_void) -> libc::
 pub extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
                                 state: *mut libc::c_void,
                                 _pstate: *mut libc::c_void,
-                                input: *const libc::uint8_t,
+                                input: *const u8,
                                 input_len: u32,
                                 _data: *const libc::c_void,
                                 _flags: u8) -> i32 {
@@ -290,7 +290,7 @@ pub extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
 #[no_mangle]
 pub extern "C" fn rs_dhcp_state_tx_free(
     state: *mut libc::c_void,
-    tx_id: libc::uint64_t)
+    tx_id: u64)
 {
     let state = cast_pointer!(state, DHCPState);
     state.free_tx(tx_id);
@@ -320,14 +320,14 @@ pub extern "C" fn rs_dhcp_tx_get_logged(_state: *mut libc::c_void, tx: *mut libc
 #[no_mangle]
 pub extern "C" fn rs_dhcp_tx_set_logged(_state: *mut libc::c_void,
                                         tx: *mut libc::c_void,
-                                        logged: libc::uint32_t) {
+                                        logged: u32) {
     let tx = cast_pointer!(tx, DHCPTransaction);
     tx.logged.set(logged);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dhcp_state_get_events(state: *mut libc::c_void,
-                                           tx_id: libc::uint64_t)
+                                           tx_id: u64)
                                            -> *mut core::AppLayerDecoderEvents
 {
     let state = cast_pointer!(state, DHCPState);
@@ -367,12 +367,12 @@ pub extern "C" fn rs_dhcp_state_get_event_info(
 
 #[no_mangle]
 pub extern "C" fn rs_dhcp_state_get_tx_iterator(
-    _ipproto: libc::uint8_t,
+    _ipproto: u8,
     _alproto: AppProto,
     state: *mut libc::c_void,
-    min_tx_id: libc::uint64_t,
-    _max_tx_id: libc::uint64_t,
-    istate: &mut libc::uint64_t)
+    min_tx_id: u64,
+    _max_tx_id: u64,
+    istate: &mut u64)
     -> applayer::AppLayerGetTxIterTuple
 {
     let state = cast_pointer!(state, DHCPState);
