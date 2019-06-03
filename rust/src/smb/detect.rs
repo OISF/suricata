@@ -25,9 +25,9 @@ use smb::smb::*;
 
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
-                                            buffer: *mut *const libc::uint8_t,
-                                            buffer_len: *mut libc::uint32_t)
-                                            -> libc::uint8_t
+                                            buffer: *mut *const u8,
+                                            buffer_len: *mut u32)
+                                            -> u8
 {
     match tx.type_data {
         Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
@@ -35,7 +35,7 @@ pub extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
             if !x.is_pipe {
                 unsafe {
                     *buffer = x.share_name.as_ptr();
-                    *buffer_len = x.share_name.len() as libc::uint32_t;
+                    *buffer_len = x.share_name.len() as u32;
                     return 1;
                 }
             }
@@ -53,9 +53,9 @@ pub extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_named_pipe(tx: &mut SMBTransaction,
-                                            buffer: *mut *const libc::uint8_t,
-                                            buffer_len: *mut libc::uint32_t)
-                                            -> libc::uint8_t
+                                            buffer: *mut *const u8,
+                                            buffer_len: *mut u32)
+                                            -> u8
 {
     match tx.type_data {
         Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
@@ -63,7 +63,7 @@ pub extern "C" fn rs_smb_tx_get_named_pipe(tx: &mut SMBTransaction,
             if x.is_pipe {
                 unsafe {
                     *buffer = x.share_name.as_ptr();
-                    *buffer_len = x.share_name.len() as libc::uint32_t;
+                    *buffer_len = x.share_name.len() as u32;
                     return 1;
                 }
             }
@@ -82,9 +82,9 @@ pub extern "C" fn rs_smb_tx_get_named_pipe(tx: &mut SMBTransaction,
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
                                             direction: u8,
-                                            buffer: *mut *const libc::uint8_t,
-                                            buffer_len: *mut libc::uint32_t)
-                                            -> libc::uint8_t
+                                            buffer: *mut *const u8,
+                                            buffer_len: *mut u32)
+                                            -> u8
 {
     match tx.type_data {
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
@@ -96,7 +96,7 @@ pub extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
             if vref.len() > 0 {
                 unsafe {
                     *buffer = vref.as_ptr();
-                    *buffer_len = vref.len() as libc::uint32_t;
+                    *buffer_len = vref.len() as u32;
                     return 1;
                 }
             }
@@ -114,15 +114,15 @@ pub extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_dce_opnum(tx: &mut SMBTransaction,
-                                            opnum: *mut libc::uint16_t)
-                                            -> libc::uint8_t
+                                            opnum: *mut u16)
+                                            -> u8
 {
     SCLogDebug!("rs_smb_tx_get_dce_opnum: start");
     match tx.type_data {
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
             if x.req_cmd == 1 { // REQUEST
                 unsafe {
-                    *opnum = x.opnum as libc::uint16_t;
+                    *opnum = x.opnum as u16;
                     return 1;
                 }
             }
@@ -178,11 +178,11 @@ fn match_version(op: u8, them: u16, us: u16) -> bool {
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
                                             tx: &mut SMBTransaction,
-                                            uuid_ptr: *mut libc::uint8_t,
-                                            uuid_len: libc::uint16_t,
-                                            ver_op: libc::uint8_t,
-                                            ver_check: libc::uint16_t)
-                                            -> libc::uint8_t
+                                            uuid_ptr: *mut u8,
+                                            uuid_len: u16,
+                                            ver_op: u8,
+                                            ver_check: u16)
+                                            -> u8
 {
     let is_dcerpc_request = match tx.type_data {
         Some(SMBTransactionTypeData::DCERPC(ref x)) => { x.req_cmd == 1 },

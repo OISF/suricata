@@ -76,7 +76,7 @@ pub type DetectEngineStateFreeFunc =
 
 pub type AppLayerDecoderEventsSetEventRawFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
-                   event: libc::uint8_t);
+                   event: u8);
 
 pub type AppLayerDecoderEventsFreeEventsFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
@@ -165,7 +165,7 @@ pub fn sc_detect_engine_state_free(state: *mut DetectEngineState)
 
 /// AppLayerDecoderEventsSetEventRaw wrapper.
 pub fn sc_app_layer_decoder_events_set_event_raw(
-    events: *mut *mut AppLayerDecoderEvents, event: libc::uint8_t)
+    events: *mut *mut AppLayerDecoderEvents, event: u8)
 {
     unsafe {
         if let Some(c) = SC {

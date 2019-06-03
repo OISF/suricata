@@ -87,13 +87,13 @@ pub extern "C" fn rs_tftp_state_free(state: *mut libc::c_void) {
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_state_tx_free(state: &mut TFTPState,
-                                        tx_id: libc::uint64_t) {
+                                        tx_id: u64) {
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
-                                    tx_id: libc::uint64_t) -> *mut libc::c_void {
+                                    tx_id: u64) -> *mut libc::c_void {
     match state.get_tx_by_id(tx_id) {
         Some(tx) => unsafe{std::mem::transmute(tx)},
         None     => std::ptr::null_mut(),
@@ -110,7 +110,7 @@ pub extern "C" fn rs_tftp_get_tx_logged(_state: &mut TFTPState,
 #[no_mangle]
 pub extern "C" fn rs_tftp_set_tx_logged(_state: &mut TFTPState,
                                         tx: &mut TFTPTransaction,
-                                        logged: libc::uint32_t) {
+                                        logged: u32) {
     tx.logged.set(logged);
 }
 
@@ -141,8 +141,8 @@ named!(pub tftp_request<TFTPTransaction>,
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
-                                  input: *const libc::uint8_t,
-                                  len: libc::uint32_t) -> i64 {
+                                  input: *const u8,
+                                  len: u32) -> i64 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
     return match tftp_request(buf) {
         Ok((_, mut rqst)) => {
