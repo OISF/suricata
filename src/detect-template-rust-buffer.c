@@ -110,9 +110,9 @@ static int DetectEngineInspectTemplateRustBuffer(ThreadVars *tv,
     uint32_t data_len = 0;
 
     if (flags & STREAM_TOSERVER) {
-        rs_template_get_request_buffer(txv, (uint8_t **)&data, &data_len);
+        rs_template_get_request_buffer(txv, &data, &data_len);
     } else if (flags & STREAM_TOCLIENT) {
-        rs_template_get_response_buffer(txv, (uint8_t **)&data, &data_len);
+        rs_template_get_response_buffer(txv, &data, &data_len);
     }
 
     if (data != NULL) {
