@@ -19,8 +19,6 @@
  * - check all parsers for calls on non-SUCCESS status
  */
 
-extern crate libc;
-
 use nom;
 
 use core::*;

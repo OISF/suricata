@@ -23,7 +23,7 @@ use core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppPro
 use filecontainer::FileContainer;
 use applayer;
 
-use libc::{c_void,c_char,c_int};
+use std::os::raw::{c_void,c_char,c_int};
 use applayer::{AppLayerGetTxIterTuple};
 
 /// Rust parser declaration

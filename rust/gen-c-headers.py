@@ -57,19 +57,19 @@ type_map = {
     "u32" :"uint32_t",
     "u64" :"uint64_t",
 
-    "libc::c_void": "void",
+    "std::os::raw::c_void": "void",
     "c_void": "void",
 
-    "libc::c_char": "char",
-    "libc::c_int": "int",
+    "std::os::raw::c_char": "char",
+    "std::os::raw::c_int": "int",
     "c_int": "int",
-    "libc::int8_t": "int8_t",
-    "libc::int32_t": "int32_t",
+    "std::os::raw::int8_t": "int8_t",
+    "std::os::raw::int32_t": "int32_t",
 
-    "libc::uint8_t": "uint8_t",
-    "libc::uint16_t": "uint16_t",
-    "libc::uint32_t": "uint32_t",
-    "libc::uint64_t": "uint64_t",
+    "std::os::raw::uint8_t": "uint8_t",
+    "std::os::raw::uint16_t": "uint16_t",
+    "std::os::raw::uint32_t": "uint32_t",
+    "std::os::raw::uint64_t": "uint64_t",
 
     "SuricataContext": "SuricataContext",
     "SuricataFileContext": "SuricataFileContext",
