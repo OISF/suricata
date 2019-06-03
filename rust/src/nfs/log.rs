@@ -15,8 +15,6 @@
  * 02110-1301, USA.
  */
 
-extern crate libc;
-
 use std::string::String;
 use json::*;
 use nfs::types::*;

@@ -17,8 +17,6 @@
 
 // written by Clément Galland <clement.galland@epita.fr>
 
-extern crate libc;
-
 use json::*;
 use tftp::tftp::*;
 
