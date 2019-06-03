@@ -91,6 +91,18 @@ pub enum NFSEvent {
     UnsupportedVersion = 2,
 }
 
+impl NFSEvent {
+    fn from_i32(value: i32) -> Option<NFSEvent> {
+        match value {
+            0 => Some(NFSEvent::MalformedData),
+            1 => Some(NFSEvent::NonExistingVersion),
+            2 => Some(NFSEvent::UnsupportedVersion),
+            _ => None,
+        }
+    }
+}
+
+
 #[derive(Debug)]
 pub enum NFSTransactionTypeData {
     RENAME(Vec<u8>),
@@ -1596,6 +1608,27 @@ pub extern "C" fn rs_nfs_state_get_events(tx: *mut libc::c_void)
     return tx.events;
 }
 
+#[no_mangle]
+pub extern "C" fn rs_nfs_state_get_event_info_by_id(event_id: libc::c_int,
+                                              event_name: *mut *const libc::c_char,
+                                              event_type: *mut AppLayerEventType)
+                                              -> i8
+{
+    if let Some(e) = NFSEvent::from_i32(event_id as i32) {
+        let estr = match e {
+            NFSEvent::MalformedData => { "malformed_data\0" },
+            NFSEvent::NonExistingVersion => { "non_existing_version\0" },
+            NFSEvent::UnsupportedVersion => { "unsupported_version\0" },
+        };
+        unsafe{
+            *event_name = estr.as_ptr() as *const libc::c_char;
+            *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+        };
+        0
+    } else {
+        -1
+    }
+}
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const libc::c_char,
                                               event_id: *mut libc::c_int,
