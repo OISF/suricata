@@ -15,8 +15,6 @@
  * 02110-1301, USA.
  */
 
-extern crate libc;
-
 use std;
 use std::os::raw::c_void;
 
@@ -255,20 +253,20 @@ fn format_addr_hex(input: &Vec<u8>) -> String {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_logger_new(conf: *const c_void) -> *mut libc::c_void {
+pub extern "C" fn rs_dhcp_logger_new(conf: *const c_void) -> *mut std::os::raw::c_void {
     let conf = ConfNode::wrap(conf);
     let boxed = Box::new(DHCPLogger::new(conf));
     return unsafe{std::mem::transmute(boxed)};
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_logger_free(logger: *mut libc::c_void) {
+pub extern "C" fn rs_dhcp_logger_free(logger: *mut std::os::raw::c_void) {
     let _: Box<DHCPLogger> = unsafe{std::mem::transmute(logger)};
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_logger_log(logger: *mut libc::c_void,
-                                     tx: *mut libc::c_void) -> *mut JsonT {
+pub extern "C" fn rs_dhcp_logger_log(logger: *mut std::os::raw::c_void,
+                                     tx: *mut std::os::raw::c_void) -> *mut JsonT {
     let logger = cast_pointer!(logger, DHCPLogger);
     let tx = cast_pointer!(tx, DHCPTransaction);
     match logger.log(tx) {

@@ -16,7 +16,6 @@
  */
 
 // written by Victor Julien
-extern crate libc;
 
 use log::*;
 
