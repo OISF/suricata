@@ -228,7 +228,8 @@ static void PreBmBcNocase(const uint8_t *x, uint16_t m, uint16_t *bmBc)
         bmBc[i] = m;
     }
     for (i = 0; i < m - 1; ++i) {
-        bmBc[u8_tolower((unsigned char)x[i])] = m - 1 - i;
+        bmBc[(unsigned char)x[i]] = m - 1 - i;
+        bmBc[u8_toupper((unsigned char)x[i])] = m - 1 - i;
     }
 }
 
@@ -380,7 +381,7 @@ uint8_t *BoyerMooreNocase(const uint8_t *x, uint16_t m, const uint8_t *y, uint32
         if (i < 0) {
             return (uint8_t *)(y + j);
         } else {
-            j += (m1 = bmGs[i]) > (m2 = bmBc[u8_tolower(y[i + j])] - m + 1 + i)?
+            j += (m1 = bmGs[i]) > (m2 = bmBc[y[i + j]] - m + 1 + i)?
                 m1: m2;
         }
     }

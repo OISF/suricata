@@ -177,6 +177,7 @@ extern int g_disable_randomness;
 
 #include <ctype.h>
 #define u8_tolower(c) tolower((uint8_t)(c))
+#define u8_toupper(c) toupper((uint8_t)(c))
 
 void EngineStop(void);
 void EngineDone(void);
