@@ -131,7 +131,7 @@ def convert_type(rs_type):
             elif mod in [
                     "*mut *const",
                     "*mut*const"]:
-                return "%s **" % (type_map[rtype])
+                return "const %s **" % (type_map[rtype])
             else:
                 raise Exception("Unknown modifier '%s' in '%s'." % (
                     mod, rs_type))
