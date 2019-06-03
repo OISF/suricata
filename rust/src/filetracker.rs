@@ -28,7 +28,6 @@
  * The tracker does continue to follow the file.
  */
 
-extern crate libc;
 use log::*;
 use core::*;
 use std::collections::HashMap;
