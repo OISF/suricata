@@ -18,7 +18,6 @@
 // written by Victor Julien
 // TCP buffering code written by Pierre Chifflier
 
-extern crate libc;
 use std;
 use std::mem::transmute;
 use std::collections::{HashMap};
@@ -1339,7 +1338,7 @@ impl NFSState {
 
 /// Returns *mut NFSState
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_new() -> *mut libc::c_void {
+pub extern "C" fn rs_nfs_state_new() -> *mut std::os::raw::c_void {
     let state = NFSState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
@@ -1349,7 +1348,7 @@ pub extern "C" fn rs_nfs_state_new() -> *mut libc::c_void {
 /// Params:
 /// - state: *mut NFSState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_free(state: *mut libc::c_void) {
+pub extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     SCLogDebug!("freeing state");
     let mut nfs_state: Box<NFSState> = unsafe{transmute(state)};
@@ -1360,10 +1359,10 @@ pub extern "C" fn rs_nfs_state_free(state: *mut libc::c_void) {
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_request(_flow: *mut Flow,
                                        state: &mut NFSState,
-                                       _pstate: *mut libc::c_void,
+                                       _pstate: *mut std::os::raw::c_void,
                                        input: *mut u8,
                                        input_len: u32,
-                                       _data: *mut libc::c_void)
+                                       _data: *mut std::os::raw::c_void)
                                        -> i8
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
@@ -1391,10 +1390,10 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_response(_flow: *mut Flow,
                                         state: &mut NFSState,
-                                        _pstate: *mut libc::c_void,
+                                        _pstate: *mut std::os::raw::c_void,
                                         input: *mut u8,
                                         input_len: u32,
-                                        _data: *mut libc::c_void)
+                                        _data: *mut std::os::raw::c_void)
                                         -> i8
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
@@ -1423,10 +1422,10 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
                                        state: &mut NFSState,
-                                       _pstate: *mut libc::c_void,
+                                       _pstate: *mut std::os::raw::c_void,
                                        input: *mut u8,
                                        input_len: u32,
-                                       _data: *mut libc::c_void)
+                                       _data: *mut std::os::raw::c_void)
                                        -> i8
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
@@ -1442,10 +1441,10 @@ pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
                                         state: &mut NFSState,
-                                        _pstate: *mut libc::c_void,
+                                        _pstate: *mut std::os::raw::c_void,
                                         input: *mut u8,
                                         input_len: u32,
-                                        _data: *mut libc::c_void)
+                                        _data: *mut std::os::raw::c_void)
                                         -> i8
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
@@ -1511,7 +1510,7 @@ pub extern "C" fn rs_nfs_state_tx_free(state: &mut NFSState,
 #[no_mangle]
 pub extern "C" fn rs_nfs_state_progress_completion_status(
     _direction: u8)
-    -> libc::c_int
+    -> std::os::raw::c_int
 {
     return 1;
 }
@@ -1601,7 +1600,7 @@ pub extern "C" fn rs_nfs_tx_get_detect_flags(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_events(tx: *mut libc::c_void)
+pub extern "C" fn rs_nfs_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, NFSTransaction);
@@ -1609,8 +1608,8 @@ pub extern "C" fn rs_nfs_state_get_events(tx: *mut libc::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_event_info_by_id(event_id: libc::c_int,
-                                              event_name: *mut *const libc::c_char,
+pub extern "C" fn rs_nfs_state_get_event_info_by_id(event_id: std::os::raw::c_int,
+                                              event_name: *mut *const std::os::raw::c_char,
                                               event_type: *mut AppLayerEventType)
                                               -> i8
 {
@@ -1621,7 +1620,7 @@ pub extern "C" fn rs_nfs_state_get_event_info_by_id(event_id: libc::c_int,
             NFSEvent::UnsupportedVersion => { "unsupported_version\0" },
         };
         unsafe{
-            *event_name = estr.as_ptr() as *const libc::c_char;
+            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
             *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
         };
         0
@@ -1630,8 +1629,8 @@ pub extern "C" fn rs_nfs_state_get_event_info_by_id(event_id: libc::c_int,
     }
 }
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const libc::c_char,
-                                              event_id: *mut libc::c_int,
+pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const std::os::raw::c_char,
+                                              event_id: *mut std::os::raw::c_int,
                                               event_type: *mut AppLayerEventType)
                                               -> i8
 {
@@ -1650,7 +1649,7 @@ pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const libc::c_char,
     };
     unsafe{
         *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as libc::c_int;
+        *event_id = event as std::os::raw::c_int;
     };
     0
 }

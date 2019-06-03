@@ -24,7 +24,7 @@
  */
 
 // written by Victor Julien
-extern crate libc;
+
 use std;
 use std::mem::transmute;
 use std::str;
@@ -1774,7 +1774,7 @@ impl SMBState {
 
 /// Returns *mut SMBState
 #[no_mangle]
-pub extern "C" fn rs_smb_state_new() -> *mut libc::c_void {
+pub extern "C" fn rs_smb_state_new() -> *mut std::os::raw::c_void {
     let state = SMBState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
@@ -1784,7 +1784,7 @@ pub extern "C" fn rs_smb_state_new() -> *mut libc::c_void {
 /// Params:
 /// - state: *mut SMBState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_smb_state_free(state: *mut libc::c_void) {
+pub extern "C" fn rs_smb_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     SCLogDebug!("freeing state");
     let mut smb_state: Box<SMBState> = unsafe{transmute(state)};
@@ -1795,10 +1795,10 @@ pub extern "C" fn rs_smb_state_free(state: *mut libc::c_void) {
 #[no_mangle]
 pub extern "C" fn rs_smb_parse_request_tcp(_flow: *mut Flow,
                                        state: &mut SMBState,
-                                       _pstate: *mut libc::c_void,
+                                       _pstate: *mut std::os::raw::c_void,
                                        input: *mut u8,
                                        input_len: u32,
-                                       _data: *mut libc::c_void,
+                                       _data: *mut std::os::raw::c_void,
                                        flags: u8)
                                        -> i8
 {
@@ -1833,10 +1833,10 @@ pub extern "C" fn rs_smb_parse_request_tcp_gap(
 #[no_mangle]
 pub extern "C" fn rs_smb_parse_response_tcp(_flow: *mut Flow,
                                         state: &mut SMBState,
-                                        _pstate: *mut libc::c_void,
+                                        _pstate: *mut std::os::raw::c_void,
                                         input: *mut u8,
                                         input_len: u32,
-                                        _data: *mut libc::c_void,
+                                        _data: *mut std::os::raw::c_void,
                                         flags: u8)
                                         -> i8
 {
@@ -2004,7 +2004,7 @@ pub extern "C" fn rs_smb_state_tx_free(state: &mut SMBState,
 #[no_mangle]
 pub extern "C" fn rs_smb_state_progress_completion_status(
     _direction: u8)
-    -> libc::c_int
+    -> std::os::raw::c_int
 {
     return 1;
 }
@@ -2104,7 +2104,7 @@ pub extern "C" fn rs_smb_state_truncate(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_events(tx: *mut libc::c_void)
+pub extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, SMBTransaction);
@@ -2112,8 +2112,8 @@ pub extern "C" fn rs_smb_state_get_events(tx: *mut libc::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_event_info(event_name: *const libc::c_char,
-                                              event_id: *mut libc::c_int,
+pub extern "C" fn rs_smb_state_get_event_info(event_name: *const std::os::raw::c_char,
+                                              event_id: *mut std::os::raw::c_int,
                                               event_type: *mut AppLayerEventType)
                                               -> i8
 {
@@ -2129,7 +2129,7 @@ pub extern "C" fn rs_smb_state_get_event_info(event_name: *const libc::c_char,
     };
     unsafe {
         *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-        *event_id = event as libc::c_int;
+        *event_id = event as std::os::raw::c_int;
     };
     if event == -1 {
         return -1;
