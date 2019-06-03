@@ -17,8 +17,6 @@
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 
-extern crate libc;
-
 #[macro_use]
 extern crate nom;
 

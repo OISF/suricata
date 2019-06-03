@@ -16,7 +16,6 @@ debug = []
 
 [dependencies]
 nom = "4.2"
-libc = "^0.2.36"
 crc = "1.8"
 der-parser = "1.1"
 kerberos-parser = "0.2"

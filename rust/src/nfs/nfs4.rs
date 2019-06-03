@@ -17,8 +17,6 @@
 
 // written by Victor Julien
 
-extern crate libc;
-
 use nom;
 use nom::be_u32;
 

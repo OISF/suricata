@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-extern crate libc;
 extern crate nom;
 
 use nom::digit;
