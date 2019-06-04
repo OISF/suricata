@@ -241,7 +241,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     int i = 0;
 
     while (i < p->alerts.cnt) {
-        SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
+        SCLogDebug("Sig->num: %"PRIu32, p->alerts.alerts[i].num);
         const Signature *s = de_ctx->sig_array[p->alerts.alerts[i].num];
 
         int res = PacketAlertHandle(de_ctx, det_ctx, s, p, &p->alerts.alerts[i]);

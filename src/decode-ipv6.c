@@ -201,7 +201,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 IPV6_SET_L4PROTO(p,nh);
                 hdrextlen = 8 + (*(pkt+1) * 8);  /* 8 bytes + length in 8 octet units */
 
-                SCLogDebug("hdrextlen %"PRIu8, hdrextlen);
+                SCLogDebug("hdrextlen %"PRIu16, hdrextlen);
 
                 if (hdrextlen > plen) {
                     ENGINE_SET_INVALID_EVENT(p, IPV6_TRUNC_EXTHDR);
@@ -494,7 +494,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 if (*(pkt+1) > 0)
                     hdrextlen += ((*(pkt+1) - 1) * 4);
 
-                SCLogDebug("hdrextlen %"PRIu8, hdrextlen);
+                SCLogDebug("hdrextlen %"PRIu16, hdrextlen);
 
                 if (hdrextlen > plen) {
                     ENGINE_SET_INVALID_EVENT(p, IPV6_TRUNC_EXTHDR);
@@ -562,7 +562,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
     }
 
     if (unlikely(IP_GET_RAW_VER(pkt) != 6)) {
-        SCLogDebug("wrong ip version %" PRIu8 "",IP_GET_RAW_VER(pkt));
+        SCLogDebug("wrong ip version %d",IP_GET_RAW_VER(pkt));
         ENGINE_SET_INVALID_EVENT(p, IPV6_WRONG_IP_VER);
         return -1;
     }

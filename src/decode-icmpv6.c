@@ -101,7 +101,7 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
                 p->icmpv6vars.emb_dport = p->icmpv6vars.emb_tcph->th_dport;
 
                 SCLogDebug("ICMPV6->IPV6->TCP header sport: "
-                           "%"PRIu8" dport %"PRIu8"", p->icmpv6vars.emb_sport,
+                           "%"PRIu16" dport %"PRIu16"", p->icmpv6vars.emb_sport,
                             p->icmpv6vars.emb_dport);
             } else {
                 SCLogDebug("Warning, ICMPV6->IPV6->TCP "
@@ -118,7 +118,7 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
                 p->icmpv6vars.emb_dport = p->icmpv6vars.emb_udph->uh_dport;
 
                 SCLogDebug("ICMPV6->IPV6->UDP header sport: "
-                           "%"PRIu8" dport %"PRIu8"", p->icmpv6vars.emb_sport,
+                           "%"PRIu16" dport %"PRIu16"", p->icmpv6vars.emb_sport,
                             p->icmpv6vars.emb_dport);
             } else {
                 SCLogDebug("Warning, ICMPV6->IPV6->UDP "
