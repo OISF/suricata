@@ -212,7 +212,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
 
         SCFree(orig);
 
-        SCLogDebug("will look for tls %"PRIu8"", tls->ver);
+        SCLogDebug("will look for tls %"PRIu16"", tls->ver);
     }
 
     return tls;

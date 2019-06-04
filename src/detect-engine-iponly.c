@@ -1070,7 +1070,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                         continue;
                     }
 
-                    SCLogDebug("Signum %"PRIu16" match (sid: %"PRIu16", msg: %s)",
+                    SCLogDebug("Signum %"PRIu32" match (sid: %"PRIu32", msg: %s)",
                                u * 8 + i, s->id, s->msg);
 
                     if (s->sm_arrays[DETECT_SM_LIST_POSTMATCH] != NULL) {
@@ -1325,8 +1325,8 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
         if (dst->family == AF_INET) {
 
             SCLogDebug("To IPv4");
-            SCLogDebug("Item has netmask %"PRIu16" negated: %s; IP: %s; signum:"
-                       " %"PRIu16"", dst->netmask, (dst->negated)?"yes":"no",
+            SCLogDebug("Item has netmask %"PRIu8" negated: %s; IP: %s; signum:"
+                       " %"PRIu32"", dst->netmask, (dst->negated)?"yes":"no",
                        inet_ntoa(*(struct in_addr*)&dst->ip[0]), dst->signum);
 
             void *user_data = NULL;
