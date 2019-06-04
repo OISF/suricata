@@ -119,7 +119,7 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         targetval = sfd->target.value;
     }
 
-    SCLogDebug("Our var %s is at idx: %"PRIu16"", sfd->name, sfd->idx);
+    SCLogDebug("Our var %s is at idx: %"PRIu32"", sfd->name, sfd->idx);
 
     if (sfd->modifier == FLOWINT_MODIFIER_SET) {
         FlowVarAddIntNoLock(p->flow, sfd->idx, targetval);

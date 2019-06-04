@@ -68,7 +68,7 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
         SCLogDebug("IPV6 Packet");
         DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else {
-        SCLogDebug("Unknown ip version %" PRIu8 "", IP_GET_RAW_VER(pkt));
+        SCLogDebug("Unknown ip version %d", IP_GET_RAW_VER(pkt));
         ENGINE_SET_EVENT(p,IPRAW_INVALID_IPV);
     }
     return TM_ECODE_OK;

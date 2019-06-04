@@ -244,7 +244,7 @@ enum
 }
 
 #define StreamTcpSetEvent(p, e) { \
-    SCLogDebug("setting event %"PRIu8" on pkt %p (%"PRIu64")", (e), p, (p)->pcap_cnt); \
+    SCLogDebug("setting event %d on pkt %p (%"PRIu64")", (e), p, (p)->pcap_cnt); \
     ENGINE_SET_EVENT((p), (e)); \
 }
 

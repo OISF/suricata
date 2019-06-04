@@ -85,7 +85,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP header sport: "
-                           "%"PRIu8" dport %"PRIu8"", p->icmpv4vars.emb_sport,
+                           "%"PRIu16" dport %"PRIu16"", p->icmpv4vars.emb_sport,
                             p->icmpv4vars.emb_dport);
             } else if (len >= IPV4_HEADER_LEN + 4) {
                 /* only access th_sport and th_dport */
@@ -96,7 +96,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
                 p->icmpv4vars.emb_dport = SCNtohs(emb_tcph->th_dport);
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP partial header sport: "
-                           "%"PRIu8" dport %"PRIu8"", p->icmpv4vars.emb_sport,
+                           "%"PRIu16" dport %"PRIu16"", p->icmpv4vars.emb_sport,
                             p->icmpv4vars.emb_dport);
             } else {
                 SCLogDebug("DecodePartialIPV4: Warning, ICMPV4->IPV4->TCP "
@@ -114,7 +114,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_UDP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->UDP header sport: "
-                           "%"PRIu8" dport %"PRIu8"", p->icmpv4vars.emb_sport,
+                           "%"PRIu16" dport %"PRIu16"", p->icmpv4vars.emb_sport,
                             p->icmpv4vars.emb_dport);
             } else {
                 SCLogDebug("DecodePartialIPV4: Warning, ICMPV4->IPV4->UDP "
