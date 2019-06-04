@@ -33,7 +33,8 @@
 /* Context for booyer moore */
 typedef struct BmCtx_ {
     uint16_t bmBc[ALPHABET_SIZE];
-    uint16_t *bmGs; // = SCMalloc(sizeof(int32_t)*(needlelen + 1));
+    //C99 "flexible array member"
+    uint16_t bmGs[]; // = SCMalloc(sizeof(int16_t)*(needlelen + 1));
 } BmCtx;
 
 /** Prepare and return a Boyer Moore context */
