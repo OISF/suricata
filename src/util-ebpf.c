@@ -321,6 +321,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     if (config->flags & EBPF_XDP_CODE && config->flags & EBPF_PINNED_MAPS) {
         /* We try to get our flow table maps and if we have them we can simply return */
         if (EBPFLoadPinnedMaps(livedev, config) == 0) {
+            SCLogInfo("Loaded pinned maps, will use already loaded eBPF filter");
             return 1;
         }
     }
@@ -461,6 +462,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         return -1;
     }
 
+    SCLogInfo("Successfully loaded eBPF file '%s' on '%s'", path, iface);
     *val = pfd;
     return 0;
 }

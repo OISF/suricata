@@ -475,8 +475,6 @@ static void *ParseAFPConfig(const char *iface)
         aconf->xdp_filter_file = NULL;
     } else {
 #ifdef HAVE_PACKET_XDP
-        SCLogInfo("af-packet will use '%s' as XDP filter file",
-                  ebpf_file);
         aconf->ebpf_t_config.mode = AFP_MODE_XDP_BYPASS;
         aconf->ebpf_t_config.flags |= EBPF_XDP_CODE;
         aconf->xdp_filter_file = ebpf_file;
