@@ -387,11 +387,9 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     err = bpf_object__load(bpfobj);
     if (err < 0) {
         if (err == -EPERM) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Permission issue when loading eBPF object: "
-                    "%s (%d)",
-                    strerror(err),
-                    err);
+            SCLogError(SC_ERR_SYSCALL,
+                    "Permission issue when loading eBPF object"
+                    " (check libbpf error on stdout)");
         } else {
             char buf[129];
             libbpf_strerror(err, buf, sizeof(buf));
