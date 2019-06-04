@@ -2532,6 +2532,10 @@ static int AFPXDPBypassCallback(Packet *p)
     return 0;
 }
 
+
+bool g_flowv4_ok = true;
+bool g_flowv6_ok = true;
+
 /**
  * \brief Init function for ReceiveAFP.
  *
@@ -2605,11 +2609,19 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     if (ptv->flags & (AFP_BYPASS|AFP_XDPBYPASS)) {
         ptv->v4_map_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_v4");
         if (ptv->v4_map_fd == -1) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Can't find eBPF map fd for '%s'", "flow_table_v4");
+            if (g_flowv4_ok == false) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Can't find eBPF map fd for '%s'",
+                           "flow_table_v4");
+                g_flowv4_ok = true;
+            }
         }
         ptv->v6_map_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_v6");
         if (ptv->v6_map_fd  == -1) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Can't find eBPF map fd for '%s'", "flow_table_v6");
+            if (g_flowv6_ok) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Can't find eBPF map fd for '%s'",
+                           "flow_table_v6");
+                g_flowv6_ok = false;
+            }
         }
     }
     ptv->ebpf_t_config = afpconfig->ebpf_t_config;
