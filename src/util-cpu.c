@@ -67,7 +67,7 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
     }
 
     if (nprocs > UINT16_MAX) {
-        SCLogDebug("It seems that there are more than %"PRIu16" CPUs "
+        SCLogDebug("It seems that there are more than %d CPUs "
                    "configured on this system. You can modify util-cpu.{c,h} "
                    "to use uint32_t to support it", UINT16_MAX);
         return UINT16_MAX;
@@ -108,7 +108,7 @@ uint16_t UtilCpuGetNumProcessorsOnline(void)
     }
 
     if (nprocs > UINT16_MAX) {
-        SCLogDebug("It seems that there are more than %"PRIu16" CPUs online. "
+        SCLogDebug("It seems that there are more than %d CPUs online. "
                    "You can modify util-cpu.{c,h} to use uint32_t to "
                    "support it", UINT16_MAX);
         return UINT16_MAX;

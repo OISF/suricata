@@ -183,7 +183,7 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
                 mode = DETECT_TTL_LT;
                 ttl1 = atoi(arg3);
 
-                SCLogDebug("ttl is %"PRIu8"",ttl1);
+                SCLogDebug("ttl is %d",ttl1);
                 if (strlen(arg1) > 0)
                     return NULL;
 
@@ -195,7 +195,7 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
                 mode = DETECT_TTL_GT;
                 ttl1 = atoi(arg3);
 
-                SCLogDebug("ttl is %"PRIu8"",ttl1);
+                SCLogDebug("ttl is %d",ttl1);
                 if (strlen(arg1) > 0)
                     return NULL;
 
@@ -208,7 +208,7 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
                 ttl1 = atoi(arg1);
                 ttl2 = atoi(arg3);
 
-                SCLogDebug("ttl is %"PRIu8" to %"PRIu8"",ttl1, ttl2);
+                SCLogDebug("ttl is %d to %d",ttl1, ttl2);
                 if (ttl1 >= ttl2) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ttl range");
                     return NULL;
