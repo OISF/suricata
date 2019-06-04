@@ -76,7 +76,7 @@ void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint16_t needle_len)
  */
 BmCtx *BoyerMooreCtxInit(const uint8_t *needle, uint16_t needle_len)
 {
-    BmCtx *new = SCMalloc(sizeof(BmCtx));
+    BmCtx *new = SCMalloc(sizeof(BmCtx) + sizeof(uint16_t) * (needle_len + 1));
     if (unlikely(new == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in BoyerMooreCtxInit. Exiting...");
         exit(EXIT_FAILURE);
@@ -84,11 +84,6 @@ BmCtx *BoyerMooreCtxInit(const uint8_t *needle, uint16_t needle_len)
 
     /* Prepare bad chars */
     PreBmBc(needle, needle_len, new->bmBc);
-
-    new->bmGs = SCMalloc(sizeof(uint16_t) * (needle_len + 1));
-    if (new->bmGs == NULL) {
-        exit(EXIT_FAILURE);
-    }
 
     /* Prepare good Suffixes */
     if (PreBmGs(needle, needle_len, new->bmGs) == -1) {
@@ -127,9 +122,6 @@ void BoyerMooreCtxDeInit(BmCtx *bmctx)
     SCEnter();
     if (bmctx == NULL)
         SCReturn;
-
-    if (bmctx->bmGs != NULL)
-        SCFree(bmctx->bmGs);
 
     SCFree(bmctx);
 
