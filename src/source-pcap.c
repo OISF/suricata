@@ -237,6 +237,10 @@ static void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     SCReturn;
 }
 
+#ifndef PCAP_ERROR_BREAK
+#define PCAP_ERROR_BREAK -2
+#endif
+
 /**
  *  \brief Main PCAP reading Loop function
  */
@@ -264,15 +268,15 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
         /* Right now we just support reading packets one at a time. */
         r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
                           (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
-        if (unlikely(r < 0)) {
+        if (unlikely(r == 0 || r == PCAP_ERROR_BREAK)) {
+            if (r == PCAP_ERROR_BREAK && ptv->cb_result == TM_ECODE_FAILED) {
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+            TmThreadsCaptureHandleTimeout(tv, ptv->slot, NULL);
+        } else if (unlikely(r < 0)) {
             int dbreak = 0;
             SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
                        r, pcap_geterr(ptv->pcap_handle));
-#ifdef PCAP_ERROR_BREAK
-            if (r == PCAP_ERROR_BREAK) {
-                SCReturnInt(ptv->cb_result);
-            }
-#endif
             do {
                 usleep(PCAP_RECONNECT_TIMEOUT);
                 if (suricata_ctl_flags != 0) {
@@ -287,8 +291,6 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
         } else if (ptv->cb_result == TM_ECODE_FAILED) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "Pcap callback PcapCallbackLoop failed");
             SCReturnInt(TM_ECODE_FAILED);
-        } else if (unlikely(r == 0)) {
-            TmThreadsCaptureHandleTimeout(tv, ptv->slot, NULL);
         }
 
         StatsSyncCountersIfSignalled(tv);
