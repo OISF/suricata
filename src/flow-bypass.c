@@ -85,9 +85,9 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
             tcount = bypassedfunclist[i].Func(th_v, &bypassstats, &curtime, bypassedfunclist[i].data);
             if (tcount) {
                 StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)bypassstats.count);
-                StatsAddUI64(th_v, ftd->flow_bypassed_pkts, (uint64_t)bypassstats.packets);
-                StatsAddUI64(th_v, ftd->flow_bypassed_bytes, (uint64_t)bypassstats.bytes);
             }
+            StatsAddUI64(th_v, ftd->flow_bypassed_pkts, (uint64_t)bypassstats.packets);
+            StatsAddUI64(th_v, ftd->flow_bypassed_bytes, (uint64_t)bypassstats.bytes);
         }
 
         if (TmThreadsCheckFlag(th_v, THV_KILL)) {
