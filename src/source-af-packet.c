@@ -2315,6 +2315,9 @@ static int AFPInsertHalfFlow(int mapd, void *key, uint32_t hash,
             /* no more place in the hash */
             case E2BIG:
                 return 0;
+            /* no more place in the hash for some hardware bypass */
+            case EAGAIN:
+                return 0;
             /* if we already have the key then bypass is a success */
             case EEXIST:
                 return 1;
