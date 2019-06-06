@@ -319,7 +319,7 @@ pub extern "C" fn rs_snmp_state_free(state: *mut libc::c_void) {
 pub extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
                                        state: *mut libc::c_void,
                                        _pstate: *mut libc::c_void,
-                                       input: *const libc::uint8_t,
+                                       input: *const u8,
                                        input_len: u32,
                                        _data: *const libc::c_void,
                                        _flags: u8) -> i32 {
@@ -332,7 +332,7 @@ pub extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
 pub extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
                                        state: *mut libc::c_void,
                                        _pstate: *mut libc::c_void,
-                                       input: *const libc::uint8_t,
+                                       input: *const u8,
                                        input_len: u32,
                                        _data: *const libc::c_void,
                                        _flags: u8) -> i32 {
@@ -343,7 +343,7 @@ pub extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_state_get_tx(state: *mut libc::c_void,
-                                      tx_id: libc::uint64_t)
+                                      tx_id: u64)
                                       -> *mut libc::c_void
 {
     let state = cast_pointer!(state,SNMPState);
@@ -355,7 +355,7 @@ pub extern "C" fn rs_snmp_state_get_tx(state: *mut libc::c_void,
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_state_get_tx_count(state: *mut libc::c_void)
-                                            -> libc::uint64_t
+                                            -> u64
 {
     let state = cast_pointer!(state,SNMPState);
     state.tx_id
@@ -363,7 +363,7 @@ pub extern "C" fn rs_snmp_state_get_tx_count(state: *mut libc::c_void)
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_state_tx_free(state: *mut libc::c_void,
-                                       tx_id: libc::uint64_t)
+                                       tx_id: u64)
 {
     let state = cast_pointer!(state,SNMPState);
     state.free_tx(tx_id);
@@ -371,7 +371,7 @@ pub extern "C" fn rs_snmp_state_tx_free(state: *mut libc::c_void,
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_state_progress_completion_status(
-    _direction: libc::uint8_t)
+    _direction: u8)
     -> libc::c_int
 {
     return 1;
@@ -379,7 +379,7 @@ pub extern "C" fn rs_snmp_state_progress_completion_status(
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut libc::c_void,
-                                                 _direction: libc::uint8_t)
+                                                 _direction: u8)
                                                  -> libc::c_int
 {
     1
@@ -392,7 +392,7 @@ pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut libc::c_void,
 #[no_mangle]
 pub extern "C" fn rs_snmp_tx_set_logged(_state: *mut libc::c_void,
                                        tx: *mut libc::c_void,
-                                       logged: libc::uint32_t)
+                                       logged: u32)
 {
     let tx = cast_pointer!(tx,SNMPTransaction);
     tx.logged.set(logged);
@@ -433,7 +433,7 @@ pub extern "C" fn rs_snmp_state_get_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_state_get_events(state: *mut libc::c_void,
-                                          tx_id: libc::uint64_t)
+                                          tx_id: u64)
                                           -> *mut core::AppLayerDecoderEvents
 {
     let state = cast_pointer!(state,SNMPState);
@@ -472,8 +472,8 @@ pub extern "C" fn rs_snmp_state_get_event_info(event_name: *const libc::c_char,
 #[no_mangle]
 pub extern "C" fn rs_snmp_state_get_tx_iterator(
                                       state: &mut SNMPState,
-                                      min_tx_id: libc::uint64_t,
-                                      istate: &mut libc::uint64_t)
+                                      min_tx_id: u64,
+                                      istate: &mut u64)
                                       -> applayer::AppLayerGetTxIterTuple
 {
     match state.get_tx_iterator(min_tx_id, istate) {
@@ -543,7 +543,7 @@ fn parse_pdu_enveloppe_version(i:&[u8]) -> IResult<&[u8],u32> {
 #[no_mangle]
 pub extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
                                          _direction: u8,
-                                         input:*const libc::uint8_t,
+                                         input:*const u8,
                                          input_len: u32,
                                          _rdir: *mut u8) -> AppProto {
     let slice = build_slice!(input,input_len as usize);

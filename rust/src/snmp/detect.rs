@@ -17,29 +17,28 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use libc;
 use snmp::snmp::SNMPTransaction;
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_tx_get_version(tx: &mut SNMPTransaction,
-                                         version: *mut libc::uint32_t)
+                                         version: *mut u32)
 {
     debug_assert!(tx.version != 0, "SNMP version is 0");
     unsafe {
-        *version = tx.version as libc::uint32_t;
+        *version = tx.version as u32;
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_tx_get_community(tx: &mut SNMPTransaction,
-                                           buf: *mut *const libc::uint8_t,
-                                           len: *mut libc::uint32_t)
+                                           buf: *mut *const u8,
+                                           len: *mut u32)
 {
     match tx.community {
         Some(ref c) => {
             unsafe {
                 *buf = (&c).as_ptr();
-                *len = c.len() as libc::uint32_t;
+                *len = c.len() as u32;
             }
         },
         None        => ()
@@ -48,12 +47,12 @@ pub extern "C" fn rs_snmp_tx_get_community(tx: &mut SNMPTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_tx_get_pdu_type(tx: &mut SNMPTransaction,
-                                          pdu_type: *mut libc::uint32_t)
+                                          pdu_type: *mut u32)
 {
     unsafe {
         match tx.info {
             Some(ref info) => {
-                *pdu_type = info.pdu_type.0 as libc::uint32_t;
+                *pdu_type = info.pdu_type.0 as u32;
             },
             None           => {
                 *pdu_type = 0xffffffff;
