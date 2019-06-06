@@ -19,7 +19,23 @@
 
 use json::*;
 use snmp::snmp::{SNMPState,SNMPTransaction};
-use snmp::snmp_parser::NetworkAddress;
+use snmp::snmp_parser::{NetworkAddress,PduType};
+use std::borrow::Cow;
+
+fn str_of_pdu_type(t:&PduType) -> Cow<str> {
+    match t {
+        &PduType::GetRequest => Cow::Borrowed("get_request"),
+        &PduType::GetNextRequest => Cow::Borrowed("get_next_request"),
+        &PduType::Response => Cow::Borrowed("response"),
+        &PduType::SetRequest => Cow::Borrowed("set_request"),
+        &PduType::TrapV1 => Cow::Borrowed("trap_v1"),
+        &PduType::GetBulkRequest => Cow::Borrowed("get_bulk_request"),
+        &PduType::InformRequest => Cow::Borrowed("inform_request"),
+        &PduType::TrapV2 => Cow::Borrowed("trap_v2"),
+        &PduType::Report => Cow::Borrowed("report"),
+        x => Cow::Owned(format!("Unknown(0x{:x})", x.0)),
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_log_json_response(state: &mut SNMPState, tx: &mut SNMPTransaction) -> *mut JsonT
@@ -31,7 +47,7 @@ pub extern "C" fn rs_snmp_log_json_response(state: &mut SNMPState, tx: &mut SNMP
     } else {
         match tx.info {
             Some(ref info) => {
-                js.set_string("pdu_type", &format!("{:?}", info.pdu_type));
+                js.set_string("pdu_type", &str_of_pdu_type(&info.pdu_type));
                 if info.err.0 != 0 {
                     js.set_string("error", &format!("{:?}", info.err));
                 }
