@@ -1465,7 +1465,10 @@ error:
  */
 int DetectPortIsValidRange(char *port)
 {
-    if(atoi(port) >= 0 && atoi(port) <= 65535)
+    char *end;
+    long r = strtol(port, &end, 10);
+
+    if(*end == 0 && r >= 0 && r <= 65535)
         return 1;
     else
         return 0;
