@@ -152,7 +152,7 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                         str[x] = str[i];
                         x++;
                     } else {
-                        //SCLogDebug("Can't escape %c", str[i]);
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "'%c' has to be escaped", str[i-1]);
                         goto error;
                     }
                     escape = 0;
