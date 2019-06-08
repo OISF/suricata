@@ -2705,7 +2705,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     EBPFRegisterExtension();
     LiveDevRegisterExtension();
 #endif
-    RegisterFlowBypassCounter();
+    RegisterFlowBypassInfo();
     AppLayerSetup();
 
     /* Suricata will use this umask if provided. By default it will use the

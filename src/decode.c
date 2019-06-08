@@ -408,9 +408,9 @@ void PacketBypassCallback(Packet *p)
                 (state == FLOW_STATE_CAPTURE_BYPASSED)) {
             return;
         }
-        FlowCounters *fc = SCCalloc(sizeof(FlowCounters), 1);
+        FlowBypassInfo *fc = SCCalloc(sizeof(FlowBypassInfo), 1);
         if (fc) {
-            FlowSetStorageById(p->flow, GetFlowBypassCounterID(), fc);
+            FlowSetStorageById(p->flow, GetFlowBypassInfoID(), fc);
         } else {
             return;
         }
