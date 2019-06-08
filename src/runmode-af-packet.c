@@ -439,17 +439,7 @@ static void *ParseAFPConfig(const char *iface)
             SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             aconf->flags |= AFP_BYPASS;
-            RunModeEnablesBypassManager();
-            struct ebpf_timeout_config *ebt = SCCalloc(1, sizeof(struct ebpf_timeout_config));
-            if (ebt == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Flow bypass alloc error");
-            } else {
-                memcpy(ebt, &(aconf->ebpf_t_config), sizeof(struct ebpf_timeout_config));
-                BypassedFlowManagerRegisterCheckFunc(EBPFCheckBypassedFlowTimeout,
-                                                     NULL,
-                                                     (void *)ebt);
-                BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow, NULL);
-            }
+            BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow, NULL);
 #else
             SCLogError(SC_ERR_UNIMPLEMENTED, "Bypass set but eBPF support is not built-in");
 #endif
@@ -483,11 +473,6 @@ static void *ParseAFPConfig(const char *iface)
             SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             aconf->flags |= AFP_XDPBYPASS;
-            RunModeEnablesBypassManager();
-            /* TODO move that to get it conditional on pinned maps */
-            BypassedFlowManagerRegisterCheckFunc(EBPFCheckBypassedFlowTimeout,
-                                                 EBPFCheckBypassedFlowCreate,
-                                                 (void *) &(aconf->ebpf_t_config));
             BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow, NULL);
         }
 #else

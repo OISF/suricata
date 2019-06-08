@@ -482,12 +482,15 @@ typedef struct FlowProtoFreeFunc_ {
     void (*Freefunc)(void *);
 } FlowProtoFreeFunc;
 
-typedef struct FlowCounters_ {
+typedef struct FlowBypassInfo_ {
+    bool (* BypassUpdate)(Flow *f, void *data, time_t tsec);
+    void (* BypassFree)(void *data);
+    void *bypass_data;
     uint64_t tosrcpktcnt;
     uint64_t tosrcbytecnt;
     uint64_t todstpktcnt;
     uint64_t todstbytecnt;
-} FlowCounters;
+} FlowBypassInfo;
 
 /** \brief prepare packet for a life with flow
  *  Set PKT_WANTS_FLOW flag to incidate workers should do a flow lookup
@@ -529,8 +532,8 @@ int FlowSetMemcap(uint64_t size);
 uint64_t FlowGetMemcap(void);
 uint64_t FlowGetMemuse(void);
 
-int GetFlowBypassCounterID(void);
-void RegisterFlowBypassCounter(void);
+int GetFlowBypassInfoID(void);
+void RegisterFlowBypassInfo(void);
 
 /** ----- Inline functions ----- */
 

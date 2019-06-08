@@ -514,11 +514,13 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_ke
      * server then if we already have something in to server to client. We need
      * these numbers as we will use it to see if we have new traffic coming
      * on the flow */
-    FlowCounters *fc = FlowGetStorageById(f, GetFlowBypassCounterID());
+    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
     if (fc == NULL) {
-        fc = SCCalloc(sizeof(FlowCounters), 1);
+        fc = SCCalloc(sizeof(FlowBypassInfo), 1);
         if (fc) {
-            FlowSetStorageById(f, GetFlowBypassCounterID(), fc);
+            FlowSetStorageById(f, GetFlowBypassInfoID(), fc);
+            fc->BypassUpdate = EBPFBypassUpdate;
+            fc->BypassFree = EBPFBypassFree;
             fc->todstpktcnt = pkts_cnt;
             fc->todstbytecnt = bytes_cnt;
         } else {
@@ -533,56 +535,96 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_ke
     return false;
 }
 
-/**
- * Update a Flow in the Flow table for a Flowkey.
- *
- * \return false if Flow is in Flow table and true if not
- */
-static bool EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
-                                uint32_t hash, struct timespec *ctime,
-                                uint64_t pkts_cnt, uint64_t bytes_cnt)
+void EBPFBypassFree(void *data)
 {
-    Flow *f = FlowGetExistingFlowFromHash(flow_key, hash);
-    if (f != NULL) {
-        SCLogDebug("bypassed flow found %d -> %d, doing accounting",
-                    f->sp, f->dp);
-        FlowCounters *fc = FlowGetStorageById(f, GetFlowBypassCounterID());
-        if (fc == NULL) {
-            FLOWLOCK_UNLOCK(f);
-            flowstats->count++;
+    EBPFBypassData *eb = (EBPFBypassData *)data;
+    if (eb == NULL)
+        return;
+    if (eb->key[0]) {
+        SCFree(eb->key[0]);
+    }
+    if (eb->key[1]) {
+        SCFree(eb->key[1]);
+    }
+    SCFree(eb);
+    return;
+}
+
+/**
+ *
+ * Compare eBPF half flow to Flow
+ *
+ * \return true if entries have activity, false if not
+ */
+
+static bool EBPFBypassCheckHalfFlow(Flow *f, EBPFBypassData *eb, void *key,
+                                    int index)
+{
+    int i;
+    uint64_t pkts_cnt = 0;
+    uint64_t bytes_cnt = 0;
+    /* We use a per CPU structure so we will get a array of values. But if nr_cpus
+     * is 1 then we have a global hash. */
+    BPF_DECLARE_PERCPU(struct pair, values_array, eb->cpus_count);
+    memset(values_array, 0, sizeof(values_array));
+    int res = bpf_map_lookup_elem(eb->mapfd, key, values_array);
+    if (res < 0) {
+        SCLogDebug("errno: (%d) %s", errno, strerror(errno));
+        return false;
+    }
+    for (i = 0; i < eb->cpus_count; i++) {
+        /* let's start accumulating value so we can compute the counters */
+        SCLogDebug("%d: Adding pkts %lu bytes %lu", i,
+                BPF_PERCPU(values_array, i).packets,
+                BPF_PERCPU(values_array, i).bytes);
+        pkts_cnt += BPF_PERCPU(values_array, i).packets;
+        bytes_cnt += BPF_PERCPU(values_array, i).bytes;
+    }
+    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+    if (fc == NULL) {
+        return false;
+    }
+    if (index == 0) {
+        if (pkts_cnt != fc->todstpktcnt) {
+            fc->todstpktcnt = pkts_cnt;
+            fc->todstbytecnt = bytes_cnt;
             return true;
         }
-        if (flow_key->sp == f->sp) {
-            if (pkts_cnt != fc->todstpktcnt) {
-                flowstats->packets += pkts_cnt - fc->todstpktcnt;
-                flowstats->bytes += bytes_cnt - fc->todstbytecnt;
-                fc->todstpktcnt = pkts_cnt;
-                fc->todstbytecnt = bytes_cnt;
-                /* interval based so no meaning to update the millisecond.
-                 * Let's keep it fast and simple */
-                f->lastts.tv_sec = ctime->tv_sec;
-            }
-        } else {
-            if (pkts_cnt != fc->tosrcpktcnt) {
-                flowstats->packets += pkts_cnt - fc->tosrcpktcnt;
-                flowstats->bytes += bytes_cnt - fc->tosrcbytecnt;
-                fc->tosrcpktcnt = pkts_cnt;
-                fc->tosrcbytecnt = bytes_cnt;
-                f->lastts.tv_sec = ctime->tv_sec;
-            }
-        }
-        FLOWLOCK_UNLOCK(f);
-        return false;
     } else {
-        /* Flow has disappeared so it has been removed due to timeout.
-         * This means we did not see any packet since bypassed_timeout/flow_dump_interval
-         * checks so we are highly probably have no packet to account.
-         * So we just discard the flow */
-        SCLogDebug("No flow for %d -> %d", flow_key->sp, flow_key->dp);
-        SCLogDebug("Dead with pkts %lu bytes %lu", pkts_cnt, bytes_cnt);
-        flowstats->count++;
+        if (pkts_cnt != fc->tosrcpktcnt) {
+            fc->tosrcpktcnt = pkts_cnt;
+            fc->tosrcbytecnt = bytes_cnt;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/** Check both half flows for update
+ *
+ * Update lastts in the flow and do accounting
+ *
+ * */
+bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
+{
+    EBPFBypassData *eb = (EBPFBypassData *)data;
+    if (eb == NULL) {
+        return false;
+    }
+    bool activity = EBPFBypassCheckHalfFlow(f, eb, eb->key[0], 0);
+    activity |= EBPFBypassCheckHalfFlow(f, eb, eb->key[1], 1);
+    if (!activity) {
+        SCLogDebug("Delete entry: %u (%ld)", FLOW_IS_IPV6(f), FlowGetId(f));
+        /* delete the entries if no time update */
+        EBPFDeleteKey(eb->mapfd, eb->key[0]);
+        EBPFDeleteKey(eb->mapfd, eb->key[1]);
+        SCLogDebug("Done delete entry: %u", FLOW_IS_IPV6(f));
+    } else {
+        f->lastts.tv_sec = tsec;
         return true;
     }
+    return false;
 }
 
 typedef bool (*OpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key,
@@ -814,50 +856,6 @@ int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void
     }
 
     return 0;
-}
-
-/**
- * Flow timeout checking function
- *
- * This function is called by the Flow bypass manager to trigger removal
- * of entries in the kernel/userspace flow table if needed.
- *
- */
-int EBPFCheckBypassedFlowTimeout(ThreadVars *th_v, struct flows_stats *bypassstats,
-                                        struct timespec *curtime,
-                                        void *data)
-{
-    struct flows_stats local_bypassstats = { 0, 0, 0};
-    int ret = 0;
-    int tcount = 0;
-    LiveDevice *ldev = NULL, *ndev;
-    struct ebpf_timeout_config *cfg = (struct ebpf_timeout_config *)data;
-
-    BUG_ON(cfg == NULL);
-
-    while(LiveDeviceForEach(&ldev, &ndev)) {
-        memset(&local_bypassstats, 0, sizeof(local_bypassstats));
-        tcount = EBPFForEachFlowV4Table(th_v, ldev, "flow_table_v4",
-                               &local_bypassstats, curtime,
-                               cfg, EBPFUpdateFlowForKey);
-        bypassstats->count = local_bypassstats.count;
-        bypassstats->packets = local_bypassstats.packets ;
-        bypassstats->bytes = local_bypassstats.bytes;
-        if (tcount) {
-            ret = 1;
-        }
-        memset(&local_bypassstats, 0, sizeof(local_bypassstats));
-        tcount = EBPFForEachFlowV6Table(th_v, ldev, "flow_table_v6",
-                                        &local_bypassstats, curtime,
-                                        cfg, EBPFUpdateFlowForKey);
-        bypassstats->count += local_bypassstats.count;
-        bypassstats->packets += local_bypassstats.packets ;
-        bypassstats->bytes += local_bypassstats.bytes;
-        if (tcount) {
-            ret = 1;
-        }
-    }
-    return ret;
 }
 
 void EBPFRegisterExtension(void)

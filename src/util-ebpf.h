@@ -61,6 +61,12 @@ struct pair {
     uint32_t hash;
 };
 
+typedef struct EBPFBypassData_ {
+    void *key[2];
+    int mapfd;
+    int cpus_count;
+} EBPFBypassData;
+
 #define EBPF_SOCKET_FILTER  (1<<0)
 #define EBPF_XDP_CODE       (1<<1)
 #define EBPF_PINNED_MAPS    (1<<2)
@@ -83,6 +89,8 @@ void EBPFBuildCPUSet(ConfNode *node, char *iface);
 int EBPFSetPeerIface(const char *iface, const char *out_iface);
 
 int EBPFUpdateFlow(Flow *f, Packet *p, void *data);
+bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec);
+void EBPFBypassFree(void *data);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode EBPFGetBypassedStats(json_t *cmd, json_t *answer, void *data);
