@@ -473,9 +473,6 @@ static void FtpTransferCmdFree(void *data)
 static uint32_t CopyCommandLine(uint8_t **dest, uint8_t *src, uint32_t length)
 {
     if (likely(length)) {
-        if (unlikely(length == UINT32_MAX)) {
-            return 0;
-        }
         uint8_t *where = FTPCalloc(length + 1, sizeof(char));
         if (unlikely(where == NULL)) {
             return 0;
@@ -749,7 +746,6 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
                             void *local_data, const uint8_t flags)
 {
     FtpState *state = (FtpState *)ftp_state;
-    FTPTransaction *tx = NULL;
     int retcode = 1;
     FTPTransaction *tx;
 
@@ -769,9 +765,9 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX -1];
     } else {
         tx = FTPGetOldestTx(state);
-        state->curr_tx = tx;
     }
 
+    state->curr_tx = tx;
     if (state->command == FTP_COMMAND_AUTH_TLS) {
         if (input_len >= 4 && SCMemcmp("234 ", input, 4) == 0) {
             AppLayerRequestProtocolTLSUpgrade(f);
