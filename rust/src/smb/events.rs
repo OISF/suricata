@@ -30,6 +30,21 @@ pub enum SMBEvent {
     NegotiateMalformedDialects = 6,
 }
 
+impl SMBEvent {
+    pub fn from_i32(value: i32) -> Option<SMBEvent> {
+        match value {
+            0 => Some(SMBEvent::InternalError),
+            1 => Some(SMBEvent::MalformedData),
+            2 => Some(SMBEvent::RecordOverflow),
+            3 => Some(SMBEvent::MalformedNtlmsspRequest),
+            4 => Some(SMBEvent::MalformedNtlmsspResponse),
+            5 => Some(SMBEvent::DuplicateNegotiate),
+            6 => Some(SMBEvent::NegotiateMalformedDialects),
+            _ => None,
+        }
+    }
+}
+
 pub fn smb_str_to_event(instr: &str) -> i32 {
     SCLogDebug!("checking {}", instr);
     match instr {
