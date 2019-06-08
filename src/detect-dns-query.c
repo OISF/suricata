@@ -209,6 +209,7 @@ void DetectDnsQueryRegister (void)
     sigmatch_table[DETECT_AL_DNS_QUERY].name = "dns.query";
     sigmatch_table[DETECT_AL_DNS_QUERY].alias = "dns_query";
     sigmatch_table[DETECT_AL_DNS_QUERY].desc = "sticky buffer to match DNS query-buffer";
+    sigmatch_table[DETECT_AL_DNS_QUERY].url = DOC_URL DOC_VERSION "/rules/dns-keywords.html#dns-query";
     sigmatch_table[DETECT_AL_DNS_QUERY].Setup = DetectDnsQuerySetup;
     sigmatch_table[DETECT_AL_DNS_QUERY].RegisterTests = DetectDnsQueryRegisterTests;
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;

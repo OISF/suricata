@@ -46,7 +46,7 @@ void DetectTransformSha1Register(void)
     sigmatch_table[DETECT_TRANSFORM_SHA1].desc =
         "convert to sha1 hash of the buffer";
     sigmatch_table[DETECT_TRANSFORM_SHA1].url =
-        DOC_URL DOC_VERSION "/rules/transforms.html#to_sha1";
+        DOC_URL DOC_VERSION "/rules/transforms.html#to-sha1";
     sigmatch_table[DETECT_TRANSFORM_SHA1].Setup =
         DetectTransformToSha1Setup;
 #ifdef HAVE_NSS

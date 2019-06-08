@@ -66,7 +66,7 @@ void DetectSNMPPduTypeRegister(void)
 {
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].name = "snmp.pdu_type";
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].desc = "match SNMP Pdu type";
-    sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp.pdu_type";
+    sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp-pdu-type";
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].Match = NULL;
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].AppLayerTxMatch = DetectSNMPPduTypeMatch;
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].Setup = DetectSNMPPduTypeSetup;

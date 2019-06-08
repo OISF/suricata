@@ -420,7 +420,7 @@ void DetectHttpHeaderRegister(void)
     /* http.header sticky buffer */
     sigmatch_table[DETECT_HTTP_HEADER].name = "http.header";
     sigmatch_table[DETECT_HTTP_HEADER].desc = "sticky buffer to match on the normalized HTTP header-buffer";
-    sigmatch_table[DETECT_HTTP_HEADER].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-header";
+    sigmatch_table[DETECT_HTTP_HEADER].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-header-and-http-raw-header";
     sigmatch_table[DETECT_HTTP_HEADER].Setup = DetectHttpHeaderSetupSticky;
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;

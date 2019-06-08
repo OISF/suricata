@@ -92,7 +92,7 @@ void DetectHttpStatMsgRegister (void)
     /* http.stat_msg sticky buffer */
     sigmatch_table[DETECT_HTTP_STAT_MSG].name = "http.stat_msg";
     sigmatch_table[DETECT_HTTP_STAT_MSG].desc = "sticky buffer to match on the HTTP response status message";
-    sigmatch_table[DETECT_HTTP_STAT_MSG].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_stat-msg";
+    sigmatch_table[DETECT_HTTP_STAT_MSG].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-stat-msg";
     sigmatch_table[DETECT_HTTP_STAT_MSG].Setup = DetectHttpStatMsgSetupSticky;
     sigmatch_table[DETECT_HTTP_STAT_MSG].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 

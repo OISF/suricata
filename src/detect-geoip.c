@@ -52,6 +52,8 @@ static int DetectGeoipSetupNoSupport (DetectEngineCtx *a, Signature *b, const ch
 void DetectGeoipRegister(void)
 {
     sigmatch_table[DETECT_GEOIP].name = "geoip";
+    sigmatch_table[DETECT_GEOIP].desc = "enables (you) to match on the source, destination or source and destination IP addresses of network traffic, and to see to which country it belongs.";
+    sigmatch_table[DETECT_GEOIP].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#geoip";
     sigmatch_table[DETECT_GEOIP].Setup = DetectGeoipSetupNoSupport;
     sigmatch_table[DETECT_GEOIP].Free = NULL;
     sigmatch_table[DETECT_GEOIP].RegisterTests = NULL;

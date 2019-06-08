@@ -63,6 +63,7 @@ static void DetectTosFree(void *);
 void DetectTosRegister(void)
 {
     sigmatch_table[DETECT_TOS].name = "tos";
+    sigmatch_table[DETECT_TOS].desc = "match on specific decimal values of the IP header TOS field";
     sigmatch_table[DETECT_TOS].Match = DetectTosMatch;
     sigmatch_table[DETECT_TOS].Setup = DetectTosSetup;
     sigmatch_table[DETECT_TOS].Free = DetectTosFree;
