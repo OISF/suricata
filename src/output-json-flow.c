@@ -200,7 +200,7 @@ void JsonAddFlow(Flow *f, json_t *js, json_t *hjs)
                 json_string(AppProtoToString(f->alproto_expect)));
     }
 
-    FlowCounters *fc = FlowGetStorageById(f, GetFlowBypassCounterID());
+    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
     if (fc) {
         json_object_set_new(hjs, "pkts_toserver",
                 json_integer(f->todstpktcnt + fc->todstpktcnt));
