@@ -93,7 +93,9 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
     op->ThreadDeinit = ThreadDeinit;
     op->ThreadExitPrintStats = ThreadExitPrintStats;
 
-    if (tc_log_progress < 0) {
+    if (alproto == ALPROTO_UNKNOWN) {
+        op->tc_log_progress = 0;
+    } else if (tc_log_progress < 0) {
         op->tc_log_progress =
             AppLayerParserGetStateProgressCompletionStatus(alproto,
                                                            STREAM_TOCLIENT);
@@ -101,7 +103,9 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
         op->tc_log_progress = tc_log_progress;
     }
 
-    if (ts_log_progress < 0) {
+    if (alproto == ALPROTO_UNKNOWN) {
+        op->ts_log_progress = 0;
+    } else if (ts_log_progress < 0) {
         op->ts_log_progress =
             AppLayerParserGetStateProgressCompletionStatus(alproto,
                                                            STREAM_TOSERVER);

@@ -2112,6 +2112,32 @@ pub extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
+pub extern "C" fn rs_smb_state_get_event_info_by_id(event_id: std::os::raw::c_int,
+                                              event_name: *mut *const std::os::raw::c_char,
+                                              event_type: *mut AppLayerEventType)
+                                              -> i8
+{
+    if let Some(e) = SMBEvent::from_i32(event_id as i32) {
+        let estr = match e {
+            SMBEvent::InternalError => { "internal_error\0" },
+            SMBEvent::MalformedData => { "malformed_data\0" },
+            SMBEvent::RecordOverflow => { "record_overflow\0" },
+            SMBEvent::MalformedNtlmsspRequest => { "malformed_ntlmssp_request\0" },
+            SMBEvent::MalformedNtlmsspResponse => { "malformed_ntlmssp_response\0" },
+            SMBEvent::DuplicateNegotiate => { "duplicate_negotiate\0" },
+            SMBEvent::NegotiateMalformedDialects => { "netogiate_malformed_dialects\0" },
+        };
+        unsafe{
+            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
+            *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+        };
+        0
+    } else {
+        -1
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn rs_smb_state_get_event_info(event_name: *const std::os::raw::c_char,
                                               event_id: *mut std::os::raw::c_int,
                                               event_type: *mut AppLayerEventType)
