@@ -41,6 +41,7 @@
 #include "flow-private.h"
 #include "flow-timeout.h"
 #include "flow-manager.h"
+#include "flow-storage.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -236,7 +237,7 @@ static inline uint32_t FlowGetFlowTimeout(const Flow *f, enum FlowState state)
  *  \retval 0 not timed out
  *  \retval 1 timed out
  */
-static int FlowManagerFlowTimeout(const Flow *f, enum FlowState state, struct timeval *ts, int32_t *next_ts)
+static int FlowManagerFlowTimeout(Flow *f, enum FlowState state, struct timeval *ts, int32_t *next_ts)
 {
     /* set the timeout value according to the flow operating mode,
      * flow's state and protocol.*/
@@ -248,6 +249,26 @@ static int FlowManagerFlowTimeout(const Flow *f, enum FlowState state, struct ti
 
     /* do the timeout check */
     if (flow_times_out_at >= ts->tv_sec) {
+        /* for bypassed flow we need to check if the capture method has seen
+         * something and update the logic */
+        FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+        if (fc) {
+            if (fc->BypassUpdate) {
+                /* flow will be possibly updated */
+                bool update = fc->BypassUpdate(f, fc->bypass_data, ts->tv_sec);
+                /* FIXME do global accounting: store pkts and bytes before and add difference here to counter */
+                if (update) {
+                    SCLogDebug("Updated flow: %ld", FlowGetId(f));
+                    flow_times_out_at = (int32_t)(f->lastts.tv_sec + timeout);
+                    if (*next_ts == 0 || flow_times_out_at < *next_ts)
+                        *next_ts = flow_times_out_at;
+                    return 0;
+                } else {
+                    SCLogDebug("No new packet, dead flow %ld", FlowGetId(f));
+                    return 1;
+                }
+            }
+        }
         return 0;
     }
 
