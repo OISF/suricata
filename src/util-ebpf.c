@@ -670,7 +670,6 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
     uint64_t hash_cnt = 0;
 
     if (tcfg->cpus_count == 0) {
-        SCLogWarning(SC_ERR_INVALID_VALUE, "CPU count should not be 0");
         return 0;
     }
 
