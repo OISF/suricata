@@ -2294,8 +2294,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
  * \param key data to use as key in the table
  * \return 0 in case of error, 1 if success
  */
-static int AFPInsertHalfFlow(int mapd, void *key, uint32_t hash,
-                             unsigned int nr_cpus)
+static int AFPInsertHalfFlow(int mapd, void *key, unsigned int nr_cpus)
 {
     BPF_DECLARE_PERCPU(struct pair, value, nr_cpus);
     unsigned int i;
@@ -2309,7 +2308,6 @@ static int AFPInsertHalfFlow(int mapd, void *key, uint32_t hash,
     for (i = 0; i < nr_cpus; i++) {
         BPF_PERCPU(value, i).packets = 0;
         BPF_PERCPU(value, i).bytes = 0;
-        BPF_PERCPU(value, i).hash = hash;
     }
     if (bpf_map_update_elem(mapd, key, value, BPF_NOEXIST) != 0) {
         switch (errno) {
@@ -2409,7 +2407,7 @@ static int AFPBypassCallback(Packet *p)
         keys[0]->vlan_id[1] = p->vlan_id[1];
 
         keys[0]->ip_proto = IPV4_GET_IPPROTO(p);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[0], p->flow_hash,
+        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             SCFree(keys[0]);
             return 0;
@@ -2427,7 +2425,7 @@ static int AFPBypassCallback(Packet *p)
         keys[1]->vlan_id[1] = p->vlan_id[1];
 
         keys[1]->ip_proto = IPV4_GET_IPPROTO(p);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1], p->flow_hash,
+        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             SCFree(keys[0]);
             SCFree(keys[1]);
@@ -2458,7 +2456,7 @@ static int AFPBypassCallback(Packet *p)
         keys[0]->vlan_id[0] = p->vlan_id[0];
         keys[0]->vlan_id[1] = p->vlan_id[1];
         keys[0]->ip_proto = IPV6_GET_NH(p);
-        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[0], p->flow_hash,
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             SCFree(keys[0]);
             return 0;
@@ -2477,7 +2475,7 @@ static int AFPBypassCallback(Packet *p)
         keys[1]->vlan_id[0] = p->vlan_id[0];
         keys[1]->vlan_id[1] = p->vlan_id[1];
         keys[1]->ip_proto = IPV6_GET_NH(p);
-        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1], p->flow_hash,
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             SCFree(keys[0]);
             SCFree(keys[1]);
@@ -2542,7 +2540,7 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[0]->vlan_id[0] = p->vlan_id[0];
         keys[0]->vlan_id[1] = p->vlan_id[1];
         keys[0]->ip_proto = IPV4_GET_IPPROTO(p);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[0], p->flow_hash,
+        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             SCFree(keys[0]);
             return 0;
@@ -2559,7 +2557,7 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[1]->vlan_id[0] = p->vlan_id[0];
         keys[1]->vlan_id[1] = p->vlan_id[1];
         keys[1]->ip_proto = IPV4_GET_IPPROTO(p);
-        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1], p->flow_hash,
+        if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             SCFree(keys[0]);
             SCFree(keys[1]);
@@ -2590,7 +2588,7 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[0]->vlan_id[0] = p->vlan_id[0];
         keys[0]->vlan_id[1] = p->vlan_id[1];
         keys[0]->ip_proto = IPV6_GET_NH(p);
-        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[0], p->flow_hash,
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[0],
                               p->afp_v.nr_cpus) == 0) {
             SCFree(keys[0]);
             return 0;
@@ -2609,7 +2607,7 @@ static int AFPXDPBypassCallback(Packet *p)
         keys[1]->vlan_id[0] = p->vlan_id[0];
         keys[1]->vlan_id[1] = p->vlan_id[1];
         keys[1]->ip_proto = IPV6_GET_NH(p);
-        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1], p->flow_hash,
+        if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, keys[1],
                               p->afp_v.nr_cpus) == 0) {
             SCFree(keys[0]);
             SCFree(keys[1]);

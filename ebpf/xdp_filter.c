@@ -90,7 +90,6 @@ struct flowv6_keys {
 struct pair {
     __u32 packets;
     __u32 bytes;
-    __u32 hash;
 };
 
 struct bpf_map_def SEC("maps") flow_table_v4 = {
