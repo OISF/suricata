@@ -33,31 +33,32 @@
 #define LINUX_VERSION_CODE 263682
 
 struct flowv4_keys {
-    __be32 src;
-    __be32 dst;
+    __u32 src;
+    __u32 dst;
     union {
-        __be32 ports;
-        __be16 port16[2];
+        __u32 ports;
+        __u16 port16[2];
     };
-    __u32 ip_proto;
-    __u16 vlan_id[2];
+    __u8 ip_proto:1;
+    __u16 vlan0:15;
+    __u16 vlan1;
 };
 
 struct flowv6_keys {
-    __be32 src[4];
-    __be32 dst[4];
+    __u32 src[4];
+    __u32 dst[4];
     union {
-        __be32 ports;
-        __be16 port16[2];
+        __u32 ports;
+        __u16 port16[2];
     };
-    __u32 ip_proto;
-    __u16 vlan_id[2];
+    __u8 ip_proto:1;
+    __u16 vlan0:15;
+    __u16 vlan1;
 };
 
 struct pair {
-    __u32 packets;
-    __u32 bytes;
-    __u32 hash;
+    __u64 packets;
+    __u64 bytes;
 };
 
 struct bpf_map_def SEC("maps") flow_table_v4 = {
@@ -90,14 +91,18 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb, __u16 vlan0, __u16
     struct flowv4_keys tuple;
     struct pair *value;
     __u16 port;
+    __u8 ip_proto;
 
     nhoff = skb->cb[0];
 
-    tuple.ip_proto = load_byte(skb, nhoff + offsetof(struct iphdr, protocol));
+    ip_proto = load_byte(skb, nhoff + offsetof(struct iphdr, protocol));
     /* only support TCP and UDP for now */
-    switch (tuple.ip_proto) {
+    switch (ip_proto) {
         case IPPROTO_TCP:
+            tuple.ip_proto = 1;
+            break;
         case IPPROTO_UDP:
+            tuple.ip_proto = 0;
             break;
         default:
             return -1;
@@ -112,8 +117,8 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb, __u16 vlan0, __u16
     port = tuple.port16[1];
     tuple.port16[1] = tuple.port16[0];
     tuple.port16[0] = port;
-    tuple.vlan_id[0] = vlan0;
-    tuple.vlan_id[1] = vlan1;
+    tuple.vlan0 = vlan0;
+    tuple.vlan1 = vlan1;
 
 #if 0
     if ((tuple.port16[0] == 22) || (tuple.port16[1] == 22))
@@ -163,7 +168,10 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb, __u16 vlan0, __u16
     /* only support direct TCP and UDP for now */
     switch (nhdr) {
         case IPPROTO_TCP:
+            tuple.ip_proto = 1;
+            break;
         case IPPROTO_UDP:
+            tuple.ip_proto = 0;
             break;
         default:
             return -1;
@@ -183,10 +191,9 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb, __u16 vlan0, __u16
     port = tuple.port16[1];
     tuple.port16[1] = tuple.port16[0];
     tuple.port16[0] = port;
-    tuple.ip_proto = nhdr;
 
-    tuple.vlan_id[0] = vlan0;
-    tuple.vlan_id[1] = vlan1;
+    tuple.vlan0 = vlan0;
+    tuple.vlan1 = vlan1;
 
     //char fmt[] = "Now Got IPv6 port %u and %u\n";
     //bpf_trace_printk(fmt, sizeof(fmt), tuple.port16[0], tuple.port16[1]);

@@ -40,8 +40,9 @@ struct flowv4_keys {
 		__be32 ports;
 		__be16 port16[2];
 	};
-	__u32 ip_proto;
-    __u16 vlan_id[2];
+    __u8 ip_proto:1;
+    __u16 vlan0:15;
+    __u16 vlan1;
 };
 
 struct flowv6_keys {
@@ -51,13 +52,14 @@ struct flowv6_keys {
         __be32 ports;
         __be16 port16[2];
     };
-    __u32 ip_proto;
-    __u16 vlan_id[2];
+    __u8 ip_proto:1;
+    __u16 vlan0:15;
+    __u16 vlan1;
 };
 
 struct pair {
-    uint32_t packets;
-    uint32_t bytes;
+    uint64_t packets;
+    uint64_t bytes;
 };
 
 typedef struct EBPFBypassData_ {
