@@ -501,11 +501,15 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
  *
  * \return false (this create function never returns true)
  */
-static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
-                                uint32_t hash, struct timespec *ctime,
-                                uint64_t pkts_cnt, uint64_t bytes_cnt)
+static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, void *key,
+                                 FlowKey *flow_key, struct timespec *ctime,
+                                 uint64_t pkts_cnt, uint64_t bytes_cnt,
+                                 int mapfd, int cpus_count)
 {
-    Flow *f = FlowGetFromFlowKey(flow_key, ctime, hash);
+    Flow *f = NULL;
+    uint32_t hash = FlowKeyGetHash(flow_key);
+
+    f = FlowGetFromFlowKey(flow_key, ctime, hash);
     if (f == NULL)
         return false;
 
@@ -523,6 +527,16 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_ke
             fc->BypassFree = EBPFBypassFree;
             fc->todstpktcnt = pkts_cnt;
             fc->todstbytecnt = bytes_cnt;
+            EBPFBypassData *eb = SCCalloc(1, sizeof(EBPFBypassData));
+            if (eb == NULL) {
+                SCFree(fc);
+                FLOWLOCK_UNLOCK(f);
+                return false;
+            }
+            eb->key[0] = key;
+            eb->mapfd = mapfd;
+            eb->cpus_count = cpus_count;
+            fc->bypass_data = eb;
         } else {
             FLOWLOCK_UNLOCK(f);
             return false;
@@ -530,6 +544,10 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_ke
     } else {
         fc->tosrcpktcnt = pkts_cnt;
         fc->tosrcbytecnt = bytes_cnt;
+        EBPFBypassData *eb = (EBPFBypassData *) fc->bypass_data;
+        if (eb) {
+            eb->key[1] = key;
+        }
     }
     FLOWLOCK_UNLOCK(f);
     return false;
@@ -628,9 +646,10 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     return false;
 }
 
-typedef bool (*OpFlowForKey)(struct flows_stats *flowstats, FlowKey *flow_key,
-                            uint32_t hash, struct timespec *ctime,
-                            uint64_t pkts_cnt, uint64_t bytes_cnt);
+typedef bool (*OpFlowForKey)(struct flows_stats *flowstats, void *key,
+                            FlowKey *flow_key, struct timespec *ctime,
+                            uint64_t pkts_cnt, uint64_t bytes_cnt,
+                            int mapfd, int cpus_count);
 
 /**
  * Bypassed flows cleaning for IPv4
@@ -710,9 +729,9 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         flow_key.vlan_id[1] = next_key.vlan_id[1];
         flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
-        dead_flow = EBPFOpFlowForKey(flowstats, &flow_key,
-                                    BPF_PERCPU(values_array, 0).hash,
-                                    ctime, pkts_cnt, bytes_cnt);
+        dead_flow = EBPFOpFlowForKey(flowstats, &next_key, &flow_key,
+                                     ctime, pkts_cnt, bytes_cnt,
+                                     mapfd, tcfg->cpus_count);
         if (dead_flow) {
             found = 1;
         }
@@ -819,8 +838,9 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
         flow_key.vlan_id[1] = next_key.vlan_id[1];
         flow_key.proto = next_key.ip_proto;
         flow_key.recursion_level = 0;
-        pkts_cnt = EBPFOpFlowForKey(flowstats, &flow_key, BPF_PERCPU(values_array, 0).hash,
-                                    ctime, pkts_cnt, bytes_cnt);
+        pkts_cnt = EBPFOpFlowForKey(flowstats, &next_key, &flow_key,
+                                    ctime, pkts_cnt, bytes_cnt,
+                                    mapfd, tcfg->cpus_count);
         if (pkts_cnt > 0) {
             found = 1;
         }

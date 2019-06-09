@@ -78,6 +78,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *,
 
 Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t hash);
 Flow *FlowGetExistingFlowFromHash(FlowKey * key, uint32_t hash);
+uint32_t FlowKeyGetHash(FlowKey *flow_key);
 
 void FlowDisableTcpReuseHandling(void);
 
