@@ -72,8 +72,9 @@ struct flowv4_keys {
         __u32 ports;
         __u16 port16[2];
     };
-    __u32 ip_proto;
-    __u16 vlan_id[2];
+    __u8 ip_proto:1;
+    __u16 vlan0:15;
+    __u16 vlan1;
 };
 
 struct flowv6_keys {
@@ -83,13 +84,14 @@ struct flowv6_keys {
         __u32 ports;
         __u16 port16[2];
     };
-    __u32 ip_proto;
-    __u16 vlan_id[2];
+    __u8 ip_proto:1;
+    __u16 vlan0:15;
+    __u16 vlan1;
 };
 
 struct pair {
-    __u32 packets;
-    __u32 bytes;
+    __u64 packets;
+    __u64 bytes;
 };
 
 struct bpf_map_def SEC("maps") flow_table_v4 = {
@@ -258,7 +260,11 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
     if ((void *)(iph + 1) > data_end)
         return XDP_PASS;
 
-    tuple.ip_proto = (__u32) iph->protocol;
+    if (iph->protocol == IPPROTO_TCP) {
+        tuple.ip_proto = 1;
+    } else {
+        tuple.ip_proto = 0;
+    }
     tuple.src = iph->saddr;
     tuple.dst = iph->daddr;
 
@@ -273,8 +279,8 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
     tuple.port16[0] = (__u16)sport;
     tuple.port16[1] = (__u16)dport;
 
-    tuple.vlan_id[0] = vlan0;
-    tuple.vlan_id[1] = vlan1;
+    tuple.vlan0 = vlan0;
+    tuple.vlan1 = vlan1;
 
     value = bpf_map_lookup_elem(&flow_table_v4, &tuple);
 #if 0
@@ -404,14 +410,18 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
     if (sport == -1)
         return XDP_PASS;
 
-    tuple.ip_proto = ip6h->nexthdr;
+    if (ip6h->nexthdr == IPPROTO_TCP) {
+        tuple.ip_proto = 1;
+    } else {
+        tuple.ip_proto = 0;
+    }
     __builtin_memcpy(tuple.src, ip6h->saddr.s6_addr32, sizeof(tuple.src));
     __builtin_memcpy(tuple.dst, ip6h->daddr.s6_addr32, sizeof(tuple.dst));
     tuple.port16[0] = sport;
     tuple.port16[1] = dport;
 
-    tuple.vlan_id[0] = vlan0;
-    tuple.vlan_id[1] = vlan1;
+    tuple.vlan0 = vlan0;
+    tuple.vlan1 = vlan1;
 
     value = bpf_map_lookup_elem(&flow_table_v6, &tuple);
     if (value) {
