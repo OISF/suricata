@@ -210,6 +210,19 @@ static inline uint32_t FlowGetHash(const Packet *p)
     return hash;
 }
 
+/**
+ * Basic hashing function for FlowKey
+ *
+ * \note Function only used for bypass
+ *
+ * \note this is only used at start to create Flow from pinned maps
+ * so fairness is not an issue
+ */
+uint32_t FlowKeyGetHash(FlowKey *fk)
+{
+    return hashword((uint32_t *)fk, sizeof(*fk)/4, flow_config.hash_rand);
+}
+
 /* Since two or more flows can have the same hash key, we need to compare
  * the flow with the current flow key. */
 #define CMP_FLOW(f1,f2) \
