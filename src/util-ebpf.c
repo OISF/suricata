@@ -725,9 +725,13 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         flow_key.dst.addr_data32[1] = 0;
         flow_key.dst.addr_data32[2] = 0;
         flow_key.dst.addr_data32[3] = 0;
-        flow_key.vlan_id[0] = next_key.vlan_id[0];
-        flow_key.vlan_id[1] = next_key.vlan_id[1];
-        flow_key.proto = next_key.ip_proto;
+        flow_key.vlan_id[0] = next_key.vlan0;
+        flow_key.vlan_id[1] = next_key.vlan1;
+        if (next_key.ip_proto == 1) {
+            flow_key.proto = IPPROTO_TCP;
+        } else {
+            flow_key.proto = IPPROTO_UDP;
+        }
         flow_key.recursion_level = 0;
         dead_flow = EBPFOpFlowForKey(flowstats, &next_key, &flow_key,
                                      ctime, pkts_cnt, bytes_cnt,
@@ -834,9 +838,13 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
             flow_key.dst.addr_data32[2] = ntohl(next_key.dst[2]);
             flow_key.dst.addr_data32[3] = ntohl(next_key.dst[3]);
         }
-        flow_key.vlan_id[0] = next_key.vlan_id[0];
-        flow_key.vlan_id[1] = next_key.vlan_id[1];
-        flow_key.proto = next_key.ip_proto;
+        flow_key.vlan_id[0] = next_key.vlan0;
+        flow_key.vlan_id[1] = next_key.vlan1;
+        if (next_key.ip_proto == 1) {
+            flow_key.proto = IPPROTO_TCP;
+        } else {
+            flow_key.proto = IPPROTO_UDP;
+        }
         flow_key.recursion_level = 0;
         pkts_cnt = EBPFOpFlowForKey(flowstats, &next_key, &flow_key,
                                     ctime, pkts_cnt, bytes_cnt,
