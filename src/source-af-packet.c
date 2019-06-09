@@ -2436,6 +2436,7 @@ static int AFPBypassCallback(Packet *p)
             return 0;
         }
         EBPFUpdateFlow(p->flow, p, NULL);
+        LiveDevAddBypassStats(p->livedev, 1, AF_INET);
         return AFPSetFlowStorage(p, p->afp_v.v4_map_fd, keys[0], keys[1]);
     }
     /* For IPv6 case we don't handle extended header in eBPF */
@@ -2493,6 +2494,7 @@ static int AFPBypassCallback(Packet *p)
         }
         if (p->flow)
             EBPFUpdateFlow(p->flow, p, NULL);
+        LiveDevAddBypassStats(p->livedev, 1, AF_INET6);
         return AFPSetFlowStorage(p, p->afp_v.v6_map_fd, keys[0], keys[1]);
     }
 #endif
@@ -2577,6 +2579,7 @@ static int AFPXDPBypassCallback(Packet *p)
             SCFree(keys[1]);
             return 0;
         }
+        LiveDevAddBypassStats(p->livedev, 1, AF_INET);
         return AFPSetFlowStorage(p, p->afp_v.v4_map_fd, keys[0], keys[1]);
     }
     /* For IPv6 case we don't handle extended header in eBPF */
@@ -2631,6 +2634,7 @@ static int AFPXDPBypassCallback(Packet *p)
             SCFree(keys[1]);
             return 0;
         }
+        LiveDevAddBypassStats(p->livedev, 1, AF_INET6);
         return AFPSetFlowStorage(p, p->afp_v.v6_map_fd, keys[0], keys[1]);
     }
 #endif
