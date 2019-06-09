@@ -347,7 +347,7 @@ typedef struct Flow_
     uint8_t vlan_idx;
 
     /** Incoming interface */
-    const struct LiveDevice_ *livedev;
+    struct LiveDevice_ *livedev;
 
     /** flow hash - the flow hash before hash table size mod. */
     uint32_t flow_hash;

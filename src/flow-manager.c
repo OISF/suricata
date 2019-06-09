@@ -255,6 +255,10 @@ static int FlowManagerFlowTimeout(Flow *f, enum FlowState state, struct timeval 
         if (fc) {
             if (fc->BypassUpdate) {
                 /* flow will be possibly updated */
+                uint64_t pkts_tosrc = fc->tosrcpktcnt;
+                uint64_t bytes_tosrc = fc->tosrcbytecnt;
+                uint64_t pkts_todst = fc->todstpktcnt;
+                uint64_t bytes_todst = fc->todstbytecnt;
                 bool update = fc->BypassUpdate(f, fc->bypass_data, ts->tv_sec);
                 /* FIXME do global accounting: store pkts and bytes before and add difference here to counter */
                 if (update) {
@@ -262,6 +266,14 @@ static int FlowManagerFlowTimeout(Flow *f, enum FlowState state, struct timeval 
                     flow_times_out_at = (int32_t)(f->lastts.tv_sec + timeout);
                     if (*next_ts == 0 || flow_times_out_at < *next_ts)
                         *next_ts = flow_times_out_at;
+                    pkts_tosrc = fc->tosrcpktcnt - pkts_tosrc;
+                    bytes_tosrc = fc->tosrcbytecnt - bytes_tosrc;
+                    pkts_todst = fc->todstpktcnt - pkts_todst;
+                    bytes_todst = fc->todstbytecnt - bytes_todst;
+                    if (f->livedev) {
+                        SC_ATOMIC_ADD(f->livedev->bypassed,
+                                      pkts_tosrc + pkts_todst);
+                    }
                     return 0;
                 } else {
                     SCLogDebug("No new packet, dead flow %ld", FlowGetId(f));
