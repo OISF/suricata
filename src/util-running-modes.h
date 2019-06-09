@@ -25,5 +25,6 @@
 
 int ListKeywords(const char *keyword_info);
 int ListAppLayerProtocols(void);
+int ListDetectProtocols(void);
 
 #endif /* __UTIL_RUNNING_MODES_H__ */
