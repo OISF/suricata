@@ -99,9 +99,9 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t data_len = 0;
-        uint8_t *data = NULL;
+        const uint8_t *data = NULL;
 
-        rs_snmp_tx_get_community(txv, (uint8_t **)&data, &data_len);
+        rs_snmp_tx_get_community(txv, &data, &data_len);
         if (data == NULL || data_len == 0) {
             return NULL;
         }
