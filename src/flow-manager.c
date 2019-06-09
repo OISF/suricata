@@ -285,6 +285,13 @@ static int FlowManagerFlowTimeout(Flow *f, enum FlowState state, struct timeval 
                     return 0;
                 } else {
                     SCLogDebug("No new packet, dead flow %ld", FlowGetId(f));
+                    if (f->livedev) {
+                        if (FLOW_IS_IPV4(f)) {
+                            LiveDevAddBypassStats(f->livedev, -1, AF_INET);
+                        } else if (FLOW_IS_IPV6(f)) {
+                            LiveDevAddBypassStats(f->livedev, -1, AF_INET6);
+                        }
+                    }
                     if (counters) {
                         counters->bypassed_count++;
                     }
