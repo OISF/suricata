@@ -143,6 +143,29 @@ int DetectProtoContainsProto(const DetectProto *dp, int proto)
     return 0;
 }
 
+/* List supported protocol keywords */
+
+void ListSupportedProtocols(void)
+{
+    SCEnter();
+    printf("=========Supported Protocols=========\n");
+	printf("- tcp\n");
+	printf("- tcp-pkt\n");
+	printf("- tcp-stream\n");
+	printf("- udp\n");
+	printf("- icmpv4\n");
+	printf("- icmpv6\n");
+	printf("- icmp\n");
+	printf("- sctp\n");
+	printf("- ipv4\n");
+	printf("- ip4\n");
+	printf("- ipv6\n");
+	printf("- ip6\n");
+	printf("- ip\n");
+	printf("- pkthdr\n");
+    SCReturn;
+}
+
 /* TESTS */
 
 #ifdef UNITTESTS

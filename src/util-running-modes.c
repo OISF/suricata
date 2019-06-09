@@ -53,3 +53,13 @@ int ListAppLayerProtocols()
     exit(EXIT_SUCCESS);
 }
 
+int ListProtocols()
+{
+    if (ConfYamlLoadFile(DEFAULT_CONF_FILE) != -1)
+        SCLogLoadConfig(0, 0);
+    MpmTableSetup();
+    SpmTableSetup();
+    ListSupportedProtocols();
+
+    exit(EXIT_SUCCESS);
+}

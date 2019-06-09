@@ -38,6 +38,8 @@ typedef struct DetectProto_ {
     uint8_t flags;
 } DetectProto;
 
+void ListSupportedProtocols(void);
+
 /* prototypes */
 int DetectProtoParse(DetectProto *dp, const char *str);
 int DetectProtoContainsProto(const DetectProto *, int);

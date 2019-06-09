@@ -1414,6 +1414,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 
     int dump_config = 0;
     int list_app_layer_protocols = 0;
+    int list_protocols = 0;
     int list_unittests = 0;
     int list_runmodes = 0;
     int list_keywords = 0;
@@ -1493,6 +1494,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-app-layer-protos", 0, &list_app_layer_protocols, 1},
+        {"list-protocols", 0, &list_protocols, 1},
         {"list-unittests", 0, &list_unittests, 1},
         {"list-runmodes", 0, &list_runmodes, 1},
         {"list-keywords", optional_argument, &list_keywords, 1},
@@ -2088,6 +2090,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 
     if (list_app_layer_protocols)
         suri->run_mode = RUNMODE_LIST_APP_LAYERS;
+    if (list_protocols)
+        suri->run_mode = RUNMODE_LIST_PROTOCOLS;
     if (list_keywords)
         suri->run_mode = RUNMODE_LIST_KEYWORDS;
     if (list_unittests)
@@ -2325,6 +2329,9 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
             return TM_ECODE_DONE;
         case RUNMODE_LIST_APP_LAYERS:
             ListAppLayerProtocols();
+            return TM_ECODE_DONE;
+        case RUNMODE_LIST_PROTOCOLS:
+            ListProtocols();
             return TM_ECODE_DONE;
         case RUNMODE_PRINT_VERSION:
             PrintVersion();
