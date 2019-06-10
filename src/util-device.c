@@ -514,13 +514,13 @@ void LiveDevSetBypassStats(LiveDevice *dev, uint64_t cnt, int family)
 }
 
 /**
- * Modify number of currently bypassed flows for a protocol family
+ * Increase number of currently bypassed flows for a protocol family
  *
  * \param dev pointer to LiveDevice to set stats for
- * \param cnt number of currently bypassed flows
+ * \param cnt number of flows to add
  * \param family AF_INET to set IPv4 count or AF_INET6 to set IPv6 count
  */
-void LiveDevAddBypassStats(LiveDevice *dev, int64_t cnt, int family)
+void LiveDevAddBypassStats(LiveDevice *dev, uint64_t cnt, int family)
 {
     BypassInfo *bpfdata = LiveDevGetStorageById(dev, g_bypass_storage_id);
     if (bpfdata) {
@@ -532,6 +532,24 @@ void LiveDevAddBypassStats(LiveDevice *dev, int64_t cnt, int family)
     }
 }
 
+/**
+ * Decrease number of currently bypassed flows for a protocol family
+ *
+ * \param dev pointer to LiveDevice to set stats for
+ * \param cnt number of flows to remove
+ * \param family AF_INET to set IPv4 count or AF_INET6 to set IPv6 count
+ */
+void LiveDevSubBypassStats(LiveDevice *dev, uint64_t cnt, int family)
+{
+    BypassInfo *bpfdata = LiveDevGetStorageById(dev, g_bypass_storage_id);
+    if (bpfdata) {
+        if (family == AF_INET) {
+            SC_ATOMIC_SUB(bpfdata->ipv4_hash_count, cnt);
+        } else if (family == AF_INET6) {
+            SC_ATOMIC_SUB(bpfdata->ipv6_hash_count, cnt);
+        }
+    }
+}
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)

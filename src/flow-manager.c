@@ -291,9 +291,9 @@ static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
             SCLogDebug("No new packet, dead flow %ld", FlowGetId(f));
             if (f->livedev) {
                 if (FLOW_IS_IPV4(f)) {
-                    LiveDevAddBypassStats(f->livedev, -1, AF_INET);
+                    LiveDevSubBypassStats(f->livedev, 1, AF_INET);
                 } else if (FLOW_IS_IPV6(f)) {
-                    LiveDevAddBypassStats(f->livedev, -1, AF_INET6);
+                    LiveDevSubBypassStats(f->livedev, 1, AF_INET6);
                 }
             }
             counters->bypassed_count++;
