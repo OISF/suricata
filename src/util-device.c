@@ -49,7 +49,11 @@ static TAILQ_HEAD(, LiveDeviceName_) pre_live_devices =
 
 typedef struct BypassInfo_ {
     SC_ATOMIC_DECLARE(uint64_t, ipv4_hash_count);
+    SC_ATOMIC_DECLARE(uint64_t, ipv4_fail);
+    SC_ATOMIC_DECLARE(uint64_t, ipv4_success);
     SC_ATOMIC_DECLARE(uint64_t, ipv6_hash_count);
+    SC_ATOMIC_DECLARE(uint64_t, ipv6_fail);
+    SC_ATOMIC_DECLARE(uint64_t, ipv6_success);
 } BypassInfo;
 
 /** if set to 0 when we don't have real devices */
@@ -526,8 +530,10 @@ void LiveDevAddBypassStats(LiveDevice *dev, uint64_t cnt, int family)
     if (bpfdata) {
         if (family == AF_INET) {
             SC_ATOMIC_ADD(bpfdata->ipv4_hash_count, cnt);
+            SC_ATOMIC_ADD(bpfdata->ipv4_success, cnt);
         } else if (family == AF_INET6) {
             SC_ATOMIC_ADD(bpfdata->ipv6_hash_count, cnt);
+            SC_ATOMIC_ADD(bpfdata->ipv6_success, cnt);
         }
     }
 }
@@ -551,6 +557,27 @@ void LiveDevSubBypassStats(LiveDevice *dev, uint64_t cnt, int family)
     }
 }
 
+/**
+ * Increase number of failed captured flows for a protocol family
+ *
+ * \param dev pointer to LiveDevice to set stats for
+ * \param cnt number of flows to add
+ * \param family AF_INET to set IPv4 count or AF_INET6 to set IPv6 count
+ */
+void LiveDevAddBypassFail(LiveDevice *dev, uint64_t cnt, int family)
+{
+    BypassInfo *bpfdata = LiveDevGetStorageById(dev, g_bypass_storage_id);
+    if (bpfdata) {
+        if (family == AF_INET) {
+            SC_ATOMIC_ADD(bpfdata->ipv4_fail, cnt);
+        } else if (family == AF_INET6) {
+            SC_ATOMIC_ADD(bpfdata->ipv6_fail, cnt);
+        }
+    }
+}
+
+
+
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
 {
@@ -562,6 +589,10 @@ TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
         if (bpinfo) {
             uint64_t ipv4_hash_count = SC_ATOMIC_GET(bpinfo->ipv4_hash_count);
             uint64_t ipv6_hash_count = SC_ATOMIC_GET(bpinfo->ipv6_hash_count);
+            uint64_t ipv4_success = SC_ATOMIC_GET(bpinfo->ipv4_success);
+            uint64_t ipv4_fail = SC_ATOMIC_GET(bpinfo->ipv4_fail);
+            uint64_t ipv6_success = SC_ATOMIC_GET(bpinfo->ipv6_success);
+            uint64_t ipv6_fail = SC_ATOMIC_GET(bpinfo->ipv6_fail);
             json_t *iface = json_object();
             if (ifaces == NULL) {
                 ifaces = json_object();
@@ -571,8 +602,12 @@ TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
                     return TM_ECODE_FAILED;
                 }
             }
-            json_object_set_new(iface, "ipv4_count", json_integer(ipv4_hash_count));
-            json_object_set_new(iface, "ipv6_count", json_integer(ipv6_hash_count));
+            json_object_set_new(iface, "ipv4_maps_count", json_integer(ipv4_hash_count));
+            json_object_set_new(iface, "ipv4_success", json_integer(ipv4_success));
+            json_object_set_new(iface, "ipv4_fail", json_integer(ipv4_fail));
+            json_object_set_new(iface, "ipv6_maps_count", json_integer(ipv6_hash_count));
+            json_object_set_new(iface, "ipv6_success", json_integer(ipv6_success));
+            json_object_set_new(iface, "ipv6_fail", json_integer(ipv6_fail));
             json_object_set_new(ifaces, ldev->dev, iface);
         }
     }
