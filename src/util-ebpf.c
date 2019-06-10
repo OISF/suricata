@@ -574,7 +574,8 @@ void EBPFBypassFree(void *data)
  * \return true if entries have activity, false if not
  */
 
-static bool EBPFBypassCheckHalfFlow(Flow *f, EBPFBypassData *eb, void *key,
+static bool EBPFBypassCheckHalfFlow(Flow *f, FlowBypassInfo *fc,
+                                    EBPFBypassData *eb, void *key,
                                     int index)
 {
     int i;
@@ -596,10 +597,6 @@ static bool EBPFBypassCheckHalfFlow(Flow *f, EBPFBypassData *eb, void *key,
                 BPF_PERCPU(values_array, i).bytes);
         pkts_cnt += BPF_PERCPU(values_array, i).packets;
         bytes_cnt += BPF_PERCPU(values_array, i).bytes;
-    }
-    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
-    if (fc == NULL) {
-        return false;
     }
     if (index == 0) {
         if (pkts_cnt != fc->todstpktcnt) {
@@ -629,8 +626,12 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     if (eb == NULL) {
         return false;
     }
-    bool activity = EBPFBypassCheckHalfFlow(f, eb, eb->key[0], 0);
-    activity |= EBPFBypassCheckHalfFlow(f, eb, eb->key[1], 1);
+    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+    if (fc == NULL) {
+        return false;
+    }
+    bool activity = EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[0], 0);
+    activity |= EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[1], 1);
     if (!activity) {
         SCLogDebug("Delete entry: %u (%ld)", FLOW_IS_IPV6(f), FlowGetId(f));
         /* delete the entries if no time update */
