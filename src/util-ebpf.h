@@ -93,6 +93,8 @@ int EBPFUpdateFlow(Flow *f, Packet *p, void *data);
 bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec);
 void EBPFBypassFree(void *data);
 
+void EBPFDeleteKey(int fd, void *key);
+
 #ifdef BUILD_UNIX_SOCKET
 TmEcode EBPFGetBypassedStats(json_t *cmd, json_t *answer, void *data);
 #endif

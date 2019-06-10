@@ -125,7 +125,7 @@ static void BypassedListFree(void *ifl)
     }
 }
 
-static void EBPFDeleteKey(int fd, void *key)
+void EBPFDeleteKey(int fd, void *key)
 {
     int ret = bpf_map_delete_elem(fd, key);
     if (ret < 0) {
