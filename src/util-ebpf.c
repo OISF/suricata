@@ -501,7 +501,7 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
  *
  * \return false (this create function never returns true)
  */
-static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, void *key,
+static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev, void *key,
                                  FlowKey *flow_key, struct timespec *ctime,
                                  uint64_t pkts_cnt, uint64_t bytes_cnt,
                                  int mapfd, int cpus_count)
@@ -549,6 +549,7 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, void *key,
             eb->key[1] = key;
         }
     }
+    f->livedev = dev;
     FLOWLOCK_UNLOCK(f);
     return false;
 }
@@ -645,7 +646,7 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     return false;
 }
 
-typedef bool (*OpFlowForKey)(struct flows_stats *flowstats, void *key,
+typedef bool (*OpFlowForKey)(struct flows_stats *flowstats, LiveDevice*dev, void *key,
                             FlowKey *flow_key, struct timespec *ctime,
                             uint64_t pkts_cnt, uint64_t bytes_cnt,
                             int mapfd, int cpus_count);
@@ -731,7 +732,7 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
             flow_key.proto = IPPROTO_UDP;
         }
         flow_key.recursion_level = 0;
-        dead_flow = EBPFOpFlowForKey(flowstats, &next_key, &flow_key,
+        dead_flow = EBPFOpFlowForKey(flowstats, dev, &next_key, &flow_key,
                                      ctime, pkts_cnt, bytes_cnt,
                                      mapfd, tcfg->cpus_count);
         if (dead_flow) {
@@ -844,7 +845,7 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
             flow_key.proto = IPPROTO_UDP;
         }
         flow_key.recursion_level = 0;
-        pkts_cnt = EBPFOpFlowForKey(flowstats, &next_key, &flow_key,
+        pkts_cnt = EBPFOpFlowForKey(flowstats, dev, &next_key, &flow_key,
                                     ctime, pkts_cnt, bytes_cnt,
                                     mapfd, tcfg->cpus_count);
         if (pkts_cnt > 0) {
