@@ -241,8 +241,7 @@ static inline uint32_t FlowGetFlowTimeout(const Flow *f, enum FlowState state)
  *  \retval 0 not timed out
  *  \retval 1 timed out
  */
-static int FlowManagerFlowTimeout(Flow *f, enum FlowState state, struct timeval *ts, int32_t *next_ts,
-                                  FlowTimeoutCounters *counters)
+static int FlowManagerFlowTimeout(Flow *f, enum FlowState state, struct timeval *ts, int32_t *next_ts)
 {
     /* set the timeout value according to the flow operating mode,
      * flow's state and protocol.*/
@@ -254,54 +253,57 @@ static int FlowManagerFlowTimeout(Flow *f, enum FlowState state, struct timeval 
 
     /* do the timeout check */
     if (flow_times_out_at >= ts->tv_sec) {
-        /* for bypassed flow we need to check if the capture method has seen
-         * something and update the logic */
-        FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
-        if (fc) {
-            if (fc->BypassUpdate) {
-                /* flow will be possibly updated */
-                uint64_t pkts_tosrc = fc->tosrcpktcnt;
-                uint64_t bytes_tosrc = fc->tosrcbytecnt;
-                uint64_t pkts_todst = fc->todstpktcnt;
-                uint64_t bytes_todst = fc->todstbytecnt;
-                bool update = fc->BypassUpdate(f, fc->bypass_data, ts->tv_sec);
-                if (update) {
-                    SCLogDebug("Updated flow: %ld", FlowGetId(f));
-                    flow_times_out_at = (int32_t)(f->lastts.tv_sec + timeout);
-                    if (*next_ts == 0 || flow_times_out_at < *next_ts)
-                        *next_ts = flow_times_out_at;
-                    pkts_tosrc = fc->tosrcpktcnt - pkts_tosrc;
-                    bytes_tosrc = fc->tosrcbytecnt - bytes_tosrc;
-                    pkts_todst = fc->todstpktcnt - pkts_todst;
-                    bytes_todst = fc->todstbytecnt - bytes_todst;
-                    if (f->livedev) {
-                        SC_ATOMIC_ADD(f->livedev->bypassed,
-                                      pkts_tosrc + pkts_todst);
-                    }
-                    if (counters) {
-                        counters->bypassed_pkts += pkts_tosrc + pkts_todst;
-                        counters->bypassed_bytes += bytes_tosrc + bytes_todst;
-                    }
-                    return 0;
-                } else {
-                    SCLogDebug("No new packet, dead flow %ld", FlowGetId(f));
-                    if (f->livedev) {
-                        if (FLOW_IS_IPV4(f)) {
-                            LiveDevAddBypassStats(f->livedev, -1, AF_INET);
-                        } else if (FLOW_IS_IPV6(f)) {
-                            LiveDevAddBypassStats(f->livedev, -1, AF_INET6);
-                        }
-                    }
-                    if (counters) {
-                        counters->bypassed_count++;
-                    }
-                    return 1;
-                }
-            }
-        }
         return 0;
     }
 
+    return 1;
+}
+
+static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
+                                      FlowTimeoutCounters *counters)
+{
+    if (SC_ATOMIC_GET(f->flow_state) != FLOW_STATE_CAPTURE_BYPASSED) {
+        return 1;
+    }
+
+    FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
+    if (fc && fc->BypassUpdate) {
+        /* flow will be possibly updated */
+        uint64_t pkts_tosrc = fc->tosrcpktcnt;
+        uint64_t bytes_tosrc = fc->tosrcbytecnt;
+        uint64_t pkts_todst = fc->todstpktcnt;
+        uint64_t bytes_todst = fc->todstbytecnt;
+        bool update = fc->BypassUpdate(f, fc->bypass_data, ts->tv_sec);
+        if (update) {
+            SCLogDebug("Updated flow: %ld", FlowGetId(f));
+            pkts_tosrc = fc->tosrcpktcnt - pkts_tosrc;
+            bytes_tosrc = fc->tosrcbytecnt - bytes_tosrc;
+            pkts_todst = fc->todstpktcnt - pkts_todst;
+            bytes_todst = fc->todstbytecnt - bytes_todst;
+            if (f->livedev) {
+                SC_ATOMIC_ADD(f->livedev->bypassed,
+                        pkts_tosrc + pkts_todst);
+            }
+            if (counters) {
+                counters->bypassed_pkts += pkts_tosrc + pkts_todst;
+                counters->bypassed_bytes += bytes_tosrc + bytes_todst;
+            }
+            return 0;
+        } else {
+            SCLogDebug("No new packet, dead flow %ld", FlowGetId(f));
+            if (f->livedev) {
+                if (FLOW_IS_IPV4(f)) {
+                    LiveDevAddBypassStats(f->livedev, -1, AF_INET);
+                } else if (FLOW_IS_IPV6(f)) {
+                    LiveDevAddBypassStats(f->livedev, -1, AF_INET6);
+                }
+            }
+            if (counters) {
+                counters->bypassed_count++;
+            }
+            return 1;
+        }
+    }
     return 1;
 }
 
@@ -315,11 +317,16 @@ static int FlowManagerFlowTimeout(Flow *f, enum FlowState state, struct timeval 
  *  \retval 0 not timed out just yet
  *  \retval 1 fully timed out, lets kill it
  */
-static int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts)
+static inline int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts,
+                                   FlowTimeoutCounters *counters)
 {
     /* never prune a flow that is used by a packet we
      * are currently processing in one of the threads */
     if (SC_ATOMIC_GET(f->use_cnt) > 0) {
+        return 0;
+    }
+
+    if (!FlowBypassedTimeout(f, ts, counters)) {
         return 0;
     }
 
@@ -369,7 +376,7 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
         enum FlowState state = SC_ATOMIC_GET(f->flow_state);
 
         /* timeout logic goes here */
-        if (FlowManagerFlowTimeout(f, state, ts, next_ts, counters) == 0) {
+        if (FlowManagerFlowTimeout(f, state, ts, next_ts) == 0) {
 
             counters->flows_notimeout++;
 
@@ -389,7 +396,7 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
 
         /* check if the flow is fully timed out and
          * ready to be discarded. */
-        if (FlowManagerFlowTimedOut(f, ts) == 1) {
+        if (FlowManagerFlowTimedOut(f, ts, counters) == 1) {
             /* remove from the hash */
             if (f->hprev != NULL)
                 f->hprev->hnext = f->hnext;
@@ -1217,7 +1224,7 @@ static int FlowMgrTest01 (void)
 
     int32_t next_ts = 0;
     int state = SC_ATOMIC_GET(f.flow_state);
-    if (FlowManagerFlowTimeout(&f, state, &ts, &next_ts, NULL) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+    if (FlowManagerFlowTimeout(&f, state, &ts, &next_ts) != 1 && FlowManagerFlowTimedOut(&f, &ts, NULL) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
         FlowQueueDestroy(&flow_spare_q);
@@ -1273,7 +1280,7 @@ static int FlowMgrTest02 (void)
 
     int32_t next_ts = 0;
     int state = SC_ATOMIC_GET(f.flow_state);
-    if (FlowManagerFlowTimeout(&f, state, &ts, &next_ts, NULL) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+    if (FlowManagerFlowTimeout(&f, state, &ts, &next_ts) != 1 && FlowManagerFlowTimedOut(&f, &ts, NULL) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
         FlowQueueDestroy(&flow_spare_q);
@@ -1321,7 +1328,7 @@ static int FlowMgrTest03 (void)
 
     int next_ts = 0;
     int state = SC_ATOMIC_GET(f.flow_state);
-    if (FlowManagerFlowTimeout(&f, state, &ts, &next_ts, NULL) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+    if (FlowManagerFlowTimeout(&f, state, &ts, &next_ts) != 1 && FlowManagerFlowTimedOut(&f, &ts, NULL) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
         FlowQueueDestroy(&flow_spare_q);
@@ -1378,7 +1385,7 @@ static int FlowMgrTest04 (void)
 
     int next_ts = 0;
     int state = SC_ATOMIC_GET(f.flow_state);
-    if (FlowManagerFlowTimeout(&f, state, &ts, &next_ts, NULL) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+    if (FlowManagerFlowTimeout(&f, state, &ts, &next_ts) != 1 && FlowManagerFlowTimedOut(&f, &ts, NULL) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
         FlowQueueDestroy(&flow_spare_q);
