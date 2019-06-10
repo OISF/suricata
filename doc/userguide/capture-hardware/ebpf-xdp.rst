@@ -502,7 +502,23 @@ each interfaces ::
  Success:
  {
      "enp94s0np0": {
-         "ipv4_count": 42524,
-         "ipv6_count": 3304
+        "ipv4_fail": 0,
+        "ipv4_maps_count": 2303,
+        "ipv4_success": 4232,
+        "ipv6_fail": 0,
+        "ipv6_maps_count": 13131,
+        "ipv6_success": 13500
+
      }
+ }
+
+The stats entry also contains a `stats.flow_bypassed` object that has local and capture
+bytes and packets counters as well as a bypassed and closed flow counter ::
+
+ {
+   "local_pkts": 0,
+   "local_bytes": 0,
+   "closed": 84,
+   "pkts": 4799,
+   "bytes": 2975133
  }
