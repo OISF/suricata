@@ -559,9 +559,7 @@ void EBPFBypassFree(void *data)
     EBPFBypassData *eb = (EBPFBypassData *)data;
     if (eb == NULL)
         return;
-    if (eb->key[0]) {
-        SCFree(eb->key[0]);
-    }
+    SCFree(eb->key[0]);
     if (eb->key[1]) {
         SCFree(eb->key[1]);
     }
