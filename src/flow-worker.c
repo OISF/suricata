@@ -61,6 +61,8 @@ typedef struct FlowWorkerThreadData_ {
 
     uint16_t local_bypass_pkts;
     uint16_t local_bypass_bytes;
+    uint16_t both_bypass_pkts;
+    uint16_t both_bypass_bytes;
 
     PacketQueue pq;
 
@@ -77,6 +79,8 @@ static inline TmEcode FlowUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packe
     int state = SC_ATOMIC_GET(p->flow->flow_state);
     switch (state) {
         case FLOW_STATE_CAPTURE_BYPASSED:
+            StatsAddUI64(tv, fw->both_bypass_pkts, 1);
+            StatsAddUI64(tv, fw->both_bypass_bytes, GET_PKT_LEN(p));
             return TM_ECODE_DONE;
         case FLOW_STATE_LOCAL_BYPASSED:
             StatsAddUI64(tv, fw->local_bypass_pkts, 1);
@@ -100,6 +104,8 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
 
     fw->local_bypass_pkts = StatsRegisterCounter("flow_bypassed.local_pkts", tv);
     fw->local_bypass_bytes = StatsRegisterCounter("flow_bypassed.local_bytes", tv);
+    fw->both_bypass_pkts = StatsRegisterCounter("flow_bypassed.local_capture_pkts", tv);
+    fw->both_bypass_bytes = StatsRegisterCounter("flow_bypassed.local_capture_bytes", tv);
 
     fw->dtv = DecodeThreadVarsAlloc(tv);
     if (fw->dtv == NULL) {
