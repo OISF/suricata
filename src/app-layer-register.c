@@ -145,6 +145,10 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
         AppLayerParserRegisterGetEventInfo(p->ip_proto, alproto,
                 p->StateGetEventInfo);
     }
+    if (p->StateGetEventInfoById) {
+        AppLayerParserRegisterGetEventInfoById(p->ip_proto, alproto,
+                p->StateGetEventInfoById);
+    }
     if (p->StateGetEvents) {
         AppLayerParserRegisterGetEventsFunc(p->ip_proto, alproto,
                 p->StateGetEvents);
