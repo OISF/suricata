@@ -37,6 +37,16 @@ pub enum KRB5Event {
     WeakEncryption,
 }
 
+impl KRB5Event {
+    fn from_i32(value: i32) -> Option<KRB5Event> {
+        match value {
+            0 => Some(KRB5Event::MalformedData),
+            1 => Some(KRB5Event::WeakEncryption),
+            _ => None,
+        }
+    }
+}
+
 pub struct KRB5State {
     pub req_id: u8,
 
@@ -364,6 +374,26 @@ pub extern "C" fn rs_krb5_state_get_tx_detect_state(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn rs_krb5_state_get_event_info_by_id(event_id: std::os::raw::c_int,
+                                                     event_name: *mut *const std::os::raw::c_char,
+                                                     event_type: *mut core::AppLayerEventType)
+                                                     -> i8
+{
+    if let Some(e) = KRB5Event::from_i32(event_id as i32) {
+        let estr = match e {
+            KRB5Event::MalformedData  => { "malformed_data\0" },
+            KRB5Event::WeakEncryption => { "weak_encryption\0" },
+        };
+        unsafe{
+            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
+            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        };
+        0
+    } else {
+        -1
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_state_get_events(tx: *mut std::os::raw::c_void)
@@ -506,7 +536,7 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
         _ => {
             // sanity check to avoid memory exhaustion
             if state.defrag_buf_ts.len() + buf.len() > 100000 {
-                SCLogDebug!("rs_krb5_parse_resquest_tcp: TCP buffer exploded {} {}",
+                SCLogDebug!("rs_krb5_parse_request_tcp: TCP buffer exploded {} {}",
                             state.defrag_buf_ts.len(), buf.len());
                 return 1;
             }
@@ -610,34 +640,35 @@ const PARSER_NAME : &'static [u8] = b"krb5\0";
 pub unsafe extern "C" fn rs_register_krb5_parser() {
     let default_port = CString::new("88").unwrap();
     let mut parser = RustParser {
-        name              : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port      : default_port.as_ptr(),
-        ipproto           : core::IPPROTO_UDP,
-        probe_ts          : rs_krb5_probing_parser,
-        probe_tc          : rs_krb5_probing_parser,
-        min_depth         : 0,
-        max_depth         : 16,
-        state_new         : rs_krb5_state_new,
-        state_free        : rs_krb5_state_free,
-        tx_free           : rs_krb5_state_tx_free,
-        parse_ts          : rs_krb5_parse_request,
-        parse_tc          : rs_krb5_parse_response,
-        get_tx_count      : rs_krb5_state_get_tx_count,
-        get_tx            : rs_krb5_state_get_tx,
-        tx_get_comp_st    : rs_krb5_state_progress_completion_status,
-        tx_get_progress   : rs_krb5_tx_get_alstate_progress,
-        get_tx_logged     : Some(rs_krb5_tx_get_logged),
-        set_tx_logged     : Some(rs_krb5_tx_set_logged),
-        get_de_state      : rs_krb5_state_get_tx_detect_state,
-        set_de_state      : rs_krb5_state_set_tx_detect_state,
-        get_events        : Some(rs_krb5_state_get_events),
-        get_eventinfo     : Some(rs_krb5_state_get_event_info),
-        localstorage_new  : None,
-        localstorage_free : None,
-        get_tx_mpm_id     : None,
-        set_tx_mpm_id     : None,
-        get_files         : None,
-        get_tx_iterator   : None,
+        name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port       : default_port.as_ptr(),
+        ipproto            : core::IPPROTO_UDP,
+        probe_ts           : rs_krb5_probing_parser,
+        probe_tc           : rs_krb5_probing_parser,
+        min_depth          : 0,
+        max_depth          : 16,
+        state_new          : rs_krb5_state_new,
+        state_free         : rs_krb5_state_free,
+        tx_free            : rs_krb5_state_tx_free,
+        parse_ts           : rs_krb5_parse_request,
+        parse_tc           : rs_krb5_parse_response,
+        get_tx_count       : rs_krb5_state_get_tx_count,
+        get_tx             : rs_krb5_state_get_tx,
+        tx_get_comp_st     : rs_krb5_state_progress_completion_status,
+        tx_get_progress    : rs_krb5_tx_get_alstate_progress,
+        get_tx_logged      : Some(rs_krb5_tx_get_logged),
+        set_tx_logged      : Some(rs_krb5_tx_set_logged),
+        get_de_state       : rs_krb5_state_get_tx_detect_state,
+        set_de_state       : rs_krb5_state_set_tx_detect_state,
+        get_events         : Some(rs_krb5_state_get_events),
+        get_eventinfo      : Some(rs_krb5_state_get_event_info),
+        get_eventinfo_byid : Some(rs_krb5_state_get_event_info_by_id),
+        localstorage_new   : None,
+        localstorage_free  : None,
+        get_tx_mpm_id      : None,
+        set_tx_mpm_id      : None,
+        get_files          : None,
+        get_tx_iterator    : None,
     };
     // register UDP parser
     let ip_proto_str = CString::new("udp").unwrap();
@@ -649,7 +680,7 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     } else {
-        SCLogDebug!("Protocol detecter and parser disabled for KRB5/UDP.");
+        SCLogDebug!("Protocol detector and parser disabled for KRB5/UDP.");
     }
     // register TCP parser
     parser.ipproto = core::IPPROTO_TCP;
@@ -666,6 +697,6 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     } else {
-        SCLogDebug!("Protocol detecter and parser disabled for KRB5/TCP.");
+        SCLogDebug!("Protocol detector and parser disabled for KRB5/TCP.");
     }
 }
