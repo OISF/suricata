@@ -57,6 +57,8 @@ typedef struct AppLayerParser {
     AppLayerDecoderEvents *(*StateGetEvents)(void *);
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);
+    int (*StateGetEventInfoById)(int event_id, const char **event_name,
+                                  AppLayerEventType *event_type);
 
     void *(*LocalStorageAlloc)(void);
     void (*LocalStorageFree)(void *);

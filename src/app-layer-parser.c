@@ -1410,7 +1410,8 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     printf("Optional:\n");
     printf("- LocalStorageAlloc %p LocalStorageFree %p\n", ctx->LocalStorageAlloc, ctx->LocalStorageFree);
     printf("- StateGetTxLogged %p StateSetTxLogged %p\n", ctx->StateGetTxLogged, ctx->StateSetTxLogged);
-    printf("- StateGetEvents %p StateGetEventInfo %p\n", ctx->StateGetEvents, ctx->StateGetEventInfo);
+    printf("- StateGetEvents %p StateGetEventInfo %p StateGetEventInfoById %p\n", ctx->StateGetEvents, ctx->StateGetEventInfo,
+            ctx->StateGetEventInfoById);
 }
 
 #define BOTH_SET(a, b) ((a) != NULL && (b) != NULL)
