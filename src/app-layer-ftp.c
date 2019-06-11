@@ -804,6 +804,10 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         }
     }
 
+    if (input_len >= 4 && SCMemcmp("150 ", input, 4) == 0) {
+        return retcode;
+    }
+
 tx_complete:
     tx->done = true;
     return retcode;
