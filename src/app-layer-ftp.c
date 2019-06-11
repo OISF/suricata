@@ -123,7 +123,7 @@ uint64_t ftp_config_memcap = 0;
 SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
 SC_ATOMIC_DECLARE(uint64_t, ftp_memcap);
 
-static void *FTPGetOldestTx(FtpState *);
+static FTPTransaction *FTPGetOldestTx(FtpState *);
 
 static void FTPParseMemcap(void)
 {
@@ -896,7 +896,7 @@ static int FTPSetTxDetectState(void *vtx, DetectEngineState *de_state)
  *
  * \retval transaction pointer when a transaction was found; NULL otherwise.
  */
-static void *FTPGetOldestTx(FtpState *ftp_state)
+static FTPTransaction *FTPGetOldestTx(FtpState *ftp_state)
 {
     if (unlikely(!ftp_state)) {
         SCLogDebug("NULL state object; no transactions available");
