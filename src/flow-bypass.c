@@ -73,6 +73,17 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
         }
     }
 
+    /* check if we have a periodic check function */
+    bool found = false;
+    for (i = 0; i < g_bypassed_func_max_index; i++) {
+        if (bypassedfunclist[i].FuncInit) {
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+        return TM_ECODE_OK;
+
     while (1) {
         SCLogDebug("Dumping the table");
         if (clock_gettime(CLOCK_REALTIME, &curtime) != 0) {
@@ -81,6 +92,8 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
         }
         for (i = 0; i < g_bypassed_func_max_index; i++) {
             struct flows_stats bypassstats = { 0, 0, 0};
+            if (bypassedfunclist[i].Func == NULL)
+                continue;
             tcount = bypassedfunclist[i].Func(th_v, &bypassstats, &curtime, bypassedfunclist[i].data);
             if (tcount) {
                 StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)bypassstats.count);
@@ -164,9 +177,6 @@ int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc,
                                          BypassedCheckFuncInit CheckFuncInit,
                                          void *data)
 {
-    if (!CheckFunc) {
-        return -1;
-    }
     if (g_bypassed_func_max_index < BYPASSFUNCMAX) {
         bypassedfunclist[g_bypassed_func_max_index].Func = CheckFunc;
         bypassedfunclist[g_bypassed_func_max_index].FuncInit = CheckFuncInit;
