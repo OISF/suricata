@@ -38,7 +38,17 @@ pub enum NTPEvent {
     NotResponse,
 }
 
-
+impl NTPEvent {
+    fn from_i32(value: i32) -> Option<NTPEvent> {
+        match value {
+            0 => Some(NTPEvent::UnsolicitedResponse),
+            1 => Some(NTPEvent::MalformedData),
+            2 => Some(NTPEvent::NotRequest),
+            3 => Some(NTPEvent::NotResponse),
+            _ => None,
+        }
+    }
+}
 
 pub struct NTPState {
     /// List of transactions for this session
@@ -301,6 +311,28 @@ pub extern "C" fn rs_ntp_state_get_tx_detect_state(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn rs_ntp_state_get_event_info_by_id(event_id: std::os::raw::c_int,
+                                                    event_name: *mut *const std::os::raw::c_char,
+                                                    event_type: *mut core::AppLayerEventType)
+                                                    -> i8
+{
+    if let Some(e) = NTPEvent::from_i32(event_id as i32) {
+        let estr = match e {
+            NTPEvent::UnsolicitedResponse => { "unsolicited_response\0" },
+            NTPEvent::MalformedData       => { "malformed_data\0" },
+            NTPEvent::NotRequest          => { "not_request\0" },
+            NTPEvent::NotResponse         => { "not_response\0" },
+        };
+        unsafe{
+            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
+            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        };
+        0
+    } else {
+        -1
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn rs_ntp_state_get_events(tx: *mut std::os::raw::c_void)
@@ -368,34 +400,35 @@ const PARSER_NAME : &'static [u8] = b"ntp\0";
 pub unsafe extern "C" fn rs_register_ntp_parser() {
     let default_port = CString::new("123").unwrap();
     let parser = RustParser {
-        name              : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port      : default_port.as_ptr(),
-        ipproto           : core::IPPROTO_UDP,
-        probe_ts          : ntp_probing_parser,
-        probe_tc          : ntp_probing_parser,
-        min_depth         : 0,
-        max_depth         : 16,
-        state_new         : rs_ntp_state_new,
-        state_free        : rs_ntp_state_free,
-        tx_free           : rs_ntp_state_tx_free,
-        parse_ts          : rs_ntp_parse_request,
-        parse_tc          : rs_ntp_parse_response,
-        get_tx_count      : rs_ntp_state_get_tx_count,
-        get_tx            : rs_ntp_state_get_tx,
-        tx_get_comp_st    : rs_ntp_state_progress_completion_status,
-        tx_get_progress   : rs_ntp_tx_get_alstate_progress,
-        get_tx_logged     : None,
-        set_tx_logged     : None,
-        get_de_state      : rs_ntp_state_get_tx_detect_state,
-        set_de_state      : rs_ntp_state_set_tx_detect_state,
-        get_events        : Some(rs_ntp_state_get_events),
-        get_eventinfo     : Some(rs_ntp_state_get_event_info),
-        localstorage_new  : None,
-        localstorage_free : None,
-        get_tx_mpm_id     : None,
-        set_tx_mpm_id     : None,
-        get_files         : None,
-        get_tx_iterator   : None,
+        name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port       : default_port.as_ptr(),
+        ipproto            : core::IPPROTO_UDP,
+        probe_ts           : ntp_probing_parser,
+        probe_tc           : ntp_probing_parser,
+        min_depth          : 0,
+        max_depth          : 16,
+        state_new          : rs_ntp_state_new,
+        state_free         : rs_ntp_state_free,
+        tx_free            : rs_ntp_state_tx_free,
+        parse_ts           : rs_ntp_parse_request,
+        parse_tc           : rs_ntp_parse_response,
+        get_tx_count       : rs_ntp_state_get_tx_count,
+        get_tx             : rs_ntp_state_get_tx,
+        tx_get_comp_st     : rs_ntp_state_progress_completion_status,
+        tx_get_progress    : rs_ntp_tx_get_alstate_progress,
+        get_tx_logged      : None,
+        set_tx_logged      : None,
+        get_de_state       : rs_ntp_state_get_tx_detect_state,
+        set_de_state       : rs_ntp_state_set_tx_detect_state,
+        get_events         : Some(rs_ntp_state_get_events),
+        get_eventinfo      : Some(rs_ntp_state_get_event_info),
+        get_eventinfo_byid : Some(rs_ntp_state_get_event_info_by_id),
+        localstorage_new   : None,
+        localstorage_free  : None,
+        get_tx_mpm_id      : None,
+        set_tx_mpm_id      : None,
+        get_files          : None,
+        get_tx_iterator    : None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
@@ -407,7 +440,7 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     } else {
-        SCLogDebug!("Protocol detecter and parser disabled for NTP.");
+        SCLogDebug!("Protocol detector and parser disabled for NTP.");
     }
 }
 
