@@ -213,14 +213,65 @@ static inline uint32_t FlowGetHash(const Packet *p)
 /**
  * Basic hashing function for FlowKey
  *
- * \note Function only used for bypass
+ * \note Function only used for bypass and TCP or UDP flows
  *
  * \note this is only used at start to create Flow from pinned maps
  * so fairness is not an issue
  */
 uint32_t FlowKeyGetHash(FlowKey *fk)
 {
-    return hashword((uint32_t *)fk, sizeof(*fk)/4, flow_config.hash_rand);
+    uint32_t hash = 0;
+
+    if (fk->src.family == AF_INET) {
+        FlowHashKey4 fhk;
+        int ai = (fk->src.address.address_un_data32[0] > fk->dst.address.address_un_data32[0]);
+        fhk.addrs[1-ai] = fk->src.address.address_un_data32[0];
+        fhk.addrs[ai] = fk->dst.address.address_un_data32[0];
+
+        const int pi = (fk->sp > fk->dp);
+        fhk.ports[1-pi] = fk->sp;
+        fhk.ports[pi] = fk->dp;
+
+        fhk.proto = (uint16_t)fk->proto;
+        fhk.recur = (uint16_t)fk->recursion_level;
+        fhk.vlan_id[0] = fk->vlan_id[0];
+        fhk.vlan_id[1] = fk->vlan_id[1];
+
+        hash = hashword(fhk.u32, 5, flow_config.hash_rand);
+    } else {
+        FlowHashKey6 fhk;
+        if (FlowHashRawAddressIPv6GtU32(fk->src.address.address_un_data32,
+                    fk->dst.address.address_un_data32)) {
+            fhk.src[0] = fk->src.address.address_un_data32[0];
+            fhk.src[1] = fk->src.address.address_un_data32[1];
+            fhk.src[2] = fk->src.address.address_un_data32[2];
+            fhk.src[3] = fk->src.address.address_un_data32[3];
+            fhk.dst[0] = fk->dst.address.address_un_data32[0];
+            fhk.dst[1] = fk->dst.address.address_un_data32[1];
+            fhk.dst[2] = fk->dst.address.address_un_data32[2];
+            fhk.dst[3] = fk->dst.address.address_un_data32[3];
+        } else {
+            fhk.src[0] = fk->dst.address.address_un_data32[0];
+            fhk.src[1] = fk->dst.address.address_un_data32[1];
+            fhk.src[2] = fk->dst.address.address_un_data32[2];
+            fhk.src[3] = fk->dst.address.address_un_data32[3];
+            fhk.dst[0] = fk->src.address.address_un_data32[0];
+            fhk.dst[1] = fk->src.address.address_un_data32[1];
+            fhk.dst[2] = fk->src.address.address_un_data32[2];
+            fhk.dst[3] = fk->src.address.address_un_data32[3];
+        }
+
+        const int pi = (fk->sp > fk->dp);
+        fhk.ports[1-pi] = fk->sp;
+        fhk.ports[pi] = fk->dp;
+        fhk.proto = (uint16_t)fk->proto;
+        fhk.recur = (uint16_t)fk->recursion_level;
+        fhk.vlan_id[0] = fk->vlan_id[0];
+        fhk.vlan_id[1] = fk->vlan_id[1];
+
+        hash = hashword(fhk.u32, 11, flow_config.hash_rand);
+    }
+return hash;
 }
 
 /* Since two or more flows can have the same hash key, we need to compare
