@@ -44,6 +44,24 @@ pub enum IKEV2Event {
     UnknownProposal,
 }
 
+impl IKEV2Event {
+    fn from_i32(value: i32) -> Option<IKEV2Event> {
+        match value {
+            0 => Some(IKEV2Event::MalformedData),
+            1 => Some(IKEV2Event::NoEncryption),
+            2 => Some(IKEV2Event::WeakCryptoEnc),
+            3 => Some(IKEV2Event::WeakCryptoPRF),
+            4 => Some(IKEV2Event::WeakCryptoDH),
+            5 => Some(IKEV2Event::WeakCryptoAuth),
+            6 => Some(IKEV2Event::WeakCryptoNoDH),
+            7 => Some(IKEV2Event::WeakCryptoNoAuth),
+            8 => Some(IKEV2Event::InvalidProposal),
+            9 => Some(IKEV2Event::UnknownProposal),
+            _ => None,
+        }
+    }
+}
+
 pub struct IKEV2State {
     /// List of transactions for this session
     transactions: Vec<IKEV2Transaction>,
@@ -578,6 +596,35 @@ pub extern "C" fn rs_ikev2_state_get_events(tx: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
+pub extern "C" fn rs_ikev2_state_get_event_info_by_id(event_id: std::os::raw::c_int,
+                                                      event_name: *mut *const std::os::raw::c_char,
+                                                      event_type: *mut core::AppLayerEventType)
+                                                      -> i8
+{
+    if let Some(e) = IKEV2Event::from_i32(event_id as i32) {
+        let estr = match e {
+            IKEV2Event::MalformedData    => { "malformed_data\0" },
+            IKEV2Event::NoEncryption     => { "no_encryption\0" },
+            IKEV2Event::WeakCryptoEnc    => { "weak_crypto_enc\0" },
+            IKEV2Event::WeakCryptoPRF    => { "weak_crypto_prf\0" },
+            IKEV2Event::WeakCryptoDH     => { "weak_crypto_dh\0" },
+            IKEV2Event::WeakCryptoAuth   => { "weak_crypto_auth\0" },
+            IKEV2Event::WeakCryptoNoDH   => { "weak_crypto_nodh\0" },
+            IKEV2Event::WeakCryptoNoAuth => { "weak_crypto_noauth\0" },
+            IKEV2Event::InvalidProposal  => { "invalid_proposal\0" },
+            IKEV2Event::UnknownProposal  => { "unknown_proposal\0" },
+        };
+        unsafe{
+            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
+            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        };
+        0
+    } else {
+        -1
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn rs_ikev2_state_get_event_info(event_name: *const std::os::raw::c_char,
                                               event_id: *mut std::os::raw::c_int,
                                               event_type: *mut core::AppLayerEventType)
@@ -654,34 +701,35 @@ const PARSER_NAME : &'static [u8] = b"ikev2\0";
 pub unsafe extern "C" fn rs_register_ikev2_parser() {
     let default_port = CString::new("500").unwrap();
     let parser = RustParser {
-        name              : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port      : default_port.as_ptr(),
-        ipproto           : core::IPPROTO_UDP,
-        probe_ts          : rs_ikev2_probing_parser,
-        probe_tc          : rs_ikev2_probing_parser,
-        min_depth         : 0,
-        max_depth         : 16,
-        state_new         : rs_ikev2_state_new,
-        state_free        : rs_ikev2_state_free,
-        tx_free           : rs_ikev2_state_tx_free,
-        parse_ts          : rs_ikev2_parse_request,
-        parse_tc          : rs_ikev2_parse_response,
-        get_tx_count      : rs_ikev2_state_get_tx_count,
-        get_tx            : rs_ikev2_state_get_tx,
-        tx_get_comp_st    : rs_ikev2_state_progress_completion_status,
-        tx_get_progress   : rs_ikev2_tx_get_alstate_progress,
-        get_tx_logged     : Some(rs_ikev2_tx_get_logged),
-        set_tx_logged     : Some(rs_ikev2_tx_set_logged),
-        get_de_state      : rs_ikev2_state_get_tx_detect_state,
-        set_de_state      : rs_ikev2_state_set_tx_detect_state,
-        get_events        : Some(rs_ikev2_state_get_events),
-        get_eventinfo     : Some(rs_ikev2_state_get_event_info),
-        localstorage_new  : None,
-        localstorage_free : None,
-        get_tx_mpm_id     : None,
-        set_tx_mpm_id     : None,
-        get_files         : None,
-        get_tx_iterator   : None,
+        name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
+        default_port       : default_port.as_ptr(),
+        ipproto            : core::IPPROTO_UDP,
+        probe_ts           : rs_ikev2_probing_parser,
+        probe_tc           : rs_ikev2_probing_parser,
+        min_depth          : 0,
+        max_depth          : 16,
+        state_new          : rs_ikev2_state_new,
+        state_free         : rs_ikev2_state_free,
+        tx_free            : rs_ikev2_state_tx_free,
+        parse_ts           : rs_ikev2_parse_request,
+        parse_tc           : rs_ikev2_parse_response,
+        get_tx_count       : rs_ikev2_state_get_tx_count,
+        get_tx             : rs_ikev2_state_get_tx,
+        tx_get_comp_st     : rs_ikev2_state_progress_completion_status,
+        tx_get_progress    : rs_ikev2_tx_get_alstate_progress,
+        get_tx_logged      : Some(rs_ikev2_tx_get_logged),
+        set_tx_logged      : Some(rs_ikev2_tx_set_logged),
+        get_de_state       : rs_ikev2_state_get_tx_detect_state,
+        set_de_state       : rs_ikev2_state_set_tx_detect_state,
+        get_events         : Some(rs_ikev2_state_get_events),
+        get_eventinfo      : Some(rs_ikev2_state_get_event_info),
+        get_eventinfo_byid : Some(rs_ikev2_state_get_event_info_by_id),
+        localstorage_new   : None,
+        localstorage_free  : None,
+        get_tx_mpm_id      : None,
+        set_tx_mpm_id      : None,
+        get_files          : None,
+        get_tx_iterator    : None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
@@ -693,7 +741,7 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     } else {
-        SCLogDebug!("Protocol detecter and parser disabled for IKEV2.");
+        SCLogDebug!("Protocol detector and parser disabled for IKEV2.");
     }
 }
 
