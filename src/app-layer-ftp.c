@@ -747,24 +747,21 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
 {
     FtpState *state = (FtpState *)ftp_state;
     int retcode = 1;
-    FTPTransaction *tx;
 
-    if (state->command == FTP_COMMAND_UNKNOWN) {
-        if (unlikely(input_len == 0)) {
-            return 1;
-        }
+    if (unlikely(input_len == 0)) {
+        return 1;
+    }
 
-        tx = FTPGetOldestTx(state);
-        if (tx == NULL) {
-            tx = FTPTransactionCreate(state);
-        }
-        if (unlikely(tx == NULL)) {
-            return -1;
-        }
+    FTPTransaction *tx = FTPGetOldestTx(state);
+    if (tx == NULL) {
+        tx = FTPTransactionCreate(state);
+    }
+    if (unlikely(tx == NULL)) {
+        return -1;
+    }
+    if (state->command == FTP_COMMAND_UNKNOWN || tx->command_descriptor == NULL) {
         /* unknown */
         tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX -1];
-    } else {
-        tx = FTPGetOldestTx(state);
     }
 
     state->curr_tx = tx;
