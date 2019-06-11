@@ -664,6 +664,9 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
                                   )
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
+    if (mapfd == -1)
+        return -1;
+
     struct flowv4_keys key = {}, next_key;
     int found = 0;
     unsigned int i;
@@ -770,6 +773,9 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
                                   )
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
+    if (mapfd == -1)
+        return -1;
+
     struct flowv6_keys key = {}, next_key;
     int found = 0;
     unsigned int i;
