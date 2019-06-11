@@ -1009,9 +1009,10 @@ static int FTPGetAlstateProgress(void *vtx, uint8_t direction)
         return FTP_STATE_PORT_DONE;
     }
 
-    /* TODO: figure out further progress handling */
+    if (!tx->done)
+        return FTP_STATE_IN_PROGRESS;
 
-    return FTP_STATE_IN_PROGRESS;
+    return FTP_STATE_FINISHED;
 }
 
 
