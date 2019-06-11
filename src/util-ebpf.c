@@ -754,6 +754,7 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
     SC_ATOMIC_ADD(dev->bypassed, flowstats->packets);
 
     LiveDevSetBypassStats(dev, hash_cnt, AF_INET);
+    SCLogInfo("IPv4 bypassed flow table size: %" PRIu64, hash_cnt);
 
     return found;
 }
@@ -870,6 +871,7 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
     SC_ATOMIC_ADD(dev->bypassed, flowstats->packets);
 
     LiveDevSetBypassStats(dev, hash_cnt, AF_INET6);
+    SCLogInfo("IPv6 bypassed flow table size: %" PRIu64, hash_cnt);
     return found;
 }
 
