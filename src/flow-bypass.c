@@ -57,7 +57,6 @@ BypassedUpdateFuncItem updatefunclist[BYPASSFUNCMAX];
 
 static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 {
-#ifdef HAVE_PACKET_EBPF
     int tcount = 0;
     int i;
     BypassedFlowManagerThreadData *ftd = thread_data;
@@ -103,7 +102,6 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
             usleep(10000);
         }
     }
-#endif
     return TM_ECODE_OK;
 }
 
