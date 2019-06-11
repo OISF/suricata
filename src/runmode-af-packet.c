@@ -473,6 +473,19 @@ static void *ParseAFPConfig(const char *iface)
             SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             aconf->flags |= AFP_XDPBYPASS;
+            /* if maps are pinned we need to read them at start */
+            if (aconf->ebpf_t_config.flags & EBPF_PINNED_MAPS) {
+                RunModeEnablesBypassManager();
+                struct ebpf_timeout_config *ebt = SCCalloc(1, sizeof(struct ebpf_timeout_config));
+                if (ebt == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Flow bypass alloc error");
+                } else {
+                    memcpy(ebt, &(aconf->ebpf_t_config), sizeof(struct ebpf_timeout_config));
+                    BypassedFlowManagerRegisterCheckFunc(NULL,
+                            EBPFCheckBypassedFlowCreate,
+                            (void *)ebt);
+                }
+            }
             BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow, NULL);
         }
 #else
