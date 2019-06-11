@@ -34,12 +34,12 @@
 #include "flow-bypass.h"
 
 struct flowv4_keys {
-	__be32 src;
-	__be32 dst;
-	union {
-		__be32 ports;
-		__be16 port16[2];
-	};
+    __be32 src;
+    __be32 dst;
+    union {
+        __be32 ports;
+        __be16 port16[2];
+    };
     __u8 ip_proto:1;
     __u16 vlan0:15;
     __u16 vlan1;
