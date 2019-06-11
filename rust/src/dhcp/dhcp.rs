@@ -76,6 +76,16 @@ pub enum DHCPEvent {
     MalformedOptions,
 }
 
+impl DHCPEvent {
+    fn from_i32(value: i32) -> Option<DHCPEvent> {
+        match value {
+            0 => Some(DHCPEvent::TruncatedOptions),
+            1 => Some(DHCPEvent::MalformedOptions),
+            _ => None,
+        }
+    }
+}
+
 /// The concept of a transaction is more to satisfy the Suricata
 /// app-layer. This DHCP parser is actually stateless where each
 /// message is its own transaction.
@@ -327,6 +337,26 @@ pub extern "C" fn rs_dhcp_tx_set_logged(_state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
+pub extern "C" fn rs_dhcp_state_get_event_info_by_id(event_id: std::os::raw::c_int,
+                                                     event_name: *mut *const std::os::raw::c_char,
+                                                     event_type: *mut core::AppLayerEventType)
+                                                     -> i8
+{
+    if let Some(e) = DHCPEvent::from_i32(event_id as i32) {
+        let estr = match e {
+            DHCPEvent::TruncatedOptions => { "truncated_options\0" },
+            DHCPEvent::MalformedOptions => { "malformed_options\0" },
+        };
+        unsafe{
+            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
+            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        };
+        0
+    } else {
+        -1
+    }
+}
+#[no_mangle]
 pub extern "C" fn rs_dhcp_state_get_events(tx: *mut std::os::raw::c_void)
                                            -> *mut core::AppLayerDecoderEvents
 {
@@ -394,33 +424,34 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
     let ports = CString::new("[67,68]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port: ports.as_ptr(),
-        ipproto: IPPROTO_UDP,
-        probe_ts: rs_dhcp_probing_parser,
-        probe_tc: rs_dhcp_probing_parser,
-        min_depth: 0,
-        max_depth: 16,
-        state_new: rs_dhcp_state_new,
-        state_free: rs_dhcp_state_free,
-        tx_free: rs_dhcp_state_tx_free,
-        parse_ts: rs_dhcp_parse,
-        parse_tc: rs_dhcp_parse,
-        get_tx_count: rs_dhcp_state_get_tx_count,
-        get_tx: rs_dhcp_state_get_tx,
-        tx_get_comp_st: rs_dhcp_state_progress_completion_status,
-        tx_get_progress: rs_dhcp_tx_get_alstate_progress,
-        get_tx_logged: Some(rs_dhcp_tx_get_logged),
-        set_tx_logged: Some(rs_dhcp_tx_set_logged),
-        get_de_state: rs_dhcp_tx_get_detect_state,
-        set_de_state: rs_dhcp_tx_set_detect_state,
-        get_events: Some(rs_dhcp_state_get_events),
-        get_eventinfo: Some(rs_dhcp_state_get_event_info),
-        localstorage_new: None,
-        localstorage_free: None,
-        get_tx_mpm_id: None,
-        set_tx_mpm_id: None,
-        get_files: None,
-        get_tx_iterator: Some(rs_dhcp_state_get_tx_iterator),
+        default_port       : ports.as_ptr(),
+        ipproto            : IPPROTO_UDP,
+        probe_ts           : rs_dhcp_probing_parser,
+        probe_tc           : rs_dhcp_probing_parser,
+        min_depth          : 0,
+        max_depth          : 16,
+        state_new          : rs_dhcp_state_new,
+        state_free         : rs_dhcp_state_free,
+        tx_free            : rs_dhcp_state_tx_free,
+        parse_ts           : rs_dhcp_parse,
+        parse_tc           : rs_dhcp_parse,
+        get_tx_count       : rs_dhcp_state_get_tx_count,
+        get_tx             : rs_dhcp_state_get_tx,
+        tx_get_comp_st     : rs_dhcp_state_progress_completion_status,
+        tx_get_progress    : rs_dhcp_tx_get_alstate_progress,
+        get_tx_logged      : Some(rs_dhcp_tx_get_logged),
+        set_tx_logged      : Some(rs_dhcp_tx_set_logged),
+        get_de_state       : rs_dhcp_tx_get_detect_state,
+        set_de_state       : rs_dhcp_tx_set_detect_state,
+        get_events         : Some(rs_dhcp_state_get_events),
+        get_eventinfo      : Some(rs_dhcp_state_get_event_info),
+        get_eventinfo_byid : None,
+        localstorage_new   : None,
+        localstorage_free  : None,
+        get_tx_mpm_id      : None,
+        set_tx_mpm_id      : None,
+        get_files          : None,
+        get_tx_iterator    : Some(rs_dhcp_state_get_tx_iterator),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
