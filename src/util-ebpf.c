@@ -502,7 +502,7 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
  * \return false (this create function never returns true)
  */
 static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev, void *key,
-                                 FlowKey *flow_key, struct timespec *ctime,
+                                 size_t skey, FlowKey *flow_key, struct timespec *ctime,
                                  uint64_t pkts_cnt, uint64_t bytes_cnt,
                                  int mapfd, int cpus_count)
 {
@@ -513,7 +513,6 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev,
     if (f == NULL)
         return false;
 
-    FlowUpdateState(f, FLOW_STATE_CAPTURE_BYPASSED);
     /* set accounting, we can't know the direction, so let's just start to
      * server then if we already have something in to server to client. We need
      * these numbers as we will use it to see if we have new traffic coming
@@ -522,32 +521,57 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev,
     if (fc == NULL) {
         fc = SCCalloc(sizeof(FlowBypassInfo), 1);
         if (fc) {
+            FlowUpdateState(f, FLOW_STATE_CAPTURE_BYPASSED);
             FlowSetStorageById(f, GetFlowBypassInfoID(), fc);
             fc->BypassUpdate = EBPFBypassUpdate;
             fc->BypassFree = EBPFBypassFree;
             fc->todstpktcnt = pkts_cnt;
             fc->todstbytecnt = bytes_cnt;
+            f->livedev = dev;
             EBPFBypassData *eb = SCCalloc(1, sizeof(EBPFBypassData));
             if (eb == NULL) {
                 SCFree(fc);
                 FLOWLOCK_UNLOCK(f);
                 return false;
             }
-            eb->key[0] = key;
+            void *mkey = SCCalloc(1, skey);
+            if (mkey == NULL) {
+                SCFree(fc);
+                SCFree(eb);
+                FLOWLOCK_UNLOCK(f);
+                return false;
+            }
+            memcpy(mkey, key, skey);
+            eb->key[0] = mkey;
             eb->mapfd = mapfd;
             eb->cpus_count = cpus_count;
             fc->bypass_data = eb;
+            flowstats->count++;
         } else {
             FLOWLOCK_UNLOCK(f);
             return false;
         }
     } else {
+        EBPFBypassData *eb = (EBPFBypassData *) fc->bypass_data;
+        if (eb == NULL) {
+            FLOWLOCK_UNLOCK(f);
+            return false;
+        }
+        /* if both keys are here, then it is a flow bypassed by this
+         * instance so we ignore it */
+        if (eb->key[0] && eb->key[1]) {
+            FLOWLOCK_UNLOCK(f);
+            return false;
+        }
         fc->tosrcpktcnt = pkts_cnt;
         fc->tosrcbytecnt = bytes_cnt;
-        EBPFBypassData *eb = (EBPFBypassData *) fc->bypass_data;
-        if (eb) {
-            eb->key[1] = key;
+        void *mkey = SCCalloc(1, skey);
+        if (mkey == NULL) {
+            FLOWLOCK_UNLOCK(f);
+            return false;
         }
+        memcpy(mkey, key, skey);
+        eb->key[1] = mkey;
     }
     f->livedev = dev;
     FLOWLOCK_UNLOCK(f);
@@ -645,8 +669,8 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     return false;
 }
 
-typedef bool (*OpFlowForKey)(struct flows_stats *flowstats, LiveDevice*dev, void *key,
-                            FlowKey *flow_key, struct timespec *ctime,
+typedef bool (*OpFlowForKey)(struct flows_stats * flowstats, LiveDevice*dev, void *key,
+                            size_t skey, FlowKey *flow_key, struct timespec *ctime,
                             uint64_t pkts_cnt, uint64_t bytes_cnt,
                             int mapfd, int cpus_count);
 
@@ -657,12 +681,12 @@ typedef bool (*OpFlowForKey)(struct flows_stats *flowstats, LiveDevice*dev, void
  * looking for timeouted flow to delete from the flow table.
  */
 static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char *name,
-                                  struct flows_stats *flowstats,
                                   struct timespec *ctime,
                                   struct ebpf_timeout_config *tcfg,
                                   OpFlowForKey EBPFOpFlowForKey
                                   )
 {
+    struct flows_stats flowstats = { 0, 0, 0};
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
     if (mapfd == -1)
         return -1;
@@ -734,7 +758,7 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
             flow_key.proto = IPPROTO_UDP;
         }
         flow_key.recursion_level = 0;
-        dead_flow = EBPFOpFlowForKey(flowstats, dev, &next_key, &flow_key,
+        dead_flow = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key,
                                      ctime, pkts_cnt, bytes_cnt,
                                      mapfd, tcfg->cpus_count);
         if (dead_flow) {
@@ -751,9 +775,9 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         EBPFDeleteKey(mapfd, &key);
         found = 1;
     }
-    SC_ATOMIC_ADD(dev->bypassed, flowstats->packets);
+    SC_ATOMIC_ADD(dev->bypassed, flowstats.packets);
 
-    LiveDevSetBypassStats(dev, hash_cnt, AF_INET);
+    LiveDevAddBypassStats(dev, flowstats.count, AF_INET);
     SCLogInfo("IPv4 bypassed flow table size: %" PRIu64, hash_cnt);
 
     return found;
@@ -767,12 +791,12 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
  */
 static int EBPFForEachFlowV6Table(ThreadVars *th_v,
                                   LiveDevice *dev, const char *name,
-                                  struct flows_stats *flowstats,
                                   struct timespec *ctime,
                                   struct ebpf_timeout_config *tcfg,
                                   OpFlowForKey EBPFOpFlowForKey
                                   )
 {
+    struct flows_stats flowstats = { 0, 0, 0};
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
     if (mapfd == -1)
         return -1;
@@ -851,7 +875,7 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
             flow_key.proto = IPPROTO_UDP;
         }
         flow_key.recursion_level = 0;
-        pkts_cnt = EBPFOpFlowForKey(flowstats, dev, &next_key, &flow_key,
+        pkts_cnt = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key,
                                     ctime, pkts_cnt, bytes_cnt,
                                     mapfd, tcfg->cpus_count);
         if (pkts_cnt > 0) {
@@ -868,9 +892,9 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
         EBPFDeleteKey(mapfd, &key);
         found = 1;
     }
-    SC_ATOMIC_ADD(dev->bypassed, flowstats->packets);
+    SC_ATOMIC_ADD(dev->bypassed, flowstats.packets);
 
-    LiveDevSetBypassStats(dev, hash_cnt, AF_INET6);
+    LiveDevAddBypassStats(dev, flowstats.count, AF_INET6);
     SCLogInfo("IPv6 bypassed flow table size: %" PRIu64, hash_cnt);
     return found;
 }
@@ -878,15 +902,14 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
 
 int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void *data)
 {
-    struct flows_stats local_bypassstats = { 0, 0, 0};
     LiveDevice *ldev = NULL, *ndev;
     struct ebpf_timeout_config *cfg = (struct ebpf_timeout_config *)data;
     while(LiveDeviceForEach(&ldev, &ndev)) {
         EBPFForEachFlowV4Table(th_v, ldev, "flow_table_v4",
-                &local_bypassstats, curtime,
+                curtime,
                 cfg, EBPFCreateFlowForKey);
         EBPFForEachFlowV6Table(th_v, ldev, "flow_table_v6",
-                &local_bypassstats, curtime,
+                curtime,
                 cfg, EBPFCreateFlowForKey);
     }
 
