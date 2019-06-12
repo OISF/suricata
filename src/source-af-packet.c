@@ -2362,6 +2362,7 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
     }
 
     LiveDevAddBypassStats(p->livedev, 1, family);
+    LiveDevAddBypassSuccess(p->livedev, 1, family);
     return 1;
 }
 
