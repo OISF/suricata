@@ -478,6 +478,7 @@ static void *StatsWakeupThread(void *arg)
         SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
         SCCtrlMutexUnlock(tv_local->ctrl_mutex);
 
+        SCMutexLock(&tv_root_lock);
         ThreadVars *tv = tv_root[TVT_PPT];
         while (tv != NULL) {
             if (tv->perf_public_ctx.head == NULL) {
@@ -511,6 +512,7 @@ static void *StatsWakeupThread(void *arg)
 
             tv = tv->next;
         }
+        SCMutexUnlock(&tv_root_lock);
 
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
             break;
