@@ -785,14 +785,9 @@ error:
 
 ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *tm_slot)
 {
-    ThreadVars *tv;
-    int i;
-
     SCMutexLock(&tv_root_lock);
-
-    for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
-
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
         while (tv) {
             TmSlot *slots = tv->tm_slots;
             while (slots != NULL) {
@@ -805,9 +800,7 @@ ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *tm_slot)
             tv = tv->next;
         }
     }
-
     SCMutexUnlock(&tv_root_lock);
-
     return NULL;
 }
 
@@ -871,16 +864,11 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
  */
 TmSlot *TmSlotGetSlotForTM(int tm_id)
 {
-    ThreadVars *tv = NULL;
-    TmSlot *slots;
-    int i;
-
     SCMutexLock(&tv_root_lock);
-
-    for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
         while (tv) {
-            slots = tv->tm_slots;
+            TmSlot *slots = tv->tm_slots;
             while (slots != NULL) {
                 if (slots->tm_id == tm_id) {
                     SCMutexUnlock(&tv_root_lock);
@@ -891,9 +879,7 @@ TmSlot *TmSlotGetSlotForTM(int tm_id)
             tv = tv->next;
         }
     }
-
     SCMutexUnlock(&tv_root_lock);
-
     return NULL;
 }
 
