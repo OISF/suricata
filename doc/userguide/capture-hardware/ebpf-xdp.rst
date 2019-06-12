@@ -116,7 +116,7 @@ Setup bypass
 If you plan to use eBPF or XDP for a kernel/hardware level bypass, you need to enable
 some of the following features:
 
-First, enable `bypass` in the `stream` section ::
+First, enable `bypass` in the `stream` section in ``suricata.yaml`` ::
 
  stream:
    bypass: true
@@ -156,7 +156,7 @@ eBPF filter as needed ::
 
  cp ebpf/vlan_filter.bpf /etc/suricata/ebpf/
 
-Then setup the `ebpf-filter-file` variable in af-packet section ::
+Then setup the `ebpf-filter-file` variable in af-packet section in ``suricata.yaml`` ::
 
   - interface: eth3
     threads: 16
@@ -177,7 +177,7 @@ Setup eBPF bypass
 -----------------
 
 You can also use eBPF bypass. To do that load the `bypass_filter.bpf` file and
-update af-packet configuration to set bypass to yes ::
+update af-packet configuration in ``suricata.yaml`` to set bypass to yes ::
 
   - interface: eth3
     threads: 16
