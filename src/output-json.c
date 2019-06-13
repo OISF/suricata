@@ -410,8 +410,9 @@ void JsonPacket(const Packet *p, json_t *js, unsigned long max_length)
     unsigned long max_len = max_length == 0 ? GET_PKT_LEN(p) : max_length;
     unsigned long len = 2 * max_len;
     uint8_t encoded_packet[len];
-    Base64Encode((unsigned char*) GET_PKT_DATA(p), max_len, encoded_packet, &len);
-    json_object_set_new(js, "packet", json_string((char *)encoded_packet));
+    if (Base64Encode((unsigned char*) GET_PKT_DATA(p), max_len, encoded_packet, &len) == SC_BASE64_OK) {
+        json_object_set_new(js, "packet", json_string((char *)encoded_packet));
+    }
 
     /* Create packet info. */
     json_t *packetinfo_js = json_object();
