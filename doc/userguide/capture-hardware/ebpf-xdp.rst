@@ -195,7 +195,7 @@ filter must expose `flow_table_v4` and `flow_table_v6` per CPU array maps with s
 as the one available in `bypass_filter.c`. These two maps will be accessed and
 maintained by Suricata to handle the lists of flow to bypass.
 
-If you are not using vlan tracking (``vlan.use-for-tracking`` set to false in suricata.yaml) then you have also to set
+If you are not using vlan tracking (``vlan.use-for-tracking`` set to false in suricata.yaml) then you also have to set
 the VLAN_TRACKING define to 0 in ``bypass_filter.c``.
 
 Setup eBPF load balancing
@@ -262,21 +262,21 @@ also use the ``/etc/suricata/ebpf/xdp_filter.bpf`` (in our example TCP offloadin
     use-mmap: yes
     ring-size: 200000
     # Uncomment the following if you are using hardware XDP with
-    # a card like Netronome
+    # a card like Netronome (default value is yes)
     # use-percpu-hash: no
 
 
 XDP bypass is compatible with AF_PACKET IPS mode. Packets from bypassed flows will be send directly
-from one card to the second card without going by the ker nel network stack.
+from one card to the second card without going by the kernel network stack.
 
 If you are using hardware XDP offload you may have to set ``use-percpu-hash`` to false and
 build and install the XDP filter file after setting ``USE_PERCPU_HASH`` to 0.
 
 In the XDP filter file, you can set ``ENCRYPTED_TLS_BYPASS`` to 1 if you want to bypass
-the encrypted TLS 1.2 packetsin the eBPF code. Be aware that this will mean that Suricata will
+the encrypted TLS 1.2 packets in the eBPF code. Be aware that this will mean that Suricata will
 be blind on packets on port 443 with the correct pattern.
 
-If you are not using vlan tracking (``vlan.use-for-tracking`` set to false in suricata.yaml) then you have also to set
+If you are not using vlan tracking (``vlan.use-for-tracking`` set to false in suricata.yaml) then you also have to set
 the VLAN_TRACKING define to 0 in ``xdp_filter.c``.
 
 Intel NIC setup
@@ -380,15 +380,15 @@ Pinned maps usage
 
 Pinned maps stay attached to the system if the creating process disappears and
 they can also be accessed by external tools. In Suricata bypass case, this can be
-used to keep active bypassed flow tables so Suricata is not hit by previsouly bypassed flows when
+used to keep active bypassed flow tables, so Suricata is not hit by previously bypassed flows when
 restarting. In the socket filter case, this can be used to maintain a map from tools outside
 of Suricata.
 
-To used pinned maps, you first have to mount the `bpf` pseudo filesystem ::
+To use pinned maps, you first have to mount the `bpf` pseudo filesystem ::
 
   sudo mount -t bpf none /sys/fs/bpf
 
-You can also add to you `/etc/fstab` ::
+You can also add to your `/etc/fstab` ::
 
  bpffs                      /sys/fs/bpf             bpf     defaults 0 0
 
@@ -404,7 +404,7 @@ configuration of this interface ::
     pinned-maps: true
 
 This option can be used to expose the maps of a socket filter to other processes.
-This allows for example, the external handling of a blacklist or white list of
+This allows for example, the external handling of a accept list or block list of
 IP addresses. See `scbpf` tool avalable in the `ebpf/scpbf` directory for an example
 of external list handling.
 
@@ -430,7 +430,7 @@ for, that will be used to check for the presence of the XDP filter ::
 
 If XDP bypass is used in IPS mode stopping Suricata will trigger an interruption in the traffic.
 To fix that, the provided XDP filter `xdp_filter.bpf` is containing a map that will trigger
-a global bypass if set to 1. You need to use `pinned-maps` to benefit of this feature.
+a global bypass if set to 1. You need to use `pinned-maps` to benefit from this feature.
 
 To use it you need to set `#define USE_GLOBAL_BYPASS   1` (instead of 0) in the `xdp_filter.c` file and rebuild
 the eBPF code and install the eBPF file in the correct place. If you write `1` as key `0` then the XDP
@@ -447,7 +447,7 @@ itself. This introduces some architectural differences compared to driver mode a
 and eBPF filter need to be updated.
 
 On eBPF side, as of Linux 4.19 CPU maps and interfaces redirect are not supported and these features
-need to be disabled. By architecture, per CPU hash should not be used and have to be disabled.
+need to be disabled. By architecture, per CPU hash should not be used and has to be disabled.
 To achieve this, edit the beginning of `ebpf/xdp_filter.c` and do ::
 
  #define BUILD_CPUMAP        0
@@ -472,7 +472,7 @@ using `cluster_qm` as cluster type is a good idea ::
     cluster-type: cluster_qm
 
 As of Linux 4.19, the number of threads must be a power of 2. So set
-`threads` variable interface of the `af-packet` interface to a power
+`threads` variable of the `af-packet` interface to a power
 of 2 and in the eBPF filter set the following variable accordingly ::
 
  #define RSS_QUEUE_NUMBERS   32
@@ -495,7 +495,7 @@ You can get information about bypass via the stats event and through the unix so
  }
 
 ``iface-bypassed-stats`` command will return the number of elements in IPv4 and IPv6 flow tables for
-each interfaces ::
+each interface ::
 
  # suricatasc
  >>> iface-bypassed-stats
