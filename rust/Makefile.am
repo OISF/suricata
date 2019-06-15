@@ -49,7 +49,7 @@ else
 endif
 
 clean-local:
-	-rm -rf target
+	-rm -rf target gen
 
 distclean-local: clean-local
 	rm -rf vendor gen Cargo.lock
