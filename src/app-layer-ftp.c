@@ -718,6 +718,21 @@ static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, uint8_t *input, u
 }
 
 /**
+ * \brief  Handle preliminary replies -- keep tx open
+ * \retval: True for a positive preliminary reply; false otherwise
+ *
+ * 1yz   Positive Preliminary reply
+ *
+ *                The requested action is being initiated; expect another
+ *                               reply before proceeding with a new command
+ */
+static inline bool FTPIsPPR(uint8_t *input, uint32_t input_len)
+{
+    return input_len >= 4 && isdigit(input[0]) && input[0] == '1' &&
+           isdigit(input[1]) && isdigit(input[2]) &&isspace(input[3]);
+}
+
+/**
  * \brief This function is called to retrieve a ftp response
  * \param ftp_state the ftp state structure for the parser
  * \param input input line of the command
@@ -804,7 +819,8 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         }
     }
 
-    if (input_len >= 4 && SCMemcmp("150 ", input, 4) == 0) {
+    /* Handle preliminary replies -- keep tx open */
+    if (FTPIsPPR(input, input_len)) {
         return retcode;
     }
 
@@ -812,6 +828,7 @@ tx_complete:
     tx->done = true;
     return retcode;
 }
+
 
 #ifdef DEBUG
 static SCMutex ftp_state_mem_lock = SCMUTEX_INITIALIZER;
