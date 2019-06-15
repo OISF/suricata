@@ -61,82 +61,111 @@ typedef struct LogFTPLogThread_ {
     MemBuffer          *buffer;
 } LogFTPLogThread;
 
-static void JsonFTPLogJSON(json_t *tjs, Flow *f, FTPTransaction *tx)
+static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
 {
-    json_t *cjs = NULL;
-    if (f->alproto == ALPROTO_FTPDATA) {
-        cjs = JsonFTPDataAddMetadata(f);
-    } else {
-        cjs = json_object();
-        if (cjs) {
-            json_object_set_new(cjs, "command",
-                                json_string(tx->command_descriptor->command_name_upper));
-            uint32_t min_length = tx->command_descriptor->command_length + 1; /* command + space */
-            if (tx->request_length > min_length) {
-                json_object_set_new(cjs, "command_data",
-                                    JsonAddStringN((const char *)tx->request + min_length,
-                                                   tx->request_length - min_length));
+    json_t *cjs = json_object();
+    if (!cjs) {
+        return cjs;
+    }
+
+    /* Preallocate array objects to simplify failure case */
+    json_t *js_resplist;
+    json_t *js_respcode_list;
+    if (!TAILQ_EMPTY(&tx->response_list)) {
+        js_resplist = json_array();
+        js_respcode_list = json_array();
+
+        if (unlikely(js_resplist == NULL || js_respcode_list == NULL)) {
+            if (js_resplist) {
+                json_decref(js_resplist);
             } else {
-                json_object_set_new(cjs, "command_data", json_string(NULL));
+                json_decref(js_respcode_list);
             }
-            if (!TAILQ_EMPTY(&tx->response_list)) {
-                json_t *js_resplist = json_array();
-                if (likely(js_resplist != NULL)) {
-                    FTPString *response;
-                    json_t *resp_code = NULL;
-                    TAILQ_FOREACH(response, &tx->response_list, next) {
-                        if (!resp_code && response->len >= 3)  {
-                            /* the first completion codes with multiple response lines is definitive */
-                            resp_code = JsonAddStringN((const char *)response->str, 3);
-                        }
-                        /* move past 3 character completion code */
-                        if (response->len > 4) {
-                            json_array_append_new(js_resplist,
-                                                  JsonAddStringN((const char *)response->str + 4,
-                                                                 response->len - 4));
-                        }
-                    }
-
-                    json_object_set_new(cjs, "reply", js_resplist);
-
-                    if (resp_code) {
-                        json_object_set_new(cjs, "completion_code", resp_code);
-                    }
-                }
-            }
-            if (tx->dyn_port) {
-                json_object_set_new(cjs, "dynamic_port", json_integer(tx->dyn_port));
-            }
-            if (tx->command_descriptor->command == FTP_COMMAND_PORT ||
-                tx->command_descriptor->command == FTP_COMMAND_EPRT) {
-                json_object_set_new(cjs, "mode",
-                        json_string((char*)(tx->active ? "active" : "passive")));
-            }
-            json_object_set_new(cjs, "reply_received",
-                    json_string((char*)(tx->done ? "yes" : "no")));
+            return cjs;
         }
     }
 
-    if (cjs) {
-        json_object_set_new(tjs, f->alproto == ALPROTO_FTP ? "ftp" : "ftp_data", cjs);
+    json_object_set_new(cjs, "command",
+                        json_string(tx->command_descriptor->command_name_upper));
+    uint32_t min_length = tx->command_descriptor->command_length + 1; /* command + space */
+    if (tx->request_length > min_length) {
+        json_object_set_new(cjs, "command_data",
+                            JsonAddStringN((const char *)tx->request + min_length,
+                                           tx->request_length - min_length));
+    } else {
+        json_object_set_new(cjs, "command_data", json_string(NULL));
     }
+
+    if (!TAILQ_EMPTY(&tx->response_list)) {
+        FTPString *response;
+        TAILQ_FOREACH(response, &tx->response_list, next) {
+            int offset = 0;
+            /* Try to find a completion code if we haven't seen one */
+            if (response->len >= 3)  {
+                /* Gather the completion code if present */
+                if (isdigit(response->str[0]) && isdigit(response->str[1]) && isdigit(response->str[2])) {
+                    json_array_append_new(js_respcode_list,
+                                          JsonAddStringN((const char *)response->str , 3));
+                    offset = 4;
+                }
+            }
+            /* move past 3 character completion code */
+            if (response->len >= offset) {
+                json_array_append_new(js_resplist,
+                                      JsonAddStringN((const char *)response->str + offset,
+                                                     response->len - offset));
+            }
+        }
+
+        json_object_set_new(cjs, "reply", js_resplist);
+        json_object_set_new(cjs, "completion_code", js_respcode_list);
+    }
+
+    if (tx->dyn_port) {
+        json_object_set_new(cjs, "dynamic_port", json_integer(tx->dyn_port));
+    }
+
+    if (tx->command_descriptor->command == FTP_COMMAND_PORT ||
+        tx->command_descriptor->command == FTP_COMMAND_EPRT) {
+        json_object_set_new(cjs, "mode",
+                json_string((char*)(tx->active ? "active" : "passive")));
+    }
+
+    json_object_set_new(cjs, "reply_received",
+            json_string((char*)(tx->done ? "yes" : "no")));
+
+    return cjs;
 }
+
 
 static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
     SCEnter();
 
+    const char *event_type;
+    if (f->alproto == ALPROTO_FTPDATA) {
+        event_type = "ftp_data";
+    } else {
+        event_type = "ftp";
+    }
     FTPTransaction *tx = vtx;
     LogFTPLogThread *thread = thread_data;
     LogFTPFileCtx *ftp_ctx = thread->ftplog_ctx;
 
-    json_t *js = CreateJSONHeaderWithTxId(p, LOG_DIR_FLOW,
-                                          f->alproto == ALPROTO_FTP ? "ftp" : "ftp_data",
-                                          tx_id);
+    json_t *js = CreateJSONHeaderWithTxId(p, LOG_DIR_FLOW, event_type, tx_id);
     if (likely(js)) {
         JsonAddCommonOptions(&ftp_ctx->cfg, p, f, js);
-        JsonFTPLogJSON(js, f, tx);
+        json_t *cjs = NULL;
+        if (f->alproto == ALPROTO_FTPDATA) {
+            cjs = JsonFTPDataAddMetadata(f);
+        } else {
+            cjs = JsonFTPLogCommand(f, tx);
+        }
+
+        if (cjs) {
+            json_object_set_new(js, event_type, cjs);
+        }
 
         MemBufferReset(thread->buffer);
         OutputJSONBuffer(js, thread->ftplog_ctx->file_ctx, &thread->buffer);
