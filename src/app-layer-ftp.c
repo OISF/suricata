@@ -819,7 +819,8 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         }
     }
 
-    if (input_len >= 4 && SCMemcmp("150 ", input, 4) == 0) {
+    /* Handle preliminary replies -- keep tx open */
+    if (FTPIsPPR(input, input_len)) {
         return retcode;
     }
 
@@ -827,6 +828,7 @@ tx_complete:
     tx->done = true;
     return retcode;
 }
+
 
 #ifdef DEBUG
 static SCMutex ftp_state_mem_lock = SCMUTEX_INITIALIZER;
