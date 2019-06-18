@@ -329,14 +329,6 @@ outputs:
       enabled: no
       #certs-log-dir: certs # directory to store the certificates files
 
-  # a line based log of DNS requests and/or replies (no alerts)
-  # Note: not available when Rust is enabled (--enable-rust).
-  - dns-log:
-      enabled: no
-      filename: dns.log
-      append: yes
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-
   # Packet log... log packets in pcap format. 3 modes of operation: "normal"
   # "multi" and "sguil".
   #
