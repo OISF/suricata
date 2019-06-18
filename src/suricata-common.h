@@ -40,6 +40,17 @@
 #include <config.h>
 #endif
 
+/* keep before _POSIX_C_SOURCE declaration to avoid lots of
+ * warnings on mingw */
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+
+/* mingw and cygwin may fail to set this */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #ifndef CLS
 #warning "L1 cache line size not detected during build. Assuming 64 bytes."
 #define CLS 64
@@ -79,10 +90,6 @@
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
-#endif
-
-#if HAVE_INTTYPES_H
-#include <inttypes.h>
 #endif
 
 #if HAVE_LIMITS_H
