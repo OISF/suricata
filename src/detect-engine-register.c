@@ -167,6 +167,7 @@
 #include "detect-app-layer-protocol.h"
 #include "detect-template.h"
 #include "detect-template2.h"
+#include "detect-tcpmss.h"
 #include "detect-krb5-cname.h"
 #include "detect-krb5-errcode.h"
 #include "detect-krb5-msgtype.h"
@@ -523,6 +524,7 @@ void SigTableSetup(void)
     DetectBase64DataRegister();
     DetectTemplateRegister();
     DetectTemplate2Register();
+    DetectTcpmssRegister();
     DetectKrb5CNameRegister();
     DetectKrb5ErrCodeRegister();
     DetectKrb5MsgTypeRegister();
