@@ -37,6 +37,7 @@ use nom::{ErrorKind,IResult};
 pub enum SNMPEvent {
     MalformedData = 0,
     UnknownSecurityModel,
+    VersionMismatch,
 }
 
 impl SNMPEvent {
@@ -143,6 +144,11 @@ impl SNMPState {
 
     fn handle_snmp_v12(&mut self, msg:SnmpMessage, _direction: u8) -> i32 {
         let mut tx = self.new_tx();
+        // in the message, version is encoded as 0 (version 1) or 1 (version 2)
+        if self.version != msg.version + 1 {
+            SCLogDebug!("SNMP version mismatch: expected {}, received {}", self.version, msg.version+1);
+            self.set_event_tx(&mut tx, SNMPEvent::VersionMismatch);
+        }
         self.add_pdu_info(&msg.pdu, &mut tx);
         tx.community = Some(msg.community.clone());
         self.transactions.push(tx);
@@ -151,6 +157,10 @@ impl SNMPState {
 
     fn handle_snmp_v3(&mut self, msg: SnmpV3Message, _direction: u8) -> i32 {
         let mut tx = self.new_tx();
+        if self.version != msg.version {
+            SCLogDebug!("SNMP version mismatch: expected {}, received {}", self.version, msg.version);
+            self.set_event_tx(&mut tx, SNMPEvent::VersionMismatch);
+        }
         match msg.data {
             ScopedPduData::Plaintext(pdu) => {
                 self.add_pdu_info(&pdu.data, &mut tx);
@@ -436,6 +446,7 @@ pub extern "C" fn rs_snmp_state_get_event_info_by_id(event_id: std::os::raw::c_i
         let estr = match e {
             SNMPEvent::MalformedData         => { "malformed_data\0" },
             SNMPEvent::UnknownSecurityModel  => { "unknown_security_model\0" },
+            SNMPEvent::VersionMismatch       => { "version_mismatch\0" },
         };
         unsafe{
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
@@ -460,6 +471,7 @@ pub extern "C" fn rs_snmp_state_get_event_info(event_name: *const std::os::raw::
             match s {
                 "malformed_data"         => SNMPEvent::MalformedData as i32,
                 "unknown_security_model" => SNMPEvent::UnknownSecurityModel as i32,
+                "version_mismatch"       => SNMPEvent::VersionMismatch as i32,
                 _                        => -1, // unknown event
             }
         },
