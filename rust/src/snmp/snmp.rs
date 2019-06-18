@@ -141,61 +141,34 @@ impl SNMPState {
         tx.info = Some(pdu_info);
     }
 
-    fn parse_v1_2(&mut self, i: &[u8], _direction: u8) -> i32 {
-        let parser = match self.version {
-            1 => parse_snmp_v1,
-            2 => parse_snmp_v2c,
-            _ => {
-                SCLogInfo!("parse_snmp: invalid version {}", self.version);
-                self.set_event(SNMPEvent::MalformedData);
-                return -1;
-            }
-        };
-        match parser(i) {
-            Ok((_rem,r)) => {
-                let mut tx = self.new_tx();
-                self.add_pdu_info(&r.pdu, &mut tx);
-                tx.community = Some(r.community.clone());
-                self.transactions.push(tx);
-                0
-            },
-            _e => {
-                SCLogInfo!("parse_snmp_v{} failed: {:?}", self.version, _e);
-                self.set_event(SNMPEvent::MalformedData);
-                -1
-            },
-        }
+    fn handle_snmp_v12(&mut self, msg:SnmpMessage, _direction: u8) -> i32 {
+        let mut tx = self.new_tx();
+        self.add_pdu_info(&msg.pdu, &mut tx);
+        tx.community = Some(msg.community.clone());
+        self.transactions.push(tx);
+        0
     }
 
-    fn parse_v3(&mut self, i: &[u8], _direction: u8) -> i32 {
-        match parse_snmp_v3(i) {
-            Ok((_rem,r)) => {
-                let mut tx = self.new_tx();
-                match r.data {
-                    ScopedPduData::Plaintext(pdu) => {
-                        self.add_pdu_info(&pdu.data, &mut tx);
-                    },
-                    _                             => {
-                        tx.encrypted = true;
-                    }
-                }
-                match r.security_params {
-                    SecurityParameters::USM(usm) => {
-                        tx.usm = Some(usm.msg_user_name.clone());
-                    },
-                    _                            => {
-                        self.set_event_tx(&mut tx, SNMPEvent::UnknownSecurityModel);
-                    }
-                }
-                self.transactions.push(tx);
-                0
+    fn handle_snmp_v3(&mut self, msg: SnmpV3Message, _direction: u8) -> i32 {
+        let mut tx = self.new_tx();
+        match msg.data {
+            ScopedPduData::Plaintext(pdu) => {
+                self.add_pdu_info(&pdu.data, &mut tx);
             },
-            _e => {
-                SCLogInfo!("parse_snmp_v3 failed: {:?}", _e);
-                self.set_event(SNMPEvent::MalformedData);
-                -1
-            },
+            _                             => {
+                tx.encrypted = true;
+            }
         }
+        match msg.security_params {
+            SecurityParameters::USM(usm) => {
+                tx.usm = Some(usm.msg_user_name.clone());
+            },
+            _                            => {
+                self.set_event_tx(&mut tx, SNMPEvent::UnknownSecurityModel);
+            }
+        }
+        self.transactions.push(tx);
+        0
     }
 
     /// Parse an SNMP request message
@@ -208,10 +181,15 @@ impl SNMPState {
                 _         => (),
             }
         }
-        match self.version {
-            1 | 2 => self.parse_v1_2(i, direction),
-            3     => self.parse_v3(i, direction),
-            _     => -1,
+        match parse_snmp_generic_message(i) {
+            Ok((_rem,SnmpGenericMessage::V1(msg))) |
+            Ok((_rem,SnmpGenericMessage::V2(msg))) => self.handle_snmp_v12(msg, direction),
+            Ok((_rem,SnmpGenericMessage::V3(msg))) => self.handle_snmp_v3(msg, direction),
+            Err(e) => {
+                SCLogDebug!("parse_snmp failed: {:?}", e);
+                self.set_event(SNMPEvent::MalformedData);
+                -1
+            },
         }
     }
 
