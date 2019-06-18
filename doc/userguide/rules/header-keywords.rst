@@ -328,6 +328,24 @@ Example of window in a rule:
 
     alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL DELETED typot trojan traffic"; flow:stateless; flags:S,12; :example-rule-emphasis:`window:55808;` reference:mcafee,100406; classtype:trojan-activity; sid:2182; rev:8;)
 
+tcp.mss
+^^^^^^^
+
+Match on the TCP MSS option value. Will not match if the option is not
+present.
+
+The format of the keyword::
+
+  tcp.mss:<min>-<max>;
+  tcp.mss:[<|>]<number>;
+  tcp.mss:<value>;
+
+Example rule:
+
+.. container:: example-rule
+
+    alert tcp $EXTERNAL_NET any -> $HOME_NET any (flow:stateless; flags:S,12; :example-rule-emphasis:`tcp.mss:<536;` sid:1234; rev:5;)
+
 ICMP keywords
 -------------
 
