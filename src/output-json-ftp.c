@@ -37,6 +37,7 @@
 #include "util-unittest.h"
 #include "util-buffer.h"
 #include "util-debug.h"
+#include "util-mem.h"
 #include "util-byte.h"
 
 #include "output.h"
@@ -60,6 +61,31 @@ typedef struct LogFTPLogThread_ {
     uint32_t            count;
     MemBuffer          *buffer;
 } LogFTPLogThread;
+
+/*
+ * \brief Returns the ending offset of the next line.
+ *
+ * Here, "next line" is defined as terminating on
+ * - Newline character
+ * - Null character
+ *
+ * \param buffer Contains zero or more characters.
+ * \param len Size, in bytes, of buffer.
+ *
+ * \retval Offset from the start of buffer indicating the where the
+ * next "line ends". The characters between the input buffer and this
+ * value comprise the line.
+ *
+ * NULL is found first or a newline isn't found, then
+ */
+static uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
+{
+    if (!buffer || *buffer == '\0')
+        return UINT16_MAX;
+
+    char *c = strchr(buffer, '\n');
+    return c == NULL ? len : c - buffer + 1;
+}
 
 static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
 {
@@ -99,21 +125,29 @@ static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
     if (!TAILQ_EMPTY(&tx->response_list)) {
         FTPString *response;
         TAILQ_FOREACH(response, &tx->response_list, next) {
-            int offset = 0;
-            /* Try to find a completion code if we haven't seen one */
-            if (response->len >= 3)  {
-                /* Gather the completion code if present */
-                if (isdigit(response->str[0]) && isdigit(response->str[1]) && isdigit(response->str[2])) {
-                    json_array_append_new(js_respcode_list,
-                                          JsonAddStringN((const char *)response->str , 3));
-                    offset = 4;
+            /* handle multiple lines within the response, \r\n delimited */
+            uint8_t *where = response->str;
+            uint16_t length = response->len;
+            uint16_t pos;
+            while ((pos = JsonGetNextLineFromBuffer((const char *)where, length)) != UINT16_MAX) {
+                uint16_t offset = 0;
+                /* Try to find a completion code for this line */
+                if (pos >= 3)  {
+                    /* Gather the completion code if present */
+                    if (isdigit(where[0]) && isdigit(where[1]) && isdigit(where[2])) {
+                        json_array_append_new(js_respcode_list,
+                                              JsonAddStringN((const char *)where, 3));
+                        offset = 4;
+                    }
                 }
-            }
-            /* move past 3 character completion code */
-            if (response->len >= offset) {
-                json_array_append_new(js_resplist,
-                                      JsonAddStringN((const char *)response->str + offset,
-                                                     response->len - offset));
+                /* move past 3 character completion code */
+                if (pos >= offset) {
+                    json_array_append_new(js_resplist,
+                                          JsonAddStringN((const char *)where + offset, pos - offset));
+                }
+
+                where += pos;
+                length -= pos;
             }
         }
 
@@ -128,11 +162,11 @@ static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
     if (tx->command_descriptor->command == FTP_COMMAND_PORT ||
         tx->command_descriptor->command == FTP_COMMAND_EPRT) {
         json_object_set_new(cjs, "mode",
-                json_string((char*)(tx->active ? "active" : "passive")));
+                json_string((char *)(tx->active ? "active" : "passive")));
     }
 
     json_object_set_new(cjs, "reply_received",
-            json_string((char*)(tx->done ? "yes" : "no")));
+            json_string((char *)(tx->done ? "yes" : "no")));
 
     return cjs;
 }
