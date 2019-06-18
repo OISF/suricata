@@ -1352,8 +1352,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             if (copresent && colen == 1) {
                 SCLogDebug("signature %8u content maxlen 1", s->id);
-                int proto;
-                for (proto = 0; proto < 256; proto++) {
+                for (int proto = 0; proto < 256; proto++) {
                     if (s->proto.proto[(proto/8)] & (1<<(proto%8)))
                         SCLogDebug("=> proto %" PRId32 "", proto);
                 }
@@ -1375,11 +1374,10 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         if (de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO &&
                 !(s->flags & SIG_FLAG_PREFILTER))
         {
-            int i;
             int prefilter_list = DETECT_TBLSIZE;
 
             /* get the keyword supporting prefilter with the lowest type */
-            for (i = 0; i < (int)s->init_data->smlists_array_size; i++) {
+            for (int i = 0; i < (int)s->init_data->smlists_array_size; i++) {
                 SigMatch *sm = s->init_data->smlists[i];
                 while (sm != NULL) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
@@ -1393,7 +1391,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             /* apply that keyword as prefilter */
             if (prefilter_list != DETECT_TBLSIZE) {
-                for (i = 0; i < (int)s->init_data->smlists_array_size; i++) {
+                for (int i = 0; i < (int)s->init_data->smlists_array_size; i++) {
                     SigMatch *sm = s->init_data->smlists[i];
                     while (sm != NULL) {
                         if (sm->type == prefilter_list) {
@@ -1409,8 +1407,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         }
 
         /* run buffer type callbacks if any */
-        int x;
-        for (x = 0; x < (int)s->init_data->smlists_array_size; x++) {
+        for (int x = 0; x < (int)s->init_data->smlists_array_size; x++) {
             if (s->init_data->smlists[x])
                 DetectBufferRunSetupCallback(de_ctx, x, s);
         }
@@ -1632,13 +1629,10 @@ static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s
  */
 int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
 {
-    Signature *tmp_s = NULL;
     uint32_t sigs = 0;
 
-    if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogDebug("building signature grouping structure, stage 2: "
-                  "building source address lists...");
-    }
+    SCLogDebug("building signature grouping structure, stage 2: "
+            "building source address lists...");
 
     IPOnlyInit(de_ctx, &de_ctx->io_ctx);
 
@@ -1651,14 +1645,14 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
     RulesGroupByProto(de_ctx);
 
     /* now for every rule add the source group to our temp lists */
-    for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
-        SCLogDebug("tmp_s->id %"PRIu32, tmp_s->id);
-        if (tmp_s->flags & SIG_FLAG_IPONLY) {
-            IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        SCLogDebug("s->id %"PRIu32, s->id);
+        if (s->flags & SIG_FLAG_IPONLY) {
+            IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, s);
         }
 
-        if (tmp_s->init_data->init_flags & SIG_FLAG_INIT_DEONLY) {
-            DetectEngineAddDecoderEventSig(de_ctx, tmp_s);
+        if (s->init_data->init_flags & SIG_FLAG_INIT_DEONLY) {
+            DetectEngineAddDecoderEventSig(de_ctx, s);
         }
 
         sigs++;
@@ -1698,10 +1692,8 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
         SigGroupHeadFree(de_ctx, de_ctx->decoder_event_sgh);
     de_ctx->decoder_event_sgh = NULL;
 
-    int f;
-    for (f = 0; f < FLOW_STATES; f++) {
-        int p;
-        for (p = 0; p < 256; p++) {
+    for (int f = 0; f < FLOW_STATES; f++) {
+        for (int p = 0; p < 256; p++) {
             de_ctx->flow_gh[f].sgh[p] = NULL;
         }
 
@@ -1712,8 +1704,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
         de_ctx->flow_gh[f].udp = NULL;
     }
 
-    uint32_t idx;
-    for (idx = 0; idx < de_ctx->sgh_array_cnt; idx++) {
+    for (uint32_t idx = 0; idx < de_ctx->sgh_array_cnt; idx++) {
         SigGroupHead *sgh = de_ctx->sgh_array[idx];
         if (sgh == NULL)
             continue;
@@ -1774,8 +1765,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     //SCLogInfo("sgh's %"PRIu32, de_ctx->sgh_array_cnt);
 
     uint32_t cnt = 0;
-    uint32_t idx = 0;
-    for (idx = 0; idx < de_ctx->sgh_array_cnt; idx++) {
+    for (uint32_t idx = 0; idx < de_ctx->sgh_array_cnt; idx++) {
         SigGroupHead *sgh = de_ctx->sgh_array[idx];
         if (sgh == NULL)
             continue;
