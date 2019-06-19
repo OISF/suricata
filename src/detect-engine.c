@@ -3930,6 +3930,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "packet";
         case DETECT_SM_LIST_PMATCH:
             return "packet/stream payload";
+        case DETECT_SM_LIST_L4HDR:
+            return "layer 4 header";
 
         case DETECT_SM_LIST_TMATCH:
             return "tag";

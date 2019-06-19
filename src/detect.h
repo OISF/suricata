@@ -91,6 +91,7 @@ struct SCSigSignatureWrapper_;
 enum DetectSigmatchListEnum {
     DETECT_SM_LIST_MATCH = 0,
     DETECT_SM_LIST_PMATCH,
+    DETECT_SM_LIST_L4HDR,
 
     /* base64_data keyword uses some hardcoded logic so consider
      * built-in
@@ -828,6 +829,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_proto_udp_packet;
     int32_t sgh_mpm_context_proto_other_packet;
     int32_t sgh_mpm_context_stream;
+    int32_t sgh_mpm_context_l4_header;
 
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
@@ -1224,6 +1226,8 @@ enum MpmBuiltinBuffers {
     MPMB_UDP_TS,
     MPMB_UDP_TC,
     MPMB_OTHERIP,
+    MPMB_L4HDR_TS,
+    MPMB_L4HDR_TC,
     MPMB_MAX,
 };
 

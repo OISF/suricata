@@ -67,6 +67,8 @@ const char *builtin_mpms[] = {
     "toserver UDP packet",
     "toclient UDP packet",
     "other IP packet",
+    "toserver L4 header",
+    "toclient L4 header",
 
     NULL };
 
@@ -336,6 +338,7 @@ void DetectMpmInitializeBuiltinMpms(DetectEngineCtx *de_ctx)
 
     de_ctx->sgh_mpm_context_proto_udp_packet = SetupBuiltinMpm(de_ctx, "udp-packet");
     de_ctx->sgh_mpm_context_proto_other_packet = SetupBuiltinMpm(de_ctx, "other-ip");
+    de_ctx->sgh_mpm_context_l4_header = SetupBuiltinMpm(de_ctx, "l4-header");
 }
 
 /**
@@ -382,6 +385,17 @@ int DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx)
             r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 1);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+    }
+
+    if (de_ctx->sgh_mpm_context_l4_header != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_l4_header, 0);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_l4_header, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
             r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
@@ -1015,13 +1029,14 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
     int dir = 0;
 
     if (ms->buffer != MPMB_MAX) {
-        BUG_ON(ms->sm_list != DETECT_SM_LIST_PMATCH);
+        BUG_ON(ms->sm_list != DETECT_SM_LIST_PMATCH && ms->sm_list != DETECT_SM_LIST_L4HDR);
 
         switch (ms->buffer) {
             /* TS is 1 */
             case MPMB_TCP_PKT_TS:
             case MPMB_TCP_STREAM_TS:
             case MPMB_UDP_TS:
+            case MPMB_L4HDR_TS:
                 dir = 1;
                 break;
 
@@ -1031,6 +1046,7 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             case MPMB_TCP_STREAM_TC:
             case MPMB_TCP_PKT_TC:
             case MPMB_OTHERIP:          /**< use 0 for other */
+            case MPMB_L4HDR_TC:
                 dir = 0;
                 break;
         }
@@ -1118,6 +1134,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     uint8_t sids_array[max_sid];
     memset(sids_array, 0x00, max_sid);
     int sgh_mpm_context = 0;
+    int sm_list = DETECT_SM_LIST_PMATCH;
 
     switch (buf) {
         case MPMB_TCP_PKT_TS:
@@ -1135,6 +1152,11 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         case MPMB_OTHERIP:
             sgh_mpm_context = de_ctx->sgh_mpm_context_proto_other_packet;
             break;
+        case MPMB_L4HDR_TS:
+        case MPMB_L4HDR_TC:
+            sgh_mpm_context = de_ctx->sgh_mpm_context_l4_header;
+            sm_list = DETECT_SM_LIST_L4HDR;
+            break;
         default:
             break;
     }
@@ -1143,12 +1165,14 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         case MPMB_TCP_PKT_TS:
         case MPMB_TCP_STREAM_TS:
         case MPMB_UDP_TS:
+        case MPMB_L4HDR_TS:
             direction = SIG_FLAG_TOSERVER;
             break;
 
         case MPMB_TCP_PKT_TC:
         case MPMB_TCP_STREAM_TC:
         case MPMB_UDP_TC:
+        case MPMB_L4HDR_TC:
             direction = SIG_FLAG_TOCLIENT;
             break;
 
@@ -1173,7 +1197,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         if (list < 0)
             continue;
 
-        if (list != DETECT_SM_LIST_PMATCH)
+        if (list != DETECT_SM_LIST_PMATCH && list != DETECT_SM_LIST_L4HDR)
             continue;
 
         switch (buf) {
@@ -1202,6 +1226,11 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
                 sids_array[s->num / 8] |= 1 << (s->num % 8);
                 cnt++;
                 break;
+            case MPMB_L4HDR_TS:
+            case MPMB_L4HDR_TC:
+                sids_array[s->num / 8] |= 1 << (s->num % 8);
+                cnt++;
+                break;
             default:
                 break;
         }
@@ -1210,7 +1239,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     if (cnt == 0)
         return NULL;
 
-    MpmStore lookup = { sids_array, max_sid, direction, buf, DETECT_SM_LIST_PMATCH, 0, NULL};
+    MpmStore lookup = { sids_array, max_sid, direction, buf, sm_list, 0, NULL};
 
     MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
     if (result == NULL) {
@@ -1228,7 +1257,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         copy->sid_array_size = max_sid;
         copy->buffer = buf;
         copy->direction = direction;
-        copy->sm_list = DETECT_SM_LIST_PMATCH;
+        copy->sm_list = sm_list;
         copy->sgh_mpm_context = sgh_mpm_context;
 
         MpmStoreSetup(de_ctx, copy);

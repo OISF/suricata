@@ -191,6 +191,8 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
 
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
+    if (s->init_data->smlists[DETECT_SM_LIST_L4HDR] != NULL)
+        return 0;
 
     /* if flow dir is set we can't process it in ip-only */
     if (!(((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == 0) ||
