@@ -438,6 +438,23 @@ typedef struct DetectBufferType_ {
     DetectEngineTransforms transforms;
 } DetectBufferType;
 
+/* Function pointer for the pkt inspect engines. Goal for this
+ * function will be to process the complete list of conditions
+ * passed to it through 'sm_data'. */
+typedef bool (*DetectEnginePktInspectionFunc)(ThreadVars *,
+        struct DetectEngineThreadCtx_ *,
+        const struct Signature_ *s,
+        const struct SigMatchData_ *sm_data,
+        Flow *f,
+        Packet *p,
+        uint8_t *alert_flags);
+
+typedef struct DetectEnginePktInspectionEngine {
+    DetectEnginePktInspectionFunc Callback;
+    SigMatchData *sm_data;
+    struct DetectEnginePktInspectionEngine *next;
+} DetectEnginePktInspectionEngine;
+
 #ifdef UNITTESTS
 #define sm_lists init_data->smlists
 #define sm_lists_tail init_data->smlists_tail
@@ -542,6 +559,7 @@ typedef struct Signature_ {
     IPOnlyCIDRItem *CidrSrc, *CidrDst;
 
     DetectEngineAppInspectionEngine *app_inspect;
+    DetectEnginePktInspectionEngine *pkt_inspect;
 
     /* Matching structures for the built-ins. The others are in
      * their inspect engines. */

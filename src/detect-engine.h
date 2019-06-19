@@ -145,6 +145,12 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
 int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s);
 void DetectEngineAppInspectionEngineSignatureFree(Signature *s);
 
+bool DetectEnginePktInspectionRun(ThreadVars *tv,
+        DetectEngineThreadCtx *det_ctx, const Signature *s,
+        Flow *f, Packet *p,
+        uint8_t *alert_flags);
+int DetectEnginePktInspectionSetup(Signature *s);
+
 void DetectEngineSetParseMetadata(void);
 void DetectEngineUnsetParseMetadata(void);
 int DetectEngineMustParseMetadata(void);

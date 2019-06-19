@@ -658,38 +658,6 @@ static inline int DetectRunInspectRuleHeader(
     return 1;
 }
 
-/* returns 0 if no match, 1 if match */
-static inline int DetectRunInspectRulePacketMatches(
-    ThreadVars *tv,
-    DetectEngineThreadCtx *det_ctx,
-    Packet *p,
-    const Flow *f,
-    const Signature *s)
-{
-    /* run the packet match functions */
-    if (s->sm_arrays[DETECT_SM_LIST_MATCH] != NULL) {
-        KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_MATCH);
-        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
-
-        SCLogDebug("running match functions, sm %p", smd);
-        while (1) {
-            KEYWORD_PROFILING_START;
-            if (sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx) <= 0) {
-                KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
-                SCLogDebug("no match");
-                return 0;
-            }
-            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-            if (smd->is_last) {
-                SCLogDebug("match and is_last");
-                break;
-            }
-            smd++;
-        }
-    }
-    return 1;
-}
-
 /** \internal
  *  \brief run packet/stream prefilter engines
  */
@@ -827,49 +795,9 @@ static inline void DetectRulePacketRules(
             goto next;
         }
 
-        /* Check the payload keywords. If we are a MPM sig and we've made
-         * to here, we've had at least one of the patterns match */
-        if (s->sm_arrays[DETECT_SM_LIST_PMATCH] != NULL) {
-            KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_PMATCH);
-            /* if we have stream msgs, inspect against those first,
-             * but not for a "dsize" signature */
-            if (sflags & SIG_FLAG_REQUIRE_STREAM) {
-                int pmatch = 0;
-                if (p->flags & PKT_DETECT_HAS_STREAMDATA) {
-                    pmatch = DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, pflow, p);
-                    if (pmatch) {
-                        det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
-                        /* Tell the engine that this reassembled stream can drop the
-                         * rest of the pkts with no further inspection */
-                        if (s->action & ACTION_DROP)
-                            alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
-
-                        alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
-                    }
-                }
-                /* no match? then inspect packet payload */
-                if (pmatch == 0) {
-                    SCLogDebug("no match in stream, fall back to packet payload");
-
-                    /* skip if we don't have to inspect the packet and segment was
-                     * added to stream */
-                    if (!(sflags & SIG_FLAG_REQUIRE_PACKET) && (p->flags & PKT_STREAM_ADD)) {
-                        goto next;
-                    }
-
-                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
-                        goto next;
-                    }
-                }
-            } else {
-                if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
-                    goto next;
-                }
-            }
-        }
-
-        if (DetectRunInspectRulePacketMatches(tv, det_ctx, p, pflow, s) == 0)
+        if (DetectEnginePktInspectionRun(tv, det_ctx, s, pflow, p, &alert_flags) == false) {
             goto next;
+        }
 
 #ifdef PROFILING
         smatch = true;
@@ -1154,8 +1082,8 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             TRACE_SID_TXS(s->id, tx, "DetectRunInspectRuleHeader() no match");
             return false;
         }
-        if (DetectRunInspectRulePacketMatches(tv, det_ctx, p, f, s) == 0) {
-            TRACE_SID_TXS(s->id, tx, "DetectRunInspectRulePacketMatches no match");
+        if (DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL) == false) {
+            TRACE_SID_TXS(s->id, tx, "DetectEnginePktInspectionRun no match");
             return false;
         }
         /* stream mpm and negated mpm sigs can end up here with wrong proto */

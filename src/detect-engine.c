@@ -1116,6 +1116,148 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
     return map->id;
 }
 
+/* returns false if no match, true if match */
+static bool DetectEngineInspectRulePacketMatches(
+    ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+    const Signature *s, const SigMatchData *sm_data,
+    Flow *f, Packet *p,
+    uint8_t *alert_flags)
+{
+    SCEnter();
+    BUG_ON(sm_data != s->sm_arrays[DETECT_SM_LIST_MATCH]);
+
+    /* run the packet match functions */
+    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_MATCH);
+    const SigMatchData *smd = sm_data;
+
+    SCLogDebug("running match functions, sm %p", smd);
+    while (1) {
+        KEYWORD_PROFILING_START;
+        if (sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx) <= 0) {
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
+            SCLogDebug("no match");
+            return false;
+        }
+        KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+        if (smd->is_last) {
+            SCLogDebug("match and is_last");
+            break;
+        }
+        smd++;
+    }
+    return true;
+}
+
+static bool DetectEngineInspectRulePayloadMatches(
+     ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+     const Signature *s, const SigMatchData *sm_data,
+     Flow *f, Packet *p,
+     uint8_t *alert_flags)
+{
+    SCEnter();
+
+    BUG_ON(alert_flags == NULL);
+    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
+
+    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_PMATCH);
+    /* if we have stream msgs, inspect against those first,
+     * but not for a "dsize" signature */
+    if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
+        int pmatch = 0;
+        if (p->flags & PKT_DETECT_HAS_STREAMDATA) {
+            pmatch = DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, f, p);
+            if (pmatch) {
+                det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
+                /* Tell the engine that this reassembled stream can drop the
+                 * rest of the pkts with no further inspection */
+                if (s->action & ACTION_DROP)
+                    *alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
+
+                *alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
+            }
+        }
+        /* no match? then inspect packet payload */
+        if (pmatch == 0) {
+            SCLogDebug("no match in stream, fall back to packet payload");
+
+            /* skip if we don't have to inspect the packet and segment was
+             * added to stream */
+            if (!(s->flags & SIG_FLAG_REQUIRE_PACKET) && (p->flags & PKT_STREAM_ADD)) {
+                return false;
+            }
+            if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, f, p) != 1) {
+                return false;
+            }
+        }
+    } else {
+        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, f, p) != 1) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool DetectEnginePktInspectionRun(ThreadVars *tv,
+        DetectEngineThreadCtx *det_ctx, const Signature *s,
+        Flow *f, Packet *p,
+        uint8_t *alert_flags)
+{
+    SCEnter();
+    for (DetectEnginePktInspectionEngine *e = s->pkt_inspect; e != NULL; e = e->next) {
+        if (e->Callback(tv, det_ctx, s, e->sm_data, f, p, alert_flags) == false) {
+            SCLogDebug("sid %u: e %p Callback returned false", s->id, e);
+            return false;
+        }
+        SCLogDebug("sid %u: e %p Callback returned true", s->id, e);
+    }
+    SCLogDebug("sid %u: returning true", s->id);
+    return true;
+}
+
+static int DetectEnginePktInspectionAppend(Signature *s,
+        DetectEnginePktInspectionFunc Callback,
+        SigMatchData *data)
+{
+    DetectEnginePktInspectionEngine *e = SCCalloc(1, sizeof(*e));
+    if (e == NULL)
+        return -1;
+
+    e->Callback = Callback;
+    e->sm_data = data;
+
+    if (s->pkt_inspect == NULL) {
+        s->pkt_inspect = e;
+    } else {
+        DetectEnginePktInspectionEngine *a = s->pkt_inspect;
+        while (a->next != NULL) {
+            a = a->next;
+        }
+        a->next = e;
+    }
+
+    return 0;
+}
+
+int DetectEnginePktInspectionSetup(Signature *s)
+{
+    /* only handle PMATCH here if we're not an app inspect rule */
+    if (s->sm_arrays[DETECT_SM_LIST_PMATCH] && (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) == 0) {
+        if (DetectEnginePktInspectionAppend(s, DetectEngineInspectRulePayloadMatches,
+                s->sm_arrays[DETECT_SM_LIST_PMATCH]) < 0)
+            return -1;
+        SCLogDebug("sid %u: DetectEngineInspectRulePayloadMatches appended", s->id);
+    }
+
+    if (s->sm_arrays[DETECT_SM_LIST_MATCH]) {
+        if (DetectEnginePktInspectionAppend(s, DetectEngineInspectRulePacketMatches,
+                s->sm_arrays[DETECT_SM_LIST_MATCH]) < 0)
+            return -1;
+        SCLogDebug("sid %u: DetectEngineInspectRulePacketMatches appended", s->id);
+    }
+
+    return 0;
+}
+
 /* code to control the main thread to do a reload */
 
 enum DetectEngineSyncState {
