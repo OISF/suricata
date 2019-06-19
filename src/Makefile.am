@@ -248,6 +248,7 @@ detect-tag.c detect-tag.h \
 detect-target.c detect-target.h \
 detect-template.c detect-template.h \
 detect-template2.c detect-template2.h \
+detect-tcphdr.c detect-tcphdr.h \
 detect-tcpmss.c detect-tcpmss.h \
 detect-ftpdata.c detect-ftpdata.h \
 detect-template-rust-buffer.c detect-template-rust-buffer.h \

@@ -42,6 +42,7 @@
 #include "util-memcpy.h"
 #include "conf.h"
 #include "detect-fast-pattern.h"
+#include "detect-tcphdr.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -1384,6 +1385,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
 
             SetRawReassemblyFlag(de_ctx, sh);
+
+            mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_L4HDR_TS);
+            if (mpm_store != NULL) {
+                PrefilterTcpHeaderRegister(de_ctx, sh, mpm_store->mpm_ctx);
+            }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TC);
@@ -1397,6 +1403,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
 
             SetRawReassemblyFlag(de_ctx, sh);
+
+            mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_L4HDR_TC);
+            if (mpm_store != NULL) {
+                PrefilterTcpHeaderRegister(de_ctx, sh, mpm_store->mpm_ctx);
+            }
        }
     } else if (SGH_PROTO(sh, IPPROTO_UDP)) {
         if (SGH_DIRECTION_TS(sh)) {

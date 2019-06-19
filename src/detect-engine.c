@@ -54,6 +54,7 @@
 #include "detect-byte-extract.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-tcphdr.h"
 #include "detect-engine-threshold.h"
 #include "detect-engine-content-inspection.h"
 
@@ -1246,6 +1247,15 @@ int DetectEnginePktInspectionSetup(Signature *s)
                 s->sm_arrays[DETECT_SM_LIST_PMATCH]) < 0)
             return -1;
         SCLogDebug("sid %u: DetectEngineInspectRulePayloadMatches appended", s->id);
+    }
+
+    if (s->sm_arrays[DETECT_SM_LIST_L4HDR] &&
+            (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))))
+    {
+        if (DetectEnginePktInspectionAppend(s, DetectEngineInspectRuleTcpHeaderMatches,
+                s->sm_arrays[DETECT_SM_LIST_L4HDR]) < 0)
+            return -1;
+        SCLogDebug("sid %u: DetectEngineInspectRuleTcpHeaderMatches appended", s->id);
     }
 
     if (s->sm_arrays[DETECT_SM_LIST_MATCH]) {
