@@ -62,11 +62,10 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
     BypassedFlowManagerThreadData *ftd = thread_data;
     struct timespec curtime = {0, 0};
 
-    if (clock_gettime(CLOCK_REALTIME, &curtime) != 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Can't get time: %s (%d)",
-                strerror(errno), errno);
-        return TM_ECODE_FAILED;
-    }
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    TIMEVAL_TO_TIMESPEC(&tv, &curtime);
+
     for (i = 0; i < g_bypassed_func_max_index; i++) {
         if (bypassedfunclist[i].FuncInit) {
             bypassedfunclist[i].FuncInit(th_v, &curtime, bypassedfunclist[i].data);
@@ -86,10 +85,9 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 
     while (1) {
         SCLogDebug("Dumping the table");
-        if (clock_gettime(CLOCK_REALTIME, &curtime) != 0) {
-            usleep(10000);
-            continue;
-        }
+        gettimeofday(&tv, NULL);
+        TIMEVAL_TO_TIMESPEC(&tv, &curtime);
+
         for (i = 0; i < g_bypassed_func_max_index; i++) {
             struct flows_stats bypassstats = { 0, 0, 0};
             if (bypassedfunclist[i].Func == NULL)
