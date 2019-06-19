@@ -21,20 +21,19 @@
  * \author Brian Rectanus <brectanu@gmail.com>
  */
 
-#ifndef __DETECT_ACK_H__
-#define __DETECT_ACK_H__
+#ifndef __DETECT_SEQ_H__
+#define __DETECT_SEQ_H__
 
 /**
- * \brief ack data
+ * \brief seq data
  */
-typedef struct DetectAckData_ {
-    uint32_t ack;                    /**< ack to match */
-} DetectAckData;
+typedef struct DetectSeqData_ {
+    uint32_t seq;                    /**< seq to match */
+} DetectSeqData;
 
 /**
  * \brief Registration function for ack: keyword
  */
-void DetectAckRegister(void);
+void DetectSeqRegister(void);
 
-#endif /* __DETECT_ACK_H__ */
-
+#endif /* __DETECT_SEQ_H__ */

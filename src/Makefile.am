@@ -83,7 +83,6 @@ defrag.c defrag.h \
 defrag-hash.c defrag-hash.h \
 defrag-queue.c defrag-queue.h \
 defrag-timeout.c defrag-timeout.h \
-detect-ack.c detect-ack.h \
 detect-app-layer-event.c detect-app-layer-event.h \
 detect-app-layer-protocol.c detect-app-layer-protocol.h \
 detect-asn1.c detect-asn1.h \
@@ -157,7 +156,6 @@ detect-filesha256.c detect-filesha256.h \
 detect-filename.c detect-filename.h \
 detect-filesize.c detect-filesize.h \
 detect-filestore.c detect-filestore.h \
-detect-flags.c detect-flags.h \
 detect-flowbits.c detect-flowbits.h \
 detect-flow.c detect-flow.h \
 detect-flowint.c detect-flowint.h \
@@ -231,7 +229,6 @@ detect-replace.c detect-replace.h \
 detect-rev.c detect-rev.h \
 detect-rpc.c detect-rpc.h \
 detect-sameip.c detect-sameip.h \
-detect-seq.c detect-seq.h \
 detect-sid.c detect-sid.h \
 detect-snmp-community.c detect-snmp-community.h \
 detect-snmp-pdu_type.c detect-snmp-pdu_type.h \
@@ -246,10 +243,14 @@ detect-ssl-version.c detect-ssl-version.h \
 detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
 detect-target.c detect-target.h \
-detect-template.c detect-template.h \
-detect-template2.c detect-template2.h \
+detect-tcp-ack.c detect-tcp-ack.h \
+detect-tcp-flags.c detect-tcp-flags.h \
+detect-tcp-seq.c detect-tcp-seq.h \
+detect-tcp-window.c detect-tcp-window.h \
 detect-tcphdr.c detect-tcphdr.h \
 detect-tcpmss.c detect-tcpmss.h \
+detect-template.c detect-template.h \
+detect-template2.c detect-template2.h \
 detect-ftpdata.c detect-ftpdata.h \
 detect-template-rust-buffer.c detect-template-rust-buffer.h \
 detect-template-buffer.c detect-template-buffer.h \
@@ -266,7 +267,6 @@ detect-transform-sha256.c detect-transform-sha256.h \
 detect-ttl.c detect-ttl.h \
 detect-uricontent.c detect-uricontent.h \
 detect-urilen.c detect-urilen.h \
-detect-window.c detect-window.h \
 detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \

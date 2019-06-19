@@ -33,7 +33,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-prefilter-common.h"
 
-#include "detect-seq.h"
+#include "detect-tcp-seq.h"
 
 #include "util-byte.h"
 #include "util-unittest.h"
@@ -300,4 +300,3 @@ static void DetectSeqRegisterTests(void)
     UtRegisterTest("DetectSeqSigTest02", DetectSeqSigTest02);
 #endif /* UNITTESTS */
 }
-

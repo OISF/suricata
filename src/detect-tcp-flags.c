@@ -35,7 +35,7 @@
 #include "flow-var.h"
 #include "decode-events.h"
 
-#include "detect-flags.h"
+#include "detect-tcp-flags.h"
 #include "util-unittest.h"
 
 #include "util-debug.h"

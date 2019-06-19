@@ -40,7 +40,7 @@
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
-#include "detect-flags.h"
+#include "detect-tcp-flags.h"
 
 #include "util-hash.h"
 #include "util-hashlist.h"

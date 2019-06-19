@@ -35,7 +35,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-prefilter-common.h"
 
-#include "detect-ack.h"
+#include "detect-tcp-ack.h"
 
 #include "util-byte.h"
 #include "util-unittest.h"
@@ -335,4 +335,3 @@ static void DetectAckRegisterTests(void)
     UtRegisterTest("DetectAckSigTest01", DetectAckSigTest01);
 #endif /* UNITTESTS */
 }
-

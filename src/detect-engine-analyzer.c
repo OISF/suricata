@@ -34,7 +34,7 @@
 #include "conf.h"
 #include "detect-content.h"
 #include "detect-flow.h"
-#include "detect-flags.h"
+#include "detect-tcp-flags.h"
 #include "util-print.h"
 
 static int rule_warnings_only = 0;

@@ -15,19 +15,25 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_WINDOW_H__
-#define __DETECT_WINDOW_H__
+/**
+ * \file
+ *
+ * \author Brian Rectanus <brectanu@gmail.com>
+ */
 
-#define MIN_WINDOW_VALUE 0
-#define MAX_WINDOW_VALUE 65535
+#ifndef __DETECT_ACK_H__
+#define __DETECT_ACK_H__
 
-typedef struct DetectWindowData_ {
-    uint8_t negated;	/** negated? 1=True : 0=False */
-    uint16_t size;     /** window size to match */
-} DetectWindowData;
+/**
+ * \brief ack data
+ */
+typedef struct DetectAckData_ {
+    uint32_t ack;                    /**< ack to match */
+} DetectAckData;
 
-/* prototypes */
-void DetectWindowRegister (void);
+/**
+ * \brief Registration function for ack: keyword
+ */
+void DetectAckRegister(void);
 
-#endif /* __DETECT_WINDOW_H__ */
-
+#endif /* __DETECT_ACK_H__ */

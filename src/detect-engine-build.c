@@ -30,7 +30,7 @@
 #include "detect-engine-proto.h"
 
 #include "detect-dsize.h"
-#include "detect-flags.h"
+#include "detect-tcp-flags.h"
 #include "detect-flow.h"
 #include "detect-flowbits.h"
 

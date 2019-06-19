@@ -30,7 +30,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 
-#include "detect-window.h"
+#include "detect-tcp-window.h"
 #include "flow.h"
 #include "flow-var.h"
 
