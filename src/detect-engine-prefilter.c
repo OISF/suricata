@@ -347,7 +347,10 @@ void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
 void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    BUG_ON(PatternMatchPrepareGroup(de_ctx, sgh) != 0);
+    int r = PatternMatchPrepareGroup(de_ctx, sgh);
+    if (r != 0) {
+        FatalError(SC_ERR_INITIALIZATION, "failed to set up pattern matching");
+    }
 
     /* set up engines if needed - when prefilter is set to auto we run
      * all engines, otherwise only those that have been forced by the
