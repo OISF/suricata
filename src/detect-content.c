@@ -379,13 +379,13 @@ _Bool DetectContentPMATCHValidateCallback(const Signature *s)
     if (!(s->flags & SIG_FLAG_DSIZE)) {
         return TRUE;
     }
-
     int max_right_edge_i = SigParseGetMaxDsize(s);
     if (max_right_edge_i < 0) {
         return TRUE;
     }
 
     uint32_t max_right_edge = (uint32_t)max_right_edge_i;
+    int content_temp_length = 0;
 
     const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     for ( ; sm != NULL; sm = sm->next) {
@@ -393,6 +393,12 @@ _Bool DetectContentPMATCHValidateCallback(const Signature *s)
             continue;
         const DetectContentData *cd = (const DetectContentData *)sm->ctx;
         uint32_t right_edge = cd->content_len + cd->offset;
+
+        int distance_size = cd->distance;
+        int previous_content_length = content_temp_length;
+        content_temp_length = cd->content_len;
+        int content_total_length = previous_content_length + content_temp_length;
+        
         if (cd->content_len > max_right_edge) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                     "signature can't match as content length %u is bigger than dsize %u.",
@@ -403,6 +409,12 @@ _Bool DetectContentPMATCHValidateCallback(const Signature *s)
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                     "signature can't match as content length %u with offset %u (=%u) is bigger than dsize %u.",
                     cd->content_len, cd->offset, right_edge, max_right_edge);
+            return FALSE;
+        }
+        if (distance_size > (max_right_edge_i - content_total_length)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "signature can't match as dsize %u, content %d, distance %d.",
+                    max_right_edge_i, content_total_length, distance_size);
             return FALSE;
         }
     }
