@@ -74,13 +74,10 @@
 #include "util-spm.h"
 #include "util-device.h"
 #include "util-var-name.h"
+#include "util-profiling.h"
 
 #include "tm-threads.h"
 #include "runmodes.h"
-
-#ifdef PROFILING
-#include "util-profiling.h"
-#endif
 
 #include "reputation.h"
 
