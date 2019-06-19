@@ -42,7 +42,9 @@
 #include "util-memcpy.h"
 #include "conf.h"
 #include "detect-fast-pattern.h"
+
 #include "detect-tcphdr.h"
+#include "detect-udphdr.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -1415,11 +1417,19 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (mpm_store != NULL) {
                 PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
+            mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_L4HDR_TS);
+            if (mpm_store != NULL) {
+                PrefilterUdpHeaderRegister(de_ctx, sh, mpm_store->mpm_ctx);
+            }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TC);
             if (mpm_store != NULL) {
                 PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
+            }
+            mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_L4HDR_TC);
+            if (mpm_store != NULL) {
+                PrefilterUdpHeaderRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
         }
     } else {

@@ -248,6 +248,7 @@ detect-tcp-flags.c detect-tcp-flags.h \
 detect-tcp-seq.c detect-tcp-seq.h \
 detect-tcp-window.c detect-tcp-window.h \
 detect-tcphdr.c detect-tcphdr.h \
+detect-udphdr.c detect-udphdr.h \
 detect-tcpmss.c detect-tcpmss.h \
 detect-template.c detect-template.h \
 detect-template2.c detect-template2.h \
