@@ -72,7 +72,8 @@ static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 void DetectFlagsRegister (void)
 {
-    sigmatch_table[DETECT_FLAGS].name = "flags";
+    sigmatch_table[DETECT_FLAGS].name = "tcp.flags";
+    sigmatch_table[DETECT_FLAGS].alias = "flags";
     sigmatch_table[DETECT_FLAGS].Match = DetectFlagsMatch;
     sigmatch_table[DETECT_FLAGS].Setup = DetectFlagsSetup;
     sigmatch_table[DETECT_FLAGS].Free  = DetectFlagsFree;
