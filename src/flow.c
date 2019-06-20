@@ -399,11 +399,14 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
 {
     SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
 
+#ifdef CAPTURE_OFFLOAD
     int state = SC_ATOMIC_GET(f->flow_state);
 
     if (state != FLOW_STATE_CAPTURE_BYPASSED) {
+#endif
         /* update the last seen timestamp of this flow */
         COPY_TIMESTAMP(&p->ts, &f->lastts);
+#ifdef CAPTURE_OFFLOAD
     } else {
         /* still seeing packet, we downgrade to local bypass */
         if (p->ts.tv_sec - f->lastts.tv_sec > FLOW_BYPASSED_TIMEOUT / 2) {
@@ -418,7 +421,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
             }
         }
     }
-
+#endif
     /* update flags and counters */
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
         f->todstpktcnt++;
