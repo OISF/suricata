@@ -15,10 +15,8 @@ if HAVE_RUST_VENDOR
 FROZEN = --frozen
 endif
 
-if !RUST_DEBUG
 if !DEBUG
 RELEASE = --release
-endif
 endif
 
 if HAVE_LUA
