@@ -2395,12 +2395,12 @@ fi
         echo
         exit 1
     fi
-
     if test "x$enable_debug" = "xyes"; then
       RUST_SURICATA_LIB="../rust/target/debug/${RUST_SURICATA_LIBNAME}"
     else
       RUST_SURICATA_LIB="../rust/target/release/${RUST_SURICATA_LIBNAME}"
     fi
+
     RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
     CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
     AC_SUBST(RUST_SURICATA_LIB)
@@ -2437,11 +2437,6 @@ fi
         RUST_FEATURES="strict"
     ])
     AC_SUBST(RUST_FEATURES)
-
-    AC_ARG_ENABLE(rust_debug,
-           AS_HELP_STRING([--enable-rust-debug], [Rust not in --release mode]),[enable_rust_debug=$enableval],[enable_rust_debug=no])
-    AM_CONDITIONAL([RUST_DEBUG], [test "x$enable_rust_debug" = "xyes"])
-    AC_SUBST(RUST_DEBUG)
 
 # get revision
     if test -f ./revision; then
@@ -2604,7 +2599,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
 
   Rust support:                            ${enable_rust}
   Rust strict mode:                        ${enable_rust_strict}
-  Rust debug mode:                         ${enable_rust_debug}
   Rust compiler:                           ${rust_compiler_version}
   Rust cargo:                              ${rust_cargo_version}
 
