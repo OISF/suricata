@@ -275,7 +275,7 @@ static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
         uint64_t bytes_todst = fc->todstbytecnt;
         bool update = fc->BypassUpdate(f, fc->bypass_data, ts->tv_sec);
         if (update) {
-            SCLogDebug("Updated flow: %ld", FlowGetId(f));
+            SCLogDebug("Updated flow: %lld", FlowGetId(f));
             pkts_tosrc = fc->tosrcpktcnt - pkts_tosrc;
             bytes_tosrc = fc->tosrcbytecnt - bytes_tosrc;
             pkts_todst = fc->todstpktcnt - pkts_todst;
@@ -288,7 +288,7 @@ static inline int FlowBypassedTimeout(Flow *f, struct timeval *ts,
             counters->bypassed_bytes += bytes_tosrc + bytes_todst;
             return 0;
         } else {
-            SCLogDebug("No new packet, dead flow %ld", FlowGetId(f));
+            SCLogDebug("No new packet, dead flow %lld", FlowGetId(f));
             if (f->livedev) {
                 if (FLOW_IS_IPV4(f)) {
                     LiveDevSubBypassStats(f->livedev, 1, AF_INET);
