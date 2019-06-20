@@ -78,10 +78,12 @@ static inline TmEcode FlowUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packe
 
     int state = SC_ATOMIC_GET(p->flow->flow_state);
     switch (state) {
+#ifdef CAPTURE_OFFLOAD
         case FLOW_STATE_CAPTURE_BYPASSED:
             StatsAddUI64(tv, fw->both_bypass_pkts, 1);
             StatsAddUI64(tv, fw->both_bypass_bytes, GET_PKT_LEN(p));
             return TM_ECODE_DONE;
+#endif
         case FLOW_STATE_LOCAL_BYPASSED:
             StatsAddUI64(tv, fw->local_bypass_pkts, 1);
             StatsAddUI64(tv, fw->local_bypass_bytes, GET_PKT_LEN(p));
