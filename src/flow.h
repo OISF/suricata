@@ -468,7 +468,9 @@ enum FlowState {
     FLOW_STATE_ESTABLISHED,
     FLOW_STATE_CLOSED,
     FLOW_STATE_LOCAL_BYPASSED,
+#ifdef CAPTURE_OFFLOAD
     FLOW_STATE_CAPTURE_BYPASSED,
+#endif
 };
 
 typedef struct FlowProtoTimeout_ {
