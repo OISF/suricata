@@ -2413,7 +2413,7 @@ fi
         exit 1
     fi
 
-    if test "x$enable_debug" = "xyes"; then
+    if test "x$enable_rust_debug" = "xyes"; then
       RUST_SURICATA_LIB="../rust/target/debug/${RUST_SURICATA_LIBNAME}"
     else
       RUST_SURICATA_LIB="../rust/target/release/${RUST_SURICATA_LIBNAME}"
