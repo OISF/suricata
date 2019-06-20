@@ -780,7 +780,6 @@ Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t ha
     } else if (key->src.family == AF_INET6) {
         f->flags |= FLOW_IPV6;
     }
-    FlowUpdateState(f, FLOW_STATE_CAPTURE_BYPASSED);
 
     f->protomap = FlowGetProtoMapping(f->proto);
     /* set timestamp to now */
