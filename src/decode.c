@@ -400,6 +400,7 @@ void PacketDefragPktSetupParent(Packet *parent)
 
 void PacketBypassCallback(Packet *p)
 {
+#ifdef CAPTURE_OFFLOAD
     /* Don't try to bypass if flow is already out or
      * if we have failed to do it once */
     if (p->flow) {
@@ -424,6 +425,14 @@ void PacketBypassCallback(Packet *p)
             FlowUpdateState(p->flow, FLOW_STATE_LOCAL_BYPASSED);
         }
     }
+#else /* CAPTURE_OFFLOAD */
+    if (p->flow) {
+        int state = SC_ATOMIC_GET(p->flow->flow_state);
+        if (state == FLOW_STATE_LOCAL_BYPASSED)
+            return;
+        FlowUpdateState(p->flow, FLOW_STATE_LOCAL_BYPASSED);
+    }
+#endif
 }
 
 /** \brief switch direction of a packet */
