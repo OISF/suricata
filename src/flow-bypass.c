@@ -28,6 +28,8 @@
 #include "flow-private.h"
 #include "util-ebpf.h"
 
+#ifndef OS_WIN32
+
 #define FLOW_BYPASS_DELAY       10
 
 typedef struct BypassedFlowManagerThreadData_ {
@@ -116,17 +118,6 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
     return TM_ECODE_OK;
 }
 
-void BypassedFlowUpdate(Flow *f, Packet *p)
-{
-    int i;
-
-    for (i = 0; i < g_bypassed_update_max_index; i++) {
-        if (updatefunclist[i].Func(f, p, updatefunclist[i].data)) {
-            return;
-        }
-    }
-}
-
 static TmEcode BypassedFlowManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     BypassedFlowManagerThreadData *ftd = SCCalloc(1, sizeof(BypassedFlowManagerThreadData));
@@ -147,28 +138,6 @@ static TmEcode BypassedFlowManagerThreadDeinit(ThreadVars *t, void *data)
     if (data)
         SCFree(data);
     return TM_ECODE_OK;
-}
-
-/** \brief spawn the flow manager thread */
-void BypassedFlowManagerThreadSpawn()
-{
-#ifdef AFLFUZZ_DISABLE_MGTTHREADS
-    return;
-#endif
-
-    ThreadVars *tv_flowmgr = NULL;
-    tv_flowmgr = TmThreadCreateMgmtThreadByName(thread_name_flow_bypass,
-            "BypassedFlowManager", 0);
-    BUG_ON(tv_flowmgr == NULL);
-
-    if (tv_flowmgr == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(1);
-    }
-    if (TmThreadSpawn(tv_flowmgr) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(1);
-    }
 }
 
 int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc,
@@ -201,9 +170,46 @@ int BypassedFlowManagerRegisterUpdateFunc(BypassedUpdateFunc UpdateFunc,
     }
     return 0;
 }
+#endif
+
+/** \brief spawn the flow bypass manager thread */
+void BypassedFlowManagerThreadSpawn()
+{
+#ifndef OS_WIN32
+#ifdef AFLFUZZ_DISABLE_MGTTHREADS
+    return;
+#endif
+
+    ThreadVars *tv_flowmgr = NULL;
+    tv_flowmgr = TmThreadCreateMgmtThreadByName(thread_name_flow_bypass,
+            "BypassedFlowManager", 0);
+    BUG_ON(tv_flowmgr == NULL);
+
+    if (tv_flowmgr == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(1);
+    }
+    if (TmThreadSpawn(tv_flowmgr) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(1);
+    }
+#endif
+}
+
+void BypassedFlowUpdate(Flow *f, Packet *p)
+{
+#ifndef OS_WIN32
+    for (int i = 0; i < g_bypassed_update_max_index; i++) {
+        if (updatefunclist[i].Func(f, p, updatefunclist[i].data)) {
+            return;
+        }
+    }
+#endif
+}
 
 void TmModuleBypassedFlowManagerRegister (void)
 {
+#ifndef OS_WIN32
     tmm_modules[TMM_BYPASSEDFLOWMANAGER].name = "BypassedFlowManager";
     tmm_modules[TMM_BYPASSEDFLOWMANAGER].ThreadInit = BypassedFlowManagerThreadInit;
     tmm_modules[TMM_BYPASSEDFLOWMANAGER].ThreadDeinit = BypassedFlowManagerThreadDeinit;
@@ -211,5 +217,6 @@ void TmModuleBypassedFlowManagerRegister (void)
     tmm_modules[TMM_BYPASSEDFLOWMANAGER].cap_flags = 0;
     tmm_modules[TMM_BYPASSEDFLOWMANAGER].flags = TM_FLAG_MANAGEMENT_TM;
     SCLogDebug("%s registered", tmm_modules[TMM_BYPASSEDFLOWMANAGER].name);
+#endif
 }
 
