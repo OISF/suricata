@@ -29,7 +29,8 @@ The ``relative`` option makes the decoding start relative to the previous conten
 base64_data
 -----------
 
-Sticky buffer. Enable content matching on the data previously decoded by base64_decode.
+base64_data is a ``sticky buffer``. 
+Enables content matching on the data previously decoded by base64_decode.
 
 Example
 -------
