@@ -20,11 +20,11 @@ The ``bytes`` option specifies how many bytes that should be decoded and made av
 
 The ``offset`` option specifies how many bytes to skip before the decoding should start. Bytes are skipped relative to the start of the payload buffer if relative is not set.
 
-The ``relative`` option makes the decoding start relative to the previous content match. Default behavior is to start at the begging of the buffer. This option makes ``offset`` skip bytes relative to the previous match.
+The ``relative`` option makes the decoding start relative to the previous content match. Default behavior is to start at the beginning  of the buffer. This option makes ``offset`` skip bytes relative to the previous match.
 
-.. note:: Regardin ``relative`` and ``base64_decode``:
+.. note:: Regarding ``relative`` and ``base64_decode``:
 
-    The content match that you want to decode relative from must be the first match in the stream.
+    The content match that you want to decode relative to must be the first match in the stream.
 
 base64_data
 -----------
@@ -44,5 +44,4 @@ It starts decoding relative to the known string "somestring" with the known offs
     http.uri = "GET /en/somestring&dGVzdAo=&not_base64"
 
     Rule:
-    alert http any any -> any any (content:"somestring"; base64_decode:bytes 8, offset 1, relative;\
-      http.uri; base64_content; content:"test"; sid:10001; rev:1;)
+    alert http any any -> any any (content:"somestring"; base64_decode:bytes 8, offset 1, relative; http.uri; base64_content; content:"test"; sid:10001; rev:1;)
