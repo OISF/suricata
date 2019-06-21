@@ -1,4 +1,4 @@
-base64 keywords
+Base64 keywords
 ===============
 
 Suricata supports decoding base64 encoded data from buffers and matching on the decoded data.
