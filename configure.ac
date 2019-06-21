@@ -2032,43 +2032,43 @@
 
     AM_CONDITIONAL([HAVE_LUA], [test "x$enable_lua" != "xno"])
 
-  # libgeoip
+  # libmaxminddb
     AC_ARG_ENABLE(geoip,
-	        AS_HELP_STRING([--enable-geoip],[Enable GeoIP support]),
-	        [ enable_geoip="$enableval"],
+	        AS_HELP_STRING([--enable-geoip],[Enable GeoIP2 support]),
+	        [ enable_geoip="yes"],
 	        [ enable_geoip="no"])
-    AC_ARG_WITH(libgeoip_includes,
-            [  --with-libgeoip-includes=DIR  libgeoip include directory],
-            [with_libgeoip_includes="$withval"],[with_libgeoip_includes="no"])
-    AC_ARG_WITH(libgeoip_libraries,
-            [  --with-libgeoip-libraries=DIR    libgeoip library directory],
-            [with_libgeoip_libraries="$withval"],[with_libgeoip_libraries="no"])
+    AC_ARG_WITH(libmaxminddb_includes,
+            [  --with-libmaxminddb-includes=DIR  libmaxminddb include directory],
+            [with_libmaxminddb_includes="$withval"],[with_libmaxminddb_includes="no"])
+    AC_ARG_WITH(libmaxminddb_libraries,
+            [  --with-libmaxminddb-libraries=DIR    libmaxminddb library directory],
+            [with_libmaxminddb_libraries="$withval"],[with_libmaxminddb_libraries="no"])
 
     if test "$enable_geoip" = "yes"; then
-        if test "$with_libgeoip_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_libgeoip_includes}"
+        if test "$with_libmaxminddb_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libmaxminddb_includes}"
         fi
 
-        AC_CHECK_HEADER(GeoIP.h,GEOIP="yes",GEOIP="no")
+        AC_CHECK_HEADER(maxminddb.h,GEOIP="yes",GEOIP="no")
         if test "$GEOIP" = "yes"; then
-            if test "$with_libgeoip_libraries" != "no"; then
-                LDFLAGS="${LDFLAGS} -L${with_libgeoip_libraries}"
+            if test "$with_libmaxminddb_libraries" != "no"; then
+                LDFLAGS="${LDFLAGS} -L${with_libmaxminddb_libraries}"
             fi
-            AC_CHECK_LIB(GeoIP, GeoIP_country_code_by_ipnum,, GEOIP="no")
+            AC_CHECK_LIB(maxminddb, MMDB_open,, GEOIP="no")
         fi
         if test "$GEOIP" = "no"; then
             echo
-            echo "   ERROR!  libgeoip library not found, go get it"
-            echo "   from http://www.maxmind.com/en/geolite or your distribution:"
+            echo "   ERROR!  libmaxminddb GeoIP2 library not found, go get it"
+            echo "   from https://github.com/maxmind/libmaxminddb or your distribution:"
             echo
-            echo "   Ubuntu: apt-get install libgeoip-dev"
-            echo "   Fedora: dnf install GeoIP-devel"
-            echo "   CentOS/RHEL: yum install GeoIP-devel"
+            echo "   Ubuntu: apt-get install libmaxminddb-dev"
+            echo "   Fedora: dnf install libmaxminddb-devel"
+            echo "   CentOS/RHEL: yum install libmaxminddb-devel"
             echo
             exit 1
         fi
 
-        AC_DEFINE([HAVE_GEOIP],[1],[libgeoip available])
+        AC_DEFINE([HAVE_GEOIP],[1],[libmaxminddb available])
         enable_geoip="yes"
     fi
 
@@ -2474,7 +2474,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   PCRE jit:                                ${pcre_jit_available}
   LUA support:                             ${enable_lua}
   libluajit:                               ${enable_luajit}
-  libgeoip:                                ${enable_geoip}
+  GeoIP2 support:                          ${enable_geoip}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   Hyperscan support:                       ${enable_hyperscan}
