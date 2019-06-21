@@ -269,8 +269,8 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 #define SCMallocAligned(a, b) ({ \
     void *ptrmem = NULL; \
     \
-    int r = posix_memalign(&ptrmem, (b), (a)); \
-    if (r != 0 || ptrmem == NULL) { \
+    int _r = posix_memalign(&ptrmem, (b), (a)); \
+    if (_r != 0 || ptrmem == NULL) { \
         if (ptrmem != NULL) { \
             free(ptrmem); \
             ptrmem = NULL; \
