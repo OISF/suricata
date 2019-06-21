@@ -1112,6 +1112,10 @@ unix-command:
 #magic-file: /usr/share/file/magic
 @e_magic_file_comment@magic-file: @e_magic_file@
 
+# GeoIP2 database file. Specify path and filename of GeoIP2 database
+# if using rules with "geoip" rule option.
+#geoip-database: /usr/local/share/GeoLite2/GeoLite2-Country.mmdb
+
 legacy:
   uricontent: enabled
 
