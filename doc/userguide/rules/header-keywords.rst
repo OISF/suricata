@@ -346,6 +346,42 @@ Example rule:
 
     alert tcp $EXTERNAL_NET any -> $HOME_NET any (flow:stateless; flags:S,12; :example-rule-emphasis:`tcp.mss:<536;` sid:1234; rev:5;)
 
+tcp.hdr
+^^^^^^^
+
+Sticky buffer to match on the whole TCP header.
+
+Example rule:
+
+.. container:: example-rule
+
+    alert tcp $EXTERNAL_NET any -> $HOME_NET any (flags:S,12; :example-rule-emphasis:`tcp.hdr; content:"|02 04|"; offset:20; byte_test:2,<,536,0,big,relative;` sid:1234; rev:5;)
+
+This example starts looking after the fixed portion of the header, so
+into the variable sized options. There it will look for the MSS option
+(type 2, option len 4) and using a byte_test determine if the value of
+the option is lower than 536. The `tcp.mss` option will be more efficient,
+so this keyword is meant to be used in cases where no specific keyword
+is available.
+
+UDP keywords
+------------
+
+udp.hdr
+^^^^^^^
+
+Sticky buffer to match on the whole UDP header.
+
+Example rule:
+
+.. container:: example-rule
+
+    alert udp any any -> any any (:example-rule-emphasis:`udp.hdr; content:"|00 08|"; offset:4; depth:2;` sid:1234; rev:5;)
+
+This example matches on the length field of the UDP header. In this
+case the length of 8 means that there is no payload. This can also
+be matched using `dsize:0;`.
+
 ICMP keywords
 -------------
 
