@@ -136,9 +136,9 @@ Example of id in a rule:
 geoip
 ^^^^^
 The geoip keyword enables (you) to match on the source, destination or
-source and destination IP addresses of network traffic, and to see to
-which country it belongs. To be able to do this, Suricata uses GeoIP
-API of Maxmind.
+source and destination IPv4 addresses of network traffic, and to see to
+which country it belongs. To be able to do this, Suricata uses the GeoIP2
+API of MaxMind.
 
 The syntax of geoip::
 
@@ -156,8 +156,15 @@ direction you would like to match::
   dest: if the destination matches with the given geoip.
   src: the source matches with the given geoip.
 
-The keyword only supports IPv4. As it uses the GeoIP API of Maxmind,
-libgeoip must be compiled in.
+The keyword only supports IPv4. As it uses the GeoIP2 API of MaxMind,
+libmaxminddb must be compiled in. You must download and install the
+GeoIP2 or GeoLite2 database editions desired. Visit the MaxMind site
+at https://dev.maxmind.com/geoip/geoip2/geolite2/ for details.
+
+You must also supply the location of the GeoIP2 or GeoLite2 database
+file on the local system in the YAML-file configuration (for example)::
+
+  geoip-database: /usr/local/share/GeoIP/GeoLite2-Country.mmdb
 
 fragbits (IP fragmentation)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

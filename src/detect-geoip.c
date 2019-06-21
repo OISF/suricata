@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2012-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,8 +19,10 @@
  * \file
  *
  * \author Ignacio Sanchez <sanchezmartin.ji@gmail.com>
+ * \author Bill Meeks <billmeeks8@gmail.com>
  *
  * Implements the geoip keyword.
+ * Updated to use MaxMind GeoIP2 database.
  */
 
 #include "suricata-common.h"
@@ -34,6 +36,7 @@
 
 #include "detect-geoip.h"
 
+#include "util-mem.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
@@ -59,7 +62,7 @@ void DetectGeoipRegister(void)
 
 #else /* HAVE_GEOIP */
 
-#include <GeoIP.h>
+#include <maxminddb.h>
 
 static int DetectGeoipMatch(DetectEngineThreadCtx *, Packet *,
                             const Signature *, const SigMatchCtx *);
@@ -84,27 +87,85 @@ void DetectGeoipRegister(void)
  * \internal
  * \brief This function is used to initialize the geolocation MaxMind engine
  *
- * \retval NULL if the engine couldn't be initialized
- * \retval (GeoIP *) to the geolocation engine
+ * \retval false if the engine couldn't be initialized
  */
-static GeoIP *InitGeolocationEngine(void)
+static bool InitGeolocationEngine(DetectGeoipData *geoipdata)
 {
-    return GeoIP_new(GEOIP_MEMORY_CACHE);
+    const char *filename = NULL;
+
+    /* Get location and name of GeoIP2 database from YAML conf */
+    (void)ConfGet("geoip-database", &filename);
+
+    if (filename == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Unable to locate a GeoIP2"
+                     "database filename in YAML conf.  GeoIP rule matching "
+                     "is disabled.");
+        geoipdata->mmdb_status = MMDB_FILE_OPEN_ERROR;
+        return false;
+    }
+
+    /* Attempt to open MaxMind DB and save file handle if successful */
+    int status = MMDB_open(filename, MMDB_MODE_MMAP, &geoipdata->mmdb);
+
+    if (status == MMDB_SUCCESS) {
+        geoipdata->mmdb_status = status;
+        return true;
+    }
+
+    SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Failed to open GeoIP2 database: %s. "
+                 "Error was: %s.  GeoIP rule matching is disabled.", filename,
+                 MMDB_strerror(status));
+    geoipdata->mmdb_status = status;
+    return false;
 }
 
 /**
  * \internal
  * \brief This function is used to geolocate the IP using the MaxMind libraries
  *
- * \param ip IP to geolocate (uint32_t ip)
+ * \param ip IPv4 to geolocate (uint32_t ip)
  *
  * \retval NULL if it couldn't be geolocated
  * \retval ptr (const char *) to the country code string
  */
-static const char *GeolocateIPv4(GeoIP *geoengine, uint32_t ip)
+static const char *GeolocateIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
 {
-    if (geoengine != NULL)
-        return GeoIP_country_code_by_ipnum(geoengine,  SCNtohl(ip));
+    int mmdb_error;
+    struct sockaddr_in sa;
+    sa.sin_family = AF_INET;
+    sa.sin_port = 0;
+    sa.sin_addr.s_addr = ip;
+    MMDB_lookup_result_s result;
+    MMDB_entry_data_s entry_data;
+
+    /* Return if no GeoIP database access available */
+    if (geoipdata->mmdb_status != MMDB_SUCCESS)
+        return NULL;
+
+    /* Attempt to find the IPv4 address in the database */
+    result = MMDB_lookup_sockaddr((MMDB_s *)&geoipdata->mmdb,
+                                  (struct sockaddr*)&sa, &mmdb_error);
+    if (mmdb_error != MMDB_SUCCESS)
+        return NULL;
+
+    /* The IPv4 address was found, so grab ISO country code if available */
+    if (result.found_entry) {
+        mmdb_error = MMDB_get_value(&result.entry, &entry_data, "country",
+                                    "iso_code", NULL);
+        if (mmdb_error != MMDB_SUCCESS)
+            return NULL;
+
+        /* If ISO country code was found, then return it */
+        if (entry_data.has_data) {
+            if (entry_data.type == MMDB_DATA_TYPE_UTF8_STRING) {
+                    char *country_code = SCStrndup((char *)entry_data.utf8_string,
+                                                    entry_data.data_size);
+                    return country_code;
+            }
+        }
+    }
+
+    /* The country code for the IP was not found */
     return NULL;
 }
 
@@ -125,29 +186,43 @@ static const char *GeolocateIPv4(GeoIP *geoengine, uint32_t ip)
  * \internal
  * \brief This function is used to geolocate the IP using the MaxMind libraries
  *
- * \param ip IP to geolocate (uint32_t ip)
+ * \param ip IPv4 to geolocate (uint32_t ip)
  *
  * \retval 0 no match
  * \retval 1 match
  */
 static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
 {
-    const char *country;
     int i;
-    country = GeolocateIPv4(geoipdata->geoengine, ip);
+
+    /* Attempt country code lookup for the IP address */
+    const char *country = GeolocateIPv4(geoipdata, ip);
+
+    /* Skip further checks if did not find a country code */
+    if (country == NULL)
+        return 0;
+
     /* Check if NOT NEGATED match-on condition */
     if ((geoipdata->flags & GEOIP_MATCH_NEGATED) == 0)
     {
-        for (i = 0; i < geoipdata->nlocations; i++)
-            if (country != NULL && strcmp(country, (char *)geoipdata->location[i])==0)
+        for (i = 0; i < geoipdata->nlocations; i++) {
+            if (strcmp(country, (char *)geoipdata->location[i])==0) {
+                SCFree((void *)country);
                 return 1;
+            }
+        }
     } else {
         /* Check if NEGATED match-on condition */
-        for (i = 0; i < geoipdata->nlocations; i++)
-            if (country != NULL && strcmp(country, (char *)geoipdata->location[i])==0)
+        for (i = 0; i < geoipdata->nlocations; i++) {
+            if (strcmp(country, (char *)geoipdata->location[i])==0) {
+                SCFree((void *)country);
                 return 0; /* if one matches, rule does NOT match (negated) */
+            }
+        }
+        SCFree((void *)country);
         return 1; /* returns 1 if no location matches (negated) */
     }
+    SCFree((void *)country);
     return 0;
 }
 
@@ -299,8 +374,7 @@ static DetectGeoipData *DetectGeoipDataParse (const char *str)
     }
 
     /* Initialize the geolocation engine */
-    geoipdata->geoengine = InitGeolocationEngine();
-    if (geoipdata->geoengine == NULL)
+    if (InitGeolocationEngine(geoipdata) == false)
         goto error;
 
     return geoipdata;
@@ -362,6 +436,8 @@ static void DetectGeoipDataFree(void *ptr)
 {
     if (ptr != NULL) {
         DetectGeoipData *geoipdata = (DetectGeoipData *)ptr;
+        if (geoipdata->mmdb_status == MMDB_SUCCESS)
+            MMDB_close(&geoipdata->mmdb);
         SCFree(geoipdata);
     }
 }
@@ -449,113 +525,6 @@ static int GeoipParseTest07(void)
                                 GEOIP_MATCH_BOTH_FLAG | GEOIP_MATCH_NEGATED);
 }
 
-/**
- * \internal
- * \brief This test tests geoip success and failure.
- */
-static int GeoipMatchTest(const char *rule, const char *srcip, const char *dstip)
-{
-    uint8_t *buf = (uint8_t *) "GET / HTTP/1.0\r\n\r\n";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p1 = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-
-    p1 = UTHBuildPacketSrcDst(buf, buflen, IPPROTO_TCP, srcip, dstip);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, rule);
-
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    result = 2;
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1) == 0) {
-        goto cleanup;
-    }
-
-    result = 1;
-
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-end:
-    return result;
-}
-
-static int GeoipMatchTest01(void)
-{
-    /* Tests with IP of google DNS as US for both src and dst IPs */
-    return GeoipMatchTest("alert tcp any any -> any any (geoip:US;sid:1;)", "8.8.8.8", "8.8.8.8");
-    /* Expected result 1 = match */
-}
-
-static int GeoipMatchTest02(void)
-{
-    /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
-    return GeoipMatchTest("alert tcp any any -> any any (geoip:JP;sid:1;)", "8.8.8.8",
-                    "202.12.27.33");
-    /* Expected result 1 = match */
-}
-
-static int GeoipMatchTest03(void)
-{
-    /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
-    return GeoipMatchTest("alert tcp any any -> any any (geoip:dst,JP;sid:1;)",
-                    "8.8.8.8", "202.12.27.33");
-    /* Expected result 1 = match */
-}
-
-static int GeoipMatchTest04(void)
-{
-    /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
-    return GeoipMatchTest("alert tcp any any -> any any (geoip:src,JP;sid:1;)",
-                    "8.8.8.8", "202.12.27.33");
-    /* Expected result 2 = NO match */
-}
-
-static int GeoipMatchTest05(void)
-{
-    /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
-    return GeoipMatchTest("alert tcp any any -> any any (geoip:src,JP,US;sid:1;)",
-                    "8.8.8.8", "202.12.27.33");
-    /* Expected result 1 = match */
-}
-
-static int GeoipMatchTest06(void)
-{
-    /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
-    return GeoipMatchTest("alert tcp any any -> any any (geoip:src,ES,JP,US,UK,PT;sid:1;)",
-                    "8.8.8.8", "202.12.27.33");
-    /* Expected result 1 = match */
-}
-
-static int GeoipMatchTest07(void)
-{
-    /* Tests with IP of google DNS as US, and m.root-servers.net as japan */
-    return GeoipMatchTest("alert tcp any any -> any any (geoip:src,!ES,JP,US,UK,PT;sid:1;)",
-                    "8.8.8.8", "202.12.27.33");
-    /* Expected result 2 = NO match */
-}
 
 
 #endif /* UNITTESTS */
@@ -575,13 +544,6 @@ static void DetectGeoipRegisterTests(void)
     UtRegisterTest("GeoipParseTest06", GeoipParseTest06);
     UtRegisterTest("GeoipParseTest07", GeoipParseTest07);
 
-    UtRegisterTest("GeoipMatchTest01", GeoipMatchTest01);
-    UtRegisterTest("GeoipMatchTest02", GeoipMatchTest02);
-    UtRegisterTest("GeoipMatchTest03", GeoipMatchTest03);
-    UtRegisterTest("GeoipMatchTest04", GeoipMatchTest04);
-    UtRegisterTest("GeoipMatchTest05", GeoipMatchTest05);
-    UtRegisterTest("GeoipMatchTest06", GeoipMatchTest06);
-    UtRegisterTest("GeoipMatchTest07", GeoipMatchTest07);
 #endif /* UNITTESTS */
 }
 
