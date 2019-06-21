@@ -331,7 +331,7 @@ Balance as much as you can
 Try to use the network's card balancing as much as possible ::
  
  for proto in tcp4 udp4 ah4 esp4 sctp4 tcp6 udp6 ah6 esp6 sctp6; do 
- 	/sbin/ethtool -N eth3 rx-flow-hash $proto sdfn
+    /sbin/ethtool -N eth3 rx-flow-hash $proto sd
  done
 
 The XDP CPU redirect case
