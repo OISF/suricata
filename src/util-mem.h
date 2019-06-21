@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,12 +19,13 @@
  * \file
  *
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
+ * \author Bill Meeks <billmeeks8@gmail.com>
  *
  * Utility Macros for memory management
  *
  * \todo Add wrappers for functions that allocate/free memory here.
- * Currently we have malloc, calloc, realloc, strdup and free,
- * but there are more.
+ * Currently we have malloc, calloc, realloc, strdup, strndup and
+ * free, but there are more.
  */
 
 #ifndef __UTIL_MEM_H__
@@ -38,6 +39,7 @@
 #define SCRealloc realloc
 #define SCFree free
 #define SCStrdup strdup
+#define SCStrndup strndup
 #define SCMallocAligned _mm_malloc
 #define SCFreeAligned _mm_free
 #else /* CPPCHECK */
@@ -153,6 +155,60 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     (void*)ptrmem; \
 })
 
+#ifndef HAVE_STRNDUP
+#define SCStrndup(a, b) ({ \
+    char *ptrmem = NULL; \
+    extern size_t global_mem; \
+    extern uint8_t print_mem_flag; \
+    size_t len = (b); \
+    \
+    size_t _scstrndup_len = len + 1; \
+    ptrmem = (char *)malloc(_scstrndup_len); \
+    if (ptrmem == NULL) { \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCStrndup failed: %s, while trying " \
+            "to allocate %"PRIuMAX" bytes", strerror(errno), (uintmax_t)_scstrndup_len); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
+    } else { \
+        strlcpy(ptrmem, (a), len); \
+        *(ptrmem + len) = '\0'; \
+    } \
+    \
+    global_mem += _scstrndup_len; \
+    if (print_mem_flag == 1) {                              \
+        SCLogInfo("SCStrndup return at %p of size %"PRIuMAX, \
+            ptrmem, (uintmax_t)_scstrndup_len); \
+    }                                \
+    (void*)ptrmem; \
+})
+#else /* HAVE_STRNDUP */
+#define SCStrndup(a, b) ({ \
+    char *ptrmem = NULL; \
+    extern size_t global_mem; \
+    extern uint8_t print_mem_flag; \
+    size_t len = (b); \
+    \
+    ptrmem = strndup((a), len); \
+    if (ptrmem == NULL) { \
+        SCLogError(SC_ERR_MEM_ALLOC, "SCStrndup failed: %s, while trying " \
+            "to allocate %"PRIuMAX" bytes", strerror(errno), (uintmax_t)len); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
+    } \
+    \
+    global_mem += len; \
+    if (print_mem_flag == 1) {                              \
+        SCLogInfo("SCStrndup return at %p of size %"PRIuMAX, \
+            ptrmem, (uintmax_t)len); \
+    }                                \
+    (void*)ptrmem; \
+})
+#endif
+
 #define SCFree(a) ({ \
     extern uint8_t print_mem_flag; \
     if (print_mem_flag == 1) {          \
@@ -224,6 +280,44 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     } \
     (void*)ptrmem; \
 })
+
+#ifndef HAVE_STRNDUP
+#define SCStrndup(a, b) ({ \
+    char *ptrmem = NULL; \
+    size_t len = (b); \
+    \
+    size_t _scstrndup_len = len + 1; \
+    ptrmem = (char *)malloc(_scstrndup_len); \
+    if (ptrmem == NULL) { \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_MEM_ALLOC, "SCStrndup failed: %s, while trying " \
+                "to allocate %"PRIuMAX" bytes", strerror(errno), (uintmax_t)_scstrndup_len); \
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
+    } else { \
+        strlcpy(ptrmem, (a), len); \
+        *(ptrmem + len) = '\0'; \
+    } \
+    (void*)ptrmem; \
+})
+#else /* HAVE_STRNDUP */
+#define SCStrndup(a, b) ({ \
+    char *ptrmem = NULL; \
+    \
+    ptrmem = strndup((a), (b)); \
+    if (ptrmem == NULL) { \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            size_t _scstrndup_len = (b); \
+            SCLogError(SC_ERR_MEM_ALLOC, "SCStrndup failed: %s, while trying " \
+                "to allocate %"PRIuMAX" bytes", strerror(errno), (uintmax_t)_scstrndup_len); \
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
+    } \
+    (void*)ptrmem; \
+})
+#endif
 
 #define SCFree(a) ({ \
     free(a); \

@@ -212,7 +212,7 @@
     # Checks for library functions.
     AC_FUNC_MALLOC
     AC_FUNC_REALLOC
-    AC_CHECK_FUNCS([gettimeofday memset strcasecmp strchr strdup strerror strncasecmp strtol strtoul memchr memrchr clock_gettime])
+    AC_CHECK_FUNCS([gettimeofday memset strcasecmp strchr strdup strndup strerror strncasecmp strtol strtoul memchr memrchr clock_gettime])
     AC_CHECK_FUNCS([strptime])
 
     AC_CHECK_DECL([getrandom],
