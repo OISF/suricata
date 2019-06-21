@@ -20,16 +20,22 @@ Bypass can be implemented in eBPF and XDP. The advantage of XDP is that the pack
 possible. So performance is better. But bypassed packets don't reach the network so you can't use this on regular
 traffic but only on duplicated/sniffed traffic.
 
+The bypass implementation relies on one of the most powerful concept of eBPF: maps. A map is a data structure
+shared between user space and kernel space/hardware. It allow user space and kernel space to interact, pass
+information. Maps are often arrays or hash that can contain arbitrary key, value pairs. 
+
 XDP
 ~~~
 
-XDP provides another Linux native way of optimising Suricata's performance on sniffing high speed networks.
+XDP provides another Linux native way of optimising Suricata's performance on sniffing high speed networks:
 
-::
+   XDP or eXpress Data Path provides a high performance, programmable network data path in the Linux kernel as part of the IO Visor Project. XDP provides bare metal packet processing at the lowest point in the software stack which makes it ideal for speed without compromising programmability. Furthermore, new functions can be implemented dynamically with the integrated fast path without kernel modification.
 
- XDP or eXpress Data Path provides a high performance, programmable network data path in the Linux kernel as part of the IO Visor Project. XDP provides bare metal packet processing at the lowest point in the software stack which makes it ideal for speed without compromising programmability. Furthermore, new functions can be implemented dynamically with the integrated fast path without kernel modification.
+More info about XDP:
 
-`More info about XDP <https://www.iovisor.org/technology/xdp>`__
+- `IOVisor's XDP page <https://www.iovisor.org/technology/xdp>`__
+- `Cilium's BPF and XDP reference guide <https://docs.cilium.io/en/stable/bpf/>`__
+
 
 Requirements
 ------------
@@ -54,7 +60,8 @@ This guide has been confirmed on Debian/Ubuntu "LTS" Linux.
 Disable irqbalance
 ~~~~~~~~~~~~~~~~~~
 
-::
+Irqbalance may cause issue in most setup described here, so it is recommended
+to deactivate it ::
 
  systemctl stop irqbalance
  systemctl disable irqbalance
@@ -146,8 +153,9 @@ Setup eBPF filter
 -----------------
 
 The file `ebpf/vlan_filter.c` contains a list of vlan id in a switch
-that you need to edit to get something adapted to your network. Another really
-basic filter dropping IPv6 packets is also available in `ebpf/filter.c`.
+that you need to edit to get something adapted to your network. Another
+filter dropping packets from or to a set of IPv4 address is also available in
+`ebpf/filter.c`. See :ref:`ebpf-pinned-maps` for more information.
 
 Suricata can load as eBPF filter any eBPF code exposing a ``filter`` section.
 
@@ -163,7 +171,7 @@ Then setup the `ebpf-filter-file` variable in af-packet section in ``suricata.ya
     cluster-id: 97
     cluster-type: cluster_flow # choose any type suitable
     defrag: yes
-    # eBPF file containing a 'loadbalancer' function that will be inserted into the
+    # eBPF file containing a 'filter' function that will be inserted into the
     # kernel and used as load balancing function
     ebpf-filter-file:  /etc/suricata/ebpf/vlan_filter.bpf
     use-mmap: yes
@@ -206,7 +214,7 @@ With any logic implemented in the eBPF filter. The value returned by the functio
 tagged with the ``loadbalancer`` section is used with a modulo on the CPU count to know in
 which socket the packet has to be send.
 
-An implementation of a simple IP pair hashing function is provided in the ``lb.bpf``
+An implementation of a simple symetric IP pair hashing function is provided in the ``lb.bpf``
 file.
 
 Copy the resulting eBPF filter as needed ::
@@ -375,6 +383,8 @@ Confirm you have the XDP filter engaged in the output (example)::
  ...
  ...
 
+.. _ebpf-pinned-maps:
+
 Pinned maps usage
 -----------------
 
@@ -402,6 +412,9 @@ configuration of this interface ::
 
   - interface: eth3
     pinned-maps: true
+
+XDP and pinned-maps
+-------------------
 
 This option can be used to expose the maps of a socket filter to other processes.
 This allows for example, the external handling of a accept list or block list of
@@ -438,6 +451,19 @@ filter will switch to global bypass mode. Set key `0` to value `0` to send traff
 
 The switch must be activated on all sniffing interfaces. For an interface named `eth0` the global
 switch map will be `/sys/fs/bpf/suricata-eth0-global_bypass`.
+
+Pinned maps and ebpf filter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pinned maps can also be used with regular eBPF filter. The main difference is that the map will not
+persist after Suricata is stopped because it is attached to a socket and not an interface which
+is persitent.
+
+The eBPF filter `filter.bpf` uses a `ipv4_drop` map that contains the set of IPv4 addresses to drop.
+If `pinned-maps` is set to `true` in the interface configuration then the map will be pinned
+under `/sys/fs/bpf/suricata-eth0-ipv4_drop`.
+
+You can then use a tool to manage the IPv4 addresses in the map.
 
 Hardware bypass with Netronome
 ------------------------------
