@@ -373,9 +373,12 @@ static DetectGeoipData *DetectGeoipDataParse (const char *str)
         SCLogDebug("negated geoip");
     }
 
-    /* Initialize the geolocation engine */
-    if (InitGeolocationEngine(geoipdata) == false)
-        goto error;
+    /* init geo engine, but not when running as unittests */
+    if (!(RunmodeIsUnittests())) {
+        /* Initialize the geolocation engine */
+        if (InitGeolocationEngine(geoipdata) == false)
+            goto error;
+    }
 
     return geoipdata;
 
