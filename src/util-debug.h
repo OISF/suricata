@@ -79,8 +79,8 @@ typedef enum {
 } SCLogOPType;
 
 /* The default log_format, if it is not supplied by the user */
-#define SC_LOG_DEF_LOG_FORMAT_REL "%t - <%d> - "
-#define SC_LOG_DEF_LOG_FORMAT_DEV "[%i] %t - (%f:%l) <%d> (%n) -- "
+#define SC_LOG_DEF_LOG_FORMAT_REL "%t [%S] - <%d> - "
+#define SC_LOG_DEF_LOG_FORMAT_DEV "[%i] %t [%S] - (%f:%l) <%d> (%n) -- "
 
 /* The maximum length of the log message */
 #define SC_LOG_MAX_LOG_MSG_LEN 2048
@@ -194,9 +194,31 @@ typedef struct SCLogConfig_ {
 #define SC_LOG_FMT_FILE_NAME        'f' /* File name */
 #define SC_LOG_FMT_LINE             'l' /* Line number */
 #define SC_LOG_FMT_FUNCTION         'n' /* Function */
+#define SC_LOG_FMT_SUBSYSTEM        'S' /* Subsystem name */
 
 /* The log format prefix for the format specifiers */
 #define SC_LOG_FMT_PREFIX           '%'
+
+/* Module and thread tagging */
+/* The module name, usually the containing source-module name */
+static const char *_sc_module  __attribute__((unused)) = __SCFILENAME__;
+
+#define _SC_SUBSYSTEM_NAME_LEN 16
+/* The subsystem name, usually the thread's name */
+#define SCClearSubsystem()                                          \
+    do { \
+        extern __thread const char *_sc_subsystem;                  \
+        if (_sc_subsystem != NULL)                                  \
+            free((void *)_sc_subsystem);                            \
+        _sc_subsystem = NULL;                                       \
+    } while(0)
+
+#define SCSetSubsystem(subsystem_name)                                       \
+    do {                                                                     \
+        extern __thread const char *_sc_subsystem;                           \
+        size_t sn_len = strnlen(subsystem_name, _SC_SUBSYSTEM_NAME_LEN);     \
+        _sc_subsystem = SCStrndup(subsystem_name, sn_len);                   \
+    } while(0)
 
 extern SCLogLevel sc_log_global_log_level;
 
@@ -350,7 +372,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that don't return
@@ -366,7 +388,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns an
@@ -384,7 +406,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns an
@@ -402,7 +424,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a
@@ -420,7 +442,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a var
@@ -438,7 +460,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a
@@ -460,7 +482,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a var
@@ -481,7 +503,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
 
 /**
  * \brief Macro used to log debug messages on function exit.  Comes under the
- *        debugging sybsystem, and hence will be enabled only in the presence
+ *        debugging subsystem, and hence will be enabled only in the presence
  *        of the DEBUG macro.  Apart from logging function_exit logs, it also
  *        processes the FD filters, if any FD filters are registered.  This
  *        function_exit macro should be used for functions that returns a
@@ -565,7 +587,7 @@ void SCLogInitLogModule(SCLogInitData *);
 void SCLogDeInitLogModule(void);
 
 SCError SCLogMessage(const SCLogLevel, const char *, const unsigned int,
-                     const char *, const SCError, const char *message);
+                     const char *, const char *, const SCError, const char *message);
 
 SCLogOPBuffer *SCLogAllocLogOPBuffer(void);
 
