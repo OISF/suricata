@@ -20,7 +20,7 @@
 
 typedef struct SuricataContext_ {
     SCError (*SCLogMessage)(const SCLogLevel, const char *, const unsigned int,
-            const char *, const SCError, const char *message);
+            const char *, const char *, const SCError, const char *message);
     void (*DetectEngineStateFree)(DetectEngineState *);
     void (*AppLayerDecoderEventsSetEventRaw)(AppLayerDecoderEvents **,
             uint8_t);

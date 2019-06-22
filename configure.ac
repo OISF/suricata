@@ -2459,6 +2459,8 @@ fi
     AM_CONDITIONAL([RUST_DEBUG], [test "x$enable_rust_debug" = "xyes"])
     AC_SUBST(RUST_DEBUG)
 
+    # Add diagnostic filename
+    CFLAGS="${CFLAGS} -D__SCFILENAME__=\\\"\$(basename \$<)\\\""
 # get revision
     if test -f ./revision; then
         REVISION=`cat ./revision`
