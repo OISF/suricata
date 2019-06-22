@@ -63,6 +63,7 @@ pub fn sclog(level: Level, file: &str, line: u32, function: &str,
                    filename,
                    line,
                    function,
+                   "subsystem",
                    code,
                    message);
 }
@@ -149,6 +150,7 @@ pub fn sc_log_message(level: Level,
                       filename: &str,
                       line: std::os::raw::c_uint,
                       function: &str,
+                      subsystem: &str,
                       code: std::os::raw::c_int,
                       message: &str) -> std::os::raw::c_int
 {
@@ -159,6 +161,7 @@ pub fn sc_log_message(level: Level,
                 to_safe_cstring(filename).as_ptr(),
                 line,
                 to_safe_cstring(function).as_ptr(),
+                to_safe_cstring(subsystem).as_ptr(),
                 code,
                 to_safe_cstring(message).as_ptr());
         }
