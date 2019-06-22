@@ -2473,6 +2473,10 @@ fi
         fi
     fi
 
+
+# Add diagnostic filename
+CPPFLAGS="${CPPFLAGS} -D__SCFILENAME__=\\\"\$(*F)\\\""
+
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)

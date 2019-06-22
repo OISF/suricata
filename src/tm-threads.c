@@ -270,6 +270,8 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
+    SCSetSubsystem(tv->name);
+
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -285,6 +287,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
                                  " tmqh_out=%p",
                    s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+        SCClearSubsystem();
         pthread_exit((void *) -1);
         return NULL;
     }
@@ -377,11 +380,13 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     tv->stream_pq = NULL;
     SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);
+    SCClearSubsystem();
     pthread_exit((void *) 0);
     return NULL;
 
 error:
     tv->stream_pq = NULL;
+    SCClearSubsystem();
     pthread_exit((void *) -1);
     return NULL;
 }
@@ -522,6 +527,8 @@ static void *TmThreadsSlotVar(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
+    SCSetSubsystem(tv->name);
+
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -531,6 +538,7 @@ static void *TmThreadsSlotVar(void *td)
     /* check if we are setup properly */
     if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+        SCClearSubsystem();
         pthread_exit((void *) -1);
         return NULL;
     }
@@ -656,11 +664,13 @@ static void *TmThreadsSlotVar(void *td)
     SCLogDebug("%s ending", tv->name);
     tv->stream_pq = NULL;
     TmThreadsSetFlag(tv, THV_CLOSED);
+    SCClearSubsystem();
     pthread_exit((void *) 0);
     return NULL;
 
 error:
     tv->stream_pq = NULL;
+    SCClearSubsystem();
     pthread_exit((void *) -1);
     return NULL;
 }
@@ -678,6 +688,8 @@ static void *TmThreadsManagement(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
+    SCSetSubsystem(tv->name);
+
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -691,6 +703,7 @@ static void *TmThreadsManagement(void *td)
         r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
+            SCClearSubsystem();
             pthread_exit((void *) -1);
             return NULL;
         }
@@ -724,12 +737,14 @@ static void *TmThreadsManagement(void *td)
         r = s->SlotThreadDeinit(tv, SC_ATOMIC_GET(s->slot_data));
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
+            SCClearSubsystem();
             pthread_exit((void *) -1);
             return NULL;
         }
     }
 
     TmThreadsSetFlag(tv, THV_CLOSED);
+    SCClearSubsystem();
     pthread_exit((void *) 0);
     return NULL;
 }
@@ -1806,6 +1821,7 @@ static void TmThreadFree(ThreadVars *tv)
     }
 
     TmThreadsUnregisterThread(tv->id);
+
     SCFree(tv);
 }
 
