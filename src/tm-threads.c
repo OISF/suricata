@@ -270,6 +270,8 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
+    SCSetSubsystem(tv->name);
+
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -522,6 +524,7 @@ static void *TmThreadsSlotVar(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
+    SCSetSubsystem(tv->name);
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -678,6 +681,7 @@ static void *TmThreadsManagement(void *td)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
     }
 
+    SCSetSubsystem(tv->name);
     if (tv->thread_setup_flags != 0)
         TmThreadSetupOptions(tv);
 
@@ -1785,6 +1789,7 @@ static void TmThreadFree(ThreadVars *tv)
         return;
 
     SCLogDebug("Freeing thread '%s'.", tv->name);
+    SCSetSubsystem(NULL);
 
     StatsThreadCleanup(tv);
 
