@@ -580,7 +580,7 @@ logging:
   # output section.  You can leave this out to get the default.
   #
   # This value is overridden by the SC_LOG_FORMAT env var.
-  #default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
+  #default-log-format: "[%i] %t [%S] - (%f:%l) <%d> (%n) -- "
 
   # A regex to filter output.  Can be overridden in an output section.
   # Defaults to empty (no filter).

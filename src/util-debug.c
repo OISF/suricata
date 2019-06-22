@@ -74,12 +74,19 @@ SCEnumCharMap sc_log_op_iface_map[ ] = {
     { NULL,             -1 }
 };
 
+__thread const char *_sc_subsystem;
+
 #if defined (OS_WIN32)
 /**
  * \brief Used for synchronous output on WIN32
  */
 static SCMutex sc_log_stream_lock;
 #endif /* OS_WIN32 */
+
+/**
+ * \brief Transform the module name into display module name for logging
+ */
+static const char *SCTransformModule(const char *module_name, int *dn_len);
 
 /**
  * \brief Holds the config state for the logging module
@@ -208,8 +215,8 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
  */
 static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_size,
         SCLogLevel log_level, const char *file,
-        unsigned line, const char *function, SCError error_code,
-        const char *message)
+        unsigned line, const char *function, const char *module,
+        SCError error_code, const char *message)
 {
     json_t *js = json_object();
     if (unlikely(js == NULL))
@@ -268,6 +275,45 @@ error:
 }
 #endif /* HAVE_LIBJANSSON */
 
+/*
+ * \brief Return a display name for the given module name for logging.
+ *
+ * The transformation is dependent upon the source code module names
+ * that use the dash character to separate incremental refinements of
+ * the subsystem.
+ *
+ * The transformation uses the local constant "max_segs" to determine
+ * how many segments to display; the transformed name will never consist
+ * of more than this many segments.
+ *
+ * E.g., "detect-http-content-len" ==> "detect-http" when the max is 2
+ *
+ * \param module_name The source code module name to be transformed.
+ * \param dn_len The number of characters in the display name to print.
+ *
+ * \retval Pointer to the display name
+ */
+static const char *SCTransformModule(const char *module_name, int *dn_len)
+{
+    const int max_segs = 2; /* The maximum segment count to display */
+    int seg_cnt = 0;
+
+    char *last;
+    char *w = (char *) module_name;
+    while (w && (w = index(w, '-')) != NULL && seg_cnt < max_segs) {
+        seg_cnt++;
+        last = w;
+        w++; /* skip past '-' */
+    }
+
+    if (seg_cnt < max_segs)
+        *dn_len = strlen(module_name);
+    else
+        *dn_len = last - module_name;
+
+    return module_name;
+}
+
 /**
  * \brief Adds the global log_format to the outgoing buffer
  *
@@ -286,11 +332,12 @@ static SCError SCLogMessageGetBuffer(
 
                      const SCLogLevel log_level, const char *file,
                      const unsigned int line, const char *function,
-                     const SCError error_code, const char *message)
+                     const char *module, const SCError error_code,
+                     const char *message)
 {
 #ifdef HAVE_LIBJANSSON
     if (type == SC_LOG_OP_TYPE_JSON)
-        return SCLogMessageJSON(tval, buffer, buffer_size, log_level, file, line, function, error_code, message);
+        return SCLogMessageJSON(tval, buffer, buffer_size, log_level, file, line, function, module, error_code, message);
 #endif
 
     char *temp = buffer;
@@ -445,6 +492,31 @@ static SCError SCLogMessageGetBuffer(
                 substr++;
                 break;
 
+            case SC_LOG_FMT_SUBSYSTEM:
+                temp_fmt[0] = '\0';
+
+                /* Determine how much of module name to display */
+                int dn_len = 0;
+                const char *dn_name;
+                if (module) {
+                    dn_name = SCTransformModule(module, &dn_len);
+                }
+
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                             "%s%s%s%s%.*s%s", substr, green,
+                              _sc_subsystem == NULL ? "" : _sc_subsystem,
+                              _sc_subsystem == NULL ? "" : ":",
+                              dn_len,
+                              module == NULL ? "" : dn_name,
+                              reset);
+                if (cw < 0)
+                    return SC_ERR_SPRINTF;
+                temp += cw;
+                temp_fmt++;
+                substr = temp_fmt;
+                substr++;
+                break;
+
             case SC_LOG_FMT_FUNCTION:
                 temp_fmt[0] = '\0';
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
@@ -547,7 +619,8 @@ static int SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
  */
 SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                      const unsigned int line, const char *function,
-                     const SCError error_code, const char *message)
+                     const char *module, const SCError error_code,
+                     const char *message)
 {
     char buffer[SC_LOG_MAX_LOG_MSG_LEN] = "";
     SCLogOPIfaceCtx *op_iface_ctx = NULL;
@@ -575,7 +648,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                                           buffer, sizeof(buffer),
                                           op_iface_ctx->log_format ?
                                               op_iface_ctx->log_format : sc_log_config->log_format,
-                                          log_level, file, line, function,
+                                          log_level, file, line, function, module,
                                           error_code, message) == 0)
                 {
                     SCLogPrintToStream((log_level == SC_LOG_ERROR)? stderr: stdout, buffer);
@@ -585,7 +658,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                 if (SCLogMessageGetBuffer(&tval, 0, op_iface_ctx->type, buffer, sizeof(buffer),
                                           op_iface_ctx->log_format ?
                                               op_iface_ctx->log_format : sc_log_config->log_format,
-                                          log_level, file, line, function,
+                                          log_level, file, line, function, module,
                                           error_code, message) == 0)
                 {
                     int r = 0;
@@ -608,7 +681,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                 if (SCLogMessageGetBuffer(&tval, 0, op_iface_ctx->type, buffer, sizeof(buffer),
                                           op_iface_ctx->log_format ?
                                               op_iface_ctx->log_format : sc_log_config->log_format,
-                                          log_level, file, line, function,
+                                          log_level, file, line, function, module,
                                           error_code, message) == 0)
                 {
                     SCLogPrintToSyslog(SCLogMapLogLevelToSyslogLevel(log_level), buffer);
