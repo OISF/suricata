@@ -340,19 +340,44 @@ Try to use the network's card balancing as much as possible ::
     /sbin/ethtool -N eth3 rx-flow-hash $proto sd
  done
 
+This command triggers load balancing using only source and destination IPs. This may be not optimal
+in term of load balancing fairness but this ensures all packets of a flow will reach the same thread
+even in the case of IP fragmentation (where source and destination port will not be available
+for some fragmented packets).
+
 The XDP CPU redirect case
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If ever your hardware is not able to do a symmetric load balancing but support XDP in driver mode, you
-can then use the CPU redirect map support available in the xdp_filter.bpf file. In this mode, the load
-balancing will be done by the XDP filter and each CPU will handle the whole packet treatment including
-the creation of the skb structure in kernel.
+can then use the CPU redirect map support available in the `xdp_filter.bpf` and `xdp_lb.bpf` file. In
+this mode, the load balancing will be done by the XDP filter and each CPU will handle the whole packet
+treatment including the creation of the skb structure in kernel.
 
 You will need Linux 4.15 or newer to use that feature.
 
 To do so set the `xdp-cpu-redirect` variable in af-packet interface configuration to a set of CPUs.
 Then use the `cluster_cpu` as load balancing function. You will also need to set the affinity
-accordingly.
+to be sure CPU that will be assigned skb are used by Suricata.
+
+Also to avoid out of order packets, you need to set the RSS queue number to 1. So if our interface
+is `eth3` ::
+
+  /sbin/ethtool -L eth3 combined 1
+
+In case your system has more then 64 core, you need to set `CPUMAP_MAX_CPUS` to a value superior
+to this number in `xdp_lb.c` and `xdp_filter.c`.
+
+A sample configuration for pure XDP load balancing could look like ::
+
+  - interface: eth3
+    threads: 16
+    cluster-id: 97
+    cluster-type: cluster_cpu
+    xdp-mode: driver
+    xdp-filter-file:  /etc/suricata/ebpf/xdp_lb.bpf
+    xdp-cpu-redirect: ["1-17"] # or ["all"] to load balance on all CPUs
+    use-mmap: yes
+    ring-size: 200000
 
 It is possible to use `xdp_monitor` to have information about the behavior of CPU redirect. This
 program is available in Linux tree under the `samples/bpf` directory and will be build by the
