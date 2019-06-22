@@ -103,7 +103,9 @@ int  __section("loadbalancer") lb(struct __sk_buff *skb) {
                 skb->cb[0] = nhoff;
                 switch (proto) {
                     case ETH_P_IP:
+#if 0
                         { char fmt[] = "ipv4\n"; bpf_trace_printk(fmt, sizeof(fmt));}
+#endif
                         ret = ipv4_hash(skb);
                         break;
                     case ETH_P_IPV6:
