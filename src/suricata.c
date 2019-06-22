@@ -2959,7 +2959,10 @@ int InitGlobal(void) {
 
     (void)SCSetThreadName("Suricata-Main");
 
-    /* Ignore SIGUSR2 as early as possble. We redeclare interest
+    /* Set subsystem name - TLS for main thread */
+    SCSetSubsystem("Suricata-main");
+
+    /* Ignore SIGUSR2 as early as possible. We redeclare interest
      * once we're done launching threads. The goal is to either die
      * completely or handle any and all SIGUSR2s correctly.
      */
@@ -2967,6 +2970,7 @@ int InitGlobal(void) {
     UtilSignalHandlerSetup(SIGUSR2, SIG_IGN);
     if (UtilSignalBlock(SIGUSR2)) {
         SCLogError(SC_ERR_INITIALIZATION, "SIGUSR2 initialization error");
+        SCClearSubsystem();
         return EXIT_FAILURE;
     }
 #endif
@@ -2991,22 +2995,27 @@ int SuricataMain(int argc, char **argv)
 #ifdef OS_WIN32
     /* service initialization */
     if (WindowsInitService(argc, argv) != 0) {
+        SCClearSubsystem();
         exit(EXIT_FAILURE);
     }
 #endif /* OS_WIN32 */
 
     if (ParseCommandLine(argc, argv, &suricata) != TM_ECODE_OK) {
+        SCClearSubsystem();
         exit(EXIT_FAILURE);
     }
 
     if (FinalizeRunMode(&suricata, argv) != TM_ECODE_OK) {
+        SCClearSubsystem();
         exit(EXIT_FAILURE);
     }
 
     switch (StartInternalRunMode(&suricata, argc, argv)) {
         case TM_ECODE_DONE:
+            SCClearSubsystem();
             exit(EXIT_SUCCESS);
         case TM_ECODE_FAILED:
+            SCClearSubsystem();
             exit(EXIT_FAILURE);
     }
 
@@ -3015,11 +3024,13 @@ int SuricataMain(int argc, char **argv)
 
     /* Load yaml configuration file if provided. */
     if (LoadYamlConfig(&suricata) != TM_ECODE_OK) {
+        SCClearSubsystem();
         exit(EXIT_FAILURE);
     }
 
     if (suricata.run_mode == RUNMODE_DUMP_CONFIG) {
         ConfDump();
+        SCClearSubsystem();
         exit(EXIT_SUCCESS);
     }
 
@@ -3040,10 +3051,12 @@ int SuricataMain(int argc, char **argv)
     UtilCpuPrintSummary();
 
     if (ParseInterfacesList(suricata.aux_run_mode, suricata.pcap_dev) != TM_ECODE_OK) {
+        SCClearSubsystem();
         exit(EXIT_FAILURE);
     }
 
     if (PostConfLoadedSetup(&suricata) != TM_ECODE_OK) {
+        SCClearSubsystem();
         exit(EXIT_FAILURE);
     }
 
@@ -3072,6 +3085,7 @@ int SuricataMain(int argc, char **argv)
     if (TmThreadWaitOnThreadInit() == TM_ECODE_FAILED) {
         SCLogError(SC_ERR_INITIALIZATION, "Engine initialization failed, "
                    "aborting...");
+        SCClearSubsystem();
         exit(EXIT_FAILURE);
     }
 
@@ -3104,5 +3118,6 @@ int SuricataMain(int argc, char **argv)
 out:
     GlobalsDestroy(&suricata);
 
+    SCClearSubsystem();
     exit(EXIT_SUCCESS);
 }
