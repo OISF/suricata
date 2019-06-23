@@ -71,12 +71,17 @@ Kernel
 
 You need to run a kernel 4.13 or newer.
 
-Clang
-~~~~~
+Clang and dependencies
+~~~~~~~~~~~~~~~~~~~~~~
 
 Make sure you have clang (>=3.9) installed on the system  ::
 
- sudo apt-get install clang
+ sudo apt install clang
+
+Some i386 headers will also be needed as eBPF is not x86_64 and some include headers
+are architecture specific ::
+
+ sudo apt install  libc6-dev-i386 --no-install-recommends
 
 libbpf
 ~~~~~~
@@ -93,6 +98,8 @@ Now, you can build and install the library ::
  sudo make install_headers
  sudo ldconfig
 
+In some cases your system will not find the libbpf library that is installed under
+`/usr/lib64` so you may need to modify your ldconfig configuration.
 
 Compile and install Suricata
 ----------------------------
