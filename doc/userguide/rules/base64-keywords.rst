@@ -17,6 +17,7 @@ Syntax::
     base64_decode:bytes <value>, offset <value>, relative;
 
 The ``bytes`` option specifies how many bytes that should be decoded and made available for base64_data.
+The decoding will stop at the end of the buffer.
 
 The ``offset`` option specifies how many bytes to skip before the decoding should start. Bytes are skipped relative to the start of the payload buffer if relative is not set.
 
