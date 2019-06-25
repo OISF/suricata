@@ -48,7 +48,6 @@
 #include "output-json-snmp.h"
 
 #include "rust.h"
-#include "rust-snmp-log-gen.h"
 
 typedef struct LogSNMPFileCtx_ {
     LogFileCtx *file_ctx;

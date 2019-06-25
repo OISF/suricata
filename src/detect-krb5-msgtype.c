@@ -30,7 +30,7 @@
 #include "detect-krb5-msgtype.h"
 
 #include "app-layer-krb5.h"
-#include "rust-krb-detect-gen.h"
+#include "rust.h"
 
 /**
  * \brief Regex for parsing our keyword options

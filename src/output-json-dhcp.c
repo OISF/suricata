@@ -44,8 +44,8 @@
 
 #include "app-layer-dhcp.h"
 #include "output-json-dhcp.h"
+#include "rust.h"
 
-#include "rust-dhcp-logger-gen.h"
 
 typedef struct LogDHCPFileCtx_ {
     LogFileCtx *file_ctx;
