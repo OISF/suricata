@@ -33,7 +33,6 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-sip.h"
-#include "rust-sip-sip-gen.h"
 
 void RegisterSIPParsers(void)
 {

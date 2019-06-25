@@ -25,7 +25,6 @@
 #include "util-unittest.h"
 #include "app-layer-parser.h"
 #include "app-layer-dhcp.h"
-#include "rust-dhcp-dhcp-gen.h"
 
 void RegisterDHCPParsers(void)
 {

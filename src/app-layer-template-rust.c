@@ -44,8 +44,6 @@
 
 #include "app-layer-template-rust.h"
 
-#include "rust-applayertemplate-template-gen.h"
-
 void RegisterTemplateRustParsers(void)
 {
     /* TEMPLATE_START_REMOVE */

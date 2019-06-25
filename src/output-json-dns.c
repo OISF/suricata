@@ -51,8 +51,6 @@
 #include "output-json.h"
 #include "output-json-dns.h"
 
-#include "rust-dns-log-gen.h"
-
 /* we can do query logging as well, but it's disabled for now as the
  * TX id handling doesn't expect it */
 #define QUERY 0

@@ -34,8 +34,6 @@
 
 #include "app-layer-krb5.h"
 
-#include "rust-krb-krb5-gen.h"
-
 void RegisterKRB5Parsers(void)
 {
     rs_register_krb5_parser();

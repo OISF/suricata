@@ -34,8 +34,6 @@
 
 #include "app-layer-ntp.h"
 
-#include "rust-ntp-ntp-gen.h"
-
 void RegisterNTPParsers(void)
 {
     rs_register_ntp_parser();

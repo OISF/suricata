@@ -177,7 +177,6 @@
 #include "util-lua.h"
 
 #include "rust.h"
-#include "rust-core-gen.h"
 
 /*
  * we put this here, because we only use it here in main.

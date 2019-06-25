@@ -58,9 +58,6 @@
 #include "util-lua-common.h"
 #include "util-lua-dns.h"
 
-#include "rust-dns-dns-gen.h"
-#include "rust-dns-lua-gen.h"
-
 static int DnsGetDnsRrname(lua_State *luastate)
 {
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))

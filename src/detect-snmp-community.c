@@ -35,9 +35,6 @@
 #include "detect-snmp-community.h"
 #include "app-layer-parser.h"
 
-#include "rust-snmp-snmp-gen.h"
-#include "rust-snmp-detect-gen.h"
-
 static int DetectSNMPCommunitySetup(DetectEngineCtx *, Signature *,
     const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,

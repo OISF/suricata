@@ -53,7 +53,6 @@
 #include "app-layer-template-rust.h"
 #include "output-json-template-rust.h"
 
-#include "rust-applayertemplate-logger-gen.h"
 
 typedef struct LogTemplateFileCtx_ {
     LogFileCtx *file_ctx;

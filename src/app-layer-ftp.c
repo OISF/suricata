@@ -59,8 +59,6 @@
 #include "util-mem.h"
 #include "util-misc.h"
 
-#include "rust-ftp-mod-gen.h"
-
 #include "output-json.h"
 
 typedef struct FTPThreadCtx_ {

@@ -48,7 +48,6 @@
 #include "output-json-krb5.h"
 
 #include "rust.h"
-#include "rust-krb-log-gen.h"
 
 typedef struct LogKRB5FileCtx_ {
     LogFileCtx *file_ctx;

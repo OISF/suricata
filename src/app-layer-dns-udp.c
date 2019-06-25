@@ -26,7 +26,6 @@
 #include "util-unittest.h"
 
 #include "app-layer-dns-udp.h"
-#include "rust-dns-dns-gen.h"
 
 #ifdef UNITTESTS
 static void RustDNSUDPParserRegisterTests(void);
