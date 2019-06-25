@@ -28,7 +28,7 @@
 #ifdef HAVE_RUST
 
 #include "app-layer-dns-udp-rust.h"
-#include "rust-dns-dns-gen.h"
+#include "rust-bindings.h"
 
 #ifdef UNITTESTS
 static void RustDNSUDPParserRegisterTests(void);

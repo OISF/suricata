@@ -27,7 +27,7 @@
 #include "app-layer-dhcp.h"
 
 #ifdef HAVE_RUST
-#include "rust-dhcp-dhcp-gen.h"
+#include "rust-bindings.h"
 #endif /* HAVE_RUST */
 
 void RegisterDHCPParsers(void)

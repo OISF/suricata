@@ -35,7 +35,7 @@
 
 #include "detect-smb-share.h"
 #include "rust.h"
-#include "rust-smb-detect-gen.h"
+#include "rust-bindings.h"
 
 #define BUFFER_NAME "smb_named_pipe"
 #define KEYWORD_NAME "smb.named_pipe"

@@ -35,7 +35,7 @@
 
 #include "rust.h"
 #include "app-layer-krb5.h"
-#include "rust-krb-detect-gen.h"
+#include "rust-bindings.h"
 
 static int g_krb5_sname_buffer_id = 0;
 

@@ -49,7 +49,7 @@
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "rust-smb-detect-gen.h"
+#include "rust-bindings.h"
 
 #define PARSE_REGEX "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
 

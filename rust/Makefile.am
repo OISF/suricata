@@ -1,7 +1,7 @@
 EXTRA_DIST = 	Cargo.toml \
 		src \
 		.cargo/config.in \
-		gen-c-headers.py
+		gen
 
 if HAVE_RUST
 
@@ -30,9 +30,6 @@ RUST_FEATURES +=	debug
 endif
 
 all-local:
-if HAVE_PYTHON
-	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
-endif
 if HAVE_CYGPATH
 	rustpath=`cygpath -a -t mixed $(abs_top_builddir)`
 	cd $(top_srcdir)/rust && \
@@ -67,16 +64,8 @@ else
 vendor:
 endif
 
-# Can only include the headers if we have Python to generate them.
-if HAVE_PYTHON
-EXTRA_DIST +=	gen/c-headers
-gen/c-headers:
-	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
-else
-gen/c-headers:
-endif
 else # HAVE_RUST
 
-all-local clean-local check vendor gen/c-headers:
+all-local clean-local check vendor gen:
 
 endif # HAVE_RUST

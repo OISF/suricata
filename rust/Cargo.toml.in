@@ -1,6 +1,7 @@
 [package]
 name = "suricata"
 version = "@PACKAGE_VERSION@"
+build = "build.rs"
 
 [lib]
 crate-type = ["staticlib"]
@@ -23,3 +24,6 @@ kerberos-parser = "0.2"
 ntp-parser = "0.3"
 ipsec-parser = "0.4"
 snmp-parser = "0.3.0"
+
+[build-dependencies]
+cbindgen = "0.8"

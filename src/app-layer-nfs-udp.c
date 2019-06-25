@@ -42,7 +42,7 @@ void RegisterNFSUDPParsers(void)
 #else
 
 #include "rust.h"
-#include "rust-nfs-nfs-gen.h"
+#include "rust-bindings.h"
 
 /* The default port to probe for echo traffic if not provided in the
  * configuration file. */

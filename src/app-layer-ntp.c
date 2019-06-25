@@ -36,7 +36,7 @@
 
 #if defined(HAVE_RUST)
 
-#include "rust-ntp-ntp-gen.h"
+#include "rust-bindings.h"
 
 void RegisterNTPParsers(void)
 {

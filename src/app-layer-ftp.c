@@ -58,7 +58,7 @@
 #include "util-misc.h"
 
 #ifdef HAVE_RUST
-#include "rust-ftp-mod-gen.h"
+#include "rust-bindings.h"
 #endif
 
 #include "output-json.h"

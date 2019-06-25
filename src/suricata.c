@@ -176,7 +176,7 @@
 
 #ifdef HAVE_RUST
 #include "rust.h"
-#include "rust-core-gen.h"
+#include "rust-bindings.h"
 #endif
 
 /*

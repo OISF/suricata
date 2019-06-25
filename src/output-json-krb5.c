@@ -51,7 +51,7 @@
 #ifdef HAVE_LIBJANSSON
 
 #include "rust.h"
-#include "rust-krb-log-gen.h"
+#include "rust-bindings.h"
 
 typedef struct LogKRB5FileCtx_ {
     LogFileCtx *file_ctx;

@@ -18,6 +18,13 @@
 #ifndef __RUST_H__
 #define __RUST_H__
 
+#include "detect-engine-state.h" //DetectEngineState
+#include "app-layer-krb5.h" //KRB5State, KRB5Transaction
+#include "app-layer-ikev2.h" //IKEV2State, IKEV2Transaction
+#include "app-layer-ntp.h" //NTPState, NTPTransaction
+#include "app-layer-snmp.h" //SNMPState, SNMPTransaction
+#include "app-layer-tftp.h" //TFTPState, TFTPTransaction
+
 typedef struct SuricataContext_ {
     SCError (*SCLogMessage)(const SCLogLevel, const char *, const unsigned int,
             const char *, const SCError, const char *message);
@@ -51,9 +58,9 @@ struct _Store;
 typedef struct _Store Store;
 
 /** Opaque Rust types. */
-typedef struct NFState_ NFSState;
-typedef struct NFSTransaction_ NFSTransaction;
-typedef struct SMBState_ SMBState;
-typedef struct SMBTransaction_ SMBTransaction;
+//typedef struct NFState_ NFSState;
+//typedef struct NFSTransaction_ NFSTransaction;
+//typedef struct SMBState_ SMBState;
+//typedef struct SMBTransaction_ SMBTransaction;
 
 #endif /* !__RUST_H__ */

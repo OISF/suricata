@@ -51,7 +51,7 @@
 #ifdef HAVE_LIBJANSSON
 
 #include "rust.h"
-#include "rust-snmp-log-gen.h"
+#include "rust-bindings.h"
 
 typedef struct LogSNMPFileCtx_ {
     LogFileCtx *file_ctx;

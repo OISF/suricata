@@ -34,7 +34,7 @@
 
 #include "app-layer-ikev2.h"
 
-#include "rust-ikev2-ikev2-gen.h"
+#include "rust-bindings.h"
 
 void RegisterIKEV2Parsers(void)
 {

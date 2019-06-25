@@ -2401,24 +2401,13 @@ fi
     rust_compiler_version="not set"
     rust_cargo_version="not set"
 
-    # We may require Python if the Rust header stubs are not already
-    # generated.
-    if test "x$enable_python" != "xyes" && test ! -f rust/gen/c-headers/rust-core-gen.h; then
-        echo ""
-        echo "   ERROR! Rust support requires Python."
-        echo
-        echo "   Ubuntu: apt install python"
-        echo
-        exit 1
-    fi
-
     if test "x$enable_debug" = "xyes"; then
       RUST_SURICATA_LIB="../rust/target/debug/${RUST_SURICATA_LIBNAME}"
     else
       RUST_SURICATA_LIB="../rust/target/release/${RUST_SURICATA_LIBNAME}"
     fi
     RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
-    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
+    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen"
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
     if test "x$CARGO_HOME" = "x"; then
