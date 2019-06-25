@@ -2384,16 +2384,6 @@ fi
     rust_vendor_comment="# "
     have_rust_vendor="no"
 
-    # We may require Python if the Rust header stubs are not already
-    # generated.
-    if test "x$enable_python" != "xyes" && test ! -f rust/gen/c-headers/rust-core-gen.h; then
-        echo ""
-        echo "   ERROR! Rust support requires Python."
-        echo
-        echo "   Ubuntu: apt install python"
-        echo
-        exit 1
-    fi
     if test "x$enable_debug" = "xyes"; then
       RUST_SURICATA_LIB="../rust/target/debug/${RUST_SURICATA_LIBNAME}"
     else
@@ -2401,7 +2391,7 @@ fi
     fi
 
     RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
-    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
+    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen"
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
     if test "x$CARGO_HOME" = "x"; then
@@ -2444,6 +2434,26 @@ fi
         echo "       for building the distribution"
         echo "   To install: cargo install cargo-vendor"
       fi
+      AC_CHECK_FILES([$srcdir/rust/gen], [have_rust_headers="yes"])
+      AC_DEFINE([HAVE_RUST_HEADERS],[1],[Enable Rust language])
+      AM_CONDITIONAL([HAVE_RUST_HEADERS], [test "x$have_rust_headers" = "xyes"])
+      if test "x$have_rust_headers" != "xyes"; then
+        AC_PATH_PROG(HAVE_CARGO_CBINDGEN, cbindgen, "no") 
+        if test "x$HAVE_CARGO_CBINDGEN" = "xno"; then
+          echo "  Warning: cbindgen not found, it is required to generate header files"
+          echo "  To install: cargo install --force cbindgen"
+      	  AC_MSG_ERROR([cbindgen required])
+        fi
+        required_version=0.9.0
+        cbindgen_version=$(cbindgen --version | cut -d' ' -f2-)
+        lowest_version=$(printf '%s\n' $required_version $cbindgen_version | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n | head -n1)
+        if test "x$lowest_version" != "x$required_version"; then
+          HAVE_CARGO_BINDGEN="no"
+          echo "  Warning: cbindgen must be at least version $required_version, version was $cbindgen_version, lowest version was $lowest_version"
+          echo "  To install: cargo install --force cbindgen"
+          AC_MSG_ERROR([incorrect cbindgen version])
+        fi
+      fi 
     fi
     AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$HAVE_CARGO_VENDOR" != "xno"])
 

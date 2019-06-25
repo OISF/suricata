@@ -35,8 +35,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-tftp.h"
-
-#include "rust-tftp-tftp-gen.h"
+#include "rust.h"
 
 /* The default port to probe if not provided in the configuration file. */
 #define TFTP_DEFAULT_PORT "69"

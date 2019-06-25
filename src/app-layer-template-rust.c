@@ -43,8 +43,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-template-rust.h"
-
-#include "rust-applayertemplate-template-gen.h"
+#include "rust.h"
 
 void RegisterTemplateRustParsers(void)
 {
