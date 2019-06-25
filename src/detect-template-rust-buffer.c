@@ -38,7 +38,8 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-template-rust-buffer.h"
 #include "app-layer-parser.h"
-#include "rust-applayertemplate-template-gen.h"
+#include "rust.h"
+
 
 static int DetectTemplateRustBufferSetup(DetectEngineCtx *, Signature *,
     const char *);

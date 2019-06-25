@@ -38,7 +38,6 @@
 #include "app-layer-nfs-tcp.h"
 
 #include "rust.h"
-#include "rust-nfs-nfs-gen.h"
 
 /* The default port to probe for echo traffic if not provided in the
  * configuration file. */
