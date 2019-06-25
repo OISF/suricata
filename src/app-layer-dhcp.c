@@ -26,10 +26,6 @@
 #include "app-layer-parser.h"
 #include "app-layer-dhcp.h"
 
-#ifdef HAVE_RUST
-#include "rust-dhcp-dhcp-gen.h"
-#endif /* HAVE_RUST */
-
 void RegisterDHCPParsers(void)
 {
 #ifdef HAVE_RUST

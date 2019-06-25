@@ -36,8 +36,6 @@
 
 #ifdef HAVE_RUST
 
-#include "rust-krb-krb5-gen.h"
-
 void RegisterKRB5Parsers(void)
 {
     rs_register_krb5_parser();

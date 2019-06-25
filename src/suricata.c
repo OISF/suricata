@@ -176,10 +176,7 @@
 
 #include "util-lua.h"
 
-#ifdef HAVE_RUST
 #include "rust.h"
-#include "rust-core-gen.h"
-#endif
 
 /*
  * we put this here, because we only use it here in main.

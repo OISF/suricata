@@ -28,7 +28,6 @@
 #ifdef HAVE_RUST
 
 #include "app-layer-dns-tcp-rust.h"
-#include "rust-dns-dns-gen.h"
 
 #ifdef UNITTESTS
 static void RustDNSTCPParserRegisterTests(void);

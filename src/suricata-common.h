@@ -476,6 +476,7 @@ typedef enum {
 #include "detect-engine-alert.h"
 #include "util-path.h"
 #include "util-conf.h"
+#include "rust-bindings.h"
 
 #ifdef HAVE_LUA
 #include <lua.h>

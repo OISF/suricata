@@ -35,8 +35,6 @@
 
 #include "app-layer-snmp.h"
 
-#include "rust-snmp-snmp-gen.h"
-
 void RegisterSNMPParsers(void)
 {
     rs_register_snmp_parser();

@@ -55,8 +55,6 @@
 
 #if defined(HAVE_LIBJANSSON) && defined(HAVE_RUST)
 
-#include "rust-applayertemplate-logger-gen.h"
-
 typedef struct LogTemplateFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;

@@ -41,7 +41,6 @@
 #include "app-layer-parser.h"
 #include "app-layer-rdp.h"
 #include "output-json-rdp.h"
-#include "rust-rdp-log-gen.h"
 
 typedef struct LogRdpFileCtx_ {
     LogFileCtx *file_ctx;

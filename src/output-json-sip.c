@@ -48,7 +48,6 @@
 #include "output-json-sip.h"
 
 #include "rust.h"
-#include "rust-sip-log-gen.h"
 
 #ifdef HAVE_LIBJANSSON
 

@@ -36,8 +36,6 @@
 
 #if defined(HAVE_RUST)
 
-#include "rust-ntp-ntp-gen.h"
-
 void RegisterNTPParsers(void)
 {
     rs_register_ntp_parser();
