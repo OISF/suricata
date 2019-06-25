@@ -51,7 +51,6 @@
 #ifdef HAVE_LIBJANSSON
 
 #include "rust.h"
-#include "rust-ikev2-log-gen.h"
 
 typedef struct LogIKEv2FileCtx_ {
     LogFileCtx *file_ctx;

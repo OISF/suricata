@@ -481,7 +481,13 @@ typedef enum {
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#else
+/* If we don't have Lua, create a typedef for lua_State so the
+ * exported Lua functions don't fail the build. */
+typedef void lua_State;
 #endif
+
+#include "rust-bindings.h"
 
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *, const char *src, size_t siz);

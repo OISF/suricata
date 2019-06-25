@@ -32,7 +32,6 @@
 #ifdef HAVE_RUST
 
 #include "app-layer-krb5.h"
-#include "rust-krb-detect-gen.h"
 
 /**
  * \brief Regex for parsing our keyword options

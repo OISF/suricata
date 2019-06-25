@@ -43,10 +43,6 @@
 #include "util-unittest.h"
 #include "util-syslog.h"
 
-#ifdef HAVE_RUST
-#include "rust-log-gen.h"
-#endif
-
 #include "conf.h"
 
 /* holds the string-enum mapping for the enums held in the table SCLogLevel */

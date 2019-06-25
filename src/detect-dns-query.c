@@ -60,8 +60,6 @@
 
 #include "util-unittest-helper.h"
 
-#include "rust-dns-dns-gen.h"
-
 static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectDnsQueryRegisterTests(void);
 static int g_dns_query_buffer_id = 0;

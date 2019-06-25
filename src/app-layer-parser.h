@@ -94,12 +94,6 @@ typedef int (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
         const uint8_t *buf, uint32_t buf_len,
         void *local_storage, const uint8_t flags);
 
-typedef struct AppLayerGetTxIterTuple {
-    void *tx_ptr;
-    uint64_t tx_id;
-    bool has_next;
-} AppLayerGetTxIterTuple;
-
 typedef struct AppLayerGetTxIterState {
     union {
         void *ptr;
