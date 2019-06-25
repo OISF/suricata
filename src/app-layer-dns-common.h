@@ -121,8 +121,6 @@ enum {
 };
 
 /** Opaque Rust types. */
-typedef struct RSDNSState_ RSDNSState;
-typedef struct RSDNSTransaction_ RSDNSTransaction;
 
 /** \brief DNS packet header */
 typedef struct DNSHeader_ {

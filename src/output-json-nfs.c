@@ -47,7 +47,6 @@
 #include "output-json-nfs.h"
 
 #include "rust.h"
-#include "rust-nfs-log-gen.h"
 
 json_t *JsonNFSAddMetadataRPC(const Flow *f, uint64_t tx_id)
 {

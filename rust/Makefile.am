@@ -1,7 +1,8 @@
 EXTRA_DIST = Cargo.toml Cargo.lock \
 		src \
 		.cargo/config.in \
-		gen-c-headers.py
+                gen \
+                cbindgen.toml
 
 if HAVE_CARGO_VENDOR
 EXTRA_DIST +=	vendor
@@ -23,10 +24,9 @@ if DEBUG
 RUST_FEATURES +=	debug
 endif
 
-all-local:
-if HAVE_PYTHON
-	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
-endif
+build-rust:
+	cd $(top_srcdir)/rust
+
 if HAVE_CYGPATH
 	rustpath=`cygpath -a -t mixed $(abs_top_builddir)`
 	cd $(top_srcdir)/rust && @rustup_home@ \
@@ -42,11 +42,29 @@ else
 			--features "$(RUST_FEATURES)"
 endif
 
+if HAVE_RUST_HEADERS
+
+all-local: build-rust
+	$(info Rust headers available)
+
+clean-local:
+	-rm -rf target
+
+distclean-local: clean-local
+	rm -rf vendor Cargo.lock
+
+else 
+
+all-local: gen-headers build-rust
+	$(info Generating rust headers)
+
 clean-local:
 	-rm -rf target gen
 
 distclean-local: clean-local
 	rm -rf vendor gen Cargo.lock
+
+endif
 
 check:
 	CARGO_HOME="$(CARGO_HOME)" @rustup_home@
@@ -63,11 +81,6 @@ else
 vendor:
 endif
 
-# Can only include the headers if we have Python to generate them.
-if HAVE_PYTHON
-EXTRA_DIST +=	gen/c-headers
-gen/c-headers:
-	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
-else
-gen/c-headers:
-endif
+gen-headers: FORCE
+	cbindgen --config cbindgen.toml --output "gen/rust-bindings.h" > /dev/null
+FORCE:

@@ -47,6 +47,7 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "rust.h"
 
 #ifdef HAVE_LUA
 
@@ -57,9 +58,6 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-dns.h"
-
-#include "rust-dns-dns-gen.h"
-#include "rust-dns-lua-gen.h"
 
 static int DnsGetDnsRrname(lua_State *luastate)
 {
