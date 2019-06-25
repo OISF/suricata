@@ -49,7 +49,6 @@
 #include "output-json-tftp.h"
 
 #include "rust.h"
-#include "rust-tftp-log-gen.h"
 
 typedef struct LogTFTPFileCtx_ {
     LogFileCtx *file_ctx;

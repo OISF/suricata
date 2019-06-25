@@ -198,4 +198,6 @@ before_install:
     # match the requested version.
     rustup default "${RUST_VERSION}"
     rustc --version
+
+    cargo install --force cbindgen
   - ./qa/travis-libhtp.sh

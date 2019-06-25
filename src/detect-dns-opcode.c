@@ -21,7 +21,7 @@
 #include "detect-engine.h"
 #include "detect-dns-opcode.h"
 #include "app-layer-dns-common.h"
-#include "rust-dns-detect-gen.h"
+#include "rust.h"
 
 static int dns_opcode_list_id = 0;
 

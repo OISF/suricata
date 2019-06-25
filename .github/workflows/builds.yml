@@ -70,6 +70,8 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace \
+      - name: Install cbindgen
+        run: cargo install --force cbindgen
       - uses: actions/checkout@v1
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
@@ -139,6 +141,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
+      - name: Install cbindgen
+        run: cargo install --force cbindgen
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -177,6 +181,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
+      - name: Install cbindgen
+        run: cargo install --force cbindgen
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -241,6 +247,8 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
+      - name: Install cbindgen
+        run: cargo install --force cbindgen
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
@@ -306,6 +314,8 @@ jobs:
         run: |
           add-apt-repository -y ppa:npalix/coccinelle
           apt -y install coccinelle
+      - name: Install cbindgen
+        run: cargo install --force cbindgen
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
@@ -357,6 +367,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
       - run: echo "::add-path::/github/home/.cargo/bin"
+      - name: Install cbindgen
+        run: cargo install --force cbindgen
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -429,6 +441,8 @@ jobs:
                 sudo \
                 zlib1g \
                 zlib1g-dev
+      - name: Install cbindgen
+        run: cargo install --force cbindgen
       - uses: actions/checkout@v1
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
@@ -490,6 +504,8 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
       - run: echo "::add-path::/github/home/.cargo/bin"
+      - name: Install cbindgen
+        run: cargo install --force cbindgen
       - uses: actions/checkout@v1
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
@@ -537,6 +553,8 @@ jobs:
           pkg-config \
           rust \
           xz
+      - name: Install cbindgen
+        run: cargo install --force cbindgen
       - run: pip install PyYAML
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
