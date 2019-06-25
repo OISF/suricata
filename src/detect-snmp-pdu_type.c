@@ -29,9 +29,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-snmp-pdu_type.h"
 #include "app-layer-parser.h"
-
-#include "rust-snmp-snmp-gen.h"
-#include "rust-snmp-detect-gen.h"
+#include "rust.h"
 
 /**
  *   [snmp.pdu_type]:<type>;

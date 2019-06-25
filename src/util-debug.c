@@ -42,8 +42,8 @@
 
 #include "util-unittest.h"
 #include "util-syslog.h"
+#include "rust.h"
 
-#include "rust-log-gen.h"
 
 #include "conf.h"
 
