@@ -59,8 +59,7 @@
 #include "detect-engine-dns.h"
 
 #include "util-unittest-helper.h"
-
-#include "rust-dns-dns-gen.h"
+#include "rust.h"
 
 static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectDnsQueryRegisterTests(void);

@@ -26,8 +26,6 @@
 
 #include "rust.h"
 #include "app-layer-smb.h"
-#include "rust-smb-smb-gen.h"
-#include "rust-smb-files-gen.h"
 #include "util-misc.h"
 
 #define MIN_REC_SIZE 32+4 // SMB hdr + nbss hdr

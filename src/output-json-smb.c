@@ -46,7 +46,6 @@
 #include "output-json-smb.h"
 
 #include "rust.h"
-#include "rust-smb-log-gen.h"
 
 json_t *JsonSMBAddMetadata(const Flow *f, uint64_t tx_id)
 {
