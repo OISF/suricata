@@ -51,7 +51,7 @@
 #ifdef HAVE_LIBJANSSON
 
 #include "rust.h"
-#include "rust-ikev2-log-gen.h"
+#include "rust-bindings.h"
 
 typedef struct LogIKEv2FileCtx_ {
     LogFileCtx *file_ctx;
@@ -77,7 +77,7 @@ static int JsonIKEv2Logger(ThreadVars *tv, void *thread_data,
 
     JsonAddCommonOptions(&thread->ikev2log_ctx->cfg, p, f, js);
 
-    ikev2js = rs_ikev2_log_json_response(state, ikev2tx);
+    ikev2js = (json_t *)rs_ikev2_log_json_response(state, ikev2tx);
     if (unlikely(ikev2js == NULL)) {
         goto error;
     }

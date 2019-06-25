@@ -51,7 +51,7 @@
 #include "output-json.h"
 #include "output-json-dns.h"
 
-#include "rust-dns-log-gen.h"
+#include "rust-bindings.h"
 
 /* we can do query logging as well, but it's disabled for now as the
  * TX id handling doesn't expect it */
@@ -280,7 +280,7 @@ json_t *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
         return NULL;
 
     for (uint16_t i = 0; i < UINT16_MAX; i++) {
-        json_t *dns = rs_dns_log_json_query((void *)txptr, i, LOG_ALL_RRTYPES);
+        json_t *dns = (json_t *)rs_dns_log_json_query((void *)txptr, i, LOG_ALL_RRTYPES);
         if (unlikely(dns == NULL)) {
             break;
         }
@@ -292,7 +292,7 @@ json_t *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
 
 json_t *JsonDNSLogAnswer(void *txptr, uint64_t tx_id)
 {
-    return rs_dns_log_json_answer(txptr, LOG_ALL_RRTYPES);
+    return (json_t *)rs_dns_log_json_answer(txptr, LOG_ALL_RRTYPES);
 }
 
 static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
@@ -315,7 +315,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         }
         JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
 
-        json_t *dns = rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags);
+        json_t *dns = (json_t *)rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags);
         if (unlikely(dns == NULL)) {
             json_decref(js);
             break;
@@ -348,7 +348,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
 
     if (td->dnslog_ctx->version == DNS_VERSION_2) {
-        json_t *answer = rs_dns_log_json_answer(txptr,
+        json_t *answer = (json_t *)rs_dns_log_json_answer(txptr,
                 td->dnslog_ctx->flags);
         if (answer != NULL) {
             json_object_set_new(js, "dns", answer);
@@ -358,7 +358,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     } else {
         /* Log answers. */
         for (uint16_t i = 0; i < UINT16_MAX; i++) {
-            json_t *answer = rs_dns_log_json_answer_v1(txptr, i,
+            json_t *answer = (json_t *)rs_dns_log_json_answer_v1(txptr, i,
                     td->dnslog_ctx->flags);
             if (answer == NULL) {
                 break;
@@ -370,7 +370,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         }
         /* Log authorities. */
         for (uint16_t i = 0; i < UINT16_MAX; i++) {
-            json_t *answer = rs_dns_log_json_authority_v1(txptr, i,
+            json_t *answer = (json_t *)rs_dns_log_json_authority_v1(txptr, i,
                     td->dnslog_ctx->flags);
             if (answer == NULL) {
                 break;

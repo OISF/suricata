@@ -47,7 +47,7 @@
 
 #ifdef HAVE_LIBJANSSON
 #include "rust.h"
-#include "rust-smb-log-gen.h"
+#include "rust-bindings.h"
 
 json_t *JsonSMBAddMetadata(const Flow *f, uint64_t tx_id)
 {
@@ -55,7 +55,7 @@ json_t *JsonSMBAddMetadata(const Flow *f, uint64_t tx_id)
     if (state) {
         SMBTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_SMB, state, tx_id);
         if (tx) {
-            return rs_smb_log_json_response(state, tx);
+            return (json_t *)rs_smb_log_json_response(state, tx);
         }
     }
 
@@ -73,7 +73,7 @@ static int JsonSMBLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    smbjs = rs_smb_log_json_response(state, tx);
+    smbjs = (json_t *)rs_smb_log_json_response(state, tx);
     if (unlikely(smbjs == NULL)) {
         goto error;
     }

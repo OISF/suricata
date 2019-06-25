@@ -51,7 +51,7 @@
 #ifdef HAVE_RUST
 
 #include "rust.h"
-#include "rust-tftp-log-gen.h"
+#include "rust-bindings.h"
 
 #ifdef HAVE_LIBJANSSON
 
@@ -76,7 +76,7 @@ static int JsonTFTPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    json_t *tftpjs = rs_tftp_log_json_request(tx);
+    json_t *tftpjs = (json_t *)rs_tftp_log_json_request(tx);
     if (unlikely(tftpjs == NULL)) {
         goto error;
     }

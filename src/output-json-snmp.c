@@ -51,7 +51,7 @@
 #ifdef HAVE_LIBJANSSON
 
 #include "rust.h"
-#include "rust-snmp-log-gen.h"
+#include "rust-bindings.h"
 
 typedef struct LogSNMPFileCtx_ {
     LogFileCtx *file_ctx;
@@ -77,7 +77,7 @@ static int JsonSNMPLogger(ThreadVars *tv, void *thread_data,
 
     JsonAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, js);
 
-    snmpjs = rs_snmp_log_json_response(state, snmptx);
+    snmpjs = (json_t *)rs_snmp_log_json_response(state, snmptx);
     if (unlikely(snmpjs == NULL)) {
         goto error;
     }

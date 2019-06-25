@@ -55,7 +55,7 @@
 
 #if defined(HAVE_LIBJANSSON) && defined(HAVE_RUST)
 
-#include "rust-applayertemplate-logger-gen.h"
+#include "rust-bindings.h"
 
 typedef struct LogTemplateFileCtx_ {
     LogFileCtx *file_ctx;
@@ -79,7 +79,7 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    json_t *template_js = rs_template_logger_log(tx);
+    json_t *template_js = (json_t *)rs_template_logger_log(tx);
     if (unlikely(template_js == NULL)) {
         goto error;
     }

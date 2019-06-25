@@ -49,7 +49,7 @@
 #ifdef HAVE_RUST
 #ifdef HAVE_LIBJANSSON
 #include "rust.h"
-#include "rust-nfs-log-gen.h"
+#include "rust-bindings.h"
 
 json_t *JsonNFSAddMetadataRPC(const Flow *f, uint64_t tx_id)
 {
@@ -57,7 +57,7 @@ json_t *JsonNFSAddMetadataRPC(const Flow *f, uint64_t tx_id)
     if (state) {
         NFSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_NFS, state, tx_id);
         if (tx) {
-            return rs_rpc_log_json_response(tx);
+            return (json_t *)rs_rpc_log_json_response(tx);
         }
     }
 
@@ -70,7 +70,7 @@ json_t *JsonNFSAddMetadata(const Flow *f, uint64_t tx_id)
     if (state) {
         NFSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_NFS, state, tx_id);
         if (tx) {
-            return rs_nfs_log_json_response(state, tx);
+            return (json_t *)rs_nfs_log_json_response(state, tx);
         }
     }
 
@@ -93,13 +93,13 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
 
     JsonAddCommonOptions(&thread->ctx->cfg, p, f, js);
 
-    json_t *rpcjs = rs_rpc_log_json_response(tx);
+    json_t *rpcjs = (json_t *)rs_rpc_log_json_response(tx);
     if (unlikely(rpcjs == NULL)) {
         goto error;
     }
     json_object_set_new(js, "rpc", rpcjs);
 
-    json_t *nfsjs = rs_nfs_log_json_response(state, tx);
+    json_t *nfsjs = (json_t *)rs_nfs_log_json_response(state, tx);
     if (unlikely(nfsjs == NULL)) {
         goto error;
     }

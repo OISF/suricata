@@ -51,7 +51,7 @@
 #ifdef HAVE_LIBJANSSON
 
 #include "rust.h"
-#include "rust-krb-log-gen.h"
+#include "rust-bindings.h"
 
 typedef struct LogKRB5FileCtx_ {
     LogFileCtx *file_ctx;
@@ -77,7 +77,7 @@ static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
 
     JsonAddCommonOptions(&thread->krb5log_ctx->cfg, p, f, js);
 
-    krb5js = rs_krb5_log_json_response(state, krb5tx);
+    krb5js = (json_t *)rs_krb5_log_json_response(state, krb5tx);
     if (unlikely(krb5js == NULL)) {
         goto error;
     }

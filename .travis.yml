@@ -222,6 +222,7 @@ before_install:
   - export PATH=$HOME/.cargo/bin:$PATH
   - |
     curl https://sh.rustup.rs -sSf | sh -s -- -y
+    cargo install --force cbindgen
     if [[ "$RUST_VERSION" != "" ]]; then
         rustup override set $RUST_VERSION
     fi

@@ -53,7 +53,7 @@
 
 #if defined(HAVE_LIBJANSSON) && defined(HAVE_RUST)
 
-#include "rust-dhcp-logger-gen.h"
+#include "rust-bindings.h"
 
 typedef struct LogDHCPFileCtx_ {
     LogFileCtx *file_ctx;
@@ -78,7 +78,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    json_t *dhcp_js = rs_dhcp_logger_log(ctx->rs_logger, tx);
+    json_t *dhcp_js = (json_t *)rs_dhcp_logger_log(ctx->rs_logger, tx);
     if (unlikely(dhcp_js == NULL)) {
         goto skip;
     }

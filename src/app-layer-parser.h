@@ -29,6 +29,7 @@
 #include "detect-engine-state.h"
 #include "util-file.h"
 #include "stream-tcp-private.h"
+#include "rust-bindings.h"
 
 /* Flags for AppLayerParserState. */
 #define APP_LAYER_PARSER_EOF                    BIT_U8(0)
@@ -94,11 +95,11 @@ typedef int (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
         uint8_t *buf, uint32_t buf_len,
         void *local_storage, const uint8_t flags);
 
-typedef struct AppLayerGetTxIterTuple {
-    void *tx_ptr;
-    uint64_t tx_id;
-    bool has_next;
-} AppLayerGetTxIterTuple;
+//typedef struct AppLayerGetTxIterTuple {
+//    void *tx_ptr;
+//    uint64_t tx_id;
+//    bool has_next;
+//} AppLayerGetTxIterTuple;
 
 typedef struct AppLayerGetTxIterState {
     union {
