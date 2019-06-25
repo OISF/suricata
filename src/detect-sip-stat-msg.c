@@ -54,7 +54,7 @@
 
 #include "rust.h"
 #include "app-layer-sip.h"
-#include "rust-sip-detect-gen.h"
+#include "rust-bindings.h"
 
 #define KEYWORD_NAME "sip.stat_msg"
 #define KEYWORD_DOC  "sip-keywords.html#sip-stat-msg"
