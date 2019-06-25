@@ -44,7 +44,7 @@
 #include "util-syslog.h"
 
 #ifdef HAVE_RUST
-#include "rust-log-gen.h"
+#include "rust-bindings.h"
 #endif
 
 #include "conf.h"

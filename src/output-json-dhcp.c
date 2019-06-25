@@ -53,7 +53,7 @@
 
 #if defined(HAVE_LIBJANSSON) && defined(HAVE_RUST)
 
-#include "rust-dhcp-logger-gen.h"
+#include "rust-bindings.h"
 
 typedef struct LogDHCPFileCtx_ {
     LogFileCtx *file_ctx;
