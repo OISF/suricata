@@ -53,7 +53,7 @@
 
 #include "rust.h"
 #include "app-layer-sip.h"
-#include "rust-sip-detect-gen.h"
+#include "rust-bindings.h"
 
 #define KEYWORD_NAME "sip.request_line"
 #define KEYWORD_DOC  "sip-keywords.html#sip-request-line"

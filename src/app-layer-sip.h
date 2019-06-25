@@ -28,7 +28,5 @@ void RegisterSIPParsers(void);
 void SIPParserRegisterTests(void);
 
 /** Opaque Rust types. */
-typedef struct SIPState_ SIPState;
-typedef struct SIPTransaction_ SIPTransaction;
 
 #endif /* __APP_LAYER_SIP_H__ */

@@ -47,7 +47,7 @@ void DetectTemplateRustBufferRegister(void)
 
 #else
 
-#include "rust-applayertemplate-template-gen.h"
+#include "rust-bindings.h"
 
 static int DetectTemplateRustBufferSetup(DetectEngineCtx *, Signature *,
     const char *);
