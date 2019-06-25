@@ -45,7 +45,7 @@
 
 #include "app-layer-nfs-tcp.h"
 #include "rust.h"
-#include "rust-nfs-nfs-gen.h"
+#include "rust-bindings.h"
 
 /**
  *   [nfs_procedure]:[<|>]<proc>[<><proc>];

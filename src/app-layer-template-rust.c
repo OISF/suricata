@@ -45,7 +45,7 @@
 #include "app-layer-template-rust.h"
 
 #ifdef HAVE_RUST
-#include "rust-applayertemplate-template-gen.h"
+#include "rust-bindings.h"
 #endif
 
 void RegisterTemplateRustParsers(void)

@@ -51,7 +51,7 @@
 #ifdef HAVE_RUST
 
 #include "rust.h"
-#include "rust-tftp-log-gen.h"
+#include "rust-bindings.h"
 
 #ifdef HAVE_LIBJANSSON
 
