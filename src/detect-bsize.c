@@ -281,6 +281,9 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     SCEnter();
     SigMatch *sm = NULL;
 
+    if (DetectBufferGetActiveList(de_ctx, s) == -1)
+        SCReturnInt(-1);
+
     int list = s->init_data->list;
     if (list == DETECT_SM_LIST_NOTSET)
         SCReturnInt(-1);
