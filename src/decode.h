@@ -55,6 +55,7 @@ enum PktSrcEnum {
     PKT_SRC_STREAM_TCP_STREAM_END_PSEUDO,
     PKT_SRC_FFR,
     PKT_SRC_STREAM_TCP_DETECTLOG_FLUSH,
+    PKT_SRC_DECODER_VXLAN,
 };
 
 #include "source-nflog.h"
@@ -1168,3 +1169,4 @@ static inline bool VerdictTunnelPacket(Packet *p)
 }
 
 #endif /* __DECODE_H__ */
+

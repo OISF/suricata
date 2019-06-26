@@ -691,6 +691,9 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
         case PKT_SRC_FFR:
             pkt_src_str = "stream (flow timeout)";
             break;
+        case PKT_SRC_DECODER_VXLAN:
+            pkt_src_str = "vxlan encapsulation";
+            break;
     }
     return pkt_src_str;
 }
@@ -719,6 +722,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s)
 void DecodeGlobalConfig(void)
 {
     DecodeTeredoConfig();
+    DecodeVXLANConfig();
 }
 
 /**

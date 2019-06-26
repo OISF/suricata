@@ -44,6 +44,7 @@ vars:
     MODBUS_PORTS: 502
     FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
     FTP_PORTS: 21
+    VXLAN_PORTS: 4789
 
 ##
 ## Step 2: select outputs to enable
@@ -1370,9 +1371,14 @@ host:
 
 decoder:
   # Teredo decoder is known to not be completely accurate
-  # it will sometimes detect non-teredo as teredo.
+  # as it will sometimes detect non-teredo as teredo.
   teredo:
     enabled: true
+  # VXLAN decoder is assigned to up to 4 UDP ports. By default only the
+  # IANA assigned port 4789 is enabled.
+  vxlan:
+    enabled: true
+    ports: $VXLAN_PORTS # syntax: '8472, 4789'
 
 
 ##
