@@ -55,7 +55,7 @@
 
 #if defined(HAVE_LIBJANSSON) && defined(HAVE_RUST)
 
-#include "rust-bindings.h""
+#include "rust-bindings.h"
 
 typedef struct LogTemplateFileCtx_ {
     LogFileCtx *file_ctx;
