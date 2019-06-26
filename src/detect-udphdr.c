@@ -44,9 +44,8 @@ static int g_udphdr_buffer_id = 0;
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Packet *p, const int list_id);
 /**
- * \brief Registration function for udphdr: keyword
+ * \brief Registration function for udp.hdr: keyword
  */
-
 void DetectUdphdrRegister(void)
 {
     sigmatch_table[DETECT_UDPHDR].name = "udp.hdr";
@@ -71,16 +70,16 @@ void DetectUdphdrRegister(void)
 }
 
 /**
- * \brief this function is used to atcphdrd the parsed tcphdr data into the current signature
+ * \brief set up the udp.hdr sticky buffer
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param tcphdrstr pointer to the user provided tcphdr options
+ * \param _unused unused
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectUdphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *tcphdrstr)
+static int DetectUdphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     if (!(DetectProtoContainsProto(&s->proto, IPPROTO_UDP)))
         return -1;
