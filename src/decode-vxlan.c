@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,9 +27,8 @@
 #include "decode.h"
 #include "decode-vxlan.h"
 #include "decode-events.h"
-#include "decode-udp.h"
 
-#include "decode-ethernet.h"
+#include "detect-engine-port.h"
 
 #include "flow.h"
 
@@ -43,6 +42,45 @@
 #define VXLAN_HEADER_LEN         8
 
 static bool g_vxlan_enabled = true;
+static int g_vxlan_ports[4] = { 4789, -1, -1, -1 };
+static int g_vxlan_ports_idx = 0;
+
+bool DecodeVXLANEnabledForPort(const uint16_t sp, const uint16_t dp)
+{
+    SCLogDebug("ports %u->%u ports %d %d %d %d", sp, dp,
+            g_vxlan_ports[0], g_vxlan_ports[1],
+            g_vxlan_ports[2], g_vxlan_ports[3]);
+
+    if (g_vxlan_enabled) {
+        for (int i = 0; i < g_vxlan_ports_idx; i++) {
+            if (g_vxlan_ports[i] == -1)
+                return false;
+            if (g_vxlan_ports[i] == (const int)sp ||
+                    g_vxlan_ports[i] == (const int)dp)
+                return true;
+        }
+    }
+    return false;
+}
+
+static void DecodeVXLANConfigPorts(const char *pstr)
+{
+    SCLogDebug("parsing \'%s\'", pstr);
+
+    DetectPort *head = NULL;
+    DetectPortParse(NULL, &head, pstr);
+
+    g_vxlan_ports_idx = 0;
+    for (DetectPort *p = head; p != NULL; p = p->next) {
+        if (g_vxlan_ports_idx >= 4) {
+            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                    "more than 4 VXLAN ports defined");
+            break;
+        }
+        g_vxlan_ports[g_vxlan_ports_idx++] = (int)p->port;
+    }
+    DetectPortCleanupList(NULL, head);
+}
 
 void DecodeVXLANConfig(void)
 {
@@ -54,78 +92,89 @@ void DecodeVXLANConfig(void)
             g_vxlan_enabled = false;
         }
     }
-}
 
-static int DecodeVXLANPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
-{
-    if (unlikely(len < UDP_HEADER_LEN)) {
-        ENGINE_SET_INVALID_EVENT(p, UDP_HLEN_TOO_SMALL);
-        return -1;
+    if (g_vxlan_enabled) {
+        ConfNode *node = ConfGetNode("decoder.vxlan.ports");
+        if (node && node->val) {
+            DecodeVXLANConfigPorts(node->val);
+        } else {
+            DecodeVXLANConfigPorts("4789");
+        }
     }
-
-    p->udph = (UDPHdr *)pkt;
-
-    SET_UDP_SRC_PORT(p,&p->sp);
-    SET_UDP_DST_PORT(p,&p->dp);
-
-    p->payload = pkt + UDP_HEADER_LEN;
-    p->payload_len = len - UDP_HEADER_LEN;
-    p->proto = IPPROTO_UDP;
-
-    return 0;
 }
 
+typedef struct VXLANHeader_ {
+    uint8_t flags[2];
+    uint16_t gdp;
+    uint8_t vni[3];
+    uint8_t res;
+} VXLANHeader;
+
+/** \param pkt payload data directly above UDP header
+ *  \param len length in bytes of pkt
+ */
 int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
         uint32_t len, PacketQueue *pq)
 {
-    if (!g_vxlan_enabled)
+    if (unlikely(!g_vxlan_enabled))
         return TM_ECODE_FAILED;
 
-    /* Is this packet to short to contain an IPv4/IPv6 packet ? */
-    if (len < IPV4_HEADER_LEN)
+    if (len < sizeof(VXLANHeader) + sizeof(EthernetHdr))
         return TM_ECODE_FAILED;
 
-    int event = 0;
-
-    if (unlikely(DecodeVXLANPacket(tv, p,pkt,len) < 0)) {
-        p->udph = NULL;
+    const VXLANHeader *vxlanh = (const VXLANHeader *)pkt;
+    if ((vxlanh->flags[0] & 0x08) == 0) {
         return TM_ECODE_FAILED;
     }
-    StatsIncr(tv, dtv->counter_vxlan);
+    if (vxlanh->res != 0) {
+        return TM_ECODE_FAILED;
+    }
 
-    SCLogDebug("VXLAN UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "",
-            UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
+#if DEBUG
+    uint32_t vni = (vxlanh->vni[0] << 16) + (vxlanh->vni[1] << 8) + (vxlanh->vni[2]);
+    SCLogDebug("VXLAN vni %u", vni);
+#endif
+
+    StatsIncr(tv, dtv->counter_vxlan);
 
     /* VXLAN encapsulate Layer 2 in UDP, most likely IPv4 and IPv6  */
 
-    p->ethh = (EthernetHdr *)(pkt + UDP_HEADER_LEN + VXLAN_HEADER_LEN);
-    SCLogDebug("VXLAN Ethertype 0x%04x", SCNtohs(p->ethh->eth_type));
+    EthernetHdr *ethh = (EthernetHdr *)(pkt + VXLAN_HEADER_LEN);
+    SCLogDebug("VXLAN ethertype 0x%04x", SCNtohs(ethh->eth_type));
+
     /* Best guess at inner packet. */
-    switch (SCNtohs(p->ethh->eth_type)) {
+    switch (SCNtohs(ethh->eth_type)) {
         case ETHERNET_TYPE_ARP:
             SCLogDebug("VXLAN found ARP");
             break;
         case ETHERNET_TYPE_IP:
             SCLogDebug("VXLAN found IPv4");
-            /* DecodeIPV4(tv, dtv, p, pkt, len, pq); */
+            if (pq != NULL) {
+                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
+                        len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), DECODE_TUNNEL_IPV4, pq);
+                if (tp != NULL) {
+                    PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
+                    PacketEnqueue(pq, tp);
+                }
+            }
             break;
         case ETHERNET_TYPE_IPV6:
             SCLogDebug("VXLAN found IPv6");
-            /* DecodeIPV6(tv, dtv, p, pkt, len, pq); */
+            if (pq != NULL) {
+                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
+                        len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), DECODE_TUNNEL_IPV6, pq);
+                if (tp != NULL) {
+                    PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
+                    PacketEnqueue(pq, tp);
+                }
+            }
             break;
         default:
             SCLogDebug("VXLAN found no known Ethertype - only checks for IPv4, IPv6, ARP");
             /* ENGINE_SET_INVALID_EVENT(p, VXLAN_UNKNOWN_PAYLOAD_TYPE);*/
-            /* return TM_ECODE_OK; */
+            break;
     }
 
-    SCLogDebug("VXLAN trying to decode with Ethernet");
-    DecodeEthernet(tv, dtv, p, pkt + UDP_HEADER_LEN + VXLAN_HEADER_LEN,
-      len - UDP_HEADER_LEN - VXLAN_HEADER_LEN, pq);
-
-    if (event) {
-        ENGINE_SET_EVENT(p, event);
-    }
     return TM_ECODE_OK;
 }
 
@@ -134,9 +183,6 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
 /**
  * \test DecodeVXLANTest01 test a good vxlan header.
  * Contains a DNS request packet
- *
- *  \retval 1 on success
- *  \retval 0 on failure
  */
 static int DecodeVXLANtest01 (void)
 {
@@ -145,7 +191,7 @@ static int DecodeVXLANtest01 (void)
         0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x25, 0x00, /* VXLAN header */
         0x10, 0x00, 0x00, 0x0c, 0x01, 0x00, /* inner destination MAC */
         0x00, 0x51, 0x52, 0xb3, 0x54, 0xe5, /* inner source MAC */
-        0x08, 0x00, /* wot another IPv4 0x0800 */
+        0x08, 0x00, /* another IPv4 0x0800 */
         0x45, 0x00, 0x00, 0x1c, 0x00, 0x01, 0x00, 0x00, 0x40, 0x11,
         0x44, 0x45, 0x0a, 0x60, 0x00, 0x0a, 0xb9, 0x1b, 0x73, 0x06,  /* IPv4 hdr */
         0x00, 0x35, 0x30, 0x39, 0x00, 0x08, 0x98, 0xe4 /* UDP probe src port 53 */
@@ -154,19 +200,67 @@ static int DecodeVXLANtest01 (void)
     FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
+    PacketQueue pq;
 
+    DecodeVXLANConfigPorts("4789");
+
+    memset(&pq, 0, sizeof(PacketQueue));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeVXLAN(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan), NULL);
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan), &pq);
 
     FAIL_IF(p->udph == NULL);
+    FAIL_IF(pq.top == NULL);
+    Packet *tp = PacketDequeue(&pq);
+    FAIL_IF(tp->udph == NULL);
+    FAIL_IF_NOT(tp->sp == 53);
 
-    PACKET_RECYCLE(p);
     FlowShutdown();
-    SCFree(p);
+    PacketFree(p);
+    PacketFree(tp);
+    PASS;
+}
+
+/**
+ * \test test port disabled in config
+ */
+static int DecodeVXLANtest02 (void)
+{
+    uint8_t raw_vxlan[] = {
+        0x12, 0xb5, 0x12, 0xb5, 0x00, 0x3a, 0x87, 0x51, /* UDP header */
+        0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x25, 0x00, /* VXLAN header */
+        0x10, 0x00, 0x00, 0x0c, 0x01, 0x00, /* inner destination MAC */
+        0x00, 0x51, 0x52, 0xb3, 0x54, 0xe5, /* inner source MAC */
+        0x08, 0x00, /* another IPv4 0x0800 */
+        0x45, 0x00, 0x00, 0x1c, 0x00, 0x01, 0x00, 0x00, 0x40, 0x11,
+        0x44, 0x45, 0x0a, 0x60, 0x00, 0x0a, 0xb9, 0x1b, 0x73, 0x06,  /* IPv4 hdr */
+        0x00, 0x35, 0x30, 0x39, 0x00, 0x08, 0x98, 0xe4 /* UDP probe src port 53 */
+    };
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    PacketQueue pq;
+
+    DecodeVXLANConfigPorts("1");
+
+    memset(&pq, 0, sizeof(PacketQueue));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan), &pq);
+
+    FAIL_IF(p->udph == NULL);
+    FAIL_IF(pq.top != NULL);
+
+    DecodeVXLANConfigPorts("4789"); /* reset */
+    FlowShutdown();
+    PacketFree(p);
     PASS;
 }
 #endif /* UNITTESTS */
@@ -176,5 +270,7 @@ void DecodeVXLANRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("DecodeVXLANtest01",
                    DecodeVXLANtest01);
+    UtRegisterTest("DecodeVXLANtest02",
+                   DecodeVXLANtest02);
 #endif /* UNITTESTS */
 }

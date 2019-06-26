@@ -310,3 +310,4 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     exit(EXIT_FAILURE);
 #endif /* UNITTESTS */
 }
+
