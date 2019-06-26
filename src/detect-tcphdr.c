@@ -45,7 +45,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Packet *p, const int list_id);
 
 /**
- * \brief Registration function for tcphdr: keyword
+ * \brief Registration function for tcp.hdr: keyword
  */
 void DetectTcphdrRegister(void)
 {
@@ -72,16 +72,16 @@ void DetectTcphdrRegister(void)
 }
 
 /**
- * \brief this function is used to atcphdrd the parsed tcphdr data into the current signature
+ * \brief setup tcp.hdr sticky buffer
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param tcphdrstr pointer to the user provided tcphdr options
+ * \param _unused unused
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTcphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *tcphdrstr)
+static int DetectTcphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     if (!(DetectProtoContainsProto(&s->proto, IPPROTO_TCP)))
         return -1;
