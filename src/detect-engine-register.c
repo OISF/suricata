@@ -170,6 +170,7 @@
 #include "detect-tcphdr.h"
 #include "detect-tcpmss.h"
 #include "detect-udphdr.h"
+#include "detect-ipv4hdr.h"
 #include "detect-krb5-cname.h"
 #include "detect-krb5-errcode.h"
 #include "detect-krb5-msgtype.h"
@@ -529,6 +530,7 @@ void SigTableSetup(void)
     DetectTcphdrRegister();
     DetectUdphdrRegister();
     DetectTcpmssRegister();
+    DetectIpv4hdrRegister();
     DetectKrb5CNameRegister();
     DetectKrb5ErrCodeRegister();
     DetectKrb5MsgTypeRegister();
