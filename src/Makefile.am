@@ -201,6 +201,7 @@ detect-id.c detect-id.h \
 detect-ipopts.c detect-ipopts.h \
 detect-ipproto.c detect-ipproto.h \
 detect-iprep.c detect-iprep.h \
+detect-ipv4hdr.c detect-ipv4hdr.h \
 detect-isdataat.c detect-isdataat.h \
 detect-itype.c detect-itype.h \
 detect-krb5-cname.c detect-krb5-cname.h \
