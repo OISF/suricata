@@ -263,3 +263,9 @@ before_install:
         sudo pip install PyYAML
     fi
   - ./qa/travis-libhtp.sh
+
+after_failure:
+    - echo == Start of after failure logs ==
+    - find . -name config.log | xargs cat
+    - sleep 10
+    - echo == End of after failure logs ==
