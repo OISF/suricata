@@ -55,8 +55,7 @@
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
 
-static int DetectDceIfaceMatchRust(ThreadVars *t,
-        DetectEngineThreadCtx *det_ctx,
+static int DetectDceIfaceMatchRust(DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, void *txv,
         const Signature *s, const SigMatchCtx *m);
 static int DetectDceIfaceSetup(DetectEngineCtx *, Signature *, const char *);
@@ -276,7 +275,7 @@ static inline int DetectDceIfaceMatchIfaceVersion(const uint16_t version,
  * \retval 1 On Match.
  * \retval 0 On no match.
  */
-static int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectDceIfaceMatch(DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, void *txv,
         const Signature *s, const SigMatchCtx *m)
 {
@@ -340,15 +339,14 @@ end:
     SCReturnInt(ret);
 }
 
-static int DetectDceIfaceMatchRust(ThreadVars *t,
-        DetectEngineThreadCtx *det_ctx,
+static int DetectDceIfaceMatchRust(DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, void *txv,
         const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
     if (f->alproto == ALPROTO_DCERPC) {
-        return DetectDceIfaceMatch(t, det_ctx, f, flags,
+        return DetectDceIfaceMatch(det_ctx, f, flags,
                                    state, txv, s, m);
     }
 

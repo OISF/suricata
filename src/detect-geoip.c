@@ -61,7 +61,7 @@ void DetectGeoipRegister(void)
 
 #include <GeoIP.h>
 
-static int DetectGeoipMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectGeoipMatch(DetectEngineThreadCtx *, Packet *,
                             const Signature *, const SigMatchCtx *);
 static int DetectGeoipSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectGeoipRegisterTests(void);
@@ -163,7 +163,7 @@ static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectGeoipMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectGeoipMatch(DetectEngineThreadCtx *det_ctx,
                             Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectGeoipData *geoipdata = (const DetectGeoipData *)ctx;

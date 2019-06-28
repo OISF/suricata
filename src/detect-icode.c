@@ -46,7 +46,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectICodeMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectICodeMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectICodeSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectICodeRegisterTests(void);
@@ -116,7 +116,7 @@ static inline int ICodeMatch(const uint8_t pcode, const uint8_t mode,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectICodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectICodeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     if (PKT_IS_PSEUDOPKT(p))

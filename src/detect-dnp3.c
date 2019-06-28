@@ -423,7 +423,7 @@ static void DetectDNP3Free(void *ptr)
     SCReturn;
 }
 
-static int DetectDNP3FuncMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
 {
@@ -441,7 +441,7 @@ static int DetectDNP3FuncMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     return match;
 }
 
-static int DetectDNP3ObjMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
 {
@@ -469,7 +469,7 @@ static int DetectDNP3ObjMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     return 0;
 }
 
-static int DetectDNP3IndMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectDNP3IndMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
 {

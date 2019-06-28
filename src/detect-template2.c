@@ -39,7 +39,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /* prototypes */
-static int DetectTemplate2Match (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectTemplate2Match (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectTemplate2Setup (DetectEngineCtx *, Signature *, const char *);
 void DetectTemplate2Free (void *);
@@ -97,7 +97,7 @@ static inline int Template2Match(const uint8_t parg, const uint8_t mode,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTemplate2Match (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectTemplate2Match (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
 

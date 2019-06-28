@@ -68,7 +68,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectFragBitsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFragBitsFree(void *);
@@ -136,7 +136,7 @@ FragBitsMatch(const uint8_t pbits, const uint8_t modifier,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectFragBitsMatch (DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     if (!ctx || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
@@ -496,7 +496,7 @@ static int FragBitsTestParse03 (void)
     sm->type = DETECT_FRAGBITS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFragBitsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFragBitsMatch(NULL, p, NULL, sm->ctx);
     FAIL_IF(ret == 0);
 
     FlowShutdown();
@@ -586,7 +586,7 @@ static int FragBitsTestParse04 (void)
     sm->type = DETECT_FRAGBITS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFragBitsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFragBitsMatch(NULL, p, NULL, sm->ctx);
     FAIL_IF(ret);
     SCFree(de);
     SCFree(sm);

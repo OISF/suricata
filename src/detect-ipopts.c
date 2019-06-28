@@ -43,7 +43,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectIpOptsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectIpOptsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIpOptsSetup (DetectEngineCtx *, Signature *, const char *);
 void IpOptsRegisterTests(void);
@@ -99,7 +99,7 @@ struct DetectIpOpts_ {
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectIpOptsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectIpOptsData *de = (const DetectIpOptsData *)ctx;
@@ -287,7 +287,7 @@ static int IpOptsTestParse03 (void)
     sm->type = DETECT_IPOPTS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectIpOptsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectIpOptsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         SCFree(p);
@@ -337,7 +337,7 @@ static int IpOptsTestParse04 (void)
     sm->type = DETECT_IPOPTS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectIpOptsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectIpOptsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         SCFree(p);

@@ -48,7 +48,7 @@
 
 #define MAX_ALPROTO_NAME 50
 
-static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
                                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, const char *);
 static void DetectAppLayerEventRegisterTests(void);
@@ -133,7 +133,7 @@ static int DetectEngineAptEventInspect(ThreadVars *tv,
 }
 
 
-static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
                                 Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectAppLayerEventData *aled = (const DetectAppLayerEventData *)ctx;

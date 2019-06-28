@@ -68,7 +68,7 @@ TODO:
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectHostbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectHostbitMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectHostbitSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectHostbitFree (void *);
@@ -266,7 +266,7 @@ int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd)
  *        -1: error
  */
 
-static int DetectHostbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectHostbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectXbitsData *xd = (const DetectXbitsData *)ctx;

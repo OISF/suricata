@@ -58,7 +58,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectFlagsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectFlagsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFlagsSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFlagsFree(void *);
@@ -140,7 +140,7 @@ static inline int FlagsMatch(const uint8_t pflags, const uint8_t modifier,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectFlagsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
@@ -681,7 +681,7 @@ static int FlagsTestParse03 (void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -736,7 +736,7 @@ static int FlagsTestParse04 (void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -792,7 +792,7 @@ static int FlagsTestParse05 (void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -848,7 +848,7 @@ static int FlagsTestParse06 (void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -903,7 +903,7 @@ static int FlagsTestParse07 (void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -959,7 +959,7 @@ static int FlagsTestParse08 (void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -1014,7 +1014,7 @@ static int FlagsTestParse09 (void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -1069,7 +1069,7 @@ static int FlagsTestParse10 (void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -1124,7 +1124,7 @@ static int FlagsTestParse11 (void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -1182,7 +1182,7 @@ static int FlagsTestParse12 (void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -1267,7 +1267,7 @@ static int FlagsTestParse15(void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if (ret) {
         if (de)
@@ -1320,7 +1320,7 @@ static int FlagsTestParse16(void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if (ret) {
         if (de)
@@ -1376,7 +1376,7 @@ static int FlagsTestParse17(void)
     sm->type = DETECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm->ctx);
+    ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
     if (ret == 0) {
         if (de)

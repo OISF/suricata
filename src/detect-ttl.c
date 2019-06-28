@@ -43,7 +43,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /* prototypes */
-static int DetectTtlMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectTtlMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectTtlSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectTtlFree (void *);
@@ -102,7 +102,7 @@ static inline int TtlMatch(const uint8_t pttl, const uint8_t mode,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     if (PKT_IS_PSEUDOPKT(p))

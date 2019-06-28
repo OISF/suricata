@@ -44,7 +44,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /*prototypes*/
-static int DetectStreamSizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectStreamSizeMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectStreamSizeSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectStreamSizeFree(void *);
@@ -124,7 +124,7 @@ static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectStreamSizeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
 
@@ -432,7 +432,7 @@ static int DetectStreamSizeParseTest03 (void)
     p->tcph = &tcph;
     sm.ctx = (SigMatchCtx*)sd;
 
-    result = DetectStreamSizeMatch(&tv, &dtx, p, &s, sm.ctx);
+    result = DetectStreamSizeMatch(&dtx, p, &s, sm.ctx);
     if (result == 0) {
         printf("result 0 != 1: ");
     }
@@ -492,7 +492,7 @@ static int DetectStreamSizeParseTest04 (void)
     p->ip4h = &ip4h;
     sm.ctx = (SigMatchCtx*)sd;
 
-    if (!DetectStreamSizeMatch(&tv, &dtx, p, &s, sm.ctx))
+    if (!DetectStreamSizeMatch(&dtx, p, &s, sm.ctx))
         result = 1;
 
     SCFree(p);

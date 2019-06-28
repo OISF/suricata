@@ -157,7 +157,7 @@ static void DetectRunPostMatch(ThreadVars *tv,
 
         while (1) {
             KEYWORD_PROFILING_START;
-            (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
+            (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
             KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
             if (smd->is_last)
                 break;
