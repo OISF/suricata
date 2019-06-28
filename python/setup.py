@@ -8,18 +8,23 @@ import shutil
 from distutils.core import setup
 from distutils.command.build_py import build_py
 
+# Get the Suricata version from configure.ac.
 version = None
 if os.path.exists("../configure.ac"):
     with open("../configure.ac", "r") as conf:
         for line in conf:
-            m = re.search("AC_INIT\(suricata,\s+(\d.+)\)", line)
-            if m:
-                version = m.group(1)
-                break
+            if line.find("AC_INIT") > 1:
+                m = re.search("AC_INIT\(\[suricata\],\[(\d.+)\]\)", line)
+                if m:
+                    version = m.group(1)
+                    break
+                else:
+                    print("error: failed to parse Suricata version from: %s" % (
+                        line.strip()), file=sys.stderr)
+                    sys.exit(1)
 if version is None:
-    print("error: failed to parse Suricata version, will use 0.0.0",
-          file=sys.stderr)
-    version = "0.0.0"
+    print("error: failed to find Suricata version", file=sys.stderr)
+    sys.exit(1)
 
 class do_build(build_py):
     def run(self):
