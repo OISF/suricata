@@ -1150,16 +1150,15 @@ typedef struct DetectEngineThreadCtx_ {
  */
 typedef struct SigTableElmt_ {
     /** Packet match function pointer */
-    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+    int (*Match)(DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 
     /** AppLayer TX match function pointer */
-    int (*AppLayerTxMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *,
+    int (*AppLayerTxMatch)(DetectEngineThreadCtx *, Flow *,
             uint8_t flags, void *alstate, void *txv,
             const Signature *, const SigMatchCtx *);
 
     /** File match function  pointer */
-    int (*FileMatch)(ThreadVars *,  /**< thread local vars */
-        DetectEngineThreadCtx *,
+    int (*FileMatch)(DetectEngineThreadCtx *,
         Flow *,                     /**< *LOCKED* flow */
         uint8_t flags, File *, const Signature *, const SigMatchCtx *);
 

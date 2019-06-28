@@ -43,7 +43,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectIcmpSeqMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectIcmpSeqMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIcmpSeqSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectIcmpSeqRegisterTests(void);
@@ -132,7 +132,7 @@ static inline _Bool GetIcmpSeq(Packet *p, uint16_t *seq)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectIcmpSeqMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     uint16_t seqn;

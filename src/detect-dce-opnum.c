@@ -56,10 +56,9 @@
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
 
-static int DetectDceOpnumMatchRust(ThreadVars *t,
-                        DetectEngineThreadCtx *det_ctx,
-                        Flow *f, uint8_t flags, void *state, void *txv,
-                        const Signature *s, const SigMatchCtx *m);
+static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state, void *txv,
+        const Signature *s, const SigMatchCtx *m);
 static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDceOpnumFree(void *);
 static void DetectDceOpnumRegisterTests(void);
@@ -243,7 +242,7 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
  * \retval 1 On Match.
  * \retval 0 On no match.
  */
-static int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectDceOpnumMatch(DetectEngineThreadCtx *det_ctx,
                         Flow *f, uint8_t flags, void *state, void *txv,
                         const Signature *s, const SigMatchCtx *m)
 {
@@ -275,15 +274,14 @@ static int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCReturnInt(0);
 }
 
-static int DetectDceOpnumMatchRust(ThreadVars *t,
-                        DetectEngineThreadCtx *det_ctx,
-                        Flow *f, uint8_t flags, void *state, void *txv,
-                        const Signature *s, const SigMatchCtx *m)
+static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state, void *txv,
+        const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
     if (f->alproto == ALPROTO_DCERPC) {
-        return DetectDceOpnumMatch(t, det_ctx, f, flags,
+        return DetectDceOpnumMatch(det_ctx, f, flags,
                                    state, txv, s, m);
     }
 

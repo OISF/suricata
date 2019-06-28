@@ -81,7 +81,7 @@ static int DetectEngineInspectNfsRequestGeneric(ThreadVars *tv,
         Flow *f, uint8_t flags, void *alstate,
         void *txv, uint64_t tx_id);
 
-static int DetectNfsProcedureMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
+static int DetectNfsProcedureMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
                                    const SigMatchCtx *);
 
@@ -172,7 +172,7 @@ ProcedureMatch(const uint32_t procedure,
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectNfsProcedureMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectNfsProcedureMatch (DetectEngineThreadCtx *det_ctx,
                                    Flow *f, uint8_t flags, void *state,
                                    void *txv, const Signature *s,
                                    const SigMatchCtx *ctx)

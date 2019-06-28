@@ -952,7 +952,7 @@ int IPOnlyMatchCompatSMs(ThreadVars *tv,
         while (1) {
             DEBUG_VALIDATE_BUG_ON(!(sigmatch_table[smd->type].flags & SIGMATCH_IPONLY_COMPAT));
             KEYWORD_PROFILING_START;
-            if (sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx) > 0) {
+            if (sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx) > 0) {
                 KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
                 if (smd->is_last)
                     break;
@@ -1082,7 +1082,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                         if (smd != NULL) {
                             while (1) {
                                 KEYWORD_PROFILING_START;
-                                (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
+                                (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
                                 KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
                                 if (smd->is_last)
                                     break;

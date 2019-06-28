@@ -58,7 +58,7 @@ static int DetectEngineInspectSNMPRequestGeneric(ThreadVars *tv,
         Flow *f, uint8_t flags, void *alstate,
         void *txv, uint64_t tx_id);
 
-static int DetectSNMPPduTypeMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
+static int DetectSNMPPduTypeMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
                                    const SigMatchCtx *);
 
@@ -115,7 +115,7 @@ static int DetectEngineInspectSNMPRequestGeneric(ThreadVars *tv,
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectSNMPPduTypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectSNMPPduTypeMatch (DetectEngineThreadCtx *det_ctx,
                                    Flow *f, uint8_t flags, void *state,
                                    void *txv, const Signature *s,
                                    const SigMatchCtx *ctx)

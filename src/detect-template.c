@@ -39,7 +39,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /* Prototypes of functions registered in DetectTemplateRegister below */
-static int DetectTemplateMatch (ThreadVars *, DetectEngineThreadCtx *,
+static int DetectTemplateMatch (DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTemplateSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTemplateFree (void *);
@@ -86,7 +86,7 @@ void DetectTemplateRegister(void) {
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTemplateMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectTemplateMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
                                 const Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;

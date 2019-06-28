@@ -57,7 +57,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectXbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectXbitMatch (DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectXbitSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectXbitFree (void *);
 void XBitsRegisterTests(void);
@@ -161,7 +161,7 @@ static int DetectXbitMatchIPPair(Packet *p, const DetectXbitsData *xd)
  *        -1: error
  */
 
-static int DetectXbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectXbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectXbitsData *fd = (const DetectXbitsData *)ctx;
     if (fd == NULL)

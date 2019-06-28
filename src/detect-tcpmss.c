@@ -39,7 +39,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /* prototypes */
-static int DetectTcpmssMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectTcpmssMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectTcpmssSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectTcpmssFree (void *);
@@ -97,7 +97,7 @@ static inline int TcpmssMatch(const uint16_t parg, const uint8_t mode,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTcpmssMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectTcpmssMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
 

@@ -60,9 +60,9 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectFilestoreMatch (ThreadVars *, DetectEngineThreadCtx *,
+static int DetectFilestoreMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, File *, const Signature *, const SigMatchCtx *);
-static int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFilestoreFree(void *);
@@ -190,7 +190,7 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
  *  When we are sure all parts of the signature matched, we run this function
  *  to finalize the filestore.
  */
-static int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     uint8_t flags = 0;
@@ -253,7 +253,7 @@ static int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ct
  * \todo when we start supporting more protocols, the logic in this function
  *       needs to be put behind a api.
  */
-static int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+static int DetectFilestoreMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
         uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
     uint32_t file_id = 0;

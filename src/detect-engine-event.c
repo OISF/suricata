@@ -47,7 +47,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectEngineEventMatch (ThreadVars *, DetectEngineThreadCtx *,
+static int DetectEngineEventMatch (DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectEngineEventSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectDecodeEventSetup (DetectEngineCtx *, Signature *, const char *);
@@ -93,7 +93,7 @@ void DetectEngineEventRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectEngineEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectEngineEventMatch (DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
@@ -367,7 +367,7 @@ static int EngineEventTestParse06 (void)
     sm->type = DETECT_DECODE_EVENT;
     sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectEngineEventMatch(&tv,NULL,p,NULL,sm->ctx);
+    ret = DetectEngineEventMatch(NULL,p,NULL,sm->ctx);
 
     if(ret) {
         SCFree(p);

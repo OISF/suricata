@@ -62,7 +62,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectBytetestMatch(DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
 static void DetectBytetestFree(void *ptr);
@@ -234,7 +234,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
 
 }
 
-static int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectBytetestMatch(DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     return DetectBytetestDoMatch(det_ctx, s, ctx, p->payload, p->payload_len,

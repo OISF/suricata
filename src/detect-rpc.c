@@ -48,7 +48,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectRpcMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectRpcMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectRpcSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectRpcRegisterTests(void);
@@ -87,7 +87,7 @@ void DetectRpcRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectRpcMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectRpcMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     /* PrintRawDataFp(stdout, p->payload, p->payload_len); */

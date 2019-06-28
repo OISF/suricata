@@ -144,7 +144,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 if (sigmatch_table[smd->type].FileMatch != NULL) {
                     KEYWORD_PROFILING_START;
                     match = sigmatch_table[smd->type].
-                        FileMatch(tv, det_ctx, f, flags, file, s, smd->ctx);
+                        FileMatch(det_ctx, f, flags, file, s, smd->ctx);
                     KEYWORD_PROFILING_END(det_ctx, smd->type, (match > 0));
                     if (match == 0) {
                         r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
@@ -178,7 +178,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             if (fd->scope > FILESTORE_SCOPE_DEFAULT) {
                 KEYWORD_PROFILING_START;
                 match = sigmatch_table[smd->type].
-                    FileMatch(tv, det_ctx, f, flags, /* no file */NULL, s, smd->ctx);
+                    FileMatch(det_ctx, f, flags, /* no file */NULL, s, smd->ctx);
                 KEYWORD_PROFILING_END(det_ctx, smd->type, (match > 0));
 
                 if (match == 1) {

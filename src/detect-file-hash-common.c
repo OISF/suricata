@@ -135,7 +135,6 @@ static int HashMatchHashTable(ROHashTable *hash_table, uint8_t *hash,
 /**
  * \brief Match the specified file hash
  *
- * \param t thread local vars
  * \param det_ctx pattern matcher thread local data
  * \param f *LOCKED* flow
  * \param flags direction flags
@@ -146,7 +145,7 @@ static int HashMatchHashTable(ROHashTable *hash_table, uint8_t *hash,
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectFileHashMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+int DetectFileHashMatch (DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();

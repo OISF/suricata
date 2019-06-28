@@ -42,7 +42,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /* Prototypes of functions registered in DetectFtpdataRegister below */
-static int DetectFtpdataMatch(ThreadVars *, DetectEngineThreadCtx *,
+static int DetectFtpdataMatch(DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectFtpdataSetup (DetectEngineCtx *, Signature *, const char *);
@@ -109,7 +109,7 @@ static int DetectEngineInspectFtpdataGeneric(ThreadVars *tv,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFtpdataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectFtpdataMatch(DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags,
         void *state, void *txv,
         const Signature *s, const SigMatchCtx *m)

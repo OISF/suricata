@@ -59,7 +59,7 @@ static pcre_extra *parse_regex1_study;
 static pcre *parse_regex2;
 static pcre_extra *parse_regex2_study;
 
-static int DetectSslStateMatch(ThreadVars *, DetectEngineThreadCtx *,
+static int DetectSslStateMatch(DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectSslStateSetup(DetectEngineCtx *, Signature *, const char *);
@@ -128,7 +128,7 @@ static int InspectTlsGeneric(ThreadVars *tv,
  * \retval 1 Match.
  * \retval 0 No match.
  */
-static int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectSslStateMatch(DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *alstate, void *txv,
         const Signature *s, const SigMatchCtx *m)
 {

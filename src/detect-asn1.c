@@ -42,7 +42,7 @@
 /* delimiters for functions/arguments */
 const char *ASN_DELIM = " \t,\n";
 
-static int DetectAsn1Match(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectAsn1Match(DetectEngineThreadCtx *, Packet *,
                      const Signature *, const SigMatchCtx *);
 static int DetectAsn1Setup (DetectEngineCtx *, Signature *, const char *);
 static void DetectAsn1RegisterTests(void);
@@ -137,7 +137,7 @@ static uint8_t DetectAsn1Checks(Asn1Node *node, const DetectAsn1Data *ad)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectAsn1Match(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectAsn1Match(DetectEngineThreadCtx *det_ctx, Packet *p,
                     const Signature *s, const SigMatchCtx *ctx)
 {
     uint8_t ret = 0;
