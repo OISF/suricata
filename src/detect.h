@@ -91,7 +91,6 @@ struct SCSigSignatureWrapper_;
 enum DetectSigmatchListEnum {
     DETECT_SM_LIST_MATCH = 0,
     DETECT_SM_LIST_PMATCH,
-    DETECT_SM_LIST_L4HDR,
 
     /* base64_data keyword uses some hardcoded logic so consider
      * built-in
@@ -439,20 +438,33 @@ typedef struct DetectBufferType_ {
     DetectEngineTransforms transforms;
 } DetectBufferType;
 
-/* Function pointer for the pkt inspect engines. Goal for this
- * function will be to process the complete list of conditions
- * passed to it through 'sm_data'. */
-typedef bool (*DetectEnginePktInspectionFunc)(ThreadVars *,
+struct DetectEnginePktInspectionEngine;
+
+/**
+ *  \param alert_flags[out] for setting PACKET_ALERT_FLAG_*
+ */
+typedef int (*InspectionBufferPktInspectFunc)(
         struct DetectEngineThreadCtx_ *,
+        const struct DetectEnginePktInspectionEngine *engine,
         const struct Signature_ *s,
-        const struct SigMatchData_ *sm_data,
-        Flow *f,
-        Packet *p,
-        uint8_t *alert_flags);
+        Packet *p, uint8_t *alert_flags);
+
+/** callback for getting the buffer we need to prefilter/inspect */
+typedef InspectionBuffer *(*InspectionBufferGetPktDataPtr)(
+        struct DetectEngineThreadCtx_ *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Packet *p, const int list_id);
 
 typedef struct DetectEnginePktInspectionEngine {
-    DetectEnginePktInspectionFunc Callback;
-    SigMatchData *sm_data;
+    SigMatchData *smd;
+    uint16_t mpm:1;
+    uint16_t sm_list:15;
+    struct {
+        InspectionBufferGetPktDataPtr GetData;
+        InspectionBufferPktInspectFunc Callback;
+        /** pointer to the transforms in the 'DetectBuffer entry for this list */
+        const DetectEngineTransforms *transforms;
+    } v1;
     struct DetectEnginePktInspectionEngine *next;
 } DetectEnginePktInspectionEngine;
 
@@ -586,39 +598,48 @@ typedef struct Signature_ {
     struct Signature_ *next;
 } Signature;
 
+enum DetectBufferMpmType {
+    DETECT_BUFFER_MPM_TYPE_PKT,
+    DETECT_BUFFER_MPM_TYPE_APP,
+    /* must be last */
+    DETECT_BUFFER_MPM_TYPE_SIZE,
+};
+
 /** \brief one time registration of keywords at start up */
-typedef struct DetectMpmAppLayerRegistery_ {
+typedef struct DetectBufferMpmRegistery_ {
     const char *name;
     char pname[32];             /**< name used in profiling */
     int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
     int sm_list;
-
-    int (*PrefilterRegister)(struct DetectEngineCtx_ *de_ctx,
-            struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx);
-
     int priority;
-
-    struct {
-        int (*PrefilterRegisterWithListId)(struct DetectEngineCtx_ *de_ctx,
-                struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx,
-                const struct DetectMpmAppLayerRegistery_ *mpm_reg, int list_id);
-        InspectionBufferGetDataPtr GetData;
-        AppProto alproto;
-        int tx_min_progress;
-        DetectEngineTransforms transforms;
-    } v2;
-
     int id;                     /**< index into this array and result arrays */
+    enum DetectBufferMpmType type;
+    int sgh_mpm_context;
 
-    struct DetectMpmAppLayerRegistery_ *next;
-} DetectMpmAppLayerRegistery;
+    int (*PrefilterRegisterWithListId)(struct DetectEngineCtx_ *de_ctx,
+            struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx,
+            const struct DetectBufferMpmRegistery_ *mpm_reg, int list_id);
+    DetectEngineTransforms transforms;
 
-/** \brief structure for storing per detect engine mpm keyword settings
- */
-typedef struct DetectMpmAppLayerKeyword_ {
-    const DetectMpmAppLayerRegistery *reg;
-    int32_t sgh_mpm_context;    /**< mpm factory id */
-} DetectMpmAppLayerKeyword;
+    union {
+        /* app-layer matching: use if type == DETECT_BUFFER_MPM_TYPE_APP */
+        struct {
+            InspectionBufferGetDataPtr GetData;
+            AppProto alproto;
+            int tx_min_progress;
+        } app_v2;
+
+        /* pkt matching: use if type == DETECT_BUFFER_MPM_TYPE_PKT */
+        struct {
+            int (*PrefilterRegisterWithListId)(struct DetectEngineCtx_ *de_ctx,
+                    struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx,
+                    const struct DetectBufferMpmRegistery_ *mpm_reg, int list_id);
+            InspectionBufferGetPktDataPtr GetData;
+        } pkt_v1;
+    };
+
+    struct DetectBufferMpmRegistery_ *next;
+} DetectBufferMpmRegistery;
 
 typedef struct DetectReplaceList_ {
     struct DetectContentData_ *cd;
@@ -829,7 +850,6 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_proto_udp_packet;
     int32_t sgh_mpm_context_proto_other_packet;
     int32_t sgh_mpm_context_stream;
-    int32_t sgh_mpm_context_l4_header;
 
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
@@ -907,16 +927,14 @@ typedef struct DetectEngineCtx_ {
     /* list with app inspect engines. Both the start-time registered ones and
      * the rule-time registered ones. */
     DetectEngineAppInspectionEngine *app_inspect_engines;
-    DetectMpmAppLayerRegistery *app_mpms_list;
+    DetectBufferMpmRegistery *app_mpms_list;
     uint32_t app_mpms_list_cnt;
+    DetectEnginePktInspectionEngine *pkt_inspect_engines;
+    DetectBufferMpmRegistery *pkt_mpms_list;
+    uint32_t pkt_mpms_list_cnt;
 
     uint32_t prefilter_id;
     HashListTable *prefilter_hash_table;
-
-    /** table with mpms and their registration function
-     *  \todo we only need this at init, so perhaps this
-     *        can move to a DetectEngineCtx 'init' struct */
-    DetectMpmAppLayerKeyword *app_mpms;
 
     /** time of last ruleset reload */
     struct timeval last_reload;
@@ -1225,8 +1243,6 @@ enum MpmBuiltinBuffers {
     MPMB_UDP_TS,
     MPMB_UDP_TC,
     MPMB_OTHERIP,
-    MPMB_L4HDR_TS,
-    MPMB_L4HDR_TC,
     MPMB_MAX,
 };
 
@@ -1307,6 +1323,7 @@ typedef struct SigGroupHeadInitData_ {
     int whitelist;          /**< try to make this group a unique one */
 
     MpmCtx **app_mpms;
+    MpmCtx **pkt_mpms;
 
     PrefilterEngineList *pkt_engines;
     PrefilterEngineList *payload_engines;

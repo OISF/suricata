@@ -24,13 +24,6 @@
 #ifndef _DETECT_UDPHDR_H
 #define _DETECT_UDPHDR_H
 
-int PrefilterUdpHeaderRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-bool DetectEngineInspectRuleUdpHeaderMatches(
-     ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-     const Signature *s, const SigMatchData *sm_data,
-     Flow *f, Packet *p,
-     uint8_t *alert_flags);
 void DetectUdphdrRegister(void);
 
 #endif	/* _DETECT_UDPHDR_H */

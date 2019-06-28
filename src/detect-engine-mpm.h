@@ -32,8 +32,9 @@
 
 #include "stream.h"
 
+void DetectMpmInitializePktMpms(DetectEngineCtx *de_ctx);
+int DetectMpmPreparePktMpms(DetectEngineCtx *de_ctx);
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx);
-void DetectMpmSetupAppMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx);
 void DetectMpmInitializeBuiltinMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx);
@@ -80,20 +81,6 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh, enum
 int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
 
 /** \brief register an app layer keyword for mpm
- *  \param name keyword name
- *  \param direction SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT
- *  \param PrefilterRegister Prefilter api registration function
- *
- *  \note direction must be set to either toserver or toclient.
- *        If both are needed, register the keyword twice.
- *  \deprecated since 5.0.0
- */
-void DetectAppLayerMpmRegister(const char *name,
-        int direction, int priority,
-        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
-            SigGroupHead *sgh, MpmCtx *mpm_ctx)) __attribute__((deprecated));
-
-/** \brief register an app layer keyword for mpm
  *  \param name buffer name
  *  \param direction SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT
  *  \param priority mpm keyword priority
@@ -109,13 +96,29 @@ void DetectAppLayerMpmRegister2(const char *name,
         int direction, int priority,
         int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
             SigGroupHead *sgh, MpmCtx *mpm_ctx,
-            const DetectMpmAppLayerRegistery *mpm_reg, int list_id),
+            const DetectBufferMpmRegistery *mpm_reg, int list_id),
         InspectionBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress);
 void DetectAppLayerMpmRegisterByParentId(
         DetectEngineCtx *de_ctx,
         const int id, const int parent_id,
         DetectEngineTransforms *transforms);
+
+void DetectPktMpmRegister(const char *name,
+        int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
+            SigGroupHead *sgh, MpmCtx *mpm_ctx,
+            const DetectBufferMpmRegistery *mpm_reg, int list_id),
+        InspectionBufferGetPktDataPtr GetData);
+void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
+        const int id, const int parent_id,
+        DetectEngineTransforms *transforms);
+
+
+int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx,
+         SigGroupHead *sgh, MpmCtx *mpm_ctx,
+         const DetectBufferMpmRegistery *mpm_reg, int list_id);
+
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
 

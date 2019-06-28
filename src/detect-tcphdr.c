@@ -27,6 +27,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-fast-pattern.h"
@@ -38,10 +39,14 @@ static int DetectTcphdrSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectTcphdrRegisterTests (void);
 #endif
 
+static int g_tcphdr_buffer_id = 0;
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, const int list_id);
+
 /**
  * \brief Registration function for tcphdr: keyword
  */
-
 void DetectTcphdrRegister(void)
 {
     sigmatch_table[DETECT_TCPHDR].name = "tcp.hdr";
@@ -52,7 +57,17 @@ void DetectTcphdrRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TCPHDR].RegisterTests = DetectTcphdrRegisterTests;
 #endif
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_L4HDR, 2);
+
+    g_tcphdr_buffer_id = DetectBufferTypeRegister("tcp.hdr");
+    BUG_ON(g_tcphdr_buffer_id < 0);
+
+    DetectBufferTypeSupportsPacket("tcp.hdr");
+
+    DetectPktMpmRegister("tcp.hdr", 2, PrefilterGenericMpmPktRegister, GetData);
+
+    DetectPktInspectEngineRegister("tcp.hdr", GetData,
+            DetectEngineInspectPktBufferGeneric);
+
     return;
 }
 
@@ -73,94 +88,37 @@ static int DetectTcphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
-    if (DetectBufferSetActiveList(s, DETECT_SM_LIST_L4HDR) < 0)
+    if (DetectBufferSetActiveList(s, g_tcphdr_buffer_id) < 0)
         return -1;
 
     return 0;
 }
 
-static void PrefilterTcpHeader(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const void *pectx)
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, const int list_id)
 {
     SCEnter();
 
-    uint32_t hlen = TCP_GET_HLEN(p);
-    if (((uint8_t *)p->tcph + (ptrdiff_t)hlen) >
-            ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-    {
-        SCLogDebug("data out of range: %p > %p",
-                ((uint8_t *)p->tcph + (ptrdiff_t)hlen),
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
-        SCReturn;
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t hlen = TCP_GET_HLEN(p);
+        if (((uint8_t *)p->tcph + (ptrdiff_t)hlen) >
+                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
+        {
+            SCLogDebug("data out of range: %p > %p",
+                    ((uint8_t *)p->tcph + (ptrdiff_t)hlen),
+                    ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
+            return NULL;
+        }
+
+        const uint32_t data_len = hlen;
+        const uint8_t *data = (const uint8_t *)p->tcph;
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
     }
 
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    if (hlen < mpm_ctx->minlen)
-        SCReturn;
-
-    (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-            &det_ctx->mtc, &det_ctx->pmq,
-            (uint8_t *)p->tcph, hlen);
-}
-
-int PrefilterTcpHeaderRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    return PrefilterAppendEngine(de_ctx, sgh,
-            PrefilterTcpHeader, mpm_ctx, NULL, "tcp.hdr");
-}
-
-/**
- *  \brief Do the content inspection & validation for a signature
- *
- *  \param det_ctx Detection engine thread context
- *  \param s Signature to inspect
- *  \param p Packet
- *
- *  \retval false no match
- *  \retval true match
- */
-bool DetectEngineInspectRuleTcpHeaderMatches(
-     ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-     const Signature *s, const SigMatchData *sm_data,
-     Flow *f, Packet *p,
-     uint8_t *alert_flags)
-{
-    SCEnter();
-
-    BUG_ON(sm_data == NULL);
-    BUG_ON(sm_data != s->sm_arrays[DETECT_SM_LIST_L4HDR]);
-
-    if (!(PKT_IS_TCP(p))) {
-        SCReturnInt(false);
-    }
-    uint32_t hlen = TCP_GET_HLEN(p);
-    if (((uint8_t *)p->tcph + (ptrdiff_t)hlen) >
-            ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-    {
-        SCLogDebug("data out of range: %p > %p",
-                ((uint8_t *)p->tcph + (ptrdiff_t)hlen),
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
-        SCReturnInt(false);
-    }
-
-#ifdef DEBUG
-    det_ctx->payload_persig_cnt++;
-    det_ctx->payload_persig_size += hlen;
-#endif
-    det_ctx->buffer_offset = 0;
-    det_ctx->discontinue_matching = 0;
-    det_ctx->inspection_recursion_counter = 0;
-    det_ctx->replist = NULL;
-
-    int r = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx,
-            s, sm_data,
-            p, NULL, (uint8_t *)p->tcph, hlen, 0,
-            DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_HEADER);
-    if (r == 1) {
-        SCReturnInt(true);
-    }
-    SCReturnInt(false);
+    return buffer;
 }
 
 #ifdef UNITTESTS
