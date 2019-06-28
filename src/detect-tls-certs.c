@@ -66,7 +66,7 @@ static int DetectEngineInspectTlsCerts(DetectEngineCtx *de_ctx,
 	uint64_t tx_id);
 static int PrefilterMpmTlsCertsRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectMpmAppLayerRegistery *mpm_reg, int list_id);
+        const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
 static int g_tls_certs_buffer_id = 0;
 
@@ -240,7 +240,7 @@ static void PrefilterMpmTlsCertsFree(void *ptr)
 
 static int PrefilterMpmTlsCertsRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectMpmAppLayerRegistery *mpm_reg, int list_id)
+        const DetectBufferMpmRegistery *mpm_reg, int list_id)
 {
     PrefilterMpmTlsCerts *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)
@@ -248,10 +248,10 @@ static int PrefilterMpmTlsCertsRegister(DetectEngineCtx *de_ctx,
 
     pectx->list_id = list_id;
     pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->v2.transforms;
+    pectx->transforms = &mpm_reg->transforms;
 
     return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxTlsCerts,
-            mpm_reg->v2.alproto, mpm_reg->v2.tx_min_progress,
+            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
             pectx, PrefilterMpmTlsCertsFree, mpm_reg->name);
 }
 

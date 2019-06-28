@@ -27,6 +27,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-fast-pattern.h"
@@ -38,8 +39,12 @@ static int DetectUdphdrSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectUdphdrRegisterTests (void);
 #endif
 
+static int g_udphdr_buffer_id = 0;
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, const int list_id);
 /**
- * \brief Registration function for tcphdr: keyword
+ * \brief Registration function for udphdr: keyword
  */
 
 void DetectUdphdrRegister(void)
@@ -52,7 +57,16 @@ void DetectUdphdrRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_UDPHDR].RegisterTests = DetectUdphdrRegisterTests;
 #endif
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_L4HDR, 2);
+
+    g_udphdr_buffer_id = DetectBufferTypeRegister("udp.hdr");
+    BUG_ON(g_udphdr_buffer_id < 0);
+
+    DetectBufferTypeSupportsPacket("udp.hdr");
+
+    DetectPktMpmRegister("udp.hdr", 2, PrefilterGenericMpmPktRegister, GetData);
+
+    DetectPktInspectEngineRegister("udp.hdr", GetData,
+            DetectEngineInspectPktBufferGeneric);
     return;
 }
 
@@ -73,92 +87,36 @@ static int DetectUdphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
-    if (DetectBufferSetActiveList(s, DETECT_SM_LIST_L4HDR) < 0)
+    if (DetectBufferSetActiveList(s, g_udphdr_buffer_id) < 0)
         return -1;
 
     return 0;
 }
 
-static void PrefilterUdpHeader(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const void *pectx)
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, const int list_id)
 {
     SCEnter();
 
-    if (((uint8_t *)p->udph + (ptrdiff_t)UDP_HEADER_LEN) >
-            ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-    {
-        SCLogDebug("data out of range: %p > %p",
-                ((uint8_t *)p->udph + (ptrdiff_t)UDP_HEADER_LEN),
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
-        SCReturn;
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        if (((uint8_t *)p->udph + (ptrdiff_t)UDP_HEADER_LEN) >
+                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
+        {
+            SCLogDebug("data out of range: %p > %p",
+                    ((uint8_t *)p->udph + (ptrdiff_t)UDP_HEADER_LEN),
+                    ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
+            return NULL;
+        }
+
+        const uint32_t data_len = UDP_HEADER_LEN;
+        const uint8_t *data = (const uint8_t *)p->udph;
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
     }
 
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    if (UDP_HEADER_LEN < mpm_ctx->minlen)
-        SCReturn;
-
-    (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-            &det_ctx->mtc, &det_ctx->pmq,
-            (uint8_t *)p->udph, UDP_HEADER_LEN);
-}
-
-int PrefilterUdpHeaderRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    return PrefilterAppendEngine(de_ctx, sgh,
-            PrefilterUdpHeader, mpm_ctx, NULL, "udp.hdr");
-}
-
-/**
- *  \brief Do the content inspection & validation for a signature
- *
- *  \param det_ctx Detection engine thread context
- *  \param s Signature to inspect
- *  \param p Packet
- *
- *  \retval false no match
- *  \retval true match
- */
-bool DetectEngineInspectRuleUdpHeaderMatches(
-     ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-     const Signature *s, const SigMatchData *sm_data,
-     Flow *f, Packet *p,
-     uint8_t *alert_flags)
-{
-    SCEnter();
-
-    BUG_ON(sm_data == NULL);
-    BUG_ON(sm_data != s->sm_arrays[DETECT_SM_LIST_L4HDR]);
-
-    if (!(PKT_IS_UDP(p))) {
-        SCReturnInt(false);
-    }
-    if (((uint8_t *)p->udph + (ptrdiff_t)UDP_HEADER_LEN) >
-            ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-    {
-        SCLogDebug("data out of range: %p > %p",
-                ((uint8_t *)p->udph + (ptrdiff_t)UDP_HEADER_LEN),
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
-        SCReturnInt(false);
-    }
-
-#ifdef DEBUG
-    det_ctx->payload_persig_cnt++;
-    det_ctx->payload_persig_size += UDP_HEADER_LEN;
-#endif
-    det_ctx->buffer_offset = 0;
-    det_ctx->discontinue_matching = 0;
-    det_ctx->inspection_recursion_counter = 0;
-    det_ctx->replist = NULL;
-
-    int r = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx,
-            s, sm_data,
-            p, NULL, (uint8_t *)p->udph, UDP_HEADER_LEN, 0,
-            DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_HEADER);
-    if (r == 1) {
-        SCReturnInt(true);
-    }
-    SCReturnInt(false);
+    return buffer;
 }
 
 #ifdef UNITTESTS

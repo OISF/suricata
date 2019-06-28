@@ -191,8 +191,6 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
 
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
-    if (s->init_data->smlists[DETECT_SM_LIST_L4HDR] != NULL)
-        return 0;
 
     /* if flow dir is set we can't process it in ip-only */
     if (!(((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == 0) ||
@@ -583,9 +581,6 @@ static int SignatureCreateMask(Signature *s)
 static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
 {
     DetectMpmInitializeBuiltinMpms(de_ctx);
-    DetectMpmSetupAppMpms(de_ctx);
-
-    return;
 }
 
 /** \brief Pure-PCRE or bytetest rule */
@@ -1926,6 +1921,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 
     int r = DetectMpmPrepareBuiltinMpms(de_ctx);
     r |= DetectMpmPrepareAppMpms(de_ctx);
+    r |= DetectMpmPreparePktMpms(de_ctx);
     if (r != 0) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
         exit(EXIT_FAILURE);
@@ -1947,8 +1943,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 
     SCProfilingRuleInitCounters(de_ctx);
 #endif
-    SCFree(de_ctx->app_mpms);
-    de_ctx->app_mpms = NULL;
 
     if (!DetectEngineMultiTenantEnabled()) {
         VarNameStoreActivateStaging();
