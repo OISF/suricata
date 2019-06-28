@@ -74,6 +74,11 @@ void PrefilterDeinit(DetectEngineCtx *de_ctx);
 
 int PrefilterGenericMpmRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectMpmAppLayerRegistery *mpm_reg, int list_id);
+        const DetectBufferMpmRegistery *mpm_reg, int list_id);
+
+int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistery *mpm_reg, int list_id);
+
 
 #endif

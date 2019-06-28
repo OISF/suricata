@@ -24,13 +24,6 @@
 #ifndef _DETECT_TCPHDR_H
 #define _DETECT_TCPHDR_H
 
-int PrefilterTcpHeaderRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-bool DetectEngineInspectRuleTcpHeaderMatches(
-     ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-     const Signature *s, const SigMatchData *sm_data,
-     Flow *f, Packet *p,
-     uint8_t *alert_flags);
 void DetectTcphdrRegister(void);
 
 #endif	/* _DETECT_TCPHDR_H */

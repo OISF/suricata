@@ -534,6 +534,9 @@ static bool LooksLikeHTTPUA(const uint8_t *buf, uint16_t len)
 
 static void DumpMatches(RuleAnalyzer *ctx, json_t *js, const SigMatchData *smd)
 {
+    if (smd == NULL)
+        return;
+
     json_t *js_matches = json_array();
     if (js_matches == NULL) {
         return;
@@ -722,6 +725,36 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         json_object_set_new(ctx.js, "flags", js_flags);
     }
 
+    json_t *js_pkt_array = json_array();
+    const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
+    for ( ; pkt != NULL; pkt = pkt->next) {
+        const char *name = DetectBufferTypeGetNameById(de_ctx, pkt->sm_list);
+        if (name == NULL) {
+            switch (pkt->sm_list) {
+                case DETECT_SM_LIST_PMATCH:
+                    name = "payload";
+                    break;
+                case DETECT_SM_LIST_MATCH:
+                    name = "packet";
+                    break;
+                default:
+                    name = "unknown";
+                    break;
+            }
+        }
+        json_t *js_engine = json_object();
+        if (js_engine != NULL) {
+            json_object_set_new(js_engine, "name", json_string(name));
+
+            json_object_set_new(js_engine, "is_mpm", json_boolean(pkt->mpm));
+
+            DumpMatches(&ctx, js_engine, pkt->smd);
+
+            json_array_append_new(js_pkt_array, js_engine);
+        }
+    }
+    json_object_set_new(ctx.js, "pkt_engines", js_pkt_array);
+
     if (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) {
         bool has_stream = false;
         bool has_client_body_mpm = false;
@@ -897,7 +930,6 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     uint32_t warn_no_direction = 0;
     uint32_t warn_both_direction = 0;
 
-    const int nlists = de_ctx->buffer_type_id;
     const int filedata_id = DetectBufferTypeGetByName("file_data");
     const int httpmethod_id = DetectBufferTypeGetByName("http_method");
     const int httpuri_id = DetectBufferTypeGetByName("http_uri");
@@ -932,7 +964,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_ipv6_only += 1;
     }
 
-    for (list_id = 0; list_id < nlists; list_id++) {
+    for (list_id = 0; list_id < (int)s->init_data->smlists_array_size; list_id++) {
         SigMatch *sm = NULL;
         for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_PCRE) {

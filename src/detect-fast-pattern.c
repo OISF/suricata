@@ -64,7 +64,7 @@ int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
     if (sm_fp_support_smlist_list == NULL)
         return 0;
 
-    if (list_id == DETECT_SM_LIST_PMATCH || list_id == DETECT_SM_LIST_L4HDR)
+    if (list_id == DETECT_SM_LIST_PMATCH)
         return 1;
 
     return DetectBufferTypeSupportsMpmGetById(de_ctx, list_id);

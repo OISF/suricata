@@ -1369,15 +1369,6 @@ void SigFree(Signature *s)
 
     DetectEngineAppInspectionEngineSignatureFree(s);
 
-    if (s->pkt_inspect) {
-        DetectEnginePktInspectionEngine *e = s->pkt_inspect;
-        while (e) {
-            DetectEnginePktInspectionEngine *next = e->next;
-            SCFree(e);
-            e = next;
-        }
-    }
-
     SCFree(s);
 }
 
