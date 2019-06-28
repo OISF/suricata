@@ -88,9 +88,9 @@ void DetectLuaRegister(void)
 
 #include "util-lua.h"
 
-static int DetectLuaMatch (ThreadVars *, DetectEngineThreadCtx *,
+static int DetectLuaMatch (DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
-static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectLuaAppTxMatch (DetectEngineThreadCtx *det_ctx,
                                 Flow *f, uint8_t flags,
                                 void *state, void *txv, const Signature *s,
                                 const SigMatchCtx *ctx);
@@ -319,7 +319,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
@@ -339,7 +339,7 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     else if (p->flowflags & FLOW_PKT_TOCLIENT)
         flags = STREAM_TOCLIENT;
 
-    LuaStateSetThreadVars(tlua->luastate, tv);
+    LuaStateSetThreadVars(tlua->luastate, det_ctx->tv);
 
     LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx,
             p->flow, p, flags);
@@ -451,7 +451,7 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     SCReturnInt(ret);
 }
 
-static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state,
         const Signature *s, const SigMatchCtx *ctx)
 {
@@ -564,12 +564,12 @@ static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ct
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectLuaAppTxMatch (DetectEngineThreadCtx *det_ctx,
                                 Flow *f, uint8_t flags,
                                 void *state, void *txv, const Signature *s,
                                 const SigMatchCtx *ctx)
 {
-    return DetectLuaAppMatchCommon(t, det_ctx, f, flags, state, s, ctx);
+    return DetectLuaAppMatchCommon(det_ctx, f, flags, state, s, ctx);
 }
 
 #ifdef UNITTESTS

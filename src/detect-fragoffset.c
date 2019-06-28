@@ -44,7 +44,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectFragOffsetMatch(ThreadVars *, DetectEngineThreadCtx *,
+static int DetectFragOffsetMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectFragOffsetRegisterTests(void);
@@ -103,7 +103,7 @@ static inline int FragOffsetMatch(const uint16_t poffset, const uint8_t mode,
  * \retval 1 match
  *
  */
-static int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectFragOffsetMatch (DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     uint16_t frag = 0;

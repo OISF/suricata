@@ -51,7 +51,7 @@
 #include "stream-tcp.h"
 #include "detect-fileext.h"
 
-static int DetectFileextMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
+static int DetectFileextMatch (DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFileextSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFileextRegisterTests(void);
@@ -93,7 +93,7 @@ void DetectFileextRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectFileextMatch (DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();

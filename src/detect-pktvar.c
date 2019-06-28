@@ -40,7 +40,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectPktvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectPktvarMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectPktvarSetup (DetectEngineCtx *, Signature *, const char *);
 
@@ -61,7 +61,7 @@ void DetectPktvarRegister (void)
  *        -1: error
  */
 
-static int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectPktvarMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;

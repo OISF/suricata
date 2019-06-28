@@ -1131,7 +1131,7 @@ static bool DetectEngineInspectRulePacketMatches(
     SCLogDebug("running match functions, sm %p", smd);
     while (1) {
         KEYWORD_PROFILING_START;
-        if (sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx) <= 0) {
+        if (sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx) <= 0) {
             KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
             SCLogDebug("no match");
             return false;
@@ -1350,14 +1350,10 @@ int DetectEngineInspectGenericList(ThreadVars *tv,
     if (smd != NULL) {
         while (1) {
             int match = 0;
-#ifdef PROFILING
             KEYWORD_PROFILING_START;
-#endif
             match = sigmatch_table[smd->type].
-                AppLayerTxMatch(tv, det_ctx, f, flags, alstate, txv, s, smd->ctx);
-#ifdef PROFILING
+                AppLayerTxMatch(det_ctx, f, flags, alstate, txv, s, smd->ctx);
             KEYWORD_PROFILING_END(det_ctx, smd->type, (match == 1));
-#endif
             if (match == 0)
                 return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
             if (match == 2) {

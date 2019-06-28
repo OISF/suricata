@@ -81,7 +81,7 @@ static int DetectEngineInspectNfsRequestGeneric(ThreadVars *tv,
         Flow *f, uint8_t flags, void *alstate,
         void *txv, uint64_t tx_id);
 
-static int DetectNfsVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
+static int DetectNfsVersionMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
                                    const SigMatchCtx *);
 
@@ -169,7 +169,7 @@ VersionMatch(const uint32_t version,
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectNfsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectNfsVersionMatch (DetectEngineThreadCtx *det_ctx,
                                    Flow *f, uint8_t flags, void *state,
                                    void *txv, const Signature *s,
                                    const SigMatchCtx *ctx)

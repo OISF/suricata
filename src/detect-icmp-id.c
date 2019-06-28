@@ -43,7 +43,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectIcmpIdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectIcmpIdMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectIcmpIdRegisterTests(void);
@@ -130,7 +130,7 @@ static inline _Bool GetIcmpId(Packet *p, uint16_t *id)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectIcmpIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     uint16_t pid;

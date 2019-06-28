@@ -41,7 +41,7 @@
 #include "util-debug.h"
 
 static int DetectSeqSetup(DetectEngineCtx *, Signature *, const char *);
-static int DetectSeqMatch(ThreadVars *, DetectEngineThreadCtx *,
+static int DetectSeqMatch(DetectEngineThreadCtx *,
                           Packet *, const Signature *, const SigMatchCtx *);
 static void DetectSeqRegisterTests(void);
 static void DetectSeqFree(void *);
@@ -75,7 +75,7 @@ void DetectSeqRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectSeqMatch(DetectEngineThreadCtx *det_ctx,
                           Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectSeqData *data = (const DetectSeqData *)ctx;

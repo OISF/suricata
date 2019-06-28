@@ -49,7 +49,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFlowMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+int DetectFlowMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFlowSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectFlowRegisterTests(void);
@@ -133,7 +133,7 @@ static inline int FlowMatch(const uint32_t pflags, const uint8_t pflowflags,
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+int DetectFlowMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();

@@ -50,7 +50,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /*prototypes*/
-static int DetectFilesizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
         uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m);
 static int DetectFilesizeSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFilesizeFree (void *);
@@ -90,7 +90,7 @@ void DetectFilesizeRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFilesizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
         uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();

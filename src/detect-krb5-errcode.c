@@ -42,7 +42,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /* Prototypes of functions registered in DetectKrb5ErrCodeRegister below */
-static int DetectKrb5ErrCodeMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
+static int DetectKrb5ErrCodeMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
                                    const SigMatchCtx *);
 static int DetectKrb5ErrCodeSetup (DetectEngineCtx *, Signature *, const char *);
@@ -108,7 +108,7 @@ static int DetectEngineInspectKRB5Generic(ThreadVars *tv,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectKrb5ErrCodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectKrb5ErrCodeMatch (DetectEngineThreadCtx *det_ctx,
                                    Flow *f, uint8_t flags, void *state,
                                    void *txv, const Signature *s,
                                    const SigMatchCtx *ctx)

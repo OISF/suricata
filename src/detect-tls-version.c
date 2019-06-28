@@ -59,7 +59,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectTlsVersionMatch (ThreadVars *, DetectEngineThreadCtx *,
+static int DetectTlsVersionMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, const char *);
@@ -100,7 +100,7 @@ void DetectTlsVersionRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, void *txv,
         const Signature *s, const SigMatchCtx *m)
 {

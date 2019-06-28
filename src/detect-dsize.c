@@ -50,7 +50,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectDsizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectDsizeMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectDsizeSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DsizeRegisterTests(void);
@@ -107,7 +107,7 @@ DsizeMatch(const uint16_t psize, const uint8_t mode,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectDsizeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
