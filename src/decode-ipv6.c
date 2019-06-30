@@ -159,6 +159,8 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
     while(1)
     {
+        IPV6_SET_EXTHDRS_LEN(p, (len - plen));
+
         if (nh == IPPROTO_NONE) {
             if (plen > 0) {
                 /* No upper layer, but we do have data. Suspicious. */
