@@ -1047,14 +1047,38 @@ static MpmStore *MpmStoreLookup(DetectEngineCtx *de_ctx, MpmStore *s)
     return rs;
 }
 
+static const DetectBufferMpmRegistery *GetByMpmStore(const DetectEngineCtx *de_ctx,
+        const MpmStore *ms)
+{
+    const DetectBufferMpmRegistery *am = de_ctx->app_mpms_list;
+    while (am != NULL) {
+        if (ms->sm_list == am->sm_list &&
+            ms->direction == am->direction) {
+            return am;
+        }
+        am = am->next;
+    }
+    am = de_ctx->pkt_mpms_list;
+    while (am != NULL) {
+        if (ms->sm_list == am->sm_list) {
+            return am;
+        }
+        am = am->next;
+    }
+    return NULL;
+}
+
 void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
 {
     HashListTableBucket *htb = NULL;
 
-    int app_mpms_cnt = de_ctx->app_mpms_list_cnt;
     uint32_t stats[MPMB_MAX] = {0};
+    int app_mpms_cnt = de_ctx->buffer_type_map_elements;
     uint32_t appstats[app_mpms_cnt + 1];    // +1 to silence scan-build
     memset(&appstats, 0x00, sizeof(appstats));
+    int pkt_mpms_cnt = de_ctx->buffer_type_map_elements;
+    uint32_t pktstats[pkt_mpms_cnt + 1];    // +1 to silence scan-build
+    memset(&pktstats, 0x00, sizeof(pktstats));
 
     for (htb = HashListTableGetListHead(de_ctx->mpm_hash_table);
             htb != NULL;
@@ -1067,23 +1091,29 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
         if (ms->buffer < MPMB_MAX)
             stats[ms->buffer]++;
         else if (ms->sm_list != DETECT_SM_LIST_PMATCH) {
-            int i = 0;
-            const DetectBufferMpmRegistery *am = de_ctx->app_mpms_list;
-            while (am != NULL) {
-                if (ms->sm_list == am->sm_list &&
-                    ms->direction == am->direction)
-                {
-                    SCLogDebug("%s %s: %u patterns. Min %u, Max %u. Ctx %p",
-                            am->name,
-                            am->direction == SIG_FLAG_TOSERVER ? "toserver":"toclient",
-                            ms->mpm_ctx->pattern_cnt,
-                            ms->mpm_ctx->minlen, ms->mpm_ctx->maxlen,
-                            ms->mpm_ctx);
-                    appstats[am->sm_list]++;
-                    break;
+            const DetectBufferMpmRegistery *am = GetByMpmStore(de_ctx, ms);
+            if (am != NULL) {
+                switch (am->type) {
+                    case DETECT_BUFFER_MPM_TYPE_PKT:
+                        SCLogDebug("%s: %u patterns. Min %u, Max %u. Ctx %p",
+                                am->name,
+                                ms->mpm_ctx->pattern_cnt,
+                                ms->mpm_ctx->minlen, ms->mpm_ctx->maxlen,
+                                ms->mpm_ctx);
+                        pktstats[am->sm_list]++;
+                        break;
+                    case DETECT_BUFFER_MPM_TYPE_APP:
+                        SCLogDebug("%s %s: %u patterns. Min %u, Max %u. Ctx %p",
+                                am->name,
+                                am->direction == SIG_FLAG_TOSERVER ? "toserver":"toclient",
+                                ms->mpm_ctx->pattern_cnt,
+                                ms->mpm_ctx->minlen, ms->mpm_ctx->maxlen,
+                                ms->mpm_ctx);
+                        appstats[am->sm_list]++;
+                        break;
+                    case DETECT_BUFFER_MPM_TYPE_SIZE:
+                        break;
                 }
-                i++;
-                am = am->next;
             }
         }
     }
@@ -1094,14 +1124,21 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
         }
         const DetectBufferMpmRegistery *am = de_ctx->app_mpms_list;
         while (am != NULL) {
-            if (appstats[am->sm_list] == 0)
-                goto next;
-
-            const char *name = am->name;
-            const char *direction = am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient";
-            SCLogPerf("AppLayer MPM \"%s %s\": %u", direction, name, appstats[am->sm_list]);
-        next:
+            if (appstats[am->sm_list] > 0) {
+                const char *name = am->name;
+                const char *direction = am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient";
+                SCLogPerf("AppLayer MPM \"%s %s (%s)\": %u", direction, name,
+                        AppProtoToString(am->app_v2.alproto), appstats[am->sm_list]);
+            }
             am = am->next;
+        }
+        const DetectBufferMpmRegistery *pm = de_ctx->pkt_mpms_list;
+        while (pm != NULL) {
+            if (pktstats[pm->sm_list] > 0) {
+                const char *name = pm->name;
+                SCLogPerf("Pkt MPM \"%s\": %u", name, pktstats[pm->sm_list]);
+            }
+            pm = pm->next;
         }
     }
 }
