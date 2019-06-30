@@ -44,9 +44,6 @@
 #include "util-profiling.h"
 #include "host.h"
 
-#define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
-#define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
-
 /**
  * \brief Function to decode IPv4 in IPv6 packets
  *
@@ -583,12 +580,10 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 
 int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    int ret;
-
     StatsIncr(tv, dtv->counter_ipv6);
 
     /* do the actual decoding */
-    ret = DecodeIPV6Packet (tv, dtv, p, pkt, len);
+    int ret = DecodeIPV6Packet (tv, dtv, p, pkt, len);
     if (unlikely(ret < 0)) {
         p->ip6h = NULL;
         return TM_ECODE_FAILED;

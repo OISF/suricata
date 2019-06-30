@@ -99,7 +99,6 @@ typedef struct IPV6Hdr_
 /* helper structure with parsed ipv6 info */
 typedef struct IPV6Vars_
 {
-    uint8_t ip_opts_len;
     uint8_t l4proto;      /* the proto after the extension headers
                             * store while decoding so we don't have
                             * to loop through the exthdrs all the time */
@@ -107,7 +106,6 @@ typedef struct IPV6Vars_
 
 #define CLEAR_IPV6_PACKET(p) do { \
     (p)->ip6h = NULL; \
-    (p)->ip6vars.ip_opts_len = 0; \
     (p)->ip6vars.l4proto = 0; \
     memset(&(p)->ip6eh, 0x00, sizeof((p)->ip6eh)); \
 } while (0)
