@@ -55,7 +55,7 @@ static void DetectContentRegisterTests(void);
 void DetectContentRegister (void)
 {
     sigmatch_table[DETECT_CONTENT].name = "content";
-    sigmatch_table[DETECT_CONTENT].desc = "match on payload content";
+    sigmatch_table[DETECT_CONTENT].desc = "Match on payload content.";
     sigmatch_table[DETECT_CONTENT].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#content";
     sigmatch_table[DETECT_CONTENT].Match = NULL;
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;

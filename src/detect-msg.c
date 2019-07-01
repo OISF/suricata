@@ -40,7 +40,7 @@ void DetectMsgRegisterTests(void);
 void DetectMsgRegister (void)
 {
     sigmatch_table[DETECT_MSG].name = "msg";
-    sigmatch_table[DETECT_MSG].desc = "information about the rule and the possible alert";
+    sigmatch_table[DETECT_MSG].desc = "Information about the rule and the possible alert.";
     sigmatch_table[DETECT_MSG].url = DOC_URL DOC_VERSION "/rules/meta.html#msg-message";
     sigmatch_table[DETECT_MSG].Match = NULL;
     sigmatch_table[DETECT_MSG].Setup = DetectMsgSetup;

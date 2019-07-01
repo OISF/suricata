@@ -56,7 +56,7 @@ static int DetectReferenceSetup(DetectEngineCtx *, Signature *s, const char *str
 void DetectReferenceRegister(void)
 {
     sigmatch_table[DETECT_REFERENCE].name = "reference";
-    sigmatch_table[DETECT_REFERENCE].desc = "direct to places where information about the rule can be found";
+    sigmatch_table[DETECT_REFERENCE].desc = "Direct to places where information about the rule can be found.";
     sigmatch_table[DETECT_REFERENCE].url = DOC_URL DOC_VERSION "/rules/meta.html#reference";
     sigmatch_table[DETECT_REFERENCE].Match = NULL;
     sigmatch_table[DETECT_REFERENCE].Setup = DetectReferenceSetup;
