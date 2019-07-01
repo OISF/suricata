@@ -157,7 +157,7 @@ direction you would like to match::
   src: the source matches with the given geoip.
 
 The keyword only supports IPv4. As it uses the GeoIP2 API of MaxMind,
-libmaxminddb must be compiled in.   You must download and install the
+libmaxminddb must be compiled in. You must download and install the
 GeoIP2 or GeoLite2 database editions desired. Visit the MaxMind site 
 at https://dev.maxmind.com/geoip/geoip2/geolite2/ for details.
 
