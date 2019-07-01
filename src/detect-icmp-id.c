@@ -57,7 +57,7 @@ static _Bool PrefilterIcmpIdIsPrefilterable(const Signature *s);
 void DetectIcmpIdRegister (void)
 {
     sigmatch_table[DETECT_ICMP_ID].name = "icmp_id";
-    sigmatch_table[DETECT_ICMP_ID].desc = "check for a ICMP id";
+    sigmatch_table[DETECT_ICMP_ID].desc = "Check for a ICMP ID.";
     sigmatch_table[DETECT_ICMP_ID].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#icmp-id";
     sigmatch_table[DETECT_ICMP_ID].Match = DetectIcmpIdMatch;
     sigmatch_table[DETECT_ICMP_ID].Setup = DetectIcmpIdSetup;

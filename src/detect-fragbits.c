@@ -83,7 +83,7 @@ static _Bool PrefilterFragBitsIsPrefilterable(const Signature *s);
 void DetectFragBitsRegister (void)
 {
     sigmatch_table[DETECT_FRAGBITS].name = "fragbits";
-    sigmatch_table[DETECT_FRAGBITS].desc = "check if the fragmentation and reserved bits are set in the IP header";
+    sigmatch_table[DETECT_FRAGBITS].desc = "Check if the fragmentation and reserved bits are set in the IP header.";
     sigmatch_table[DETECT_FRAGBITS].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#fragbits-ip-fragmentation";
     sigmatch_table[DETECT_FRAGBITS].Match = DetectFragBitsMatch;
     sigmatch_table[DETECT_FRAGBITS].Setup = DetectFragBitsSetup;

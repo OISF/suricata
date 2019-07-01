@@ -47,7 +47,7 @@ static int DetectStartsWithSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectDepthRegister (void)
 {
     sigmatch_table[DETECT_DEPTH].name = "depth";
-    sigmatch_table[DETECT_DEPTH].desc = "designate how many bytes from the beginning of the payload will be checked";
+    sigmatch_table[DETECT_DEPTH].desc = "Designate how many bytes from the beginning of the payload will be checked.";
     sigmatch_table[DETECT_DEPTH].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#depth";
     sigmatch_table[DETECT_DEPTH].Match = NULL;
     sigmatch_table[DETECT_DEPTH].Setup = DetectDepthSetup;

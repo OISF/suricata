@@ -44,9 +44,9 @@ void DetectTransformMd5Register(void)
 {
     sigmatch_table[DETECT_TRANSFORM_MD5].name = "to_md5";
     sigmatch_table[DETECT_TRANSFORM_MD5].desc =
-        "convert to md5 hash of the buffer";
+        "Convert to md5 hash of the buffer.";
     sigmatch_table[DETECT_TRANSFORM_MD5].url =
-        DOC_URL DOC_VERSION "/rules/transforms.html#to_sha256";
+        DOC_URL DOC_VERSION "/rules/transforms.html#to-md5";
     sigmatch_table[DETECT_TRANSFORM_MD5].Setup =
         DetectTransformToMd5Setup;
 #ifdef HAVE_NSS

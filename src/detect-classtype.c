@@ -51,7 +51,7 @@ static void DetectClasstypeRegisterTests(void);
 void DetectClasstypeRegister(void)
 {
     sigmatch_table[DETECT_CLASSTYPE].name = "classtype";
-    sigmatch_table[DETECT_CLASSTYPE].desc = "information about the classification of rules and alerts";
+    sigmatch_table[DETECT_CLASSTYPE].desc = "Information about the classification of rules and alerts.";
     sigmatch_table[DETECT_CLASSTYPE].url = DOC_URL DOC_VERSION "/rules/meta.html#classtype";
     sigmatch_table[DETECT_CLASSTYPE].Match = NULL;
     sigmatch_table[DETECT_CLASSTYPE].Setup = DetectClasstypeSetup;
