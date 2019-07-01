@@ -84,6 +84,7 @@ void DetectHttpHHRegister(void)
     /* http_host content modifier */
     sigmatch_table[DETECT_AL_HTTP_HOST].name = "http_host";
     sigmatch_table[DETECT_AL_HTTP_HOST].desc = "content modifier to match on the HTTP hostname";
+    sigmatch_table[DETECT_AL_HTTP_HOST].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-host-and-http-raw-host";
     sigmatch_table[DETECT_AL_HTTP_HOST].Setup = DetectHttpHHSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_HOST].RegisterTests = DetectHttpHHRegisterTests;
@@ -94,7 +95,7 @@ void DetectHttpHHRegister(void)
     /* http.host sticky buffer */
     sigmatch_table[DETECT_HTTP_HOST].name = "http.host";
     sigmatch_table[DETECT_HTTP_HOST].desc = "sticky buffer to match on the HTTP Host buffer";
-    sigmatch_table[DETECT_HTTP_HOST].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-host";
+    sigmatch_table[DETECT_HTTP_HOST].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-host-and-http-raw-host";
     sigmatch_table[DETECT_HTTP_HOST].Setup = DetectHttpHostSetup;
     sigmatch_table[DETECT_HTTP_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
@@ -117,6 +118,7 @@ void DetectHttpHHRegister(void)
     /* http_raw_host content modifier */
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].name = "http_raw_host";
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].desc = "content modifier to match on the HTTP host header or the raw hostname from the HTTP uri";
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-host-and-http-raw-host";
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].Setup = DetectHttpHRHSetup;
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].alternative = DETECT_HTTP_HOST_RAW;
@@ -124,7 +126,7 @@ void DetectHttpHHRegister(void)
     /* http.host sticky buffer */
     sigmatch_table[DETECT_HTTP_HOST_RAW].name = "http.host.raw";
     sigmatch_table[DETECT_HTTP_HOST_RAW].desc = "sticky buffer to match on the HTTP host header or the raw hostname from the HTTP uri";
-    sigmatch_table[DETECT_HTTP_HOST_RAW].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-host";
+    sigmatch_table[DETECT_HTTP_HOST_RAW].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-host-and-http-raw-host";
     sigmatch_table[DETECT_HTTP_HOST_RAW].Setup = DetectHttpHostRawSetupSticky;
     sigmatch_table[DETECT_HTTP_HOST_RAW].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 

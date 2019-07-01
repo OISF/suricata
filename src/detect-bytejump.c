@@ -70,6 +70,8 @@ static void DetectBytejumpRegisterTests(void);
 void DetectBytejumpRegister (void)
 {
     sigmatch_table[DETECT_BYTEJUMP].name = "byte_jump";
+    sigmatch_table[DETECT_BYTEJUMP].desc = "allows for the ability to select a <num of bytes> from an <offset> and moves the detection pointer to that position.";
+    sigmatch_table[DETECT_BYTEJUMP].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#byte-jump";
     sigmatch_table[DETECT_BYTEJUMP].Match = DetectBytejumpMatch;
     sigmatch_table[DETECT_BYTEJUMP].Setup = DetectBytejumpSetup;
     sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;

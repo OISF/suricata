@@ -68,6 +68,8 @@ static int g_http_uri_buffer_id = 0;
 void DetectUricontentRegister (void)
 {
     sigmatch_table[DETECT_URICONTENT].name = "uricontent";
+    sigmatch_table[DETECT_URICONTENT].desc = "legacy keyword to match on the request URI buffer";
+    sigmatch_table[DETECT_URICONTENT].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#uricontent";
     sigmatch_table[DETECT_URICONTENT].Match = NULL;
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free  = DetectUricontentFree;

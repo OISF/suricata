@@ -99,6 +99,8 @@ static void DetectByteExtractFree(void *);
 void DetectByteExtractRegister(void)
 {
     sigmatch_table[DETECT_BYTE_EXTRACT].name = "byte_extract";
+    sigmatch_table[DETECT_BYTE_EXTRACT].desc = "extracts <num of bytes> at a particular <offset> and stores it in <var_name>.";
+    sigmatch_table[DETECT_BYTE_EXTRACT].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#byte-extract";
     sigmatch_table[DETECT_BYTE_EXTRACT].Match = NULL;
     sigmatch_table[DETECT_BYTE_EXTRACT].Setup = DetectByteExtractSetup;
     sigmatch_table[DETECT_BYTE_EXTRACT].Free = DetectByteExtractFree;

@@ -82,6 +82,8 @@ static int g_tls_generic_list_id = 0;
 void DetectSslStateRegister(void)
 {
     sigmatch_table[DETECT_AL_SSL_STATE].name = "ssl_state";
+    sigmatch_table[DETECT_AL_SSL_STATE].desc = "matches the state of the SSL connection.";
+    sigmatch_table[DETECT_AL_SSL_STATE].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#ssl-state";
     sigmatch_table[DETECT_AL_SSL_STATE].AppLayerTxMatch = DetectSslStateMatch;
     sigmatch_table[DETECT_AL_SSL_STATE].Setup = DetectSslStateSetup;
     sigmatch_table[DETECT_AL_SSL_STATE].Free  = DetectSslStateFree;

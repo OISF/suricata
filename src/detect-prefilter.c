@@ -38,7 +38,7 @@ void DetectPrefilterRegister(void)
 {
     sigmatch_table[DETECT_PREFILTER].name = "prefilter";
     sigmatch_table[DETECT_PREFILTER].desc = "force a condition to be used as prefilter";
-    sigmatch_table[DETECT_PREFILTER].url = "/rules/prefilter-keywords.html#prefilter";
+    sigmatch_table[DETECT_PREFILTER].url = DOC_URL DOC_VERSION "/rules/prefilter-keywords.html#prefilter";
     sigmatch_table[DETECT_PREFILTER].Match = NULL;
     sigmatch_table[DETECT_PREFILTER].Setup = DetectPrefilterSetup;
     sigmatch_table[DETECT_PREFILTER].Free  = NULL;

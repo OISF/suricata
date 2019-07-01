@@ -65,7 +65,7 @@ static int g_krb5_msg_type_list_id = 0;
 void DetectKrb5MsgTypeRegister(void) {
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].name = "krb5_msg_type";
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].desc = "match Kerberos 5 message type";
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].url = DOC_URL DOC_VERSION "/rules/kerberos-keywords.html#krb5_msg_type";
+    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].url = DOC_URL DOC_VERSION "/rules/kerberos-keywords.html#krb5-msg-type";
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Match = NULL;
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].AppLayerTxMatch = DetectKrb5MsgTypeMatch;
     sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Setup = DetectKrb5MsgTypeSetup;

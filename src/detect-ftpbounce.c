@@ -68,6 +68,7 @@ static int InspectFtpRequest(ThreadVars *tv,
 void DetectFtpbounceRegister(void)
 {
     sigmatch_table[DETECT_FTPBOUNCE].name = "ftpbounce";
+    sigmatch_table[DETECT_FTPBOUNCE].desc = "Detect FTP bounce attacks.";
     sigmatch_table[DETECT_FTPBOUNCE].Setup = DetectFtpbounceSetup;
     sigmatch_table[DETECT_FTPBOUNCE].AppLayerTxMatch = DetectFtpbounceALMatch;
     sigmatch_table[DETECT_FTPBOUNCE].RegisterTests = DetectFtpbounceRegisterTests;
