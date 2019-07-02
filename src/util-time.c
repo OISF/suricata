@@ -498,6 +498,13 @@ int SCStringPatternToTime (char *string, const char **patterns, int num_patterns
             tp->tm_mday <= 0)
         tp->tm_mday = 1;
 
+    /* The first date of the year is assumed, if only year
+       is given */
+    if (tp->tm_year != INT_MIN && tp->tm_mon <= 0 &&
+            tp->tm_mday <= 0) {
+        tp->tm_mday = 1;
+        tp->tm_mon = 1;
+    }
     return 0;
 }
 

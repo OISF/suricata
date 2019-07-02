@@ -254,6 +254,7 @@ static time_t DateStringToEpoch (char *string)
     struct tm tm;
     const char *patterns[] = {
             /* ISO 8601 */
+            "%Y",
             "%Y-%m",
             "%Y-%m-%d",
             "%Y-%m-%d %H",
@@ -285,15 +286,15 @@ static time_t DateStringToEpoch (char *string)
         string = tmp;
     }
 
-    time_t epoch = StringIsEpoch(string);
-    if (epoch != -1) {
-        return epoch;;
-    }
+    r = SCStringPatternToTime(string, patterns, 11, &tm);
 
-    r = SCStringPatternToTime(string, patterns, 10, &tm);
-
-    if (r != 0)
+    if (r != 0) {
+        time_t epoch = StringIsEpoch(string);
+        if (epoch != -1) {
+            return epoch;;
+        }
         return -1;
+    }
 
     return SCMkTimeUtc(&tm);
 }
