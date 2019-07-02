@@ -578,7 +578,8 @@ static int DetectAppLayerEventTest03(void)
     StreamTcpUTInit(&ra_ctx);
 
     p->flowflags = FLOW_PKT_TOSERVER;
-    FAIL_IF(AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
+    TcpStream *stream = &stream_ts;
+    FAIL_IF(AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream, buf_ts,
                              sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -586,7 +587,8 @@ static int DetectAppLayerEventTest03(void)
     FAIL_IF (PacketAlertCheck(p, 1));
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
+    stream = &stream_tc;
+    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream, buf_tc,
                               sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
@@ -665,13 +667,15 @@ static int DetectAppLayerEventTest04(void)
     StreamTcpUTInit(&ra_ctx);
 
     p->flowflags = FLOW_PKT_TOSERVER;
-    FAIL_IF(AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
+    TcpStream *stream = &stream_ts;
+    FAIL_IF(AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream, buf_ts,
                               sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0);
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     FAIL_IF (PacketAlertCheck(p, 1));
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
+    stream = &stream_tc;
+    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream, buf_tc,
                               sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0);
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     FAIL_IF (!PacketAlertCheck(p, 1));
@@ -764,13 +768,15 @@ static int DetectAppLayerEventTest05(void)
     StreamTcpUTInit(&ra_ctx);
 
     p->flowflags = FLOW_PKT_TOSERVER;
-    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
+    TcpStream *stream = &stream_ts;
+    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream, buf_ts,
                               sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0);
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     FAIL_IF (PacketAlertCheck(p, 1));
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
+    stream = &stream_tc;
+    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream, buf_tc,
                               sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0);
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
     FAIL_IF (!PacketAlertCheck(p, 1));
