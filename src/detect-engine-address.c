@@ -894,8 +894,11 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     DetectAddressHead tmp_gh = { NULL, NULL, NULL };
                     DetectAddressHead tmp_ghn = { NULL, NULL, NULL };
 
-                    if (DetectAddressParse2(de_ctx, &tmp_gh, &tmp_ghn, address, 0, var_list) < 0)
+                    if (DetectAddressParse2(de_ctx, &tmp_gh, &tmp_ghn, address, 0, var_list) < 0) {
+                        DetectAddressHeadCleanup(&tmp_gh);
+                        DetectAddressHeadCleanup(&tmp_ghn);
                         goto error;
+                    }
 
                     DetectAddress *tmp_ad;
                     DetectAddress *tmp_ad2;
