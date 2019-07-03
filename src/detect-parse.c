@@ -1078,7 +1078,7 @@ static int SigParseBasics(DetectEngineCtx *de_ctx,
 
     /* Options. */
     if (index == NULL) {
-        fprintf(stderr, "no rule options.\n");
+        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "no rule options.\n");
         goto error;
     }
     while (isspace(*index) || *index == '(') {
