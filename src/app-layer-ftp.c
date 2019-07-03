@@ -397,6 +397,8 @@ static uint16_t ftp_validate_port(int computed_port_value)
  */
 static uint16_t FTPGetV6PortNumber(uint8_t *input, uint32_t input_len)
 {
+    uint16_t res;
+
     uint8_t *ptr = memrchr(input, '|', input_len);
     if (ptr == NULL) {
         return 0;
@@ -410,7 +412,10 @@ static uint16_t FTPGetV6PortNumber(uint8_t *input, uint32_t input_len)
     if (ptr == NULL)
         return 0;
 
-    return ftp_validate_port(atoi((char *)ptr + 1));
+    if (ByteExtractStringUint16(&res, 10, 0, (char *)ptr + 1) < 0) {
+        return 0;
+    }
+    return res;
 }
 
 /**
