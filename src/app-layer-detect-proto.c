@@ -1478,6 +1478,7 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
 
     goto end;
  error:
+    DetectContentFree(cd);
     ret = -1;
  end:
     SCReturnInt(ret);
