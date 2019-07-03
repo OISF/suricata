@@ -420,6 +420,40 @@ static int ValidityTestParse25(void)
 }
 
 /**
+
+ * \test This is a test for a valid value <2015.
+ *
+ * \retval 1 on success.
+ * \retval 0 on failure.
+ */
+static int ValidityTestParse26(void)
+{
+    DetectTlsValidityData *dd = NULL;
+    dd = DetectTlsValidityParse("<2015");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->epoch == 1422748800 && dd->mode == DETECT_TLS_VALIDITY_LT);
+    DetectTlsValidityFree(NULL, dd);
+    PASS;
+}
+
+/**
+
+ * \test This is a test for a valid value >2020.
+ *
+ * \retval 1 on success.
+ * \retval 0 on failure.
+ */
+static int ValidityTestParse27(void)
+{
+    DetectTlsValidityData *dd = NULL;
+    dd = DetectTlsValidityParse(">2020");
+    FAIL_IF_NULL(dd);
+    FAIL_IF_NOT(dd->epoch == 1580515200 && dd->mode == DETECT_TLS_VALIDITY_GT);
+    DetectTlsValidityFree(NULL, dd);
+    PASS;
+}
+
+/**
  * \test Test matching on validity dates in a certificate.
  *
  * \retval 1 on success.
@@ -1367,6 +1401,8 @@ void TlsNotBeforeRegisterTests(void)
     UtRegisterTest("ValidityTestParse23", ValidityTestParse23);
     UtRegisterTest("ValidityTestParse24", ValidityTestParse24);
     UtRegisterTest("ValidityTestParse25", ValidityTestParse25);
+    UtRegisterTest("ValidityTestParse26", ValidityTestParse26);
+    UtRegisterTest("ValidityTestParse27", ValidityTestParse27);
     UtRegisterTest("ValidityTestDetect01", ValidityTestDetect01);
 }
 
