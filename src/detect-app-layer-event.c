@@ -349,14 +349,28 @@ static void DetectAppLayerEventFree(void *ptr)
 int DetectAppLayerEventPrepare(Signature *s)
 {
     SigMatch *sm = s->init_data->smlists[g_applayer_events_list_id];
+    SigMatch *smn;
     s->init_data->smlists[g_applayer_events_list_id] = NULL;
     s->init_data->smlists_tail[g_applayer_events_list_id] = NULL;
 
     while (sm != NULL) {
+        // save it for later use in loop
+        smn = sm->next;
+        /* these will be overwritten in SigMatchAppendSMToList
+         * called by DetectAppLayerEventSetupP2
+         */
         sm->next = sm->prev = NULL;
-        if (DetectAppLayerEventSetupP2(s, sm) < 0)
+        if (DetectAppLayerEventSetupP2(s, sm) < 0) {
+            // current one was freed, let's free the next ones
+            sm = smn;
+            while(sm) {
+                smn = sm->next;
+                SigMatchFree(sm);
+                sm = smn;
+            }
             return -1;
-        sm = sm->next;
+        }
+        sm = smn;
     }
 
     return 0;
