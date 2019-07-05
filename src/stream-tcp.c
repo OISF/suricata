@@ -10284,7 +10284,7 @@ static int StreamTcpTest40(void)
 
     DecodeVLAN(&tv, &dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), NULL);
 
-    FAIL_IF(p->vlanh[0] == NULL);
+    FAIL_IF(p->vlan_id[0] == 0);
 
     FAIL_IF(p->tcph == NULL);
 

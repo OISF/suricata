@@ -77,20 +77,17 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         return TM_ECODE_FAILED;
     }
 
-    p->vlanh[p->vlan_idx] = (VLANHdr *)pkt;
-    if(p->vlanh[p->vlan_idx] == NULL)
+    VLANHdr *vlan_hdr = (VLANHdr *)pkt;
+    if(vlan_hdr == NULL)
         return TM_ECODE_FAILED;
 
-    proto = GET_VLAN_PROTO(p->vlanh[p->vlan_idx]);
+    proto = GET_VLAN_PROTO(vlan_hdr);
 
     SCLogDebug("p %p pkt %p VLAN protocol %04x VLAN PRI %d VLAN CFI %d VLAN ID %d Len: %" PRIu32 "",
-            p, pkt, proto, GET_VLAN_PRIORITY(p->vlanh[p->vlan_idx]),
-            GET_VLAN_CFI(p->vlanh[p->vlan_idx]), GET_VLAN_ID(p->vlanh[p->vlan_idx]), len);
+            p, pkt, proto, GET_VLAN_PRIORITY(vlan_hdr), GET_VLAN_CFI(vlan_hdr),
+            GET_VLAN_ID(vlan_hdr), len);
 
-    /* only store the id for flow hashing if it's not disabled. */
-    if (dtv->vlan_disabled == 0)
-        p->vlan_id[p->vlan_idx] = (uint16_t)GET_VLAN_ID(p->vlanh[p->vlan_idx]);
-
+    p->vlan_id[p->vlan_idx] = (uint16_t)GET_VLAN_ID(vlan_hdr);
     p->vlan_idx++;
 
     switch (proto)   {
@@ -146,11 +143,8 @@ uint16_t DecodeVLANGetId(const Packet *p, uint8_t layer)
 {
     if (unlikely(layer > 1))
         return 0;
-
-    if (p->vlanh[layer] == NULL && (p->vlan_idx >= (layer + 1))) {
+    if (p->vlan_idx >= (layer + 1)) {
         return p->vlan_id[layer];
-    } else {
-        return GET_VLAN_ID(p->vlanh[layer]);
     }
     return 0;
 }
@@ -288,7 +282,7 @@ static int DecodeVLANtest03 (void)
     DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan), NULL);
 
 
-    if(p->vlanh[0] == NULL) {
+    if(p->vlan_id[0] == 0) {
         goto error;
     }
 

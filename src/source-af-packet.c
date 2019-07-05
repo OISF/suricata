@@ -952,7 +952,6 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             (h.h2->tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci)) {
             p->vlan_id[0] = h.h2->tp_vlan_tci & 0x0fff;
             p->vlan_idx = 1;
-            p->vlanh[0] = NULL;
         }
 
         if (ptv->flags & AFP_ZERO_COPY) {
@@ -1076,7 +1075,6 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
             (ppd->tp_status & TP_STATUS_VLAN_VALID || ppd->hv1.tp_vlan_tci)) {
         p->vlan_id[0] = ppd->hv1.tp_vlan_tci & 0x0fff;
         p->vlan_idx = 1;
-        p->vlanh[0] = NULL;
     }
 
     if (ptv->flags & AFP_ZERO_COPY) {
@@ -2808,14 +2806,6 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     *data = (void *)ptv;
 
     afpconfig->DerefFunc(afpconfig);
-
-    /* A bit strange to have this here but we only have vlan information
-     * during reading so we need to know if we want to keep vlan during
-     * the capture phase */
-    int vlanbool = 0;
-    if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
-        ptv->flags |= AFP_VLAN_DISABLED;
-    }
 
     /* If kernel is older than 3.0, VLAN is not stripped so we don't
      * get the info from packet extended header but we will use a standard

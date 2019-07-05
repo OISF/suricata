@@ -64,7 +64,7 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
         return TM_ECODE_FAILED;
     }
 
-    if (vlan_id > 0 && dtv->vlan_disabled == 0) {
+    if (vlan_id > 0) {
         if (p->vlan_idx >= 2) {
             ENGINE_SET_EVENT(p,ERSPAN_TOO_MANY_VLAN_LAYERS);
             return TM_ECODE_FAILED;

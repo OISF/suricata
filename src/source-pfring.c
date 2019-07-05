@@ -262,7 +262,6 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
     {
         p->vlan_id[0] = h->extended_hdr.parsed_pkt.vlan_id & 0x0fff;
         p->vlan_idx = 1;
-        p->vlanh[0] = NULL;
 
         if (!ptv->vlan_hdr_warned) {
             SCLogWarning(SC_ERR_PF_RING_VLAN, "no VLAN header in the raw "
@@ -532,9 +531,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
 
     opflag = PF_RING_PROMISC;
 
-    /* if suri uses VLAN and if we have a recent kernel, we need
-     * to use parsed_pkt to get VLAN info */
-    if ((! ptv->vlan_disabled) && SCKernelVersionIsAtLeast(3, 0)) {
+    /* if we have a recent kernel, we need to use parsed_pkt to get VLAN info */
+    if (! ptv->vlan_disabled) {
         opflag |= PF_RING_LONG_HEADER;
     }
 
@@ -629,14 +627,6 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
     ptv->capture_bypassed = StatsRegisterCounter("capture.bypassed",
             ptv->tv);
 #endif
-
-    /* A bit strange to have this here but we only have vlan information
-     * during reading so we need to know if we want to keep vlan during
-     * the capture phase */
-    int vlanbool = 0;
-    if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
-        ptv->vlan_disabled = 1;
-    }
 
     /* If kernel is older than 3.8, VLAN is not stripped so we don't
      * get the info from packt extended header but we will use a standard
