@@ -1398,7 +1398,7 @@ decoder:
   # VXLAN decoder is assigned to up to 4 UDP ports. By default only the
   # IANA assigned port 4789 is enabled.
   vxlan:
-    enabled: true
+    enabled: false
     ports: $VXLAN_PORTS # syntax: '8472, 4789'
 
 

@@ -43,7 +43,7 @@
 #define VXLAN_DEFAULT_PORT      4789
 #define VXLAN_DEFAULT_PORT_S    "4789"
 
-static bool g_vxlan_enabled = true;
+static bool g_vxlan_enabled = false;
 static int g_vxlan_ports[4] = { VXLAN_DEFAULT_PORT, -1, -1, -1 };
 static int g_vxlan_ports_idx = 0;
 
