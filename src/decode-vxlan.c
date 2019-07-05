@@ -43,7 +43,7 @@
 #define VXLAN_DEFAULT_PORT      4789
 #define VXLAN_DEFAULT_PORT_S    "4789"
 
-static bool g_vxlan_enabled = true;
+static bool g_vxlan_enabled = false;
 static int g_vxlan_ports[4] = { VXLAN_DEFAULT_PORT, -1, -1, -1 };
 static int g_vxlan_ports_idx = 0;
 
@@ -193,6 +193,8 @@ static int DecodeVXLANtest01 (void)
         0x44, 0x45, 0x0a, 0x60, 0x00, 0x0a, 0xb9, 0x1b, 0x73, 0x06,  /* IPv4 hdr */
         0x00, 0x35, 0x30, 0x39, 0x00, 0x08, 0x98, 0xe4 /* UDP probe src port 53 */
     };
+    bool orig_g_vxlan_enabled = g_vxlan_enabled;
+    g_vxlan_enabled = true;
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
     ThreadVars tv;
@@ -215,6 +217,7 @@ static int DecodeVXLANtest01 (void)
     FAIL_IF(tp->udph == NULL);
     FAIL_IF_NOT(tp->sp == 53);
 
+    g_vxlan_enabled = orig_g_vxlan_enabled; /* reset global variable */
     FlowShutdown();
     PacketFree(p);
     PacketFree(tp);
