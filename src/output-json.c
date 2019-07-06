@@ -87,7 +87,6 @@ void OutputJsonRegister (void)
 #define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_INFO
 #define MODULE_NAME "OutputJSON"
 
-#define OUTPUT_BUFFER_SIZE 65536
 #define MAX_JSON_SIZE 2048
 
 static void OutputJsonDeInitCtx(OutputCtx *);
@@ -839,7 +838,7 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
 
     OutputJSONMemBufferWrapper wrapper = {
         .buffer = buffer,
-        .expand_by = OUTPUT_BUFFER_SIZE
+        .expand_by = JSON_OUTPUT_BUFFER_SIZE
     };
 
     int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,

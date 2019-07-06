@@ -132,8 +132,6 @@ static OutputInitResult OutputKRB5LogInitSub(ConfNode *conf,
     return result;
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
-
 static TmEcode JsonKRB5LogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogKRB5LogThread *thread = SCCalloc(1, sizeof(*thread));
@@ -147,7 +145,7 @@ static TmEcode JsonKRB5LogThreadInit(ThreadVars *t, const void *initdata, void *
         return TM_ECODE_FAILED;
     }
 
-    thread->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
         SCFree(thread);
         return TM_ECODE_FAILED;

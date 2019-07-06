@@ -275,7 +275,6 @@ static int JsonAnomalyLogCondition(ThreadVars *tv, const Packet *p)
            AnomalyHasParserEvents(p);
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
 static TmEcode JsonAnomalyLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonAnomalyLogThread *aft = SCCalloc(1, sizeof(JsonAnomalyLogThread));
@@ -289,7 +288,7 @@ static TmEcode JsonAnomalyLogThreadInit(ThreadVars *t, const void *initdata, voi
         return TM_ECODE_FAILED;
     }
 
-    aft->json_buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    aft->json_buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->json_buffer == NULL) {
         SCFree(aft);
         return TM_ECODE_FAILED;

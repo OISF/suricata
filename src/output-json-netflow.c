@@ -408,7 +408,6 @@ static OutputInitResult OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *paren
     return result;
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
 static TmEcode JsonNetFlowLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonNetFlowLogThread *aft = SCMalloc(sizeof(JsonNetFlowLogThread));
@@ -426,7 +425,7 @@ static TmEcode JsonNetFlowLogThreadInit(ThreadVars *t, const void *initdata, voi
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->flowlog_ctx = ((OutputCtx *)initdata)->data; //TODO
 
-    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
         SCFree(aft);
         return TM_ECODE_FAILED;

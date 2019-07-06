@@ -182,7 +182,6 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     return TM_ECODE_OK;
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
 static TmEcode JsonDropLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonDropLogThread *aft = SCMalloc(sizeof(JsonDropLogThread));
@@ -197,7 +196,7 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, const void *initdata, void *
         return TM_ECODE_FAILED;
     }
 
-    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
         SCFree(aft);
         return TM_ECODE_FAILED;

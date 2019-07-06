@@ -705,7 +705,6 @@ static int JsonAlertLogCondition(ThreadVars *tv, const Packet *p)
     return FALSE;
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
 static TmEcode JsonAlertLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonAlertLogThread *aft = SCMalloc(sizeof(JsonAlertLogThread));
@@ -719,7 +718,7 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, const void *initdata, void 
         return TM_ECODE_FAILED;
     }
 
-    aft->json_buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    aft->json_buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->json_buffer == NULL) {
         SCFree(aft);
         return TM_ECODE_FAILED;

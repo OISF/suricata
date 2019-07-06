@@ -759,7 +759,6 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
     return result;
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
 static TmEcode JsonHttpLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonHttpLogThread *aft = SCMalloc(sizeof(JsonHttpLogThread));
@@ -777,7 +776,7 @@ static TmEcode JsonHttpLogThreadInit(ThreadVars *t, const void *initdata, void *
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->httplog_ctx = ((OutputCtx *)initdata)->data; //TODO
 
-    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
         SCFree(aft);
         return TM_ECODE_FAILED;
