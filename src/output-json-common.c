@@ -73,7 +73,6 @@ OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     return result;
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
 
 TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
@@ -86,7 +85,7 @@ TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
 
-    thread->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
         SCFree(thread);
         return TM_ECODE_FAILED;

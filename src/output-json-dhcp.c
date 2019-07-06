@@ -132,7 +132,6 @@ static OutputInitResult OutputDHCPLogInitSub(ConfNode *conf,
     return result;
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
 
 static TmEcode JsonDHCPLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
@@ -147,7 +146,7 @@ static TmEcode JsonDHCPLogThreadInit(ThreadVars *t, const void *initdata, void *
         return TM_ECODE_FAILED;
     }
 
-    thread->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
         SCFree(thread);
         return TM_ECODE_FAILED;

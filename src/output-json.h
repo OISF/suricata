@@ -42,6 +42,9 @@ enum OutputJsonLogDirection {
     LOG_DIR_FLOW_TOSERVER,
 };
 
+/* Suggested output buffer size */
+#define JSON_OUTPUT_BUFFER_SIZE 65535
+
 /* helper struct for OutputJSONMemBufferCallback */
 typedef struct OutputJSONMemBufferWrapper_ {
     MemBuffer **buffer; /**< buffer to use & expand as needed */
