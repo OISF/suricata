@@ -91,7 +91,7 @@ typedef struct FtpCommand_ {
     FtpRequestCommand command;
     const char *command_name_upper;
     const char *command_name_lower;
-    const uint32_t command_length;
+    const uint8_t command_length;
 } FtpCommand;
 extern const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1];
 

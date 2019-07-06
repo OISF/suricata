@@ -434,7 +434,7 @@ static int FTPParseRequestCommand(uint8_t *input, uint32_t input_len, const FtpC
 
     *cmd_descriptor = NULL;
 
-    for (int i = 0; i < FTP_COMMAND_MAX; i++) {
+    for (int i = 0; i < FTP_COMMAND_MAX - 1; i++) {
         if (!FtpCommands[i].command_length) {
             break;
         }
@@ -729,7 +729,7 @@ static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, uint8_t *input, u
 static inline bool FTPIsPPR(uint8_t *input, uint32_t input_len)
 {
     return input_len >= 4 && isdigit(input[0]) && input[0] == '1' &&
-           isdigit(input[1]) && isdigit(input[2]) &&isspace(input[3]);
+           isdigit(input[1]) && isdigit(input[2]) && isspace(input[3]);
 }
 
 /**
@@ -1228,7 +1228,6 @@ static DetectEngineState *FTPDataGetTxDetectState(void *vtx)
 {
     FtpDataState *ftp_state = (FtpDataState *)vtx;
     return ftp_state->de_state;
-
 }
 
 static void FTPDataStateTransactionFree(void *state, uint64_t tx_id)
