@@ -326,7 +326,6 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
     SCReturnInt(0);
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
 static TmEcode JsonStatsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonStatsLogThread *aft = SCMalloc(sizeof(JsonStatsLogThread));
@@ -344,7 +343,7 @@ static TmEcode JsonStatsLogThreadInit(ThreadVars *t, const void *initdata, void 
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->statslog_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
         SCFree(aft);
         return TM_ECODE_FAILED;
