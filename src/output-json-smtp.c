@@ -223,7 +223,6 @@ static OutputInitResult OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_c
     return result;
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
 static TmEcode JsonSmtpLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonEmailLogThread *aft = SCMalloc(sizeof(JsonEmailLogThread));
@@ -241,7 +240,7 @@ static TmEcode JsonSmtpLogThreadInit(ThreadVars *t, const void *initdata, void *
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->emaillog_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    aft->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
         SCFree(aft);
         return TM_ECODE_FAILED;
