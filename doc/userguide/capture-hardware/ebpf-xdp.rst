@@ -445,7 +445,7 @@ XDP and pinned-maps
 
 This option can be used to expose the maps of a socket filter to other processes.
 This allows for example, the external handling of a accept list or block list of
-IP addresses. See `scbpf` tool avalable in the `ebpf/scpbf` directory for an example
+IP addresses. See `bpfctrl <https://github.com/StamusNetworks/bpfctrl/>`__ for an example
 of external list handling.
 
 In the case of XDP, the eBPF filter is attached to the interface so if you
@@ -490,7 +490,7 @@ The eBPF filter `filter.bpf` uses a `ipv4_drop` map that contains the set of IPv
 If `pinned-maps` is set to `true` in the interface configuration then the map will be pinned
 under `/sys/fs/bpf/suricata-eth0-ipv4_drop`.
 
-You can then use a tool to manage the IPv4 addresses in the map.
+You can then use a tool like `bpfctrl` to manage the IPv4 addresses in the map.
 
 Hardware bypass with Netronome
 ------------------------------
