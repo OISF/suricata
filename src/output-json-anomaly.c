@@ -64,6 +64,10 @@
 
 #define ANOMALY_EVENT_TYPE      "anomaly"
 #define LOG_JSON_PACKETHDR      BIT_U16(0)
+#define LOG_JSON_PARSER         BIT_U16(1)
+#define LOG_JSON_PROTODECODE    BIT_U16(2)
+#define LOG_JSON_PROTODETECT    BIT_U16(3)
+#define LOG_JSON_PROTOPARSER    BIT_U16(4)
 #define TX_ID_UNUSED UINT64_MAX
 
 typedef struct AnomalyJsonOutputCtx_ {
@@ -212,11 +216,15 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
 static int JsonAnomalyTxLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                                Flow *f, void *state, void *tx, uint64_t tx_id)
 {
+    JsonAnomalyLogThread *aft = thread_data;
+    if (!(aft->json_output_ctx->flags & LOG_JSON_PROTOPARSER)) {
+        return TM_ECODE_OK;
+    }
+
     AppLayerDecoderEvents *decoder_events;
     decoder_events = AppLayerParserGetEventsByTx(f->proto, f->alproto, tx);
     if (decoder_events && decoder_events->event_last_logged < decoder_events->cnt) {
         SCLogDebug("state %p, tx: %p, tx_id: %"PRIu64, state, tx, tx_id);
-        JsonAnomalyLogThread *aft = thread_data;
         AnomalyAppLayerDecoderEventJson(aft, p, decoder_events, false,
                                         "proto_parser", tx_id);
     }
@@ -239,23 +247,29 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
 
     int rc = TM_ECODE_OK;
 
-    if (p->events.cnt) {
-        rc = AnomalyDecodeEventJson(tv, aft, p);
+    if (aft->json_output_ctx->flags & LOG_JSON_PROTODECODE) {
+        if (p->events.cnt) {
+            rc = AnomalyDecodeEventJson(tv, aft, p);
+        }
     }
 
-    /* app layer events */
-    if (rc == TM_ECODE_OK && AnomalyHasPacketAppLayerEvents(p)) {
-        rc = AnomalyAppLayerDecoderEventJson(aft, p, p->app_layer_events,
-                                             true, "proto_detect", TX_ID_UNUSED);
+    /* app layer proto detect events */
+    if (aft->json_output_ctx->flags & LOG_JSON_PROTODETECT) {
+        if (rc == TM_ECODE_OK && AnomalyHasPacketAppLayerEvents(p)) {
+            rc = AnomalyAppLayerDecoderEventJson(aft, p, p->app_layer_events,
+                                                 true, "proto_detect", TX_ID_UNUSED);
+        }
     }
 
     /* parser state events */
-    if (rc == TM_ECODE_OK && AnomalyHasParserEvents(p)) {
-        SCLogDebug("Checking for anomaly events; alproto %d", p->flow->alproto);
-        AppLayerDecoderEvents *parser_events = AppLayerParserGetDecoderEvents(p->flow->alparser);
-        if (parser_events && (parser_events->event_last_logged < parser_events->cnt)) {
-            rc = AnomalyAppLayerDecoderEventJson(aft, p, parser_events,
-                                                 false, "parser", TX_ID_UNUSED);
+    if (aft->json_output_ctx->flags & LOG_JSON_PARSER) {
+        if (rc == TM_ECODE_OK && AnomalyHasParserEvents(p)) {
+            SCLogDebug("Checking for anomaly events; alproto %d", p->flow->alproto);
+            AppLayerDecoderEvents *parser_events = AppLayerParserGetDecoderEvents(p->flow->alparser);
+            if (parser_events && (parser_events->event_last_logged < parser_events->cnt)) {
+                rc = AnomalyAppLayerDecoderEventJson(aft, p, parser_events,
+                                                     false, "parser", TX_ID_UNUSED);
+            }
         }
     }
 
@@ -348,9 +362,19 @@ static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint1
 static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx,
         ConfNode *conf)
 {
+    static bool _warn_no_flags = false;
     uint16_t flags = 0;
     if (conf != NULL) {
-        SetFlag(conf, "packethdr", LOG_JSON_PACKETHDR, &flags);
+        SetFlag(conf, "protoparser", LOG_JSON_PROTOPARSER, &flags);
+        SetFlag(conf, "parser",      LOG_JSON_PARSER,      &flags);
+        SetFlag(conf, "protodetect", LOG_JSON_PROTODETECT, &flags);
+        SetFlag(conf, "protodecode", LOG_JSON_PROTODECODE, &flags);
+        SetFlag(conf, "packethdr",   LOG_JSON_PACKETHDR,   &flags);
+    }
+    if (flags == 0 && !_warn_no_flags) {
+        SCLogNotice("Anomaly logging has been configured; however, no logging filters "
+                    "have been selected. Select one or more protocol/parser filters.");
+        _warn_no_flags = true;
     }
     json_output_ctx->flags |= flags;
 }
