@@ -91,14 +91,29 @@ values or that occur out of expected sequence.
 
 Metadata::
 
-        #- anomaly:
+        - anomaly:
             # Anomaly log records describe unexpected conditions such as truncated packets, packets with invalid
             # IP/UDP/TCP length values, and other events that render the packet invalid for further processing
             # or describe unexpected behavior on an established stream. Networks which experience high
             # occurrences of anomalies may experience packet processing degradation.
-
-            # Enable dumping of packet header
-            # packethdr: no            # enable dumping of packet header
+            #
+            # Choose one or more of the following protocol/parser choices. Note
+            # that packethdr requires protodecode to be enabled.
+            #
+            # Enable logging of protocol decode events
+            # protodecode: no
+            #
+            # Enable dumping of packet header; requires protodecode to be enabled
+            # packethdr: no         # enable dumping of packet header
+            #
+            # Enable logging of app-layer protocol parser events
+            # protoparser: no
+            #
+            # Enable logging of app-layer protocol detection events
+            # protodetect: no
+            #
+            # Enable logging of parser events
+            # parser: no
 
 HTTP
 ~~~~
