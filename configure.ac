@@ -2433,8 +2433,14 @@ fi
         echo "       for building the distribution"
         echo "   To install: cargo install cargo-vendor"
       fi
+      AC_PATH_PROG(HAVE_CARGO_CBINDGEN, cbindgen, "no")
+      if test "x$HAVE_CARGO_CBINDGEN" = "xno"; then
+        echo "   Installing cargo tool cbindgen to generate c headers from rust"
+        cargo install --force cbindgen
+      fi
     fi
     AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$HAVE_CARGO_VENDOR" != "xno"])
+    AM_CONDITIONAL([HAVE_CARGO_CBINDGEN], [test "x$HAVE_CARGO_CBINDGEN" != "xno"])
 
     AC_ARG_ENABLE(rust_strict,
            AS_HELP_STRING([--enable-rust-strict], [Rust warnings as errors]),[enable_rust_strict=$enableval],[enable_rust_strict=no])

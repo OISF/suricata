@@ -1,7 +1,6 @@
 [package]
 name = "suricata"
 version = "@PACKAGE_VERSION@"
-build = "build.rs"
 
 [lib]
 crate-type = ["staticlib"]

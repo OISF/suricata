@@ -30,6 +30,8 @@ RUST_FEATURES +=	debug
 endif
 
 all-local:
+	cd $(top_srcdir)/rust && cbindgen --config cbindgen.toml --output "gen/rust-bindings.h"
+
 if HAVE_CYGPATH
 	rustpath=`cygpath -a -t mixed $(abs_top_builddir)`
 	cd $(top_srcdir)/rust && \
