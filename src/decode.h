@@ -634,8 +634,6 @@ typedef struct DecodeThreadVars_
     /** Specific context for udp protocol detection (here atm) */
     AppLayerThreadCtx *app_tctx;
 
-    int vlan_disabled;
-
     /** stats/counters */
     uint16_t counter_pkts;
     uint16_t counter_bytes;
