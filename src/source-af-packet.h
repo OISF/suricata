@@ -60,7 +60,7 @@ struct ebpf_timeout_config {
 #define AFP_SOCK_PROTECT (1<<2)
 #define AFP_EMERGENCY_MODE (1<<3)
 #define AFP_TPACKET_V3 (1<<4)
-#define AFP_VLAN_DISABLED (1<<5)
+#define AFP_VLAN_IN_HEADER (1<<5)
 #define AFP_MMAP_LOCKED (1<<6)
 #define AFP_BYPASS   (1<<7)
 #define AFP_XDPBYPASS   (1<<8)
