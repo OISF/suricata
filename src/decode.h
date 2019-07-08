@@ -535,8 +535,6 @@ typedef struct Packet_
 
     GREHdr *greh;
 
-    VLANHdr *vlanh[2];
-
     /* ptr to the payload of the packet
      * with it's length. */
     uint8_t *payload;
@@ -795,8 +793,6 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->pppoesh = NULL;                    \
         (p)->pppoedh = NULL;                    \
         (p)->greh = NULL;                       \
-        (p)->vlanh[0] = NULL;                   \
-        (p)->vlanh[1] = NULL;                   \
         (p)->payload = NULL;                    \
         (p)->payload_len = 0;                   \
         (p)->BypassPacketsFlow = NULL;          \

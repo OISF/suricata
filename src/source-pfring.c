@@ -262,7 +262,6 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
     {
         p->vlan_id[0] = h->extended_hdr.parsed_pkt.vlan_id & 0x0fff;
         p->vlan_idx = 1;
-        p->vlanh[0] = NULL;
 
         if (!ptv->vlan_hdr_warned) {
             SCLogWarning(SC_ERR_PF_RING_VLAN, "no VLAN header in the raw "
