@@ -174,6 +174,7 @@ void GlobalsInitPreConfig(void);
 
 extern volatile uint8_t suricata_ctl_flags;
 extern int g_disable_randomness;
+extern uint16_t g_vlan_mask;
 
 #include <ctype.h>
 #define u8_tolower(c) tolower((uint8_t)(c))
