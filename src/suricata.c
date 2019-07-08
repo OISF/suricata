@@ -2976,6 +2976,7 @@ int main(int argc, char **argv)
         /* Ignore vlan_ids when comparing flows. */
         g_vlan_mask = 0x0000;
     }
+    SCLogDebug("vlan tracking is %s", vlan_tracking == 1 ? "enabled" : "disabled");
 
     SetupUserMode(&suricata);
 
