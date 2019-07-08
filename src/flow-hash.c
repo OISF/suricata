@@ -135,8 +135,10 @@ static inline uint32_t FlowGetHash(const Packet *p)
 
             fhk.proto = (uint16_t)p->proto;
             fhk.recur = (uint16_t)p->recursion_level;
-            fhk.vlan_id[0] = p->vlan_id[0];
-            fhk.vlan_id[1] = p->vlan_id[1];
+            /* g_vlan_mask sets the vlan_ids to 0 if vlan.use-for-tracking
+             * is disabled. */
+            fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
+            fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
 
             hash = hashword(fhk.u32, 5, flow_config.hash_rand);
 
@@ -155,8 +157,8 @@ static inline uint32_t FlowGetHash(const Packet *p)
 
             fhk.proto = (uint16_t)ICMPV4_GET_EMB_PROTO(p);
             fhk.recur = (uint16_t)p->recursion_level;
-            fhk.vlan_id[0] = p->vlan_id[0];
-            fhk.vlan_id[1] = p->vlan_id[1];
+            fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
+            fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
 
             hash = hashword(fhk.u32, 5, flow_config.hash_rand);
 
@@ -169,8 +171,8 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.ports[1] = 0xbeef;
             fhk.proto = (uint16_t)p->proto;
             fhk.recur = (uint16_t)p->recursion_level;
-            fhk.vlan_id[0] = p->vlan_id[0];
-            fhk.vlan_id[1] = p->vlan_id[1];
+            fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
+            fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
 
             hash = hashword(fhk.u32, 5, flow_config.hash_rand);
         }
@@ -201,8 +203,8 @@ static inline uint32_t FlowGetHash(const Packet *p)
         fhk.ports[pi] = p->dp;
         fhk.proto = (uint16_t)p->proto;
         fhk.recur = (uint16_t)p->recursion_level;
-        fhk.vlan_id[0] = p->vlan_id[0];
-        fhk.vlan_id[1] = p->vlan_id[1];
+        fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
+        fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
 
         hash = hashword(fhk.u32, 11, flow_config.hash_rand);
     }
@@ -234,8 +236,8 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
 
         fhk.proto = (uint16_t)fk->proto;
         fhk.recur = (uint16_t)fk->recursion_level;
-        fhk.vlan_id[0] = fk->vlan_id[0];
-        fhk.vlan_id[1] = fk->vlan_id[1];
+        fhk.vlan_id[0] = fk->vlan_id[0] & g_vlan_mask;
+        fhk.vlan_id[1] = fk->vlan_id[1] & g_vlan_mask;
 
         hash = hashword(fhk.u32, 5, flow_config.hash_rand);
     } else {
@@ -266,8 +268,8 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
         fhk.ports[pi] = fk->dp;
         fhk.proto = (uint16_t)fk->proto;
         fhk.recur = (uint16_t)fk->recursion_level;
-        fhk.vlan_id[0] = fk->vlan_id[0];
-        fhk.vlan_id[1] = fk->vlan_id[1];
+        fhk.vlan_id[0] = fk->vlan_id[0] & g_vlan_mask;
+        fhk.vlan_id[1] = fk->vlan_id[1] & g_vlan_mask;
 
         hash = hashword(fhk.u32, 11, flow_config.hash_rand);
     }
@@ -296,7 +298,8 @@ static inline bool CmpAddrsAndPorts(const uint32_t src1[4],
 
 static inline bool CmpVlanIds(const uint16_t vlan_id1[2], const uint16_t vlan_id2[2])
 {
-    return vlan_id1[0] == vlan_id2[0] && vlan_id1[1] == vlan_id2[1];
+    return ((vlan_id1[0] ^ vlan_id2[0]) & g_vlan_mask) == 0 &&
+        ((vlan_id1[1] ^ vlan_id2[1]) & g_vlan_mask) == 0;
 }
 
 /* Since two or more flows can have the same hash key, we need to compare

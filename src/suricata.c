@@ -230,6 +230,10 @@ int g_disable_randomness = 0;
 int g_disable_randomness = 1;
 #endif
 
+/** determine (without branching) if we include the vlan_ids when hashing or
+  * comparing flows */
+uint16_t g_vlan_mask = 0xffff;
+
 /** Suricata instance */
 SCInstance suricata;
 
@@ -2963,6 +2967,12 @@ int main(int argc, char **argv)
     if (suricata.run_mode == RUNMODE_DUMP_CONFIG) {
         ConfDump();
         exit(EXIT_SUCCESS);
+    }
+
+    int vlan_tracking = 1;
+    if (ConfGetBool("vlan.use-for-tracking", &vlan_tracking) == 1 && !vlan_tracking) {
+        /* Ignore vlan_ids when comparing flows. */
+        g_vlan_mask = 0x0000;
     }
 
     SetupUserMode(&suricata);
