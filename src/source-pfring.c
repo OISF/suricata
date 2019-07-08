@@ -138,7 +138,7 @@ struct PfringThreadVars_
     ThreadVars *tv;
     TmSlot *slot;
 
-    int vlan_disabled;
+    int vlan_in_ext_header;
 
     /* threads count */
     int threads;
@@ -256,7 +256,7 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
      * So if it is not set, use the parsed info from PF_RING's
      * extended header.
      */
-    if ((!ptv->vlan_disabled) &&
+    if (vlan_in_ext_header &&
         h->extended_hdr.parsed_pkt.offset.vlan_offset == 0 &&
         h->extended_hdr.parsed_pkt.vlan_id)
     {
@@ -531,9 +531,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
 
     opflag = PF_RING_PROMISC;
 
-    /* if suri uses VLAN and if we have a recent kernel, we need
-     * to use parsed_pkt to get VLAN info */
-    if ((! ptv->vlan_disabled) && SCKernelVersionIsAtLeast(3, 0)) {
+    /* if we have a recent kernel, we need to use parsed_pkt to get VLAN info */
+    if (ptv->vlan_in_ext_header) {
         opflag |= PF_RING_LONG_HEADER;
     }
 
@@ -629,26 +628,19 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
             ptv->tv);
 #endif
 
-    /* A bit strange to have this here but we only have vlan information
-     * during reading so we need to know if we want to keep vlan during
-     * the capture phase */
-    int vlanbool = 0;
-    if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
-        ptv->vlan_disabled = 1;
-    }
-
     /* If kernel is older than 3.8, VLAN is not stripped so we don't
      * get the info from packt extended header but we will use a standard
      * parsing */
+    ptv->vlan_in_ext_header = 1;
     if (! SCKernelVersionIsAtLeast(3, 0)) {
-        ptv->vlan_disabled = 1;
+        ptv->vlan_in_ext_header = 0;
     }
 
-    /* If VLAN tracking is disabled, set cluster type to 5-tuple or in case of a
-     * ZC interface, do nothing */
-    if (ptv->vlan_disabled && ptv->ctype == CLUSTER_FLOW &&
+    /* If VLAN tags are not in the extended header, set cluster type to 5-tuple
+     * or in case of a ZC interface, do nothing */
+    if ((! ptv->vlan_in_ext_header) && ptv->ctype == CLUSTER_FLOW &&
             strncmp(ptv->interface, "zc", 2) != 0) {
-        SCLogPerf("VLAN disabled, setting cluster type to CLUSTER_FLOW_5_TUPLE");
+        SCLogPerf("VLAN not in extended header, setting cluster type to CLUSTER_FLOW_5_TUPLE");
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, CLUSTER_FLOW_5_TUPLE);
 
         if (rc != 0) {
