@@ -78,7 +78,7 @@ const char *RunModeGetMainMode(void);
 void RunModeListRunmodes(void);
 void RunModeDispatch(int, const char *);
 void RunModeRegisterRunModes(void);
-void RunModeRegisterNewRunMode(int, const char *, const char *,
+void RunModeRegisterNewRunMode(enum RunModes, const char *, const char *,
                                int (*RunModeFunc)(void));
 void RunModeInitialize(void);
 void RunModeInitializeOutputs(void);
@@ -89,7 +89,7 @@ int RunModeOutputFileEnabled(void);
 /* bool indicating if filedata logger is enabled */
 int RunModeOutputFiledataEnabled(void);
 /** bool indicating if run mode is offline */
-bool IsRunModeOffline(int run_mode_to_check);
+bool IsRunModeOffline(enum RunModes run_mode_to_check);
 bool IsRunModeSystem(enum RunModes run_mode_to_check);
 
 void RunModeEnablesBypassManager(void);

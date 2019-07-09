@@ -75,7 +75,7 @@ const char *thread_name_counter_wakeup = "CW";
  */
 typedef struct RunMode_ {
     /* the runmode type */
-    int runmode;
+    enum RunModes runmode;
     const char *name;
     const char *description;
     /* runmode function */
@@ -83,7 +83,7 @@ typedef struct RunMode_ {
 } RunMode;
 
 typedef struct RunModes_ {
-    int no_of_runmodes;
+    int cnt;
     RunMode *runmodes;
 } RunModes;
 
@@ -153,8 +153,7 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "WINDIVERT(DISABLED)";
 #endif
         default:
-            SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
     }
 }
 
@@ -166,15 +165,14 @@ static const char *RunModeTranslateModeToName(int runmode)
  * \param runmode            The runmode type.
  * \param runmode_customd_id The runmode custom id.
  */
-static RunMode *RunModeGetCustomMode(int runmode, const char *custom_mode)
+static RunMode *RunModeGetCustomMode(enum RunModes runmode, const char *custom_mode)
 {
-    int i;
-
-    for (i = 0; i < runmodes[runmode].no_of_runmodes; i++) {
-        if (strcmp(runmodes[runmode].runmodes[i].name, custom_mode) == 0)
-            return &runmodes[runmode].runmodes[i];
+    if (runmode < RUNMODE_USER_MAX) {
+        for (int i = 0; i < runmodes[runmode].cnt; i++) {
+            if (strcmp(runmodes[runmode].runmodes[i].name, custom_mode) == 0)
+                return &runmodes[runmode].runmodes[i];
+        }
     }
-
     return NULL;
 }
 
@@ -247,7 +245,7 @@ void RunModeListRunmodes(void)
     int j = 0;
     for ( ; i < RUNMODE_USER_MAX; i++) {
         int mode_displayed = 0;
-        for (j = 0; j < runmodes[i].no_of_runmodes; j++) {
+        for (j = 0; j < runmodes[i].cnt; j++) {
             if (mode_displayed == 1) {
                 printf("|                   ----------------------------------------------"
                        "-----------------------\n");
@@ -269,7 +267,7 @@ void RunModeListRunmodes(void)
         if (mode_displayed == 1) {
             printf("|-----------------------------------------------------------------"
                    "-----------------------\n");
-        } 
+        }
     }
 
     return;
@@ -418,19 +416,18 @@ int RunModeNeedsBypassManager(void)
  * \param description Description for this runmode.
  * \param RunModeFunc The function to be run for this runmode.
  */
-void RunModeRegisterNewRunMode(int runmode, const char *name,
+void RunModeRegisterNewRunMode(enum RunModes runmode,
+                               const char *name,
                                const char *description,
                                int (*RunModeFunc)(void))
 {
-    void *ptmp;
     if (RunModeGetCustomMode(runmode, name) != NULL) {
-        SCLogError(SC_ERR_RUNMODE, "A runmode by this custom name has already "
-                   "been registered.  Please use an unique name");
-        return;
+        FatalError(SC_ERR_RUNMODE, "runmode '%s' has already "
+                   "been registered. Please use an unique name.", name);
     }
 
-    ptmp = SCRealloc(runmodes[runmode].runmodes,
-                     (runmodes[runmode].no_of_runmodes + 1) * sizeof(RunMode));
+    void *ptmp = SCRealloc(runmodes[runmode].runmodes,
+                     (runmodes[runmode].cnt + 1) * sizeof(RunMode));
     if (ptmp == NULL) {
         SCFree(runmodes[runmode].runmodes);
         runmodes[runmode].runmodes = NULL;
@@ -438,19 +435,18 @@ void RunModeRegisterNewRunMode(int runmode, const char *name,
     }
     runmodes[runmode].runmodes = ptmp;
 
-    RunMode *mode = &runmodes[runmode].runmodes[runmodes[runmode].no_of_runmodes];
-    runmodes[runmode].no_of_runmodes++;
+    RunMode *mode = &runmodes[runmode].runmodes[runmodes[runmode].cnt];
+    runmodes[runmode].cnt++;
+    memset(mode, 0x00, sizeof(*mode));
 
     mode->runmode = runmode;
     mode->name = SCStrdup(name);
     if (unlikely(mode->name == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
     }
     mode->description = SCStrdup(description);
     if (unlikely(mode->description == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_MEM_ALLOC, "Failed to allocate string");
     }
     mode->RunModeFunc = RunModeFunc;
 
@@ -505,7 +501,7 @@ bool IsRunModeSystem(enum RunModes run_mode_to_check)
     }
 }
 
-bool IsRunModeOffline(int run_mode_to_check)
+bool IsRunModeOffline(enum RunModes run_mode_to_check)
 {
     switch(run_mode_to_check) {
         case RUNMODE_CONF_TEST:
