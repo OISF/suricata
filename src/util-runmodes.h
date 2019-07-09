@@ -23,9 +23,6 @@
 #ifndef __UTIL_RUNMODES_H__
 #define __UTIL_RUNMODES_H__
 
-void RunmodeSetFlowStreamAsync(void);
-int RunmodeGetFlowStreamAsync(void);
-
 typedef void *(*ConfigIfaceParserFunc) (const char *);
 typedef void *(*ConfigIPSParserFunc) (int);
 typedef int (*ConfigIfaceThreadsCountFunc) (void *);
