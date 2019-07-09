@@ -1244,6 +1244,7 @@ static void ParseCommandLineAFL(const char *opt_name, char *opt_arg)
 
     } else if(strcmp(opt_name, "afl-ftp-request") == 0) {
         //printf("arg: //%s\n", opt_arg);
+        IPPairInitConfig(FLOW_QUIET);
         MpmTableSetup();
         SpmTableSetup();
         AppLayerProtoDetectSetup();
@@ -1252,6 +1253,7 @@ static void ParseCommandLineAFL(const char *opt_name, char *opt_arg)
         exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_FTP, opt_arg));
     } else if(strcmp(opt_name, "afl-ftp") == 0) {
         //printf("arg: //%s\n", opt_arg);
+        IPPairInitConfig(FLOW_QUIET);
         MpmTableSetup();
         SpmTableSetup();
         AppLayerProtoDetectSetup();
