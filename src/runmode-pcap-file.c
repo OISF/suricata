@@ -32,11 +32,9 @@
 
 #include "util-runmodes.h"
 
-static const char *default_mode = NULL;
-
 const char *RunModeFilePcapGetDefaultMode(void)
 {
-    return default_mode;
+    return "autofp";
 }
 
 void RunModeFilePcapRegister(void)
@@ -44,7 +42,6 @@ void RunModeFilePcapRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "single",
                               "Single threaded pcap file mode",
                               RunModeFilePcapSingle);
-    default_mode = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "autofp",
                               "Multi threaded pcap file mode.  Packets from "
                               "each flow are assigned to a single detect thread, "

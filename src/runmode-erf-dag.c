@@ -30,8 +30,6 @@
 #include "util-affinity.h"
 #include "util-runmodes.h"
 
-static const char *default_mode;
-
 static int DagConfigGetThreadCount(void *conf)
 {
     return 1;
@@ -44,13 +42,11 @@ static void *ParseDagConfig(const char *iface)
 
 const char *RunModeErfDagGetDefaultMode(void)
 {
-    return default_mode;
+    return "autofp";
 }
 
 void RunModeErfDagRegister(void)
 {
-    default_mode = "autofp";
-
     RunModeRegisterNewRunMode(RUNMODE_DAG, "autofp",
         "Multi threaded DAG mode.  Packets from "
         "each flow are assigned to a single detect "

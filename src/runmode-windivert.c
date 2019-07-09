@@ -37,16 +37,13 @@
 #include "util-runmodes.h"
 #include "util-time.h"
 
-
-static const char *default_mode;
-
-
-const char *RunModeIpsWinDivertGetDefaultMode(void) { return default_mode; }
+const char *RunModeIpsWinDivertGetDefaultMode(void)
+{
+    return "autofp";
+}
 
 void RunModeIpsWinDivertRegister(void)
 {
-    default_mode = "autofp";
-
     RunModeRegisterNewRunMode(
             RUNMODE_WINDIVERT, "autofp",
             "Multi-threaded WinDivert IPS mode load-balanced by flow",

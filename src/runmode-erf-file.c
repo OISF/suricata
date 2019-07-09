@@ -31,17 +31,13 @@
 
 #include "util-runmodes.h"
 
-static const char *default_mode;
-
 const char *RunModeErfFileGetDefaultMode(void)
 {
-    return default_mode;
+    return "autofp";
 }
 
 void RunModeErfFileRegister(void)
 {
-    default_mode = "autofp";
-
     RunModeRegisterNewRunMode(RUNMODE_ERF_FILE, "single",
         "Single threaded ERF file mode",
         RunModeErfFileSingle);

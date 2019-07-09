@@ -41,17 +41,13 @@
 #include "source-ipfw.h"
 #include "util-device.h"
 
-static const char *default_mode;
-
 const char *RunModeIpsIPFWGetDefaultMode(void)
 {
-    return default_mode;
+    return "autofp";
 }
 
 void RunModeIpsIPFWRegister(void)
 {
-    default_mode = "autofp";
-
     RunModeRegisterNewRunMode(RUNMODE_IPFW, "autofp",
                               "Multi threaded IPFW IPS mode with respect to flow",
                               RunModeIpsIPFWAutoFp);

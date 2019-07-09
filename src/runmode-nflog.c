@@ -34,16 +34,13 @@
 
 #include "source-nflog.h"
 
-static const char *default_mode = NULL;
-
 const char *RunModeIdsNflogGetDefaultMode(void)
 {
-    return default_mode;
+    return "autofp";
 }
 
 void RunModeIdsNflogRegister(void)
 {
-    default_mode = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_NFLOG, "autofp",
                               "Multi threaded nflog mode",
                               RunModeIdsNflogAutoFp);

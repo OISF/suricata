@@ -60,11 +60,9 @@
 
 extern int max_pending_packets;
 
-static const char *default_mode_workers = NULL;
-
 const char *RunModeAFPGetDefaultMode(void)
 {
-    return default_mode_workers;
+    return "workers";
 }
 
 void RunModeIdsAFPRegister(void)
@@ -76,7 +74,6 @@ void RunModeIdsAFPRegister(void)
                               "Workers af-packet mode, each thread does all"
                               " tasks from acquisition to logging",
                               RunModeIdsAFPWorkers);
-    default_mode_workers = "workers";
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "autofp",
                               "Multi socket AF_PACKET mode.  Packets from "
                               "each flow are assigned to a single detect "

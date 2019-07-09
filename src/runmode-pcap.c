@@ -32,11 +32,9 @@
 #include "util-atomic.h"
 #include "util-misc.h"
 
-static const char *default_mode = NULL;
-
 const char *RunModeIdsGetDefaultMode(void)
 {
-    return default_mode;
+    return "autofp";
 }
 
 int RunModeIdsPcapWorkers(void);
@@ -46,7 +44,6 @@ void RunModeIdsPcapRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "single",
                               "Single threaded pcap live mode",
                               RunModeIdsPcapSingle);
-    default_mode = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "autofp",
                               "Multi threaded pcap live mode.  Packets from "
                               "each flow are assigned to a single detect thread, "

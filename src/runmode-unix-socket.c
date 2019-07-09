@@ -49,8 +49,6 @@
 
 #include "conf-yaml-loader.h"
 
-static const char *default_mode = NULL;
-
 int unix_socket_mode_is_running = 0;
 
 typedef struct PcapFiles_ {
@@ -79,7 +77,7 @@ typedef struct MemcapCommand_ {
 
 const char *RunModeUnixSocketGetDefaultMode(void)
 {
-    return default_mode;
+    return "autofp";
 }
 
 #ifdef BUILD_UNIX_SOCKET
@@ -594,7 +592,6 @@ void RunModeUnixSocketRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_UNIX_SOCKET, "autofp",
                               "Unix socket mode",
                               RunModeUnixSocketMaster);
-    default_mode = "autofp";
 #endif
 }
 

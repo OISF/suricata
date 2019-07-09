@@ -39,16 +39,13 @@
 #include "util-runmodes.h"
 #include "util-device.h"
 
-static const char *default_mode;
-
 const char *RunModeIpsNFQGetDefaultMode(void)
 {
-    return default_mode;
+    return "autofp";
 }
 
 void RunModeIpsNFQRegister(void)
 {
-    default_mode = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_NFQ, "autofp",
                               "Multi threaded NFQ IPS mode with respect to flow",
                               RunModeIpsNFQAutoFp);

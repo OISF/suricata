@@ -40,8 +40,6 @@
 #define NT_RUNMODE_AUTOFP  1
 #define NT_RUNMODE_WORKERS 2
 
-static const char *default_mode = "workers";
-
 #ifdef HAVE_NAPATECH
 
 #define MAX_STREAMS 256
@@ -74,7 +72,7 @@ bool NapatechIsAutoConfigEnabled(void)
 
 const char *RunModeNapatechGetDefaultMode(void)
 {
-    return default_mode;
+    return "workers";
 }
 
 void RunModeNapatechRegister(void)
