@@ -1,5 +1,6 @@
     AC_INIT([suricata],[5.0.0-dev])
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
+    m4_pattern_forbid([AX_])
     AC_CONFIG_HEADERS([config.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
     AC_CONFIG_MACRO_DIR(m4)
@@ -2433,10 +2434,18 @@ fi
         echo "       for building the distribution"
         echo "   To install: cargo install cargo-vendor"
       fi
-      AC_PATH_PROG(HAVE_CARGO_CBINDGEN, cbindgen, "no")
+      AC_PATH_PROG(HAVE_CARGO_CBINDGEN, cbindgen, "no") 
       if test "x$HAVE_CARGO_CBINDGEN" = "xno"; then
-        echo "   Installing cargo tool cbindgen to generate c headers from rust"
-        cargo install --force cbindgen
+        echo "  Error: cbindgen not found, it is required to generate header files"
+        echo "  To install: cargo install --force cbindgen"
+      	AC_MSG_ERROR([could not find cbindgen])
+      else
+        required_version=0.9.0
+        cbindgen_version=$(cbindgen --version)
+        lowest_version=$(printf '%s\n' $required_version $cbindgen_version | sort -V | head -n1)
+        if test "x$lowest_version" != "x$required_version"; then
+          AC_MSG_ERROR([cbindgen must be at least verison $required_version, version was $cbindgen_version, lowest version was $lowest_version])
+        fi
       fi
     fi
     AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$HAVE_CARGO_VENDOR" != "xno"])
