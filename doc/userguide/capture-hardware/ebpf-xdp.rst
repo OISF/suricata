@@ -21,8 +21,8 @@ possible. So performance is better. But bypassed packets don't reach the network
 traffic but only on duplicated/sniffed traffic.
 
 The bypass implementation relies on one of the most powerful concept of eBPF: maps. A map is a data structure
-shared between user space and kernel space/hardware. It allow user space and kernel space to interact, pass
-information. Maps are often arrays or hash that can contain arbitrary key, value pairs. 
+shared between user space and kernel space/hardware. It allows user space and kernel space to interact, pass
+information. Maps are often implemented as arrays or hash tables that can contain arbitrary key, value pairs. 
 
 XDP
 ~~~
@@ -60,7 +60,7 @@ This guide has been confirmed on Debian/Ubuntu "LTS" Linux.
 Disable irqbalance
 ~~~~~~~~~~~~~~~~~~
 
-Irqbalance may cause issue in most setup described here, so it is recommended
+Irqbalance may cause issues in most setups described here, so it is recommended
 to deactivate it ::
 
  systemctl stop irqbalance
@@ -78,7 +78,7 @@ Make sure you have clang (>=3.9) installed on the system  ::
 
  sudo apt install clang
 
-Some i386 headers will also be needed as eBPF is not x86_64 and some include headers
+Some i386 headers will also be needed as eBPF is not x86_64 and some included headers
 are architecture specific ::
 
  sudo apt install libc6-dev-i386 --no-install-recommends
@@ -364,15 +364,15 @@ You will need Linux 4.15 or newer to use that feature.
 
 To do so set the `xdp-cpu-redirect` variable in af-packet interface configuration to a set of CPUs.
 Then use the `cluster_cpu` as load balancing function. You will also need to set the affinity
-to be sure CPU that will be assigned skb are used by Suricata.
+to be certain that CPU cores that have the skb assigned are used by Suricata.
 
 Also to avoid out of order packets, you need to set the RSS queue number to 1. So if our interface
 is `eth3` ::
 
   /sbin/ethtool -L eth3 combined 1
 
-In case your system has more then 64 core, you need to set `CPUMAP_MAX_CPUS` to a value superior
-to this number in `xdp_lb.c` and `xdp_filter.c`.
+In case your system has more then 64 core, you need to set `CPUMAP_MAX_CPUS` to a value greater
+than this number in `xdp_lb.c` and `xdp_filter.c`.
 
 A sample configuration for pure XDP load balancing could look like ::
 
@@ -490,16 +490,16 @@ filter will switch to global bypass mode. Set key `0` to value `0` to send traff
 The switch must be activated on all sniffing interfaces. For an interface named `eth0` the global
 switch map will be `/sys/fs/bpf/suricata-eth0-global_bypass`.
 
-Pinned maps and ebpf filter
+Pinned maps and eBPF filter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pinned maps can also be used with regular eBPF filter. The main difference is that the map will not
+Pinned maps can also be used with regular eBPF filters. The main difference is that the map will not
 persist after Suricata is stopped because it is attached to a socket and not an interface which
-is persitent.
+is persistent.
 
 The eBPF filter `filter.bpf` uses a `ipv4_drop` map that contains the set of IPv4 addresses to drop.
 If `pinned-maps` is set to `true` in the interface configuration then the map will be pinned
-under `/sys/fs/bpf/suricata-eth0-ipv4_drop`.
+under `/sys/fs/bpf/suricata-eth3-ipv4_drop`.
 
 You can then use a tool like `bpfctrl` to manage the IPv4 addresses in the map.
 
