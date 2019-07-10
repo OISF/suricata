@@ -23,6 +23,7 @@ Suricata Rules
    ftp-keywords
    kerberos-keywords
    snmp-keywords
+   sip-keywords
    app-layer
    xbits
    thresholding
