@@ -2853,10 +2853,20 @@ void RegisterSSLParsers(void)
                                           STREAM_TOSERVER,
                                           SSLProbingParser, NULL);
         } else {
-            AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
-                                                proto_name, ALPROTO_TLS,
-                                                0, 3,
-                                                SSLProbingParser, NULL);
+            if (AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
+                                                    proto_name, ALPROTO_TLS,
+                                                    0, 3,
+                                                    SSLProbingParser, NULL) == 0) {
+                SCLogWarning(SC_ERR_MISSING_CONFIG_PARAM,
+                             "no TLS config found, "
+                             "enabling TLS detection on port 443.");
+                AppLayerProtoDetectPPRegister(IPPROTO_TCP,
+                                              "443",
+                                              ALPROTO_TLS,
+                                              0, 3,
+                                              STREAM_TOSERVER,
+                                              SSLProbingParser, NULL);
+            }
         }
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol",
