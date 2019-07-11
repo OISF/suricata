@@ -273,13 +273,13 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
 
         hash = hashword(fhk.u32, 11, flow_config.hash_rand);
     }
-return hash;
+    return hash;
 }
 
 static inline bool CmpAddrs(const uint32_t addr1[4], const uint32_t addr2[4])
 {
     return addr1[0] == addr2[0] && addr1[1] == addr2[1] &&
-        addr1[2] == addr2[2] && addr1[3] == addr2[3];
+           addr1[2] == addr2[2] && addr1[3] == addr2[3];
 }
 
 static inline bool CmpAddrsAndPorts(const uint32_t src1[4],
@@ -291,15 +291,15 @@ static inline bool CmpAddrsAndPorts(const uint32_t src1[4],
      * compare the first source address with the second destination address,
      * and vice versa. Likewise for ports. */
     return (CmpAddrs(src1, src2) && CmpAddrs(dst1, dst2) &&
-        src_port1 == src_port2 && dst_port1 == dst_port2) ||
-        (CmpAddrs(src1, dst2) && CmpAddrs(dst1, src2) &&
-        src_port1 == dst_port2 && dst_port1 == src_port2);
+            src_port1 == src_port2 && dst_port1 == dst_port2) ||
+           (CmpAddrs(src1, dst2) && CmpAddrs(dst1, src2) &&
+            src_port1 == dst_port2 && dst_port1 == src_port2);
 }
 
 static inline bool CmpVlanIds(const uint16_t vlan_id1[2], const uint16_t vlan_id2[2])
 {
     return ((vlan_id1[0] ^ vlan_id2[0]) & g_vlan_mask) == 0 &&
-        ((vlan_id1[1] ^ vlan_id2[1]) & g_vlan_mask) == 0;
+           ((vlan_id1[1] ^ vlan_id2[1]) & g_vlan_mask) == 0;
 }
 
 /* Since two or more flows can have the same hash key, we need to compare
@@ -311,9 +311,9 @@ static inline bool CmpFlowPacket(const Flow *f, const Packet *p)
     const uint32_t *p_src = p->src.address.address_un_data32;
     const uint32_t *p_dst = p->dst.address.address_un_data32;
     return CmpAddrsAndPorts(f_src, f_dst, f->sp, f->dp, p_src, p_dst, p->sp,
-        p->dp) && f->proto == p->proto &&
-        f->recursion_level == p->recursion_level &&
-        CmpVlanIds(f->vlan_id, p->vlan_id);
+                            p->dp) && f->proto == p->proto &&
+            f->recursion_level == p->recursion_level &&
+            CmpVlanIds(f->vlan_id, p->vlan_id);
 }
 
 static inline bool CmpFlowKey(const Flow *f, const FlowKey *k)
@@ -323,9 +323,9 @@ static inline bool CmpFlowKey(const Flow *f, const FlowKey *k)
     const uint32_t *k_src = k->src.address.address_un_data32;
     const uint32_t *k_dst = k->dst.address.address_un_data32;
     return CmpAddrsAndPorts(f_src, f_dst, f->sp, f->dp, k_src, k_dst, k->sp,
-        k->dp) && f->proto == k->proto &&
-        f->recursion_level == k->recursion_level &&
-        CmpVlanIds(f->vlan_id, k->vlan_id);
+                            k->dp) && f->proto == k->proto &&
+            f->recursion_level == k->recursion_level &&
+            CmpVlanIds(f->vlan_id, k->vlan_id);
 }
 
 static inline bool CmpAddrsAndICMPTypes(const uint32_t src1[4],
@@ -337,9 +337,9 @@ static inline bool CmpAddrsAndICMPTypes(const uint32_t src1[4],
      * compare the first source address with the second destination address,
      * and vice versa. Likewise for icmp types. */
     return (CmpAddrs(src1, src2) && CmpAddrs(dst1, dst2) &&
-        icmp_s_type1 == icmp_s_type2 && icmp_d_type1 == icmp_d_type2) ||
-        (CmpAddrs(src1, dst2) && CmpAddrs(dst1, src2) &&
-        icmp_s_type1 == icmp_d_type2 && icmp_d_type1 == icmp_s_type2);
+            icmp_s_type1 == icmp_s_type2 && icmp_d_type1 == icmp_d_type2) ||
+           (CmpAddrs(src1, dst2) && CmpAddrs(dst1, src2) &&
+            icmp_s_type1 == icmp_d_type2 && icmp_d_type1 == icmp_s_type2);
 }
 
 static inline bool CmpFlowICMPPacket(const Flow *f, const Packet *p)
@@ -349,9 +349,9 @@ static inline bool CmpFlowICMPPacket(const Flow *f, const Packet *p)
     const uint32_t *p_src = p->src.address.address_un_data32;
     const uint32_t *p_dst = p->dst.address.address_un_data32;
     return CmpAddrsAndICMPTypes(f_src, f_dst, f->icmp_s.type,
-        f->icmp_d.type, p_src, p_dst, p->icmp_s.type, p->icmp_d.type) &&
-        f->proto == p->proto && f->recursion_level == p->recursion_level &&
-        CmpVlanIds(f->vlan_id, p->vlan_id);
+                f->icmp_d.type, p_src, p_dst, p->icmp_s.type, p->icmp_d.type) &&
+            f->proto == p->proto && f->recursion_level == p->recursion_level &&
+            CmpVlanIds(f->vlan_id, p->vlan_id);
 }
 
 /**
