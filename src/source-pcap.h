@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,11 +28,6 @@ void TmModuleReceivePcapRegister (void);
 void TmModuleDecodePcapRegister (void);
 void PcapTranslateIPToDevice(char *pcap_dev, size_t len);
 
-int PcapLiveRegisterDevice(char *);
-int PcapLiveGetDeviceCount(void);
-char *PcapLiveGetDevice(int);
-
-#define LIBPCAP_SNAPLEN     1518
 #define LIBPCAP_COPYWAIT    500
 #define LIBPCAP_PROMISC     1
 
@@ -64,7 +59,4 @@ typedef struct PcapIfaceConfig_
     void (*DerefFunc)(void *);
 } PcapIfaceConfig;
 
-
-
 #endif /* __SOURCE_PCAP_H__ */
-
