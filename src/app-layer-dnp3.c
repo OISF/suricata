@@ -265,7 +265,7 @@ static int DNP3ContainsBanner(const uint8_t *input, uint32_t len)
  * \brief DNP3 probing parser.
  */
 static uint16_t DNP3ProbingParser(Flow *f, uint8_t direction,
-        uint8_t *input, uint32_t len,
+        const uint8_t *input, uint32_t len,
         uint8_t *rdir)
 {
     DNP3LinkHeader *hdr = (DNP3LinkHeader *)input;
@@ -1112,7 +1112,7 @@ error:
  * multiple frames, but not the complete final frame).
  */
 static int DNP3ParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t *input, uint32_t input_len, void *local_data,
     const uint8_t flags)
 {
     SCEnter();
@@ -1252,7 +1252,7 @@ error:
  * See DNP3ParseResponsePDUs for DNP3 frame handling.
  */
 static int DNP3ParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t *input, uint32_t input_len, void *local_data,
     const uint8_t flags)
 {
     SCEnter();

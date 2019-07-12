@@ -28,7 +28,7 @@
 typedef struct AppLayerProtoDetectThreadCtx_ AppLayerProtoDetectThreadCtx;
 
 typedef AppProto (*ProbingParserFPtr)(Flow *f, uint8_t dir,
-                                      uint8_t *input, uint32_t input_len,
+                                      const uint8_t *input, uint32_t input_len,
                                       uint8_t *rdir);
 
 /***** Protocol Retrieval *****/
@@ -48,7 +48,7 @@ typedef AppProto (*ProbingParserFPtr)(Flow *f, uint8_t dir,
  */
 AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
                                      Flow *f,
-                                     uint8_t *buf, uint32_t buflen,
+                                     const uint8_t *buf, uint32_t buflen,
                                      uint8_t ipproto, uint8_t direction,
                                      bool *reverse_flow);
 

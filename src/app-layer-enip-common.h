@@ -230,21 +230,21 @@ typedef struct ENIPState_
     uint8_t *buffer;
 } ENIPState;
 
-int DecodeENIPPDU(uint8_t *input, uint32_t input_len,
+int DecodeENIPPDU(const uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data);
-int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
+int DecodeCommonPacketFormatPDU(const uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset);
-int DecodeCIPPDU(uint8_t *input, uint32_t input_len,
+int DecodeCIPPDU(const uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset);
-int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
+int DecodeCIPRequestPDU(const uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset);
-int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len,
+int DecodeCIPResponsePDU(const uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset);
-int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
+int DecodeCIPRequestPathPDU(const uint8_t *input, uint32_t input_len,
         CIPServiceEntry *node, uint16_t offset);
-int DecodeCIPRequestMSPPDU(uint8_t *input, uint32_t input_len,
+int DecodeCIPRequestMSPPDU(const uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset);
-int DecodeCIPResponseMSPPDU(uint8_t *input, uint32_t input_len,
+int DecodeCIPResponseMSPPDU(const uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset);
 
 #endif /* __APP_LAYER_ENIP_COMMON_H__ */
