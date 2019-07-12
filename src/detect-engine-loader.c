@@ -114,7 +114,7 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
  *  \param badsigs_tot Will store number of invalid signatures in the file
  *  \retval 0 on success, -1 on error
  */
-static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
+static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file,
         int *goodsigs, int *badsigs)
 {
     Signature *sig = NULL;
@@ -210,7 +210,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
  *  \param sig_file Filename (or pattern) holding signatures
  *  \retval -1 on error
  */
-static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
+static int ProcessSigFiles(DetectEngineCtx *de_ctx, const char *pattern,
         SigFileLoaderStat *st, int *good_sigs, int *bad_sigs)
 {
     int r = 0;
@@ -236,11 +236,11 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
     }
 
     for (size_t i = 0; i < (size_t)files.gl_pathc; i++) {
-        char *fname = files.gl_pathv[i];
+        const char *fname = files.gl_pathv[i];
         if (strcmp("/dev/null", fname) == 0)
             continue;
 #else
-        char *fname = pattern;
+        const char *fname = pattern;
         if (strcmp("/dev/null", fname) == 0)
             return 0;
 #endif
@@ -269,7 +269,7 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
  *  \param sig_file_exclusive File passed in 'sig_file' should be loaded exclusively.
  *  \retval -1 on error
  */
-int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_exclusive)
+int SigLoadSignatures(DetectEngineCtx *de_ctx, const char *sig_file, int sig_file_exclusive)
 {
     SCEnter();
 

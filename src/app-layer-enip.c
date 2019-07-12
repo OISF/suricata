@@ -313,7 +313,7 @@ static void ENIPStateTransactionFree(void *state, uint64_t tx_id)
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, void *local_data,
+        const uint8_t *input, uint32_t input_len, void *local_data,
         const uint8_t flags)
 {
     SCEnter();
@@ -365,7 +365,7 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
 
 
 static uint16_t ENIPProbingParser(Flow *f, uint8_t direction,
-        uint8_t *input, uint32_t input_len, uint8_t *rdir)
+        const uint8_t *input, uint32_t input_len, uint8_t *rdir)
 {
     // SCLogDebug("ENIPProbingParser %d", input_len);
     if (input_len < sizeof(ENIPEncapHdr))

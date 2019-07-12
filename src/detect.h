@@ -865,7 +865,7 @@ typedef struct DetectEngineCtx_ {
     uint32_t base64_decode_max_len;
 
     /** Store rule file and line so that parsers can use them in errors. */
-    char *rule_file;
+    const char *rule_file;
     int rule_line;
     const char *sigerror;
 
@@ -1465,7 +1465,7 @@ void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 void DisableDetectFlowFileFlags(Flow *f);
 char *DetectLoadCompleteSigPath(const DetectEngineCtx *, const char *sig_file);
-int SigLoadSignatures (DetectEngineCtx *, char *, int);
+int SigLoadSignatures (DetectEngineCtx *, const char *, int);
 void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);
 

@@ -39,7 +39,7 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx,
         const Signature *s, char *line);
 void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         const Signature *s, const char *line);
-void EngineAnalysisRulesFailure(char *line, char *file, int lineno);
+void EngineAnalysisRulesFailure(char *line, const char *file, int lineno);
 
 #ifdef HAVE_LIBJANSSON
 void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s);
