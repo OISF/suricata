@@ -656,7 +656,8 @@ inline int PacketSetData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
     if (unlikely(!pktdata)) {
         return -1;
     }
-    p->ext_pkt = (uint8_t *)pktdata;
+    // ext_pkt cannot be const (because we sometimes copy)
+    p->ext_pkt = (uint8_t *) pktdata;
     p->flags |= PKT_ZERO_COPY;
 
     return 0;
