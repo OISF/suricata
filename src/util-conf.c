@@ -28,7 +28,7 @@
 #include "runmodes.h"
 #include "util-conf.h"
 
-TmEcode ConfigSetLogDirectory(char *name)
+TmEcode ConfigSetLogDirectory(const char *name)
 {
     return ConfSetFinal("default-log-dir", name) ? TM_ECODE_OK : TM_ECODE_FAILED;
 }
