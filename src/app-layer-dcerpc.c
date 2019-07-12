@@ -162,10 +162,10 @@ void printUUID(const char *type, DCERPCUuidEntry *uuid)
  * \brief DCERPCParseSecondaryAddr reads secondaryaddrlen bytes from the BIND_ACK
  * DCERPC call.
  */
-static uint32_t DCERPCParseSecondaryAddr(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+static uint32_t DCERPCParseSecondaryAddr(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    uint8_t *p = input;
+    const uint8_t *p = input;
     while (dcerpc->dcerpcbindbindack.secondaryaddrlenleft-- && input_len--) {
         SCLogDebug("0x%02x ", *p);
         p++;
@@ -174,10 +174,10 @@ static uint32_t DCERPCParseSecondaryAddr(DCERPC *dcerpc, uint8_t *input, uint32_
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static uint32_t PaddingParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+static uint32_t PaddingParser(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    uint8_t *p = input;
+    const uint8_t *p = input;
     while (dcerpc->padleft-- && input_len--) {
         SCLogDebug("0x%02x ", *p);
         p++;
@@ -186,10 +186,10 @@ static uint32_t PaddingParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static uint32_t DCERPCGetCTXItems(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+static uint32_t DCERPCGetCTXItems(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    uint8_t *p = input;
+    const uint8_t *p = input;
     if (input_len) {
         switch (dcerpc->dcerpcbindbindack.ctxbytesprocessed) {
             case 0:
@@ -232,10 +232,10 @@ static uint32_t DCERPCGetCTXItems(DCERPC *dcerpc, uint8_t *input, uint32_t input
  * each UUID is added to a TAILQ.
  */
 
-static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    uint8_t *p = input;
+    const uint8_t *p = input;
 
     if (input_len) {
         switch (dcerpc->dcerpcbindbindack.ctxbytesprocessed) {
@@ -664,10 +664,10 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
  * the BIND_ACK call. The result (Accepted or Rejected) is added to the
  * correct UUID from the BIND call.
  */
-static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    uint8_t *p = input;
+    const uint8_t *p = input;
     DCERPCUuidEntry *uuid_entry;
 
     if (input_len) {
@@ -874,10 +874,10 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+static uint32_t DCERPCParseBIND(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    uint8_t *p = input;
+    const uint8_t *p = input;
     if (input_len) {
         switch (dcerpc->bytesprocessed) {
             case 16:
@@ -980,10 +980,10 @@ static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_l
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static uint32_t DCERPCParseBINDACK(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+static uint32_t DCERPCParseBINDACK(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    uint8_t *p = input;
+    const uint8_t *p = input;
 
     switch (dcerpc->bytesprocessed) {
         case 16:
@@ -1073,10 +1073,10 @@ static uint32_t DCERPCParseBINDACK(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    uint8_t *p = input;
+    const uint8_t *p = input;
 
     switch (dcerpc->bytesprocessed) {
         case 16:
@@ -1257,10 +1257,10 @@ static uint32_t StubDataParser(DCERPC *dcerpc, const uint8_t *input, uint32_t in
  * \retval -1 if DCERPC Header does not validate
  * \retval Number of bytes processed
  */
-static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+static int DCERPCParseHeader(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    uint8_t *p = input;
+    const uint8_t *p = input;
 
     if (input_len) {
         SCLogDebug("dcerpc->bytesprocessed %u", dcerpc->bytesprocessed);
@@ -1430,7 +1430,7 @@ static inline void DCERPCResetStub(DCERPC *dcerpc)
     return;
 }
 
-static inline int DCERPCThrowOutExtraData(DCERPC *dcerpc, uint8_t *input,
+static inline int DCERPCThrowOutExtraData(DCERPC *dcerpc, const uint8_t *input,
                                            uint16_t input_len)
 {
     int parsed = 0;
@@ -1455,7 +1455,7 @@ static inline int DCERPCThrowOutExtraData(DCERPC *dcerpc, uint8_t *input,
  *         a condition where it has receives a segment with 2 pdus, while the
  *         first pdu in the segment is corrupt.
  */
-int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+int32_t DCERPCParser(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -1888,7 +1888,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
 
 static int DCERPCParse(Flow *f, void *dcerpc_state,
                        AppLayerParserState *pstate,
-                       uint8_t *input, uint32_t input_len,
+                       const uint8_t *input, uint32_t input_len,
                        void *local_data, int dir)
 {
     SCEnter();
@@ -1921,7 +1921,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
 
 static int DCERPCParseRequest(Flow *f, void *dcerpc_state,
                               AppLayerParserState *pstate,
-                              uint8_t *input, uint32_t input_len,
+                              const uint8_t *input, uint32_t input_len,
                               void *local_data, const uint8_t flags)
 {
     return DCERPCParse(f, dcerpc_state, pstate, input, input_len,
@@ -1930,7 +1930,7 @@ static int DCERPCParseRequest(Flow *f, void *dcerpc_state,
 
 static int DCERPCParseResponse(Flow *f, void *dcerpc_state,
                                AppLayerParserState *pstate,
-                               uint8_t *input, uint32_t input_len,
+                               const uint8_t *input, uint32_t input_len,
                                void *local_data, const uint8_t flags)
 {
     return DCERPCParse(f, dcerpc_state, pstate, input, input_len,

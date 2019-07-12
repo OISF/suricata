@@ -210,7 +210,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
  *  \param sig_file Filename (or pattern) holding signatures
  *  \retval -1 on error
  */
-static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
+static int ProcessSigFiles(DetectEngineCtx *de_ctx, const char *pattern,
         SigFileLoaderStat *st, int *good_sigs, int *bad_sigs)
 {
     int r = 0;
@@ -269,7 +269,7 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
  *  \param sig_file_exclusive File passed in 'sig_file' should be loaded exclusively.
  *  \retval -1 on error
  */
-int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_exclusive)
+int SigLoadSignatures(DetectEngineCtx *de_ctx, const char *sig_file, int sig_file_exclusive)
 {
     SCEnter();
 

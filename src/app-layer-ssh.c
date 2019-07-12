@@ -208,7 +208,7 @@ static int SSHParseRecordHeader(SshState *state, SshHeader *header,
  *  \param  input       Pointer the received input data
  *  \param  input_len   Length in bytes of the received data
  */
-static int SSHParseRecord(SshState *state, SshHeader *header, uint8_t *input, uint32_t input_len)
+static int SSHParseRecord(SshState *state, SshHeader *header, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
     int ret = 0;
@@ -339,7 +339,7 @@ again:
     SCReturnInt(0);
 }
 
-static int EnoughData(uint8_t *input, uint32_t input_len)
+static int EnoughData(const uint8_t *input, uint32_t input_len)
 {
     uint32_t u;
     for (u = 0; u < input_len; u++) {
@@ -352,7 +352,7 @@ static int EnoughData(uint8_t *input, uint32_t input_len)
 #define MAX_BANNER_LEN 256
 
 static int SSHParseData(SshState *state, SshHeader *header,
-                        uint8_t *input, uint32_t input_len)
+                        const uint8_t *input, uint32_t input_len)
 {
     /* we're looking for the banner */
     if (!(header->flags & SSH_FLAG_VERSION_PARSED))
@@ -421,7 +421,7 @@ static int SSHParseData(SshState *state, SshHeader *header,
 }
 
 static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
-                           uint8_t *input, uint32_t input_len,
+                           const uint8_t *input, uint32_t input_len,
                            void *local_data, const uint8_t flags)
 {
     SshState *ssh_state = (SshState *)state;
@@ -446,7 +446,7 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
 }
 
 static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-                            uint8_t *input, uint32_t input_len,
+                            const uint8_t *input, uint32_t input_len,
                             void *local_data, const uint8_t flags)
 {
     SshState *ssh_state = (SshState *)state;
