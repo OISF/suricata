@@ -187,7 +187,7 @@ static AppProto AppLayerProtoDetectPMMatchSignature(
         const AppLayerProtoDetectPMSignature *s,
         AppLayerProtoDetectThreadCtx *tctx,
         Flow *f, uint8_t direction,
-        uint8_t *buf, uint16_t buflen, uint16_t searchlen,
+        const uint8_t *buf, uint16_t buflen, uint16_t searchlen,
         bool *rflow)
 {
     SCEnter();
@@ -203,7 +203,7 @@ static AppProto AppLayerProtoDetectPMMatchSignature(
         SCReturnUInt(ALPROTO_UNKNOWN);
     }
 
-    uint8_t *sbuf = buf + s->cd->offset;
+    const uint8_t *sbuf = buf + s->cd->offset;
     uint16_t ssearchlen = s->cd->depth - s->cd->offset;
     SCLogDebug("s->co->offset (%"PRIu16") s->cd->depth (%"PRIu16")",
                s->cd->offset, s->cd->depth);
@@ -262,7 +262,7 @@ static inline int PMGetProtoInspect(
         AppLayerProtoDetectThreadCtx *tctx,
         AppLayerProtoDetectPMCtx *pm_ctx,
         MpmThreadCtx *mpm_tctx,
-        Flow *f, uint8_t *buf, uint16_t buflen,
+        Flow *f, const uint8_t *buf, uint16_t buflen,
         uint8_t direction, AppProto *pm_results, bool *rflow)
 {
     int pm_matches = 0;
@@ -316,7 +316,7 @@ static inline int PMGetProtoInspect(
  *  \param pm_results[out] AppProto array of size ALPROTO_MAX */
 static AppProto AppLayerProtoDetectPMGetProto(
         AppLayerProtoDetectThreadCtx *tctx,
-        Flow *f, uint8_t *buf, uint16_t buflen,
+        Flow *f, const uint8_t *buf, uint16_t buflen,
         uint8_t direction, AppProto *pm_results, bool *rflow)
 {
     SCEnter();
@@ -447,7 +447,7 @@ static AppProto AppLayerProtoDetectPEGetProto(Flow *f, uint8_t ipproto,
 static inline AppProto PPGetProto(
         const AppLayerProtoDetectProbingParserElement *pe,
         Flow *f, uint8_t direction,
-        uint8_t *buf, uint32_t buflen,
+        const uint8_t *buf, uint32_t buflen,
         uint32_t *alproto_masks, uint8_t *rdir
 )
 {
@@ -485,7 +485,7 @@ static inline AppProto PPGetProto(
  *
  */
 static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
-        uint8_t *buf, uint32_t buflen,
+        const uint8_t *buf, uint32_t buflen,
         uint8_t ipproto, const uint8_t idir,
         bool *reverse_flow)
 {
@@ -1488,7 +1488,7 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
 
 AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
                                      Flow *f,
-                                     uint8_t *buf, uint32_t buflen,
+                                     const uint8_t *buf, uint32_t buflen,
                                      uint8_t ipproto, uint8_t direction,
                                      bool *reverse_flow)
 {

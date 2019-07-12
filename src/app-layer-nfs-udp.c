@@ -118,7 +118,7 @@ static AppLayerDecoderEvents *NFSGetEvents(void *tx)
  *     ALPROTO_UNKNOWN.
  */
 static AppProto NFSProbingParser(Flow *f, uint8_t direction,
-        uint8_t *input, uint32_t input_len, uint8_t *rdir)
+        const uint8_t *input, uint32_t input_len, uint8_t *rdir)
 {
     SCLogDebug("probing");
     if (input_len < NFS_MIN_FRAME_LEN) {
@@ -145,7 +145,7 @@ static AppProto NFSProbingParser(Flow *f, uint8_t direction,
 }
 
 static int NFSParseRequest(Flow *f, void *state,
-    AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+    AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
@@ -155,7 +155,7 @@ static int NFSParseRequest(Flow *f, void *state,
 }
 
 static int NFSParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t *input, uint32_t input_len, void *local_data,
     const uint8_t flags)
 {
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
