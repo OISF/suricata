@@ -91,7 +91,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
 /** \brief Prototype for parsing functions */
 typedef int (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
         AppLayerParserState *pstate,
-        uint8_t *buf, uint32_t buf_len,
+        const uint8_t *buf, uint32_t buf_len,
         void *local_storage, const uint8_t flags);
 
 typedef struct AppLayerGetTxIterTuple {
@@ -229,7 +229,7 @@ void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx,
 /***** General *****/
 
 int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto,
-                   uint8_t flags, uint8_t *input, uint32_t input_len);
+                   uint8_t flags, const uint8_t *input, uint32_t input_len);
 void AppLayerParserSetEOF(AppLayerParserState *pstate);
 bool AppLayerParserHasDecoderEvents(AppLayerParserState *pstate);
 int AppLayerParserIsTxAware(AppProto alproto);
