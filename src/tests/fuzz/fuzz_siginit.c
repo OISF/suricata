@@ -11,6 +11,8 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+
 DetectEngineCtx *de_ctx = NULL;
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {

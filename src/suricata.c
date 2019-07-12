@@ -50,7 +50,6 @@
 #include "util-cpu.h"
 #include "util-action.h"
 #include "util-pidfile.h"
-#include "util-ioctl.h"
 #include "util-device.h"
 #include "util-misc.h"
 #include "util-running-modes.h"
@@ -59,9 +58,6 @@
 #include "detect-parse.h"
 #include "detect-fast-pattern.h"
 #include "detect-engine-tag.h"
-#include "detect-engine-threshold.h"
-#include "detect-engine-address.h"
-#include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
 
 #include "tm-queuehandlers.h"
@@ -73,38 +69,23 @@
 #include "conf-yaml-loader.h"
 
 #include "source-nfq.h"
-#include "source-nfq-prototypes.h"
 
 #include "source-nflog.h"
 
 #include "source-ipfw.h"
 
 #include "source-pcap.h"
-#include "source-pcap-file.h"
-
-#include "source-pfring.h"
-
-#include "source-erf-file.h"
-#include "source-erf-dag.h"
-#include "source-napatech.h"
 
 #include "source-af-packet.h"
 #include "source-netmap.h"
 
 #include "source-windivert.h"
-#include "source-windivert-prototypes.h"
-
-#include "respond-reject.h"
 
 #include "flow.h"
 #include "flow-manager.h"
-#include "flow-bypass.h"
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "pkt-var.h"
-#include "host-bit.h"
-
-#include "ippair-bit.h"
 
 #include "host.h"
 #include "unix-manager.h"
@@ -126,8 +107,6 @@
 #include "util-decode-der.h"
 #include "util-ebpf.h"
 #include "util-radix-tree.h"
-#include "util-host-os-info.h"
-#include "util-cidr.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-time.h"
@@ -139,18 +118,14 @@
 #include "util-magic.h"
 #include "util-signal.h"
 
-#include "util-coredump-config.h"
-
 #include "util-decode-mime.h"
 
 #include "runmodes.h"
 #include "runmode-unittests.h"
 
-#include "util-decode-asn1.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-daemon.h"
-#include "util-byte.h"
 #include "reputation.h"
 
 #include "output.h"
@@ -164,29 +139,12 @@
 
 #include "util-lua.h"
 
-/*
- * we put this here, because we only use it here in main.
- */
-volatile sig_atomic_t sigint_count = 0;
-volatile sig_atomic_t sighup_count = 0;
-volatile sig_atomic_t sigterm_count = 0;
-volatile sig_atomic_t sigusr2_count = 0;
-
-/* Max packets processed simultaniously per thread. */
-#define DEFAULT_MAX_PENDING_PACKETS 1024
-
 
 extern intmax_t max_pending_packets;
 extern int g_detect_disabled;
 
-/** set caps or not */
-int sc_set_caps = FALSE;
-
-/** highest mtu of the interfaces we monitor */
-int g_default_mtu = 0;
-
 /** determine (without branching) if we include the vlan_ids when hashing or
-  * comparing flows */
+ * comparing flows */
 uint16_t g_vlan_mask = 0xffff;
 
 
@@ -204,42 +162,6 @@ void EngineModeSetIDS(void)
 {
     g_engine_mode = ENGINE_MODE_IDS;
 }
-
-/** signal handlers
- *
- *  WARNING: don't use the SCLog* API in the handlers. The API is complex
- *  with memory allocation possibly happening, calls to syslog, json message
- *  construction, etc.
- */
-
-static void SignalHandlerSigint(/*@unused@*/ int sig)
-{
-    sigint_count = 1;
-}
-static void SignalHandlerSigterm(/*@unused@*/ int sig)
-{
-    sigterm_count = 1;
-}
-#ifndef OS_WIN32
-/**
- * SIGUSR2 handler.  Just set sigusr2_count.  The main loop will act on
- * it.
- */
-static void SignalHandlerSigusr2(int sig)
-{
-    if (sigusr2_count < 2)
-        sigusr2_count++;
-}
-
-/**
- * SIGHUP handler.  Just set sighup_count.  The main loop will act on
- * it.
- */
-static void SignalHandlerSigHup(/*@unused@*/ int sig)
-{
-    sighup_count = 1;
-}
-#endif
 
 #ifdef DBG_MEM_ALLOC
 #ifndef _GLOBAL_MEM_
@@ -771,70 +693,6 @@ static void PrintBuildInfo(void)
            HTP_VERSION_STRING_FULL, htp_get_version());
     printf("\n");
 #include "build-info.h"
-}
-
-void RegisterAllModules(void)
-{
-    // zero all module storage
-    memset(tmm_modules, 0, TMM_SIZE * sizeof(TmModule));
-
-    /* commanders */
-    TmModuleUnixManagerRegister();
-    /* managers */
-    TmModuleFlowManagerRegister();
-    TmModuleFlowRecyclerRegister();
-    TmModuleBypassedFlowManagerRegister();
-    /* nfq */
-    TmModuleReceiveNFQRegister();
-    TmModuleVerdictNFQRegister();
-    TmModuleDecodeNFQRegister();
-    /* ipfw */
-    TmModuleReceiveIPFWRegister();
-    TmModuleVerdictIPFWRegister();
-    TmModuleDecodeIPFWRegister();
-    /* pcap live */
-    TmModuleReceivePcapRegister();
-    TmModuleDecodePcapRegister();
-    /* pcap file */
-    TmModuleReceivePcapFileRegister();
-    TmModuleDecodePcapFileRegister();
-    /* af-packet */
-    TmModuleReceiveAFPRegister();
-    TmModuleDecodeAFPRegister();
-    /* netmap */
-    TmModuleReceiveNetmapRegister();
-    TmModuleDecodeNetmapRegister();
-    /* pfring */
-    TmModuleReceivePfringRegister();
-    TmModuleDecodePfringRegister();
-    /* dag file */
-    TmModuleReceiveErfFileRegister();
-    TmModuleDecodeErfFileRegister();
-    /* dag live */
-    TmModuleReceiveErfDagRegister();
-    TmModuleDecodeErfDagRegister();
-    /* napatech */
-    TmModuleNapatechStreamRegister();
-    TmModuleNapatechDecodeRegister();
-
-    /* flow worker */
-    TmModuleFlowWorkerRegister();
-    /* respond-reject */
-    TmModuleRespondRejectRegister();
-
-    /* log api */
-    TmModuleLoggerRegister();
-    TmModuleStatsLoggerRegister();
-
-    TmModuleDebugList();
-    /* nflog */
-    TmModuleReceiveNFLOGRegister();
-    TmModuleDecodeNFLOGRegister();
-
-    /* windivert */
-    TmModuleReceiveWinDivertRegister();
-    TmModuleVerdictWinDivertRegister();
-    TmModuleDecodeWinDivertRegister();
 }
 
 static TmEcode LoadYamlConfig(SCInstance *suri)
@@ -2039,97 +1897,6 @@ static int WindowsInitService(int argc, char **argv)
 }
 #endif /* OS_WIN32 */
 
-static int MayDaemonize(SCInstance *suri)
-{
-    if (suri->daemon == 1 && suri->pid_filename == NULL) {
-        const char *pid_filename;
-
-        if (ConfGet("pid-file", &pid_filename) == 1) {
-            SCLogInfo("Use pid file %s from config file.", pid_filename);
-        } else {
-            pid_filename = DEFAULT_PID_FILENAME;
-        }
-        /* The pid file name may be in config memory, but is needed later. */
-        suri->pid_filename = SCStrdup(pid_filename);
-        if (suri->pid_filename == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "strdup failed: %s", strerror(errno));
-            return TM_ECODE_FAILED;
-        }
-    }
-
-    if (suri->pid_filename != NULL && SCPidfileTestRunning(suri->pid_filename) != 0) {
-        SCFree(suri->pid_filename);
-        suri->pid_filename = NULL;
-        return TM_ECODE_FAILED;
-    }
-
-    if (suri->daemon == 1) {
-        Daemonize();
-    }
-
-    if (suri->pid_filename != NULL) {
-        if (SCPidfileCreate(suri->pid_filename) != 0) {
-            SCFree(suri->pid_filename);
-            suri->pid_filename = NULL;
-            SCLogError(SC_ERR_PIDFILE_DAEMON,
-                    "Unable to create PID file, concurrent run of"
-                    " Suricata can occur.");
-            SCLogError(SC_ERR_PIDFILE_DAEMON,
-                    "PID file creation WILL be mandatory for daemon mode"
-                    " in future version");
-        }
-    }
-
-    return TM_ECODE_OK;
-}
-
-static int InitSignalHandler(SCInstance *suri)
-{
-    /* registering signals we use */
-    UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
-    UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
-#ifndef OS_WIN32
-    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
-    UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
-    UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
-
-    /* Try to get user/group to run suricata as if
-       command line as not decide of that */
-    if (suri->do_setuid == FALSE && suri->do_setgid == FALSE) {
-        const char *id;
-        if (ConfGet("run-as.user", &id) == 1) {
-            suri->do_setuid = TRUE;
-            suri->user_name = id;
-        }
-        if (ConfGet("run-as.group", &id) == 1) {
-            suri->do_setgid = TRUE;
-            suri->group_name = id;
-        }
-    }
-    /* Get the suricata user ID to given user ID */
-    if (suri->do_setuid == TRUE) {
-        if (SCGetUserID(suri->user_name, suri->group_name,
-                        &suri->userid, &suri->groupid) != 0) {
-            SCLogError(SC_ERR_UID_FAILED, "failed in getting user ID");
-            return TM_ECODE_FAILED;
-        }
-
-        sc_set_caps = TRUE;
-    /* Get the suricata group ID to given group ID */
-    } else if (suri->do_setgid == TRUE) {
-        if (SCGetGroupID(suri->group_name, &suri->groupid) != 0) {
-            SCLogError(SC_ERR_GID_FAILED, "failed in getting group ID");
-            return TM_ECODE_FAILED;
-        }
-
-        sc_set_caps = TRUE;
-    }
-#endif /* OS_WIN32 */
-
-    return TM_ECODE_OK;
-}
-
-
 
 static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
 {
@@ -2240,98 +2007,6 @@ static int LoadSignatures(DetectEngineCtx *de_ctx, SCInstance *suri)
     return TM_ECODE_OK;
 }
 
-static int ConfigGetCaptureValue(SCInstance *suri)
-{
-    /* Pull the max pending packets from the config, if not found fall
-     * back on a sane default. */
-    if (ConfGetInt("max-pending-packets", &max_pending_packets) != 1)
-        max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
-    if (max_pending_packets >= 65535) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                "Maximum max-pending-packets setting is 65534. "
-                "Please check %s for errors", suri->conf_filename);
-        return TM_ECODE_FAILED;
-    }
-
-    SCLogDebug("Max pending packets set to %"PRIiMAX, max_pending_packets);
-
-    /* Pull the default packet size from the config, if not found fall
-     * back on a sane default. */
-    const char *temp_default_packet_size;
-    if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
-        int mtu = 0;
-        int lthread;
-        int nlive;
-        int strip_trailing_plus = 0;
-        switch (suri->run_mode) {
-#ifdef WINDIVERT
-            case RUNMODE_WINDIVERT:
-                /* by default, WinDivert collects from all devices */
-                mtu = GetGlobalMTUWin32();
-
-                if (mtu > 0) {
-                    g_default_mtu = mtu;
-                    /* SLL_HEADER_LEN is the longest header + 8 for VLAN */
-                    default_packet_size = mtu + SLL_HEADER_LEN + 8;
-                    break;
-                }
-
-                g_default_mtu = DEFAULT_MTU;
-                default_packet_size = DEFAULT_PACKET_SIZE;
-                break;
-#endif /* WINDIVERT */
-            case RUNMODE_NETMAP:
-                /* in netmap igb0+ has a special meaning, however the
-                 * interface really is igb0 */
-                strip_trailing_plus = 1;
-                /* fall through */
-            case RUNMODE_PCAP_DEV:
-            case RUNMODE_AFP_DEV:
-            case RUNMODE_PFRING:
-                nlive = LiveGetDeviceCount();
-                for (lthread = 0; lthread < nlive; lthread++) {
-                    const char *live_dev = LiveGetDeviceName(lthread);
-                    char dev[128]; /* need to be able to support GUID names on Windows */
-                    (void)strlcpy(dev, live_dev, sizeof(dev));
-
-                    if (strip_trailing_plus) {
-                        size_t len = strlen(dev);
-                        if (len &&
-                                (dev[len-1] == '+' ||
-                                 dev[len-1] == '^' ||
-                                 dev[len-1] == '*'))
-                        {
-                            dev[len-1] = '\0';
-                        }
-                    }
-                    mtu = GetIfaceMTU(dev);
-                    g_default_mtu = MAX(mtu, g_default_mtu);
-
-                    unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(dev);
-                    if (iface_max_packet_size > default_packet_size)
-                        default_packet_size = iface_max_packet_size;
-                }
-                if (default_packet_size)
-                    break;
-                /* fall through */
-            default:
-                g_default_mtu = DEFAULT_MTU;
-                default_packet_size = DEFAULT_PACKET_SIZE;
-        }
-    } else {
-        if (ParseSizeStringU32(temp_default_packet_size, &default_packet_size) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing max-pending-packets "
-                       "from conf file - %s.  Killing engine",
-                       temp_default_packet_size);
-            return TM_ECODE_FAILED;
-        }
-    }
-
-    SCLogDebug("Default packet size set to %"PRIu32, default_packet_size);
-
-    return TM_ECODE_OK;
-}
-
 static void PostRunStartedDetectSetup(const SCInstance *suri)
 {
 #ifndef OS_WIN32
@@ -2395,64 +2070,6 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
         DetectEngineBumpVersion();
     }
 }
-
-static int PostDeviceFinalizedSetup(SCInstance *suri)
-{
-    SCEnter();
-
-#ifdef HAVE_AF_PACKET
-    if (suri->run_mode == RUNMODE_AFP_DEV) {
-        if (AFPRunModeIsIPS()) {
-            SCLogInfo("AF_PACKET: Setting IPS mode");
-            EngineModeSetIPS();
-        }
-    }
-#endif
-#ifdef HAVE_NETMAP
-    if (suri->run_mode == RUNMODE_NETMAP) {
-        if (NetmapRunModeIsIPS()) {
-            SCLogInfo("Netmap: Setting IPS mode");
-            EngineModeSetIPS();
-        }
-    }
-#endif
-
-    SCReturnInt(TM_ECODE_OK);
-}
-
-static void PostConfLoadedSetupHostMode(void)
-{
-    const char *hostmode = NULL;
-
-    if (ConfGetValue("host-mode", &hostmode) == 1) {
-        if (!strcmp(hostmode, "router")) {
-            host_mode = SURI_HOST_IS_ROUTER;
-        } else if (!strcmp(hostmode, "sniffer-only")) {
-            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-        } else {
-            if (strcmp(hostmode, "auto") != 0) {
-                WarnInvalidConfEntry("host-mode", "%s", "auto");
-            }
-            if (EngineModeIsIPS()) {
-                host_mode = SURI_HOST_IS_ROUTER;
-            } else {
-                host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-            }
-        }
-    } else {
-        if (EngineModeIsIPS()) {
-            host_mode = SURI_HOST_IS_ROUTER;
-            SCLogInfo("No 'host-mode': suricata is in IPS mode, using "
-                      "default setting 'router'");
-        } else {
-            host_mode = SURI_HOST_IS_SNIFFER_ONLY;
-            SCLogInfo("No 'host-mode': suricata is in IDS mode, using "
-                      "default setting 'sniffer-only'");
-        }
-    }
-
-}
-
 static void SetupUserMode(SCInstance *suri)
 {
     /* apply 'user mode' config updates here */
@@ -2464,189 +2081,6 @@ static void SetupUserMode(SCInstance *suri)
             }
         }
     }
-}
-
-/**
- * This function is meant to contain code that needs
- * to be run once the configuration has been loaded.
- */
-static int PostConfLoadedSetup(SCInstance *suri)
-{
-    /* do this as early as possible #1577 #1955 */
-#ifdef HAVE_LUAJIT
-    if (LuajitSetupStatesPool() != 0) {
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-#endif
-
-    /* load the pattern matchers */
-    MpmTableSetup();
-    SpmTableSetup();
-
-    int disable_offloading;
-    if (ConfGetBool("capture.disable-offloading", &disable_offloading) == 0)
-        disable_offloading = 1;
-    if (disable_offloading) {
-        LiveSetOffloadDisable();
-    } else {
-        LiveSetOffloadWarn();
-    }
-
-    if (suri->checksum_validation == -1) {
-        const char *cv = NULL;
-        if (ConfGetValue("capture.checksum-validation", &cv) == 1) {
-            if (strcmp(cv, "none") == 0) {
-                suri->checksum_validation = 0;
-            } else if (strcmp(cv, "all") == 0) {
-                suri->checksum_validation = 1;
-            }
-        }
-    }
-    switch (suri->checksum_validation) {
-        case 0:
-            ConfSet("stream.checksum-validation", "0");
-            break;
-        case 1:
-            ConfSet("stream.checksum-validation", "1");
-            break;
-    }
-
-    if (suri->runmode_custom_mode) {
-        ConfSet("runmode", suri->runmode_custom_mode);
-    }
-
-    StorageInit();
-#ifdef HAVE_PACKET_EBPF
-    EBPFRegisterExtension();
-    LiveDevRegisterExtension();
-#endif
-    RegisterFlowBypassInfo();
-    AppLayerSetup();
-
-    /* Suricata will use this umask if provided. By default it will use the
-       umask passed on from the shell. */
-    const char *custom_umask;
-    if (ConfGet("umask", &custom_umask) == 1) {
-        uint16_t mask;
-        if (ByteExtractStringUint16(&mask, 8, strlen(custom_umask),
-                                    custom_umask) > 0) {
-            umask((mode_t)mask);
-        }
-    }
-
-    /* Check for the existance of the default logging directory which we pick
-     * from suricata.yaml.  If not found, shut the engine down */
-    suri->log_dir = ConfigGetLogDirectory();
-
-    if (ConfigCheckLogDirectory(suri->log_dir) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
-                "supplied by %s (default-log-dir) doesn't exist. "
-                "Shutting down the engine", suri->log_dir, suri->conf_filename);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    if (ConfigGetCaptureValue(suri) != TM_ECODE_OK) {
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-#ifdef NFQ
-    if (suri->run_mode == RUNMODE_NFQ)
-        NFQInitConfig(FALSE);
-#endif
-
-    /* Load the Host-OS lookup. */
-    SCHInfoLoadFromConfig();
-
-    if (suri->run_mode == RUNMODE_ENGINE_ANALYSIS) {
-        SCLogInfo("== Carrying out Engine Analysis ==");
-        const char *temp = NULL;
-        if (ConfGet("engine-analysis", &temp) == 0) {
-            SCLogInfo("no engine-analysis parameter(s) defined in conf file.  "
-                      "Please define/enable them in the conf to use this "
-                      "feature.");
-            SCReturnInt(TM_ECODE_FAILED);
-        }
-    }
-
-    /* hardcoded initialization code */
-    SigTableSetup(); /* load the rule keywords */
-    TmqhSetup();
-
-    CIDRInit();
-    SCProtoNameInit();
-
-    TagInitCtx();
-    PacketAlertTagInit();
-    ThresholdInit();
-    HostBitInitCtx();
-    IPPairBitInitCtx();
-
-    if (DetectAddressTestConfVars() < 0) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                "basic address vars test failed. Please check %s for errors",
-                suri->conf_filename);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-    if (DetectPortTestConfVars() < 0) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                "basic port vars test failed. Please check %s for errors",
-                suri->conf_filename);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    RegisterAllModules();
-
-    AppLayerHtpNeedFileInspection();
-
-    StorageFinalize();
-
-    TmModuleRunInit();
-
-    if (MayDaemonize(suri) != TM_ECODE_OK)
-        SCReturnInt(TM_ECODE_FAILED);
-
-    if (InitSignalHandler(suri) != TM_ECODE_OK)
-        SCReturnInt(TM_ECODE_FAILED);
-
-
-#ifdef HAVE_NSS
-    if (suri->run_mode != RUNMODE_CONF_TEST) {
-        /* init NSS for hashing */
-        PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-        NSS_NoDB_Init(NULL);
-    }
-#endif
-
-    if (suri->disabled_detect) {
-        SCLogConfig("detection engine disabled");
-        /* disable raw reassembly */
-        (void)ConfSetFinal("stream.reassembly.raw", "false");
-    }
-
-    HostInitConfig(HOST_VERBOSE);
-#ifdef HAVE_MAGIC
-    if (MagicInit() != 0)
-        SCReturnInt(TM_ECODE_FAILED);
-#endif
-    SCAsn1LoadConfig();
-
-    CoredumpLoadConfig();
-
-    DecodeGlobalConfig();
-
-    LiveDeviceFinalize();
-
-    /* set engine mode if L2 IPS */
-    if (PostDeviceFinalizedSetup(&suricata) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    /* hostmode depends on engine mode being set */
-    PostConfLoadedSetupHostMode();
-
-    PreRunInit(suri->run_mode);
-
-    SCReturnInt(TM_ECODE_OK);
 }
 
 static void SuricataMainLoop(SCInstance *suri)
