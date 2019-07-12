@@ -215,7 +215,7 @@ inline int PacketCallocExtPkt(Packet *p, int datalen)
  *  \param Pointer to the data to copy
  *  \param Length of the data to copy
  */
-inline int PacketCopyDataOffset(Packet *p, uint32_t offset, uint8_t *data, uint32_t datalen)
+inline int PacketCopyDataOffset(Packet *p, uint32_t offset, const uint8_t *data, uint32_t datalen)
 {
     if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE)) {
         /* too big */
@@ -256,7 +256,7 @@ inline int PacketCopyDataOffset(Packet *p, uint32_t offset, uint8_t *data, uint3
  *  \param Pointer to the data to copy
  *  \param Length of the data to copy
  */
-inline int PacketCopyData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
+inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
@@ -648,13 +648,14 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
  *  \param Pointer to the data
  *  \param Length of the data
  */
-inline int PacketSetData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
+inline int PacketSetData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
     if (unlikely(!pktdata)) {
         return -1;
     }
-    p->ext_pkt = pktdata;
+    // ext_pkt cannot be const (because we sometimes copy)
+    p->ext_pkt = (uint8_t *) pktdata;
     p->flags |= PKT_ZERO_COPY;
 
     return 0;

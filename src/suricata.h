@@ -135,7 +135,7 @@ typedef struct SCInstance_ {
     enum RunModes aux_run_mode;
 
     char pcap_dev[128];
-    char *sig_file;
+    const char *sig_file;
     int sig_file_exclusive;
     char *pid_filename;
     char *regex_arg;

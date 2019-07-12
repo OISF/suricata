@@ -1465,7 +1465,7 @@ void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 void DisableDetectFlowFileFlags(Flow *f);
 char *DetectLoadCompleteSigPath(const DetectEngineCtx *, const char *sig_file);
-int SigLoadSignatures (DetectEngineCtx *, char *, int);
+int SigLoadSignatures (DetectEngineCtx *, const char *, int);
 void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);
 

@@ -35,7 +35,7 @@ static void RustDNSTCPParserRegisterTests(void);
 #endif
 
 static int RustDNSTCPParseRequest(Flow *f, void *state,
-        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
     SCLogDebug("RustDNSTCPParseRequest");
@@ -44,7 +44,7 @@ static int RustDNSTCPParseRequest(Flow *f, void *state,
 }
 
 static int RustDNSTCPParseResponse(Flow *f, void *state,
-        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
     SCLogDebug("RustDNSTCPParseResponse");
@@ -53,7 +53,7 @@ static int RustDNSTCPParseResponse(Flow *f, void *state,
 }
 
 static uint16_t RustDNSTCPProbe(Flow *f, uint8_t direction,
-        uint8_t *input, uint32_t len, uint8_t *rdir)
+        const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     SCLogDebug("RustDNSTCPProbe");
     if (len == 0 || len < sizeof(DNSHeader)) {
