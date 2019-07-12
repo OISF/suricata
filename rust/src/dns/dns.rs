@@ -570,7 +570,7 @@ pub extern "C" fn rs_dns_state_tx_free(state: &mut DNSState,
 pub extern "C" fn rs_dns_parse_request(_flow: *mut core::Flow,
                                        state: &mut DNSState,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *mut u8,
+                                       input: *const u8,
                                        input_len: u32,
                                        _data: *mut std::os::raw::c_void)
                                        -> i8 {
@@ -586,7 +586,7 @@ pub extern "C" fn rs_dns_parse_request(_flow: *mut core::Flow,
 pub extern "C" fn rs_dns_parse_response(_flow: *mut core::Flow,
                                         state: &mut DNSState,
                                         _pstate: *mut std::os::raw::c_void,
-                                        input: *mut u8,
+                                        input: *const u8,
                                         input_len: u32,
                                         _data: *mut std::os::raw::c_void)
                                         -> i8 {
@@ -603,7 +603,7 @@ pub extern "C" fn rs_dns_parse_response(_flow: *mut core::Flow,
 pub extern "C" fn rs_dns_parse_request_tcp(_flow: *mut core::Flow,
                                            state: &mut DNSState,
                                            _pstate: *mut std::os::raw::c_void,
-                                           input: *mut u8,
+                                           input: *const u8,
                                            input_len: u32,
                                            _data: *mut std::os::raw::c_void)
                                            -> i8 {
@@ -622,7 +622,7 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *mut core::Flow,
 pub extern "C" fn rs_dns_parse_response_tcp(_flow: *mut core::Flow,
                                             state: &mut DNSState,
                                             _pstate: *mut std::os::raw::c_void,
-                                            input: *mut u8,
+                                            input: *const u8,
                                             input_len: u32,
                                             _data: *mut std::os::raw::c_void)
                                             -> i8 {

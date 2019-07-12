@@ -428,7 +428,7 @@ static int FTPGetLine(FtpState *state)
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int FTPParseRequestCommand(uint8_t *input, uint32_t input_len, const FtpCommand **cmd_descriptor)
+static int FTPParseRequestCommand(const uint8_t *input, uint32_t input_len, const FtpCommand **cmd_descriptor)
 {
     SCEnter();
 
@@ -470,7 +470,7 @@ static void FtpTransferCmdFree(void *data)
     FTPFree(cmd, sizeof(struct FtpTransferCmd));
 }
 
-static uint32_t CopyCommandLine(uint8_t **dest, uint8_t *src, uint32_t length)
+static uint32_t CopyCommandLine(uint8_t **dest, const uint8_t *src, uint32_t length)
 {
     if (likely(length)) {
         uint8_t *where = FTPCalloc(length + 1, sizeof(char));
@@ -508,7 +508,7 @@ static uint16_t ftp_validate_port(int computed_port_value)
  *
  * \retval 0 if a port number could not be extracted; otherwise, the dynamic port number
  */
-static uint16_t FTPGetV6PortNumber(uint8_t *input, uint32_t input_len)
+static uint16_t FTPGetV6PortNumber(const uint8_t *input, uint32_t input_len)
 {
     uint16_t res;
 
@@ -538,7 +538,7 @@ static uint16_t FTPGetV6PortNumber(uint8_t *input, uint32_t input_len)
  *
  * \retval 0 if a port number could not be extracted; otherwise, the dynamic port number
  */
-static uint16_t FTPGetV4PortNumber(uint8_t *input, uint32_t input_len)
+static uint16_t FTPGetV4PortNumber(const uint8_t *input, uint32_t input_len)
 {
     uint16_t part1, part2;
     uint8_t *ptr = memrchr(input, ',', input_len);
@@ -566,7 +566,7 @@ static uint16_t FTPGetV4PortNumber(uint8_t *input, uint32_t input_len)
  */
 static int FTPParseRequest(Flow *f, void *ftp_state,
                            AppLayerParserState *pstate,
-                           uint8_t *input, uint32_t input_len,
+                           const uint8_t *input, uint32_t input_len,
                            void *local_data, const uint8_t flags)
 {
     SCEnter();
@@ -683,7 +683,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     return 1;
 }
 
-static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uint32_t input_len)
+static int FTPParsePassiveResponse(Flow *f, FtpState *state, const uint8_t *input, uint32_t input_len)
 {
     uint16_t dyn_port =
 #ifdef HAVE_RUST
@@ -703,7 +703,7 @@ static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uin
     return 0;
 }
 
-static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, uint8_t *input, uint32_t input_len)
+static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, const uint8_t *input, uint32_t input_len)
 {
     uint16_t dyn_port =
 #ifdef HAVE_RUST
@@ -731,7 +731,7 @@ static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, uint8_t *input, u
  *                The requested action is being initiated; expect another
  *                               reply before proceeding with a new command
  */
-static inline bool FTPIsPPR(uint8_t *input, uint32_t input_len)
+static inline bool FTPIsPPR(const uint8_t *input, uint32_t input_len)
 {
     return input_len >= 4 && isdigit(input[0]) && input[0] == '1' &&
            isdigit(input[1]) && isdigit(input[2]) && isspace(input[3]);
@@ -747,7 +747,7 @@ static inline bool FTPIsPPR(uint8_t *input, uint32_t input_len)
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
-                            uint8_t *input, uint32_t input_len,
+                            const uint8_t *input, uint32_t input_len,
                             void *local_data, const uint8_t flags)
 {
     FtpState *state = (FtpState *)ftp_state;
@@ -1069,7 +1069,7 @@ static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
  */
 static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len,
+        const uint8_t *input, uint32_t input_len,
         void *local_data, int direction)
 {
     uint16_t flags = FileFlowToFlags(f, direction);
@@ -1160,7 +1160,7 @@ static LoggerId FTPStateGetTxLogged(void *state, void *vtx)
 }
 static int FTPDataParseRequest(Flow *f, void *ftp_state,
         AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len,
+        const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
     return FTPDataParse(f, ftp_state, pstate, input, input_len,
@@ -1169,7 +1169,7 @@ static int FTPDataParseRequest(Flow *f, void *ftp_state,
 
 static int FTPDataParseResponse(Flow *f, void *ftp_state,
         AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len,
+        const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
     return FTPDataParse(f, ftp_state, pstate, input, input_len,

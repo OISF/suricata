@@ -65,7 +65,7 @@ enum {
 /** \internal
  *  \retval stub_len or 0 in case of error */
 static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
-    AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
+    AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
     DCERPCUDPState *sstate = (DCERPCUDPState *) dcerpcudp_state;
@@ -134,10 +134,10 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
  * fragmented packets.
  */
 static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
-    AppLayerParserState *pstate, uint8_t *input, uint32_t input_len)
+    AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    uint8_t *p = input;
+    const uint8_t *p = input;
     DCERPCUDPState *sstate = (DCERPCUDPState *) dcerpcudp_state;
     if (input_len) {
         switch (sstate->bytesprocessed) {
@@ -716,7 +716,7 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 }
 
 static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
-    AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+    AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
     uint32_t retval = 0;
