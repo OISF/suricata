@@ -186,6 +186,18 @@ extern uint8_t host_mode;
 SCInstance suricata;
 
 int InitGlobal(void);
+int PostConfLoadedSetup(SCInstance *suri);
+
+extern volatile sig_atomic_t sigint_count;
+extern volatile sig_atomic_t sighup_count;
+extern volatile sig_atomic_t sigterm_count;
+extern volatile sig_atomic_t sigusr2_count;
+void SignalHandlerSigint(int sig);
+void SignalHandlerSigterm(int sig);
+#ifndef OS_WIN32
+void SignalHandlerSigusr2(int sig);
+void SignalHandlerSigHup(int sig);
+#endif
 
 #include <ctype.h>
 #define u8_tolower(c) tolower((uint8_t)(c))
