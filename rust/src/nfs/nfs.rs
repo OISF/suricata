@@ -1360,7 +1360,7 @@ pub extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
 pub extern "C" fn rs_nfs_parse_request(_flow: *mut Flow,
                                        state: &mut NFSState,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *mut u8,
+                                       input: *const u8,
                                        input_len: u32,
                                        _data: *mut std::os::raw::c_void)
                                        -> i8
@@ -1391,7 +1391,7 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
 pub extern "C" fn rs_nfs_parse_response(_flow: *mut Flow,
                                         state: &mut NFSState,
                                         _pstate: *mut std::os::raw::c_void,
-                                        input: *mut u8,
+                                        input: *const u8,
                                         input_len: u32,
                                         _data: *mut std::os::raw::c_void)
                                         -> i8
@@ -1423,7 +1423,7 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
 pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
                                        state: &mut NFSState,
                                        _pstate: *mut std::os::raw::c_void,
-                                       input: *mut u8,
+                                       input: *const u8,
                                        input_len: u32,
                                        _data: *mut std::os::raw::c_void)
                                        -> i8
@@ -1442,7 +1442,7 @@ pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
 pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
                                         state: &mut NFSState,
                                         _pstate: *mut std::os::raw::c_void,
-                                        input: *mut u8,
+                                        input: *const u8,
                                         input_len: u32,
                                         _data: *mut std::os::raw::c_void)
                                         -> i8

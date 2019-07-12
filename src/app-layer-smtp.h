@@ -111,13 +111,13 @@ typedef struct SMTPState_ {
     uint64_t tx_cnt;
 
     /* current input that is being parsed */
-    uint8_t *input;
+    const uint8_t *input;
     int32_t input_len;
     uint8_t direction;
 
     /* --parser details-- */
     /** current line extracted by the parser from the call to SMTPGetline() */
-    uint8_t *current_line;
+    const uint8_t *current_line;
     /** length of the line in current_line.  Doesn't include the delimiter */
     int32_t current_line_len;
     uint8_t current_line_delimiter_len;
