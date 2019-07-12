@@ -195,15 +195,15 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             yaml_version_directive_t *ver =
                 event.data.document_start.version_directive;
             if (ver == NULL) {
-                fprintf(stderr, "ERROR: Invalid configuration file.\n\n");
-                fprintf(stderr, "The configuration file must begin with the following two lines:\n\n");
-                fprintf(stderr, "%%YAML 1.1\n---\n\n");
+                SCLogError(SC_ERR_CONF_YAML_ERROR, "ERROR: Invalid configuration file.");
+                SCLogError(SC_ERR_CONF_YAML_ERROR,
+                           "The configuration file must begin with the following two lines: %%YAML 1.1 and ---");
                 goto fail;
             }
             int major = ver->major;
             int minor = ver->minor;
             if (!(major == YAML_VERSION_MAJOR && minor == YAML_VERSION_MINOR)) {
-                fprintf(stderr, "ERROR: Invalid YAML version.  Must be 1.1\n");
+                SCLogError(SC_ERR_CONF_YAML_ERROR, "ERROR: Invalid YAML version.  Must be 1.1");
                 goto fail;
             }
         }
