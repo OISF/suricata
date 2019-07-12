@@ -24,6 +24,8 @@
 #include "util-decode-asn1.h"
 #include "detect-fast-pattern.h"
 
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+
 static int bufferToFile(const char * name, const uint8_t *Data, size_t Size) {
     FILE * fd;
     if (remove(name) != 0) {
@@ -80,33 +82,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         suricata.delayed_detect = 1;
 
         SupportFastPatternForSigMatchTypes();
-        //PostConfLoadedSetup(&suricata);
-        MpmTableSetup();
-        SpmTableSetup();
-        StorageInit();
-        AppLayerSetup();
-
-        SigTableSetup(); /* load the rule keywords */
-        TmqhSetup();
-        CIDRInit();
-        SCProtoNameInit();
-        TagInitCtx();
-        PacketAlertTagInit();
-        ThresholdInit();
-        HostBitInitCtx();
-        IPPairBitInitCtx();
-
-        TmModuleDecodePcapFileRegister();
-        TmModuleFlowWorkerRegister();
-
-        AppLayerHtpNeedFileInspection();
-        StorageFinalize();
-        SCAsn1LoadConfig();
-        PreRunInit(suricata.run_mode);
-
-        PreRunPostPrivsDropInit(suricata.run_mode);
-        SCClassConfInit();
-        SCReferenceConfInit();
+        PostConfLoadedSetup(&suricata);
 
         //dummy init before DetectEngineReload
         DetectEngineCtx * de_ctx = DetectEngineCtxInit();

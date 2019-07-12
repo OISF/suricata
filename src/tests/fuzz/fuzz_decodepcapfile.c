@@ -13,6 +13,7 @@
 #include "tm-modules.h"
 #include "source-pcap-file.h"
 
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 static int bufferToFile(const char * name, const uint8_t *Data, size_t Size) {
     FILE * fd;

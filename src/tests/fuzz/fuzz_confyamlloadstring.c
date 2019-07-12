@@ -8,6 +8,8 @@
 #include "suricata-common.h"
 #include "conf-yaml-loader.h"
 
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+
 static int initialized = 0;
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
