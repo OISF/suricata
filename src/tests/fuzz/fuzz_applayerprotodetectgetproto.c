@@ -14,6 +14,8 @@
 #define HEADER_LEN 6
 
 
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+
 AppLayerProtoDetectThreadCtx *alpd_tctx = NULL;
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
