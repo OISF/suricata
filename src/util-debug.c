@@ -451,8 +451,9 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, SCLogOPTyp
 
             case SC_LOG_FMT_TM:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s%s", substr,
-                        yellow, t_thread_name, reset);
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s%s%s", substr,
+                        yellow, t_thread_name, reset,
+                        _sc_subsystem[0] == '\0' ? "N/A" : _sc_subsystem);
                 if (cw < 0)
                     return SC_ERR_SPRINTF;
                 temp += cw;
