@@ -32,6 +32,13 @@
 
 #define FLOW_BYPASS_DELAY       10
 
+#ifndef TIMEVAL_TO_TIMESPEC
+#define TIMEVAL_TO_TIMESPEC(tv, ts) {                               \
+    (ts)->tv_sec = (tv)->tv_sec;                                    \
+    (ts)->tv_nsec = (tv)->tv_usec * 1000;                           \
+}
+#endif
+
 typedef struct BypassedFlowManagerThreadData_ {
     uint16_t flow_bypassed_cnt_clo;
     uint16_t flow_bypassed_pkts;
