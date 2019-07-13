@@ -432,17 +432,9 @@ static SCError SCLogMessageGetBuffer(
 
             case SC_LOG_FMT_TM:
                 temp_fmt[0] = '\0';
-/* disabled to prevent dead lock:
- * log or alloc (which calls log on error) can call TmThreadsGetCallingThread
- * which will lock tv_root_lock. This can happen while we already hold this
- * lock. */
-#if 0
-                ThreadVars *tv = TmThreadsGetCallingThread();
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
-                              "%s%s", substr, ((tv != NULL)? tv->name: "UNKNOWN TM"));
-#endif
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                              "%s%s", substr, "N/A");
+                              "%s%s", substr,
+                              _sc_subsystem == NULL ? "N/A" : _sc_subsystem);
                 if (cw < 0)
                     return SC_ERR_SPRINTF;
                 temp += cw;
