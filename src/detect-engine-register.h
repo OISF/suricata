@@ -247,6 +247,7 @@ enum {
     DETECT_TRANSFORM_MD5,
     DETECT_TRANSFORM_SHA1,
     DETECT_TRANSFORM_SHA256,
+    DETECT_TRANSFORM_TLD,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
