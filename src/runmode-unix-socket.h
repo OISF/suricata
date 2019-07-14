@@ -31,6 +31,7 @@ int RunModeUnixSocketIsActive(void);
 TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed);
 
 #ifdef BUILD_UNIX_SOCKET
+TmEcode UnixSocketDatasetAdd(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data);

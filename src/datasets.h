@@ -45,12 +45,14 @@ typedef struct Dataset {
     struct Dataset *next;
 } Dataset;
 
-Dataset *DatasetGetByName(const char *name);
+enum DatasetTypes DatasetGetTypeFromString(const char *s);
+Dataset *DatasetFind(const char *name, enum DatasetTypes type);
 Dataset *DatasetGet(const char *name, enum DatasetTypes type,
         const char *save, const char *load);
 int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
 DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
         const DataRepType *rep);
+int DatasetAddSerialized(Dataset *set, const char *string);
 
 #endif /* __DATASETS_H__ */
