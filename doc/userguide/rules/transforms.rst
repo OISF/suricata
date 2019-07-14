@@ -21,6 +21,36 @@ Example::
 
 .. note:: not all sticky buffers support transformations yet
 
+domain
+------
+
+Takes the buffer, and prepends a ``.`` character providing concise domain checks. For example,
+an input string of ``hello.google.com`` would be modified and become ``.hello.google.com``.
+
+Example::
+
+    alert http any any -> any any (dns.query; domain; \
+        content:".microsoft.com"; sid:1;)
+
+This example will match on ``windows.update.microsoft.com`` and
+``maps.microsoft.com.au`` but not ``windows.update.fakemicrosoft.com``.
+
+This rule can be used to match on the domain only; example::
+
+    alert http any any -> any any (dns.query; domain; \
+        content:".microsoft.com"; endswith; sid:1;)
+
+This example will match on ``windows.update.microsoft.com`` but not
+`windows.update.microsoft.com.au``.
+
+Finally, this rule can be used to match on the TLD only; example::
+
+    alert http any any -> any any (dns.query; domain; \
+        content:".co.uk"; endswith; sid:1;)
+
+This example will match on ``maps.google.co.uk`` but not
+`maps.google.co.nl``.
+
 strip_whitespace
 ----------------
 
