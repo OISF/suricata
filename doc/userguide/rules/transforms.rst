@@ -36,6 +36,16 @@ compress_whitespace
 
 Compresses all consecutive whitespace into a single space.
 
+tld
+---
+
+Takes the buffer, and returns the top level domain, if any and passes it on.
+
+Example::
+
+    alert dns any any -> any any (dns.query; tld; \
+        content:"com"; sid:1;)
+
 to_md5
 ------
 
