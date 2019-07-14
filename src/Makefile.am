@@ -269,6 +269,7 @@ detect-transform-md5.c detect-transform-md5.h \
 detect-transform-sha1.c detect-transform-sha1.h \
 detect-transform-sha256.c detect-transform-sha256.h \
 detect-transform-tld.c detect-transform-tld.h \
+detect-transform-domain.c detect-transform-domain.h \
 detect-ttl.c detect-ttl.h \
 detect-uricontent.c detect-uricontent.h \
 detect-urilen.c detect-urilen.h \
