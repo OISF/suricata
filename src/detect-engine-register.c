@@ -192,6 +192,7 @@
 #include "detect-transform-sha1.h"
 #include "detect-transform-sha256.h"
 #include "detect-transform-tld.h"
+#include "detect-transform-domain.h"
 
 #include "util-rule-vars.h"
 
@@ -552,6 +553,7 @@ void SigTableSetup(void)
     DetectTransformSha1Register();
     DetectTransformSha256Register();
     DetectTransformTLDRegister();
+    DetectTransformDomainRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
