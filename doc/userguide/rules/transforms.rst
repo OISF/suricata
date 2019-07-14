@@ -21,6 +21,16 @@ Example::
 
 .. note:: not all sticky buffers support transformations yet
 
+domain
+------
+
+Takes the buffer, and returns the (2nd level) domain, if any and passes it on.
+
+Example::
+
+    alert http any any -> any any (dns.query; domain; \
+        content:"microsoft.com"; sid:1;)
+
 strip_whitespace
 ----------------
 
