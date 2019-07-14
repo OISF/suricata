@@ -106,6 +106,7 @@ class SuricataSC:
                 "list-hostbit",
                 "memcap-set",
                 "memcap-show",
+                "dataset-add",
                 ]
         self.cmd_list = self.basic_commands + self.fn_commands
         self.sck_path = sck_path
