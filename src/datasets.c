@@ -40,6 +40,17 @@ static uint32_t set_ids = 0;
 static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
         DataRepType *rep);
 
+enum DatasetTypes DatasetGetTypeFromString(const char *s)
+{
+    if (strcasecmp("md5", s) == 0)
+        return DATASET_TYPE_MD5;
+    if (strcasecmp("sha256", s) == 0)
+        return DATASET_TYPE_SHA256;
+    if (strcasecmp("string", s) == 0)
+        return DATASET_TYPE_STRING;
+    return DATASET_TYPE_NOTSET;
+}
+
 static Dataset *DatasetAlloc(const char *name)
 {
     Dataset *set = SCCalloc(1, sizeof(*set));
@@ -60,16 +71,6 @@ static Dataset *DatasetSearchByName(const char *name)
     }
     return NULL;
 }
-
-Dataset *DatasetGetByName(const char *name)
-{
-    Dataset *set = DatasetSearchByName(name);
-    if (set)
-        return set;
-
-    return DatasetAlloc(name);
-}
-
 
 static int HexToRaw(const uint8_t *in, size_t ins, uint8_t *out, size_t outs)
 {
@@ -358,6 +359,21 @@ static void DatasetGetPath(const char *in_path,
     }
     strlcpy(out_path, path, out_size);
     SCLogNotice("in_path \'%s\' => \'%s\'", in_path, out_path);
+}
+
+/** \brief look for set by name without creating it */
+Dataset *DatasetFind(const char *name, enum DatasetTypes type)
+{
+    SCMutexLock(&sets_lock);
+    Dataset *set = DatasetSearchByName(name);
+    if (set) {
+        if (set->type != type) {
+            SCMutexUnlock(&sets_lock);
+            return NULL;
+        }
+    }
+    SCMutexUnlock(&sets_lock);
+    return set;
 }
 
 Dataset *DatasetGet(const char *name, enum DatasetTypes type,
@@ -933,6 +949,42 @@ static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data
             return DatasetAddMd5wRep(set, data, data_len, rep);
         case DATASET_TYPE_SHA256:
             return DatasetAddSha256wRep(set, data, data_len, rep);
+    }
+    return -1;
+}
+
+/** \brief add serialized data to set */
+int DatasetAddSerialized(Dataset *set, const char *string)
+{
+    if (set == NULL)
+        return -1;
+
+    switch (set->type) {
+        case DATASET_TYPE_STRING: {
+            uint8_t decoded[strlen(string)];
+            uint32_t len = DecodeBase64(decoded, (const uint8_t *)string, strlen(string), 1);
+            if (len == 0) {
+                return -1;
+            }
+
+            return DatasetAddString(set, decoded, len);
+        }
+        case DATASET_TYPE_MD5: {
+            if (strlen(string) != 32)
+                return -1;
+            uint8_t hash[16];
+            if (HexToRaw((const uint8_t *)string, 32, hash, sizeof(hash)) < 0)
+                return -1;
+            return DatasetAddMd5(set, hash, 16);
+        }
+        case DATASET_TYPE_SHA256: {
+            if (strlen(string) != 64)
+                return -1;
+            uint8_t hash[32];
+            if (HexToRaw((const uint8_t *)string, 64, hash, sizeof(hash)) < 0)
+                return -1;
+            return DatasetAddSha256(set, hash, 32);
+        }
     }
     return -1;
 }
