@@ -191,6 +191,7 @@
 #include "detect-transform-md5.h"
 #include "detect-transform-sha1.h"
 #include "detect-transform-sha256.h"
+#include "detect-transform-domain.h"
 
 #include "util-rule-vars.h"
 
@@ -550,6 +551,7 @@ void SigTableSetup(void)
     DetectTransformMd5Register();
     DetectTransformSha1Register();
     DetectTransformSha256Register();
+    DetectTransformDomainRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
