@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+#![allow(ellipsis_inclusive_range_patterns)]
 #![cfg_attr(feature = "strict", deny(warnings))]
 
 #[macro_use]
