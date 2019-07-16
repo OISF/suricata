@@ -199,7 +199,7 @@ pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
         Ok((rem, header)) => {
             let mut options = Vec::new();
             let mut next = rem;
-            let mut malformed_options = false;
+            let malformed_options = false;
             let mut truncated_options = false;
             loop {
                 match parse_option(next) {
