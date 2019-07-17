@@ -608,8 +608,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
     /* if we don't know the proto yet and we have received a stream
      * initializer message, we run proto detection.
-     * We receive 2 stream init msgs (one for each direction) but we
-     * only run the proto detection once. */
+     * We receive 2 stream init msgs (one for each direction), we
+     * only run the proto detection for both and emit an event
+     * in the case protocols mismatch. */
     if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
         /* run protocol detection */
         if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
@@ -688,6 +689,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *f)
 {
     SCEnter();
+    AppProto *alproto;
+    AppProto *alproto_otherdir;
 
     if (f->alproto == ALPROTO_FAILED) {
         SCReturnInt(0);
@@ -697,26 +700,67 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
     uint8_t flags = 0;
     if (p->flowflags & FLOW_PKT_TOSERVER) {
         flags |= STREAM_TOSERVER;
+        alproto = &f->alproto_ts;
+        alproto_otherdir = &f->alproto_tc;
     } else {
         flags |= STREAM_TOCLIENT;
+        alproto = &f->alproto_tc;
+        alproto_otherdir = &f->alproto_ts;
     }
 
     AppLayerProfilingReset(tctx);
 
     /* if the protocol is still unknown, run detection */
-    if (f->alproto == ALPROTO_UNKNOWN) {
+    if (*alproto == ALPROTO_UNKNOWN) {
         SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
                    p->payload_len);
 
         bool reverse_flow = false;
         PACKET_PROFILING_APP_PD_START(tctx);
-        f->alproto = AppLayerProtoDetectGetProto(tctx->alpd_tctx,
+        *alproto = AppLayerProtoDetectGetProto(tctx->alpd_tctx,
                                   f, p->payload, p->payload_len,
                                   IPPROTO_UDP, flags, &reverse_flow);
         PACKET_PROFILING_APP_PD_END(tctx);
 
-        if (f->alproto != ALPROTO_UNKNOWN) {
-            AppLayerIncFlowCounter(tv, f);
+        AppLayerIncFlowCounter(tv, f);
+        switch (*alproto) {
+            case ALPROTO_UNKNOWN:
+            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                // Use recognized side
+                f->alproto = *alproto_otherdir;
+                if (*alproto_otherdir == ALPROTO_FAILED) {
+                    SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
+                }
+            } else {
+                // First side of protocol is unknown
+                *alproto = ALPROTO_FAILED;
+            }
+            break;
+            case ALPROTO_FAILED:
+            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                // Use recognized side
+                f->alproto = *alproto_otherdir;
+                if (*alproto_otherdir == ALPROTO_FAILED) {
+                    SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
+                }
+            }
+            // else wait for second side of protocol
+            break;
+            default:
+            if (*alproto_otherdir == ALPROTO_FAILED) {
+                *alproto_otherdir = *alproto;
+                f->alproto = *alproto;
+            } else if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                if (*alproto_otherdir != *alproto) {
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                                     APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
+                    // reset protocol detection
+                    *alproto_otherdir = ALPROTO_UNKNOWN;
+                    *alproto = ALPROTO_UNKNOWN;
+                } else {
+                    f->alproto = *alproto;
+                }
+            }
 
             if (reverse_flow) {
                 SCLogDebug("reversing flow after proto detect told us so");
@@ -729,10 +773,6 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
                                     flags, p->payload, p->payload_len);
             PACKET_PROFILING_APP_END(tctx, f->alproto);
-        } else {
-            f->alproto = ALPROTO_FAILED;
-            AppLayerIncFlowCounter(tv, f);
-            SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
         }
         PACKET_PROFILING_APP_STORE(tctx, p);
         /* we do only inspection in one direction, so flag both
@@ -744,10 +784,10 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
                    "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
 
         /* run the parser */
-        PACKET_PROFILING_APP_START(tctx, f->alproto);
-        r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
+        PACKET_PROFILING_APP_START(tctx, *alproto);
+        r = AppLayerParserParse(tv, tctx->alp_tctx, f, *alproto,
                 flags, p->payload, p->payload_len);
-        PACKET_PROFILING_APP_END(tctx, f->alproto);
+        PACKET_PROFILING_APP_END(tctx, *alproto);
         PACKET_PROFILING_APP_STORE(tctx, p);
     }
 
