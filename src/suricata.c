@@ -581,7 +581,7 @@ static void SetBpfStringFromFile(char *filename)
 static void PrintUsage(const char *progname)
 {
 #ifdef REVISION
-    printf("%s %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
+    printf("%s %s (%s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
 #else
     printf("%s %s\n", PROG_NAME, PROG_VER);
 #endif
@@ -684,7 +684,7 @@ static void PrintBuildInfo(void)
     const char *tls = "pthread key";
 
 #ifdef REVISION
-    printf("This is %s version %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
+    printf("This is %s version %s (%s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
 #elif defined RELEASE
     printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
 #else
@@ -1054,7 +1054,7 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
 static TmEcode PrintVersion(void)
 {
 #ifdef REVISION
-    printf("This is %s version %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
+    printf("This is %s version %s (%s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
 #elif defined RELEASE
     printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
 #else
@@ -1067,7 +1067,7 @@ static TmEcode LogVersion(SCInstance *suri)
 {
     const char *mode = suri->system ? "SYSTEM" : "USER";
 #ifdef REVISION
-    SCLogNotice("This is %s version %s (rev %s) running in %s mode",
+    SCLogNotice("This is %s version %s (%s) running in %s mode",
             PROG_NAME, PROG_VER, xstr(REVISION), mode);
 #elif defined RELEASE
     SCLogNotice("This is %s version %s RELEASE running in %s mode",

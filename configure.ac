@@ -2468,6 +2468,8 @@ fi
         if test "$HAVE_GIT_CMD" != "no"; then
             if [ test -d .git ]; then
                 REVISION=`git rev-parse --short HEAD`
+                DATE=`git log -1 --date=short --pretty=format:%cd`
+                REVISION="$REVISION $DATE"
                 AC_DEFINE_UNQUOTED([REVISION],[${REVISION}],[Git revision])
             fi
         fi
