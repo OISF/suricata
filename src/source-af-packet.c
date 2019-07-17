@@ -65,6 +65,8 @@
 #include <sys/ioctl.h>
 #endif
 
+#include <linux/sockios.h>
+
 #ifdef HAVE_PACKET_EBPF
 #include "util-ebpf.h"
 #include <bpf/libbpf.h>
