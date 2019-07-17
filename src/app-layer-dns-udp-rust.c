@@ -65,6 +65,21 @@ static uint16_t DNSUDPProbe(Flow *f, uint8_t direction,
     return ALPROTO_DNS;
 }
 
+static uint16_t DNSUDPProbeSrv(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    if (len == 0 || len < sizeof(DNSHeader)) {
+        return ALPROTO_UNKNOWN;
+    }
+
+    // Validate and return ALPROTO_FAILED if needed.
+    if (!rs_dns_probe_srv(input, len)) {
+        return ALPROTO_FAILED;
+    }
+
+    return ALPROTO_DNS;
+}
+
 static int RustDNSGetAlstateProgress(void *tx, uint8_t direction)
 {
     return rs_dns_tx_get_alstate_progress(tx, direction);
@@ -132,11 +147,11 @@ void RegisterRustDNSUDPParsers(void)
         if (RunmodeIsUnittests()) {
             AppLayerProtoDetectPPRegister(IPPROTO_UDP, "53", ALPROTO_DNS, 0,
                     sizeof(DNSHeader), STREAM_TOSERVER, DNSUDPProbe,
-                    NULL);
+                    DNSUDPProbeSrv);
         } else {
             int have_cfg = AppLayerProtoDetectPPParseConfPorts("udp",
                     IPPROTO_UDP, proto_name, ALPROTO_DNS, 0, sizeof(DNSHeader),
-                    DNSUDPProbe, NULL);
+                    DNSUDPProbe, DNSUDPProbeSrv);
 
             /* If no config, enable on port 53. */
             if (!have_cfg) {
@@ -146,7 +161,7 @@ void RegisterRustDNSUDPParsers(void)
 #endif
                 AppLayerProtoDetectPPRegister(IPPROTO_UDP, "53", ALPROTO_DNS,
                         0, sizeof(DNSHeader), STREAM_TOSERVER,
-                        DNSUDPProbe, NULL);
+                        DNSUDPProbe, DNSUDPProbeSrv);
             }
         }
     } else {
