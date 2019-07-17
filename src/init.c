@@ -59,6 +59,11 @@
 #include "output.h"
 #include "source-windivert-prototypes.h"
 
+#ifdef HAVE_NSS
+#include <prinit.h>
+#include <nss.h>
+#endif
+
 #ifdef HAVE_RUST
 #include "rust.h"
 #include "rust-core-gen.h"
