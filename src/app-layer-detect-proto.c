@@ -556,7 +556,11 @@ again_midstream:
     } else {
         /* first try the destination port */
         pp_port_dp = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, dp);
-        alproto_masks = &f->probing_parser_toclient_alproto_masks;
+        if (dir == idir) {
+            // do not update alproto_masks to let a chance to second packet
+            // for instance when sending a junk packet to a DNS server
+            alproto_masks = &f->probing_parser_toclient_alproto_masks;
+        }
         if (pp_port_dp != NULL) {
             SCLogDebug("toclient - Probing parser found for destination port %"PRIu16, dp);
 
