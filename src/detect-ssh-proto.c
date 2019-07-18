@@ -50,8 +50,8 @@
 #define KEYWORD_NAME "ssh.proto"
 #define KEYWORD_NAME_LEGACY "ssh_proto"
 #define KEYWORD_DOC "ssh-keywords.html#ssh-proto"
-#define BUFFER_NAME "ssh_protocol"
-#define BUFFER_DESC "ssh protocol field"
+#define BUFFER_NAME "ssh.proto"
+#define BUFFER_DESC "ssh protocol version field"
 static int g_buffer_id = 0;
 
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,

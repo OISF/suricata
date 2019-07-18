@@ -1,68 +1,87 @@
+.. role:: example-rule-emphasis
+
 SSH Keywords
 ============
+Suricata has several rule keywords to match on different elements of SSH
+connections.
 
-Suricata comes with several rule keywords to match on SSH connections.
 
 ssh.proto
 ---------
+Match on the version of the SSH protocol used. ``ssh.proto`` is a sticky buffer,
+and can be used as a fast pattern. ``ssh.proto`` replaces the previous buffer
+name: ``ssh_proto``. You may continue to use the previous name, but it's
+recommended that existing rules be converted to use the new name.
 
-Match on the version of the SSH protocol used.
+Format::
 
-Example::
+  ssh.proto;
 
-  alert ssh any any -> any any (msg:"match SSH protocol version"; \
-      ssh.proto; content:"2.0"; sid:1000010;)
+Example:
 
-The example above matches on SSH connections with SSH version 2.
+.. container:: example-rule
 
-``ssh.proto`` is a 'Sticky buffer'.
+  alert ssh any any -> any any (msg:"match SSH protocol version"; :example-rule-emphasis:`ssh.proto;` content:"2.0"; sid:1000010;)
 
-``ssh.proto`` can be used as ``fast_pattern``.
+The example above matches on SSH connections with SSH version 2.0.
 
-``ssh.proto`` replaces the previous keyword name: ``ssh_proto``. You may continue
-to use the previous name, but it's recommended that rules be converted to use
-the new name.
 
 ssh.software
 ------------
+Match on the software string from the SSH banner. ``ssh.software`` is a sticky
+buffer, and can be used as fast pattern.
 
-Match on the software string from the SSH banner.
+``ssh.software`` replaces the previous keyword names: ``ssh_software`` &
+``ssh.softwareversion``. You may continue to use the previous name, but it's
+recommended that rules be converted to use the new name.
 
-Example::
+Format::
 
-  alert ssh any any -> any any (msg:"match SSH software string"; \
-      ssh.software: content:"openssh"; nocase; sid:1000020;)
+  ssh.software;
 
-The example above matches on SSH connections where the software string contains "openssh".
+Example:
 
-``ssh.software`` is a 'Sticky buffer'.
+.. container:: example-rule
 
-``ssh.software`` can be used as ``fast_pattern``.
+  alert ssh any any -> any any (msg:"match SSH software string"; :example-rule-emphasis:`ssh.software;` content:"openssh"; nocase; sid:1000020;)
 
-``ssh.software`` replaces the previous keyword name: ``ssh_software``. You may continue
-to use the previous name, but it's recommended that rules be converted to use
-the new name.
+The example above matches on SSH connections where the software string contains
+"openssh".
+
 
 ssh.protoversion
 ----------------
+Matches on the version of the SSH protocol used. A value of ``2_compat``
+includes SSH version 1.99.
 
-This is a legacy keyword. Use ``ssh_proto`` instead!
+Format::
 
-Match on the version of the SSH protocol used.
+  ssh.protoversion:[0-9](\.[0-9])?|2_compat;
 
-Example::
+Example:
 
-  alert ssh any any -> any any (msg:"match SSH protocol version"; \
-      ssh.protoversion:"2.0"; sid:1000030;)
+.. container:: example-rule
+
+  alert ssh any any -> any any (msg:"SSH v2 compatible"; :example-rule-emphasis:`ssh.protoversion:2_compat;` sid:1;)
+
+The example above matches on SSH connections with SSH version 2 or 1.99.
+
+.. container:: example-rule
+
+  alert ssh any any -> any any (msg:"SSH v1.10"; :example-rule-emphasis:`ssh.protoversion:1.10;` sid:1;)
+
+The example above matches on SSH connections with SSH version 1.10 only.
+
 
 ssh.softwareversion
 -------------------
+This keyword has been deprecated. Please use ``ssh.software`` instead. Matches
+on the software string from the SSH banner.
 
-This is a legacy keyword. Use ``ssh_software`` instead!
+Example:
 
-Match on the software string from the SSH banner.
+.. container:: example-rule
 
-Example::
+  alert ssh any any -> any any (msg:"match SSH software string"; :example-rule-emphasis:`ssh.softwareversion:"OpenSSH";` sid:10000040;)
 
-  alert ssh any any -> any any (msg:"match SSH software string"; \
-      ssh.softwareversion:"OpenSSH"; sid:10000040;)
+
