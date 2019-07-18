@@ -19,9 +19,9 @@ The example above matches on SSH connections with SSH version 2.
 
 ``ssh.proto`` can be used as ``fast_pattern``.
 
-``ssh.proto`` replaces the previous keyword name: ``ssh_proto``. You may continue
-to use the previous name, but it's recommended that rules be converted to use
-the new name.
+``ssh.proto`` replaces the previous keyword names: ``ssh_proto`` & 
+``ssh.protoversion``. You may continue to use the previous name, but 
+it's recommended that rules be converted to use the new name.
 
 ssh.software
 ------------
@@ -31,7 +31,7 @@ Match on the software string from the SSH banner.
 Example::
 
   alert ssh any any -> any any (msg:"match SSH software string"; \
-      ssh.software: content:"openssh"; nocase; sid:1000020;)
+      ssh.software; content:"openssh"; nocase; sid:1000020;)
 
 The example above matches on SSH connections where the software string contains "openssh".
 
@@ -39,14 +39,14 @@ The example above matches on SSH connections where the software string contains 
 
 ``ssh.software`` can be used as ``fast_pattern``.
 
-``ssh.software`` replaces the previous keyword name: ``ssh_software``. You may continue
-to use the previous name, but it's recommended that rules be converted to use
-the new name.
+``ssh.software`` replaces the previous keyword names: ``ssh_software`` & 
+``ssh.softwareversion``. You may continue to use the previous name, but it's 
+recommended that rules be converted to use the new name.
 
 ssh.protoversion
 ----------------
 
-This is a legacy keyword. Use ``ssh_proto`` instead!
+This legacy keyword has been deprecated. Use ``ssh.proto`` instead!
 
 Match on the version of the SSH protocol used.
 
@@ -58,7 +58,7 @@ Example::
 ssh.softwareversion
 -------------------
 
-This is a legacy keyword. Use ``ssh_software`` instead!
+This legacy keyword has been deprecated. Use ``ssh.software`` instead!
 
 Match on the software string from the SSH banner.
 
