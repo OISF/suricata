@@ -50,8 +50,8 @@
 #define KEYWORD_NAME "ssh.software"
 #define KEYWORD_NAME_LEGACY "ssh_software"
 #define KEYWORD_DOC "ssh-keywords.html#ssh-software"
-#define BUFFER_NAME "ssh_software"
-#define BUFFER_DESC "ssh software"
+#define BUFFER_NAME "ssh.software"
+#define BUFFER_DESC "ssh software field"
 static int g_buffer_id = 0;
 
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
