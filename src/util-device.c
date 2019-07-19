@@ -135,11 +135,7 @@ int LiveRegisterDevice(const char *dev)
         return -1;
     }
     /* create a short version to be used in thread names */
-    if (strlen(pd->dev) > MAX_DEVNAME) {
-        LiveSafeDeviceName(pd->dev, pd->dev_short, sizeof(pd->dev_short));
-    } else {
-        (void)strlcpy(pd->dev_short, pd->dev, sizeof(pd->dev_short));
-    }
+    LiveSafeDeviceName(pd->dev, pd->dev_short, sizeof(pd->dev_short));
 
     SC_ATOMIC_INIT(pd->pkts);
     SC_ATOMIC_INIT(pd->drop);
