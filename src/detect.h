@@ -62,7 +62,6 @@ struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
 
 /*
-
   The detection engine groups similar signatures/rules together. Internally a
   tree of different types of data is created on initialization. This is it's
   global layout:
@@ -71,18 +70,12 @@ struct SCSigSignatureWrapper_;
 
    - Flow direction
    -- Protocol
-   -=- Src address
-   -==- Dst address
-   -===- Src port
-   -====- Dst port
+   -=- Dst port
 
    For the other protocols
 
    - Flow direction
    -- Protocol
-   -=- Src address
-   -==- Dst address
-
 */
 
 /* holds the values for different possible lists in struct Signature.
@@ -153,7 +146,7 @@ typedef struct DetectAddress_ {
     struct DetectAddress_ *next;
 } DetectAddress;
 
-/** Signature grouping head. Here 'any', ipv4 and ipv6 are split out */
+/** Address grouping head. IPv4 and IPv6 are split out */
 typedef struct DetectAddressHead_ {
     DetectAddress *ipv4_head;
     DetectAddress *ipv6_head;
