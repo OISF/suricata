@@ -461,6 +461,8 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
+
+    void* sppcap;
 } Flow;
 
 enum FlowState {

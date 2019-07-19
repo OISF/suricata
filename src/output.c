@@ -60,6 +60,7 @@
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "log-pcap.h"
+#include "log-specific-pcap.h"
 #include "output-json-file.h"
 #include "output-json-smtp.h"
 #include "output-json-stats.h"
@@ -1070,6 +1071,8 @@ void OutputRegisterLoggers(void)
     JsonSshLogRegister();
     /* pcap log */
     PcapLogRegister();
+    /* pcap log */
+    SPPcapLogRegister();
     /* file log */
     JsonFileLogRegister();
     LogFilestoreRegister();

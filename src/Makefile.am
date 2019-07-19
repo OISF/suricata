@@ -302,6 +302,7 @@ log-filestore.c log-filestore.h \
 log-cf-common.c log-cf-common.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
+log-specific-pcap.c log-specific-pcap.h \
 log-stats.c log-stats.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \

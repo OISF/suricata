@@ -67,6 +67,7 @@
 #include "ippair-timeout.h"
 
 #include "output-flow.h"
+#include "log-specific-pcap.h"
 
 /* Run mode selected at suricata.c */
 extern int run_mode;
@@ -983,6 +984,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
                 FLOWLOCK_WRLOCK(f);
 
                 (void)OutputFlowLog(th_v, ftd->output_thread_data, f);
+                SPPcapLogCloseFileCtx(f);
 
                 FlowClearMemory (f, f->protomap);
                 FLOWLOCK_UNLOCK(f);

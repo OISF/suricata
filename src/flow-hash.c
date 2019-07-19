@@ -46,6 +46,7 @@
 #include "conf.h"
 #include "output.h"
 #include "output-flow.h"
+#include "log-specific-pcap.h"
 
 #define FLOW_DEFAULT_FLOW_PRUNE 5
 
@@ -944,7 +945,7 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
         /* invoke flow log api */
         if (dtv && dtv->output_flow_thread_data)
             (void)OutputFlowLog(tv, dtv->output_flow_thread_data, f);
-
+        SPPcapLogCloseFileCtx(f);
         FlowClearMemory(f, f->protomap);
 
         FlowUpdateState(f, FLOW_STATE_NEW);
