@@ -57,6 +57,7 @@
 
 #include "stream.h"
 
+#include "util-misc.h"
 #include "util-enum.h"
 #include "util-debug.h"
 #include "util-print.h"
@@ -152,7 +153,6 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             DetectBufferMpmRegistery *am = SCCalloc(1, sizeof(*am));
             BUG_ON(am == NULL);
             am->name = t->name;
-            snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
             am->direction = t->direction;
             am->sm_list = id; // use new id
             am->type = DETECT_BUFFER_MPM_TYPE_APP;
@@ -165,6 +165,32 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->next = t->next;
             if (transforms) {
                 memcpy(&am->transforms, transforms, sizeof(*transforms));
+
+                /* create comma separated string of the names of the
+                 * transforms and then shorten it if necessary. Finally
+                 * use it to construct the 'profile' name for the engine */
+                char xforms[1024] = "";
+                for (int i = 0; i < transforms->cnt; i++) {
+                    char ttstr[64];
+                    (void)snprintf(ttstr,sizeof(ttstr), "%s,",
+                            sigmatch_table[transforms->transforms[i]].name);
+                    strlcat(xforms, ttstr, sizeof(xforms));
+                }
+                xforms[strlen(xforms)-1] = '\0';
+
+                size_t space = sizeof(am->pname) - strlen(am->name) - 3;
+                char toprint[space + 1];
+                memset(toprint, 0x00, space + 1);
+                if (space < strlen(xforms)) {
+                    ShortenString(xforms, toprint, space, '~');
+                } else {
+                    strlcpy(toprint, xforms,sizeof(toprint));
+                }
+                (void)snprintf(am->pname, sizeof(am->pname), "%s#%d (%s)",
+                        am->name, id, toprint);
+            } else {
+                (void)snprintf(am->pname, sizeof(am->pname), "%s#%d",
+                        am->name, id);
             }
             am->id = de_ctx->app_mpms_list_cnt++;
 
