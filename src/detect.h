@@ -153,8 +153,6 @@ typedef struct DetectAddressHead_ {
 } DetectAddressHead;
 
 
-#include "detect-threshold.h"
-
 typedef struct DetectMatchAddressIPv4_ {
     uint32_t ip;    /**< address in host order, start of range */
     uint32_t ip2;   /**< address in host order, end of range */
@@ -697,12 +695,7 @@ typedef struct DetectEngineLookupFlow_ {
     struct SigGroupHead_ *sgh[256];
 } DetectEngineLookupFlow;
 
-/* Flow status
- *
- * to server
- * to client
- */
-#define FLOW_STATES 2
+#include "detect-threshold.h"
 
 /** \brief threshold ctx */
 typedef struct ThresholdCtx_    {
@@ -752,6 +745,12 @@ enum DetectEngineType
     DETECT_ENGINE_TYPE_MT_STUB = 2, /* multi-tenant stub: cannot be reloaded */
     DETECT_ENGINE_TYPE_TENANT = 3,
 };
+
+/* Flow states:
+ *  toserver
+ *  toclient
+ */
+#define FLOW_STATES 2
 
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
