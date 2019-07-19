@@ -52,4 +52,7 @@ void UtilMiscRegisterTests(void);
 void ParseSizeInit(void);
 void ParseSizeDeinit(void);
 
+void ShortenString(const char *input,
+    char *output, size_t output_size, char c);
+
 #endif /* __UTIL_MISC_H__ */
