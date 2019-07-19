@@ -189,6 +189,33 @@ const char *LiveGetDeviceName(int number)
     return NULL;
 }
 
+static void ShortenString(const char *input,
+    char *output, size_t output_size, char c)
+{
+    const size_t str_len = strlen(input);
+    size_t half = (output_size - 1) / 2;
+
+    /* If the output size is an even number */
+    if (half * 2 == (output_size - 1)) {
+        half = half - 1;
+    }
+
+    size_t spaces = (output_size - 1) - (half * 2);
+
+    /* Add the first half to the new string */
+    snprintf(output, half+1, "%s", input);
+
+    /* Add the amount of spaces wanted */
+    size_t length = half;
+    for (size_t i = half; i < half + spaces; i++) {
+        char s[2] = "";
+        snprintf(s, sizeof(s), "%c", c);
+        length = strlcat(output, s, output_size);
+    }
+
+    snprintf(output + length, half + 1, "%s", input + (str_len - half));
+}
+
 /** \internal
  *  \brief Shorten a device name that is to long
  *
@@ -198,7 +225,7 @@ const char *LiveGetDeviceName(int number)
  */
 static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen)
 {
-    size_t devnamelen = strlen(devname);
+    const size_t devnamelen = strlen(devname);
 
     /* If we have to shorten the interface name */
     if (devnamelen > MAX_DEVNAME) {
@@ -215,29 +242,8 @@ static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t dest
             return 1;
         }
 
-        size_t length;
-        size_t half;
-        size_t spaces;
+        ShortenString(devname, newdevname, destlen, '.');
 
-        half = (destlen-1) / 2;
-
-        /* If the destlen is an even number */
-        if (half * 2 == (destlen-1)) {
-            half = half - 1;
-        }
-
-        spaces = (destlen-1) - (half*2);
-        length = half;
-
-        /* Add the first half to the new dev name */
-        snprintf(newdevname, half+1, "%s", devname);
-
-        /* Add the amount of spaces wanted */
-        for (size_t i = half; i < half+spaces; i++) {
-            length = strlcat(newdevname, ".", destlen);
-        }
-
-        snprintf(newdevname+length, half+1, "%s", devname+(devnamelen-half));
         SCLogInfo("Shortening device name to: %s", newdevname);
     } else {
         strlcpy(newdevname, devname, destlen);
