@@ -197,7 +197,7 @@ static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx,
 
     return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxDnsQuery,
             mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmDnsQueryFree, mpm_reg->name);
+            pectx, PrefilterMpmDnsQueryFree, mpm_reg->pname);
 }
 
 
