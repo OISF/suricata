@@ -311,7 +311,7 @@ static int NetmapOpen(NetmapIfaceSettings *ns,
 retry:
     snprintf(optstr, sizeof(optstr), "%s%s%s", opt_z, opt_x, direction == 0 ? opt_R : opt_T);
 
-    char devname[64];
+    char devname[128];
     if (strncmp(ns->iface, "netmap:", 7) == 0) {
         snprintf(devname, sizeof(devname), "%s}%d%s%s",
                 ns->iface, ring, strlen(optstr) ? "/" : "", optstr);
