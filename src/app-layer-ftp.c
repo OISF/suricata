@@ -1364,6 +1364,32 @@ void FTPAtExitPrintStats(void)
 
 
 #ifdef HAVE_LIBJANSSON
+/*
+ * \brief Returns the ending offset of the next line from a multi-line buffer.
+ *
+ * "Buffer" refers to a FTP response in a single buffer containing multiple lines.
+ * Here, "next line" is defined as terminating on
+ * - Newline character
+ * - Null character
+ *
+ * \param buffer Contains zero or more characters.
+ * \param len Size, in bytes, of buffer.
+ *
+ * \retval Offset from the start of buffer indicating the where the
+ * next "line ends". The characters between the input buffer and this
+ * value comprise the line.
+ *
+ * NULL is found first or a newline isn't found, then
+ */
+uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
+{
+        if (!buffer || *buffer == '\0')
+                    return UINT16_MAX;
+
+            char *c = strchr(buffer, '\n');
+                return c == NULL ? len : c - buffer + 1;
+}
+
 json_t *JsonFTPDataAddMetadata(const Flow *f)
 {
     const FtpDataState *ftp_state = NULL;

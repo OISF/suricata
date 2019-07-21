@@ -62,31 +62,6 @@ typedef struct LogFTPLogThread_ {
     MemBuffer          *buffer;
 } LogFTPLogThread;
 
-/*
- * \brief Returns the ending offset of the next line.
- *
- * Here, "next line" is defined as terminating on
- * - Newline character
- * - Null character
- *
- * \param buffer Contains zero or more characters.
- * \param len Size, in bytes, of buffer.
- *
- * \retval Offset from the start of buffer indicating the where the
- * next "line ends". The characters between the input buffer and this
- * value comprise the line.
- *
- * NULL is found first or a newline isn't found, then
- */
-static uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
-{
-    if (!buffer || *buffer == '\0')
-        return UINT16_MAX;
-
-    char *c = strchr(buffer, '\n');
-    return c == NULL ? len : c - buffer + 1;
-}
-
 static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
 {
     json_t *cjs = json_object();
