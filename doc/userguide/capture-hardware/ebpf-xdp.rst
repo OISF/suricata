@@ -97,7 +97,8 @@ To get Suricata source, you can use the usual ::
 
  ./autogen.sh
 
-Then you need to add the ebpf flags to configure ::
+Then you need to add the ebpf flags to configure and specify the Clang
+compiler for building all C sources, including the eBPF programs ::
 
  CC=clang ./configure --prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/ \
  --enable-ebpf --enable-ebpf-build
@@ -108,7 +109,12 @@ Then you need to add the ebpf flags to configure ::
  sudo mkdir /etc/suricata/ebpf/
 
 The ``clang`` compiler is needed if you want to build eBPF files as the build
-is done via a specific eBPF backend available only in llvm/clang suite.
+is done via a specific eBPF backend available only in llvm/clang suite. If you
+don't want to use Clang for building Suricata itself, you can still specify it
+separately, using the ``--with-clang`` parameter ::
+
+ ./configure --prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/ \
+ --enable-ebpf --enable-ebpf-build --with-clang=/usr/bin/clang
 
 Setup bypass
 ------------
