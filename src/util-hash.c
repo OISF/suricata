@@ -422,6 +422,19 @@ end:
     if (ht != NULL) HashTableFree(ht);
     return result;
 }
+
+static int HashTableListTestFree01 (void)
+{
+	HashListTable* ht = SCMalloc(sizeof(HashListTable));
+	memset(ht, 0, sizeof(HashListTable));
+
+	ht->array_size = 1;
+
+	//Here goes fail
+	HashListTableFree(ht);
+
+	PASS;
+}
 #endif
 
 void HashTableRegisterTests(void)
@@ -439,6 +452,9 @@ void HashTableRegisterTests(void)
 
     UtRegisterTest("HashTableTestFull01", HashTableTestFull01);
     UtRegisterTest("HashTableTestFull02", HashTableTestFull02);
+
+
+    UtRegisterTest("HashTableListTestFree01", HashTableListTestFree01);
 #endif
 }
 

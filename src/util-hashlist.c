@@ -86,15 +86,20 @@ void HashListTableFree(HashListTable *ht)
     if (ht == NULL)
         return;
 
-    /* free the buckets */
-    for (i = 0; i < ht->array_size; i++) {
-        HashListTableBucket *hashbucket = ht->array[i];
-        while (hashbucket != NULL) {
-            HashListTableBucket *next_hashbucket = hashbucket->bucknext;
-            if (ht->Free != NULL)
-                ht->Free(hashbucket->data);
-            SCFree(hashbucket);
-            hashbucket = next_hashbucket;
+    if (ht->array)
+    {
+        /* free the buckets */
+        for (i = 0; i < ht->array_size; i++)
+        {
+            HashListTableBucket *hashbucket = ht->array[i];
+            while (hashbucket != NULL)
+            {
+                HashListTableBucket *next_hashbucket = hashbucket->bucknext;
+                if (ht->Free != NULL)
+                    ht->Free(hashbucket->data);
+                SCFree(hashbucket);
+                hashbucket = next_hashbucket;
+            }
         }
     }
 
