@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+#![allow(ellipsis_inclusive_range_patterns)] // TODO: Remove when MSRV is higher than 1.24
 #![cfg_attr(feature = "strict", deny(warnings))]
 
 #[macro_use]
