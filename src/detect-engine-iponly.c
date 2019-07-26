@@ -459,8 +459,8 @@ static void IPOnlyCIDRListPrint(IPOnlyCIDRItem *tmphead)
 
     while (tmphead != NULL) {
         i++;
-        SCLogDebug("Item %"PRIu32" has netmask %"PRIu16" negated:"
-                   " %s; IP: %s; signum: %"PRIu16, i, tmphead->netmask,
+        SCLogDebug("Item %"PRIu32" has netmask %"PRIu8" negated:"
+                   " %s; IP: %s; signum: %"PRIu32, i, tmphead->netmask,
                    (tmphead->negated) ? "yes":"no",
                    inet_ntoa(*(struct in_addr*)&tmphead->ip[0]),
                    tmphead->signum);
