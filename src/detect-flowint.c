@@ -436,7 +436,7 @@ static void DetectFlowintPrintData(DetectFlowintData *sfd)
         return;
     }
 
-    SCLogDebug("Varname: %s, modifier: %"PRIu8", idx: %"PRIu16" Target: ",
+    SCLogDebug("Varname: %s, modifier: %"PRIu8", idx: %"PRIu32" Target: ",
                 sfd->name, sfd->modifier, sfd->idx);
     switch(sfd->targettype) {
         case FLOWINT_TARGET_VAR:
