@@ -16,6 +16,9 @@
  */
 
 #![cfg_attr(feature = "strict", deny(warnings))]
+// See https://redmine.openinfosecfoundation.org/issues/3072
+// This should be removed when 1.24 is not the MSRV
+#![allow(ellipsis_inclusive_range_patterns)]
 
 #[macro_use]
 extern crate nom;
