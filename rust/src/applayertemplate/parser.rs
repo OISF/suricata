@@ -24,7 +24,7 @@ fn parse_len(input: &str) -> Result<u32, std::num::ParseIntError> {
 named!(pub parse_message<String>,
        do_parse!(
            len: map_res!(
-               map_res!(take_until_s!(":"), std::str::from_utf8), parse_len) >>
+               map_res!(take_until!(":"), std::str::from_utf8), parse_len) >>
            sep: take!(1) >>
            msg: take_str!(len) >>
                (
