@@ -61,8 +61,11 @@ void DetectGeoipRegister(void)
 }
 
 #else /* HAVE_GEOIP */
-
+#ifdef HAVE_LIBGEOIP
+#include <GeoIP.h>
+#else
 #include <maxminddb.h>
+#endif
 
 static int DetectGeoipMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                             const Signature *, const SigMatchCtx *);
@@ -91,6 +94,12 @@ void DetectGeoipRegister(void)
  */
 static bool InitGeolocationEngine(DetectGeoipData *geoipdata)
 {
+#ifdef HAVE_LIBGEOIP
+    geoipdata->geoengine = GeoIP_new(GEOIP_MEMORY_CACHE);
+    if (geoipdata->geoengine == NULL)
+        return false;
+    return true;
+#else
     const char *filename = NULL;
 
     /* Get location and name of GeoIP2 database from YAML conf */
@@ -117,6 +126,7 @@ static bool InitGeolocationEngine(DetectGeoipData *geoipdata)
                  MMDB_strerror(status));
     geoipdata->mmdb_status = status;
     return false;
+#endif /* HAVE_LIBGEOIP */
 }
 
 /**
@@ -130,6 +140,10 @@ static bool InitGeolocationEngine(DetectGeoipData *geoipdata)
  */
 static const char *GeolocateIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
 {
+#ifdef HAVE_LIBGEOIP
+    if (geoipdata->geoengine != NULL)
+        return GeoIP_country_code_by_ipnum(geoipdata->geoengine,  SCNtohl(ip));
+#else
     int mmdb_error;
     struct sockaddr_in sa;
     sa.sin_family = AF_INET;
@@ -165,6 +179,7 @@ static const char *GeolocateIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
         }
     }
 
+#endif /* HAVE_LIBGEOIP */
     /* The country code for the IP was not found */
     return NULL;
 }
@@ -207,7 +222,9 @@ static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
     {
         for (i = 0; i < geoipdata->nlocations; i++) {
             if (strcmp(country, (char *)geoipdata->location[i])==0) {
+#ifndef HAVE_LIBGEOIP
                 SCFree((void *)country);
+#endif
                 return 1;
             }
         }
@@ -215,14 +232,20 @@ static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
         /* Check if NEGATED match-on condition */
         for (i = 0; i < geoipdata->nlocations; i++) {
             if (strcmp(country, (char *)geoipdata->location[i])==0) {
+#ifndef HAVE_LIBGEOIP
                 SCFree((void *)country);
+#endif
                 return 0; /* if one matches, rule does NOT match (negated) */
             }
         }
+#ifndef HAVE_LIBGEOIP
         SCFree((void *)country);
+#endif
         return 1; /* returns 1 if no location matches (negated) */
     }
+#ifndef HAVE_LIBGEOIP
     SCFree((void *)country);
+#endif
     return 0;
 }
 
@@ -439,8 +462,10 @@ static void DetectGeoipDataFree(void *ptr)
 {
     if (ptr != NULL) {
         DetectGeoipData *geoipdata = (DetectGeoipData *)ptr;
+#ifndef HAVE_LIBGEOIP
         if (geoipdata->mmdb_status == MMDB_SUCCESS)
             MMDB_close(&geoipdata->mmdb);
+#endif
         SCFree(geoipdata);
     }
 }
