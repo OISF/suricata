@@ -27,7 +27,11 @@
 
 #ifdef HAVE_GEOIP
 
+#ifdef HAVE_LIBGEOIP
+#include <GeoIP.h>
+#else
 #include <maxminddb.h>
+#endif
 #include "util-spm-bm.h"
 
 #define GEOOPTION_MAXSIZE 3 /* Country Code (2 chars) + NULL */
@@ -37,8 +41,12 @@ typedef struct DetectGeoipData_ {
     uint8_t location[GEOOPTION_MAXLOCATIONS][GEOOPTION_MAXSIZE];  /** country code for now, null term.*/
     int nlocations;  /** number of location strings parsed */
     uint32_t flags;
+#ifdef HAVE_LIBGEOIP
+    GeoIP *geoengine;
+#else
     int mmdb_status; /** Status of DB open call, MMDB_SUCCESS or error */
     MMDB_s mmdb;     /** MaxMind DB file handle structure */
+#endif
 } DetectGeoipData;
 
 #endif
