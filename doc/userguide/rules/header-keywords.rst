@@ -142,11 +142,11 @@ API of MaxMind.
 
 The syntax of geoip::
 
-  geoip: src, RU;
-  geoip: both, CN, RU;
-  geoip: dst, CN, RU, IR;
-  geoip: both, US, CA, UK;
-  geoip: any, CN, IR;
+  geoip: src,RU;
+  geoip: both,CN,RU;
+  geoip: dst,CN,RU,IR;
+  geoip: both,US,CA,UK;
+  geoip: any,CN,IR;
 
 So, you can see you can use the following to make clear on which
 direction you would like to match::
