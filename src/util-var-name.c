@@ -65,6 +65,9 @@ typedef struct VariableName_ {
     uint32_t idx;
 } VariableName;
 
+#define VARNAME_HASHSIZE 0x1000
+#define VARID_HASHSIZE 0x1000
+
 static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen)
 {
      VariableName *fn = (VariableName *)buf;
@@ -75,7 +78,7 @@ static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen)
          hash += fn->name[u];
      }
 
-     return hash;
+     return (hash % VARNAME_HASHSIZE);
 }
 
 static char VariableNameCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2)
@@ -96,7 +99,7 @@ static uint32_t VariableIdxHash(HashListTable *ht, void *buf, uint16_t buflen)
 {
     VariableName *fn = (VariableName *)buf;
     uint32_t hash = fn->idx + fn->type;
-    return hash;
+    return (hash % VARID_HASHSIZE);
 }
 
 static char VariableIdxCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2)
@@ -136,13 +139,13 @@ static VarNameStore *VarNameStoreInit(void)
     if (v == NULL)
         return NULL;
 
-    v->names = HashListTableInit(4096, VariableNameHash, VariableNameCompare, VariableNameFree);
+    v->names = HashListTableInit(VARNAME_HASHSIZE, VariableNameHash, VariableNameCompare, VariableNameFree);
     if (v->names == NULL) {
         SCFree(v);
         return NULL;
     }
 
-    v->ids = HashListTableInit(4096, VariableIdxHash, VariableIdxCompare, NULL);
+    v->ids = HashListTableInit(VARID_HASHSIZE, VariableIdxHash, VariableIdxCompare, NULL);
     if (v->ids == NULL) {
         HashListTableFree(v->names);
         SCFree(v);
