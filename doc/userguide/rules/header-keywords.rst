@@ -499,43 +499,75 @@ The following lists the meaning of all ICMP types. When a code is not listed,
 only type 0 is defined and has the meaning of the ICMP code, in the table above.
 A recent table can be found `at the website of IANA <https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml>`_
 
-==========  ==========  =========================================================================
-ICMP Code   ICMP Type   Description
-==========  ==========  =========================================================================
-3           - 0         - Net Unreachable
-            - 1         - Host Unreachable
-            - 2         - Protocol Unreachable
-            - 3         - Port Unreachable
-            - 4         - Fragmentation Needed and Don't Fragment was Set
-            - 5         - Source Route Failed
-            - 6         - Destination Network Unknown
-            - 7         - Destination Host Unknown
-            - 8         - Source Host Isolated
-            - 9         - Communication with Destination Network is Administratively Prohibited
-            - 10        - Communication with Destination Host is Administratively Prohibited
-            - 11        - Destination Network Unreachable for Type of Service
-            - 12        - Destination Host Unreachable for Type of Service
-            - 13        - Communication Administratively Prohibited
-            - 14        - Host Precedence Violation
-            - 15        - Precedence cutoff in effect
-5           - 0         - Redirect Datagram for the Network (or subnet)
-            - 1         - Redirect Datagram for the Host
-            - 2         - Redirect Datagram for the Type of Service and Network
-            - 3         - Redirect Datagram for the Type of Service and Host
-9           - 0         - Normal router advertisement
-            - 16        - Doest not route common traffic
-11          - 0         - Time to Live exceeded in Transit
-            - 1         - Fragment Reassembly Time Exceeded
-12          - 0         - Pointer indicates the error
-            - 1         - Missing a Required Option
-            - 2         - Bad Length
-40          - 0         - Bad SPI
-            - 1         - Authentication Failed
-            - 2         - Decompression Failed
-            - 3         - Decryption Failed
-            - 4         - Need Authentication
-            - 5         - Need Authorization
-==========  ==========  =========================================================================
++-----------+-----------+------------------------------------------------------------------------+
+| ICMP Code | ICMP Type | Description                                                            |
++===========+===========+========================================================================+
+| 3         | 0         | Net Unreachable                                                        |
+|           +-----------+------------------------------------------------------------------------+
+|           | 1         |  Host Unreachable                                                      |
+|           +-----------+------------------------------------------------------------------------+
+|           | 2         |  Protocol Unreachable                                                  |
+|           +-----------+------------------------------------------------------------------------+
+|           | 3         |  Port Unreachable                                                      |
+|           +-----------+------------------------------------------------------------------------+
+|           | 4         |  Fragmentation Needed and Don't Fragment was Set                       |
+|           +-----------+------------------------------------------------------------------------+
+|           | 5         |  Source Route Failed                                                   |
+|           +-----------+------------------------------------------------------------------------+
+|           | 6         |  Destination Network Unknown                                           |
+|           +-----------+------------------------------------------------------------------------+
+|           | 7         |  Destination Host Unknown                                              |
+|           +-----------+------------------------------------------------------------------------+
+|           | 8         |  Source Host Isolated                                                  |
+|           +-----------+------------------------------------------------------------------------+
+|           | 9         |  Communication with Destination Network is Administratively Prohibited |
+|           +-----------+------------------------------------------------------------------------+
+|           | 10        |  Communication with Destination Host is Administratively Prohibited    |
+|           +-----------+------------------------------------------------------------------------+
+|           | 11        |  Destination Network Unreachable for Type of Service                   |
+|           +-----------+------------------------------------------------------------------------+
+|           | 12        |  Destination Host Unreachable for Type of Service                      |
+|           +-----------+------------------------------------------------------------------------+
+|           | 13        |  Communication Administratively Prohibited                             |
+|           +-----------+------------------------------------------------------------------------+
+|           | 14        |  Host Precedence Violation                                             |
+|           +-----------+------------------------------------------------------------------------+
+|           | 15        |  Precedence cutoff in effect                                           |
++-----------+-----------+------------------------------------------------------------------------+
+| 5         | 0         |  Redirect Datagram for the Network (or subnet)                         |
+|           +-----------+------------------------------------------------------------------------+
+|           | 1         |  Redirect Datagram for the Host                                        |
+|           +-----------+------------------------------------------------------------------------+
+|           | 2         |  Redirect Datagram for the Type of Service and Network                 |
+|           +-----------+------------------------------------------------------------------------+
+|           | 3         |  Redirect Datagram for the Type of Service and Host                    |
+|           +-----------+------------------------------------------------------------------------+
+|           | 0         |  Normal router advertisement                                           |
+|           +-----------+------------------------------------------------------------------------+
+|           | 16        |  Doest not route common traffic                                        |
++-----------+-----------+------------------------------------------------------------------------+
+| 11        | 0         |  Time to Live exceeded in Transit                                      |
+|           +-----------+------------------------------------------------------------------------+
+|           | 1         |  Fragment Reassembly Time Exceeded                                     |
++-----------+-----------+------------------------------------------------------------------------+
+| 12        | 0         |  Pointer indicates the error                                           |
+|           +-----------+------------------------------------------------------------------------+
+|           | 1         |  Missing a Required Option                                             |
+|           +-----------+------------------------------------------------------------------------+
+|           | 2         |  Bad Length                                                            |
++-----------+-----------+------------------------------------------------------------------------+
+| 40        | 0         |  Bad SPI                                                               |
+|           +-----------+------------------------------------------------------------------------+
+|           | 1         |  Authentication Failed                                                 |
+|           +-----------+------------------------------------------------------------------------+
+|           | 2         |  Decompression Failed                                                  |
+|           +-----------+------------------------------------------------------------------------+
+|           | 3         |  Decryption Failed                                                     |
+|           +-----------+------------------------------------------------------------------------+
+|           | 4         |  Need Authentication                                                   |
+|           +-----------+------------------------------------------------------------------------+
+|           | 5         |  Need Authorization                                                    |
++-----------+-----------+------------------------------------------------------------------------+
 
 
 icmp_id
