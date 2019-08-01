@@ -1482,14 +1482,14 @@ void RegisterModbusParsers(void)
                                           ALPROTO_MODBUS,
                                           0, sizeof(ModbusHeader),
                                           STREAM_TOSERVER,
-                                          ModbusProbingParser, NULL);
+                                          ModbusProbingParser, ModbusProbingParser);
         } else {
             /* If there is no app-layer section for Modbus, silently
              * leave it disabled. */
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                                                 proto_name, ALPROTO_MODBUS,
                                                 0, sizeof(ModbusHeader),
-                                                ModbusProbingParser, NULL)) {
+                                                ModbusProbingParser, ModbusProbingParser)) {
 #ifndef AFLFUZZ_APPLAYER
                 return;
 #endif

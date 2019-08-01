@@ -273,7 +273,7 @@ void RegisterSMBParsers(void)
         if (RunmodeIsUnittests()) {
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, "445", ALPROTO_SMB, 0,
                     MIN_REC_SIZE, STREAM_TOSERVER, SMBTCPProbe,
-                    NULL);
+                    SMBTCPProbe);
         } else {
             int have_cfg = AppLayerProtoDetectPPParseConfPorts("tcp",
                     IPPROTO_TCP, proto_name, ALPROTO_SMB, 0,
