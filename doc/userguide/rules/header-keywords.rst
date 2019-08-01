@@ -149,12 +149,16 @@ The syntax of geoip::
   geoip: any,CN,IR;
 
 So, you can see you can use the following to make clear on which
-direction you would like to match::
+direction you would like to match
 
-  both: both directions have to match with the given geoip (geopip's)
-  any: one of the directions have to match with the given geoip ('s).
-  dest: if the destination matches with the given geoip.
-  src: the source matches with the given geoip.
+====== =============================================================
+Option Description
+====== =============================================================
+both   Both directions have to match with the given geoip (geopip's)
+any    One of the directions have to match with the given geoip ('s).
+dest   If the destination matches with the given geoip.
+src    The source matches with the given geoip.
+====== =============================================================
 
 The keyword only supports IPv4. As it uses the GeoIP2 API of MaxMind,
 libmaxminddb must be compiled in. You must download and install the
