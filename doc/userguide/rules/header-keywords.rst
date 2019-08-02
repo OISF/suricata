@@ -154,8 +154,8 @@ direction you would like to match
 ====== =============================================================
 Option Description
 ====== =============================================================
-both   Both directions have to match with the given geoip (geopip's)
-any    One of the directions have to match with the given geoip ('s).
+both   Both directions have to match with the given geoip(s)
+any    One of the directions has to match with the given geoip(s).
 dest   If the destination matches with the given geoip.
 src    The source matches with the given geoip.
 ====== =============================================================
