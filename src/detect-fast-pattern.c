@@ -33,6 +33,7 @@
 #include "detect-fast-pattern.h"
 
 #include "util-error.h"
+#include "util-byte.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -282,7 +283,11 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                        "for fast_pattern offset");
             goto error;
         }
-        int offset = atoi(arg_substr);
+        int offset;
+        if (ByteExtractStringInt32(&offset, 10, 0,
+                                   (const char *)arg_substr) < 0) {
+            return 0;
+        }
         if (offset > 65535) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Fast pattern offset exceeds "
                        "limit");
@@ -296,7 +301,11 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                        "for fast_pattern offset");
             goto error;
         }
-        int length = atoi(arg_substr);
+        int length;
+        if (ByteExtractStringInt32(&length, 10, 0,
+                                   (const char *)arg_substr) < 0) {
+            return 0;
+        }
         if (length > 65535) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Fast pattern length exceeds "
                        "limit");

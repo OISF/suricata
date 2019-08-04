@@ -42,6 +42,7 @@
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-byte.h"
 
 #include "app-layer-nfs-tcp.h"
 #include "rust.h"
@@ -282,7 +283,9 @@ static DetectNfsVersionData *DetectNfsVersionParse (const char *rawstr)
     }
 
     /* set the first value */
-    dd->lo = atoi(value1); //TODO
+    if (ByteExtractStringUint32(&dd->lo, 10, 0, (const char *)value1) < 0) { //TODO
+        return 0;
+    }
 
     /* set the second value if specified */
     if (strlen(value2) > 0) {
@@ -292,8 +295,9 @@ static DetectNfsVersionData *DetectNfsVersionParse (const char *rawstr)
             goto error;
         }
 
-        //
-        dd->hi = atoi(value2); // TODO
+        if (ByteExtractStringUint32(&dd->hi, 10, 0, (const char *)value2) < 0) { //TODO
+            return 0;
+        }
 
         if (dd->hi <= dd->lo) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,

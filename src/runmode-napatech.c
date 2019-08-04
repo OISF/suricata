@@ -169,7 +169,9 @@ static void *NapatechConfigParser(const char *device)
     }
 
     /* device+5 is a pointer to the beginning of the stream id after the constant nt portion */
-    conf->stream_id = atoi(device + 2);
+    if (ByteExtractStringUint16(&conf->stream_id, 10, 0, (const char *)(device + 2)) < 0) {
+        return 0;
+    }
 
     /* Set the host buffer allowance for this stream
      * Right now we just look at the global default - there is no per-stream hba configuration

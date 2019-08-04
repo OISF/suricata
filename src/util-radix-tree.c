@@ -30,6 +30,7 @@
 #include "util-ip.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
+#include "util-byte.h"
 
 /**
  * \brief Allocates and returns a new instance of SCRadixUserData.
@@ -956,7 +957,9 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
         }
 
         /* Get binary values for cidr mask */
-        cidr = atoi(mask_str);
+        if (ByteExtractStringInt32(&cidr, 10, 0, (const char *)mask_str) < 0) {
+            return 0;
+        }
         if ((cidr < 0) || (cidr > 32)) {
             return NULL;
         }
@@ -1004,7 +1007,9 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
         }
 
         /* Get binary values for cidr mask */
-        cidr = atoi(mask_str);
+        if (ByteExtractStringInt32(&cidr, 10, 0, (const char *)mask_str) < 0) {
+            return 0;
+        }
         if ((cidr < 0) || (cidr > 128)) {
             return NULL;
         }

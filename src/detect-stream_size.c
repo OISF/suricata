@@ -34,6 +34,7 @@
 #include "detect-stream_size.h"
 #include "stream-tcp-private.h"
 #include "util-debug.h"
+#include "util-byte.h"
 
 /**
  * \brief Regex for parsing our flow options
@@ -245,7 +246,9 @@ static DetectStreamSizeData *DetectStreamSizeParse (const char *streamstr)
     }
 
     /* set the value */
-    sd->ssize = (uint32_t)atoi(value);
+    if (ByteExtractStringUint32(&sd->ssize, 10, 0, (const char *)value) < 0) {
+        return 0;
+    }
 
     /* inspect our options and set the flags */
     if (strcmp(arg, "server") == 0) {

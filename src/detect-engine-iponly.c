@@ -53,6 +53,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-print.h"
+#include "util-byte.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 
@@ -165,7 +166,11 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, const char *str)
                         goto error;
                 }
 
-                int cidr = atoi(mask);
+                int cidr;
+                if (ByteExtractStringInt32(&cidr, 10, 0,
+                                           (const char *)mask) < 0) {
+                    return 0;
+                }
                 if (cidr < 0 || cidr > 32)
                     goto error;
 
@@ -261,7 +266,10 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, const char *str)
                 goto error;
 
             /* Format is cidr val */
-            dd->netmask = atoi(mask);
+            if (ByteExtractStringUint8(&dd->netmask, 10, 0,
+                                       (const char *)mask) < 0) {
+                return 0;
+            }
 
             memcpy(dd->ip, &in6.s6_addr, sizeof(ip6addr));
         } else {

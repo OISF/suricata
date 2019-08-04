@@ -351,8 +351,9 @@ static DetectEnipCommandData *DetectEnipCommandParse(const char *rulestr)
         goto error;
     }
 
-    enipcmdd->enipcommand = (uint16_t) atoi(rulestr);
-
+    if (ByteExtractStringUint16(&enipcmdd->enipcommand, 10, 0, rulestr) < 0) {
+        return 0;
+    }
     return enipcmdd;
 
 error:

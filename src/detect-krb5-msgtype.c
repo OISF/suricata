@@ -23,6 +23,7 @@
 
 #include "suricata-common.h"
 #include "util-unittest.h"
+#include "util-byte.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -159,8 +160,10 @@ static DetectKrb5MsgTypeData *DetectKrb5MsgTypeParse (const char *krb5str)
     krb5d = SCMalloc(sizeof (DetectKrb5MsgTypeData));
     if (unlikely(krb5d == NULL))
         goto error;
-    krb5d->msg_type = (uint8_t)atoi(arg1);
-
+    if (ByteExtractStringUint8(&krb5d->msg_type, 10, 0,
+                               (const char *)arg1) < 0) {
+        return 0;
+    }
     return krb5d;
 
 error:

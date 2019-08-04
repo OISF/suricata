@@ -370,8 +370,12 @@ static uint32_t CountWorkerThreads(void)
                         char copystr[16];
                         strlcpy(copystr, lnode->val, 16);
 
-                        start = atoi(copystr);
-                        end = atoi(strchr(copystr, '-') + 1);
+                        if (ByteExtractStringUint8(&start, 10, 0, (const char *)copystr) < 0) {
+                            return 0;
+                        }
+                        if (ByteExtractStringUint8(&end, 10, 0, (const char *) (strchr(copystr, '-') + 1)) < 0) {
+                            return 0;
+                        }
                         worker_count = end - start + 1;
 
                     } else {
@@ -517,9 +521,12 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
 
                     char copystr[16];
                     strlcpy(copystr, stream->val, 16);
-
-                    start = atoi(copystr);
-                    end = atoi(strchr(copystr, '-') + 1);
+                    if (ByteExtractStringUint8(&start, 10, 0, (const char *)copystr) < 0) {
+                        return 0;
+                    }
+                    if (ByteExtractStringUint8(&end, 10, 0, (const char *) (strchr(copystr, '-') + 1)) < 0) {
+                        return 0;
+                    }
                 } else {
                     if (stream_spec == CONFIG_SPECIFIER_RANGE) {
                         SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
@@ -528,7 +535,9 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                     }
                     stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
 
-                    stream_config[instance_cnt].stream_id = atoi(stream->val);
+                    if (ByteExtractStringUint16(&stream_config[instance_cnt].stream_id, 10, 0, (const char *)stream->val) < 0) {
+                        return 0;
+                    }
                     start = stream_config[instance_cnt].stream_id;
                     end = stream_config[instance_cnt].stream_id;
                 }
@@ -978,9 +987,12 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream,
 
             char copystr[16];
             strlcpy(copystr, port->val, sizeof(copystr));
-
-            start = atoi(copystr);
-            end = atoi(strchr(copystr, '-') + 1);
+            if (ByteExtractStringUint8(&start, 10, 0, (const char *)copystr) < 0) {
+                return 0;
+            }
+            if (ByteExtractStringUint8(&end, 10, 0, (const char *) (strchr(copystr, '-') + 1)) < 0) {
+                return 0;
+            }
             snprintf(ports_spec, sizeof(ports_spec), "port == (%d..%d)", start, end);
 
         } else {

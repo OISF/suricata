@@ -149,7 +149,9 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
             ns->threads = 0;
             ns->threads_auto = true;
         } else {
-            ns->threads = atoi(threadsstr);
+            if (ByteExtractStringUint16(&ns->threads, 10, 0, (const char *)threadsstr) < 0) {
+                return 0;
+            }
         }
     }
 

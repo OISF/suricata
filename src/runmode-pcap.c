@@ -31,6 +31,7 @@
 #include "util-runmodes.h"
 #include "util-atomic.h"
 #include "util-misc.h"
+#include "util-byte.h"
 
 const char *RunModeIdsGetDefaultMode(void)
 {
@@ -144,7 +145,9 @@ static void *ParsePcapConfig(const char *iface)
         aconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
-            aconf->threads = atoi(threadsstr);
+            if (ByteExtractStringInt32(&aconf->threads, 10, 0, (const char *)threadsstr) < 0) {
+                return 0;
+            }
         }
     }
     if (aconf->threads == 0) {

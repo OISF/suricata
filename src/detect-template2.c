@@ -23,6 +23,7 @@
  */
 
 #include "suricata-common.h"
+#include "util-byte.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -187,7 +188,9 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
                     goto error;
 
                 template2d->mode = DETECT_TEMPLATE2_LT;
-                template2d->arg1 = (uint8_t) atoi(arg3);
+                if (ByteExtractStringUint8(&template2d->arg1, 10, 0, (const char *)arg3) < 0) {
+                    return 0;
+                }
 
                 SCLogDebug("template2 is %"PRIu8"",template2d->arg1);
                 if (strlen(arg1) > 0)
@@ -199,7 +202,9 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
                     goto error;
 
                 template2d->mode = DETECT_TEMPLATE2_GT;
-                template2d->arg1 = (uint8_t) atoi(arg3);
+                if (ByteExtractStringUint8(&template2d->arg1, 10, 0, (const char *)arg3) < 0) {
+                    return 0;
+                }
 
                 SCLogDebug("template2 is %"PRIu8"",template2d->arg1);
                 if (strlen(arg1) > 0)
@@ -213,9 +218,13 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
                     goto error;
 
                 template2d->mode = DETECT_TEMPLATE2_RA;
-                template2d->arg1 = (uint8_t) atoi(arg1);
+                if (ByteExtractStringUint8(&template2d->arg1, 10, 0, (const char *)arg1) < 0) {
+                    return 0;
+                }
+                if (ByteExtractStringUint8(&template2d->arg2, 10, 0, (const char *)arg3) < 0) {
+                    return 0;
+                }
 
-                template2d->arg2 = (uint8_t) atoi(arg3);
                 SCLogDebug("template2 is %"PRIu8" to %"PRIu8"",template2d->arg1, template2d->arg2);
                 if (template2d->arg1 >= template2d->arg2) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid template2 range. ");
@@ -230,7 +239,10 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
                     (arg1 == NULL ||strlen(arg1) == 0))
                     goto error;
 
-                template2d->arg1 = (uint8_t) atoi(arg1);
+                if (ByteExtractStringUint8(&template2d->arg1, 10, 0, (const char *)arg1) < 0) {
+                    return 0;
+                }
+
                 break;
         }
     } else {
@@ -239,8 +251,9 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
         if ((arg3 != NULL && strlen(arg3) > 0) ||
             (arg1 == NULL ||strlen(arg1) == 0))
             goto error;
-
-        template2d->arg1 = (uint8_t) atoi(arg1);
+        if (ByteExtractStringUint8(&template2d->arg1, 10, 0, (const char *)arg1) < 0) {
+            return 0;
+        }
     }
 
     SCFree(arg1);

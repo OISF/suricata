@@ -26,6 +26,7 @@
 #include "suricata-common.h" /* errno.h, string.h, etc. */
 #include "util-log-redis.h"
 #include "util-logopenfile.h"
+#include "util-byte.h"
 
 #ifdef HAVE_LIBHIREDIS
 
@@ -514,7 +515,9 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating redis server string");
         exit(EXIT_FAILURE);
     }
-    log_ctx->redis_setup.port = atoi(redis_port);
+    if (ByteExtractStringInt32(&log_ctx->redis_setup.port, 10, 0, (const char *)redis_port) < 0) {
+        return 0;
+    }
     log_ctx->Close = SCLogFileCloseRedis;
 
 #ifdef HAVE_LIBEVENT

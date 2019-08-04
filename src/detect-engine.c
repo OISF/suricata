@@ -2342,7 +2342,10 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             }
 
             if (insp_recursion_limit != NULL) {
-                de_ctx->inspection_recursion_limit = atoi(insp_recursion_limit);
+                if (ByteExtractStringInt32(&de_ctx->inspection_recursion_limit,
+                    10, 0, (const char *)insp_recursion_limit) < 0) {
+                    de_ctx->inspection_recursion_limit = 0;
+                }
             } else {
                 de_ctx->inspection_recursion_limit =
                     DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;

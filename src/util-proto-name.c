@@ -26,6 +26,7 @@
 
 #include "suricata-common.h"
 #include "util-proto-name.h"
+#include "util-byte.h"
 
 static int init_once = 0;
 
@@ -57,7 +58,10 @@ void SCProtoNameInit()
             if (proto_ch == NULL)
                 continue;
 
-            int proto = atoi(proto_ch);
+            int proto;
+            if (ByteExtractStringInt32(&proto, 10, 0, (const char *)proto_ch) < 0) {
+                return;
+            }
             if (proto >= 255)
                 continue;
 
