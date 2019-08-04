@@ -238,8 +238,12 @@ static inline DetectByteExtractData *DetectByteExtractParse(const char *arg)
                    "for arg 1 for byte_extract");
         goto error;
     }
-    bed->nbytes = atoi(nbytes_str);
-
+    if (ByteExtractStringUint8(&bed->nbytes, 10, 0,
+                               (const char *)nbytes_str) < 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid value for number of bytes"
+                "to be extracted: \"%s\".", nbytes_str);
+        goto error;
+    }
     /* offset */
     char offset_str[64] = "";
     res = pcre_copy_substring((char *)arg, ov,
@@ -249,7 +253,11 @@ static inline DetectByteExtractData *DetectByteExtractParse(const char *arg)
                    "for arg 2 for byte_extract");
         goto error;
     }
-    int offset = atoi(offset_str);
+    int offset;
+    if (ByteExtractStringInt32(&offset, 10, 0, (const char *)offset_str) < 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid value for offset: \"%s\".", offset_str);
+        goto error;
+    }
     if (offset < -65535 || offset > 65535) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_extract offset invalid - %d.  "
                    "The right offset range is -65535 to 65535", offset);
@@ -305,7 +313,13 @@ static inline DetectByteExtractData *DetectByteExtractParse(const char *arg)
                            "for arg %d for byte_extract", i);
                 goto error;
             }
-            int multiplier = atoi(multiplier_str);
+            int multiplier;
+            if (ByteExtractStringInt32(&multiplier, 10, 0,
+                                       (const char *)multiplier_str) < 0) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid value for"
+                        "multiplier: \"%s\".", multiplier_str);
+                goto error;
+            }
             if (multiplier < DETECT_BYTE_EXTRACT_MULTIPLIER_MIN_LIMIT ||
                 multiplier > DETECT_BYTE_EXTRACT_MULTIPLIER_MAX_LIMIT) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "multipiler_value invalid "
@@ -409,7 +423,12 @@ static inline DetectByteExtractData *DetectByteExtractParse(const char *arg)
                            "for arg %d in byte_extract", i);
                 goto error;
             }
-            bed->align_value = atoi(align_str);
+            if (ByteExtractStringUint8(&bed->align_value, 10, 0,
+                                       (const char *)align_str) < 0) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid value for"
+                        "align_str: \"%s\".", align_str);
+                goto error;
+            }
             if (!(bed->align_value == 2 || bed->align_value == 4)) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid align_value for "
                            "byte_extract - \"%d\"", bed->align_value);

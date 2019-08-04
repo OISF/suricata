@@ -345,13 +345,21 @@ static DetectEnipCommandData *DetectEnipCommandParse(const char *rulestr)
     }
 
     unsigned long cmd = atol(rulestr);
+    if (ByteExtractStringUint64(&cmd, 10, 0, rulestr) < 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ENIP command"
+                ": \"%s\"", rulestr);
+        goto error;
+    }
     if (cmd > MAX_ENIP_CMD) //if command greater than 16 bit
     {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ENIP command %lu", cmd);
         goto error;
     }
-
-    enipcmdd->enipcommand = (uint16_t) atoi(rulestr);
+    if (ByteExtractStringUint16(&enipcmdd->enipcommand, 10, 0, rulestr) < 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ENIP command"
+                ": \"%s\"", rulestr);
+        goto error;
+    }
 
     return enipcmdd;
 

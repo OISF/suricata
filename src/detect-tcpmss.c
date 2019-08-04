@@ -27,6 +27,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine-prefilter-common.h"
+#include "util-byte.h"
 
 #include "detect-tcpmss.h"
 
@@ -181,7 +182,9 @@ static DetectTcpmssData *DetectTcpmssParse (const char *tcpmssstr)
                     goto error;
 
                 tcpmssd->mode = DETECT_TCPMSS_LT;
-                tcpmssd->arg1 = (uint16_t) atoi(arg3);
+                if (ByteExtractStringUint16(&tcpmssd->arg1, 10, 0, (const char *)arg3) < 0) {
+                    goto error;
+                }
 
                 SCLogDebug("tcpmss is %"PRIu16"",tcpmssd->arg1);
                 if (strlen(arg1) > 0)
@@ -193,7 +196,9 @@ static DetectTcpmssData *DetectTcpmssParse (const char *tcpmssstr)
                     goto error;
 
                 tcpmssd->mode = DETECT_TCPMSS_GT;
-                tcpmssd->arg1 = (uint16_t) atoi(arg3);
+                if (ByteExtractStringUint16(&tcpmssd->arg1, 10, 0, (const char *)arg3) < 0) {
+                    goto error;
+                }
 
                 SCLogDebug("tcpmss is %"PRIu16"",tcpmssd->arg1);
                 if (strlen(arg1) > 0)
@@ -207,9 +212,14 @@ static DetectTcpmssData *DetectTcpmssParse (const char *tcpmssstr)
                     goto error;
 
                 tcpmssd->mode = DETECT_TCPMSS_RA;
-                tcpmssd->arg1 = (uint16_t) atoi(arg1);
-
-                tcpmssd->arg2 = (uint16_t) atoi(arg3);
+                if (ByteExtractStringUint16(&tcpmssd->arg1, 10, 0, (const char *)arg1) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg: '%s'", arg1);
+                    goto error;
+                }
+                if (ByteExtractStringUint16(&tcpmssd->arg2, 10, 0, (const char *)arg3) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid second arg: '%s'", arg3);
+                    goto error;
+                }
                 SCLogDebug("tcpmss is %"PRIu16" to %"PRIu16"",tcpmssd->arg1, tcpmssd->arg2);
                 if (tcpmssd->arg1 >= tcpmssd->arg2) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid tcpmss range. ");
@@ -223,8 +233,10 @@ static DetectTcpmssData *DetectTcpmssParse (const char *tcpmssstr)
                     (arg3 != NULL && strlen(arg3) > 0) ||
                     (arg1 == NULL ||strlen(arg1) == 0))
                     goto error;
-
-                tcpmssd->arg1 = (uint16_t) atoi(arg1);
+                if (ByteExtractStringUint16(&tcpmssd->arg1, 10, 0, (const char *)arg1) < 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg: '%s'", arg1);
+                    goto error;
+                }
                 break;
         }
     } else {
@@ -233,8 +245,10 @@ static DetectTcpmssData *DetectTcpmssParse (const char *tcpmssstr)
         if ((arg3 != NULL && strlen(arg3) > 0) ||
             (arg1 == NULL ||strlen(arg1) == 0))
             goto error;
-
-        tcpmssd->arg1 = (uint16_t) atoi(arg1);
+        if (ByteExtractStringUint16(&tcpmssd->arg1, 10, 0, (const char *)arg1) < 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first arg: '%s'", arg1);
+            goto error;
+        }
     }
 
     SCFree(arg1);

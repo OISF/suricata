@@ -180,8 +180,12 @@ static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
             goto error;
         }
 
-        version = atoi(copy_str);
-        if (version > UINT16_MAX) {
+        if (ByteExtractStringInt32(&version, 10, 0, (const char *)copy_str) < 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "DCE_IFACE interface version "
+                       "invalid: \"%s\n\"", copy_str);
+            goto error;
+        }
+        if (version < 0 || version > UINT16_MAX) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "DCE_IFACE interface version "
                        "invalid: %d\n", version);
             goto error;
