@@ -51,6 +51,7 @@
 #include "pkt-var.h"
 #include "host.h"
 #include "util-profiling.h"
+#include "util-byte.h"
 #include "util-var.h"
 
 static int DetectPortCutNot(DetectPort *, DetectPort **);
@@ -1413,24 +1414,30 @@ DetectPort *PortParse(const char *str)
     }
 
     /* see if the address is an ipv4 or ipv6 address */
-    if ((port2 = strchr(port, ':')) != NULL)  {
+    if ((port2 = strchr(port, ':')) != NULL) {
         /* 80:81 range format */
         port2[0] = '\0';
         port2++;
 
-        if(DetectPortIsValidRange(port))
-            dp->port = atoi(port);
-        else
-            goto error;
-
-        if (strcmp(port2, "") != 0) {
-            if (DetectPortIsValidRange(port2))
-                dp->port2 = atoi(port2);
+        if (strcmp(port, "") != 0) {
+            int res;
+            res = DetectPortIsValidRange(port);
+            if (res != -1)
+                dp->port = res;
             else
                 goto error;
-        } else {
+        } else
+            dp->port = 0;
+
+        if (strcmp(port2, "") != 0) {
+            int res;
+            res = DetectPortIsValidRange(port2);
+            if (res != -1)
+                dp->port2 = res;
+            else
+                goto error;
+        } else
             dp->port2 = 65535;
-        }
 
         /* a > b is illegal, a == b is ok */
         if (dp->port > dp->port2)
@@ -1439,10 +1446,13 @@ DetectPort *PortParse(const char *str)
         if (strcasecmp(port,"any") == 0) {
             dp->port = 0;
             dp->port2 = 65535;
-        } else if(DetectPortIsValidRange(port)){
-            dp->port = dp->port2 = atoi(port);
         } else {
-            goto error;
+            int res;
+            res = DetectPortIsValidRange(port);
+            if (res != -1)
+                dp->port = dp->port2 = res;
+            else
+                goto error;
         }
     }
 
@@ -1465,13 +1475,10 @@ error:
  */
 int DetectPortIsValidRange(char *port)
 {
-    char *end;
-    long r = strtol(port, &end, 10);
-
-    if(*end == 0 && r >= 0 && r <= 65535)
-        return 1;
-    else
-        return 0;
+    uint16_t val;
+    if (ByteExtractStringUint16(&val, 10, 0, (const char *)port) < 0)
+        return -1;
+    return val;
 }
 /********************** End parsing routines ********************/
 

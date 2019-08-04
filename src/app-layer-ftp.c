@@ -594,11 +594,15 @@ static uint16_t FTPGetV4PortNumber(const uint8_t *input, uint32_t input_len)
     if (ptr == NULL)
         return 0;
 
-    part2 = atoi((char *)ptr + 1);
+    if (ByteExtractStringUint16(&part2, 10, 0, (const char *)ptr + 1) < 0) {
+        return 0;
+    }
     ptr = memrchr(input, ',', (ptr - input) - 1);
     if (ptr == NULL)
         return 0;
-    part1 = atoi((char *)ptr + 1);
+    if (ByteExtractStringUint16(&part1, 10, 0, (const char *)ptr + 1) < 0) {
+        return 0;
+    }
 
     return ftp_validate_port(256 * part1 + part2);
 }

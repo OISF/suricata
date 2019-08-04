@@ -41,6 +41,7 @@
 #include "detect-engine-state.h"
 
 #include "util-debug.h"
+#include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-fmemopen.h"
@@ -321,8 +322,8 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     }
 
     if (value != NULL && strlen(value) > 0) {
-        int ival = atoi(value);
-        if (ival < 0 || ival > 127)
+        int ival;
+        if (ByteExtractStringInt32(&ival, 10, 0, (const char *)value) < 0 || ival > 127)
             goto error;
         val = (uint8_t)ival;
     }

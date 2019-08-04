@@ -127,7 +127,7 @@ static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
     int i = 0, j = 0;
     int len = 0;
     char temp_str[3] = "";
-    int version;
+    uint16_t version;
 
     ret = pcre_exec(parse_regex, parse_regex_study, arg, strlen(arg), 0, 0, ov,
                     MAX_SUBSTRINGS);
@@ -180,10 +180,9 @@ static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
             goto error;
         }
 
-        version = atoi(copy_str);
-        if (version > UINT16_MAX) {
+        if (ByteExtractStringUint16(&version, 10, 0, (const char *)copy_str) < 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "DCE_IFACE interface version "
-                       "invalid: %d\n", version);
+                       "invalid: \"%s\n\"", copy_str);
             goto error;
         }
         did->version = version;
