@@ -51,6 +51,7 @@
 #include "pkt-var.h"
 #include "host.h"
 #include "util-profiling.h"
+#include "util-byte.h"
 #include "util-var.h"
 
 static int DetectPortCutNot(DetectPort *, DetectPort **);
@@ -1418,14 +1419,24 @@ DetectPort *PortParse(const char *str)
         port2[0] = '\0';
         port2++;
 
-        if(DetectPortIsValidRange(port))
-            dp->port = atoi(port);
-        else
-            goto error;
+        if (strcmp(port, "") != 0) {
+            if (DetectPortIsValidRange(port)) {
+                if (ByteExtractStringUint16(&dp->port, 10, 0,
+                                            (const char *)port) < 0)
+                    goto error;
+            }
+            else
+                goto error;
+        } else {
+            dp->port = 0;
+        }
 
         if (strcmp(port2, "") != 0) {
-            if (DetectPortIsValidRange(port2))
-                dp->port2 = atoi(port2);
+            if (DetectPortIsValidRange(port2)) {
+                if (ByteExtractStringUint16(&dp->port2, 10, 0,
+                                            (const char *)port2) < 0)
+                    goto error;
+            }
             else
                 goto error;
         } else {
@@ -1440,7 +1451,12 @@ DetectPort *PortParse(const char *str)
             dp->port = 0;
             dp->port2 = 65535;
         } else if(DetectPortIsValidRange(port)){
-            dp->port = dp->port2 = atoi(port);
+            if ((ByteExtractStringUint16(&dp->port, 10, 0,
+                                         (const char *)port) < 0) ||
+                (ByteExtractStringUint16(&dp->port2, 10, 0,
+                                         (const char *)port) < 0))
+                goto error;
+
         } else {
             goto error;
         }

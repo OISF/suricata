@@ -2342,7 +2342,15 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             }
 
             if (insp_recursion_limit != NULL) {
-                de_ctx->inspection_recursion_limit = atoi(insp_recursion_limit);
+                if (ByteExtractStringInt32(&de_ctx->inspection_recursion_limit,
+                    10, 0, (const char *)insp_recursion_limit) < 0) {
+                    SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for "
+                            "detect-engine.inspection-recursion-limit, "
+                            "resetting to %d",
+                            DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT);
+                    de_ctx->inspection_recursion_limit =
+                        DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;
+                }
             } else {
                 de_ctx->inspection_recursion_limit =
                     DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;
@@ -4297,7 +4305,7 @@ static int DetectEngineTest02(void)
     if (de_ctx == NULL)
         goto end;
 
-    result = (de_ctx->inspection_recursion_limit == -1);
+    result = (de_ctx->inspection_recursion_limit == 3000);
 
  end:
     if (de_ctx != NULL)
