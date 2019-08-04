@@ -38,6 +38,7 @@
 #include "flow-var.h"
 
 #include "util-debug.h"
+#include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
@@ -153,7 +154,10 @@ static DetectIdData *DetectIdParse (const char *idstr)
     }
 
     /* ok, fill the id data */
-    temp = atoi((char *)tmp_str);
+    if (ByteExtractStringUint32(&temp, 10, 0, (const char *)tmp_str) < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'", tmp_str);
+        return NULL;
+    }
 
     if (temp > DETECT_IPID_MAX) {
         SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'. The id option "

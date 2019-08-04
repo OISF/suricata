@@ -34,6 +34,7 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-fmemopen.h"
+#include "util-byte.h"
 
 /* Regex to parse the classtype argument from a Signature.  The first substring
  * holds the classtype name, the second substring holds the classtype the
@@ -289,8 +290,9 @@ static int SCClassConfAddClasstype(char *rawstr, uint8_t index, DetectEngineCtx 
     if (strlen(ct_priority_str) == 0) {
         goto error;
     }
-
-    ct_priority = atoi(ct_priority_str);
+    if (ByteExtractStringInt32(&ct_priority, 10, 0, (const char *)ct_priority_str) < 0) {
+        goto error;
+    }
 
     /* Create a new instance of the parsed Classtype string */
     ct_new = SCClassConfAllocClasstype(ct_id, ct_name, ct_desc, ct_priority);
