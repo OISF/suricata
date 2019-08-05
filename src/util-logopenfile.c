@@ -451,6 +451,20 @@ SCConfLogOpenGeneric(ConfNode *conf,
         }
         log_ctx->type = LOGFILE_TYPE_REDIS;
 #endif
+#ifdef HAVE_LIBRDKAFKA
+    } else if (strcmp(filetype, "kafka") == 0) {
+        ConfNode *kafka_node = ConfNodeLookupChild(conf, "kafka");
+        if (!log_ctx->sensor_name) {
+            char hostname[1024];
+            gethostname(hostname, 1023);
+            log_ctx->sensor_name = SCStrdup(hostname);
+        }
+        if (SCConfLogOpenKafka(kafka_node, log_ctx) < 0) {
+            SCLogError(SC_ERR_KAFKA, "failed to open kaka output");
+            return -1;
+        }
+        log_ctx->type = LOGFILE_TYPE_KAFKA;
+#endif
     } else {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                    "%s.filetype.  Expected \"regular\" (default), \"unix_stream\", "
@@ -592,6 +606,11 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #endif
-
+#ifdef HAVE_LIBRDKAFKA
+    else if (file_ctx->type == LOGFILE_TYPE_KAFKA) {
+        LogFileWriteKafka(file_ctx, (const char *)MEMBUFFER_BUFFER(buffer),
+            MEMBUFFER_OFFSET(buffer));
+    }
+#endif
     return 0;
 }

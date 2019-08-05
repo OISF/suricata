@@ -2238,6 +2238,33 @@
             [  --with-libevent-libraries=DIR    libevent library directory],
             [with_libevent_libraries="$withval"],[with_libevent_libraries="no"])
 
+# librdkafka
+    AC_ARG_ENABLE(rdkafka,
+	        AS_HELP_STRING([--enable-rdkafka],[Enable Kafka support]),
+	        [ enable_rdkafka="$enableval"],
+	        [ enable_rdkafka="no"])
+			
+    if test "$enable_rdkafka" = "yes"; then
+        AC_CHECK_HEADER("librdkafka/rdkafka.h",RDKAFKA="yes",RDKAFKA="no")
+        if test "$RDKAFKA" = "yes"; then
+            AC_CHECK_LIB(rdkafka, rd_kafka_new,, RDKAFKA="no")
+        fi
+        if test "$RDKAFKA" = "no"; then
+            echo
+            echo "   ERROR!  librdkafka library not found, go get it"
+            echo "   from https://github.com/edenhill/librdkafka or your distribution:"
+			echo
+            echo "   Ubuntu: apt-get install librdkafka-dev"
+            echo "   Fedora: dnf install rdkafka-devel"
+            echo "   CentOS/RHEL: yum install librdkafka-devel"
+            echo
+            exit 1
+        fi
+        if test "$RDKAFKA" = "yes"; then
+            AC_DEFINE([HAVE_LIBRDKAFKA],[1],[librdkafka available])
+			enable_rdkafka="yes"
+		fi
+	fi
 # libhiredis
     AC_ARG_ENABLE(hiredis,
 	        AS_HELP_STRING([--enable-hiredis],[Enable Redis support]),
@@ -2598,6 +2625,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libnspr support:                         ${enable_nspr}
   libjansson support:                      ${enable_jansson}
   liblzma support:                         ${enable_liblzma}
+  rdkafka support:                         ${enable_rdkafka}
   hiredis support:                         ${enable_hiredis}
   hiredis async with libevent:             ${enable_hiredis_async}
   Prelude support:                         ${enable_prelude}

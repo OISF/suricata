@@ -442,6 +442,7 @@ util-ip.h util-ip.c \
 util-ja3.h util-ja3.c \
 util-logopenfile.h util-logopenfile.c \
 util-log-redis.h util-log-redis.c \
+util-log-kafka.h util-log-kafka.c \
 util-lua.c util-lua.h \
 util-luajit.c util-luajit.h \
 util-lua-common.c util-lua-common.h \

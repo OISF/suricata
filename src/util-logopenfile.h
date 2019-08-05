@@ -31,7 +31,9 @@
 #ifdef HAVE_LIBHIREDIS
 #include "util-log-redis.h"
 #endif /* HAVE_LIBHIREDIS */
-
+#ifdef HAVE_LIBRDKAFKA
+#include "util-log-kafka.h"
+#endif
 
 typedef struct {
     uint16_t fileno;
@@ -41,7 +43,8 @@ enum LogFileType { LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_SYSLOG,
                    LOGFILE_TYPE_UNIX_DGRAM,
                    LOGFILE_TYPE_UNIX_STREAM,
-                   LOGFILE_TYPE_REDIS };
+                   LOGFILE_TYPE_REDIS,
+                   LOGFILE_TYPE_KAFKA};
 
 typedef struct SyslogSetup_ {
     int alert_syslog_level;
@@ -56,12 +59,18 @@ typedef struct LogFileCtx_ {
 #ifdef HAVE_LIBHIREDIS
         void *redis;
 #endif
+#ifdef HAVE_LIBRDKAFKA
+        void *kafka;
+#endif
     };
 
     union {
         SyslogSetup syslog_setup;
 #ifdef HAVE_LIBHIREDIS
         RedisSetup redis_setup;
+#endif
+#ifdef HAVE_LIBRDKAFKA
+        KafkaSetup kafka_setup;
 #endif
     };
 
