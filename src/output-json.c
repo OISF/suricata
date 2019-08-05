@@ -57,6 +57,7 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "util-log-redis.h"
+#include "util-log-kafka.h"
 #include "util-device.h"
 #include "util-validate.h"
 #include "util-crypt.h"
@@ -932,6 +933,14 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                            "redis JSON output option is not compiled");
                 exit(EXIT_FAILURE);
 #endif
+            } else if (strcmp(output_s, "kafka") == 0) {
+#ifdef HAVE_LIBRDKAFKA
+                json_ctx->json_out = LOGFILE_TYPE_KAFKA;
+#else
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                           "kafka JSON output option is not compiled");
+                exit(EXIT_FAILURE);
+#endif
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Invalid JSON output option: %s", output_s);
@@ -1018,7 +1027,29 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             }
         }
 #endif
+#ifdef HAVE_LIBRDKAFKA
+        else if (json_ctx->json_out == LOGFILE_TYPE_KAFKA) {
+            ConfNode *kafka_node = ConfNodeLookupChild(conf, "kafka");
+            if (!json_ctx->file_ctx->sensor_name) {
+                char hostname[1024];
+                gethostname(hostname, 1023);
+                json_ctx->file_ctx->sensor_name = SCStrdup(hostname);
+            }
+            if (json_ctx->file_ctx->sensor_name  == NULL) {
+                LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
+                SCFree(output_ctx);
+                return result;
+            }
 
+            if (SCConfLogOpenKafka(kafka_node, json_ctx->file_ctx) < 0) {
+                LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
+                SCFree(output_ctx);
+                return result;
+            }
+        }
+#endif
         const char *sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
         if (sensor_id_s != NULL) {
             if (ByteExtractStringUint64((uint64_t *)&sensor_id, 10, 0, sensor_id_s) == -1) {

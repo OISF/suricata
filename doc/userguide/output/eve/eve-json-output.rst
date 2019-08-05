@@ -18,11 +18,11 @@ Output types
 ~~~~~~~~~~~~
 
 EVE can output to multiple methods. ``regular`` is a normal file. Other
-options are ``syslog``, ``unix_dgram``, ``unix_stream`` and ``redis``.
+options are ``syslog``, ``unix_dgram``, ``unix_stream``, ``redis`` and ``kafka``.
 
 Output types::
 
-      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis|kafka
       filename: eve.json
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -45,7 +45,14 @@ Output types::
       #  pipelining:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
-
+	  
+      #kafka:
+      #  brokers: >
+      #   A.B.C.D:9092,
+      #   E.F.G.H:9092
+      #  topic: event
+      #  partitions: 5
+	  
 Alerts
 ~~~~~~
 
