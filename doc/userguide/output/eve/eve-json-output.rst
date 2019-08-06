@@ -48,11 +48,11 @@ Output types::
 
 	  #kafka:
       #brokers: >
-      # uds-backend-kafka-online001-shjj.qiyi.virtual:9092,
-      # uds-backend-kafka-online002-shjj.qiyi.virtual:9092,
-      # uds-backend-kafka-online003-shjj.qiyi.virtual:9092,
-      # uds-backend-kafka-online004-shjj.qiyi.virtual:9092,
-      # uds-backend-kafka-online005-shjj.qiyi.virtual:9092
+      #  uds-backend-kafka-online001-shjj.qiyi.virtual:9092,
+      #  uds-backend-kafka-online002-shjj.qiyi.virtual:9092,
+      #  uds-backend-kafka-online003-shjj.qiyi.virtual:9092,
+      #  uds-backend-kafka-online004-shjj.qiyi.virtual:9092,
+      #  uds-backend-kafka-online005-shjj.qiyi.virtual:9092
       # topic: event
       # partitions: 5
 	  
