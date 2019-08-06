@@ -1,7 +1,6 @@
 EXTRA_DIST = 	Cargo.toml \
 		src \
-		.cargo/config.in \
-		gen
+		.cargo/config.in
 
 if HAVE_RUST
 
@@ -13,6 +12,10 @@ endif
 
 if HAVE_RUST_VENDOR
 FROZEN = --frozen
+endif
+
+if HAVE_CARGO_CBINDGEN
+EXTRA_DIST += gen
 endif
 
 if !RUST_DEBUG
@@ -30,7 +33,7 @@ RUST_FEATURES +=	debug
 endif
 
 all-local:
-	cd $(top_srcdir)/rust && cbindgen --config cbindgen.toml --output "gen/rust-bindings.h"
+	cd $(top_srcdir)/rust
 
 if HAVE_CYGPATH
 	rustpath=`cygpath -a -t mixed $(abs_top_builddir)`
@@ -48,7 +51,7 @@ else
 endif
 
 clean-local:
-	-rm -rf target gen
+	-rm -rf target
 
 distclean-local: clean-local
 	rm -rf vendor gen Cargo.lock
@@ -64,6 +67,14 @@ vendor:
 	CARGO_HOME=$(CARGO_HOME) $(CARGO) vendor > /dev/null
 else
 vendor:
+endif
+
+if HAVE_CARGO_CBINDGEN
+gen: FORCE
+	cbindgen --config cbindgen.toml --output "gen/rust-bindings.h" > /dev/null
+FORCE:
+else
+gen:
 endif
 
 else # HAVE_RUST

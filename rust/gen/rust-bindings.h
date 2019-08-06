@@ -40,7 +40,7 @@ typedef struct RSDNSTransaction RSDNSTransaction;
 /**
  * The Rust place holder for the json_t pointer.
  */
-typedef struct json_t json_t;
+typedef struct rs_json_t rs_json_t;
 
 typedef struct NFSState NFSState;
 
@@ -64,7 +64,7 @@ AppProto ntp_probing_parser(const Flow *_flow,
 
 void rs_dhcp_logger_free(void *logger);
 
-json_t *rs_dhcp_logger_log(void *logger, void *tx);
+rs_json_t *rs_dhcp_logger_log(void *logger, void *tx);
 
 void *rs_dhcp_logger_new(const void *conf);
 
@@ -119,17 +119,19 @@ uint32_t rs_dhcp_tx_get_logged(void *_state, void *tx);
 
 void rs_dhcp_tx_set_logged(void *_state, void *tx, uint32_t logged);
 
-json_t *rs_dns_log_json_answer(RSDNSTransaction *tx, uint64_t flags);
+rs_json_t *rs_dns_log_json_answer(RSDNSTransaction *tx, uint64_t flags);
 
-json_t *rs_dns_log_json_answer_v1(RSDNSTransaction *tx,
-                                  uint16_t i,
-                                  uint64_t flags);
-
-json_t *rs_dns_log_json_authority_v1(RSDNSTransaction *tx,
+rs_json_t *rs_dns_log_json_answer_v1(RSDNSTransaction *tx,
                                      uint16_t i,
                                      uint64_t flags);
 
-json_t *rs_dns_log_json_query(RSDNSTransaction *tx, uint16_t i, uint64_t flags);
+rs_json_t *rs_dns_log_json_authority_v1(RSDNSTransaction *tx,
+                                        uint16_t i,
+                                        uint64_t flags);
+
+rs_json_t *rs_dns_log_json_query(RSDNSTransaction *tx,
+                                 uint16_t i,
+                                 uint64_t flags);
 
 int rs_dns_lua_get_answer_table(CLuaState *clua, RSDNSTransaction *tx);
 
@@ -250,7 +252,7 @@ uint16_t rs_ftp_epsv_response(const uint8_t *input, uint32_t len);
 
 uint16_t rs_ftp_pasv_response(const uint8_t *input, uint32_t len);
 
-json_t *rs_ikev2_log_json_response(IKEV2State *state, IKEV2Transaction *tx);
+rs_json_t *rs_ikev2_log_json_response(IKEV2State *state, IKEV2Transaction *tx);
 
 int32_t rs_ikev2_parse_request(const Flow *_flow,
                                void *state,
@@ -315,7 +317,7 @@ void rs_ikev2_tx_set_logged(void *_state, void *tx, uint32_t logged);
 
 void rs_init(SuricataContext *context);
 
-json_t *rs_krb5_log_json_response(KRB5State *_state, KRB5Transaction *tx);
+rs_json_t *rs_krb5_log_json_response(KRB5State *_state, KRB5Transaction *tx);
 
 int32_t rs_krb5_parse_request(const Flow *_flow,
                               void *state,
@@ -424,9 +426,9 @@ FileContainer *rs_nfs_getfiles(uint8_t direction, NFSState *ptr);
 
 void rs_nfs_init(SuricataFileContext *context);
 
-json_t *rs_nfs_log_json_request(NFSState *state, NFSTransaction *tx);
+rs_json_t *rs_nfs_log_json_request(NFSState *state, NFSTransaction *tx);
 
-json_t *rs_nfs_log_json_response(NFSState *state, NFSTransaction *tx);
+rs_json_t *rs_nfs_log_json_response(NFSState *state, NFSTransaction *tx);
 
 /**
  * C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.
@@ -618,15 +620,15 @@ void rs_register_ntp_parser(void);
 
 void rs_register_snmp_parser(void);
 
-json_t *rs_rpc_log_json_response(NFSTransaction *tx);
+rs_json_t *rs_rpc_log_json_response(NFSTransaction *tx);
 
 FileContainer *rs_smb_getfiles(uint8_t direction, SMBState *ptr);
 
 void rs_smb_init(SuricataFileContext *context);
 
-json_t *rs_smb_log_json_request(SMBState *state, SMBTransaction *tx);
+rs_json_t *rs_smb_log_json_request(SMBState *state, SMBTransaction *tx);
 
-json_t *rs_smb_log_json_response(SMBState *state, SMBTransaction *tx);
+rs_json_t *rs_smb_log_json_response(SMBState *state, SMBTransaction *tx);
 
 /**
  * C binding parse a SMB request. Returns 1 on success, -1 on failure.
@@ -739,7 +741,7 @@ AppLayerGetTxIterTuple rs_snmp_get_tx_iterator(uint8_t _ipproto,
                                                uint64_t _max_tx_id,
                                                uint64_t *istate);
 
-json_t *rs_snmp_log_json_response(SNMPState *state, SNMPTransaction *tx);
+rs_json_t *rs_snmp_log_json_response(SNMPState *state, SNMPTransaction *tx);
 
 int32_t rs_snmp_parse_request(const Flow *_flow,
                               void *state,
@@ -830,7 +832,7 @@ uint8_t rs_template_get_response_buffer(void *tx,
                                         const uint8_t **buf,
                                         uint32_t *len);
 
-json_t *rs_template_logger_log(void *tx);
+rs_json_t *rs_template_logger_log(void *tx);
 
 int32_t rs_template_parse_request(const Flow *_flow,
                                   void *state,
@@ -900,7 +902,7 @@ uint64_t rs_tftp_get_tx_cnt(TFTPState *state);
 
 uint32_t rs_tftp_get_tx_logged(TFTPState *_state, TFTPTransaction *tx);
 
-json_t *rs_tftp_log_json_request(TFTPTransaction *tx);
+rs_json_t *rs_tftp_log_json_request(TFTPTransaction *tx);
 
 int64_t rs_tftp_request(TFTPState *state, const uint8_t *input, uint32_t len);
 

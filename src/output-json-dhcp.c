@@ -78,7 +78,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    json_t *dhcp_js = rs_dhcp_logger_log(ctx->rs_logger, tx);
+    json_t *dhcp_js = (json_t *)rs_dhcp_logger_log(ctx->rs_logger, tx);
     if (unlikely(dhcp_js == NULL)) {
         goto skip;
     }

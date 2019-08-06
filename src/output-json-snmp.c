@@ -77,7 +77,7 @@ static int JsonSNMPLogger(ThreadVars *tv, void *thread_data,
 
     JsonAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, js);
 
-    snmpjs = rs_snmp_log_json_response(state, snmptx);
+    snmpjs = (json_t *)rs_snmp_log_json_response(state, snmptx);
     if (unlikely(snmpjs == NULL)) {
         goto error;
     }

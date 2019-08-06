@@ -2447,6 +2447,7 @@ fi
         cbindgen_version=$(cbindgen --version)
         lowest_version=$(printf '%s\n' $required_version $cbindgen_version | sort -V | head -n1)
         if test "x$lowest_version" != "x$required_version"; then
+          HAVE_CARGO_BINDGEN="no"
           echo "  Warning: cbindgen must be at least version $required_version, version was $cbindgen_version, lowest version was $lowest_version"
           echo "  To install: cargo install --force cbindgen"
           if test "x$have_rust_headers" != "xyes"; then

@@ -184,7 +184,7 @@ item_types = ["structs","opaque","functions"]
 [export.rename]
 "DNSState" = "RSDNSState"
 "DNSTransaction" = "RSDNSTransaction"
-"JsonT" = "json_t"
+"JsonT" = "rs_json_t"
 #
 # You get the following results:
 #

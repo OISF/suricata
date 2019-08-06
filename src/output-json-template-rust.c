@@ -79,7 +79,7 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    json_t *template_js = rs_template_logger_log(tx);
+    json_t *template_js = (json_t *)rs_template_logger_log(tx);
     if (unlikely(template_js == NULL)) {
         goto error;
     }
