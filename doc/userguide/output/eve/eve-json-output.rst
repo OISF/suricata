@@ -22,7 +22,7 @@ options are ``syslog``, ``unix_dgram``, ``unix_stream`` and ``redis``.
 
 Output types::
 
-      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis|kafka
       filename: eve.json
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -46,6 +46,16 @@ Output types::
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
 
+	  #kafka:
+      #brokers: >
+      # uds-backend-kafka-online001-shjj.qiyi.virtual:9092,
+      # uds-backend-kafka-online002-shjj.qiyi.virtual:9092,
+      # uds-backend-kafka-online003-shjj.qiyi.virtual:9092,
+      # uds-backend-kafka-online004-shjj.qiyi.virtual:9092,
+      # uds-backend-kafka-online005-shjj.qiyi.virtual:9092
+      # topic: event
+      # partitions: 5
+	  
 Alerts
 ~~~~~~
 
