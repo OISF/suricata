@@ -459,6 +459,11 @@ SCConfLogOpenGeneric(ConfNode *conf,
             gethostname(hostname, 1023);
             log_ctx->sensor_name = SCStrdup(hostname);
         }
+        if (NULL == log_ctx->sensor_name)
+        {
+            SCLogError(SC_ERR_KAFKA, "failed get sensor name");
+            return -1
+        }
         if (SCConfLogOpenKafka(kafka_node, log_ctx) < 0) {
             SCLogError(SC_ERR_KAFKA, "failed to open kaka output");
             return -1;
