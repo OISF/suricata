@@ -465,7 +465,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
             return -1
         }
         if (SCConfLogOpenKafka(kafka_node, log_ctx) < 0) {
-            SCLogError(SC_ERR_KAFKA, "failed to open kaka output");
+            SCLogError(SC_ERR_KAFKA, "failed to open kafka output");
             return -1;
         }
         log_ctx->type = LOGFILE_TYPE_KAFKA;
