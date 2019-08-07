@@ -69,6 +69,7 @@
 #include "app-layer-snmp.h"
 #include "app-layer-template.h"
 #include "app-layer-template-rust.h"
+#include "app-layer-rdp-rust.h"
 
 #include "conf.h"
 #include "util-spm.h"
@@ -1507,6 +1508,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterSNMPParsers();
     RegisterTemplateRustParsers();
     RegisterTemplateParsers();
+    RegisterRdpRustParsers();
 
     /** IMAP */
     AppLayerProtoDetectRegisterProtocol(ALPROTO_IMAP, "imap");

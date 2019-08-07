@@ -20,10 +20,19 @@
 #[macro_use]
 extern crate nom;
 
+#[macro_use]
+extern crate bitflags;
+extern crate byteorder;
 extern crate crc;
+extern crate memchr;
+#[macro_use]
+extern crate num_derive;
+extern crate widestring;
 
 extern crate der_parser;
 extern crate kerberos_parser;
+extern crate tls_parser;
+extern crate x509_parser;
 
 #[macro_use]
 pub mod log;
@@ -57,3 +66,4 @@ pub mod ntp;
 pub mod tftp;
 pub mod dhcp;
 pub mod applayertemplate;
+pub mod rdp;

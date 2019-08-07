@@ -51,6 +51,7 @@ app-layer-krb5.c app-layer-krb5.h \
 app-layer-dhcp.c app-layer-dhcp.h \
 app-layer-template.c app-layer-template.h \
 app-layer-template-rust.c app-layer-template-rust.h \
+app-layer-rdp-rust.c app-layer-rdp-rust.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
 conf.c conf.h \
@@ -336,6 +337,7 @@ output-json-dhcp.c output-json-dhcp.h \
 output-json-snmp.c output-json-snmp.h \
 output-json-template.c output-json-template.h \
 output-json-template-rust.c output-json-template-rust.h \
+output-json-rdp-rust.c output-json-rdp-rust.h \
 output-json-metadata.c output-json-metadata.h \
 output-lua.c output-lua.h \
 output-packet.c output-packet.h \
