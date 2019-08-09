@@ -50,7 +50,7 @@
 #include "rust.h"
 #include "rust-smb-detect-gen.h"
 
-#define PARSE_REGEX "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,(<|>|=|!)([0-9]{1,5}))?(?:\\s*,(any_frag))?\\s*$"
+#define PARSE_REGEX "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,\\s*(<|>|=|!)([0-9]{1,5}))?(?:\\s*,\\s*(any_frag))?\\s*$"
 
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
@@ -379,7 +379,7 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 {
     DetectDceIfaceData *did = DetectDceIfaceArgParse(arg);
     if (did == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dec_iface option in "
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_iface option in "
                    "signature");
         return -1;
     }
