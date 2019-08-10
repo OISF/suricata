@@ -202,7 +202,8 @@ static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx,
  */
 static int DetectHttpUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectBufferSetActiveList(s, g_http_uri_buffer_id);
+    if (DetectBufferSetActiveList(s, g_http_uri_buffer_id) < 0)
+        return -1;
     s->alproto = ALPROTO_HTTP;
     return 0;
 }
@@ -274,7 +275,8 @@ static void DetectHttpRawUriSetupCallback(const DetectEngineCtx *de_ctx,
  */
 static int DetectHttpRawUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectBufferSetActiveList(s, g_http_raw_uri_buffer_id);
+    if (DetectBufferSetActiveList(s, g_http_raw_uri_buffer_id) < 0)
+        return -1;
     s->alproto = ALPROTO_HTTP;
     return 0;
 }
