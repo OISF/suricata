@@ -2529,8 +2529,7 @@ static void PostRunStartedDetectSetup(const SCInstance *suri)
     /* registering signal handlers we use. We setup usr2 here, so that one
      * can't call it during the first sig load phase or while threads are still
      * starting up. */
-    if (DetectEngineEnabled() && suri->sig_file == NULL &&
-            suri->delayed_detect == 0) {
+    if (DetectEngineEnabled() && suri->delayed_detect == 0) {
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
         UtilSignalUnblock(SIGUSR2);
     }
@@ -2860,28 +2859,16 @@ static void SuricataMainLoop(SCInstance *suri)
         }
 
         if (sigusr2_count > 0) {
-            if (suri->sig_file != NULL) {
-                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
-                        "possible if -s or -S option used at runtime.");
+            if (!(DetectEngineReloadIsStart())) {
+                DetectEngineReloadStart();
+                DetectEngineReload(suri);
+                DetectEngineReloadSetIdle();
                 sigusr2_count--;
-            } else {
-                if (!(DetectEngineReloadIsStart())) {
-                    DetectEngineReloadStart();
-                    DetectEngineReload(suri);
-                    DetectEngineReloadSetIdle();
-                    sigusr2_count--;
-                }
             }
 
         } else if (DetectEngineReloadIsStart()) {
-            if (suri->sig_file != NULL) {
-                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
-                        "possible if -s or -S option used at runtime.");
-                DetectEngineReloadSetIdle();
-            } else {
-                DetectEngineReload(suri);
-                DetectEngineReloadSetIdle();
-            }
+            DetectEngineReload(suri);
+            DetectEngineReloadSetIdle();
         }
 
         usleep(10* 1000);
