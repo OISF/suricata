@@ -122,15 +122,15 @@ when anomaly logging is enabled.
 Fields
 ------
 
-* "type": Either "packet", "stream" or "applayer". In rare cases, type will be "unknown".
+* "type": Either "decode", "stream" or "application-layer". In rare cases, type will be "unknown".
   When this occurs, an additional field named "code" will be present. Events with type
-  "applayer" are detected by the application layer parsers.
-* "event" The name of the anomalous event. Events of type "packet" are prefixed
+  "application-layer" are detected by the application layer parsers.
+* "event" The name of the anomalous event. Events of type "decode" are prefixed
   with "decoder"; events of type "stream" are prefixed with "stream".
 * "code" If "type" is "unknown", than "code" contains the unrecognized event code. Otherwise,
   this field is not present.
 
-The following fields are included when "type" has the value "applayer":
+The following fields are included when "type" has the value "application-layer":
 
 * "layer"  Indicates the handling layer that detected the event. This will be "proto_parser"
   (protocol parser), "proto_detect" (protocol detection) or "parser."
@@ -147,18 +147,23 @@ Examples
 ::
 
     "anomaly": {
-      "type": "packet",
+      "type": "decode",
       "event": "decoder.icmpv4.unknown_type"
     }
 
     "anomaly": {
-      "type": "packet",
+      "type": "decode",
       "event": "decoder.udp.pkt_too_small"
     }
 
     "anomaly": {
-      "type": "packet",
+      "type": "decode",
       "event": "decoder.ipv4.wrong_ip_version"
+    }
+
+    "anomaly": {
+      "type": "stream",
+      "event": "stream.pkt_invalid_timestamp"
     }
 
     {
@@ -175,7 +180,7 @@ Examples
         "linktype": 1
       },
       "anomaly": {
-        "type": "packet",
+        "type": "decode",
         "event": "decoder.udp.pkt_too_small"
       }
     }
@@ -192,7 +197,7 @@ Examples
       "proto": "TCP",
       "app_proto": "tls",
       "anomaly": {
-        "type": "applayer",
+        "type": "application-layer",
         "event": "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION",
         "event_no": "1 (of 1)",
         "layer": "proto_detect"
@@ -212,7 +217,7 @@ Examples
       "tx_id": 0,
       "app_proto": "tls",
       "anomaly": {
-        "type": "applayer",
+        "type": "application-layer",
         "event": "INVALID_RECORD_TYPE",
         "event_no": "1 (of 3)",
         "layer": "proto_parser"
