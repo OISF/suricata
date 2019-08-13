@@ -161,23 +161,22 @@ outputs:
             # or describe unexpected behavior on an established stream. Networks which experience high
             # occurrences of anomalies may experience packet processing degradation.
             #
-            # Choose one or more of the following protocol/parser choices. Note
-            # that packethdr requires protodecode to be enabled.
+            # Anomalies are reported for the following:
+            # 1. Packet: Values and conditions that are detected while decoding individual packets. This includes
+            # invalid or unexpected values for low-level protocol lengths as well as stream related events (TCP 3-way
+            # handshake issues, unexpected sequence number, etc).
+            # 2. Application level: These denote application layer specific conditions that are unexpected, invalid or
+            # are unexpected given the application monitoring state.
             #
-            # Enable logging of protocol decode events
-            # protodecode: no
+            # By default, anomaly logging is disabled. When anomaly logging is enabled, application-layer anomaly
+            # reporting is enabled.
             #
-            # Enable dumping of packet header; requires protodecode to be enabled
-            # packethdr: no         # enable dumping of packet header
-            #
-            # Enable logging of app-layer protocol parser events
-            # protoparser: no
-            #
-            # Enable logging of app-layer protocol detection events
-            # protodetect: no
-            #
-            # Enable logging of parser events
-            # parser: no
+            # Choose one or both types of anomaly logging and whether to enable
+            # logging of the packet header for packet anomalies.
+            types:
+              # packet: no
+              # application-layer: yes
+            #packethdr: no
         - http:
             extended: yes     # enable this for extended logging information
             # custom allows additional http fields to be included in eve-log
