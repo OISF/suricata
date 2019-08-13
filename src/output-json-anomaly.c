@@ -60,14 +60,13 @@
 
 #define MODULE_NAME "JsonAnomalyLog"
 
-#ifdef HAVE_LIBJANSSON
-
 #define ANOMALY_EVENT_TYPE      "anomaly"
-#define LOG_JSON_PACKETHDR      BIT_U16(0)
-#define LOG_JSON_PARSER         BIT_U16(1)
-#define LOG_JSON_PROTODECODE    BIT_U16(2)
-#define LOG_JSON_PROTODETECT    BIT_U16(3)
-#define LOG_JSON_PROTOPARSER    BIT_U16(4)
+#define LOG_JSON_PACKET_TYPE    BIT_U16(0)
+#define LOG_JSON_APPPROTO_TYPE  BIT_U16(1)
+#define LOG_JSON_PACKETHDR      BIT_U16(2)
+
+#define ANOMALY_DEFAULTS       (LOG_JSON_APPPROTO_TYPE)
+
 #define TX_ID_UNUSED UINT64_MAX
 
 typedef struct AnomalyJsonOutputCtx_ {
@@ -217,7 +216,7 @@ static int JsonAnomalyTxLogger(ThreadVars *tv, void *thread_data, const Packet *
                                Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     JsonAnomalyLogThread *aft = thread_data;
-    if (!(aft->json_output_ctx->flags & LOG_JSON_PROTOPARSER)) {
+    if (!(aft->json_output_ctx->flags & LOG_JSON_APPPROTO_TYPE)) {
         return TM_ECODE_OK;
     }
 
@@ -247,22 +246,22 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
 
     int rc = TM_ECODE_OK;
 
-    if (aft->json_output_ctx->flags & LOG_JSON_PROTODECODE) {
+    /* packet */
+    if (aft->json_output_ctx->flags & LOG_JSON_PACKET_TYPE) {
         if (p->events.cnt) {
             rc = AnomalyDecodeEventJson(tv, aft, p);
         }
     }
 
-    /* app layer proto detect events */
-    if (aft->json_output_ctx->flags & LOG_JSON_PROTODETECT) {
+    /* application-layer */
+    if (aft->json_output_ctx->flags & LOG_JSON_APPPROTO_TYPE) {
+        /* app layer proto detect events */
         if (rc == TM_ECODE_OK && AnomalyHasPacketAppLayerEvents(p)) {
             rc = AnomalyAppLayerDecoderEventJson(aft, p, p->app_layer_events,
                                                  true, "proto_detect", TX_ID_UNUSED);
         }
-    }
 
-    /* parser state events */
-    if (aft->json_output_ctx->flags & LOG_JSON_PARSER) {
+        /* parser state events */
         if (rc == TM_ECODE_OK && AnomalyHasParserEvents(p)) {
             SCLogDebug("Checking for anomaly events; alproto %d", p->flow->alproto);
             AppLayerDecoderEvents *parser_events = AppLayerParserGetDecoderEvents(p->flow->alparser);
@@ -363,17 +362,27 @@ static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx,
         ConfNode *conf)
 {
     static bool _warn_no_flags = false;
-    uint16_t flags = 0;
+    static bool _warn_no_packet = false;
+    uint16_t flags = ANOMALY_DEFAULTS;
     if (conf != NULL) {
-        SetFlag(conf, "protoparser", LOG_JSON_PROTOPARSER, &flags);
-        SetFlag(conf, "parser",      LOG_JSON_PARSER,      &flags);
-        SetFlag(conf, "protodetect", LOG_JSON_PROTODETECT, &flags);
-        SetFlag(conf, "protodecode", LOG_JSON_PROTODECODE, &flags);
+        /* Check for metadata to enable/disable. */
+        ConfNode *typeconf = ConfNodeLookupChild(conf, "types");
+        if (typeconf != NULL) {
+            SetFlag(typeconf, "application-layer", LOG_JSON_APPPROTO_TYPE, &flags);
+            SetFlag(typeconf, "packet", LOG_JSON_PACKET_TYPE, &flags);
+        }
         SetFlag(conf, "packethdr",   LOG_JSON_PACKETHDR,   &flags);
     }
+    if (((flags & (LOG_JSON_PACKET_TYPE | LOG_JSON_PACKETHDR)) == LOG_JSON_PACKETHDR) && !_warn_no_packet) {
+        SCLogNotice("Anomaly logging configured to include packet headers, however packet "
+                    "type logging has not been selected. Packet headers will not be logged.");
+        _warn_no_packet = true;
+        flags &= ~LOG_JSON_PACKETHDR;
+    }
+
     if (flags == 0 && !_warn_no_flags) {
-        SCLogNotice("Anomaly logging has been configured; however, no logging filters "
-                    "have been selected. Select one or more protocol/parser filters.");
+        SCLogNotice("Anomaly logging has been configured; however, no logging types "
+                    "have been selected. Select one or more logging type.");
         _warn_no_flags = true;
     }
     json_output_ctx->flags |= flags;
@@ -428,11 +437,3 @@ void JsonAnomalyLogRegister (void)
         JsonAnomalyTxLogger, JsonAnomalyLogThreadInit,
         JsonAnomalyLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonAnomalyLogRegister (void)
-{
-}
-
-#endif
