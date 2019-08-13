@@ -122,10 +122,10 @@ when anomaly logging is enabled.
 Fields
 ------
 
-* "type": Either "packet", "stream" or "applayer". In rare cases, type will be "unknown".
+* "type": Either "decode", "stream" or "applayer". In rare cases, type will be "unknown".
   When this occurs, an additional field named "code" will be present. Events with type
   "applayer" are detected by the application layer parsers.
-* "event" The name of the anomalous event. Events of type "packet" are prefixed
+* "event" The name of the anomalous event. Events of type "decode" are prefixed
   with "decoder"; events of type "stream" are prefixed with "stream".
 * "code" If "type" is "unknown", than "code" contains the unrecognized event code. Otherwise,
   this field is not present.
@@ -147,18 +147,23 @@ Examples
 ::
 
     "anomaly": {
-      "type": "packet",
+      "type": "decode",
       "event": "decoder.icmpv4.unknown_type"
     }
 
     "anomaly": {
-      "type": "packet",
+      "type": "decode",
       "event": "decoder.udp.pkt_too_small"
     }
 
     "anomaly": {
-      "type": "packet",
+      "type": "decode",
       "event": "decoder.ipv4.wrong_ip_version"
+    }
+
+    "anomaly": {
+      "type": "stream",
+      "event": "stream.pkt_invalid_timestamp"
     }
 
     {
@@ -175,7 +180,7 @@ Examples
         "linktype": 1
       },
       "anomaly": {
-        "type": "packet",
+        "type": "decode",
         "event": "decoder.udp.pkt_too_small"
       }
     }

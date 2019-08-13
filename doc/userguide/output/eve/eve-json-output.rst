@@ -86,34 +86,43 @@ Anomalies are event records created when packets with unexpected or anomalous
 values are handled. These events include conditions such as incorrect protocol
 values, incorrect protocol length values, and other conditions which render the
 packet suspect. Other conditions may occur during the normal progression of a stream;
-these are termed ```stream``` events are include control sequences with incorrect
+these are termed ``stream`` events are include control sequences with incorrect
 values or that occur out of expected sequence.
+
+Anomalies are reported by and configured by type:
+
+- Decode
+- Stream
+- Application layer
 
 Metadata::
 
-        - anomaly:
-            # Anomaly log records describe unexpected conditions such as truncated packets, packets with invalid
-            # IP/UDP/TCP length values, and other events that render the packet invalid for further processing
-            # or describe unexpected behavior on an established stream. Networks which experience high
-            # occurrences of anomalies may experience packet processing degradation.
-            #
-            # Choose one or more of the following protocol/parser choices. Note
-            # that packethdr requires protodecode to be enabled.
-            #
-            # Enable logging of protocol decode events
-            # protodecode: no
-            #
-            # Enable dumping of packet header; requires protodecode to be enabled
-            # packethdr: no         # enable dumping of packet header
-            #
-            # Enable logging of app-layer protocol parser events
-            # protoparser: no
-            #
-            # Enable logging of app-layer protocol detection events
-            # protodetect: no
-            #
-            # Enable logging of parser events
-            # parser: no
+	- anomaly:
+		# Anomaly log records describe unexpected conditions such as truncated packets, packets
+        #  with invalid IP/UDP/TCP length values, and other events that render the packet
+        # invalid for further processing or describe unexpected behavior on an established stream.
+        # Networks which experience high occurrences of anomalies may experience packet processing
+        # degradation.
+		#
+		# Anomalies are reported for the following:
+		# 1. Decode: Values and conditions that are detected while decoding individual packets.
+        # This includes invalid or unexpected values for low-level protocol lengths as well
+        # as stream related events (TCP 3-way handshake issues, unexpected sequence number, etc).
+		# 2. Stream: This includes stream related events (TCP 3-way handshake issues, unexpected
+        # sequence number, etc).
+		# 3. Application layer: These denote application layer specific conditions that are unexpected,
+        # invalid or are unexpected given the application monitoring state.
+		#
+		# By default, anomaly logging is disabled. When anomaly logging is enabled, application-layer anomaly
+		# reporting is enabled.
+		#
+		# Choose one or both types of anomaly logging and whether to enable
+		# logging of the packet header for packet anomalies.
+		types:
+		  #decode: no
+		  #stream: no
+		  #applayer: yes
+		#packethdr: no
 
 HTTP
 ~~~~
