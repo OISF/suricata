@@ -1055,7 +1055,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
         if (TCP_GET_SACKOK(p) == 1) {
             ssn->flags |= STREAMTCP_FLAG_CLIENT_SACKOK;
-            SCLogDebug("ssn %p: SACK permited on SYN packet", ssn);
+            SCLogDebug("ssn %p: SACK permitted on SYN packet", ssn);
         }
 
         if (TCP_HAS_TFO(p)) {

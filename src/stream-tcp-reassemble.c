@@ -504,7 +504,7 @@ int StreamTcpReassembleDepthReached(Packet *p)
 /**
  *  \internal
  *  \brief Function to Check the reassembly depth valuer against the
- *        allowed max depth of the stream reassmbly for TCP streams.
+ *        allowed max depth of the stream reassembly for TCP streams.
  *
  *  \param stream stream direction
  *  \param seq sequence number where "size" starts
@@ -1421,7 +1421,7 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
                     // more trailing data than we need
 
                     if (before >= (chunk_size - p->payload_len) / 2) {
-                        // also more heading data, devide evenly
+                        // also more heading data, divide evenly
                         before = after = (chunk_size - p->payload_len) / 2;
                     } else {
                         // heading data is less than requested, give the
@@ -1640,7 +1640,7 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
                         StreamReassembleRawFunc Callback, void *cb_data,
                         uint64_t *progress_out, bool respect_inspect_depth)
 {
-    /* handle inline seperately as the logic is very different */
+    /* handle inline separately as the logic is very different */
     if (StreamTcpInlineMode() == TRUE) {
         return StreamReassembleRawInline(ssn, p, Callback, cb_data, progress_out);
     }
