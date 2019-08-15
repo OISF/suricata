@@ -807,7 +807,7 @@ static void PrintBuildInfo(void)
     } else {
         strlcat(features, "byte(s)", sizeof(features));
     }
-    printf("Atomic intrisics: %s\n", features);
+    printf("Atomic intrinsics: %s\n", features);
 
 #if __WORDSIZE == 64
     bits = "64-bits";
