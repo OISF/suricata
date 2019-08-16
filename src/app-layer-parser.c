@@ -664,7 +664,7 @@ static AppLayerGetTxIterTuple AppLayerDefaultGetTxIterator(
                 .tx_id = tx_id,
                 .has_next = (tx_id + 1 < max_tx_id),
             };
-            SCLogDebug("tulpe: %p/%"PRIu64"/%s", tuple.tx_ptr, tuple.tx_id,
+            SCLogDebug("tuple: %p/%"PRIu64"/%s", tuple.tx_ptr, tuple.tx_id,
                     tuple.has_next ? "true" : "false");
             return tuple;
         }
