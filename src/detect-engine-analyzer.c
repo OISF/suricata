@@ -471,7 +471,6 @@ void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
     fprintf(rule_engine_analysis_FD, "\n");
 }
 
-#ifdef HAVE_LIBJANSSON
 #include "util-buffer.h"
 #include "output-json.h"
 
@@ -859,7 +858,6 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     json_decref(ctx.js);
     SCReturn;
 }
-#endif /* HAVE_LIBJANSSON */
 
 /**
  * \brief Prints analysis of loaded rules.
