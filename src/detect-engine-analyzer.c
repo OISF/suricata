@@ -901,6 +901,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     uint32_t http_uri_buf = 0;
     uint32_t http_method_buf = 0;
     uint32_t http_cookie_buf = 0;
+    uint32_t http_content_type_buf = 0;
     uint32_t http_client_body_buf = 0;
     uint32_t http_server_body_buf = 0;
     uint32_t http_stat_code_buf = 0;
@@ -934,6 +935,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     const int httpmethod_id = DetectBufferTypeGetByName("http_method");
     const int httpuri_id = DetectBufferTypeGetByName("http_uri");
     const int httpuseragent_id = DetectBufferTypeGetByName("http_user_agent");
+    const int httpcontenttype_id = DetectBufferTypeGetByName("http_content_type");
     const int httpcookie_id = DetectBufferTypeGetByName("http_cookie");
     const int httpstatcode_id = DetectBufferTypeGetByName("http_stat_code");
     const int httpstatmsg_id = DetectBufferTypeGetByName("http_stat_msg");
@@ -987,6 +989,11 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                     rule_pcre_http += 1;
                     norm_http_buf += 1;
                     http_cookie_buf += 1;
+                }
+                else if (list_id == httpcontenttype_id) {
+                    rule_pcre_http += 1;
+                    norm_http_buf += 1;
+                    http_content_type_buf += 1;
                 }
                 else if (list_id == filedata_id) {
                     rule_pcre_http += 1;
@@ -1073,6 +1080,11 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_client_body_buf += 1;
+                }
+                else if (list_id == httpcontenttype_id) {
+                    rule_content_http += 1;
+                    raw_http_buf += 1;
+                    http_content_type_buf += 1;
                 }
                 else if (list_id == filedata_id) {
                     rule_content_http += 1;
@@ -1270,6 +1282,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         if (http_uri_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http uri buffer.\n");
         if (http_header_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http header buffer.\n");
         if (http_cookie_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http cookie buffer.\n");
+        if (http_content_type_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http content type buffer.\n");
         if (http_raw_uri_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http raw uri buffer.\n");
         if (http_raw_header_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http raw header buffer.\n");
         if (http_method_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http method buffer.\n");
