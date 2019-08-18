@@ -581,7 +581,7 @@ static void DumpMatches(RuleAnalyzer *ctx, json_t *js, const SigMatchData *smd)
 
                         json_object_set_new(js_match_content, "fast_pattern", json_boolean(cd->flags & DETECT_CONTENT_FAST_PATTERN));
                         if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                            AnalyzerNote(ctx, (char *)"'fast_pattern:only' option is silently ignored and is intepreted as regular 'fast_pattern'");
+                            AnalyzerNote(ctx, (char *)"'fast_pattern:only' option is silently ignored and is interpreted as regular 'fast_pattern'");
                         }
 
                         json_object_set_new(js_match, "content", js_match_content);
