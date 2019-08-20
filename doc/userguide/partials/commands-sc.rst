@@ -1,113 +1,119 @@
+.. Consider converting `.. description` to `.. option` when the
+   minimum version of Sphinx on the primary distributions are all
+   updated to generate duplicate reference links. For example, we
+   can't use `.. option` on CentOS 7 which has Sphinx 1.1.3, but
+   Fedora 30 with Sphinx 1.8.4 is fine.
+
 .. Start with the most common basic commands.
 
-.. option:: shutdown
+.. describe:: shutdown
 
    Shut Suricata instance down.
 
-.. option:: command-list
+.. describe:: command-list
 
    List available commands.
 
-.. option:: help
+.. describe:: help
 
    Get help about the available commands.
 
-.. option:: version
+.. describe:: version
 
    Print the version of Suricata instance.
 
-.. option:: uptime
+.. describe:: uptime
 
    Display the uptime of Suricata.
 
-.. option:: running-mode
+.. describe:: running-mode
 
    Display running mode. This can either be *workers*, *autofp* or *single*.
 
-.. option:: capture-mode
+.. describe:: capture-mode
 
    Display the capture mode. This can be either of *PCAP_DEV*,
    *PCAP_FILE*, *PFRING(DISABLED)*, *NFQ*, *NFLOG*, *IPFW*, *ERF_FILE*,
    *ERF_DAG*, *AF_PACKET_DEV*, *NETMAP(DISABLED)*, *UNIX_SOCKET* or
    *WINDIVERT(DISABLED)*.
 
-.. option:: conf-get <variable>
+.. describe:: conf-get <variable>
 
    Get configuration value for a given variable. Variable to be provided can be
    either of the configuration parameters that are written in suricata.yaml.
 
-.. option:: dump-counters
+.. describe:: dump-counters
 
    Dump Suricata's performance counters.
 
-.. option:: ruleset-reload-rules
+.. describe:: ruleset-reload-rules
 
    Reload the ruleset and wait for completion.
 
-.. option:: reload-rules
+.. describe:: reload-rules
 
-   Alias of option *ruleset-reload-rules*.
+   Alias .. describe *ruleset-reload-rules*.
 
-.. option:: ruleset-reload-nonblocking
+.. describe:: ruleset-reload-nonblocking
 
    Reload ruleset and proceed without waiting.
 
-.. option:: ruleset-reload-time
+.. describe:: ruleset-reload-time
 
    Return time of last reload.
 
-.. option:: ruleset-stats
+.. describe:: ruleset-stats
 
    Display the number of rules loaded and failed.
 
-.. option:: ruleset-failed-rules
+.. describe:: ruleset-failed-rules
 
    Display the list of failed rules.
 
-.. option:: register-tenant-handler <id> <htype> [hargs]
+.. describe:: register-tenant-handler <id> <htype> [hargs]
 
    Register a tenant handler with the specified mapping.
 
-.. option:: unregister-tenant-handler <id> <htype> [hargs]
+.. describe:: unregister-tenant-handler <id> <htype> [hargs]
 
    Unregister a tenant handler with the specified mapping.
 
-.. option:: register-tenant <id> <filename>
+.. describe:: register-tenant <id> <filename>
 
    Register tenant with a particular ID and filename.
 
-.. option:: reload-tenant <id> <filename>
+.. describe:: reload-tenant <id> <filename>
 
    Reload a tenant with specified ID and filename.
 
-.. option:: unregister-tenant <id>
+.. describe:: unregister-tenant <id>
 
    Unregister tenant with a particular ID.
 
-.. option:: add-hostbit <ipaddress> <hostbit> <expire>
+.. describe:: add-hostbit <ipaddress> <hostbit> <expire>
 
    Add hostbit on a host IP with a particular bit name and time of expiry.
 
-.. option:: remove-hostbit <ipaddress> <hostbit>
+.. describe:: remove-hostbit <ipaddress> <hostbit>
 
    Remove hostbit on a host IP with specified IP address and bit name.
 
-.. option:: list-hostbit <ipaddress>
+.. describe:: list-hostbit <ipaddress>
 
    List hostbit for a particular host IP.
 
-.. option:: reopen-log-files
+.. describe:: reopen-log-files
 
    Reopen log files to be run after external log rotation.
 
-.. option:: memcap-set <config> <memcap>
+.. describe:: memcap-set <config> <memcap>
 
    Update memcap value of a specified item.
 
-.. option:: memcap-show <config>
+.. describe:: memcap-show <config>
 
    Show memcap value of a specified item.
 
-.. option:: memcap-list
+.. describe:: memcap-list
 
    List all memcap values available.
