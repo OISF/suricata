@@ -218,10 +218,8 @@ void FTPAtExitPrintStats(void);
 uint64_t FTPMemuseGlobalCounter(void);
 uint64_t FTPMemcapGlobalCounter(void);
 
-#ifdef HAVE_LIBJANSSON
 uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len);
 json_t *JsonFTPDataAddMetadata(const Flow *f);
-#endif
 
 #endif /* __APP_LAYER_FTP_H__ */
 
