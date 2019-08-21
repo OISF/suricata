@@ -29,6 +29,15 @@
     AC_LANG_POP([C])
     AC_MSG_RESULT([${compiler}])
 
+    AC_ARG_WITH([clang],
+                [  --with-clang=PROGRAM    path to Clang for compiling eBPF code. Use if the main C compiler is not Clang.],
+                [CLANG="$withval"],
+                [AS_IF([test "$compiler" = clang],
+                       [CLANG="$CC"],
+                       [AC_PATH_PROG([CLANG],[clang])])])
+
+    AC_SUBST([CLANG])
+
     case "$compiler" in
         clang)
             CLANG_CFLAGS="-Wextra -Werror-implicit-function-declaration -Wno-error=unused-command-line-argument"
@@ -443,49 +452,22 @@
            AS_HELP_STRING([--enable-ebpf-build], [Enable compilation of ebpf files]),[enable_ebpf_build=$enableval],[enable_ebpf_build=no])
     AM_CONDITIONAL([BUILD_EBPF], [test "x$enable_ebpf_build" = "xyes"])
 
-    if test "x$enable_ebpf_build" = "xyes"; then
-        if echo $CC | grep clang; then
-            if test "x$CC" = "xclang"; then
-                AC_PATH_PROG(HAVE_LLC, llc, "no")
-                if test "$HAVE_LLC" != "no"; then
-                    LLC="llc"
-                    AC_SUBST(LLC)
-                else
-                    llc_version_line=$($CC --version|$GREP version)
-                    llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
-                    AC_PATH_PROG(HAVE_LLC, "llc-$llc_version", "no")
-                    if test "$HAVE_LLC" != "no"; then
-                        LLC="llc-$llc_version"
-                        AC_SUBST(LLC)
-		    else
-                        echo "unable to find llc needed to build ebpf files"
-                        exit 1
-                    fi
-                fi
-            else
-                llc_version=$(echo $CC | cut -d '-' -f 2)
-                AC_PATH_PROG(HAVE_LLC, "llc-$llc_version", "no")
-                if test "$HAVE_LLC" != "no"; then
-                    LLC="llc-$llc_version"
-                    AC_SUBST(LLC)
-                else
-                    llc_version_line=$($CC --version|$GREP version)
-                    llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
-                    AC_PATH_PROG(HAVE_LLC, "llc-$llc_version", "no")
-                    if test "$HAVE_LLC" != "no"; then
-                        LLC="llc-$llc_version"
-                        AC_SUBST(LLC)
-                    else
-                        echo "unable to find llc needed to build ebpf files"
-                        exit 1
-                    fi
-                fi
-            fi
-        else
-            echo "clang needed to build ebpf files"
-            exit 1        
-        fi
-    fi
+    AS_IF([test "x$enable_ebpf_build" = "xyes"],
+          [
+            AS_IF([test "$CLANG" != no],
+                  [
+                    llc_candidates=$($CLANG --version | \
+                      awk '/^clang version/ {
+                             split($3, v, ".");
+                             printf("llc-%s.%s llc-%s llc", v[[1]], v[[2]], v[[1]])
+                           }')
+                    AC_CHECK_PROGS([LLC], [$llc_candidates], "no")
+                    AS_IF([test "$LLC" != "no"],
+                          [AC_SUBST(LLC)],
+                          [AC_MSG_ERROR([unable to find any of $llc_candidates needed to build ebpf files])])
+                  ],
+                  [AC_MSG_ERROR([clang needed to build ebpf files])])
+          ])
 
   # enable workaround for old barnyard2 for unified alert output
     AC_ARG_ENABLE(old-barnyard2,

@@ -77,6 +77,8 @@ static void DetectGeoipDataFree(void *);
 void DetectGeoipRegister(void)
 {
     sigmatch_table[DETECT_GEOIP].name = "geoip";
+    sigmatch_table[DETECT_GEOIP].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#geoip";
+    sigmatch_table[DETECT_GEOIP].desc = "keyword to match on country of src and or dst IP";
     sigmatch_table[DETECT_GEOIP].Match = DetectGeoipMatch;
     sigmatch_table[DETECT_GEOIP].Setup = DetectGeoipSetup;
     sigmatch_table[DETECT_GEOIP].Free = DetectGeoipDataFree;

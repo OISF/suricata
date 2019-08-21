@@ -59,7 +59,7 @@ Depending on the number of hosts reputation information is available for, the me
 Reloads
 ~~~~~~~
 
-If the "rule-reloads" option is enabled, sending Suricata a USR2 signal will reload the IP reputation data, along with the normal rules reload.
+Sending Suricata a USR2 signal will reload the IP reputation data, along with the normal rules reload.
 
 During the reload the host table will be updated to contain the new data. The iprep information is versioned. When the reload is complete, Suricata will automatically clean up the old iprep information.
 

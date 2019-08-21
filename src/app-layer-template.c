@@ -196,12 +196,35 @@ static AppLayerDecoderEvents *TemplateGetEvents(void *tx)
 }
 
 /**
- * \brief Probe the input to see if it looks like template.
+ * \brief Probe the input to server to see if it looks like template.
  *
- * \retval ALPROTO_TEMPLATE if it looks like template, otherwise
- *     ALPROTO_UNKNOWN.
+ * \retval ALPROTO_TEMPLATE if it looks like template,
+ *     ALPROTO_FAILED, if it is clearly not ALPROTO_TEMPLATE,
+ *     otherwise ALPROTO_UNKNOWN.
  */
-static AppProto TemplateProbingParser(Flow *f, uint8_t direction,
+static AppProto TemplateProbingParserTs(Flow *f, uint8_t direction,
+        uint8_t *input, uint32_t input_len, uint8_t *rdir)
+{
+    /* Very simple test - if there is input, this is template. */
+    if (input_len >= TEMPLATE_MIN_FRAME_LEN) {
+        SCLogNotice("Detected as ALPROTO_TEMPLATE.");
+        return ALPROTO_TEMPLATE;
+    }
+
+    SCLogNotice("Protocol not detected as ALPROTO_TEMPLATE.");
+    return ALPROTO_UNKNOWN;
+}
+
+/**
+ * \brief Probe the input to client to see if it looks like template.
+ *     TemplateProbingParserTs can be used instead if the protocol
+ *     is symmetric.
+ *
+ * \retval ALPROTO_TEMPLATE if it looks like template,
+ *     ALPROTO_FAILED, if it is clearly not ALPROTO_TEMPLATE,
+ *     otherwise ALPROTO_UNKNOWN.
+ */
+static AppProto TemplateProbingParserTc(Flow *f, uint8_t direction,
         uint8_t *input, uint32_t input_len, uint8_t *rdir)
 {
     /* Very simple test - if there is input, this is template. */
@@ -472,21 +495,21 @@ void RegisterTemplateParsers(void)
             SCLogNotice("Unittest mode, registeringd default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, TEMPLATE_DEFAULT_PORT,
                 ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
-                TemplateProbingParser, NULL);
+                TemplateProbingParserTs, TemplateProbingParserTc);
 
         }
         else {
 
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN,
-                    TemplateProbingParser, NULL)) {
+                    TemplateProbingParserTs, TemplateProbingParserTc)) {
                 SCLogNotice("No template app-layer configuration, enabling echo"
                     " detection TCP detection on port %s.",
                     TEMPLATE_DEFAULT_PORT);
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                     TEMPLATE_DEFAULT_PORT, ALPROTO_TEMPLATE, 0,
                     TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
-                    TemplateProbingParser, NULL);
+                    TemplateProbingParserTs, TemplateProbingParserTc);
             }
 
         }

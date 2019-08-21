@@ -183,7 +183,7 @@ static DetectTcpmssData *DetectTcpmssParse (const char *tcpmssstr)
                 tcpmssd->mode = DETECT_TCPMSS_LT;
                 tcpmssd->arg1 = (uint16_t) atoi(arg3);
 
-                SCLogDebug("tcpmss is %"PRIu8"",tcpmssd->arg1);
+                SCLogDebug("tcpmss is %"PRIu16"",tcpmssd->arg1);
                 if (strlen(arg1) > 0)
                     goto error;
 
@@ -195,7 +195,7 @@ static DetectTcpmssData *DetectTcpmssParse (const char *tcpmssstr)
                 tcpmssd->mode = DETECT_TCPMSS_GT;
                 tcpmssd->arg1 = (uint16_t) atoi(arg3);
 
-                SCLogDebug("tcpmss is %"PRIu8"",tcpmssd->arg1);
+                SCLogDebug("tcpmss is %"PRIu16"",tcpmssd->arg1);
                 if (strlen(arg1) > 0)
                     goto error;
 

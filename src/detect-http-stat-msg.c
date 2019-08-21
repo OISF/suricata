@@ -140,7 +140,8 @@ static int DetectHttpStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, const c
  */
 static int DetectHttpStatMsgSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectBufferSetActiveList(s, g_http_stat_msg_buffer_id);
+    if (DetectBufferSetActiveList(s, g_http_stat_msg_buffer_id) < 0)
+        return -1;
     s->alproto = ALPROTO_HTTP;
     return 0;
 }

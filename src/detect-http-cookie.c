@@ -152,7 +152,9 @@ static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
  */
 static int DetectHttpCookieSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectBufferSetActiveList(s, g_http_cookie_buffer_id);
+    if (DetectBufferSetActiveList(s, g_http_cookie_buffer_id) < 0)
+        return -1;
+
     s->alproto = ALPROTO_HTTP;
     return 0;
 }

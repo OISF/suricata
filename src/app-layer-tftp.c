@@ -203,12 +203,12 @@ void RegisterTFTPParsers(void)
             AppLayerProtoDetectPPRegister(IPPROTO_UDP, TFTP_DEFAULT_PORT,
                                           ALPROTO_TFTP, 0, TFTP_MIN_FRAME_LEN,
                                           STREAM_TOSERVER, TFTPProbingParser,
-                                          NULL);
+                                          TFTPProbingParser);
         } else {
             if (!AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
                                                      proto_name, ALPROTO_TFTP,
                                                      0, TFTP_MIN_FRAME_LEN,
-                                                     TFTPProbingParser, NULL)) {
+                                                     TFTPProbingParser, TFTPProbingParser)) {
                 SCLogDebug("No echo app-layer configuration, enabling echo"
                            " detection UDP detection on port %s.",
                            TFTP_DEFAULT_PORT);
@@ -216,7 +216,7 @@ void RegisterTFTPParsers(void)
                                               TFTP_DEFAULT_PORT, ALPROTO_TFTP,
                                               0, TFTP_MIN_FRAME_LEN,
                                               STREAM_TOSERVER,TFTPProbingParser,
-                                              NULL);
+                                              TFTPProbingParser);
             }
         }
     } else {
