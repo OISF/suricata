@@ -1363,7 +1363,6 @@ void FTPAtExitPrintStats(void)
 }
 
 
-#ifdef HAVE_LIBJANSSON
 /*
  * \brief Returns the ending offset of the next line from a multi-line buffer.
  *
@@ -1417,7 +1416,6 @@ json_t *JsonFTPDataAddMetadata(const Flow *f)
     }
     return ftpd;
 }
-#endif /* HAVE_LIBJANSSON */
 
 /* UNITTESTS */
 #ifdef UNITTESTS
