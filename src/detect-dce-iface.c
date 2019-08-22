@@ -76,6 +76,8 @@ void DetectDceIfaceRegister(void)
 {
     sigmatch_table[DETECT_DCE_IFACE].name = "dcerpc.iface";
     sigmatch_table[DETECT_DCE_IFACE].alias = "dce_iface";
+    sigmatch_table[DETECT_DCE_IFACE].desc = "match dcerpc interface uuid";
+    sigmatch_table[DETECT_DCE_IFACE].url = DOC_URL DOC_VERSION "/rules/dcerpc-keywords.html#dcerpc-iface";
     sigmatch_table[DETECT_DCE_IFACE].AppLayerTxMatch = DetectDceIfaceMatchRust;
     sigmatch_table[DETECT_DCE_IFACE].Setup = DetectDceIfaceSetup;
     sigmatch_table[DETECT_DCE_IFACE].Free  = DetectDceIfaceFree;
