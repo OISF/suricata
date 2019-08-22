@@ -85,7 +85,8 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
     return -1;
 }
 
-int SEC("filter") hashfilter(struct __sk_buff *skb) {
+int SEC("filter") hashfilter(struct __sk_buff *skb)
+{
     __u32 nhoff = ETH_HLEN;
 
     __u16 proto = load_half(skb, offsetof(struct ethhdr, h_proto));
