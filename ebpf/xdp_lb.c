@@ -128,6 +128,57 @@ static int __always_inline hash_ipv6(void *data, void *data_end)
     return XDP_PASS;
 }
 
+static int __always_inline filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
+{
+    struct iphdr *iph = data + nh_off;
+    __be16 proto;
+    struct gre_hdr {
+        __be16 flags;
+        __be16 proto;
+    };
+
+    nh_off += sizeof(struct iphdr);
+    struct gre_hdr *grhdr = (struct gre_hdr *)(iph + 1);
+
+    if ((void *)(grhdr + 1) > data_end)
+        return XDP_PASS;
+
+    if (grhdr->flags & (GRE_VERSION|GRE_ROUTING))
+        return XDP_PASS;
+
+    nh_off += 4;
+    proto = grhdr->proto;
+    if (grhdr->flags & GRE_CSUM)
+        nh_off += 4;
+    if (grhdr->flags & GRE_KEY)
+        nh_off += 4;
+    if (grhdr->flags & GRE_SEQ)
+        nh_off += 4;
+
+    if (data + nh_off > data_end)
+        return XDP_PASS;
+    if (bpf_xdp_adjust_head(ctx, 0 + nh_off))
+        return XDP_PASS;
+
+    data = (void *)(long)ctx->data;
+    data_end = (void *)(long)ctx->data_end;
+
+    if (proto == __constant_htons(ETH_P_8021Q)) {
+        struct vlan_hdr *vhdr = (struct vlan_hdr *)(data);
+        if ((void *)(vhdr + 1) > data_end)
+            return XDP_PASS;
+        proto = vhdr->h_vlan_encapsulated_proto;
+        nh_off += sizeof(struct vlan_hdr);
+    }
+
+    if (proto == __constant_htons(ETH_P_IP)) {
+        return hash_ipv4(data, data_end);
+    } else if (proto == __constant_htons(ETH_P_IPV6)) {
+        return hash_ipv6(data, data_end);
+    } else
+        return XDP_PASS;
+}
+
 static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
 {
     struct iphdr *iph = data + nh_off;
@@ -135,52 +186,7 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
         return XDP_PASS;
 
     if (iph->protocol == IPPROTO_GRE) {
-        __be16 proto;
-        struct gre_hdr {
-            __be16 flags;
-            __be16 proto;
-        };
-
-        nh_off += sizeof(struct iphdr);
-        struct gre_hdr *grhdr = (struct gre_hdr *)(iph + 1);
-
-        if ((void *)(grhdr + 1) > data_end)
-            return XDP_PASS;
-
-        if (grhdr->flags & (GRE_VERSION|GRE_ROUTING))
-            return XDP_PASS;
-
-        nh_off += 4;
-        proto = grhdr->proto;
-        if (grhdr->flags & GRE_CSUM)
-            nh_off += 4;
-        if (grhdr->flags & GRE_KEY)
-            nh_off += 4;
-        if (grhdr->flags & GRE_SEQ)
-            nh_off += 4;
-
-        if (data + nh_off > data_end)
-            return XDP_PASS;
-        if (bpf_xdp_adjust_head(ctx, 0 + nh_off))
-            return XDP_PASS;
-
-        data = (void *)(long)ctx->data;
-        data_end = (void *)(long)ctx->data_end;
-
-        if (proto == __constant_htons(ETH_P_8021Q)) {
-            struct vlan_hdr *vhdr = (struct vlan_hdr *)(data);
-            if ((void *)(vhdr + 1) > data_end)
-                return XDP_PASS;
-            proto = vhdr->h_vlan_encapsulated_proto;
-            nh_off += sizeof(struct vlan_hdr);
-        }
-
-        if (proto == __constant_htons(ETH_P_IP)) {
-            return hash_ipv4(data, data_end);
-        } else if (proto == __constant_htons(ETH_P_IPV6)) {
-            return hash_ipv6(data, data_end);
-        } else
-            return XDP_PASS;
+        return filter_gre(ctx, data, nh_off, data_end);
     }
     return hash_ipv4(data + nh_off, data_end);
 }
