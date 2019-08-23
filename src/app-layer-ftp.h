@@ -89,8 +89,7 @@ typedef enum {
 
 typedef struct FtpCommand_ {
     FtpRequestCommand command;
-    const char *command_name_upper;
-    const char *command_name_lower;
+    const char *command_name;
     const uint8_t command_length;
 } FtpCommand;
 extern const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1];
@@ -215,6 +214,7 @@ typedef struct FtpDataState_ {
 void RegisterFTPParsers(void);
 void FTPParserRegisterTests(void);
 void FTPAtExitPrintStats(void);
+void FTPParserCleanup(void);
 uint64_t FTPMemuseGlobalCounter(void);
 uint64_t FTPMemcapGlobalCounter(void);
 
