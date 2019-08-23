@@ -1062,7 +1062,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             ssn->flags |= STREAMTCP_FLAG_TCP_FAST_OPEN;
             if (p->payload_len) {
                 StreamTcpUpdateNextSeq(ssn, &ssn->client, (ssn->client.next_seq + p->payload_len));
-                SCLogNotice("ssn: %p (TFO) [len: %d] isn %u base_seq %u next_seq %u payload len %u",
+                SCLogDebug("ssn: %p (TFO) [len: %d] isn %u base_seq %u next_seq %u payload len %u",
                         ssn, p->tcpvars.tfo.len, ssn->client.isn, ssn->client.base_seq, ssn->client.next_seq, p->payload_len);
                 StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p, pq);
             }
