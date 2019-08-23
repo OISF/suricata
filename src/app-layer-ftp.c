@@ -50,6 +50,7 @@
 #include "app-layer-expectation.h"
 
 #include "util-spm.h"
+#include "util-mpm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "util-memcmp.h"
@@ -64,59 +65,68 @@
 
 #include "output-json.h"
 
+typedef struct FTPThreadCtx_ {
+    MpmThreadCtx *ftp_mpm_thread_ctx;
+    PrefilterRuleStore *pmq;
+} FTPThreadCtx;
+
+#define FTP_MPM mpm_default_matcher
+
+static MpmCtx *ftp_mpm_ctx = NULL;
+
 const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1] = {
     /* Parsed and handled */
-    { FTP_COMMAND_PORT, "PORT", "port", 4},
-    { FTP_COMMAND_EPRT, "EPRT", "eprt", 4},
-    { FTP_COMMAND_AUTH_TLS, "AUTH TLS", "auth tls", 8},
-    { FTP_COMMAND_PASV, "PASV", "pasv", 4},
-    { FTP_COMMAND_RETR, "RETR", "retr", 4},
-    { FTP_COMMAND_EPSV, "EPSV", "epsv", 4},
-    { FTP_COMMAND_STOR, "STOR", "stor", 4},
+    { FTP_COMMAND_PORT, "PORT", 4},
+    { FTP_COMMAND_EPRT, "EPRT", 4},
+    { FTP_COMMAND_AUTH_TLS, "AUTH TLS", 8},
+    { FTP_COMMAND_PASV, "PASV", 4},
+    { FTP_COMMAND_RETR, "RETR", 4},
+    { FTP_COMMAND_EPSV, "EPSV", 4},
+    { FTP_COMMAND_STOR, "STOR", 4},
 
     /* Parsed, but not handled */
-    { FTP_COMMAND_ABOR, "ABOR", "abor", 4},
-    { FTP_COMMAND_ACCT, "ACCT", "acct", 4},
-    { FTP_COMMAND_ALLO, "ALLO", "allo", 4},
-    { FTP_COMMAND_APPE, "APPE", "appe", 4},
-    { FTP_COMMAND_CDUP, "CDUP", "cdup", 4},
-    { FTP_COMMAND_CHMOD, "CHMOD", "chmod", 5},
-    { FTP_COMMAND_CWD, "CWD", "cwd", 3},
-    { FTP_COMMAND_DELE, "DELE", "dele", 4},
-    { FTP_COMMAND_HELP, "HELP", "help", 4},
-    { FTP_COMMAND_IDLE, "IDLE", "idle", 4},
-    { FTP_COMMAND_LIST, "LIST", "list", 4},
-    { FTP_COMMAND_MAIL, "MAIL", "mail", 4},
-    { FTP_COMMAND_MDTM, "MDTM", "mdtm", 4},
-    { FTP_COMMAND_MKD, "MKD", "mkd", 3},
-    { FTP_COMMAND_MLFL, "MLFL", "mlfl", 4},
-    { FTP_COMMAND_MODE, "MODE", "mode", 4},
-    { FTP_COMMAND_MRCP, "MRCP", "mrcp", 4},
-    { FTP_COMMAND_MRSQ, "MRSQ", "mrsq", 4},
-    { FTP_COMMAND_MSAM, "MSAM", "msam", 4},
-    { FTP_COMMAND_MSND, "MSND", "msnd", 4},
-    { FTP_COMMAND_MSOM, "MSOM", "msom", 4},
-    { FTP_COMMAND_NLST, "NLST", "nlst", 4},
-    { FTP_COMMAND_NOOP, "NOOP", "noop", 4},
-    { FTP_COMMAND_PASS, "PASS", "pass", 4},
-    { FTP_COMMAND_PWD, "PWD", "pwd", 3},
-    { FTP_COMMAND_QUIT, "QUIT", "quit", 4},
-    { FTP_COMMAND_REIN, "REIN", "rein", 4},
-    { FTP_COMMAND_REST, "REST", "rest", 4},
-    { FTP_COMMAND_RMD, "RMD", "rmd", 3},
-    { FTP_COMMAND_RNFR, "RNFR", "rnfr", 4},
-    { FTP_COMMAND_RNTO, "RNTO", "rnto", 4},
-    { FTP_COMMAND_SITE, "SITE", "site", 4},
-    { FTP_COMMAND_SIZE, "SIZE", "size", 4},
-    { FTP_COMMAND_SMNT, "SMNT", "smnt", 4},
-    { FTP_COMMAND_STAT, "STAT", "stat", 4},
-    { FTP_COMMAND_STOU, "STOU", "stou", 4},
-    { FTP_COMMAND_STRU, "STRU", "stru", 4},
-    { FTP_COMMAND_SYST, "SYST", "syst", 4},
-    { FTP_COMMAND_TYPE, "TYPE", "type", 4},
-    { FTP_COMMAND_UMASK, "UMASK", "umask", 5},
-    { FTP_COMMAND_USER, "USER", "user", 4},
-    { FTP_COMMAND_UNKNOWN, NULL, NULL, 0}
+    { FTP_COMMAND_ABOR, "ABOR", 4},
+    { FTP_COMMAND_ACCT, "ACCT", 4},
+    { FTP_COMMAND_ALLO, "ALLO", 4},
+    { FTP_COMMAND_APPE, "APPE", 4},
+    { FTP_COMMAND_CDUP, "CDUP", 4},
+    { FTP_COMMAND_CHMOD, "CHMOD", 5},
+    { FTP_COMMAND_CWD, "CWD", 3},
+    { FTP_COMMAND_DELE, "DELE", 4},
+    { FTP_COMMAND_HELP, "HELP", 4},
+    { FTP_COMMAND_IDLE, "IDLE", 4},
+    { FTP_COMMAND_LIST, "LIST", 4},
+    { FTP_COMMAND_MAIL, "MAIL", 4},
+    { FTP_COMMAND_MDTM, "MDTM", 4},
+    { FTP_COMMAND_MKD, "MKD", 3},
+    { FTP_COMMAND_MLFL, "MLFL", 4},
+    { FTP_COMMAND_MODE, "MODE", 4},
+    { FTP_COMMAND_MRCP, "MRCP", 4},
+    { FTP_COMMAND_MRSQ, "MRSQ", 4},
+    { FTP_COMMAND_MSAM, "MSAM", 4},
+    { FTP_COMMAND_MSND, "MSND", 4},
+    { FTP_COMMAND_MSOM, "MSOM", 4},
+    { FTP_COMMAND_NLST, "NLST", 4},
+    { FTP_COMMAND_NOOP, "NOOP", 4},
+    { FTP_COMMAND_PASS, "PASS", 4},
+    { FTP_COMMAND_PWD, "PWD", 3},
+    { FTP_COMMAND_QUIT, "QUIT", 4},
+    { FTP_COMMAND_REIN, "REIN", 4},
+    { FTP_COMMAND_REST, "REST", 4},
+    { FTP_COMMAND_RMD, "RMD", 3},
+    { FTP_COMMAND_RNFR, "RNFR", 4},
+    { FTP_COMMAND_RNTO, "RNTO", 4},
+    { FTP_COMMAND_SITE, "SITE", 4},
+    { FTP_COMMAND_SIZE, "SIZE", 4},
+    { FTP_COMMAND_SMNT, "SMNT", 4},
+    { FTP_COMMAND_STAT, "STAT", 4},
+    { FTP_COMMAND_STOU, "STOU", 4},
+    { FTP_COMMAND_STRU, "STRU", 4},
+    { FTP_COMMAND_SYST, "SYST", 4},
+    { FTP_COMMAND_TYPE, "TYPE", 4},
+    { FTP_COMMAND_UMASK, "UMASK", 5},
+    { FTP_COMMAND_USER, "USER", 4},
+    { FTP_COMMAND_UNKNOWN, NULL, 0}
 };
 uint64_t ftp_config_memcap = 0;
 
@@ -261,6 +271,47 @@ static void FTPStringFree(FTPString *str)
     FTPFree(str, sizeof(FTPString));
 }
 
+static void *FTPLocalStorageAlloc(void)
+{
+    /* needed by the mpm */
+    FTPThreadCtx *td = SCCalloc(1, sizeof(*td));
+    if (td == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    td->pmq = SCCalloc(1, sizeof(*td->pmq));
+    if (td->pmq == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    PmqSetup(td->pmq);
+
+    td->ftp_mpm_thread_ctx = SCCalloc(1, sizeof(MpmThreadCtx));
+    if (unlikely(td->ftp_mpm_thread_ctx == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    MpmInitThreadCtx(td->ftp_mpm_thread_ctx, FTP_MPM);
+    return td;
+}
+
+static void FTPLocalStorageFree(void *ptr)
+{
+    FTPThreadCtx *td = ptr;
+    if (td != NULL) {
+        if (td->pmq != NULL) {
+            PmqFree(td->pmq);
+            SCFree(td->pmq);
+        }
+
+        if (td->ftp_mpm_thread_ctx != NULL) {
+            mpm_table[FTP_MPM].DestroyThreadCtx(ftp_mpm_ctx, td->ftp_mpm_thread_ctx);
+            SCFree(td->ftp_mpm_thread_ctx);
+        }
+
+        SCFree(td);
+    }
+
+    return;
+}
 static FTPTransaction *FTPTransactionCreate(FtpState *state)
 {
     SCEnter();
@@ -424,29 +475,29 @@ static int FTPGetLine(FtpState *state)
  * transferred to the ftp server
  * \param input input line of the command
  * \param len of the command
+ * \param thread context
  * \param cmd_descriptor when the command has been parsed
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int FTPParseRequestCommand(uint8_t *input, uint32_t input_len, const FtpCommand **cmd_descriptor)
+static int FTPParseRequestCommand(uint8_t *input, uint32_t input_len,
+                                  FTPThreadCtx *td,
+                                  const FtpCommand **cmd_descriptor)
 {
     SCEnter();
 
-    *cmd_descriptor = NULL;
-
-    for (int i = 0; i < FTP_COMMAND_MAX - 1; i++) {
-        if (!FtpCommands[i].command_length) {
-            break;
-        }
-        if (input_len >= FtpCommands[i].command_length &&
-                SCMemcmpLowercase(FtpCommands[i].command_name_lower,
-                                  input, FtpCommands[i].command_length) == 0) {
-
-            *cmd_descriptor = &FtpCommands[i];
-            return 1;
-        }
+    /* I don't like this pmq reset here.  We'll devise a method later, that
+     * should make the use of the mpm very efficient */
+    PmqReset(td->pmq);
+    int mpm_cnt = mpm_table[FTP_MPM].Search(ftp_mpm_ctx, td->ftp_mpm_thread_ctx,
+                                            td->pmq, input, input_len);
+    if (mpm_cnt) {
+        *cmd_descriptor = &FtpCommands[td->pmq->rule_id_array[0]];
+        SCReturn(1);
     }
-    return 0;
+
+    *cmd_descriptor = NULL;
+    SCReturn(0);
 }
 
 struct FtpTransferCmd {
@@ -569,6 +620,8 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                            uint8_t *input, uint32_t input_len,
                            void *local_data, const uint8_t flags)
 {
+    FTPThreadCtx *thread_data = local_data;
+
     SCEnter();
     /* PrintRawDataFp(stdout, input,input_len); */
 
@@ -590,7 +643,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     while (FTPGetLine(state) >= 0) {
         const FtpCommand *cmd_descriptor;
 
-        if (!FTPParseRequestCommand(state->current_line, state->current_line_len, &cmd_descriptor)) {
+        if (!FTPParseRequestCommand(state->current_line, state->current_line_len, thread_data, &cmd_descriptor)) {
             state->command = FTP_COMMAND_UNKNOWN;
             continue;
         }
@@ -875,7 +928,7 @@ static void FTPStateFree(void *s)
     while ((tx = TAILQ_FIRST(&fstate->tx_list))) {
         TAILQ_REMOVE(&fstate->tx_list, tx, next);
         SCLogDebug("[%s] state %p id %"PRIu64", Freeing %d bytes at %p",
-            tx->command_descriptor->command_name_upper,
+            tx->command_descriptor->command_name,
             s, tx->tx_id,
             tx->request_length, tx->request);
         FTPTransactionFree(tx);
@@ -1273,6 +1326,38 @@ static FileContainer *FTPDataStateGetFiles(void *state, uint8_t direction)
     SCReturnPtr(ftpdata_state->files, "FileContainer");
 }
 
+static void FTPSetMpmState(void)
+{
+    ftp_mpm_ctx = SCMalloc(sizeof(MpmCtx));
+    if (unlikely(ftp_mpm_ctx == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    memset(ftp_mpm_ctx, 0, sizeof(MpmCtx));
+    MpmInitCtx(ftp_mpm_ctx, FTP_MPM);
+
+    uint32_t i = 0;
+    for (i = 0; i < sizeof(FtpCommands)/sizeof(FtpCommand) - 1; i++) {
+        const FtpCommand *cmd = &FtpCommands[i];
+        MpmAddPatternCI(ftp_mpm_ctx,
+                       (uint8_t *)cmd->command_name,
+                       cmd->command_length,
+                       0 /* defunct */, 0 /* defunct */,
+                       i /*  id */, i /* rule id */ , 0 /* no flags */);
+    }
+
+    mpm_table[FTP_MPM].Prepare(ftp_mpm_ctx);
+
+}
+
+static void FTPFreeMpmState(void)
+{
+    if (ftp_mpm_ctx != NULL) {
+        mpm_table[FTP_MPM].DestroyCtx(ftp_mpm_ctx);
+        SCFree(ftp_mpm_ctx);
+        ftp_mpm_ctx = NULL;
+    }
+}
+
 void RegisterFTPParsers(void)
 {
     const char *proto_name = "ftp";
@@ -1306,6 +1391,8 @@ void RegisterFTPParsers(void)
         AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_FTP, FTPStateGetTxLogged,
                                           FTPStateSetTxLogged);
 
+        AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_FTP, FTPLocalStorageAlloc,
+                                               FTPLocalStorageFree);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_FTP, FTPGetTxCnt);
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_FTP, FTPGetAlstateProgress);
@@ -1347,6 +1434,9 @@ void RegisterFTPParsers(void)
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
+
+    FTPSetMpmState();
+
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_FTP, FTPParserRegisterTests);
 #endif
@@ -1415,6 +1505,14 @@ json_t *JsonFTPDataAddMetadata(const Flow *f)
             break;
     }
     return ftpd;
+}
+
+/**
+ * \brief Free memory allocated for global SMTP parser state.
+ */
+void FTPParserCleanup(void)
+{
+    FTPFreeMpmState();
 }
 
 /* UNITTESTS */
