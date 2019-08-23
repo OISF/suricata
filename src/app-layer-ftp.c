@@ -59,9 +59,7 @@
 #include "util-mem.h"
 #include "util-misc.h"
 
-#ifdef HAVE_RUST
 #include "rust-ftp-mod-gen.h"
-#endif
 
 #include "output-json.h"
 
@@ -738,12 +736,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
 
 static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uint32_t input_len)
 {
-    uint16_t dyn_port =
-#ifdef HAVE_RUST
-            rs_ftp_pasv_response(input, input_len);
-#else
-            FTPGetV4PortNumber(input, input_len);
-#endif
+    uint16_t dyn_port = rs_ftp_pasv_response(input, input_len);
     if (dyn_port == 0) {
         return -1;
     }
@@ -758,12 +751,7 @@ static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uin
 
 static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, uint8_t *input, uint32_t input_len)
 {
-    uint16_t dyn_port =
-#ifdef HAVE_RUST
-            rs_ftp_epsv_response(input, input_len);
-#else
-            FTPGetV6PortNumber(input, input_len);
-#endif
+    uint16_t dyn_port = rs_ftp_epsv_response(input, input_len);
     if (dyn_port == 0) {
         return -1;
     }
