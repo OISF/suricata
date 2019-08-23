@@ -240,6 +240,7 @@ int AppLayerParserDeSetup(void)
 {
     SCEnter();
 
+    FTPParserCleanup();
     SMTPParserCleanup();
 
     SCReturnInt(0);
