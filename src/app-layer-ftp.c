@@ -471,15 +471,15 @@ static int FTPGetLine(FtpState *state)
 /**
  * \brief This function is called to determine and set which command is being
  * transferred to the ftp server
+ * \param thread context
  * \param input input line of the command
  * \param len of the command
- * \param thread context
  * \param cmd_descriptor when the command has been parsed
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int FTPParseRequestCommand(uint8_t *input, uint32_t input_len,
-                                  FTPThreadCtx *td,
+static int FTPParseRequestCommand(FTPThreadCtx *td,
+                                  uint8_t *input, uint32_t input_len,
                                   const FtpCommand **cmd_descriptor)
 {
     SCEnter();
@@ -491,11 +491,11 @@ static int FTPParseRequestCommand(uint8_t *input, uint32_t input_len,
                                             td->pmq, input, input_len);
     if (mpm_cnt) {
         *cmd_descriptor = &FtpCommands[td->pmq->rule_id_array[0]];
-        SCReturn(1);
+        SCReturnInt(1);
     }
 
     *cmd_descriptor = NULL;
-    SCReturn(0);
+    SCReturnInt(0);
 }
 
 struct FtpTransferCmd {
@@ -641,7 +641,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     while (FTPGetLine(state) >= 0) {
         const FtpCommand *cmd_descriptor;
 
-        if (!FTPParseRequestCommand(state->current_line, state->current_line_len, thread_data, &cmd_descriptor)) {
+        if (!FTPParseRequestCommand(thread_data, state->current_line, state->current_line_len, &cmd_descriptor)) {
             state->command = FTP_COMMAND_UNKNOWN;
             continue;
         }
@@ -1456,15 +1456,16 @@ void FTPAtExitPrintStats(void)
  * next "line ends". The characters between the input buffer and this
  * value comprise the line.
  *
- * NULL is found first or a newline isn't found, then
+ * NULL is found first or a newline isn't found, then UINT16_MAX is returned.
  */
 uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
 {
-        if (!buffer || *buffer == '\0')
-                    return UINT16_MAX;
+    if (!buffer || *buffer == '\0') {
+        return UINT16_MAX;
+    }
 
-            char *c = strchr(buffer, '\n');
-                return c == NULL ? len : c - buffer + 1;
+    char *c = strchr(buffer, '\n');
+    return c == NULL ? len : c - buffer + 1;
 }
 
 json_t *JsonFTPDataAddMetadata(const Flow *f)
