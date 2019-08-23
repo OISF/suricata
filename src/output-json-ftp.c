@@ -86,8 +86,7 @@ static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
         }
     }
 
-    json_object_set_new(cjs, "command",
-                        json_string(tx->command_descriptor->command_name_upper));
+    json_object_set_new(cjs, "command", json_string(tx->command_descriptor->command_name));
     uint32_t min_length = tx->command_descriptor->command_length + 1; /* command + space */
     if (tx->request_length > min_length) {
         json_object_set_new(cjs, "command_data",
