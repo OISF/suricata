@@ -11,7 +11,7 @@ In your Suricata.yaml, find the tls-log section and edit as follows:
       filename: tls.log # File to store TLS logs.
       append: yes
       custom: yes       # enabled the custom logging format (defined by customformat)
-      customformat: "%{%D-%H:%M:%S}t.%z %a:%p -> %A:%P %n %n %d %D"
+      customformat: "%{%D-%H:%M:%S}t.%z %a:%p -> %A:%P %v %n %d %D"
 
 And in your tls.log file you would get the following, for example:
 
