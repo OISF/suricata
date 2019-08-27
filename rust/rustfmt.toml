@@ -1,2 +1,2 @@
-# Rust default is 100. Use 80 to bring in line with Suricata C code.
-max_width = 80
+# Rust format configuration file. If empty, then this is a message that
+# we expect the default formatting rules to be used.
