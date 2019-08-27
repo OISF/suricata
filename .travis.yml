@@ -76,6 +76,15 @@ cache:
 default-cflags: &default-cflags
   CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
 
+env:
+  global:
+    # The version of Rust that will be used if not otherwise set.
+    - RUST_VERSION="stable"
+    # The minimum version of Rust supported.
+    - RUST_VERSION_MIN="1.33.0"
+    # A known recent working version of stable Rust
+    - RUST_VERSION_KNOWN="1.37.0"
+
 matrix:
   allow_failures:
     # Allow the rust-stable build to fail. These entries must match
@@ -84,7 +93,7 @@ matrix:
         - NAME="linux,gcc,rust-stable"
         - *default-cflags
         - RUST_VERSION="stable"
-        - ARGS="--enable-rust --enable-rust-strict"
+        - ARGS="--enable-rust-strict"
         - DO_CHECK_SETUP_SCRIPTS="yes"
         - DO_DISTCHECK="yes"
   include:
@@ -114,47 +123,27 @@ matrix:
         - NAME="linux,gcc,rust-stable"
         - *default-cflags
         - RUST_VERSION="stable"
-        - ARGS="--enable-rust --enable-rust-strict"
+        - ARGS="--enable-rust-strict"
         - DO_CHECK_SETUP_SCRIPTS="yes"
         - DO_DISTCHECK="yes"
     # Linux, gcc, Rust (auto detect).
-    # - Rust 1.31.0, the latest known working version.
+    # - Use latest known working version of Rust.
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,rust-1.31.0-disabled"
+        - NAME="linux,gcc,rust-${RUST_VERSION_KNOWN}"
         - *default-cflags
-        - RUST_VERSION="1.31.0"
-        - ARGS="--disable-rust"
+        - RUST_VERSION="${RUST_VERSION_KNOWN}"
+        - ARGS="--enable-rust-strict"
         - DO_DISTCHECK="yes"
-    # Linux, gcc, Rust (auto detect).
-    # - Rust 1.31.0, the latest known working version.
+    # Linux, gcc, Rust (oldest supported)
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,rust-1.31.0-auto"
+        - NAME="linux,gcc,rust-${RUST_VERSION_MIN}"
         - *default-cflags
-        - RUST_VERSION="1.31.0"
-        - ARGS=""
-        - DO_DISTCHECK="yes"
-    # Linux, gcc, Rust.
-    # - Rust 1.31.0, the latest known working version.
-    - os: linux
-      compiler: gcc
-      env:
-        - NAME="linux,gcc,rust-1.31.0"
-        - *default-cflags
-        - RUST_VERSION="1.31.0"
-        - ARGS="--enable-rust --enable-rust-strict"
-        - DO_DISTCHECK="yes"
-    # Linux, gcc, Rust (1.24.1 - oldest supported).
-    - os: linux
-      compiler: gcc
-      env:
-        - NAME="linux,gcc,rust-1.24.1"
-        - *default-cflags
-        - RUST_VERSION="1.24.1"
-        - ARGS="--enable-rust --enable-rust-strict"
+        - RUST_VERSION="${RUST_VERSION_MIN}"
+        - ARGS="--enable-rust-strict"
         - DO_DISTCHECK="yes"
     # Linux, gcc, -DNDEBUG.
     - os: linux
@@ -196,6 +185,13 @@ matrix:
         apt:
           packages:
             - *packages-without-jansson
+    # Too old version of Rust.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="Unsupported Rust version"
+        - RUST_VERSION="1.32.0"
+        - CONFIGURE_SHOULD_FAIL="yes"
     # OSX 10.13, XCode 8.3
     - os: osx
       compiler: gcc
@@ -221,10 +217,12 @@ script: ./qa/travis.sh
 before_install:
   - export PATH=$HOME/.cargo/bin:$PATH
   - |
-    curl https://sh.rustup.rs -sSf | sh -s -- -y
-    if [[ "$RUST_VERSION" != "" ]]; then
-        rustup override set $RUST_VERSION
-    fi
+    # Install the desired Rust toolchain with rustup.
+    curl https://sh.rustup.rs -sSf | \
+        sh -s -- -y --default-toolchain "${RUST_VERSION}"
+    # Set the default, in case a cached version was used that doesn't
+    # match the requested version.
+    rustup default "${RUST_VERSION}"
     rustc --version
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
