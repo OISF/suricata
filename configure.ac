@@ -2379,12 +2379,26 @@ fi
 
     enable_rust="yes"
     rust_compiler_version=$($RUSTC --version)
+    rustc_version=$(echo "$rust_compiler_version" | sed 's/^.*[[^0-9]]\([[0-9]]*\.[[0-9]]*\.[[0-9]]*\).*$/\1/')
     rust_cargo_version=$($CARGO --version)
+
+    MIN_RUSTC_VERSION="1.33.0"
+    AC_MSG_CHECKING(for Rust version $MIN_RUSTC_VERSION or newer)
+    AS_VERSION_COMPARE([$rustc_version], [$MIN_RUSTC_VERSION],
+        [
+            echo ""
+            echo "ERROR: Rust $MIN_RUSTC_VERSION or newer required."
+            echo ""
+            echo "Rust version ${rustc_version} was found."
+            echo ""
+            exit 1
+	],
+	[],
+	[])
+    AC_MSG_RESULT(yes)
 
     rust_vendor_comment="# "
     have_rust_vendor="no"
-    rust_compiler_version="not set"
-    rust_cargo_version="not set"
 
     # We may require Python if the Rust header stubs are not already
     # generated.
@@ -2415,9 +2429,6 @@ fi
     if test "x$have_rust_vendor" = "xyes"; then
       rust_vendor_comment=""
     fi
-
-    rust_compiler_version=$(rustc --version)
-    rust_cargo_version=$(cargo --version)
 
     AC_SUBST(rust_vendor_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
@@ -2600,8 +2611,10 @@ SURICATA_BUILD_CONF="Suricata Configuration:
 
   Rust support:                            ${enable_rust}
   Rust strict mode:                        ${enable_rust_strict}
-  Rust compiler:                           ${rust_compiler_version}
-  Rust cargo:                              ${rust_cargo_version}
+  Rust compiler path:                      ${RUSTC}
+  Rust compiler version:                   ${rust_compiler_version}
+  Cargo path:                              ${CARGO}
+  Cargo version:                           ${rust_cargo_version}
 
   Python support:                          ${enable_python}
   Python path:                             ${python_path}
