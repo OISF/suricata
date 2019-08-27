@@ -34,9 +34,7 @@
 
 #include <zlib.h>
 
-#ifdef HAVE_LIBLZMA
 #include <lzma.h>
-#endif
 
 #define MAX_SWF_DECOMPRESSED_LEN 50000000
 /*
@@ -130,7 +128,6 @@ int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
  * | 4 bytes         | 4 bytes    | 4 bytes        | 5 bytes    | n bytes   | 6 bytes         |
  * | 'ZWS' + version | script len | compressed len | LZMA props | LZMA data | LZMA end marker |
  */
-#ifdef HAVE_LIBLZMA
 int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx,
                              uint8_t *compressed_data, uint32_t compressed_data_len,
                              uint8_t *decompressed_data, uint32_t decompressed_data_len)
@@ -183,4 +180,3 @@ int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx,
     lzma_end(&strm);
     return ret;
 }
-#endif /* HAVE_LIBLZMA */

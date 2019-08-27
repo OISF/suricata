@@ -603,24 +603,22 @@
                 if test "$with_liblzma_libraries" != "no"; then
                     LDFLAGS="${LDFLAGS}  -L${with_liblzma_libraries}"
                     LIBS="${TMPLIBS} -llzma"
-		else
-		    LIBS="${TMPLIBS} -llzma"
+                else
+                    LIBS="${TMPLIBS} -llzma"
                 fi
             fi]),LIBLZMA="no")
 
     if test "$LIBLZMA" != "yes"; then
         echo
-        echo "   Warning! liblzma library not found, you will not be"
-        echo "   able to decompress flash file compressed with lzma."
+        echo "   Error! liblzma library not found.|, you will not be"
         echo "   Debian/Ubuntu: apt install liblzma-dev"
         echo "   Fedora: dnf install xz-devel"
         echo "   CentOS/RHEL: yum install xz-devel"
         echo
-        enable_liblzma=no
-    else
-        enable_liblzma=yes
-        LIBS="${TMPLIBS} -llzma"
+        exit 1
     fi
+    enable_liblzma=yes
+    LIBS="${TMPLIBS} -llzma"
 
   #libpcre
     AC_ARG_WITH(libpcre_includes,
