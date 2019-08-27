@@ -1,0 +1,7 @@
+[package]
+name = "dhcp-parser"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+nom = "4.2"

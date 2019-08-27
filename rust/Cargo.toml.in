@@ -2,6 +2,11 @@
 name = "suricata"
 version = "@PACKAGE_VERSION@"
 
+[workspace]
+members = [
+    "dhcp-parser",
+]
+
 [lib]
 crate-type = ["staticlib"]
 path = "@e_rustdir@/src/lib.rs"
@@ -15,6 +20,7 @@ strict = []
 debug = []
 
 [dependencies]
+dhcp-parser = { path = "./dhcp-parser" }
 nom = "4.2"
 crc = "1.8"
 der-parser = "1.1"

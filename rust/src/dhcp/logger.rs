@@ -19,7 +19,7 @@ use std;
 use std::os::raw::c_void;
 
 use crate::dhcp::dhcp::*;
-use crate::dhcp::parser::{DHCPOptionWrapper,DHCPOptGeneric};
+use dhcp_parser::{DHCPOptionWrapper,DHCPOptGeneric};
 use crate::dns::log::dns_print_addr;
 use crate::json::*;
 use crate::conf::ConfNode;

@@ -26,6 +26,9 @@ extern crate crc;
 extern crate der_parser;
 extern crate kerberos_parser;
 
+// Crates from workspace members.
+extern crate dhcp_parser;
+
 #[macro_use]
 pub mod log;
 

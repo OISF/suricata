@@ -17,8 +17,27 @@
 
 use std::cmp::min;
 
-use crate::dhcp::dhcp::*;
+//use crate::dhcp::dhcp::*;
 use nom::*;
+
+pub const BOOTP_REQUEST: u8 = 1;
+pub const BOOTP_REPLY: u8 = 2;
+
+// DHCP option types. Names based on IANA naming:
+// https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
+pub const DHCP_OPT_SUBNET_MASK: u8 = 1;
+pub const DHCP_OPT_ROUTERS: u8 = 3;
+pub const DHCP_OPT_DNS_SERVER: u8 = 6;
+pub const DHCP_OPT_HOSTNAME: u8 = 12;
+pub const DHCP_OPT_REQUESTED_IP: u8 = 50;
+pub const DHCP_OPT_ADDRESS_TIME: u8 = 51;
+pub const DHCP_OPT_TYPE: u8 = 53;
+pub const DHCP_OPT_SERVER_ID: u8 = 54;
+pub const DHCP_OPT_PARAMETER_LIST: u8 = 55;
+pub const DHCP_OPT_RENEWAL_TIME: u8 = 58;
+pub const DHCP_OPT_REBINDING_TIME: u8 = 59;
+pub const DHCP_OPT_CLIENT_ID: u8 = 61;
+pub const DHCP_OPT_END: u8 = 255;
 
 pub struct DHCPMessage {
     pub header: DHCPHeader,
@@ -233,8 +252,7 @@ pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
 
 #[cfg(test)]
 mod tests {
-    use crate::dhcp::dhcp::*;
-    use crate::dhcp::parser::*;
+    use super::*;
 
     #[test]
     fn test_parse_discover() {
