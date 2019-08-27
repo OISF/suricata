@@ -17,9 +17,9 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use json::*;
-use snmp::snmp::{SNMPState,SNMPTransaction};
-use snmp::snmp_parser::{NetworkAddress,PduType};
+use crate::json::*;
+use crate::snmp::snmp::{SNMPState,SNMPTransaction};
+use crate::snmp::snmp_parser::{NetworkAddress,PduType};
 use std::borrow::Cow;
 
 fn str_of_pdu_type(t:&PduType) -> Cow<str> {

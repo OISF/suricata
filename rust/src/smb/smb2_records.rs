@@ -17,7 +17,7 @@
 
 use nom;
 use nom::{rest, le_u8, le_u16, le_u32, le_u64, IResult};
-use smb::smb::*;
+use crate::smb::smb::*;
 
 #[derive(Debug,PartialEq)]
 pub struct Smb2SecBlobRecord<'a> {

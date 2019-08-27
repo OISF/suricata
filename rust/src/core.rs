@@ -18,7 +18,7 @@
 // This file exposes items from the core "C" code to Rust.
 
 use std;
-use filecontainer::*;
+use crate::filecontainer::*;
 
 /// Opaque C types.
 pub enum Flow {}

@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-use core::*;
-use log::*;
-use smb::smb::*;
+use crate::core::*;
+use crate::log::*;
+use crate::smb::smb::*;
 
 #[repr(u32)]
 pub enum SMBEvent {

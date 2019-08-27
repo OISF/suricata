@@ -23,7 +23,7 @@ use std::str;
 use std;
 use std::mem::transmute;
 
-use applayer::LoggerFlags;
+use crate::applayer::LoggerFlags;
 
 #[derive(Debug)]
 pub struct TFTPTransaction {

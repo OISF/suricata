@@ -19,14 +19,14 @@
 
 extern crate ntp_parser;
 use self::ntp_parser::*;
-use core;
-use core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED};
-use applayer;
-use parser::*;
+use crate::core;
+use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED};
+use crate::applayer;
+use crate::parser::*;
 use std;
 use std::ffi::{CStr,CString};
 
-use log::*;
+use crate::log::*;
 
 use nom;
 

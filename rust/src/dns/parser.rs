@@ -19,7 +19,7 @@
 
 use nom::{IResult, be_u8, be_u16, be_u32};
 use nom;
-use dns::dns::*;
+use crate::dns::dns::*;
 
 // Parse a DNS header.
 named!(pub dns_parse_header<DNSHeader>,
@@ -304,8 +304,8 @@ pub fn dns_parse_request<'a>(input: &'a [u8]) -> IResult<&[u8], DNSRequest> {
 #[cfg(test)]
 mod tests {
 
-    use dns::dns::{DNSHeader,DNSAnswerEntry};
-    use dns::parser::*;
+    use crate::dns::dns::{DNSHeader,DNSAnswerEntry};
+    use crate::dns::parser::*;
 
     /// Parse a simple name with no pointers.
     #[test]

@@ -17,8 +17,8 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use json::*;
-use krb::krb5::{KRB5State,KRB5Transaction,test_weak_encryption};
+use crate::json::*;
+use crate::krb::krb5::{KRB5State,KRB5Transaction,test_weak_encryption};
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_log_json_response(_state: &mut KRB5State, tx: &mut KRB5Transaction) -> *mut JsonT

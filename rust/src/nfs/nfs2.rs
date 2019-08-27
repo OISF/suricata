@@ -18,12 +18,12 @@
 // written by Victor Julien
 
 use nom;
-use log::*;
+use crate::log::*;
 
-use nfs::nfs::*;
-use nfs::types::*;
-use nfs::rpc_records::*;
-use nfs::nfs2_records::*;
+use crate::nfs::nfs::*;
+use crate::nfs::types::*;
+use crate::nfs::rpc_records::*;
+use crate::nfs::nfs2_records::*;
 
 impl NFSState {
     /// complete request record

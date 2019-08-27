@@ -20,10 +20,10 @@ extern crate nom;
 use std;
 use std::mem::transmute;
 
-use log::*;
-use applayer::LoggerFlags;
-use core;
-use dns::parser;
+use crate::log::*;
+use crate::applayer::LoggerFlags;
+use crate::core;
+use crate::dns::parser;
 
 /// DNS record types.
 pub const DNS_RECORD_TYPE_A           : u16 = 1;
@@ -842,7 +842,7 @@ pub extern "C" fn rs_dns_probe_tcp(input: *const u8,
 #[cfg(test)]
 mod tests {
 
-    use dns::dns::DNSState;
+    use crate::dns::dns::DNSState;
 
     #[test]
     fn test_dns_parse_request_tcp_valid() {
