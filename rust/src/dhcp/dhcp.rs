@@ -15,13 +15,13 @@
  * 02110-1301, USA.
  */
 
-use applayer;
-use core;
-use core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
-use core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
-use dhcp::parser::*;
-use log::*;
-use parser::*;
+use crate::applayer;
+use crate::core;
+use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
+use crate::core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
+use crate::dhcp::parser::*;
+use crate::log::*;
+use crate::parser::*;
 use std;
 use std::ffi::{CStr,CString};
 use std::mem::transmute;

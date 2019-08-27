@@ -17,16 +17,16 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use snmp::snmp_parser::*;
-use core;
-use core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
-use applayer;
-use parser::*;
+use crate::snmp::snmp_parser::*;
+use crate::core;
+use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
+use crate::applayer;
+use crate::parser::*;
 use std;
 use std::ffi::{CStr,CString};
 use std::mem::transmute;
 
-use log::*;
+use crate::log::*;
 
 use der_parser::{DerObjectContent,parse_der_sequence};
 use der_parser::oid::Oid;

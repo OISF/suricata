@@ -16,11 +16,11 @@
  */
 
 use std;
-use core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
-use log::*;
+use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
+use crate::log::*;
 use std::mem::transmute;
-use applayer::{self, LoggerFlags};
-use parser::*;
+use crate::applayer::{self, LoggerFlags};
+use crate::parser::*;
 use std::ffi::CString;
 use nom;
 use super::parser;

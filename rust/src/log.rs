@@ -19,7 +19,7 @@ use std;
 use std::ffi::CString;
 use std::path::Path;
 
-use core::*;
+use crate::core::*;
 
 #[derive(Debug)]
 pub enum Level {

@@ -18,8 +18,8 @@
 use std::ptr;
 use std::os::raw::{c_void};
 
-use log::*;
-use core::*;
+use crate::log::*;
+use crate::core::*;
 
 pub struct File;
 #[repr(C)]

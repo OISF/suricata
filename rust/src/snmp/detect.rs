@@ -17,7 +17,7 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use snmp::snmp::SNMPTransaction;
+use crate::snmp::snmp::SNMPTransaction;
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_tx_get_version(tx: &mut SNMPTransaction,

@@ -22,7 +22,7 @@ use nom::{ErrorKind, IResult, le_u16};
 use der_parser;
 use der_parser::parse_der_oid;
 
-use log::*;
+use crate::log::*;
 
 pub const SECBLOB_NOT_SPNEGO :  u32 = 128;
 pub const SECBLOB_KRB_FMT_ERR : u32 = 129;

@@ -17,10 +17,10 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use json::*;
-use ikev2::ikev2::{IKEV2State,IKEV2Transaction};
+use crate::json::*;
+use crate::ikev2::ikev2::{IKEV2State,IKEV2Transaction};
 
-use ikev2::ipsec_parser::IKEV2_FLAG_INITIATOR;
+use crate::ikev2::ipsec_parser::IKEV2_FLAG_INITIATOR;
 
 #[no_mangle]
 pub extern "C" fn rs_ikev2_log_json_response(state: &mut IKEV2State, tx: &mut IKEV2Transaction) -> *mut JsonT

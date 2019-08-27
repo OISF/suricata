@@ -28,11 +28,11 @@
  * The tracker does continue to follow the file.
  */
 
-use log::*;
-use core::*;
+use crate::log::*;
+use crate::core::*;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use filecontainer::*;
+use crate::filecontainer::*;
 
 #[derive(Debug)]
 pub struct FileChunk {
