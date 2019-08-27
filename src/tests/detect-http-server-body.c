@@ -4638,7 +4638,6 @@ libhtp:\n\
 
 static int DetectEngineHttpServerBodyFileDataTest24(void)
 {
-#ifdef HAVE_LIBLZMA
     char input[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -4763,9 +4762,6 @@ libhtp:\n\
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
     PASS;
-#else
-    PASS;
-#endif /* HAVE_LIBLZMA */
 }
 
 static int DetectEngineHttpServerBodyFileDataTest25(void)
@@ -4895,7 +4891,6 @@ libhtp:\n\
 
 static int DetectEngineHttpServerBodyFileDataTest26(void)
 {
-#ifdef HAVE_LIBLZMA
     char input[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -5019,9 +5014,6 @@ libhtp:\n\
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
     PASS;
-#else
-    PASS;
-#endif /* HAVE_LIBLZMA */
 }
 
 static int DetectEngineHttpServerBodyFileDataTest27(void)
