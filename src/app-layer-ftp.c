@@ -1326,6 +1326,9 @@ static void FTPSetMpmState(void)
     uint32_t i = 0;
     for (i = 0; i < sizeof(FtpCommands)/sizeof(FtpCommand) - 1; i++) {
         const FtpCommand *cmd = &FtpCommands[i];
+        if (cmd->command_length == 0)
+            continue;
+
         MpmAddPatternCI(ftp_mpm_ctx,
                        (uint8_t *)cmd->command_name,
                        cmd->command_length,
