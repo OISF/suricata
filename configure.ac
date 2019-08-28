@@ -462,9 +462,10 @@
                              printf("llc-%s.%s llc-%s llc", v[[1]], v[[2]], v[[1]])
                            }')
                     AC_CHECK_PROGS([LLC], [$llc_candidates], "no")
-                    AS_IF([test "$LLC" != "no"],
-                          [AC_SUBST(LLC)],
-                          [AC_MSG_ERROR([unable to find any of $llc_candidates needed to build ebpf files])])
+                    if test "$LLC" = "no"; then
+                        AC_MSG_ERROR([unable to find any of $llc_candidates needed to build ebpf files])
+                    fi
+                    AC_SUBST(LLC)
                   ],
                   [AC_MSG_ERROR([clang needed to build ebpf files])])
           ])
