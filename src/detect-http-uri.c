@@ -204,7 +204,8 @@ static int DetectHttpUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const
 {
     if (DetectBufferSetActiveList(s, g_http_uri_buffer_id) < 0)
         return -1;
-    s->alproto = ALPROTO_HTTP;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
     return 0;
 }
 
@@ -277,7 +278,8 @@ static int DetectHttpRawUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 {
     if (DetectBufferSetActiveList(s, g_http_raw_uri_buffer_id) < 0)
         return -1;
-    s->alproto = ALPROTO_HTTP;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
     return 0;
 }
 

@@ -982,7 +982,10 @@ static int DetectBytetestTestParse19(void)
 
     int result = 1;
 
-    s->alproto = ALPROTO_DCERPC;
+    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0) {
+        SigFree(s);
+        return 0;
+    }
 
     result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,dce") == 0);
     result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,string,dce") == -1);

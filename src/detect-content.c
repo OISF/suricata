@@ -1286,7 +1286,8 @@ static int DetectContentParseTest18(void)
         goto end;
     }
 
-    s->alproto = ALPROTO_DCERPC;
+    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
+        goto end;
 
     result &= (DetectContentSetup(de_ctx, s, "one") == 0);
     result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
