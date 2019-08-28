@@ -55,6 +55,42 @@ named!(pub ftp_pasv_response<u16>,
         )
 );
 
+// PORT 192,168,0,13,234,10
+named!(pub ftp_active_port<u16>,
+       do_parse!(
+            tag!("PORT") >>
+            ws!(digit) >> tag!(",") >> digit >> tag!(",") >>
+            digit >> tag!(",") >> digit >> tag!(",") >>
+            part1: verify!(getu16, |v| v <= std::u8::MAX as u16) >>
+            tag!(",") >>
+            part2: verify!(getu16, |v| v <= std::u8::MAX as u16) >>
+            tag!("\0") >>
+            (
+                part1 * 256 + part2
+            )
+        )
+);
+
+
+#[no_mangle]
+pub extern "C" fn rs_ftp_active_port(input: *const u8, len: u32) -> u16 {
+    let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
+    match ftp_active_port(buf) {
+        Ok((_, dport)) => {
+            return dport;
+        }
+        Err(nom::Err::Incomplete(_)) => {
+            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
+            SCLogNotice!("port incomplete: '{:?}'", String::from_utf8_lossy(buf));
+        },
+        Err(_) => {
+            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
+            SCLogNotice!("port error on '{:?}'", String::from_utf8_lossy(buf));
+        },
+    }
+    return 0;
+}
+
 
 #[no_mangle]
 pub extern "C" fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16 {
@@ -88,6 +124,40 @@ named!(pub ftp_epsv_response<u16>,
         )
 );
 
+// EPRT |2|2a01:e34:ee97:b130:8c3e:45ea:5ac6:e301|41813|
+named!(pub ftp_active_eprt<u16>,
+       do_parse!(
+            tag!("EPRT") >>
+            take_until_and_consume!("|") >>
+            take_until_and_consume!("|") >>
+            take_until_and_consume!("|") >>
+            port: getu16 >>
+            tag!("|") >> tag!("\0") >>
+            (
+                port
+            )
+        )
+);
+
+#[no_mangle]
+pub extern "C" fn rs_ftp_active_eprt(input: *const u8, len: u32) -> u16 {
+    let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
+    match ftp_active_eprt(buf) {
+        Ok((_, dport)) => {
+            return dport;
+        },
+        Err(nom::Err::Incomplete(_)) => {
+            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
+            SCLogDebug!("eprt incomplete: '{:?}'", String::from_utf8_lossy(buf));
+        },
+        Err(_) => {
+            let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
+            SCLogDebug!("epsv incomplete: '{:?}'", String::from_utf8_lossy(buf));
+        },
+
+    }
+    return 0;
+}
 #[no_mangle]
 pub extern "C" fn rs_ftp_epsv_response(input: *const u8, len: u32) -> u16 {
     let buf = unsafe{std::slice::from_raw_parts(input, len as usize)};
