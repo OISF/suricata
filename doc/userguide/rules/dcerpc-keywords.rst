@@ -85,7 +85,7 @@ Siganture Example:
 
 dcerpc.stub_data
 ----------------
-``dcerpc.stub_data`` is a sticky buffer that points to the buffer containing 
+``dcerpc.stub_data`` is a sticky buffer that points to the buffer containing
 the DCE/RPC request or response stub data.
 
 Syntax Example::
