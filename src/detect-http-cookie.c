@@ -155,7 +155,9 @@ static int DetectHttpCookieSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
     if (DetectBufferSetActiveList(s, g_http_cookie_buffer_id) < 0)
         return -1;
 
-    s->alproto = ALPROTO_HTTP;
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
+        return -1;
+
     return 0;
 }
 

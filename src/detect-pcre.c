@@ -1136,7 +1136,7 @@ static int DetectPcreParseTest10(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    s->alproto = ALPROTO_DCERPC;
+    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
 
     FAIL_IF_NOT(DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
     FAIL_IF_NOT(s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
@@ -1654,7 +1654,6 @@ static int DetectPcreTestSig01(void)
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f->alproto = ALPROTO_HTTP;
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
 

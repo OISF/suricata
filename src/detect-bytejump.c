@@ -817,7 +817,10 @@ static int DetectBytejumpTestParse09(void)
 
     int result = 1;
 
-    s->alproto = ALPROTO_DCERPC;
+    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0) {
+        SigFree(s);
+        return 0;
+    }
 
     result &= (DetectBytejumpSetup(NULL, s, "4,0, align, multiplier 2, "
                                    "post_offset -16,dce") == 0);
