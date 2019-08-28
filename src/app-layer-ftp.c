@@ -540,69 +540,6 @@ static uint32_t CopyCommandLine(uint8_t **dest, uint8_t *src, uint32_t length)
     return length;
 }
 
-static uint16_t ftp_validate_port(int computed_port_value)
-{
-    unsigned int port_val = computed_port_value;
-
-    if (port_val && port_val > UINT16_MAX)
-        return 0;
-
-    return ((uint16_t) (port_val));
-}
-
-/**
- * \brief This function extracts a port number from the command input line for IPv6 FTP usage
- * \param input input line of the command
- * \param input_len length of the request
- *
- * \retval 0 if a port number could not be extracted; otherwise, the dynamic port number
- */
-static uint16_t FTPGetV6PortNumber(uint8_t *input, uint32_t input_len)
-{
-    uint16_t res;
-
-    uint8_t *ptr = memrchr(input, '|', input_len);
-    if (ptr == NULL) {
-        return 0;
-    }
-
-    int n_length = ptr - input - 1;
-    if (n_length < 4)
-        return 0;
-
-    ptr = memrchr(input, '|', n_length);
-    if (ptr == NULL)
-        return 0;
-
-    if (ByteExtractStringUint16(&res, 10, 0, (const char *)ptr + 1) < 0) {
-        return 0;
-    }
-    return res;
-}
-
-/**
- * \brief This function extracts a port number from the command input line for IPv4 FTP usage
- * \param input input line of the command
- * \param input_len length of the request
- *
- * \retval 0 if a port number could not be extracted; otherwise, the dynamic port number
- */
-static uint16_t FTPGetV4PortNumber(uint8_t *input, uint32_t input_len)
-{
-    uint16_t part1, part2;
-    uint8_t *ptr = memrchr(input, ',', input_len);
-    if (ptr == NULL)
-        return 0;
-
-    part2 = atoi((char *)ptr + 1);
-    ptr = memrchr(input, ',', (ptr - input) - 1);
-    if (ptr == NULL)
-        return 0;
-    part1 = atoi((char *)ptr + 1);
-
-    return ftp_validate_port(256 * part1 + part2);
-}
-
 
 /**
  * \brief This function is called to retrieve a ftp request
@@ -818,7 +755,7 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
     }
 
     if (state->command == FTP_COMMAND_EPRT) {
-        uint16_t dyn_port = FTPGetV6PortNumber(state->port_line, state->port_line_len);
+        uint16_t dyn_port = rs_ftp_active_eprt(state->port_line, state->port_line_len + 1);
         if (dyn_port == 0) {
             retcode = 0;
             goto tx_complete;
@@ -832,7 +769,7 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
 
     if (state->command == FTP_COMMAND_PORT) {
         if ((flags & STREAM_TOCLIENT)) {
-            uint16_t dyn_port = FTPGetV4PortNumber(state->port_line, state->port_line_len);
+            uint16_t dyn_port = rs_ftp_active_port(state->port_line, state->port_line_len + 1);
             if (dyn_port == 0) {
                 retcode = 0;
                 goto tx_complete;
