@@ -74,6 +74,8 @@ void DetectFlagsRegister (void)
 {
     sigmatch_table[DETECT_FLAGS].name = "tcp.flags";
     sigmatch_table[DETECT_FLAGS].alias = "flags";
+    sigmatch_table[DETECT_FLAGS].desc = "detct which flags are set in the TCP header";
+    sigmatch_table[DETECT_FLAGS].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#flags";
     sigmatch_table[DETECT_FLAGS].Match = DetectFlagsMatch;
     sigmatch_table[DETECT_FLAGS].Setup = DetectFlagsSetup;
     sigmatch_table[DETECT_FLAGS].Free  = DetectFlagsFree;

@@ -261,6 +261,55 @@ Example of tos with negated values:
 TCP keywords
 ------------
 
+flags
+^^^^^
+
+The flags keyword checks for specific `TCP flag bits
+<https://en.wikipedia.org/wiki/Transmission_Control_Protocol#TCP_segment_structure>`_.
+
+The following flag bits may be checked:
+
+====  ====================================
+Flag  Description
+====  ====================================
+F     FIN - Finish
+S     SYN - Synchronize sequence numbers
+R     RST - Reset
+P     PSH - Push
+A     ACK - Acknowledgment
+U     URG - Urgent
+C     CWR - Congestion Window Reduced
+E     ECE - ECN-Echo
+0     No TCP Flags Set
+====  ====================================
+
+The following modifiers can be set to change the match criteria:
+
+========  ===================================
+Modifier  Description
+========  ===================================
+``+``     match on the bits, plus any others
+``*``     match if any of the bits are set
+``!``     match if the bits are not set
+========  ===================================
+
+To handle writing rules for session initiation packets such as ECN where a SYN
+packet is sent with CWR and ECE flags set, an option mask may be used by
+appending a comma and masked values. For example, a rule that checks for a SYN
+flag, regardless of the values of the reserved bits is ``flags:S,CE;``
+
+Format of flags::
+
+    flags:[modifier]<test flags>[,<ignore flags>];
+    flags:[!|*|+]<FSRPAUCE0>[,<FSRPAUCE>];
+
+Example rule:
+
+.. container:: example-rule
+
+  alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL SCAN nmap XMAS"; :example-rule-emphasis:`flags:FPU,CE;` classtype:attempted-recon; sid:2101228; rev:8;)
+
+
 seq
 ^^^
 The seq keyword can be used in a signature to check for a specific TCP
