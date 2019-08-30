@@ -65,7 +65,7 @@ stats:
   #decoder-events: true
   # Decoder event prefix in stats. Has been 'decoder' before, but that leads
   # to missing events in the eve.stats records. See issue #2225.
-  decoder-events-prefix: "decoder.event"
+  #decoder-events-prefix: "decoder.event"
   # Add stream events as stats.
   #stream-events: false
 
