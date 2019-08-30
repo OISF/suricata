@@ -100,7 +100,7 @@ static char stats_enabled = TRUE;
 
 /**< add decoder events as stats? enabled by default */
 bool stats_decoder_events = true;
-const char *stats_decoder_events_prefix = "decoder";
+const char *stats_decoder_events_prefix = "decoder.event";
 /**< add stream events as stats? disabled by default */
 bool stats_stream_events = false;
 
@@ -256,12 +256,7 @@ static void StatsInitCtxPreOutput(void)
 
         const char *prefix = NULL;
         if (ConfGet("stats.decoder-events-prefix", &prefix) != 1) {
-            prefix = "decoder";
-            SCLogWarning(SC_WARN_DEFAULT_WILL_CHANGE, "in 5.0 the default "
-                    "for decoder event stats will go from "
-                    "'decoder.<proto>.<event>' to 'decoder.event.<proto>.<event>'. "
-                    "See ticket #2225. To suppress this message, "
-                    "set stats.decoder-events-prefix in the yaml.");
+            prefix = "decoder.event";
         }
         stats_decoder_events_prefix = prefix;
     }
