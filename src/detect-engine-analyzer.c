@@ -896,6 +896,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     uint32_t stream_buf = 0;
     uint32_t packet_buf = 0;
     uint32_t http_header_buf = 0;
+    uint32_t http_accept_enc_buf = 0;
     uint32_t http_uri_buf = 0;
     uint32_t http_method_buf = 0;
     uint32_t http_cookie_buf = 0;
@@ -938,6 +939,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     const int httpstatcode_id = DetectBufferTypeGetByName("http_stat_code");
     const int httpstatmsg_id = DetectBufferTypeGetByName("http_stat_msg");
     const int httpheader_id = DetectBufferTypeGetByName("http_header");
+    const int httpacceptenc_id = DetectBufferTypeGetByName("http_accept_enc");
     const int httprawheader_id = DetectBufferTypeGetByName("http_raw_header");
     const int httpclientbody_id = DetectBufferTypeGetByName("http_client_body");
     const int httprawuri_id = DetectBufferTypeGetByName("http_raw_uri");
@@ -982,6 +984,11 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                     rule_pcre_http += 1;
                     norm_http_buf += 1;
                     http_header_buf += 1;
+                }
+                else if (list_id == httpacceptenc_id) {
+                    rule_pcre_http += 1;
+                    norm_http_buf += 1;
+                    http_accept_enc_buf += 1;
                 }
                 else if (list_id == httpcookie_id) {
                     rule_pcre_http += 1;
@@ -1279,6 +1286,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         }
         if (http_uri_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http uri buffer.\n");
         if (http_header_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http header buffer.\n");
+        if (http_accept_enc_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http accept enc buffer.\n");
         if (http_cookie_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http cookie buffer.\n");
         if (http_content_type_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http content type buffer.\n");
         if (http_raw_uri_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http raw uri buffer.\n");
