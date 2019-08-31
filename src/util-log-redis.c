@@ -516,7 +516,7 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
         exit(EXIT_FAILURE);
     }
     if (ByteExtractStringInt32(&log_ctx->redis_setup.port, 10, 0, (const char *)redis_port) < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for redis port: '%s'");
+        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for redis port");
         exit(EXIT_FAILURE);
     }
     log_ctx->Close = SCLogFileCloseRedis;

@@ -79,7 +79,7 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
 	long nprocs = -1;
 	const char* envvar = getenv("NUMBER_OF_PROCESSORS");
     if (envvar != NULL) {
-        if (ByteExtractStringInt64(&nprocs, 10, 0, envvar) < 0)
+        if (ByteExtractStringInt64((int64_t *)&nprocs, 10, 0, envvar) < 0)
             nprocs = 0;
     }
     if (nprocs < 1) {
