@@ -952,10 +952,13 @@ void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
 
 void AddressDebugPrint(Address *);
 
-#ifdef AFLFUZZ_DECODER
 typedef int (*DecoderFunc)(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-         uint8_t *pkt, uint32_t len, PacketQueue *pq);
-
+         const uint8_t *pkt, uint32_t len, PacketQueue *pq);
+#ifdef AFLFUZZ_DECODER
+int AFLDecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint32_t len, PacketQueue *pq);
+int AFLDecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint32_t len, PacketQueue *pq);
 int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
 int DecoderParseDataFromFileSerie(char *fileprefix, DecoderFunc Decoder);
 #endif

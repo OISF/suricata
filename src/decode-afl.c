@@ -38,6 +38,16 @@
 #include "flow.h"
 
 #ifdef AFLFUZZ_DECODER
+int AFLDecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+{
+    return DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len, pq);
+}
+int AFLDecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+{
+    return DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len, pq);
+}
 
 /* stateful processing of data as packets. Because AFL in case of a
  * crash will only safe the last input, we dump all the inputs to a
