@@ -24,6 +24,7 @@ Suricata Rules
    kerberos-keywords
    snmp-keywords
    base64-keywords
+   dcerpc-keywords
    app-layer
    xbits
    thresholding

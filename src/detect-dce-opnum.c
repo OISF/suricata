@@ -71,6 +71,8 @@ void DetectDceOpnumRegister(void)
 {
     sigmatch_table[DETECT_DCE_OPNUM].name = "dcerpc.opnum";
     sigmatch_table[DETECT_DCE_OPNUM].alias = "dce_opnum";
+    sigmatch_table[DETECT_DCE_OPNUM].desc = "match DCE/RPC operation number";
+    sigmatch_table[DETECT_DCE_OPNUM].url = DOC_URL DOC_VERSION "/rules/dcerpc-keywords.html#dcerpc-opnum";
     sigmatch_table[DETECT_DCE_OPNUM].AppLayerTxMatch = DetectDceOpnumMatchRust;
     sigmatch_table[DETECT_DCE_OPNUM].Setup = DetectDceOpnumSetup;
     sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
