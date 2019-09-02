@@ -1503,7 +1503,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
         AppProto pm_results[ALPROTO_MAX];
         uint16_t pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
                 buf, buflen, direction, pm_results, reverse_flow);
-        if (pm_matches > 0) {
+        if (pm_matches == 1) {
             alproto = pm_results[0];
 
             /* HACK: if detected protocol is dcerpc/udp, we run PP as well
@@ -1513,6 +1513,9 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
 
             pm_alproto = alproto;
 
+            /* fall through */
+        } else if (pm_matches > 1) {
+            SCLogWarning(SC_WARN_UNCOMMON, "Multiple pattern match for protocol detection : %u", pm_matches);
             /* fall through */
         }
     }
