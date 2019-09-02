@@ -37,38 +37,19 @@ if HAVE_SURICATA_UPDATE
 		--suricata-conf $(DESTDIR)$(sysconfdir)/suricata/suricata.yaml \
 		--no-test --no-reload
 else
-	install -d "$(DESTDIR)$(e_sysconfrulesdir)"
-if HAVE_FETCH_COMMAND
-if HAVE_WGET_COMMAND
-	$(HAVE_WGET) -qO - https://rules.emergingthreats.net/open/suricata-4.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
-else
-	$(HAVE_CURL) -s https://rules.emergingthreats.net/open/suricata-4.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
+	echo "error: rules not installed as suricata-update not available"
+	exit 1
 endif
-else
-	@echo "UNABLE to load ruleset wget or curl are not installed on system."
-endif
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)decoder-events.rules" || install -m 600 "$(top_srcdir)/rules/decoder-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)stream-events.rules" || install -m 600 "$(top_srcdir)/rules/stream-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)smtp-events.rules" || install -m 600 "$(top_srcdir)/rules/smtp-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)http-events.rules" || install -m 600 "$(top_srcdir)/rules/http-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)dns-events.rules" || install -m 600 "$(top_srcdir)/rules/dns-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)tls-events.rules" || install -m 600 "$(top_srcdir)/rules/tls-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)modbus-events.rules" || install -m 600 "$(top_srcdir)/rules/modbus-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)app-layer-events.rules" || install -m 600 "$(top_srcdir)/rules/app-layer-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)dnp3-events.rules" || install -m 600 "$(top_srcdir)/rules/dnp3-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)dhcp-events.rules" || install -m 600 "$(top_srcdir)/rules/dhcp-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)ipsec-events.rules" || install -m 600 "$(top_srcdir)/rules/ipsec-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)kerberos-events.rules" || install -m 600 "$(top_srcdir)/rules/kerberos-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)nfs-events.rules" || install -m 600 "$(top_srcdir)/rules/nfs-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)ntp-events.rules" || install -m 600 "$(top_srcdir)/rules/ntp-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
-	@test -e "$(DESTDIR)$(e_sysconfrulesdir)smb-events.rules" || install -m 600 "$(top_srcdir)/rules/smb-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
 	@echo ""
-	@echo "You can now start suricata by running as root something like '$(DESTDIR)$(bindir)/suricata -c $(DESTDIR)$(e_sysconfdir)/suricata.yaml -i eth0'."
+	@echo "You can now start suricata by running as root something like:"
+	@echo "  $(DESTDIR)$(bindir)/suricata -c $(DESTDIR)$(e_sysconfdir)suricata.yaml -i eth0"
 	@echo ""
 	@echo "If a library like libhtp.so is not found, you can run suricata with:"
-	@echo "'LD_LIBRARY_PATH="$(DESTDIR)$(prefix)/lib" "$(DESTDIR)$(bindir)/suricata" -c "$(DESTDIR)$(e_sysconfdir)/suricata.yaml" -i eth0'."
+	@echo "  LD_LIBRARY_PATH="$(DESTDIR)$(prefix)/lib" "$(DESTDIR)$(bindir)/suricata" -c "$(DESTDIR)$(e_sysconfdir)suricata.yaml" -i eth0"
 	@echo ""
-	@echo "While rules are installed now, it's highly recommended to use a rule manager for maintaining rules."
-	@echo "The three most common are Suricata-Update, Oinkmaster and Pulledpork. For a guide see:"
-	@echo "https://suricata.readthedocs.io/en/latest/rule-management/index.html"
-endif
+	@echo "The Emerging Threats Open rules are now installed. Rules can be"
+	@echo "updated and managed with the suricata-update tool."
+	@echo ""
+	@echo "For more information please see:"
+	@echo "  https://suricata.readthedocs.io/en/latest/rule-management/index.html"
+	@echo ""
