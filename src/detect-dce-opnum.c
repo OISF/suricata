@@ -71,6 +71,8 @@ void DetectDceOpnumRegister(void)
 {
     sigmatch_table[DETECT_DCE_OPNUM].name = "dcerpc.opnum";
     sigmatch_table[DETECT_DCE_OPNUM].alias = "dce_opnum";
+    sigmatch_table[DETECT_DCE_OPNUM].desc = "match DCE/RPC operation number";
+    sigmatch_table[DETECT_DCE_OPNUM].url = DOC_URL DOC_VERSION "/rules/dcerpc-keywords.html#dcerpc-opnum";
     sigmatch_table[DETECT_DCE_OPNUM].AppLayerTxMatch = DetectDceOpnumMatchRust;
     sigmatch_table[DETECT_DCE_OPNUM].Setup = DetectDceOpnumSetup;
     sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
@@ -323,14 +325,14 @@ static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
 static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     if (arg == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dcerpc.opnum option in "
                    "signature, option needs a value");
         return -1;
     }
 
     DetectDceOpnumData *dod = DetectDceOpnumArgParse(arg);
     if (dod == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dcerpc.opnum option in "
                    "signature");
         return -1;
     }
