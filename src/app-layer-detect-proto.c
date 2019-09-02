@@ -1498,12 +1498,13 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
 
     AppProto alproto = ALPROTO_UNKNOWN;
     AppProto pm_alproto = ALPROTO_UNKNOWN;
+    bool rflow = false;
 
     if (!FLOW_IS_PM_DONE(f, direction)) {
         AppProto pm_results[ALPROTO_MAX];
         uint16_t pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
                 buf, buflen, direction, pm_results, reverse_flow);
-        if (pm_matches > 0) {
+        if (pm_matches == 1) {
             alproto = pm_results[0];
 
             /* HACK: if detected protocol is dcerpc/udp, we run PP as well
@@ -1514,11 +1515,37 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
             pm_alproto = alproto;
 
             /* fall through */
+        } else if (pm_matches > 1) {
+            SCLogWarning(SC_WARN_UNCOMMON, "Multiple pattern match for protocol detection : %u", pm_matches);
+            // restrict bitmask to recognized protocols
+            uint32_t * alprotomasks;
+            if (direction & STREAM_TOSERVER) {
+                alprotomasks = &f->probing_parser_toserver_alproto_masks;
+            } else {
+                alprotomasks = &f->probing_parser_toclient_alproto_masks;
+            }
+            uint32_t savedbitmask = alprotomasks[0];
+            alprotomasks[0] = 0xFFFFFFFF;
+            for (size_t i =0; i < pm_matches; i++) {
+                alprotomasks[0] &= ~AppLayerProtoDetectProbingParserGetMask(pm_results[i]);
+            }
+            alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto,
+                                                    direction & (STREAM_TOSERVER|STREAM_TOCLIENT),
+                                                    &rflow);
+            if (AppProtoIsValid(alproto)) {
+                if (rflow) {
+                    *reverse_flow = true;
+                }
+                goto end;
+            }
+            // reset bitmask
+            alprotomasks[0] = savedbitmask;
+            SCLogWarning(SC_WARN_UNCOMMON, "Multiple pattern match and no probing parsers match");
+            /* fall through */
         }
     }
 
     if (!FLOW_IS_PP_DONE(f, direction)) {
-        bool rflow = false;
         alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto,
                 direction & (STREAM_TOSERVER|STREAM_TOCLIENT), &rflow);
         if (AppProtoIsValid(alproto)) {
