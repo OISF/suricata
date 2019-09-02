@@ -358,7 +358,7 @@ static int TCPProtoDetect(ThreadVars *tv,
         /* if protocol detection indicated that we need to reverse
          * the direction of the flow, do it now. We flip the flow,
          * packet and the direction flags */
-        if (reverse_flow) {
+        if (reverse_flow && (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
             SCLogDebug("reversing flow after proto detect told us so");
             PacketSwap(p);
             FlowSwap(f);
