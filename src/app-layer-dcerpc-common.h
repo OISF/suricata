@@ -235,7 +235,7 @@ typedef struct DCERPCUDP_ {
 #define USER_DATA_NOT_READABLE          6 /* not used */
 #define NO_PSAP_AVAILABLE               7 /* not used */
 
-int32_t DCERPCParser(DCERPC *, uint8_t *, uint32_t);
+int32_t DCERPCParser(DCERPC *, const uint8_t *, uint32_t);
 void hexdump(const void *buf, size_t len);
 void printUUID(const char *type, DCERPCUuidEntry *uuid);
 

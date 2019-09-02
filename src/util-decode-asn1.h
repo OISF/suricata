@@ -149,18 +149,18 @@ enum {
 typedef struct Asn1Len_ {
     uint8_t form;
     uint32_t len;
-    uint8_t *ptr;
+    const uint8_t *ptr;
 } Asn1Len;
 
 typedef struct Asn1Id_ {
-    uint8_t *ptr;
+    const uint8_t *ptr;
     uint8_t class_tag;
     uint8_t tag_type;
     uint32_t tag_num;
 } Asn1Id;
 
 typedef struct Asn1Data_ {
-    uint8_t *ptr;
+    const uint8_t *ptr;
     uint32_t len;
     uint8_t type;
 } Asn1Data;
@@ -175,11 +175,11 @@ typedef struct Asn1Node_ {
 } Asn1Node;
 
 typedef struct Asn1Ctx_ {
-    uint8_t *data;
-    uint8_t *end;
+    const uint8_t *data;
+    const uint8_t *end;
     uint16_t len;
 
-    uint8_t *iter;
+    const uint8_t *iter;
 
     uint16_t cur_frame;
     Asn1Node *asn1_stack2[ASN1_MAX_FRAMES];
@@ -203,7 +203,7 @@ typedef struct Asn1Ctx_ {
 void SCPrintByteBin(uint8_t);
 
 Asn1Ctx *SCAsn1CtxNew(void);
-void SCAsn1CtxInit(Asn1Ctx *, uint8_t *, uint16_t);
+void SCAsn1CtxInit(Asn1Ctx *, const uint8_t *, uint16_t);
 void SCAsn1CtxDestroy(Asn1Ctx *);
 
 uint8_t SCAsn1Decode(Asn1Ctx *, uint16_t);

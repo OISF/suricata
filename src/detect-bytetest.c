@@ -93,13 +93,13 @@ void DetectBytetestRegister (void)
  */
 int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
                           const Signature *s, const SigMatchCtx *ctx,
-                          uint8_t *payload, uint32_t payload_len,
+                          const uint8_t *payload, uint32_t payload_len,
                           uint8_t flags, int32_t offset, uint64_t value)
 {
     SCEnter();
 
     const DetectBytetestData *data = (const DetectBytetestData *)ctx;
-    uint8_t *ptr = NULL;
+    const uint8_t *ptr = NULL;
     int32_t len = 0;
     uint64_t val = 0;
     int extbytes;

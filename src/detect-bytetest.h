@@ -68,7 +68,7 @@ typedef struct DetectBytetestData_ {
 void DetectBytetestRegister (void);
 
 int DetectBytetestDoMatch(DetectEngineThreadCtx *, const Signature *,
-                          const SigMatchCtx *ctx, uint8_t *, uint32_t,
+                          const SigMatchCtx *ctx, const uint8_t *, uint32_t,
                           uint8_t, int32_t, uint64_t);
 
 #endif /* __DETECT_BYTETEST_H__ */

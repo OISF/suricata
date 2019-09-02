@@ -194,12 +194,12 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
     pfv->datalink = pcap_datalink(pfv->pcap_handle);
     SCLogDebug("datalink %" PRId32 "", pfv->datalink);
 
-    Decoder temp;
+    DecoderFunc temp;
     TmEcode validated = ValidateLinkType(pfv->datalink, &temp);
     SCReturnInt(validated);
 }
 
-TmEcode ValidateLinkType(int datalink, Decoder *decoder)
+TmEcode ValidateLinkType(int datalink, DecoderFunc *decoder)
 {
     switch (datalink) {
         case LINKTYPE_LINUX_SLL:

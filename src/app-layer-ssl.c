@@ -1363,11 +1363,11 @@ end:
     return 0;
 }
 
-static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
+static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
                                    uint32_t input_len, uint8_t direction)
 {
     void *ptmp;
-    uint8_t *initial_input = input;
+    const uint8_t *initial_input = input;
     uint32_t parsed = 0;
     int rc;
 
@@ -1561,10 +1561,10 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
     }
 }
 
-static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
+static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input,
                                        uint32_t input_len, uint8_t direction)
 {
-    uint8_t *initial_input = input;
+    const uint8_t *initial_input = input;
     int retval;
 
     if (input_len == 0 || ssl_state->curr_connp->bytes_processed ==
@@ -1636,7 +1636,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
  *
  * \retval The number of bytes parsed on success, 0 if nothing parsed, -1 on failure.
  */
-static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
+static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, const uint8_t *input,
                                        uint32_t input_len, uint8_t direction)
 {
     uint8_t hb_type;
@@ -1750,9 +1750,9 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
 }
 
 static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
-                            uint8_t *input, uint32_t input_len)
+                            const uint8_t *input, uint32_t input_len)
 {
-    uint8_t *initial_input = input;
+    const uint8_t *initial_input = input;
 
     if (input_len == 0) {
         return 0;
@@ -1833,9 +1833,9 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
 }
 
 static int SSLv2ParseRecord(uint8_t direction, SSLState *ssl_state,
-                            uint8_t *input, uint32_t input_len)
+                            const uint8_t *input, uint32_t input_len)
 {
-    uint8_t *initial_input = input;
+    const uint8_t *initial_input = input;
 
     if (input_len == 0) {
         return 0;
@@ -1917,11 +1917,11 @@ static int SSLv2ParseRecord(uint8_t direction, SSLState *ssl_state,
 }
 
 static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
-                       AppLayerParserState *pstate, uint8_t *input,
+                       AppLayerParserState *pstate, const uint8_t *input,
                        uint32_t input_len)
 {
     int retval = 0;
-    uint8_t *initial_input = input;
+    const uint8_t *initial_input = input;
 
     if (ssl_state->curr_connp->bytes_processed == 0) {
         if (input[0] & 0x80) {
@@ -2192,7 +2192,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
 }
 
 static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
-                       AppLayerParserState *pstate, uint8_t *input,
+                       AppLayerParserState *pstate, const uint8_t *input,
                        uint32_t input_len)
 {
     int retval = 0;
@@ -2390,7 +2390,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
  * \retval >=0 On success.
  */
 static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserState *pstate,
-                     uint8_t *input, uint32_t ilen)
+                     const uint8_t *input, uint32_t ilen)
 {
     SSLState *ssl_state = (SSLState *)alstate;
     int retval = 0;
@@ -2539,14 +2539,14 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
 }
 
 static int SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-                         uint8_t *input, uint32_t input_len,
+                         const uint8_t *input, uint32_t input_len,
                          void *local_data, const uint8_t flags)
 {
     return SSLDecode(f, 0 /* toserver */, alstate, pstate, input, input_len);
 }
 
 static int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
-                         uint8_t *input, uint32_t input_len,
+                         const uint8_t *input, uint32_t input_len,
                          void *local_data, const uint8_t flags)
 {
     return SSLDecode(f, 1 /* toclient */, alstate, pstate, input, input_len);
@@ -2639,7 +2639,7 @@ static void SSLStateTransactionFree(void *state, uint64_t tx_id)
 }
 
 static AppProto SSLProbingParser(Flow *f, uint8_t direction,
-        uint8_t *input, uint32_t ilen, uint8_t *rdir)
+        const uint8_t *input, uint32_t ilen, uint8_t *rdir)
 {
     /* probably a rst/fin sending an eof */
     if (ilen < 3)

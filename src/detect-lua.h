@@ -57,7 +57,7 @@ typedef struct DetectLuaData {
 void DetectLuaRegister (void);
 int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
-        uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
+        const uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f);
 
 void DetectLuaPostSetup(Signature *s);

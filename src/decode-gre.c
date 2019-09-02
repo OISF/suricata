@@ -43,7 +43,7 @@
  * \brief Function to decode GRE packets
  */
 
-int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
+int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     uint32_t header_len = GRE_HDR_LEN;
     GRESreHdr *gsre = NULL;

@@ -41,7 +41,7 @@
 #include "flow.h"
 #include "app-layer.h"
 
-static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_t len)
 {
     if (unlikely(len < UDP_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, UDP_HLEN_TOO_SMALL);
@@ -63,7 +63,7 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
     SET_UDP_SRC_PORT(p,&p->sp);
     SET_UDP_DST_PORT(p,&p->dp);
 
-    p->payload = pkt + UDP_HEADER_LEN;
+    p->payload = (uint8_t *)pkt + UDP_HEADER_LEN;
     p->payload_len = len - UDP_HEADER_LEN;
 
     p->proto = IPPROTO_UDP;
@@ -71,11 +71,12 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
     return 0;
 }
 
-int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_udp);
 
-    if (unlikely(DecodeUDPPacket(tv, p,pkt,len) < 0)) {
+    if (unlikely(DecodeUDPPacket(tv, p, pkt,len) < 0)) {
         p->udph = NULL;
         return TM_ECODE_FAILED;
     }

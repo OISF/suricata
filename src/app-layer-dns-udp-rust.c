@@ -35,7 +35,7 @@ static void RustDNSUDPParserRegisterTests(void);
 #endif
 
 static int RustDNSUDPParseRequest(Flow *f, void *state,
-        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
     return rs_dns_parse_request(f, state, pstate, input, input_len,
@@ -43,7 +43,7 @@ static int RustDNSUDPParseRequest(Flow *f, void *state,
 }
 
 static int RustDNSUDPParseResponse(Flow *f, void *state,
-        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
     return rs_dns_parse_response(f, state, pstate, input, input_len,
@@ -51,7 +51,7 @@ static int RustDNSUDPParseResponse(Flow *f, void *state,
 }
 
 static uint16_t DNSUDPProbe(Flow *f, uint8_t direction,
-        uint8_t *input, uint32_t len, uint8_t *rdir)
+        const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     if (len == 0 || len < sizeof(DNSHeader)) {
         return ALPROTO_UNKNOWN;

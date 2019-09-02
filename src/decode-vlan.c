@@ -45,7 +45,7 @@
 #include "host.h"
 
 static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        uint8_t *pkt, uint16_t len, PacketQueue *pq);
+        const uint8_t *pkt, uint16_t len, PacketQueue *pq);
 
 /**
  * \internal
@@ -59,7 +59,8 @@ static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
  * \param pq pointer to the packet queue
  *
  */
-int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
+int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     uint32_t proto;
 
@@ -157,7 +158,8 @@ typedef struct IEEE8021ahHdr_ {
 
 #define IEEE8021AH_HEADER_LEN sizeof(IEEE8021ahHdr)
 
-static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_ieee8021ah);
 

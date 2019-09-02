@@ -101,7 +101,7 @@
 int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                                   const Signature *s, const SigMatchData *smd,
                                   Packet *p, Flow *f,
-                                  uint8_t *buffer, uint32_t buffer_len,
+                                  const uint8_t *buffer, uint32_t buffer_len,
                                   uint32_t stream_start_offset, uint8_t flags,
                                   uint8_t inspection_mode)
 {
@@ -141,7 +141,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         /* search for our pattern, checking the matches recursively.
          * if we match we look for the next SigMatch as well */
-        uint8_t *found = NULL;
+        const uint8_t *found = NULL;
         uint32_t offset = 0;
         uint32_t depth = buffer_len;
         uint32_t prev_offset = 0; /**< used in recursive searching */
@@ -266,7 +266,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 }
             }
 
-            uint8_t *sbuffer = buffer + offset;
+            const uint8_t *sbuffer = buffer + offset;
             uint32_t sbuffer_len = depth - offset;
             uint32_t match_offset = 0;
             SCLogDebug("sbuffer_len %"PRIu32, sbuffer_len);
@@ -313,8 +313,9 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                     /* Match branch, add replace to the list if needed */
                     if (cd->flags & DETECT_CONTENT_REPLACE) {
                         if (inspection_mode == DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD) {
-                            /* we will need to replace content if match is confirmed */
-                            det_ctx->replist = DetectReplaceAddToList(det_ctx->replist, found, cd);
+                            /* we will need to replace content if match is confirmed
+                             * cast to non-const as replace writes to it. */
+                            det_ctx->replist = DetectReplaceAddToList(det_ctx->replist, (uint8_t *)found, cd);
                         } else {
                             SCLogWarning(SC_ERR_INVALID_VALUE, "Can't modify payload without packet");
                         }

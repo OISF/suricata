@@ -48,7 +48,7 @@
  * \brief Function to decode IPv4 in IPv6 packets
  *
  */
-static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t plen, PacketQueue *pq)
+static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t plen, PacketQueue *pq)
 {
 
     if (unlikely(plen < IPV4_HEADER_LEN)) {
@@ -76,7 +76,8 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
  * \brief Function to decode IPv6 in IPv6 packets
  *
  */
-static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t plen, PacketQueue *pq)
+static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint16_t plen, PacketQueue *pq)
 {
 
     if (unlikely(plen < IPV6_HEADER_LEN)) {
@@ -101,7 +102,7 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
 #ifndef UNITTESTS // ugly, but we need this in defrag tests
 static inline
 #endif
-void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
+void DecodeIPV6FragHeader(Packet *p, const uint8_t *pkt,
                           uint16_t hdrextlen, uint16_t plen,
                           uint16_t prev_hdrextlen)
 {
@@ -142,11 +143,12 @@ void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
 }
 
 static void
-DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     SCEnter();
 
-    uint8_t *orig_pkt = pkt;
+    const uint8_t *orig_pkt = pkt;
     uint8_t nh = IPV6_GET_NH(p); /* careful, 0 is actually a real type */
     uint16_t hdrextlen = 0;
     uint16_t plen = len;
@@ -246,7 +248,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                     SCReturn;
                 }
 
-                uint8_t *ptr = pkt + 2; /* +2 to go past nxthdr and len */
+                const uint8_t *ptr = pkt + 2; /* +2 to go past nxthdr and len */
 
                 /* point the pointers to right structures
                  * in Packet. */
@@ -554,7 +556,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     SCReturn;
 }
 
-static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
     if (unlikely(len < IPV6_HEADER_LEN)) {
         return -1;
@@ -580,7 +582,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
     return 0;
 }
 
-int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_ipv6);
 

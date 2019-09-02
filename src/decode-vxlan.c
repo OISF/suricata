@@ -116,8 +116,8 @@ typedef struct VXLANHeader_ {
 /** \param pkt payload data directly above UDP header
  *  \param len length in bytes of pkt
  */
-int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
-        uint32_t len, PacketQueue *pq)
+int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     if (unlikely(!g_vxlan_enabled))
         return TM_ECODE_FAILED;

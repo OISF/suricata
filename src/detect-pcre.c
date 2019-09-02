@@ -170,13 +170,13 @@ void DetectPcreRegister (void)
  */
 int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                            const SigMatchData *smd, Packet *p, Flow *f,
-                           uint8_t *payload, uint32_t payload_len)
+                           const uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();
 #define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
-    uint8_t *ptr = NULL;
+    const uint8_t *ptr = NULL;
     uint16_t len = 0;
     uint16_t capture_len = 0;
 

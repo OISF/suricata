@@ -129,7 +129,7 @@
 typedef struct TCPOpt_ {
     uint8_t type;
     uint8_t len;
-    uint8_t *data;
+    const uint8_t *data;
 } TCPOpt;
 
 typedef struct TCPOptSackRecord_ {

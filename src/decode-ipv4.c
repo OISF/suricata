@@ -186,7 +186,7 @@ static int IPV4OptValidateTimestamp(Packet *p, const IPV4Opt *o)
 static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o)
 {
 //    uint32_t doi;
-    uint8_t *tag;
+    const uint8_t *tag;
     uint16_t len;
 
     /* Check length */
@@ -299,7 +299,7 @@ typedef struct IPV4Options_ {
 /**
  * Decode/Validate IPv4 Options.
  */
-static void DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options *opts)
+static void DecodeIPV4Options(Packet *p, const uint8_t *pkt, uint16_t len, IPV4Options *opts)
 {
     uint16_t plen = len;
 
@@ -484,7 +484,7 @@ static void DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options
 
 }
 
-static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeIPV4Packet(Packet *p, const uint8_t *pkt, uint16_t len)
 {
     if (unlikely(len < IPV4_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, IPV4_PKT_TOO_SMALL);
@@ -529,7 +529,8 @@ static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
     return 0;
 }
 
-int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_ipv4);
 

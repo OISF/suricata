@@ -60,12 +60,13 @@ void DecodeTeredoConfig(void)
  *
  * \retval TM_ECODE_FAILED if packet is not a Teredo packet, TM_ECODE_OK if it is
  */
-int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     if (!g_teredo_enabled)
         return TM_ECODE_FAILED;
 
-    uint8_t *start = pkt;
+    const uint8_t *start = pkt;
 
     /* Is this packet to short to contain an IPv6 packet ? */
     if (len < IPV6_HEADER_LEN)

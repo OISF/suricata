@@ -187,7 +187,7 @@ int ICMPv6GetCounterpart(uint8_t type)
  * \retval void No return value
  */
 int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                  uint8_t *pkt, uint32_t len, PacketQueue *pq)
+                 const uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     int full_hdr = 0;
     StatsIncr(tv, dtv->counter_icmpv6);
@@ -203,7 +203,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     p->icmp_s.type = p->icmpv6h->type;
     p->icmp_s.code = p->icmpv6h->code;
     p->payload_len = len - ICMPV6_HEADER_LEN;
-    p->payload = pkt + ICMPV6_HEADER_LEN;
+    p->payload = (uint8_t *)pkt + ICMPV6_HEADER_LEN;
 
     int ctype = ICMPv6GetCounterpart(p->icmp_s.type);
     if (ctype != -1) {
@@ -509,7 +509,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (!full_hdr) {
         if (p->payload_len >= 4) {
             p->payload_len -= 4;
-            p->payload = pkt + 4;
+            p->payload = (uint8_t *)pkt + 4;
         } else {
             p->payload_len = 0;
             p->payload = NULL;

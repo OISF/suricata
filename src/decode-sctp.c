@@ -39,7 +39,7 @@
 #include "util-optimize.h"
 #include "flow.h"
 
-static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
     if (unlikely(len < SCTP_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, SCTP_PKT_TOO_SMALL);
@@ -51,7 +51,7 @@ static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t le
     SET_SCTP_SRC_PORT(p,&p->sp);
     SET_SCTP_DST_PORT(p,&p->dp);
 
-    p->payload = pkt + sizeof(SCTPHdr);
+    p->payload = (uint8_t *)pkt + sizeof(SCTPHdr);
     p->payload_len = len - sizeof(SCTPHdr);
 
     p->proto = IPPROTO_SCTP;
@@ -59,7 +59,8 @@ static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t le
     return 0;
 }
 
-int DecodeSCTP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeSCTP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_sctp);
 

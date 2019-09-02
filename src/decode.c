@@ -73,7 +73,7 @@ const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
 
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        uint8_t *pkt, uint32_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
+        const uint8_t *pkt, uint32_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
@@ -215,7 +215,7 @@ inline int PacketCallocExtPkt(Packet *p, int datalen)
  *  \param Pointer to the data to copy
  *  \param Length of the data to copy
  */
-inline int PacketCopyDataOffset(Packet *p, uint32_t offset, uint8_t *data, uint32_t datalen)
+inline int PacketCopyDataOffset(Packet *p, uint32_t offset, const uint8_t *data, uint32_t datalen)
 {
     if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE)) {
         /* too big */
@@ -256,7 +256,7 @@ inline int PacketCopyDataOffset(Packet *p, uint32_t offset, uint8_t *data, uint3
  *  \param Pointer to the data to copy
  *  \param Length of the data to copy
  */
-inline int PacketCopyData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
+inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
@@ -273,7 +273,7 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
  *  \retval p the pseudo packet or NULL if out of memory
  */
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto,
+                             const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto,
                              PacketQueue *pq)
 {
     int ret;
@@ -346,7 +346,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
  *
  *  \retval p the pseudo packet or NULL if out of memory
  */
-Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint32_t len, uint8_t proto)
+Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, uint8_t proto)
 {
     SCEnter();
 
@@ -650,13 +650,13 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
  *  \param Pointer to the data
  *  \param Length of the data
  */
-inline int PacketSetData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
+inline int PacketSetData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
     if (unlikely(!pktdata)) {
         return -1;
     }
-    p->ext_pkt = pktdata;
+    p->ext_pkt = (uint8_t *)pktdata;
     p->flags |= PKT_ZERO_COPY;
 
     return 0;

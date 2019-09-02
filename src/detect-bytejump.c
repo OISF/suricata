@@ -88,14 +88,14 @@ void DetectBytejumpRegister (void)
  *  \retval 0 no match
  */
 int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
-                          const SigMatchCtx *ctx, uint8_t *payload, uint32_t payload_len,
+                          const SigMatchCtx *ctx, const uint8_t *payload, uint32_t payload_len,
                           uint8_t flags, int32_t offset)
 {
     SCEnter();
 
     const DetectBytejumpData *data = (const DetectBytejumpData *)ctx;
-    uint8_t *ptr = NULL;
-    uint8_t *jumpptr = NULL;
+    const uint8_t *ptr = NULL;
+    const uint8_t *jumpptr = NULL;
     int32_t len = 0;
     uint64_t val = 0;
     int extbytes;
@@ -186,7 +186,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
-        uint8_t *sptr = (flags & DETECT_BYTEJUMP_BEGIN) ? payload : ptr;
+        const uint8_t *sptr = (flags & DETECT_BYTEJUMP_BEGIN) ? payload : ptr;
         SCLogDebug("jumping %" PRId64 " bytes from %p (%08x) to %p (%08x)",
                val, sptr, (int)(sptr - payload),
                jumpptr, (int)(jumpptr - payload));
@@ -203,8 +203,8 @@ static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectBytejumpData *data = (const DetectBytejumpData *)ctx;
-    uint8_t *ptr = NULL;
-    uint8_t *jumpptr = NULL;
+    const uint8_t *ptr = NULL;
+    const uint8_t *jumpptr = NULL;
     uint16_t len = 0;
     uint64_t val = 0;
     int extbytes;
@@ -295,7 +295,7 @@ static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
 
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
-        uint8_t *sptr = (data->flags & DETECT_BYTEJUMP_BEGIN) ? p->payload
+        const uint8_t *sptr = (data->flags & DETECT_BYTEJUMP_BEGIN) ? p->payload
                                                               : ptr;
         SCLogDebug("jumping %" PRId64 " bytes from %p (%08x) to %p (%08x)",
                val, sptr, (int)(sptr - p->payload),

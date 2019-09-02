@@ -33,7 +33,7 @@
 #define MIN_REC_SIZE 32+4 // SMB hdr + nbss hdr
 
 static int SMBTCPParseRequest(Flow *f, void *state,
-        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
     SCLogDebug("SMBTCPParseRequest");
@@ -55,7 +55,7 @@ static int SMBTCPParseRequest(Flow *f, void *state,
 }
 
 static int SMBTCPParseResponse(Flow *f, void *state,
-        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
     SCLogDebug("SMBTCPParseResponse");
@@ -78,7 +78,7 @@ static int SMBTCPParseResponse(Flow *f, void *state,
 }
 
 static uint16_t SMBTCPProbe(Flow *f, uint8_t direction,
-        uint8_t *input, uint32_t len, uint8_t *rdir)
+        const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     SCLogDebug("SMBTCPProbe");
 
@@ -103,7 +103,7 @@ static uint16_t SMBTCPProbe(Flow *f, uint8_t direction,
  *         back to the port numbers for a hint
  */
 static uint16_t SMB3TCPProbe(Flow *f, uint8_t direction,
-        uint8_t *input, uint32_t len, uint8_t *rdir)
+        const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
     SCEnter();
 

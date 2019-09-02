@@ -203,7 +203,7 @@ static AppLayerDecoderEvents *TemplateGetEvents(void *tx)
  *     otherwise ALPROTO_UNKNOWN.
  */
 static AppProto TemplateProbingParserTs(Flow *f, uint8_t direction,
-        uint8_t *input, uint32_t input_len, uint8_t *rdir)
+        const uint8_t *input, uint32_t input_len, uint8_t *rdir)
 {
     /* Very simple test - if there is input, this is template. */
     if (input_len >= TEMPLATE_MIN_FRAME_LEN) {
@@ -225,7 +225,7 @@ static AppProto TemplateProbingParserTs(Flow *f, uint8_t direction,
  *     otherwise ALPROTO_UNKNOWN.
  */
 static AppProto TemplateProbingParserTc(Flow *f, uint8_t direction,
-        uint8_t *input, uint32_t input_len, uint8_t *rdir)
+        const uint8_t *input, uint32_t input_len, uint8_t *rdir)
 {
     /* Very simple test - if there is input, this is template. */
     if (input_len >= TEMPLATE_MIN_FRAME_LEN) {
@@ -238,7 +238,7 @@ static AppProto TemplateProbingParserTc(Flow *f, uint8_t direction,
 }
 
 static int TemplateParseRequest(Flow *f, void *statev,
-    AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+    AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
     TemplateState *state = statev;
@@ -306,7 +306,7 @@ end:
 }
 
 static int TemplateParseResponse(Flow *f, void *statev, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t *input, uint32_t input_len, void *local_data,
     const uint8_t flags)
 {
     TemplateState *state = statev;

@@ -19,7 +19,7 @@
 #define __DECODE_TEREDO_H__
 
 int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                 uint8_t *pkt, uint16_t len, PacketQueue *pq);
+                 const uint8_t *pkt, uint16_t len, PacketQueue *pq);
 void DecodeTeredoConfig(void);
 
 #endif

@@ -54,7 +54,7 @@ void DetectBase64DecodeRegister(void)
 }
 
 int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
-    const SigMatchData *smd, uint8_t *payload, uint32_t payload_len)
+    const SigMatchData *smd, const uint8_t *payload, uint32_t payload_len)
 {
     DetectBase64Decode *data = (DetectBase64Decode *)smd->ctx;
     int decode_len;

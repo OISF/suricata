@@ -64,7 +64,7 @@ typedef struct IPV4Opt_ {
      */
     uint8_t type;         /**< option type */
     uint8_t len;          /**< option length (type+len+data) */
-    uint8_t *data;        /**< option data */
+    const uint8_t *data;  /**< option data */
 } IPV4Opt;
 
 typedef struct IPV4Hdr_

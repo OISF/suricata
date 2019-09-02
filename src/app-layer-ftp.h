@@ -162,7 +162,7 @@ typedef struct FTPTransaction_  {
 
 /** FTP State for app layer parser */
 typedef struct FtpState_ {
-    uint8_t *input;
+    const uint8_t *input;
     int32_t input_len;
     uint8_t direction;
     bool active;
@@ -173,7 +173,7 @@ typedef struct FtpState_ {
 
     /* --parser details-- */
     /** current line extracted by the parser from the call to FTPGetline() */
-    uint8_t *current_line;
+    const uint8_t *current_line;
     /** length of the line in current_line.  Doesn't include the delimiter */
     uint32_t current_line_len;
     uint8_t current_line_delimiter_len;

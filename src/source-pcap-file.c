@@ -410,7 +410,7 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
         FlowWakeupFlowManagerThread();
     }
 
-    Decoder decoder;
+    DecoderFunc decoder;
     if(ValidateLinkType(p->datalink, &decoder) == TM_ECODE_OK) {
 
         /* call the decoder */

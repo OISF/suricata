@@ -240,7 +240,7 @@ uint8_t SCAsn1DecodeLength(Asn1Ctx *ac)
         node->len.len = 0;
         ac->iter++;
 
-        uint8_t *tmp_iter = ac->iter;
+        const uint8_t *tmp_iter = ac->iter;
 
         /* Check that e-o-c is in bounds */
         for (; tmp_iter < ac->end - 1; tmp_iter++) {
@@ -419,7 +419,7 @@ static Asn1Node *SCAsn1CtxNewFrame(Asn1Ctx *ac, uint16_t node)
  *
  * \retval void
  */
-void SCAsn1CtxInit(Asn1Ctx *ac, uint8_t *data, uint16_t length)
+void SCAsn1CtxInit(Asn1Ctx *ac, const uint8_t *data, uint16_t length)
 {
     ac->data = data;
     ac->iter = data;

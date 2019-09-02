@@ -76,8 +76,6 @@ typedef struct PcapFileFileVars_
     PcapFileSharedVars *shared;
 } PcapFileFileVars;
 
-typedef int (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);
-
 /**
  * Dispatch a file for processing, where the information necessary to process that
  * file is as PcapFileFileVars object.
@@ -106,6 +104,6 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv);
  * @param decoder Pointer to decoder to set if valid
  * @return TM_ECODE_OK if valid datalink type and decoder has been set.
  */
-TmEcode ValidateLinkType(int datalink, Decoder *decoder);
+TmEcode ValidateLinkType(int datalink, DecoderFunc *decoder);
 
 #endif /* __SOURCE_PCAP_FILE_HELPER_H__ */

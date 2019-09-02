@@ -44,8 +44,8 @@
 #define MPLS_PROTO_IPV4         4
 #define MPLS_PROTO_IPV6         6
 
-int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
-    uint32_t len, PacketQueue *pq)
+int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     uint32_t shim;
     int label;

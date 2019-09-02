@@ -1154,7 +1154,7 @@ void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx,
 /***** General *****/
 
 int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
-                        uint8_t flags, uint8_t *input, uint32_t input_len)
+                        uint8_t flags, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 #ifdef DEBUG_VALIDATION
@@ -1958,7 +1958,7 @@ typedef struct TestState_ {
  *          parser of occurence of an error.
  */
 static int TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
-                              uint8_t *input, uint32_t input_len,
+                              const uint8_t *input, uint32_t input_len,
                               void *local_data, const uint8_t flags)
 {
     SCEnter();
