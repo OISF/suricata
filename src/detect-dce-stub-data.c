@@ -123,6 +123,16 @@ void DetectDceStubDataRegister(void)
 {
     sigmatch_table[DETECT_DCE_STUB_DATA].name = "dcerpc.stub_data";
     sigmatch_table[DETECT_DCE_STUB_DATA].alias = "dce_stub_data";
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+    sigmatch_table[DETECT_DCE_STUB_DATA].desc = "sticky buffer to match DCE/RPC stub data ";
+    sigmatch_table[DETECT_DCE_STUB_DATA].url = DOC_URL DOC_VERSION "/rules/dcerpc-keywords.html#dcerpc-stub-data";
+>>>>>>> 3e12d8c4f... doc: add dcerpc #4130
+=======
+    sigmatch_table[DETECT_DCE_STUB_DATA].desc = "sticky buffer to match dcerpc stub data ";
+    sigmatch_table[DETECT_DCE_STUB_DATA].url = DOC_URL DOC_VERSION "/rules/dcerpc-keywords.html#dcerpc-stub-data";
+>>>>>>> 3f654fc61... doc: add dcerpc keyword documentation
     sigmatch_table[DETECT_DCE_STUB_DATA].Setup = DetectDceStubDataSetup;
     sigmatch_table[DETECT_DCE_STUB_DATA].RegisterTests = DetectDceStubDataRegisterTests;
     sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;

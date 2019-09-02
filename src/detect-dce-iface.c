@@ -50,7 +50,7 @@
 #include "rust.h"
 #include "rust-smb-detect-gen.h"
 
-#define PARSE_REGEX "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,(<|>|=|!)([0-9]{1,5}))?(?:\\s*,(any_frag))?\\s*$"
+#define PARSE_REGEX "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,\\s*(<|>|=|!)([0-9]{1,5}))?(?:\\s*,\\s*(any_frag))?\\s*$"
 
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
@@ -76,6 +76,16 @@ void DetectDceIfaceRegister(void)
 {
     sigmatch_table[DETECT_DCE_IFACE].name = "dcerpc.iface";
     sigmatch_table[DETECT_DCE_IFACE].alias = "dce_iface";
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+    sigmatch_table[DETECT_DCE_IFACE].desc = "match DCE/RPC interface uuid";
+    sigmatch_table[DETECT_DCE_IFACE].url = DOC_URL DOC_VERSION "/rules/dcerpc-keywords.html#dcerpc-iface";
+>>>>>>> 3e12d8c4f... doc: add dcerpc #4130
+=======
+    sigmatch_table[DETECT_DCE_IFACE].desc = "match dcerpc interface uuid";
+    sigmatch_table[DETECT_DCE_IFACE].url = DOC_URL DOC_VERSION "/rules/dcerpc-keywords.html#dcerpc-iface";
+>>>>>>> 3f654fc61... doc: add dcerpc keyword documentation
     sigmatch_table[DETECT_DCE_IFACE].AppLayerTxMatch = DetectDceIfaceMatchRust;
     sigmatch_table[DETECT_DCE_IFACE].Setup = DetectDceIfaceSetup;
     sigmatch_table[DETECT_DCE_IFACE].Free  = DetectDceIfaceFree;
@@ -379,7 +389,15 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 {
     DetectDceIfaceData *did = DetectDceIfaceArgParse(arg);
     if (did == NULL) {
+<<<<<<< HEAD
+<<<<<<< HEAD
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dec_iface option in "
+=======
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dcerpc.iface option in "
+>>>>>>> 3e12d8c4f... doc: add dcerpc #4130
+=======
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_iface option in "
+>>>>>>> d5c7e656e... detect: regex logic update
                    "signature");
         return -1;
     }
