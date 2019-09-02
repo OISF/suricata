@@ -93,8 +93,12 @@ dcerpc.stub_data
 
 dcerpc.stub_data
 ----------------
+<<<<<<< HEAD
 ``dcerpc.stub_data`` is a sticky buffer that points to the buffer containing 
 >>>>>>> 3f654fc61... doc: add dcerpc keyword documentation
+=======
+``dcerpc.stub_data`` is a sticky buffer that points to the buffer containing
+>>>>>>> 28fb13d6e... quickie
 the DCE/RPC request or response stub data.
 
 Syntax Example::
