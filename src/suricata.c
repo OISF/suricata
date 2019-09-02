@@ -1383,18 +1383,18 @@ static void ParseCommandLineAFL(const char *opt_name, char *opt_arg)
         SpmTableSetup();
         AppLayerProtoDetectSetup();
         if (strcmp(opt_name, "afl-decoder-ipv4") == 0)
-            exit(DecoderParseDataFromFile(opt_arg, DecodeIPV4));
+            exit(DecoderParseDataFromFile(opt_arg, AFLDecodeIPV4));
         else
-            exit(DecoderParseDataFromFileSerie(opt_arg, DecodeIPV4));
+            exit(DecoderParseDataFromFileSerie(opt_arg, AFLDecodeIPV4));
     } else if(strstr(opt_name, "afl-decoder-ipv6") != NULL) {
         StatsInit();
         MpmTableSetup();
         SpmTableSetup();
         AppLayerProtoDetectSetup();
         if (strcmp(opt_name, "afl-decoder-ipv6") == 0)
-            exit(DecoderParseDataFromFile(opt_arg, DecodeIPV6));
+            exit(DecoderParseDataFromFile(opt_arg, AFLDecodeIPV6));
         else
-            exit(DecoderParseDataFromFileSerie(opt_arg, DecodeIPV6));
+            exit(DecoderParseDataFromFileSerie(opt_arg, AFLDecodeIPV6));
     } else if(strstr(opt_name, "afl-decoder-ethernet") != NULL) {
         StatsInit();
         MpmTableSetup();
