@@ -431,7 +431,8 @@ static int DetectHttpServerBodyTest07(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.openinfosecfoundation.org\r\n"
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+        "\r\n"
+        "message";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] =
         "HTTP/1.0 200 ok\r\n"
@@ -489,7 +490,7 @@ static int DetectHttpServerBodyTest07(void)
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START | STREAM_EOF,
+                                STREAM_TOSERVER | STREAM_START,
                                 http_buf1,
                                 http_len1);
     if (r != 0) {
@@ -825,7 +826,7 @@ static int DetectHttpServerBodyTest09(void)
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_EOF, http_buf3,
+                            STREAM_TOCLIENT, http_buf3,
                             http_len3);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
@@ -988,7 +989,7 @@ static int DetectHttpServerBodyTest10(void)
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_EOF, http_buf3,
+                            STREAM_TOCLIENT, http_buf3,
                             http_len3);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
@@ -2556,7 +2557,8 @@ static int DetectHttpServerBodyFileDataTest02(void)
         "GET /index.html HTTP/1.0\r\n"
         "Host: www.openinfosecfoundation.org\r\n"
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+        "\r\n"
+        "message";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] =
         "HTTP/1.0 200 ok\r\n"
@@ -2614,7 +2616,7 @@ static int DetectHttpServerBodyFileDataTest02(void)
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                                STREAM_TOSERVER | STREAM_START | STREAM_EOF,
+                                STREAM_TOSERVER | STREAM_START,
                                 http_buf1,
                                 http_len1);
     if (r != 0) {
@@ -2953,7 +2955,7 @@ static int DetectHttpServerBodyFileDataTest04(void)
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_EOF, http_buf3,
+                            STREAM_TOCLIENT, http_buf3,
                             http_len3);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
@@ -3116,7 +3118,7 @@ static int DetectHttpServerBodyFileDataTest05(void)
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
-                            STREAM_TOCLIENT | STREAM_EOF, http_buf3,
+                            STREAM_TOCLIENT, http_buf3,
                             http_len3);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
