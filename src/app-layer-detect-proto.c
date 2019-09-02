@@ -1506,6 +1506,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
         uint16_t pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
                 buf, buflen, direction, pm_results, reverse_flow);
         if (pm_matches > 0) {
+            DEBUG_VALIDATE_BUG_ON(pm_matches > 1);
             alproto = pm_results[0];
 
             /* HACK: if detected protocol is dcerpc/udp, we run PP as well
