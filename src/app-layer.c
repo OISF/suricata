@@ -616,6 +616,38 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                            data, data_len, flags) != 0) {
             goto failure;
         }
+    } else if (f->alproto_ts != f->alproto_tc &&
+               f->alproto_ts != ALPROTO_UNKNOWN && f->alproto_ts != ALPROTO_FAILED &&
+               f->alproto_tc != ALPROTO_UNKNOWN && f->alproto_tc != ALPROTO_FAILED) {
+        bool reverse_flow = false;
+        AppProto alproto_otherdir = (flags & STREAM_TOSERVER) ? f->alproto_tc : f->alproto_ts;
+
+        //partial reset for protocol detection
+        FLOW_RESET_PM_DONE(f, flags);
+        FLOW_RESET_PP_DONE(f, flags);
+        f->probing_parser_toserver_alproto_masks = 0;
+        f->probing_parser_toclient_alproto_masks = 0;
+
+        //test if we are now agreed with other side
+        AppProto newproto = AppLayerProtoDetectGetProto(app_tctx->alpd_tctx,
+                                                        f, data, data_len,
+                                                        IPPROTO_TCP, flags, &reverse_flow);
+        if (newproto == alproto_otherdir) {
+            //change app layer proto and parse data
+            f->alproto_ts = newproto;
+            f->alproto_tc = newproto;
+            if (f->alproto != newproto) {
+                AppLayerParserStateCleanup(f, f->alstate, f->alparser);
+                f->alstate = NULL;
+                f->alparser = NULL;
+                f->alproto = newproto;
+            }
+        }
+        PACKET_PROFILING_APP_START(app_tctx, f->alproto);
+        r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
+                                flags, data, data_len);
+        PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+        (*stream)->app_progress_rel += data_len;
     } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
         f->alproto_orig = f->alproto;
         SCLogDebug("protocol change, old %s", AppProtoToString(f->alproto_orig));
