@@ -993,7 +993,7 @@ static void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
     rv = recv(t->fd, tv->data, tv->datalen, flag);
 
     if (rv < 0) {
-        if (errno == EINTR || errno == EWOULDBLOCK) {
+        if (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN) {
             /* no error on timeout */
             if (flag)
                 NFQVerdictCacheFlush(t);
