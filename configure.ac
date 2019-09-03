@@ -1655,11 +1655,37 @@
         AC_CHECK_LIB([htp], [htp_decode_query_inplace],AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Found htp_decode_query_inplace function in libhtp]) ,,[-lhtp])
         AC_CHECK_LIB([htp], [htp_config_set_response_decompression_layer_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT],[1],[Found htp_config_set_response_decompression_layer_limit function in libhtp]) ,,[-lhtp])
         AC_EGREP_HEADER(htp_config_set_path_decode_u_encoding, htp/htp.h, AC_DEFINE_UNQUOTED([HAVE_HTP_SET_PATH_DECODE_U_ENCODING],[1],[Found usable htp_config_set_path_decode_u_encoding function in libhtp]) )
+
+        AC_MSG_CHECKING([whether bundled libhtp supports lzma decompression])
+        AC_RUN_IFELSE([AC_LANG_SOURCE([[
+#include <htp/htp.h>
+int main(int argc, char **argv) {
+htp_decompressor_gzip_t * dec = htp_gzip_decompressor_create(NULL, HTP_COMPRESSION_LZMA);
+return dec->passthrough;
+}
+]])],
+            [ AC_MSG_RESULT(yes) ],
+            [ AC_MSG_FAILURE(no) ],
+            [ AC_MSG_RESULT(cross-compiling) ]
+        )
     ])
 
     if test "x$enable_non_bundled_htp" = "xno"; then
         # test if we have a bundled htp
         if test -d "$srcdir/libhtp"; then
+
+            AC_MSG_CHECKING([whether unbundled libhtp supports lzma decompression])
+            tmp_saved_flags=$CPPFLAGS
+            CPPFLAGS="$CPPFLAGS -I $srcdir/libhtp"
+            AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#include <htp/htp_core.h>
+int testLZMA = HTP_COMPRESSION_LZMA;
+]])],
+                [ AC_MSG_RESULT(yes) ],
+                [ AC_MSG_FAILURE(no) ]
+            )
+            CPPFLAGS=$tmp_saved_flags
+
             AC_CONFIG_SUBDIRS([libhtp])
             HTP_DIR="libhtp"
             AC_SUBST(HTP_DIR)
