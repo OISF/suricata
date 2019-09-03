@@ -243,6 +243,7 @@ before_install:
         packages="$packages pcre"
         packages="$packages hiredis"
         packages="$packages jq"
+        packages="$packages xz"
         for package in $packages; do
             if brew ls $package --versions > /dev/null; then
                 brew unlink $package
