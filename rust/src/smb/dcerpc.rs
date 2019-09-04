@@ -360,7 +360,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                         },
                     }
                 }
-                21...255 => {
+                21..=255 => {
                     tx.set_event(SMBEvent::MalformedData);
                 },
                 _ => { }, // valid type w/o special processing
@@ -478,7 +478,7 @@ fn dcerpc_response_handle<'b>(tx: &mut SMBTransaction,
         DCERPC_TYPE_BINDACK => {
             // handled elsewhere
         },
-        21...255 => {
+        21..=255 => {
             if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                 tdn.set_result(dcer.packet_type);
             }
