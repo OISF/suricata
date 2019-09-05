@@ -233,6 +233,7 @@ outputs:
 
         #- dnp3
         - ftp
+        - rdp
         - nfs
         - smb
         - tftp
@@ -785,6 +786,8 @@ app-layer:
     ftp:
       enabled: yes
       # memcap: 64mb
+    rdp:
+      enabled: yes
     ssh:
       enabled: yes
     smtp:
