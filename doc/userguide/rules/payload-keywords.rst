@@ -144,6 +144,24 @@ Example::
 ``startswith`` cannot be mixed with ``depth``, ``offset``, ``within`` or
 ``distance`` for the same pattern.
 
+endswith
+--------
+
+The ``endswith`` keyword is similar to ``isdataat:!1,relative;``. It takes no
+arguments and must follow a ``content`` keyword. It modifies the ``content`` to
+match exactly at the end of a buffer.
+
+Example::
+
+    content:".php"; endswith;
+
+``endswith`` is a short hand notation for::
+
+    content:".php"; isdatat:!1,relative;
+
+``endswith`` cannot be mixed with ``offset``, ``within`` or
+``distance`` for the same pattern.
+
 offset
 ------
 
