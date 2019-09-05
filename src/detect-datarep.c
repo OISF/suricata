@@ -248,9 +248,9 @@ static int SetupLoadPath(const DetectEngineCtx *de_ctx,
     if (SCPathExists(path)) {
         done = true;
         strlcpy(load, path, load_size);
-        SCLogNotice("using path '%s' (HAVE_LIBGEN_H)", load);
+        SCLogDebug("using path '%s' (HAVE_LIBGEN_H)", load);
     } else {
-        SCLogNotice("path '%s' does not exist (HAVE_LIBGEN_H)", path);
+        SCLogDebug("path '%s' does not exist (HAVE_LIBGEN_H)", path);
     }
 #endif
     if (!done) {
@@ -258,13 +258,13 @@ static int SetupLoadPath(const DetectEngineCtx *de_ctx,
         if (loadp == NULL) {
             return -1;
         }
-        SCLogNotice("loadp %s", loadp);
+        SCLogDebug("loadp %s", loadp);
 
         if (SCPathExists(loadp)) {
             strlcpy(load, loadp, load_size);
-            SCLogNotice("using path '%s' (non-HAVE_LIBGEN_H)", load);
+            SCLogDebug("using path '%s' (non-HAVE_LIBGEN_H)", load);
         } else {
-            SCLogNotice("path '%s' does not exist (non-HAVE_LIBGEN_H)", loadp);
+            SCLogDebug("path '%s' does not exist (non-HAVE_LIBGEN_H)", loadp);
         }
         SCFree(loadp);
 
@@ -332,7 +332,7 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     cd->op = op;
     cd->rep.value = value;
 
-    SCLogNotice("cmd %s, name %s",
+    SCLogDebug("cmd %s, name %s",
         cmd_str, strlen(name) ? name : "(none)");
 
     /* Okay so far so good, lets get this into a SigMatch
