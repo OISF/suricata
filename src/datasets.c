@@ -148,8 +148,12 @@ static int DatasetLoadMd5(Dataset *set)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
+    const char *fopen_mode = "r";
+    if (strlen(set->save) > 0 && strcmp(set->save, set->load) == 0) {
+        fopen_mode = "a+";
+    }
 
-    FILE *fp = fopen(set->load, "r");
+    FILE *fp = fopen(set->load, fopen_mode);
     if (fp == NULL) {
         SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s",
                 set->load, strerror(errno));
@@ -213,8 +217,12 @@ static int DatasetLoadSha256(Dataset *set)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
+    const char *fopen_mode = "r";
+    if (strlen(set->save) > 0 && strcmp(set->save, set->load) == 0) {
+        fopen_mode = "a+";
+    }
 
-    FILE *fp = fopen(set->load, "r");
+    FILE *fp = fopen(set->load, fopen_mode);
     if (fp == NULL) {
         SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s",
                 set->load, strerror(errno));
@@ -274,8 +282,12 @@ static int DatasetLoadString(Dataset *set)
         return 0;
 
     SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
+    const char *fopen_mode = "r";
+    if (strlen(set->save) > 0 && strcmp(set->save, set->load) == 0) {
+        fopen_mode = "a+";
+    }
 
-    FILE *fp = fopen(set->load, "r");
+    FILE *fp = fopen(set->load, fopen_mode);
     if (fp == NULL) {
         SCLogError(SC_ERR_DATASET, "fopen '%s' failed: %s",
                 set->load, strerror(errno));
