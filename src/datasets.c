@@ -147,7 +147,7 @@ static int DatasetLoadMd5(Dataset *set)
     if (strlen(set->load) == 0)
         return 0;
 
-    SCLogNotice("dataset: %s loading from '%s'", set->name, set->load);
+    SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
 
     FILE *fp = fopen(set->load, "r");
     if (fp == NULL) {
@@ -166,10 +166,12 @@ static int DatasetLoadMd5(Dataset *set)
 
             uint8_t hash[16];
             if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0)
-                FatalError(SC_ERR_FATAL, "die");
+                FatalError(SC_ERR_FATAL, "bad hash for dataset %s/%s",
+                        set->name, set->load);
 
             if (DatasetAdd(set, (const uint8_t *)hash, 16) < 0)
-                FatalError(SC_ERR_FATAL, "die");
+                FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s",
+                        set->name, set->load);
             cnt++;
 
         /* list with rep data */
@@ -179,25 +181,29 @@ static int DatasetLoadMd5(Dataset *set)
 
             uint8_t hash[16];
             if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0)
-                FatalError(SC_ERR_FATAL, "die: bad hash");
+                FatalError(SC_ERR_FATAL, "bad hash for dataset %s/%s",
+                        set->name, set->load);
 
             DataRepType rep = { .value = 0};
             if (ParseRepLine(line+33, strlen(line)-33, &rep) < 0)
-                FatalError(SC_ERR_FATAL, "die: bad rep");
+                FatalError(SC_ERR_FATAL, "bad rep for dataset %s/%s",
+                        set->name, set->load);
 
             SCLogDebug("rep v:%u", rep.value);
             if (DatasetAddwRep(set, hash, 16, &rep) < 0)
-                FatalError(SC_ERR_FATAL, "die: add failed");
+                FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s",
+                        set->name, set->load);
 
             cnt++;
         }
         else {
-            SCLogNotice("MD5 bad line len %u: %s", (uint32_t)strlen(line), line);
+            FatalError(SC_ERR_FATAL, "MD5 bad line len %u: '%s'",
+                    (uint32_t)strlen(line), line);
         }
     }
 
     fclose(fp);
-    SCLogNotice("dataset: %s loaded %u records", set->name, cnt);
+    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
 
@@ -206,7 +212,7 @@ static int DatasetLoadSha256(Dataset *set)
     if (strlen(set->load) == 0)
         return 0;
 
-    SCLogNotice("dataset: %s loading from '%s'", set->name, set->load);
+    SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
 
     FILE *fp = fopen(set->load, "r");
     if (fp == NULL) {
@@ -225,34 +231,40 @@ static int DatasetLoadSha256(Dataset *set)
 
             uint8_t hash[32];
             if (HexToRaw((const uint8_t *)line, 64, hash, sizeof(hash)) < 0)
-                FatalError(SC_ERR_FATAL, "die");
+                FatalError(SC_ERR_FATAL, "bad hash for dataset %s/%s",
+                        set->name, set->load);
 
             if (DatasetAdd(set, (const uint8_t *)hash, (uint32_t)32) < 0)
-                FatalError(SC_ERR_FATAL, "die");
+                FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s",
+                        set->name, set->load);
             cnt++;
 
             /* list with rep data */
         } else if (strlen(line) > 65 && line[64] == ',') {
             line[strlen(line) - 1] = '\0';
-            SCLogNotice("SHA-256 with REP line: '%s'", line);
+            SCLogDebug("SHA-256 with REP line: '%s'", line);
 
             uint8_t hash[32];
             if (HexToRaw((const uint8_t *)line, 64, hash, sizeof(hash)) < 0)
-                FatalError(SC_ERR_FATAL, "die: bad hash");
+                FatalError(SC_ERR_FATAL, "bad hash for dataset %s/%s",
+                        set->name, set->load);
 
             DataRepType rep = { .value = 0 };
             if (ParseRepLine(line+65, strlen(line)-65, &rep) < 0)
-                FatalError(SC_ERR_FATAL, "die: bad rep");
-            SCLogNotice("rep %u", rep.value);
+                FatalError(SC_ERR_FATAL, "bad rep for dataset %s/%s",
+                        set->name, set->load);
+
+            SCLogDebug("rep %u", rep.value);
 
             if (DatasetAddwRep(set, hash, 32, &rep) < 0)
-                FatalError(SC_ERR_FATAL, "die: add failed");
+                FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s",
+                        set->name, set->load);
             cnt++;
         }
     }
 
     fclose(fp);
-    SCLogNotice("dataset: %s loaded %u records", set->name, cnt);
+    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
 
@@ -261,7 +273,7 @@ static int DatasetLoadString(Dataset *set)
     if (strlen(set->load) == 0)
         return 0;
 
-    SCLogNotice("dataset: %s loading from '%s'", set->name, set->load);
+    SCLogConfig("dataset: %s loading from '%s'", set->name, set->load);
 
     FILE *fp = fopen(set->load, "r");
     if (fp == NULL) {
@@ -284,10 +296,12 @@ static int DatasetLoadString(Dataset *set)
             uint8_t decoded[strlen(line)];
             uint32_t len = DecodeBase64(decoded, (const uint8_t *)line, strlen(line), 1);
             if (len == 0)
-                FatalError(SC_ERR_FATAL, "die: bad base64 encoding");
+                FatalError(SC_ERR_FATAL, "bad base64 encoding %s/%s",
+                        set->name, set->load);
 
             if (DatasetAdd(set, (const uint8_t *)decoded, len) < 0)
-                FatalError(SC_ERR_FATAL, "die");
+                FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s",
+                        set->name, set->load);
             cnt++;
         } else {
             line[strlen(line) - 1] = '\0';
@@ -298,26 +312,28 @@ static int DatasetLoadString(Dataset *set)
             uint8_t decoded[strlen(line)];
             uint32_t len = DecodeBase64(decoded, (const uint8_t *)line, strlen(line), 1);
             if (len == 0)
-                FatalError(SC_ERR_FATAL, "die: bad base64 encoding");
+                FatalError(SC_ERR_FATAL, "bad base64 encoding %s/%s",
+                        set->name, set->load);
 
             r++;
-            SCLogNotice("r '%s'", r);
+            SCLogDebug("r '%s'", r);
 
             DataRepType rep = { .value = 0 };
             if (ParseRepLine(r, strlen(r), &rep) < 0)
                 FatalError(SC_ERR_FATAL, "die: bad rep");
-            SCLogNotice("rep %u", rep.value);
+            SCLogDebug("rep %u", rep.value);
 
             if (DatasetAddwRep(set, (const uint8_t *)decoded, len, &rep) < 0)
-                FatalError(SC_ERR_FATAL, "die: insert failed");
+                FatalError(SC_ERR_FATAL, "dataset data add failed %s/%s",
+                        set->name, set->load);
             cnt++;
 
-            SCLogNotice("line with rep %s, %s", line, r);
+            SCLogDebug("line with rep %s, %s", line, r);
         }
     }
 
     fclose(fp);
-    SCLogNotice("dataset: %s loaded %u records", set->name, cnt);
+    SCLogConfig("dataset: %s loaded %u records", set->name, cnt);
     return 0;
 }
 
@@ -343,7 +359,7 @@ static void DatasetGetPath(const char *in_path,
 
     const char *data_dir = ConfigGetDataDirectory();
     if ((ret = stat(data_dir, &st)) != 0) {
-        SCLogNotice("data-dir '%s': %s", data_dir, strerror(errno));
+        SCLogDebug("data-dir '%s': %s", data_dir, strerror(errno));
         return;
     }
 
@@ -351,14 +367,14 @@ static void DatasetGetPath(const char *in_path,
 
     if (type == TYPE_LOAD) {
         if ((ret = stat(path, &st)) != 0) {
-            SCLogNotice("path %s: %s", path, strerror(errno));
+            SCLogDebug("path %s: %s", path, strerror(errno));
             if (!g_system) {
                 snprintf(path, sizeof(path), "%s", in_path);
             }
         }
     }
     strlcpy(out_path, path, out_size);
-    SCLogNotice("in_path \'%s\' => \'%s\'", in_path, out_path);
+    SCLogDebug("in_path \'%s\' => \'%s\'", in_path, out_path);
 }
 
 /** \brief look for set by name without creating it */
@@ -383,7 +399,8 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
     Dataset *set = DatasetSearchByName(name);
     if (set) {
         if (type != DATASET_TYPE_NOTSET && set->type != type) {
-            SCLogNotice("dataset %s already exists and is of type %u",
+            SCLogError(SC_ERR_DATASET, "dataset %s already "
+                    "exists and is of type %u",
                 set->name, set->type);
             goto out_err;
         }
@@ -532,26 +549,26 @@ int DatasetsInit(void)
             char conf_str[1024];
             snprintf(conf_str, sizeof(conf_str), "datasets.%d.%s", list_pos, set_name);
 
-            SCLogNotice("(%d) set %s type %s. Conf %s", n, set_name, set_type->val, conf_str);
+            SCLogDebug("(%d) set %s type %s. Conf %s", n, set_name, set_type->val, conf_str);
 
             if (strcmp(set_type->val, "md5") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_MD5, save, load);
                 if (dset == NULL)
-                    FatalError(SC_ERR_FATAL, "die: no dset for %s", set_name);
-                SCLogNotice("dataset %s: id %d type %s", set_name, n, set_type->val);
+                    FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
+                SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
                 n++;
 
             } else if (strcmp(set_type->val, "sha256") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_SHA256, save, load);
                 if (dset == NULL)
-                    FatalError(SC_ERR_FATAL, "die: no dset for %s", set_name);
-                SCLogNotice("dataset %s: id %d type %s", set_name, n, set_type->val);
+                    FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
+                SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
                 n++;
 
             } else if (strcmp(set_type->val, "string") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_STRING, save, load);
                 if (dset == NULL)
-                    FatalError(SC_ERR_FATAL, "die: no dset for %s", set_name);
+                    FatalError(SC_ERR_FATAL, "failed to setup dataset for %s", set_name);
                 SCLogDebug("dataset %s: id %d type %s", set_name, n, set_type->val);
                 n++;
             }
@@ -559,7 +576,7 @@ int DatasetsInit(void)
             list_pos++;
         }
     }
-    SCLogNotice("datasets done: %p", datasets);
+    SCLogDebug("datasets done: %p", datasets);
     return 0;
 }
 
@@ -620,7 +637,7 @@ static int Sha256AsAscii(const void *s, char *out, size_t out_size)
 
 void DatasetsSave(void)
 {
-    SCLogNotice("saving datasets: %p", sets);
+    SCLogDebug("saving datasets: %p", sets);
     SCMutexLock(&sets_lock);
     Dataset *set = sets;
     while (set) {
@@ -631,7 +648,7 @@ void DatasetsSave(void)
         if (fp == NULL)
             goto next;
 
-        SCLogNotice("dumping %s to %s", set->name, set->save);
+        SCLogDebug("dumping %s to %s", set->name, set->save);
 
         switch (set->type) {
             case DATASET_TYPE_STRING:
