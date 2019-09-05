@@ -1,18 +1,19 @@
 ruledir = $(datadir)/suricata/rules
 
 dist_rule_DATA = \
-decoder-events.rules \
-stream-events.rules \
-smtp-events.rules \
-http-events.rules \
-dns-events.rules \
-tls-events.rules \
-modbus-events.rules \
 app-layer-events.rules \
-files.rules \
+decoder-events.rules \
+dhcp-events.rules \
 dnp3-events.rules \
-ntp-events.rules \
-nfs-events.rules \
-smb-events.rules \
+dns-events.rules \
+files.rules \
+http-events.rules \
 ipsec-events.rules \
-kerberos-events.rules
+kerberos-events.rules \
+modbus-events.rules \
+nfs-events.rules \
+ntp-events.rules \
+smb-events.rules \
+smtp-events.rules \
+stream-events.rules \
+tls-events.rules
