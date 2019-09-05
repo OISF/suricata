@@ -1032,3 +1032,190 @@ Example ::
     "reason": "timeout",
     "alerted": false
   }
+
+Event type: RDP
+---------------
+
+Initial negotiations between RDP client and server are stored as transactions and logged.
+
+Each RDP record contains a per-flow incrementing "tx_id" field.
+
+The "event_type" field indicates an RDP event subtype. Possible values:
+
+* "initial_request"
+* "initial_response"
+* "connect_request"
+* "connect_response"
+* "tls_handshake"
+
+RDP type: Initial Request
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The optional "cookie" field is a string identifier the RDP client has chosen to provide.
+
+The optional "flags" field is a list of client directives. Possible values:
+
+* "restricted_admin_mode_required"
+* "redirected_authentication_mode_required"
+* "correlation_info_present"
+
+RDP type: Initial Response
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the event of a standard initial response:
+
+The "protocol" field is the selected protocol. Possible values:
+
+* "rdp"
+* "ssl"
+* "hybrid"
+* "rds_tls"
+* "hybrid_ex"
+
+The optional "flags" field is a list of support server modes. Possible values:
+
+* "extended_client_data"
+* "dynvc_gfx"
+* "restricted_admin"
+* "redirected_authentication"
+
+Alternatively, in the event of an error-indicating initial response:
+
+There will be no "protocol" or "flags" fields.
+
+The "error_code" field will contain the numeric code provided by the RDP server.
+
+The "reason" field will contain a text summary of this code. Possible values:
+
+* "ssl required by server" (error code 0x1)
+* "ssl not allowed by server" (error code 0x2)
+* "ssl cert not on server" (error code 0x3)
+* "inconsistent flags" (error code 0x4)
+* "hybrid required by server" (error code 0x5)
+* "ssl with user auth required by server" (error code 0x6)
+
+RDP type: Connect Request
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The optional "channel" field is a list of requested data channel names.
+
+Common channels:
+
+* "rdpdr" (device redirection)
+* "cliprdr" (shared clipboard)
+* "rdpsnd" (sound)
+
+The optional "client" field is a sub-object that may contain the following:
+
+* "version": RDP protocol version. Possible values are "v4", "v5", "v10.0", "v10.1", "v10.2", "v10.3", "v10.4", "v10.5", "v10.6", "v10.7", "unknown".
+* "desktop_width": Numeric desktop width value.
+* "desktop_height": Numeric desktop height value.
+* "color_depth": Numeric color depth. Possible values are 4, 8, 15, 16, 24.
+* "keyboard_layout": Locale identifier name, e.g., "en-US".
+* "build": OS and SP level, e.g., "Windows XP", "Windows 7 SP1".
+* "client_name": Client computer name.
+* "keyboard_type": Possible values are "xt", "ico", "at", "enhanced", "1050", "9140", "jp".
+* "keyboard_subtype": Numeric code for keyboard.
+* "function_keys": Number of function keys on client keyboard.
+* "ime": Input method editor (IME) file name.
+* "product_id": Product id string.
+* "serial_number": Numeric value.
+* "capabilities": List of any of the following: "support_errinfo_pdf", "want_32bpp_session", "support_statusinfo_pdu", "strong_asymmetric_keys", "valid_connection_type", "support_monitor_layout_pdu", "support_netchar_autodetect", "support_dynvc_gfx_protocol", "support_dynamic_time_zone", "support_heartbeat_pdu".
+* "id": Client product id string.
+* "connection_hint": Possible values are "modem", "low_broadband", "satellite", "high_broadband", "wan", "lan", "autodetect".
+* "physical_width": Numeric phyical width of display.
+* "physical_height": Numeric physical height of display.
+* "desktop_orientation": Numeric angle of orientation.
+* "scale_factor": Numeric scale factor of desktop.
+* "device_scale_factor": Numeric scale factor of display.
+
+RDP type: Connect Response
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With this event, the initial RDP negotiation is complete in terms of tracking and logging.
+
+RDP type: TLS Handshake
+~~~~~~~~~~~~~~~~~~~~~~~
+
+With this event, the initial RDP negotiation is complete in terms of tracking and logging.
+
+The session will use TLS encryption.
+
+The "x509_serials" field is a list of observed certificate serial numbers, e.g., "16ed2aa0495f259d4f5d99edada570d1".
+
+Examples
+~~~~~~~~
+
+RDP logging:
+
+::
+
+  "rdp": {
+    "tx_id": 0,
+    "event_type": "initial_request",
+    "cookie": "A70067"
+  }
+
+  "rdp": {
+    "tx_id": 1,
+    "event_type": "initial_response"
+  }
+
+  "rdp": {
+    "tx_id": 2,
+    "event_type": "connect_request",
+    "client": {
+      "version": "v5",
+      "desktop_width": 1152,
+      "desktop_height": 864,
+      "color_depth": 15,
+      "keyboard_layout": "en-US",
+      "build": "Windows XP",
+      "client_name": "ISD2-KM84178",
+      "keyboard_type": "enhanced",
+      "function_keys": 12,
+      "product_id": 1,
+      "capabilities": [
+        "support_errinfo_pdf"
+      ],
+      "id": "55274-OEM-0011903-00107"
+    },
+    "channels": [
+      "rdpdr",
+      "cliprdr",
+      "rdpsnd"
+    ]
+  }
+
+  "rdp": {
+    "tx_id": 3,
+    "event_type": "connect_response"
+  }
+
+
+RDP logging, with transition to TLS:
+
+::
+
+  "rdp": {
+    "tx_id": 0,
+    "event_type": "initial_request",
+    "cookie": "AWAKECODI"
+  }
+
+  "rdp": {
+    "tx_id": 1,
+    "event_type": "initial_response",
+    "server_supports": [
+      "extended_client_data"
+    ],
+    "protocol": "hybrid"
+  }
+
+  "rdp": {
+    "tx_id": 2,
+    "event_type": "tls_handshake",
+    "x509_serials": [
+      "16ed2aa0495f259d4f5d99edada570d1"
+    ]
+  }

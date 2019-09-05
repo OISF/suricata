@@ -53,6 +53,7 @@ enum AppProtoEnum {
     ALPROTO_SNMP,
     ALPROTO_TEMPLATE,
     ALPROTO_TEMPLATE_RUST,
+    ALPROTO_RDP,
 
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
