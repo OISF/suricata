@@ -8,7 +8,7 @@ For example, to match against a dns black list called ``dns-bl``::
 
     dns.query; dataset:isset,dns-bl;
 
-These keywords are aware of transforms. So to look up a DNS query again
+These keywords are aware of transforms. So to look up a DNS query against
 a MD5 black list::
 
     dns.query; to_md5; dataset:isset,dns-bl;
@@ -53,11 +53,13 @@ Syntax::
 type <type>
   the data type: string, md5, sha256
 save <file name>
-  file name for saving the in memory data when Suricata exits
+  file name for saving the in-memory data when Suricata exits
 load <file name>
   file name for load the data when Suricata starts up
 state
   sets both 'save' and 'load' to the same value
+
+.. note:: 'load' or 'load' plus 'save' and 'state' cannot be mixed.
 
 datarep
 ~~~~~~~
