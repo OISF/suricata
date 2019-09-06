@@ -955,6 +955,9 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
         uint8_t supported_ver_len = *input;
         input += 1;
 
+        if (supported_ver_len < 2)
+            goto invalid_length;
+
         if (!(HAS_SPACE(supported_ver_len)))
             goto invalid_length;
 
@@ -1018,6 +1021,9 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
         /* coverity[tainted_data] */
         while (ec_processed_len < elliptic_curves_len)
         {
+            if (!(HAS_SPACE(2)))
+                goto invalid_length;
+
             uint16_t elliptic_curve = *input << 8 | *(input + 1);
             input += 2;
 
