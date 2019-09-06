@@ -2079,7 +2079,7 @@
             fi
 
             AC_DEFINE([HAVE_GEOIP],[1],[libmaxminddb available])
-            enable_geoip="yes"
+            enable_geoip="yes, libmaxminddb"
         else
             if test "$with_libgeoip_libraries" != "no"; then
                 LDFLAGS="${LDFLAGS} -L${with_libgeoip_libraries}"
@@ -2095,7 +2095,7 @@
             fi
             AC_DEFINE([HAVE_GEOIP],[1],[libgeoip available])
             AC_DEFINE([HAVE_LIBGEOIP],[1],[using old libgeoip])
-            enable_geoip="yes"
+            enable_geoip="yes, legacy libgeoip"
         fi
     fi
 
