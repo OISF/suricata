@@ -1549,9 +1549,6 @@
     # Assume suircata-update will not be installed.
     have_suricata_update="no"
     ruledirprefix="$sysconfdir"
-    no_suricata_update_comment="#"
-    has_suricata_update_comment=""
-    suricata_update_rule_files="suricata-update-rule-files"
 
     if test "$enable_suricata_update" = "yes"; then
       AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
@@ -1576,8 +1573,6 @@
             AC_CONFIG_FILES(suricata-update/Makefile)
             AC_OUTPUT
             ruledirprefix="$localstatedir/lib"
-            no_suricata_update_comment=""
-            has_suricata_update_comment="#"
 	fi
     fi
 
@@ -2508,7 +2503,6 @@ if test "$WINDOWS_PATH" = "yes"; then
     esac
 
     e_sysconfdir="${e_winbase}\\\\"
-    e_sysconfrulesdir="$e_winbase\\\\rules\\\\"
     e_defaultruledir="$e_winbase\\\\rules\\\\"
     e_magic_file="$e_winbase\\\\magic.mgc"
     e_logdir="$e_winbase\\\\log"
@@ -2529,7 +2523,6 @@ else
     EXPAND_VARIABLE(localstatedir, e_logfilesdir, "/log/suricata/files")
     EXPAND_VARIABLE(localstatedir, e_logcertsdir, "/log/suricata/certs")
     EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
-    EXPAND_VARIABLE(sysconfdir, e_sysconfrulesdir, "/suricata/rules")
     EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
     EXPAND_VARIABLE(datadir, e_datarulesdir, "/suricata/rules")
     EXPAND_VARIABLE(localstatedir, e_datadir, "/lib/suricata/data")
@@ -2544,7 +2537,6 @@ AC_SUBST(e_logfilesdir)
 AC_SUBST(e_logcertsdir)
 AC_SUBST(e_sysconfdir)
 AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
-AC_SUBST(e_sysconfrulesdir)
 AC_SUBST(e_localstatedir)
 AC_DEFINE_UNQUOTED([DATA_DIR],["$e_datadir"],[Our DATA_DIR])
 AC_SUBST(e_magic_file)
@@ -2553,8 +2545,6 @@ AC_SUBST(e_enable_evelog)
 AC_SUBST(e_datarulesdir)
 AC_SUBST(e_defaultruledir)
 AC_SUBST(e_rustdir)
-AC_SUBST(has_suricata_update_comment)
-AC_SUBST(no_suricata_update_comment)
 
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
 EXPAND_VARIABLE(sysconfdir, CONFIGURE_SYSCONDIR)
