@@ -2085,14 +2085,6 @@
                 LDFLAGS="${LDFLAGS} -L${with_libgeoip_libraries}"
             fi
             AC_CHECK_LIB(GeoIP, GeoIP_country_code_by_ipnum,, GEOIP="no")
-            if test "$GEOIP" = "no"; then
-                echo "   ERROR!  libgeoip library not found, go get it"
-                echo "   from http://www.maxmind.com/en/geolite or your distribution:"
-                echo
-                echo "   Ubuntu: apt-get install libgeoip-dev"
-                echo "   Fedora: dnf install GeoIP-devel"
-                echo "   CentOS/RHEL: yum install GeoIP-devel"
-            fi
             AC_DEFINE([HAVE_GEOIP],[1],[libgeoip available])
             AC_DEFINE([HAVE_LIBGEOIP],[1],[using old libgeoip])
             enable_geoip="yes, legacy libgeoip"
