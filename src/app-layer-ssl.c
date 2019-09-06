@@ -146,7 +146,7 @@ SslConfig ssl_config;
 
 #define SHA1_STRING_LENGTH             60
 
-#define HAS_SPACE(n) ((uint64_t)(input - initial_input) + (uint64_t)(n) > (uint64_t)(input_len)) ?  0 : 1
+#define HAS_SPACE(n) ((uint64_t)(input - initial_input) + (uint64_t)(n) <= (uint64_t)(input_len))
 
 static void SSLParserReset(SSLState *ssl_state)
 {
@@ -755,7 +755,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
                                            const uint8_t * const initial_input,
                                            const uint32_t input_len)
 {
-    uint8_t *input = (uint8_t *)initial_input;
+    const uint8_t *input = initial_input;
 
     if (!(HAS_SPACE(2)))
         goto invalid_length;
@@ -780,8 +780,6 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
     }
 
     if (ssl_config.enable_ja3) {
-        int rc;
-
         JA3Buffer *ja3_cipher_suites = Ja3BufferInit();
         if (ja3_cipher_suites == NULL)
             return -1;
@@ -799,7 +797,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
             input += 2;
 
             if (TLSDecodeValueIsGREASE(cipher_suite) != 1) {
-                rc = Ja3BufferAddValue(&ja3_cipher_suites, cipher_suite);
+                int rc = Ja3BufferAddValue(&ja3_cipher_suites, cipher_suite);
                 if (rc != 0) {
                     return -1;
                 }
@@ -808,7 +806,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
             processed_len += 2;
         }
 
-        rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str,
+        int rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str,
                                    &ja3_cipher_suites);
         if (rc == -1) {
             return -1;
@@ -832,7 +830,7 @@ static inline int TLSDecodeHSHelloCompressionMethods(SSLState *ssl_state,
                                            const uint8_t * const initial_input,
                                            const uint32_t input_len)
 {
-    uint8_t *input = (uint8_t *)initial_input;
+    const uint8_t *input = initial_input;
 
     if (!(HAS_SPACE(1)))
         goto invalid_length;
@@ -921,7 +919,6 @@ static inline int TLSDecodeHSHelloExtensionSni(SSLState *ssl_state,
 
     size_t sni_strlen = sni_len + 1;
     ssl_state->curr_connp->sni = SCMalloc(sni_strlen);
-
     if (unlikely(ssl_state->curr_connp->sni == NULL))
         return -1;
 
@@ -945,7 +942,7 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
                                              const uint8_t * const initial_input,
                                              const uint32_t input_len)
 {
-    uint8_t *input = (uint8_t *)initial_input;
+    const uint8_t *input = initial_input;
 
     /* Empty extension */
     if (input_len == 0)
@@ -969,7 +966,6 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
 
         input += supported_ver_len;
     }
-
     else if (ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) {
         if (!(HAS_SPACE(2)))
             goto invalid_length;
@@ -1000,7 +996,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
                                           const uint32_t input_len,
                                           JA3Buffer *ja3_elliptic_curves)
 {
-    uint8_t *input = (uint8_t *)initial_input;
+    const uint8_t *input = initial_input;
 
     /* Empty extension */
     if (input_len == 0)
@@ -1054,7 +1050,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurvePF(SSLState *ssl_state,
                                             const uint32_t input_len,
                                             JA3Buffer *ja3_elliptic_curves_pf)
 {
-    uint8_t *input = (uint8_t *)initial_input;
+    const uint8_t *input = initial_input;
 
     /* Empty extension */
     if (input_len == 0)
@@ -1107,7 +1103,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
                                          const uint8_t * const initial_input,
                                          const uint32_t input_len)
 {
-    uint8_t *input = (uint8_t *)initial_input;
+    const uint8_t *input = initial_input;
 
     int ret;
     int rc;
