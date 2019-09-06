@@ -2037,6 +2037,9 @@
 	        AS_HELP_STRING([--enable-geoip],[Enable GeoIP support]),
 	        [ enable_geoip="yes"],
 	        [ enable_geoip="no"])
+    AC_ARG_ENABLE(libgeoip,
+        AS_HELP_STRING([--disable-libgeoip], [Disable libgeoip support]),
+        [enable_libgeoip="$enableval"], [enable_libgeoip=yes])
     AC_ARG_WITH(libgeoip_includes,
             [  --with-libgeoip-includes=DIR  libgeoip include directory],
             [with_libgeoip_includes="$withval"],[with_libgeoip_includes="no"])
@@ -2057,7 +2060,11 @@
         if test "$with_libmaxminddb_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_libmaxminddb_includes}"
         fi
-        AC_CHECK_HEADER(GeoIP.h,GEOIP="yes",GEOIP="no")
+        if test "$enable_libgeoip" != "no"; then
+            AC_CHECK_HEADER(GeoIP.h,GEOIP="yes",GEOIP="no")
+        else
+            GEOIP="no"
+        fi
         if test "$GEOIP" = "no"; then
             AC_CHECK_HEADER(maxminddb.h,GEOIP="yes",GEOIP="no")
             if test "$GEOIP" = "yes"; then
