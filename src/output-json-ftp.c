@@ -70,8 +70,8 @@ static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
     }
 
     /* Preallocate array objects to simplify failure case */
-    json_t *js_resplist;
-    json_t *js_respcode_list;
+    json_t *js_resplist = NULL;
+    json_t *js_respcode_list = NULL;
     if (!TAILQ_EMPTY(&tx->response_list)) {
         js_resplist = json_array();
         js_respcode_list = json_array();
