@@ -33,10 +33,6 @@
 #include "rust-rdp-rdp-gen.h"
 
 void RegisterRdpParsers(void) {
-    /* only register if enabled in config */
-    if (ConfGetNode("app-layer.protocols.rdp") == NULL) {
-        return;
-    }
     SCLogDebug("Registering rdp parser");
     rs_rdp_register_parser();
 }

@@ -786,8 +786,9 @@ app-layer:
     ftp:
       enabled: yes
       # memcap: 64mb
+    # RDP, disabled by default.
     rdp:
-      enabled: yes
+      #enabled: no
     ssh:
       enabled: yes
     smtp:

@@ -22,6 +22,7 @@
 use core::{
     self, AppProto, DetectEngineState, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP,
 };
+use conf;
 use nom;
 use parser::*;
 use rdp::parser::*;
@@ -531,6 +532,12 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         get_files: None,
         get_tx_iterator: None,
     };
+
+    /* For 5.0 we want this disabled by default, so check that it
+     * has been explicitly enabled. */
+    if !conf::conf_get_bool("app-layer.protocols.rdp.enabled") {
+        return;
+    }
 
     let ip_proto_str = std::ffi::CString::new("tcp").unwrap();
 
