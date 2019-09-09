@@ -1194,10 +1194,16 @@ anomalies in streams. See :ref:`host-os-policy`.
     async_oneside: false         # do not enable async stream handling
     inline: no                   # stream inline mode
     drop-invalid: yes            # drop invalid packets
+    bypass: no
 
-The 'drop-invalid' option can be set to no to avoid blocking packets that are
+The ``drop-invalid`` option can be set to no to avoid blocking packets that are
 seen invalid by the streaming engine. This can be useful to cover some weird cases
 seen in some layer 2 IPS setup.
+
+The ``bypass`` option activates 'bypass' for a flow/session when either side
+of the session reaches its ``depth``.
+
+.. warning:: ``bypass`` can lead to missing important traffic. Use with care.
 
 **Example 11   Normal/IDS mode**
 
