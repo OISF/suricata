@@ -117,22 +117,19 @@ static OutputInitResult OutputRdpLogInitSub(ConfNode *conf,
     return result;
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
-
 static TmEcode JsonRdpLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
+    if (initdata == NULL) {
+        SCLogDebug("Error getting context for EveLogRdp. \"initdata\" is NULL.");
+        return TM_ECODE_FAILED;
+    }
+
     LogRdpLogThread *thread = SCCalloc(1, sizeof(*thread));
     if (unlikely(thread == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    if (initdata == NULL) {
-        SCLogDebug("Error getting context for EveLogRdp.  \"initdata\" is NULL.");
-        SCFree(thread);
-        return TM_ECODE_FAILED;
-    }
-
-    thread->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    thread->buffer = MemBufferCreateNew(JSON_OUTPUT_BUFFER_SIZE);
     if (unlikely(thread->buffer == NULL)) {
         SCFree(thread);
         return TM_ECODE_FAILED;
