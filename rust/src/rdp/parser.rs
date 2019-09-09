@@ -53,7 +53,7 @@ fn desktop_scale_to_opt(x: u32) -> Option<u32> {
     }
 }
 
-/// constrains device scale to a range, per spec
+/// constrains device scale to a set of valid values, per spec
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
 fn device_scale_to_opt(x: u32) -> Option<u32> {
     if x == 100 || x == 140 || x == 180 {
