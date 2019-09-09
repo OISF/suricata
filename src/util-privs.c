@@ -60,6 +60,9 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 
     capng_clear(CAPNG_SELECT_BOTH);
 
+    /* Preserve ability to read configuration files or create log files or UNIX sockets */
+    capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED, CAP_DAC_OVERRIDE, -1);
+
     switch (run_mode) {
         case RUNMODE_PCAP_DEV:
         case RUNMODE_AFP_DEV:
