@@ -27,6 +27,7 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-cpu.h"
+#include "util-byte.h"
 
 /**
  * Ok, if they should use sysconf, check that they have the macro's
@@ -75,9 +76,12 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
 
     return (uint16_t)nprocs;
 #elif OS_WIN32
-	long nprocs = -1;
-	const char* envvar = getenv("NUMBER_OF_PROCESSORS");
-	nprocs = (NULL != envvar) ? atoi(envvar) : 0;
+    int64_t nprocs = -1;
+    const char* envvar = getenv("NUMBER_OF_PROCESSORS");
+    if (envvar != NULL) {
+        if (ByteExtractStringInt64(&nprocs, 10, 0, envvar) < 0)
+            nprocs = 0;
+    }
     if (nprocs < 1) {
         SCLogError(SC_ERR_SYSCALL, "Couldn't retrieve the number of cpus "
                    "configured from the NUMBER_OF_PROCESSORS environment variable");
