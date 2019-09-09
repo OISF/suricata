@@ -4703,6 +4703,25 @@ static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
     return 0;
 }
 
+static inline void HandleThreadId(ThreadVars *tv, Packet *p, StreamTcpThread *stt)
+{
+    const int idx = (!(PKT_IS_TOSERVER(p)));
+
+    /* assign the thread id to the flow */
+    if (unlikely(p->flow->thread_id[idx] == 0)) {
+        p->flow->thread_id[idx] = (FlowThreadId)tv->id;
+    } else if (unlikely((FlowThreadId)tv->id != p->flow->thread_id[idx])) {
+        SCLogDebug("wrong thread: flow has %u, we are %d", p->flow->thread_id[idx], tv->id);
+        if (p->pkt_src == PKT_SRC_WIRE) {
+            StatsIncr(tv, stt->counter_tcp_wrong_thread);
+            if ((p->flow->flags & FLOW_WRONG_THREAD) == 0) {
+                p->flow->flags |= FLOW_WRONG_THREAD;
+                StreamTcpSetEvent(p, STREAM_WRONG_THREAD);
+            }
+        }
+    }
+}
+
 /* flow is and stays locked */
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                      PacketQueue *pq)
@@ -4713,19 +4732,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
 
-    /* assign the thread id to the flow */
-    if (unlikely(p->flow->thread_id == 0)) {
-        p->flow->thread_id = (FlowThreadId)tv->id;
-    } else if (unlikely((FlowThreadId)tv->id != p->flow->thread_id)) {
-        SCLogDebug("wrong thread: flow has %u, we are %d", p->flow->thread_id, tv->id);
-        if (p->pkt_src == PKT_SRC_WIRE) {
-            StatsIncr(tv, stt->counter_tcp_wrong_thread);
-            if ((p->flow->flags & FLOW_WRONG_THREAD) == 0) {
-                p->flow->flags |= FLOW_WRONG_THREAD;
-                StreamTcpSetEvent(p, STREAM_WRONG_THREAD);
-            }
-        }
-    }
+    HandleThreadId(tv, p, stt);
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 

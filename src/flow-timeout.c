@@ -387,7 +387,7 @@ int FlowForceReassemblyForFlow(Flow *f, int server, int client)
     }
 
     /* inject the packet(s) into the appropriate thread */
-    int thread_id = (int)f->thread_id;
+    int thread_id = (int)f->thread_id[0];
     Packet *packets[3] = { p1, p2 ? p2 : NULL, NULL }; /**< null terminated array of packets */
     if (unlikely(!(TmThreadsInjectPacketsById(packets, thread_id)))) {
         FlowDeReference(&p1->flow);

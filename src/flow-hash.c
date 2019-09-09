@@ -555,7 +555,7 @@ static Flow *TcpReuseReplace(ThreadVars *tv, DecodeThreadVars *dtv,
     /* tag flow as reused so future lookups won't find it */
     old_f->flags |= FLOW_TCP_REUSED;
     /* get some settings that we move over to the new flow */
-    FlowThreadId thread_id = old_f->thread_id;
+    FlowThreadId thread_id[2] = { old_f->thread_id[0], old_f->thread_id[1] };
 
     /* since fb lock is still held this flow won't be found until we are done */
     FLOWLOCK_UNLOCK(old_f);
@@ -578,7 +578,8 @@ static Flow *TcpReuseReplace(ThreadVars *tv, DecodeThreadVars *dtv,
     f->flow_hash = hash;
     f->fb = fb;
 
-    f->thread_id = thread_id;
+    f->thread_id[0] = thread_id[0];
+    f->thread_id[1] = thread_id[1];
     return f;
 }
 

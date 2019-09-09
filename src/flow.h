@@ -423,7 +423,7 @@ typedef struct Flow_
     uint32_t de_ctx_version;
 
     /** Thread ID for the stream/detect portion of this flow */
-    FlowThreadId thread_id;
+    FlowThreadId thread_id[2];
 
     /** ttl tracking */
     uint8_t min_ttl_toserver;
