@@ -233,7 +233,7 @@ outputs:
 
         #- dnp3
         - ftp
-        - rdp
+        #- rdp
         - nfs
         - smb
         - tftp
