@@ -38,7 +38,7 @@ pub fn conf_get(key: &str) -> Option<&str> {
 
     unsafe {
         if ConfGet(CString::new(key).unwrap().as_ptr(), &mut vptr) != 1 {
-            SCLogInfo!("Failed to find value for key {}", key);
+            SCLogDebug!("Failed to find value for key {}", key);
             return None;
         }
     }
