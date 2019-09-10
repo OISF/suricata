@@ -155,6 +155,9 @@ SCEnumCharMap http_decoder_event_table[ ] = {
     { "ABNORMAL_CE_HEADER",
         HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
 
+    { "LZMA_MEMLIMIT_REACHED",
+        HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED},
+
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
         HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR},
@@ -511,6 +514,7 @@ struct {
     { "C-E gzip has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "C-E deflate has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
     { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
+    { "LZMA decompressor: memory limit reached", HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
@@ -2567,6 +2571,21 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             htp_config_set_field_limits(cfg_prec->cfg,
                     (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
                     (size_t)limit);
+#ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
+        } else if (strcasecmp("lzma-memlimit", p->name) == 0) {
+            uint32_t limit = 0;
+            if (ParseSizeStringU32(p->val, &limit) < 0) {
+                FatalError(SC_ERR_SIZE_PARSE, "failed to parse 'lzma-memlimit' "
+                           "from conf file - %s.", p->val);
+            }
+            if (limit == 0) {
+                FatalError(SC_ERR_SIZE_PARSE, "'lzma-memlimit' "
+                           "from conf file cannot be 0.");
+            }
+            /* set default soft-limit with our new hard limit */
+            htp_config_set_lzma_memlimit(cfg_prec->cfg,
+                    (size_t)limit);
+#endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {
                 cfg_prec->randomize = ConfValIsTrue(p->val);

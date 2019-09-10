@@ -1544,6 +1544,7 @@
         AC_CHECK_LIB([htp], [htp_decode_query_inplace],AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Found htp_decode_query_inplace function in libhtp]) ,,[-lhtp])
         AC_CHECK_LIB([htp], [htp_config_set_response_decompression_layer_limit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT],[1],[Found htp_config_set_response_decompression_layer_limit function in libhtp]) ,,[-lhtp])
         AC_EGREP_HEADER(htp_config_set_path_decode_u_encoding, htp/htp.h, AC_DEFINE_UNQUOTED([HAVE_HTP_SET_PATH_DECODE_U_ENCODING],[1],[Found usable htp_config_set_path_decode_u_encoding function in libhtp]) )
+        AC_CHECK_LIB([htp], [htp_config_set_lzma_memlimit],AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT],[1],[Found htp_config_set_lzma_memlimit function in libhtp]) ,,[-lhtp])
     ])
 
     if test "x$enable_non_bundled_htp" = "xno"; then
@@ -1564,6 +1565,7 @@
             AC_DEFINE_UNQUOTED([HAVE_HTP_DECODE_QUERY_INPLACE],[1],[Assuming htp_decode_query_inplace function in bundled libhtp])
             # enable when libhtp has been updated
             AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT],[1],[Assuming htp_config_set_response_decompression_layer_limit function in bundled libhtp])
+            AC_DEFINE_UNQUOTED([HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT],[1],[Assuming htp_config_set_lzma_memlimit function in bundled libhtp])
         else
             echo
             echo "  ERROR: Libhtp is not bundled. Get libhtp by doing:"
