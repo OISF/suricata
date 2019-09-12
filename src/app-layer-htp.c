@@ -179,8 +179,6 @@ SCEnumCharMap http_decoder_event_table[ ] = {
     { "REQUEST_LINE_INCOMPLETE",
         HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE},
 
-    { "LZMA_SUSPICIOUS_DICT_RATIO",
-        HTTP_DECODER_EVENT_LZMA_SUSPICIOUS_DICT_RATIO},
     { "LZMA_MEMLIMIT_REACHED",
         HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED},
 
@@ -546,7 +544,6 @@ struct {
     { "Invalid response line: invalid response status", HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS},
     { "Request line incomplete", HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE},
     { "Unexpected request body", HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED},
-    { "LZMA decompressor: suspicious LZMA dict to data ratio", HTTP_DECODER_EVENT_LZMA_SUSPICIOUS_DICT_RATIO},
     { "LZMA decompressor: memory limit reached", HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED},
 };
 
@@ -2334,6 +2331,9 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     /* don't convert + to space by default */
     htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
 
+    htp_config_set_lzma_memlimits(cfg_prec->cfg,
+        HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT);
+
     /* libhtp <= 0.5.9 doesn't use soft limit, but it's impossible to set
      * only the hard limit. So we set both here to the (current) htp defaults.
      * The reason we do this is that if the user sets the hard limit in the
@@ -2654,21 +2654,8 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                            "from conf file cannot be 0.");
             }
             /* set default soft-limit with our new hard limit */
+            SCLogConfig("Setting HTTP LZMA memory limit to %"PRIu32" bytes", limit);
             htp_config_set_lzma_memlimits(cfg_prec->cfg,
-                    (size_t)HTP_CONFIG_DEFAULT_LZMA_INITIAL_MEMLIMIT,
-                    (size_t)limit);
-        } else if (strcasecmp("lzma-max-dict-ratio", p->name) == 0) {
-            uint32_t limit = 0;
-            if (ParseSizeStringU32(p->val, &limit) < 0) {
-                FatalError(SC_ERR_SIZE_PARSE, "failed to parse 'lzma-max-dict-ratio' "
-                           "from conf file - %s.", p->val);
-            }
-            if (limit == 0) {
-                FatalError(SC_ERR_SIZE_PARSE, "'lzma-max-dict-ratio' "
-                           "from conf file cannot be 0.");
-            }
-            /* set default soft-limit with our new hard limit */
-            htp_config_set_lzma_max_dict_ratio(cfg_prec->cfg,
                     (size_t)limit);
 #endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
