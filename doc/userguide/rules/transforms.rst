@@ -30,7 +30,7 @@ adding the dot allows ``google.com`` to match against ``content:".google.com"``
 
 Example::
 
-    alert http any any -> any any (dns.query; dotprefix; \
+    alert dns any any -> any any (dns.query; dotprefix; \
         content:".microsoft.com"; sid:1;)
 
 This example will match on ``windows.update.microsoft.com`` and
@@ -38,7 +38,7 @@ This example will match on ``windows.update.microsoft.com`` and
 
 This rule can be used to match on the domain only; example::
 
-    alert http any any -> any any (dns.query; dotprefix; \
+    alert dns any any -> any any (dns.query; dotprefix; \
         content:".microsoft.com"; endswith; sid:1;)
 
 This example will match on ``windows.update.microsoft.com`` but not
@@ -46,7 +46,7 @@ This example will match on ``windows.update.microsoft.com`` but not
 
 Finally, this rule can be used to match on the TLD only; example::
 
-    alert http any any -> any any (dns.query; dotprefix; \
+    alert dns any any -> any any (dns.query; dotprefix; \
         content:".co.uk"; endswith; sid:1;)
 
 This example will match on ``maps.google.co.uk`` but not
