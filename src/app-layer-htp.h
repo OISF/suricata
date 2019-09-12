@@ -51,6 +51,9 @@
 #define HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT             9000U
 #define HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD             18000U
 
+/* default libhtp lzma limit, taken from libhtp. */
+#define HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT                1048576U
+
 #define HTP_CONFIG_DEFAULT_RANDOMIZE                    1
 #define HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE              10
 
