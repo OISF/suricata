@@ -561,6 +561,10 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         /* run tx cleanup last */
         AppLayerParserTransactionsCleanup(p->flow);
 
+#ifdef PROFILING_LITE
+        if (p->flags & PKT_PROFILE)
+            p->proflite_alproto = p->flow->alproto;
+#endif
         Flow *f = p->flow;
         FlowDeReference(&p->flow);
         FLOWLOCK_UNLOCK(f);

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -102,7 +102,7 @@ PktProfiling *SCProfilePacketStart(void);
             (p)->profile->ticks_start = UtilCpuGetTicks();          \
     }
 
-#define PACKET_PROFILING_END(p)                                     \
+#define PACKET_PROFILING_END(t, p)                                  \
     if (profiling_packets_enabled && (p)->profile != NULL) {        \
         (p)->profile->ticks_end = UtilCpuGetTicks();                \
         SCProfilingAddPacket((p));                                  \
@@ -342,9 +342,72 @@ void SCProfilingDump(void);
 #define KEYWORD_PROFILING_START
 #define KEYWORD_PROFILING_END(a,b,c)
 
+#if defined PROFILING_LITE
+SC_ATOMIC_DECLARE(uint64_t, proflite_flags);
+enum ProfliteFlags {
+    PROFLITE_ENABLED,
+#define PROFLITE_ENABLED_BIT BIT_U64(PROFLITE_ENABLED)
+    PROFLITE_TCP,
+#define PROFLITE_TCP_BIT BIT_U64(PROFLITE_TCP)
+    PROFLITE_UDP,
+#define PROFLITE_UDP_BIT BIT_U64(PROFLITE_UDP)
+    PROFLITE_ICMP4,
+#define PROFLITE_ICMP4_BIT BIT_U64(PROFLITE_ICMP4)
+    PROFLITE_ICMP6,
+#define PROFLITE_ICMP6_BIT BIT_U64(PROFLITE_ICMP6)
+    PROFLITE_OTHERIP,
+#define PROFLITE_OTHERIP_BIT BIT_U64(PROFLITE_OTHERIP)
+    PROFLITE_OTHER,
+#define PROFLITE_OTHER_BIT BIT_U64(PROFLITE_OTHER)
+    PROFLITE_ALERT,
+#define PROFLITE_ALERT_BIT BIT_U64(PROFLITE_ALERT)
+    PROFLITE_ALPROTO_HTTP,
+#define PROFLITE_ALPROTO_HTTP_BIT BIT_U64(PROFLITE_ALPROTO_HTTP)
+    PROFLITE_ALPROTO_DNS,
+#define PROFLITE_ALPROTO_DNS_BIT BIT_U64(PROFLITE_ALPROTO_DNS)
+    PROFLITE_ALPROTO_SMB,
+#define PROFLITE_ALPROTO_SMB_BIT BIT_U64(PROFLITE_ALPROTO_SMB)
+    PROFLITE_ALPROTO_OTHER,
+#define PROFLITE_ALPROTO_OTHER_BIT BIT_U64(PROFLITE_ALPROTO_OTHER)
+    PROFLITE_ALPROTO_NONE,
+#define PROFLITE_ALPROTO_NONE_BIT BIT_U64(PROFLITE_ALPROTO_NONE)
+};
+
+void ProfliteEnable(const char *setting);
+void ProfliteDisable(const char *setting);
+
+static inline bool ProfliteIsEnabled(void)
+{
+    return (SC_ATOMIC_GET(proflite_flags) & PROFLITE_ENABLED_BIT) != 0;
+}
+
+void ProfliteAddPacket(ThreadVars *, Packet *, const uint64_t);
+void ProfliteDump(void);
+void ProfliteRegisterCounters(ThreadVars *);
+void ProfliteRegisterCounterNames(void);
+
+#define PACKET_PROFILING_START(p)                                   \
+    if (ProfliteIsEnabled()) {                                      \
+        (p)->flags |= PKT_PROFILE;                                  \
+        gettimeofday(&(p)->proflite_startts, NULL);                 \
+        (p)->proflite_alproto = ALPROTO_UNKNOWN;                    \
+    }
+
+#define PACKET_PROFILING_RESTART(p)                                 \
+    PACKET_PROFILING_START((p))
+
+#define PACKET_PROFILING_END(t, p)                                  \
+    if ((p)->flags & PKT_PROFILE) {                                 \
+        ProfliteAddPacket((t), (p), SC_ATOMIC_GET(proflite_flags)); \
+    }
+
+#else
+
 #define PACKET_PROFILING_START(p)
 #define PACKET_PROFILING_RESTART(p)
-#define PACKET_PROFILING_END(p)
+#define PACKET_PROFILING_END(t, p)
+
+#endif
 
 #define PACKET_PROFILING_TMM_START(p, id)
 #define PACKET_PROFILING_TMM_END(p, id)

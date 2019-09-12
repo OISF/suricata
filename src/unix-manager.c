@@ -1084,6 +1084,8 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("dataset-add", UnixSocketDatasetAdd, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dataset-remove", UnixSocketDatasetRemove, &command, UNIX_CMD_TAKE_ARGS);
 
+    UnixManagerRegisterCommand("profile-enable", UnixSocketProfileEnable, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("profile-disable", UnixSocketProfileDisable, &command, UNIX_CMD_TAKE_ARGS);
     return 0;
 }
 

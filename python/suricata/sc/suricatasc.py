@@ -107,6 +107,8 @@ class SuricataSC:
                 "memcap-show",
                 "dataset-add",
                 "dataset-remove",
+                "profile-enable",
+                "profile-disable",
                 ]
         self.cmd_list = self.basic_commands + self.fn_commands
         self.sck_path = sck_path

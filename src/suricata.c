@@ -2019,6 +2019,8 @@ void PreRunInit(const int runmode)
     SCProfilingPrefilterGlobalInit();
     SCProfilingSghsGlobalInit();
     SCProfilingInit();
+#elif defined (PROFILING_LITE)
+    ProfliteRegisterCounterNames();
 #endif /* PROFILING */
     DefragInit();
     FlowInitConfig(FLOW_QUIET);

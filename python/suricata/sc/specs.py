@@ -194,4 +194,16 @@ argsd = {
             "required": 1,
         },
     ],
+    "profile-enable": [
+        {
+            "name": "setting",
+            "required": 1,
+        },
+    ],
+    "profile-disable": [
+        {
+            "name": "setting",
+            "required": 1,
+        },
+    ],
     }
