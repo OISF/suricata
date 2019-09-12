@@ -155,25 +155,36 @@ outputs:
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
             tagged-packets: yes
-        #- anomaly:
-            # Anomaly log records describe unexpected conditions such as truncated packets, packets with invalid
-            # IP/UDP/TCP length values, and other events that render the packet invalid for further processing 
-            # or describe unexpected behavior on an established stream. Networks which experience high
-            # occurrences of anomalies may experience packet processing degradation.
+        - anomaly:
+            # Anomaly log records describe unexpected conditions such
+            # as truncated packets, packets with invalid IP/UDP/TCP
+            # length values, and other events that render the packet
+            # invalid for further processing or describe unexpected
+            # behavior on an established stream. Networks which
+            # experience high occurrences of anomalies may experience
+            # packet processing degradation.
             #
             # Anomalies are reported for the following:
-            # 1. Decode: Values and conditions that are detected while decoding individual packets. This includes
-            # invalid or unexpected values for low-level protocol lengths as well as stream related events (TCP 3-way
-            # handshake issues, unexpected sequence number, etc).
-            # 2. Stream: This includes stream related events (TCP 3-way handshake issues, unexpected sequence number, etc).
-            # 3. Application layer: These denote application layer specific conditions that are unexpected, invalid or
-            # are unexpected given the application monitoring state.
+            # 1. Decode: Values and conditions that are detected while
+            # decoding individual packets. This includes invalid or
+            # unexpected values for low-level protocol lengths as well
+            # as stream related events (TCP 3-way handshake issues,
+            # unexpected sequence number, etc).
+            # 2. Stream: This includes stream related events (TCP
+            # 3-way handshake issues, unexpected sequence number,
+            # etc).
+            # 3. Application layer: These denote application layer
+            # specific conditions that are unexpected, invalid or are
+            # unexpected given the application monitoring state.
             #
-            # By default, anomaly logging is disabled. When anomaly logging is enabled, applayer anomaly
-            # reporting is enabled.
+            # By default, anomaly logging is disabled. When anomaly
+            # logging is enabled, applayer anomaly reporting is
+            # enabled.
+            enabled: no
             #
-            # Choose one or both types of anomaly logging and whether to enable
-            # logging of the packet header for packet anomalies.
+            # Choose one or both types of anomaly logging and whether
+            # to enable logging of the packet header for packet
+            # anomalies.
             types:
               # decode: no
               # stream: no
