@@ -17,7 +17,7 @@ For example::
   ttl:10;
 
 At the end of the ttl keyword you can enter the value on which you
-want to match.  The Time-to-live value determines the maximal amount
+want to match. The Time-to-live value determines the maximal amount
 of time a packet can be in the Internet-system. If this field is set
 to 0, then the packet has to be destroyed. The time-to-live is based
 on hop count. Each hop/router the packet passes subtracts one of the
@@ -71,7 +71,7 @@ sameip
 ^^^^^^
 
 Every packet has a source IP-address and a destination IP-address. It
-can be that the source IP is the same as the destination IP.  With the
+can be that the source IP is the same as the destination IP. With the
 sameip keyword you can check if the IP address of the source is the
 same as the IP address of the destination. The format of the sameip
 keyword is::
@@ -114,7 +114,7 @@ The named variant of that example would be::
 id
 ^^
 
-With the id keyword, you can match on a specific IP ID value.  The ID
+With the id keyword, you can match on a specific IP ID value. The ID
 identifies each packet sent by a host and increments usually with one
 with each packet that is being send. The IP ID is used as a fragment
 identification number. Each packet has an IP ID, and when the packet
@@ -439,7 +439,7 @@ Example of the itype keyword in a signature:
 The following lists all ICMP types known at the time of writing. A recent table can be found `at the website of IANA <https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml>`_
 
 ==========  ==========================================================
-ICMP Type   Name
+ICMP Type  Name
 ==========  ==========================================================
 0           Echo Reply
 3           Destination Unreachable
@@ -474,7 +474,7 @@ ICMP Type   Name
 icode
 ^^^^^
 
-With the icode keyword you can match on a specific ICMP code.  The
+With the icode keyword you can match on a specific ICMP code. The
 code of a ICMP message clarifies the message. Together with the
 ICMP-type it indicates with what kind of problem you are dealing with.
 A code has a different purpose with every ICMP-type.
