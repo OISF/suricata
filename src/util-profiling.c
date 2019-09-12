@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1247,7 +1247,497 @@ int SCProfileRuleStart(Packet *p)
         return 1;
     return 0;
 }
+#endif
 
+#if defined(PROFILING_LITE)
+thread_local uint64_t proflite_features = 0;
+thread_local uint64_t proflite_tracepoints = 0;
+
+static enum ProfliteTracepoint SettingToTp(const char *setting)
+{
+    if (strcmp(setting, "packetpool_get") == 0) {
+        return PROFLITE_TP_PP_GET;
+    } else if (strcmp(setting, "packetpool_return") == 0) {
+        return PROFLITE_TP_PP_RETURN;
+    } else if (strcmp(setting, "flowworker_enter") == 0) {
+        return PROFLITE_TP_FLOWWORKER_ENTER;
+    } else if (strcmp(setting, "flowworker_pre_inject") == 0) {
+        return PROFLITE_TP_FLOWWORKER_PRE_INJECT;
+    } else if (strcmp(setting, "flowworker_applayer_enter") == 0) {
+        return PROFLITE_TP_FLOWWORKER_APPLAYER_START;
+    } else if (strcmp(setting, "flowworker_applayer_end") == 0) {
+        return PROFLITE_TP_FLOWWORKER_APPLAYER_END;
+    } else if (strcmp(setting, "flowworker_detect_enter") == 0) {
+        return PROFLITE_TP_FLOWWORKER_DETECT_START;
+    } else if (strcmp(setting, "flowworker_detect_end") == 0) {
+        return PROFLITE_TP_FLOWWORKER_DETECT_END;
+    } else if (strcmp(setting, "flowworker_output_start") == 0) {
+        return PROFLITE_TP_FLOWWORKER_OUTPUT_START;
+    } else if (strcmp(setting, "flowworker_output_end") == 0) {
+        return PROFLITE_TP_FLOWWORKER_OUTPUT_END;
+    } else if (strcmp(setting, "flowworker_exit") == 0) {
+        return PROFLITE_TP_FLOWWORKER_EXIT;
+    }
+    return PROFLITE_TP_DISABLED;
+}
+
+void ProfliteSetTpEntry(const char *setting)
+{
+    const enum ProfliteTracepoint tp = SettingToTp(setting);
+    SC_ATOMIC_SET(proflite_tp_entry, tp);
+    SCLogNotice("entry point set to \"%s\" Tp now %u", setting, SC_ATOMIC_GET(proflite_tp_entry));
+}
+void ProfliteSetTpExit(const char *setting)
+{
+    const enum ProfliteTracepoint tp = SettingToTp(setting);
+    if (tp > SC_ATOMIC_GET(proflite_tp_entry)) {
+        SC_ATOMIC_SET(proflite_tp_exit, tp);
+        SCLogNotice("exit point set to \"%s\" Tp now %u", setting, SC_ATOMIC_GET(proflite_tp_exit));
+    } else {
+        SCLogNotice("tracepoint should be > entry (TODO error handle)");
+    }
+}
+
+void ProfliteEnable(const char *setting)
+{
+    if (strcmp(setting, "all") == 0) {
+        SC_ATOMIC_OR(proflite_features, PROFLITE_ALL_BIT);
+    } else if (strcmp(setting, "tcp") == 0) {
+        SC_ATOMIC_OR(proflite_features, PROFLITE_TCP_BIT);
+    } else if (strcmp(setting, "app_http") == 0) {
+        SC_ATOMIC_OR(proflite_features, PROFLITE_ALPROTO_HTTP_BIT);
+    } else if (strcmp(setting, "only_app_http") == 0) {
+        SC_ATOMIC_SET(proflite_features, PROFLITE_ALPROTO_HTTP_BIT);
+    } else if (strcmp(setting, "app_dns") == 0) {
+        SC_ATOMIC_OR(proflite_features, PROFLITE_ALPROTO_DNS_BIT);
+    } else if (strcmp(setting, "only_app_dns") == 0) {
+        SC_ATOMIC_SET(proflite_features, PROFLITE_ALPROTO_DNS_BIT);
+    } else if (strcmp(setting, "app_ftp") == 0) {
+        SC_ATOMIC_OR(proflite_features, PROFLITE_ALPROTO_FTP_BIT);
+    } else if (strcmp(setting, "only_app_ftp") == 0) {
+        SC_ATOMIC_SET(proflite_features, PROFLITE_ALPROTO_FTP_BIT);
+    } else if (strcmp(setting, "app_dcerpc") == 0) {
+        SC_ATOMIC_OR(proflite_features, PROFLITE_ALPROTO_DCERPC_BIT);
+    } else if (strcmp(setting, "only_app_dcerpc") == 0) {
+        SC_ATOMIC_SET(proflite_features, PROFLITE_ALPROTO_DCERPC_BIT);
+    } else if (strcmp(setting, "any") == 0) {
+        SC_ATOMIC_SET(proflite_features, UINT64_MAX);
+    } else {
+        SCLogNotice("unknown setting %s", setting);
+        return;
+    }
+    SCLogNotice("enabled \"%s\". Flags now %" PRIx64, setting, SC_ATOMIC_GET(proflite_features));
+}
+
+void ProfliteDisable(const char *setting)
+{
+#if 0
+    if (strcmp(setting, "global") == 0) {
+        SC_ATOMIC_AND(proflite_flags, ~PROFLITE_ENABLED_BIT);
+    } else if (strcmp(setting, "app_http") == 0) {
+        SC_ATOMIC_AND(proflite_flags, ~PROFLITE_ALPROTO_HTTP_BIT);
+    } else {
+        abort();
+    }
+    SCLogNotice("disabled \"%s\". Flags now %"PRIx64, setting, SC_ATOMIC_GET(proflite_flags));
+#endif
+}
+
+enum ProfileLiteTracker {
+    PLT_ALL,
+    PLT_ALL_PSEUDO,
+    PLT_ALL_PAYLOAD,
+    PLT_ALL_NOPAYLOAD,
+    PLT_ALL_ALERT,
+    PLT_ALL_NOALERT,
+    PLT_TCP_ALL,
+    PLT_TCP_SYN,
+    PLT_TCP_RST,
+    PLT_TCP_FIN,
+    PLT_TCP_OTHER,
+    PLT_UDP,
+    PLT_ICMP4,
+    PLT_ICMP6,
+    PLT_OTHERIP,
+    PLT_OTHER,
+    PLT_ALPROTO_HTTP,
+    PLT_ALPROTO_HTTP2,
+    PLT_ALPROTO_SMB,
+    PLT_ALPROTO_NFS,
+    PLT_ALPROTO_DNS,
+    PLT_ALPROTO_DCERPC,
+    PLT_ALPROTO_SMTP,
+    PLT_ALPROTO_FTP,
+    PLT_ALPROTO_FTPDATA,
+    PLT_ALPROTO_TLS,
+    PLT_ALPROTO_SSH,
+    PLT_ALPROTO_DHCP,
+    PLT_ALPROTO_SNMP,
+    PLT_ALPROTO_TFTP,
+    PLT_ALPROTO_OTHER,
+    PLT_ALPROTO_NONE,
+    PLT_SIZE,
+};
+static const char *PltToString(enum ProfileLiteTracker t)
+{
+    switch (t) {
+        case PLT_ALL:
+            return "all";
+        case PLT_ALL_PSEUDO:
+            return "all_pseudo";
+        case PLT_ALL_PAYLOAD:
+            return "all_payload";
+        case PLT_ALL_NOPAYLOAD:
+            return "all_nopayload";
+        case PLT_ALL_ALERT:
+            return "all_alert";
+        case PLT_ALL_NOALERT:
+            return "all_noalert";
+        case PLT_TCP_ALL:
+            return "tcp_all";
+        case PLT_TCP_SYN:
+            return "tcp_syn";
+        case PLT_TCP_FIN:
+            return "tcp_fin";
+        case PLT_TCP_RST:
+            return "tcp_rst";
+        case PLT_TCP_OTHER:
+            return "tcp_other";
+        case PLT_UDP:
+            return "udp";
+        case PLT_ICMP4:
+            return "icmp4";
+        case PLT_ICMP6:
+            return "icmp6";
+        case PLT_OTHERIP:
+            return "other_ip";
+        case PLT_OTHER:
+            return "other";
+        case PLT_ALPROTO_HTTP:
+            return "app_http";
+        case PLT_ALPROTO_HTTP2:
+            return "app_http2";
+        case PLT_ALPROTO_SMTP:
+            return "app_http2";
+        case PLT_ALPROTO_SMB:
+            return "app_smb";
+        case PLT_ALPROTO_NFS:
+            return "app_nfs";
+        case PLT_ALPROTO_DNS:
+            return "app_dns";
+        case PLT_ALPROTO_DCERPC:
+            return "app_dcerpc";
+        case PLT_ALPROTO_FTP:
+            return "app_ftp";
+        case PLT_ALPROTO_FTPDATA:
+            return "app_ftpdata";
+        case PLT_ALPROTO_TLS:
+            return "app_tls";
+        case PLT_ALPROTO_SSH:
+            return "app_ssh";
+        case PLT_ALPROTO_SNMP:
+            return "app_snmp";
+        case PLT_ALPROTO_DHCP:
+            return "app_dhcp";
+        case PLT_ALPROTO_TFTP:
+            return "app_tftp";
+        case PLT_ALPROTO_OTHER:
+            return "app_other";
+        case PLT_ALPROTO_NONE:
+            return "app_none";
+        case PLT_SIZE:
+            return "ERROR";
+    }
+}
+
+struct ProfileLiteCounters {
+    uint16_t cnt;
+    uint16_t stdev;
+    uint16_t avg;
+    uint16_t max;
+    uint16_t gt_1stdev;
+    uint16_t gt_2stdev;
+    uint16_t gt_3stdev;
+};
+
+struct ProfileLiteCounterNames {
+    char cnt[256];
+    char stdev[256];
+    char avg[256];
+    char max[256];
+    char gt_1stdev[256];
+    char gt_2stdev[256];
+    char gt_3stdev[256];
+};
+
+thread_local struct ProfileLiteCounters profile_lite_counters[PLT_SIZE];
+struct ProfileLiteCounterNames profile_lite_names[PLT_SIZE];
+
+void ProfliteRegisterCounterNames(void)
+{
+    for (enum ProfileLiteTracker t = 0; t < PLT_SIZE; t++) {
+        struct ProfileLiteCounterNames *n = &profile_lite_names[t];
+
+        snprintf(n->cnt, sizeof(n->cnt), "profile.%s.cnt", PltToString(t));
+        snprintf(n->max, sizeof(n->max), "profile.%s.max", PltToString(t));
+        snprintf(n->stdev, sizeof(n->stdev), "profile.%s.stdev", PltToString(t));
+        snprintf(n->avg, sizeof(n->avg), "profile.%s.avg", PltToString(t));
+        snprintf(n->gt_1stdev, sizeof(n->gt_1stdev), "profile.%s.1_2_stdev", PltToString(t));
+        snprintf(n->gt_2stdev, sizeof(n->gt_2stdev), "profile.%s.2_3_stdev", PltToString(t));
+        snprintf(n->gt_3stdev, sizeof(n->gt_3stdev), "profile.%s.3_stdev", PltToString(t));
+    }
+}
+
+void ProfliteRegisterCounters(ThreadVars *tv)
+{
+    for (enum ProfileLiteTracker t = 0; t < PLT_SIZE; t++) {
+        struct ProfileLiteCounters *c = &profile_lite_counters[t];
+        const struct ProfileLiteCounterNames *n = &profile_lite_names[t];
+
+        c->cnt = StatsRegisterCounter(n->cnt, tv);
+        c->max = StatsRegisterMaxCounter(n->max, tv);
+        c->stdev = StatsRegisterCounter(n->stdev, tv);
+        c->avg = StatsRegisterAvgCounter(n->avg, tv);
+
+        c->gt_1stdev = StatsRegisterCounter(n->gt_1stdev, tv);
+        c->gt_2stdev = StatsRegisterCounter(n->gt_2stdev, tv);
+        c->gt_3stdev = StatsRegisterCounter(n->gt_3stdev, tv);
+    }
+}
+
+struct ProfLiteStats {
+    uint64_t tot;
+    uint64_t cnt;
+    uint64_t sd_cum; /**< stdev cumulative */
+};
+
+thread_local struct ProfLiteStats proflite_stats[PLT_SIZE] = { 0 };
+
+static inline void Update(ThreadVars *tv, enum ProfileLiteTracker t, uint64_t usecs)
+{
+    struct ProfLiteStats *s = &proflite_stats[t];
+    const struct ProfileLiteCounters *c = &profile_lite_counters[t];
+
+    if (s->cnt > 1000) {
+        const int64_t old_avg = s->tot / s->cnt;
+        s->tot += usecs;
+        s->cnt++;
+        const int64_t new_avg = s->tot / s->cnt;
+        const int64_t sd_sum_add = (usecs - old_avg) * (usecs - new_avg);
+        s->sd_cum += sd_sum_add;
+        double stdev = sqrt(s->sd_cum / (s->cnt - 1));
+        if (usecs > new_avg + (stdev * 3)) {
+            StatsIncr(tv, c->gt_3stdev);
+        } else if (usecs > new_avg + (stdev * 2)) {
+            StatsIncr(tv, c->gt_2stdev);
+        } else if (usecs > new_avg + stdev) {
+            StatsIncr(tv, c->gt_1stdev);
+        }
+        StatsSetUI64(tv, c->stdev, (uint64_t)stdev);
+        StatsAddUI64(tv, c->avg, usecs);
+        StatsIncr(tv, c->cnt);
+        StatsSetUI64(tv, c->max, usecs);
+    } else {
+        s->tot += usecs;
+        s->cnt++;
+    }
+}
+
+void ProfliteAddPacket(ThreadVars *tv, Packet *p, const uint64_t flags)
+{
+    struct timeval endts;
+    gettimeofday(&endts, NULL);
+
+    if (unlikely(timercmp(&p->proflite_startts, &endts, >))) {
+        memset(&p->proflite_startts, 0, sizeof(p->proflite_startts));
+        return;
+    }
+    struct timeval e;
+    timersub(&endts, &p->proflite_startts, &e);
+    memset(&p->proflite_startts, 0, sizeof(p->proflite_startts));
+
+    uint64_t usecs = (e.tv_sec * (uint64_t)1000000) + (e.tv_usec);
+    if (flags & PROFLITE_ALL_BIT) {
+        Update(tv, PLT_ALL, usecs);
+
+        if (PKT_IS_PSEUDOPKT(p)) {
+            Update(tv, PLT_ALL_PSEUDO, usecs);
+        }
+
+        if (p->payload_len) {
+            Update(tv, PLT_ALL_PAYLOAD, usecs);
+        } else {
+            Update(tv, PLT_ALL_NOPAYLOAD, usecs);
+        }
+        if (flags & PROFLITE_ALERT_BIT) {
+            if (p->alerts.cnt) {
+                Update(tv, PLT_ALL_ALERT, usecs);
+            } else {
+                Update(tv, PLT_ALL_NOALERT, usecs);
+            }
+        }
+    }
+    if (p->ip4h || p->ip6h) {
+        switch (p->proto) {
+            case IPPROTO_TCP: {
+                if (flags & PROFLITE_TCP_BIT) {
+                    Update(tv, PLT_TCP_ALL, usecs);
+
+                    if (p->tcph && p->tcph->th_flags & TH_SYN) {
+                        Update(tv, PLT_TCP_SYN, usecs);
+                    } else if (p->tcph && p->tcph->th_flags & TH_FIN) {
+                        Update(tv, PLT_TCP_FIN, usecs);
+                    } else if (p->tcph && p->tcph->th_flags & TH_RST) {
+                        Update(tv, PLT_TCP_RST, usecs);
+                    } else {
+                        Update(tv, PLT_TCP_OTHER, usecs);
+                    }
+                }
+
+                const AppProto alproto = p->flow ? p->flow->alproto : p->proflite_alproto;
+                switch (alproto) {
+                    case ALPROTO_HTTP1:
+                        if (flags & PROFLITE_ALPROTO_HTTP_BIT) {
+                            Update(tv, PLT_ALPROTO_HTTP, usecs);
+                        }
+                        break;
+                    case ALPROTO_SMB:
+                        if (flags & PROFLITE_ALPROTO_SMB_BIT) {
+                            Update(tv, PLT_ALPROTO_SMB, usecs);
+                        }
+                        break;
+                    case ALPROTO_NFS:
+                        if (flags & PROFLITE_ALPROTO_NFS_BIT) {
+                            Update(tv, PLT_ALPROTO_NFS, usecs);
+                        }
+                        break;
+                    case ALPROTO_SMTP:
+                        if (flags & PROFLITE_ALPROTO_SMTP_BIT) {
+                            Update(tv, PLT_ALPROTO_SMTP, usecs);
+                        }
+                        break;
+                    case ALPROTO_DNS:
+                        if (flags & PROFLITE_ALPROTO_DNS_BIT) {
+                            Update(tv, PLT_ALPROTO_DNS, usecs);
+                        }
+                        break;
+                    case ALPROTO_SSH:
+                        if (flags & PROFLITE_ALPROTO_SSH_BIT) {
+                            Update(tv, PLT_ALPROTO_SSH, usecs);
+                        }
+                        break;
+                    case ALPROTO_DCERPC:
+                        if (flags & PROFLITE_ALPROTO_DCERPC_BIT) {
+                            Update(tv, PLT_ALPROTO_DCERPC, usecs);
+                        }
+                        break;
+                    case ALPROTO_FTP:
+                        if (flags & PROFLITE_ALPROTO_FTP_BIT) {
+                            Update(tv, PLT_ALPROTO_FTP, usecs);
+                        }
+                        break;
+                    case ALPROTO_FTPDATA:
+                        if (flags & PROFLITE_ALPROTO_FTPDATA_BIT) {
+                            Update(tv, PLT_ALPROTO_FTPDATA, usecs);
+                        }
+                        break;
+                    case ALPROTO_TLS:
+                        if (flags & PROFLITE_ALPROTO_TLS_BIT) {
+                            Update(tv, PLT_ALPROTO_TLS, usecs);
+                        }
+                        break;
+                    case ALPROTO_HTTP2:
+                        if (flags & PROFLITE_ALPROTO_HTTP2_BIT) {
+                            Update(tv, PLT_ALPROTO_HTTP2, usecs);
+                        }
+                        break;
+                    case ALPROTO_UNKNOWN:
+                    case ALPROTO_FAILED:
+                        if (flags & PROFLITE_ALPROTO_NONE_BIT) {
+                            Update(tv, PLT_ALPROTO_NONE, usecs);
+                        }
+                        break;
+                    default:
+                        if (flags & PROFLITE_ALPROTO_OTHER_BIT) {
+                            Update(tv, PLT_ALPROTO_OTHER, usecs);
+                        }
+                        break;
+                }
+                break;
+            }
+            case IPPROTO_UDP: {
+                if (flags & PROFLITE_UDP_BIT) {
+                    Update(tv, PLT_UDP, usecs);
+                }
+
+                const AppProto alproto = p->flow ? p->flow->alproto : p->proflite_alproto;
+                if (alproto == ALPROTO_DNS) {
+                    if (flags & PROFLITE_ALPROTO_DNS_BIT) {
+                        Update(tv, PLT_ALPROTO_DNS, usecs);
+                    }
+                } else if (alproto == ALPROTO_SNMP) {
+                    if (flags & PROFLITE_ALPROTO_SNMP_BIT) {
+                        Update(tv, PLT_ALPROTO_SNMP, usecs);
+                    }
+                } else if (alproto == ALPROTO_DHCP) {
+                    if (flags & PROFLITE_ALPROTO_DHCP_BIT) {
+                        Update(tv, PLT_ALPROTO_DHCP, usecs);
+                    }
+                } else if (alproto == ALPROTO_TFTP) {
+                    if (flags & PROFLITE_ALPROTO_TFTP_BIT) {
+                        Update(tv, PLT_ALPROTO_TFTP, usecs);
+                    }
+                } else if (alproto == ALPROTO_UNKNOWN || alproto == ALPROTO_FAILED) {
+                    if (flags & PROFLITE_ALPROTO_NONE_BIT) {
+                        Update(tv, PLT_ALPROTO_NONE, usecs);
+                    }
+                } else {
+                    if (flags & PROFLITE_ALPROTO_OTHER_BIT) {
+                        Update(tv, PLT_ALPROTO_OTHER, usecs);
+                    }
+                }
+                break;
+            }
+            case IPPROTO_ICMP:
+                if (flags & PROFLITE_ICMP4_BIT) {
+                    Update(tv, PLT_ICMP4, usecs);
+                }
+                break;
+            case IPPROTO_ICMPV6:
+                if (flags & PROFLITE_ICMP6_BIT) {
+                    Update(tv, PLT_ICMP6, usecs);
+                }
+                break;
+            default:
+                if (flags & PROFLITE_OTHERIP_BIT) {
+                    Update(tv, PLT_OTHERIP, usecs);
+                }
+                break;
+        }
+    } else {
+        if (flags & PROFLITE_OTHER_BIT) {
+            Update(tv, PLT_OTHER, usecs);
+        }
+    }
+}
+
+void ProfliteDump(void)
+{
+    for (int idx = 0; idx < PLT_SIZE; idx++) {
+        const struct ProfLiteStats *s = &proflite_stats[idx];
+        if (s->cnt > 1000) {
+            int64_t avg = s->tot / s->cnt;
+            double stdev = sqrt(s->sd_cum / (s->cnt - 1));
+
+            const char *str = PltToString(idx);
+            SCLogNotice(
+                    "(%s): avg %" PRIi64 ", stdev %0.1f, cnt %" PRIu64, str, avg, stdev, s->cnt);
+        }
+    }
+}
+#endif /* PROFILING_LITE */
+
+#if defined(PROFILING)
 #define CASE_CODE(E)  case E: return #E
 
 /**

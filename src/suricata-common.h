@@ -201,6 +201,8 @@ typedef unsigned char u_char
 #include <netdb.h>
 #endif
 
+#include <math.h>
+
 #if __CYGWIN__
 #if !defined _X86_ && !defined __x86_64
 #define _X86_

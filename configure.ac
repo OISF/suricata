@@ -539,6 +539,13 @@
     esac
     ])
 
+  # profiling support, lite
+    AC_ARG_ENABLE(profiling-lite,
+           AS_HELP_STRING([--enable-profiling-lite], [Enable performance profiling (lite)]),[enable_profiling_lite=$enableval],[enable_profiling_lite=no])
+    AS_IF([test "x$enable_profiling_lite" = "xyes"], [
+        AC_DEFINE([PROFILING_LITE],[1],[Enable performance profiling lite])
+    ])
+
   # profiling support, locking
     AC_ARG_ENABLE(profiling-locks,
            AS_HELP_STRING([--enable-profiling-locks], [Enable performance profiling for locks]),[enable_profiling_locks=$enableval],[enable_profiling_locks=no])
@@ -2555,6 +2562,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Install suricata-update:                 ${install_suricata_update}${install_suricata_update_reason}
 
   Profiling enabled:                       ${enable_profiling}
+  Profiling (lite) enabled:                ${enable_profiling_lite}
   Profiling locks enabled:                 ${enable_profiling_locks}
 
   Plugin support (experimental):           ${plugin_support}

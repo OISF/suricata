@@ -194,4 +194,28 @@ argsd = {
             "required": 1,
         },
     ],
+    "profile-feature-enable": [
+        {
+            "name": "setting",
+            "required": 1,
+        },
+    ],
+    "profile-feature-disable": [
+        {
+            "name": "setting",
+            "required": 1,
+        },
+    ],
+    "profile-tracepoint-entry": [
+        {
+            "name": "setting",
+            "required": 1,
+        },
+    ],
+    "profile-tracepoint-exit": [
+        {
+            "name": "setting",
+            "required": 1,
+        },
+    ],
     }

@@ -617,6 +617,10 @@ typedef struct Packet_
 #ifdef PROFILING
     PktProfiling *profile;
 #endif
+#ifdef PROFILING_LITE
+    AppProto proflite_alproto;
+    struct timeval proflite_startts;
+#endif
 #ifdef HAVE_NAPATECH
     NapatechPacketVars ntpv;
 #endif

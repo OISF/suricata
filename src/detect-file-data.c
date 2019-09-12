@@ -131,6 +131,7 @@ void DetectFiledataRegister(void)
             DetectEngineInspectFiledata, NULL);
     DetectBufferTypeRegisterSetupCallback("file_data",
             DetectFiledataSetupCallback);
+
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectFiledata, NULL);
