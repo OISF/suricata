@@ -1523,6 +1523,97 @@ TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
     json_object_set_new(answer, "message", jmemcaps);
     SCReturnInt(TM_ECODE_OK);
 }
+
+#ifdef PROFILING_LITE
+void ProfliteEnable(const char *setting);
+void ProfliteDisable(const char *setting);
+void ProfliteSetTpEntry(const char *setting);
+void ProfliteSetTpExit(const char *setting);
+
+static void HandleProfile(const char *setting, bool enable)
+{
+    if (enable)
+        ProfliteEnable(setting);
+    else
+        ProfliteDisable(setting);
+}
+#endif
+
+TmEcode UnixSocketProfileEnable(json_t *cmd, json_t *answer, void *data)
+{
+#ifndef PROFILING_LITE
+    json_object_set_new(answer, "message",
+            json_string("profiling not compiled it: recompile with --enable-profiling-lite"));
+    return TM_ECODE_FAILED;
+#else
+    json_t *narg = json_object_get(cmd, "setting");
+    if (!json_is_string(narg)) {
+        json_object_set_new(answer, "message", json_string("setting is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *setting = json_string_value(narg);
+    HandleProfile(setting, true);
+    SCLogNotice("enabled %s", setting);
+    SCReturnInt(TM_ECODE_OK);
+#endif
+}
+
+TmEcode UnixSocketProfileDisable(json_t *cmd, json_t *answer, void *data)
+{
+#ifndef PROFILING_LITE
+    json_object_set_new(answer, "message",
+            json_string("profiling not compiled it: recompile with --enable-profiling-lite"));
+    return TM_ECODE_FAILED;
+#else
+    json_t *narg = json_object_get(cmd, "setting");
+    if (!json_is_string(narg)) {
+        json_object_set_new(answer, "message", json_string("setting is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *setting = json_string_value(narg);
+    HandleProfile(setting, false);
+    SCLogNotice("disabled %s", setting);
+    SCReturnInt(TM_ECODE_OK);
+#endif
+}
+
+TmEcode UnixSocketProfileTpEntry(json_t *cmd, json_t *answer, void *data)
+{
+#ifndef PROFILING_LITE
+    json_object_set_new(answer, "message",
+            json_string("profiling not compiled it: recompile with --enable-profiling-lite"));
+    return TM_ECODE_FAILED;
+#else
+    json_t *narg = json_object_get(cmd, "setting");
+    if (!json_is_string(narg)) {
+        json_object_set_new(answer, "message", json_string("setting is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *setting = json_string_value(narg);
+    ProfliteSetTpEntry(setting);
+    SCLogNotice("set entry tracepoint %s", setting);
+    SCReturnInt(TM_ECODE_OK);
+#endif
+}
+
+TmEcode UnixSocketProfileTpExit(json_t *cmd, json_t *answer, void *data)
+{
+#ifndef PROFILING_LITE
+    json_object_set_new(answer, "message",
+            json_string("profiling not compiled it: recompile with --enable-profiling-lite"));
+    return TM_ECODE_FAILED;
+#else
+    json_t *narg = json_object_get(cmd, "setting");
+    if (!json_is_string(narg)) {
+        json_object_set_new(answer, "message", json_string("setting is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *setting = json_string_value(narg);
+    ProfliteSetTpExit(setting);
+    SCLogNotice("set exit tracepoint %s", setting);
+    SCReturnInt(TM_ECODE_OK);
+#endif
+}
 #endif /* BUILD_UNIX_SOCKET */
 
 #ifdef BUILD_UNIX_SOCKET
