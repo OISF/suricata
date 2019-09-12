@@ -240,6 +240,9 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
     SCDropCaps(tv);
 
     PacketPoolInit();
+#ifdef PROFILING_LITE
+    ProfliteRegisterCounters(tv);
+#endif
 
     /* check if we are setup properly */
     if (s == NULL || s->PktAcqLoop == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
@@ -348,6 +351,9 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
         }
     }
 
+#ifdef PROFILING_LITE
+    ProfliteDump();
+#endif
     tv->stream_pq = NULL;
     SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);

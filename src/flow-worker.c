@@ -360,9 +360,11 @@ static void FlowPruneFiles(Packet *p)
 static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadData *fw,
         Packet *p, void *detect_thread)
 {
+    PACKET_PROFLITE_START(p, PROFLITE_TP_FLOWWORKER_APPLAYER_START);
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_STREAM);
     StreamTcp(tv, p, fw->stream_thread, &fw->pq);
     FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);
+    PACKET_PROFLITE_END(tv, p, PROFLITE_TP_FLOWWORKER_APPLAYER_END);
 
     if (FlowChangeProto(p->flow)) {
         StreamTcpDetectLogFlush(tv, fw->stream_thread, p->flow, p, &fw->pq);
@@ -469,6 +471,8 @@ static inline void FlowWorkerProcessLocalFlows(ThreadVars *tv,
 
 static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 {
+    PACKET_PROFLITE_START(p, PROFLITE_TP_FLOWWORKER_ENTER);
+
     FlowWorkerThreadData *fw = data;
     void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
 
@@ -491,6 +495,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
             if (FlowUpdate(tv, fw, p) == TM_ECODE_DONE) {
                 FLOWLOCK_UNLOCK(p->flow);
+                PACKET_PROFLITE_END(tv, p, PROFLITE_TP_FLOWWORKER_EXIT);
                 return TM_ECODE_OK;
             }
         }
@@ -525,9 +530,11 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     /* handle the app layer part of the UDP packet payload */
     } else if (p->flow && p->proto == IPPROTO_UDP) {
+        PACKET_PROFLITE_START(p, PROFLITE_TP_FLOWWORKER_APPLAYER_START);
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_APPLAYERUDP);
         AppLayerHandleUdp(tv, fw->stream_thread->ra_ctx->app_tctx, p, p->flow);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_APPLAYERUDP);
+        PACKET_PROFLITE_END(tv, p, PROFLITE_TP_FLOWWORKER_APPLAYER_END);
     }
 
     PacketUpdateEngineEventCounters(tv, fw->dtv, p);
@@ -536,13 +543,17 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
     SCLogDebug("packet %"PRIu64" calling Detect", p->pcap_cnt);
     if (detect_thread != NULL) {
+        PACKET_PROFLITE_START(p, PROFLITE_TP_FLOWWORKER_DETECT_START);
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
         Detect(tv, p, detect_thread);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
+        PACKET_PROFLITE_END(tv, p, PROFLITE_TP_FLOWWORKER_DETECT_END);
     }
 
     // Outputs.
+    PACKET_PROFLITE_START(p, PROFLITE_TP_FLOWWORKER_OUTPUT_START);
     OutputLoggerLog(tv, p, fw->output_thread);
+    PACKET_PROFLITE_END(tv, p, PROFLITE_TP_FLOWWORKER_OUTPUT_END);
 
     /* Prune any stored files. */
     FlowPruneFiles(p);
@@ -561,10 +572,16 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         /* run tx cleanup last */
         AppLayerParserTransactionsCleanup(p->flow);
 
+#ifdef PROFILING_LITE
+        if (p->flags & PKT_PROFILE)
+            p->proflite_alproto = p->flow->alproto;
+#endif
         Flow *f = p->flow;
         FlowDeReference(&p->flow);
         FLOWLOCK_UNLOCK(f);
     }
+
+    PACKET_PROFLITE_START(p, PROFLITE_TP_FLOWWORKER_PRE_INJECT);
 
     /* take injected flows and process them */
     FlowWorkerProcessInjectedFlows(tv, fw, p, detect_thread);
@@ -572,6 +589,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     /* process local work queue */
     FlowWorkerProcessLocalFlows(tv, fw, p, detect_thread);
 
+    PACKET_PROFLITE_END(tv, p, PROFLITE_TP_FLOWWORKER_EXIT);
     return TM_ECODE_OK;
 }
 
