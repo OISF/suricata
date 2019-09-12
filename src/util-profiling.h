@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,22 @@
 
 #ifndef __UTIL_PROFILE_H__
 #define __UTIL_PROFILE_H__
+
+enum ProfliteTracepoint {
+    PROFLITE_TP_DISABLED,
+
+    PROFLITE_TP_PP_GET,
+    PROFLITE_TP_PP_RETURN,
+    PROFLITE_TP_FLOWWORKER_ENTER,
+    PROFLITE_TP_FLOWWORKER_APPLAYER_START,
+    PROFLITE_TP_FLOWWORKER_APPLAYER_END,
+    PROFLITE_TP_FLOWWORKER_DETECT_START,
+    PROFLITE_TP_FLOWWORKER_DETECT_END,
+    PROFLITE_TP_FLOWWORKER_OUTPUT_START,
+    PROFLITE_TP_FLOWWORKER_OUTPUT_END,
+    PROFLITE_TP_FLOWWORKER_PRE_INJECT,
+    PROFLITE_TP_FLOWWORKER_EXIT,
+};
 
 #ifdef PROFILING
 
@@ -102,10 +118,10 @@ PktProfiling *SCProfilePacketStart(void);
             (p)->profile->ticks_start = UtilCpuGetTicks();          \
     }
 
-#define PACKET_PROFILING_END(p)                                     \
-    if (profiling_packets_enabled && (p)->profile != NULL) {        \
-        (p)->profile->ticks_end = UtilCpuGetTicks();                \
-        SCProfilingAddPacket((p));                                  \
+#define PACKET_PROFILING_END(t, p)                                                                 \
+    if (profiling_packets_enabled && (p)->profile != NULL) {                                       \
+        (p)->profile->ticks_end = UtilCpuGetTicks();                                               \
+        SCProfilingAddPacket((p));                                                                 \
     }
 
 #ifdef PROFILE_LOCKING
@@ -333,6 +349,8 @@ void SCProfilingDestroy(void);
 void SCProfilingRegisterTests(void);
 void SCProfilingDump(void);
 
+#define PACKET_PROFLITE_TRACEPOINT(t, p, tp)
+
 #else
 
 #define RULE_PROFILING_START(p)
@@ -342,9 +360,115 @@ void SCProfilingDump(void);
 #define KEYWORD_PROFILING_START
 #define KEYWORD_PROFILING_END(a,b,c)
 
+#if defined PROFILING_LITE
+
+SC_ATOMIC_DECLARE(uint64_t, proflite_features);
+thread_local extern uint64_t proflite_features;
+
+SC_ATOMIC_DECLARE(enum ProfliteTracepoint, proflite_tp_entry);
+SC_ATOMIC_DECLARE(enum ProfliteTracepoint, proflite_tp_exit);
+
+enum ProfliteFeatures {
+    PROFLITE_ALL,
+#define PROFLITE_ALL_BIT            BIT_U64(PROFLITE_ALL)
+    PROFLITE_TCP,
+#define PROFLITE_TCP_BIT            BIT_U64(PROFLITE_TCP)
+    PROFLITE_UDP,
+#define PROFLITE_UDP_BIT            BIT_U64(PROFLITE_UDP)
+    PROFLITE_ICMP4,
+#define PROFLITE_ICMP4_BIT          BIT_U64(PROFLITE_ICMP4)
+    PROFLITE_ICMP6,
+#define PROFLITE_ICMP6_BIT          BIT_U64(PROFLITE_ICMP6)
+    PROFLITE_OTHERIP,
+#define PROFLITE_OTHERIP_BIT        BIT_U64(PROFLITE_OTHERIP)
+    PROFLITE_OTHER,
+#define PROFLITE_OTHER_BIT          BIT_U64(PROFLITE_OTHER)
+    PROFLITE_ALERT,
+#define PROFLITE_ALERT_BIT          BIT_U64(PROFLITE_ALERT)
+    PROFLITE_ALPROTO_HTTP,
+#define PROFLITE_ALPROTO_HTTP_BIT   BIT_U64(PROFLITE_ALPROTO_HTTP)
+    PROFLITE_ALPROTO_HTTP2,
+#define PROFLITE_ALPROTO_HTTP2_BIT  BIT_U64(PROFLITE_ALPROTO_HTTP2)
+    PROFLITE_ALPROTO_DNS,
+#define PROFLITE_ALPROTO_DNS_BIT    BIT_U64(PROFLITE_ALPROTO_DNS)
+    PROFLITE_ALPROTO_SMB,
+#define PROFLITE_ALPROTO_SMB_BIT    BIT_U64(PROFLITE_ALPROTO_SMB)
+    PROFLITE_ALPROTO_NFS,
+#define PROFLITE_ALPROTO_NFS_BIT    BIT_U64(PROFLITE_ALPROTO_NFS)
+    PROFLITE_ALPROTO_SMTP,
+#define PROFLITE_ALPROTO_SMTP_BIT   BIT_U64(PROFLITE_ALPROTO_SMTP)
+    PROFLITE_ALPROTO_FTP,
+#define PROFLITE_ALPROTO_FTP_BIT    BIT_U64(PROFLITE_ALPROTO_FTP)
+    PROFLITE_ALPROTO_FTPDATA,
+#define PROFLITE_ALPROTO_FTPDATA_BIT    BIT_U64(PROFLITE_ALPROTO_FTPDATA)
+    PROFLITE_ALPROTO_DCERPC,
+#define PROFLITE_ALPROTO_DCERPC_BIT BIT_U64(PROFLITE_ALPROTO_DCERPC)
+    PROFLITE_ALPROTO_TLS,
+#define PROFLITE_ALPROTO_TLS_BIT    BIT_U64(PROFLITE_ALPROTO_TLS)
+    PROFLITE_ALPROTO_SSH,
+#define PROFLITE_ALPROTO_SSH_BIT    BIT_U64(PROFLITE_ALPROTO_SSH)
+    PROFLITE_ALPROTO_SNMP,
+#define PROFLITE_ALPROTO_SNMP_BIT   BIT_U64(PROFLITE_ALPROTO_SNMP)
+    PROFLITE_ALPROTO_DHCP,
+#define PROFLITE_ALPROTO_DHCP_BIT   BIT_U64(PROFLITE_ALPROTO_DHCP)
+    PROFLITE_ALPROTO_TFTP,
+#define PROFLITE_ALPROTO_TFTP_BIT   BIT_U64(PROFLITE_ALPROTO_TFTP)
+    PROFLITE_ALPROTO_OTHER,
+#define PROFLITE_ALPROTO_OTHER_BIT  BIT_U64(PROFLITE_ALPROTO_OTHER)
+    PROFLITE_ALPROTO_NONE,
+#define PROFLITE_ALPROTO_NONE_BIT   BIT_U64(PROFLITE_ALPROTO_NONE)
+};
+
+void ProfliteEnable(const char *setting);
+void ProfliteDisable(const char *setting);
+
+void ProfliteSetTpEntry(const char *setting);
+void ProfliteSetTpExit(const char *setting);
+
+/*
+static inline bool ProfliteIsEnabled(const uint64_t tracepoint)
+{
+    const uint64_t flag = BIT_U64(PROFLITE_TP_ENABLED)|BIT_U64(tracepoint);
+    return (proflite_tracepoints & flag) == flag;
+}
+*/
+void ProfliteAddPacket(ThreadVars *, Packet *, const uint64_t);
+void ProfliteDump(void);
+void ProfliteRegisterCounters(ThreadVars *);
+void ProfliteRegisterCounterNames(void);
+
+#define PACKET_PROFLITE_TRACEPOINT(t, p, tp)                                                       \
+    if (((p)->flags & PKT_PROFILE) == 0) {                                                         \
+        if (SC_ATOMIC_GET(proflite_tp_entry) == (tp)) {                                            \
+            (p)->flags |= PKT_PROFILE;                                                             \
+            gettimeofday(&(p)->proflite_startts, NULL);                                            \
+            (p)->proflite_alproto = ALPROTO_UNKNOWN;                                               \
+        }                                                                                          \
+    } else {                                                                                       \
+        if (SC_ATOMIC_GET(proflite_tp_exit) == (tp)) {                                             \
+            ProfliteAddPacket((t), (p), proflite_features);                                        \
+        }                                                                                          \
+    }
+
+#define PACKET_PROFILING_START(p)                                                                  \
+    proflite_features = SC_ATOMIC_GET(proflite_features);                                          \
+    PACKET_PROFLITE_TRACEPOINT(NULL, (p), PROFLITE_TP_PP_GET)
+
+#define PACKET_PROFILING_RESTART(p)                                                                \
+    proflite_features = SC_ATOMIC_GET(proflite_features);                                          \
+    PACKET_PROFLITE_TRACEPOINT(NULL, (p), PROFLITE_TP_PP_RETURN)
+
+#define PACKET_PROFILING_END(t, p) PACKET_PROFLITE_TRACEPOINT((t), (p), PROFLITE_TP_PP_RETURN)
+
+#else
+
+#define PACKET_PROFLITE_TRACEPOINT(t, p, tp)
+
 #define PACKET_PROFILING_START(p)
 #define PACKET_PROFILING_RESTART(p)
-#define PACKET_PROFILING_END(p)
+#define PACKET_PROFILING_END(t, p)
+
+#endif
 
 #define PACKET_PROFILING_TMM_START(p, id)
 #define PACKET_PROFILING_TMM_END(p, id)
