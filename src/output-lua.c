@@ -825,6 +825,7 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
             om->alproto = ALPROTO_SSH;
             om->tc_log_progress = SSH_STATE_BANNER_DONE;
             om->ts_log_progress = SSH_STATE_BANNER_DONE;
+            AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
         } else if (opts.alproto == ALPROTO_SMTP) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_SMTP;
