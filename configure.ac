@@ -580,46 +580,6 @@
         LIBS="${TMPLIBS} -lz"
     fi
 
-  # liblzma
-    enable_liblzma=no
-
-    AC_ARG_WITH(liblzma_includes,
-            [  --with-liblzma-includes=DIR  liblzma include directory],
-            [with_liblzma_includes="$withval"],[with_liblzma_includes="no"])
-    AC_ARG_WITH(liblzma_libraries,
-            [  --with-liblzma-libraries=DIR    liblzma library directory],
-            [with_liblzma_libraries="$withval"],[with_liblzma_libraries="no"])
-
-    if test "$with_liblzma_includes" != "no"; then
-        CPPFLAGS="${CPPFLAGS} -I${with_liblzma_includes}"
-    fi
-    TMPLIBS="${LIBS}"
-
-    AC_CHECK_HEADER(lzma.h,
-        AC_CHECK_LIB(lzma,lzma_code,[
-	    AC_DEFINE([HAVE_LIBLZMA],[1],[liblzma available])
-	    LIBLZMA="yes"
-            if test "$LIBLZMA" = "yes"; then
-                if test "$with_liblzma_libraries" != "no"; then
-                    LDFLAGS="${LDFLAGS}  -L${with_liblzma_libraries}"
-                    LIBS="${TMPLIBS} -llzma"
-                else
-                    LIBS="${TMPLIBS} -llzma"
-                fi
-            fi]),LIBLZMA="no")
-
-    if test "$LIBLZMA" != "yes"; then
-        echo
-        echo "   Error! liblzma library not found."
-        echo "   Debian/Ubuntu: apt install liblzma-dev"
-        echo "   Fedora: dnf install xz-devel"
-        echo "   CentOS/RHEL: yum install xz-devel"
-        echo
-        exit 1
-    fi
-    enable_liblzma=yes
-    LIBS="${TMPLIBS} -llzma"
-
   #libpcre
     AC_ARG_WITH(libpcre_includes,
             [  --with-libpcre-includes=DIR  libpcre include directory],
@@ -2587,7 +2547,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libnss support:                          ${enable_nss}
   libnspr support:                         ${enable_nspr}
   libjansson support:                      ${enable_jansson}
-  liblzma support:                         ${enable_liblzma}
   hiredis support:                         ${enable_hiredis}
   hiredis async with libevent:             ${enable_hiredis_async}
   Prelude support:                         ${enable_prelude}
