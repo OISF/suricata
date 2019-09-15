@@ -40,6 +40,7 @@
 #include "util-streaming-buffer.h"
 
 #include <htp/htp.h>
+#include <htp/htp_config.h>
 
 /* default request body limit */
 #define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT           4096U
