@@ -17,7 +17,7 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-pub mod sip;
-pub mod parser;
-pub mod log;
 pub mod detect;
+pub mod log;
+pub mod parser;
+pub mod sip;
