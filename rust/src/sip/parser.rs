@@ -207,7 +207,6 @@ fn parse_header_value(buf: &[u8]) -> IResult<&[u8], &[u8]> {
 #[cfg(test)]
 mod tests {
 
-    use crate::sip::sip::*;
     use crate::sip::parser::*;
 
     #[test]
