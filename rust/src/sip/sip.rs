@@ -27,6 +27,7 @@ use core::{AppProto,Flow,ALPROTO_UNKNOWN,sc_detect_engine_state_free};
 use parser::*;
 use log::*;
 use sip::parser::*;
+use conf;
 
 #[repr(u32)]
 pub enum SIPEvent {
@@ -419,6 +420,12 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         get_files          : None,
         get_tx_iterator    : None,
     };
+
+    /* For 5.0 we want this disabled by default, so check that it
+     * has been explicitly enabled. */
+    if !conf::conf_get_bool("app-layer.protocols.sip.enabled") {
+        return;
+    }
 
     let ip_proto_str = CString::new("udp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
