@@ -6,6 +6,29 @@ content modifiers, please visit the page :doc:`payload-keywords` These
 ones make sure the signature checks a specific part of the
 network-traffic.
 
+dns.opcode
+----------
+
+This keyword matches on the **opcode** found in the DNS header flags.
+
+Syntax
+~~~~~~
+
+::
+
+   dns.opcode:[!]<number>
+
+Examples
+~~~~~~~~
+
+Match on DNS requests and responses with **opcode** 4::
+
+  dns.opcode:4;
+
+Match on DNS requests whre the **opcode** is NOT 0::
+
+  dns.opcode:!0;
+
 dns.query
 ---------
 
