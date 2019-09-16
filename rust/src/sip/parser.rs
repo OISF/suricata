@@ -17,10 +17,10 @@
 
 // written by Giuseppe Longo <giuseppe@glono.it>
 
+use nom::*;
+use nom::{crlf, IResult};
 use std;
 use std::collections::HashMap;
-use nom::{IResult,crlf};
-use nom::*;
 
 #[derive(Debug)]
 pub struct Header {
@@ -33,17 +33,17 @@ pub struct Request {
     pub method: String,
     pub path: String,
     pub version: String,
-    pub headers: HashMap<String, String>
+    pub headers: HashMap<String, String>,
 }
 
 #[derive(Debug)]
 pub struct Response {
     pub version: String,
     pub code: String,
-    pub reason: String
+    pub reason: String,
 }
 
-#[derive(PartialEq,Debug,Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Method {
     Register,
     Custom(String),
@@ -74,7 +74,7 @@ fn is_reason_phrase(b: u8) -> bool {
     is_alphanumeric(b) || is_token_char(b) || b"$&(),/:;=?@[\\]^ ".contains(&b)
 }
 
-fn is_header_name(b :u8) -> bool {
+fn is_header_name(b: u8) -> bool {
     is_alphanumeric(b) || is_token_char(b)
 }
 
@@ -130,19 +130,24 @@ named!(#[inline], header_value<&[u8], &str>,
     map_res!(parse_header_value, std::str::from_utf8)
 );
 
-named!(hcolon<char>, delimited!(
-    take_while!(is_space),
-    char!(':'),
-    take_while!(is_space)
-));
+named!(
+    hcolon<char>,
+    delimited!(take_while!(is_space), char!(':'), take_while!(is_space))
+);
 
-named!(message_header<Header>, do_parse!(
-    n: header_name >>
-    hcolon >>
-    v: header_value >>
-    crlf >>
-    (Header{ name: String::from(n), value: String::from(v) })
-));
+named!(
+    message_header<Header>,
+    do_parse!(
+        n: header_name
+            >> hcolon
+            >> v: header_value
+            >> crlf
+            >> (Header {
+                name: String::from(n),
+                value: String::from(v)
+            })
+    )
+);
 
 named!(pub sip_take_line<&[u8], Option<String> >,
     do_parse!(
@@ -151,8 +156,7 @@ named!(pub sip_take_line<&[u8], Option<String> >,
     )
 );
 
-pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8],HashMap<String, String>>
-{
+pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8], HashMap<String, String>> {
     let mut headers_map: HashMap<String, String> = HashMap::new();
     loop {
         match crlf(input) {
@@ -215,7 +219,8 @@ mod tests {
                           From: <sip:voi18063@sip.cybercity.dk>;tag=903df0a\r\n\
                           To: <sip:voi18063@sip.cybercity.dk>\r\n\
                           Content-Length: 0\r\n\
-                          \r\n".as_bytes();
+                          \r\n"
+            .as_bytes();
 
         match sip_parse_request(buf) {
             Ok((_, req)) => {
@@ -233,7 +238,8 @@ mod tests {
     #[test]
     fn test_parse_response() {
         let buf: &[u8] = "SIP/2.0 401 Unauthorized\r\n\
-                          \r\n".as_bytes();
+                          \r\n"
+            .as_bytes();
 
         match sip_parse_response(buf) {
             Ok((_, resp)) => {

@@ -21,8 +21,7 @@ use json::*;
 use sip::sip::{SIPState, SIPTransaction};
 
 #[no_mangle]
-pub extern "C" fn rs_sip_log_json(_state: &mut SIPState, tx: &mut SIPTransaction) -> *mut JsonT
-{
+pub extern "C" fn rs_sip_log_json(_state: &mut SIPState, tx: &mut SIPTransaction) -> *mut JsonT {
     let js = Json::object();
 
     match tx.request {
@@ -30,13 +29,13 @@ pub extern "C" fn rs_sip_log_json(_state: &mut SIPState, tx: &mut SIPTransaction
             js.set_string("method", &req.method);
             js.set_string("uri", &req.path);
             js.set_string("version", &req.version);
-        },
+        }
         None => {}
     }
     match tx.request_line {
-        Some (ref req_line) => {
+        Some(ref req_line) => {
             js.set_string("request_line", &req_line);
-        },
+        }
         None => {}
     }
     match tx.response {
@@ -44,13 +43,13 @@ pub extern "C" fn rs_sip_log_json(_state: &mut SIPState, tx: &mut SIPTransaction
             js.set_string("version", &resp.version);
             js.set_string("code", &resp.code);
             js.set_string("reason", &resp.reason);
-        },
+        }
         None => {}
     }
     match tx.response_line {
-        Some (ref resp_line) => {
+        Some(ref resp_line) => {
             js.set_string("response_line", &resp_line);
-        },
+        }
         None => {}
     }
 
