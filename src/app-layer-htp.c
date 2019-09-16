@@ -531,15 +531,18 @@ static void AppLayerHtpSetStreamDepthFlag(void *tx, uint8_t flags)
     }
 }
 
-static bool AppLayerHtpCheckStreamDepth(uint64_t content_len_so_far, uint8_t flags)
+static bool AppLayerHtpCheckDepth(const HTPCfgDir *cfg, HtpBody *body, uint8_t flags)
 {
     if (flags & HTP_STREAM_DEPTH_SET) {
         uint32_t stream_depth = FileReassemblyDepth();
-        if (content_len_so_far < (uint64_t)stream_depth || stream_depth == 0) {
+        if (body->content_len_so_far < (uint64_t)stream_depth || stream_depth == 0) {
+            return true;
+        }
+    } else {
+        if (cfg->body_limit == 0 || body->content_len_so_far < cfg->body_limit) {
             return true;
         }
     }
-
     return false;
 }
 
@@ -1838,10 +1841,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     SCLogDebug("hstate->cfg->request.body_limit %u", hstate->cfg->request.body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if ((!(tx_ud->tsflags & HTP_STREAM_DEPTH_SET) &&
-        (hstate->cfg->request.body_limit == 0 || tx_ud->request_body.content_len_so_far < hstate->cfg->request.body_limit)) ||
-        AppLayerHtpCheckStreamDepth(tx_ud->request_body.content_len_so_far, tx_ud->tsflags))
-    {
+    if (AppLayerHtpCheckDepth(&hstate->cfg->request, &tx_ud->request_body, tx_ud->tsflags)) {
         uint32_t stream_depth = FileReassemblyDepth();
         uint32_t len = AppLayerHtpComputeChunkLength(tx_ud->request_body.content_len_so_far,
                                                      hstate->cfg->request.body_limit,
@@ -1962,10 +1962,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     SCLogDebug("hstate->cfg->response.body_limit %u", hstate->cfg->response.body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if ((!(tx_ud->tcflags & HTP_STREAM_DEPTH_SET) &&
-        (hstate->cfg->response.body_limit == 0 || tx_ud->response_body.content_len_so_far < hstate->cfg->response.body_limit)) ||
-        AppLayerHtpCheckStreamDepth(tx_ud->response_body.content_len_so_far, tx_ud->tcflags))
-    {
+    if (AppLayerHtpCheckDepth(&hstate->cfg->response, &tx_ud->response_body, tx_ud->tcflags)) {
         uint32_t stream_depth = FileReassemblyDepth();
         uint32_t len = AppLayerHtpComputeChunkLength(tx_ud->response_body.content_len_so_far,
                                                      hstate->cfg->response.body_limit,
@@ -7317,6 +7314,9 @@ libhtp:\n\
 
 static int HTPParserTest27(void)
 {
+    HTPCfgDir cfg;
+    memset(&cfg, 0, sizeof(cfg));
+    cfg.body_limit = 1500;
     FileReassemblyDepthEnable(2000);
 
     uint32_t len = 1000;
@@ -7327,7 +7327,7 @@ static int HTPParserTest27(void)
     tx_ud->tsflags |= HTP_STREAM_DEPTH_SET;
     tx_ud->request_body.content_len_so_far = 2500;
 
-    FAIL_IF(AppLayerHtpCheckStreamDepth(tx_ud->request_body.content_len_so_far, tx_ud->tsflags));
+    FAIL_IF(AppLayerHtpCheckDepth(&cfg, &tx_ud->request_body, tx_ud->tsflags));
 
     len = AppLayerHtpComputeChunkLength(tx_ud->request_body.content_len_so_far,
                                         0,
