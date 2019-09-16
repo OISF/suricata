@@ -72,7 +72,7 @@ static int DetectSipMethodSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 }
 
-static _Bool DetectSipMethodValidateCallback(const Signature *s, const char **sigerror)
+static bool DetectSipMethodValidateCallback(const Signature *s, const char **sigerror)
 {
     const SigMatch *sm = s->init_data->smlists[g_buffer_id];
     for ( ; sm != NULL; sm = sm->next) {
@@ -83,23 +83,23 @@ static _Bool DetectSipMethodValidateCallback(const Signature *s, const char **si
             if (cd->content[cd->content_len-1] == 0x20) {
                 *sigerror = "sip.method pattern with trailing space";
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
-                return FALSE;
+                return true;
             } else if (cd->content[0] == 0x20) {
                 *sigerror = "sip.method pattern with leading space";
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
-                return FALSE;
+                return true;
             } else if (cd->content[cd->content_len-1] == 0x09) {
                 *sigerror = "sip.method pattern with trailing tab";
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
-                return FALSE;
+                return true;
             } else if (cd->content[0] == 0x09) {
                 *sigerror = "sip.method pattern with leading tab";
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
-                return FALSE;
+                return true;
             }
         }
     }
-    return TRUE;
+    return true;
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
