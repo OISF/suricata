@@ -61,6 +61,7 @@ type_map = {
     "c_void": "void",
 
     "std::os::raw::c_char": "char",
+    "c_char": "char",
     "std::os::raw::c_int": "int",
     "c_int": "int",
     "std::os::raw::int8_t": "int8_t",
@@ -104,6 +105,7 @@ type_map = {
     "CLuaState": "lua_State",
     "Store": "Store",
     "AppProto": "AppProto",
+    "DetectDnsOpcode": "void *",
 }
 
 def convert_type(rs_type):

@@ -112,6 +112,7 @@ detect-depth.c detect-depth.h \
 detect-detection-filter.c detect-detection-filter.h \
 detect-distance.c detect-distance.h \
 detect-dnp3.c detect-dnp3.h \
+detect-dns-opcode.c detect-dns-opcode.h \
 detect-dns-query.c detect-dns-query.h \
 detect-tls-ja3-hash.c detect-tls-ja3-hash.h \
 detect-tls-ja3-string.c detect-tls-ja3-string.h \
