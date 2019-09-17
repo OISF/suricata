@@ -394,8 +394,10 @@ static void GlobalsDestroy(SCInstance *suri)
     TmModuleRunDeInit();
     ParseSizeDeinit();
 #ifdef HAVE_NSS
-    NSS_Shutdown();
-    PR_Cleanup();
+    if (NSS_IsInitialized()) {
+        NSS_Shutdown();
+        PR_Cleanup();
+    }
 #endif
 
 #ifdef HAVE_AF_PACKET
