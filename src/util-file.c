@@ -609,7 +609,8 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
         SCReturnInt(-1);
     }
 
-    if (FileStoreNoStoreCheck(ff) == 1) {
+    if ((ff->flags & FILE_USE_DETECT) == 0 &&
+            FileStoreNoStoreCheck(ff) == 1) {
 #ifdef HAVE_NSS
         int hash_done = 0;
         /* no storage but forced hashing */
