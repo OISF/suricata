@@ -260,11 +260,23 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         return NULL;
     }
 
+    /* Check that we have the first fragment and its of a valid size. */
+    Frag *first = RB_MIN(IP_FRAGMENTS, &tracker->fragment_tree);
+    if (first == NULL) {
+        goto done;
+    } else if (first->offset != 0) {
+        /* Still waiting for the first fragment. */
+        goto done;
+    } else if (first->len < sizeof(IPV4Hdr)) {
+        /* First fragment isn't enough for an IPv6 header. */
+        goto error_remove_tracker;
+    }
+
     /* Check that we have all the data. Relies on the fact that
      * fragments are inserted if frag_offset order. */
     Frag *frag = NULL;
-    int len = 0;
-    RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
+    size_t len = 0;
+    RB_FOREACH_FROM(frag, IP_FRAGMENTS, first) {
         if (frag->offset > len) {
             /* This fragment starts after the end of the previous
              * fragment.  We have a hole. */
@@ -374,10 +386,21 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     if (!tracker->seen_last)
         return NULL;
 
+    /* Check that we have the first fragment and its of a valid size. */
+    Frag *first = RB_MIN(IP_FRAGMENTS, &tracker->fragment_tree);
+    if (first == NULL) {
+        goto done;
+    } else if (first->offset != 0) {
+        /* Still waiting for the first fragment. */
+        goto done;
+    } else if (first->len < sizeof(IPV6Hdr)) {
+        /* First fragment isn't enough for an IPv6 header. */
+        goto error_remove_tracker;
+    }
+
     /* Check that we have all the data. Relies on the fact that
      * fragments are inserted if frag_offset order. */
-    int len = 0;
-    Frag *first = RB_MIN(IP_FRAGMENTS, &tracker->fragment_tree);
+    size_t len = 0;
     Frag *frag = NULL;
     RB_FOREACH_FROM(frag, IP_FRAGMENTS, first) {
         if (frag->skip) {
