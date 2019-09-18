@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright(C) 2013, 2014, 2015 Open Information Security Foundation
+#!/usr/bin/env python3
+# Copyright(C) 2013, 2014, 2015, 2019 Open Information Security Foundation
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,12 +20,13 @@
 # or the buildbot will not be able to access to the data in /data/oisf
 # and the git step will fail.
 
-import urllib, urllib2, cookielib
+import urllib.error
+import urllib.request
+import urllib.error
+import urllib.parse
+import http.cookiejar
 import requests
-try:
-    import simplejson as json
-except:
-    import json
+import json
 import time
 import argparse
 import sys
@@ -36,7 +37,7 @@ from subprocess import Popen, PIPE
 GOT_NOTIFY = True
 try:
     import pynotify
-except:
+except ImportError:
     GOT_NOTIFY = False
 
 GOT_DOCKER = True
@@ -52,7 +53,7 @@ try:
         try:
             from docker import Client
         except ImportError:
-            GOT_DOCKER = FALSE
+            GOT_DOCKER = False
 except ImportError:
     GOT_DOCKER = False
 
@@ -60,7 +61,7 @@ except ImportError:
 #  - github user
 #  - buildbot user and password
 
-BASE_URI="https://buildbot.openinfosecfoundation.org/"
+BASE_URI = "https://buildbot.openinfosecfoundation.org/"
 GITHUB_BASE_URI = "https://api.github.com/repos/"
 GITHUB_MASTER_URI = "https://api.github.com/repos/OISF/suricata/commits?sha=master"
 
@@ -98,12 +99,12 @@ if args.create or args.start or args.stop or args.rm:
         args.docker = True
         args.local = True
     else:
-        print "You need to install python docker to use docker handling features."
+        print("You need to install python docker to use docker handling features.")
         sys.exit(-1)
 
 if not args.local:
     if not args.username:
-        print "You need to specify a github username (-u option) for this mode (or use -l to disable)"
+        print("You need to specify a github username (-u option) for this mode (or use -l to disable)")
         sys.exit(-1)
 
 if args.docker:
@@ -128,8 +129,8 @@ def SendNotification(title, text):
     n.show()
 
 def TestRepoSync(branch):
-    request = urllib2.Request(GITHUB_MASTER_URI)
-    page = urllib2.urlopen(request)
+    request = urllib.request.Request(GITHUB_MASTER_URI)
+    page = urllib.request.urlopen(request)
     json_result = json.loads(page.read())
     sha_orig = json_result[0]["sha"]
     check_command = ["git", "branch", "--contains", sha_orig ]
@@ -142,10 +143,10 @@ def TestRepoSync(branch):
     return 0
 
 def TestGithubSync(branch):
-    request = urllib2.Request(GITHUB_BASE_URI + username + "/" + args.repository + "/commits?sha=" + branch + "&per_page=1")
+    request = urllib.request.Request(GITHUB_BASE_URI + username + "/" + args.repository + "/commits?sha=" + branch + "&per_page=1")
     try:
-        page = urllib2.urlopen(request)
-    except urllib2.HTTPError, e:
+        page = urllib.request.urlopen(request)
+    except urllib.error.HTTPError as e:
         if e.code == 404:
             return -2
         else:
@@ -155,45 +156,45 @@ def TestGithubSync(branch):
     check_command = ["git", "rev-parse", branch]
     p1 = Popen(check_command, stdout=PIPE)
     sha_local = p1.communicate()[0].rstrip()
-    if sha_local != sha_github:
+    if sha_local.decode('ascii') != sha_github:
         return -1
     return 0
 
 def OpenBuildbotSession():
     auth_params = { 'username':username,'passwd':password, 'name':'login'}
-    cookie = cookielib.LWPCookieJar()
-    params = urllib.urlencode(auth_params)
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
-    urllib2.install_opener(opener)
-    request = urllib2.Request(BASE_URI + 'login', params)
-    page = urllib2.urlopen(request)
+    cookie = http.cookiejar.LWPCookieJar()
+    params = urllib.parse.urlencode(auth_params)
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie))
+    urllib.request.install_opener(opener)
+    request = urllib.request.Request(BASE_URI + 'login', bytes(params, "utf-8"))
+    page = urllib.request.urlopen(request)
     return cookie
 
 
 def SubmitBuild(branch, extension = "", builder_name = None):
     raw_params = {'branch':branch,'reason':'Testing ' + branch, 'name':'force_build', 'forcescheduler':'force'}
-    params = urllib.urlencode(raw_params)
+    params = urllib.parse.urlencode(raw_params)
     if not args.docker:
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
-        urllib2.install_opener(opener)
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie))
+        urllib.request.install_opener(opener)
     if builder_name == None:
         builder_name = username + extension
-    request = urllib2.Request(BUILDERS_URI + builder_name + '/force', params)
-    page = urllib2.urlopen(request)
+    request = urllib.request.Request(BUILDERS_URI + builder_name + '/force', bytes(params, "utf-8"))
+    page = urllib.request.urlopen(request)
 
-    result = page.read()
+    result = str(page.read())
     if args.verbose:
-        print "=== response ==="
-        print result
-        print "=== end of response ==="
+        print("=== response ===")
+        print(result)
+        print("=== end of response ===")
     if args.docker:
         if "<h2>Pending Build Requests:</h2>" in result:
-            print "Build '" + builder_name + "' submitted"
+            print("Build '" + builder_name + "' submitted")
             return 0
         else:
             return -1
     if "Current Builds" in result:
-        print "Build '" + builder_name + "' submitted"
+        print("Build '" + builder_name + "' submitted")
         return 0
     else:
         return -1
@@ -201,10 +202,10 @@ def SubmitBuild(branch, extension = "", builder_name = None):
 # TODO honor the branch argument
 def FindBuild(branch, extension = "", builder_name = None):
     if builder_name == None:
-        request = urllib2.Request(JSON_BUILDERS_URI + username + extension + '/')
+        request = urllib.request.Request(JSON_BUILDERS_URI + username + extension + '/')
     else:
-        request = urllib2.Request(JSON_BUILDERS_URI + builder_name + '/')
-    page = urllib2.urlopen(request)
+        request = urllib.request.Request(JSON_BUILDERS_URI + builder_name + '/')
+    page = urllib.request.urlopen(request)
     json_result = json.loads(page.read())
     # Pending build is unnumbered
     if json_result["pendingBuilds"]:
@@ -219,13 +220,13 @@ def GetBuildStatus(builder, buildid, extension="", builder_name = None):
     if builder_name == None:
         builder_name = username + extension
     # https://buildbot.suricata-ids.org/json/builders/build%20deb6/builds/11
-    request = urllib2.Request(JSON_BUILDERS_URI + builder_name + '/builds/' + str(buildid))
-    page = urllib2.urlopen(request)
+    request = urllib.request.Request(JSON_BUILDERS_URI + builder_name + '/builds/' + str(buildid))
+    page = urllib.request.urlopen(request)
     result = page.read()
     if args.verbose:
-        print "=== response ==="
-        print result
-        print "=== end of response ==="
+        print("=== response ===")
+        print(result)
+        print("=== end of response ===")
     json_result = json.loads(result)
     if json_result["currentStep"]:
         return 1
@@ -245,9 +246,9 @@ def WaitForBuildResult(builder, buildid, extension="", builder_name = None):
 
     # return the result
     if res == 0:
-        print "Build successful for " + builder_name
+        print("Build successful for " + builder_name)
     else:
-        print "Build failure for " + builder_name + ": " + BUILDERS_URI + builder_name + '/builds/' + str(buildid)
+        print("Build failure for " + builder_name + ": " + BUILDERS_URI + builder_name + '/builds/' + str(buildid))
     return res
 
     # check that github branch and OISF master branch are sync
@@ -255,23 +256,23 @@ if not args.local:
     ret = TestGithubSync(args.branch)
     if ret != 0:
         if ret == -2:
-            print "Branch " + args.branch + " is not pushed to Github."
+            print("Branch " + args.branch + " is not pushed to Github.")
             sys.exit(-1)
         if args.norebase:
-            print "Branch " + args.branch + " is not in sync with corresponding Github branch. Continuing due to --norebase option."
+            print("Branch " + args.branch + " is not in sync with corresponding Github branch. Continuing due to --norebase option.")
         else:
-            print "Branch " + args.branch + " is not in sync with corresponding Github branch. Push may be needed."
+            print("Branch " + args.branch + " is not in sync with corresponding Github branch. Push may be needed.")
             sys.exit(-1)
     if TestRepoSync(args.branch) != 0:
         if args.norebase:
-            print "Branch " + args.branch + " is not in sync with OISF's master branch. Continuing due to --norebase option."
+            print("Branch " + args.branch + " is not in sync with OISF's master branch. Continuing due to --norebase option.")
         else:
-            print "Branch " + args.branch + " is not in sync with OISF's master branch. Rebase needed."
+            print("Branch " + args.branch + " is not in sync with OISF's master branch. Rebase needed.")
             sys.exit(-1)
 
 def CreateContainer():
     # FIXME check if existing
-    print "Pulling docking image, first run should take long"
+    print("Pulling docking image, first run should take long")
     if GOT_DOCKERPY_API < 2:
         cli = Client()
         cli.pull('regit/suri-buildbot')
@@ -280,13 +281,13 @@ def CreateContainer():
         cli = DockerClient()
         cli.images.pull('regit/suri-buildbot')
         suri_src_dir = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
-        print "Using base src dir: " + suri_src_dir
+        print("Using base src dir: " + suri_src_dir)
         cli.containers.create('regit/suri-buildbot', name='suri-buildbot', ports={'8010/tcp': 8010, '22/tcp': None} , volumes={suri_src_dir: { 'bind': '/data/oisf', 'mode': 'ro'}, os.path.join(suri_src_dir,'qa','docker','buildbot.cfg'): { 'bind': '/data/buildbot/master/master.cfg', 'mode': 'ro'}}, detach = True, cap_add=["SYS_PTRACE"])
     sys.exit(0)
 
 def StartContainer():
     suri_src_dir = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
-    print "Using base src dir: " + suri_src_dir
+    print("Using base src dir: " + suri_src_dir)
     if GOT_DOCKERPY_API < 2:
         cli = Client()
         cli.start('suri-buildbot', port_bindings={8010:8010, 22:None}, binds={suri_src_dir: { 'bind': '/data/oisf', 'ro': True}, os.path.join(suri_src_dir,'qa','docker','buildbot.cfg'): { 'bind': '/data/buildbot/master/master.cfg', 'ro': True}} )
@@ -310,12 +311,12 @@ def RmContainer():
         try:
             cli.remove_container('suri-buildbot')
         except:
-            print "Unable to remove suri-buildbot container"
+            print("Unable to remove suri-buildbot container")
             pass
         try:
             cli.remove_image('regit/suri-buildbot:latest')
         except:
-            print "Unable to remove suri-buildbot images"
+            print("Unable to remove suri-buildbot images")
             pass
     else:
         cli = DockerClient()
@@ -334,7 +335,7 @@ if GOT_DOCKER:
         RmContainer()
 
 if not args.branch:
-    print "You need to specify a branch for this mode"
+    print("You need to specify a branch for this mode")
     sys.exit(-1)
 
 buildids = {}
@@ -344,12 +345,12 @@ if not args.check:
     if not args.docker:
         cookie = OpenBuildbotSession()
         if cookie == None:
-            print "Unable to connect to buildbot with provided credentials"
+            print("Unable to connect to buildbot with provided credentials")
             sys.exit(-1)
         for build in BUILDERS_LIST:
             res = SubmitBuild(args.branch, builder_name = build)
             if res == -1:
-                print "Unable to start build. Check command line parameters"
+                print("Unable to start build. Check command line parameters")
                 sys.exit(-1)
     else:
         data = {"jsonrpc": "2.0", "method": "force", "id": 1, "params": {"revision": "HEAD", "branch": args.branch}}
@@ -365,7 +366,7 @@ if not args.check:
                 builder['buildrequestid'] = build_tasks[str(builder['builderid'])]
             buildids = builders
         except IOError:
-            print "Invalid return: %s" % (res)
+            print("Invalid return: %s" % (res))
             sys.exit(-1)
 
 
@@ -376,20 +377,20 @@ else:
     for build in BUILDERS_LIST:
         buildid = FindBuild(args.branch, builder_name = build)
         if buildid == -1:
-            print "Pending build tracking is not supported. Follow build by browsing " + BUILDERS_URI + build
+            print("Pending build tracking is not supported. Follow build by browsing " + BUILDERS_URI + build)
         elif buildid == -2:
-            print "No build found for " + BUILDERS_URI + build
+            print("No build found for " + BUILDERS_URI + build)
             sys.exit(0)
         else:
             if not args.docker:
-                print "You can watch build progress at " + BUILDERS_URI + build + "/builds/" + str(buildid)
+                print("You can watch build progress at " + BUILDERS_URI + build + "/builds/" + str(buildid))
             buildids[build] = buildid
 
 if args.docker:
-    print "You can watch build progress at " + BASE_URI
+    print("You can watch build progress at " + BASE_URI)
 
 if len(buildids):
-    print "Waiting for build completion"
+    print("Waiting for build completion")
 else:
     sys.exit(0)
 
@@ -403,7 +404,7 @@ if args.docker:
             try:
                 res = json.loads(r.text)['builds'][0]
             except IndexError:
-                print "No task yet for %s (%s)" % (build['name'], url)
+                print("No task yet for %s (%s)" % (build['name'], url))
                 continue
             if res['complete']:
                 ret = res['results']
@@ -414,21 +415,21 @@ if args.docker:
                         remains = " (remaining builds: " + ', '.join([b['name'] for b in up_buildids]) + ")"
                     else:
                         remains = ""
-                    print "Build failure for " + build['name'] + remains
+                    print("Build failure for " + build['name'] + remains)
                 else:
                     up_buildids.remove(build)
                     if len(up_buildids):
                         remains = " (remaining builds: " + ', '.join([b['name'] for b in up_buildids]) + ")"
                     else:
                         remains = ""
-                    print "Build successful for " + build['name'] + remains
+                    print("Build successful for " + build['name'] + remains)
         time.sleep(5)
         buildids = up_buildids
     if buildres == -1:
         SendNotification("PRscript failure", "Some builds have failed. Check <a href='" + BASE_URI + "waterfall'>waterfall</a> for results.")
         sys.exit(-1)
     else:
-        print "PRscript completed successfully"
+        print("PRscript completed successfully")
         SendNotification("PRscript success", "Congrats! All builds have passed.")
         sys.exit(0)
 else:
@@ -439,9 +440,9 @@ else:
 
 if buildres == 0:
     if not args.norebase and not args.docker:
-        print "You can copy/paste following lines into github PR"
+        print("You can copy/paste following lines into github PR")
         for build in buildids:
-            print "- PR " + build + ": " + BUILDERS_URI + build + "/builds/" + str(buildids[build])
+            print("- PR " + build + ": " + BUILDERS_URI + build + "/builds/" + str(buildids[build]))
     SendNotification("OISF PRscript success", "Congrats! All builds have passed.")
     sys.exit(0)
 else:
