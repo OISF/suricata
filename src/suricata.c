@@ -3014,6 +3014,10 @@ int main(int argc, char **argv)
     }
 
     SCDropMainThreadCaps(suricata.userid, suricata.groupid);
+
+    /* Re-enable coredumps after privileges are dropped. */
+    CoredumpEnable();
+
     PreRunPostPrivsDropInit(suricata.run_mode);
 
     PostConfLoadedDetectSetup(&suricata);
