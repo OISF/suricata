@@ -30,6 +30,52 @@
 #include <sys/resource.h>
 #endif
 
+#ifdef OS_WIN32
+
+void CoredumpEnable(void) {
+}
+
+int32_t CoredumpLoadConfig(void) {
+    /* todo: use the registry to get/set dump configuration */
+    SCLogInfo("Configuring core dump is not yet supported on Windows.");
+    return 0;
+}
+
+#else
+
+static bool unlimited = false;
+static rlim_t max_dump = 0;
+
+/**
+ * \brief Enable coredumps on systems where coredumps can and need to
+ * be enabled.
+ */
+void CoredumpEnable(void)
+{
+    if (!unlimited && !max_dump) {
+        return;
+    }
+#if HAVE_SYS_PRCTL_H
+    /* Linux specific core dump configuration; set dumpable flag if needed */
+    int dumpable = 0;
+    dumpable = prctl(PR_GET_DUMPABLE, 0, 0, 0, 0);
+    if (dumpable == -1) {
+        SCLogNotice("Failed to get dumpable state of process, "
+           "core dumps may not be abled: %s", strerror(errno));
+    }
+    else if (unlimited || max_dump > 0) {
+        /* try to enable core dump for this process */
+        if (prctl(PR_SET_DUMPABLE, 1, 0, 0, 0) == -1) {
+            SCLogInfo("Unable to make this process dumpable.");
+        } else {
+            SCLogDebug("Process is dumpable.");
+        }
+    }
+    /* don't clear dumpable flag since this will have other effects;
+     * just set dump size to 0 below */
+#endif /* HAVE_SYS_PRCTL_H */
+}
+
 /**
  * \brief Configures the core dump size.
  *
@@ -41,8 +87,6 @@ int32_t CoredumpLoadConfig (void)
 #ifdef HAVE_SYS_RESOURCE_H
     /* get core dump configuration settings for suricata */
     const char *dump_size_config = NULL;
-    rlim_t max_dump = 0;
-    uint32_t unlimited = 0;
     size_t rlim_size = sizeof(rlim_t);
 
     if (ConfGet ("coredump.max-dump", &dump_size_config) == 0) {
@@ -54,7 +98,7 @@ int32_t CoredumpLoadConfig (void)
         return 0;
     }
     if (strcasecmp (dump_size_config, "unlimited") == 0) {
-        unlimited = 1;
+        unlimited = true;
     }
     else {
         /* disallow negative values */
@@ -81,31 +125,7 @@ int32_t CoredumpLoadConfig (void)
         SCLogInfo ("Max dump is %"PRIu64, (uint64_t) max_dump);
     }
 
-#if defined OS_WIN32
-    /* todo: use the registry to get/set dump configuration */
-    SCLogInfo("Configuring core dump is not yet supported on Windows.");
-    return 0;
-#endif
-
-#ifdef HAVE_SYS_PRCTL_H
-    /* Linux specific core dump configuration; set dumpable flag if needed */
-    int dumpable = 0;
-    dumpable = prctl (PR_GET_DUMPABLE, 0, 0, 0, 0);
-    if (dumpable == -1) {
-        SCLogInfo ("Can't get core dump configuration of process.");
-    }
-    else if (unlimited == 1 || max_dump > 0) {
-        /* try to enable core dump for this process */
-        if (prctl (PR_SET_DUMPABLE, 1, 0, 0, 0) == -1) {
-            SCLogInfo ("Unable to make this process dumpable.");
-            return 0;
-        } else {
-            SCLogDebug ("Process is dumpable.");
-        }
-    }
-    /* don't clear dumpable flag since this will have other effects;
-     * just set dump size to 0 below */
-#endif /* Linux specific */
+    CoredumpEnable();
 
     struct rlimit lim;     /*existing limit*/
     struct rlimit new_lim; /*desired limit*/
@@ -212,3 +232,5 @@ int32_t CoredumpLoadConfig (void)
 #endif /* HAVE_SYS_RESOURCE_H */
     return 0;
 }
+
+#endif /* OS_WIN32 */

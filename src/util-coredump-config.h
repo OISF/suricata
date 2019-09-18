@@ -26,6 +26,7 @@
 
 #include "suricata-common.h"
 
-int32_t CoredumpLoadConfig (void);
+int32_t CoredumpLoadConfig(void);
+void CoredumpEnable(void);
 
 #endif /* __COREDUMP_CONFIG_H__ */
