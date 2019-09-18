@@ -159,7 +159,7 @@ static int IPV4OptValidateTimestamp(Packet *p, const IPV4Opt *o)
         ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_MALFORMED);
         return -1;
     }
-    flag = *(o->data + 3) & 0x00ff;
+    flag = *(o->data + 1) & 0x0f;
 
     /* A flag of 1|3 means we have both the ip+ts in each record */
     rec_size = ((flag == 1) || (flag == 3)) ? 8 : 4;
