@@ -975,9 +975,11 @@ app-layer:
            double-decode-path: no
            double-decode-query: no
 
+           #lzma-enabled: yes
            # LZMA decompression memory limit.
            #lzma-memlimit: 1 Mb
-           #lzma-enabled: yes
+           # Compression bomb output limit.
+           #compression-bomb-limit: 1 Mb
 
          server-config:
 

@@ -185,6 +185,8 @@ SCEnumCharMap http_decoder_event_table[ ] = {
 
     { "LZMA_MEMLIMIT_REACHED",
         HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED},
+    { "COMPRESSION_BOMB",
+        HTTP_DECODER_EVENT_COMPRESSION_BOMB},
 
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
@@ -560,6 +562,7 @@ struct {
     { "Request buffer over", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
     { "Response buffer over", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
     { "C-T multipart/byteranges in responses not supported", HTTP_DECODER_EVENT_RESPONSE_MULTIPART_BYTERANGES},
+    { "Compression bomb:", HTTP_DECODER_EVENT_COMPRESSION_BOMB},
 };
 
 struct {
@@ -2380,6 +2383,10 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_set_lzma_memlimit(cfg_prec->cfg,
             HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT);
 #endif
+#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT
+    htp_config_set_compression_bomb_limit(cfg_prec->cfg,
+                                          HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT);
+#endif
     /* libhtp <= 0.5.9 doesn't use soft limit, but it's impossible to set
      * only the hard limit. So we set both here to the (current) htp defaults.
      * The reason we do this is that if the user sets the hard limit in the
@@ -2708,6 +2715,21 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             if (ConfValIsFalse(p->val)) {
                 htp_config_set_lzma_memlimit(cfg_prec->cfg, 0);
             }
+#endif
+#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT
+        } else if (strcasecmp("compression-bomb-limit", p->name) == 0) {
+            uint32_t limit = 0;
+            if (ParseSizeStringU32(p->val, &limit) < 0) {
+                FatalError(SC_ERR_SIZE_PARSE, "failed to parse 'compression-bomb-limit' "
+                           "from conf file - %s.", p->val);
+            }
+            if (limit == 0) {
+                FatalError(SC_ERR_SIZE_PARSE, "'compression-bomb-limit' "
+                           "from conf file cannot be 0.");
+            }
+            /* set default soft-limit with our new hard limit */
+            SCLogConfig("Setting HTTP compression bomb limit to %"PRIu32" bytes", limit);
+            htp_config_set_compression_bomb_limit(cfg_prec->cfg, (size_t)limit);
 #endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {
