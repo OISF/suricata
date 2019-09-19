@@ -964,6 +964,7 @@ app-layer:
 
            # LZMA decompression memory limit.
            #lzma-memlimit: 1 Mb
+           #lzma-enabled: no
 
          server-config:
 
