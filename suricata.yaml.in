@@ -962,7 +962,7 @@ app-layer:
            double-decode-path: no
            double-decode-query: no
 
-           # LZMA decompression memory limit.
+           # LZMA decompression memory limit. Disabled by default.
            #lzma-memlimit: 1 Mb
            #lzma-enabled: no
 

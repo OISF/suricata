@@ -2263,8 +2263,8 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     /* don't convert + to space by default */
     htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
 #ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
-    htp_config_set_lzma_memlimit(cfg_prec->cfg,
-            HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT);
+    /* Disable lzma by default. */
+    htp_config_set_lzma_memlimit(cfg_prec->cfg, 0);
 #endif
     /* libhtp <= 0.5.9 doesn't use soft limit, but it's impossible to set
      * only the hard limit. So we set both here to the (current) htp defaults.
@@ -2366,6 +2366,11 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
 {
     if (cfg_prec == NULL || s == NULL || tree == NULL)
         return;
+
+#ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
+    bool lzma_enabled = false;
+    uint32_t lzma_limit = HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT;
+#endif
 
     ConfNode *p = NULL;
 
@@ -2576,23 +2581,19 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                     (size_t)limit);
 #ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
         } else if (strcasecmp("lzma-memlimit", p->name) == 0) {
-            uint32_t limit = 0;
-            if (ParseSizeStringU32(p->val, &limit) < 0) {
+            if (ParseSizeStringU32(p->val, &lzma_limit) < 0) {
                 FatalError(SC_ERR_SIZE_PARSE, "failed to parse 'lzma-memlimit' "
                            "from conf file - %s.", p->val);
             }
-            if (limit == 0) {
+            if (lzma_limit == 0) {
                 FatalError(SC_ERR_SIZE_PARSE, "'lzma-memlimit' "
                            "from conf file cannot be 0.");
             }
-            /* set default soft-limit with our new hard limit */
-            SCLogConfig("Setting HTTP LZMA memory limit to %"PRIu32" bytes", limit);
-            htp_config_set_lzma_memlimit(cfg_prec->cfg, (size_t)limit);
 #endif
 #ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
         } else if (strcasecmp("lzma-enabled", p->name) == 0) {
-            if (ConfValIsFalse(p->val)) {
-                htp_config_set_lzma_memlimit(cfg_prec->cfg, 0);
+            if (ConfValIsTrue(p->val)) {
+                lzma_enabled = true;
             }
 #endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
@@ -2676,6 +2677,13 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                          "default config: %s", p->name);
         }
     } /* TAILQ_FOREACH(p, &default_config->head, next) */
+
+#ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
+    if (lzma_enabled) {
+        SCLogConfig("Setting HTTP LZMA memory limit to %"PRIu32" bytes", lzma_limit);
+        htp_config_set_lzma_memlimit(cfg_prec->cfg, (size_t)lzma_limit);
+    }
+#endif
 
     return;
 }
