@@ -2702,6 +2702,10 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP LZMA memory limit to %"PRIu32" bytes", limit);
             htp_config_set_lzma_memlimit(cfg_prec->cfg, (size_t)limit);
+        } else if (strcasecmp("lzma-enabled", p->name) == 0) {
+            if (ConfValIsFalse(p->val)) {
+                htp_config_set_lzma_memlimit(cfg_prec->cfg, 0);
+            }
 #endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {
