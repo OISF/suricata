@@ -451,12 +451,12 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
+    MemBufferReset(aft->buffer);
+
     /* Custom format */
     if (hlog->flags & LOG_TLS_CUSTOM) {
         LogTlsLogCustom(aft, ssl_state, &p->ts, srcip, sp, dstip, dp);
     } else {
-
-        MemBufferReset(aft->buffer);
         CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
         MemBufferWriteString(aft->buffer,
                              "%s %s:%d -> %s:%d  TLS:",
