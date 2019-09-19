@@ -48,7 +48,7 @@ void SCPriorityRegisterTests(void);
 void DetectPriorityRegister (void)
 {
     sigmatch_table[DETECT_PRIORITY].name = "priority";
-    sigmatch_table[DETECT_PRIORITY].desc = "Rules with a higher priority will be examined first.";
+    sigmatch_table[DETECT_PRIORITY].desc = "rules with a higher priority will be examined first";
     sigmatch_table[DETECT_PRIORITY].url = DOC_URL DOC_VERSION "/rules/meta.html#priority";
     sigmatch_table[DETECT_PRIORITY].Match = NULL;
     sigmatch_table[DETECT_PRIORITY].Setup = DetectPrioritySetup;

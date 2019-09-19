@@ -59,7 +59,7 @@ static _Bool PrefilterFragOffsetIsPrefilterable(const Signature *s);
 void DetectFragOffsetRegister (void)
 {
     sigmatch_table[DETECT_FRAGOFFSET].name = "fragoffset";
-    sigmatch_table[DETECT_FRAGOFFSET].desc = "Match on specific decimal values of the IP fragment offset field.";
+    sigmatch_table[DETECT_FRAGOFFSET].desc = "match on specific decimal values of the IP fragment offset field";
     sigmatch_table[DETECT_FRAGOFFSET].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#fragoffset";
     sigmatch_table[DETECT_FRAGOFFSET].Match = DetectFragOffsetMatch;
     sigmatch_table[DETECT_FRAGOFFSET].Setup = DetectFragOffsetSetup;

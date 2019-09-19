@@ -77,7 +77,7 @@ static int DetectSNMPVersionMatch (DetectEngineThreadCtx *, Flow *,
 void DetectSNMPVersionRegister (void)
 {
     sigmatch_table[DETECT_AL_SNMP_VERSION].name = "snmp.version";
-    sigmatch_table[DETECT_AL_SNMP_VERSION].desc = "Match SNMP version.";
+    sigmatch_table[DETECT_AL_SNMP_VERSION].desc = "match SNMP version";
     sigmatch_table[DETECT_AL_SNMP_VERSION].url = DOC_URL DOC_VERSION "/rules/snmp-keywords.html#snmp-version";
     sigmatch_table[DETECT_AL_SNMP_VERSION].Match = NULL;
     sigmatch_table[DETECT_AL_SNMP_VERSION].AppLayerTxMatch = DetectSNMPVersionMatch;

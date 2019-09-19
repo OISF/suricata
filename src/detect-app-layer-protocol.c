@@ -258,7 +258,7 @@ static _Bool PrefilterAppProtoIsPrefilterable(const Signature *s)
 void DetectAppLayerProtocolRegister(void)
 {
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].name = "app-layer-protocol";
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].desc = "Match on the detected app-layer protocol.";
+    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].desc = "match on the detected app-layer protocol";
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].url = DOC_URL DOC_VERSION "/rules/app-layer.html#app-layer-protocol";
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].Match =
         DetectAppLayerProtocolPacketMatch;

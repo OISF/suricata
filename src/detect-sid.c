@@ -38,7 +38,7 @@ static void DetectSidRegisterTests(void);
 void DetectSidRegister (void)
 {
     sigmatch_table[DETECT_SID].name = "sid";
-    sigmatch_table[DETECT_SID].desc = "Set rule ID.";
+    sigmatch_table[DETECT_SID].desc = "set rule ID";
     sigmatch_table[DETECT_SID].url = DOC_URL DOC_VERSION "/rules/meta.html#sid-signature-id";
     sigmatch_table[DETECT_SID].Match = NULL;
     sigmatch_table[DETECT_SID].Setup = DetectSidSetup;

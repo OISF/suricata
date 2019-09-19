@@ -65,7 +65,7 @@ static _Bool PrefilterDsizeIsPrefilterable(const Signature *s);
 void DetectDsizeRegister (void)
 {
     sigmatch_table[DETECT_DSIZE].name = "dsize";
-    sigmatch_table[DETECT_DSIZE].desc = "Match on the size of the packet payload.";
+    sigmatch_table[DETECT_DSIZE].desc = "match on the size of the packet payload";
     sigmatch_table[DETECT_DSIZE].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#dsize";
     sigmatch_table[DETECT_DSIZE].Match = DetectDsizeMatch;
     sigmatch_table[DETECT_DSIZE].Setup = DetectDsizeSetup;

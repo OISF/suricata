@@ -55,7 +55,7 @@ void DetectAckRegister(void)
 {
     sigmatch_table[DETECT_ACK].name = "tcp.ack";
     sigmatch_table[DETECT_ACK].alias = "ack";
-    sigmatch_table[DETECT_ACK].desc = "Check for a specific TCP acknowledgement number.";
+    sigmatch_table[DETECT_ACK].desc = "check for a specific TCP acknowledgement number";
     sigmatch_table[DETECT_ACK].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#ack";
     sigmatch_table[DETECT_ACK].Match = DetectAckMatch;
     sigmatch_table[DETECT_ACK].Setup = DetectAckSetup;

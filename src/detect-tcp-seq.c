@@ -52,7 +52,7 @@ void DetectSeqRegister(void)
 {
     sigmatch_table[DETECT_SEQ].name = "tcp.seq";
     sigmatch_table[DETECT_SEQ].alias = "seq";
-    sigmatch_table[DETECT_SEQ].desc = "Check for a specific TCP sequence number.";
+    sigmatch_table[DETECT_SEQ].desc = "check for a specific TCP sequence number";
     sigmatch_table[DETECT_SEQ].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#seq";
     sigmatch_table[DETECT_SEQ].Match = DetectSeqMatch;
     sigmatch_table[DETECT_SEQ].Setup = DetectSeqSetup;

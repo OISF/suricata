@@ -76,7 +76,7 @@ static void DetectThresholdFree(void *);
 void DetectThresholdRegister(void)
 {
     sigmatch_table[DETECT_THRESHOLD].name = "threshold";
-    sigmatch_table[DETECT_THRESHOLD].desc = "Control the rule's alert frequency.";
+    sigmatch_table[DETECT_THRESHOLD].desc = "control the rule's alert frequency";
     sigmatch_table[DETECT_THRESHOLD].url = DOC_URL DOC_VERSION "/rules/thresholding.html#threshold";
     sigmatch_table[DETECT_THRESHOLD].Match = DetectThresholdMatch;
     sigmatch_table[DETECT_THRESHOLD].Setup = DetectThresholdSetup;

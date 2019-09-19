@@ -61,7 +61,7 @@ static _Bool PrefilterITypeIsPrefilterable(const Signature *s);
 void DetectITypeRegister (void)
 {
     sigmatch_table[DETECT_ITYPE].name = "itype";
-    sigmatch_table[DETECT_ITYPE].desc = "Match on a specific ICMP type.";
+    sigmatch_table[DETECT_ITYPE].desc = "match on a specific ICMP type";
     sigmatch_table[DETECT_ITYPE].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#itype";
     sigmatch_table[DETECT_ITYPE].Match = DetectITypeMatch;
     sigmatch_table[DETECT_ITYPE].Setup = DetectITypeSetup;

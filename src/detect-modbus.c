@@ -517,7 +517,7 @@ void DetectModbusRegister(void)
 {
     SCEnter();
     sigmatch_table[DETECT_AL_MODBUS].name          = "modbus";
-    sigmatch_table[DETECT_AL_MODBUS].desc          = "Match on various properties of Modbus requests.";
+    sigmatch_table[DETECT_AL_MODBUS].desc          = "match on various properties of Modbus requests";
     sigmatch_table[DETECT_AL_MODBUS].url           = DOC_URL DOC_VERSION "/rules/modbus-keyword.html#modbus-keyword";
     sigmatch_table[DETECT_AL_MODBUS].Match         = NULL;
     sigmatch_table[DETECT_AL_MODBUS].Setup         = DetectModbusSetup;
