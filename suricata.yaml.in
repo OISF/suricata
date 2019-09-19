@@ -977,6 +977,8 @@ app-layer:
 
            # LZMA decompression memory limit.
            #lzma-memlimit: 1 Mb
+           # Compression bomb output limit.
+           #compression-bomb-limit: 1 Mb
 
          server-config:
 
