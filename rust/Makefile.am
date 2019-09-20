@@ -34,14 +34,14 @@ endif
 if HAVE_CYGPATH
 	rustpath=`cygpath -a -t mixed $(abs_top_builddir)`
 	cd $(top_srcdir)/rust && \
-		CARGO_HOME=$(CARGO_HOME) \
+		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$$rustpath/rust/target" \
 		$(CARGO) build $(RELEASE) $(FROZEN) \
 			--features "$(RUST_FEATURES)"
 else
 	cd $(top_srcdir)/rust && \
-		CARGO_HOME=$(CARGO_HOME) \
-		CARGO_TARGET_DIR=$(abs_top_builddir)/rust/target \
+		CARGO_HOME="$(CARGO_HOME)" \
+		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
 		$(CARGO) build $(RELEASE) $(FROZEN) \
 			--features "$(RUST_FEATURES)"
 endif
@@ -53,14 +53,14 @@ distclean-local: clean-local
 	rm -rf vendor gen Cargo.lock
 
 check:
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) test
+	CARGO_HOME="$(CARGO_HOME)" $(CARGO) test
 
 Cargo.lock: Cargo.toml
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) generate-lockfile
+	CARGO_HOME="$(CARGO_HOME)" $(CARGO) generate-lockfile
 
 if HAVE_CARGO_VENDOR
 vendor:
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) vendor > /dev/null
+	CARGO_HOME="$(CARGO_HOME)" $(CARGO) vendor > /dev/null
 else
 vendor:
 endif
