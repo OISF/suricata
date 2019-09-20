@@ -4,7 +4,7 @@ version = "@PACKAGE_VERSION@"
 
 [lib]
 crate-type = ["staticlib"]
-path = "@e_rustdir@/src/lib.rs"
+path = "@abs_top_srcdir@/rust/src/lib.rs"
 
 [profile.release]
 debug = true
