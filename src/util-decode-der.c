@@ -846,8 +846,9 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer,
     while (parsed_bytes < d_length) {
         el_max_size = max_size - (d_ptr-buffer);
 
-        Asn1Generic *child = DecodeAsn1DerGeneric(d_ptr, el_max_size, depth,
-                                                  seq_index, errcode);
+        Asn1Generic *child = DecodeAsn1DerGeneric(d_ptr,
+                MIN(node->length, el_max_size), depth,
+                seq_index, errcode);
         if (child == NULL) {
             if (*errcode != 0) {
                 DerFree(node);
@@ -924,7 +925,8 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer,
 
     el_max_size = max_size - (d_ptr-buffer);
 
-    child = DecodeAsn1DerGeneric(d_ptr, el_max_size, depth, seq_index, errcode);
+    child = DecodeAsn1DerGeneric(d_ptr, MIN(node->length, el_max_size),
+            depth, seq_index, errcode);
     if (child == NULL) {
         DerFree(node);
         return NULL;
