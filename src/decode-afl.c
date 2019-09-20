@@ -55,9 +55,10 @@ int AFLDecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
  * incrementing 'id' so that we can 'replay' it in
  * DecoderParseDataFromFileSerie().
  */
-int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
+int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder)
+{
+    bool do_dump = (getenv("SC_AFL_DUMP_FILES") != NULL);
     uint8_t buffer[65536];
-
     struct timeval ts;
     memset(&ts, 0, sizeof(ts));
     gettimeofday(&ts, NULL);
@@ -81,18 +82,19 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
         memset(buffer, 0, sizeof(buffer));
 #endif /* AFLFUZZ_PERSISTANT_MODE */
 
-
         FILE *fp = fopen(filename, "r");
         BUG_ON(fp == NULL);
 
         size_t size = fread(&buffer, 1, sizeof(buffer), fp);
-        char outfilename[256];
-        snprintf(outfilename, sizeof(outfilename), "dump/%u-%u.%u",
-                (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, cnt);
-        FILE *out_fp = fopen(outfilename, "w");
-        BUG_ON(out_fp == NULL);
-        (void)fwrite(buffer, size, 1, out_fp);
-        fclose(out_fp);
+        if (do_dump) {
+            char outfilename[256];
+            snprintf(outfilename, sizeof(outfilename), "dump/%u-%u.%u",
+                    (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, cnt);
+            FILE *out_fp = fopen(outfilename, "w");
+            BUG_ON(out_fp == NULL);
+            (void)fwrite(buffer, size, 1, out_fp);
+            fclose(out_fp);
+        }
 
         Packet *p = PacketGetFromAlloc();
         if (p != NULL) {
@@ -114,14 +116,14 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
 #endif /* AFLFUZZ_PERSISTANT_MODE */
 
     /* if we get here there was no crash, so we can remove our files */
-    uint32_t x = 0;
-    for (x = 0; x < cnt; x++) {
-        char rmfilename[256];
-        snprintf(rmfilename, sizeof(rmfilename), "dump/%u-%u.%u",
-                (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, x);
-        unlink(rmfilename);
+    if (do_dump) {
+        for (uint32_t x = 0; x < cnt; x++) {
+            char rmfilename[256];
+            snprintf(rmfilename, sizeof(rmfilename), "dump/%u-%u.%u",
+                    (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, x);
+            unlink(rmfilename);
+        }
     }
-
     DecodeThreadVarsFree(&tv, dtv);
     FlowShutdown();
     DefragDestroy();
