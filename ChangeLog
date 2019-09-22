@@ -1,3 +1,26 @@
+4.1.5 -- 2019-09-24
+
+Feature #3068: protocol parser: vxlan (4.1.x)
+Bug #2841: False positive alerts firing after upgrade suricata 3.0 -> 4.1.0 (4.1.x)
+Bug #2966: filestore (v1 and v2): dropping of "unwanted" files (4.1.x)
+Bug #3008: rust: updated libc crate causes depration warnings (4.1.x)
+Bug #3044: tftp: missing logs because of broken tx handling (4.1.x)
+Bug #3067: GeoIP keyword depends on now discontinued legacy GeoIP database (4.1.x)
+Bug #3094: Fedora rawhide af-packet compilation err (4.1.x)
+Bug #3123: bypass keyword: Suricata 4.1.x Segmentation Faults (4.1.x)
+Bug #3129: Fixes warning about size of integers in string formats (4.1.x)
+Bug #3159: SC_ERR_PCAP_DISPATCH with message "error code -2" upon rule reload completion (4.1.x)
+Bug #3164: Suricata 4.1.4: NSS Shutdown triggers crashes in test mode
+Bug #3168: tls: out of bounds read
+Bug #3170: defrag: out of bounds read
+Bug #3173: ipv4: ts field decoding oob read
+Bug #3175: File_data inspection depth while inspecting base64 decoded data (4.1.x)
+Bug #3184: decode/der: crafted input can lead to resource starvation
+Bug #3186: Multiple Content-Length headers causes HTP_STREAM_ERROR (4.1.x)
+Bug #3187: GET/POST HTTP-request with no Content-Length, http_client_body miss (4.1.x)
+
+Task #3142: libhtp 0.5.31 (4.1.x)
+
 4.1.4 -- 2019-04-30
 
 Bug #2870: pcap logging with lz4 coverity warning
