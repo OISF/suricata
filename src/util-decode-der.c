@@ -130,6 +130,9 @@ static int Asn1SequenceAppend(Asn1Generic *seq, Asn1Generic *node)
     return 0;
 }
 
+/* openssl has set a limit of 30, so stay close to that. */
+#define DER_MAX_RECURSION_DEPTH 32
+
 static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
                                           uint32_t max_size, uint8_t depth,
                                           int seq_index, uint32_t *errcode)
@@ -143,7 +146,7 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
     uint8_t el_type;
 
     /* refuse excessive recursion */
-    if (unlikely(depth == 255)) {
+    if (unlikely(depth >= DER_MAX_RECURSION_DEPTH)) {
         *errcode = ERR_DER_RECURSION_LIMIT;
         return NULL;
     }
