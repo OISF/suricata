@@ -4,7 +4,7 @@ if HAVE_PYTHON_YAML
 
 install-exec-local:
 	cd $(srcdir) && \
-		$(HAVE_PYTHON) setup.py build --build-base $(abs_builddir) \
+		$(HAVE_PYTHON) setup.py build --build-base "$(abs_builddir)" \
 		install --prefix $(DESTDIR)$(prefix)
 
 uninstall-local:
@@ -15,7 +15,7 @@ uninstall-local:
 clean-local:
 	cd $(srcdir) && \
 		$(HAVE_PYTHON) setup.py clean \
-		--build-base $(abs_builddir)
+		--build-base "$(abs_builddir)"
 	rm -rf scripts-* lib* build
 	find . -name \*.pyc -print0 | xargs -0 rm -f
 
