@@ -23,9 +23,7 @@
  * \author Victor Julien <victor@inliniac.net>
  * \author Paulo Pacheco <fooinha@gmail.com>
  *
- * Implements TLS logging portion of the engine. The TLS logger is
- * implemented as a packet logger, as the TLS parser is not transaction
- * aware.
+ * Implements TLS logging portion of the engine.
  */
 
 #include "suricata-common.h"
