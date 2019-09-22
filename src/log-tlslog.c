@@ -94,61 +94,6 @@ typedef struct LogTlsLogThread_ {
     MemBuffer *buffer;
 } LogTlsLogThread;
 
-static void LogTlsLogVersion(MemBuffer *buffer, uint16_t version)
-{
-    char ssl_version[SSL_VERSION_MAX_STRLEN];
-    SSLVersionToString(version, ssl_version);
-    MemBufferWriteString(buffer, "VERSION='%s'", ssl_version);
-}
-
-static void LogTlsLogDate(MemBuffer *buffer, const char *title, time_t *date)
-{
-    char timebuf[64] = {0};
-    struct timeval tv;
-    tv.tv_sec = *date;
-    tv.tv_usec = 0;
-    CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
-    MemBufferWriteString(buffer, "%s='%s'", title, timebuf);
-}
-
-static void LogTlsLogString(MemBuffer *buffer, const char *title,
-                            const char *value)
-{
-    MemBufferWriteString(buffer, "%s='%s'", title, value);
-}
-
-static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState *state)
-{
-    if (state->server_connp.cert0_fingerprint != NULL) {
-        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogString(aft->buffer, "SHA1",
-                        state->server_connp.cert0_fingerprint);
-    }
-    if (state->client_connp.sni != NULL) {
-        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogString(aft->buffer, "SNI", state->client_connp.sni);
-    }
-    if (state->server_connp.cert0_serial != NULL) {
-        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogString(aft->buffer, "SERIAL",
-                        state->server_connp.cert0_serial);
-    }
-
-    LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-    LogTlsLogVersion(aft->buffer, state->server_connp.version);
-
-    if (state->server_connp.cert0_not_before != 0) {
-        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogDate(aft->buffer, "NOTBEFORE",
-                      &state->server_connp.cert0_not_before);
-    }
-    if (state->server_connp.cert0_not_after != 0) {
-        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
-        LogTlsLogDate(aft->buffer, "NOTAFTER",
-                      &state->server_connp.cert0_not_after);
-    }
-}
-
 int TLSGetIPInformations(const Packet *p, char* srcip, size_t srcip_len,
                          Port* sp, char* dstip, size_t dstip_len, Port* dp,
                          int ipproto)
@@ -340,6 +285,95 @@ filectx_error:
     return result;
 }
 
+static void LogTlsLogVersion(MemBuffer *buffer, uint16_t version)
+{
+    char ssl_version[SSL_VERSION_MAX_STRLEN];
+    SSLVersionToString(version, ssl_version);
+    MemBufferWriteString(buffer, "VERSION='%s'", ssl_version);
+}
+
+static void LogTlsLogDate(MemBuffer *buffer, const char *title, time_t *date)
+{
+    char timebuf[64] = {0};
+    struct timeval tv;
+    tv.tv_sec = *date;
+    tv.tv_usec = 0;
+    CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+    MemBufferWriteString(buffer, "%s='%s'", title, timebuf);
+}
+
+static void LogTlsLogString(MemBuffer *buffer, const char *title,
+                            const char *value)
+{
+    MemBufferWriteString(buffer, "%s='%s'", title, value);
+}
+
+static void LogTlsLogBasic(LogTlsLogThread *aft, SSLState *ssl_state,
+                           const struct timeval *ts, char *srcip, Port sp,
+                           char *dstip, Port dp)
+{
+    char timebuf[64];
+    CreateTimeString(ts, timebuf, sizeof(timebuf));
+    MemBufferWriteString(aft->buffer,
+                         "%s %s:%d -> %s:%d  TLS:",
+                         timebuf, srcip, sp, dstip, dp);
+
+    if (ssl_state->server_connp.cert0_subject != NULL) {
+        MemBufferWriteString(aft->buffer, " Subject='%s'",
+        ssl_state->server_connp.cert0_subject);
+    }
+
+    if (ssl_state->server_connp.cert0_issuerdn != NULL) {
+        MemBufferWriteString(aft->buffer, " Issuerdn='%s'",
+                             ssl_state->server_connp.cert0_issuerdn);
+    }
+
+    if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
+        /* Only log a session as 'resumed' if a certificate has not
+           been seen. */
+        if ((ssl_state->server_connp.cert0_issuerdn == NULL) &&
+                (ssl_state->server_connp.cert0_subject == NULL) &&
+                (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
+                ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
+            MemBufferWriteString(aft->buffer, " Session='resumed'");
+        }
+    }
+}
+
+static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState *ssl_state,
+                              const struct timeval *ts, char *srcip, Port sp,
+                              char *dstip, Port dp)
+{
+    if (ssl_state->server_connp.cert0_fingerprint != NULL) {
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogString(aft->buffer, "SHA1",
+                        ssl_state->server_connp.cert0_fingerprint);
+    }
+    if (ssl_state->client_connp.sni != NULL) {
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogString(aft->buffer, "SNI", ssl_state->client_connp.sni);
+    }
+    if (ssl_state->server_connp.cert0_serial != NULL) {
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogString(aft->buffer, "SERIAL",
+                        ssl_state->server_connp.cert0_serial);
+    }
+
+    LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+    LogTlsLogVersion(aft->buffer, ssl_state->server_connp.version);
+
+    if (ssl_state->server_connp.cert0_not_before != 0) {
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogDate(aft->buffer, "NOTBEFORE",
+                      &ssl_state->server_connp.cert0_not_before);
+    }
+    if (ssl_state->server_connp.cert0_not_after != 0) {
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogDate(aft->buffer, "NOTAFTER",
+                      &ssl_state->server_connp.cert0_not_after);
+    }
+}
+
 /* Custom format logging */
 static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state,
                             const struct timeval *ts, char *srcip, Port sp,
@@ -437,7 +471,7 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state,
                 break;
             case LOG_TLS_CF_EXTENDED:
             /* Extended format  */
-                LogTlsLogExtended(aft, ssl_state);
+                LogTlsLogExtended(aft, ssl_state, ts, srcip, sp, dstip, dp);
                 break;
             default:
             /* NO MATCH */
@@ -447,7 +481,6 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state,
                 break;
         }
     }
-    MemBufferWriteString(aft->buffer, "\n");
 }
 
 
@@ -456,7 +489,6 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 {
     LogTlsLogThread *aft = (LogTlsLogThread *)thread_data;
     LogTlsFileCtx *hlog = aft->tlslog_ctx;
-    char timebuf[64];
     int ipproto = (PKT_IS_IPV4(p)) ? AF_INET : AF_INET6;
 
     SSLState *ssl_state = (SSLState *)state;
@@ -482,41 +514,16 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     MemBufferReset(aft->buffer);
 
-    /* Custom format */
     if (hlog->flags & LOG_TLS_CUSTOM) {
         LogTlsLogCustom(aft, ssl_state, &p->ts, srcip, sp, dstip, dp);
+    } else if (hlog->flags & LOG_TLS_EXTENDED) {
+        LogTlsLogBasic(aft, ssl_state, &p->ts, srcip, sp, dstip, dp);
+        LogTlsLogExtended(aft, ssl_state, &p->ts, srcip, sp, dstip, dp);
     } else {
-        CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-        MemBufferWriteString(aft->buffer,
-                             "%s %s:%d -> %s:%d  TLS:",
-                             timebuf, srcip, sp, dstip, dp);
-
-        if (ssl_state->server_connp.cert0_subject != NULL) {
-            MemBufferWriteString(aft->buffer, " Subject='%s'",
-                                 ssl_state->server_connp.cert0_subject);
-        }
-        if (ssl_state->server_connp.cert0_issuerdn != NULL) {
-            MemBufferWriteString(aft->buffer, " Issuerdn='%s'",
-                                 ssl_state->server_connp.cert0_issuerdn);
-        }
-        if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
-            /* Only log a session as 'resumed' if a certificate has not
-               been seen. */
-            if ((ssl_state->server_connp.cert0_issuerdn == NULL) &&
-                    (ssl_state->server_connp.cert0_subject == NULL) &&
-                    (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
-                    ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
-                MemBufferWriteString(aft->buffer, " Session='resumed'");
-            }
-        }
-
-        if (hlog->flags & LOG_TLS_EXTENDED) {
-            LogTlsLogExtended(aft, ssl_state);
-            MemBufferWriteString(aft->buffer, "\n");
-        } else {
-            MemBufferWriteString(aft->buffer, "\n");
-        }
+        LogTlsLogBasic(aft, ssl_state, &p->ts, srcip, sp, dstip, dp);
     }
+
+    MemBufferWriteString(aft->buffer, "\n");
 
     aft->tls_cnt++;
 
