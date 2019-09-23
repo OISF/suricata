@@ -18,6 +18,7 @@ EXTRA_DIST = \
 	partials \
 	performance \
 	public-data-sets.rst \
+	quickstart.rst \
 	reputation \
 	rule-management \
 	rules \
