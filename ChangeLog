@@ -1,3 +1,106 @@
+5.0.0-rc1 -- 2019-09-24
+
+Feature #524: detect double encoding in URI
+Feature #713: tls.fingerprint - file usage
+Feature #997: Add libhtp event for every htp_log() that needs an event.
+Feature #1203: TCP Fast Open support
+Feature #1249: http/dns ip-reputation alike technique
+Feature #1757: URL Reputation
+Feature #2283: turn content modifiers into 'sticky buffers'
+Feature #2314: protocol parser: rdp
+Feature #2315: eve: ftp logging
+Feature #2318: matching on large amounts of data with dynamic updates
+Feature #2529: doc: include quick start guide
+Feature #2539: protocol parser: vxlan
+Feature #2670: tls_cert sticky buffer
+Feature #2684: Add JA3S
+Feature #2738: SNMP parser, logging and detection
+Feature #2754: JA3 and JA3S - sets / reputation
+Feature #2758: intel / reputation matching on arbitrary data
+Feature #2916: FTP decoder should have Rust port parsers
+Feature #2940: document anomaly log
+Feature #2941: anomaly log: add protocol detection events
+Feature #2952: modernize http_header_names
+Feature #3058: Hardware offload for XDP bypass
+Feature #3059: Use pinned maps in XDP bypass
+Feature #3060: Add way to detect TCP MSS values
+Feature #3061: Add way to inspect TCP header
+Feature #3062: Add way to inspect UDP header
+Feature #3074: DNS full domain matching within the dns_query buffer
+Feature #3080: Provide a IP pair XDP load balancing
+Feature #3081: Decapsulation of GRE in XDP filter
+Feature #3084: SIP parser, logging and detection
+Feature #3165: New rule keyword: dns.opcode; For matching on the the opcode in the DNS header.
+Bug #941: Support multiple stacked compression, compression that specifies the wrong compression type
+Bug #1271: Creating core dump with dropped privileges
+Bug #1656: several silent bypasses at the HTTP application level (chunking, compression, HTTP 0.9...)
+Bug #1776: Multiple Content-Length headers causes HTP_STREAM_ERROR
+Bug #2080: Rules with bad port group var do not error
+Bug #2146: DNS answer not logged with eve-log
+Bug #2264: file-store.stream-depth not working as expected when configured to a specfic value
+Bug #2395: File_data inspection depth while inspecting base64 decoded data
+Bug #2619: Malformed HTTP causes FN using http_header_names;
+Bug #2626: doc/err: More descriptive message on err for escaping backslash
+Bug #2654: Off-by-one iteration of EBPF flow_table_vX in EBPFForEachFlowVXTable (util-ebpf.c)
+Bug #2655: GET/POST HTTP-request with no Content-Length, http_client_body miss
+Bug #2662: unix socket - memcap read/set showing unlimited where there are limited values configured by default
+Bug #2686: Fancy Quotes in Documentation
+Bug #2765: GeoIP keyword depends on now discontinued legacy GeoIP database
+Bug #2769: False positive alerts firing after upgrade suricata 3.0 -> 4.1.0
+Bug #2786: make install-full does not install some source events rules
+Big #2840: xdp modes - Invalid argument (-22) on certain NICs
+Bug #2847: Confusing warning “Rule is inspecting both directions” when inspecting engine analysis output
+Bug #2853: filestore (v1 and v2): dropping of "unwanted" files
+Bug #2926: engine-analysis with content modifiers not always issues correct warning
+Bug #2942: anomaly log: app layer events
+Bug #2951: valgrind warnings in ftp
+Bug #2953: bypass keyword: Suricata 4.1.x Segmentation Faults
+Bug #2961: filestore: memory leaks
+Bug #2965: Version 5 Beta1 - Multiple NFQUEUE failed
+Bug #2999: AddressSanitizer: heap-buffer-overflow in HTPParseContentRange
+Bug #3000: tftp: missing logs because of broken tx handling
+Bug #3004: SC_ERR_PCAP_DISPATCH with message "error code -2" upon rule reload completion
+Bug #3006: improve rule keyword alproto registration
+Bug #3007: rust: updated libc crate causes depration warnings
+Bug #3009: Fixes warning about size of integers in string formats
+Bug #3051: mingw/msys: compile errors
+Bug #3054: Build failure with --enable-rust-debug
+Bug #3070: coverity warnings in protocol detection
+Bug #3072: Rust nightly warning
+Bug #3076: Suricata sometimes doesn't store the vlan id when vlan.use-for-tracking is false
+Bug #3089: Fedora rawhide af-packet compilation err
+Bug #3098: rule-reloads Option?
+Bug #3111: ftp warnings during compile
+Bug #3112: engine-analysis warning on http_content_type
+Bug #3133: http_accept_enc warning with engine-analysis
+Bug #3136: rust: Remove the unneeded macros
+Bug #3138: Don't install Suricata provided rules to /etc/suricata/rules as part of make install-rules.
+Bug #3140: ftp: compile warnings on gcc-8
+Bug #3158: 'wrong thread' tracking inaccurate for bridging IPS modes
+Bug #3162: TLS Lua output does not work without TLS log
+Bug #3169: tls: out of bounds read (5.x)
+Bug #3171: defrag: out of bounds read (5.x)
+Bug #3176: ipv4: ts field decoding oob read (5.x)
+Bug #3185: decode/der: crafted input can lead to resource starvation (5.x)
+Bug #3189: NSS Shutdown triggers crashes in test mode (5.x)
+Optimization #879: update configure.ac with autoupdate
+Optimization #1218: BoyerMooreNocase could avoid tolower() call
+Optimization #1220: Boyer Moore SPM pass in ctx instead of indivual bmBc and bmBg
+Optimization #2602: add keywords to --list-keywords output
+Optimization #2843: suricatact/filestore/prune: check that directory is a filestore directory before removing files
+Optimization #2848: Rule reload when run with -s or -S arguments
+Optimization #2991: app-layer-event keyword tx handling
+Optimization #3005: make sure DetectBufferSetActiveList return codes are always checked
+Optimization #3077: FTP parser command lookup
+Optimization #3085: Suggest more appropriate location to store eBPF binaries
+Optimization #3137: Make description of all keywords consistent and pretty
+Task #2629: tracking: Rust 2018 edition
+Task #2974: detect: check all keyword urls
+Task #3014: Missing documentation for "flags" option
+Task #3092: Date of revision should also be a part of info from suricata -v
+Task #3135: counters: new default for decoder events
+Task #3141: libhtp 0.5.31
+
 5.0.0-beta1 -- 2019-04-30
 
 Feature #884: add man pages
