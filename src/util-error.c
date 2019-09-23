@@ -364,6 +364,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_THASH_INIT);
         CASE_CODE (SC_ERR_DATASET);
         CASE_CODE (SC_WARN_ANOMALY_CONFIG);
+        CASE_CODE (SC_WARN_FILESTORE_CONFIG);
 
         CASE_CODE (SC_ERR_MAX);
     }

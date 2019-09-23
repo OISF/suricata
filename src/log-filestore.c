@@ -38,6 +38,7 @@
 #include "detect-filemagic.h"
 
 #include "stream.h"
+#include "stream-tcp.h"
 
 #include "util-print.h"
 #include "util-unittest.h"
@@ -60,6 +61,8 @@
 #include "stream-tcp-reassemble.h"
 
 #define MODULE_NAME "LogFilestoreLog"
+
+#define MIN_STREAM_DEPTH_VALUE    (3 * 1024)
 
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
 static char g_working_file_suffix[PATH_MAX] = ".tmp";
@@ -662,9 +665,15 @@ static OutputInitResult LogFilestoreLogInitCtx(ConfNode *conf)
                        "from conf file - %s.  Killing engine",
                        stream_depth_str);
             exit(EXIT_FAILURE);
-        } else {
-            FileReassemblyDepthEnable(stream_depth);
         }
+        if (stream_depth && stream_depth <= stream_config.reassembly_depth) {
+            SCLogWarning(SC_WARN_FILESTORE_CONFIG, "file-store.stream-depth value "
+                       "%"PRIu32" must be larger than %"PRIu32"."
+                       " Using %"PRIu32" instead",
+                       stream_depth, stream_config.reassembly_depth, stream_config.reassembly_depth);
+            stream_depth = stream_config.reassembly_depth;
+        }
+        FileReassemblyDepthEnable(stream_depth);
     }
 
     const char *file_count_str = ConfNodeLookupChildValue(conf, "max-open-files");
@@ -675,7 +684,7 @@ static OutputInitResult LogFilestoreLogInitCtx(ConfNode *conf)
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
                        "file-store.max-open-files "
                        "from conf file - %s.  Killing engine",
-                       stream_depth_str);
+                       file_count_str);
             exit(EXIT_FAILURE);
         } else {
             if (file_count != 0) {

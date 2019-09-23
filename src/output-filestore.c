@@ -17,6 +17,7 @@
 
 #include "suricata-common.h"
 
+#include "stream-tcp.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
@@ -482,9 +483,15 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
                        "from conf file - %s.  Killing engine",
                        stream_depth_str);
             exit(EXIT_FAILURE);
-        } else {
-            FileReassemblyDepthEnable(stream_depth);
         }
+        if (stream_depth && stream_depth <= stream_config.reassembly_depth) {
+            SCLogWarning(SC_WARN_FILESTORE_CONFIG, "file-store.stream-depth value "
+                       "%"PRIu32" must be larger than %"PRIu32"."
+                       " Using %"PRIu32" instead",
+                       stream_depth, stream_config.reassembly_depth, stream_config.reassembly_depth);
+            stream_depth = stream_config.reassembly_depth;
+        } 
+        FileReassemblyDepthEnable(stream_depth);
     }
 
     const char *file_count_str = ConfNodeLookupChildValue(conf,
