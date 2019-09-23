@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,6 +17,7 @@
 
 #include "suricata-common.h"
 
+#include "stream-tcp.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
@@ -493,8 +494,16 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
                        "from conf file - %s.  Killing engine",
                        stream_depth_str);
             exit(EXIT_FAILURE);
-        } else {
-            FileReassemblyDepthEnable(stream_depth);
+        }
+        if (stream_depth) {
+            if (stream_depth <= stream_config.reassembly_depth) {
+                SCLogWarning(SC_WARN_FILESTORE_CONFIG,
+                           "file-store.stream-depth value %" PRIu32 " has "
+                           "no effect since it's less than stream.reassembly.depth "
+                           "value.", stream_depth);
+            } else {
+                FileReassemblyDepthEnable(stream_depth);
+            }
         }
     }
 
