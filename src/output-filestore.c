@@ -516,7 +516,7 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
                        "file-store.max-open-files "
                        "from conf file - %s.  Killing engine",
-                       stream_depth_str);
+                       file_count_str);
             exit(EXIT_FAILURE);
         } else {
             if (file_count != 0) {
