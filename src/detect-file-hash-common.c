@@ -345,6 +345,10 @@ int DetectFileHashSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str,
     if (type == DETECT_FILESHA256) {
         s->file_flags |= FILE_SIG_NEED_SHA256;
     }
+
+    /* Matching on a hash require filestore. */
+    s->flags |= SIG_FLAG_FILESTORE;
+
     return 0;
 
 error:
