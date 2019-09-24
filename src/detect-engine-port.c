@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -22,7 +22,6 @@
  *
  * Ports part of the detection engine.
  *
- * \todo move this out of the detection plugin structure
  * \todo more unittesting
  *
  */
@@ -632,6 +631,8 @@ int DetectPortCmp(DetectPort *a, DetectPort *b)
  *
  * \retval Pointer to a DetectPort instance (copy of src)
  * \retval NULL on error
+ *
+ * \todo rewrite to avoid recursive calls
  * */
 DetectPort *DetectPortCopy(DetectEngineCtx *de_ctx, DetectPort *src)
 {
@@ -1662,14 +1663,10 @@ static int PortTestDetectPortAdd(DetectPort **head, DetectPort *dp)
 static int PortTestParse01 (void)
 {
     DetectPort *dd = NULL;
-
     int r = DetectPortParse(NULL,&dd,"80");
-    if (r == 0) {
-        DetectPortFree(NULL, dd);
-        return 1;
-    }
-
-    return 0;
+    FAIL_IF_NOT(r == 0);
+    DetectPortFree(NULL, dd);
+    PASS;
 }
 
 /**
@@ -1678,20 +1675,12 @@ static int PortTestParse01 (void)
 static int PortTestParse02 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
-
     int r = DetectPortParse(NULL,&dd,"80");
-    if (r == 0) {
-        r = DetectPortParse(NULL,&dd,"22");
-        if (r == 0) {
-            result = 1;
-        }
-
-        DetectPortCleanupList(NULL, dd);
-        return result;
-    }
-
-    return result;
+    FAIL_IF_NOT(r == 0);
+    r = DetectPortParse(NULL,&dd,"22");
+    FAIL_IF_NOT(r == 0);
+    DetectPortCleanupList(NULL, dd);
+    PASS;
 }
 
 /**
@@ -1700,21 +1689,12 @@ static int PortTestParse02 (void)
 static int PortTestParse03 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
-
     int r = DetectPortParse(NULL,&dd,"80:88");
-    if (r == 0) {
-        r = DetectPortParse(NULL,&dd,"85:100");
-        if (r == 0) {
-            result = 1;
-        }
-
-        DetectPortCleanupList(NULL, dd);
-
-        return result;
-    }
-
-    return result;
+    FAIL_IF_NOT(r == 0);
+    r = DetectPortParse(NULL,&dd,"85:100");
+    FAIL_IF_NOT(r == 0);
+    DetectPortCleanupList(NULL, dd);
+    PASS;
 }
 
 /**
@@ -1723,14 +1703,10 @@ static int PortTestParse03 (void)
 static int PortTestParse04 (void)
 {
     DetectPort *dd = NULL;
-
     int r = DetectPortParse(NULL,&dd,"!80:81");
-    if (r == 0) {
-        DetectPortCleanupList(NULL, dd);
-        return 1;
-    }
-
-    return 0;
+    FAIL_IF_NOT(r == 0);
+    DetectPortCleanupList(NULL, dd);
+    PASS;
 }
 
 /**
@@ -1740,25 +1716,15 @@ static int PortTestParse04 (void)
 static int PortTestParse05 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
-
     int r = DetectPortParse(NULL,&dd,"!80:81");
-    if (r != 0)
-        goto end;
-
-    if (dd->next == NULL)
-        goto end;
-
-    if (dd->port != 0 || dd->port2 != 79)
-        goto end;
-
-    if (dd->next->port != 82 || dd->next->port2 != 65535)
-        goto end;
-
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NULL(dd->next);
+    FAIL_IF_NOT(dd->port == 0);
+    FAIL_IF_NOT(dd->port2 == 79);
+    FAIL_IF_NOT(dd->next->port == 82);
+    FAIL_IF_NOT(dd->next->port2 == 65535);
     DetectPortCleanupList(NULL, dd);
-    result = 1;
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -1767,51 +1733,32 @@ end:
 static int PortTestParse06 (void)
 {
     DetectPort *dd = NULL, *copy = NULL;
-    int result = 0;
 
     int r = DetectPortParse(NULL,&dd,"22");
-    if (r != 0)
-        goto end;
-
+    FAIL_IF_NOT(r == 0);
     r = DetectPortParse(NULL,&dd,"80");
-    if (r != 0)
-        goto end;
-
+    FAIL_IF_NOT(r == 0);
     r = DetectPortParse(NULL,&dd,"143");
-    if (r != 0)
-        goto end;
+    FAIL_IF_NOT(r == 0);
 
     copy = DetectPortCopy(NULL,dd);
-    if (copy == NULL)
-        goto end;
+    FAIL_IF_NULL(copy);
 
-    if (DetectPortCmp(dd,copy) != PORT_EQ)
-        goto end;
+    FAIL_IF(DetectPortCmp(dd,copy) != PORT_EQ);
+    FAIL_IF_NULL(copy->next);
 
-    if (copy->next == NULL)
-        goto end;
+    FAIL_IF(DetectPortCmp(dd->next,copy->next) != PORT_EQ);
+    FAIL_IF_NULL(copy->next->next);
 
-    if (DetectPortCmp(dd->next,copy->next) != PORT_EQ)
-        goto end;
+    FAIL_IF(DetectPortCmp(dd->next->next,copy->next->next) != PORT_EQ);
 
-    if (copy->next->next == NULL)
-        goto end;
+    FAIL_IF_NOT(copy->port == 22);
+    FAIL_IF_NOT(copy->next->port == 80);
+    FAIL_IF_NOT(copy->next->next->port == 143);
 
-    if (DetectPortCmp(dd->next->next,copy->next->next) != PORT_EQ)
-        goto end;
-
-    if (copy->port != 22 || copy->next->port != 80 ||
-        copy->next->next->port != 143)
-        goto end;
-
-    result = 1;
-
-end:
-    if (copy != NULL)
-        DetectPortCleanupList(NULL, copy);
-    if (dd != NULL)
-        DetectPortCleanupList(NULL, dd);
-    return result;
+    DetectPortCleanupList(NULL, copy);
+    DetectPortCleanupList(NULL, dd);
+    PASS;
 }
 
 /**
@@ -1821,25 +1768,18 @@ end:
 static int PortTestParse07 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
 
     int r = DetectPortParse(NULL,&dd,"!21:902");
-    if (r != 0)
-        goto end;
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NULL(dd->next);
 
-    if (dd->next == NULL)
-        goto end;
-
-    if (dd->port != 0 || dd->port2 != 20)
-        goto end;
-
-    if (dd->next->port != 903 || dd->next->port2 != 65535)
-        goto end;
+    FAIL_IF_NOT(dd->port == 0);
+    FAIL_IF_NOT(dd->port2 == 20);
+    FAIL_IF_NOT(dd->next->port == 903);
+    FAIL_IF_NOT(dd->next->port2 == 65535);
 
     DetectPortCleanupList(NULL, dd);
-    result = 1;
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -1848,16 +1788,12 @@ end:
 static int PortTestParse08 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
 
     int r = DetectPortParse(NULL,&dd,"[80:!80]");
-    if (r == 0)
-        goto end;
+    FAIL_IF(r == 0);
 
     DetectPortCleanupList(NULL, dd);
-    result = 1;
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -1866,22 +1802,16 @@ end:
 static int PortTestParse09 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
 
     int r = DetectPortParse(NULL,&dd,"1024:");
-    if (r != 0)
-        goto end;
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NULL(dd);
 
-    if (dd == NULL)
-        goto end;
-
-    if (dd->port != 1024 || dd->port2 != 0xffff)
-        goto end;
+    FAIL_IF_NOT(dd->port == 1024);
+    FAIL_IF_NOT(dd->port2 == 0xffff);
 
     DetectPortCleanupList(NULL, dd);
-    result = 1;
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -1890,18 +1820,9 @@ end:
 static int PortTestParse10 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
-
     int r = DetectPortParse(NULL,&dd,"77777777777777777777777777777777777777777777");
-    if (r != 0) {
-        result = 1 ;
-        goto end;
-    }
-
-    DetectPortFree(NULL, dd);
-
-end:
-    return result;
+    FAIL_IF(r == 0);
+    PASS;
 }
 
 /**
@@ -1910,18 +1831,10 @@ end:
 static int PortTestParse11 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
 
     int r = DetectPortParse(NULL,&dd,"1024:65536");
-    if (r != 0) {
-        result = 1 ;
-        goto end;
-    }
-
-    DetectPortFree(NULL, dd);
-
-end:
-    return result;
+    FAIL_IF(r == 0);
+    PASS;
 }
 
 /**
@@ -1930,18 +1843,10 @@ end:
 static int PortTestParse12 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
-
     int r = DetectPortParse(NULL,&dd,"1024:65535");
-    if (r != 0) {
-        goto end;
-    }
-
+    FAIL_IF_NOT(r == 0);
     DetectPortFree(NULL, dd);
-
-    result = 1 ;
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -1950,18 +1855,9 @@ end:
 static int PortTestParse13 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
-
     int r = DetectPortParse(NULL,&dd,"65536:65535");
-    if (r != 0) {
-        result = 1 ;
-        goto end;
-    }
-
-    DetectPortFree(NULL, dd);
-
-end:
-    return result;
+    FAIL_IF(r == 0);
+    PASS;
 }
 
 /**
@@ -1970,25 +1866,20 @@ end:
 static int PortTestParse14 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
 
     int r = DetectPortParseInsertString(NULL, &dd, "0:100");
-    if (r != 0)
-        goto end;
+    FAIL_IF_NOT(r == 0);
     r = DetectPortParseInsertString(NULL, &dd, "1000:65535");
-    if (r != 0 || dd->next == NULL)
-        goto end;
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NULL(dd->next);
 
-    result = 1;
-    result &= (dd->port == 0) ? 1 : 0;
-    result &= (dd->port2 == 100) ? 1 : 0;
-    result &= (dd->next->port == 1000) ? 1 : 0;
-    result &= (dd->next->port2 == 65535) ? 1 : 0;
+    FAIL_IF_NOT(dd->port == 0);
+    FAIL_IF_NOT(dd->port2 == 100);
+    FAIL_IF_NOT(dd->next->port == 1000);
+    FAIL_IF_NOT(dd->next->port2 == 65535);
 
-    DetectPortFree(NULL, dd);
-
-end:
-    return result;
+    DetectPortCleanupList(NULL, dd);
+    PASS;
 }
 
 /**
@@ -1997,22 +1888,18 @@ end:
 static int PortTestParse15 (void)
 {
     DetectPort *dd = NULL;
-    int result = 0;
 
     int r = DetectPortParse(NULL,&dd,"![0:100,1000:3000]");
-    if (r != 0 || dd->next == NULL)
-        goto end;
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NULL(dd->next);
 
-    result = 1;
-    result &= (dd->port == 101) ? 1 : 0;
-    result &= (dd->port2 == 999) ? 1 : 0;
-    result &= (dd->next->port == 3001) ? 1 : 0;
-    result &= (dd->next->port2 == 65535) ? 1 : 0;
+    FAIL_IF_NOT(dd->port == 101);
+    FAIL_IF_NOT(dd->port2 == 999);
+    FAIL_IF_NOT(dd->next->port == 3001);
+    FAIL_IF_NOT(dd->next->port2 == 65535);
 
-    DetectPortFree(NULL, dd);
-
-end:
-    return result;
+    DetectPortCleanupList(NULL, dd);
+    PASS;
 }
 
 /**
@@ -2021,53 +1908,36 @@ end:
 static int PortTestParse16 (void)
 {
     DetectPort *dd = NULL, *copy = NULL;
-    int result = 0;
 
     int r = DetectPortParse(NULL,&dd,"22");
-    if (r != 0)
-        goto end;
-
+    FAIL_IF_NOT(r == 0);
     r = DetectPortParse(NULL,&dd,"80");
-    if (r != 0)
-        goto end;
-
+    FAIL_IF_NOT(r == 0);
     r = DetectPortParse(NULL,&dd,"143");
-    if (r != 0)
-        goto end;
+    FAIL_IF_NOT(r == 0);
 
     copy = DetectPortCopy(NULL,dd);
-    if (copy == NULL)
-        goto end;
+    FAIL_IF_NULL(copy);
 
-    if (DetectPortCmp(dd,copy) != PORT_EQ)
-        goto end;
+    FAIL_IF(DetectPortCmp(dd,copy) != PORT_EQ);
 
-    if (copy->next == NULL)
-        goto end;
+    FAIL_IF_NULL(copy->next);
 
-    if (DetectPortCmp(dd->next,copy->next) != PORT_EQ)
-        goto end;
+    FAIL_IF(DetectPortCmp(dd->next,copy->next) != PORT_EQ);
 
-    if (copy->next->next == NULL)
-        goto end;
+    FAIL_IF_NULL(copy->next->next);
 
-    if (DetectPortCmp(dd->next->next,copy->next->next) != PORT_EQ)
-        goto end;
+    FAIL_IF(DetectPortCmp(dd->next->next,copy->next->next) != PORT_EQ);
 
-    if (copy->port != 22 || copy->next->port != 80 || copy->next->next->port != 143)
-        goto end;
+    FAIL_IF_NOT(copy->port == 22);
+    FAIL_IF_NOT(copy->next->port == 80);
+    FAIL_IF_NOT(copy->next->next->port == 143);
 
-    if (copy->next->prev != copy)
-        goto end;
+    FAIL_IF(copy->next->prev != copy);
 
-    result = 1;
-
-end:
-    if (copy != NULL)
-        DetectPortCleanupList(NULL, copy);
-    if (dd != NULL)
-        DetectPortCleanupList(NULL, dd);
-    return result;
+    DetectPortCleanupList(NULL, copy);
+    DetectPortCleanupList(NULL, dd);
+    PASS;
 }
 
 /**
