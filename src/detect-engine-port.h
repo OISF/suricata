@@ -27,7 +27,6 @@
 /* prototypes */
 int DetectPortParse(const DetectEngineCtx *, DetectPort **head, const char *str);
 
-DetectPort *DetectPortCopy(DetectEngineCtx *, DetectPort *);
 DetectPort *DetectPortCopySingle(DetectEngineCtx *, DetectPort *);
 int DetectPortInsertCopy(DetectEngineCtx *,DetectPort **, DetectPort *);
 int DetectPortInsert(DetectEngineCtx *,DetectPort **, DetectPort *);

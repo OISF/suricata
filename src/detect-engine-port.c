@@ -624,42 +624,6 @@ int DetectPortCmp(DetectPort *a, DetectPort *b)
 }
 
 /**
- * \brief Function that return a copy of DetectPort src
- *
- * \param de_ctx Pointer to the current Detection Engine Context
- * \param src Pointer to a DetectPort group to copy
- *
- * \retval Pointer to a DetectPort instance (copy of src)
- * \retval NULL on error
- *
- * \todo rewrite to avoid recursive calls
- * */
-DetectPort *DetectPortCopy(DetectEngineCtx *de_ctx, DetectPort *src)
-{
-    if (src == NULL)
-        return NULL;
-
-    DetectPort *dst = DetectPortInit();
-    if (dst == NULL) {
-        goto error;
-    }
-
-    dst->port = src->port;
-    dst->port2 = src->port2;
-
-    if (src->next != NULL) {
-        dst->next = DetectPortCopy(de_ctx, src->next);
-        if (dst->next != NULL) {
-            dst->next->prev = dst;
-        }
-    }
-
-    return dst;
-error:
-    return NULL;
-}
-
-/**
  * \brief Function that return a copy of DetectPort src sigs
  *
  * \param de_ctx Pointer to the current Detection Engine Context
@@ -1728,40 +1692,6 @@ static int PortTestParse05 (void)
 }
 
 /**
- * \test Check if we copy a DetectPort correctly
- */
-static int PortTestParse06 (void)
-{
-    DetectPort *dd = NULL, *copy = NULL;
-
-    int r = DetectPortParse(NULL,&dd,"22");
-    FAIL_IF_NOT(r == 0);
-    r = DetectPortParse(NULL,&dd,"80");
-    FAIL_IF_NOT(r == 0);
-    r = DetectPortParse(NULL,&dd,"143");
-    FAIL_IF_NOT(r == 0);
-
-    copy = DetectPortCopy(NULL,dd);
-    FAIL_IF_NULL(copy);
-
-    FAIL_IF(DetectPortCmp(dd,copy) != PORT_EQ);
-    FAIL_IF_NULL(copy->next);
-
-    FAIL_IF(DetectPortCmp(dd->next,copy->next) != PORT_EQ);
-    FAIL_IF_NULL(copy->next->next);
-
-    FAIL_IF(DetectPortCmp(dd->next->next,copy->next->next) != PORT_EQ);
-
-    FAIL_IF_NOT(copy->port == 22);
-    FAIL_IF_NOT(copy->next->port == 80);
-    FAIL_IF_NOT(copy->next->next->port == 143);
-
-    DetectPortCleanupList(NULL, copy);
-    DetectPortCleanupList(NULL, dd);
-    PASS;
-}
-
-/**
  * \test Check if a negated port range is properly fragmented in the allowed
  *       real groups
  */
@@ -1898,44 +1828,6 @@ static int PortTestParse15 (void)
     FAIL_IF_NOT(dd->next->port == 3001);
     FAIL_IF_NOT(dd->next->port2 == 65535);
 
-    DetectPortCleanupList(NULL, dd);
-    PASS;
-}
-
-/**
- * \test Test parse, copy and cmp functions
- */
-static int PortTestParse16 (void)
-{
-    DetectPort *dd = NULL, *copy = NULL;
-
-    int r = DetectPortParse(NULL,&dd,"22");
-    FAIL_IF_NOT(r == 0);
-    r = DetectPortParse(NULL,&dd,"80");
-    FAIL_IF_NOT(r == 0);
-    r = DetectPortParse(NULL,&dd,"143");
-    FAIL_IF_NOT(r == 0);
-
-    copy = DetectPortCopy(NULL,dd);
-    FAIL_IF_NULL(copy);
-
-    FAIL_IF(DetectPortCmp(dd,copy) != PORT_EQ);
-
-    FAIL_IF_NULL(copy->next);
-
-    FAIL_IF(DetectPortCmp(dd->next,copy->next) != PORT_EQ);
-
-    FAIL_IF_NULL(copy->next->next);
-
-    FAIL_IF(DetectPortCmp(dd->next->next,copy->next->next) != PORT_EQ);
-
-    FAIL_IF_NOT(copy->port == 22);
-    FAIL_IF_NOT(copy->next->port == 80);
-    FAIL_IF_NOT(copy->next->next->port == 143);
-
-    FAIL_IF(copy->next->prev != copy);
-
-    DetectPortCleanupList(NULL, copy);
     DetectPortCleanupList(NULL, dd);
     PASS;
 }
@@ -2646,7 +2538,6 @@ void DetectPortTests(void)
     UtRegisterTest("PortTestParse03", PortTestParse03);
     UtRegisterTest("PortTestParse04", PortTestParse04);
     UtRegisterTest("PortTestParse05", PortTestParse05);
-    UtRegisterTest("PortTestParse06", PortTestParse06);
     UtRegisterTest("PortTestParse07", PortTestParse07);
     UtRegisterTest("PortTestParse08", PortTestParse08);
     UtRegisterTest("PortTestParse09", PortTestParse09);
@@ -2656,7 +2547,6 @@ void DetectPortTests(void)
     UtRegisterTest("PortTestParse13", PortTestParse13);
     UtRegisterTest("PortTestParse14", PortTestParse14);
     UtRegisterTest("PortTestParse15", PortTestParse15);
-    UtRegisterTest("PortTestParse16", PortTestParse16);
     UtRegisterTest("PortTestFunctions01", PortTestFunctions01);
     UtRegisterTest("PortTestFunctions02", PortTestFunctions02);
     UtRegisterTest("PortTestFunctions03", PortTestFunctions03);
