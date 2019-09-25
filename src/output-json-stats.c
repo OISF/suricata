@@ -171,12 +171,12 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
 {
     void *iter;
 
-    const char *dot = index(key, '.');
+    const char *dot = strchr(key, '.');
     if (dot == NULL)
         return NULL;
     if (strlen(dot) > 2) {
         if (*(dot + 1) == '.' && *(dot + 2) != '\0')
-            dot = index(dot + 2, '.');
+            dot = strchr(dot + 2, '.');
     }
 
     size_t predot_len = (dot - key) + 1;
@@ -184,7 +184,7 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
     strlcpy(s, key, predot_len);
 
     iter = json_object_iter_at(js, s);
-    const char *s2 = index(dot+1, '.');
+    const char *s2 = strchr(dot+1, '.');
 
     json_t *value = json_object_iter_value(iter);
     if (value == NULL) {
@@ -232,8 +232,8 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                 continue;
             const char *name = st->stats[u].name;
             const char *shortname = name;
-            if (rindex(name, '.') != NULL) {
-                shortname = &name[rindex(name, '.') - name + 1];
+            if (strrchr(name, '.') != NULL) {
+                shortname = &name[strrchr(name, '.') - name + 1];
             }
             json_t *js_type = OutputStats2Json(js_stats, name);
             if (js_type != NULL) {
@@ -270,7 +270,7 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
 
                 char str[256];
                 snprintf(str, sizeof(str), "%s.%s", st->tstats[u].tm_name, st->tstats[u].name);
-                char *shortname = &str[rindex(str, '.') - str + 1];
+                char *shortname = &str[strrchr(str, '.') - str + 1];
                 json_t *js_type = OutputStats2Json(threads, str);
 
                 if (js_type != NULL) {

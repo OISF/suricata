@@ -157,7 +157,7 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
      * once we are done using it */
     dup_str_head = dup_str;
     dup_str_temp = dup_str;
-    while ( (comma_token = index(dup_str, ',')) != NULL) {
+    while ( (comma_token = strchr(dup_str, ',')) != NULL) {
         comma_token[0] = '\0';
         dup_str = comma_token + 1;
 
@@ -172,7 +172,7 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
             prev_dor = dor;
         }
 
-        if ((hyphen_token = index(dup_str_temp, '-')) != NULL) {
+        if ((hyphen_token = strchr(dup_str_temp, '-')) != NULL) {
             hyphen_token[0] = '\0';
             hyphen_token++;
             dor->range1 = atoi(dup_str_temp);
@@ -200,7 +200,7 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         prev_dor->next = dor;
     }
 
-    if ( (hyphen_token = index(dup_str, '-')) != NULL) {
+    if ( (hyphen_token = strchr(dup_str, '-')) != NULL) {
         hyphen_token[0] = '\0';
         hyphen_token++;
         dor->range1 = atoi(dup_str);

@@ -324,7 +324,7 @@ static SCError SCLogMessageGetBuffer(
     char *temp_fmt = local_format;
     char *substr = temp_fmt;
 
-	while ( (temp_fmt = index(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
+	while ( (temp_fmt = strchr(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
         if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
             return SC_OK;
         }

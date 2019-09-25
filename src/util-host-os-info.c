@@ -161,19 +161,19 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     }
 
     /* check if we have more addresses in the host_os_ip_range */
-    if ((ip_str_rem = index(ip_str, ',')) != NULL) {
+    if ((ip_str_rem = strchr(ip_str, ',')) != NULL) {
         ip_str_rem[0] = '\0';
         ip_str_rem++;
         recursive = TRUE;
     }
 
     /* check if we have received a netblock */
-    if ( (netmask_str = index(ip_str, '/')) != NULL) {
+    if ( (netmask_str = strchr(ip_str, '/')) != NULL) {
         netmask_str[0] = '\0';
         netmask_str++;
     }
 
-    if (index(ip_str, ':') == NULL) {
+    if (strchr(ip_str, ':') == NULL) {
         /* if we are here, we have an IPV4 address */
         if ( (ipv4_addr = ValidateIPV4Address(ip_str)) == NULL) {
             SCLogError(SC_ERR_INVALID_IPV4_ADDR, "Invalid IPV4 address");
@@ -252,10 +252,10 @@ int SCHInfoGetHostOSFlavour(const char *ip_addr_str)
     struct in6_addr *ipv6_addr = NULL;
     void *user_data = NULL;
 
-    if (ip_addr_str == NULL || index(ip_addr_str, '/') != NULL)
+    if (ip_addr_str == NULL || strchr(ip_addr_str, '/') != NULL)
         return -1;
 
-    if (index(ip_addr_str, ':') != NULL) {
+    if (strchr(ip_addr_str, ':') != NULL) {
         if ( (ipv6_addr = ValidateIPV6Address(ip_addr_str)) == NULL) {
             SCLogError(SC_ERR_INVALID_IPV4_ADDR, "Invalid IPV4 address");
             return -1;
@@ -344,7 +344,7 @@ void SCHInfoLoadFromConfig(void)
         ConfNode *host;
         TAILQ_FOREACH(host, &policy->head, next) {
             int is_ipv4 = 1;
-            if (host->val != NULL && index(host->val, ':') != NULL)
+            if (host->val != NULL && strchr(host->val, ':') != NULL)
                 is_ipv4 = 0;
             if (SCHInfoAddHostOSInfo(policy->name, host->val, is_ipv4) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,

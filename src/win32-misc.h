@@ -26,9 +26,6 @@
 
 #include <sdkddkver.h>
 
-#define index strchr
-#define rindex strrchr
-
 #define bzero(s, n) memset(s, 0, n)
 
 #ifndef O_NOFOLLOW

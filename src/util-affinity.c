@@ -109,8 +109,8 @@ void BuildCpusetWithCallback(const char *name, ConfNode *node,
             a = 0;
             b = max;
             stop = 1;
-        } else if (index(lnode->val, '-') != NULL) {
-            char *sep = index(lnode->val, '-');
+        } else if (strchr(lnode->val, '-') != NULL) {
+            char *sep = strchr(lnode->val, '-');
             char *end;
             a = strtoul(lnode->val, &end, 10);
             if (end != sep) {
