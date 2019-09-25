@@ -532,7 +532,8 @@ The following shows the configuration options for version 2 of the
       #force-filestore: yes
 
       # Override the global stream-depth for sessions in which we want
-      # to perform file extraction. Set to 0 for unlimited.
+      # to perform file extraction. Set to 0 for unlimited; otherwise,
+      # must be greater than the global stream-depth value to be used.
       #stream-depth: 0
 
       # Uncomment the following variable to define how many files can
