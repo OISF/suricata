@@ -28,14 +28,10 @@
 int DetectPortParse(const DetectEngineCtx *, DetectPort **head, const char *str);
 
 DetectPort *DetectPortCopySingle(DetectEngineCtx *, DetectPort *);
-int DetectPortInsertCopy(DetectEngineCtx *,DetectPort **, DetectPort *);
 int DetectPortInsert(DetectEngineCtx *,DetectPort **, DetectPort *);
 void DetectPortCleanupList (const DetectEngineCtx *de_ctx, DetectPort *head);
 
 DetectPort *DetectPortLookupGroup(DetectPort *dp, uint16_t port);
-DetectPort *DetectPortLookupInList(DetectPort *head, DetectPort *gr);
-
-int DetectPortJoin(DetectEngineCtx *,DetectPort *target, DetectPort *source);
 
 bool DetectPortListsAreEqual(DetectPort *list1, DetectPort *list2);
 
@@ -51,7 +47,9 @@ void DetectPortHashFree(DetectEngineCtx *de_ctx);
 int DetectPortHashAdd(DetectEngineCtx *de_ctx, DetectPort *dp);
 int DetectPortHashInit(DetectEngineCtx *de_ctx);
 
+#ifdef UNITTESTS
 void DetectPortTests(void);
+#endif
 
 #endif /* __DETECT_PORT_H__ */
 

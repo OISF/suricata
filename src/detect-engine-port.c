@@ -61,16 +61,13 @@ int DetectPortIsValidRange(char *);
 /**
  * \brief Alloc a DetectPort structure and update counters
  *
- * \retval sgh Pointer to the newly created DetectPort on success; or NULL in
- *             case of error.
+ * \retval dp newly created DetectPort on success; or NULL in case of error.
  */
 static DetectPort *DetectPortInit(void)
 {
-    DetectPort *dp = SCMalloc(sizeof(DetectPort));
+    DetectPort *dp = SCCalloc(1, sizeof(DetectPort));
     if (unlikely(dp == NULL))
         return NULL;
-    memset(dp, 0, sizeof(DetectPort));
-
     return dp;
 }
 
@@ -136,25 +133,6 @@ void DetectPortCleanupList (const DetectEngineCtx *de_ctx, DetectPort *head)
 }
 
 /**
- * \brief Copy and insert the new DetectPort, with a copy list of sigs
- *
- * \param de_ctx Pointer to the current detection engine context
- * \param head Pointer to the DetectPort list head
- * \param new Pointer to DetectPort to search in the DetectPort list
- *
- * \retval 0 if dp is added correctly
- */
-int DetectPortInsertCopy(DetectEngineCtx *de_ctx, DetectPort **head,
-                         DetectPort *new)
-{
-    DetectPort *copy = DetectPortCopySingle(de_ctx,new);
-    if (copy == NULL)
-        return -1;
-
-    return DetectPortInsert(de_ctx, head, copy);
-}
-
-/**
  * \brief function for inserting a port group object. This also makes sure
  *         SigGroupContainer lists are handled correctly.
  *
@@ -165,6 +143,8 @@ int DetectPortInsertCopy(DetectEngineCtx *de_ctx, DetectPort **head,
  * \retval 1 inserted
  * \retval 0 not inserted, memory of new is freed
  * \retval -1 error
+ *
+ * \todo rewrite to avoid recursive calls
  * */
 int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
                      DetectPort *new)
@@ -175,7 +155,7 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
     //BUG_ON(new->next != NULL);
     //BUG_ON(new->prev != NULL);
 
-    /* see if it already exists or overlaps with existing ag's */
+    /* see if it already exists or overlaps with existing ports */
     if (*head != NULL) {
         DetectPort *cur = NULL;
         int r = 0;
@@ -279,7 +259,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
     uint32_t a_port2 = a->port2;
     uint32_t b_port1 = b->port;
     uint32_t b_port2 = b->port2;
-    DetectPort *tmp = NULL;
 
     /* default to NULL */
     *c = NULL;
@@ -288,11 +267,10 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
     BUG_ON(r != PORT_ES && r != PORT_EB && r != PORT_LE && r != PORT_GE);
 
     /* get a place to temporary put sigs lists */
-    tmp = DetectPortInit();
+    DetectPort *tmp = DetectPortInit();
     if (tmp == NULL) {
         goto error;
     }
-    memset(tmp, 0, sizeof(DetectPort));
 
     /**
      * We have 3 parts: [aaa[abab]bbb]
@@ -308,8 +286,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
         b->port = b_port1;
         b->port2 = a_port2;
 
-        DetectPort *tmp_c;
-        tmp_c = DetectPortInit();
+        DetectPort *tmp_c = DetectPortInit();
         if (tmp_c == NULL) {
             goto error;
         }
@@ -335,8 +312,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
         b->port = a_port1;
         b->port2 = b_port2;
 
-        DetectPort *tmp_c;
-        tmp_c = DetectPortInit();
+        DetectPort *tmp_c = DetectPortInit();
         if (tmp_c == NULL) {
             goto error;
         }
@@ -415,8 +391,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             b->port = a_port1;
             b->port2 = a_port2;
 
-            DetectPort *tmp_c;
-            tmp_c = DetectPortInit();
+            DetectPort *tmp_c = DetectPortInit();
             if (tmp_c == NULL) {
                 goto error;
             }
@@ -493,8 +468,7 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             b->port = b_port1;
             b->port2 = b_port2;
 
-            DetectPort *tmp_c;
-            tmp_c = DetectPortInit();
+            DetectPort *tmp_c = DetectPortInit();
             if (tmp_c == NULL) {
                 goto error;
             }
@@ -543,7 +517,7 @@ static int DetectPortCutNot(DetectPort *a, DetectPort **b)
         DetectPort *tmp_b;
         tmp_b = DetectPortInit();
         if (tmp_b == NULL) {
-            goto error;
+            return -1;
         }
 
         tmp_b->port = a_port2 + 1;
@@ -558,13 +532,10 @@ static int DetectPortCutNot(DetectPort *a, DetectPort **b)
         a->port = 0x0000;
         a->port2 = a_port1 - 1;
     } else {
-        goto error;
+        return -1;
     }
 
     return 0;
-
-error:
-    return -1;
 }
 
 /**
@@ -639,17 +610,14 @@ DetectPort *DetectPortCopySingle(DetectEngineCtx *de_ctx,DetectPort *src)
 
     DetectPort *dst = DetectPortInit();
     if (dst == NULL) {
-        goto error;
+        return NULL;
     }
 
     dst->port = src->port;
     dst->port2 = src->port2;
 
     SigGroupHeadCopySigs(de_ctx,src->sh,&dst->sh);
-
     return dst;
-error:
-    return NULL;
 }
 
 /**
@@ -698,16 +666,13 @@ void DetectPortPrint(DetectPort *dp)
  * \retval Pointer to the DetectPort group of our port if it matched
  * \retval NULL if port is not in the list
  * */
-DetectPort *
-DetectPortLookupGroup(DetectPort *dp, uint16_t port)
+DetectPort *DetectPortLookupGroup(DetectPort *dp, uint16_t port)
 {
-    DetectPort *p = dp;
-
     if (dp == NULL)
         return NULL;
 
-    for ( ; p != NULL; p = p->next) {
-        if (DetectPortMatch(p,port) == 1) {
+    for (DetectPort *p = dp; p != NULL; p = p->next) {
+        if (DetectPortMatch(p, port) == 1) {
             //SCLogDebug("match, port %" PRIu32 ", dp ", port);
             //DetectPortPrint(p); SCLogDebug("");
             return p;
@@ -715,60 +680,6 @@ DetectPortLookupGroup(DetectPort *dp, uint16_t port)
     }
 
     return NULL;
-}
-
-/**
- * \brief Used to check if a DetectPort list contains an instance with
- *        a similar DetectPort.  The comparison done is not the one that
- *        checks the memory for the same instance, but one that checks that the
- *        two instances hold the same content.
- *
- * \param head Pointer to the DetectPort list.
- * \param ad   Pointer to the DetectPort that has to be checked for in
- *             the DetectPort list.
- *
- * \retval cur Returns a pointer to the DetectPort on a match; NULL if
- *             no match.
- */
-DetectPort *DetectPortLookupInList(DetectPort *head, DetectPort *gr)
-{
-    DetectPort *cur;
-
-    if (head != NULL) {
-        for (cur = head; cur != NULL; cur = cur->next) {
-             if (DetectPortCmp(cur, gr) == PORT_EQ)
-                 return cur;
-        }
-    }
-
-    return NULL;
-}
-
-/**
- * \brief Function to join the source group to the target and its members
- *
- * \param de_ctx Pointer to the current Detection Engine Context
- * \param target Pointer to DetectPort group where the source is joined
- * \param source Pointer to DetectPort group that will join into the target
- *
- * \retval -1 on error
- * \retval 0 on success
- * */
-int DetectPortJoin(DetectEngineCtx *de_ctx, DetectPort *target,
-                   DetectPort *source)
-{
-    if (target == NULL || source == NULL)
-        return -1;
-
-    SigGroupHeadCopySigs(de_ctx,source->sh,&target->sh);
-
-    if (source->port < target->port)
-        target->port = source->port;
-
-    if (source->port2 > target->port2)
-        target->port2 = source->port2;
-
-    return 0;
 }
 
 /**
@@ -1320,14 +1231,13 @@ int DetectPortTestConfVars(void)
 int DetectPortParse(const DetectEngineCtx *de_ctx,
                     DetectPort **head, const char *str)
 {
-    int r;
-
     SCLogDebug("Port string to be parsed - str %s", str);
 
     /* negate port list */
     DetectPort *nhead = NULL;
 
-    r = DetectPortParseDo(de_ctx, head, &nhead, str,/* start with negate no */0, NULL);
+    int r = DetectPortParseDo(de_ctx, head, &nhead, str,
+            /* start with negate no */ 0, NULL);
     if (r < 0)
         goto error;
 
@@ -1357,12 +1267,10 @@ error:
 DetectPort *PortParse(const char *str)
 {
     char *port2 = NULL;
-    DetectPort *dp = NULL;
-
     char portstr[16];
     strlcpy(portstr, str, sizeof(portstr));
 
-    dp = DetectPortInit();
+    DetectPort *dp = DetectPortInit();
     if (dp == NULL)
         goto error;
 
@@ -1383,7 +1291,7 @@ DetectPort *PortParse(const char *str)
         port2[0] = '\0';
         port2++;
 
-        if(DetectPortIsValidRange(port))
+        if (DetectPortIsValidRange(port))
             dp->port = atoi(port);
         else
             goto error;
@@ -1438,6 +1346,7 @@ int DetectPortIsValidRange(char *port)
     else
         return 0;
 }
+
 /********************** End parsing routines ********************/
 
 /* hash table */
@@ -1455,11 +1364,9 @@ int DetectPortIsValidRange(char *port)
 static uint32_t DetectPortHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     DetectPort *p = (DetectPort *)data;
-    uint32_t hash = 0;
+    SCLogDebug("hashing port %p", p);
 
-    SCLogDebug("hashing sgh %p", p);
-
-    hash = ((uint32_t)p->port << 16) | p->port2;
+    uint32_t hash = ((uint32_t)p->port << 16) | p->port2;
 
     hash %= ht->array_size;
     SCLogDebug("hash %"PRIu32, hash);
@@ -1514,12 +1421,9 @@ int DetectPortHashInit(DetectEngineCtx *de_ctx)
                                                        DetectPortCompareFunc,
                                                        DetectPortHashFreeFunc);
     if (de_ctx->dport_hash_table == NULL)
-        goto error;
+        return -1;
 
     return 0;
-
-error:
-    return -1;
 }
 
 /**
@@ -2528,11 +2432,8 @@ static int PortTestMatchDoubleNegation(void)
     return result;
 }
 
-#endif /* UNITTESTS */
-
 void DetectPortTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("PortTestParse01", PortTestParse01);
     UtRegisterTest("PortTestParse02", PortTestParse02);
     UtRegisterTest("PortTestParse03", PortTestParse03);
@@ -2574,8 +2475,7 @@ void DetectPortTests(void)
     UtRegisterTest("PortTestMatchReal18", PortTestMatchReal18);
     UtRegisterTest("PortTestMatchReal19", PortTestMatchReal19);
     UtRegisterTest("PortTestMatchDoubleNegation", PortTestMatchDoubleNegation);
-
+}
 
 #endif /* UNITTESTS */
-}
 
