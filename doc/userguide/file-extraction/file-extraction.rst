@@ -6,7 +6,7 @@ File Extraction
 Architecture
 ~~~~~~~~~~~~
 
-The file extraction code works on top of the some protocols parsers. The application layer parsers runs on top of the stream reassembly engine and the UDP flow tracking.
+The file extraction code works on top of selected protocol parsers (see supported protocols below). The application layer parsers run on top of the stream reassembly engine and the UDP flow tracking.
 
 In case of HTTP, the parser takes care of dechunking and unzipping the request and/or response data if necessary.
 
@@ -27,7 +27,7 @@ Settings
 
 *stream.checksum_validation* controls whether or not the stream engine rejects packets with invalid checksums. A good idea normally, but the network interface performs checksum offloading a lot of packets may seem to be broken. This setting is enabled by default, and can be disabled by setting to "no". Note that the checksum handling can be controlled per interface, see "checksum_checks" in example configuration.
 
-*file-store.stream-depth* controls how far into a stream reassembly is done. Beyond this value no reassembly will be done. This means that after this value the HTTP session will no longer be tracked. By default a settings of 1 Megabyte is used. 0 sets it to unlimited. If set to no, it is disabled and stream.reassembly.depth is considered.
+*file-store.stream-depth* controls how far into a stream reassembly is done. Beyond this value no reassembly will be done. This means that after this value the HTTP session will no longer be tracked. By default a setting of 1 Megabyte is used. 0 sets it to unlimited. If set to no, it is disabled and ``stream.reassembly.depth`` is considered. Non-zero values must be greater than ``stream.stream-depth`` to be used.
 
 *libhtp.default-config.request-body-limit* / *libhtp.server-config.<config>.request-body-limit* controls how much of the HTTP request body is tracked for inspection by the http_client_body keyword, but also used to limit file inspection. A value of 0 means unlimited.
 
@@ -49,7 +49,7 @@ This must be enabled in the ``eve`` output::
 
   - outputs:
       - eve-log:
-          types:
+        types:
 	    - files:
 	        force-magic: no
 	        force-hash: [md5,sha256]
@@ -60,7 +60,7 @@ with the `eve` output.
 The other output module, ``file-store`` stores the actual files to
 disk.
 
-The ``file-store`` uses its own log directory (default: `filestore` in
+The ``file-store`` module uses its own log directory (default: `filestore` in
 the default logging directory) and logs files using the SHA256 of the
 contents as the filename. Each file is then placed in a directory
 named `00` to `ff` where the directory shares the first 2 characters
@@ -72,7 +72,8 @@ The size of a file that can be stored depends on ``file-store.stream-depth``,
 if this value is reached a file can be truncated and might not be stored completely.
 If not enabled, ``stream.reassembly.depth`` will be considered.
 
-Setting ``file-store.stream-depth`` to 0 permits to store any files.
+Setting ``file-store.stream-depth`` to 0 permits store of the entire file;
+here, 0 means "unlimited."
 
 ``file-store.stream-depth`` will always override ``stream.reassembly.depth``
 when filestore keyword is used.
