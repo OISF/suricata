@@ -497,7 +497,8 @@ outputs:
       #force-filestore: yes
 
       # Override the global stream-depth for sessions in which we want
-      # to perform file extraction. Set to 0 for unlimited.
+      # to perform file extraction. Set to 0 for unlimited; otherwise,
+      # must be greater than the global stream-depth value to be used.
       #stream-depth: 0
 
       # Uncomment the following variable to define how many files can
@@ -552,7 +553,8 @@ outputs:
       #force-hash: [md5]
       force-filestore: no # force storing of all files
       # override global stream-depth for sessions in which we want to
-      # perform file extraction. Set to 0 for unlimited.
+      # perform file extraction. Set to 0 for unlimited; otherwise,
+      # must be greater than the global stream-depth value to be used.
       #stream-depth: 0
       #waldo: file.waldo # waldo file to store the file_id across runs
       # uncomment to disable meta file writing
