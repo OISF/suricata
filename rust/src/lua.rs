@@ -26,7 +26,7 @@ extern {
     fn lua_createtable(lua: *mut CLuaState, narr: c_int, nrec: c_int);
     fn lua_settable(lua: *mut CLuaState, idx: c_long);
     fn lua_pushlstring(lua: *mut CLuaState, s: *const c_char, len: usize);
-    fn lua_pushinteger(lua: *mut CLuaState, n: c_long);
+    fn lua_pushinteger(lua: *mut CLuaState, n: i64);
 }
 
 pub struct LuaState {
@@ -55,7 +55,7 @@ impl LuaState {
 
     pub fn pushinteger(&self, val: i64) {
         unsafe {
-            lua_pushinteger(self.lua, val as c_long);
+            lua_pushinteger(self.lua, val);
         }
     }
 }
