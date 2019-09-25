@@ -1293,7 +1293,7 @@ static int SCHInfoTestValidIPV4Address09(void)
     }
 
     struct sockaddr_in servaddr;
-    bzero(&servaddr, sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.0.0", &servaddr.sin_addr) <= 0) {
         goto end;
     }
@@ -1305,7 +1305,7 @@ static int SCHInfoTestValidIPV4Address09(void)
         goto end;
     }
 
-    bzero(&servaddr, sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.0.0", &servaddr.sin_addr) <= 0) {
         goto end;
     }
@@ -1329,7 +1329,7 @@ static int SCHInfoTestValidIPV4Address09(void)
     }
 
     /* Remove the 192.168.1.0/20 -> macos entry. */
-    bzero(&servaddr, sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.0.0", &servaddr.sin_addr) <= 0) {
         goto end;
     }
@@ -1341,7 +1341,7 @@ static int SCHInfoTestValidIPV4Address09(void)
     }
 
     /* Remove the 192.168.1.0/16 -> solaris entry. */
-    bzero(&servaddr, sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.0.0", &servaddr.sin_addr) <= 0) {
         goto end;
     }
