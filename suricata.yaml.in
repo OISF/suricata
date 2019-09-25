@@ -450,7 +450,7 @@ outputs:
   # a line based alerts log similar to fast.log into syslog
   - syslog:
       enabled: no
-      # reported identity to syslog. If ommited the program name (usually
+      # reported identity to syslog. If omitted the program name (usually
       # suricata) will be used.
       #identity: "suricata"
       facility: local5
@@ -728,7 +728,7 @@ af-packet:
 # Cross platform libpcap capture support
 pcap:
   - interface: eth0
-    # On Linux, pcap will try to use mmaped capture and will use buffer-size
+    # On Linux, pcap will try to use mmapped capture and will use buffer-size
     # as total of memory used by the ring. So set this to something bigger
     # than 1% of your bandwidth.
     #buffer-size: 16777216
@@ -828,7 +828,7 @@ app-layer:
       mime:
         # Decode MIME messages from SMTP transactions
         # (may be resource intensive)
-        # This field supercedes all others because it turns the entire
+        # This field supersedes all others because it turns the entire
         # process on or off
         decode-mime: yes
 
@@ -968,7 +968,7 @@ app-layer:
            # detection change between runs. It is set to 'yes' by default.
            #randomize-inspection-sizes: yes
            # If randomize-inspection-sizes is active, the value of various
-           # inspection size will be choosen in the [1 - range%, 1 + range%]
+           # inspection size will be chosen in the [1 - range%, 1 + range%]
            # range
            # Default value of randomize-inspection-range is 10.
            #randomize-inspection-range: 10
@@ -1360,7 +1360,7 @@ flow-timeouts:
 #                               # this size.  Can be specified in kb, mb,
 #                               # gb.  Just a number indicates it's in bytes.
 #     randomize-chunk-size: yes # Take a random value for chunk size around the specified value.
-#                               # This lower the risk of some evasion technics but could lead
+#                               # This lower the risk of some evasion techniques but could lead
 #                               # detection change between runs. It is set to 'yes' by default.
 #     randomize-chunk-range: 10 # If randomize-chunk-size is active, the value of chunk-size is
 #                               # a random value between (1 - randomize-chunk-range/100)*toserver-chunk-size
