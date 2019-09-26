@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright(C) 2019 Open Information Security Foundation
+# Copyright(C) 2012-2019 Open Information Security Foundation
 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
