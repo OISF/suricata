@@ -19,6 +19,12 @@ use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::os::raw::c_long;
 
+#[cfg(feature = "lua_int8")]
+type LuaInteger = i64;
+
+#[cfg(not(feature = "lua_int8"))]
+type LuaInteger = i32;
+
 /// The Rust place holder for lua_State.
 pub enum CLuaState {}
 
@@ -26,7 +32,7 @@ extern {
     fn lua_createtable(lua: *mut CLuaState, narr: c_int, nrec: c_int);
     fn lua_settable(lua: *mut CLuaState, idx: c_long);
     fn lua_pushlstring(lua: *mut CLuaState, s: *const c_char, len: usize);
-    fn lua_pushinteger(lua: *mut CLuaState, n: c_long);
+    fn lua_pushinteger(lua: *mut CLuaState, n: LuaInteger);
 }
 
 pub struct LuaState {
@@ -55,7 +61,7 @@ impl LuaState {
 
     pub fn pushinteger(&self, val: i64) {
         unsafe {
-            lua_pushinteger(self.lua, val as c_long);
+            lua_pushinteger(self.lua, val as LuaInteger);
         }
     }
 }
