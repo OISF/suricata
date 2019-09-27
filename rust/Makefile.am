@@ -20,7 +20,7 @@ RELEASE = --release
 endif
 
 if HAVE_LUA
-RUST_FEATURES +=	lua
+RUST_FEATURES +=	lua $(LUA_INT8)
 endif
 
 if DEBUG
