@@ -243,8 +243,7 @@
     #check for os
     AC_MSG_CHECKING([host os])
 
-    # lua pkg-config name differs per OS
-    LUA_PC_NAME="lua5.1"
+    # Default lua libname if not detected otherwise.
     LUA_LIB_NAME="lua5.1"
 
     # If no host os was detected, try with uname
@@ -260,7 +259,6 @@
     PCAP_LIB_NAME="pcap"
     case "$host" in
         *-*-*freebsd*)
-            LUA_PC_NAME="lua-5.1"
             LUA_LIB_NAME="lua-5.1"
             CFLAGS="${CFLAGS} -DOS_FREEBSD"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
@@ -268,14 +266,12 @@
             RUST_LDADD="-lrt -lm"
             ;;
         *-*-openbsd*)
-            LUA_PC_NAME="lua51"
             CFLAGS="${CFLAGS} -D__OpenBSD__"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
             RUST_LDADD="-lm -lc++ -lc++abi"
             ;;
         *darwin*|*Darwin*)
-            LUA_PC_NAME="lua-5.1"
             LUA_LIB_NAME="lua-5.1"
             CFLAGS="${CFLAGS} -DOS_DARWIN"
             CPPFLAGS="${CPPFLAGS} -I/opt/local/include"
@@ -294,7 +290,6 @@
             RUST_LDADD="-luserenv -lshell32 -ladvapi32 -lgcc_eh"
             ;;
         *-*-cygwin)
-            LUA_PC_NAME="lua"
             LUA_LIB_NAME="lua"
             WINDOWS_PATH="yes"
             PCAP_LIB_NAME="wpcap"
