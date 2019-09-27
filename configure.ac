@@ -2401,7 +2401,7 @@ fi
         fi
         required_version=0.9.0
         cbindgen_version=$(cbindgen --version)
-        lowest_version=$(printf '%s\n' $required_version $cbindgen_version | sort -V | head -n1)
+        lowest_version=$(printf '%s\n' $required_version $cbindgen_version | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n | head -n1)
         if test "x$lowest_version" != "x$required_version"; then
           HAVE_CARGO_BINDGEN="no"
           echo "  Warning: cbindgen must be at least version $required_version, version was $cbindgen_version, lowest version was $lowest_version"
