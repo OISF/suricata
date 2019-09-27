@@ -344,10 +344,7 @@ static int MagicDetectTest03(void)
     FAIL_IF_NULL(result);
 
     char *str = strstr(result, "OpenDocument Text");
-    if (str == NULL) {
-        printf("result %s, not \"OpenDocument Text\": ", str);
-        FAIL;
-    }
+    FAIL_IF_NULL(str);
 
     magic_close(magic_ctx);
     PASS;
@@ -517,10 +514,7 @@ static int MagicDetectTest07(void)
     FAIL_IF_NULL(result);
 
     char *str = strstr(result, "OpenDocument Text");
-    if (str == NULL) {
-        printf("result %s, not \"OpenDocument Text\": ", str);
-        FAIL;
-    }
+    FAIL_IF_NULL(str);
 
     MagicDeinit();
     PASS;
