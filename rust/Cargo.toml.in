@@ -11,6 +11,7 @@ debug = true
 
 [features]
 lua = []
+lua_int8 = ["lua"]
 strict = []
 debug = []
 
