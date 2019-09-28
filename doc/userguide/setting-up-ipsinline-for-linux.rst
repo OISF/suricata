@@ -1,6 +1,9 @@
 Setting up IPS/inline for Linux
 ================================
 
+Setting up IPS with Netfilter
+-----------------------------
+
 In this guide will be explained how to work with Suricata in layer3 inline mode and how to set iptables for that purpose.
 
 First start with compiling Suricata with NFQ support. For instructions
@@ -53,7 +56,7 @@ The easiest rule in case of the gateway-scenario to send traffic to Suricata is:
 In this case, all forwarded traffic goes to Suricata.
 
 
-In case of the host situation, these are the two most simple iptable rules;
+In case of the host situation, these are the two most simple iptables rules;
 
 
 ::
@@ -115,12 +118,68 @@ There is also a way to use iptables with multiple networks (and interface cards)
 
 The options -i (input) -o (output) can be combined with all previous mentioned options
 
-If you would stop Suricata and use internet, the traffic will not come through. To make internet work correctly, you have to erase all iptable rules.
+If you would stop Suricata and use internet, the traffic will not come through. To make internet work correctly, you have to erase all iptables rules.
 
-To erase all iptable rules, enter:
+To erase all iptables rules, enter:
 
 
 ::
 
 
   sudo iptables -F
+
+
+Settings up IPS at Layer 2
+--------------------------
+
+AF_PACKET IPS mode
+~~~~~~~~~~~~~~~~~~
+
+AF_PACKET capture method is supporting a IPS/Tap mode. In this mode, you just need the interfaces to be up. Suricata will take care of copying the packets from one interface to the other. No iptables or nftables configuration is necessary.
+
+You need to dedicate two network interfaces for this mode. The configuration is made via configuration variable available in the description of an AF_PACKET interface.
+
+For example, the following configuration will create a Suricata acting as IPS between interface eth0 and eth1: ::
+
+ af-packet:
+   - interface: eth0
+     threads: 1
+     defrag: no
+     cluster-type: cluster_flow
+     cluster-id: 98
+     copy-mode: ips
+     copy-iface: eth1
+     buffer-size: 64535
+     use-mmap: yes
+   - interface: eth1
+     threads: 1
+     cluster-id: 97
+     defrag: no
+     cluster-type: cluster_flow
+     copy-mode: ips
+     copy-iface: eth0
+     buffer-size: 64535
+     use-mmap: yes
+
+Basically, we’ve got an af-packet configuration with two interfaces. Interface eth0 will copy all received packets to eth1 because of the copy-* configuration variable ::
+
+    copy-mode: ips
+    copy-iface: eth1
+
+The configuration on eth1 is symmetric ::
+
+    copy-mode: ips
+    copy-iface: eth0
+
+There is some important points to consider when setting up this mode:
+
+- The implementation of this mode is dependent of the zero copy mode of AF_PACKET. Thus you need to set `use-mmap` to yes on both interface.
+- MTU on both interfaces have to be equal: the copy from one interface to the other is direct and packet bigger then the MTU will be dropped by kernel.
+- Set different values of cluster-id on both interfaces to avoid conflict.
+- Any network card offloading creating bigger then physical layer datagram (like GRO, LRO, TSO) will result in packets drop as transmit path can not handle them.
+- Set `stream.inline` to `auto` or `yes` so Suricata really switches to blocking mode.
+
+The `copy-mode` variable can take the following values:
+
+- `ips`: the drop keyword is honored and matching packets are dropped.
+- `tap`: no drop occurs, Suricata acts as a bridge
