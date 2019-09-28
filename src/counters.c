@@ -116,6 +116,11 @@ static int stats_loggers_active = 1;
 
 static uint16_t counters_global_id = 0;
 
+bool StatsEnabled(void)
+{
+    return (stats_enabled == TRUE);
+}
+
 static void StatsPublicThreadContextInit(StatsPublicThreadContext *t)
 {
     SCMutexInit(&t->m, NULL);

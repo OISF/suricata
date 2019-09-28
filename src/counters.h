@@ -109,6 +109,7 @@ void StatsSetupPostConfigPreOutput(void);
 void StatsSetupPostConfigPostOutput(void);
 void StatsSpawnThreads(void);
 void StatsRegisterTests(void);
+bool StatsEnabled(void);
 
 /* functions used to free the resources alloted by the Stats API */
 void StatsReleaseResources(void);
