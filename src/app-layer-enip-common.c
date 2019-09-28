@@ -459,8 +459,8 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
         return 0;
     }
 
-    uint8_t service; //<-----CIP SERVICE
-    uint8_t path_size;
+    uint8_t service = 0; //<-----CIP SERVICE
+    uint8_t path_size = 0;
 
     if (ENIPExtractUint8(&service, input, &offset, input_len) != 1)
     {
@@ -489,7 +489,7 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
     if (node == NULL)
     {
         SCLogDebug("DecodeCIPRequest: Unable to create CIP service");
-	return 0;
+        return 0;
     }
     node->direction = 0;
     node->service = service;
@@ -582,11 +582,9 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
 
     int bytes_remain = node->request.path_size;
 
-    uint8_t segment;
     uint8_t reserved; //unused byte reserved by ODVA
 
     //8 bit fields
-    uint8_t req_path_class8;
     uint8_t req_path_instance8;
     uint8_t req_path_attr8;
 
@@ -600,15 +598,16 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
 
     while (bytes_remain > 0)
     {
+        uint8_t segment = 0;
         if (ENIPExtractUint8(&segment, input, &offset, input_len) != 1)
         {
             return 0;
         }
         switch (segment)
         { //assume order is class then instance.  Can have multiple
-            case PATH_CLASS_8BIT:
-                if (ENIPExtractUint8(&req_path_class8, input, &offset, input_len) != 1)
-                {
+            case PATH_CLASS_8BIT: {
+                uint8_t req_path_class8 = 0;
+                if (ENIPExtractUint8(&req_path_class8, input, &offset, input_len) != 1) {
                     return 0;
                 }
                 class = (uint16_t) req_path_class8;
@@ -623,6 +622,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
 
                 bytes_remain--;
                 break;
+            }
             case PATH_INSTANCE_8BIT:
                 if (ENIPExtractUint8(&req_path_instance8, input, &offset, input_len) != 1)
                 {
@@ -752,7 +752,7 @@ int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len,
         return 0;
     }
 
-    uint8_t service; //<----CIP SERVICE
+    uint8_t service = 0; //<----CIP SERVICE
     uint8_t reserved; //unused byte reserved by ODVA
     uint16_t status;
 
