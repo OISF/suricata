@@ -354,6 +354,7 @@ typedef enum {
     SC_ERR_THASH_INIT,
     SC_ERR_DATASET,
     SC_WARN_ANOMALY_CONFIG,
+    SC_WARN_ALERT_CONFIG,
 
     SC_ERR_MAX
 } SCError;

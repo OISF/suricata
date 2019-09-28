@@ -97,6 +97,8 @@
             LOG_JSON_APP_LAYER  |                                  \
             LOG_JSON_RULE_METADATA)
 
+#define JSON_BODY_LOGGING  (LOG_JSON_HTTP_BODY | LOG_JSON_HTTP_BODY_BASE64)
+
 #define JSON_STREAM_BUFFER_SIZE 4096
 
 typedef struct AlertJsonOutputCtx_ {
@@ -810,6 +812,7 @@ static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint1
 static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         ConfNode *conf)
 {
+    static bool warn_no_meta = false;
     uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
     uint16_t flags = METADATA_DEFAULTS;
 
@@ -865,6 +868,15 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
                 exit(EXIT_FAILURE);
             } else {
                 payload_buffer_size = value;
+            }
+        }
+
+        if (!warn_no_meta && flags & JSON_BODY_LOGGING) {
+            if (((flags & LOG_JSON_APP_LAYER) == 0)) {
+                SCLogWarning(SC_WARN_ALERT_CONFIG, "HTTP body logging has been configured, however, "
+                             "metadata logging has not been enabled. HTTP body logging will be disabled.");
+                flags &= ~JSON_BODY_LOGGING;
+                warn_no_meta = true;
             }
         }
 
