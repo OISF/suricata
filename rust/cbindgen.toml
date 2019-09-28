@@ -77,6 +77,7 @@ include = ["AppLayerGetTxIterTuple"]
 # default: []
 exclude = [
     "AppLayerDecoderEvents",
+    "CLuaState",
     "DetectEngineState",
     "Flow",
     "FileContainer",
@@ -120,7 +121,7 @@ item_types = ["structs","opaque","functions"]
 "DNSState" = "RSDNSState"
 "DNSTransaction" = "RSDNSTransaction"
 "JsonT" = "json_t"
-"CLuaState" = "lua_state"
+"CLuaState" = "lua_State"
 
 #
 # You get the following results:
