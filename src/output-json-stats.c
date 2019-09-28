@@ -401,8 +401,7 @@ static OutputInitResult OutputStatsLogInit(ConfNode *conf)
             strcmp(stats_decoder_events_prefix, "decoder") == 0) {
         SCLogWarning(SC_WARN_EVE_MISSING_EVENTS, "json stats will not display "
                 "all decoder events correctly. See #2225. Set a prefix in "
-                "stats.decoder-events-prefix. In 5.0 the prefix will default "
-                "to 'decoder.event'.");
+                "stats.decoder-events-prefix.");
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
@@ -479,8 +478,7 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
             strcmp(stats_decoder_events_prefix, "decoder") == 0) {
         SCLogWarning(SC_WARN_EVE_MISSING_EVENTS, "eve.stats will not display "
                 "all decoder events correctly. See #2225. Set a prefix in "
-                "stats.decoder-events-prefix. In 5.0 the prefix will default "
-                "to 'decoder.event'.");
+                "stats.decoder-events-prefix.");
     }
 
     stats_ctx->flags = JSON_STATS_TOTALS;
