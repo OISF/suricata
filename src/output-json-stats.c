@@ -383,6 +383,14 @@ static void OutputStatsLogDeinit(OutputCtx *output_ctx)
 static OutputInitResult OutputStatsLogInit(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
+
+    if (!StatsEnabled()) {
+        SCLogError(SC_ERR_STATS_LOG_GENERIC,
+                "stats.json: stats are disabled globally: set stats.enabled to true. "
+                "See %s%s/configuration/suricata-yaml.html#stats", DOC_URL, DOC_VERSION);
+        return result;
+    }
+
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_STATS_LOG_GENERIC, "couldn't create new file_ctx");
@@ -455,6 +463,14 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
+
+    if (!StatsEnabled()) {
+        SCLogError(SC_ERR_STATS_LOG_GENERIC,
+                "eve.stats: stats are disabled globally: set stats.enabled to true. "
+                "See %s%s/configuration/suricata-yaml.html#stats", DOC_URL, DOC_VERSION);
+        return result;
+    }
+
     OutputStatsCtx *stats_ctx = SCMalloc(sizeof(OutputStatsCtx));
     if (unlikely(stats_ctx == NULL))
         return result;

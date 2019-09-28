@@ -245,6 +245,14 @@ static void StatsInitCtxPreOutput(void)
             SCLogDebug("Stats module has been disabled");
             SCReturn;
         }
+        /* warn if we are using legacy config to enable stats */
+        ConfNode *gstats = ConfGetNode("stats");
+        if (gstats == NULL) {
+            SCLogWarning(SC_ERR_STATS_LOG_GENERIC, "global stats config is missing. "
+                    "Stats enabled through legacy stats.log. "
+                    "See %s%s/configuration/suricata-yaml.html#stats", DOC_URL, DOC_VERSION);
+        }
+
         const char *interval = ConfNodeLookupChildValue(stats, "interval");
         if (interval != NULL)
             stats_tts = (uint32_t) atoi(interval);
@@ -280,7 +288,7 @@ static void StatsInitCtxPostOutput(void)
         exit(EXIT_FAILURE);
     }
 
-    if (!OutputStatsLoggersRegistered()) {
+    if (stats_enabled && !OutputStatsLoggersRegistered()) {
         stats_loggers_active = 0;
 
         /* if the unix command socket is enabled we do the background
@@ -809,15 +817,19 @@ TmEcode StatsOutputCounterSocket(json_t *cmd,
     json_t *message = NULL;
     TmEcode r = TM_ECODE_OK;
 
-    SCMutexLock(&stats_table_mutex);
-    if (stats_table.start_time == 0) {
+    if (!stats_enabled) {
         r = TM_ECODE_FAILED;
-        message = json_string("stats not yet synchronized");
+        message = json_string("stats are disabled in the config");
     } else {
-        message = StatsToJSON(&stats_table, JSON_STATS_TOTALS|JSON_STATS_THREADS);
+        SCMutexLock(&stats_table_mutex);
+        if (stats_table.start_time == 0) {
+            r = TM_ECODE_FAILED;
+            message = json_string("stats not yet synchronized");
+        } else {
+            message = StatsToJSON(&stats_table, JSON_STATS_TOTALS|JSON_STATS_THREADS);
+        }
+        SCMutexUnlock(&stats_table_mutex);
     }
-    SCMutexUnlock(&stats_table_mutex);
-
     json_object_set_new(answer, "message", message);
     return r;
 }
