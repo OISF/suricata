@@ -251,7 +251,7 @@ the global config is documented.
       #decoder-events: true
       # Decoder event prefix in stats. Has been 'decoder' before, but that leads
       # to missing events in the eve.stats records. See issue #2225.
-      decoder-events-prefix: "decoder.event"
+      #decoder-events-prefix: "decoder.event"
       # Add stream events as stats.
       #stream-events: false
 
@@ -264,12 +264,12 @@ The decoder events that the decoding layer generates, can create a counter per
 event type. This behaviour is enabled by default. The `decoder-events` option
 can be set to `false` to disable.
 
-In 4.1.x there is a naming clash between the regular decoder counters and
-the decoder-event counters. This leads to a fair amount of decoder-event
+In 4.1.x there was a naming clash between the regular decoder counters and
+the decoder-event counters. This lead to a fair amount of decoder-event
 counters not being shown in the EVE.stats records. To address this without
-breaking existing setups, a config option `decoder-events-prefix` is added
+breaking existing setups, a config option `decoder-events-prefix` was added
 to change the naming of the decoder-events from decoder.<proto>.<event> to
-decoder.event.<proto>.<event>. In 5.0 which will become the default.
+decoder.event.<proto>.<event>. In 5.0 this became the default.
 See `issue 2225 <https://redmine.openinfosecfoundation.org/issues/2225>`_.
 
 Similar to the `decoder-events` option, the `stream-events` option controls
