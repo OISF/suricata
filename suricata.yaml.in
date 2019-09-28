@@ -182,9 +182,8 @@ outputs:
             # enabled.
             enabled: no
             #
-            # Choose one or both types of anomaly logging and whether
-            # to enable logging of the packet header for packet
-            # anomalies.
+            # Choose one or more types of anomaly logging and whether to enable
+            # logging of the packet header for packet anomalies.
             types:
               # decode: no
               # stream: no
