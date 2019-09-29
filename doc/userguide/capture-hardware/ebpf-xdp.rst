@@ -1,3 +1,5 @@
+.. _ebpf-xdp:
+
 eBPF and XDP
 ============
 

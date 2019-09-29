@@ -183,3 +183,31 @@ The `copy-mode` variable can take the following values:
 
 - `ips`: the drop keyword is honored and matching packets are dropped.
 - `tap`: no drop occurs, Suricata acts as a bridge
+
+Some specific care must be taken to scale the capture method on multiple threads. As we can't use defrag that will generate too big frames, the in kernel load balancing will not be correct: the IP-only fragment will not reach the same thread as the full featured packet of the same flow because the port information will not be present.
+
+A solution is to use eBPF load balancing to get an IP pair load balancing that will be fragmentation resistant. The AF_PACKET IPS Configuration using multiple threads and eBPF load balancing looks like the following: ::
+
+ af-packet:
+   - interface: eth0
+     threads: 16
+     defrag: no
+     cluster-type: cluster_ebpf
+     ebpf-lb-file: /usr/libexec/suricata/ebpf/lb.bpf
+     cluster-id: 98
+     copy-mode: ips
+     copy-iface: eth1
+     buffer-size: 64535
+     use-mmap: yes
+   - interface: eth1
+     threads: 16
+     cluster-id: 97
+     defrag: no
+     cluster-type: cluster_ebpf
+     ebpf-lb-file: /usr/libexec/suricata/ebpf/lb.bpf
+     copy-mode: ips
+     copy-iface: eth0
+     buffer-size: 64535
+     use-mmap: yes
+
+The eBPF file `/usr/libexec/suricata/ebpf/lb.bpf` may not be present on disk. See :ref:`ebpf-xdp` for more information.
