@@ -395,8 +395,9 @@ _Bool DetectContentPMATCHValidateCallback(const Signature *s)
         uint32_t right_edge = cd->content_len + cd->offset;
         if (cd->content_len > max_right_edge) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "signature can't match as content length %u is bigger than dsize %u.",
-                    cd->content_len, max_right_edge);
+                    "signature can't match as content length %u is bigger than dsize %u.\n"
+                    "Please see: %s",
+                    cd->content_len, max_right_edge,sigmatch_table[DETECT_CONTENT].url);
             return FALSE;
         }
         if (right_edge > max_right_edge) {
