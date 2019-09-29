@@ -129,6 +129,44 @@ To erase all iptables rules, enter:
   sudo iptables -F
 
 
+Nftables configuration
+~~~~~~~~~~~~~~~~~~~~~~
+
+NFtables configuration is straight forward and allows mixing firewall rules with IPS. The concept is to create
+a dedicated chain for the IPS that will be evaluated after the firewalling rule. If your main table is named `filter` it can be created like so ::
+
+ nft> add chain filter IPS { type filter hook forward priority 10;}
+
+To send all forwarded packets to Suricata one can use ::
+
+ nft> add rule filter IPS queue
+
+To only do it for packets exchanged between eth0 and eth1 ::
+
+ nft> add rule filter IPS iif eth0 oif eth1 queue
+ nft> add rule filter IPS iif eth1 oif eth0 queue
+
+NFQUEUE advanced options
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+NFQUEUE mechanism supports some interesting options. The nftables configuration will be shown there
+but the feature are also available in iptables.
+
+The full syntax of the queuing mechanism looks as follow ::
+
+ nft add rule filter IPS queue num 3-5 options fanout,bypass
+
+This rule sends matching packets to 3 load-balanced queues starting at 3 and ending at 5. To get the packets in Suricata with this setup, you need to specify multiple queues on command line: ::
+
+ suricata -q 3 -q 4 -q 5
+
+`fanout` and `bypass` are the two available options:
+
+- `fanout`: When used together with load balancing, this will use the CPU ID instead of connection hash as an index to map packets to the queues. The idea is that you can improve performance if there’s a queue per CPU. This requires total with a number of queues superior to 1 to be specified.
+- `bypass`: By default, if no userspace program is listening on an Netfilter queue, then all packets that are to be queued are dropped. When this option is used, the queue rule behaves like ACCEPT if there is no program listening, and the packet will move on to the next table.
+
+The `bypass` option can be used to avoid downtime of link when Suricata is not running but this also means that the blocking feature will not be present.
+
 Settings up IPS at Layer 2
 --------------------------
 
