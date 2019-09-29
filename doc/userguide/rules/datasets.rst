@@ -23,16 +23,16 @@ Example of sets for tracking unique values::
 
     datasets:
      - ua-seen:
-       type: string
-       state: ua-seen.lst
+         type: string
+         state: ua-seen.lst
      - dns-sha256-seen:
-       type: sha256
-       state: dns-sha256-seen.lst
+         type: sha256
+         state: dns-sha256-seen.lst
 
 Rules to go with the above::
 
     http.user_agent; dataset:set,ua-seen;
-    dns.query; to_sha256; dataset:set,dns-sha256-seen;
+    alert dns any any -> any any (msg:"dns list test"; dns.query; to_sha256; dataset:set,dns-sha256-seen; sid:123; rev:1;)
 
 
 Rule keywords
