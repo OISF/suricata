@@ -331,6 +331,10 @@ The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
 Alert output for use with Barnyard2 (unified2.alert)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. note:: Unified2 output has been deprecated and will be removed by
+          December 2019. Please see the `deprecation policy`_ for more
+          information.
+
 This log format is a binary format compatible with the unified2 output
 of another popular IDS format and is designed for use with Barnyard2
 or other tools that consume the unified2 log format.
@@ -2245,3 +2249,5 @@ If the pool was depleted a hint will be printed at the engines exit.
 States are allocated as follows: for each detect script a state is used per
 detect thread. For each output script, a single state is used. Keep in
 mind that a rule reload temporary doubles the states requirement.
+
+.. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/
