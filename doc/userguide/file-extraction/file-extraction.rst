@@ -108,8 +108,9 @@ configuring the file-store output.
 File-Store (Version 1)
 ----------------------
 
-File-store version 1 has been replaced by version 2 and is no longer
-recommended.
+.. note:: File-store version 1 has been deprecated and will be removed
+          by June 2020. Please use file-store v2 instead. Please see
+          the `deprecation policy`_ for more information.
 
 ::
 
@@ -193,3 +194,5 @@ Suricata can calculate MD5 checksums of files on the fly and log them. See :doc:
 
    md5
    public-sha1-md5-data-sets
+
+.. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/
