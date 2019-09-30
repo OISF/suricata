@@ -606,6 +606,10 @@ static OutputInitResult LogFilestoreLogInitCtx(ConfNode *conf)
         return result;
     }
 
+    SCLogWarning(SC_WARN_DEPRECATED,
+        "File-store v1 has been deprecated and will be removed by "
+        "June 2020. Please update to file-store v2.");
+
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         return result;
