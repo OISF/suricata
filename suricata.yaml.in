@@ -529,39 +529,11 @@ outputs:
         # one taken into consideration.
         header: X-Forwarded-For
 
-  # output module to store extracted files to disk (old style, deprecated)
-  #
-  # The files are stored to the log-dir in a format "file.<id>" where <id> is
-  # an incrementing number starting at 1. For each file "file.<id>" a meta
-  # file "file.<id>.meta" is created. Before they are finalized, they will
-  # have a ".tmp" suffix to indicate that they are still being processed.
-  #
-  # If include-pid is yes, then the files are instead "file.<pid>.<id>", with
-  # meta files named as "file.<pid>.<id>.meta"
-  #
-  # File extraction depends on a lot of things to be fully done:
-  # - file-store stream-depth. For optimal results, set this to 0 (unlimited)
-  # - http request / response body sizes. Again set to 0 for optimal results.
-  # - rules that contain the "filestore" keyword.
+  # deprecated - file-store v1
   - file-store:
-      enabled: no       # set to yes to enable
-      log-dir: files    # directory to store the files
-      force-magic: no   # force logging magic on all stored files
-      # force logging of checksums, available hash functions are md5,
-      # sha1 and sha256
-      #force-hash: [md5]
-      force-filestore: no # force storing of all files
-      # override global stream-depth for sessions in which we want to
-      # perform file extraction. Set to 0 for unlimited.
-      #stream-depth: 0
-      #waldo: file.waldo # waldo file to store the file_id across runs
-      # uncomment to disable meta file writing
-      #write-meta: no
-      # uncomment the following variable to define how many files can
-      # remain open for filestore by Suricata. Default value is 0 which
-      # means files get closed after each write
-      #max-open-files: 1000
-      include-pid: no # set to yes to include pid in file names
+      enabled: no
+      # further options documented at:
+      # https://suricata.readthedocs.io/en/suricata-5.0.0/file-extraction/file-extraction.html#file-store-version-1
 
   # Log TCP data after stream normalization
   # 2 types: file or dir. File logs into a single logfile. Dir creates
