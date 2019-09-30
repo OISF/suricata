@@ -1995,7 +1995,7 @@ mmap_err:
 /** \brief test if we can use FANOUT. Older kernels like those in
  *         CentOS6 have HAVE_PACKET_FANOUT defined but fail to work
  */
-int AFPIsFanoutSupported(void)
+int AFPIsFanoutSupported(int cluster_id)
 {
 #ifdef HAVE_PACKET_FANOUT
     int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -2009,7 +2009,7 @@ int AFPIsFanoutSupported(void)
     close(fd);
 
     if (r < 0) {
-        SCLogPerf("fanout not supported by kernel: %s", strerror(errno));
+        SCLogError(SC_ERR_INVALID_VALUE, "fanout not supported by kernel: Kernel too old or cluster-id %d already in use.", cluster_id);
         return 0;
     }
     return 1;
