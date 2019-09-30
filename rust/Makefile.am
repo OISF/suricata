@@ -15,7 +15,7 @@ FROZEN = --frozen
 endif
 
 if !HAVE_RUST_HEADERS
-EXTRA_DIST += gen
+EXTRA_DIST += gen cbindgen.toml
 endif
 
 if !DEBUG
