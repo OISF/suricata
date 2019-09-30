@@ -1281,6 +1281,10 @@ OutputInitResult Unified2AlertInitCtx(ConfNode *conf)
     HttpXFFCfg *xff_cfg = NULL;
     int nostamp = 0;
 
+    SCLogWarning(SC_WARN_DEPRECATED,
+        "Unified2 alert has been deprecated and will be removed in "
+        "Suricata v6.");
+
     LogFileCtx* file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
         SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC, "Couldn't create new file_ctx");
