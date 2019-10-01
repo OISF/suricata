@@ -108,9 +108,9 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     char parsed_ct_name[1024] = "";
     SCClassConfClasstype *ct = NULL;
 
-    if (DetectClasstypeParseRawString(rawstr, parsed_ct_name, sizeof(parsed_ct_name)) < -1) {
-        SCLogError(SC_ERR_PCRE_PARSE, "Error parsing classtype argument supplied with the "
-                   "classtype keyword");
+    if (DetectClasstypeParseRawString(rawstr, parsed_ct_name, sizeof(parsed_ct_name)) < 0) {
+        SCLogError(SC_ERR_PCRE_PARSE, "invalid value for classtype keyword: "
+                "\"%s\"", rawstr);
         goto error;
     }
 
