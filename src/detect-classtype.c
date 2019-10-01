@@ -108,6 +108,12 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     char parsed_ct_name[1024] = "";
     SCClassConfClasstype *ct = NULL;
 
+    if ((s->class > 0) || (s->class_msg != NULL)) {
+        SCLogWarning(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicated 'classtype' "
+                "keyword detected. Using first occurence in the rule");
+        return 0;
+    }
+
     if (DetectClasstypeParseRawString(rawstr, parsed_ct_name, sizeof(parsed_ct_name)) < 0) {
         SCLogError(SC_ERR_PCRE_PARSE, "invalid value for classtype keyword: "
                 "\"%s\"", rawstr);
@@ -118,12 +124,6 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (ct == NULL) {
         SCLogError(SC_ERR_UNKNOWN_VALUE, "Unknown Classtype: \"%s\".  Invalidating the Signature",
                    parsed_ct_name);
-        goto error;
-    }
-
-    if ((s->class > 0) || (s->class_msg != NULL))
-    {
-        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "duplicated 'classtype' keyword detected");
         goto error;
     }
 
