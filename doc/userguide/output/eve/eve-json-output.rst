@@ -314,43 +314,14 @@ It is possible to have multiple 'EVE' instances, for example the following is va
 
 So here the alerts and drops go into 'eve-ips.json', while http, dns and tls go into 'eve-nsm.json'.
 
-In addition to this, each log can be handled completely separately:
+With the exception of ``drop``, you can specify multiples of the same
+logger type, however, ``drop`` can only be used once.
 
-::
-
-  outputs:
-    - alert-json-log:
-        enabled: yes
-        filename: alert-json.log
-    - dns-json-log:
-        enabled: yes
-        filename: dns-json.log
-    - drop-json-log:
-        enabled: yes
-        filename: drop-json.log
-    - http-json-log:
-        enabled: yes
-        filename: http-json.log
-    - ssh-json-log:
-        enabled: yes
-        filename: ssh-json.log
-    - tls-json-log:
-        enabled: yes
-        filename: tls-json.log
-
-For most output types, you can add multiple:
-
-::
-
-  outputs:
-    - alert-json-log:
-        enabled: yes
-        filename: alert-json1.log
-    - alert-json-log:
-        enabled: yes
-        filename: alert-json2.log
-
-Except for ``drop`` for which only a single logger instance is supported.
+.. note:: The use of independent json loggers such as alert-json-log,
+          dns-json-log, etc. has been deprecated and will be removed
+          by June 2020. Please use multiple eve-log instances as
+          documented above instead. Please see the `deprecation
+          policy`_ for more information.
 
 File permissions
 ~~~~~~~~~~~~~~~~
@@ -460,3 +431,6 @@ YAML::
       community-id: false
       # Seed value for the ID output. Valid values are 0-65535.
       community-id-seed: 0
+
+
+.. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/
