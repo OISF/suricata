@@ -46,14 +46,16 @@ void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *, FILE *fd);
 SCClassConfClasstype *SCClassConfGetClasstype(const char *,
                                               DetectEngineCtx *);
 void SCClassConfDeInitContext(DetectEngineCtx *);
-void SCClassConfRegisterTests(void);
-
-/* for unittests */
-FILE *SCClassConfGenerateValidDummyClassConfigFD01(void);
-FILE *SCClassConfGenerateInValidDummyClassConfigFD02(void);
-FILE *SCClassConfGenerateInValidDummyClassConfigFD03(void);
 
 void SCClassConfInit(void);
 void SCClassConfDeinit(void);
+
+/* for unittests */
+#ifdef UNITTESTS
+void SCClassConfRegisterTests(void);
+FILE *SCClassConfGenerateValidDummyClassConfigFD01(void);
+FILE *SCClassConfGenerateInValidDummyClassConfigFD02(void);
+FILE *SCClassConfGenerateInValidDummyClassConfigFD03(void);
+#endif
 
 #endif /* __UTIL_CLASSIFICATION_CONFIG_H__ */
