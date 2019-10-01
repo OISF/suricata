@@ -248,7 +248,7 @@ static char *SCClassConfStringToLowercase(const char *str)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int SCClassConfAddClasstype(char *rawstr, uint16_t index, DetectEngineCtx *de_ctx)
+int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t index)
 {
     char ct_name[64];
     char ct_desc[512];
@@ -365,7 +365,7 @@ static void SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
         if (SCClassConfIsLineBlankOrComment(line))
             continue;
 
-        SCClassConfAddClasstype(line, i, de_ctx);
+        SCClassConfAddClasstype(de_ctx, line, i);
         i++;
     }
 

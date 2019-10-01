@@ -112,37 +112,55 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
         return -1;
     }
 
+    bool real_ct = true;
     SCClassConfClasstype *ct = SCClassConfGetClasstype(parsed_ct_name, de_ctx);
     if (ct == NULL) {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown classtype: \"%s\"",
-                   parsed_ct_name);
-        return -1;
+        SCLogWarning(SC_ERR_UNKNOWN_VALUE, "unknown classtype: \"%s\", "
+                "using default priority 3", parsed_ct_name);
+
+        char str[2048];
+        snprintf(str, sizeof(str),
+                "config classification: %s,Unknown Classtype,3\n",
+                parsed_ct_name);
+
+        if (SCClassConfAddClasstype(de_ctx, str, 0) < 0)
+            return -1;
+        ct = SCClassConfGetClasstype(parsed_ct_name, de_ctx);
+        if (ct == NULL)
+            return -1;
+        real_ct = false;
     }
 
+    /* set prio only if not already explicitly set by 'priority' keyword.
+     * update classtype in sig, but only if it is 'real' (not undefined)
+     * update sigs classtype if its prio is lower (but not undefined)
+     */
+
+    bool update_ct = false;
     if ((s->init_data->init_flags & SIG_FLAG_INIT_PRIO_EXPLICT) != 0) {
         /* don't touch Signature::prio */
-        s->class_id = ct->classtype_id;
-        s->class_msg = ct->classtype_desc;
+        update_ct = true;
     } else if (s->prio == -1) {
         s->prio = ct->priority;
-        s->class_id = ct->classtype_id;
-        s->class_msg = ct->classtype_desc;
+        update_ct = true;
     } else {
         if (ct->priority < s->prio) {
             s->prio = ct->priority;
-            s->class_id = ct->classtype_id;
-            s->class_msg = ct->classtype_desc;
+            update_ct = true;
         }
     }
 
+    if (real_ct && update_ct) {
+        s->class_id = ct->classtype_id;
+        s->class_msg = ct->classtype_desc;
+    }
     return 0;
 }
 
 #ifdef UNITTESTS
 
 /**
- * \test Check that supplying an invalid classtype in the rule, results in the
- *       rule being invalidated.
+ * \test undefined classtype
  */
 static int DetectClasstypeTest01(void)
 {
@@ -152,10 +170,11 @@ static int DetectClasstypeTest01(void)
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     FAIL_IF_NULL(fd);
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
-    de_ctx->sig_list = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Classtype test\"; "
                                "Classtype:not_available; sid:1;)");
-    FAIL_IF_NOT_NULL(de_ctx->sig_list);
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT(s->prio == 3);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -181,7 +200,7 @@ static int DetectClasstypeTest02(void)
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                   "(Classtype:not-there; sid:2;)");
-    FAIL_IF_NOT_NULL(sig);
+    FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                   "(Classtype:Bad-UnkNown; sid:3;)");
@@ -192,8 +211,9 @@ static int DetectClasstypeTest02(void)
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(Classtype:attempted_dos; sid:5;)");
-    FAIL_IF_NOT_NULL(sig);
+                  "(Classtype:attempted_dos; Classtype:bad-unknown; sid:5;)");
+    FAIL_IF_NULL(sig);
+    FAIL_IF_NOT(sig->prio == 2);
 
     /* duplicate test */
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
@@ -232,6 +252,12 @@ static int DetectClasstypeTest03(void)
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
                   "Classtype:nothing-wrong; priority:1; sid:3;)");
     FAIL_IF_NOT(sig->prio == 1);
+
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Classtype test\"; Classtype:bad-unknown; Classtype:undefined; "
+                  "priority:5; sid:4;)");
+    FAIL_IF_NULL(sig);
+    FAIL_IF_NOT(sig->prio == 5);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
