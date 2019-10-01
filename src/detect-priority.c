@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -85,9 +85,15 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const cha
                    "to priority keyword");
         return -1;
     }
-    /* if we have reached here, we have had a valid priority.  Assign it */
-    s->prio = prio;
 
+    if (s->init_data->init_flags & SIG_FLAG_INIT_PRIO_EXPLICT) {
+        SCLogWarning(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicate priority "
+                "keyword. Using highest priority in the rule");
+        s->prio = MIN(s->prio, prio);
+    } else {
+        s->prio = prio;
+        s->init_data->init_flags |= SIG_FLAG_INIT_PRIO_EXPLICT;
+    }
     return 0;
 }
 
@@ -97,93 +103,68 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
 static int DetectPriorityTest01(void)
 {
-    int result = 0;
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Priority test\"; priority:2; sid:1;)");
-    if (de_ctx->sig_list != NULL)
-        result = 1;
+    FAIL_IF_NULL(de_ctx->sig_list);
+
+    FAIL_IF_NOT(de_ctx->sig_list->prio == 2);
 
     DetectEngineCtxFree(de_ctx);
-
-end:
-    return result;
+    PASS;
 }
 
 static int DetectPriorityTest02(void)
 {
-    int result = 0;
-    Signature *last = NULL;
-    Signature *sig = NULL;
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
+    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Priority test\"; priority:1; sid:1;)");
-    de_ctx->sig_list = last = sig;
-    if (sig == NULL) {
-        result = 0;
-    } else {
-        result = 1;
-        result &= (sig->prio == 1);
-    }
+    FAIL_IF_NULL(sig);
+    FAIL_IF_NOT(sig->prio == 1);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:boo; sid:1;)");
-    if (last != NULL)
-        last->next = sig;
-    result &= (sig == NULL);
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Priority test\"; priority:boo; sid:2;)");
+    FAIL_IF_NOT_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:10boo; sid:1;)");
-    if (last != NULL)
-        last->next = sig;
-    result &= (sig == NULL);
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Priority test\"; priority:10boo; sid:3;)");
+    FAIL_IF_NOT_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:b10oo; sid:1;)");
-    if (last != NULL)
-        last->next = sig;
-    result &= (sig == NULL);
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Priority test\"; priority:b10oo; sid:4;)");
+    FAIL_IF_NOT_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:boo10; sid:1;)");
-    if (last != NULL)
-        last->next = sig;
-    result &= (sig == NULL);
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Priority test\"; priority:boo10; sid:5;)");
+    FAIL_IF_NOT_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:-1; sid:1;)");
-    if (last != NULL)
-        last->next = sig;
-    result &= (sig == NULL);
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Priority test\"; priority:-1; sid:6;)");
+    FAIL_IF_NOT_NULL(sig);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; sid:1;)");
-    if (last != NULL)
-        last->next = sig;
-    if (sig == NULL) {
-        result &= 0;
-    } else {
-        result &= (sig->prio == 3);
-    }
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Priority test\"; sid:7;)");
+    FAIL_IF_NULL(sig);
+    FAIL_IF_NOT(sig->prio == 3);
 
-    SigCleanSignatures(de_ctx);
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Priority test\"; priority:5; priority:4; sid:8;)");
+    FAIL_IF_NULL(sig);
+    FAIL_IF_NOT(sig->prio == 4);
+
+    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                  "(msg:\"Priority test\"; priority:5; priority:4; "
+                  "priority:1; sid:9;)");
+    FAIL_IF_NULL(sig);
+    FAIL_IF_NOT(sig->prio == 1);
+
     DetectEngineCtxFree(de_ctx);
-
-end:
-    return result;
+    PASS;
 }
-
-
 #endif /* UNITTESTS */
 
 /**
@@ -191,12 +172,8 @@ end:
  */
 void SCPriorityRegisterTests(void)
 {
-
 #ifdef UNITTESTS
-
     UtRegisterTest("DetectPriorityTest01", DetectPriorityTest01);
     UtRegisterTest("DetectPriorityTest02", DetectPriorityTest02);
-
 #endif /* UNITTESTS */
-
 }
