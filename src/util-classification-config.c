@@ -56,7 +56,7 @@ char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
 void SCClassConfClasstypeHashFree(void *ch);
 static const char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
-static SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t classtype_id,
+static SCClassConfClasstype *SCClassConfAllocClasstype(uint16_t classtype_id,
         const char *classtype, const char *classtype_desc, int priority);
 static void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct);
 
@@ -248,13 +248,13 @@ static char *SCClassConfStringToLowercase(const char *str)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int SCClassConfAddClasstype(char *rawstr, uint8_t index, DetectEngineCtx *de_ctx)
+static int SCClassConfAddClasstype(char *rawstr, uint16_t index, DetectEngineCtx *de_ctx)
 {
     char ct_name[64];
     char ct_desc[512];
     char ct_priority_str[16];
     int ct_priority = 0;
-    uint8_t ct_id = index;
+    uint16_t ct_id = index;
 
     SCClassConfClasstype *ct_new = NULL;
     SCClassConfClasstype *ct_lookup = NULL;
@@ -359,7 +359,7 @@ static int SCClassConfIsLineBlankOrComment(char *line)
 static void SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
-    uint8_t i = 1;
+    uint16_t i = 1;
 
     while (fgets(line, sizeof(line), fd) != NULL) {
         if (SCClassConfIsLineBlankOrComment(line))
@@ -389,7 +389,7 @@ static void SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
  * \retval ct Pointer to the new instance of SCClassConfClasstype on success;
  *            NULL on failure.
  */
-static SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t classtype_id,
+static SCClassConfClasstype *SCClassConfAllocClasstype(uint16_t classtype_id,
                                                 const char *classtype,
                                                 const char *classtype_desc,
                                                 int priority)

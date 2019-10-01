@@ -29,7 +29,7 @@
  */
 typedef struct SCClassConfClasstype_ {
     /* The index of the classification within classification.confg */
-    uint8_t classtype_id;
+    uint16_t classtype_id;
 
     /* The priority this classification type carries */
     int priority;
