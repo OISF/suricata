@@ -41,7 +41,6 @@ int DetectAddressCmpIPv6(DetectAddress *a, DetectAddress *b);
 
 int DetectAddressCutIPv6(DetectEngineCtx *, DetectAddress *, DetectAddress *,
                          DetectAddress **);
-int DetectAddressJoinIPv6(DetectEngineCtx *, DetectAddress *, DetectAddress *);
 
 void DetectAddressIPv6Tests(void);
 
