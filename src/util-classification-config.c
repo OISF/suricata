@@ -106,13 +106,15 @@ void SCClassConfDeinit(void)
  *        file.
  *
  * \param de_ctx Pointer to the Detection Engine Context.
+ * \param fd Pointer to already opened file
+ *
+ * \note even if the file open fails we will keep the de_ctx->class_conf_ht
+ *       initialized.
  *
  * \retval fp NULL on error
  */
 static FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
-    const char *filename = NULL;
-
     /* init the hash table to be used by the classification config Classtypes */
     de_ctx->class_conf_ht = HashTableInit(128, SCClassConfClasstypeHashFunc,
                                           SCClassConfClasstypeHashCompareFunc,
@@ -120,7 +122,7 @@ static FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FI
     if (de_ctx->class_conf_ht == NULL) {
         SCLogError(SC_ERR_HASH_TABLE_INIT, "Error initializing the hash "
                    "table");
-        goto error;
+        return NULL;
     }
 
     /* if it is not NULL, use the file descriptor.  The hack so that we can
@@ -128,30 +130,19 @@ static FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FI
      * instead use an input stream against a buffer containing the
      * classification strings */
     if (fd == NULL) {
-        filename = SCClassConfGetConfFilename(de_ctx);
+        const char *filename = SCClassConfGetConfFilename(de_ctx);
         if ( (fd = fopen(filename, "r")) == NULL) {
 #ifdef UNITTESTS
             if (RunmodeIsUnittests())
-                goto error; // silently fail
+                return NULL; // silently fail
 #endif
-            SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
-            goto error;
+            SCLogWarning(SC_ERR_FOPEN, "could not open: \"%s\": %s",
+                    filename, strerror(errno));
+            return NULL;
         }
     }
 
     return fd;
-
- error:
-    if (de_ctx->class_conf_ht != NULL) {
-        HashTableFree(de_ctx->class_conf_ht);
-        de_ctx->class_conf_ht = NULL;
-    }
-    if (fd != NULL) {
-        fclose(fd);
-        fd = NULL;
-    }
-
-    return NULL;
 }
 
 
