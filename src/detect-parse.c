@@ -1800,7 +1800,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
 
     /* signature priority hasn't been overwritten.  Using default priority */
     if (sig->prio == -1)
-        sig->prio = 3;
+        sig->prio = DETECT_DEFAULT_PRIO;
 
     sig->num = de_ctx->signum;
     de_ctx->signum++;

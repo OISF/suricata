@@ -57,6 +57,10 @@
 
 #define DETECT_TRANSFORMS_MAX 16
 
+/** default rule priority if not set through priority keyword or via
+ *  classtype. */
+#define DETECT_DEFAULT_PRIO 3
+
 /* forward declarations for the structures from detect-engine-sigorder.h */
 struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
