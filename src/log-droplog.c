@@ -137,6 +137,10 @@ static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
  */
 static OutputInitResult LogDropLogInitCtx(ConfNode *conf)
 {
+    SCLogWarning(SC_WARN_DEPRECATED,
+        "The drop log has been deprecated and will be removed in "
+        "Suricata v6.0. Please use eve-log.");
+
     OutputInitResult result = { NULL, false };
     if (OutputDropLoggerEnable() != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'drop' logger "
