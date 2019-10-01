@@ -31,15 +31,15 @@ typedef struct SCClassConfClasstype_ {
     /* The index of the classification within classification.confg */
     uint8_t classtype_id;
 
+    /* The priority this classification type carries */
+    int priority;
+
     /* The classtype name.  This is the primary key for a Classification. */
     char *classtype;
 
     /* Description for a classification.  Would be used while printing out
      * the classification info for a Signature, by the fast-log module. */
     char *classtype_desc;
-
-    /* The priority this classification type carries */
-    int priority;
 } SCClassConfClasstype;
 
 void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *, FILE *fd);
