@@ -816,7 +816,8 @@ app-layer:
           dp: 53
     http:
       enabled: yes
-      # memcap: 64mb
+      # memcap:                   Maximum memory capacity for http
+      #                           Default is unlimited, value can be such as 64mb
 
       # default-config:           Used when no server-config matches
       #   personality:            List of personalities used by default
@@ -824,37 +825,15 @@ app-layer:
       #                           by http_client_body & pcre /P option.
       #   response-body-limit:    Limit reassembly of response body for inspection
       #                           by file_data, http_server_body & pcre /Q option.
-      #   double-decode-path:     Double decode path section of the URI
-      #   double-decode-query:    Double decode query section of the URI
-      #   response-body-decompress-layer-limit:
-      #                           Limit to how many layers of compression will be
-      #                           decompressed. Defaults to 2.
       #
+      #   For advanced options, see the user guide
+
+
       # server-config:            List of server configurations to use if address matches
       #   address:                List of IP addresses or networks for this block
       #   personalitiy:           List of personalities used by this block
-      #   request-body-limit:     Limit reassembly of request body for inspection
-      #                           by http_client_body & pcre /P option.
-      #   response-body-limit:    Limit reassembly of response body for inspection
-      #                           by file_data, http_server_body & pcre /Q option.
-      #   double-decode-path:     Double decode path section of the URI
-      #   double-decode-query:    Double decode query section of the URI
       #
-      #   uri-include-all:        Include all parts of the URI. By default the
-      #                           'scheme', username/password, hostname and port
-      #                           are excluded. Setting this option to true adds
-      #                           all of them to the normalized uri as inspected
-      #                           by http_uri, urilen, pcre with /U and the other
-      #                           keywords that inspect the normalized uri.
-      #                           Note that this does not affect http_raw_uri.
-      #                           Also, note that including all was the default in
-      #                           1.4 and 2.0beta1.
-      #
-      #   meta-field-limit:       Hard size limit for request and response size
-      #                           limits. Applies to request line and headers,
-      #                           response line and headers. Does not apply to
-      #                           request or response bodies. Default is 18k.
-      #                           If this limit is reached an event is raised.
+      #                           Then, all the fields from default-config can be overloaded
       #
       # Currently Available Personalities:
       #   Minimal, Generic, IDS (default), IIS_4_0, IIS_5_0, IIS_5_1, IIS_6_0,
@@ -908,10 +887,13 @@ app-layer:
            double-decode-path: no
            double-decode-query: no
 
+           # Can disable LZMA decompression
            #lzma-enabled: yes
-           # LZMA decompression memory limit.
+           # Memory limit usage for LZMA decompression dictionary
+           # Data is decompressed until dictionary reaches this size
            #lzma-memlimit: 1mb
-           # Compression bomb output limit.
+           # Maximum decompressed size with a compression ratio
+           # above 2048 (only LZMA can reach this ratio, deflate cannot)
            #compression-bomb-limit: 1mb
 
          server-config:
