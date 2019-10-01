@@ -115,9 +115,23 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     bool real_ct = true;
     SCClassConfClasstype *ct = SCClassConfGetClasstype(parsed_ct_name, de_ctx);
     if (ct == NULL) {
-        SCLogWarning(SC_ERR_UNKNOWN_VALUE, "unknown classtype: \"%s\", "
-                "using default priority %d",
-                parsed_ct_name, DETECT_DEFAULT_PRIO);
+        if (s->id > 0) {
+            SCLogWarning(SC_ERR_UNKNOWN_VALUE, "signature sid:%u uses "
+                    "unknown classtype: \"%s\", using default priority %d. "
+                    "This message won't be shown again for this classtype",
+                    s->id, parsed_ct_name, DETECT_DEFAULT_PRIO);
+        } else if (de_ctx->rule_file != NULL) {
+            SCLogWarning(SC_ERR_UNKNOWN_VALUE, "signature at %s:%u uses "
+                    "unknown classtype: \"%s\", using default priority %d. "
+                    "This message won't be shown again for this classtype",
+                    de_ctx->rule_file, de_ctx->rule_line,
+                    parsed_ct_name, DETECT_DEFAULT_PRIO);
+        } else {
+            SCLogWarning(SC_ERR_UNKNOWN_VALUE, "unknown classtype: \"%s\", "
+                    "using default priority %d. "
+                    "This message won't be shown again for this classtype",
+                    parsed_ct_name, DETECT_DEFAULT_PRIO);
+        }
 
         char str[2048];
         snprintf(str, sizeof(str),
