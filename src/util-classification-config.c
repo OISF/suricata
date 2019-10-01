@@ -574,7 +574,7 @@ SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
         name[s] = tolower((unsigned char)ct_name[s]);
     name[s] = '\0';
 
-    SCClassConfClasstype ct_lookup = {0, name, NULL, 0 };
+    SCClassConfClasstype ct_lookup = {0, 0, name, NULL };
     SCClassConfClasstype *lookup_ct_info = HashTableLookup(de_ctx->class_conf_ht,
                                                            &ct_lookup, 0);
     return lookup_ct_info;
