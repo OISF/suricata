@@ -106,7 +106,6 @@ static int DetectClasstypeParseRawString(const char *rawstr, char *out, size_t o
 static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char parsed_ct_name[1024] = "";
-    SCClassConfClasstype *ct = NULL;
 
     if ((s->class > 0) || (s->class_msg != NULL)) {
         SCLogWarning(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicated 'classtype' "
@@ -117,14 +116,14 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (DetectClasstypeParseRawString(rawstr, parsed_ct_name, sizeof(parsed_ct_name)) < 0) {
         SCLogError(SC_ERR_PCRE_PARSE, "invalid value for classtype keyword: "
                 "\"%s\"", rawstr);
-        goto error;
+        return -1;
     }
 
-    ct = SCClassConfGetClasstype(parsed_ct_name, de_ctx);
+    SCClassConfClasstype *ct = SCClassConfGetClasstype(parsed_ct_name, de_ctx);
     if (ct == NULL) {
         SCLogError(SC_ERR_UNKNOWN_VALUE, "Unknown Classtype: \"%s\".  Invalidating the Signature",
                    parsed_ct_name);
-        goto error;
+        return -1;
     }
 
     /* if we have retrieved the classtype, assign the message to be displayed
@@ -139,9 +138,6 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
         s->prio = ct->priority;
 
     return 0;
-
- error:
-    return -1;
 }
 
 /*------------------------------Unittests-------------------------------------*/
