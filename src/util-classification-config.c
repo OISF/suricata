@@ -823,23 +823,16 @@ static int SCClassConfTest06(void)
     return result;
 }
 
-#endif /* UNITTESTS */
-
 /**
  * \brief This function registers unit tests for Classification Config API.
  */
 void SCClassConfRegisterTests(void)
 {
-
-#ifdef UNITTESTS
-
     UtRegisterTest("SCClassConfTest01", SCClassConfTest01);
     UtRegisterTest("SCClassConfTest02", SCClassConfTest02);
     UtRegisterTest("SCClassConfTest03", SCClassConfTest03);
     UtRegisterTest("SCClassConfTest04", SCClassConfTest04);
     UtRegisterTest("SCClassConfTest05", SCClassConfTest05);
     UtRegisterTest("SCClassConfTest06", SCClassConfTest06);
-
-#endif /* UNITTESTS */
-
 }
+#endif /* UNITTESTS */
