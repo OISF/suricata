@@ -56,6 +56,10 @@ char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
 void SCClassConfClasstypeHashFree(void *ch);
 static const char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
+static SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t classtype_id,
+        const char *classtype, const char *classtype_desc, int priority);
+static void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct);
+
 void SCClassConfInit(void)
 {
     const char *eb = NULL;
@@ -374,6 +378,7 @@ static void SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 }
 
 /**
+ * \internal
  * \brief Returns a new SCClassConfClasstype instance.  The classtype string
  *        is converted into lowercase, before being assigned to the instance.
  *
@@ -384,7 +389,7 @@ static void SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
  * \retval ct Pointer to the new instance of SCClassConfClasstype on success;
  *            NULL on failure.
  */
-SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t classtype_id,
+static SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t classtype_id,
                                                 const char *classtype,
                                                 const char *classtype_desc,
                                                 int priority)
@@ -420,11 +425,12 @@ SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t classtype_id,
 }
 
 /**
+ * \internal
  * \brief Frees a SCClassConfClasstype instance
  *
  * \param Pointer to the SCClassConfClasstype instance that has to be freed
  */
-void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct)
+static void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct)
 {
     if (ct != NULL) {
         if (ct->classtype != NULL)

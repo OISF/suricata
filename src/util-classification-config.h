@@ -42,9 +42,6 @@ typedef struct SCClassConfClasstype_ {
     int priority;
 } SCClassConfClasstype;
 
-SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t, const char *,
-                                                const char *, int);
-void SCClassConfDeAllocClasstype(SCClassConfClasstype *);
 void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *, FILE *fd);
 SCClassConfClasstype *SCClassConfGetClasstype(const char *,
                                               DetectEngineCtx *);
