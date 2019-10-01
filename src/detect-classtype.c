@@ -101,7 +101,7 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 {
     char parsed_ct_name[1024] = "";
 
-    if ((s->class > 0) || (s->class_msg != NULL)) {
+    if ((s->class_id > 0) || (s->class_msg != NULL)) {
         SCLogWarning(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicated 'classtype' "
                 "keyword detected. Using instance with highest priority");
     }
@@ -121,16 +121,16 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 
     if ((s->init_data->init_flags & SIG_FLAG_INIT_PRIO_EXPLICT) != 0) {
         /* don't touch Signature::prio */
-        s->class = ct->classtype_id;
+        s->class_id = ct->classtype_id;
         s->class_msg = ct->classtype_desc;
     } else if (s->prio == -1) {
         s->prio = ct->priority;
-        s->class = ct->classtype_id;
+        s->class_id = ct->classtype_id;
         s->class_msg = ct->classtype_desc;
     } else {
         if (ct->priority < s->prio) {
             s->prio = ct->priority;
-            s->class = ct->classtype_id;
+            s->class_id = ct->classtype_id;
             s->class_msg = ct->classtype_desc;
         }
     }
