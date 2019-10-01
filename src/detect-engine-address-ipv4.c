@@ -402,45 +402,6 @@ error:
     return -1;
 }
 
-/**
- * \brief Extends a target address range if the the source address range is
- *        wider than the target address range on either sides.
- *
- *        Every address is a range, i.e. address->ip1....address->ip2.  For
- *        example 1.2.3.4 to 192.168.1.1.
- *        if source->ip1 is smaller than target->ip1, it indicates that the
- *        source's left address limit is greater(range wise) than the target's
- *        left address limit, and hence we reassign the target's left address
- *        limit to source's left address limit.
- *        Similary if source->ip2 is greater than target->ip2, it indicates that
- *        the source's right address limit is greater(range wise) than the
- *        target's right address limit, and hence we reassign the target's right
- *        address limit to source's right address limit.
- *
- * \param de_ctx Pointer to the detection engine context.
- * \param target Pointer to the target DetectAddress instance that has to be
- *               updated.
- * \param source Pointer to the source DetectAddress instance that is used
- *               to decided whether we extend the target's address range.
- *
- * \retval  0 On success.
- * \retval -1 On failure.
- */
-int DetectAddressJoinIPv4(DetectEngineCtx *de_ctx, DetectAddress *target,
-                          DetectAddress *source)
-{
-    if (source == NULL || target == NULL)
-        return -1;
-
-    if (SCNtohl(source->ip.addr_data32[0]) < SCNtohl(target->ip.addr_data32[0]))
-        target->ip.addr_data32[0] = source->ip.addr_data32[0];
-
-    if (SCNtohl(source->ip2.addr_data32[0]) > SCNtohl(target->ip2.addr_data32[0]))
-        target->ip2.addr_data32[0] = source->ip2.addr_data32[0];
-
-    return 0;
-}
-
 /********************************Unittests*************************************/
 
 #ifdef UNITTESTS
@@ -1298,141 +1259,6 @@ static int DetectAddressIPv4CutNot09(void)
     return 0;
 }
 
-static int DetectAddressIPv4Join10(void)
-{
-    struct in_addr in;
-    int result = 1;
-
-    DetectAddress *source = DetectAddressInit();
-    if (source == NULL)
-        return 0;
-
-    DetectAddress *target = DetectAddressInit();
-    if (target == NULL) {
-        DetectAddressFree(source);
-        return 0;
-    }
-
-    if (inet_pton(AF_INET, "128.51.61.124", &in) < 0)
-        goto error;
-    target->ip.addr_data32[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    target->ip2.addr_data32[0] = in.s_addr;
-
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    source->ip.addr_data32[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    source->ip2.addr_data32[0] = in.s_addr;
-
-    result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    result &= (target->ip.addr_data32[0] == in.s_addr);
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    result &= (target->ip2.addr_data32[0] == in.s_addr);
-
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    target->ip.addr_data32[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    target->ip2.addr_data32[0] = in.s_addr;
-
-    if (inet_pton(AF_INET, "1.2.3.5", &in) < 0)
-        goto error;
-    source->ip.addr_data32[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
-        goto error;
-    source->ip2.addr_data32[0] = in.s_addr;
-
-    result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    result &= (target->ip.addr_data32[0] == in.s_addr);
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    result &= (target->ip2.addr_data32[0] == in.s_addr);
-
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    target->ip.addr_data32[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    target->ip2.addr_data32[0] = in.s_addr;
-
-    if (inet_pton(AF_INET, "128.1.5.15", &in) < 0)
-        goto error;
-    source->ip.addr_data32[0] = in.s_addr;
-    if (inet_pton(AF_INET, "200.202.200.200", &in) < 0)
-        goto error;
-    source->ip2.addr_data32[0] = in.s_addr;
-
-    result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    result &= (target->ip.addr_data32[0] == in.s_addr);
-    if (inet_pton(AF_INET, "200.202.200.200", &in) < 0)
-        goto error;
-    result &= (target->ip2.addr_data32[0] == in.s_addr);
-
-    if (inet_pton(AF_INET, "128.51.61.124", &in) < 0)
-        goto error;
-    target->ip.addr_data32[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    target->ip2.addr_data32[0] = in.s_addr;
-
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    source->ip.addr_data32[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    source->ip2.addr_data32[0] = in.s_addr;
-
-    result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    result &= (target->ip.addr_data32[0] == in.s_addr);
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    result &= (target->ip2.addr_data32[0] == in.s_addr);
-
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    target->ip.addr_data32[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    target->ip2.addr_data32[0] = in.s_addr;
-
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    source->ip.addr_data32[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    source->ip2.addr_data32[0] = in.s_addr;
-
-    result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    result &= (target->ip.addr_data32[0] == in.s_addr);
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    result &= (target->ip2.addr_data32[0] == in.s_addr);
-
-    DetectAddressFree(source);
-    DetectAddressFree(target);
-    return result;
-
- error:
-    DetectAddressFree(source);
-    DetectAddressFree(target);
-    return 0;
-}
-
 #endif
 
 void DetectAddressIPv4Tests(void)
@@ -1451,6 +1277,5 @@ void DetectAddressIPv4Tests(void)
     UtRegisterTest("DetectAddressIPv4CutNot07", DetectAddressIPv4CutNot07);
     UtRegisterTest("DetectAddressIPv4CutNot08", DetectAddressIPv4CutNot08);
     UtRegisterTest("DetectAddressIPv4CutNot09", DetectAddressIPv4CutNot09);
-    UtRegisterTest("DetectAddressIPv4Join10", DetectAddressIPv4Join10);
 #endif
 }

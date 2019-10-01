@@ -29,8 +29,6 @@ int DetectAddressCmpIPv4(DetectAddress *a, DetectAddress *b);
 
 int DetectAddressCutIPv4(DetectEngineCtx *, DetectAddress *,
                          DetectAddress *, DetectAddress **);
-int DetectAddressJoinIPv4(DetectEngineCtx *, DetectAddress *target,
-                          DetectAddress *source);
 int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *);
 
 void DetectAddressIPv4Tests(void);
