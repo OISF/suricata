@@ -116,12 +116,13 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     SCClassConfClasstype *ct = SCClassConfGetClasstype(parsed_ct_name, de_ctx);
     if (ct == NULL) {
         SCLogWarning(SC_ERR_UNKNOWN_VALUE, "unknown classtype: \"%s\", "
-                "using default priority 3", parsed_ct_name);
+                "using default priority %d",
+                parsed_ct_name, DETECT_DEFAULT_PRIO);
 
         char str[2048];
         snprintf(str, sizeof(str),
-                "config classification: %s,Unknown Classtype,3\n",
-                parsed_ct_name);
+                "config classification: %s,Unknown Classtype,%d\n",
+                parsed_ct_name, DETECT_DEFAULT_PRIO);
 
         if (SCClassConfAddClasstype(de_ctx, str, 0) < 0)
             return -1;
