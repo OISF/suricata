@@ -1,6 +1,7 @@
 EXTRA_DIST = 	Cargo.toml \
 		src \
-		.cargo/config.in
+		.cargo/config.in \
+                cbindgen.toml
 
 if HAVE_RUST
 
@@ -16,7 +17,6 @@ endif
 
 if !HAVE_RUST_HEADERS
 EXTRA_DIST += gen 
-EXTRA_DIST += cbindgen.toml
 endif
 
 if !DEBUG
