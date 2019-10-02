@@ -134,10 +134,17 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     if (lookup_ref_conf != NULL) {
         ref->key = lookup_ref_conf->url;
     } else {
-        SCLogError(SC_ERR_REFERENCE_UNKNOWN, "unknown reference key \"%s\". "
-                   "Supported keys are defined in reference.config file.  Please "
-                   "have a look at the conf param \"reference-config-file\"", key);
-        goto error;
+        SCLogWarning(SC_ERR_REFERENCE_UNKNOWN,
+                "unknown reference key \"%s\"", key);
+
+        char str[2048];
+        snprintf(str, sizeof(str), "config reference: %s undefined\n", key);
+
+        if (SCRConfAddReference(de_ctx, str) < 0)
+            goto error;
+        lookup_ref_conf = SCRConfGetReference(key, de_ctx);
+        if (lookup_ref_conf == NULL)
+            goto error;
     }
 
     /* make a copy so we can free pcre's substring */
@@ -282,7 +289,7 @@ static int DetectReferenceParseTest03(void)
     Signature *s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
                                    "(msg:\"invalid ref\"; "
                                    "reference:unknownkey,001-2010; sid:2;)");
-    FAIL_IF_NOT_NULL(s);
+    FAIL_IF_NULL(s);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }

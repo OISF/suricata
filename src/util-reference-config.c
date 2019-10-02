@@ -100,13 +100,13 @@ void SCReferenceConfDeinit(void)
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  *
+ * \note if file open fails, we leave de_ctx->reference_conf_ht initialized
+ *
  * \retval  0 On success.
  * \retval -1 On failure.
  */
 static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
-    const char *filename = NULL;
-
     /* init the hash table to be used by the reference config references */
     de_ctx->reference_conf_ht = HashTableInit(128, SCRConfReferenceHashFunc,
                                               SCRConfReferenceHashCompareFunc,
@@ -114,7 +114,7 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
     if (de_ctx->reference_conf_ht == NULL) {
         SCLogError(SC_ERR_HASH_TABLE_INIT, "Error initializing the hash "
                    "table");
-        goto error;
+        return NULL;
     }
 
     /* if it is not NULL, use the file descriptor.  The hack so that we can
@@ -122,31 +122,19 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
      * instead use an input stream against a buffer containing the
      * reference strings */
     if (fd == NULL) {
-        filename = SCRConfGetConfFilename(de_ctx);
+        const char *filename = SCRConfGetConfFilename(de_ctx);
         if ((fd = fopen(filename, "r")) == NULL) {
 #ifdef UNITTESTS
             if (RunmodeIsUnittests())
-                goto error; // silently fail
+                return NULL; // silently fail
 #endif
             SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename,
                        strerror(errno));
-            goto error;
+            return NULL;
         }
     }
 
     return fd;
-
- error:
-    if (de_ctx->reference_conf_ht != NULL) {
-        HashTableFree(de_ctx->reference_conf_ht);
-        de_ctx->reference_conf_ht = NULL;
-    }
-    if (fd != NULL) {
-        fclose(fd);
-        fd = NULL;
-    }
-
-    return NULL;
 }
 
 
