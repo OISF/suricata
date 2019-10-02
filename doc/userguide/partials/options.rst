@@ -18,8 +18,18 @@
 
 .. option:: -v
 
-   The -v option enables more verbosity of Suricata's output. Supply
-   multiple times for more verbosity.
+   Increase the verbosity of the Suricata application logging by
+   increasing the log level from the default. This option can be
+   passed multiple times to further increase the verbosity.
+
+   - -v: INFO
+   - -vv: PERF
+   - -vvv: CONFIG
+   - -vvvv: DEBUG
+
+   This option will not decrease the log level set in the
+   configuration file if it is already more verbose than the level
+   requested with this option.
 
 .. Basic input options.
 
