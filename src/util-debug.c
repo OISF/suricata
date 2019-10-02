@@ -1298,6 +1298,7 @@ void SCLogLoadConfig(int daemon, int verbose)
     ConfNode *outputs;
     SCLogInitData *sc_lid;
     int have_logging = 0;
+    int max_level = 0;
 
     outputs = ConfGetNode("logging.outputs");
     if (outputs == NULL) {
@@ -1385,6 +1386,7 @@ void SCLogLoadConfig(int daemon, int verbose)
                     level_s);
                 exit(EXIT_FAILURE);
             }
+            max_level = MAX(max_level, level);
         }
 
         if (strcmp(output->name, "console") == 0) {
@@ -1442,6 +1444,8 @@ void SCLogLoadConfig(int daemon, int verbose)
                    " 'logging.outputs' in the YAML.");
     }
 
+    /* Set the global log level to that of the max level used. */
+    sc_lid->global_log_level = MAX(sc_lid->global_log_level, max_level);
     SCLogInitLogModule(sc_lid);
 
     SCLogDebug("sc_log_global_log_level: %d", sc_log_global_log_level);
