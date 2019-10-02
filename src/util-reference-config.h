@@ -43,6 +43,7 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *, FILE *);
 void SCRConfDeInitContext(DetectEngineCtx *);
 SCRConfReference *SCRConfGetReference(const char *,
                                       DetectEngineCtx *);
+int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line);
 void SCRConfRegisterTests(void);
 
 /* these below functions are only used by unittests */
