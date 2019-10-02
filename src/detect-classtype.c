@@ -71,17 +71,27 @@ static int DetectClasstypeParseRawString(const char *rawstr, char *out, size_t o
     int ov[MAX_SUBSTRINGS];
     size_t len = strlen(rawstr);
 
+    const size_t esize = CLASSTYPE_NAME_MAX_LEN + 8;
+    char e[esize];
+
     int ret = pcre_exec(regex, regex_study, rawstr, len, 0, 0, ov, 30);
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "Invalid Classtype in Signature");
         return -1;
     }
 
-    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, out, outsize);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, e, esize);
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         return -1;
     }
+
+    if (strlen(e) >= CLASSTYPE_NAME_MAX_LEN) {
+        SCLogError(SC_ERR_INVALID_VALUE, "classtype '%s' is too big: max %d",
+                rawstr, CLASSTYPE_NAME_MAX_LEN - 1);
+        return -1;
+    }
+    (void)strlcpy(out, e, outsize);
 
     return 0;
 }
