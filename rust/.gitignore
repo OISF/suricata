@@ -4,3 +4,4 @@
 /Cargo.lock
 /target
 /vendor
+/gen

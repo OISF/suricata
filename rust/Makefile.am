@@ -1,6 +1,7 @@
 EXTRA_DIST = 	Cargo.toml \
 		src \
 		.cargo/config.in \
+                gen \
                 cbindgen.toml
 
 if HAVE_RUST
@@ -13,10 +14,6 @@ endif
 
 if HAVE_RUST_VENDOR
 FROZEN = --frozen
-endif
-
-if !HAVE_RUST_HEADERS
-EXTRA_DIST += gen 
 endif
 
 if !DEBUG
@@ -62,7 +59,7 @@ distclean-local: clean-local
 
 else 
 
-all-local: gen build-rust
+all-local: gen-headers build-rust
 	echo Generating rust headers
 
 clean-local:
@@ -87,11 +84,11 @@ vendor:
 endif
 
 if !HAVE_RUST_HEADERS
-gen: FORCE
+gen-headers: FORCE
 	cbindgen --config cbindgen.toml --output "gen/rust-bindings.h" > /dev/null
 FORCE:
 else
-gen:
+gen-headers:
 endif
 
 else # HAVE_RUST
