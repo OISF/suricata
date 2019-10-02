@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -48,6 +48,9 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
+#ifdef UNITTESTS
+static void ReferenceRegisterTests(void);
+#endif
 static int DetectReferenceSetup(DetectEngineCtx *, Signature *s, const char *str);
 
 /**
@@ -58,11 +61,10 @@ void DetectReferenceRegister(void)
     sigmatch_table[DETECT_REFERENCE].name = "reference";
     sigmatch_table[DETECT_REFERENCE].desc = "direct to places where information about the rule can be found";
     sigmatch_table[DETECT_REFERENCE].url = DOC_URL DOC_VERSION "/rules/meta.html#reference";
-    sigmatch_table[DETECT_REFERENCE].Match = NULL;
     sigmatch_table[DETECT_REFERENCE].Setup = DetectReferenceSetup;
-    sigmatch_table[DETECT_REFERENCE].Free  = NULL;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_REFERENCE].RegisterTests = ReferenceRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
@@ -94,7 +96,6 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
 {
     SCEnter();
 
-    DetectReference *ref = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
@@ -106,14 +107,13 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     if (ret < 2) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Unable to parse \"reference\" "
                    "keyword argument - \"%s\".   Invalid argument.", rawstr);
-        goto error;
+        return NULL;
     }
 
-    ref = SCMalloc(sizeof(DetectReference));
+    DetectReference *ref = SCCalloc(1, sizeof(DetectReference));
     if (unlikely(ref == NULL)) {
-        goto error;
+        return NULL;
     }
-    memset(ref, 0, sizeof(DetectReference));
 
     res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, key, sizeof(key));
     if (res < 0) {
@@ -141,7 +141,7 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     }
 
     /* make a copy so we can free pcre's substring */
-    ref->reference = SCStrdup((char *)content);
+    ref->reference = SCStrdup(content);
     if (ref->reference == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "strdup failed: %s", strerror(errno));
         goto error;
@@ -151,9 +151,7 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     SCReturnPtr(ref, "Reference");
 
 error:
-    if (ref != NULL)
-        DetectReferenceFree(ref);
-
+    DetectReferenceFree(ref);
     SCReturnPtr(NULL, "Reference");
 }
 
@@ -174,12 +172,11 @@ static int DetectReferenceSetup(DetectEngineCtx *de_ctx, Signature *s,
 {
     SCEnter();
 
-    DetectReference *ref = NULL;
     DetectReference *sig_refs = NULL;
 
-    ref = DetectReferenceParse(rawstr, de_ctx);
+    DetectReference *ref = DetectReferenceParse(rawstr, de_ctx);
     if (ref == NULL)
-        goto error;
+        SCReturnInt(-1);
 
     SCLogDebug("ref %s %s", ref->key, ref->reference);
 
@@ -195,9 +192,6 @@ static int DetectReferenceSetup(DetectEngineCtx *de_ctx, Signature *s,
     }
 
     SCReturnInt(0);
-
-error:
-    SCReturnInt(-1);
 }
 
 /***************************************Unittests******************************/
@@ -212,43 +206,25 @@ error:
  */
 static int DetectReferenceParseTest01(void)
 {
-    int result = 0;
-    Signature *s = NULL;
-    DetectReference *ref = NULL;
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto cleanup;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
+    FAIL_IF_NULL(fd);
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                                   "(msg:\"One reference\"; reference:one,001-2010; sid:2;)");
-    if (s == NULL) {
-        goto cleanup;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
+            "(msg:\"One reference\"; reference:one,001-2010; sid:2;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->references);
 
-    if (s->references == NULL)  {
-        goto cleanup;
-    }
+    DetectReference *ref = s->references;
+    FAIL_IF (strcmp(ref->key, "http://www.one.com") != 0);
+    FAIL_IF (strcmp(ref->reference, "001-2010") != 0);
 
-    ref = s->references;
-    if (strcmp(ref->key, "http://www.one.com") != 0 ||
-        strcmp(ref->reference, "001-2010") != 0) {
-        goto cleanup;
-    }
-
-    result = 1;
-
-cleanup:
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-    return result;
-
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -259,51 +235,32 @@ cleanup:
  */
 static int DetectReferenceParseTest02(void)
 {
-    int result = 0;
-    Signature *s = NULL;
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto cleanup;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
+    FAIL_IF_NULL(fd);
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
                                    "(msg:\"Two references\"; "
                                    "reference:one,openinfosecdoundation.txt; "
                                    "reference:two,001-2010; sid:2;)");
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto cleanup;
-    }
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->references);
+    FAIL_IF_NULL(s->references->next);
 
-    if (s->references == NULL || s->references->next == NULL)  {
-        printf("no ref or not enough refs: ");
-        goto cleanup;
-    }
+    DetectReference *ref = s->references;
+    FAIL_IF (strcmp(ref->key, "http://www.one.com") != 0);
+    FAIL_IF (strcmp(ref->reference, "openinfosecdoundation.txt") != 0);
 
-    if (strcmp(s->references->key, "http://www.one.com") != 0 ||
-        strcmp(s->references->reference, "openinfosecdoundation.txt") != 0) {
-        printf("first ref failed: ");
-        goto cleanup;
-    }
+    ref = s->references->next;
+    FAIL_IF (strcmp(ref->key, "http://www.two.com") != 0);
+    FAIL_IF (strcmp(ref->reference, "001-2010") != 0);
 
-    if (strcmp(s->references->next->key, "http://www.two.com") != 0 ||
-        strcmp(s->references->next->reference, "001-2010") != 0) {
-        printf("second ref failed: ");
-        goto cleanup;
-    }
-
-    result = 1;
-
-cleanup:
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -314,43 +271,26 @@ cleanup:
  */
 static int DetectReferenceParseTest03(void)
 {
-    int result = 0;
-    Signature *s = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto cleanup;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    FILE *fd =SCRConfGenerateValidDummyReferenceConfigFD01();
+    FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
+    FAIL_IF_NULL(fd);
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> any any "
                                    "(msg:\"invalid ref\"; "
                                    "reference:unknownkey,001-2010; sid:2;)");
-    if (s != NULL) {
-        printf("sig parsed even though it's invalid: ");
-        goto cleanup;
-    }
-
-    result = 1;
-
-cleanup:
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-    return result;
+    FAIL_IF_NOT_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
-#endif /* UNITTESTS */
-
-void ReferenceRegisterTests(void)
+static void ReferenceRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("DetectReferenceParseTest01", DetectReferenceParseTest01);
     UtRegisterTest("DetectReferenceParseTest02", DetectReferenceParseTest02);
     UtRegisterTest("DetectReferenceParseTest03", DetectReferenceParseTest03);
-#endif /* UNITTESTS */
-
-    return;
 }
+#endif /* UNITTESTS */

@@ -46,11 +46,6 @@ typedef struct DetectReference_ {
 void DetectReferenceRegister(void);
 
 /**
- * This function registers unit tests for Reference keyword.
- */
-void ReferenceRegisterTests(void);
-
-/**
  * Free function for a Reference object
  */
 void DetectReferenceFree(DetectReference *);
