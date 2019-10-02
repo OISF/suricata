@@ -99,8 +99,8 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
-    char key[64] = "";
-    char content[1024] = "";
+    char key[REFERENCE_SYSTEM_NAME_MAX] = "";
+    char content[REFERENCE_CONTENT_NAME_MAX] = "";
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr),
                     0, 0, ov, MAX_SUBSTRINGS);

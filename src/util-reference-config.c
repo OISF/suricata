@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -244,8 +244,8 @@ static char *SCRConfStringToLowercase(const char *str)
  */
 static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
 {
-    char system[64];
-    char url[1024];
+    char system[REFERENCE_SYSTEM_NAME_MAX];
+    char url[REFERENCE_CONTENT_NAME_MAX];
 
     SCRConfReference *ref_new = NULL;
     SCRConfReference *ref_lookup = NULL;
