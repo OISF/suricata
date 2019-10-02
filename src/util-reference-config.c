@@ -242,7 +242,7 @@ static char *SCRConfStringToLowercase(const char *str)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
+int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
 {
     char system[REFERENCE_SYSTEM_NAME_MAX];
     char url[REFERENCE_CONTENT_NAME_MAX];
@@ -254,7 +254,7 @@ static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(regex, regex_study, rawstr, strlen(rawstr), 0, 0, ov, 30);
+    ret = pcre_exec(regex, regex_study, line, strlen(line), 0, 0, ov, 30);
     if (ret < 0) {
         SCLogError(SC_ERR_REFERENCE_CONFIG, "Invalid Reference Config in "
                    "reference.config file");
@@ -262,14 +262,14 @@ static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
     }
 
     /* retrieve the reference system */
-    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, system, sizeof(system));
+    ret = pcre_copy_substring((char *)line, ov, 30, 1, system, sizeof(system));
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring() failed");
         goto error;
     }
 
     /* retrieve the reference url */
-    ret = pcre_copy_substring((char *)rawstr, ov, 30, 2, url, sizeof(url));
+    ret = pcre_copy_substring((char *)line, ov, 30, 2, url, sizeof(url));
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring() failed");
         goto error;
@@ -343,7 +343,7 @@ static void SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
         if (SCRConfIsLineBlankOrComment(line))
             continue;
 
-        SCRConfAddReference(line, de_ctx);
+        SCRConfAddReference(de_ctx, line);
         i++;
     }
 
