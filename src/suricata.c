@@ -616,7 +616,7 @@ static void PrintUsage(const char *progname)
 #endif /* OS_WIN32 */
     printf("\t-k [all|none]                        : force checksum check (all) or disabled it (none)\n");
     printf("\t-V                                   : display Suricata version\n");
-    printf("\t-v[v]                                : increase default Suricata verbosity\n");
+    printf("\t-v                                   : be more verbose (use multiple times to increase verbosity)\n");
 #ifdef UNITTESTS
     printf("\t-u                                   : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX          : filter unittests with a regex\n");
