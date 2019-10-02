@@ -250,8 +250,8 @@ static char *SCClassConfStringToLowercase(const char *str)
  */
 int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t index)
 {
-    char ct_name[64];
-    char ct_desc[512];
+    char ct_name[CLASSTYPE_NAME_MAX_LEN];
+    char ct_desc[CLASSTYPE_DESC_MAX_LEN];
     char ct_priority_str[16];
     int ct_priority = 0;
     uint16_t ct_id = index;

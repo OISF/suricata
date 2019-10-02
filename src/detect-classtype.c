@@ -99,7 +99,7 @@ static int DetectClasstypeParseRawString(const char *rawstr, char *out, size_t o
  */
 static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    char parsed_ct_name[1024] = "";
+    char parsed_ct_name[CLASSTYPE_NAME_MAX_LEN] = "";
 
     if ((s->class_id > 0) || (s->class_msg != NULL)) {
         SCLogWarning(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicated 'classtype' "
@@ -133,7 +133,7 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
                     parsed_ct_name, DETECT_DEFAULT_PRIO);
         }
 
-        char str[2048];
+        char str[256];
         snprintf(str, sizeof(str),
                 "config classification: %s,Unknown Classtype,%d\n",
                 parsed_ct_name, DETECT_DEFAULT_PRIO);

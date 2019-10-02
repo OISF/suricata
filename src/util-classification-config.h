@@ -24,6 +24,9 @@
 #ifndef __UTIL_CLASSIFICATION_CONFIG_H__
 #define __UTIL_CLASSIFICATION_CONFIG_H__
 
+#define CLASSTYPE_NAME_MAX_LEN 64
+#define CLASSTYPE_DESC_MAX_LEN 512
+
 /**
  * \brief Container for a Classtype from the Classification.config file.
  */
