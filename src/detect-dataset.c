@@ -83,7 +83,7 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
             //PrintRawDataFp(stdout, data, data_len);
             int r = DatasetLookup(sd->set, data, data_len);
             SCLogDebug("r %d", r);
-            if (r == 0)
+            if (r < 1)
                 return 1;
             break;
         }
