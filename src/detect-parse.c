@@ -278,6 +278,50 @@ static SigTableElmt *SigTableGet(char *name)
     return NULL;
 }
 
+bool SigMatchStrictEnabled(const enum DetectKeywordId id)
+{
+    if (id < DETECT_TBLSIZE) {
+        return ((sigmatch_table[id].flags & SIGMATCH_STRICT_PARSING) != 0);
+    }
+    return false;
+}
+
+void SigTableApplyStrictCommandlineOption(const char *str)
+{
+    if (str == NULL) {
+        /* nothing to be done */
+        return;
+    }
+
+    /* "all" just sets the flag for each keyword */
+    if (strcmp(str, "all") == 0) {
+        for (int i = 0; i < DETECT_TBLSIZE; i++) {
+            SigTableElmt *st = &sigmatch_table[i];
+            st->flags |= SIGMATCH_STRICT_PARSING;
+        }
+        return;
+    }
+
+    char *copy = SCStrdup(str);
+    if (copy == NULL)
+        FatalError(SC_ERR_MEM_ALLOC, "could not duplicate opt string");
+
+    char *xsaveptr = NULL;
+    char *key = strtok_r(copy, ",", &xsaveptr);
+    while (key != NULL) {
+        SigTableElmt *st = SigTableGet(key);
+        if (st != NULL) {
+            st->flags |= SIGMATCH_STRICT_PARSING;
+        } else {
+            SCLogWarning(SC_ERR_CMD_LINE, "'strict' command line "
+                    "argument '%s' not found", key);
+        }
+        key = strtok_r(NULL, ",", &xsaveptr);
+    }
+
+    SCFree(copy);
+}
+
 /**
  * \brief Append a SigMatch to the list type.
  *
