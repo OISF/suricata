@@ -202,11 +202,6 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
             json_object_set_new(ajs, "code", json_integer(event_code));
         }
 
-        /* log event number (and total) */
-        char event_no_buf[16];
-        snprintf(event_no_buf, sizeof(event_no_buf), "%d (of %d)",
-                        i+1, decoder_events->cnt);
-        json_object_set_new(ajs, "event_no", json_string(event_no_buf));
         json_object_set_new(ajs, "layer", json_string(layer));
 
         /* anomaly */
