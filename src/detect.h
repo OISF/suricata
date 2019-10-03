@@ -1391,6 +1391,8 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_INFO_STICKY_BUFFER     BIT_U16(9)
 /** keyword is deprecated: used to suggest an alternative */
 #define SIGMATCH_INFO_DEPRECATED        BIT_U16(10)
+/** strict parsing is enabled */
+#define SIGMATCH_STRICT_PARSING         BIT_U16(11)
 
 enum DetectEngineTenantSelectors
 {
