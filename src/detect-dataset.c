@@ -315,7 +315,7 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     DetectDatasetData *cd = NULL;
     SigMatch *sm = NULL;
     uint8_t cmd = 0;
-    char cmd_str[16] = "", name[64] = "";
+    char cmd_str[16] = "", name[DATASET_NAME_MAX_LEN + 1] = "";
     enum DatasetTypes type = DATASET_TYPE_NOTSET;
     char load[PATH_MAX] = "";
     char save[PATH_MAX] = "";
