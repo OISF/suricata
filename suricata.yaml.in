@@ -727,8 +727,9 @@ app-layer:
       detection-ports:
         dp: 443
 
-      # Generate JA3 fingerprint from client hello
-      ja3-fingerprints: no
+      # Generate JA3 fingerprint from client hello. If not specified it
+      # will be disabled by default, but enabled if rules require it.
+      #ja3-fingerprints: yes
 
       # What to do when the encrypted communications start:
       # - default: keep tracking TLS session, check for protocol anomalies,
