@@ -1504,23 +1504,26 @@ independent. The ``probing parsers`` will only run on the ``detection-ports``.
 SMB is commonly used to transfer the DCERPC protocol. This traffic is also handled by
 this parser.
 
-Engine output
--------------
+Engine Logging
+--------------
 
-Logging configuration
-~~~~~~~~~~~~~~~~~~~~~
+The engine logging system logs information about the application such
+as errors and other diagnostic information during startup, runtime and
+shutdown of the Suricata engine. This does not include Suricata
+generated alerts and events.
 
-The logging subsystem can display all output except alerts and
-events. It gives information at runtime about what the engine is
-doing. This information can be displayed during the engine startup, at
-runtime and while shutting the engine down. For informational
-messages, errors, debugging, etc.
+The engine logging system has the following log levels:
 
-The log-subsystem has several log levels:
+- error
+- warning
+- notice
+- info
+- perf
+- config
+- debug
 
-Error, warning, informational and debug. Note that debug level logging
-will only be emitted if Suricata was compiled with the --enable-debug
-configure option.
+Note that debug level logging will only be emitted if Suricata was
+compiled with the ``--enable-debug`` configure option.
 
 The first option within the logging configuration is the
 default-log-level. This option determines the severity/importance
@@ -1529,17 +1532,72 @@ than the one set here, will not be shown. The default setting is
 Info. This means that error, warning and info will be shown and the
 other levels won't be.
 
-There are more levels: emergency, alert, critical and notice, but
-those are not used by Suricata yet. This option can be changed in the
-configuration, but can also be overridden in the command line by the
-environment variable: SC_LOG_LEVEL .
+Default Configuration Example
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
+
+  # Logging configuration.  This is not about logging IDS alerts/events, but
+  # output about what Suricata is doing, like startup messages, errors, etc.
+  logging:
+    # The default log level, can be overridden in an output section.
+    # Note that debug level logging will only be emitted if Suricata was
+    # compiled with the --enable-debug configure option.
+    #
+    # This value is overridden by the SC_LOG_LEVEL env var.
+    default-log-level: notice
+
+    # The default output format.  Optional parameter, should default to
+    # something reasonable if not provided.  Can be overridden in an
+    # output section.  You can leave this out to get the default.
+    #
+    # This value is overridden by the SC_LOG_FORMAT env var.
+    #default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
+
+    # A regex to filter output.  Can be overridden in an output section.
+    # Defaults to empty (no filter).
+    #
+    # This value is overridden by the SC_LOG_OP_FILTER env var.
+    default-output-filter:
+
+    # Define your logging outputs.  If none are defined, or they are all
+    # disabled you will get the default - console output.
+    outputs:
+    - console:
+        enabled: yes
+        # type: json
+    - file:
+        enabled: yes
+        level: info
+        filename: suricata.log
+        # type: json
+    - syslog:
+        enabled: no
+        facility: local5
+        format: "[%i] <%d> -- "
+        # type: json
+
+
+Default Log Level
+~~~~~~~~~~~~~~~~~
+
+Example::
 
   logging:
     default-log-level: info
 
-Default log format
+This option sets the default log level. The default log level is
+`notice`. This value will be used in the individual logging
+configuration (console, file, syslog) if not otherwise set.
+
+.. note:: The ``-v`` command line option can be used to quickly
+          increase the log level at runtime. See :ref:`the -v command
+          line option <cmdline-option-v>`.
+
+The ``default-log-level`` set in the configuration value can be
+overriden by the ``SC_LOG_LEVEL`` environment variable.
+
+Default Log Format
 ~~~~~~~~~~~~~~~~~~
 
 A logging line exists of two parts. First it displays meta information
@@ -1578,7 +1636,7 @@ The last three, f, l and n are mainly convenient for developers.
 The log-format can be overridden in the command line by the
 environment variable: SC_LOG_FORMAT
 
-Output-filter
+Output Filter
 ~~~~~~~~~~~~~
 
 Within logging you can set an output-filter. With this output-filter
@@ -1590,10 +1648,10 @@ matches.
 
   default-output-filter:               #In this option the regular expression can be entered.
 
-This value is overridden by the environment var:	SC_LOG_OP_FILTER
+This value is overridden by the environment var: SC_LOG_OP_FILTER
 
-Outputs
-~~~~~~~
+Logging Outputs
+~~~~~~~~~~~~~~~
 
 There are different ways of displaying output. The output can appear
 directly on your screen, it can be placed in a file or via syslog. The
@@ -1606,13 +1664,16 @@ computers etc.)
   outputs:
     - console:                                    #Output on your screen.
         enabled: yes                              #This option is enabled.
+        #level: notice                            #Use a different level than the default.
     - file:                                       #Output stored in a file.
         enabled: no                               #This option is not enabled.
         filename: /var/log/suricata.log           #Filename and location on disc.
+        level: info                               #Use a different level than the default.
     - syslog:                                     #This is a program to direct log-output to several directions.
         enabled: no                               #The use of this program is not enabled.
         facility: local5                          #In this option you can set a syslog facility.
         format: "[%i] <%d> -- "                   #The option to set your own format.
+        #level: notice                            #Use a different level than the default.
 
 Packet Acquisition
 ------------------

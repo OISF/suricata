@@ -16,6 +16,8 @@
 
    Test configuration.
 
+.. _cmdline-option-v:
+
 .. option:: -v
 
    Increase the verbosity of the Suricata application logging by
