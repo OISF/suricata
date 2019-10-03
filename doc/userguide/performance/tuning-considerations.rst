@@ -129,4 +129,4 @@ In the example below:
     toclient-chunk-size: 2560
     randomize-chunk-size: yes
   
-Inspection will be skipped when ``stream.depth`` of 1mb is reached for a particular flow.
+Inspection will be skipped when ``stream.reassembly.depth`` of 1mb is reached for a particular flow.

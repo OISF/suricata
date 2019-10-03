@@ -178,7 +178,7 @@ Examples::
   filesize:<100MB; # smaller than 100 megabytes
 
 **Note**: For files that are not completely tracked because of packet
-loss or stream.depth being reached on the "greater than" is
+loss or stream.reassembly.depth being reached on the "greater than" is
 checked. This is because Suricata can know a file is bigger than a
 value (it has seen some of it already), but it can't know if the final
 size would have been within a range, an exact value or smaller than a
