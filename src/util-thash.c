@@ -236,7 +236,7 @@ static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
         }
     }
 
-    GET_VAR(cnf_prefix, "hash-size");
+    GET_VAR(cnf_prefix, "prealloc");
     if ((ConfGet(varname, &conf_val)) == 1)
     {
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
