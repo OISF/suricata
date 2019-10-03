@@ -1457,6 +1457,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"pcap-file-delete", 0, 0, 0},
         {"simulate-ips", 0, 0 , 0},
         {"no-random", 0, &g_disable_randomness, 1},
+        {"strict-rule-keywords", optional_argument, 0, 0},
 
         /* AFL app-layer options. */
         {"afl-http-request", required_argument, 0 , 0},
@@ -1877,6 +1878,15 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     return TM_ECODE_FAILED;
                 }
                 suri->set_datadir = true;
+            } else if (strcmp((long_opts[option_index]).name , "strict-rule-keywords") == 0){
+                if (optarg == NULL) {
+                    suri->strict_rule_parsing_string = SCStrdup("all");
+                } else {
+                    suri->strict_rule_parsing_string = SCStrdup(optarg);
+                }
+                if (suri->strict_rule_parsing_string == NULL) {
+                    FatalError(SC_ERR_MEM_ALLOC, "failed to duplicate 'strict' string");
+                }
             }
             break;
         case 'c':
@@ -2793,6 +2803,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
+    SigTableApplyStrictCommandlineOption(suri->strict_rule_parsing_string);
     TmqhSetup();
 
     CIDRInit();
