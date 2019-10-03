@@ -407,6 +407,10 @@ Dataset *DatasetFind(const char *name, enum DatasetTypes type)
 Dataset *DatasetGet(const char *name, enum DatasetTypes type,
         const char *save, const char *load)
 {
+    if (strlen(name) > DATASET_NAME_MAX_LEN) {
+        return NULL;
+    }
+
     SCMutexLock(&sets_lock);
     Dataset *set = DatasetSearchByName(name);
     if (set) {
@@ -461,9 +465,12 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
         SCLogDebug("set \'%s\' loading \'%s\' from \'%s\'", set->name, load, set->load);
     }
 
+    char cnf_name[128];
+    snprintf(cnf_name, sizeof(cnf_name), "datasets.%s.hash", name);
+
     switch (type) {
         case DATASET_TYPE_MD5:
-            set->hash = THashInit(name, sizeof(Md5Type), Md5StrSet,
+            set->hash = THashInit(cnf_name, sizeof(Md5Type), Md5StrSet,
                     Md5StrFree, Md5StrHash, Md5StrCompare);
             if (set->hash == NULL)
                 goto out_err;
@@ -471,7 +478,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
                 goto out_err;
             break;
         case DATASET_TYPE_STRING:
-            set->hash = THashInit(name, sizeof(StringType), StringSet,
+            set->hash = THashInit(cnf_name, sizeof(StringType), StringSet,
                     StringFree, StringHash, StringCompare);
             if (set->hash == NULL)
                 goto out_err;
@@ -479,7 +486,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
                 goto out_err;
             break;
         case DATASET_TYPE_SHA256:
-            set->hash = THashInit(name, sizeof(Sha256Type), Sha256StrSet,
+            set->hash = THashInit(cnf_name, sizeof(Sha256Type), Sha256StrSet,
                     Sha256StrFree, Sha256StrHash, Sha256StrCompare);
             if (set->hash == NULL)
                 goto out_err;
@@ -507,8 +514,6 @@ out_err:
     return NULL;
 }
 
-#define SETNAME_MAX 63
-
 int DatasetsInit(void)
 {
     SCLogDebug("datasets start");
@@ -527,9 +532,9 @@ int DatasetsInit(void)
             char load[PATH_MAX] = "";
 
             const char *set_name = iter->name;
-            if (strlen(set_name) > SETNAME_MAX) {
+            if (strlen(set_name) > DATASET_NAME_MAX_LEN) {
                 FatalError(SC_ERR_CONF_NAME_TOO_LONG, "set name '%s' too long, max %d chars",
-                        set_name, SETNAME_MAX);
+                        set_name, DATASET_NAME_MAX_LEN);
             }
 
             ConfNode *set_type =

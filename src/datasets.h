@@ -32,8 +32,9 @@ enum DatasetTypes {
     DATASET_TYPE_SHA256,
 };
 
+#define DATASET_NAME_MAX_LEN 63
 typedef struct Dataset {
-    char name[64];
+    char name[DATASET_NAME_MAX_LEN + 1];
     enum DatasetTypes type;
     uint32_t id;
 
