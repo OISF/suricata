@@ -130,13 +130,10 @@ Fields
 * "code" If "type" is "unknown", than "code" contains the unrecognized event code. Otherwise,
   this field is not present.
 
-The following fields are included when "type" has the value "applayer":
+The following field is included when "type" has the value "applayer":
 
 * "layer"  Indicates the handling layer that detected the event. This will be "proto_parser"
   (protocol parser), "proto_detect" (protocol detection) or "parser."
-* "event_no" This is an informational only field indicating the total number of events
-  detected and the ordinal number of the event being reported. It is presented as "N (of M)"
-  where "N" is the ordinal number of the event and "M" is the total number of events detected.
 
 When ``packethdr`` is enabled, the first 32 bytes of the packet are included as a byte64-encoded blob in the main part of
 record. This applies to events of "type" "packet" or "stream" only.
@@ -199,7 +196,6 @@ Examples
       "anomaly": {
         "type": "applayer",
         "event": "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION",
-        "event_no": "1 (of 1)",
         "layer": "proto_detect"
       }
     }
@@ -219,7 +215,6 @@ Examples
       "anomaly": {
         "type": "applayer",
         "event": "INVALID_RECORD_TYPE",
-        "event_no": "1 (of 3)",
         "layer": "proto_parser"
       }
     }
