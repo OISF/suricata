@@ -24,7 +24,7 @@
 #ifndef __DETECT_ENGINE_REGISTER_H__
 #define __DETECT_ENGINE_REGISTER_H__
 
-enum {
+enum DetectKeywordId {
     DETECT_SID,
     DETECT_PRIORITY,
     DETECT_REV,
