@@ -518,7 +518,7 @@ int DatasetsInit(void)
         int list_pos = 0;
         ConfNode *iter = NULL;
         TAILQ_FOREACH(iter, &datasets->head, next) {
-            if (iter->val == NULL) {
+            if (iter->name == NULL) {
                 list_pos++;
                 continue;
             }
@@ -526,33 +526,27 @@ int DatasetsInit(void)
             char save[PATH_MAX] = "";
             char load[PATH_MAX] = "";
 
-            const char *set_name = iter->val;
+            const char *set_name = iter->name;
             if (strlen(set_name) > SETNAME_MAX) {
                 FatalError(SC_ERR_CONF_NAME_TOO_LONG, "set name '%s' too long, max %d chars",
                         set_name, SETNAME_MAX);
             }
 
-            ConfNode *set = ConfNodeLookupChild(iter, set_name);
-            if (set == NULL) {
-                list_pos++;
-                continue;
-            }
-
             ConfNode *set_type =
-                ConfNodeLookupChild(set, "type");
+                ConfNodeLookupChild(iter, "type");
             if (set_type == NULL) {
                 list_pos++;
                 continue;
             }
 
             ConfNode *set_save =
-                ConfNodeLookupChild(set, "state");
+                ConfNodeLookupChild(iter, "state");
             if (set_save) {
                 DatasetGetPath(set_save->val, save, sizeof(save), TYPE_STATE);
                 strlcpy(load, save, sizeof(load));
             } else {
                 ConfNode *set_load =
-                    ConfNodeLookupChild(set, "load");
+                    ConfNodeLookupChild(iter, "load");
                 if (set_load) {
                     DatasetGetPath(set_load->val, load, sizeof(load), TYPE_LOAD);
                 }
