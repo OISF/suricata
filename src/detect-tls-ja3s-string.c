@@ -112,6 +112,9 @@ static int DetectTlsJa3SStringSetup(DetectEngineCtx *de_ctx, Signature *s, const
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
         return -1;
 
+    /* try to enable JA3 */
+    SSLEnableJA3();
+
     /* Check if JA3 is disabled */
     if (!RunmodeIsUnittests() && Ja3IsDisabled("rule"))
         return -1;
