@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "app-layer-ssl.h"
 #include "util-validate.h"
 #include "util-ja3.h"
 
@@ -261,11 +262,7 @@ char *Ja3GenerateHash(JA3Buffer *buffer)
  */
 int Ja3IsDisabled(const char *type)
 {
-    int is_enabled = 0;
-
-    /* Check if JA3 is enabled */
-    ConfGetBool("app-layer.protocols.tls.ja3-fingerprints", &is_enabled);
-
+    bool is_enabled = SSLJA3IsEnabled();
     if (is_enabled == 0) {
         SCLogWarning(SC_WARN_JA3_DISABLED, "JA3 is disabled, skipping %s",
                      type);
