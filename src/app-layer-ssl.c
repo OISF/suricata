@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -94,7 +94,10 @@ enum SslConfigEncryptHandling {
 
 typedef struct SslConfig_ {
     enum SslConfigEncryptHandling encrypt_mode;
-    int enable_ja3;
+    /** dynamic setting for ja3: can be enabled on demand if not explicitly
+     *  disabled. */
+    SC_ATOMIC_DECLARE(int, enable_ja3);
+    bool disable_ja3; /**< ja3 explicitly disabled. Don't enable on demand. */
 } SslConfig;
 
 SslConfig ssl_config;
@@ -669,7 +672,7 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
         ssl_state->curr_connp->version = TLS_VERSION_13_PRE_DRAFT16;
     }
 
-    if (ssl_config.enable_ja3 && ssl_state->curr_connp->ja3_str == NULL) {
+    if (SC_ATOMIC_GET(ssl_config.enable_ja3) && ssl_state->curr_connp->ja3_str == NULL) {
         ssl_state->curr_connp->ja3_str = Ja3BufferInit();
         if (ssl_state->curr_connp->ja3_str == NULL)
             return -1;
@@ -779,7 +782,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
         goto invalid_length;
     }
 
-    if (ssl_config.enable_ja3) {
+    if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
         JA3Buffer *ja3_cipher_suites = Ja3BufferInit();
         if (ja3_cipher_suites == NULL)
             return -1;
@@ -1015,7 +1018,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
         goto invalid_length;
 
     if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
-            ssl_config.enable_ja3) {
+            SC_ATOMIC_GET(ssl_config.enable_ja3)) {
         uint16_t ec_processed_len = 0;
         /* coverity[tainted_data] */
         while (ec_processed_len < elliptic_curves_len)
@@ -1072,7 +1075,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurvePF(SSLState *ssl_state,
         goto invalid_length;
 
     if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
-            ssl_config.enable_ja3) {
+            SC_ATOMIC_GET(ssl_config.enable_ja3)) {
         uint8_t ec_pf_processed_len = 0;
         /* coverity[tainted_data] */
         while (ec_pf_processed_len < ec_pf_len)
@@ -1113,12 +1116,13 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
 
     int ret;
     int rc;
+    const bool ja3 = (SC_ATOMIC_GET(ssl_config.enable_ja3) == 1);
 
     JA3Buffer *ja3_extensions = NULL;
     JA3Buffer *ja3_elliptic_curves = NULL;
     JA3Buffer *ja3_elliptic_curves_pf = NULL;
 
-    if (ssl_config.enable_ja3) {
+    if (ja3) {
         ja3_extensions = Ja3BufferInit();
         if (ja3_extensions == NULL)
             goto error;
@@ -1250,7 +1254,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
             }
         }
 
-        if (ssl_config.enable_ja3) {
+        if (ja3) {
             if (TLSDecodeValueIsGREASE(ext_type) != 1) {
                 rc = Ja3BufferAddValue(&ja3_extensions, ext_type);
                 if (rc != 0)
@@ -1262,7 +1266,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
     }
 
 end:
-    if (ssl_config.enable_ja3) {
+    if (ja3) {
         rc = Ja3BufferAppendBuffer(&ssl_state->curr_connp->ja3_str,
                                    &ja3_extensions);
         if (rc == -1)
@@ -1356,7 +1360,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
     if (ret < 0)
         goto end;
 
-    if (ssl_config.enable_ja3 && ssl_state->curr_connp->ja3_hash == NULL) {
+    if (SC_ATOMIC_GET(ssl_config.enable_ja3) && ssl_state->curr_connp->ja3_hash == NULL) {
         ssl_state->curr_connp->ja3_hash = Ja3GenerateHash(ssl_state->curr_connp->ja3_str);
     }
 
@@ -2840,6 +2844,8 @@ void RegisterSSLParsers(void)
 {
     const char *proto_name = "tls";
 
+    SC_ATOMIC_INIT(ssl_config.enable_ja3);
+
     /** SSLv2  and SSLv23*/
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_TLS, proto_name);
@@ -2937,20 +2943,26 @@ void RegisterSSLParsers(void)
         SCLogDebug("ssl_config.encrypt_mode %u", ssl_config.encrypt_mode);
 
         /* Check if we should generate JA3 fingerprints */
+        int enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
         if (ConfGetBool("app-layer.protocols.tls.ja3-fingerprints",
-                        &ssl_config.enable_ja3) != 1) {
-            ssl_config.enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
+                        &enable_ja3) != 1) {
+            enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
+        } else {
+            if (enable_ja3 == 0) {
+                ssl_config.disable_ja3 = true;
+            }
         }
+        SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
 
 #ifndef HAVE_NSS
-        if (ssl_config.enable_ja3) {
+        if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
             SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
                          "no MD5 calculation support built in (LibNSS), disabling JA3");
-            ssl_config.enable_ja3 = 0;
+            SC_ATOMIC_SET(ssl_config.enable_ja3, 0);
         }
 #else
         if (RunmodeIsUnittests()) {
-            ssl_config.enable_ja3 = 1;
+            SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
         }
 #endif
 
@@ -2963,6 +2975,25 @@ void RegisterSSLParsers(void)
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_TLS, SSLParserRegisterTests);
 #endif
     return;
+}
+
+/**
+ * \brief if not explicitly disabled in config, enable ja3 support
+ *
+ * Implemented using atomic to allow rule reloads to do this at
+ * runtime.
+ */
+void SSLEnableJA3(void)
+{
+#ifdef HAVE_NSS
+    if (ssl_config.disable_ja3) {
+        return;
+    }
+    if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
+        return;
+    }
+    SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
+#endif
 }
 
 /***************************************Unittests******************************/
