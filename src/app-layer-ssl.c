@@ -2996,6 +2996,16 @@ void SSLEnableJA3(void)
 #endif
 }
 
+bool SSLJA3IsEnabled(void)
+{
+#ifdef HAVE_NSS
+    if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
+        return true;
+    }
+#endif
+    return false;
+}
+
 /***************************************Unittests******************************/
 
 #ifdef UNITTESTS
