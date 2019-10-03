@@ -134,6 +134,12 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     if (lookup_ref_conf != NULL) {
         ref->key = lookup_ref_conf->url;
     } else {
+        if (SigMatchStrictEnabled(DETECT_REFERENCE)) {
+            SCLogError(SC_ERR_REFERENCE_UNKNOWN,
+                    "unknown reference key \"%s\"", key);
+            goto error;
+        }
+
         SCLogWarning(SC_ERR_REFERENCE_UNKNOWN,
                 "unknown reference key \"%s\"", key);
 
