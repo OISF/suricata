@@ -112,8 +112,14 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     char parsed_ct_name[CLASSTYPE_NAME_MAX_LEN] = "";
 
     if ((s->class_id > 0) || (s->class_msg != NULL)) {
-        SCLogWarning(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicated 'classtype' "
-                "keyword detected. Using instance with highest priority");
+        if (SigMatchStrictEnabled(DETECT_CLASSTYPE)) {
+            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicated 'classtype' "
+                    "keyword detected.");
+            return -1;
+        } else {
+            SCLogWarning(SC_ERR_CONFLICTING_RULE_KEYWORDS, "duplicated 'classtype' "
+                    "keyword detected. Using instance with highest priority");
+        }
     }
 
     if (DetectClasstypeParseRawString(rawstr, parsed_ct_name, sizeof(parsed_ct_name)) < 0) {
@@ -125,6 +131,12 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     bool real_ct = true;
     SCClassConfClasstype *ct = SCClassConfGetClasstype(parsed_ct_name, de_ctx);
     if (ct == NULL) {
+        if (SigMatchStrictEnabled(DETECT_CLASSTYPE)) {
+            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown classtype '%s'",
+                    parsed_ct_name);
+            return -1;
+        }
+
         if (s->id > 0) {
             SCLogWarning(SC_ERR_UNKNOWN_VALUE, "signature sid:%u uses "
                     "unknown classtype: \"%s\", using default priority %d. "
