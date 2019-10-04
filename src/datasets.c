@@ -692,7 +692,7 @@ static int DatasetLookupString(Dataset *set, const uint8_t *data, const uint32_t
         THashDataUnlock(rdata);
         return 1;
     }
-    return -1;
+    return 0;
 }
 
 static DataRepResultType DatasetLookupStringwRep(Dataset *set,
@@ -721,7 +721,7 @@ static int DatasetLookupMd5(Dataset *set, const uint8_t *data, const uint32_t da
         return -1;
 
     if (data_len != 16)
-        return 0;
+        return -1;
 
     Md5Type lookup = { .rep.value = 0 };
     memcpy(lookup.md5, data, data_len);
@@ -730,7 +730,7 @@ static int DatasetLookupMd5(Dataset *set, const uint8_t *data, const uint32_t da
         THashDataUnlock(rdata);
         return 1;
     }
-    return -1;
+    return 0;
 }
 
 static DataRepResultType DatasetLookupMd5wRep(Dataset *set,
@@ -763,7 +763,7 @@ static int DatasetLookupSha256(Dataset *set, const uint8_t *data, const uint32_t
         return -1;
 
     if (data_len != 32)
-        return 0;
+        return -1;
 
     Sha256Type lookup = { .rep.value = 0 };
     memcpy(lookup.sha256, data, data_len);
@@ -772,7 +772,7 @@ static int DatasetLookupSha256(Dataset *set, const uint8_t *data, const uint32_t
         THashDataUnlock(rdata);
         return 1;
     }
-    return -1;
+    return 0;
 }
 
 static DataRepResultType DatasetLookupSha256wRep(Dataset *set,
@@ -799,6 +799,15 @@ static DataRepResultType DatasetLookupSha256wRep(Dataset *set,
     return rrep;
 }
 
+/**
+ *  \brief see if \a data is part of the set
+ *  \param set dataset
+ *  \param data data to look up
+ *  \param data_len length in bytes of \a data
+ *  \retval -1 error
+ *  \retval 0 not found
+ *  \retval 1 found
+ */
 int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len)
 {
     if (set == NULL)
