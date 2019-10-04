@@ -2119,13 +2119,16 @@
 
     # If Lua is enabled, test the integer size.
     if test "x$enable_lua" = "xyes"; then
+        TMPLIBS="$LIBS"
+        LIBS=""
+
         AC_MSG_CHECKING([size of lua integer])
-        AC_RUN_IFELSE([AC_LANG_PROGRAM([[ #include <lua.h> ]],
+        AC_RUN_IFELSE([AC_LANG_PROGRAM([[#include <lua.h>]],
             [[
             if (sizeof(lua_Integer) == 8) {
-                exit(1);
+                return 1;
             }
-            exit(0);
+            return 0;
             ]])],
             [
                 AC_MSG_RESULT([4])
@@ -2134,6 +2137,7 @@
                 AC_MSG_RESULT([8])
                 AC_SUBST([LUA_INT8], ["lua_int8"])
             ])
+        LIBS="$TMPLIBS"
     fi
 
   # libmaxminddb
