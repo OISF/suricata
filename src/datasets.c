@@ -418,7 +418,8 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
             SCLogError(SC_ERR_DATASET, "dataset %s already "
                     "exists and is of type %u",
                 set->name, set->type);
-            goto out_err;
+            SCMutexUnlock(&sets_lock);
+            return NULL;
         }
 
         if ((save == NULL || strlen(save) == 0) &&
@@ -430,13 +431,15 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
                     (save != NULL && strcmp(set->save, save) != 0)) {
                 SCLogError(SC_ERR_DATASET, "dataset %s save mismatch: %s != %s",
                         set->name, set->save, save);
-                goto out_err;
+                SCMutexUnlock(&sets_lock);
+                return NULL;
             }
             if ((load == NULL && strlen(set->load) > 0) ||
                     (load != NULL && strcmp(set->load, load) != 0)) {
                 SCLogError(SC_ERR_DATASET, "dataset %s load mismatch: %s != %s",
                         set->name, set->load, load);
-                goto out_err;
+                SCMutexUnlock(&sets_lock);
+                return NULL;
             }
         }
 
