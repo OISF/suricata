@@ -1553,20 +1553,6 @@ void AppLayerParserRegisterProtocolParsers(void)
                   "imap");
     }
 
-    /** MSN Messenger */
-    AppLayerProtoDetectRegisterProtocol(ALPROTO_MSN, "msn");
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", "msn")) {
-        if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_MSN,
-                                    "msn", 10, 6, STREAM_TOSERVER) < 0)
-        {
-            SCLogInfo("msn proto registration failure");
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
-                  "msn");
-    }
-
     ValidateParsers();
     return;
 }

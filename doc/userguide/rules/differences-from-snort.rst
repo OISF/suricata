@@ -21,7 +21,6 @@ Automatic Protocol Detection
    -  imap (detection only by default; no parsing)
    -  ftp
    -  modbus (disabled by default; minimalist probe parser; can lead to false positives)
-   -  msn (detection only by default; no parsing)
    -  smb
    -  smb2 (disabled internally inside the engine)
    -  smtp
