@@ -51,7 +51,7 @@ const char *ConfigGetLogDirectory()
     return log_dir;
 }
 
-TmEcode ConfigCheckLogDirectory(const char *log_dir)
+TmEcode ConfigCheckLogDirectoryExists(const char *log_dir)
 {
     SCEnter();
 #ifdef OS_WIN32

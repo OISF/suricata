@@ -1173,6 +1173,16 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
     return TM_ECODE_OK;
 }
 
+/**
+ * Helper function to check if log directory is writable
+ */
+static bool IsLogDirectoryWritable(const char* str)
+{
+    if (access(str, W_OK) == 0)
+        return true;
+    return false;
+}
+
 static void ParseCommandLineAFL(const char *opt_name, char *opt_arg)
 {
 #ifdef AFLFUZZ_RULES
@@ -1951,10 +1961,16 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 SCLogError(SC_ERR_FATAL, "Failed to set log directory.");
                 return TM_ECODE_FAILED;
             }
-            if (ConfigCheckLogDirectory(optarg) != TM_ECODE_OK) {
+            if (ConfigCheckLogDirectoryExists(optarg) != TM_ECODE_OK) {
                 SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
                         " supplied at the commandline (-l %s) doesn't "
                         "exist. Shutting down the engine.", optarg, optarg);
+                return TM_ECODE_FAILED;
+            }
+            if (!IsLogDirectoryWritable(optarg)) {
+                SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
+                        " supplied at the commandline (-l %s) is not "
+                        "writable. Shutting down the engine.", optarg, optarg);
                 return TM_ECODE_FAILED;
             }
             suri->set_logdir = true;
@@ -2757,16 +2773,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
         }
     }
 
-    /* Check for the existance of the default logging directory which we pick
-     * from suricata.yaml.  If not found, shut the engine down */
-    suri->log_dir = ConfigGetLogDirectory();
-
-    if (ConfigCheckLogDirectory(suri->log_dir) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
-                "supplied by %s (default-log-dir) doesn't exist. "
-                "Shutting down the engine", suri->log_dir, suri->conf_filename);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
 
     if (ConfigGetCaptureValue(suri) != TM_ECODE_OK) {
         SCReturnInt(TM_ECODE_FAILED);
@@ -2830,6 +2836,23 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
+
+    /* Check for the existance of the default logging directory which we pick
+     * from suricata.yaml.  If not found, shut the engine down */
+    suri->log_dir = ConfigGetLogDirectory();
+
+    if (ConfigCheckLogDirectoryExists(suri->log_dir) != TM_ECODE_OK) {
+        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
+                "supplied by %s (default-log-dir) doesn't exist. "
+                "Shutting down the engine", suri->log_dir, suri->conf_filename);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    if (!IsLogDirectoryWritable(suri->log_dir)) {
+        SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
+                "supplied by %s (defailt-log-dir) is not writable. "
+                "Shutting down the engine", suri->log_dir, suri->conf_filename);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
 
 
 #ifdef HAVE_NSS
