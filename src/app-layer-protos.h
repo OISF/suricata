@@ -33,7 +33,6 @@ enum AppProtoEnum {
     ALPROTO_TLS, /* SSLv2, SSLv3 & TLSv1 */
     ALPROTO_SSH,
     ALPROTO_IMAP,
-    ALPROTO_MSN,
     ALPROTO_JABBER,
     ALPROTO_SMB,
     ALPROTO_DCERPC,

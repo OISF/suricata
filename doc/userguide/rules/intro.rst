@@ -73,7 +73,6 @@ you can pick from. These are:
 * ssh
 * smtp
 * imap
-* msn
 * modbus (disabled by default)
 * dnp3 (disabled by default)
 * enip (disabled by default)
