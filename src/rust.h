@@ -25,12 +25,6 @@
 #include "app-layer-snmp.h" //SNMPState, SNMPTransaction
 #include "app-layer-tftp.h" //TFTPState, TFTPTransaction
 
-/* If we don't have Lua, create a typedef for lua_State so the
- * exported Lua functions don't fail the build. */
-#ifndef HAVE_LUA
-typedef void lua_State;
-#endif
-
 typedef struct SuricataContext_ {
     SCError (*SCLogMessage)(const SCLogLevel, const char *, const unsigned int,
             const char *, const SCError, const char *message);
