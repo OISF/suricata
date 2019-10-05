@@ -22,12 +22,12 @@ declared from the rule syntax.
 Example of sets for tracking unique values::
 
     datasets:
-     - ua-seen:
-       type: string
-       state: ua-seen.lst
-     - dns-sha256-seen:
-       type: sha256
-       state: dns-sha256-seen.lst
+      ua-seen:
+        type: string
+        state: ua-seen.lst
+      dns-sha256-seen:
+        type: sha256
+        state: dns-sha256-seen.lst
 
 Rules to go with the above::
 
