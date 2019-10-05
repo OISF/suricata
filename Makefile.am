@@ -32,7 +32,7 @@ install-conf:
 
 install-rules:
 if HAVE_SURICATA_UPDATE
-	$(DESTDIR)$(bindir)/suricata-update \
+	LD_LIBRARY_PATH="$(DESTDIR)$(prefix)/lib" $(DESTDIR)$(bindir)/suricata-update \
 		--suricata $(DESTDIR)$(bindir)/suricata \
 		--suricata-conf $(DESTDIR)$(sysconfdir)/suricata/suricata.yaml \
 		--no-test --no-reload
