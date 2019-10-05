@@ -367,8 +367,8 @@ static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint1
 static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx,
         ConfNode *conf)
 {
-    static bool _warn_no_flags = false;
-    static bool _warn_no_packet = false;
+    static bool warn_no_flags = false;
+    static bool warn_no_packet = false;
     uint16_t flags = ANOMALY_DEFAULTS;
     if (conf != NULL) {
         /* Check for metadata to enable/disable. */
@@ -380,17 +380,17 @@ static void JsonAnomalyLogConf(AnomalyJsonOutputCtx *json_output_ctx,
         }
         SetFlag(conf, "packethdr", LOG_JSON_PACKETHDR, &flags);
     }
-    if (((flags & (LOG_JSON_DECODE_TYPE | LOG_JSON_PACKETHDR)) == LOG_JSON_PACKETHDR) && !_warn_no_packet) {
+    if (((flags & (LOG_JSON_DECODE_TYPE | LOG_JSON_PACKETHDR)) == LOG_JSON_PACKETHDR) && !warn_no_packet) {
         SCLogWarning(SC_WARN_ANOMALY_CONFIG, "Anomaly logging configured to include packet headers, however decode "
                      "type logging has not been selected. Packet headers will not be logged.");
-        _warn_no_packet = true;
+        warn_no_packet = true;
         flags &= ~LOG_JSON_PACKETHDR;
     }
 
-    if (flags == 0 && !_warn_no_flags) {
+    if (flags == 0 && !warn_no_flags) {
         SCLogWarning(SC_WARN_ANOMALY_CONFIG, "Anomaly logging has been configured; however, no logging types "
                      "have been selected. Select one or more logging types.");
-        _warn_no_flags = true;
+        warn_no_flags = true;
     }
     json_output_ctx->flags |= flags;
 }
