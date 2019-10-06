@@ -2143,7 +2143,7 @@
   # libmaxminddb
     AC_ARG_ENABLE(geoip,
 	        AS_HELP_STRING([--enable-geoip],[Enable GeoIP2 support]),
-	        [ enable_geoip="yes"],
+	        [ enable_geoip="$enableval"],
 	        [ enable_geoip="no"])
     AC_ARG_WITH(libmaxminddb_includes,
             [  --with-libmaxminddb-includes=DIR  libmaxminddb include directory],
