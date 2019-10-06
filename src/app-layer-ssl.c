@@ -2944,13 +2944,16 @@ void RegisterSSLParsers(void)
 
         /* Check if we should generate JA3 fingerprints */
         int enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-        if (ConfGetBool("app-layer.protocols.tls.ja3-fingerprints",
-                        &enable_ja3) != 1) {
+        const char *strval = NULL;
+        if (ConfGetValue("app-layer.protocols.tls.ja3-fingerprints", &strval) != 1) {
             enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-        } else {
-            if (enable_ja3 == 0) {
-                ssl_config.disable_ja3 = true;
-            }
+        } else if (strcmp(strval, "auto") == 0) {
+            enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
+        } else if (ConfValIsFalse(strval)) {
+            enable_ja3 = 0;
+            ssl_config.disable_ja3 = true;
+        } else if (ConfValIsTrue(strval)) {
+            enable_ja3 = true;
         }
         SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
 
