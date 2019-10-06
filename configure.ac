@@ -2061,7 +2061,7 @@
   # libmaxminddb
     AC_ARG_ENABLE(geoip,
 	        AS_HELP_STRING([--enable-geoip],[Enable GeoIP support]),
-	        [ enable_geoip="yes"],
+	        [ enable_geoip="$enableval"],
 	        [ enable_geoip="no"])
     AC_ARG_ENABLE(libgeoip,
         AS_HELP_STRING([--disable-libgeoip], [Disable libgeoip support]),
