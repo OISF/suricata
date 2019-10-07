@@ -521,7 +521,6 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
 
     if (files != NULL) {
         SMTPPruneFiles(files);
-        FilePrune(files);
     }
 
     SCReturnInt(ret);
