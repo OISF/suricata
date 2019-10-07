@@ -258,6 +258,14 @@ void SigMatchFree(SigMatch *sm)
     SCFree(sm);
 }
 
+static enum DetectKeywordId SigTableGetIndex(const SigTableElmt *e)
+{
+    const SigTableElmt *table = &sigmatch_table[0];
+    ptrdiff_t offset = e - table;
+    BUG_ON(offset >= DETECT_TBLSIZE);
+    return (enum DetectKeywordId)offset;
+}
+
 /* Get the detection module by name */
 static SigTableElmt *SigTableGet(char *name)
 {
@@ -276,6 +284,12 @@ static SigTableElmt *SigTableGet(char *name)
     }
 
     return NULL;
+}
+
+bool SigMatchSilentErrorEnabled(const DetectEngineCtx *de_ctx,
+        const enum DetectKeywordId id)
+{
+    return de_ctx->sm_types_silent_error[id];
 }
 
 bool SigMatchStrictEnabled(const enum DetectKeywordId id)
@@ -792,7 +806,17 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     }
     if (setup_ret < 0) {
         SCLogDebug("\"%s\" failed to setup", st->name);
-        goto error;
+
+        /* handle 'silent' error case */
+        if (setup_ret == -2) {
+            enum DetectKeywordId idx = SigTableGetIndex(st);
+            if (de_ctx->sm_types_silent_error[idx] == false) {
+                de_ctx->sm_types_silent_error[idx] = true;
+                return -2;
+            }
+            return -1;
+        }
+        return setup_ret;
     }
     s->init_data->negated = false;
 
@@ -1839,8 +1863,13 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     /* default gid to 1 */
     sig->gid = 1;
 
-    if (SigParse(de_ctx, sig, sigstr, dir, &parser) < 0)
+    int ret = SigParse(de_ctx, sig, sigstr, dir, &parser);
+    if (ret == -2) {
+        de_ctx->sigerror_silent = true;
         goto error;
+    } else if (ret < 0) {
+        goto error;
+    }
 
     /* signature priority hasn't been overwritten.  Using default priority */
     if (sig->prio == -1)
@@ -1982,6 +2011,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
     SCEnter();
 
     uint32_t oldsignum = de_ctx->signum;
+    de_ctx->sigerror_silent = false;
 
     Signature *sig;
 

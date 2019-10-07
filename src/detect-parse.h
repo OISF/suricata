@@ -59,6 +59,8 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
         Signature *s, const char *arg, int sm_type, int sm_list,
         AppProto alproto);
 
+bool SigMatchSilentErrorEnabled(const DetectEngineCtx *de_ctx,
+        const enum DetectKeywordId id);
 bool SigMatchStrictEnabled(const enum DetectKeywordId id);
 
 const char *DetectListToHumanString(int list);
