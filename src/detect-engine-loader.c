@@ -180,20 +180,22 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
             good++;
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "error parsing signature \"%s\" from "
-                 "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+            if (!de_ctx->sigerror_silent) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "error parsing signature \"%s\" from "
+                        "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
 
+                if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, de_ctx->sigerror, (lineno - multiline))) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Error adding sig \"%s\" from "
+                            "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+                }
+                if (de_ctx->sigerror) {
+                    de_ctx->sigerror = NULL;
+                }
+            }
             if (rule_engine_analysis_set) {
                 EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
             }
             bad++;
-            if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, de_ctx->sigerror, (lineno - multiline))) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error adding sig \"%s\" from "
-                     "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
-            }
-            if (de_ctx->sigerror) {
-                de_ctx->sigerror = NULL;
-            }
         }
         multiline = 0;
     }
