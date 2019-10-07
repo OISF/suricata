@@ -864,6 +864,7 @@ typedef struct DetectEngineCtx_ {
     /** Store rule file and line so that parsers can use them in errors. */
     char *rule_file;
     int rule_line;
+    bool sigerror_silent;
     const char *sigerror;
 
     /** list of keywords that need thread local ctxs */
@@ -943,6 +944,7 @@ typedef struct DetectEngineCtx_ {
      *  set for it. If true, the setup function will have to
      *  run. */
     bool sm_types_prefilter[DETECT_TBLSIZE];
+    bool sm_types_silent_error[DETECT_TBLSIZE];
 
 } DetectEngineCtx;
 
