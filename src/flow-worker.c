@@ -281,6 +281,19 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *pr
     // Outputs.
     OutputLoggerLog(tv, p, fw->output_thread);
 
+    /* Prune any stored files. */
+    if (p->flow && p->flow->alstate) {
+        Flow *f = p->flow;
+        FileContainer *ffc_ts = AppLayerParserGetFiles(p->proto, f->alproto,
+            f->alstate, STREAM_TOSERVER);
+        FileContainer *ffc_tc = AppLayerParserGetFiles(p->proto, f->alproto,
+            f->alstate, STREAM_TOCLIENT);
+        if (ffc_ts && (p->flowflags & FLOW_PKT_TOSERVER))
+            FilePrune(ffc_ts);
+        if (ffc_tc && (p->flowflags & FLOW_PKT_TOCLIENT))
+            FilePrune(ffc_tc);
+    }
+
     /*  Release tcp segments. Done here after alerting can use them. */
     if (p->flow != NULL && p->proto == IPPROTO_TCP) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
