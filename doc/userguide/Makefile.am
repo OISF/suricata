@@ -8,6 +8,7 @@ EXTRA_DIST = \
 	configuration \
 	file-extraction \
 	index.rst \
+	upgrade.rst \
 	initscripts.rst \
 	install.rst \
 	licenses \
