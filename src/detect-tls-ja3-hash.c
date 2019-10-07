@@ -114,6 +114,7 @@ void DetectTlsJa3HashRegister(void)
  *
  * \retval 0  On success
  * \retval -1 On failure
+ * \retval -2 on failure that should be silent after the first
  */
 static int DetectTlsJa3HashSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
@@ -127,8 +128,12 @@ static int DetectTlsJa3HashSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     SSLEnableJA3();
 
     /* Check if JA3 is disabled */
-    if (!RunmodeIsUnittests() && Ja3IsDisabled("rule"))
-        return -1;
+    if (!RunmodeIsUnittests() && Ja3IsDisabled("rule")) {
+        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_AL_TLS_JA3_HASH)) {
+            SCLogError(SC_WARN_JA3_DISABLED, "ja3 support is not enabled");
+        }
+        return -2;
+    }
 
     return 0;
 }
