@@ -146,7 +146,6 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
 
     FileSetTx(files->tail, txid);
 
-    FilePrune(files);
 end:
     SCReturnInt(retval);
 }
@@ -301,7 +300,6 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
         retval = -2;
     }
 
-    FilePrune(files);
 end:
     SCReturnInt(retval);
 }
@@ -353,7 +351,6 @@ int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
         retval = -2;
     }
 
-    FilePrune(files);
 end:
     SCReturnInt(retval);
 }

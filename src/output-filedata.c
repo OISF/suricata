@@ -200,8 +200,6 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadStore *store,
                 }
             }
         }
-
-        FilePrune(ffc);
     }
 }
 
