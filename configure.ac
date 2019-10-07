@@ -1518,9 +1518,9 @@
 	    echo "    Warning: suricata-update will not be installed as the"
 	    echo "        depedency python-yaml is not installed."
 	    echo ""
-	    echo "    Debian/Ubuntu: apt install python-yaml"
-	    echo "    Fedora: dnf install python-yaml"
-	    echo "    CentOS/RHEL: yum install python-yaml"
+	    echo "    Debian/Ubuntu: apt install python3-yaml"
+	    echo "    Fedora: dnf install python3-pyyaml"
+	    echo "    CentOS/RHEL: yum install python3-pyyaml"
 	    echo
 	else
             SURICATA_UPDATE_DIR="suricata-update"
