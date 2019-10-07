@@ -703,6 +703,8 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 #undef URL
     }
 
+    int setup_ret = 0;
+
     /* Validate double quoting, trimming trailing white space along the way. */
     if (optvalue != NULL && strlen(optvalue) > 0) {
         size_t ovlen = strlen(optvalue);
@@ -783,16 +785,14 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             }
         }
         /* setup may or may not add a new SigMatch to the list */
-        if (st->Setup(de_ctx, s, ptr) < 0) {
-            SCLogDebug("\"%s\" failed to setup", st->name);
-            goto error;
-        }
+        setup_ret = st->Setup(de_ctx, s, ptr);
     } else {
         /* setup may or may not add a new SigMatch to the list */
-        if (st->Setup(de_ctx, s, NULL) < 0) {
-            SCLogDebug("\"%s\" failed to setup", st->name);
-            goto error;
-        }
+        setup_ret = st->Setup(de_ctx, s, NULL);
+    }
+    if (setup_ret < 0) {
+        SCLogDebug("\"%s\" failed to setup", st->name);
+        goto error;
     }
     s->init_data->negated = false;
 
