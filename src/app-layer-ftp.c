@@ -800,9 +800,6 @@ static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
     }
 
 out:
-    if (ftpdata_state->files) {
-        FilePrune(ftpdata_state->files);
-    }
     return ret;
 }
 
