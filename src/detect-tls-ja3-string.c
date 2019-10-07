@@ -117,8 +117,12 @@ static int DetectTlsJa3StringSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     SSLEnableJA3();
 
     /* Check if JA3 is disabled */
-    if (!RunmodeIsUnittests() && Ja3IsDisabled("rule"))
-        return -1;
+    if (!RunmodeIsUnittests() && Ja3IsDisabled("rule")) {
+        if (!SigMatchSilentErrorEnabled(de_ctx, DETECT_AL_TLS_JA3_HASH)) {
+            SCLogError(SC_WARN_JA3_DISABLED, "ja3(s) support is not enabled");
+        }
+        return -2;
+    }
 
     return 0;
 }

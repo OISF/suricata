@@ -264,16 +264,20 @@ int Ja3IsDisabled(const char *type)
 {
     bool is_enabled = SSLJA3IsEnabled();
     if (is_enabled == 0) {
-        SCLogWarning(SC_WARN_JA3_DISABLED, "JA3 is disabled, skipping %s",
-                     type);
+        if (strcmp(type, "rule") != 0) {
+            SCLogWarning(SC_WARN_JA3_DISABLED, "JA3 is disabled, skipping %s",
+                    type);
+        }
         return 1;
     }
 
 #ifndef HAVE_NSS
     else {
-        SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
-                     "no MD5 calculation support built in (LibNSS), skipping %s",
-                     type);
+        if (strcmp(type, "rule") != 0) {
+            SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
+                    "no MD5 calculation support built in (LibNSS), skipping %s",
+                    type);
+        }
         return 1;
     }
 #endif /* HAVE_NSS */
