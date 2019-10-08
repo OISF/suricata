@@ -2,6 +2,10 @@ if HAVE_PYTHON
 if HAVE_PYTHON_DISTUTILS
 if HAVE_PYTHON_YAML
 
+all-local:
+	cd $(srcdir) && \
+		$(HAVE_PYTHON) setup.py build --build-base $(abs_builddir)
+
 install-exec-local:
 	cd $(srcdir) && \
 		$(HAVE_PYTHON) setup.py build --build-base $(abs_builddir) \
