@@ -125,6 +125,8 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
     DecodeThreadVarsFree(&tv, dtv);
     FlowShutdown();
     DefragDestroy();
+    StatsThreadCleanup(&tv);
+    StatsReleaseResources();
     return 0;
 }
 
