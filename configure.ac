@@ -97,7 +97,6 @@
         exit 1
     fi
 
-    python_version="not set"
     python_path="not set"
 
     AC_ARG_ENABLE(python,
@@ -109,13 +108,15 @@
         AC_PATH_PROGS(HAVE_PYTHON, python3 python2.7 python2 python, "no")
         if test "$HAVE_PYTHON" = "no"; then
             echo
-            echo "   Warning! python not found, you will not be     "
-            echo "   able to install suricatasc unix socket client   "
+            echo "   Warning! Python not found."
+            echo
+            echo "   Python is required for additional tools like"
+            echo "   suricatasc, suricatactl and suricata-update."
+            echo "   It is also required when building from git."
             echo
             enable_python="no"
 	else
 	    python_path="$HAVE_PYTHON"
-	    python_version="$($HAVE_PYTHON --version)"
         fi
     fi
     AM_CONDITIONAL([HAVE_PYTHON], [test "x$enable_python" = "xyes"])
@@ -2589,7 +2590,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
 
   Python support:                          ${enable_python}
   Python path:                             ${python_path}
-  Python version:                          ${python_version}
   Python distutils                         ${have_python_distutils}
   Python yaml                              ${have_python_yaml}
   Install suricatactl:                     ${install_suricatactl}
