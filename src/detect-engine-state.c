@@ -1108,6 +1108,8 @@ static int DeStateSigTest08(void)
     FAIL_IF_NULL(files);
     file = files->head;
     FAIL_IF_NULL(file);
+    file = file->next;
+    FAIL_IF_NULL(file);
     FAIL_IF_NOT(file->flags & FILE_STORE);
 
     AppLayerParserThreadCtxFree(alp_tctx);
