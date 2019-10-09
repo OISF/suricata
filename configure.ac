@@ -145,7 +145,8 @@
        echo "    Warning: Python distutils not found. Python tools will"
        echo "        not be installed."
        echo ""
-       echo "    Please install the distutils module for Python ${pymv}."
+       echo "    Install the distutils module for Python ${pymv} to enable"
+       echo "    the Python tools."
        echo ""
     fi
 
@@ -1523,11 +1524,10 @@
         if test "$have_python_yaml" != "yes"; then
 	    echo ""
 	    echo "    Warning: suricata-update will not be installed as the"
-	    echo "        depedency python-yaml is not installed."
+	    echo "        Python yaml module is not installed.."
 	    echo ""
-	    echo "    Debian/Ubuntu: apt install python-yaml"
-	    echo "    Fedora: dnf install python-yaml"
-	    echo "    CentOS/RHEL: yum install python-yaml"
+            echo "    Install the yaml module for Python ${pymv} to enable"
+            echo "    suricata-update."
 	    echo
 	else
             SURICATA_UPDATE_DIR="suricata-update"
