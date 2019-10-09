@@ -55,7 +55,9 @@ distclean-local: clean-local
 	rm -rf vendor gen Cargo.lock
 
 check:
-	RUSTUP_HOME=$(RUSTUP_HOME) CARGO_HOME=$(CARGO_HOME) $(CARGO) test
+	RUSTUP_HOME=$(RUSTUP_HOME) \
+		CARGO_HOME=$(CARGO_HOME) \
+		$(CARGO) test --features "$(RUST_FEATURES)"
 
 Cargo.lock: Cargo.toml
 	RUSTUP_HOME=$(RUSTUP_HOME) CARGO_HOME=$(CARGO_HOME) $(CARGO) \
