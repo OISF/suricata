@@ -535,9 +535,6 @@ int DetectAddressParseString(DetectAddress *dd, const char *str)
     int r = 0;
     char ipstr[256];
 
-    while (*str != '\0' && *str == ' ')
-        str++;
-
     /* first handle 'any' */
     if (strcasecmp(str, "any") == 0) {
         dd->flags |= ADDRESS_FLAG_ANY;
@@ -747,6 +744,9 @@ error:
 static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
 {
     SCLogDebug("gh %p, s %s", gh, s);
+
+    while (*s != '\0' && isspace(*s))
+        s++;
 
     /* parse the address */
     DetectAddress *ad = DetectAddressParseSingle(s);
