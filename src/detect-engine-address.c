@@ -444,9 +444,6 @@ static int DetectAddressParseString(DetectAddress *dd, const char *str)
     int r = 0;
     char ipstr[256];
 
-    while (*str != '\0' && *str == ' ')
-        str++;
-
     /* shouldn't see 'any' here */
     BUG_ON(strcasecmp(str, "any") == 0);
 
@@ -646,6 +643,9 @@ static DetectAddress *DetectAddressParseSingle(const char *str)
 static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
 {
     SCLogDebug("gh %p, s %s", gh, s);
+
+    while (*s != '\0' && isspace(*s))
+        s++;
 
     if (strcasecmp(s, "any") == 0) {
         SCLogDebug("adding 0.0.0.0/0 and ::/0 as we\'re handling \'any\'");
