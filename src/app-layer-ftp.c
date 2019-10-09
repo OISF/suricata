@@ -624,8 +624,10 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                 // fallthrough
             case FTP_COMMAND_STOR:
                 {
-                    /* No dyn port negotiated so get out */
-                    if (state->dyn_port == 0) {
+                    /* Ensure that there is a negotiated dyn port and a file
+                     * name -- need more than 5 chars: cmd [4], space, <filename>
+                     */
+                    if (state->dyn_port == 0 || state->current_line_len < 6) {
                         SCReturnInt(-1);
                     }
                     struct FtpTransferCmd *data = FTPCalloc(1, sizeof(struct FtpTransferCmd));
@@ -1758,6 +1760,166 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
+
+/** \test Supply RETR without a filename */
+static int FTPParserTest11(void)
+{
+    int result = 1;
+    Flow f;
+    uint8_t ftpbuf1[] = "PORT 192,168,1,1,0,80\r\n";
+    uint8_t ftpbuf2[] = "RETR\r\n";
+    uint8_t ftpbuf3[] = "227 OK\r\n";
+    TcpSession ssn;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
+                                STREAM_TOSERVER | STREAM_START, ftpbuf1,
+                                sizeof(ftpbuf1) - 1);
+    if (r != 0) {
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    /* Response */
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
+                                STREAM_TOCLIENT,
+                                ftpbuf3,
+                                sizeof(ftpbuf3) - 1);
+    if (r != 0) {
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
+                                STREAM_TOSERVER, ftpbuf2,
+                                sizeof(ftpbuf2) - 1);
+    if (r == 0) {
+        SCLogDebug("parse should've failed");
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    FtpState *ftp_state = f.alstate;
+    if (ftp_state == NULL) {
+        SCLogDebug("no ftp state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (ftp_state->command != FTP_COMMAND_RETR) {
+        SCLogDebug("expected command %" PRIu32 ", got %" PRIu32 ": ",
+                   FTP_COMMAND_RETR, ftp_state->command);
+        result = 0;
+        goto end;
+    }
+
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/** \test Supply STOR without a filename */
+static int FTPParserTest12(void)
+{
+    int result = 1;
+    Flow f;
+    uint8_t ftpbuf1[] = "PORT 192,168,1,1,0,80\r\n";
+    uint8_t ftpbuf2[] = "STOR\r\n";
+    uint8_t ftpbuf3[] = "227 OK\r\n";
+    TcpSession ssn;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
+                                STREAM_TOSERVER | STREAM_START, ftpbuf1,
+                                sizeof(ftpbuf1) - 1);
+    if (r != 0) {
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    /* Response */
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
+                                STREAM_TOCLIENT,
+                                ftpbuf3,
+                                sizeof(ftpbuf3) - 1);
+    if (r != 0) {
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
+                                STREAM_TOSERVER, ftpbuf2,
+                                sizeof(ftpbuf2) - 1);
+    if (r == 0) {
+        SCLogDebug("parse should've failed");
+        result = 0;
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    FtpState *ftp_state = f.alstate;
+    if (ftp_state == NULL) {
+        SCLogDebug("no ftp state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (ftp_state->command != FTP_COMMAND_STOR) {
+        SCLogDebug("expected command %" PRIu32 ", got %" PRIu32 ": ",
+                   FTP_COMMAND_STOR, ftp_state->command);
+        result = 0;
+        goto end;
+    }
+
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
 #endif /* UNITTESTS */
 
 void FTPParserRegisterTests(void)
@@ -1768,6 +1930,8 @@ void FTPParserRegisterTests(void)
     UtRegisterTest("FTPParserTest06", FTPParserTest06);
     UtRegisterTest("FTPParserTest07", FTPParserTest07);
     UtRegisterTest("FTPParserTest10", FTPParserTest10);
+    UtRegisterTest("FTPParserTest11", FTPParserTest11);
+    UtRegisterTest("FTPParserTest12", FTPParserTest12);
 #endif /* UNITTESTS */
 }
 
