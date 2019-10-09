@@ -121,6 +121,12 @@
     fi
     AM_CONDITIONAL([HAVE_PYTHON], [test "x$enable_python" = "xyes"])
 
+    # Get the Python major version. This is only for information
+    # messages displayed during configure.
+    if test "x$HAVE_PYTHON" != "xno"; then
+       pymv="$($HAVE_PYTHON -c 'import sys; print(sys.version_info.major);')"
+    fi
+
     # Check for python-distutils (setup).
     have_python_distutils="no"
     if test "x$enable_python" = "xyes"; then
@@ -139,7 +145,7 @@
        echo "    Warning: Python distutils not found. Python tools will"
        echo "        not be installed."
        echo ""
-       echo "    Ubuntu/Debian: apt install `basename ${HAVE_PYTHON}`-distutils"
+       echo "    Please install the distutils module for Python ${pymv}."
        echo ""
     fi
 
