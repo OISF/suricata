@@ -1056,13 +1056,10 @@ host-mode: auto
 #
 # Supported schedulers are:
 #
-# round-robin       - Flows assigned to threads in a round robin fashion.
-# active-packets    - Flows assigned to threads that have the lowest number of
-#                     unprocessed packets (default).
-# hash              - Flow allocated using the address hash. More of a random
-#                     technique. Was the default in Suricata 1.2.1 and older.
+# hash     - Flow assigned to threads using the 5-7 tuple hash.
+# ippair   - Flow assigned to threads using addresses only.
 #
-#autofp-scheduler: active-packets
+#autofp-scheduler: hash
 
 # Preallocated size for packet. Default is 1514 which is the classical
 # size for pcap on ethernet. You should adjust this value to the highest
