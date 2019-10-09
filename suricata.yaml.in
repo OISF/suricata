@@ -728,7 +728,7 @@ app-layer:
 
       # Generate JA3 fingerprint from client hello. If not specified it
       # will be disabled by default, but enabled if rules require it.
-      #ja3-fingerprints: yes
+      #ja3-fingerprints: auto
 
       # What to do when the encrypted communications start:
       # - default: keep tracking TLS session, check for protocol anomalies,
@@ -1048,8 +1048,8 @@ host-mode: auto
 #max-pending-packets: 1024
 
 # Runmode the engine should use. Please check --list-runmodes to get the available
-# runmodes for each packet acquisition method. Defaults to "autofp" (auto flow pinned
-# load balancing).
+# runmodes for each packet acquisition method. Default depends on selected capture
+# method. 'workers' generally gives best performance.
 #runmode: autofp
 
 # Specifies the kind of flow load balancer used by the flow pinned autofp mode.
@@ -1826,6 +1826,7 @@ napatech:
     # This has no effect if auto-config is disabled.
     #
     hashmode: hash5tuplesorted
+
 ##
 ## Configure Suricata to load Suricata-Update managed rules.
 ##
