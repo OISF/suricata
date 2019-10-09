@@ -1542,7 +1542,7 @@
     if test "x$enable_python" != "xyes"; then
         install_suricatactl="requires python"
     elif test "x$have_python_distutils" != "xyes"; then
-        install_suricatactl="requires distutils"
+        install_suricatactl="no, requires distutils"
     else
         install_suricatactl="yes"
     fi
@@ -1551,11 +1551,11 @@
     if test "x$have_suricata_update" != "xyes"; then
         install_suricata_update="not bundled"
     elif test "x$enable_python" != "xyes"; then
-        install_suricata_update="requires python"
+        install_suricata_update="no, requires python"
     elif test "x$have_python_distutils" != "xyes"; then
-        install_suricata_update="requires distutils"
+        install_suricata_update="no, requires distutils"
     elif test "x$have_python_yaml" != "xyes"; then
-        install_suricata_update="requires pyyaml"
+        install_suricata_update="no, requires pyyaml"
     else
         install_suricata_update="yes"
     fi
