@@ -533,7 +533,9 @@ int DetectAddressParseString(DetectAddress *dd, const char *str)
         str++;
 
     /* shouldn't see 'any' here */
-    BUG_ON(strcasecmp(str, "any") == 0);
+    if(strcasecmp(str, "any") == 0) {
+        return -1;
+    }
 
     strlcpy(ipstr, str, sizeof(ipstr));
     SCLogDebug("str %s", str);
