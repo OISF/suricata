@@ -180,7 +180,7 @@ outputs:
             # By default, anomaly logging is disabled. When anomaly
             # logging is enabled, applayer anomaly reporting is
             # enabled.
-            enabled: no
+            enabled: yes
             #
             # Choose one or more types of anomaly logging and whether to enable
             # logging of the packet header for packet anomalies.
