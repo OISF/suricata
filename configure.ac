@@ -2407,6 +2407,23 @@ fi
     else
       AC_SUBST([CARGO_HOME], [$CARGO_HOME])
     fi
+
+    # Check for rustup. RUSTUP_HOME needs to be set if rustup is in
+    # use, and a user uses sudo (depending on configuration), or su to
+    # perform the install
+    rustup_home="no"
+    if test "x$RUSTUP_HOME" != "x"; then
+        rustup_home="$RUSTUP_HOME"
+    else
+        AC_PATH_PROG(have_rustup, rustup, "no")
+        if test "x$have_rustup" != "xno"; then
+            rustup_home=$($have_rustup show home)
+        fi
+    fi
+    if test "x$rustup_home" != "xno"; then
+        AC_SUBST([RUSTUP_HOME], [$rustup_home])
+    fi
+
     AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
     if test "x$have_rust_vendor" = "xyes"; then
       rust_vendor_comment=""
