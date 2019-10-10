@@ -124,7 +124,7 @@
     # Get the Python major version. This is only for information
     # messages displayed during configure.
     if test "x$HAVE_PYTHON" != "xno"; then
-       pymv="$($HAVE_PYTHON -c 'import sys; print(sys.version_info.major);')"
+       pymv="$($HAVE_PYTHON -c 'import sys; print(sys.version_info[[0]]);')"
     fi
 
     # Check for python-distutils (setup).
