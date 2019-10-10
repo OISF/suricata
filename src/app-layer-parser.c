@@ -795,9 +795,9 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
                         tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
             }
         }
+        idx++;
         if (!ires.has_next)
             break;
-        idx++;
     }
     pstate->inspect_id[direction] = idx;
     SCLogDebug("inspect_id now %"PRIu64, pstate->inspect_id[direction]);
@@ -1970,15 +1970,17 @@ typedef struct TestState_ {
 } TestState;
 
 /**
- *  \brief  Test parser function to test the memory deallocation of app layer
- *          parser of occurence of an error.
+ *  \brief  Test parser function to test basic app layer framework behavior.
+ *          It simulates a failure if (input[0] == 0x11) to test the
+ *          memory deallocation of app layer parser in occurence of an error.
+ *          It returns a good result in other cases
  */
 static int TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
                               const uint8_t *input, uint32_t input_len,
                               void *local_data, const uint8_t flags)
 {
     SCEnter();
-    SCReturnInt(-1);
+    SCReturnInt((input != NULL && input_len != 0 && input[0] == 0x11) ? -1 : 0);
 }
 
 /** \brief Function to allocates the Test protocol state memory
@@ -2004,6 +2006,23 @@ static void TestProtocolStateFree(void *s)
 static uint64_t TestProtocolGetTxCnt(void *state)
 {
     /* single tx */
+    return 1;
+}
+
+static void* TestProtocolGetTx(void *alstate, uint64_t tx_id)
+{
+    /* we have only one transaction */
+    return tx_id == 0 ? alstate : NULL;
+}
+
+static int TestProtocolGetProgress(void *tx, uint8_t direction)
+{
+    /* always completed */
+    return 1;
+}
+
+static int TestProtocolGetProgressCompletionStatus(uint8_t direction)
+{
     return 1;
 }
 
@@ -2139,6 +2158,95 @@ static int AppLayerParserTest02(void)
     return result;
 }
 
+/**
+ * \test Test transaction inspection id increment.
+ */
+static int AppLayerParserTest03(void)
+{
+    AppLayerParserBackupParserTable();
+
+    Flow *f = NULL;
+    uint8_t testbuf[] = { 0x22 };
+    uint32_t testlen = sizeof(testbuf);
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    /* Register the Test protocol state and parser functions */
+    AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_TEST, STREAM_TOSERVER,
+                      TestProtocolParser);
+    AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_TEST,
+                          TestProtocolStateAlloc, TestProtocolStateFree);
+    AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TEST, TestProtocolGetTxCnt);
+    AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_TEST, TestProtocolGetTx);
+    AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_TEST, TestProtocolGetProgress);
+    AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TEST, TestProtocolGetProgressCompletionStatus);
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
+    FAIL_IF_NULL(f);
+
+    f->alproto = ALPROTO_TEST;
+    f->proto = IPPROTO_UDP;
+    f->protomap = FlowGetProtoMapping(f->proto);
+
+    StreamTcpInitConfig(TRUE);
+
+    FLOWLOCK_WRLOCK(f);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
+                                STREAM_TOSERVER | STREAM_EOF, testbuf,
+                                testlen);
+    if (r != 0) {
+        FLOWLOCK_UNLOCK(f);
+        FAIL;
+    }
+
+    ThreadVars tv;
+    DetectEngineThreadCtx* det_ctx = NULL;
+    DetectEngineCtx* const de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Packet* const p = UTHBuildPacketReal(testbuf, testlen, IPPROTO_UDP, "1.2.3.4", "4.3.2.1", 20, 40);
+    FAIL_IF_NULL(p);
+
+    de_ctx->flags |= DE_QUIET;
+    memset(&tv, 0, sizeof(tv));
+
+    DetectEngineThreadCtxInit(&tv, de_ctx, (void**)&det_ctx);
+
+    p->flow = f;
+    p->flags = PKT_HAS_FLOW;
+
+    {
+        p->flowflags = FLOW_PKT_TOSERVER;
+        Detect(&tv, p, det_ctx, NULL, NULL);
+
+        const uint64_t id_ts = AppLayerParserGetTransactionInspectId(f->alparser, STREAM_TOSERVER);
+        const uint64_t id_tc = AppLayerParserGetTransactionInspectId(f->alparser, STREAM_TOCLIENT);
+        FAIL_IF_NOT(id_tc==0);
+        FAIL_IF_NOT(id_ts==1);
+    }
+
+    {
+        p->flowflags = FLOW_PKT_TOCLIENT;
+        Detect(&tv, p, det_ctx, NULL, NULL);
+
+        const uint64_t id_ts = AppLayerParserGetTransactionInspectId(f->alparser, STREAM_TOSERVER);
+        const uint64_t id_tc = AppLayerParserGetTransactionInspectId(f->alparser, STREAM_TOCLIENT);
+        FAIL_IF_NOT(id_tc==1);
+        FAIL_IF_NOT(id_ts==1);
+    }
+
+    UTHFreePacket(p);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    StatsThreadCleanup(&tv);
+    DetectEngineCtxFree(de_ctx);
+
+    UTHFreeFlow(f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserRestoreParserTable();
+    StreamTcpFreeConfig(TRUE);
+
+    PASS;
+}
+
 
 void AppLayerParserRegisterUnittests(void)
 {
@@ -2159,6 +2267,7 @@ void AppLayerParserRegisterUnittests(void)
 
     UtRegisterTest("AppLayerParserTest01", AppLayerParserTest01);
     UtRegisterTest("AppLayerParserTest02", AppLayerParserTest02);
+    UtRegisterTest("AppLayerParserTest03", AppLayerParserTest03);
 
     SCReturn;
 }
