@@ -1,6 +1,9 @@
 Datasets
 ========
 
+.. warning:: This is an experimental feature. Syntax and functionality may
+             change in future releases.
+
 Using the ``dataset`` and ``datarep`` keyword it is possible to match on
 large amounts of data against any sticky buffer.
 

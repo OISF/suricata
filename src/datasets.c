@@ -36,6 +36,7 @@
 SCMutex sets_lock = SCMUTEX_INITIALIZER;
 static Dataset *sets = NULL;
 static uint32_t set_ids = 0;
+static bool experimental_warning = false;
 
 static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
         DataRepType *rep);
@@ -412,6 +413,10 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type,
     }
 
     SCMutexLock(&sets_lock);
+    if (!experimental_warning) {
+        SCLogNotice("dataset and datarep features are experimental and subject to change");
+        experimental_warning = true;
+    }
     Dataset *set = DatasetSearchByName(name);
     if (set) {
         if (type != DATASET_TYPE_NOTSET && set->type != type) {
