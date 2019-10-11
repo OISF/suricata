@@ -922,8 +922,12 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                         DetectAddressPrint(tmp_ad);
                     }
 #endif
-                    if (DetectAddressMergeNot(&tmp_gh, &tmp_ghn) < 0)
+                    if (DetectAddressMergeNot(&tmp_gh, &tmp_ghn) < 0) {
+                        DetectAddressHeadCleanup(&tmp_ghn);
+                        DetectAddressHeadCleanup(&tmp_gh);
                         goto error;
+                    }
+                    DetectAddressHeadCleanup(&tmp_ghn);
 
                     SCLogDebug("merged succesfully");
 
@@ -933,6 +937,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                         tmp_ad2 = DetectAddressCopy(tmp_ad);
                         if (tmp_ad2 == NULL) {
                             SCLogDebug("DetectAddressCopy failed");
+                            DetectAddressHeadCleanup(&tmp_gh);
                             goto error;
                         }
                         DetectAddressPrint(tmp_ad2);
@@ -945,6 +950,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                         tmp_ad2 = DetectAddressCopy(tmp_ad);
                         if (tmp_ad2 == NULL) {
                             SCLogDebug("DetectAddressCopy failed");
+                            DetectAddressHeadCleanup(&tmp_gh);
                             goto error;
                         }
                         DetectAddressPrint(tmp_ad2);
@@ -952,7 +958,6 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     }
 
                     DetectAddressHeadCleanup(&tmp_gh);
-                    DetectAddressHeadCleanup(&tmp_ghn);
                 }
                 n_set = 0;
             }
