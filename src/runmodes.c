@@ -766,14 +766,6 @@ void RunModeInitializeOutputs(void)
                     "support.");
             continue;
 #endif
-        } else if (strcmp(output->val, "eve-log") == 0) {
-#ifndef HAVE_LIBJANSSON
-            SCLogWarning(SC_ERR_NOT_SUPPORTED,
-                    "Eve-log support not compiled in. Reconfigure/"
-                    "recompile with libjansson and its development "
-                    "files installed to add eve-log support.");
-            continue;
-#endif
         } else if (strcmp(output->val, "lua") == 0) {
 #ifndef HAVE_LUA
             SCLogWarning(SC_ERR_NOT_SUPPORTED,

@@ -200,7 +200,6 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
     return;
 }
 
-#ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 /**
  */
@@ -264,7 +263,6 @@ static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_si
 error:
     return -1;
 }
-#endif /* HAVE_LIBJANSSON */
 
 /**
  * \brief Adds the global log_format to the outgoing buffer
@@ -286,10 +284,8 @@ static SCError SCLogMessageGetBuffer(
                      const unsigned int line, const char *function,
                      const SCError error_code, const char *message)
 {
-#ifdef HAVE_LIBJANSSON
     if (type == SC_LOG_OP_TYPE_JSON)
         return SCLogMessageJSON(tval, buffer, buffer_size, log_level, file, line, function, error_code, message);
-#endif
 
     char *temp = buffer;
     const char *s = NULL;
@@ -1357,13 +1353,7 @@ void SCLogLoadConfig(int daemon, int verbose)
             if (strcmp(type_s, "regular") == 0)
                 type = SC_LOG_OP_TYPE_REGULAR;
             else if (strcmp(type_s, "json") == 0) {
-#ifdef HAVE_LIBJANSSON
                 type = SC_LOG_OP_TYPE_JSON;
-#else
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "libjansson support not "
-                        "compiled in, can't use 'json' logging");
-                exit(EXIT_FAILURE);
-#endif /* HAVE_LIBJANSSON */
             }
         }
 

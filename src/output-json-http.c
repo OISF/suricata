@@ -55,8 +55,6 @@
 #include "output-json-http.h"
 #include "util-byte.h"
 
-#ifdef HAVE_LIBJANSSON
-
 typedef struct LogHttpFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
@@ -813,11 +811,3 @@ void JsonHttpLogRegister (void)
         "eve-log.http", OutputHttpLogInitSub, ALPROTO_HTTP, JsonHttpLogger,
         JsonHttpLogThreadInit, JsonHttpLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonHttpLogRegister (void)
-{
-}
-
-#endif

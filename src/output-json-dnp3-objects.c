@@ -31,8 +31,6 @@
 #include "output-json-dnp3-objects.h"
 #include "output-json.h"
 
-#ifdef HAVE_LIBJANSSON
-
 void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
     DNP3Point *point)
 {
@@ -2718,5 +2716,3 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
     }
 
 }
-
-#endif /* HAVE_LIBJANSSON */

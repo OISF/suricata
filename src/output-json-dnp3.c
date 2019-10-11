@@ -43,9 +43,6 @@
 #include "output-json-dnp3.h"
 #include "output-json-dnp3-objects.h"
 
-#ifdef HAVE_LIBJANSSON
-#include <jansson.h>
-
 typedef struct LogDNP3FileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
@@ -449,11 +446,3 @@ void JsonDNP3LogRegister(void)
         JsonDNP3LoggerToClient, 1, 1, JsonDNP3LogThreadInit,
         JsonDNP3LogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonDNP3LogRegister (void)
-{
-}
-
-#endif

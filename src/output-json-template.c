@@ -53,8 +53,6 @@
 #include "app-layer-template.h"
 #include "output-json-template.h"
 
-#ifdef HAVE_LIBJANSSON
-
 typedef struct LogTemplateFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
@@ -203,11 +201,3 @@ void JsonTemplateLogRegister(void)
 
     SCLogNotice("Template JSON logger registered.");
 }
-
-#else /* No JSON support. */
-
-void JsonTemplateLogRegister(void)
-{
-}
-
-#endif /* HAVE_LIBJANSSON */

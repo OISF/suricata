@@ -52,8 +52,6 @@
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
 
-#ifdef HAVE_LIBJANSSON
-
 static json_t *JsonSmtpDataLogger(const Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
     json_t *sjs = json_object();
@@ -276,11 +274,3 @@ void JsonSmtpLogRegister (void) {
         "eve-log.smtp", OutputSmtpLogInitSub, ALPROTO_SMTP, JsonSmtpLogger,
         JsonSmtpLogThreadInit, JsonSmtpLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonSmtpLogRegister (void)
-{
-}
-
-#endif

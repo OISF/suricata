@@ -47,8 +47,6 @@
 #include "app-layer-krb5.h"
 #include "output-json-krb5.h"
 
-#ifdef HAVE_LIBJANSSON
-
 #include "rust.h"
 #include "rust-krb-log-gen.h"
 
@@ -179,11 +177,3 @@ void JsonKRB5LogRegister(void)
 
     SCLogDebug("KRB5 JSON logger registered.");
 }
-
-#else /* No JSON support. */
-
-void JsonKRB5LogRegister(void)
-{
-}
-
-#endif /* HAVE_LIBJANSSON */

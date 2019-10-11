@@ -617,7 +617,6 @@ static int RuleMpmIsNegated(const Signature *s)
     return (cd->flags & DETECT_CONTENT_NEGATED);
 }
 
-#ifdef HAVE_LIBJANSSON
 static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
                                 const int add_rules, const int add_mpm_stats)
 {
@@ -850,12 +849,10 @@ static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
 
     return js;
 }
-#endif /* HAVE_LIBJANSSON */
 
 static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
                        const int add_rules, const int add_mpm_stats)
 {
-#ifdef HAVE_LIBJANSSON
     json_t *js = json_object();
     if (unlikely(js == NULL))
         return;
@@ -930,7 +927,6 @@ static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
     fprintf(fp, "%s\n", js_s);
     free(js_s);
     fclose(fp);
-#endif
     return;
 }
 
@@ -1846,9 +1842,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         DetectEnginePktInspectionSetup(s);
 
         if (rule_engine_analysis_set) {
-#ifdef HAVE_LIBJANSSON
             EngineAnalysisRules2(de_ctx, s);
-#endif
         }
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
         uint32_t i;

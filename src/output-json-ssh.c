@@ -50,8 +50,6 @@
 #include "output-json.h"
 #include "output-json-ssh.h"
 
-#ifdef HAVE_LIBJANSSON
-
 #define MODULE_NAME "LogSshLog"
 
 typedef struct OutputSshCtx_ {
@@ -273,11 +271,3 @@ void JsonSshLogRegister (void)
         SSH_STATE_BANNER_DONE, SSH_STATE_BANNER_DONE,
         JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonSshLogRegister (void)
-{
-}
-
-#endif

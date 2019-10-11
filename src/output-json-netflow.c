@@ -49,8 +49,6 @@
 
 #include "stream-tcp-private.h"
 
-#ifdef HAVE_LIBJANSSON
-
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;
     OutputJsonCommonSettings cfg;
@@ -462,11 +460,3 @@ void JsonNetFlowLogRegister(void)
         "eve-log.netflow", OutputNetFlowLogInitSub, JsonNetFlowLogger,
         JsonNetFlowLogThreadInit, JsonNetFlowLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonNetFlowLogRegister (void)
-{
-}
-
-#endif

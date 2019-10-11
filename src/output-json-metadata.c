@@ -65,8 +65,6 @@
 
 #define MODULE_NAME "JsonMetadataLog"
 
-#ifdef HAVE_LIBJANSSON
-
 #define JSON_STREAM_BUFFER_SIZE 4096
 
 typedef struct MetadataJsonOutputCtx_ {
@@ -289,11 +287,3 @@ void JsonMetadataLogRegister (void)
         JsonMetadataLogCondition, JsonMetadataLogThreadInit,
         JsonMetadataLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonMetadataLogRegister (void)
-{
-}
-
-#endif

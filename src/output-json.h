@@ -33,8 +33,6 @@
 
 void OutputJsonRegister(void);
 
-#ifdef HAVE_LIBJANSSON
-
 enum OutputJsonLogDirection {
     LOG_DIR_PACKET = 0,
     LOG_DIR_FLOW,
@@ -96,7 +94,5 @@ void SCJsonDecref(json_t *js);
 
 void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
         const Packet *p, const Flow *f, json_t *js);
-
-#endif /* HAVE_LIBJANSSON */
 
 #endif /* __OUTPUT_JSON_H__ */

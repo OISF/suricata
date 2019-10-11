@@ -28,10 +28,8 @@
 #define __OUTPUT_JSON_ANOMALY_H__
 
 void JsonAnomalyLogRegister(void);
-#ifdef HAVE_LIBJANSSON
 void AnomalyJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, json_t *js,
                      uint16_t flags);
-#endif /* HAVE_LIBJANSSON */
 
 #endif /* __OUTPUT_JSON_ALERT_H__ */
 

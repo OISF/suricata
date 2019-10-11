@@ -18,9 +18,7 @@
 #ifndef __OUTPUT_JSON_DNP3_OBJECTS_H__
 #define __OUTPUT_JSON_DNP3_OBJECTS_H__
 
-#ifdef HAVE_LIBJANSSON
 void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
     DNP3Point *item);
-#endif /* HAVE_LIBJANSSON */
 
 #endif /* __OUTPUT_JSON_DNP3_OBJECTS_H__ */

@@ -80,8 +80,6 @@
 
 #define MODULE_NAME "JsonAlertLog"
 
-#ifdef HAVE_LIBJANSSON
-
 #define LOG_JSON_PAYLOAD           BIT_U16(0)
 #define LOG_JSON_PACKET            BIT_U16(1)
 #define LOG_JSON_PAYLOAD_BASE64    BIT_U16(2)
@@ -1005,12 +1003,3 @@ void JsonAlertLogRegister (void)
         JsonAlertLogCondition, JsonAlertLogThreadInit, JsonAlertLogThreadDeinit,
         NULL);
 }
-
-#else
-
-void JsonAlertLogRegister (void)
-{
-}
-
-#endif
-

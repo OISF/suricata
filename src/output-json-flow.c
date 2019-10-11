@@ -50,8 +50,6 @@
 #include "stream-tcp-private.h"
 #include "flow-storage.h"
 
-#ifdef HAVE_LIBJANSSON
-
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
@@ -540,11 +538,3 @@ void JsonFlowLogRegister (void)
         "eve-log.flow", OutputFlowLogInitSub, JsonFlowLogger,
         JsonFlowLogThreadInit, JsonFlowLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonFlowLogRegister (void)
-{
-}
-
-#endif

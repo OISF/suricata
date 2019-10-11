@@ -66,9 +66,7 @@ static int profiling_sghs_output_to_file = 0;
 int profiling_sghs_enabled = 0;
 static char profiling_file_name[PATH_MAX];
 static const char *profiling_file_mode = "a";
-#ifdef HAVE_LIBJANSSON
 static int profiling_rulegroup_json = 0;
-#endif
 
 void SCProfilingSghsGlobalInit(void)
 {
@@ -96,17 +94,12 @@ void SCProfilingSghsGlobalInit(void)
                 profiling_sghs_output_to_file = 1;
             }
             if (ConfNodeChildValueIsTrue(conf, "json")) {
-#ifdef HAVE_LIBJANSSON
                 profiling_rulegroup_json = 1;
-#else
-                SCLogWarning(SC_ERR_NO_JSON_SUPPORT, "no json support compiled in, using plain output");
-#endif
             }
         }
     }
 }
 
-#ifdef HAVE_LIBJANSSON
 static void DoDumpJSON(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *name)
 {
     char timebuf[64];
@@ -165,7 +158,6 @@ static void DoDumpJSON(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *n
     }
     json_decref(js);
 }
-#endif /* HAVE_LIBJANSSON */
 
 static void DoDump(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *name)
 {
@@ -252,12 +244,9 @@ SCProfilingSghDump(DetectEngineCtx *de_ctx)
        fp = stdout;
     }
 
-#ifdef HAVE_LIBJANSSON
     if (profiling_rulegroup_json) {
         DoDumpJSON(de_ctx->profile_sgh_ctx, fp, "rule groups");
-    } else
-#endif
-    {
+    } else {
         DoDump(de_ctx->profile_sgh_ctx, fp, "rule groups");
     }
 

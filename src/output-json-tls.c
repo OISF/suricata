@@ -51,8 +51,6 @@
 #include "output-json.h"
 #include "output-json-tls.h"
 
-#ifdef HAVE_LIBJANSSON
-
 SC_ATOMIC_DECLARE(unsigned int, cert_id);
 
 #define MODULE_NAME "LogTlsLog"
@@ -665,12 +663,3 @@ void JsonTlsLogRegister (void)
         JsonTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE,
         JsonTlsLogThreadInit, JsonTlsLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonTlsLogRegister (void)
-{
-}
-
-#endif /* HAVE_LIBJANSSON */
-

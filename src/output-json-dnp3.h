@@ -20,10 +20,8 @@
 
 #include "app-layer-dnp3.h"
 
-#ifdef HAVE_LIBJANSSON
 json_t *JsonDNP3LogRequest(DNP3Transaction *);
 json_t *JsonDNP3LogResponse(DNP3Transaction *);
-#endif /* HAVE_LIBJANSSON */
 
 void JsonDNP3LogRegister(void);
 

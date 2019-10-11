@@ -50,8 +50,6 @@
 
 #define MODULE_NAME "JsonStatsLog"
 
-#ifdef HAVE_LIBJANSSON
-
 extern bool stats_decoder_events;
 const char *stats_decoder_events_prefix;
 
@@ -536,11 +534,3 @@ void JsonStatsLogRegister(void) {
         "eve-log.stats", OutputStatsLogInitSub, JsonStatsLogger,
         JsonStatsLogThreadInit, JsonStatsLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonStatsLogRegister (void)
-{
-}
-
-#endif

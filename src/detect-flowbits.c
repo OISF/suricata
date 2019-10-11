@@ -329,10 +329,8 @@ struct FBAnalyze {
     uint32_t toggle_sids_size;
 };
 #ifdef PROFILING
-#ifdef HAVE_LIBJANSSON
 static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         struct FBAnalyze *array, uint32_t elements);
-#endif
 #endif
 
 void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
@@ -520,9 +518,7 @@ void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
         SCFree(varname);
     }
 #ifdef PROFILING
-#ifdef HAVE_LIBJANSSON
     DetectFlowbitsAnalyzeDump(de_ctx, array, array_size);
-#endif
 #endif
 
 end:
@@ -536,7 +532,6 @@ end:
 }
 
 #ifdef PROFILING
-#ifdef HAVE_LIBJANSSON
 #include "output-json.h"
 #include "util-buffer.h"
 SCMutex g_flowbits_dump_write_m = SCMUTEX_INITIALIZER;
@@ -664,7 +659,6 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
     json_object_clear(js);
     json_decref(js);
 }
-#endif /* HAVE_LIBJANSSON */
 #endif /* PROFILING */
 
 #ifdef UNITTESTS

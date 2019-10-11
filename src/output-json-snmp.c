@@ -47,8 +47,6 @@
 #include "app-layer-snmp.h"
 #include "output-json-snmp.h"
 
-#ifdef HAVE_LIBJANSSON
-
 #include "rust.h"
 #include "rust-snmp-log-gen.h"
 
@@ -178,11 +176,3 @@ void JsonSNMPLogRegister(void)
 
     SCLogDebug("SNMP JSON logger registered.");
 }
-
-#else /* No JSON support. */
-
-void JsonSNMPLogRegister(void)
-{
-}
-
-#endif /* HAVE_LIBJANSSON */

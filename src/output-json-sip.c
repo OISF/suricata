@@ -50,8 +50,6 @@
 #include "rust.h"
 #include "rust-sip-log-gen.h"
 
-#ifdef HAVE_LIBJANSSON
-
 typedef struct LogSIPFileCtx_ {
     LogFileCtx *file_ctx;
     OutputJsonCommonSettings cfg;
@@ -193,11 +191,3 @@ void JsonSIPLogRegister(void)
 
     SCLogDebug("SIP JSON logger registered.");
 }
-
-#else /* No JSON support. */
-
-void JsonSIPLogRegister(void)
-{
-}
-
-#endif /* HAVE_LIBJANSSON */

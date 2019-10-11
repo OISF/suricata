@@ -53,16 +53,12 @@
 #include "util-print.h"
 
 #include "output.h"
-
-#ifdef HAVE_LIBJANSSON
 #include "output-json.h"
 #include "output-json-http.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
-#include <jansson.h>
-#endif
 
 #include "util-privs.h"
 #include "util-optimize.h"
@@ -473,7 +469,6 @@ static int AddIntData(idmef_alert_t *alert, const char *meaning, uint32_t data)
     SCReturnInt(0);
 }
 
-#ifdef HAVE_LIBJANSSON
 /**
  * \brief Add string data, to be stored in the Additional Data
  * field of the IDMEF alert (see section 4.2.4.6 of RFC 4765).
@@ -568,7 +563,6 @@ static int AddRealData(idmef_alert_t *alert, const char *meaning, uint32_t data)
 
     SCReturnInt(0);
 }
-#endif
 
 /**
  * \brief Add IPv4 header data, to be stored in the Additional Data
@@ -618,7 +612,6 @@ static int PacketToDataV6(const Packet *p, const PacketAlert *pa, idmef_alert_t 
     SCReturnInt(0);
 }
 
-#ifdef HAVE_LIBJANSSON
 /**
  * \brief Convert JSON object to Prelude additional data with
  * the right type of data. Browse the JSON object to get
@@ -798,8 +791,6 @@ static void PacketToDataProtoEmail(const Packet *p, const PacketAlert *pa, idmef
 
 }
 
-#endif
-
 /**
  * \brief Convert IP packet to an IDMEF alert (RFC 4765).
  * This function stores the alert SID (description and reference),
@@ -814,7 +805,6 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
     if (unlikely(p == NULL))
         SCReturnInt(0);
 
-#ifdef HAVE_LIBJANSSON
     if (p->flow != NULL) {
         uint16_t proto = FlowGetAppProtocol(p->flow);
         switch (proto) {
@@ -834,7 +824,6 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
                 break;
         }
     }
-#endif
 
     AddIntData(alert, "snort_rule_sid", pa->s->id);
     AddIntData(alert, "snort_rule_rev", pa->s->rev);

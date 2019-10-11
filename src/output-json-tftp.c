@@ -51,8 +51,6 @@
 #include "rust.h"
 #include "rust-tftp-log-gen.h"
 
-#ifdef HAVE_LIBJANSSON
-
 typedef struct LogTFTPFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
@@ -177,11 +175,3 @@ void JsonTFTPLogRegister(void)
 
     SCLogDebug("TFTP JSON logger registered.");
 }
-
-#else /* HAVE_LIBJANSSON */
-
-void JsonTFTPLogRegister(void)
-{
-}
-
-#endif /* HAVE_LIBJANSSON */

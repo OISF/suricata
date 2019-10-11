@@ -58,8 +58,6 @@
 
 #define MODULE_NAME "JsonDropLog"
 
-#ifdef HAVE_LIBJANSSON
-
 #define LOG_DROP_ALERTS 1
 
 typedef struct JsonDropOutputCtx_ {
@@ -447,11 +445,3 @@ void JsonDropLogRegister (void)
         JsonDropLogCondition, JsonDropLogThreadInit, JsonDropLogThreadDeinit,
         NULL);
 }
-
-#else
-
-void JsonDropLogRegister (void)
-{
-}
-
-#endif

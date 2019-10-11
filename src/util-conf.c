@@ -155,7 +155,6 @@ int ConfUnixSocketIsEnable(void)
     }
 
     if (!strcmp(value, "auto")) {
-#ifdef HAVE_LIBJANSSON
 #ifdef OS_WIN32
         return 0;
 #else
@@ -165,9 +164,6 @@ int ConfUnixSocketIsEnable(void)
         } else {
             return 0;
         }
-#endif
-#else
-        return 0;
 #endif
     }
 

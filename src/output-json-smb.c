@@ -45,7 +45,6 @@
 
 #include "output-json-smb.h"
 
-#ifdef HAVE_LIBJANSSON
 #include "rust.h"
 #include "rust-smb-log-gen.h"
 
@@ -107,12 +106,3 @@ void JsonSMBLogRegister(void)
 
     SCLogDebug("SMB JSON logger registered.");
 }
-
-#else /* No JSON support. */
-
-void JsonSMBLogRegister(void)
-{
-}
-
-#endif /* HAVE_LIBJANSSON */
-

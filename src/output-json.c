@@ -66,21 +66,6 @@
 
 #include "source-pcap-file.h"
 
-#ifndef HAVE_LIBJANSSON
-
-/** Handle the case where no JSON support is compiled in.
- *
- */
-
-int OutputJsonOpenFileCtx(LogFileCtx *, char *);
-
-void OutputJsonRegister (void)
-{
-    SCLogDebug("Can't register JSON output - JSON support was disabled during build.");
-}
-
-#else /* implied we do have JSON support */
-
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
 #define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
@@ -1100,5 +1085,3 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
     SCFree(json_ctx);
     SCFree(output_ctx);
 }
-
-#endif

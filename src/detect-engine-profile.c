@@ -33,7 +33,6 @@
 #include "detect-engine-profile.h"
 
 #ifdef PROFILING
-#ifdef HAVE_LIBJANSSON
 #if 0
 static void DumpFp(const SigMatch *sm, char *pat_orig, uint32_t pat_orig_sz, char *pat_chop, uint32_t pat_chop_sz)
 {
@@ -139,5 +138,4 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
     json_object_clear(js);
     json_decref(js);
 }
-#endif /* HAVE_LIBJANSSON */
 #endif /* PROFILING */

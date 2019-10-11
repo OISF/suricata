@@ -26,11 +26,9 @@
 
 void JsonTlsLogRegister(void);
 
-#ifdef HAVE_LIBJANSSON
 #include "app-layer-ssl.h"
 
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state);
 void JsonTlsLogJSONExtended(json_t *js, SSLState *ssl_state);
-#endif /* HAVE_LIBJANSSON */
 
 #endif /* __OUTPUT_JSON_TLS_H__ */

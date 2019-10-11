@@ -41,8 +41,6 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#ifdef HAVE_LIBJANSSON
-
 static void OutputJsonLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCFree(output_ctx->data);
@@ -108,6 +106,3 @@ TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data)
     SCFree(thread);
     return TM_ECODE_OK;
 }
-
-#endif /* HAVE_LIBJANSSON */
-

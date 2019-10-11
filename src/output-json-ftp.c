@@ -49,8 +49,6 @@
 #include "app-layer-ftp.h"
 #include "output-json-ftp.h"
 
-#ifdef HAVE_LIBJANSSON
-
 typedef struct LogFTPFileCtx_ {
     LogFileCtx *file_ctx;
     OutputJsonCommonSettings cfg;
@@ -279,10 +277,3 @@ void JsonFTPLogRegister(void)
 
     SCLogDebug("FTP JSON logger registered.");
 }
-#else /* HAVE_LIBJANSSON */
-
-void JsonFTPLogRegister(void)
-{
-}
-
-#endif /* HAVE_LIBJANSSON */

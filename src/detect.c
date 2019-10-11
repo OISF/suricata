@@ -729,10 +729,8 @@ static inline void DetectRulePacketRules(
 
     SGH_PROFILING_RECORD(det_ctx, scratch->sgh);
 #ifdef PROFILING
-#ifdef HAVE_LIBJANSSON
     if (match_cnt >= de_ctx->profile_match_logging_threshold)
         RulesDumpMatchArray(det_ctx, scratch->sgh, p);
-#endif
 #endif
 
     uint32_t sflags, next_sflags = 0;
