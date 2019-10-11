@@ -43,8 +43,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include <jansson.h>
-
 #include "output.h"
 #include "output-json.h"
 

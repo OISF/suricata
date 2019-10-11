@@ -200,7 +200,6 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
     return;
 }
 
-#include <jansson.h>
 /**
  */
 static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_size,
