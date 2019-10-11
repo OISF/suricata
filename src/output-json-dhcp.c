@@ -15,12 +15,6 @@
  * 02110-1301, USA.
  */
 
-/*
- * TODO: Update \author in this file and in output-json-dhcp.h.
- * TODO: Remove SCLogNotice statements, or convert to debug.
- * TODO: Implement your app-layers logging.
- */
-
 /**
  * \file
  *
