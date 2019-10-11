@@ -1072,6 +1072,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         flow_flags &=~ STREAM_FLUSH;
 
     TRACE_SID_TXS(s->id, tx, "starting %s", direction ? "toclient" : "toserver");
+    TRACE_SID_TXS(s->id, tx, "FLUSH? %s", (flow_flags & STREAM_FLUSH)?"true":"false");
 
     /* for a new inspection we inspect pkt header and packet matches */
     if (likely(stored_flags == NULL)) {

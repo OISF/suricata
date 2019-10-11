@@ -630,6 +630,7 @@ next:
         }
 
         if (s->init_data->init_flags & SIG_FLAG_INIT_NEED_FLUSH) {
+            SCLogDebug("set SIG_FLAG_FLUSH on %u", s->id);
             s->flags |= SIG_FLAG_FLUSH;
         }
     }

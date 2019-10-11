@@ -265,7 +265,7 @@ int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
         Flow *f, Packet *p)
 {
     SCEnter();
-
+    SCLogDebug("FLUSH? %s", (s->flags & SIG_FLAG_FLUSH)?"true":"false");
     uint64_t unused;
     struct StreamContentInspectData inspect_data = { de_ctx, det_ctx, s, f };
     int r = StreamReassembleRaw(f->protoctx, p,
@@ -334,8 +334,9 @@ int DetectEngineInspectStream(ThreadVars *tv,
     if (ssn == NULL)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
 
-    SCLogDebug("pre-inspect det_ctx->raw_stream_progress %"PRIu64,
-            det_ctx->raw_stream_progress);
+    SCLogDebug("pre-inspect det_ctx->raw_stream_progress %"PRIu64" FLUSH? %s",
+            det_ctx->raw_stream_progress,
+            (s->flags & SIG_FLAG_FLUSH)?"true":"false");
     uint64_t unused;
     struct StreamContentInspectEngineData inspect_data = { de_ctx, det_ctx, s, smd, f };
     int match = StreamReassembleRaw(f->protoctx, p,

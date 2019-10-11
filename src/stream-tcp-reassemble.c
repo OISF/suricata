@@ -1534,6 +1534,12 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
      * use a minimal inspect depth, we actually take the app progress
      * as that is the right edge of the data. Then we take the window
      * of 'min_inspect_depth' before that. */
+
+    SCLogDebug("respect_inspect_depth %s STREAMTCP_STREAM_FLAG_TRIGGER_RAW %s stream->min_inspect_depth %u",
+            respect_inspect_depth ? "true" : "false",
+            (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW) ? "true" : "false",
+            stream->min_inspect_depth);
+
     if (respect_inspect_depth &&
         (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW)
         && stream->min_inspect_depth)
