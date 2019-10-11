@@ -109,6 +109,8 @@ typedef struct SMTPState_ {
     SMTPTransaction *curr_tx;
     TAILQ_HEAD(, SMTPTransaction_) tx_list;  /**< transaction list */
     uint64_t tx_cnt;
+    uint64_t toserver_data_count;
+    uint64_t toserver_last_data_stamp;
 
     /* current input that is being parsed */
     const uint8_t *input;
