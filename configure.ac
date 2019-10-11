@@ -955,7 +955,7 @@
 
             if test "$NFNL" = "no"; then
                 echo
-                echo "   ERROR!  nfnetlink library not found, go get it"
+                echo "   nfnetlink library not found, go get it"
                 echo "   from www.netfilter.org."
                 echo "   we automatically append libnetfilter_queue/ when searching"
                 echo "   for headers etc. when the --with-libnfnetlink-includes directive"
@@ -1809,7 +1809,7 @@
 
         if test "$NSPR" = "no"; then
             echo
-            echo "   ERROR!  libnspr library not found, go get it"
+            echo "   libnspr library not found, go get it"
             echo "   from Mozilla or your distribution:"
             echo
             echo "   Ubuntu: apt-get install libnspr4-dev"
@@ -1861,7 +1861,7 @@
 
         if test "$NSS" = "no"; then
             echo
-            echo "   ERROR! libnss library not found, go get it"
+            echo "   libnss library not found, go get it"
             echo "   from Mozilla or your distribution:"
             echo
             echo "   Ubuntu: apt-get install libnss3-dev"
