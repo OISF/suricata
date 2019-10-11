@@ -1550,9 +1550,11 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
         } else {
             progress -= stream->min_inspect_depth;
         }
-        SCLogDebug("applied min inspect depth due to STREAMTCP_STREAM_FLAG_TRIGGER_RAW: progress %"PRIu64, progress);
 
         SCLogDebug("stream app %"PRIu64", raw %"PRIu64, STREAM_APP_PROGRESS(stream), STREAM_RAW_PROGRESS(stream));
+
+        progress = MIN(progress, STREAM_RAW_PROGRESS(stream));
+        SCLogDebug("applied min inspect depth due to STREAMTCP_STREAM_FLAG_TRIGGER_RAW: progress %"PRIu64, progress);
     }
 
     SCLogDebug("progress %"PRIu64", min inspect depth %u %s", progress, stream->min_inspect_depth, stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW ? "STREAMTCP_STREAM_FLAG_TRIGGER_RAW":"(no trigger)");
