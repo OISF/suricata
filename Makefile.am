@@ -37,8 +37,8 @@ if INSTALL_SURICATA_UPDATE
 		--suricata-conf $(DESTDIR)$(sysconfdir)/suricata/suricata.yaml \
 		--no-test --no-reload
 else
-	echo "error: rules not installed as suricata-update not available"
-	exit 1
+	@echo "error: rules not installed as suricata-update not available"
+	@exit 1
 endif
 	@echo ""
 	@echo "You can now start suricata by running as root something like:"
