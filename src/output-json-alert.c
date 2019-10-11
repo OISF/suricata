@@ -423,74 +423,68 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         }
 
         if (json_output_ctx->flags & LOG_JSON_APP_LAYER && p->flow != NULL) {
-            uint16_t proto = FlowGetAppProtocol(p->flow);
-
-            /* http alert */
-            if (proto == ALPROTO_HTTP) {
-                hjs = JsonHttpAddMetadata(p->flow, pa->tx_id);
-                if (hjs) {
-                    if (json_output_ctx->flags & LOG_JSON_HTTP_BODY) {
-                        JsonHttpLogJSONBodyPrintable(hjs, p->flow, pa->tx_id);
+            const AppProto proto = FlowGetAppProtocol(p->flow);
+            switch (proto) {
+                case ALPROTO_HTTP:
+                    hjs = JsonHttpAddMetadata(p->flow, pa->tx_id);
+                    if (hjs) {
+                        if (json_output_ctx->flags & LOG_JSON_HTTP_BODY) {
+                            JsonHttpLogJSONBodyPrintable(hjs, p->flow, pa->tx_id);
+                        }
+                        if (json_output_ctx->flags & LOG_JSON_HTTP_BODY_BASE64) {
+                            JsonHttpLogJSONBodyBase64(hjs, p->flow, pa->tx_id);
+                        }
+                        json_object_set_new(js, "http", hjs);
                     }
-                    if (json_output_ctx->flags & LOG_JSON_HTTP_BODY_BASE64) {
-                        JsonHttpLogJSONBodyBase64(hjs, p->flow, pa->tx_id);
+                    break;
+                case ALPROTO_TLS:
+                    AlertJsonTls(p->flow, js);
+                    break;
+                case ALPROTO_SSH:
+                    AlertJsonSsh(p->flow, js);
+                    break;
+                case ALPROTO_SMTP:
+                    hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
+                    if (hjs) {
+                        json_object_set_new(js, "smtp", hjs);
                     }
-                    json_object_set_new(js, "http", hjs);
-                }
-            }
 
-            /* tls alert */
-            if (proto == ALPROTO_TLS) {
-                AlertJsonTls(p->flow, js);
-            }
-
-            /* ssh alert */
-            if (proto == ALPROTO_SSH) {
-                AlertJsonSsh(p->flow, js);
-            }
-
-            /* smtp alert */
-            if (proto == ALPROTO_SMTP) {
-                hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
-                if (hjs) {
-                    json_object_set_new(js, "smtp", hjs);
-                }
-
-                hjs = JsonEmailAddMetadata(p->flow, pa->tx_id);
-                if (hjs) {
-                    json_object_set_new(js, "email", hjs);
-                }
-            }
-
-            if (proto == ALPROTO_NFS) {
-                hjs = JsonNFSAddMetadataRPC(p->flow, pa->tx_id);
-                if (hjs)
-                    json_object_set_new(js, "rpc", hjs);
-                hjs = JsonNFSAddMetadata(p->flow, pa->tx_id);
-                if (hjs)
-                    json_object_set_new(js, "nfs", hjs);
-            } else if (proto == ALPROTO_SMB) {
-                hjs = JsonSMBAddMetadata(p->flow, pa->tx_id);
-                if (hjs)
-                    json_object_set_new(js, "smb", hjs);
-            } else if (proto == ALPROTO_SIP) {
-                hjs = JsonSIPAddMetadata(p->flow, pa->tx_id);
-                if (hjs)
-                    json_object_set_new(js, "sip", hjs);
-            }
-            if (proto == ALPROTO_FTPDATA) {
-                hjs = JsonFTPDataAddMetadata(p->flow);
-                if (hjs)
-                    json_object_set_new(js, "ftp-data", hjs);
-            }
-
-            /* dnp3 alert */
-            if (proto == ALPROTO_DNP3) {
-                AlertJsonDnp3(p->flow, pa->tx_id, js);
-            }
-
-            if (proto == ALPROTO_DNS) {
-                AlertJsonDns(p->flow, pa->tx_id, js);
+                    hjs = JsonEmailAddMetadata(p->flow, pa->tx_id);
+                    if (hjs) {
+                        json_object_set_new(js, "email", hjs);
+                    }
+                    break;
+                case ALPROTO_NFS:
+                    hjs = JsonNFSAddMetadataRPC(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "rpc", hjs);
+                    hjs = JsonNFSAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "nfs", hjs);
+                    break;
+                case ALPROTO_SMB:
+                    hjs = JsonSMBAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "smb", hjs);
+                    break;
+                case ALPROTO_SIP:
+                    hjs = JsonSIPAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "sip", hjs);
+                    break;
+                case ALPROTO_FTPDATA:
+                    hjs = JsonFTPDataAddMetadata(p->flow);
+                    if (hjs)
+                        json_object_set_new(js, "ftp-data", hjs);
+                    break;
+                case ALPROTO_DNP3:
+                    AlertJsonDnp3(p->flow, pa->tx_id, js);
+                    break;
+                case ALPROTO_DNS:
+                    AlertJsonDns(p->flow, pa->tx_id, js);
+                    break;
+                default:
+                    break;
             }
         }
 
