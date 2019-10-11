@@ -31,7 +31,7 @@ install-conf:
 	install -m 770 -d "$(DESTDIR)$(e_localstatedir)"
 
 install-rules:
-if HAVE_SURICATA_UPDATE
+if INSTALL_SURICATA_UPDATE
 	LD_LIBRARY_PATH=$(libdir) $(DESTDIR)$(bindir)/suricata-update \
 		--suricata $(DESTDIR)$(bindir)/suricata \
 		--suricata-conf $(DESTDIR)$(sysconfdir)/suricata/suricata.yaml \

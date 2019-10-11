@@ -1517,8 +1517,6 @@
       AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
           have_suricata_update="yes"], [])
     fi
-    AM_CONDITIONAL([HAVE_SURICATA_UPDATE],
-        [test "x$have_suricata_update" != "xno"])
 
     if test "$have_suricata_update" = "yes"; then
         if test "$have_python_yaml" != "yes"; then
@@ -1559,6 +1557,9 @@
     else
         install_suricata_update="yes"
     fi
+
+    AM_CONDITIONAL([INSTALL_SURICATA_UPDATE],
+        [test "x$install_suricata_update" = "xyes"])
 
   # libhtp
     AC_ARG_ENABLE(non-bundled-htp,
