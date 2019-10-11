@@ -37,13 +37,6 @@
 
 #include "app-layer-nfs-tcp.h"
 
-#ifndef HAVE_RUST
-void RegisterNFSTCPParsers(void)
-{
-}
-
-#else
-
 #include "rust.h"
 #include "rust-nfs-nfs-gen.h"
 
@@ -416,5 +409,3 @@ void NFSTCPParserRegisterTests(void)
 #ifdef UNITTESTS
 #endif
 }
-
-#endif /* HAVE_RUST */

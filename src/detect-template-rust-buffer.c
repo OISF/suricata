@@ -38,15 +38,6 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-template-rust-buffer.h"
 #include "app-layer-parser.h"
-
-#ifndef HAVE_RUST
-
-void DetectTemplateRustBufferRegister(void)
-{
-}
-
-#else
-
 #include "rust-applayertemplate-template-gen.h"
 
 static int DetectTemplateRustBufferSetup(DetectEngineCtx *, Signature *,
@@ -222,5 +213,3 @@ static void DetectTemplateRustBufferRegisterTests(void)
         DetectTemplateRustBufferTest);
 #endif /* UNITTESTS */
 }
-
-#endif

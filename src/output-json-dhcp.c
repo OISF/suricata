@@ -51,8 +51,6 @@
 #include "app-layer-dhcp.h"
 #include "output-json-dhcp.h"
 
-#if defined(HAVE_LIBJANSSON) && defined(HAVE_RUST)
-
 #include "rust-dhcp-logger-gen.h"
 
 typedef struct LogDHCPFileCtx_ {
@@ -179,11 +177,3 @@ void JsonDHCPLogRegister(void)
         JsonDHCPLogger, JsonDHCPLogThreadInit,
         JsonDHCPLogThreadDeinit, NULL);
 }
-
-#else /* No JSON support. */
-
-void JsonDHCPLogRegister(void)
-{
-}
-
-#endif /* HAVE_LIBJANSSON */

@@ -176,10 +176,8 @@
 
 #include "util-lua.h"
 
-#ifdef HAVE_RUST
 #include "rust.h"
 #include "rust-core-gen.h"
-#endif
 
 /*
  * we put this here, because we only use it here in main.
@@ -767,9 +765,7 @@ static void PrintBuildInfo(void)
 #ifdef HAVE_MAGIC
     strlcat(features, "MAGIC ", sizeof(features));
 #endif
-#if defined(HAVE_RUST)
     strlcat(features, "RUST ", sizeof(features));
-#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
@@ -2946,7 +2942,6 @@ int main(int argc, char **argv)
 {
     SCInstanceInit(&suricata, argv[0]);
 
-#ifdef HAVE_RUST
     SuricataContext context;
     context.SCLogMessage = SCLogMessage;
     context.DetectEngineStateFree = DetectEngineStateFree;
@@ -2963,7 +2958,6 @@ int main(int argc, char **argv)
     context.FileSetTx = FileContainerSetTx;
 
     rs_init(&context);
-#endif
 
     SC_ATOMIC_INIT(engine_stage);
 

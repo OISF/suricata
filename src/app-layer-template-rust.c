@@ -44,13 +44,10 @@
 
 #include "app-layer-template-rust.h"
 
-#ifdef HAVE_RUST
 #include "rust-applayertemplate-template-gen.h"
-#endif
 
 void RegisterTemplateRustParsers(void)
 {
-#ifdef HAVE_RUST
     /* TEMPLATE_START_REMOVE */
     /* Only register if enabled in config. */
     if (ConfGetNode("app-layer.protocols.template-rust") == NULL) {
@@ -59,7 +56,6 @@ void RegisterTemplateRustParsers(void)
     /* TEMPLATE_END_REMOVE */
     SCLogNotice("Registring Rust template parser.");
     rs_template_register_parser();
-#endif
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_TEMPLATE_RUST,
         TemplateRustParserRegisterTests);

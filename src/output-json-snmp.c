@@ -47,7 +47,6 @@
 #include "app-layer-snmp.h"
 #include "output-json-snmp.h"
 
-#ifdef HAVE_RUST
 #ifdef HAVE_LIBJANSSON
 
 #include "rust.h"
@@ -187,10 +186,3 @@ void JsonSNMPLogRegister(void)
 }
 
 #endif /* HAVE_LIBJANSSON */
-#else /* No rust support. */
-
-void JsonSNMPLogRegister(void)
-{
-}
-
-#endif /* HAVE_RUST */

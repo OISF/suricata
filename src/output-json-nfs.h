@@ -25,8 +25,6 @@
 #define __OUTPUT_JSON_NFS_H__
 
 void JsonNFSLogRegister(void);
-#ifdef HAVE_RUST
 json_t *JsonNFSAddMetadataRPC(const Flow *f, uint64_t tx_id);
 json_t *JsonNFSAddMetadata(const Flow *f, uint64_t tx_id);
-#endif /* HAVE_RUST */
 #endif /* __OUTPUT_JSON_NFS_H__ */

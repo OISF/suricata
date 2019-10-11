@@ -34,8 +34,6 @@
 
 #include "app-layer-krb5.h"
 
-#ifdef HAVE_RUST
-
 #include "rust-krb-krb5-gen.h"
 
 void RegisterKRB5Parsers(void)
@@ -56,11 +54,3 @@ void KRB5ParserRegisterTests(void)
 #ifdef UNITTESTS
 #endif
 }
-
-#else /* HAVE_RUST */
-
-void RegisterKRB5Parsers(void)
-{
-}
-
-#endif /* HAVE_RUST */

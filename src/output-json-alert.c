@@ -464,7 +464,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 }
             }
 
-#ifdef HAVE_RUST
             if (proto == ALPROTO_NFS) {
                 hjs = JsonNFSAddMetadataRPC(p->flow, pa->tx_id);
                 if (hjs)
@@ -481,7 +480,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 if (hjs)
                     json_object_set_new(js, "sip", hjs);
             }
-#endif
             if (proto == ALPROTO_FTPDATA) {
                 hjs = JsonFTPDataAddMetadata(p->flow);
                 if (hjs)

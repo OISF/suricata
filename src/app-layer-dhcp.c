@@ -25,16 +25,11 @@
 #include "util-unittest.h"
 #include "app-layer-parser.h"
 #include "app-layer-dhcp.h"
-
-#ifdef HAVE_RUST
 #include "rust-dhcp-dhcp-gen.h"
-#endif /* HAVE_RUST */
 
 void RegisterDHCPParsers(void)
 {
-#ifdef HAVE_RUST
     rs_dhcp_register_parser();
-#endif /* HAVE_RUST */
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_DHCP,
         DHCPParserRegisterTests);

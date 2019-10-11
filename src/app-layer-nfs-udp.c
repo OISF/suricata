@@ -34,13 +34,6 @@
 
 #include "app-layer-nfs-udp.h"
 
-#ifndef HAVE_RUST
-void RegisterNFSUDPParsers(void)
-{
-}
-
-#else
-
 #include "rust.h"
 #include "rust-nfs-nfs-gen.h"
 
@@ -375,5 +368,3 @@ void NFSUDPParserRegisterTests(void)
 #ifdef UNITTESTS
 #endif
 }
-
-#endif /* HAVE_RUST */

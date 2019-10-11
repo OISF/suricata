@@ -29,8 +29,6 @@
 
 #include "detect-krb5-msgtype.h"
 
-#ifdef HAVE_RUST
-
 #include "app-layer-krb5.h"
 #include "rust-krb-detect-gen.h"
 
@@ -261,11 +259,3 @@ static void DetectKrb5MsgTypeRegisterTests(void) {
                    DetectKrb5MsgTypeSignatureTest01);
 #endif /* UNITTESTS */
 }
-
-#else /* HAVE_RUST */
-
-void DetectKrb5MsgTypeRegister(void)
-{
-}
-
-#endif /* HAVE_RUST */

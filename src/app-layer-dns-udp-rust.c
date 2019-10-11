@@ -25,8 +25,6 @@
 
 #include "util-unittest.h"
 
-#ifdef HAVE_RUST
-
 #include "app-layer-dns-udp-rust.h"
 #include "rust-dns-dns-gen.h"
 
@@ -376,5 +374,3 @@ static void RustDNSUDPParserRegisterTests(void)
 }
 
 #endif
-
-#endif /* HAVE_RUST */

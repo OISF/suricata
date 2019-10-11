@@ -47,7 +47,6 @@
 #include "app-layer-krb5.h"
 #include "output-json-krb5.h"
 
-#ifdef HAVE_RUST
 #ifdef HAVE_LIBJANSSON
 
 #include "rust.h"
@@ -188,10 +187,3 @@ void JsonKRB5LogRegister(void)
 }
 
 #endif /* HAVE_LIBJANSSON */
-#else /* No rust support. */
-
-void JsonKRB5LogRegister(void)
-{
-}
-
-#endif /* HAVE_RUST */

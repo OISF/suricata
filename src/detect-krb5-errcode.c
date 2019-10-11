@@ -29,8 +29,6 @@
 
 #include "detect-krb5-errcode.h"
 
-#ifdef HAVE_RUST
-
 #include "app-layer-krb5.h"
 #include "rust-krb-detect-gen.h"
 
@@ -264,11 +262,3 @@ static void DetectKrb5ErrCodeRegisterTests(void) {
                    DetectKrb5ErrCodeSignatureTest01);
 #endif /* UNITTESTS */
 }
-
-#else /* HAVE_RUST */
-
-void DetectKrb5ErrCodeRegister(void)
-{
-}
-
-#endif /* HAVE_RUST */
