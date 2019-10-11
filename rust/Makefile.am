@@ -1,11 +1,7 @@
-EXTRA_DIST = 	Cargo.toml \
+EXTRA_DIST = Cargo.toml Cargo.lock \
 		src \
 		.cargo/config.in \
 		gen-c-headers.py
-
-if HAVE_RUST
-
-EXTRA_DIST +=	Cargo.lock
 
 if HAVE_CARGO_VENDOR
 EXTRA_DIST +=	vendor
@@ -75,8 +71,3 @@ gen/c-headers:
 else
 gen/c-headers:
 endif
-else # HAVE_RUST
-
-all-local clean-local check vendor gen/c-headers:
-
-endif # HAVE_RUST
