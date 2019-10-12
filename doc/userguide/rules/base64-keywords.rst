@@ -8,7 +8,7 @@ This is achieved by using two keywords, ``base64_decode`` and ``base64_data``. B
 base64_decode
 -------------
 
-Decodes base64_data from a buffer and makes it available for the base64_data function.
+Decodes base64 data from a buffer and makes it available for the base64_data function.
 
 Syntax::
 
