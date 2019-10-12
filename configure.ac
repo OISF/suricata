@@ -3,7 +3,7 @@
     AC_CONFIG_HEADERS([config.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
     AC_CONFIG_MACRO_DIR(m4)
-    AM_INIT_AUTOMAKE
+    AM_INIT_AUTOMAKE([tar-ustar])
 
     AC_LANG_C
     AC_PROG_CC_C99
