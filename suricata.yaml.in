@@ -200,16 +200,14 @@ outputs:
         - dns:
             # This configuration uses the new DNS logging format,
             # the old configuration is still available:
-            # http://suricata.readthedocs.io/en/latest/configuration/suricata-yaml.html#eve-extensible-event-format
-            # Use version 2 logging with the new format:
-            # DNS answers will be logged in one single event
-            # rather than an event for each of it.
-            # Without setting a version the version
-            # will fallback to 1 for backwards compatibility.
-            version: 2
+            # https://suricata.readthedocs.io/en/latest/output/eve/eve-json-output.html#dns-v1-format
+
+            # As of Suricata 5.0, version 2 of the eve dns output
+            # format is the default.
+            #version: 2
 
             # Enable/disable this logger. Default: enabled.
-            #enabled: no
+            #enabled: yes
 
             # Control logging of requests and responses:
             # - requests: enable logging of DNS queries
@@ -224,8 +222,8 @@ outputs:
             # Default: all
             #formats: [detailed, grouped]
 
-            # Answer types to log.
-            # Default: all
+            # Types to log, based on the query type.
+            # Default: all.
             #types: [a, aaaa, cname, mx, ns, ptr, txt]
         - tls:
             extended: yes     # enable this for extended logging information
