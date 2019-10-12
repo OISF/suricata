@@ -323,8 +323,8 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
     int seg_cnt = 0;
 
     char *last;
-    char *w = (char *)module_name;
-    while (w && (w = index(w, '-')) != NULL && seg_cnt < max_segs) {
+    char *w = (char *) module_name;
+    while (w && (w = strchr(w, '-')) != NULL && seg_cnt < max_segs) {
         seg_cnt++;
         last = w;
         w++; /* skip past '-' */
