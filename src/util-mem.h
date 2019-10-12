@@ -180,7 +180,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
             exit(EXIT_FAILURE); \
         } \
     } else { \
-        strlcpy(ptrmem, (a), _len); \
+        strlcpy(ptrmem, (a), _scstrndup_len); \
         *(ptrmem + _len) = '\0'; \
     } \
     \
@@ -304,7 +304,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
             exit(EXIT_FAILURE); \
         } \
     } else { \
-        strlcpy(ptrmem, (a), _len); \
+        strlcpy(ptrmem, (a), _scstrndup_len); \
         *(ptrmem + _len) = '\0'; \
     } \
     (void*)ptrmem; \
