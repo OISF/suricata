@@ -42,7 +42,7 @@ void DetectBase64DecodeRegister(void)
     sigmatch_table[DETECT_BASE64_DECODE].desc =
         "Decodes base64 encoded data.";
     sigmatch_table[DETECT_BASE64_DECODE].url =
-        DOC_URL DOC_VERSION "/rules/payload-keywords.html#base64-decode";
+        DOC_URL DOC_VERSION "/rules/base64-keywords.html#base64-decode";
     sigmatch_table[DETECT_BASE64_DECODE].Setup = DetectBase64DecodeSetup;
     sigmatch_table[DETECT_BASE64_DECODE].Free = DetectBase64DecodeFree;
     sigmatch_table[DETECT_BASE64_DECODE].RegisterTests =
