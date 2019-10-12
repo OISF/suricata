@@ -207,11 +207,51 @@ In the ``custom`` option values from both columns can be used. The
 DNS
 ~~~
 
-DNS records are logged one log record per query/answer record.
+.. note:: As of Suricata 5.0, the version 2 format of the EVE DNS log
+          is the default.
+
+DNS records are logged as one entry for the request, and one entry for
+the response.
 
 YAML::
 
         - dns:
+            # As of Suricata 5.0, version 2 of the eve dns output
+            # format is the default.
+            #version: 2
+
+            # Enable/disable this logger. Default: enabled.
+            #enabled: yes
+
+            # Control logging of requests and responses:
+            # - requests: enable logging of DNS queries
+            # - responses: enable logging of DNS answers
+            # By default both requests and responses are logged.
+            #requests: no
+            #responses: no
+
+            # Format of answer logging:
+            # - detailed: array item per answer
+            # - grouped: answers aggregated by type
+            # Default: all
+            #formats: [detailed, grouped]
+
+            # Types to log, based on the query type.
+            # Default: all.
+            #types: [a, aaaa, cname, mx, ns, ptr, txt]
+
+DNS v1 Format
+~~~~~~~~~~~~~
+
+The version 1 DNS output has been obsoleted by the version 2 output
+above. The v1 format logs a record per answer in the response possibly
+resulting in much more than 2 log records per request and response.
+
+YAML::
+
+        - dns:
+            # Must set the version to 1 to get the old style format.
+            version: 1
             # control logging of queries and answers
             # default yes, no to disable
             query: yes     # enable logging of DNS queries
