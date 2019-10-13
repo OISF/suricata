@@ -39,6 +39,13 @@ enum {
     SIG_DIREC_DST
 };
 
+typedef struct DetectParseRegex_ {
+    pcre *regex;
+    pcre_extra *study;
+    pcre_jit_stack *jit_stack;
+    struct DetectParseRegex_ *next;
+} DetectParseRegex;
+
 /* prototypes */
 Signature *SigAlloc(void);
 void SigFree(Signature *s);
@@ -79,15 +86,26 @@ int WARN_UNUSED DetectSignatureSetAppProto(Signature *s, AppProto alproto);
 
 /* parse regex setup and free util funcs */
 
-void DetectSetupParseRegexes(const char *parse_str,
-                             pcre **parse_regex,
-                             pcre_extra **parse_regex_study);
-void DetectParseRegexAddToFreeList(pcre *regex, pcre_extra *study);
+void DetectSetupParseRegexesOptsWithJIT(const char *parse_str, DetectParseRegex *detect_parse, int opts, bool jit);
+void DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *parse_regex, int opts);
+void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *parse_regex);
+void DetectParseRegexAddToFreeList(DetectParseRegex *parse_regex);
 void DetectParseFreeRegexes(void);
+
+/* parse regex exec */
+int DetectParsePcreExec(DetectParseRegex *parse_regex, const char *str,
+                   int start_offset, int options,
+                   int *ovector, int ovector_size);
+int DetectParsePcreExecLen(DetectParseRegex *parse_regex, const char *str,
+                   int str_len, int start_offset, int options,
+                   int *ovector, int ovector_size);
 
 #ifdef AFLFUZZ_RULES
 int RuleParseDataFromFile(char *filename);
 #endif
+
+/* typical size of ovector */
+#define MAX_SUBSTRINGS 30
 
 #endif /* __DETECT_PARSE_H__ */
 

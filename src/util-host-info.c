@@ -41,6 +41,7 @@ int SCKernelVersionIsAtLeast(int major, int minor)
     const char *eb;
     int opts = 0;
     int eo;
+#undef MAX_SUBSTRINGS
 #define MAX_SUBSTRINGS 3 * 6
     int ov[MAX_SUBSTRINGS];
     int ret;

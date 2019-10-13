@@ -24,6 +24,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-engine.h"
+#include "detect-parse.h"
 #include "util-hash.h"
 
 #include "util-reference-config.h"
@@ -41,8 +42,7 @@
 /* Default path for the reference.conf file */
 #define SC_RCONF_DEFAULT_FILE_PATH CONFIG_DIR "/reference.config"
 
-static pcre *regex = NULL;
-static pcre_extra *regex_study = NULL;
+static DetectParseRegex parse_regex;
 
 /* the hash functions */
 uint32_t SCRConfReferenceHashFunc(HashTable *ht, void *data, uint16_t datalen);
@@ -55,38 +55,12 @@ static const char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
 void SCReferenceConfInit(void)
 {
-    const char *eb = NULL;
-    int eo;
-    int opts = 0;
 
-    regex = pcre_compile(SC_RCONF_REGEX, opts, &eb, &eo, NULL);
-    if (regex == NULL) {
-        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   SC_RCONF_REGEX, eo, eb);
-        return;
-    }
-
-    regex_study = pcre_study(regex, 0, &eb);
-    if (eb != NULL) {
-        pcre_free(regex);
-        regex = NULL;
-        SCLogDebug("pcre study failed: %s", eb);
-        return;
-    }
-
-    return;
+    DetectSetupParseRegexes(SC_RCONF_REGEX, &parse_regex);
 }
 
 void SCReferenceConfDeinit(void)
 {
-    if (regex != NULL) {
-        pcre_free(regex);
-        regex = NULL;
-    }
-    if (regex_study != NULL) {
-        pcre_free(regex_study);
-        regex_study = NULL;
-    }
 }
 
 
@@ -238,11 +212,10 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
     SCRConfReference *ref_new = NULL;
     SCRConfReference *ref_lookup = NULL;
 
-#define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(regex, regex_study, line, strlen(line), 0, 0, ov, 30);
+    ret = DetectParsePcreExec(&parse_regex, line,  0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 0) {
         SCLogError(SC_ERR_REFERENCE_CONFIG, "Invalid Reference Config in "
                    "reference.config file");

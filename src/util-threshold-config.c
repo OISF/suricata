@@ -86,105 +86,23 @@ static FILE *g_ut_threshold_fp = NULL;
 #define THRESHOLD_CONF_DEF_CONF_FILEPATH CONFIG_DIR "/threshold.config"
 #endif
 
-static pcre *regex_base = NULL;
-static pcre_extra *regex_base_study = NULL;
-
-static pcre *regex_threshold = NULL;
-static pcre_extra *regex_threshold_study = NULL;
-
-static pcre *regex_rate = NULL;
-static pcre_extra *regex_rate_study = NULL;
-
-static pcre *regex_suppress = NULL;
-static pcre_extra *regex_suppress_study = NULL;
+static DetectParseRegex regex_base;
+static DetectParseRegex regex_threshold;
+static DetectParseRegex regex_rate;
+static DetectParseRegex regex_suppress;
 
 static void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd);
 
 void SCThresholdConfGlobalInit(void)
 {
-    const char *eb = NULL;
-    int eo;
-    int opts = 0;
-
-    regex_base = pcre_compile(DETECT_BASE_REGEX, opts, &eb, &eo, NULL);
-    if (regex_base == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_BASE_REGEX, eo, eb);
-    }
-
-    regex_base_study = pcre_study(regex_base, 0, &eb);
-    if (eb != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-    }
-
-    regex_threshold = pcre_compile(DETECT_THRESHOLD_REGEX, opts, &eb, &eo, NULL);
-    if (regex_threshold == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_THRESHOLD_REGEX, eo, eb);
-    }
-
-    regex_threshold_study = pcre_study(regex_threshold, 0, &eb);
-    if (eb != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-    }
-
-    regex_rate = pcre_compile(DETECT_RATE_REGEX, opts, &eb, &eo, NULL);
-    if (regex_rate == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_RATE_REGEX, eo, eb);
-    }
-
-    regex_rate_study = pcre_study(regex_rate, 0, &eb);
-    if (eb != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-    }
-
-    regex_suppress = pcre_compile(DETECT_SUPPRESS_REGEX, opts, &eb, &eo, NULL);
-    if (regex_suppress == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_SUPPRESS_REGEX, eo, eb);
-    }
-
-    regex_suppress_study = pcre_study(regex_suppress, 0, &eb);
-    if (eb != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-    }
-
+    DetectSetupParseRegexes(DETECT_BASE_REGEX, &regex_base);
+    DetectSetupParseRegexes(DETECT_THRESHOLD_REGEX, &regex_threshold);
+    DetectSetupParseRegexes(DETECT_RATE_REGEX, &regex_rate);
+    DetectSetupParseRegexes(DETECT_SUPPRESS_REGEX, &regex_suppress);
 }
 
 void SCThresholdConfGlobalFree(void)
 {
-    if (regex_base != NULL) {
-        pcre_free(regex_base);
-        regex_base = NULL;
-    }
-    if (regex_base_study != NULL) {
-        pcre_free(regex_base_study);
-        regex_base_study = NULL;
-    }
-
-    if (regex_threshold != NULL) {
-        pcre_free(regex_threshold);
-        regex_threshold = NULL;
-    }
-    if (regex_threshold_study != NULL) {
-        pcre_free(regex_threshold_study);
-        regex_threshold_study = NULL;
-    }
-
-    if (regex_rate != NULL) {
-        pcre_free(regex_rate);
-        regex_rate = NULL;
-    }
-    if (regex_rate_study != NULL) {
-        pcre_free(regex_rate_study);
-        regex_rate_study = NULL;
-    }
-
-    if (regex_suppress != NULL) {
-        pcre_free(regex_suppress);
-        regex_suppress = NULL;
-    }
-    if (regex_suppress_study != NULL) {
-        pcre_free(regex_suppress_study);
-        regex_suppress_study = NULL;
-    }
 }
 
 /**
@@ -694,7 +612,6 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     uint32_t parsed_seconds = 0;
     uint32_t parsed_timeout = 0;
 
-#define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
     uint32_t id = 0, gid = 0;
@@ -703,7 +620,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     if (de_ctx == NULL)
         return -1;
 
-    ret = pcre_exec(regex_base, regex_base_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&regex_base, rawstr,  0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
@@ -754,9 +671,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
         case THRESHOLD_TYPE_EVENT_FILTER:
         case THRESHOLD_TYPE_THRESHOLD:
             if (strlen(rule_extend) > 0) {
-                ret = pcre_exec(regex_threshold, regex_threshold_study,
-                        rule_extend, strlen(rule_extend),
-                        0, 0, ov, MAX_SUBSTRINGS);
+                ret = DetectParsePcreExec(&regex_threshold, rule_extend,  0, 0, ov, MAX_SUBSTRINGS);
                 if (ret < 4) {
                     SCLogError(SC_ERR_PCRE_MATCH,
                             "pcre_exec parse error, ret %" PRId32 ", string %s",
@@ -805,9 +720,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
             break;
         case THRESHOLD_TYPE_SUPPRESS:
             if (strlen(rule_extend) > 0) {
-                ret = pcre_exec(regex_suppress, regex_suppress_study,
-                        rule_extend, strlen(rule_extend),
-                        0, 0, ov, MAX_SUBSTRINGS);
+                ret = DetectParsePcreExec(&regex_suppress, rule_extend,  0, 0, ov, MAX_SUBSTRINGS);
                 if (ret < 2) {
                     SCLogError(SC_ERR_PCRE_MATCH,
                             "pcre_exec parse error, ret %" PRId32 ", string %s",
@@ -833,9 +746,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
             break;
         case THRESHOLD_TYPE_RATE:
             if (strlen(rule_extend) > 0) {
-                ret = pcre_exec(regex_rate, regex_rate_study,
-                        rule_extend, strlen(rule_extend),
-                        0, 0, ov, MAX_SUBSTRINGS);
+                ret = DetectParsePcreExec(&regex_rate, rule_extend,  0, 0, ov, MAX_SUBSTRINGS);
                 if (ret < 5) {
                     SCLogError(SC_ERR_PCRE_MATCH,
                             "pcre_exec parse error, ret %" PRId32 ", string %s",
