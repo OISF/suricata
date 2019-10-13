@@ -46,8 +46,7 @@
 #include "util-debug.h"
 
 #define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 int DetectFlowbitMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -67,7 +66,7 @@ void DetectFlowbitsRegister (void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_FLOWBITS].flags |= SIGMATCH_IPONLY_COMPAT;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 
@@ -156,8 +155,7 @@ static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *nam
     int count, rc;
     int ov[max_substrings];
 
-    count = pcre_exec(parse_regex, parse_regex_study, str, strlen(str), 0, 0,
-        ov, max_substrings);
+    count = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, max_substrings);
     if (count != 2 && count != 3) {
         SCLogError(SC_ERR_PCRE_MATCH,
             "\"%s\" is not a valid setting for flowbits.", str);

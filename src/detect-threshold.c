@@ -61,8 +61,7 @@
 
 #define PARSE_REGEX "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectThresholdMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -85,7 +84,7 @@ void DetectThresholdRegister(void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_THRESHOLD].flags |= SIGMATCH_IPONLY_COMPAT;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static int DetectThresholdMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
@@ -106,7 +105,6 @@ static int DetectThresholdMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 static DetectThresholdData *DetectThresholdParse(const char *rawstr)
 {
     DetectThresholdData *de = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr = NULL;
@@ -143,8 +141,7 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
     if(count_found != 1 || second_found != 1 || type_found != 1 || track_found != 1)
         goto error;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
-
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;

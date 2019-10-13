@@ -730,6 +730,44 @@
         AC_MSG_RESULT(no)
     fi
 
+    if test "x$pcre_jit_works" = "xyes"; then
+
+       AC_MSG_CHECKING(for PCRE JIT EXEC support usability)
+       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+                          #include <pcre.h>
+                          #include <string.h>
+                          ]],
+           [[
+           const char* regexstr = "(a|b|c|d)";
+           const char* teststr = "apple";
+           pcre *re;
+           const char *error;
+           pcre_extra *study;
+           pcre_jit_stack *stack;
+           int err_offset;
+           re = pcre_compile(regexstr,0, &error, &err_offset,NULL);
+           study = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
+           if (study == NULL)
+               exit(EXIT_FAILURE);
+           stack = pcre_jit_stack_alloc(32*1024,40*1024);
+           if (stack == 0)
+               exit(EXIT_FAILURE);
+           int ret = pcre_jit_exec(re, study, teststr, strlen(teststr), 0, 0, NULL, 0, stack);
+           if (ret != 0)
+               exit(EXIT_FAILURE);
+           exit(EXIT_SUCCESS);
+           ]])],[ pcre_jit_exec_works=yes ],[:]
+       )
+       if test "x$pcre_jit_exec_works" != "xyes"; then
+           AC_MSG_RESULT(no)
+       else
+           AC_MSG_RESULT(yes)
+           AC_DEFINE([PCRE_HAVE_JIT_EXEC], [1], [Pcre with JIT compiler support enabled supporting pcre_jit_exec])
+       fi
+    else
+        AC_MSG_RESULT(no)
+    fi
+
   # libhs
     enable_hyperscan="no"
 

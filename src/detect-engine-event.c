@@ -44,8 +44,7 @@
 
 #define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z0-9_+.]+$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectEngineEventMatch (DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
@@ -78,7 +77,7 @@ void DetectEngineEventRegister (void)
     sigmatch_table[DETECT_STREAM_EVENT].Setup = DetectStreamEventSetup;
     sigmatch_table[DETECT_STREAM_EVENT].Free  = DetectEngineEventFree;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -120,11 +119,10 @@ static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
 {
     int i;
     DetectEngineEventData *de = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0, found = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32
                 ", string %s", ret, rawstr);
