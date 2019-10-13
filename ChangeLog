@@ -1,3 +1,34 @@
+5.0.0 -- 2019-10-15
+
+Feature #1851: add verbosity level description to the help command
+Feature #1940: Debian Jessie - better message when trying to run 2 suricata with afpacket
+Feature #3204: ja3(s): automatically enable when rules require it
+Bug #1443: deprecated library calls
+Bug #1778: af_packet: IPS and defrag
+Bug #2386: check if default log dir is writable at start up
+Bug #2465: Eve Stats will not be reported unless stats.log is enabled
+Bug #2490: Filehash rule does not fire without filestore keyword
+Bug #2668: make install-full fails if CARGO_TARGET_DIR has spaces in the directory path
+Bug #2669: make install-full fails due to being unable to find libhtp.so.2
+Bug #2955: lua issues on arm (fedora:29)
+Bug #3113: python-yaml dependency is actually ptyhon3-yaml dependency
+Bug #3139: enip: compile warnings on gcc-8
+Bug #3143: datasets: don't use list in global config
+Bug #3190: file_data inspection inhibited by additional (non-file_data) content match rule
+Bug #3196: Distributed archive do not include eBPF files
+Bug #3209: Copy engine provided classification.config to $datadir/suricata.
+Bug #3210: Individual output log levels capped by the default log level
+Bug #3216: MSN protocol detection/parser is not working
+Bug #3223: --disable-geoip does not work
+Bug #3226: ftp: ASAN error
+Bug #3232: Static build with pcap fails
+Optimization #3039: configure: don't generate warnings on missing features
+Documentation #2640: http-body and http-body-printable in eve-log require metadata to be enabled, yet there is no indication of this anywhere
+Documentation #2839: Update perf and tuning user guides
+Documentation #2876: doc: add nftables with nfqueue section
+Documentation #3207: Update the http app-layer doc and config
+Documentation #3230: EVE DNS logger defaults to version 2 instead of version when version not specified.
+
 5.0.0-rc1 -- 2019-09-24
 
 Feature #524: detect double encoding in URI
