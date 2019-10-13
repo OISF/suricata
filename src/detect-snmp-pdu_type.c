@@ -37,8 +37,7 @@
  *   [snmp.pdu_type]:<type>;
  */
 #define PARSE_REGEX "^\\s*([0-9]+)\\s*$"
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 typedef struct DetectSNMPPduTypeData_ {
     uint32_t pdu_type;
@@ -76,7 +75,7 @@ void DetectSNMPPduTypeRegister(void)
 #endif
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].flags |= SIGMATCH_NOOPT;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister("snmp.pdu_type",
             ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
@@ -150,8 +149,7 @@ static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
     char value1[20] = "";
     char *endptr = NULL;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0,
-                    0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
         goto error;

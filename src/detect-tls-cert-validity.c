@@ -53,8 +53,7 @@
  *   [tls_notbefore|tls_notafter]:[<|>]<date string>[<><date string>];
  */
 #define PARSE_REGEX "^\\s*(<|>)?\\s*([ -:TW0-9]+)\\s*(?:(<>)\\s*([ -:TW0-9]+))?\\s*$"
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectTlsValidityMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
@@ -129,7 +128,7 @@ void DetectTlsValidityRegister (void)
     sigmatch_table[DETECT_AL_TLS_VALID].RegisterTests = TlsValidRegisterTests;
 #endif
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister("tls_validity",
             ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
@@ -318,8 +317,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
     char value2[20] = "";
     char range[3] = "";
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0,
-                    0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
         goto error;

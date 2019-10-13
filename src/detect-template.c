@@ -35,8 +35,7 @@
  * \brief Regex for parsing our keyword options
  */
 #define PARSE_REGEX  "^\\s*([0-9]+)?\\s*,s*([0-9]+)?\\s*$"
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectTemplateRegister below */
 static int DetectTemplateMatch (DetectEngineThreadCtx *,
@@ -72,7 +71,7 @@ void DetectTemplateRegister(void) {
     sigmatch_table[DETECT_TEMPLATE].RegisterTests = DetectTemplateRegisterTests;
 #endif
     /* set up the PCRE for keyword parsing */
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -132,9 +131,7 @@ static DetectTemplateData *DetectTemplateParse (const char *templatestr)
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
 
-    int ret = pcre_exec(parse_regex, parse_regex_study,
-                    templatestr, strlen(templatestr),
-                    0, 0, ov, MAX_SUBSTRINGS);
+    int ret = PCRE_EXEC(&parse_regex, templatestr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         return NULL;

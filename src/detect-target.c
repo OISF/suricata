@@ -36,8 +36,7 @@
  */
 #define PARSE_REGEX  "^\\s*(src_ip|dest_ip)\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectTargetRegister below */
 static int DetectTargetSetup (DetectEngineCtx *, Signature *, const char *);
@@ -66,7 +65,7 @@ void DetectTargetRegister(void) {
     sigmatch_table[DETECT_TARGET].RegisterTests = DetectTargetRegisterTests;
 
     /* set up the PCRE for keyword parsing */
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -84,10 +83,9 @@ static int DetectTargetParse(Signature *s, const char *targetstr)
     int ov[MAX_SUBSTRINGS];
     char value[10];
 
-    ret = pcre_exec(parse_regex, parse_regex_study,
-                    targetstr, strlen(targetstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, targetstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, targetstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, targetstr);
         return -1;
     }
 

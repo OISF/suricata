@@ -57,8 +57,7 @@
                      "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
                      "\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx);
@@ -77,7 +76,7 @@ void DetectBytejumpRegister (void)
     sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;
     sigmatch_table[DETECT_BYTEJUMP].RegisterTests = DetectBytejumpRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /** \brief Byte jump match function
@@ -327,8 +326,7 @@ static DetectBytejumpData *DetectBytejumpParse(const char *optstr, char **offset
     memset(args, 0x00, sizeof(args));
 
     /* Execute the regex and populate args with captures. */
-    ret = pcre_exec(parse_regex, parse_regex_study, optstr,
-                    strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, optstr,  0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2 || ret > 10) {
         SCLogError(SC_ERR_PCRE_PARSE,"parse error, ret %" PRId32
                ", string \"%s\"", ret, optstr);

@@ -54,8 +54,7 @@ SC_ATOMIC_EXTERN(unsigned int, num_tags);
 /* format: tag: <type>, <count>, <metric>, [direction]; */
 #define PARSE_REGEX  "^\\s*(host|session)\\s*(,\\s*(\\d+)\\s*,\\s*(packets|bytes|seconds)\\s*(,\\s*(src|dst))?\\s*)?$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectTagMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -75,7 +74,7 @@ void DetectTagRegister(void)
     sigmatch_table[DETECT_TAG].RegisterTests = DetectTagRegisterTests;
     sigmatch_table[DETECT_TAG].flags |= SIGMATCH_IPONLY_COMPAT;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -159,7 +158,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr = NULL;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, tagstr, strlen(tagstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, tagstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, tagstr);
         goto error;
