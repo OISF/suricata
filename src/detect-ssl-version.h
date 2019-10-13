@@ -41,7 +41,6 @@ enum {
 
 typedef struct SSLVersionData_ {
     uint16_t ver; /** ssl version to match */
-    uint8_t flags;
 } SSLVersionData;
 
 typedef struct DetectSslVersionData_ {

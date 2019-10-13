@@ -67,6 +67,7 @@ static int DetectSslVersionSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectSslVersionRegisterTests(void);
 #endif
+static int DetectSslVersionNegate(DetectSslVersionData *, int);
 static void DetectSslVersionFree(void *);
 static int g_tls_generic_list_id = 0;
 
@@ -180,7 +181,7 @@ static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx,
     if (sig_ver == TLS_UNKNOWN)
         SCReturnInt(0);
 
-    SCReturnInt(ret ^ ((ssl->data[sig_ver].flags & DETECT_SSL_VERSION_NEGATED) ? 1 : 0));
+    SCReturnInt(ret);
 }
 
 /**
@@ -247,29 +248,53 @@ static DetectSslVersionData *DetectSslVersionParse(const char *str)
             }
 
             if (strcasecmp("sslv2", tmp_str) == 0) {
-                ssl->data[SSLv2].ver = SSL_VERSION_2;
-                if (neg == 1)
-                    ssl->data[SSLv2].flags |= DETECT_SSL_VERSION_NEGATED;
+                if (neg == 1) {
+                    if (DetectSslVersionNegate(ssl, SSLv2)) {
+                        goto error;
+                    }
+                } else {
+                    ssl->data[SSLv2].ver = SSL_VERSION_2;
+                }
             } else if (strcasecmp("sslv3", tmp_str) == 0) {
-                ssl->data[SSLv3].ver = SSL_VERSION_3;
-                if (neg == 1)
-                    ssl->data[SSLv3].flags |= DETECT_SSL_VERSION_NEGATED;
+                if (neg == 1) {
+                    if (DetectSslVersionNegate(ssl, SSLv3)) {
+                        goto error;
+                    }
+                } else {
+                    ssl->data[SSLv3].ver = SSL_VERSION_3;
+                }
             } else if (strcasecmp("tls1.0", tmp_str) == 0) {
-                ssl->data[TLS10].ver = TLS_VERSION_10;
-                if (neg == 1)
-                    ssl->data[TLS10].flags |= DETECT_SSL_VERSION_NEGATED;
+                if (neg == 1) {
+                    if (DetectSslVersionNegate(ssl, TLS10)) {
+                        goto error;
+                    }
+                } else {
+                    ssl->data[TLS10].ver = TLS_VERSION_10;
+                }
             } else if (strcasecmp("tls1.1", tmp_str) == 0) {
-                ssl->data[TLS11].ver = TLS_VERSION_11;
-                if (neg == 1)
-                    ssl->data[TLS11].flags |= DETECT_SSL_VERSION_NEGATED;
+                if (neg == 1) {
+                    if (DetectSslVersionNegate(ssl, TLS11)) {
+                        goto error;
+                    }
+                } else {
+                    ssl->data[TLS11].ver = TLS_VERSION_11;
+                }
             } else if (strcasecmp("tls1.2", tmp_str) == 0) {
-                ssl->data[TLS12].ver = TLS_VERSION_12;
-                if (neg == 1)
-                    ssl->data[TLS12].flags |= DETECT_SSL_VERSION_NEGATED;
+                if (neg == 1) {
+                    if (DetectSslVersionNegate(ssl, TLS12)) {
+                        goto error;
+                    }
+                } else {
+                    ssl->data[TLS12].ver = TLS_VERSION_12;
+                }
             } else if (strcasecmp("tls1.3", tmp_str) == 0) {
-                ssl->data[TLS13].ver = TLS_VERSION_13;
-                if (neg == 1)
-                    ssl->data[TLS13].flags |= DETECT_SSL_VERSION_NEGATED;
+                if (neg == 1) {
+                    if (DetectSslVersionNegate(ssl, TLS13)) {
+                        goto error;
+                    }
+                } else {
+                    ssl->data[TLS13].ver = TLS_VERSION_13;
+                }
             }  else if (strcmp(tmp_str, "") == 0) {
                 SCFree(orig);
                 if (found == 0)
@@ -338,6 +363,52 @@ error:
     if (sm != NULL)
         SCFree(sm);
     return -1;
+}
+
+/**
+ * \brief this function negates the version info of the DetectSslVersionData
+ *
+ * \param ssl DetectSslVersionData
+ * \param ver_to_negate version to negate
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectSslVersionNegate(DetectSslVersionData *ssl, int ver_to_negate)
+{
+    int it_ver;
+
+    if (ssl == NULL)
+        return -1;
+
+    // iterate versions
+    for (it_ver = SSLv2; it_ver < TLS_SIZE; it_ver++) {
+        // mark all versions but target ver
+        if (it_ver != ver_to_negate) {
+            switch (it_ver) {
+                case SSLv2:
+                    ssl->data[it_ver].ver = SSL_VERSION_2;
+                    break;
+                case SSLv3:
+                    ssl->data[it_ver].ver = SSL_VERSION_3;
+                    break;
+                case TLS10:
+                    ssl->data[it_ver].ver = TLS_VERSION_10;
+                    break;
+                case TLS11:
+                    ssl->data[it_ver].ver = TLS_VERSION_11;
+                    break;
+                case TLS12:
+                    ssl->data[it_ver].ver = TLS_VERSION_12;
+                    break;
+                case TLS13:
+                    ssl->data[it_ver].ver = TLS_VERSION_13;
+                    break;
+            }
+        }
+    }
+
+    return 0;
 }
 
 /**

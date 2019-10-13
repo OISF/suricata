@@ -59,10 +59,12 @@ static int DetectSslVersionTestParse03(void)
     DetectSslVersionData *ssl = NULL;
     ssl = DetectSslVersionParse("SSlv3,tls1.0, !tls1.2");
     FAIL_IF_NULL(ssl);
+    FAIL_IF_NOT(ssl->data[SSLv2].ver == SSL_VERSION_2);
     FAIL_IF_NOT(ssl->data[SSLv3].ver == SSL_VERSION_3);
     FAIL_IF_NOT(ssl->data[TLS10].ver == TLS_VERSION_10);
-    FAIL_IF_NOT(ssl->data[TLS12].ver == TLS_VERSION_12);
-    FAIL_IF_NOT(ssl->data[TLS12].flags & DETECT_SSL_VERSION_NEGATED);
+    FAIL_IF_NOT(ssl->data[TLS11].ver == TLS_VERSION_11);
+    FAIL_IF_NOT(ssl->data[TLS12].ver != TLS_VERSION_12);
+    FAIL_IF_NOT(ssl->data[TLS13].ver == TLS_VERSION_13);
     DetectSslVersionFree(ssl);
     PASS;
 }
@@ -243,6 +245,90 @@ static int DetectSslVersionTestDetect02(void)
     PASS;
 }
 
+static int DetectSslVersionTestDetect03(void)
+{
+    Flow f;
+    uint8_t sslbuf1[] = { 0x16 };
+    uint32_t ssllen1 = sizeof(sslbuf1);
+    uint8_t sslbuf2[] = { 0x03 };
+    uint32_t ssllen2 = sizeof(sslbuf2);
+    uint8_t sslbuf3[] = { 0x01 };
+    uint32_t ssllen3 = sizeof(sslbuf3);
+    uint8_t sslbuf4[] = { 0x01, 0x00, 0x00, 0xad, 0x03, 0x02 };
+    uint32_t ssllen4 = sizeof(sslbuf4);
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    f.alproto = ALPROTO_TLS;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tls any any -> any any (msg:\"TLS\"; ssl_version:!tls1.2; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, sslbuf1, ssllen1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf2, ssllen2);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf3, ssllen3);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf4, ssllen4);
+    FAIL_IF(r != 0);
+
+    SSLState *app_state = f.alstate;
+    FAIL_IF_NULL(app_state);
+
+    FAIL_IF(app_state->client_connp.content_type != 0x16);
+
+    FAIL_IF(app_state->client_connp.version != TLS_VERSION_10);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+
+    PASS;
+}
+
 /**
  * \brief this function registers unit tests for DetectSslVersion
  */
@@ -255,4 +341,6 @@ static void DetectSslVersionRegisterTests(void)
                    DetectSslVersionTestDetect01);
     UtRegisterTest("DetectSslVersionTestDetect02",
                    DetectSslVersionTestDetect02);
+    UtRegisterTest("DetectSslVersionTestDetect03",
+                   DetectSslVersionTestDetect03);
 }
