@@ -6,6 +6,7 @@ Feature #997: Add libhtp event for every htp_log() that needs an event.
 Feature #1203: TCP Fast Open support
 Feature #1249: http/dns ip-reputation alike technique
 Feature #1757: URL Reputation
+Feature #2200: Dynamically add md5 to blacklist without full restart
 Feature #2283: turn content modifiers into 'sticky buffers'
 Feature #2314: protocol parser: rdp
 Feature #2315: eve: ftp logging
@@ -17,10 +18,12 @@ Feature #2684: Add JA3S
 Feature #2738: SNMP parser, logging and detection
 Feature #2754: JA3 and JA3S - sets / reputation
 Feature #2758: intel / reputation matching on arbitrary data
+Feature #2789: Use clang for building eBPF programs even if Suricata is built using GCC
 Feature #2916: FTP decoder should have Rust port parsers
 Feature #2940: document anomaly log
 Feature #2941: anomaly log: add protocol detection events
 Feature #2952: modernize http_header_names
+Feature #3011: Add new 'cluster_peer' runmode to allow for load balancing by IP header (src<->dst) only
 Feature #3058: Hardware offload for XDP bypass
 Feature #3059: Use pinned maps in XDP bypass
 Feature #3060: Add way to detect TCP MSS values
@@ -37,6 +40,7 @@ Bug #1656: several silent bypasses at the HTTP application level (chunking, comp
 Bug #1776: Multiple Content-Length headers causes HTP_STREAM_ERROR
 Bug #2080: Rules with bad port group var do not error
 Bug #2146: DNS answer not logged with eve-log
+Bug #2210: logging: SC_LOG_OP_FILTER still displays some lines not matching filter
 Bug #2264: file-store.stream-depth not working as expected when configured to a specfic value
 Bug #2395: File_data inspection depth while inspecting base64 decoded data
 Bug #2619: Malformed HTTP causes FN using http_header_names;
@@ -48,7 +52,7 @@ Bug #2686: Fancy Quotes in Documentation
 Bug #2765: GeoIP keyword depends on now discontinued legacy GeoIP database
 Bug #2769: False positive alerts firing after upgrade suricata 3.0 -> 4.1.0
 Bug #2786: make install-full does not install some source events rules
-Big #2840: xdp modes - Invalid argument (-22) on certain NICs
+Bug #2840: xdp modes - Invalid argument (-22) on certain NICs
 Bug #2847: Confusing warning “Rule is inspecting both directions” when inspecting engine analysis output
 Bug #2853: filestore (v1 and v2): dropping of "unwanted" files
 Bug #2926: engine-analysis with content modifiers not always issues correct warning
@@ -57,6 +61,8 @@ Bug #2951: valgrind warnings in ftp
 Bug #2953: bypass keyword: Suricata 4.1.x Segmentation Faults
 Bug #2961: filestore: memory leaks
 Bug #2965: Version 5 Beta1 - Multiple NFQUEUE failed
+Bug #2986: stream bypass not making callback as expected
+Bug #2992: Build failure on m68k with uclibc
 Bug #2999: AddressSanitizer: heap-buffer-overflow in HTPParseContentRange
 Bug #3000: tftp: missing logs because of broken tx handling
 Bug #3004: SC_ERR_PCAP_DISPATCH with message "error code -2" upon rule reload completion
@@ -81,6 +87,7 @@ Bug #3162: TLS Lua output does not work without TLS log
 Bug #3169: tls: out of bounds read (5.x)
 Bug #3171: defrag: out of bounds read (5.x)
 Bug #3176: ipv4: ts field decoding oob read (5.x)
+Bug #3177: suricata is logging tls log repeatedly if custom mode is enabled
 Bug #3185: decode/der: crafted input can lead to resource starvation (5.x)
 Bug #3189: NSS Shutdown triggers crashes in test mode (5.x)
 Optimization #879: update configure.ac with autoupdate
