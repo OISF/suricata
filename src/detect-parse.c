@@ -2345,12 +2345,6 @@ error:
     return NULL;
 }
 
-typedef struct DetectParseRegex_ {
-    pcre *regex;
-    pcre_extra *study;
-    struct DetectParseRegex_ *next;
-} DetectParseRegex;
-
 static DetectParseRegex *g_detect_parse_regex_list = NULL;
 
 void DetectParseFreeRegexes(void)
@@ -2365,6 +2359,9 @@ void DetectParseFreeRegexes(void)
         if (r->study) {
             pcre_free_study(r->study);
         }
+        if (r->jit_stack) {
+            pcre_jit_stack_free(r->jit_stack);
+        }
         SCFree(r);
         r = next;
     }
@@ -2373,38 +2370,52 @@ void DetectParseFreeRegexes(void)
 
 /** \brief add regex and/or study to at exit free list
  */
-void DetectParseRegexAddToFreeList(pcre *regex, pcre_extra *study)
+void DetectParseRegexAddToFreeList(DetectParseRegex *detect_parse)
 {
     DetectParseRegex *r = SCCalloc(1, sizeof(*r));
     if (r == NULL) {
         FatalError(SC_ERR_MEM_ALLOC, "failed to alloc memory for pcre free list");
     }
-    r->regex = regex;
-    r->study = study;
+    r->regex = detect_parse->regex;
+    r->study = detect_parse->study;
     r->next = g_detect_parse_regex_list;
+    r->jit_stack = detect_parse->jit_stack;
     g_detect_parse_regex_list = r;
 }
 
-void DetectSetupParseRegexes(const char *parse_str,
-                             pcre **parse_regex,
-                             pcre_extra **parse_regex_study)
+void DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect_parse, int opts)
 {
     const char *eb;
     int eo;
-    int opts = 0;
 
-    *parse_regex = pcre_compile(parse_str, opts, &eb, &eo, NULL);
-    if (*parse_regex == NULL) {
+    detect_parse->regex = pcre_compile(parse_str, opts, &eb, &eo, NULL);
+    if (detect_parse->regex == NULL) {
         FatalError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
                 "offset %" PRId32 ": %s", parse_str, eo, eb);
     }
 
-    *parse_regex_study = pcre_study(*parse_regex, 0, &eb);
+    detect_parse->study = pcre_study(detect_parse->regex, PCRE_STUDY_JIT_COMPILE, &eb);
     if (eb != NULL) {
         FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
     }
 
-    DetectParseRegexAddToFreeList(*parse_regex, *parse_regex_study);
+#if PCRE_HAVE_JIT
+    detect_parse->jit_stack = pcre_jit_stack_alloc(32*1024, 512*1024);
+    if (detect_parse->jit_stack == NULL) {
+        FatalError(SC_ERR_PCRE_JITSTACK, "pcre jit_stack alloc failed");
+    }
+    pcre_assign_jit_stack(detect_parse->study, NULL, detect_parse->jit_stack);
+#endif
+
+
+    DetectParseRegexAddToFreeList(detect_parse);
+
+    return;
+}
+
+void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_parse)
+{
+    DetectSetupParseRegexesOpts(parse_str, detect_parse, 0);
     return;
 }
 

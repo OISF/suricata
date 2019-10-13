@@ -59,8 +59,7 @@
  */
 #define PARSE_REGEX  "^\\s*\"?\\s*([0-9]+([\\.\\-0-9]+)?|2_compat)\\s*\"?\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectSshVersionMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
@@ -85,7 +84,7 @@ void DetectSshVersionRegister(void)
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].flags = SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_INFO_DEPRECATED;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].alternative = DETECT_AL_SSH_PROTOCOL;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_ssh_banner_list_id = DetectBufferTypeRegister("ssh_banner");
 }
@@ -158,9 +157,7 @@ static DetectSshVersionData *DetectSshVersionParse (const char *str)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, str, strlen(str), 0, 0,
-                    ov, MAX_SUBSTRINGS);
-
+    ret = PCRE_EXEC(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid ssh.protoversion option");
         goto error;

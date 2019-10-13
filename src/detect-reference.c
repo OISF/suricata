@@ -45,8 +45,7 @@
 
 #define PARSE_REGEX "^\\s*([A-Za-z0-9]+)\\s*,\"?\\s*\"?\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\"?\\s*\"?"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 #ifdef UNITTESTS
 static void ReferenceRegisterTests(void);
@@ -65,7 +64,7 @@ void DetectReferenceRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_REFERENCE].RegisterTests = ReferenceRegisterTests;
 #endif
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -102,8 +101,7 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     char key[REFERENCE_SYSTEM_NAME_MAX] = "";
     char content[REFERENCE_CONTENT_NAME_MAX] = "";
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr),
-                    0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Unable to parse \"reference\" "
                    "keyword argument - \"%s\".   Invalid argument.", rawstr);

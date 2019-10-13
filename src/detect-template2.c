@@ -35,8 +35,7 @@
  */
 #define PARSE_REGEX  "^\\s*([0-9]*)?\\s*([<>=-]+)?\\s*([0-9]+)?\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 /* prototypes */
 static int DetectTemplate2Match (DetectEngineThreadCtx *, Packet *,
@@ -67,7 +66,7 @@ void DetectTemplate2Register(void)
     sigmatch_table[DETECT_TEMPLATE2].SupportsPrefilter = PrefilterTemplate2IsPrefilterable;
     sigmatch_table[DETECT_TEMPLATE2].SetupPrefilter = PrefilterSetupTemplate2;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
     return;
 }
 
@@ -138,7 +137,7 @@ static DetectTemplate2Data *DetectTemplate2Parse (const char *template2str)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, template2str, strlen(template2str), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, template2str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         goto error;

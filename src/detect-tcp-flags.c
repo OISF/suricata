@@ -55,8 +55,7 @@
 #define MODIFIER_PLUS 2
 #define MODIFIER_ANY  3
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectFlagsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -84,7 +83,7 @@ void DetectFlagsRegister (void)
     sigmatch_table[DETECT_FLAGS].SupportsPrefilter = PrefilterTcpFlagsIsPrefilterable;
     sigmatch_table[DETECT_FLAGS].SetupPrefilter = PrefilterSetupTcpFlags;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static inline int FlagsMatch(const uint8_t pflags, const uint8_t modifier,
@@ -179,8 +178,7 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
     char arg2[16] = "";
     char arg3[16] = "";
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr),
-            0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     SCLogDebug("input '%s', pcre said %d", rawstr, ret);
     if (ret < 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre match failed");

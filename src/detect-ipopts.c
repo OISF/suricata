@@ -40,8 +40,7 @@
 
 #define PARSE_REGEX "\\S[A-z]"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectIpOptsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -62,7 +61,7 @@ void DetectIpOptsRegister (void)
     sigmatch_table[DETECT_IPOPTS].Free  = DetectIpOptsFree;
     sigmatch_table[DETECT_IPOPTS].RegisterTests = IpOptsRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -131,9 +130,9 @@ static DetectIpOptsData *DetectIpOptsParse (const char *rawstr)
     int ret = 0, found = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 

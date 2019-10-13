@@ -49,8 +49,7 @@
 #include "host.h"
 
 #define PARSE_REGEX         "\\s*(any|src|dst|both)\\s*,\\s*([A-Za-z0-9\\-\\_]+)\\s*,\\s*(\\<|\\>|\\=)\\s*,\\s*([0-9]+)\\s*"
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectIPRepMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -70,7 +69,7 @@ void DetectIPRepRegister (void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_IPREP].flags |= SIGMATCH_IPONLY_COMPAT;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static uint8_t GetHostRepSrc(Packet *p, uint8_t cat, uint32_t version)
@@ -245,7 +244,7 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for iprep", rawstr);
         return -1;

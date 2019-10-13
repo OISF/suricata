@@ -37,8 +37,7 @@
 #include "util-debug.h"
 
 #define PARSE_REGEX         "(.*),(.*)"
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectPktvarMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -52,7 +51,7 @@ void DetectPktvarRegister (void)
     sigmatch_table[DETECT_PKTVAR].Free  = NULL;
     sigmatch_table[DETECT_PKTVAR].RegisterTests  = NULL;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /*
@@ -86,7 +85,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     uint8_t *content = NULL;
     uint16_t len = 0;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for pktvar.", rawstr);
         return -1;
