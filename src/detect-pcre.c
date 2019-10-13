@@ -70,10 +70,8 @@
 static int pcre_match_limit = 0;
 static int pcre_match_limit_recursion = 0;
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
-static pcre *parse_capture_regex;
-static pcre_extra *parse_capture_regex_study;
+static DetectParseRegex parse_regex;
+static DetectParseRegex parse_capture_regex;
 
 #ifdef PCRE_HAVE_JIT
 static int pcre_use_jit = 1;
@@ -124,24 +122,12 @@ void DetectPcreRegister (void)
         }
     }
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     /* setup the capture regex, as it needs PCRE_UNGREEDY we do it manually */
-    const char *eb;
-    int eo;
     int opts = PCRE_UNGREEDY; /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
 
-    parse_capture_regex = pcre_compile(PARSE_CAPTURE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_capture_regex == NULL)
-    {
-        FatalError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_CAPTURE_REGEX, eo, eb);
-    }
-
-    parse_capture_regex_study = pcre_study(parse_capture_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-    }
+    DetectSetupParseRegexesOpts(PARSE_CAPTURE_REGEX, &parse_capture_regex, opts);
 
 #ifdef PCRE_HAVE_JIT
     if (PageSupportsRWX() == 0) {
@@ -150,7 +136,6 @@ void DetectPcreRegister (void)
     }
 #endif
 
-    DetectParseRegexAddToFreeList(parse_capture_regex, parse_capture_regex_study);
     return;
 }
 
@@ -381,8 +366,13 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
 
     char re[slen];
-    ret = pcre_exec(parse_regex, parse_regex_study, regexstr, slen,
+#if PCRE_HAVE_JIT
+    ret = pcre_jit_exec(parse_regex.regex, parse_regex.study, regexstr, slen,
+                        0, 0, ov, MAX_SUBSTRINGS, parse_regex.jit_stack);
+#else
+    ret = pcre_exec(parse_regex.regex, parse_regex.study, regexstr, slen,
                     0, 0, ov, MAX_SUBSTRINGS);
+#endif
     if (ret <= 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre parse error: %s", regexstr);
         goto error;
@@ -771,7 +761,7 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
     while (1) {
         SCLogDebug("\'%s\'", regexstr);
 
-        ret = pcre_exec(parse_capture_regex, parse_capture_regex_study, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
+        ret = PCRE_EXEC(&parse_capture_regex, regexstr, 0, 0, ov, MAX_SUBSTRINGS);
         if (ret < 3) {
             return 0;
         }

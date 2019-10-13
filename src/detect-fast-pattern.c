@@ -39,8 +39,7 @@
 
 #define PARSE_REGEX "^(\\s*only\\s*)|\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*$"
 
-static pcre *parse_regex = NULL;
-static pcre_extra *parse_regex_study = NULL;
+static DetectParseRegex parse_regex;
 
 static int DetectFastPatternSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectFastPatternRegisterTests(void);
@@ -170,7 +169,7 @@ void DetectFastPatternRegister(void)
 
     sigmatch_table[DETECT_FAST_PATTERN].flags |= SIGMATCH_NOOPT;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 //static int DetectFastPatternParseArg(
@@ -255,8 +254,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     }
 
     /* Execute the regex and populate args with captures. */
-    ret = pcre_exec(parse_regex, parse_regex_study, arg,
-                    strlen(arg), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
     /* fast pattern only */
     if (ret == 2) {
         if ((cd->flags & DETECT_CONTENT_NEGATED) ||

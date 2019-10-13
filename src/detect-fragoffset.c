@@ -41,8 +41,7 @@
 
 #define PARSE_REGEX "^\\s*(?:(<|>))?\\s*([0-9]+)"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectFragOffsetMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
@@ -69,7 +68,7 @@ void DetectFragOffsetRegister (void)
     sigmatch_table[DETECT_FRAGOFFSET].SupportsPrefilter = PrefilterFragOffsetIsPrefilterable;
     sigmatch_table[DETECT_FRAGOFFSET].SetupPrefilter = PrefilterSetupFragOffset;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static inline int FragOffsetMatch(const uint16_t poffset, const uint8_t mode,
@@ -147,7 +146,7 @@ static DetectFragOffsetData *DetectFragOffsetParse (const char *fragoffsetstr)
     const char *str_ptr;
     char *mode = NULL;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, fragoffsetstr, strlen(fragoffsetstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, fragoffsetstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH,"Parse error %s", fragoffsetstr);
         goto error;

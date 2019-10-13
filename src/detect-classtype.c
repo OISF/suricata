@@ -38,8 +38,7 @@
 
 #define PARSE_REGEX "^\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s*$"
 
-static pcre *regex = NULL;
-static pcre_extra *regex_study = NULL;
+static DetectParseRegex parse_regex;
 
 static int DetectClasstypeSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectClasstypeRegisterTests(void);
@@ -55,7 +54,7 @@ void DetectClasstypeRegister(void)
     sigmatch_table[DETECT_CLASSTYPE].Setup = DetectClasstypeSetup;
     sigmatch_table[DETECT_CLASSTYPE].RegisterTests = DetectClasstypeRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &regex, &regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -69,12 +68,11 @@ static int DetectClasstypeParseRawString(const char *rawstr, char *out, size_t o
 {
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
-    size_t len = strlen(rawstr);
 
     const size_t esize = CLASSTYPE_NAME_MAX_LEN + 8;
     char e[esize];
 
-    int ret = pcre_exec(regex, regex_study, rawstr, len, 0, 0, ov, 30);
+    int ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "Invalid Classtype in Signature");
         return -1;

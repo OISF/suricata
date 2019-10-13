@@ -29,8 +29,8 @@
 static const char decode_pattern[] = "\\s*(bytes\\s+(\\d+),?)?"
     "\\s*(offset\\s+(\\d+),?)?"
     "\\s*(\\w+)?";
-static pcre *decode_pcre = NULL;
-static pcre_extra *decode_pcre_study = NULL;
+
+static DetectParseRegex decode_pcre;
 
 static int DetectBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectBase64DecodeFree(void *);
@@ -50,7 +50,7 @@ void DetectBase64DecodeRegister(void)
 
     sigmatch_table[DETECT_BASE64_DECODE].flags |= SIGMATCH_OPTIONAL_OPT;
 
-    DetectSetupParseRegexes(decode_pattern, &decode_pcre, &decode_pcre_study);
+    DetectSetupParseRegexes(decode_pattern, &decode_pcre);
 }
 
 int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
@@ -114,8 +114,7 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
     *offset = 0;
     *relative = 0;
 
-    pcre_rc = pcre_exec(decode_pcre, decode_pcre_study, str, strlen(str), 0, 0,
-        ov, max);
+    pcre_rc = PCRE_EXEC(&decode_pcre, str,  0, 0, ov, max);
     if (pcre_rc < 3) {
         goto error;
     }

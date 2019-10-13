@@ -48,8 +48,7 @@
  */
 #define PARSE_REGEX "^\\s*(track|count|seconds)\\s+(by_src|by_dst|\\d+)\\s*,\\s*(track|count|seconds)\\s+(by_src|by_dst|\\d+)\\s*,\\s*(track|count|seconds)\\s+(by_src|by_dst|\\d+)\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectDetectionFilterMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
@@ -72,7 +71,7 @@ void DetectDetectionFilterRegister (void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_DETECTION_FILTER].flags |= SIGMATCH_IPONLY_COMPAT;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static int DetectDetectionFilterMatch (DetectEngineThreadCtx *det_ctx,
@@ -127,7 +126,7 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
     if (count_found != 1 || seconds_found != 1 || track_found != 1)
         goto error;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;

@@ -39,6 +39,21 @@ enum {
     SIG_DIREC_DST
 };
 
+typedef struct DetectParseRegex_ {
+    pcre *regex;
+    pcre_extra *study;
+    pcre_jit_stack *jit_stack;
+    struct DetectParseRegex_ *next;
+} DetectParseRegex;
+
+#if PCRE_HAVE_JIT
+#define PCRE_EXEC(p, str, x1, x2, ss, ss_cnt) \
+        pcre_jit_exec((p)->regex, (p)->study, str, strlen(str), x1, x2, ss, ss_cnt, (p)->jit_stack)
+#else
+#define PCRE_EXEC(p, str, x1, x2, ss, ss_cnt) \
+        pcre_exec((p)->regex, (p)->study, str, strlen(str), x1, x2, ss_cnt, ss)
+#endif
+
 /* prototypes */
 Signature *SigAlloc(void);
 void SigFree(Signature *s);
@@ -79,10 +94,9 @@ int WARN_UNUSED DetectSignatureSetAppProto(Signature *s, AppProto alproto);
 
 /* parse regex setup and free util funcs */
 
-void DetectSetupParseRegexes(const char *parse_str,
-                             pcre **parse_regex,
-                             pcre_extra **parse_regex_study);
-void DetectParseRegexAddToFreeList(pcre *regex, pcre_extra *study);
+void DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *parse_regex, int opts);
+void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *parse_regex);
+void DetectParseRegexAddToFreeList(DetectParseRegex *parse_regex);
 void DetectParseFreeRegexes(void);
 
 #ifdef AFLFUZZ_RULES

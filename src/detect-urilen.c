@@ -47,8 +47,7 @@
  */
 #define PARSE_REGEX  "^(?:\\s*)(<|>)?(?:\\s*)([0-9]{1,5})(?:\\s*)(?:(<>)(?:\\s*)([0-9]{1,5}))?\\s*(?:,\\s*(norm|raw))?\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 /*prototypes*/
 static int DetectUrilenSetup (DetectEngineCtx *, Signature *, const char *);
@@ -72,7 +71,7 @@ void DetectUrilenRegister(void)
     sigmatch_table[DETECT_AL_URILEN].Free = DetectUrilenFree;
     sigmatch_table[DETECT_AL_URILEN].RegisterTests = DetectUrilenRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
     g_http_raw_uri_buffer_id = DetectBufferTypeRegister("http_raw_uri");
@@ -100,8 +99,7 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, urilenstr, strlen(urilenstr),
-                    0, 0, ov, MAX_SUBSTRINGS);
+    ret = PCRE_EXEC(&parse_regex, urilenstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 6) {
         SCLogError(SC_ERR_PCRE_PARSE, "urilen option pcre parse error: \"%s\"", urilenstr);
         goto error;
