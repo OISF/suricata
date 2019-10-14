@@ -688,10 +688,10 @@ static void PrintBuildInfo(void)
     char features[2048] = "";
     const char *tls = "pthread key";
 
-#ifdef REVISION
-    printf("This is %s version %s (%s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
-#elif defined RELEASE
+#if defined RELEASE
     printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
+#elif defined REVISION
+    printf("This is %s version %s-dev (%s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
 #else
     printf("This is %s version %s\n", PROG_NAME, PROG_VER);
 #endif
@@ -1054,10 +1054,10 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
 
 static TmEcode PrintVersion(void)
 {
-#ifdef REVISION
-    printf("This is %s version %s (%s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
-#elif defined RELEASE
+#if defined RELEASE
     printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
+#elif defined REVISION
+    printf("This is %s version %s-dev (%s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
 #else
     printf("This is %s version %s\n", PROG_NAME, PROG_VER);
 #endif
@@ -1067,12 +1067,12 @@ static TmEcode PrintVersion(void)
 static TmEcode LogVersion(SCInstance *suri)
 {
     const char *mode = suri->system ? "SYSTEM" : "USER";
-#ifdef REVISION
-    SCLogNotice("This is %s version %s (%s) running in %s mode",
-            PROG_NAME, PROG_VER, xstr(REVISION), mode);
-#elif defined RELEASE
+#if defined RELEASE
     SCLogNotice("This is %s version %s RELEASE running in %s mode",
             PROG_NAME, PROG_VER, mode);
+#elif defined REVISION
+    SCLogNotice("This is %s version %s-dev (%s) running in %s mode",
+            PROG_NAME, PROG_VER, xstr(REVISION), mode);
 #else
     SCLogNotice("This is %s version %s running in %s mode",
             PROG_NAME, PROG_VER, mode);

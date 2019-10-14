@@ -1,4 +1,4 @@
-    AC_INIT([suricata],[5.0.0-dev])
+    AC_INIT([suricata],[5.0.0])
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
     AC_CONFIG_HEADERS([config.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
@@ -2455,19 +2455,27 @@ fi
     AC_SUBST(RUST_FEATURES)
 
 # get revision
-    if test -f ./revision; then
-        REVISION=`cat ./revision`
-        AC_DEFINE_UNQUOTED([REVISION],[${REVISION}],[Git revision])
-    else
-        AC_PATH_PROG(HAVE_GIT_CMD, git, "no")
-        if test "$HAVE_GIT_CMD" != "no"; then
-            if [ test -d .git ]; then
-                REVISION=`git rev-parse --short HEAD`
-                DATE=`git log -1 --date=short --pretty=format:%cd`
+    AC_PATH_PROG(HAVE_GIT_CMD, git, "no")
+    if test "$HAVE_GIT_CMD" != "no" && test -d .git; then
+        REVISION=`git rev-parse --short HEAD`
+        DATE=`git log -1 --date=short --pretty=format:%cd`
+        HAS_TAG=`git tag|grep "suricata-${PACKAGE_VERSION}$"`
+        if test "$HAS_TAG" != ""; then
+            TAG_HASH=`git rev-parse --short suricata-${PACKAGE_VERSION}`
+            if test "x$TAG_HASH" != "x$REVISION" ; then
                 REVISION="$REVISION $DATE"
                 AC_DEFINE_UNQUOTED([REVISION],[${REVISION}],[Git revision])
+            else
+                REVISION="$REVISION $DATE"
+                AC_DEFINE_UNQUOTED([REVISION],[${REVISION}],[Git revision])
+                AC_DEFINE_UNQUOTED([RELEASE],[1],[Release version])
             fi
+        else
+            REVISION="$REVISION $DATE"
+            AC_DEFINE_UNQUOTED([REVISION],[${REVISION}],[Git revision])
         fi
+    else
+        AC_DEFINE_UNQUOTED([RELEASE],[1],[Release version])
     fi
 
 if test "${enable_ebpf}" = "yes" || test "${enable_unittests}" = "yes"; then

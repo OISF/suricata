@@ -695,10 +695,10 @@ static TmEcode UnixManagerVersionCommand(json_t *cmd,
 {
     SCEnter();
     json_object_set_new(server_msg, "message", json_string(
-#ifdef REVISION
-                        PROG_VER " (" xstr(REVISION) ")"
-#elif defined RELEASE
+#if defined RELEASE
                         PROG_VER " RELEASE"
+#elif defined REVISION
+                        PROG_VER "-dev (" xstr(REVISION) ")"
 #else
                         PROG_VER
 #endif
