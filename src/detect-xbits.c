@@ -32,6 +32,7 @@
 #include "detect-xbits.h"
 #include "detect-hostbits.h"
 #include "util-spm.h"
+#include "util-byte.h"
 
 #include "detect-engine-sigorder.h"
 
@@ -198,7 +199,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     char fb_cmd_str[16] = "", fb_name[256] = "";
     char hb_dir_str[16] = "";
     enum VarTypes var_type = VAR_TYPE_NOT_SET;
-    int expire = DETECT_XBITS_EXPIRE_DEFAULT;
+    uint32_t expire = DETECT_XBITS_EXPIRE_DEFAULT;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2 && ret != 3 && ret != 4 && ret != 5) {
@@ -249,10 +250,9 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
                     return -1;
                 }
                 SCLogDebug("expire_str %s", expire_str);
-                expire = atoi(expire_str);
-                if (expire < 0) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "expire must be positive. "
-                            "Got %d (\"%s\")", expire, expire_str);
+                if (ByteExtractStringUint32(&expire, 10, 0, (const char *)expire_str) < 0) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
+                               "expire: \"%s\"", expire_str);
                     return -1;
                 }
                 if (expire == 0) {
