@@ -57,10 +57,6 @@ Common configure options
 
     Enables GeoIP support for detection.
 
-.. option:: --disable-rust
-
-    Disables Rust support. Rust support is enabled by default if rustc/cargo
-    are available.
 
 Dependencies
 ^^^^^^^^^^^^
