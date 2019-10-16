@@ -50,7 +50,7 @@ example to write custom scripts:
 
 Commands in standard running mode
 ---------------------------------
-You may need to install suricatasc if you have not done so, running the following command from scripts/suricatasc
+You may need to install suricatasc if you have not done so, running the following command from python/suricatasc
 
 ::
 
