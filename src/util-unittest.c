@@ -34,6 +34,7 @@
 
 #include "suricata-common.h"
 #include "runmodes.h"
+#include "detect-parse.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "util-time.h"
@@ -151,7 +152,6 @@ error:
     return -1;
 }
 
-#define MAX_SUBSTRINGS 30
 
 /** \brief List all registered unit tests.
  *

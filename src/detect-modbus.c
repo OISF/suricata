@@ -76,7 +76,6 @@ static DetectParseRegex access_parse_regex;
 
 static int g_modbus_buffer_id = 0;
 
-#define MAX_SUBSTRINGS 30
 
 void DetectModbusRegisterTests(void);
 
@@ -123,7 +122,7 @@ static DetectModbus *DetectModbusAccessParse(const char *str)
     char    arg[MAX_SUBSTRINGS];
     int     ov[MAX_SUBSTRINGS], ret, res;
 
-    ret = DetectPCREExec(&access_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&access_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1)
         goto error;
 
@@ -290,7 +289,7 @@ static DetectModbus *DetectModbusFunctionParse(const char *str)
     char    arg[MAX_SUBSTRINGS], *ptr = arg;
     int     ov[MAX_SUBSTRINGS], res, ret;
 
-    ret = DetectPCREExec(&function_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&function_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1)
         goto error;
 
@@ -383,7 +382,7 @@ static DetectModbus *DetectModbusUnitIdParse(const char *str)
     char    arg[MAX_SUBSTRINGS];
     int     ov[MAX_SUBSTRINGS], ret, res;
 
-    ret = DetectPCREExec(&unit_id_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&unit_id_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1)
         goto error;
 

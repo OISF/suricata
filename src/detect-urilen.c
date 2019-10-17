@@ -95,11 +95,10 @@ static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
     char *arg3 = NULL;
     char *arg4 = NULL;
     char *arg5 = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = DetectPCREExec(&parse_regex, urilenstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, urilenstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 6) {
         SCLogError(SC_ERR_PCRE_PARSE, "urilen option pcre parse error: \"%s\"", urilenstr);
         goto error;

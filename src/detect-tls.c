@@ -231,7 +231,6 @@ static int DetectTlsSubjectMatch (DetectEngineThreadCtx *det_ctx,
 static DetectTlsData *DetectTlsSubjectParse (const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
@@ -239,7 +238,7 @@ static DetectTlsData *DetectTlsSubjectParse (const char *str, bool negate)
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = DetectPCREExec(&subject_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&subject_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.subject option");
         goto error;
@@ -429,7 +428,6 @@ static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *det_ctx,
 static DetectTlsData *DetectTlsIssuerDNParse(const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
@@ -437,7 +435,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(const char *str, bool negate)
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = DetectPCREExec(&issuerdn_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&issuerdn_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.issuerdn option");
         goto error;
@@ -561,7 +559,6 @@ static void DetectTlsIssuerDNFree(void *ptr)
 static DetectTlsData *DetectTlsFingerprintParse (const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
@@ -569,7 +566,7 @@ static DetectTlsData *DetectTlsFingerprintParse (const char *str, bool negate)
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = DetectPCREExec(&fingerprint_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&fingerprint_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.fingerprint option");
         goto error;

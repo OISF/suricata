@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-engine.h"
+#include "detect-parse.h"
 #include "util-hash.h"
 
 #include "conf.h"
@@ -250,7 +251,6 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
     SCClassConfClasstype *ct_new = NULL;
     SCClassConfClasstype *ct_lookup = NULL;
 
-#define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
 

@@ -147,11 +147,10 @@ static DetectICodeData *DetectICodeParse(const char *icodestr)
 {
     DetectICodeData *icd = NULL;
     char *args[3] = {NULL, NULL, NULL};
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = DetectPCREExec(&parse_regex, icodestr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, icodestr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, icodestr);
         goto error;

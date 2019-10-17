@@ -78,12 +78,11 @@ void DetectTargetRegister(void) {
  */
 static int DetectTargetParse(Signature *s, const char *targetstr)
 {
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     char value[10];
 
-    ret = DetectPCREExec(&parse_regex, targetstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, targetstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, targetstr);
         return -1;

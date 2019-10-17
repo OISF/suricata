@@ -165,7 +165,6 @@ static int DetectFragBitsMatch (DetectEngineThreadCtx *det_ctx,
 static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
 {
     DetectFragBitsData *de = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, found = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr = NULL;
@@ -173,7 +172,7 @@ static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
     char *ptr;
     int i;
 
-    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;

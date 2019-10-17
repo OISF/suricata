@@ -46,14 +46,6 @@ typedef struct DetectParseRegex_ {
     struct DetectParseRegex_ *next;
 } DetectParseRegex;
 
-static inline int DetectPCREExec(DetectParseRegex *parse_regex, const char *str,
-                                 int start_offset, int options,
-                                 int *ovector, int ovector_size)
-{
-    return pcre_exec(parse_regex->regex, parse_regex->study, str, strlen(str),
-                     start_offset, options, ovector, ovector_size);
-}
-
 /* prototypes */
 Signature *SigAlloc(void);
 void SigFree(Signature *s);
@@ -100,9 +92,17 @@ void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *parse_rege
 void DetectParseRegexAddToFreeList(DetectParseRegex *parse_regex);
 void DetectParseFreeRegexes(void);
 
+/* parse regex exec */
+int DetectParsePcreExec(DetectParseRegex *parse_regex, const char *str,
+                   int start_offset, int options,
+                   int *ovector, int ovector_size);
+
 #ifdef AFLFUZZ_RULES
 int RuleParseDataFromFile(char *filename);
 #endif
+
+/* typical size of ovector */
+#define MAX_SUBSTRINGS 30
 
 #endif /* __DETECT_PARSE_H__ */
 

@@ -226,14 +226,13 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
     char *varname = NULL;
     char *varval = NULL;
     char *modstr = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     uint8_t modifier = FLOWINT_MODIFIER_UNKNOWN;
     unsigned long long value_long = 0;
     const char *str_ptr;
 
-    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for flowint(ret = %d).", rawstr, ret);
         return NULL;

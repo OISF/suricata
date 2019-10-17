@@ -155,7 +155,7 @@ static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *nam
     int count, rc;
     int ov[max_substrings];
 
-    count = DetectPCREExec(&parse_regex, str, 0, 0, ov, max_substrings);
+    count = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, max_substrings);
     if (count != 2 && count != 3) {
         SCLogError(SC_ERR_PCRE_MATCH,
             "\"%s\" is not a valid setting for flowbits.", str);

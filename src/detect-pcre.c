@@ -79,8 +79,8 @@ static int pcre_use_jit = 1;
 
 /* \brief Helper function for using pcre_exec with/without JIT
  */
-static inline int DetectPcreDoExec(DetectParseRegex *parse_regex, const char *str, const size_t strlen,
-                                   int start_offset, int options,  int *ovector, int ovector_size)
+static int DetectPcreExec(DetectParseRegex *parse_regex, const char *str, const size_t strlen,
+                            int start_offset, int options,  int *ovector, int ovector_size)
 {
 #ifdef PCRE_HAVE_JIT
     if (pcre_use_jit)
@@ -180,7 +180,6 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                            const uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();
-#define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
     const uint8_t *ptr = NULL;
@@ -341,7 +340,6 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     int opts = 0;
     DetectPcreData *pd = NULL;
     char *op = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     int check_host_header = 0;
@@ -388,7 +386,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
 
     char re[slen];
-    ret = DetectPcreDoExec(&parse_regex, regexstr, slen,
+    ret = DetectPcreExec(&parse_regex, regexstr, slen,
                          0, 0, ov, MAX_SUBSTRINGS);
     if (ret <= 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre parse error: %s", regexstr);

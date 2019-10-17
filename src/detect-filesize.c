@@ -143,11 +143,10 @@ static DetectFilesizeData *DetectFilesizeParse (const char *str)
     char *arg2 = NULL;
     char *arg3 = NULL;
     char *arg4 = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = DetectPCREExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
         SCLogError(SC_ERR_PCRE_PARSE, "filesize option pcre parse error: \"%s\"", str);
         goto error;

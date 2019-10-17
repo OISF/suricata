@@ -132,13 +132,12 @@ static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
 static DetectTtlData *DetectTtlParse (const char *ttlstr)
 {
-#define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     char arg1[6] = "";
     char arg2[6] = "";
     char arg3[6] = "";
 
-    int ret = DetectPCREExec(&parse_regex, ttlstr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectParsePcreExec(&parse_regex, ttlstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         return NULL;

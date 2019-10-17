@@ -107,11 +107,10 @@ static int DetectTosMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 static DetectTosData *DetectTosParse(const char *arg, bool negate)
 {
     DetectTosData *tosd = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = DetectPCREExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tos option - %s. "
                    "The tos option value must be in the range "

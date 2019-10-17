@@ -24,6 +24,7 @@
 #include "suricata-common.h"
 #include "config.h"
 #include "suricata.h"
+#include "detect-parse.h"
 #include "util-byte.h"
 #include "util-debug.h"
 #include "util-unittest.h"
@@ -65,7 +66,6 @@ void ParseSizeDeinit(void)
 
 static int ParseSizeString(const char *size, double *res)
 {
-#define MAX_SUBSTRINGS 30
     int pcre_exec_ret;
     int r;
     int ov[MAX_SUBSTRINGS];

@@ -24,6 +24,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-engine.h"
+#include "detect-parse.h"
 #include "util-hash.h"
 
 #include "util-reference-config.h"
@@ -238,7 +239,6 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
     SCRConfReference *ref_new = NULL;
     SCRConfReference *ref_lookup = NULL;
 
-#define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
 

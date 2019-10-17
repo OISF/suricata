@@ -210,12 +210,13 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
 static inline DetectByteExtractData *DetectByteExtractParse(const char *arg)
 {
     DetectByteExtractData *bed = NULL;
+#undef MAX_SUBSTRINGS
 #define MAX_SUBSTRINGS 100
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     int i = 0;
 
-    ret = DetectPCREExec(&parse_regex, arg,  0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, arg,  0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 19) {
         SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32
                    ", string \"%s\"", ret, arg);

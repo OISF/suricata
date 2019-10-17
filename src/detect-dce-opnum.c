@@ -112,7 +112,6 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
     DetectDceOpnumRange *dor = NULL;
     DetectDceOpnumRange *prev_dor = NULL;
 
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *pcre_sub_str = NULL;
@@ -127,7 +126,7 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         goto error;
     }
 
-    ret = DetectPCREExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, arg);
         goto error;
