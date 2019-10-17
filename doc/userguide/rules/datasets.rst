@@ -1,9 +1,6 @@
 Datasets
 ========
 
-.. warning:: This is an experimental feature. Syntax and functionality may
-             change in future releases.
-
 Using the ``dataset`` and ``datarep`` keyword it is possible to match on
 large amounts of data against any sticky buffer.
 
@@ -34,8 +31,8 @@ Example of sets for tracking unique values::
 
 Rules to go with the above::
 
-    http.user_agent; dataset:set,ua-seen;
-    dns.query; to_sha256; dataset:set,dns-sha256-seen;
+    alert http any any -> any any (msg: "http user-agent test"; http.user_agent; dataset:set,ua-seen; sid:234; rev:1;)
+    alert dns any any -> any any (msg:"dns list test"; dns.query; to_sha256; dataset:isset,dns-sha256-seen; sid:123; rev:1;)
 
 
 Rule keywords
@@ -72,7 +69,7 @@ Data Reputation allows matching data against a reputation list.
 Syntax::
 
     datarep:<name>,<operator>,<value>, \
-        [, type <string|md5|sha256>, load <file name>];
+        [, load <file name>, type <string|md5|sha256>];
 
 Example rules could look like::
 
