@@ -344,7 +344,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     if (str != NULL && strlen(str) > 0) {
         SCLogDebug("str %s", str);
 
-        ret = PCRE_EXEC(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+        ret = DetectPCREExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
         if (ret < 1 || ret > 4) {
             SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, str);
             goto error;

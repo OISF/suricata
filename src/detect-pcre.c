@@ -77,6 +77,21 @@ static DetectParseRegex parse_capture_regex;
 static int pcre_use_jit = 1;
 #endif
 
+/* \brief Helper function for using pcre_exec with/without JIT
+ */
+static inline int DetectPcreDoExec(DetectParseRegex *parse_regex, const char *str, const size_t strlen,
+                                   int start_offset, int options,  int *ovector, int ovector_size)
+{
+#ifdef PCRE_HAVE_JIT
+    if (pcre_use_jit)
+        return pcre_jit_exec(parse_regex->regex, parse_regex->study, str, strlen,
+                            start_offset, options, ovector, ovector_size,
+                            parse_regex->jit_stack);
+#endif
+    return pcre_exec(parse_regex->regex, parse_regex->study, str, strlen,
+                     start_offset, options, ovector, ovector_size);
+}
+
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectPcreFree(void *);
 static void DetectPcreRegisterTests(void);
@@ -122,19 +137,26 @@ void DetectPcreRegister (void)
         }
     }
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-
-    /* setup the capture regex, as it needs PCRE_UNGREEDY we do it manually */
-    int opts = PCRE_UNGREEDY; /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
-
-    DetectSetupParseRegexesOpts(PARSE_CAPTURE_REGEX, &parse_capture_regex, opts);
-
 #ifdef PCRE_HAVE_JIT
     if (PageSupportsRWX() == 0) {
         SCLogConfig("PCRE won't use JIT as OS doesn't allow RWX pages");
         pcre_use_jit = 0;
     }
+
+    DetectSetupParseRegexesOptsWithJIT(PARSE_REGEX, &parse_regex, 0, pcre_use_jit == 1);
+#else
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 #endif
+
+    /* setup the capture regex, as it needs PCRE_UNGREEDY we do it manually */
+    int opts = PCRE_UNGREEDY; /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
+
+#ifdef PCRE_HAVE_JIT
+    DetectSetupParseRegexesOptsWithJIT(PARSE_CAPTURE_REGEX, &parse_capture_regex, opts, pcre_use_jit == 1);
+#else
+    DetectSetupParseRegexesOpts(PARSE_CAPTURE_REGEX, &parse_capture_regex, opts);
+#endif
+
 
     return;
 }
@@ -366,13 +388,8 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
 
     char re[slen];
-#if PCRE_HAVE_JIT
-    ret = pcre_jit_exec(parse_regex.regex, parse_regex.study, regexstr, slen,
-                        0, 0, ov, MAX_SUBSTRINGS, parse_regex.jit_stack);
-#else
-    ret = pcre_exec(parse_regex.regex, parse_regex.study, regexstr, slen,
-                    0, 0, ov, MAX_SUBSTRINGS);
-#endif
+    ret = DetectPcreDoExec(&parse_regex, regexstr, slen,
+                         0, 0, ov, MAX_SUBSTRINGS);
     if (ret <= 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre parse error: %s", regexstr);
         goto error;
@@ -627,6 +644,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
 
 #ifdef PCRE_HAVE_JIT
+#if 0
     int jit = 0;
     ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_JIT, &jit);
     if (ret != 0 || jit != 1) {
@@ -637,6 +655,14 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                 "Falling back to regular PCRE handling (%s:%d)",
                 regexstr, de_ctx->rule_file, de_ctx->rule_line);
     }
+#endif
+
+    pd->js = pcre_jit_stack_alloc(32*1024, 512*124);
+    if (pd->js == NULL) {
+        SCLogError(SC_ERR_PCRE_JITSTACK, "pcre jit stack failed");
+        goto error;
+    }
+    pcre_assign_jit_stack(pd->sd, NULL, pd->js);
 #endif /*PCRE_HAVE_JIT*/
 
     if (pd->sd == NULL)
@@ -672,6 +698,8 @@ error:
         pcre_free(pd->re);
     if (pd != NULL && pd->sd != NULL)
         pcre_free_study(pd->sd);
+    if (pd != NULL && pd->js != NULL)
+        pcre_jit_stack_free(pd->js);
     if (pd)
         SCFree(pd);
     return NULL;
@@ -761,7 +789,7 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
     while (1) {
         SCLogDebug("\'%s\'", regexstr);
 
-        ret = PCRE_EXEC(&parse_capture_regex, regexstr, 0, 0, ov, MAX_SUBSTRINGS);
+        ret = DetectPcreExec(&parse_capture_regex, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
         if (ret < 3) {
             return 0;
         }

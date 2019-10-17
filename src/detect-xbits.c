@@ -199,7 +199,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     enum VarTypes var_type = VAR_TYPE_NOT_SET;
     int expire = DETECT_XBITS_EXPIRE_DEFAULT;
 
-    ret = PCRE_EXEC(&parse_regex, rawstr,  0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, rawstr,  0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2 && ret != 3 && ret != 4 && ret != 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for xbits.", rawstr);
         return -1;

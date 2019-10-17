@@ -178,7 +178,7 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
     char arg2[16] = "";
     char arg3[16] = "";
 
-    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     SCLogDebug("input '%s', pcre said %d", rawstr, ret);
     if (ret < 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre match failed");

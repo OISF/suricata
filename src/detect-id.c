@@ -124,7 +124,7 @@ static DetectIdData *DetectIdParse (const char *idstr)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = PCRE_EXEC(&parse_regex, idstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, idstr, 0, 0, ov, MAX_SUBSTRINGS);
 
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'. The id option "

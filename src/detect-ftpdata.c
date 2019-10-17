@@ -147,7 +147,7 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
 
-    int ret = PCRE_EXEC(&parse_regex, ftpcommandstr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectPCREExec(&parse_regex, ftpcommandstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         goto error;

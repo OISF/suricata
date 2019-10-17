@@ -63,7 +63,7 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, 30);
+    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, 30);
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "Invalid Priority in Signature "
                      "- %s", rawstr);

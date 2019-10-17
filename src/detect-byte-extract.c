@@ -215,7 +215,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(const char *arg)
     int ov[MAX_SUBSTRINGS];
     int i = 0;
 
-    ret = PCRE_EXEC(&parse_regex, arg,  0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, arg,  0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 19) {
         SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32
                    ", string \"%s\"", ret, arg);

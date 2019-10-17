@@ -85,7 +85,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     uint8_t *content = NULL;
     uint16_t len = 0;
 
-    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for pktvar.", rawstr);
         return -1;

@@ -198,7 +198,7 @@ static DetectSslVersionData *DetectSslVersionParse(const char *str)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = PCRE_EXEC(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid ssl_version option");
         goto error;

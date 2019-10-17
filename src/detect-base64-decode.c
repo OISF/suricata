@@ -114,7 +114,7 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
     *offset = 0;
     *relative = 0;
 
-    pcre_rc = PCRE_EXEC(&decode_pcre, str,  0, 0, ov, max);
+    pcre_rc = DetectPCREExec(&decode_pcre, str,  0, 0, ov, max);
     if (pcre_rc < 3) {
         goto error;
     }

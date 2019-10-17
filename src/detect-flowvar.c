@@ -126,7 +126,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     uint16_t contentlen = 0;
     uint32_t contentflags = s->init_data->negated ? DETECT_CONTENT_NEGATED : 0;
 
-    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for flowvar.", rawstr);
         return -1;

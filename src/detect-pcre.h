@@ -38,6 +38,7 @@ typedef struct DetectPcreData_ {
     /* pcre options */
     pcre *re;
     pcre_extra *sd;
+    pcre_jit_stack *js;
     int opts;
     uint16_t flags;
     uint8_t idx;

@@ -158,7 +158,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr = NULL;
 
-    ret = PCRE_EXEC(&parse_regex, tagstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, tagstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, tagstr);
         goto error;

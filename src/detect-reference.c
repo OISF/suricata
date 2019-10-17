@@ -101,7 +101,7 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     char key[REFERENCE_SYSTEM_NAME_MAX] = "";
     char content[REFERENCE_CONTENT_NAME_MAX] = "";
 
-    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Unable to parse \"reference\" "
                    "keyword argument - \"%s\".   Invalid argument.", rawstr);
