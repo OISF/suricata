@@ -123,6 +123,7 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Free  = DetectTlsSubjectFree;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
+    sigmatch_table[DETECT_AL_TLS_SUBJECT].alternative = DETECT_AL_TLS_CERT_SUBJECT;
 
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].name = "tls.issuerdn";
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].desc = "match TLS/SSL certificate IssuerDN field";
@@ -132,6 +133,7 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Free  = DetectTlsIssuerDNFree;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].RegisterTests = DetectTlsIssuerDNRegisterTests;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
+    sigmatch_table[DETECT_AL_TLS_ISSUERDN].alternative = DETECT_AL_TLS_CERT_ISSUER;
 
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].name = "tls.fingerprint";
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].desc = "match TLS/SSL certificate SHA1 fingerprint";
@@ -141,6 +143,7 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Free  = DetectTlsFingerprintFree;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].RegisterTests = NULL;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
+    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].alternative = DETECT_AL_TLS_CERT_FINGERPRINT;
 
     sigmatch_table[DETECT_AL_TLS_STORE].name = "tls_store";
     sigmatch_table[DETECT_AL_TLS_STORE].alias = "tls.store";
