@@ -32,11 +32,15 @@ Example of sets for tracking unique values::
         type: sha256
         state: dns-sha256-seen.lst
 
-Rules to go with the above::
+Rules to go with the above:
 
-    http.user_agent; dataset:set,ua-seen;
-    dns.query; to_sha256; dataset:set,dns-sha256-seen;
+.. container:: example-rule
 
+    alert dns any any -> any any (msg:"dns list test"; dns.query; to_sha256; dataset:isset,dns-sha256-seen; sid:123; rev:1;)
+
+.. container:: example-rule
+
+    alert http any any -> any any (msg: "http user-agent test"; http.user_agent; dataset:set,ua-seen; sid:234; rev:1;)
 
 Rule keywords
 -------------
@@ -72,7 +76,7 @@ Data Reputation allows matching data against a reputation list.
 Syntax::
 
     datarep:<name>,<operator>,<value>, \
-        [, type <string|md5|sha256>, load <file name>];
+        [, load <file name>, type <string|md5|sha256>];
 
 Example rules could look like::
 
