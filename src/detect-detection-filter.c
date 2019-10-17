@@ -92,7 +92,6 @@ static int DetectDetectionFilterMatch (DetectEngineThreadCtx *det_ctx,
 static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
 {
     DetectThresholdData *df = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr = NULL;
@@ -126,7 +125,7 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
     if (count_found != 1 || seconds_found != 1 || track_found != 1)
         goto error;
 
-    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;

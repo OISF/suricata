@@ -169,7 +169,6 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
 {
     SCEnter();
 
-#define MAX_SUBSTRINGS 30
     int ret = 0, found = 0, ignore = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     char *ptr;
@@ -178,7 +177,7 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
     char arg2[16] = "";
     char arg3[16] = "";
 
-    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     SCLogDebug("input '%s', pcre said %d", rawstr, ret);
     if (ret < 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre match failed");

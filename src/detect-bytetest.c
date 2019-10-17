@@ -249,7 +249,6 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
         NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
         NULL
     };
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     int i;
@@ -257,7 +256,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
     const char *str_ptr = NULL;
 
     /* Execute the regex and populate args with captures. */
-    ret = DetectPCREExec(&parse_regex, optstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 6 || ret > 10) {
         SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32
                ", string %s", ret, optstr);

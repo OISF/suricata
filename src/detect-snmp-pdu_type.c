@@ -143,13 +143,12 @@ static int DetectSNMPPduTypeMatch (DetectEngineThreadCtx *det_ctx,
 static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
 {
     DetectSNMPPduTypeData *dd = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     char value1[20] = "";
     char *endptr = NULL;
 
-    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
         goto error;

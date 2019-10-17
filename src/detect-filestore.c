@@ -324,7 +324,6 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     DetectFilestoreData *fd = NULL;
     SigMatch *sm = NULL;
     char *args[3] = {NULL,NULL,NULL};
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
@@ -344,7 +343,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     if (str != NULL && strlen(str) > 0) {
         SCLogDebug("str %s", str);
 
-        ret = DetectPCREExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+        ret = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
         if (ret < 1 || ret > 4) {
             SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, str);
             goto error;

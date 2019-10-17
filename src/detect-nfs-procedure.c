@@ -206,7 +206,6 @@ static int DetectNfsProcedureMatch (DetectEngineThreadCtx *det_ctx,
 static DetectNfsProcedureData *DetectNfsProcedureParse (const char *rawstr)
 {
     DetectNfsProcedureData *dd = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     char mode[2] = "";
@@ -214,7 +213,7 @@ static DetectNfsProcedureData *DetectNfsProcedureParse (const char *rawstr)
     char value2[20] = "";
     char range[3] = "";
 
-    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
         goto error;

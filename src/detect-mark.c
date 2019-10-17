@@ -74,7 +74,6 @@ void DetectMarkRegister (void)
 static void * DetectMarkParse (const char *rawstr)
 {
     int ret = 0, res = 0;
-#define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr = NULL;
     char *ptr = NULL;
@@ -83,7 +82,7 @@ static void * DetectMarkParse (const char *rawstr)
     uint32_t mask;
     DetectMarkData *data;
 
-    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         return NULL;

@@ -694,7 +694,6 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     uint32_t parsed_seconds = 0;
     uint32_t parsed_timeout = 0;
 
-#define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
     uint32_t id = 0, gid = 0;

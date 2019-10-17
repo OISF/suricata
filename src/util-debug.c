@@ -32,6 +32,7 @@
 
 #include "decode.h"
 #include "detect.h"
+#include "detect-parse.h"
 #include "packet-queue.h"
 #include "threadvars.h"
 #include "output.h"
@@ -492,7 +493,6 @@ static SCError SCLogMessageGetBuffer(
     }
 
     if (sc_log_config->op_filter_regex != NULL) {
-#define MAX_SUBSTRINGS 30
         int ov[MAX_SUBSTRINGS];
 
         if (pcre_exec(sc_log_config->op_filter_regex,
@@ -501,7 +501,6 @@ static SCError SCLogMessageGetBuffer(
         {
             return SC_ERR_LOG_FG_FILTER_MATCH; // bit hacky, but just return !0
         }
-#undef MAX_SUBSTRINGS
     }
 
     return SC_OK;

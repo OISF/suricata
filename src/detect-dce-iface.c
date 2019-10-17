@@ -118,7 +118,6 @@ static int InspectDceGeneric(ThreadVars *tv,
 static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
 {
     DetectDceIfaceData *did = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     uint8_t hex_value;
@@ -128,7 +127,7 @@ static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
     char temp_str[3] = "";
     int version;
 
-    ret = DetectPCREExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, arg);
         goto error;

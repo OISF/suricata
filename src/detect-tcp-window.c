@@ -107,11 +107,10 @@ static int DetectWindowMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 static DetectWindowData *DetectWindowParse(const char *windowstr)
 {
     DetectWindowData *wd = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = DetectPCREExec(&parse_regex, windowstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, windowstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
         goto error;

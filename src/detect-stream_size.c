@@ -184,11 +184,10 @@ static DetectStreamSizeData *DetectStreamSizeParse (const char *streamstr)
     char *arg = NULL;
     char *value = NULL;
     char *mode = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = DetectPCREExec(&parse_regex, streamstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, streamstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, streamstr);
         goto error;

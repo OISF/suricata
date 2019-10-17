@@ -153,12 +153,11 @@ static int DetectTagMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 static DetectTagData *DetectTagParse(const char *tagstr)
 {
     DetectTagData td;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr = NULL;
 
-    ret = DetectPCREExec(&parse_regex, tagstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, tagstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, tagstr);
         goto error;

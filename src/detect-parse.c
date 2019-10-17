@@ -2347,6 +2347,14 @@ error:
 
 static DetectParseRegex *g_detect_parse_regex_list = NULL;
 
+int DetectParsePcreExec(DetectParseRegex *parse_regex, const char *str,
+                   int start_offset, int options,
+                   int *ovector, int ovector_size)
+{
+    return pcre_exec(parse_regex->regex, parse_regex->study, str, strlen(str),
+                     start_offset, options, ovector, ovector_size);
+}
+
 void DetectParseFreeRegexes(void)
 {
     DetectParseRegex *r = g_detect_parse_regex_list;
