@@ -138,9 +138,10 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t pktlen)
                     break;
                 case TCP_OPT_SACK:
                     SCLogDebug("SACK option, len %u", olen);
-                    if (olen < TCP_OPT_SACK_MIN_LEN ||
+                    if ((olen != 2) &&
+                           (olen < TCP_OPT_SACK_MIN_LEN ||
                             olen > TCP_OPT_SACK_MAX_LEN ||
-                            !((olen - 2) % 8 == 0))
+                            !((olen - 2) % 8 == 0)))
                     {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
