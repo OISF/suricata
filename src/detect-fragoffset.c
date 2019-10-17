@@ -146,7 +146,7 @@ static DetectFragOffsetData *DetectFragOffsetParse (const char *fragoffsetstr)
     const char *str_ptr;
     char *mode = NULL;
 
-    ret = PCRE_EXEC(&parse_regex, fragoffsetstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, fragoffsetstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH,"Parse error %s", fragoffsetstr);
         goto error;

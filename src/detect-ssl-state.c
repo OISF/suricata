@@ -169,7 +169,7 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
     uint32_t flags = 0, mask = 0;
     DetectSslStateData *ssd = NULL;
 
-    ret = PCRE_EXEC(&parse_regex1, arg, 0, 0, ov1, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex1, arg, 0, 0, ov1, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid arg \"%s\" supplied to "
                    "ssl_state keyword.", arg);
@@ -224,7 +224,7 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
         goto error;
     }
     while (res > 0) {
-        ret = PCRE_EXEC(&parse_regex2, str1,  0, 0, ov2, MAX_SUBSTRINGS);
+        ret = DetectPCREExec(&parse_regex2, str1,  0, 0, ov2, MAX_SUBSTRINGS);
         if (ret < 1) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid arg \"%s\" supplied to "
                        "ssl_state keyword.", arg);

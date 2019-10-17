@@ -160,7 +160,7 @@ static DetectIcmpIdData *DetectIcmpIdParse (const char *icmpidstr)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = PCRE_EXEC(&parse_regex, icmpidstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, icmpidstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", icmpidstr);
         goto error;

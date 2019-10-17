@@ -149,7 +149,7 @@ static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
     char value1[20] = "";
     char *endptr = NULL;
 
-    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
         goto error;

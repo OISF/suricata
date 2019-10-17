@@ -214,7 +214,7 @@ static DetectNfsProcedureData *DetectNfsProcedureParse (const char *rawstr)
     char value2[20] = "";
     char range[3] = "";
 
-    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
         goto error;

@@ -46,13 +46,13 @@ typedef struct DetectParseRegex_ {
     struct DetectParseRegex_ *next;
 } DetectParseRegex;
 
-#if PCRE_HAVE_JIT
-#define PCRE_EXEC(p, str, x1, x2, ss, ss_cnt) \
-        pcre_jit_exec((p)->regex, (p)->study, str, strlen(str), x1, x2, ss, ss_cnt, (p)->jit_stack)
-#else
-#define PCRE_EXEC(p, str, x1, x2, ss, ss_cnt) \
-        pcre_exec((p)->regex, (p)->study, str, strlen(str), x1, x2, ss_cnt, ss)
-#endif
+static inline int DetectPCREExec(DetectParseRegex *parse_regex, const char *str,
+                                 int start_offset, int options,
+                                 int *ovector, int ovector_size)
+{
+    return pcre_exec(parse_regex->regex, parse_regex->study, str, strlen(str),
+                     start_offset, options, ovector, ovector_size);
+}
 
 /* prototypes */
 Signature *SigAlloc(void);
@@ -94,6 +94,7 @@ int WARN_UNUSED DetectSignatureSetAppProto(Signature *s, AppProto alproto);
 
 /* parse regex setup and free util funcs */
 
+void DetectSetupParseRegexesOptsWithJIT(const char *parse_str, DetectParseRegex *detect_parse, int opts, bool jit);
 void DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *parse_regex, int opts);
 void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *parse_regex);
 void DetectParseRegexAddToFreeList(DetectParseRegex *parse_regex);

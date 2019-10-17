@@ -244,7 +244,7 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for iprep", rawstr);
         return -1;

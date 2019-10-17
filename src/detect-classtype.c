@@ -72,7 +72,7 @@ static int DetectClasstypeParseRawString(const char *rawstr, char *out, size_t o
     const size_t esize = CLASSTYPE_NAME_MAX_LEN + 8;
     char e[esize];
 
-    int ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "Invalid Classtype in Signature");
         return -1;

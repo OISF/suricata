@@ -233,7 +233,7 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
     unsigned long long value_long = 0;
     const char *str_ptr;
 
-    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for flowint(ret = %d).", rawstr, ret);
         return NULL;

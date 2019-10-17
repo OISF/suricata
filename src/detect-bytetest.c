@@ -257,7 +257,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
     const char *str_ptr = NULL;
 
     /* Execute the regex and populate args with captures. */
-    ret = PCRE_EXEC(&parse_regex, optstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, optstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 6 || ret > 10) {
         SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32
                ", string %s", ret, optstr);

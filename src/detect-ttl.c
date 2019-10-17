@@ -138,7 +138,7 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
     char arg2[6] = "";
     char arg3[6] = "";
 
-    int ret = PCRE_EXEC(&parse_regex, ttlstr, 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectPCREExec(&parse_regex, ttlstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         return NULL;

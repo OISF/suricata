@@ -131,7 +131,7 @@ static DetectTcpmssData *DetectTcpmssParse (const char *tcpmssstr)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = PCRE_EXEC(&parse_regex, tcpmssstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, tcpmssstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         goto error;

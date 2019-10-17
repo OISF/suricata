@@ -174,7 +174,7 @@ static DetectFlowData *DetectFlowParse (const char *flowstr)
     int ov[MAX_SUBSTRINGS];
     char str1[16] = "", str2[16] = "", str3[16] = "";
 
-    ret = PCRE_EXEC(&parse_regex, flowstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, flowstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, flowstr);
         goto error;

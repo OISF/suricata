@@ -123,7 +123,7 @@ static DetectModbus *DetectModbusAccessParse(const char *str)
     char    arg[MAX_SUBSTRINGS];
     int     ov[MAX_SUBSTRINGS], ret, res;
 
-    ret = PCRE_EXEC(&access_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&access_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1)
         goto error;
 
@@ -290,7 +290,7 @@ static DetectModbus *DetectModbusFunctionParse(const char *str)
     char    arg[MAX_SUBSTRINGS], *ptr = arg;
     int     ov[MAX_SUBSTRINGS], res, ret;
 
-    ret = PCRE_EXEC(&function_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&function_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1)
         goto error;
 
@@ -383,7 +383,7 @@ static DetectModbus *DetectModbusUnitIdParse(const char *str)
     char    arg[MAX_SUBSTRINGS];
     int     ov[MAX_SUBSTRINGS], ret, res;
 
-    ret = PCRE_EXEC(&unit_id_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&unit_id_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1)
         goto error;
 

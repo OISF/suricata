@@ -164,7 +164,7 @@ static DetectIcmpSeqData *DetectIcmpSeqParse (const char *icmpseqstr)
     int i;
     const char *str_ptr;
 
-    ret = PCRE_EXEC(&parse_regex, icmpseqstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, icmpseqstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH,"Parse error %s", icmpseqstr);
         goto error;

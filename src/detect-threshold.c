@@ -142,7 +142,7 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
     if(count_found != 1 || second_found != 1 || type_found != 1 || track_found != 1)
         goto error;
 
-    ret = PCRE_EXEC(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;

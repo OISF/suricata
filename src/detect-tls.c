@@ -236,7 +236,7 @@ static DetectTlsData *DetectTlsSubjectParse (const char *str, bool negate)
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = PCRE_EXEC(&subject_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&subject_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.subject option");
         goto error;
@@ -434,7 +434,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(const char *str, bool negate)
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = PCRE_EXEC(&issuerdn_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&issuerdn_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.issuerdn option");
         goto error;
@@ -566,7 +566,7 @@ static DetectTlsData *DetectTlsFingerprintParse (const char *str, bool negate)
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = PCRE_EXEC(&fingerprint_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPCREExec(&fingerprint_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.fingerprint option");
         goto error;
