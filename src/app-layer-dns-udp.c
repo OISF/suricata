@@ -183,9 +183,6 @@ void RegisterDNSUDPParsers(void)
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
         DNSAppLayerRegisterGetEventInfoById(IPPROTO_UDP, ALPROTO_DNS);
 
-#if 0
-        DNSUDPConfigure();
-#endif
     } else {
         SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
                 "still on.", proto_name);
