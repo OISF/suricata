@@ -204,6 +204,19 @@ static void THashDataFree(THashTableContext *ctx, THashData *h)
 #define GET_VAR(prefix,name) \
     snprintf(varname, sizeof(varname), "%s.%s", (prefix), (name))
 
+static void THashConfigValidate(const char *confvalue, char *varname)
+{
+  int varlen = strlen(confvalue);
+  for (int i=0; i<varlen; i++)
+    if (!isdigit(confvalue[i]))
+    {
+      SCLogError(SC_ERR_SIZE_PARSE, "Error parsing %s "
+                 "from key %s. Killing Engine",
+                 confvalue, varname);
+      exit(EXIT_FAILURE);
+    }
+}
+
 /** \brief initialize the configuration
  *  \warning Not thread safe */
 static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
@@ -230,6 +243,9 @@ static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     GET_VAR(cnf_prefix, "hash-size");
     if ((ConfGet(varname, &conf_val)) == 1)
     {
+        /* validate hash-size value is a numerical value */
+        THashConfigValidate(conf_val, varname);
+
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             ctx->config.hash_size = configval;
@@ -239,6 +255,9 @@ static void THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     GET_VAR(cnf_prefix, "prealloc");
     if ((ConfGet(varname, &conf_val)) == 1)
     {
+        /* validate prealloc value is a numerical value */
+        THashConfigValidate(conf_val, varname);
+
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             ctx->config.prealloc = configval;
