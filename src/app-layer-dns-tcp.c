@@ -131,16 +131,15 @@ void RegisterDNSTCPParsers(void)
                     sizeof(DNSHeader) + 2, RustDNSTCPProbe, RustDNSTCPProbe);
             /* if we have no config, we enable the default port 53 */
             if (!have_cfg) {
-                SCLogWarning(SC_ERR_DNS_CONFIG, "no DNS TCP config found, "
-                                                "enabling DNS detection on "
-                                                "port 53.");
+                SCLogConfig("no DNS TCP config found, enabling DNS detection "
+                            "on port 53.");
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP, "53", ALPROTO_DNS, 0,
                         sizeof(DNSHeader) + 2, STREAM_TOSERVER, RustDNSTCPProbe,
                         RustDNSTCPProbe);
             }
         }
     } else {
-        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+        SCLogConfig("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
         return;
     }
@@ -175,7 +174,7 @@ void RegisterDNSTCPParsers(void)
                 APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
 
     } else {
-        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+        SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
 

@@ -2865,9 +2865,8 @@ void RegisterSSLParsers(void)
                                                     proto_name, ALPROTO_TLS,
                                                     0, 3,
                                                     SSLProbingParser, NULL) == 0) {
-                SCLogWarning(SC_ERR_MISSING_CONFIG_PARAM,
-                             "no TLS config found, "
-                             "enabling TLS detection on port 443.");
+                SCLogConfig("no TLS config found, "
+                            "enabling TLS detection on port 443.");
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                                               "443",
                                               ALPROTO_TLS,
@@ -2877,7 +2876,7 @@ void RegisterSSLParsers(void)
             }
         }
     } else {
-        SCLogInfo("Protocol detection and parser disabled for %s protocol",
+        SCLogConfig("Protocol detection and parser disabled for %s protocol",
                   proto_name);
         return;
     }
@@ -2970,7 +2969,7 @@ void RegisterSSLParsers(void)
 #endif
 
     } else {
-        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+        SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
 

@@ -280,16 +280,15 @@ void RegisterSMBParsers(void)
                     MIN_REC_SIZE, SMBTCPProbe, SMBTCPProbe);
             /* if we have no config, we enable the default port 445 */
             if (!have_cfg) {
-                SCLogWarning(SC_ERR_SMB_CONFIG, "no SMB TCP config found, "
-                                                "enabling SMB detection on "
-                                                "port 445.");
+                SCLogConfig("no SMB TCP config found, enabling SMB detection "
+                            "on port 445.");
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP, "445", ALPROTO_SMB, 0,
                         MIN_REC_SIZE, STREAM_TOSERVER, SMBTCPProbe,
                         SMBTCPProbe);
             }
         }
     } else {
-        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+        SCLogConfig("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
         return;
     }
@@ -346,7 +345,7 @@ void RegisterSMBParsers(void)
 
         AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_SMB, stream_depth);
     } else {
-        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+        SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
 #ifdef UNITTESTS

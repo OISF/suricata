@@ -139,7 +139,7 @@ void RegisterDNSUDPParsers(void)
             /* If no config, enable on port 53. */
             if (!have_cfg) {
 #ifndef AFLFUZZ_APPLAYER
-                SCLogWarning(SC_ERR_DNS_CONFIG, "no DNS UDP config found, "
+                SCLogConfig("no DNS UDP config found, "
                         "enabling DNS detection on port 53.");
 #endif
                 AppLayerProtoDetectPPRegister(IPPROTO_UDP, "53", ALPROTO_DNS,
@@ -148,7 +148,7 @@ void RegisterDNSUDPParsers(void)
             }
         }
     } else {
-        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
+        SCLogConfig("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
         return;
     }
@@ -187,7 +187,7 @@ void RegisterDNSUDPParsers(void)
         DNSUDPConfigure();
 #endif
     } else {
-        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+        SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
                 "still on.", proto_name);
     }
 #ifdef UNITTESTS
