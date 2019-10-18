@@ -95,7 +95,7 @@ const char *ConfigGetDataDirectory()
 #endif /* OS_WIN32 */
     }
 
-    SCLogNotice("returning '%s'", data_dir);
+    SCLogDebug("returning '%s'", data_dir);
     return data_dir;
 }
 
