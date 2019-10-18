@@ -1420,7 +1420,8 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             return result;
         }
 
-        SCLogInfo("Selected pcap-log compression method: %s", compression_str);
+        SCLogInfo("Selected pcap-log compression method: %s",
+                compression_str ? compression_str : "none");
     }
 
     SCLogInfo("using %s logging", pl->mode == LOGMODE_SGUIL ?
