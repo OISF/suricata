@@ -152,7 +152,7 @@ static DetectICodeData *DetectICodeParse(const char *icodestr)
 
     ret = DetectParsePcreExec(&parse_regex, icodestr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, icodestr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, icodestr);
         goto error;
     }
 

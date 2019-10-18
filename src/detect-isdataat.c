@@ -101,7 +101,7 @@ static DetectIsdataatData *DetectIsdataatParse (const char *isdataatstr, char **
 
     ret = DetectParsePcreExec(&parse_regex, isdataatstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, isdataatstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, isdataatstr);
         goto error;
     }
 

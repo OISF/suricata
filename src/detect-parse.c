@@ -2367,9 +2367,11 @@ void DetectParseFreeRegexes(void)
         if (r->study) {
             pcre_free_study(r->study);
         }
+#if PCRE_HAVE_JIT
         if (r->jit_stack) {
             pcre_jit_stack_free(r->jit_stack);
         }
+#endif
         SCFree(r);
         r = next;
     }
@@ -2407,6 +2409,7 @@ void DetectSetupParseRegexesOptsWithJIT(const char *parse_str, DetectParseRegex 
         FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
     }
 
+#if PCRE_HAVE_JIT
     if (jit) {
         detect_parse->jit_stack = pcre_jit_stack_alloc(32*1024, 512*1024);
         if (detect_parse->jit_stack == NULL) {
@@ -2414,6 +2417,7 @@ void DetectSetupParseRegexesOptsWithJIT(const char *parse_str, DetectParseRegex 
         }
         pcre_assign_jit_stack(detect_parse->study, NULL, detect_parse->jit_stack);
     }
+#endif
 
     DetectParseRegexAddToFreeList(detect_parse);
 

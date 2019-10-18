@@ -152,7 +152,7 @@ static DetectITypeData *DetectITypeParse(const char *itypestr)
 
     ret = DetectParsePcreExec(&parse_regex, itypestr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, itypestr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, itypestr);
         goto error;
     }
 
