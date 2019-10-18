@@ -1003,10 +1003,8 @@ static void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
             ret = -1;
         }
         NFQMutexUnlock(t);
-
         if (ret != 0) {
-            SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "nfq_handle_packet error %"PRId32" %s",
-                    ret, strerror(errno));
+            SCLogDebug("nfq_handle_packet error %"PRId32, ret);
         }
     }
 }
