@@ -847,6 +847,7 @@ int NFQRegisterQueue(const uint16_t number)
     ntv->nfq_index = receive_queue_num;
 
     nq = &g_nfq_q[receive_queue_num];
+    memset(nq, 0, sizeof(*nq));
     nq->queue_num = number;
     receive_queue_num++;
     SCMutexUnlock(&nfq_init_lock);
