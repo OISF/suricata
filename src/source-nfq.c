@@ -1071,6 +1071,44 @@ void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data)
 #endif
 }
 
+static inline uint32_t GetVerdict(const Packet *p)
+{
+    uint32_t verdict = NF_ACCEPT;
+
+    if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+        verdict = NF_DROP;
+    } else {
+        switch (nfq_config.mode) {
+            default:
+            case NFQ_ACCEPT_MODE:
+                verdict = NF_ACCEPT;
+                break;
+            case NFQ_REPEAT_MODE:
+                verdict = NF_REPEAT;
+                break;
+            case NFQ_ROUTE_MODE:
+                verdict = ((uint32_t) NF_QUEUE) | nfq_config.next_queue;
+                break;
+        }
+    }
+    return verdict;
+}
+
+#ifdef COUNTERS
+static inline void UpdateCounters(NFQQueueVars *t, const Packet *p)
+{
+    if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+        t->dropped++;
+    } else {
+        if (p->flags & PKT_STREAM_MODIFIED) {
+            t->replaced++;
+        }
+
+        t->accepted++;
+    }
+}
+#endif /* COUNTERS */
+
 /**
  * \brief NFQ verdict function
  */
@@ -1078,7 +1116,6 @@ TmEcode NFQSetVerdict(Packet *p)
 {
     int iter = 0;
     int ret = 0;
-    uint32_t verdict = NF_ACCEPT;
     /* we could also have a direct pointer but we need to have a ref counf in this case */
     NFQQueueVars *t = g_nfq_q + p->nfq_v.nfq_index;
 
@@ -1102,35 +1139,10 @@ TmEcode NFQSetVerdict(Packet *p)
         return TM_ECODE_OK;
     }
 
-    if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
-        verdict = NF_DROP;
+    uint32_t verdict = GetVerdict(p);
 #ifdef COUNTERS
-        t->dropped++;
+    UpdateCounters(t, p);
 #endif /* COUNTERS */
-    } else {
-        switch (nfq_config.mode) {
-            default:
-            case NFQ_ACCEPT_MODE:
-                verdict = NF_ACCEPT;
-                break;
-            case NFQ_REPEAT_MODE:
-                verdict = NF_REPEAT;
-                break;
-            case NFQ_ROUTE_MODE:
-                verdict = ((uint32_t) NF_QUEUE) | nfq_config.next_queue;
-                break;
-        }
-
-        if (p->flags & PKT_STREAM_MODIFIED) {
-#ifdef COUNTERS
-            t->replaced++;
-#endif /* COUNTERS */
-        }
-
-#ifdef COUNTERS
-        t->accepted++;
-#endif /* COUNTERS */
-    }
 
     ret = NFQVerdictCacheAdd(t, p, verdict);
     if (ret == 0) {
