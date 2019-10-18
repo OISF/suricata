@@ -1021,7 +1021,7 @@ TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot)
     ntv->slot = ((TmSlot *) slot)->slot_next;
 
     while(1) {
-        if (suricata_ctl_flags != 0) {
+        if (unlikely(suricata_ctl_flags != 0)) {
             NFQDestroyQueue(nq);
             break;
         }
