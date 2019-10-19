@@ -112,7 +112,7 @@ static DetectWindowData *DetectWindowParse(const char *windowstr)
 
     ret = DetectParsePcreExec(&parse_regex, windowstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_jit_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
         goto error;
     }
 

@@ -203,7 +203,11 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     }
 
     /* run the actual pcre detection */
-    ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS);
+    if (pe->js) {
+        ret = pcre_jit_exec(pe->re, pe->sd, (char *)ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS, pe->js);
+    } else {
+        ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS);
+    }
     SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
@@ -643,7 +647,6 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
 
 #ifdef PCRE_HAVE_JIT
-#if 0
     int jit = 0;
     ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_JIT, &jit);
     if (ret != 0 || jit != 1) {
@@ -654,14 +657,15 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                 "Falling back to regular PCRE handling (%s:%d)",
                 regexstr, de_ctx->rule_file, de_ctx->rule_line);
     }
-#endif
 
-    pd->js = pcre_jit_stack_alloc(32*1024, 512*124);
-    if (pd->js == NULL) {
-        SCLogError(SC_ERR_PCRE_JITSTACK, "pcre jit stack failed");
-        goto error;
+    if (jit) {
+        pd->js = pcre_jit_stack_alloc(32*1024, 512*124);
+        if (pd->js == NULL) {
+            SCLogError(SC_ERR_PCRE_JITSTACK, "pcre jit stack failed");
+            goto error;
+        }
+        pcre_assign_jit_stack(pd->sd, NULL, pd->js);
     }
-    pcre_assign_jit_stack(pd->sd, NULL, pd->js);
 #endif /*PCRE_HAVE_JIT*/
 
     if (pd->sd == NULL)
