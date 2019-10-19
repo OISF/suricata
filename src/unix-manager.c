@@ -694,15 +694,7 @@ static TmEcode UnixManagerVersionCommand(json_t *cmd,
                                    json_t *server_msg, void *data)
 {
     SCEnter();
-    json_object_set_new(server_msg, "message", json_string(
-#ifdef REVISION
-                        PROG_VER " (" xstr(REVISION) ")"
-#elif defined RELEASE
-                        PROG_VER " RELEASE"
-#else
-                        PROG_VER
-#endif
-                        ));
+    json_object_set_new(server_msg, "message", json_string(GetProgramVersion()));
     SCReturnInt(TM_ECODE_OK);
 }
 
