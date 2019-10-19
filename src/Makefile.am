@@ -78,6 +78,7 @@ decode-pppoe.c decode-pppoe.h \
 decode-raw.c decode-raw.h \
 decode-sctp.c decode-sctp.h \
 decode-sll.c decode-sll.h \
+decode-store.c decode-store.h \
 decode-tcp.c decode-tcp.h \
 decode-teredo.c decode-teredo.h \
 decode-udp.c decode-udp.h \

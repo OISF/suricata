@@ -384,6 +384,14 @@ typedef struct PktProfiling_ {
 /* forward declaration since Packet struct definition requires this */
 struct PacketQueue_;
 
+#define DECODE_STORE_SIZE 54
+struct DecodeStore {
+    struct DecodeStore *next;
+    bool is_full;
+    uint8_t data_offset;
+    uint8_t data[DECODE_STORE_SIZE];
+};
+
 /* sizes of the members:
  * src: 17 bytes
  * dst: 17 bytes
@@ -521,6 +529,8 @@ typedef struct Packet_
 
     SCTPHdr *sctph;
 
+    struct DecodeStore decode_store;
+
     ICMPV4Hdr *icmpv4h;
 
     ICMPV6Hdr *icmpv6h;
@@ -620,6 +630,8 @@ static inline bool PKT_IS_ICMPV4(const Packet *p) {
 static inline bool PKT_IS_ICMPV6(const Packet *p) {
     return (p->icmpv6h != NULL);
 }
+
+void DecodeStoreCleanup(Packet *p);
 
 /** highest mtu of the interfaces we monitor */
 extern int g_default_mtu;
@@ -786,6 +798,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         if ((p)->sctph != NULL) {               \
             CLEAR_SCTP_PACKET((p));             \
         }                                       \
+        DecodeStoreCleanup((p));                \
         if ((p)->icmpv4h != NULL) {             \
             CLEAR_ICMPV4_PACKET((p));           \
         }                                       \
@@ -829,6 +842,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
             PktVarFree((p)->pktvar);            \
         }                                       \
         PACKET_FREE_EXTDATA((p));               \
+        DecodeStoreCleanup((p));                \
         SCMutexDestroy(&(p)->tunnel_mutex);     \
         AppLayerDecoderEventsFreeEvents(&(p)->app_layer_events); \
         PACKET_PROFILING_RESET((p));            \
