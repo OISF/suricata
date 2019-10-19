@@ -688,13 +688,7 @@ static void PrintBuildInfo(void)
     char features[2048] = "";
     const char *tls = "pthread key";
 
-#ifdef REVISION
-    printf("This is %s version %s (%s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
-#elif defined RELEASE
-    printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
-#else
-    printf("This is %s version %s\n", PROG_NAME, PROG_VER);
-#endif
+    printf("This is %s version %s\n", PROG_NAME, GetProgramVersion());
 
 #ifdef DEBUG
     strlcat(features, "DEBUG ", sizeof(features));
@@ -1052,31 +1046,42 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
 #endif
 }
 
+/** \brief get string with program version
+ *
+ *  Get the program version as passed to us from AC_INIT
+ *
+ *  Add 'RELEASE' is no '-dev' in the version. Add the REVISION if passed
+ *  to us.
+ *
+ *  Possible outputs:
+ *  release:      '5.0.1 RELEASE'
+ *  dev with rev: '5.0.1-dev (64a789bbf 2019-10-18)'
+ *  dev w/o rev:  '5.0.1-dev'
+ */
+const char *GetProgramVersion(void)
+{
+    if (strstr(PROG_VER, "-dev") == NULL) {
+        return PROG_VER " RELEASE";
+    } else {
+#ifdef REVISION
+        return PROG_VER " (" xstr(REVISION) ")";
+#else
+        return PROG_VER;
+#endif
+    }
+}
+
 static TmEcode PrintVersion(void)
 {
-#ifdef REVISION
-    printf("This is %s version %s (%s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
-#elif defined RELEASE
-    printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
-#else
-    printf("This is %s version %s\n", PROG_NAME, PROG_VER);
-#endif
+    printf("This is %s version %s\n", PROG_NAME, GetProgramVersion());
     return TM_ECODE_OK;
 }
 
 static TmEcode LogVersion(SCInstance *suri)
 {
     const char *mode = suri->system ? "SYSTEM" : "USER";
-#ifdef REVISION
-    SCLogNotice("This is %s version %s (%s) running in %s mode",
-            PROG_NAME, PROG_VER, xstr(REVISION), mode);
-#elif defined RELEASE
-    SCLogNotice("This is %s version %s RELEASE running in %s mode",
-            PROG_NAME, PROG_VER, mode);
-#else
     SCLogNotice("This is %s version %s running in %s mode",
-            PROG_NAME, PROG_VER, mode);
-#endif
+            PROG_NAME, GetProgramVersion(), mode);
     return TM_ECODE_OK;
 }
 
