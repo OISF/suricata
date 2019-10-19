@@ -203,11 +203,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     }
 
     /* run the actual pcre detection */
-    if (pe->js) {
-        ret = pcre_jit_exec(pe->re, pe->sd, (char *)ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS, pe->js);
-    } else {
-        ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS);
-    }
+    ret = DetectPcreExec(&pe->parse_regex, (char *) ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS);
     SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
@@ -623,13 +619,13 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     if (capture_names == NULL || strlen(capture_names) == 0)
         opts |= PCRE_NO_AUTO_CAPTURE;
 
-    pd->re = pcre_compile2(re, opts, &ec, &eb, &eo, NULL);
-    if (pd->re == NULL && ec == 15) { // reference to non-existent subpattern
+    pd->parse_regex.regex = pcre_compile2(re, opts, &ec, &eb, &eo, NULL);
+    if (pd->parse_regex.regex == NULL && ec == 15) { // reference to non-existent subpattern
         opts &= ~PCRE_NO_AUTO_CAPTURE;
-        pd->re = pcre_compile(re, opts, &eb, &eo, NULL);
+        pd->parse_regex.regex = pcre_compile(re, opts, &eb, &eo, NULL);
     }
 
-    if (pd->re == NULL)  {
+    if (pd->parse_regex.regex == NULL)  {
         SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed "
                 "at offset %" PRId32 ": %s", regexstr, eo, eb);
         goto error;
@@ -640,7 +636,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     if (pcre_use_jit)
         options |= PCRE_STUDY_JIT_COMPILE;
 #endif
-    pd->sd = pcre_study(pd->re, options, &eb);
+    pd->parse_regex.study = pcre_study(pd->parse_regex.regex, options, &eb);
     if(eb != NULL)  {
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed : %s", eb);
         goto error;
@@ -648,7 +644,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
 
 #ifdef PCRE_HAVE_JIT
     int jit = 0;
-    ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_JIT, &jit);
+    ret = pcre_fullinfo(pd->parse_regex.regex, pd->parse_regex.study, PCRE_INFO_JIT, &jit);
     if (ret != 0 || jit != 1) {
         /* warning, so we won't print the sig after this. Adding
          * file and line to the message so the admin can figure
@@ -659,36 +655,36 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
 
     if (jit) {
-        pd->js = pcre_jit_stack_alloc(32*1024, 512*124);
-        if (pd->js == NULL) {
+        pd->parse_regex.jit_stack = pcre_jit_stack_alloc(32*1024, 512*124);
+        if (pd->parse_regex.jit_stack == NULL) {
             SCLogError(SC_ERR_PCRE_JITSTACK, "pcre jit stack failed");
             goto error;
         }
-        pcre_assign_jit_stack(pd->sd, NULL, pd->js);
+        pcre_assign_jit_stack(pd->parse_regex.study, NULL, pd->parse_regex.jit_stack);
     }
 #endif /*PCRE_HAVE_JIT*/
 
-    if (pd->sd == NULL)
-        pd->sd = (pcre_extra *) SCCalloc(1,sizeof(pcre_extra));
+    if (pd->parse_regex.study == NULL)
+        pd->parse_regex.study = (pcre_extra *) SCCalloc(1,sizeof(pcre_extra));
 
-    if (pd->sd) {
+    if (pd->parse_regex.study) {
         if(pd->flags & DETECT_PCRE_MATCH_LIMIT) {
             if(pcre_match_limit >= -1)    {
-                pd->sd->match_limit = pcre_match_limit;
-                pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT;
+                pd->parse_regex.study->match_limit = pcre_match_limit;
+                pd->parse_regex.study->flags |= PCRE_EXTRA_MATCH_LIMIT;
             }
 #ifndef NO_PCRE_MATCH_RLIMIT
             if(pcre_match_limit_recursion >= -1)    {
-                pd->sd->match_limit_recursion = pcre_match_limit_recursion;
-                pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+                pd->parse_regex.study->match_limit_recursion = pcre_match_limit_recursion;
+                pd->parse_regex.study->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
             }
 #endif /* NO_PCRE_MATCH_RLIMIT */
         } else {
-            pd->sd->match_limit = SC_MATCH_LIMIT_DEFAULT;
-            pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT;
+            pd->parse_regex.study->match_limit = SC_MATCH_LIMIT_DEFAULT;
+            pd->parse_regex.study->flags |= PCRE_EXTRA_MATCH_LIMIT;
 #ifndef NO_PCRE_MATCH_RLIMIT
-            pd->sd->match_limit_recursion = SC_MATCH_LIMIT_RECURSION_DEFAULT;
-            pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+            pd->parse_regex.study->match_limit_recursion = SC_MATCH_LIMIT_RECURSION_DEFAULT;
+            pd->parse_regex.study->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
 #endif /* NO_PCRE_MATCH_RLIMIT */
         }
     } else {
@@ -697,14 +693,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     return pd;
 
 error:
-    if (pd != NULL && pd->re != NULL)
-        pcre_free(pd->re);
-    if (pd != NULL && pd->sd != NULL)
-        pcre_free_study(pd->sd);
-    if (pd != NULL && pd->js != NULL)
-        pcre_jit_stack_free(pd->js);
-    if (pd)
-        SCFree(pd);
+    DetectPcreFree(pd);
     return NULL;
 }
 
@@ -726,7 +715,7 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
 
     SCLogDebug("regexstr %s, pd %p", regexstr, pd);
 
-    ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_CAPTURECOUNT, &capture_cnt);
+    ret = pcre_fullinfo(pd->parse_regex.regex, pd->parse_regex.study, PCRE_INFO_CAPTURECOUNT, &capture_cnt);
     SCLogDebug("ret %d capture_cnt %d", ret, capture_cnt);
     if (ret == 0 && capture_cnt && strlen(capture_names) > 0)
     {
@@ -942,10 +931,12 @@ static void DetectPcreFree(void *ptr)
 
     DetectPcreData *pd = (DetectPcreData *)ptr;
 
-    if (pd->re != NULL)
-        pcre_free(pd->re);
-    if (pd->sd != NULL)
-        pcre_free_study(pd->sd);
+    if (pd->parse_regex.regex != NULL)
+        pcre_free(pd->parse_regex.regex);
+    if (pd->parse_regex.study != NULL)
+        pcre_free_study(pd->parse_regex.study);
+    if (pd->parse_regex.jit_stack != NULL)
+        pcre_jit_stack_free(pd->parse_regex.jit_stack);
 
     SCFree(pd);
     return;

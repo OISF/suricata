@@ -40,8 +40,7 @@
 static int rule_warnings_only = 0;
 static FILE *rule_engine_analysis_FD = NULL;
 static FILE *fp_engine_analysis_FD = NULL;
-static pcre *percent_re = NULL;
-static pcre_extra *percent_re_study = NULL;
+static DetectParseRegex regex_percent;
 static char log_path[PATH_MAX];
 
 typedef struct FpPatternStats_ {
@@ -352,22 +351,8 @@ void CleanupRuleAnalyzer(void)
 int PerCentEncodingSetup ()
 {
 #define DETECT_PERCENT_ENCODING_REGEX "%[0-9|a-f|A-F]{2}"
-    const char *eb = NULL;
-    int eo = 0;
-    int opts = 0;    //PCRE_NEWLINE_ANY??
 
-    percent_re = pcre_compile(DETECT_PERCENT_ENCODING_REGEX, opts, &eb, &eo, NULL);
-    if (percent_re == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   DETECT_PERCENT_ENCODING_REGEX, eo, eb);
-        return 0;
-    }
-
-    percent_re_study = pcre_study(percent_re, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        return 0;
-    }
+    DetectSetupParseRegexes(DETECT_PERCENT_ENCODING_REGEX, &regex_percent);
     return 1;
 }
 
@@ -384,7 +369,7 @@ int PerCentEncodingMatch (uint8_t *content, uint8_t content_len)
     int ret = 0;
     int ov[MAX_ENCODED_CHARS];
 
-    ret = pcre_exec(percent_re, percent_re_study, (char *)content, content_len, 0, 0, ov, MAX_ENCODED_CHARS);
+    ret = DetectParsePcreExecLen(&regex_percent, (char *)content, content_len,  0, 0, ov, MAX_SUBSTRINGS);
     if (ret == -1) {
         return 0;
     }

@@ -50,6 +50,7 @@
 #include "util-unittest.h"
 #include "log-pcap.h"
 #include "decode-ipv4.h"
+#include "detect-parse.h"
 
 #include "util-error.h"
 #include "util-debug.h"
@@ -186,8 +187,7 @@ typedef struct PcapLogThreadData_ {
 
 /* Pattern for extracting timestamp from pcap log files. */
 static const char timestamp_pattern[] = ".*?(\\d+)(\\.(\\d+))?";
-static pcre *pcre_timestamp_code = NULL;
-static pcre_extra *pcre_timestamp_extra = NULL;
+static DetectParseRegex regex_timestamp;
 
 /* global pcap data for when we're using multi mode. At exit we'll
  * merge counters into this one and then report counters. */
@@ -722,9 +722,7 @@ static int PcapLogGetTimeOfFile(const char *filename, uint64_t *secs,
     int pcre_ovec[pcre_ovecsize];
     char buf[PATH_MAX];
 
-    int n = pcre_exec(pcre_timestamp_code, pcre_timestamp_extra,
-        filename, strlen(filename), 0, 0, pcre_ovec,
-        pcre_ovecsize);
+    int n = DetectParsePcreExec(&regex_timestamp, filename,  0, 0, pcre_ovec, pcre_ovecsize);
     if (n != 2 && n != 4) {
         /* No match. */
         return 0;
@@ -1166,8 +1164,6 @@ error:
 static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
-    const char *pcre_errbuf;
-    int pcre_erroffset;
 
     PcapLogData *pl = SCMalloc(sizeof(PcapLogData));
     if (unlikely(pl == NULL)) {
@@ -1196,18 +1192,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     SCMutexInit(&pl->plog_lock, NULL);
 
     /* Initialize PCREs. */
-    pcre_timestamp_code = pcre_compile(timestamp_pattern, 0, &pcre_errbuf,
-        &pcre_erroffset, NULL);
-    if (pcre_timestamp_code == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE,
-            "Failed to compile \"%s\" at offset %"PRIu32": %s",
-            timestamp_pattern, pcre_erroffset, pcre_errbuf);
-    }
-    pcre_timestamp_extra = pcre_study(pcre_timestamp_code, 0, &pcre_errbuf);
-    if (pcre_errbuf != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "Fail to study pcre: %s", pcre_errbuf);
-    }
-
+    DetectSetupParseRegexes(timestamp_pattern, &regex_timestamp);
     /* conf params */
 
     const char *filename = NULL;

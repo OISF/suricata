@@ -2346,6 +2346,14 @@ error:
 }
 
 static DetectParseRegex *g_detect_parse_regex_list = NULL;
+int DetectParsePcreExecLen(DetectParseRegex *parse_regex, const char *str,
+                   int str_len,
+                   int start_offset, int options,
+                   int *ovector, int ovector_size)
+{
+    return pcre_exec(parse_regex->regex, parse_regex->study, str, str_len,
+                     start_offset, options, ovector, ovector_size);
+}
 
 int DetectParsePcreExec(DetectParseRegex *parse_regex, const char *str,
                    int start_offset, int options,

@@ -31,35 +31,16 @@
 #include "util-misc.h"
 
 #define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2})?\\s*$"
-static pcre *parse_regex = NULL;
-static pcre_extra *parse_regex_study = NULL;
+static DetectParseRegex parse_regex;
 
 void ParseSizeInit(void)
 {
-    const char *eb = NULL;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset "
-                   "%" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        exit(EXIT_FAILURE);
-    }
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        exit(EXIT_FAILURE);
-    }
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 void ParseSizeDeinit(void)
 {
 
-    if (parse_regex != NULL)
-        pcre_free(parse_regex);
-    if (parse_regex_study != NULL)
-        pcre_free_study(parse_regex_study);
 }
 
 /* size string parsing API */
@@ -87,8 +68,7 @@ static int ParseSizeString(const char *size, double *res)
         goto end;
     }
 
-    pcre_exec_ret = pcre_exec(parse_regex, parse_regex_study, size, strlen(size), 0, 0,
-                    ov, MAX_SUBSTRINGS);
+    pcre_exec_ret = DetectParsePcreExec(&parse_regex, size,  0, 0, ov, MAX_SUBSTRINGS);
     if (!(pcre_exec_ret == 2 || pcre_exec_ret == 3)) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid size argument - %s. Valid size "
                    "argument should be in the format - \n"
