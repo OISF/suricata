@@ -223,7 +223,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 break;
 
             default:
-                SCLogDebug("unknown PPP protocol: %" PRIx32 "",SCNtohs(p->ppph->protocol));
+                SCLogDebug("unknown PPP protocol: %" PRIx32 "",SCNtohs(p->pppoesh->protocol));
                 ENGINE_SET_INVALID_EVENT(p, PPP_WRONG_TYPE);
                 return TM_ECODE_OK;
         }
