@@ -211,18 +211,15 @@ static void *FTPMalloc(size_t size)
 
 static void *FTPCalloc(size_t n, size_t size)
 {
-    void *ptr = NULL;
-
     if (FTPCheckMemcap((uint32_t)(n * size)) == 0)
         return NULL;
 
-    ptr = SCCalloc(n, size);
+    void *ptr = SCCalloc(n, size);
 
     if (unlikely(ptr == NULL))
         return NULL;
 
     FTPIncrMemuse((uint64_t)(n * size));
-
     return ptr;
 }
 
