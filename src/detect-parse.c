@@ -2375,7 +2375,7 @@ void DetectParseFreeRegexes(void)
         if (r->study) {
             pcre_free_study(r->study);
         }
-#if PCRE_HAVE_JIT
+#if PCRE_HAVE_JIT_EXEC
         if (r->jit_stack) {
             pcre_jit_stack_free(r->jit_stack);
         }

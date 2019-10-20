@@ -83,7 +83,7 @@ static int pcre_use_jit = 1;
 static int DetectPcreExec(DetectParseRegex *parse_regex, const char *str, const size_t strlen,
                             int start_offset, int options,  int *ovector, int ovector_size)
 {
-#ifdef PCRE_HAVE_JIT
+#ifdef PCRE_HAVE_JIT_EXEC
     if (pcre_use_jit)
         return pcre_jit_exec(parse_regex->regex, parse_regex->study, str, strlen,
                             start_offset, options, ovector, ovector_size,

@@ -730,6 +730,47 @@
         AC_MSG_RESULT(no)
     fi
 
+    if test "x$pcre_jit_available" = "xyes"; then
+       AC_MSG_RESULT(yes)
+       AC_DEFINE([PCRE_HAVE_JIT_EXEC], [1], [Pcre with JIT compiler support enabled supporting pcre_jit_exec])
+
+       AC_MSG_CHECKING(for PCRE JIT EXEC support usability)
+       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]],
+           [[
+           const char* regexstr = "(a|b|c|d)";
+           pcre *re;
+           const char *error;
+           pcre_extra *extra;
+           pcre_jit_stack *stack;
+           int err_offset;
+           re = pcre_compile(regexstr,0, &error, &err_offset,NULL);
+           extra = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
+           if (extra == NULL)
+               exit(EXIT_FAILURE);
+           int jit = 0;
+           int ret = pcre_fullinfo(re, extra, PCRE_INFO_JIT, &jit);
+           if (ret != 0 || jit != 1)
+               exit(EXIT_FAILURE);
+           stack = pcre_jit_stack_alloc(32*1024,40*1024);
+           if (stack == 0 || jit != 1)
+               exit(EXIT_FAILURE);
+           exit(EXIT_SUCCESS);
+           ]])],[ pcre_jit_exec_works=yes ],[:]
+       )
+       if test "x$pcre_jit_exec_works" != "xyes"; then
+           AC_MSG_RESULT(no)
+           echo
+           echo "   PCRE JIT EXEC support detection worked but testing it failed"
+           echo "   something odd is going on, please file a bug report."
+           echo
+           exit 1
+       else
+           AC_MSG_RESULT(yes)
+       fi
+    else
+        AC_MSG_RESULT(no)
+    fi
+
   # libhs
     enable_hyperscan="no"
 
