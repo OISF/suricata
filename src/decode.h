@@ -37,7 +37,6 @@
 #include "util-napatech.h"
 #endif /* HAVE_NAPATECH */
 
-
 typedef enum {
     CHECKSUM_VALIDATION_DISABLE,
     CHECKSUM_VALIDATION_ENABLE,
@@ -251,12 +250,6 @@ typedef uint16_t Port;
  *We determine the ip version. */
 #define IP_GET_RAW_VER(pkt) ((((pkt)[0] & 0xf0) >> 4))
 
-#define PKT_IS_IPV4(p)      (((p)->ip4h != NULL))
-#define PKT_IS_IPV6(p)      (((p)->ip6h != NULL))
-#define PKT_IS_TCP(p)       (((p)->tcph != NULL))
-#define PKT_IS_UDP(p)       (((p)->udph != NULL))
-#define PKT_IS_ICMPV4(p)    (((p)->icmpv4h != NULL))
-#define PKT_IS_ICMPV6(p)    (((p)->icmpv6h != NULL))
 #define PKT_IS_TOSERVER(p)  (((p)->flowflags & FLOW_PKT_TOSERVER))
 #define PKT_IS_TOCLIENT(p)  (((p)->flowflags & FLOW_PKT_TOCLIENT))
 
@@ -608,6 +601,25 @@ typedef struct Packet_
     NapatechPacketVars ntpv;
 #endif
 } Packet;
+
+static inline bool PKT_IS_IPV4(const Packet *p) {
+    return (p->ip4h != NULL);
+}
+static inline bool PKT_IS_IPV6(const Packet *p) {
+    return (p->ip6h != NULL);
+}
+static inline bool PKT_IS_TCP(const Packet *p) {
+    return (p->tcph != NULL);
+}
+static inline bool PKT_IS_UDP(const Packet *p) {
+    return (p->udph != NULL);
+}
+static inline bool PKT_IS_ICMPV4(const Packet *p) {
+    return (p->icmpv4h != NULL);
+}
+static inline bool PKT_IS_ICMPV6(const Packet *p) {
+    return (p->icmpv6h != NULL);
+}
 
 /** highest mtu of the interfaces we monitor */
 extern int g_default_mtu;
