@@ -209,10 +209,11 @@ static int DetectFilestorePostMatch(DetectEngineThreadCtx *det_ctx,
 #endif
     }
 
-    /* set filestore depth for stream reassembling */
-    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-    TcpSessionSetReassemblyDepth(ssn, FileReassemblyDepth());
-
+    if (p->proto == IPPROTO_TCP && p->flow->protoctx != NULL) {
+        /* set filestore depth for stream reassembling */
+        TcpSession *ssn = (TcpSession *)p->flow->protoctx;
+        TcpSessionSetReassemblyDepth(ssn, FileReassemblyDepth());
+    }
     if (p->flowflags & FLOW_PKT_TOCLIENT)
         flags |= STREAM_TOCLIENT;
     else
