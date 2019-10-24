@@ -238,6 +238,12 @@
             #include <sys/random.h> 
             ])
 
+    AC_CHECK_DECL([memmem],
+        AC_DEFINE([HAVE_MEMMEM], [1], [Use memmem]),
+        [], [
+            #include <string.h>
+            ])
+
     AC_CHECK_FUNCS([utime])
 
     OCFLAGS=$CFLAGS

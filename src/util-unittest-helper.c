@@ -995,6 +995,18 @@ static int CheckUTHTestPacket(Packet *p, uint8_t ipproto)
     return 1;
 }
 
+#ifdef HAVE_MEMMEM
+#include <string.h>
+void * UTHmemsearch(const void *big, size_t big_len, const void *little, size_t little_len) {
+    return memmem(big, big_len, little, little_len);
+}
+#else
+#include "util-spm-bs.h"
+void * UTHmemsearch(const void *big, size_t big_len, const void *little, size_t little_len) {
+    return BasicSearch(big, big_len, little, little_len);
+}
+#endif //HAVE_MEMMEM
+
 /**
  * \brief UTHBuildPacketRealTest01 wrapper to check packets for unittests
  */
