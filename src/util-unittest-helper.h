@@ -61,6 +61,7 @@ uint32_t UTHBuildPacketOfFlows(uint32_t, uint32_t, uint8_t);
 Packet *UTHBuildPacketIPV6Real(uint8_t *, uint16_t , uint8_t ipproto, const char *, const char *,
                            uint16_t , uint16_t );
 
+void * UTHmemsearch(const void *big, size_t big_len, const void *little, size_t little_len);
 int UTHParseSignature(const char *str, bool expect);
 #endif
 
