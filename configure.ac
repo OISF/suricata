@@ -1515,8 +1515,9 @@
     ruledirprefix="$sysconfdir"
 
     if test "$enable_suricata_update" = "yes"; then
-      AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
-          have_suricata_update="yes"], [])
+        if test -f "$srcdir/suricata-update/setup.py"; then
+          have_suricata_update="yes"
+	fi
     fi
 
     if test "$have_suricata_update" = "yes"; then
@@ -2429,7 +2430,9 @@ fi
     AC_SUBST([RUSTUP_HOME_PATH], [$rustup_home_path])
     AC_SUBST([rustup_home])
 
-    AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
+    if test -f "$srcdir/rust/vendor"; then
+      have_rust_vendor="yes"
+    fi
     if test "x$have_rust_vendor" = "xyes"; then
       rust_vendor_comment=""
     fi
