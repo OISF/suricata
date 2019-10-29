@@ -45,7 +45,7 @@
 #endif
 
 #ifdef OS_WIN32
-#include "win32-syscall.h"
+#include "win32/win32-syscall.h"
 #endif
 
 #include "util-ioctl.h"

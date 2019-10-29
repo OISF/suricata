@@ -8,6 +8,7 @@
 /*.yaml
 Makefile
 .deps/
+.dirstamp
 .libs/
 *~
 m4/
