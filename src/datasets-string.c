@@ -89,8 +89,9 @@ uint32_t StringHash(void *s)
 {
     uint32_t hash = 5381;
     int c;
+    uint8_t *sptr = ((StringType *)s)->ptr;
 
-    while ((c = *(char *)s++))
+    while ((c = *sptr++))
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
     return hash;
