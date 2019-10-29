@@ -57,7 +57,7 @@ static void DsizeRegisterTests(void);
 static void DetectDsizeFree(void *);
 
 static int PrefilterSetupDsize(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterDsizeIsPrefilterable(const Signature *s);
+static bool PrefilterDsizeIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for dsize: keyword
@@ -343,7 +343,7 @@ PrefilterPacketDsizeSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u16[2] = a->dsize2;
 }
 
-static _Bool
+static bool
 PrefilterPacketDsizeCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectDsizeData *a = smctx;
@@ -362,7 +362,7 @@ static int PrefilterSetupDsize(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             PrefilterPacketDsizeMatch);
 }
 
-static _Bool PrefilterDsizeIsPrefilterable(const Signature *s)
+static bool PrefilterDsizeIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

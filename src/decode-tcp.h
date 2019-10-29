@@ -153,7 +153,7 @@ typedef struct TCPHdr_
 typedef struct TCPVars_
 {
     /* commonly used and needed opts */
-    _Bool ts_set;
+    bool ts_set;
     uint32_t ts_val;    /* host-order */
     uint32_t ts_ecr;    /* host-order */
     TCPOpt sack;

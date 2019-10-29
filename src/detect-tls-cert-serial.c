@@ -64,7 +64,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         void *txv, const int list_id);
 static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
         Signature *s);
-static _Bool DetectTlsSerialValidateCallback(const Signature *s,
+static bool DetectTlsSerialValidateCallback(const Signature *s,
         const char **sigerror);
 static int g_tls_cert_serial_buffer_id = 0;
 
@@ -147,7 +147,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static _Bool DetectTlsSerialValidateCallback(const Signature *s,
+static bool DetectTlsSerialValidateCallback(const Signature *s,
                                              const char **sigerror)
 {
     const SigMatch *sm = s->init_data->smlists[g_tls_cert_serial_buffer_id];
@@ -196,7 +196,7 @@ static void DetectTlsSerialSetupCallback(const DetectEngineCtx *de_ctx,
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
 
-        _Bool changed = FALSE;
+        bool changed = FALSE;
         uint32_t u;
         for (u = 0; u < cd->content_len; u++)
         {

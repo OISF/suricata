@@ -296,7 +296,7 @@ THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
     int (*DataSet)(void *, void *),
      void (*DataFree)(void *),
      uint32_t (*DataHash)(void *),
-     _Bool (*DataCompare)(void *, void *))
+     bool (*DataCompare)(void *, void *))
 {
     THashTableContext *ctx = SCCalloc(1, sizeof(*ctx));
     BUG_ON(!ctx);

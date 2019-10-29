@@ -56,7 +56,7 @@ void DetectIdRegisterTests(void);
 void DetectIdFree(void *);
 
 static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterIdIsPrefilterable(const Signature *s);
+static bool PrefilterIdIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for keyword: id
@@ -248,7 +248,7 @@ PrefilterPacketIdSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u16[0] = a->id;
 }
 
-static _Bool
+static bool
 PrefilterPacketIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectIdData *a = smctx;
@@ -265,7 +265,7 @@ static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         PrefilterPacketIdMatch);
 }
 
-static _Bool PrefilterIdIsPrefilterable(const Signature *s)
+static bool PrefilterIdIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

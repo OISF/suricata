@@ -51,7 +51,7 @@ void DetectTtlFree (void *);
 void DetectTtlRegisterTests (void);
 #endif
 static int PrefilterSetupTtl(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterTtlIsPrefilterable(const Signature *s);
+static bool PrefilterTtlIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for ttl: keyword
@@ -331,7 +331,7 @@ PrefilterPacketTtlSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u8[2] = a->ttl2;
 }
 
-static _Bool
+static bool
 PrefilterPacketTtlCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectTtlData *a = smctx;
@@ -350,7 +350,7 @@ static int PrefilterSetupTtl(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             PrefilterPacketTtlMatch);
 }
 
-static _Bool PrefilterTtlIsPrefilterable(const Signature *s)
+static bool PrefilterTtlIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

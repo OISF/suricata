@@ -63,7 +63,7 @@ static int DetectFlagsMatch (DetectEngineThreadCtx *, Packet *,
 static int DetectFlagsSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFlagsFree(void *);
 
-static _Bool PrefilterTcpFlagsIsPrefilterable(const Signature *s);
+static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s);
 static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 /**
@@ -574,7 +574,7 @@ PrefilterPacketFlagsSet(PrefilterPacketHeaderValue *v, void *smctx)
     SCLogDebug("v->u8[0] = %02x", v->u8[0]);
 }
 
-static _Bool
+static bool
 PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectFlagsData *a = smctx;
@@ -594,7 +594,7 @@ static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
 }
 
-static _Bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
+static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

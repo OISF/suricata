@@ -74,7 +74,7 @@ static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFragBitsFree(void *);
 
 static int PrefilterSetupFragBits(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterFragBitsIsPrefilterable(const Signature *s);
+static bool PrefilterFragBitsIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for fragbits: keyword
@@ -346,7 +346,7 @@ PrefilterPacketFragBitsSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u8[1] = fb->fragbits;
 }
 
-static _Bool
+static bool
 PrefilterPacketFragBitsCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectFragBitsData *fb = smctx;
@@ -366,7 +366,7 @@ static int PrefilterSetupFragBits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         PrefilterPacketFragBitsMatch);
 }
 
-static _Bool PrefilterFragBitsIsPrefilterable(const Signature *s)
+static bool PrefilterFragBitsIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

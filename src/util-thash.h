@@ -135,7 +135,7 @@ typedef struct THashDataConfig_ {
     int (*DataSet)(void *dst, void *src);
     void (*DataFree)(void *);
     uint32_t (*DataHash)(void *);
-    _Bool (*DataCompare)(void *, void *);
+    bool (*DataCompare)(void *, void *);
 } THashConfig;
 
 #define THASH_DATA_SIZE(ctx) (sizeof(THashData) + (ctx)->config.data_size)
@@ -187,7 +187,7 @@ THashTableContext* THashInit(const char *cnf_prefix, size_t data_size,
     int (*DataSet)(void *dst, void *src),
     void (*DataFree)(void *),
     uint32_t (*DataHash)(void *),
-    _Bool (*DataCompare)(void *, void *));
+    bool (*DataCompare)(void *, void *));
 
 void THashShutdown(THashTableContext *ctx);
 

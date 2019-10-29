@@ -49,7 +49,7 @@ static int DetectIcmpSeqSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectIcmpSeqRegisterTests(void);
 void DetectIcmpSeqFree(void *);
 static int PrefilterSetupIcmpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterIcmpSeqIsPrefilterable(const Signature *s);
+static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for icmp_seq
@@ -70,7 +70,7 @@ void DetectIcmpSeqRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
-static inline _Bool GetIcmpSeq(Packet *p, uint16_t *seq)
+static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
 {
     uint16_t seqn;
 
@@ -293,7 +293,7 @@ PrefilterPacketIcmpSeqSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u16[0] = a->seq;
 }
 
-static _Bool
+static bool
 PrefilterPacketIcmpSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectIcmpSeqData *a = smctx;
@@ -310,7 +310,7 @@ static int PrefilterSetupIcmpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         PrefilterPacketIcmpSeqMatch);
 }
 
-static _Bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)
+static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

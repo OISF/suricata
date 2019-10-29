@@ -950,7 +950,7 @@ void DetectBufferRunSetupCallback(const DetectEngineCtx *de_ctx,
 }
 
 void DetectBufferTypeRegisterValidateCallback(const char *name,
-        _Bool (*ValidateCallback)(const Signature *, const char **sigerror))
+        bool (*ValidateCallback)(const Signature *, const char **sigerror))
 {
     BUG_ON(g_buffer_type_reg_closed);
     DetectBufferTypeRegister(name);

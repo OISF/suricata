@@ -426,8 +426,8 @@ typedef struct DetectBufferType_ {
     const char *description;
     int id;
     int parent_id;
-    _Bool mpm;
-    _Bool packet; /**< compat to packet matches */
+    bool mpm;
+    bool packet; /**< compat to packet matches */
     bool supports_transforms;
     void (*SetupCallback)(const struct DetectEngineCtx_ *, struct Signature_ *);
     bool (*ValidateCallback)(const struct Signature_ *, const char **sigerror);
@@ -1185,7 +1185,7 @@ typedef struct SigTableElmt_ {
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, const char *);
 
-    _Bool (*SupportsPrefilter)(const Signature *s);
+    bool (*SupportsPrefilter)(const Signature *s);
     int (*SetupPrefilter)(DetectEngineCtx *de_ctx, struct SigGroupHead_ *sgh);
 
     void (*Free)(void *);
