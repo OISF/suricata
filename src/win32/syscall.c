@@ -58,7 +58,7 @@
 
 #include "suricata.h"
 
-#include "win32-syscall.h"
+#include "win32/syscall.h"
 
 /**
  * \brief return only the GUID portion of the name

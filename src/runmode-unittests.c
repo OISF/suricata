@@ -109,7 +109,7 @@
 #include "util-lua.h"
 
 #ifdef OS_WIN32
-#include "win32-syscall.h"
+#include "win32/syscall.h"
 #endif
 
 #ifdef WINDIVERT

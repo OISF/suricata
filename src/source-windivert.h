@@ -28,7 +28,7 @@
 
 #ifdef WINDIVERT
 
-#include "windivert.h"
+#include <windivert.h>
 
 #define WINDIVERT_FILTER_MAXLEN 128 /* from windivert_device.h */
 
