@@ -66,7 +66,7 @@ static int DetectHttpMethodSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 void DetectHttpMethodRegisterTests(void);
 #endif
 void DetectHttpMethodFree(void *);
-static _Bool DetectHttpMethodValidateCallback(const Signature *s, const char **sigerror);
+static bool DetectHttpMethodValidateCallback(const Signature *s, const char **sigerror);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id);
@@ -157,7 +157,7 @@ static int DetectHttpMethodSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
  *  \retval 1 valid
  *  \retval 0 invalid
  */
-static _Bool DetectHttpMethodValidateCallback(const Signature *s, const char **sigerror)
+static bool DetectHttpMethodValidateCallback(const Signature *s, const char **sigerror)
 {
     const SigMatch *sm = s->init_data->smlists[g_http_method_buffer_id];
     for ( ; sm != NULL; sm = sm->next) {

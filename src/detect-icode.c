@@ -53,7 +53,7 @@ void DetectICodeRegisterTests(void);
 void DetectICodeFree(void *);
 
 static int PrefilterSetupICode(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterICodeIsPrefilterable(const Signature *s);
+static bool PrefilterICodeIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for icode: keyword
@@ -320,7 +320,7 @@ PrefilterPacketICodeSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u8[2] = a->code2;
 }
 
-static _Bool
+static bool
 PrefilterPacketICodeCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectICodeData *a = smctx;
@@ -339,7 +339,7 @@ static int PrefilterSetupICode(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             PrefilterPacketICodeMatch);
 }
 
-static _Bool PrefilterICodeIsPrefilterable(const Signature *s)
+static bool PrefilterICodeIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

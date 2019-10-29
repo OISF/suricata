@@ -47,7 +47,7 @@ void DetectTemplate2Free (void *);
 void DetectTemplate2RegisterTests (void);
 #endif
 static int PrefilterSetupTemplate2(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterTemplate2IsPrefilterable(const Signature *s);
+static bool PrefilterTemplate2IsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for template2: keyword
@@ -346,7 +346,7 @@ PrefilterPacketTemplate2Set(PrefilterPacketHeaderValue *v, void *smctx)
     v->u8[2] = a->arg2;
 }
 
-static _Bool
+static bool
 PrefilterPacketTemplate2Compare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectTemplate2Data *a = smctx;
@@ -365,7 +365,7 @@ static int PrefilterSetupTemplate2(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             PrefilterPacketTemplate2Match);
 }
 
-static _Bool PrefilterTemplate2IsPrefilterable(const Signature *s)
+static bool PrefilterTemplate2IsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

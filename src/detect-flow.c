@@ -56,7 +56,7 @@ void DetectFlowRegisterTests(void);
 void DetectFlowFree(void *);
 
 static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterFlowIsPrefilterable(const Signature *s);
+static bool PrefilterFlowIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for flow: keyword
@@ -446,7 +446,7 @@ PrefilterPacketFlowSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u8[1] = fb->match_cnt;
 }
 
-static _Bool
+static bool
 PrefilterPacketFlowCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectFlowData *fb = smctx;
@@ -466,7 +466,7 @@ static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         PrefilterPacketFlowMatch);
 }
 
-static _Bool PrefilterFlowIsPrefilterable(const Signature *s)
+static bool PrefilterFlowIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

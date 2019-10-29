@@ -374,7 +374,7 @@ void DetectContentFree(void *ptr)
  *  \retval 1 valid
  *  \retval 0 invalid
  */
-_Bool DetectContentPMATCHValidateCallback(const Signature *s)
+bool DetectContentPMATCHValidateCallback(const Signature *s)
 {
     if (!(s->flags & SIG_FLAG_DSIZE)) {
         return TRUE;

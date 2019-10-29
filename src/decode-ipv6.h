@@ -213,11 +213,11 @@ typedef struct IPV6GenOptHdr_
 
 typedef struct IPV6ExtHdrs_
 {
-    _Bool rh_set;
+    bool rh_set;
     uint8_t rh_type;
 
-    _Bool fh_set;
-    _Bool fh_more_frags_set;
+    bool fh_set;
+    bool fh_more_frags_set;
     uint8_t fh_nh;
 
     uint8_t fh_prev_nh;

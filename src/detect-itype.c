@@ -53,7 +53,7 @@ void DetectITypeRegisterTests(void);
 void DetectITypeFree(void *);
 
 static int PrefilterSetupIType(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterITypeIsPrefilterable(const Signature *s);
+static bool PrefilterITypeIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for itype: keyword
@@ -324,7 +324,7 @@ PrefilterPacketITypeSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u8[2] = a->type2;
 }
 
-static _Bool
+static bool
 PrefilterPacketITypeCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectITypeData *a = smctx;
@@ -343,7 +343,7 @@ static int PrefilterSetupIType(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             PrefilterPacketITypeMatch);
 }
 
-static _Bool PrefilterITypeIsPrefilterable(const Signature *s)
+static bool PrefilterITypeIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

@@ -57,7 +57,7 @@ static int DetectHttpRawHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s,
 #ifdef UNITTESTS
 static void DetectHttpRawHeaderRegisterTests(void);
 #endif
-static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char **sigerror);
+static bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char **sigerror);
 static int g_http_raw_header_buffer_id = 0;
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
@@ -155,7 +155,7 @@ static int DetectHttpRawHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 }
 
-static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char **sigerror)
+static bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char **sigerror)
 {
     if ((s->flags & (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) {
         *sigerror = "http_raw_header signature "

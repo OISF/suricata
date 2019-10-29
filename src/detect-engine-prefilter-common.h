@@ -59,18 +59,18 @@ typedef struct PrefilterPacketU8HashCtx_ {
 int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
-        _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
+        bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
             Packet *p, const void *pectx));
 
 int PrefilterSetupPacketHeaderU8Hash(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
-        _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
+        bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
             Packet *p, const void *pectx));
 
-static inline _Bool
+static inline bool
 PrefilterPacketHeaderExtraMatch(const PrefilterPacketHeaderCtx *ctx,
                                 const Packet *p)
 {

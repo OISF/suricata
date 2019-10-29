@@ -47,7 +47,7 @@ void DetectTcpmssFree (void *);
 void DetectTcpmssRegisterTests (void);
 #endif
 static int PrefilterSetupTcpmss(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterTcpmssIsPrefilterable(const Signature *s);
+static bool PrefilterTcpmssIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for tcpmss: keyword
@@ -333,7 +333,7 @@ PrefilterPacketTcpmssSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u16[2] = a->arg2;
 }
 
-static _Bool
+static bool
 PrefilterPacketTcpmssCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectTcpmssData *a = smctx;
@@ -352,7 +352,7 @@ static int PrefilterSetupTcpmss(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             PrefilterPacketTcpmssMatch);
 }
 
-static _Bool PrefilterTcpmssIsPrefilterable(const Signature *s)
+static bool PrefilterTcpmssIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

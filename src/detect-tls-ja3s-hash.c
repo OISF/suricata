@@ -68,7 +68,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        void *txv, const int list_id);
 static void DetectTlsJa3SHashSetupCallback(const DetectEngineCtx *de_ctx,
        Signature *s);
-static _Bool DetectTlsJa3SHashValidateCallback(const Signature *s,
+static bool DetectTlsJa3SHashValidateCallback(const Signature *s,
        const char **sigerror);
 static int g_tls_ja3s_hash_buffer_id = 0;
 
@@ -158,7 +158,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static _Bool DetectTlsJa3SHashValidateCallback(const Signature *s,
+static bool DetectTlsJa3SHashValidateCallback(const Signature *s,
                                                const char **sigerror)
 {
     const SigMatch *sm = s->init_data->smlists[g_tls_ja3s_hash_buffer_id];
@@ -200,7 +200,7 @@ static void DetectTlsJa3SHashSetupCallback(const DetectEngineCtx *de_ctx,
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
 
-        _Bool changed = FALSE;
+        bool changed = FALSE;
         uint32_t u;
         for (u = 0; u < cd->content_len; u++)
         {

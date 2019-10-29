@@ -108,7 +108,7 @@ static int GetFlow(lua_State *luastate, Flow **ret_f)
 }
 
 static int GetFlowVarById(lua_State *luastate, Flow *f,
-        FlowVar **ret_fv, _Bool fv_may_be_null, uint32_t *ret_idx)
+        FlowVar **ret_fv, bool fv_may_be_null, uint32_t *ret_idx)
 {
     DetectLuaData *ld = NULL;
     if (ret_idx)
@@ -169,7 +169,7 @@ static int GetFlowVarByKey(lua_State *luastate, Flow *f, FlowVar **ret_fv)
 }
 
 static int GetFlowIntById(lua_State *luastate, Flow *f,
-        FlowVar **ret_fv, _Bool fv_may_be_null, uint32_t *ret_idx)
+        FlowVar **ret_fv, bool fv_may_be_null, uint32_t *ret_idx)
 {
     DetectLuaData *ld = NULL;
     if (ret_idx)

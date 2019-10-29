@@ -51,7 +51,7 @@ void DetectFragOffsetRegisterTests(void);
 void DetectFragOffsetFree(void *);
 
 static int PrefilterSetupFragOffset(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterFragOffsetIsPrefilterable(const Signature *s);
+static bool PrefilterFragOffsetIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for fragoffset
@@ -290,7 +290,7 @@ PrefilterPacketFragOffsetSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u16[1] = fb->frag_off;
 }
 
-static _Bool
+static bool
 PrefilterPacketFragOffsetCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectFragOffsetData *fb = smctx;
@@ -310,7 +310,7 @@ static int PrefilterSetupFragOffset(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         PrefilterPacketFragOffsetMatch);
 }
 
-static _Bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
+static bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

@@ -46,7 +46,7 @@ static int DetectSeqMatch(DetectEngineThreadCtx *,
 static void DetectSeqRegisterTests(void);
 static void DetectSeqFree(void *);
 static int PrefilterSetupTcpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterTcpSeqIsPrefilterable(const Signature *s);
+static bool PrefilterTcpSeqIsPrefilterable(const Signature *s);
 
 void DetectSeqRegister(void)
 {
@@ -170,7 +170,7 @@ PrefilterPacketSeqSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u32[0] = a->seq;
 }
 
-static _Bool
+static bool
 PrefilterPacketSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectSeqData *a = smctx;
@@ -187,7 +187,7 @@ static int PrefilterSetupTcpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         PrefilterPacketSeqMatch);
 }
 
-static _Bool PrefilterTcpSeqIsPrefilterable(const Signature *s)
+static bool PrefilterTcpSeqIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

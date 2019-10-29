@@ -49,7 +49,7 @@ static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectIcmpIdRegisterTests(void);
 void DetectIcmpIdFree(void *);
 static int PrefilterSetupIcmpId(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-static _Bool PrefilterIcmpIdIsPrefilterable(const Signature *s);
+static bool PrefilterIcmpIdIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for icode: icmp_id
@@ -70,7 +70,7 @@ void DetectIcmpIdRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
-static inline _Bool GetIcmpId(Packet *p, uint16_t *id)
+static inline bool GetIcmpId(Packet *p, uint16_t *id)
 {
     if (PKT_IS_PSEUDOPKT(p))
         return FALSE;
@@ -290,7 +290,7 @@ PrefilterPacketIcmpIdSet(PrefilterPacketHeaderValue *v, void *smctx)
     v->u16[0] = a->id;
 }
 
-static _Bool
+static bool
 PrefilterPacketIcmpIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectIcmpIdData *a = smctx;
@@ -307,7 +307,7 @@ static int PrefilterSetupIcmpId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         PrefilterPacketIcmpIdMatch);
 }
 
-static _Bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
+static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {

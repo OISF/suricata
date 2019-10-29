@@ -95,7 +95,7 @@ static void GetExtraMatch(const Signature *s, uint16_t *type, uint16_t *value)
 static int
 SetupEngineForPacketHeader(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         int sm_type, PrefilterPacketHeaderHashCtx *hctx,
-        _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
+        bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx))
 {
     Signature *s = NULL;
@@ -200,7 +200,7 @@ static int
 SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, int sm_type, uint32_t *counts,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
-        _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
+        bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx))
 {
     Signature *s = NULL;
@@ -254,7 +254,7 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(DetectEngineCtx *de_ctx,
  */
 static void SetupSingle(DetectEngineCtx *de_ctx, HashListTable *hash_table,
         SigGroupHead *sgh, int sm_type,
-        _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
+        bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
             Packet *p, const void *pectx))
 {
@@ -273,7 +273,7 @@ static void SetupSingle(DetectEngineCtx *de_ctx, HashListTable *hash_table,
 static void SetupU8Hash(DetectEngineCtx *de_ctx, HashListTable *hash_table,
         SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
-        _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
+        bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
             Packet *p, const void *pectx))
 {
@@ -325,10 +325,10 @@ static void SetupU8Hash(DetectEngineCtx *de_ctx, HashListTable *hash_table,
 static int PrefilterSetupPacketHeaderCommon(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
-        _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
+        bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
                       Packet *p, const void *pectx),
-        _Bool u8hash)
+        bool u8hash)
 {
     Signature *s = NULL;
     uint32_t sig = 0;
@@ -395,7 +395,7 @@ error:
 int PrefilterSetupPacketHeaderU8Hash(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
-        _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
+        bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
                       Packet *p, const void *pectx))
 {
@@ -406,7 +406,7 @@ int PrefilterSetupPacketHeaderU8Hash(DetectEngineCtx *de_ctx,
 int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
-        _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
+        bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
         Packet *p, const void *pectx))
 {

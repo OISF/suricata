@@ -62,7 +62,7 @@ static int DetectHttpHHSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectHttpHHRegisterTests(void);
 #endif
-static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror);
+static bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror);
 static int DetectHttpHostSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
@@ -165,7 +165,7 @@ static int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
                                                   ALPROTO_HTTP);
 }
 
-static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror)
+static bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror)
 {
     const SigMatch *sm = s->init_data->smlists[g_http_host_buffer_id];
     for ( ; sm != NULL; sm = sm->next) {
