@@ -53,7 +53,7 @@ Common configure options
 
     Enables Lua support for detection and output.
 
-.. option:: --enable-geopip
+.. option:: --enable-geoip
 
     Enables GeoIP support for detection.
 
