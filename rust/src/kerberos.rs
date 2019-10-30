@@ -19,15 +19,36 @@ use kerberos_parser::krb5_parser::parse_ap_req;
 use kerberos_parser::krb5::{ApReq,Realm,PrincipalName};
 use nom;
 use nom::IResult;
-use nom::error::ErrorKind;
+use nom::error::{ErrorKind, ParseError};
 use nom::number::complete::le_u16;
 use der_parser;
+use der_parser::error::BerError;
 use der_parser::der::parse_der_oid;
 
 use crate::log::*;
 
-pub const SECBLOB_NOT_SPNEGO :  u32 = 128;
-pub const SECBLOB_KRB_FMT_ERR : u32 = 129;
+#[derive(Debug)]
+pub enum SecBlobError {
+    NotSpNego,
+    KrbFmtError,
+    Ber(BerError),
+    NomError(ErrorKind),
+}
+
+impl From<BerError> for SecBlobError {
+    fn from(error: BerError) -> Self {
+        SecBlobError::Ber(error)
+    }
+}
+
+impl<I> ParseError<I> for SecBlobError {
+    fn from_error_kind(_input: I, kind: ErrorKind) -> Self {
+        SecBlobError::NomError(kind)
+    }
+    fn append(_input: I, kind: ErrorKind, _other: Self) -> Self {
+        SecBlobError::NomError(kind)
+    }
+}
 
 #[derive(Debug,PartialEq)]
 pub struct Kerberos5Ticket {
@@ -35,11 +56,11 @@ pub struct Kerberos5Ticket {
     pub sname: PrincipalName,
 }
 
-fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq>
+fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq, SecBlobError>
 {
-    let (_,b) = der_parser::parse_der(blob)?;
+    let (_,b) = der_parser::parse_der(blob).map_err(|e| nom::Err::convert(e))?;
     let blob = b.as_slice().or(
-        Err(nom::Err::Error(error_position!(blob, ErrorKind::Custom(SECBLOB_KRB_FMT_ERR))))
+        Err(nom::Err::Error(SecBlobError::KrbFmtError))
     )?;
     do_parse!(
         blob,
@@ -52,9 +73,10 @@ fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq>
             ap_req
         })
     )
+    .map_err(|e| nom::Err::convert(e))
 }
 
-pub fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket>
+pub fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError>
 {
     let (rem, req) = parse_kerberos5_request_do(blob)?;
     let t = Kerberos5Ticket {
