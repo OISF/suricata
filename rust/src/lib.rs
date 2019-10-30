@@ -40,6 +40,8 @@ pub mod log;
 #[macro_use]
 pub mod core;
 
+#[macro_use]
+pub mod common;
 pub mod conf;
 pub mod json;
 #[macro_use]
