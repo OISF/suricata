@@ -17,6 +17,8 @@
 
 extern crate nom;
 
+use nom::IResult;
+use nom::character::complete::digit1;
 use nom::digit;
 use nom::types::CompleteByteSlice;
 use std::str;
@@ -39,8 +41,9 @@ named!(getu16<u16>,
     )
 );
 
-named!(parse_digits<CompleteByteSlice, &[u8]>,
-    map!(take_while!(nom::is_digit), |b| b.0));
+fn parse_digits(input: &str) -> IResult<&str, &str> {
+    digit1(input)
+}
 
 named!(parse_u16<CompleteByteSlice, u16>,
     map_res!(map_res!(parse_digits, str::from_utf8), u16::from_str));
@@ -51,9 +54,9 @@ named!(pub ftp_active_port<CompleteByteSlice, u16>,
             tag!("PORT") >>
             ws!(digit) >> tag!(",") >> digit >> tag!(",") >>
             digit >> tag!(",") >> digit >> tag!(",") >>
-            part1: verify!(parse_u16, |v| v <= std::u8::MAX as u16) >>
+            part1: verify!(parse_u16, |&v| v <= std::u8::MAX as u16) >>
             tag!(",") >>
-            part2: verify!(parse_u16, |v| v <= std::u8::MAX as u16) >>
+            part2: verify!(parse_u16, |&v| v <= std::u8::MAX as u16) >>
             (
                 part1 * 256 + part2
             )
@@ -64,12 +67,13 @@ named!(pub ftp_active_port<CompleteByteSlice, u16>,
 named!(pub ftp_pasv_response<u16>,
        do_parse!(
             tag!("227") >>
-            take_until_and_consume!("(") >>
+            take_until!("(") >>
+            tag!("(") >>
             digit >> tag!(",") >> digit >> tag!(",") >>
             digit >> tag!(",") >> digit >> tag!(",") >>
-            part1: verify!(getu16, |v| v <= std::u8::MAX as u16) >>
+            part1: verify!(getu16, |&v| v <= std::u8::MAX as u16) >>
             tag!(",") >>
-            part2: verify!(getu16, |v| v <= std::u8::MAX as u16) >>
+            part2: verify!(getu16, |&v| v <= std::u8::MAX as u16) >>
             alt! (tag!(").") | tag!(")")) >>
             (
                 part1 * 256 + part2
@@ -119,7 +123,8 @@ pub extern "C" fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16 {
 named!(pub ftp_epsv_response<u16>,
        do_parse!(
             tag!("229") >>
-            take_until_and_consume!("|||") >>
+            take_until!("|||") >>
+            tag!("|||") >>
             port: getu16 >>
             alt! (tag!("|).") | tag!("|)")) >>
             (

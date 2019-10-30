@@ -17,13 +17,14 @@
 
 // written by Victor Julien
 
-use nom;
 use crate::log::*;
 
 use crate::nfs::nfs::*;
 use crate::nfs::types::*;
 use crate::nfs::rpc_records::*;
 use crate::nfs::nfs2_records::*;
+
+use nom::number::complete::be_u32;
 
 impl NFSState {
     /// complete request record
@@ -108,7 +109,7 @@ impl NFSState {
                 },
             }
         } else {
-            let stat = match nom::be_u32(&r.prog_data) {
+            let stat = match be_u32(&r.prog_data) {
                 Ok((_, stat)) => {
                     stat as u32
                 }

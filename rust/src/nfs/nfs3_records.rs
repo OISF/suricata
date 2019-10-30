@@ -17,7 +17,9 @@
 
 //! Nom parsers for RPC & NFSv3
 
-use nom::{IResult, be_u32, be_u64, rest};
+use nom::IResult;
+use nom::combinator::rest;
+use nom::number::complete::{be_u32, be_u64};
 use crate::nfs::nfs_records::*;
 
 #[derive(Debug,PartialEq)]

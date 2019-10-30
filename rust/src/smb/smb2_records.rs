@@ -16,7 +16,9 @@
  */
 
 use nom;
-use nom::{rest, le_u8, le_u16, le_u32, le_u64, IResult};
+use nom::IResult;
+use nom::combinator::rest;
+use nom::number::complete::{le_u8, le_u16, le_u32, le_u64};
 use crate::smb::smb::*;
 
 #[derive(Debug,PartialEq)]
@@ -75,14 +77,14 @@ named!(pub parse_smb2_request_record<Smb2Record>,
         >>  command: le_u16
         >>  _credits_requested: le_u16
         >>  flags: bits!(tuple!(
-                take_bits!(u8, 2),      // reserved / unused
-                take_bits!(u8, 1),      // replay op
-                take_bits!(u8, 1),      // dfs op
-                take_bits!(u32, 24),    // reserved / unused
-                take_bits!(u8, 1),      // signing
-                take_bits!(u8, 1),      // chained
-                take_bits!(u8, 1),      // async
-                take_bits!(u8, 1)       // response
+                take_bits!(2u8),      // reserved / unused
+                take_bits!(1u8),      // replay op
+                take_bits!(1u8),      // dfs op
+                take_bits!(24u32),    // reserved / unused
+                take_bits!(1u8),      // signing
+                take_bits!(1u8),      // chained
+                take_bits!(1u8),      // async
+                take_bits!(1u8)       // response
             ))
         >> chain_offset: le_u32
         >> message_id: le_u64
@@ -379,7 +381,7 @@ named!(pub parse_smb2_request_write<Smb2WriteRequestRecord>,
         >>  _remaining_bytes: le_u32
         >>  _write_flags: le_u32
         >>  _skip2: take!(4)
-        >>  data: apply!(parse_smb2_data, wr_len)
+        >>  data: call!(parse_smb2_data, wr_len)
         >>  (Smb2WriteRequestRecord {
                 wr_len:wr_len,
                 wr_offset:wr_offset,
@@ -439,7 +441,7 @@ named!(pub parse_smb2_response_read<Smb2ReadResponseRecord>,
         >>  rd_len: le_u32
         >>  _rd_rem: le_u32
         >>  _padding: take!(4)
-        >>  data: apply!(parse_smb2_data, rd_len)
+        >>  data: call!(parse_smb2_data, rd_len)
         >>  (Smb2ReadResponseRecord {
                 len : rd_len,
                 data : data,
@@ -506,14 +508,14 @@ named!(pub parse_smb2_response_record<Smb2Record>,
         >>  command: le_u16
         >>  _credit_granted: le_u16
         >>  flags: bits!(tuple!(
-                take_bits!(u8, 2),      // reserved / unused
-                take_bits!(u8, 1),      // replay op
-                take_bits!(u8, 1),      // dfs op
-                take_bits!(u32, 24),    // reserved / unused
-                take_bits!(u8, 1),      // signing
-                take_bits!(u8, 1),      // chained
-                take_bits!(u8, 1),      // async
-                take_bits!(u8, 1)       // response
+                take_bits!(2u8),      // reserved / unused
+                take_bits!(1u8),      // replay op
+                take_bits!(1u8),      // dfs op
+                take_bits!(24u32),    // reserved / unused
+                take_bits!(1u8),      // signing
+                take_bits!(1u8),      // chained
+                take_bits!(1u8),      // async
+                take_bits!(1u8)       // response
             ))
         >> chain_offset: le_u32
         >> message_id: le_u64

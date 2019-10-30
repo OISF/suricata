@@ -18,9 +18,11 @@
 use kerberos_parser::krb5_parser::parse_ap_req;
 use kerberos_parser::krb5::{ApReq,Realm,PrincipalName};
 use nom;
-use nom::{ErrorKind, IResult, le_u16};
+use nom::IResult;
+use nom::error::ErrorKind;
+use nom::number::complete::le_u16;
 use der_parser;
-use der_parser::parse_der_oid;
+use der_parser::der::parse_der_oid;
 
 use crate::log::*;
 

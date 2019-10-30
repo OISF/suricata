@@ -16,7 +16,9 @@
  */
 
 use crate::log::*;
-use nom::{rest, le_u8, le_u16, le_u32, le_u64, IResult};
+use nom::IResult;
+use nom::combinator::rest;
+use nom::number::complete::{le_u8, le_u16, le_u32, le_u64};
 use crate::smb::smb::*;
 use crate::smb::smb_records::*;
 
@@ -202,7 +204,7 @@ pub fn parse_smb_connect_tree_andx_record<'a>(i: &'a[u8], r: &SmbRecord) -> IRes
        >> pwlen: le_u16
        >> _bcc: le_u16
        >> _pw: take!(pwlen)
-       >> path: apply!(smb1_get_string, r, 11 + pwlen as usize)
+       >> path: call!(smb1_get_string, r, 11 + pwlen as usize)
        >> service: take_until_and_consume!("\x00")
        >> (SmbRecordTreeConnectAndX {
                 path,
@@ -522,7 +524,7 @@ named!(pub parse_smb_rename_request_record<SmbRequestRenameRecord>,
         >>  _oldtype: le_u8
         >>  oldname: smb_get_unicode_string
         >>  _newtype: le_u8
-        >>  newname: apply!(smb_get_unicode_string_with_offset, 1) // HACK if we assume oldname is a series of utf16 chars offset would be 1
+        >>  newname: call!(smb_get_unicode_string_with_offset, 1) // HACK if we assume oldname is a series of utf16 chars offset would be 1
         >> (SmbRequestRenameRecord {
                 oldname,
                 newname
@@ -547,7 +549,7 @@ pub fn parse_smb_create_andx_request_record<'a>(i: &'a[u8], r: &SmbRecord)
        >> create_options: le_u32
        >> _skip2: take!(5)
        >> bcc: le_u16
-       >> file_name: cond!(bcc >= file_name_len, apply!(smb1_get_string, r, (bcc - file_name_len) as usize))
+       >> file_name: cond!(bcc >= file_name_len, call!(smb1_get_string, r, (bcc - file_name_len) as usize))
        >> _skip3: rest
        >> (SmbRequestCreateAndXRecord {
                 disposition: disposition,

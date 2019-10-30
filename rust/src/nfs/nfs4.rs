@@ -18,7 +18,7 @@
 // written by Victor Julien
 
 use nom;
-use nom::be_u32;
+use nom::number::complete::be_u32;
 
 use crate::core::*;
 use crate::log::*;

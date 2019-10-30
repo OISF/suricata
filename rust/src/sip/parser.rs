@@ -18,7 +18,9 @@
 // written by Giuseppe Longo <giuseppe@glono.it>
 
 use nom::*;
-use nom::{crlf, IResult};
+use nom::IResult;
+use nom::character::{is_alphabetic, is_alphanumeric, is_space};
+use nom::character::complete::crlf;
 use std;
 use std::collections::HashMap;
 

@@ -16,7 +16,8 @@
  */
 
 //! Nom parsers for NFSv2 records
-use nom::{be_u32, rest};
+use nom::combinator::rest;
+use nom::number::complete::be_u32;
 use crate::nfs::nfs_records::*;
 
 #[derive(Debug,PartialEq)]
