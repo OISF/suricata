@@ -88,11 +88,12 @@ bool StringCompare(void *a, void *b)
 uint32_t StringHash(void *s)
 {
     uint32_t hash = 5381;
-    int c;
-    uint8_t *sptr = ((StringType *)s)->ptr;
+    StringType *str = s;
 
-    while ((c = *sptr++))
+    for (uint32_t i = 0; i < str->len; i++) {
+        int c = str->ptr[i];
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+    }
 
     return hash;
 }
