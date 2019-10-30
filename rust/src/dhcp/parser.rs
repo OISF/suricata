@@ -18,7 +18,9 @@
 use std::cmp::min;
 
 use crate::dhcp::dhcp::*;
-use nom::*;
+use nom::IResult;
+use nom::combinator::rest;
+use nom::number::complete::{be_u8, be_u16, be_u32};
 
 pub struct DHCPMessage {
     pub header: DHCPHeader,
@@ -121,7 +123,7 @@ named!(pub parse_header<DHCPHeader>,
 named!(pub parse_clientid_option<DHCPOption>,
        do_parse!(
            code:   be_u8 >>
-           len: verify!(be_u8, |v| v > 1) >>
+           len: verify!(be_u8, |&v| v > 1) >>
            _htype: be_u8 >>
            data:   take!(len - 1) >>
                (

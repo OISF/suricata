@@ -17,7 +17,9 @@
 
 //! Nom parsers for DNS.
 
-use nom::{IResult, be_u8, be_u16, be_u32};
+use nom::IResult;
+use nom::error::ErrorKind;
+use nom::number::complete::{be_u8, be_u16, be_u32};
 use nom;
 use crate::dns::dns::*;
 
@@ -67,7 +69,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
             pos = &pos[1..];
             break;
         } else if len & 0b1100_0000 == 0 {
-            match length_bytes!(pos, be_u8) {
+            match length_data!(pos, be_u8) {
                 Ok((rem, label)) => {
                     if name.len() > 0 {
                         name.push('.' as u8);
@@ -77,7 +79,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
                 }
                 _ => {
                     return Err(nom::Err::Error(
-                        error_position!(pos, nom::ErrorKind::OctDigit)));
+                        error_position!(pos, ErrorKind::OctDigit)));
                 }
             }
         } else if len & 0b1100_0000 == 0b1100_0000 {
@@ -86,7 +88,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
                     let offset = leader & 0x3fff;
                     if offset as usize > message.len() {
                         return Err(nom::Err::Error(
-                            error_position!(pos, nom::ErrorKind::OctDigit)));
+                            error_position!(pos, ErrorKind::OctDigit)));
                     }
                     pos = &message[offset as usize..];
                     if pivot == start {
@@ -95,19 +97,19 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
                 }
                 _ => {
                     return Err(nom::Err::Error(
-                        error_position!(pos, nom::ErrorKind::OctDigit)));
+                        error_position!(pos, ErrorKind::OctDigit)));
                 }
             }
         } else {
             return Err(nom::Err::Error(
-                error_position!(pos, nom::ErrorKind::OctDigit)));
+                error_position!(pos, ErrorKind::OctDigit)));
         }
 
         // Return error if we've looped a certain number of times.
         count += 1;
         if count > 255 {
             return Err(nom::Err::Error(
-                error_position!(pos, nom::ErrorKind::OctDigit)));
+                error_position!(pos, ErrorKind::OctDigit)));
         }
 
     }

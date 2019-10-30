@@ -17,7 +17,8 @@
 
 //! Nom parsers for RPCv2
 
-use nom::{be_u32, rest};
+use nom::combinator::rest;
+use nom::number::complete::be_u32;
 
 #[derive(Debug,PartialEq)]
 pub enum RpcRequestCreds<'a> {
@@ -122,8 +123,8 @@ pub struct RpcPacketHeader<> {
 named!(pub parse_rpc_packet_header<RpcPacketHeader>,
     do_parse!(
         fraghdr: bits!(tuple!(
-                take_bits!(u8, 1),       // is_last
-                take_bits!(u32, 31)))    // len
+                take_bits!(1u8),       // is_last
+                take_bits!(31u32)))    // len
 
         >> xid: be_u32
         >> msgtype: be_u32

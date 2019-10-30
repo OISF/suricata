@@ -17,7 +17,6 @@
 
 // written by Victor Julien
 
-use nom;
 use crate::log::*;
 use crate::core::*;
 
@@ -25,6 +24,8 @@ use crate::nfs::nfs::*;
 use crate::nfs::types::*;
 use crate::nfs::rpc_records::*;
 use crate::nfs::nfs3_records::*;
+
+use nom::number::complete::be_u32;
 
 impl NFSState {
     /// complete NFS3 request record
@@ -326,7 +327,7 @@ impl NFSState {
         }
         // for all other record types only parse the status
         else {
-            let stat = match nom::be_u32(&r.prog_data) {
+            let stat = match be_u32(&r.prog_data) {
                 Ok((_, stat)) => {
                     stat as u32
                 }

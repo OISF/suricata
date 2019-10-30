@@ -25,6 +25,8 @@ use crate::applayer::LoggerFlags;
 use crate::core;
 use crate::dns::parser;
 
+use nom::number::complete::be_u16;
+
 /// DNS record types.
 pub const DNS_RECORD_TYPE_A           : u16 = 1;
 pub const DNS_RECORD_TYPE_NS          : u16 = 2;
@@ -443,7 +445,7 @@ impl DNSState {
 
         let mut count = 0;
         while self.request_buffer.len() > 0 {
-            let size = match nom::be_u16(&self.request_buffer) {
+            let size = match be_u16(&self.request_buffer) {
                 Ok((_, len)) => len,
                 _ => 0
             } as usize;
@@ -484,7 +486,7 @@ impl DNSState {
 
         let mut count = 0;
         while self.response_buffer.len() > 0 {
-            let size = match nom::be_u16(&self.response_buffer) {
+            let size = match be_u16(&self.response_buffer) {
                 Ok((_, len)) => len,
                 _ => 0
             } as usize;
@@ -533,7 +535,7 @@ fn probe(input: &[u8]) -> (bool, bool) {
 
 /// Probe TCP input to see if it looks like DNS.
 pub fn probe_tcp(input: &[u8]) -> (bool, bool) {
-    match nom::be_u16(input) {
+    match be_u16(input) {
         Ok((rem, _)) => {
             return probe(rem);
         },

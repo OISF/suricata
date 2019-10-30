@@ -28,10 +28,12 @@ use std::mem::transmute;
 
 use crate::log::*;
 
-use der_parser::{DerObjectContent,parse_der_sequence};
+use der_parser::ber::BerObjectContent;
+use der_parser::der::parse_der_sequence;
 use der_parser::oid::Oid;
 use nom;
-use nom::{ErrorKind,IResult};
+use nom::IResult;
+use nom::error::ErrorKind;
 
 #[repr(u32)]
 pub enum SNMPEvent {
@@ -537,7 +539,7 @@ fn parse_pdu_enveloppe_version(i:&[u8]) -> IResult<&[u8],u32> {
     match parse_der_sequence(i) {
         Ok((_,x))     => {
             match x.content {
-                DerObjectContent::Sequence(ref v) => {
+                BerObjectContent::Sequence(ref v) => {
                     if v.len() == 3 {
                         match v[0].as_u32()  {
                             Ok(0) => { return Ok((i,1)); }, // possibly SNMPv1

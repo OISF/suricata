@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use nom::{rest};
+use nom::combinator::rest;
 
 pub const NBSS_MSGTYPE_SESSION_MESSAGE:         u8 = 0x00;
 pub const NBSS_MSGTYPE_SESSION_REQUEST:         u8 = 0x81;
@@ -62,8 +62,8 @@ impl<'a> NbssRecord<'a> {
 named!(pub parse_nbss_record<NbssRecord>,
    do_parse!(
        type_and_len: bits!(tuple!(
-               take_bits!(u8, 8),
-               take_bits!(u32, 24)))
+               take_bits!(8u8),
+               take_bits!(24u32)))
        >> data: take!(type_and_len.1 as usize)
        >> (NbssRecord {
             message_type:type_and_len.0,
@@ -75,8 +75,8 @@ named!(pub parse_nbss_record<NbssRecord>,
 named!(pub parse_nbss_record_partial<NbssRecord>,
    do_parse!(
        type_and_len: bits!(tuple!(
-               take_bits!(u8, 8),
-               take_bits!(u32, 24)))
+               take_bits!(8u8),
+               take_bits!(24u32)))
        >> data: rest
        >> (NbssRecord {
             message_type:type_and_len.0,
