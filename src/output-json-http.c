@@ -643,6 +643,10 @@ static OutputInitResult OutputHttpLogInit(ConfNode *conf)
                 http_ctx->flags |= LOG_HTTP_REQ_HEADERS;
             } else if (strcmp(all_headers, "response") == 0) {
                 http_ctx->flags |= LOG_HTTP_RES_HEADERS;
+            } else if (strcmp(all_headers, "none") != 0) {
+                SCLogWarning(SC_WARN_ANOMALY_CONFIG,
+                             "unhandled value for dump-all-headers configuration : %s",
+                             all_headers);
             }
         }
     }
