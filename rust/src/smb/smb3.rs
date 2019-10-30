@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use nom::{le_u16, le_u32, le_u64};
+use nom::number::complete::{le_u16, le_u32, le_u64};
 
 #[derive(Debug,PartialEq)]
 pub struct Smb3TransformRecord<'a> {

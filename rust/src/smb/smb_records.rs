@@ -16,7 +16,8 @@
  */
 
 use nom;
-use nom::{ErrorKind, IResult};
+use nom::IResult;
+use nom::error::ErrorKind;
 use crate::log::*;
 
 /// parse a UTF16 string that is null terminated. Normally by 2 null

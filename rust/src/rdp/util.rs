@@ -20,7 +20,8 @@
 use byteorder::ReadBytesExt;
 use memchr::memchr;
 use nom;
-use nom::{ErrorKind, IResult, Needed};
+use nom::{IResult, Needed};
+use nom::error::ErrorKind;
 use crate::rdp::error::RDP_UNIMPLEMENTED_LENGTH_DETERMINANT;
 use std::io::Cursor;
 use widestring::U16CString;

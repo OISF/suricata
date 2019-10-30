@@ -26,7 +26,9 @@
 //! * x.224-spec: <https://www.itu.int/rec/T-REC-X.224-199511-I/en>
 //! * x.691-spec: <https://www.itu.int/rec/T-REC-X.691/en>
 
-use nom::{be_u16, be_u8, le_u16, le_u32, le_u8, ErrorKind, IResult};
+use nom::IResult;
+use nom::error::ErrorKind;
+use nom::number::complete::{be_u16, be_u8, le_u16, le_u32, le_u8};
 use crate::rdp::error::RDP_NOT_X224_CLASS_0_ERROR;
 use crate::rdp::util::{
     le_slice_to_string, parse_per_length_determinant, utf7_slice_to_string,
@@ -433,7 +435,7 @@ pub struct McsConnectResponse {}
 /// t.123-spec, section 8
 pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt> {
     let (i1, _version) =
-        verify!(input, be_u8, |x| x == TpktVersion::T123 as u8)?;
+        verify!(input, be_u8, |&x| x == TpktVersion::T123 as u8)?;
     let (i2, _reserved) = try_parse!(i1, be_u8);
     // less u8, u8, u16
     let (i3, sz) = map_opt!(i2, be_u16, |x: u16| x.checked_sub(4))?;
@@ -482,22 +484,22 @@ pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt> {
 fn parse_x224_connection_request(
     input: &[u8],
 ) -> IResult<&[u8], X224ConnectionRequest> {
-    let (i1, length) = verify!(input, be_u8, |x| x != 0xff)?; // 0xff is reserved
+    let (i1, length) = verify!(input, be_u8, |&x| x != 0xff)?; // 0xff is reserved
     let (i2, cr_cdt) = bits!(
         i1,
         tuple!(
-            verify!(take_bits!(u8, 4), |x| x
+            verify!(take_bits!(4u8), |&x| x
                 == X224Type::ConnectionRequest as u8),
-            verify!(take_bits!(u8, 4), |x| x == 0 || x == 1)
+            verify!(take_bits!(4u8), |&x| x == 0 || x == 1)
         )
     )?;
-    let (i3, dst_ref) = verify!(i2, be_u16, |x| x == 0)?;
+    let (i3, dst_ref) = verify!(i2, be_u16, |&x| x == 0)?;
     let (i4, src_ref) = try_parse!(i3, be_u16);
     let (i5, class_options) = bits!(
         i4,
         tuple!(
-            verify!(take_bits!(u8, 4), |x| x <= 4),
-            verify!(take_bits!(u8, 4), |x| x <= 3)
+            verify!(take_bits!(4u8), |&x| x <= 4),
+            verify!(take_bits!(4u8), |&x| x <= 3)
         )
     )?;
     // less cr_cdt (u8), dst_ref (u16), src_ref (u16), class_options (u8)
@@ -592,14 +594,14 @@ fn parse_negotiation_request(
         input,
         _typ: verify!(
             le_u8,
-            |x| x == X224ConnectionRequestType::NegotiationRequest as u8)
+            |&x| x == X224ConnectionRequestType::NegotiationRequest as u8)
         >> flags: map_opt!(
             le_u8,
             NegotiationRequestFlags::from_bits)
         // u8, u8, u16, and u32 give _length of 8
         >> _length: verify!(
             le_u16,
-            |x| x == 8)
+            |&x| x == 8)
         >> protocols: map_opt!(
             le_u32,
             ProtocolFlags::from_bits)
@@ -612,22 +614,22 @@ fn parse_negotiation_request(
 fn parse_x224_connection_confirm(
     input: &[u8],
 ) -> IResult<&[u8], X224ConnectionConfirm> {
-    let (i1, length) = verify!(input, be_u8, |x| x != 0xff)?; // 0xff is reserved
+    let (i1, length) = verify!(input, be_u8, |&x| x != 0xff)?; // 0xff is reserved
     let (i2, cr_cdt) = bits!(
         i1,
         tuple!(
-            verify!(take_bits!(u8, 4), |x| x
+            verify!(take_bits!(4u8), |&x| x
                 == X224Type::ConnectionConfirm as u8),
-            verify!(take_bits!(u8, 4), |x| x == 0 || x == 1)
+            verify!(take_bits!(4u8), |&x| x == 0 || x == 1)
         )
     )?;
-    let (i3, dst_ref) = verify!(i2, be_u16, |x| x == 0)?;
+    let (i3, dst_ref) = verify!(i2, be_u16, |&x| x == 0)?;
     let (i4, src_ref) = try_parse!(i3, be_u16);
     let (i5, class_options) = bits!(
         i4,
         tuple!(
-            verify!(take_bits!(u8, 4), |x| x <= 4),
-            verify!(take_bits!(u8, 4), |x| x <= 3)
+            verify!(take_bits!(4u8), |&x| x <= 4),
+            verify!(take_bits!(4u8), |&x| x <= 3)
         )
     )?;
 
@@ -702,14 +704,14 @@ fn parse_negotiation_response(
         input,
         _typ: verify!(
             le_u8,
-            |x| x == X224ConnectionRequestType::NegotiationResponse as u8)
+            |&x| x == X224ConnectionRequestType::NegotiationResponse as u8)
         >> flags: map_opt!(
             le_u8,
             NegotiationResponseFlags::from_bits)
         // u8, u8, u16, and u32 give _length of 8
         >> _length: verify!(
             le_u16,
-            |x| x == 8)
+            |&x| x == 8)
         >> protocol: map_opt!(
             le_u32,
             num::FromPrimitive::from_u32)
@@ -725,12 +727,12 @@ fn parse_negotiation_failure(
         input,
         _typ: verify!(
             le_u8,
-            |x| x == X224ConnectionRequestType::NegotiationFailure as u8)
+            |&x| x == X224ConnectionRequestType::NegotiationFailure as u8)
         >> _flags: le_u8
         // u8, u8, u16, and u32 give _length of 8
         >> _length: verify!(
             le_u16,
-            |x| x == 8)
+            |&x| x == 8)
         >> code: map_opt!(
             le_u32,
             num::FromPrimitive::from_u32)
@@ -740,16 +742,16 @@ fn parse_negotiation_failure(
 
 /// x224-spec, section 13.7
 fn parse_x223_data_class_0(input: &[u8]) -> IResult<&[u8], X223Data> {
-    let (i1, _length) = verify!(input, be_u8, |x| x == 2)?;
+    let (i1, _length) = verify!(input, be_u8, |&x| x == 2)?;
     let (i2, _dt_x_roa) = bits!(
         i1,
         tuple!(
-            verify!(take_bits!(u8, 4), |x| x == 0xf),
-            verify!(take_bits!(u8, 3), |x| x == 0),
-            verify!(take_bits!(u8, 1), |x| x == 0)
+            verify!(take_bits!(4u8), |&x| x == 0xf),
+            verify!(take_bits!(3u8), |&x| x == 0),
+            verify!(take_bits!(1u8), |&x| x == 0)
         )
     )?;
-    let (i3, _eot) = verify!(i2, be_u8, |x| x == 0x80)?;
+    let (i3, _eot) = verify!(i2, be_u8, |&x| x == 0x80)?;
 
     //
     // optionally find exactly one of the child messages
@@ -788,9 +790,9 @@ fn parse_mcs_connect(input: &[u8]) -> IResult<&[u8], McsConnectRequest> {
         input,
         le_u8,
         // BER: 0b01=application, 0b1=non-primitive, 0b11111
-        |x| x == 0x7f
+        |&x| x == 0x7f
     )?;
-    let (i2, _t125_type) = verify!(i1, le_u8, |x| x
+    let (i2, _t125_type) = verify!(i1, le_u8, |&x| x
         == T125Type::T125TypeMcsConnectRequest as u8)?;
 
     // skip to, and consume, H.221 client-to-server key
@@ -863,7 +865,7 @@ fn parse_mcs_connect(input: &[u8]) -> IResult<&[u8], McsConnectRequest> {
 
 /// rdp-spec, section 2.2.1.3.2
 fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
-    let (i1, _typ) = verify!(input, le_u16, |x| x == CsType::Core as u16)?;
+    let (i1, _typ) = verify!(input, le_u16, |&x| x == CsType::Core as u16)?;
     // less u16, u16
     let (i2, sz) = map_opt!(i1, le_u16, |x: u16| x.checked_sub(4))?;
     let (i3, data) = take!(i2, sz)?;
@@ -1049,7 +1051,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
 
 /// rdp-spec, section 2.2.1.3.4
 fn parse_cs_net(input: &[u8]) -> IResult<&[u8], CsNet> {
-    let (i1, _typ) = verify!(input, le_u16, |x| x == CsType::Net as u16)?;
+    let (i1, _typ) = verify!(input, le_u16, |&x| x == CsType::Net as u16)?;
     // less _typ (u16), this length indicator (u16), count (u32)
     let (i2, sz) = map_opt!(i1, le_u16, |x: u16| x.checked_sub(8))?;
     let (i3, count) = try_parse!(i2, le_u32);
@@ -1101,10 +1103,10 @@ fn parse_mcs_connect_response(
         _ber_type: verify!(
             le_u8,
             // BER: 0b01=application, 0b1=non-primitive, 0b11111
-            |x| x == 0x7f)
+            |&x| x == 0x7f)
         >> _t125_type: verify!(
             le_u8,
-            |x| x == T125Type::T125TypeMcsConnectResponse as u8)
+            |&x| x == T125Type::T125TypeMcsConnectResponse as u8)
         >> (McsConnectResponse {})
     }
 }
