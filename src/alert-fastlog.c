@@ -150,12 +150,21 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
             } else {
                 snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
             }
+            char srcPortOrIcmp[17] = "";
+            char dstPortOrIcmp[17] = "";
+            if (IP_GET_IPPROTO(p) == IPPROTO_ICMP) {
+                snprintf(srcPortOrIcmp, sizeof(srcPortOrIcmp), "type=%03" PRIu8 "code=%03" PRIu8, p->icmp_s.type, p->icmp_s.code);
+                snprintf(dstPortOrIcmp, sizeof(dstPortOrIcmp), "type=%03" PRIu8 "code=%03" PRIu8, p->icmp_d.type, p->icmp_d.code);
+            } else {
+                snprintf(srcPortOrIcmp, sizeof(srcPortOrIcmp), "%"PRIu32, p->sp);
+                snprintf(dstPortOrIcmp, sizeof(dstPortOrIcmp), "%"PRIu32, p->dp);
+            }
             PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
                             "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                             PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
-                            " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf, action,
+                            " {%s} %s:%s -> %s:%s\n", timebuf, action,
                             pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
-                            proto, srcip, p->sp, dstip, p->dp);
+                            proto, srcip, srcPortOrIcmp, dstip, dstPortOrIcmp);
         } else {
             PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
                             "%s  %s[**] [%" PRIu32 ":%" PRIu32
