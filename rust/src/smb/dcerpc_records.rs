@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
+use crate::smb::error::SmbError;
 use nom;
 use nom::IResult;
-use nom::error::ErrorKind;
 use nom::combinator::rest;
 use nom::number::Endianness;
 use nom::number::complete::{be_u16, le_u8, le_u16, le_u32};
@@ -30,10 +30,10 @@ pub struct DceRpcResponseRecord<'a> {
 /// parse a packet type 'response' DCERPC record. Implemented
 /// as function to be able to pass the fraglen in.
 pub fn parse_dcerpc_response_record(i:&[u8], frag_len: u16 )
-    -> IResult<&[u8], DceRpcResponseRecord>
+    -> IResult<&[u8], DceRpcResponseRecord, SmbError>
 {
     if frag_len < 24 {
-        return Err(nom::Err::Error(error_position!(i,ErrorKind::Custom(128))));
+        return Err(nom::Err::Error(SmbError::RecordTooSmall));
     }
     do_parse!(i,
                 take!(8)
@@ -53,10 +53,10 @@ pub struct DceRpcRequestRecord<'a> {
 /// parse a packet type 'request' DCERPC record. Implemented
 /// as function to be able to pass the fraglen in.
 pub fn parse_dcerpc_request_record(i:&[u8], frag_len: u16, little: bool)
-    -> IResult<&[u8], DceRpcRequestRecord>
+    -> IResult<&[u8], DceRpcRequestRecord, SmbError>
 {
     if frag_len < 24 {
-        return Err(nom::Err::Error(error_position!(i,ErrorKind::Custom(128))));
+        return Err(nom::Err::Error(SmbError::RecordTooSmall));
     }
     do_parse!(i,
                 take!(6)
