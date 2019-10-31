@@ -16,7 +16,7 @@ frequency. It has 3 modes: threshold, limit and both.
 
 Syntax::
 
-  threshold: type <threshold|limit|both>, track <by_src|by_dst>, count <N>, seconds <T>
+  threshold: type <threshold|limit|both>, track <by_src|by_dst|by_rule|by_both>, count <N>, seconds <T>
 
 type "threshold"
 ~~~~~~~~~~~~~~~~
@@ -97,7 +97,7 @@ again.
 
 Syntax::
 
-  detection_filter: track <by_src|by_dst>, count <N>, seconds <T>
+  detection_filter: track <by_src|by_dst|by_rule|by_both>, count <N>, seconds <T>
 
 Example::
 
