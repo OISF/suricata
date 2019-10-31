@@ -206,19 +206,29 @@ pub struct DceRpcRecord<'a> {
     pub data: &'a[u8],
 }
 
+fn parse_dcerpc_flags1(i:&[u8]) -> IResult<&[u8],(u8,u8,u8)> {
+    bits!(i,
+        tuple!(
+            take_bits!(6u8),
+            take_bits!(1u8),   // last (1)
+            take_bits!(1u8)))  // first (2)
+}
+
+fn parse_dcerpc_flags2(i:&[u8]) -> IResult<&[u8],(u32,u32,u32)> {
+    bits!(i,
+        tuple!(
+            take_bits!(3u32),
+            take_bits!(1u32),     // endianess
+            take_bits!(28u32)))
+}
+
 named!(pub parse_dcerpc_record<DceRpcRecord>,
     do_parse!(
             version_major: le_u8
         >>  version_minor: le_u8
         >>  packet_type: le_u8
-        >>  packet_flags: bits!(tuple!(
-               take_bits!(6u8),
-               take_bits!(1u8),   // last (1)
-               take_bits!(1u8)))  // first (2)
-        >>  data_rep: bits!(tuple!(
-                take_bits!(3u32),
-                take_bits!(1u32),     // endianess
-                take_bits!(28u32)))
+        >>  packet_flags: parse_dcerpc_flags1
+        >>  data_rep: parse_dcerpc_flags2
         >>  endian: value!(if data_rep.1 == 0 { Endianness::Big } else { Endianness::Little })
         >>  frag_len: u16!(endian)
         >>  _auth: u16!(endian)

@@ -25,6 +25,7 @@ use crate::nfs::types::*;
 use crate::nfs::rpc_records::*;
 use crate::nfs::nfs3_records::*;
 
+use nom::IResult;
 use nom::number::complete::be_u32;
 
 impl NFSState {
@@ -327,7 +328,7 @@ impl NFSState {
         }
         // for all other record types only parse the status
         else {
-            let stat = match be_u32(&r.prog_data) {
+            let stat = match be_u32(&r.prog_data) as IResult<&[u8],_> {
                 Ok((_, stat)) => {
                     stat as u32
                 }
