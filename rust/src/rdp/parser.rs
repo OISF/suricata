@@ -27,9 +27,9 @@
 //! * x.691-spec: <https://www.itu.int/rec/T-REC-X.691/en>
 
 use nom::IResult;
-use nom::error::ErrorKind;
+use nom::error::{make_error, ErrorKind};
 use nom::number::complete::{be_u16, be_u8, le_u16, le_u32, le_u8};
-use crate::rdp::error::RDP_NOT_X224_CLASS_0_ERROR;
+use crate::rdp::error::RdpError;
 use crate::rdp::util::{
     le_slice_to_string, parse_per_length_determinant, utf7_slice_to_string,
 };
@@ -433,7 +433,7 @@ pub struct McsConnectResponse {}
 
 /// parser for t.123 and children
 /// t.123-spec, section 8
-pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt> {
+pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt, RdpError> {
     let (i1, _version) =
         verify!(input, be_u8, |&x| x == TpktVersion::T123 as u8)?;
     let (i2, _reserved) = try_parse!(i1, be_u8);
@@ -483,7 +483,7 @@ pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt> {
 /// rdp-spec, section 2.2.1.1
 fn parse_x224_connection_request(
     input: &[u8],
-) -> IResult<&[u8], X224ConnectionRequest> {
+) -> IResult<&[u8], X224ConnectionRequest, RdpError> {
     let (i1, length) = verify!(input, be_u8, |&x| x != 0xff)?; // 0xff is reserved
     let (i2, cr_cdt) = bits!(
         i1,
@@ -503,7 +503,11 @@ fn parse_x224_connection_request(
         )
     )?;
     // less cr_cdt (u8), dst_ref (u16), src_ref (u16), class_options (u8)
-    let (i6, sz) = expr_opt!(i5, length.checked_sub(6))?;
+    if length < 6 {
+        return make_error(i5, ErrorKind::Verify)?;
+    }
+    let i6 = i5;
+    let sz = length - 6;
 
     //
     // optionally find cookie and/or negotiation request
@@ -558,20 +562,17 @@ fn parse_x224_connection_request(
 /// "An X.224 Class 0 Connection Request TPDU, as specified in [X224] section 13.3."
 fn parse_x224_connection_request_class_0(
     input: &[u8],
-) -> IResult<&[u8], X224ConnectionRequest> {
+) -> IResult<&[u8], X224ConnectionRequest, RdpError> {
     let (i1, x224) = try_parse!(input, parse_x224_connection_request);
     if x224.class == 0 && x224.options == 0 {
         Ok((i1, x224))
     } else {
-        Err(nom::Err::Error(error_position!(
-            input,
-            ErrorKind::Custom(RDP_NOT_X224_CLASS_0_ERROR)
-        )))
+        Err(nom::Err::Error(RdpError::NotX224Class0Error))
     }
 }
 
 // rdp-spec, section 2.2.1.1.1
-fn parse_rdp_cookie(input: &[u8]) -> IResult<&[u8], RdpCookie> {
+fn parse_rdp_cookie(input: &[u8]) -> IResult<&[u8], RdpCookie, RdpError> {
     do_parse! {
         input,
         _key: verify!(
@@ -589,7 +590,7 @@ fn parse_rdp_cookie(input: &[u8]) -> IResult<&[u8], RdpCookie> {
 // rdp-spec, section 2.2.1.1.1
 fn parse_negotiation_request(
     input: &[u8],
-) -> IResult<&[u8], NegotiationRequest> {
+) -> IResult<&[u8], NegotiationRequest, RdpError> {
     do_parse! {
         input,
         _typ: verify!(
@@ -613,7 +614,7 @@ fn parse_negotiation_request(
 /// x.224-spec, section 13.3
 fn parse_x224_connection_confirm(
     input: &[u8],
-) -> IResult<&[u8], X224ConnectionConfirm> {
+) -> IResult<&[u8], X224ConnectionConfirm, RdpError> {
     let (i1, length) = verify!(input, be_u8, |&x| x != 0xff)?; // 0xff is reserved
     let (i2, cr_cdt) = bits!(
         i1,
@@ -634,7 +635,11 @@ fn parse_x224_connection_confirm(
     )?;
 
     // less cr_cdt (u8), dst_ref (u16), src_ref (u16), class_options (u8)
-    let (i6, sz) = expr_opt!(i5, length.checked_sub(6))?;
+    if length < 6 {
+        return make_error(i5, ErrorKind::Verify)?;
+    }
+    let i6 = i5;
+    let sz = length - 6;
 
     // a negotiation message from the server might be absent (sz == 0)
     let (i7, negotiation_from_server) = {
@@ -683,23 +688,20 @@ fn parse_x224_connection_confirm(
 /// "An X.224 Class 0 Connection Confirm TPDU, as specified in [X224] section 13.4."
 fn parse_x224_connection_confirm_class_0(
     input: &[u8],
-) -> IResult<&[u8], X224ConnectionConfirm> {
+) -> IResult<&[u8], X224ConnectionConfirm, RdpError> {
     let (i1, x224) = try_parse!(input, parse_x224_connection_confirm);
     if x224.class == 0 && x224.options == 0 {
         Ok((i1, x224))
     } else {
         // x.224, but not a class 0 x.224 message
-        Err(nom::Err::Error(error_position!(
-            input,
-            ErrorKind::Custom(RDP_NOT_X224_CLASS_0_ERROR)
-        )))
+        Err(nom::Err::Error(RdpError::NotX224Class0Error))
     }
 }
 
 // rdp-spec, section 2.2.1.1.1
 fn parse_negotiation_response(
     input: &[u8],
-) -> IResult<&[u8], NegotiationResponse> {
+) -> IResult<&[u8], NegotiationResponse, RdpError> {
     do_parse! {
         input,
         _typ: verify!(
@@ -722,7 +724,7 @@ fn parse_negotiation_response(
 // rdp-spec, section 2.2.1.1.1
 fn parse_negotiation_failure(
     input: &[u8],
-) -> IResult<&[u8], NegotiationFailure> {
+) -> IResult<&[u8], NegotiationFailure, RdpError> {
     do_parse! {
         input,
         _typ: verify!(
@@ -741,7 +743,7 @@ fn parse_negotiation_failure(
 }
 
 /// x224-spec, section 13.7
-fn parse_x223_data_class_0(input: &[u8]) -> IResult<&[u8], X223Data> {
+fn parse_x223_data_class_0(input: &[u8]) -> IResult<&[u8], X223Data, RdpError> {
     let (i1, _length) = verify!(input, be_u8, |&x| x == 2)?;
     let (i2, _dt_x_roa) = bits!(
         i1,
@@ -785,7 +787,7 @@ fn parse_x223_data_class_0(input: &[u8]) -> IResult<&[u8], X223Data> {
 }
 
 /// rdp-spec, section 2.2.1.3.2
-fn parse_mcs_connect(input: &[u8]) -> IResult<&[u8], McsConnectRequest> {
+fn parse_mcs_connect(input: &[u8]) -> IResult<&[u8], McsConnectRequest, RdpError> {
     let (i1, _ber_type) = verify!(
         input,
         le_u8,
@@ -1097,7 +1099,7 @@ fn parse_cs_unknown(input: &[u8]) -> IResult<&[u8], CsUnknown> {
 // rdp-spec, section 2.2.1.4
 fn parse_mcs_connect_response(
     input: &[u8],
-) -> IResult<&[u8], McsConnectResponse> {
+) -> IResult<&[u8], McsConnectResponse, RdpError> {
     do_parse! {
         input,
         _ber_type: verify!(
