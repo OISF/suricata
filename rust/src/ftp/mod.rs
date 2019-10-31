@@ -17,10 +17,7 @@
 
 extern crate nom;
 
-use nom::IResult;
-use nom::character::complete::digit1;
-use nom::digit;
-use nom::types::CompleteByteSlice;
+use nom::character::complete::{digit1, multispace0};
 use std::str;
 use std;
 use std::str::FromStr;
@@ -34,26 +31,23 @@ use crate::log::*;
 named!(getu16<u16>,
     map_res!(
       map_res!(
-        ws!(digit),
+        sep!(digit1, multispace0),
         str::from_utf8
       ),
       FromStr::from_str
     )
 );
 
-fn parse_digits(input: &str) -> IResult<&str, &str> {
-    digit1(input)
-}
+named!(parse_u16<u16>,
+    map_res!(map_res!(digit1, str::from_utf8), u16::from_str));
 
-named!(parse_u16<CompleteByteSlice, u16>,
-    map_res!(map_res!(parse_digits, str::from_utf8), u16::from_str));
 
 // PORT 192,168,0,13,234,10
-named!(pub ftp_active_port<CompleteByteSlice, u16>,
+named!(pub ftp_active_port<u16>,
        do_parse!(
             tag!("PORT") >>
-            ws!(digit) >> tag!(",") >> digit >> tag!(",") >>
-            digit >> tag!(",") >> digit >> tag!(",") >>
+            sep!(digit1, multispace0) >> tag!(",") >> digit1 >> tag!(",") >>
+            digit1 >> tag!(",") >> digit1 >> tag!(",") >>
             part1: verify!(parse_u16, |&v| v <= std::u8::MAX as u16) >>
             tag!(",") >>
             part2: verify!(parse_u16, |&v| v <= std::u8::MAX as u16) >>
@@ -69,8 +63,8 @@ named!(pub ftp_pasv_response<u16>,
             tag!("227") >>
             take_until!("(") >>
             tag!("(") >>
-            digit >> tag!(",") >> digit >> tag!(",") >>
-            digit >> tag!(",") >> digit >> tag!(",") >>
+            digit1 >> tag!(",") >> digit1 >> tag!(",") >>
+            digit1 >> tag!(",") >> digit1 >> tag!(",") >>
             part1: verify!(getu16, |&v| v <= std::u8::MAX as u16) >>
             tag!(",") >>
             part2: verify!(getu16, |&v| v <= std::u8::MAX as u16) >>
@@ -84,7 +78,7 @@ named!(pub ftp_pasv_response<u16>,
 
 #[no_mangle]
 pub extern "C" fn rs_ftp_active_port(input: *const u8, len: u32) -> u16 {
-    let buf = CompleteByteSlice(build_slice!(input, len as usize));
+    let buf = build_slice!(input, len as usize);
     match ftp_active_port(buf) {
         Ok((_, dport)) => {
             return dport;
@@ -203,8 +197,8 @@ mod test {
 
     #[test]
     fn test_active_port_valid() {
-        let port = ftp_active_port(CompleteByteSlice("PORT 192,168,0,13,234,10".as_bytes()));
-        assert_eq!(port, Ok((CompleteByteSlice(&b""[..]), 59914)));
+        let port = ftp_active_port("PORT 192,168,0,13,234,10".as_bytes());
+        assert_eq!(port, Ok((&b""[..], 59914)));
     }
 
     // A port that is too large for a u16.
@@ -225,10 +219,10 @@ mod test {
 
     #[test]
     fn test_active_port_too_large() {
-        let port = ftp_active_port(CompleteByteSlice("PORT 212,27,32,66,257,243".as_bytes()));
+        let port = ftp_active_port("PORT 212,27,32,66,257,243".as_bytes());
         assert!(port.is_err());
 
-        let port = ftp_active_port(CompleteByteSlice("PORT 212,27,32,66,255,65535".as_bytes()));
+        let port = ftp_active_port("PORT 212,27,32,66,255,65535".as_bytes());
         assert!(port.is_err());
     }
 }
