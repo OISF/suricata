@@ -15,15 +15,15 @@
  * 02110-1301, USA.
  */
 
+use crate::smb::error::SmbError;
 use nom;
 use nom::IResult;
-use nom::error::ErrorKind;
 use crate::log::*;
 
 /// parse a UTF16 string that is null terminated. Normally by 2 null
 /// bytes, but at the end of the data it can also be a single null.
 /// Skip every second byte.
-pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>>
+pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>, SmbError>
 {
     SCLogDebug!("get_unicode_string: blob {} {:?}", blob.len(), blob);
     let mut name : Vec<u8> = Vec::new();
@@ -43,11 +43,11 @@ pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>>
         name.push(c[0]);
         c = &c[2..];
     }
-    Err(nom::Err::Error(error_position!(blob,ErrorKind::Custom(130))))
+    Err(nom::Err::Error(SmbError::BadEncoding))
 }
 
 // parse an ASCII string that is null terminated
-named!(pub smb_get_ascii_string<Vec<u8>>,
+named!(pub smb_get_ascii_string<&[u8], Vec<u8>, SmbError>,
     do_parse!(
             s: take_until_and_consume!("\x00")
         >> ( s.to_vec() )

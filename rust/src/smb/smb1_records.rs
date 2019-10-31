@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use crate::smb::error::SmbError;
 use crate::log::*;
 use nom::IResult;
 use nom::combinator::rest;
@@ -22,7 +23,7 @@ use nom::number::complete::{le_u8, le_u16, le_u32, le_u64};
 use crate::smb::smb::*;
 use crate::smb::smb_records::*;
 
-fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8], Vec<u8>>
+fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8], Vec<u8>, SmbError>
 {
     do_parse!(i,
             cond!(offset % 2 == 1, take!(1))
@@ -32,7 +33,7 @@ fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8],
 }
 
 /// take a string, unicode or ascii based on record
-pub fn smb1_get_string<'a>(i: &'a[u8], r: &SmbRecord, offset: usize) -> IResult<&'a[u8], Vec<u8>> {
+pub fn smb1_get_string<'a>(i: &'a[u8], r: &SmbRecord, offset: usize) -> IResult<&'a[u8], Vec<u8>, SmbError> {
     if r.has_unicode_support() {
         smb_get_unicode_string_with_offset(i, offset)
     } else {
@@ -198,7 +199,7 @@ pub struct SmbRecordTreeConnectAndX<'a> {
     pub service: &'a[u8],
 }
 
-pub fn parse_smb_connect_tree_andx_record<'a>(i: &'a[u8], r: &SmbRecord) -> IResult<&'a[u8], SmbRecordTreeConnectAndX<'a>> {
+pub fn parse_smb_connect_tree_andx_record<'a>(i: &'a[u8], r: &SmbRecord) -> IResult<&'a[u8], SmbRecordTreeConnectAndX<'a>, SmbError> {
     do_parse!(i,
        _skip1: take!(7)
        >> pwlen: le_u16
@@ -226,7 +227,7 @@ pub struct SmbPipeProtocolRecord<'a> {
     pub fid: &'a[u8],
 }
 
-named!(pub parse_smb_trans_request_record_pipe<SmbPipeProtocolRecord>,
+named!(pub parse_smb_trans_request_record_pipe<&[u8], SmbPipeProtocolRecord, SmbError>,
     do_parse!(
             fun: le_u16
         >>  fid: take!(2)
@@ -248,7 +249,7 @@ pub struct SmbRecordTransRequestParams<> {
     bcc: u16,
 }
 
-named!(pub parse_smb_trans_request_record_params<(SmbRecordTransRequestParams, Option<SmbPipeProtocolRecord>)>,
+named!(pub parse_smb_trans_request_record_params<&[u8], (SmbRecordTransRequestParams, Option<SmbPipeProtocolRecord>), SmbError>,
     do_parse!(
           wct: le_u8
        >> _total_param_cnt: le_u16
@@ -286,7 +287,7 @@ pub struct SmbRecordTransRequestData<'a> {
 
 pub fn parse_smb_trans_request_record_data(i: &[u8],
         pad1: usize, param_cnt: u16, pad2: usize, data_len: u16)
-    -> IResult<&[u8], SmbRecordTransRequestData>
+    -> IResult<&[u8], SmbRecordTransRequestData, SmbError>
 {
     do_parse!(i,
             take!(pad1)
@@ -300,7 +301,7 @@ pub fn parse_smb_trans_request_record_data(i: &[u8],
 }
 
 pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
-    -> IResult<&'a[u8], SmbRecordTransRequest<'a>>
+    -> IResult<&'a[u8], SmbRecordTransRequest<'a>, SmbError>
 {
     let (rem, (params, pipe)) = parse_smb_trans_request_record_params(i)?;
     let mut offset = 32 + (i.len() - rem.len()); // init with SMB header
@@ -516,7 +517,7 @@ pub struct SmbRequestRenameRecord {
     pub newname: Vec<u8>,
 }
 
-named!(pub parse_smb_rename_request_record<SmbRequestRenameRecord>,
+named!(pub parse_smb_rename_request_record<&[u8], SmbRequestRenameRecord, SmbError>,
     do_parse!(
             _wct: le_u8
         >>  _search_attr: le_u16
@@ -539,7 +540,7 @@ pub struct SmbRequestCreateAndXRecord<> {
 }
 
 pub fn parse_smb_create_andx_request_record<'a>(i: &'a[u8], r: &SmbRecord)
-    -> IResult<&'a[u8], SmbRequestCreateAndXRecord<>>
+    -> IResult<&'a[u8], SmbRequestCreateAndXRecord<>, SmbError>
 {
     do_parse!(i,
           _skip1: take!(6)
@@ -613,7 +614,7 @@ pub struct Trans2RecordParamSetPathInfo<> {
     pub oldname: Vec<u8>,
 }
 
-named!(pub parse_trans2_request_params_set_path_info<Trans2RecordParamSetPathInfo>,
+named!(pub parse_trans2_request_params_set_path_info<&[u8], Trans2RecordParamSetPathInfo, SmbError>,
     do_parse!(
             loi: le_u16
         >>  _reserved: take!(4)
