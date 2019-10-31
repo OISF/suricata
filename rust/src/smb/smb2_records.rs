@@ -67,6 +67,20 @@ impl<'a> Smb2Record<'a> {
     }
 }
 
+fn parse_smb2_request_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u8,u32,u8,u8,u8,u8)> {
+    bits!(i,
+        tuple!(
+            take_bits!(2u8),      // reserved / unused
+            take_bits!(1u8),      // replay op
+            take_bits!(1u8),      // dfs op
+            take_bits!(24u32),    // reserved / unused
+            take_bits!(1u8),      // signing
+            take_bits!(1u8),      // chained
+            take_bits!(1u8),      // async
+            take_bits!(1u8)       // response
+        ))
+}
+
 named!(pub parse_smb2_request_record<Smb2Record>,
     do_parse!(
             _server_component: tag!(b"\xfeSMB")
@@ -76,16 +90,7 @@ named!(pub parse_smb2_request_record<Smb2Record>,
         >>  _reserved: take!(2)
         >>  command: le_u16
         >>  _credits_requested: le_u16
-        >>  flags: bits!(tuple!(
-                take_bits!(2u8),      // reserved / unused
-                take_bits!(1u8),      // replay op
-                take_bits!(1u8),      // dfs op
-                take_bits!(24u32),    // reserved / unused
-                take_bits!(1u8),      // signing
-                take_bits!(1u8),      // chained
-                take_bits!(1u8),      // async
-                take_bits!(1u8)       // response
-            ))
+        >>  flags: parse_smb2_request_flags
         >> chain_offset: le_u32
         >> message_id: le_u64
         >> _process_id: le_u32
@@ -507,16 +512,7 @@ named!(pub parse_smb2_response_record<Smb2Record>,
         >>  nt_status: le_u32
         >>  command: le_u16
         >>  _credit_granted: le_u16
-        >>  flags: bits!(tuple!(
-                take_bits!(2u8),      // reserved / unused
-                take_bits!(1u8),      // replay op
-                take_bits!(1u8),      // dfs op
-                take_bits!(24u32),    // reserved / unused
-                take_bits!(1u8),      // signing
-                take_bits!(1u8),      // chained
-                take_bits!(1u8),      // async
-                take_bits!(1u8)       // response
-            ))
+        >>  flags: parse_smb2_request_flags
         >> chain_offset: le_u32
         >> message_id: le_u64
         >> _process_id: cond!(flags.6==0, le_u32)

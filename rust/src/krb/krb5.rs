@@ -20,6 +20,7 @@
 use std;
 use std::ffi::{CStr,CString};
 use nom;
+use nom::IResult;
 use nom::number::complete::be_u32;
 use der_parser::der::der_read_element_header;
 use kerberos_parser::krb5_parser;
@@ -477,7 +478,7 @@ pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
 {
     let slice = build_slice!(input,input_len as usize);
     if slice.len() <= 14 { return unsafe{ALPROTO_FAILED}; }
-    match be_u32(slice) {
+    match be_u32(slice) as IResult<&[u8],u32> {
         Ok((rem, record_mark)) => {
             // protocol implementations forbid very large requests
             if record_mark > 16384 { return unsafe{ALPROTO_FAILED}; }
@@ -550,7 +551,7 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
     let mut cur_i = tcp_buffer;
     while cur_i.len() > 0 {
         if state.record_ts == 0 {
-            match be_u32(cur_i) {
+            match be_u32(cur_i) as IResult<&[u8],u32> {
                 Ok((rem,record)) => {
                     state.record_ts = record as usize;
                     cur_i = rem;
@@ -608,7 +609,7 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
     let mut cur_i = tcp_buffer;
     while cur_i.len() > 0 {
         if state.record_tc == 0 {
-            match be_u32(cur_i) {
+            match be_u32(cur_i) as IResult<&[u8],_> {
                 Ok((rem,record)) => {
                     state.record_tc = record as usize;
                     cur_i = rem;

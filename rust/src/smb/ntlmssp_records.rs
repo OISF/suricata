@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use nom::IResult;
 use nom::combinator::rest;
 use nom::number::complete::{le_u8, le_u16, le_u32};
 
@@ -57,6 +58,10 @@ pub struct NTLMSSPAuthRecord<'a> {
     pub version: Option<NTLMSSPVersion>,
 }
 
+fn parse_ntlm_auth_nego_flags(i:&[u8]) -> IResult<&[u8],(u8,u8,u32)> {
+    bits!(i, tuple!(take_bits!(6u8),take_bits!(1u8),take_bits!(25u32)))
+}
+
 named!(pub parse_ntlm_auth_record<NTLMSSPAuthRecord>,
     do_parse!(
             _lm_blob_len: le_u16
@@ -83,7 +88,7 @@ named!(pub parse_ntlm_auth_record<NTLMSSPAuthRecord>,
          >> _ssnkey_blob_maxlen: le_u16
          >> _ssnkey_blob_offset: le_u32
 
-         >> nego_flags: bits!(tuple!(take_bits!(6u8),take_bits!(1u8),take_bits!(25u32)))
+         >> nego_flags: parse_ntlm_auth_nego_flags
          >> version: cond!(nego_flags.1==1, parse_ntlm_auth_version)
 
          // subtrack 12 as idenfier (8) and type (4) are cut before we are called
