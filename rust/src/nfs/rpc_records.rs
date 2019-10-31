@@ -17,6 +17,7 @@
 
 //! Nom parsers for RPCv2
 
+use nom::IResult;
 use nom::combinator::rest;
 use nom::number::complete::be_u32;
 
@@ -120,12 +121,16 @@ pub struct RpcPacketHeader<> {
     pub msgtype: u32,
 }
 
+fn parse_bits(i:&[u8]) -> IResult<&[u8],(u8,u32)> {
+    bits!(i,
+        tuple!(
+            take_bits!(1u8),       // is_last
+            take_bits!(31u32)))    // len
+}
+
 named!(pub parse_rpc_packet_header<RpcPacketHeader>,
     do_parse!(
-        fraghdr: bits!(tuple!(
-                take_bits!(1u8),       // is_last
-                take_bits!(31u32)))    // len
-
+        fraghdr: parse_bits
         >> xid: be_u32
         >> msgtype: be_u32
         >> (

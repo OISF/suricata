@@ -31,7 +31,7 @@ use crate::log::*;
 named!(getu16<u16>,
     map_res!(
       map_res!(
-        sep!(digit1, multispace0),
+        delimited!(multispace0, digit1, multispace0),
         str::from_utf8
       ),
       FromStr::from_str
@@ -46,7 +46,7 @@ named!(parse_u16<u16>,
 named!(pub ftp_active_port<u16>,
        do_parse!(
             tag!("PORT") >>
-            sep!(digit1, multispace0) >> tag!(",") >> digit1 >> tag!(",") >>
+            delimited!(multispace0, digit1, multispace0) >> tag!(",") >> digit1 >> tag!(",") >>
             digit1 >> tag!(",") >> digit1 >> tag!(",") >>
             part1: verify!(parse_u16, |&v| v <= std::u8::MAX as u16) >>
             tag!(",") >>

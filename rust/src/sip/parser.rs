@@ -161,7 +161,7 @@ named!(pub sip_take_line<&[u8], Option<String> >,
 pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8], HashMap<String, String>> {
     let mut headers_map: HashMap<String, String> = HashMap::new();
     loop {
-        match crlf(input) {
+        match crlf(input) as IResult<&[u8],_> {
             Ok((_, _)) => {
                 break;
             }

@@ -27,7 +27,8 @@
 //! * x.691-spec: <https://www.itu.int/rec/T-REC-X.691/en>
 
 use nom::IResult;
-use nom::error::{make_error, ErrorKind};
+use nom::bytes::complete::take;
+use nom::combinator::{opt, map_opt, map_res};
 use nom::number::complete::{be_u16, be_u8, le_u16, le_u32, le_u8};
 use crate::rdp::error::RdpError;
 use crate::rdp::util::{
@@ -480,19 +481,19 @@ pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt, RdpError> {
     return Ok((i4, T123Tpkt { child }));
 }
 
+fn take_4_4_bits(input: &[u8]) -> IResult<&[u8], (u8,u8), RdpError> {
+  map!(input, be_u8, |b| (b >> 4, b & 0xf))
+}
+
 /// rdp-spec, section 2.2.1.1
 fn parse_x224_connection_request(
     input: &[u8],
 ) -> IResult<&[u8], X224ConnectionRequest, RdpError> {
     let (i1, length) = verify!(input, be_u8, |&x| x != 0xff)?; // 0xff is reserved
-    let (i2, cr_cdt) = bits!(
-        i1,
-        tuple!(
-            verify!(take_bits!(4u8), |&x| x
-                == X224Type::ConnectionRequest as u8),
-            verify!(take_bits!(4u8), |&x| x == 0 || x == 1)
-        )
-    )?;
+    let (i2, cr_cdt) = take_4_4_bits(input)?;
+    let _ = verify!(i1, value!(cr_cdt.0), |&x| x
+                == X224Type::ConnectionRequest as u8)?;
+    let _ = verify!(i1, value!(cr_cdt.1), |&x| x == 0 || x == 1)?;
     let (i3, dst_ref) = verify!(i2, be_u16, |&x| x == 0)?;
     let (i4, src_ref) = try_parse!(i3, be_u16);
     let (i5, class_options) = bits!(
@@ -503,9 +504,7 @@ fn parse_x224_connection_request(
         )
     )?;
     // less cr_cdt (u8), dst_ref (u16), src_ref (u16), class_options (u8)
-    if length < 6 {
-        return make_error(i5, ErrorKind::Verify)?;
-    }
+    let _ = verify!(i1, value!(length), |&x| x >= 6)?;
     let i6 = i5;
     let sz = length - 6;
 
@@ -575,12 +574,8 @@ fn parse_x224_connection_request_class_0(
 fn parse_rdp_cookie(input: &[u8]) -> IResult<&[u8], RdpCookie, RdpError> {
     do_parse! {
         input,
-        _key: verify!(
-            take!(8),
-            |x| x == b"Cookie: ")
-        >> _name: verify!(
-            take!(9),
-            |x| x == b"mstshash=")
+        _key: tag!(b"Cookie: ")
+        >> _name: tag!(b"mstshash=")
         >> bytes: take_until_and_consume!("\r\n")
         >> s: map_res!(value!(bytes), std::str::from_utf8)
         >> (RdpCookie{ mstshash: String::from(s) })
@@ -616,14 +611,10 @@ fn parse_x224_connection_confirm(
     input: &[u8],
 ) -> IResult<&[u8], X224ConnectionConfirm, RdpError> {
     let (i1, length) = verify!(input, be_u8, |&x| x != 0xff)?; // 0xff is reserved
-    let (i2, cr_cdt) = bits!(
-        i1,
-        tuple!(
-            verify!(take_bits!(4u8), |&x| x
-                == X224Type::ConnectionConfirm as u8),
-            verify!(take_bits!(4u8), |&x| x == 0 || x == 1)
-        )
-    )?;
+    let (i2, cr_cdt) = take_4_4_bits(input)?;
+    let _ = verify!(i1, value!(cr_cdt.0), |&x| x
+                == X224Type::ConnectionConfirm as u8)?;
+    let _ = verify!(i1, value!(cr_cdt.1), |&x| x == 0 || x == 1)?;
     let (i3, dst_ref) = verify!(i2, be_u16, |&x| x == 0)?;
     let (i4, src_ref) = try_parse!(i3, be_u16);
     let (i5, class_options) = bits!(
@@ -635,9 +626,7 @@ fn parse_x224_connection_confirm(
     )?;
 
     // less cr_cdt (u8), dst_ref (u16), src_ref (u16), class_options (u8)
-    if length < 6 {
-        return make_error(i5, ErrorKind::Verify)?;
-    }
+    let _ = verify!(i1, value!(length), |&x| x >= 6)?;
     let i6 = i5;
     let sz = length - 6;
 
@@ -744,15 +733,18 @@ fn parse_negotiation_failure(
 
 /// x224-spec, section 13.7
 fn parse_x223_data_class_0(input: &[u8]) -> IResult<&[u8], X223Data, RdpError> {
-    let (i1, _length) = verify!(input, be_u8, |&x| x == 2)?;
-    let (i2, _dt_x_roa) = bits!(
-        i1,
-        tuple!(
-            verify!(take_bits!(4u8), |&x| x == 0xf),
-            verify!(take_bits!(3u8), |&x| x == 0),
-            verify!(take_bits!(1u8), |&x| x == 0)
+    fn parser(input: &[u8]) -> IResult<&[u8], (u8,u8,u8), RdpError> {
+        bits!(
+            input,
+            tuple!(
+                verify!(take_bits!(4u8), |&x| x == 0xf),
+                verify!(take_bits!(3u8), |&x| x == 0),
+                verify!(take_bits!(1u8), |&x| x == 0)
+            )
         )
-    )?;
+    }
+    let (i1, _length) = verify!(input, be_u8, |&x| x == 2)?;
+    let (i2, _dt_x_roa) = parser(i1)?;
     let (i3, _eot) = verify!(i2, be_u8, |&x| x == 0x80)?;
 
     //
@@ -889,14 +881,14 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
     //
 
     let (j13, post_beta2_color_depth) =
-        match opt!(j12, map_opt!(le_u16, num::FromPrimitive::from_u16)) {
+        match opt!(j12, map_opt!(le_u16, num::FromPrimitive::from_u16)) as IResult<&[u8],_> {
             Ok((rem, obj)) => (rem, obj),
             _ => (j12, None),
         };
 
     let (j14, client_product_id) = match post_beta2_color_depth {
         None => (j13, None),
-        Some(_) => match opt!(j13, le_u16) {
+        Some(_) => match opt!(j13, le_u16) as IResult<&[u8],_> {
             Ok((rem, obj)) => (rem, obj),
             _ => (j13, None),
         },
@@ -904,7 +896,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
 
     let (j15, serial_number) = match client_product_id {
         None => (j14, None),
-        Some(_) => match opt!(j14, le_u32) {
+        Some(_) => match opt!(j14, le_u32) as IResult<&[u8],_> {
             Ok((rem, obj)) => (rem, obj),
             _ => (j14, None),
         },
@@ -913,7 +905,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
     let (j16, high_color_depth) = match serial_number {
         None => (j15, None),
         Some(_) => {
-            match opt!(j15, map_opt!(le_u16, num::FromPrimitive::from_u16)) {
+            match opt!(j15, map_opt!(le_u16, num::FromPrimitive::from_u16)) as IResult<&[u8],_> {
                 Ok((rem, obj)) => (rem, obj),
                 _ => (j15, None),
             }
@@ -923,7 +915,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
     let (j17, supported_color_depth) = match high_color_depth {
         None => (j16, None),
         Some(_) => {
-            match opt!(j16, map_opt!(le_u16, SupportedColorDepth::from_bits)) {
+            match opt!(j16, map_opt!(le_u16, SupportedColorDepth::from_bits)) as IResult<&[u8],_> {
                 Ok((rem, obj)) => (rem, obj),
                 _ => (j16, None),
             }
@@ -933,7 +925,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
     let (j18, early_capability_flags) = match supported_color_depth {
         None => (j17, None),
         Some(_) => {
-            match opt!(j17, map_opt!(le_u16, EarlyCapabilityFlags::from_bits)) {
+            match opt!(j17, map_opt!(le_u16, EarlyCapabilityFlags::from_bits)) as IResult<&[u8],_> {
                 Ok((rem, obj)) => (rem, obj),
                 _ => (j17, None),
             }
@@ -942,7 +934,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
 
     let (j19, client_dig_product_id) = match early_capability_flags {
         None => (j18, None),
-        Some(_) => match opt!(j18, map_res!(take!(64), le_slice_to_string)) {
+        Some(_) => match opt(map_res(take(64usize), le_slice_to_string))(j18) as IResult<&[u8],_> {
             Ok((rem, obj)) => (rem, obj),
             _ => (j18, None),
         },
@@ -951,7 +943,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
     let (j20, connection_hint) = match client_dig_product_id {
         None => (j19, None),
         Some(_) => {
-            match opt!(j19, map_opt!(le_u8, num::FromPrimitive::from_u8)) {
+            match opt(map_opt(le_u8, num::FromPrimitive::from_u8))(j19) as IResult<&[u8],_> {
                 Ok((rem, obj)) => (rem, obj),
                 _ => (j19, None),
             }
@@ -960,7 +952,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
 
     let (j21, pad) = match connection_hint {
         None => (j20, None),
-        Some(_) => match opt!(j20, take!(1)) {
+        Some(_) => match opt(take(1usize))(j20) as IResult<&[u8],_> {
             Ok((rem, obj)) => (rem, obj),
             _ => (j20, None),
         },
@@ -969,7 +961,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
     let (j22, server_selected_protocol) = match pad {
         None => (j21, None),
         Some(_) => {
-            match opt!(j21, map_opt!(le_u32, ProtocolFlags::from_bits)) {
+            match opt!(j21, map_opt!(le_u32, ProtocolFlags::from_bits)) as IResult<&[u8],_> {
                 Ok((rem, obj)) => (rem, obj),
                 _ => (j21, None),
             }
@@ -978,7 +970,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
 
     let (j23, desktop_physical_width) = match server_selected_protocol {
         None => (j22, None),
-        Some(_) => match opt!(j22, map_opt!(le_u32, millimeters_to_opt)) {
+        Some(_) => match opt!(j22, map_opt!(le_u32, millimeters_to_opt)) as IResult<&[u8],_> {
             Ok((rem, obj)) => (rem, obj),
             _ => (j22, None),
         },
@@ -986,7 +978,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
 
     let (j24, desktop_physical_height) = match desktop_physical_width {
         None => (j23, None),
-        Some(_) => match opt!(j23, map_opt!(le_u32, millimeters_to_opt)) {
+        Some(_) => match opt!(j23, map_opt!(le_u32, millimeters_to_opt)) as IResult<&[u8],_> {
             Ok((rem, obj)) => (rem, obj),
             _ => (j23, None),
         },
@@ -995,7 +987,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
     let (j25, desktop_orientation) = match desktop_physical_height {
         None => (j24, None),
         Some(_) => {
-            match opt!(j24, map_opt!(le_u16, num::FromPrimitive::from_u16)) {
+            match opt!(j24, map_opt!(le_u16, num::FromPrimitive::from_u16)) as IResult<&[u8],_> {
                 Ok((rem, obj)) => (rem, obj),
                 _ => (j24, None),
             }
@@ -1004,7 +996,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
 
     let (j26, desktop_scale_factor) = match desktop_orientation {
         None => (j25, None),
-        Some(_) => match opt!(j25, map_opt!(le_u32, desktop_scale_to_opt)) {
+        Some(_) => match opt!(j25, map_opt!(le_u32, desktop_scale_to_opt)) as IResult<&[u8],_> {
             Ok((rem, obj)) => (rem, obj),
             _ => (j25, None),
         },
@@ -1012,7 +1004,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
 
     let (_j27, device_scale_factor) = match desktop_scale_factor {
         None => (j26, None),
-        Some(_) => match opt!(j26, map_opt!(le_u32, device_scale_to_opt)) {
+        Some(_) => match opt!(j26, map_opt!(le_u32, device_scale_to_opt)) as IResult<&[u8],_> {
             Ok((rem, obj)) => (rem, obj),
             _ => (j26, None),
         },
