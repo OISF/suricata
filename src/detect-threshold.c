@@ -1514,6 +1514,200 @@ end:
     return result;
 }
 
+/**
+ * \test DetectThresholdTestSig13 is a test for checking the working by_rule limits
+ *       by setting up the signature and later testing its working by matching
+ *       received packets against the sig.
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int DetectThresholdTestSig13(void)
+{
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+    int alerts = 0;
+
+    HostInitConfig(HOST_QUIET);
+
+    memset(&th_v, 0, sizeof(th_v));
+    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_rule, count 2, seconds 60; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+	DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    ThresholdHashRealloc(de_ctx);
+
+	/* should alert twice */
+	SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+	alerts += PacketAlertCheck(p, 1);
+	SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+	alerts += PacketAlertCheck(p, 1);
+	SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+
+    if (alerts != 2) {
+        result = 0;
+        printf("alerts %d != 2: ", alerts);
+        goto cleanup;
+    }
+
+    TimeSetIncrementTime(70);
+    TimeGet(&p->ts);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+
+    if (alerts != 4) {
+        result = 0;
+        printf("alerts %d != 4: ", alerts);
+        goto cleanup;
+    }
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    UTHFreePackets(&p, 1);
+    HostShutdown();
+    return result;
+}
+
+/**
+ * \test DetectThresholdTestSig14 is a test for checking the working by_both limits
+ *       by setting up the signature and later testing its working by matching
+ *       received packets against the sig.
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+
+static int DetectThresholdTestSig14(void)
+{
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int result = 1;
+    int alerts1 = 0;
+    int alerts2 = 0;
+
+    HostInitConfig(HOST_QUIET);
+    IPPairInitConfig(IPPAIR_QUIET);
+
+    memset(&th_v, 0, sizeof(th_v));
+    p1 = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p2 = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "3.3.3.3", 1024, 80);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_both, count 2, seconds 60; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* Both p1 and p2 should alert twice */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts1 += PacketAlertCheck(p1, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts1 += PacketAlertCheck(p1, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts1 += PacketAlertCheck(p1, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts1 += PacketAlertCheck(p1, 1);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts2 += PacketAlertCheck(p2, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts2 += PacketAlertCheck(p2, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts2 += PacketAlertCheck(p2, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts2 += PacketAlertCheck(p2, 1);
+
+    if(alerts1 != 2) {
+        result = 0;
+        printf("alerts1 %d != 2: ", alerts1);
+        goto cleanup;
+    }
+
+    if(alerts2 != 2) {
+        result = 0;
+        printf("alerts2 %d != 2: ", alerts2);
+        goto cleanup;
+    }
+
+    TimeSetIncrementTime(70);
+    TimeGet(&p1->ts);
+    TimeGet(&p2->ts);
+
+    /* Now they should both alert again after previous alerts expire */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts1 += PacketAlertCheck(p1, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts2 += PacketAlertCheck(p2, 1);
+
+    if(alerts1 != 3) {
+        result = 0;
+        printf("alerts1 %d != 3: ", alerts1);
+        goto cleanup;
+    }
+    if(alerts2 != 3) {
+        result = 0;
+        printf("alerts2 %d != 3: ", alerts2);
+        goto cleanup;
+    }
+
+cleanup:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+end:
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    HostShutdown();
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void ThresholdRegisterTests(void)
@@ -1539,6 +1733,8 @@ void ThresholdRegisterTests(void)
     UtRegisterTest("DetectThresholdTestSig10", DetectThresholdTestSig10);
     UtRegisterTest("DetectThresholdTestSig11", DetectThresholdTestSig11);
     UtRegisterTest("DetectThresholdTestSig12", DetectThresholdTestSig12);
+    UtRegisterTest("DetectThresholdTestSig13", DetectThresholdTestSig13);
+    UtRegisterTest("DetectThresholdTestSig14", DetectThresholdTestSig14);
 #endif /* UNITTESTS */
 }
 
