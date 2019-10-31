@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,30 +15,21 @@
  * 02110-1301, USA.
  */
 
-pub mod error;
-pub mod smb_records;
-pub mod smb1_records;
-pub mod smb2_records;
-pub mod nbss_records;
-pub mod dcerpc_records;
-pub mod ntlmssp_records;
+// Author: Pierre Chifflier <chifflier@wzdftpd.net>
+use nom::error::{ErrorKind, ParseError};
 
-pub mod smb;
-pub mod smb1;
-pub mod smb1_session;
-pub mod smb2;
-pub mod smb2_session;
-pub mod smb2_ioctl;
-pub mod smb3;
-pub mod dcerpc;
-pub mod session;
-pub mod log;
-pub mod detect;
-pub mod debug;
-pub mod events;
-pub mod auth;
-pub mod files;
-pub mod funcs;
+#[derive(Debug)]
+pub enum SmbError {
+    BadEncoding,
+    RecordTooSmall,
+    NomError(ErrorKind),
+}
 
-//#[cfg(feature = "lua")]
-//pub mod lua;
+impl<I> ParseError<I> for SmbError {
+    fn from_error_kind(_input: I, kind: ErrorKind) -> Self {
+        SmbError::NomError(kind)
+    }
+    fn append(_input: I, kind: ErrorKind, _other: Self) -> Self {
+        SmbError::NomError(kind)
+    }
+}
