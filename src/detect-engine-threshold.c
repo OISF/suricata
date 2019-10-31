@@ -673,6 +673,32 @@ void ThresholdHashInit(DetectEngineCtx *de_ctx)
 }
 
 /**
+ * \brief Realloc threshold context hash tables
+ *
+ * \param de_ctx Detection Context
+ */
+void ThresholdHashRealloc(DetectEngineCtx *de_ctx)
+{
+    /* Return if we are already big enough */
+    uint32_t num = de_ctx->signum + 1;
+    if (num <= de_ctx->ths_ctx.th_size)
+        return;
+
+    void *ptmp = SCRealloc(de_ctx->ths_ctx.th_entry, num * sizeof(DetectThresholdEntry *));
+    if (ptmp == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for rule thresholds"
+                " (tried to allocate %"PRIu32" th_entrys for rule tracking)", num);
+        exit(EXIT_FAILURE);
+    } else {
+        de_ctx->ths_ctx.th_entry = ptmp;
+        for (uint32_t i = de_ctx->ths_ctx.th_size; i < num; ++i) {
+            de_ctx->ths_ctx.th_entry[i] = NULL;
+        }
+        de_ctx->ths_ctx.th_size = num;
+    }
+}
+
+/**
  * \brief Destroy threshold context hash tables
  *
  * \param de_ctx Dectection Context

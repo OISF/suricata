@@ -244,6 +244,9 @@ static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (de == NULL)
         goto error;
 
+    if (de->track == TRACK_RULE)
+        ThresholdHashRealloc(de_ctx);
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
