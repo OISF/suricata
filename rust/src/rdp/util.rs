@@ -21,8 +21,7 @@ use byteorder::ReadBytesExt;
 use memchr::memchr;
 use nom;
 use nom::{IResult, Needed};
-use nom::error::ErrorKind;
-use crate::rdp::error::RDP_UNIMPLEMENTED_LENGTH_DETERMINANT;
+use crate::rdp::error::RdpError;
 use std::io::Cursor;
 use widestring::U16CString;
 
@@ -64,7 +63,7 @@ pub fn utf7_slice_to_string(input: &[u8]) -> Result<String, Box<dyn std::error::
 
 /// parses a PER length determinant, to determine the length of the data following
 /// x.691-spec: section 10.9
-pub fn parse_per_length_determinant(input: &[u8]) -> IResult<&[u8], u32> {
+pub fn parse_per_length_determinant(input: &[u8]) -> IResult<&[u8], u32, RdpError> {
     if input.is_empty() {
         // need a single byte to begin length determination
         Err(nom::Err::Incomplete(Needed::Size(1)))
@@ -91,10 +90,7 @@ pub fn parse_per_length_determinant(input: &[u8]) -> IResult<&[u8], u32> {
                     _ => {
                         // byte starts with 0b11.  Without an example to confirm 16K+ lengths are properly
                         // handled, leaving this branch unimplemented
-                        Err(nom::Err::Error(error_position!(
-                            input,
-                            ErrorKind::Custom(RDP_UNIMPLEMENTED_LENGTH_DETERMINANT)
-                        )))
+                        Err(nom::Err::Error(RdpError::UnimplementedLengthDeterminant))
                     }
                 }
             }
@@ -106,7 +102,7 @@ pub fn parse_per_length_determinant(input: &[u8]) -> IResult<&[u8], u32> {
 mod tests {
     use super::*;
     use nom;
-    use crate::rdp::error::RDP_UNIMPLEMENTED_LENGTH_DETERMINANT;
+    use crate::rdp::error::RdpError;
 
     #[test]
     fn test_le_string_abc() {
@@ -169,10 +165,7 @@ mod tests {
     fn test_length_16k_unimplemented() {
         let bytes = &[0xc0];
         assert_eq!(
-            Err(nom::Err::Error(error_position!(
-                &bytes[..],
-                ErrorKind::Custom(RDP_UNIMPLEMENTED_LENGTH_DETERMINANT)
-            ))),
+            Err(nom::Err::Error(RdpError::UnimplementedLengthDeterminant)),
             parse_per_length_determinant(bytes)
         )
     }

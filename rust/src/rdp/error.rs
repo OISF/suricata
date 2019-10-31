@@ -16,7 +16,27 @@
  */
 
 // Author: Zach Kelly <zach.kelly@lmco.com>
+// Author: Pierre Chifflier <chifflier@wzdftpd.net>
+use nom::error::{ErrorKind, ParseError};
 
-// custom errors the parser can emit
-pub const RDP_UNIMPLEMENTED_LENGTH_DETERMINANT: u32 = 128;
-pub const RDP_NOT_X224_CLASS_0_ERROR: u32 = 129;
+#[derive(Debug, PartialEq)]
+pub enum RdpError {
+    UnimplementedLengthDeterminant,
+    NotX224Class0Error,
+    NomError(ErrorKind),
+}
+
+impl<I> ParseError<I> for RdpError {
+    fn from_error_kind(_input: I, kind: ErrorKind) -> Self {
+        RdpError::NomError(kind)
+    }
+    fn append(_input: I, kind: ErrorKind, _other: Self) -> Self {
+        RdpError::NomError(kind)
+    }
+}
+
+impl nom::ErrorConvert<RdpError> for ((&[u8], usize), ErrorKind) {
+    fn convert(self) -> RdpError {
+        RdpError::NomError(self.1)
+    }
+}
