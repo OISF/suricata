@@ -209,7 +209,7 @@ int ParseSizeStringU64(const char *size, uint64_t *res)
     if (r < 0)
         return r;
 
-    if (temp_res > UINT64_MAX)
+    if (temp_res > (double) UINT64_MAX)
         return -1;
 
     *res = temp_res;
