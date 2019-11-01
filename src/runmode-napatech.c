@@ -40,6 +40,8 @@
 #define NT_RUNMODE_AUTOFP  1
 #define NT_RUNMODE_WORKERS 2
 
+static const char *default_mode = "workers";
+
 #ifdef HAVE_NAPATECH
 
 #define MAX_STREAMS 256
@@ -47,6 +49,7 @@ static uint16_t num_configured_streams = 0;
 static uint16_t first_stream = 0xffff;
 static uint16_t last_stream = 0xffff;
 static int auto_config = 0;
+static int use_hw_bypass = 0;
 
 uint16_t NapatechGetNumConfiguredStreams(void)
 {
@@ -68,11 +71,16 @@ bool NapatechIsAutoConfigEnabled(void)
     return (auto_config != 0);
 }
 
+bool NapatechUseHWBypass(void)
+{
+    return (use_hw_bypass != 0);
+}
+
 #endif
 
 const char *RunModeNapatechGetDefaultMode(void)
 {
-    return "workers";
+    return default_mode;
 }
 
 void RunModeNapatechRegister(void)
@@ -103,6 +111,10 @@ static int NapatechRegisterDeviceStreams(void)
         SCLogInfo("napatech.auto-config not found in config file.  Defaulting to disabled.");
     }
 
+    if (ConfGetBool("napatech.hardware-bypass", &use_hw_bypass) == 0) {
+        SCLogInfo("napatech.hardware-bypass not found in config file.  Defaulting to disabled.");
+    }
+
     if (use_all_streams && auto_config) {
         SCLogError(SC_ERR_RUNMODE, "auto-config cannot be used with use-all-streams.");
     }
@@ -129,7 +141,9 @@ static int NapatechRegisterDeviceStreams(void)
                         "Registering Napatech device: %s - active stream found.",
                         plive_dev_buf);
                 SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED,
-                        "Delete the stream or disable auto-config before running.");
+                        "run /opt/napatech3/bin/ntpl -e \"delete=all\" to delete existing stream.");
+                SCLogError(SC_ERR_NAPATECH_STREAMS_REGISTER_FAILED,
+                        "or disable auto-config in conf before running.");
                 exit(EXIT_FAILURE);
             }
         } else {
@@ -216,6 +230,24 @@ static int NapatechInit(int runmode)
 
     if ((ConfGetInt("napatech.hba", &conf->hba) != 0) && (conf->hba > 0)) {
         SCLogInfo("Host Buffer Allowance: %d", (int) conf->hba);
+    }
+
+    if (use_hw_bypass) {
+#ifdef NAPATECH_ENABLE_BYPASS
+        if (NapatechInitFlowStreams()) {
+            SCLogInfo("Napatech Hardware Bypass is supported and enabled.");
+        } else {
+            SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
+                    "Napatech Hardware Bypass requested in conf but is not supported by the hardware.");
+            exit(EXIT_FAILURE);
+        }
+#else
+        SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
+                "Napatech Hardware Bypass requested in conf but is not enabled by the software.");
+        exit(EXIT_FAILURE);
+#endif
+    } else {
+        SCLogInfo("Hardware Bypass is disabled in the conf file.");
     }
 
     /* Start a thread to process the statistics */

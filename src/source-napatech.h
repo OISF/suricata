@@ -36,5 +36,8 @@ struct NapatechStreamDevConf {
     intmax_t hba;
 };
 
+int NapatechSetPortmap(int port, int peer);
+int NapatechGetAdapter(uint8_t port);
+
 #endif /* HAVE_NAPATECH */
 #endif /* __SOURCE_NAPATECH_H__ */

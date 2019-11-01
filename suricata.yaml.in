@@ -1765,6 +1765,11 @@ napatech:
     #
     streams: ["0-3"]
 
+    # Stream stats can be enabled to provide fine grain packet and byte counters 
+    # for each thread/stream that is configured.
+    #
+    enable-stream-stats: no
+
     # When auto-config is enabled the streams will be created and assigned
     # automatically to the NUMA node where the thread resides.  If cpu-affinity
     # is enabled in the threading section.  Then the streams will be created
@@ -1775,11 +1780,29 @@ napatech:
     #
     auto-config: yes
 
+    # Enable hardware level flow bypass.
+    #
+    hardware-bypass: yes
+    
+    # Enable inline operation.  When enabled traffic arriving on a given port is 
+    # automatically forwarded out it's peer port after analysis by suricata.
+    # 
+    inline: no
+
     # Ports indicates which napatech ports are to be used in auto-config mode.
     # these are the port ID's of the ports that will be merged prior to the
     # traffic being distributed to the streams.
     #
-    # This can be specified in any of the following ways:
+    # When hardware-bypass is enabled the ports must be configured as port-pairs. 
+    # One of the ports will recieve inbound traffic for the network and the other 
+    # will receive outbound traffic.  The two ports on a given segment must reside 
+    # on the same network adapter. 
+    # 
+    # segments are specified in the form:
+    #    ports: [0-1,2-3,4-5]
+    #
+    # When hardware-bypass is disabled this can be specified in any 
+    # of the following ways:
     #
     #   a list of individual ports (e.g. ports: [0,1,2,3])
     #
@@ -1788,9 +1811,9 @@ napatech:
     #   "all" to indicate that all ports are to be merged together
     #   (e.g. ports: [all])
     #
-    # This has no effect if auto-config is disabled.
+    # This parameter has no effect if auto-config is disabled.
     #
-    ports: [all]
+    ports: [0-1]
 
     # When auto-config is enabled the hashmode specifies the algorithm for
     # determining to which stream a given packet is to be delivered.
@@ -1801,7 +1824,7 @@ napatech:
     #
     # See Napatech NTPL documentation other hashmodes and details on their use.
     #
-    # This has no effect if auto-config is disabled.
+    # This parameter has no effect if auto-config is disabled.
     #
     hashmode: hash5tuplesorted
 
