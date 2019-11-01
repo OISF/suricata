@@ -328,8 +328,9 @@ static int DetectAppLayerEventSetupP1(DetectEngineCtx *de_ctx, Signature *s, con
     return 0;
 
 error:
-    if (data)
-        SCFree(data);
+    if (data) {
+        DetectAppLayerEventFree(data);
+    }
     if (sm) {
         sm->ctx = NULL;
         SigMatchFree(sm);
