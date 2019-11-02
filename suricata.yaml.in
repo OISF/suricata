@@ -773,7 +773,7 @@ app-layer:
     krb5:
       enabled: @rust_config_enabled@
     ikev2:
-      enabled: yes
+      enabled: @rust_config_enabled@
     tls:
       enabled: yes
       detection-ports:
