@@ -190,10 +190,6 @@ again:
     }
     SCMutexUnlock(&tv_root_lock);
 
-    /* wake up threads, another try */
-    for (u = 0; u < flowmgr_number; u++)
-        SCCtrlCondSignal(&flow_manager_ctrl_cond);
-
     /* reset count, so we can kill and respawn (unix socket) */
     SC_ATOMIC_SET(flowmgr_cnt, 0);
     return;
@@ -1154,10 +1150,6 @@ again:
         tv = tv->next;
     }
     SCMutexUnlock(&tv_root_lock);
-
-    /* wake up threads, another try */
-    for (u = 0; u < flowrec_number; u++)
-        SCCtrlCondSignal(&flow_recycler_ctrl_cond);
 
     /* reset count, so we can kill and respawn (unix socket) */
     SC_ATOMIC_SET(flowrec_cnt, 0);
