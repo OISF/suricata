@@ -116,14 +116,13 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
                                           TmSlot *slot)
 {
     for (TmSlot *s = slot; s != NULL; s = s->slot_next) {
-        TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
         PACKET_PROFILING_TMM_START(p, s->tm_id);
 
         TmEcode r;
         if (unlikely(s->id == 0)) {
-            r = SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, &s->slot_post_pq);
+            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, &s->slot_post_pq);
         } else {
-            r = SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, NULL);
+            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, NULL);
         }
 
         PACKET_PROFILING_TMM_END(p, s->tm_id);
@@ -836,8 +835,7 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
     slot->tv = tv;
     slot->SlotThreadInit = tm->ThreadInit;
     slot->slot_initdata = data;
-    SC_ATOMIC_INIT(slot->SlotFunc);
-    (void)SC_ATOMIC_SET(slot->SlotFunc, tm->Func);
+    slot->SlotFunc = tm->Func;
     slot->PktAcqLoop = tm->PktAcqLoop;
     slot->Management = tm->Management;
     slot->SlotThreadExitPrintStats = tm->ThreadExitPrintStats;

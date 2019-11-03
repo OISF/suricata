@@ -55,7 +55,7 @@ typedef struct TmSlot_ {
     ThreadVars *tv;
 
     /* function pointers */
-    SC_ATOMIC_DECLARE(TmSlotFunc, SlotFunc);
+    TmSlotFunc SlotFunc;
 
     TmEcode (*PktAcqLoop)(ThreadVars *, void *, void *);
 
