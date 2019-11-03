@@ -112,19 +112,16 @@ void TmThreadsUnsetFlag(ThreadVars *tv, uint32_t flag)
  *
  * \todo Deal with post_pq for slots beyond the first.
  */
-TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
-                                          TmSlot *slot)
+TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
 {
     for (TmSlot *s = slot; s != NULL; s = s->slot_next) {
         PACKET_PROFILING_TMM_START(p, s->tm_id);
-
-        TmEcode r;
-        if (unlikely(s->id == 0)) {
-            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, &s->slot_post_pq);
-        } else {
-            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, NULL);
+        PacketQueue *post_pq = &s->slot_post_pq;
+        if (s->id > 0) {
+            post_pq = NULL;
         }
-
+        TmEcode r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data),
+                &s->slot_pre_pq, post_pq);
         PACKET_PROFILING_TMM_END(p, s->tm_id);
 
         /* handle error */
