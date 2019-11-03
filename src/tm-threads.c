@@ -1425,19 +1425,16 @@ void TmThreadRemove(ThreadVars *tv, int type)
 
 static bool ThreadStillHasPackets(ThreadVars *tv)
 {
-    if (tv->inq != NULL) {
+    if (tv->inq != NULL && !tv->inq->is_packet_pool) {
         /* we wait till we dry out all the inq packets, before we
          * kill this thread.  Do note that you should have disabled
          * packet acquire by now using TmThreadDisableReceiveThreads()*/
-        if (!(strlen(tv->inq->name) == strlen("packetpool") &&
-              strcasecmp(tv->inq->name, "packetpool") == 0)) {
-            PacketQueue *q = &trans_q[tv->inq->id];
-            SCMutexLock(&q->mutex_q);
-            uint32_t len = q->len;
-            SCMutexUnlock(&q->mutex_q);
-            if (len != 0) {
-                return true;
-            }
+        PacketQueue *q = &trans_q[tv->inq->id];
+        SCMutexLock(&q->mutex_q);
+        uint32_t len = q->len;
+        SCMutexUnlock(&q->mutex_q);
+        if (len != 0) {
+            return true;
         }
     }
 
