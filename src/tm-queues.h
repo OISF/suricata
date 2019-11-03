@@ -26,6 +26,7 @@
 
 typedef struct Tmq_ {
     char *name;
+    bool is_packet_pool;
     uint16_t id;
     uint16_t reader_cnt;
     uint16_t writer_cnt;
