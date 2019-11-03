@@ -1855,22 +1855,6 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
 }
 
 /**
- * \brief Sets the thread flags for a thread instance(tv)
- *
- * \param tv    Pointer to the thread instance for which the flag has to be set
- * \param flags Holds the thread state this thread instance has to be set to
- */
-#if 0
-void TmThreadSetFlags(ThreadVars *tv, uint8_t flags)
-{
-    if (tv != NULL)
-        tv->flags = flags;
-
-    return;
-}
-#endif
-
-/**
  * \brief Initializes the mutex and condition variables for this TV
  *
  * It can be used by a thread to control a wait loop that can also be
