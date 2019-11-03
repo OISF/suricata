@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -53,22 +53,18 @@ error:
     return NULL;
 }
 
-Tmq* TmqGetQueueByName(const char *name)
+Tmq *TmqGetQueueByName(const char *name)
 {
-    uint16_t i;
-
-    for (i = 0; i < tmq_id; i++) {
+    for (uint16_t i = 0; i < tmq_id; i++) {
         if (strcmp(tmqs[i].name, name) == 0)
             return &tmqs[i];
     }
-
     return NULL;
 }
 
 void TmqDebugList(void)
 {
-    uint16_t i = 0;
-    for (i = 0; i < tmq_id; i++) {
+    for (int i = 0; i < tmq_id; i++) {
         /* get a lock accessing the len */
         SCMutexLock(&trans_q[tmqs[i].id].mutex_q);
         printf("TmqDebugList: id %" PRIu32 ", name \'%s\', len %" PRIu32 "\n", tmqs[i].id, tmqs[i].name, trans_q[tmqs[i].id].len);
@@ -78,8 +74,7 @@ void TmqDebugList(void)
 
 void TmqResetQueues(void)
 {
-    uint16_t i;
-    for (i = 0; i < TMQ_MAX_QUEUES; i++) {
+    for (int i = 0; i < TMQ_MAX_QUEUES; i++) {
         if (tmqs[i].name) {
             SCFree(tmqs[i].name);
         }
@@ -94,27 +89,25 @@ void TmqResetQueues(void)
  */
 void TmValidateQueueState(void)
 {
-    int i = 0;
-    char err = FALSE;
+    bool err = false;
 
-    for (i = 0; i < tmq_id; i++) {
+    for (int i = 0; i < tmq_id; i++) {
         SCMutexLock(&trans_q[tmqs[i].id].mutex_q);
         if (tmqs[i].reader_cnt == 0) {
             SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a reader (id %d, max %u)", tmqs[i].name, i, tmq_id);
-            err = TRUE;
+            err = true;
         } else if (tmqs[i].writer_cnt == 0) {
             SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a writer (id %d, max %u)", tmqs[i].name, i, tmq_id);
-            err = TRUE;
+            err = true;
         }
         SCMutexUnlock(&trans_q[tmqs[i].id].mutex_q);
 
-        if (err == TRUE)
+        if (err == true)
             goto error;
     }
 
     return;
 
 error:
-    SCLogError(SC_ERR_FATAL, "fatal error during threading setup");
-    exit(EXIT_FAILURE);
+    FatalError(SC_ERR_FATAL, "fatal error during threading setup");
 }
