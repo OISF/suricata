@@ -87,7 +87,6 @@ static inline void SleepUsec(uint64_t usec)
 
 /* prototypes */
 static int SetCPUAffinity(uint16_t cpu);
-
 static void TmThreadDeinitMC(ThreadVars *tv);
 
 /* root of the threadvars list */
@@ -243,6 +242,27 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
     return r;
 }
 
+/** \internal
+ *  \brief check 'slot' pre_pq and post_pq at thread cleanup
+ *         and dump detailed info about the state of the packets
+ *         and threads if in a unexpected state.
+ */
+static void CheckSlot(const TmSlot *slot)
+{
+    if (slot->slot_pre_pq.len || slot->slot_post_pq.len) {
+        for (Packet *xp = slot->slot_pre_pq.top; xp != NULL; xp = xp->next) {
+            SCLogNotice("pre_pq: slot id %u slot tm_id %u pre_pq.len %u packet src %s",
+                    slot->id, slot->tm_id, slot->slot_pre_pq.len, PktSrcToString(xp->pkt_src));
+        }
+        for (Packet *xp = slot->slot_post_pq.top; xp != NULL; xp = xp->next) {
+            SCLogNotice("post_pq: slot id %u slot tm_id %u post_pq.len %u packet src %s",
+                    slot->id, slot->tm_id, slot->slot_post_pq.len, PktSrcToString(xp->pkt_src));
+        }
+        TmThreadDumpThreads();
+        abort();
+    }
+}
+
 /*
 
     pcap/nfq
@@ -382,9 +402,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
                 goto error;
             }
         }
-
-        BUG_ON(slot->slot_pre_pq.len);
-        BUG_ON(slot->slot_post_pq.len);
+        CheckSlot(slot);
     }
 
     tv->stream_pq = NULL;
@@ -501,8 +519,7 @@ static void *TmThreadsSlotPktAcqLoopAFL(void *td)
             }
         }
 
-        BUG_ON(slot->slot_pre_pq.len);
-        BUG_ON(slot->slot_post_pq.len);
+        CheckSlot(slot);
     }
 
     tv->stream_pq = NULL;
@@ -662,8 +679,7 @@ static void *TmThreadsSlotVar(void *td)
                 goto error;
             }
         }
-        BUG_ON(s->slot_pre_pq.len);
-        BUG_ON(s->slot_post_pq.len);
+        CheckSlot(s);
     }
 
     SCLogDebug("%s ending", tv->name);
@@ -2227,6 +2243,46 @@ uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags)
     return cnt;
 }
 
+static void TmThreadDoDumpSlots(const ThreadVars *tv)
+{
+    for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
+        TmModule *m = TmModuleGetById(s->tm_id);
+        SCLogNotice("tv %p: -> slot %p id %d tm_id %d name %s %s",
+            tv, s, s->id, s->tm_id, m->name, (tv->type == 0 && tv->stream_pq == &s->slot_post_pq) ? "<==== stream_pq" : "");
+        if (tv->type == 0 && tv->stream_pq == &s->slot_pre_pq) {
+            SCLogNotice("tv %p: -> slot %p/%d holds stream_pq %p IN PRE_PQ SUPER WEIRD", tv, s, s->id, tv->stream_pq);
+        }
+        for (Packet *xp = s->slot_pre_pq.top; xp != NULL; xp = xp->next) {
+            SCLogNotice("tv %p: ==> pre_pq: slot id %u slot tm_id %u pre_pq.len %u packet src %s",
+                    tv, s->id, s->tm_id, s->slot_pre_pq.len, PktSrcToString(xp->pkt_src));
+        }
+        for (Packet *xp = s->slot_post_pq.top; xp != NULL; xp = xp->next) {
+            SCLogNotice("tv %p: ==> post_pq: slot id %u slot tm_id %u post_pq.len %u packet src %s",
+                    tv, s->id, s->tm_id, s->slot_post_pq.len, PktSrcToString(xp->pkt_src));
+        }
+    }
+}
+
+void TmThreadDumpThreads(void)
+{
+    SCMutexLock(&tv_root_lock);
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
+        while (tv != NULL) {
+            const uint32_t flags = SC_ATOMIC_GET(tv->flags);
+            SCLogNotice("tv %p: type %u name %s tmm_flags %02X flags %X stream_pq %p",
+                    tv, tv->type, tv->name, tv->tmm_flags, flags, tv->stream_pq);
+            if (tv->inq && tv->stream_pq == &trans_q[tv->inq->id]) {
+                SCLogNotice("tv %p: stream_pq at tv->inq %u", tv, tv->inq->id);
+            }
+            TmThreadDoDumpSlots(tv);
+            tv = tv->next;
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
+    TmThreadsListThreads();
+}
+
 typedef struct Thread_ {
     ThreadVars *tv;     /**< threadvars structure */
     const char *name;
@@ -2256,7 +2312,15 @@ void TmThreadsListThreads(void)
         t = &thread_store.threads[s];
         if (t == NULL || t->in_use == 0)
             continue;
-        SCLogInfo("Thread %"PRIuMAX", %s type %d, tv %p", (uintmax_t)s+1, t->name, t->type, t->tv);
+
+        SCLogNotice("Thread %"PRIuMAX", %s type %d, tv %p in_use %d",
+                (uintmax_t)s+1, t->name, t->type, t->tv, t->in_use);
+        if (t->tv) {
+            ThreadVars *tv = t->tv;
+            const uint32_t flags = SC_ATOMIC_GET(tv->flags);
+            SCLogNotice("tv %p type %u name %s tmm_flags %02X flags %X",
+                    tv, tv->type, tv->name, tv->tmm_flags, flags);
+        }
     }
 
     SCMutexUnlock(&thread_store_lock);
