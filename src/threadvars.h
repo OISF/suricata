@@ -32,26 +32,26 @@
 struct TmSlot_;
 
 /** Thread flags set and read by threads to control the threads */
-#define THV_USE       1 /** thread is in use */
-#define THV_INIT_DONE (1 << 1) /** thread initialization done */
-#define THV_PAUSE     (1 << 2) /** signal thread to pause itself */
-#define THV_PAUSED    (1 << 3) /** the thread is paused atm */
-#define THV_KILL      (1 << 4) /** thread has been asked to cleanup and exit */
-#define THV_FAILED    (1 << 5) /** thread has encountered an error and failed */
-#define THV_CLOSED    (1 << 6) /** thread done, should be joinable */
+#define THV_USE                 BIT_U32(0)  /** thread is in use */
+#define THV_INIT_DONE           BIT_U32(1)  /** thread initialization done */
+#define THV_PAUSE               BIT_U32(2)  /** signal thread to pause itself */
+#define THV_PAUSED              BIT_U32(3)  /** the thread is paused atm */
+#define THV_KILL                BIT_U32(4)  /** thread has been asked to cleanup and exit */
+#define THV_FAILED              BIT_U32(5)  /** thread has encountered an error and failed */
+#define THV_CLOSED              BIT_U32(6)  /** thread done, should be joinable */
 /* used to indicate the thread is going through de-init.  Introduced as more
  * of a hack for solving stream-timeout-shutdown.  Is set by the main thread. */
-#define THV_DEINIT    (1 << 7)
-#define THV_RUNNING_DONE (1 << 8) /** thread has completed running and is entering
-                                   * the de-init phase */
-#define THV_KILL_PKTACQ (1 << 9)    /**< flag thread to stop packet acq */
-#define THV_FLOW_LOOP (1 << 10)   /**< thread is in flow shutdown loop */
+#define THV_DEINIT              BIT_U32(7)
+#define THV_RUNNING_DONE        BIT_U32(8)  /** thread has completed running and is entering
+                                         * the de-init phase */
+#define THV_KILL_PKTACQ         BIT_U32(9)  /**< flag thread to stop packet acq */
+#define THV_FLOW_LOOP           BIT_U32(10) /**< thread is in flow shutdown loop */
 
 /** signal thread's capture method to create a fake packet to force through
  *  the engine. This is to force timely handling of maintenance taks like
  *  rule reloads even if no packets are read by the capture method. */
-#define THV_CAPTURE_INJECT_PKT (1<<11)
-#define THV_DEAD        (1 << 12) /**< thread has been joined with pthread_join() */
+#define THV_CAPTURE_INJECT_PKT  BIT_U32(11)
+#define THV_DEAD                BIT_U32(12) /**< thread has been joined with pthread_join() */
 
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
@@ -60,7 +60,7 @@ typedef struct ThreadVars_ {
     char *printable_name;
     char *thread_group_name;
 
-    SC_ATOMIC_DECLARE(unsigned int, flags);
+    SC_ATOMIC_DECLARE(uint32_t, flags);
 
     /** TmModule::flags for each module part of this thread */
     uint8_t tmm_flags;
