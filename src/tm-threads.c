@@ -86,7 +86,7 @@ SCMutex tv_root_lock = SCMUTEX_INITIALIZER;
  * \retval 1 flag is set.
  * \retval 0 flag is not set.
  */
-int TmThreadsCheckFlag(ThreadVars *tv, uint16_t flag)
+int TmThreadsCheckFlag(ThreadVars *tv, uint32_t flag)
 {
     return (SC_ATOMIC_GET(tv->flags) & flag) ? 1 : 0;
 }
@@ -94,7 +94,7 @@ int TmThreadsCheckFlag(ThreadVars *tv, uint16_t flag)
 /**
  * \brief Set a thread flag.
  */
-void TmThreadsSetFlag(ThreadVars *tv, uint16_t flag)
+void TmThreadsSetFlag(ThreadVars *tv, uint32_t flag)
 {
     SC_ATOMIC_OR(tv->flags, flag);
 }
@@ -102,7 +102,7 @@ void TmThreadsSetFlag(ThreadVars *tv, uint16_t flag)
 /**
  * \brief Unset a thread flag.
  */
-void TmThreadsUnsetFlag(ThreadVars *tv, uint16_t flag)
+void TmThreadsUnsetFlag(ThreadVars *tv, uint32_t flag)
 {
     SC_ATOMIC_AND(tv->flags, ~flag);
 }
@@ -1978,7 +1978,7 @@ void TmThreadTestThreadUnPaused(ThreadVars *tv)
  *
  * \param tv Pointer to the TV instance.
  */
-void TmThreadWaitForFlag(ThreadVars *tv, uint16_t flags)
+void TmThreadWaitForFlag(ThreadVars *tv, uint32_t flags)
 {
     while (!TmThreadsCheckFlag(tv, flags)) {
         SleepUsec(100);

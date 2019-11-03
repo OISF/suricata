@@ -134,10 +134,10 @@ void TmThreadCheckThreadState(void);
 TmEcode TmThreadWaitOnThreadInit(void);
 ThreadVars *TmThreadsGetCallingThread(void);
 
-int TmThreadsCheckFlag(ThreadVars *, uint16_t);
-void TmThreadsSetFlag(ThreadVars *, uint16_t);
-void TmThreadsUnsetFlag(ThreadVars *, uint16_t);
-void TmThreadWaitForFlag(ThreadVars *, uint16_t);
+int TmThreadsCheckFlag(ThreadVars *, uint32_t);
+void TmThreadsSetFlag(ThreadVars *, uint32_t);
+void TmThreadsUnsetFlag(ThreadVars *, uint32_t);
+void TmThreadWaitForFlag(ThreadVars *, uint32_t);
 
 TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
 
