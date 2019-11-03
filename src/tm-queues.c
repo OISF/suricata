@@ -44,6 +44,7 @@ Tmq *TmqCreateQueue(const char *name)
         goto error;
 
     q->id = tmq_id++;
+    q->is_packet_pool = (strcmp(q->name, "packetpool") == 0);
 
     SCLogDebug("created queue \'%s\', %p", name, q);
     return q;
