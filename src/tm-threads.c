@@ -110,7 +110,7 @@ void TmThreadsUnsetFlag(ThreadVars *tv, uint32_t flag)
 /**
  * \brief Separate run function so we can call it recursively.
  *
- * \todo Deal with post_pq for slots beyond the first.
+ * \note post_pq if only used for first slot
  */
 TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
 {
@@ -602,37 +602,9 @@ static void *TmThreadsSlotVar(void *td)
             /* output the packet */
             tv->tmqh_out(tv, p);
 
-        } /* if (p != NULL) */
-
-        /* now handle the post_pq packets */
-        TmSlot *slot;
-        for (slot = s; slot != NULL; slot = slot->slot_next) {
-            if (slot->slot_post_pq.top != NULL) {
-                while (1) {
-                    SCMutexLock(&slot->slot_post_pq.mutex_q);
-                    Packet *extra_p = PacketDequeue(&slot->slot_post_pq);
-                    SCMutexUnlock(&slot->slot_post_pq.mutex_q);
-
-                    if (extra_p == NULL)
-                        break;
-
-                    if (slot->slot_next != NULL) {
-                        r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next);
-                        if (r == TM_ECODE_FAILED) {
-                            SCMutexLock(&slot->slot_post_pq.mutex_q);
-                            TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
-                            SCMutexUnlock(&slot->slot_post_pq.mutex_q);
-
-                            TmqhOutputPacketpool(tv, extra_p);
-                            TmThreadsSetFlag(tv, THV_FAILED);
-                            break;
-                        }
-                    }
-                    /* output the packet */
-                    tv->tmqh_out(tv, extra_p);
-                } /* while */
-            } /* if */
-        } /* for */
+            /* now handle the post_pq packets */
+            TmThreadsSlotHandlePostPQs(tv, s);
+        }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             run = 0;
