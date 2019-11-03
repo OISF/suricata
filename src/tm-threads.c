@@ -115,14 +115,11 @@ void TmThreadsUnsetFlag(ThreadVars *tv, uint16_t flag)
 TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
                                           TmSlot *slot)
 {
-    TmEcode r;
-    TmSlot *s;
-    Packet *extra_p;
-
-    for (s = slot; s != NULL; s = s->slot_next) {
+    for (TmSlot *s = slot; s != NULL; s = s->slot_next) {
         TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
         PACKET_PROFILING_TMM_START(p, s->tm_id);
 
+        TmEcode r;
         if (unlikely(s->id == 0)) {
             r = SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, &s->slot_post_pq);
         } else {
@@ -146,7 +143,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
 
         /* handle new packets */
         while (s->slot_pre_pq.top != NULL) {
-            extra_p = PacketDequeue(&s->slot_pre_pq);
+            Packet *extra_p = PacketDequeue(&s->slot_pre_pq);
             if (unlikely(extra_p == NULL))
                 continue;
 
@@ -1461,8 +1458,6 @@ static bool ThreadStillHasPackets(ThreadVars *tv)
  */
 static int TmThreadKillThread(ThreadVars *tv)
 {
-    int i = 0;
-
     BUG_ON(tv == NULL);
 
     /* kill only once :) */
@@ -1481,7 +1476,7 @@ static int TmThreadKillThread(ThreadVars *tv)
             tv->InShutdownHandler(tv);
         }
         if (tv->inq != NULL) {
-            for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
+            for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
                 SCCondSignal(&trans_q[tv->inq->id].cond_q);
             }
             SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
@@ -1618,8 +1613,7 @@ again:
             TmThreadsSetFlag(tv, THV_KILL_PKTACQ);
 
             if (tv->inq != NULL) {
-                int i;
-                for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
+                for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
                     SCCondSignal(&trans_q[tv->inq->id].cond_q);
                 }
                 SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
@@ -1699,8 +1693,7 @@ again:
         TmThreadsSetFlag(tv, THV_KILL);
 
         if (tv->inq != NULL) {
-            int i;
-            for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
+            for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
                 SCCondSignal(&trans_q[tv->inq->id].cond_q);
             }
             SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
@@ -2011,19 +2004,15 @@ void TmThreadContinue(ThreadVars *tv)
  */
 void TmThreadContinueThreads()
 {
-    ThreadVars *tv = NULL;
-    int i = 0;
-
     SCMutexLock(&tv_root_lock);
-    for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
         while (tv != NULL) {
             TmThreadContinue(tv);
             tv = tv->next;
         }
     }
     SCMutexUnlock(&tv_root_lock);
-
     return;
 }
 
@@ -2035,7 +2024,6 @@ void TmThreadContinueThreads()
 void TmThreadPause(ThreadVars *tv)
 {
     TmThreadsSetFlag(tv, THV_PAUSE);
-
     return;
 }
 
@@ -2044,22 +2032,17 @@ void TmThreadPause(ThreadVars *tv)
  */
 void TmThreadPauseThreads()
 {
-    ThreadVars *tv = NULL;
-    int i = 0;
-
     TmThreadsListThreads();
 
     SCMutexLock(&tv_root_lock);
-    for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
         while (tv != NULL) {
             TmThreadPause(tv);
             tv = tv->next;
         }
     }
     SCMutexUnlock(&tv_root_lock);
-
-    return;
 }
 
 /**
@@ -2067,13 +2050,9 @@ void TmThreadPauseThreads()
  */
 void TmThreadCheckThreadState(void)
 {
-    ThreadVars *tv = NULL;
-    int i = 0;
-
     SCMutexLock(&tv_root_lock);
-    for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
-
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
         while (tv) {
             if (TmThreadsCheckFlag(tv, THV_FAILED)) {
                 FatalError(SC_ERR_FATAL, "thread %s failed", tv->name);
@@ -2095,8 +2074,6 @@ void TmThreadCheckThreadState(void)
  */
 TmEcode TmThreadWaitOnThreadInit(void)
 {
-    ThreadVars *tv = NULL;
-    int i = 0;
     uint16_t mgt_num = 0;
     uint16_t ppt_num = 0;
 
@@ -2106,8 +2083,8 @@ TmEcode TmThreadWaitOnThreadInit(void)
 
 again:
     SCMutexLock(&tv_root_lock);
-    for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
         while (tv != NULL) {
             if (TmThreadsCheckFlag(tv, (THV_CLOSED|THV_DEAD))) {
                 SCMutexUnlock(&tv_root_lock);
@@ -2173,13 +2150,10 @@ again:
 ThreadVars *TmThreadsGetCallingThread(void)
 {
     pthread_t self = pthread_self();
-    ThreadVars *tv = NULL;
-    int i = 0;
 
     SCMutexLock(&tv_root_lock);
-
-    for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
         while (tv) {
             if (pthread_equal(self, tv->t)) {
                 SCMutexUnlock(&tv_root_lock);
@@ -2188,9 +2162,7 @@ ThreadVars *TmThreadsGetCallingThread(void)
             tv = tv->next;
         }
     }
-
     SCMutexUnlock(&tv_root_lock);
-
     return NULL;
 }
 
@@ -2199,13 +2171,10 @@ ThreadVars *TmThreadsGetCallingThread(void)
  */
 uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags)
 {
-    ThreadVars *tv = NULL;
-    int i = 0;
     uint32_t cnt = 0;
-
     SCMutexLock(&tv_root_lock);
-    for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
         while (tv != NULL) {
             if ((tv->tmm_flags & flags) == flags)
                 cnt++;
@@ -2277,13 +2246,9 @@ static SCMutex thread_store_lock = SCMUTEX_INITIALIZER;
 
 void TmThreadsListThreads(void)
 {
-    Thread *t;
-    size_t s;
-
     SCMutexLock(&thread_store_lock);
-
-    for (s = 0; s < thread_store.threads_size; s++) {
-        t = &thread_store.threads[s];
+    for (size_t s = 0; s < thread_store.threads_size; s++) {
+        Thread *t = &thread_store.threads[s];
         if (t == NULL || t->in_use == 0)
             continue;
 
@@ -2296,7 +2261,6 @@ void TmThreadsListThreads(void)
                     tv, tv->type, tv->name, tv->tmm_flags, flags);
         }
     }
-
     SCMutexUnlock(&thread_store_lock);
 }
 
