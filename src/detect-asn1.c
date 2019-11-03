@@ -148,21 +148,23 @@ static int DetectAsn1Match(DetectEngineThreadCtx *det_ctx, Packet *p,
     }
 
     const DetectAsn1Data *ad = (const DetectAsn1Data *)ctx;
+    int32_t offset;
+    if (ad->flags & ASN1_ABSOLUTE_OFFSET) {
+        offset = ad->absolute_offset;
+    } else if (ad->flags & ASN1_RELATIVE_OFFSET) {
+        offset = ad->relative_offset;
+    } else {
+        offset = 0;
+    }
+    if (offset >= (int32_t)p->payload_len) {
+        return 0;
+    }
 
     Asn1Ctx *ac = SCAsn1CtxNew();
     if (ac == NULL)
         return 0;
 
-    if (ad->flags & ASN1_ABSOLUTE_OFFSET) {
-        SCAsn1CtxInit(ac, p->payload + ad->absolute_offset,
-                      p->payload_len - ad->absolute_offset);
-    } else if (ad->flags & ASN1_RELATIVE_OFFSET) {
-        SCAsn1CtxInit(ac, p->payload + ad->relative_offset,
-                      p->payload_len - ad->relative_offset);
-    } else {
-        SCAsn1CtxInit(ac, p->payload, p->payload_len);
-    }
-
+    SCAsn1CtxInit(ac, p->payload + offset, p->payload_len - offset);
     SCAsn1Decode(ac, ac->cur_frame);
 
     /* Ok, now we have all the data. Let's check the nodes */
