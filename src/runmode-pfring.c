@@ -20,7 +20,7 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-pfring.h"
-#include "source-pfring.h"
+#include "sources/pfring.h"
 #include "output.h"
 
 #include "util/util-debug.h"

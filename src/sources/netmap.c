@@ -51,7 +51,7 @@
 #include "util/util-validate.h"
 
 #include "tmqh-packetpool.h"
-#include "source-netmap.h"
+#include "netmap.h"
 #include "runmodes.h"
 
 #ifdef HAVE_NETMAP

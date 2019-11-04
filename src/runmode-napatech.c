@@ -35,7 +35,7 @@
 #include "util/util-device.h"
 #include "util/util-napatech.h"
 #include "runmode-napatech.h"
-#include "source-napatech.h" // need NapatechStreamDevConf structure
+#include "sources/napatech.h" // need NapatechStreamDevConf structure
 
 #define NT_RUNMODE_AUTOFP  1
 #define NT_RUNMODE_WORKERS 2

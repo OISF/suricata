@@ -56,7 +56,7 @@
 #include "util/util-ioctl.h"
 #include "util/util-ebpf.h"
 
-#include "source-af-packet.h"
+#include "sources/af-packet.h"
 
 extern int max_pending_packets;
 

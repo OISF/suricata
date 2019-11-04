@@ -23,10 +23,10 @@
  * File based pcap packet acquisition support
  */
 
-#include "source-pcap-file-helper.h"
+#include "pcap-file-helper.h"
 #include "util/util-checksum.h"
 #include "util/util-profiling.h"
-#include "source-pcap-file.h"
+#include "pcap-file.h"
 
 extern int max_pending_packets;
 extern PcapFileGlobalVars pcap_g;
