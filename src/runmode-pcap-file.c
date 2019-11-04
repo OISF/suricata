@@ -25,12 +25,12 @@
 #include "detect-engine.h"
 #include "source-pcap-file.h"
 
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-affinity.h"
+#include "util/util-debug.h"
+#include "util/util-time.h"
+#include "util/util-cpu.h"
+#include "util/util-affinity.h"
 
-#include "util-runmodes.h"
+#include "util/util-runmodes.h"
 
 const char *RunModeFilePcapGetDefaultMode(void)
 {

@@ -33,10 +33,10 @@
 
 #include "detect-icmp-seq.h"
 
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
+#include "util/util-byte.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
+#include "util/util-debug.h"
 
 #define PARSE_REGEX "^\\s*(\"\\s*)?([0-9]+)(\\s*\")?\\s*$"
 

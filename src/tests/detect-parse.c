@@ -17,7 +17,7 @@
  */
 
 #include "../detect-parse.h"
-#include "../util-unittest.h"
+#include "../util/util-unittest.h"
 
 /**
  * \test DetectParseTest01 is a regression test against a memory leak

@@ -29,8 +29,8 @@
 #include "output-tx.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/util-profiling.h"
+#include "util/util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;

@@ -24,8 +24,8 @@
  */
 
 #include "source-pcap-file-helper.h"
-#include "util-checksum.h"
-#include "util-profiling.h"
+#include "util/util-checksum.h"
+#include "util/util-profiling.h"
 #include "source-pcap-file.h"
 
 extern int max_pending_packets;

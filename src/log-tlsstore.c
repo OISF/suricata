@@ -36,10 +36,10 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-print.h"
-#include "util-unittest.h"
+#include "util/util-print.h"
+#include "util/util-unittest.h"
 
-#include "util-debug.h"
+#include "util/util-debug.h"
 
 #include "output.h"
 #include "log-tlslog.h"
@@ -47,12 +47,12 @@
 #include "app-layer-ssl.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "util-privs.h"
-#include "util-buffer.h"
+#include "util/util-privs.h"
+#include "util/util-buffer.h"
 
-#include "util-logopenfile.h"
-#include "util-crypt.h"
-#include "util-time.h"
+#include "util/util-logopenfile.h"
+#include "util/util-crypt.h"
+#include "util/util-time.h"
 
 #define MODULE_NAME "LogTlsStoreLog"
 

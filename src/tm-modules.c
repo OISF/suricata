@@ -26,9 +26,9 @@
 #include "suricata-common.h"
 #include "packet-queue.h"
 #include "tm-threads.h"
-#include "util-debug.h"
+#include "util/util-debug.h"
 #include "threads.h"
-#include "util-logopenfile.h"
+#include "util/util-logopenfile.h"
 
 void TmModuleDebugList(void)
 {

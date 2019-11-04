@@ -25,12 +25,12 @@
 
 #include "suricata-common.h"
 #include "debug.h"
-#include "util-unittest.h"
+#include "util/util-unittest.h"
 #include "decode.h"
 #include "threads.h"
 
-#include "util-print.h"
-#include "util-pool.h"
+#include "util/util-print.h"
+#include "util/util-pool.h"
 
 #include "flow-util.h"
 #include "flow-private.h"
@@ -73,12 +73,12 @@
 #include "app-layer-rdp.h"
 
 #include "conf.h"
-#include "util-spm.h"
+#include "util/util-spm.h"
 
-#include "util-debug.h"
+#include "util/util-debug.h"
 #include "decode-events.h"
-#include "util-unittest-helper.h"
-#include "util-validate.h"
+#include "util/util-unittest-helper.h"
+#include "util/util-validate.h"
 
 #include "runmodes.h"
 

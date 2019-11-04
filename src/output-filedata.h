@@ -27,7 +27,7 @@
 #define __OUTPUT_FILEDATA_H__
 
 #include "decode.h"
-#include "util-file.h"
+#include "util/util-file.h"
 
 #define OUTPUT_FILEDATA_FLAG_OPEN  0x01
 #define OUTPUT_FILEDATA_FLAG_CLOSE 0x02

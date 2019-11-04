@@ -27,9 +27,9 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
-#include "util-path.h"
-#include "util-debug.h"
-#include "util-unittest.h"
+#include "util/util-path.h"
+#include "util/util-debug.h"
+#include "util/util-unittest.h"
 
 #define YAML_VERSION_MAJOR 1
 #define YAML_VERSION_MINOR 1

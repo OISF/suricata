@@ -42,11 +42,11 @@
 #include "flow-util.h"
 #include "stream-tcp-private.h"
 
-#include "util-time.h"
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
+#include "util/util-time.h"
+#include "util/util-byte.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
+#include "util/util-debug.h"
 #include "threads.h"
 
 SC_ATOMIC_EXTERN(unsigned int, num_tags);

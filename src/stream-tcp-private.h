@@ -26,9 +26,9 @@
 
 #include "tree.h"
 #include "decode.h"
-#include "util-pool.h"
-#include "util-pool-thread.h"
-#include "util-streaming-buffer.h"
+#include "util/util-pool.h"
+#include "util/util-pool-thread.h"
+#include "util/util-streaming-buffer.h"
 
 #define STREAMTCP_QUEUE_FLAG_TS     0x01
 #define STREAMTCP_QUEUE_FLAG_WS     0x02

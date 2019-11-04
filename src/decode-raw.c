@@ -35,11 +35,11 @@
 #include "decode-raw.h"
 #include "decode-events.h"
 
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/util-unittest.h"
+#include "util/util-debug.h"
 
 #include "pkt-var.h"
-#include "util-profiling.h"
+#include "util/util-profiling.h"
 #include "host.h"
 
 

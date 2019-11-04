@@ -26,14 +26,14 @@
 #include "suricata-common.h"
 #include "conf.h"
 
-#include "util-debug.h"
+#include "util/util-debug.h"
 #include "host.h"
 #include "host-storage.h"
 #include "host-bit.h"
 
-#include "util-random.h"
-#include "util-misc.h"
-#include "util-byte.h"
+#include "util/util-random.h"
+#include "util/util-misc.h"
+#include "util/util-byte.h"
 
 #include "host-queue.h"
 
@@ -41,7 +41,7 @@
 #include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
 
-#include "util-hash-lookup3.h"
+#include "util/util-hash-lookup3.h"
 
 static Host *HostGetUsedHost(void);
 

@@ -33,8 +33,8 @@
 #include "suricata.h"
 
 #include "conf.h"
-#include "util-mem.h"
-#include "util-misc.h"
+#include "util/util-mem.h"
+#include "util/util-misc.h"
 
 #include "app-layer-htp-mem.h"
 

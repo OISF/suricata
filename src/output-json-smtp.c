@@ -33,20 +33,20 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-print.h"
-#include "util-unittest.h"
+#include "util/util-print.h"
+#include "util/util-unittest.h"
 
-#include "util-debug.h"
+#include "util/util-debug.h"
 
 #include "output.h"
 #include "app-layer-smtp.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "util-privs.h"
-#include "util-buffer.h"
-#include "util-proto-name.h"
-#include "util-logopenfile.h"
-#include "util-time.h"
+#include "util/util-privs.h"
+#include "util/util-buffer.h"
+#include "util/util-proto-name.h"
+#include "util/util-logopenfile.h"
+#include "util/util-time.h"
 
 #include "output-json.h"
 #include "output-json-smtp.h"

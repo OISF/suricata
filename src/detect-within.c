@@ -39,11 +39,11 @@
 
 #include "flow-var.h"
 
-#include "util-byte.h"
-#include "util-debug.h"
+#include "util/util-byte.h"
+#include "util/util-debug.h"
 #include "detect-pcre.h"
 #include "detect-within.h"
-#include "util-unittest.h"
+#include "util/util-unittest.h"
 
 static int DetectWithinSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectWithinRegisterTests(void);
@@ -161,7 +161,7 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 /***********************************Unittests**********************************/
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/util-unittest-helper.h"
  /**
  * \test DetectWithinTestPacket01 is a test to check matches of
  * within, if the previous keyword is pcre (bug 145)

@@ -37,10 +37,10 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
-#include "util-print.h"
-#include "util-pool.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/util-print.h"
+#include "util/util-pool.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
 
 #include "flow.h"
 #include "flow-util.h"
@@ -58,9 +58,9 @@
 #include "app-layer-expectation.h"
 
 #include "conf.h"
-#include "util-memcmp.h"
-#include "util-spm.h"
-#include "util-debug.h"
+#include "util/util-memcmp.h"
+#include "util/util-spm.h"
+#include "util/util-debug.h"
 
 #include "runmodes.h"
 

@@ -28,7 +28,7 @@
 #include "packet-queue.h"
 #include "threads.h"
 #include "suricata.h"
-#include "util-var.h"
+#include "util/util-var.h"
 #include "pkt-var.h"
 
 #ifdef DEBUG

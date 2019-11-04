@@ -31,12 +31,12 @@
 
 #include "output-json-stats.h"
 
-#include "util-privs.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-ebpf.h"
-#include "util-signal.h"
-#include "util-buffer.h"
+#include "util/util-privs.h"
+#include "util/util-debug.h"
+#include "util/util-device.h"
+#include "util/util-ebpf.h"
+#include "util/util-signal.h"
+#include "util/util-buffer.h"
 
 #if (defined BUILD_UNIX_SOCKET) && (defined HAVE_SYS_UN_H) && (defined HAVE_SYS_STAT_H) && (defined HAVE_SYS_TYPES_H)
 #include <sys/un.h>

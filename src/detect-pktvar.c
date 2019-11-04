@@ -33,8 +33,8 @@
 #include "pkt-var.h"
 #include "detect-pktvar.h"
 #include "detect-content.h"
-#include "util-spm.h"
-#include "util-debug.h"
+#include "util/util-spm.h"
+#include "util/util-debug.h"
 
 #define PARSE_REGEX         "(.*),(.*)"
 static pcre *parse_regex;

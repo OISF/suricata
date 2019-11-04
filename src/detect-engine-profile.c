@@ -28,8 +28,8 @@
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "output-json.h"
-#include "util-buffer.h"
-#include "util-print.h"
+#include "util/util-buffer.h"
+#include "util/util-print.h"
 #include "detect-engine-profile.h"
 
 #ifdef PROFILING

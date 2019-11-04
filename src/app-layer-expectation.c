@@ -60,7 +60,7 @@
 
 #include "app-layer-expectation.h"
 
-#include "util-print.h"
+#include "util/util-print.h"
 
 static int g_expectation_id = -1;
 static int g_expectation_data_id = -1;

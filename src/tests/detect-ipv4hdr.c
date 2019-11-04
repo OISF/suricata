@@ -23,7 +23,7 @@
 
 #include "../detect-ipv4hdr.h"
 
-#include "../util-unittest.h"
+#include "../util/util-unittest.h"
 
 static int DetectIpv4hdrParseTest01 (void)
 {
