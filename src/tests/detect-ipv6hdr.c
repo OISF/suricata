@@ -23,7 +23,7 @@
 
 #include "../detect-ipv6hdr.h"
 
-#include "../util-unittest.h"
+#include "../util/util-unittest.h"
 
 static int DetectIpv6hdrParseTest01 (void)
 {

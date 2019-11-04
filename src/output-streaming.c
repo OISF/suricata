@@ -30,13 +30,13 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
-#include "util-print.h"
+#include "util/util-print.h"
 #include "conf.h"
-#include "util-profiling.h"
+#include "util/util-profiling.h"
 #include "stream-tcp.h"
 #include "stream-tcp-inline.h"
 #include "stream-tcp-reassemble.h"
-#include "util-validate.h"
+#include "util/util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;

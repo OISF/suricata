@@ -40,8 +40,8 @@
 #include "flow-util.h"
 #include "flow-var.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
 
 #include "app-layer-nfs-tcp.h"
 #include "rust.h"

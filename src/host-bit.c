@@ -33,9 +33,9 @@
 #include "host-bit.h"
 #include "host.h"
 #include "detect.h"
-#include "util-var.h"
-#include "util-debug.h"
-#include "util-unittest.h"
+#include "util/util-var.h"
+#include "util/util-debug.h"
+#include "util/util-unittest.h"
 #include "host-storage.h"
 
 static int host_bit_id = -1;                /**< Host storage id for bits */

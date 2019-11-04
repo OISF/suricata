@@ -32,12 +32,12 @@
 
 #include "detect-csum.h"
 
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/util-unittest.h"
+#include "util/util-debug.h"
 
 #include "pkt-var.h"
 #include "host.h"
-#include "util-profiling.h"
+#include "util/util-profiling.h"
 
 /* prototypes for the "ipv4-csum" rule keyword */
 static int DetectIPV4CsumMatch(DetectEngineThreadCtx *,

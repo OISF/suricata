@@ -45,10 +45,10 @@
 
 #include "tmqh-packetpool.h"
 
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-profiling.h"
-#include "util-device.h"
+#include "util/util-debug.h"
+#include "util/util-error.h"
+#include "util/util-profiling.h"
+#include "util/util-device.h"
 
 /* Number of freed packet to save for one pool before freeing them. */
 #define MAX_PENDING_RETURN_PACKETS 32

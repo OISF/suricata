@@ -26,8 +26,8 @@
 #include "queue.h"
 #include "suricata.h"
 #include "conf.h"
-#include "util-debug.h"
-#include "util-misc.h"
+#include "util/util-debug.h"
+#include "util/util-misc.h"
 #include "defrag-config.h"
 
 static SCRadixTree *defrag_tree = NULL;

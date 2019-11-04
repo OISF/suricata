@@ -40,32 +40,32 @@
 
 #include "output.h"
 
-#include "util-unittest.h"
+#include "util/util-unittest.h"
 #include "alert-unified2-alert.h"
 #include "decode-ipv4.h"
 
 #include "host.h"
-#include "util-profiling.h"
+#include "util/util-profiling.h"
 #include "decode.h"
 
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-byte.h"
-#include "util-misc.h"
-#include "util-logopenfile.h"
+#include "util/util-error.h"
+#include "util/util-debug.h"
+#include "util/util-time.h"
+#include "util/util-byte.h"
+#include "util/util-misc.h"
+#include "util/util-logopenfile.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "app-layer.h"
 #include "app-layer-htp-xff.h"
 
-#include "util-privs.h"
+#include "util/util-privs.h"
 
 #include "stream.h"
 #include "stream-tcp-inline.h"
 
-#include "util-optimize.h"
+#include "util/util-optimize.h"
 
 #ifndef IPPROTO_SCTP
 #define IPPROTO_SCTP 132

@@ -26,7 +26,7 @@
 #define __FLOW_VAR_H__
 
 #include "flow.h"
-#include "util-var.h"
+#include "util/util-var.h"
 
 /** Available data types for Flowvars */
 

@@ -44,9 +44,9 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-memcmp.h"
+#include "util/util-debug.h"
+#include "util/util-print.h"
+#include "util/util-memcmp.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"

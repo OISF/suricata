@@ -34,22 +34,22 @@
 #include "detect-engine-register.h"
 #include "packet-queue.h"
 
-#include "util-prefilter.h"
-#include "util-mpm.h"
-#include "util-spm.h"
-#include "util-hash.h"
-#include "util-hashlist.h"
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-radix-tree.h"
-#include "util-file.h"
+#include "util/util-prefilter.h"
+#include "util/util-mpm.h"
+#include "util/util-spm.h"
+#include "util/util-hash.h"
+#include "util/util-hashlist.h"
+#include "util/util-debug.h"
+#include "util/util-error.h"
+#include "util/util-radix-tree.h"
+#include "util/util-file.h"
 #include "reputation.h"
 
 #include "detect-mark.h"
 
 #include "stream.h"
 
-#include "util-var-name.h"
+#include "util/util-var-name.h"
 
 #include "app-layer-events.h"
 

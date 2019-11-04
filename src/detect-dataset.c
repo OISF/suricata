@@ -35,8 +35,8 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
-#include "util-debug.h"
-#include "util-print.h"
+#include "util/util-debug.h"
+#include "util/util-print.h"
 
 #define PARSE_REGEX         "([a-z]+)(?:,\\s*([\\-_A-z0-9\\s\\.]+)){1,4}"
 static pcre *parse_regex;

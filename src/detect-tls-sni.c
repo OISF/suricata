@@ -39,10 +39,10 @@
 #include "flow-util.h"
 #include "flow-var.h"
 
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-spm.h"
-#include "util-print.h"
+#include "util/util-debug.h"
+#include "util/util-unittest.h"
+#include "util/util-spm.h"
+#include "util/util-print.h"
 
 #include "stream-tcp.h"
 
@@ -51,8 +51,8 @@
 #include "detect-engine-prefilter.h"
 #include "detect-tls-sni.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
 
 static int DetectTlsSniSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

@@ -31,7 +31,7 @@
 #include "stream-tcp-reassemble.h"
 #include "stream.h"
 
-#include "util-profiling.h"
+#include "util/util-profiling.h"
 
 #define APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER \
     (~STREAM_TOSERVER & ~STREAM_TOCLIENT)

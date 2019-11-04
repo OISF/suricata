@@ -36,7 +36,7 @@
 #include "decode.h"
 #include "decode-ipv6.h"
 #include "decode-teredo.h"
-#include "util-debug.h"
+#include "util/util-debug.h"
 #include "conf.h"
 
 #define TEREDO_ORIG_INDICATION_LENGTH    8

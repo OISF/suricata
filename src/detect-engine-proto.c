@@ -38,11 +38,11 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-state.h"
 
-#include "util-cidr.h"
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
+#include "util/util-cidr.h"
+#include "util/util-byte.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
+#include "util/util-debug.h"
 
 /**
  * \brief Parses a protocol sent as a string.

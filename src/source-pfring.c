@@ -38,13 +38,13 @@
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
 #include "source-pfring.h"
-#include "util-debug.h"
-#include "util-checksum.h"
-#include "util-privs.h"
-#include "util-device.h"
-#include "util-host-info.h"
+#include "util/util-debug.h"
+#include "util/util-checksum.h"
+#include "util/util-privs.h"
+#include "util/util-device.h"
+#include "util/util-host-info.h"
 #include "runmodes.h"
-#include "util-profiling.h"
+#include "util/util-profiling.h"
 
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode PfringBreakLoop(ThreadVars *tv, void *data);

@@ -37,8 +37,8 @@
 
 #include "flow-var.h"
 
-#include "util-byte.h"
-#include "util-debug.h"
+#include "util/util-byte.h"
+#include "util/util-debug.h"
 
 static int DetectOffsetSetup(DetectEngineCtx *, Signature *, const char *);
 

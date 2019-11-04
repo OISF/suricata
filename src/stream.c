@@ -25,8 +25,8 @@
 #include "decode.h"
 #include "threads.h"
 #include "stream.h"
-#include "util-pool.h"
-#include "util-debug.h"
+#include "util/util-pool.h"
+#include "util/util-debug.h"
 #include "stream-tcp.h"
 #include "flow-util.h"
 

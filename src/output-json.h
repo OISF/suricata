@@ -25,8 +25,8 @@
 #define __OUTPUT_JSON_H__
 
 #include "suricata-common.h"
-#include "util-buffer.h"
-#include "util-logopenfile.h"
+#include "util/util-buffer.h"
+#include "util/util-logopenfile.h"
 #include "output.h"
 
 #include "app-layer-htp-xff.h"

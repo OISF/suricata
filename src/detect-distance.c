@@ -41,11 +41,11 @@
 
 #include "flow-var.h"
 
-#include "util-byte.h"
-#include "util-debug.h"
-#include "util-unittest.h"
+#include "util/util-byte.h"
+#include "util/util-debug.h"
+#include "util/util-unittest.h"
 #include "detect-bytejump.h"
-#include "util-unittest-helper.h"
+#include "util/util-unittest-helper.h"
 
 static int DetectDistanceSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDistanceRegisterTests(void);

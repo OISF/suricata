@@ -26,7 +26,7 @@
 #include "suricata-common.h"
 #include "tm-modules.h"
 #include "output-stats.h"
-#include "util-validate.h"
+#include "util/util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;

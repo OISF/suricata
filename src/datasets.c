@@ -28,10 +28,10 @@
 #include "datasets-md5.h"
 #include "datasets-sha256.h"
 #include "datasets-reputation.h"
-#include "util-thash.h"
-#include "util-print.h"
-#include "util-crypt.h"     // encode base64
-#include "util-base64.h"    // decode base64
+#include "util/util-thash.h"
+#include "util/util-print.h"
+#include "util/util-crypt.h"     // encode base64
+#include "util/util-base64.h"    // decode base64
 
 SCMutex sets_lock = SCMUTEX_INITIALIZER;
 static Dataset *sets = NULL;

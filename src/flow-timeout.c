@@ -29,8 +29,8 @@
 #include "tm-threads.h"
 #include "runmodes.h"
 
-#include "util-random.h"
-#include "util-time.h"
+#include "util/util-random.h"
+#include "util/util-time.h"
 
 #include "flow.h"
 #include "flow-queue.h"
@@ -47,12 +47,12 @@
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
+#include "util/util-byte.h"
 
-#include "util-debug.h"
-#include "util-privs.h"
+#include "util/util-debug.h"
+#include "util/util-privs.h"
 
 #include "detect.h"
 #include "detect-engine-state.h"
@@ -61,7 +61,7 @@
 #include "app-layer-parser.h"
 #include "app-layer.h"
 
-#include "util-profiling.h"
+#include "util/util-profiling.h"
 
 /**
  * \internal

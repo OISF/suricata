@@ -81,7 +81,7 @@
                                        ((c)->flags & DETECT_CONTENT_FAST_PATTERN_CHOP))
 
 
-#include "util-spm.h"
+#include "util/util-spm.h"
 
 typedef struct DetectContentData_ {
     uint8_t *content;

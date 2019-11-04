@@ -29,13 +29,13 @@
 #include "suricata.h"
 #include "tm-threads.h"
 
-#include "util-byte.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-error.h"
-#include "util-ioctl.h"
-#include "util-privs.h"
-#include "util-unittest.h"
+#include "util/util-byte.h"
+#include "util/util-debug.h"
+#include "util/util-device.h"
+#include "util/util-error.h"
+#include "util/util-ioctl.h"
+#include "util/util-privs.h"
+#include "util/util-unittest.h"
 
 #include "runmodes.h"
 
