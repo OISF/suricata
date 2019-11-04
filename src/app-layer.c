@@ -41,10 +41,10 @@
 #include "flow-private.h"
 #include "ippair.h"
 
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 #include "decode-events.h"
 
 #include "app-layer-htp-mem.h"
@@ -964,7 +964,7 @@ void AppLayerDeSetupCounters()
 #include "stream-tcp.h"
 #include "stream-tcp-util.h"
 #include "stream.h"
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 #define TEST_START \
     Packet *p = SCMalloc(SIZE_OF_PACKET);\

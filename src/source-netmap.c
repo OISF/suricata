@@ -41,14 +41,14 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 #include "conf.h"
-#include "util-bpf.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-error.h"
-#include "util-privs.h"
-#include "util-optimize.h"
-#include "util-checksum.h"
-#include "util-validate.h"
+#include "util/bpf.h"
+#include "util/debug.h"
+#include "util/device.h"
+#include "util/error.h"
+#include "util/privs.h"
+#include "util/optimize.h"
+#include "util/checksum.h"
+#include "util/validate.h"
 
 #include "tmqh-packetpool.h"
 #include "source-netmap.h"
@@ -72,7 +72,7 @@
 
 #endif /* HAVE_NETMAP */
 
-#include "util-ioctl.h"
+#include "util/ioctl.h"
 
 #ifndef HAVE_NETMAP
 

@@ -37,13 +37,13 @@
 #include "decode-sctp.h"
 #include "decode-udp.h"
 #include "decode-events.h"
-#include "util-unittest.h"
+#include "util/unittest.h"
 #include "flow.h"
-#include "util-debug.h"
-#include "util-print.h"
+#include "util/debug.h"
+#include "util/print.h"
 
 #include "pkt-var.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 #include "host.h"
 
 

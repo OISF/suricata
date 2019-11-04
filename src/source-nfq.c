@@ -42,12 +42,12 @@
 #include "source-nfq-prototypes.h"
 #include "action-globals.h"
 
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-byte.h"
-#include "util-cpu.h"
-#include "util-privs.h"
-#include "util-device.h"
+#include "util/debug.h"
+#include "util/error.h"
+#include "util/byte.h"
+#include "util/cpu.h"
+#include "util/privs.h"
+#include "util/device.h"
 
 #include "runmodes.h"
 

@@ -23,13 +23,13 @@
 #include "source-pfring.h"
 #include "output.h"
 
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-affinity.h"
-#include "util-runmodes.h"
-#include "util-device.h"
-#include "util-ioctl.h"
+#include "util/debug.h"
+#include "util/time.h"
+#include "util/cpu.h"
+#include "util/affinity.h"
+#include "util/runmodes.h"
+#include "util/device.h"
+#include "util/ioctl.h"
 
 #ifdef HAVE_PFRING
 #include <pfring.h>

@@ -4,7 +4,7 @@ noinst_HEADERS = action-globals.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
 	source-windivert-prototypes.h \
 	suricata-common.h threadvars.h tree.h \
-    util-validate.h
+    util/validate.h
 bin_PROGRAMS = suricata
 
 suricata_SOURCES = \
@@ -416,118 +416,118 @@ tm-queuehandlers.c tm-queuehandlers.h \
 tm-queues.c tm-queues.h \
 tm-threads.c tm-threads.h tm-threads-common.h \
 unix-manager.c unix-manager.h \
-util-action.c util-action.h \
-util-atomic.c util-atomic.h \
-util-base64.c util-base64.h \
-util-bloomfilter-counting.c util-bloomfilter-counting.h \
-util-bloomfilter.c util-bloomfilter.h \
-util-bpf.c util-bpf.h \
-util-buffer.c util-buffer.h \
-util-byte.c util-byte.h \
-util-checksum.c util-checksum.h \
-util-cidr.c util-cidr.h \
-util-classification-config.c util-classification-config.h \
-util-conf.c util-conf.h \
-util-coredump-config.c util-coredump-config.h \
-util-cpu.c util-cpu.h \
-util-crypt.c util-crypt.h \
-util-daemon.c util-daemon.h \
-util-debug.c util-debug.h \
-util-debug-filters.c util-debug-filters.h \
-util-decode-asn1.c util-decode-asn1.h \
-util-decode-der.c util-decode-der.h \
-util-decode-der-get.c util-decode-der-get.h \
-util-decode-mime.c util-decode-mime.h \
-util-detect.c util-detect.h \
-util-device.c util-device.h \
-util-ebpf.c util-ebpf.h \
-util-enum.c util-enum.h \
-util-error.c util-error.h \
-util-file.c util-file.h \
-util-file-decompression.c util-file-decompression.h \
-util-file-swf-decompression.c util-file-swf-decompression.h \
-util-fix_checksum.c util-fix_checksum.h \
-util-fmemopen.c util-fmemopen.h \
-util-hash.c util-hash.h \
-util-hashlist.c util-hashlist.h \
-util-hash-lookup3.c util-hash-lookup3.h \
-util-hash-string.c util-hash-string.h \
-util-host-os-info.c util-host-os-info.h \
-util-host-info.c util-host-info.h \
-util-hyperscan.c util-hyperscan.h \
-util-ioctl.h util-ioctl.c \
-util-ip.h util-ip.c \
-util-ja3.h util-ja3.c \
-util-logopenfile.h util-logopenfile.c \
-util-log-redis.h util-log-redis.c \
-util-lua.c util-lua.h \
-util-luajit.c util-luajit.h \
-util-lua-common.c util-lua-common.h \
-util-lua-dnp3.c util-lua-dnp3.h \
-util-lua-dnp3-objects.c util-lua-dnp3-objects.h \
-util-lua-dns.c util-lua-dns.h \
-util-lua-http.c util-lua-http.h \
-util-lua-ja3.c util-lua-ja3.h \
-util-lua-tls.c util-lua-tls.h \
-util-lua-ssh.c util-lua-ssh.h \
-util-lua-smtp.c util-lua-smtp.h \
-util-magic.c util-magic.h \
-util-memcmp.c util-memcmp.h \
-util-memcpy.h \
-util-mem.h \
-util-memrchr.c util-memrchr.h \
-util-misc.c util-misc.h \
-util-mpm-ac-bs.c util-mpm-ac-bs.h \
-util-mpm-ac.c util-mpm-ac.h \
-util-mpm-ac-ks.c util-mpm-ac-ks.h \
-util-mpm-ac-ks-small.c \
-util-mpm-hs.c util-mpm-hs.h \
-util-mpm.c util-mpm.h \
-util-napatech.c util-napatech.h \
-util-optimize.h \
-util-pages.c util-pages.h \
-util-path.c util-path.h \
-util-pidfile.c util-pidfile.h \
-util-pool.c util-pool.h \
-util-pool-thread.c util-pool-thread.h \
-util-prefilter.c util-prefilter.h \
-util-print.c util-print.h \
-util-privs.c util-privs.h \
-util-profiling.c util-profiling.h \
-util-profiling-keywords.c \
-util-profiling-locks.c util-profiling-locks.h \
-util-profiling-prefilter.c \
-util-profiling-rulegroups.c \
-util-profiling-rules.c \
-util-proto-name.c util-proto-name.h \
-util-radix-tree.c util-radix-tree.h \
-util-random.c util-random.h \
-util-reference-config.c util-reference-config.h \
-util-rohash.c util-rohash.h \
-util-rule-vars.c util-rule-vars.h \
-util-runmodes.c util-runmodes.h \
-util-running-modes.c util-running-modes.h \
-util-signal.c util-signal.h \
-util-spm-bm.c util-spm-bm.h \
-util-spm-bs2bm.c util-spm-bs2bm.h \
-util-spm-bs.c util-spm-bs.h \
-util-spm-hs.c util-spm-hs.h \
-util-spm.c util-spm.h util-clock.h \
-util-storage.c util-storage.h \
-util-streaming-buffer.c util-streaming-buffer.h \
-util-strlcatu.c \
-util-strlcpyu.c \
-util-strptime.c \
-util-syslog.c util-syslog.h \
-util-thash.c util-thash.h \
-util-threshold-config.c util-threshold-config.h \
-util-time.c util-time.h \
-util-unittest.c util-unittest.h \
-util-unittest-helper.c util-unittest-helper.h \
-util-validate.h util-affinity.h util-affinity.c \
-util-var.c util-var.h \
-util-var-name.c util-var-name.h \
-util-vector.h \
+util/action.c util/action.h \
+util/atomic.c util/atomic.h \
+util/base64.c util/base64.h \
+util/bloomfilter-counting.c util/bloomfilter-counting.h \
+util/bloomfilter.c util/bloomfilter.h \
+util/bpf.c util/bpf.h \
+util/buffer.c util/buffer.h \
+util/byte.c util/byte.h \
+util/checksum.c util/checksum.h \
+util/cidr.c util/cidr.h \
+util/classification-config.c util/classification-config.h \
+util/conf.c util/conf.h \
+util/coredump-config.c util/coredump-config.h \
+util/cpu.c util/cpu.h \
+util/crypt.c util/crypt.h \
+util/daemon.c util/daemon.h \
+util/debug.c util/debug.h \
+util/debug-filters.c util/debug-filters.h \
+util/decode-asn1.c util/decode-asn1.h \
+util/decode-der.c util/decode-der.h \
+util/decode-der-get.c util/decode-der-get.h \
+util/decode-mime.c util/decode-mime.h \
+util/detect.c util/detect.h \
+util/device.c util/device.h \
+util/ebpf.c util/ebpf.h \
+util/enum.c util/enum.h \
+util/error.c util/error.h \
+util/file.c util/file.h \
+util/file-decompression.c util/file-decompression.h \
+util/file-swf-decompression.c util/file-swf-decompression.h \
+util/fix_checksum.c util/fix_checksum.h \
+util/fmemopen.c util/fmemopen.h \
+util/hash.c util/hash.h \
+util/hashlist.c util/hashlist.h \
+util/hash-lookup3.c util/hash-lookup3.h \
+util/hash-string.c util/hash-string.h \
+util/host-os-info.c util/host-os-info.h \
+util/host-info.c util/host-info.h \
+util/hyperscan.c util/hyperscan.h \
+util/ioctl.h util/ioctl.c \
+util/ip.h util/ip.c \
+util/ja3.h util/ja3.c \
+util/logopenfile.h util/logopenfile.c \
+util/log-redis.h util/log-redis.c \
+util/lua.c util/lua.h \
+util/luajit.c util/luajit.h \
+util/lua-common.c util/lua-common.h \
+util/lua-dnp3.c util/lua-dnp3.h \
+util/lua-dnp3-objects.c util/lua-dnp3-objects.h \
+util/lua-dns.c util/lua-dns.h \
+util/lua-http.c util/lua-http.h \
+util/lua-ja3.c util/lua-ja3.h \
+util/lua-tls.c util/lua-tls.h \
+util/lua-ssh.c util/lua-ssh.h \
+util/lua-smtp.c util/lua-smtp.h \
+util/magic.c util/magic.h \
+util/memcmp.c util/memcmp.h \
+util/memcpy.h \
+util/mem.h \
+util/memrchr.c util/memrchr.h \
+util/misc.c util/misc.h \
+util/mpm-ac-bs.c util/mpm-ac-bs.h \
+util/mpm-ac.c util/mpm-ac.h \
+util/mpm-ac-ks.c util/mpm-ac-ks.h \
+util/mpm-ac-ks-small.c \
+util/mpm-hs.c util/mpm-hs.h \
+util/mpm.c util/mpm.h \
+util/napatech.c util/napatech.h \
+util/optimize.h \
+util/pages.c util/pages.h \
+util/path.c util/path.h \
+util/pidfile.c util/pidfile.h \
+util/pool.c util/pool.h \
+util/pool-thread.c util/pool-thread.h \
+util/prefilter.c util/prefilter.h \
+util/print.c util/print.h \
+util/privs.c util/privs.h \
+util/profiling.c util/profiling.h \
+util/profiling-keywords.c \
+util/profiling-locks.c util/profiling-locks.h \
+util/profiling-prefilter.c \
+util/profiling-rulegroups.c \
+util/profiling-rules.c \
+util/proto-name.c util/proto-name.h \
+util/radix-tree.c util/radix-tree.h \
+util/random.c util/random.h \
+util/reference-config.c util/reference-config.h \
+util/rohash.c util/rohash.h \
+util/rule-vars.c util/rule-vars.h \
+util/runmodes.c util/runmodes.h \
+util/running-modes.c util/running-modes.h \
+util/signal.c util/signal.h \
+util/spm-bm.c util/spm-bm.h \
+util/spm-bs2bm.c util/spm-bs2bm.h \
+util/spm-bs.c util/spm-bs.h \
+util/spm-hs.c util/spm-hs.h \
+util/spm.c util/spm.h util/clock.h \
+util/storage.c util/storage.h \
+util/streaming-buffer.c util/streaming-buffer.h \
+util/strlcatu.c \
+util/strlcpyu.c \
+util/strptime.c \
+util/syslog.c util/syslog.h \
+util/thash.c util/thash.h \
+util/threshold-config.c util/threshold-config.h \
+util/time.c util/time.h \
+util/unittest.c util/unittest.h \
+util/unittest-helper.c util/unittest-helper.h \
+util/validate.h util/affinity.h util/affinity.c \
+util/var.c util/var.h \
+util/var-name.c util/var-name.h \
+util/vector.h \
 win32/syscall.c win32/syscall.h \
 win32/misc.c win32/misc.h \
 win32/service.c win32/service.h \

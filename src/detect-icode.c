@@ -33,10 +33,10 @@
 
 #include "detect-icode.h"
 
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
 
 /**
  *\brief Regex for parsing our icode options

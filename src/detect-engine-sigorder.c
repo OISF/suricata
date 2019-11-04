@@ -32,10 +32,10 @@
 #include "detect-engine-sigorder.h"
 #include "detect-pcre.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
-#include "util-action.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
+#include "util/action.h"
 #include "action-globals.h"
 #include "flow-util.h"
 

@@ -35,12 +35,12 @@
 #include "tm-threads.h"
 #include "tmqh-packetpool.h"
 #include "threads.h"
-#include "util-debug.h"
-#include "util-privs.h"
-#include "util-cpu.h"
-#include "util-optimize.h"
-#include "util-profiling.h"
-#include "util-signal.h"
+#include "util/debug.h"
+#include "util/privs.h"
+#include "util/cpu.h"
+#include "util/optimize.h"
+#include "util/profiling.h"
+#include "util/signal.h"
 #include "queue.h"
 
 #ifdef PROFILE_LOCKING

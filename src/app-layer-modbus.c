@@ -36,11 +36,11 @@
 
 #include "suricata-common.h"
 
-#include "util-debug.h"
-#include "util-byte.h"
-#include "util-enum.h"
-#include "util-mem.h"
-#include "util-misc.h"
+#include "util/debug.h"
+#include "util/byte.h"
+#include "util/enum.h"
+#include "util/mem.h"
+#include "util/misc.h"
 
 #include "stream.h"
 #include "stream-tcp.h"
@@ -1589,8 +1589,8 @@ void RegisterModbusParsers(void)
 
 #include "flow-util.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"

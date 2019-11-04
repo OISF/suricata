@@ -45,11 +45,11 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-file-decompression.h"
+#include "util/debug.h"
+#include "util/spm-bm.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/file-decompression.h"
 
 static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

@@ -36,7 +36,7 @@
 #include "detect-flow.h"
 #include "detect-tcp-flags.h"
 #include "feature.h"
-#include "util-print.h"
+#include "util/print.h"
 
 static int rule_warnings_only = 0;
 static FILE *rule_engine_analysis_FD = NULL;
@@ -554,7 +554,7 @@ void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
     fprintf(rule_engine_analysis_FD, "\n");
 }
 
-#include "util-buffer.h"
+#include "util/buffer.h"
 #include "output-json.h"
 
 typedef struct RuleAnalyzer {

@@ -42,12 +42,12 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-print.h"
+#include "util/debug.h"
+#include "util/spm-bm.h"
+#include "util/print.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "app-layer.h"
 
@@ -56,21 +56,21 @@
 #include "detect-lua.h"
 
 #include "queue.h"
-#include "util-cpu.h"
+#include "util/cpu.h"
 
 #include "app-layer-parser.h"
 
 #ifdef HAVE_LUA
 
-#include "util-lua.h"
-#include "util-lua-common.h"
-#include "util-lua-http.h"
-#include "util-lua-dns.h"
-#include "util-lua-ja3.h"
-#include "util-lua-tls.h"
-#include "util-lua-ssh.h"
-#include "util-lua-smtp.h"
-#include "util-lua-dnp3.h"
+#include "util/lua.h"
+#include "util/lua-common.h"
+#include "util/lua-http.h"
+#include "util/lua-dns.h"
+#include "util/lua-ja3.h"
+#include "util/lua-tls.h"
+#include "util/lua-ssh.h"
+#include "util/lua-smtp.h"
+#include "util/lua-dnp3.h"
 #include "detect-lua-extensions.h"
 
 static const char luaext_key_ld[] = "suricata:luadata";

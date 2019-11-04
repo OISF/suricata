@@ -42,7 +42,7 @@
 #include "output.h"
 #include "app-layer-parser.h"
 
-#include "util-validate.h"
+#include "util/validate.h"
 
 #include "flow-util.h"
 

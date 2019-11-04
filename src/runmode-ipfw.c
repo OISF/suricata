@@ -33,13 +33,13 @@
 #include "runmode-ipfw.h"
 #include "output.h"
 
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-affinity.h"
-#include "util-runmodes.h"
+#include "util/debug.h"
+#include "util/time.h"
+#include "util/cpu.h"
+#include "util/affinity.h"
+#include "util/runmodes.h"
 #include "source-ipfw.h"
-#include "util-device.h"
+#include "util/device.h"
 
 const char *RunModeIpsIPFWGetDefaultMode(void)
 {

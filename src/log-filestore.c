@@ -39,24 +39,24 @@
 
 #include "stream.h"
 
-#include "util-print.h"
-#include "util-unittest.h"
-#include "util-privs.h"
-#include "util-debug.h"
-#include "util-atomic.h"
-#include "util-file.h"
-#include "util-time.h"
-#include "util-misc.h"
+#include "util/print.h"
+#include "util/unittest.h"
+#include "util/privs.h"
+#include "util/debug.h"
+#include "util/atomic.h"
+#include "util/file.h"
+#include "util/time.h"
+#include "util/misc.h"
 
 #include "output.h"
 
 #include "log-filestore.h"
-#include "util-logopenfile.h"
+#include "util/logopenfile.h"
 
 #include "app-layer-htp.h"
 #include "app-layer-smtp.h"
-#include "util-decode-mime.h"
-#include "util-memcmp.h"
+#include "util/decode-mime.h"
+#include "util/memcmp.h"
 #include "stream-tcp-reassemble.h"
 
 #define MODULE_NAME "LogFilestoreLog"

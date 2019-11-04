@@ -45,16 +45,16 @@
 #include "detect-engine-threshold.h"
 #include "detect-engine-iponly.h"
 #include "detect-threshold.h"
-#include "util-classification-config.h"
-#include "util-rule-vars.h"
+#include "util/classification-config.h"
+#include "util/rule-vars.h"
 
 #include "flow-util.h"
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-print.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/print.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 
 #ifdef OS_WIN32
 #include <winsock.h>

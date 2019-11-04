@@ -36,9 +36,9 @@
 
 #include "detect-geoip.h"
 
-#include "util-mem.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/mem.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #ifndef HAVE_GEOIP
 
