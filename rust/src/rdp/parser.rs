@@ -490,7 +490,7 @@ fn parse_x224_connection_request(
     input: &[u8],
 ) -> IResult<&[u8], X224ConnectionRequest, RdpError> {
     let (i1, length) = verify!(input, be_u8, |&x| x != 0xff)?; // 0xff is reserved
-    let (i2, cr_cdt) = take_4_4_bits(input)?;
+    let (i2, cr_cdt) = take_4_4_bits(i1)?;
     let _ = verify!(i1, value!(cr_cdt.0), |&x| x
                 == X224Type::ConnectionRequest as u8)?;
     let _ = verify!(i1, value!(cr_cdt.1), |&x| x == 0 || x == 1)?;
