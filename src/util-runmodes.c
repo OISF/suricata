@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -67,7 +67,8 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n)
 
     char *queues = SCMalloc(queues_size);
     if (unlikely(queues == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "failed to alloc queues buffer: %s", strerror(errno));
+        SCLogError(SC_ERR_MEM_ALLOC, "failed to alloc queues buffer: %s",
+                strerror(errno));
         return NULL;
     }
     memset(queues, 0x00, queues_size);
@@ -95,7 +96,6 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 {
     char tname[TM_THREAD_NAME_MAX];
     char qname[TM_QUEUE_NAME_MAX];
-    char *queues = NULL;
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
@@ -111,26 +111,21 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         thread_max = 1024;
     }
 
-    queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
+    char *queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "RunmodeAutoFpCreatePickupQueuesString failed");
-         exit(EXIT_FAILURE);
+        FatalError(SC_ERR_RUNMODE, "RunmodeAutoFpCreatePickupQueuesString failed");
     }
 
     if ((nlive <= 1) && (live_dev != NULL)) {
-        void *aconf;
-        int threads_count;
-
         SCLogDebug("live_dev %s", live_dev);
 
-        aconf = ConfigParser(live_dev);
+        void *aconf = ConfigParser(live_dev);
         if (aconf == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "Failed to allocate config for %s",
+            FatalError(SC_ERR_RUNMODE, "Failed to allocate config for %s",
                    live_dev);
-            exit(EXIT_FAILURE);
         }
 
-        threads_count = ModThreadsCount(aconf);
+        int threads_count = ModThreadsCount(aconf);
         SCLogInfo("Going to use %" PRId32 " %s receive thread(s)",
                   threads_count, recv_mod_name);
 
@@ -142,31 +137,27 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                         "packetpool", "packetpool",
                         queues, "flow", "pktacqloop");
             if (tv_receive == NULL) {
-                SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
             }
             TmModule *tm_module = TmModuleGetByName(recv_mod_name);
             if (tm_module == NULL) {
-                SCLogError(SC_ERR_RUNMODE,
+                FatalError(SC_ERR_RUNMODE,
                     "TmModuleGetByName failed for %s",
                     recv_mod_name);
-                exit(EXIT_FAILURE);
             }
             TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
 
             tm_module = TmModuleGetByName(decode_mod_name);
             if (tm_module == NULL) {
-                SCLogError(SC_ERR_RUNMODE,
+                FatalError(SC_ERR_RUNMODE,
                         "TmModuleGetByName %s failed", decode_mod_name);
-                exit(EXIT_FAILURE);
             }
             TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
 
             TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
 
             if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
-                SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
             }
         }
     } else { /* Multiple input device */
@@ -175,28 +166,23 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         for (int lthread = 0; lthread < nlive; lthread++) {
             const char *dev = LiveGetDeviceName(lthread);
             const char *visual_devname = LiveGetShortName(dev);
-            void *aconf;
-            int threads_count;
 
             if (dev == NULL) {
-                SCLogError(SC_ERR_RUNMODE, "Failed to lookup live dev %d", lthread);
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_RUNMODE, "Failed to lookup live dev %d", lthread);
             }
             SCLogDebug("dev %s", dev);
 
-            aconf = ConfigParser(dev);
+            void *aconf = ConfigParser(dev);
             if (aconf == NULL) {
-                SCLogError(SC_ERR_RUNMODE, "Multidev: Failed to allocate config for %s (%d)",
+                FatalError(SC_ERR_RUNMODE, "Multidev: Failed to allocate config for %s (%d)",
                        dev, lthread);
-                exit(EXIT_FAILURE);
             }
 
-            threads_count = ModThreadsCount(aconf);
+            int threads_count = ModThreadsCount(aconf);
             for (int thread = 0; thread < threads_count; thread++) {
                 char *printable_threadname = SCMalloc(sizeof(char) * (strlen(thread_name)+5+strlen(dev)));
                 if (unlikely(printable_threadname == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "failed to alloc printable thread name: %s", strerror(errno));
-                    exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_MEM_ALLOC, "failed to alloc printable thread name: %s", strerror(errno));
                 }
                 snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
                          thread+1, visual_devname);
@@ -209,29 +195,25 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                             "packetpool", "packetpool",
                             queues, "flow", "pktacqloop");
                 if (tv_receive == NULL) {
-                    SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
-                    exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
                 }
                 tv_receive->printable_name = printable_threadname;
                 TmModule *tm_module = TmModuleGetByName(recv_mod_name);
                 if (tm_module == NULL) {
-                    SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for %s", recv_mod_name);
-                    exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_RUNMODE, "TmModuleGetByName failed for %s", recv_mod_name);
                 }
                 TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
 
                 tm_module = TmModuleGetByName(decode_mod_name);
                 if (tm_module == NULL) {
-                    SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
-                    exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
                 }
                 TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
 
                 TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
 
                 if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
-                    SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-                    exit(EXIT_FAILURE);
+                    FatalError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
                 }
             }
         }
@@ -249,13 +231,11 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                                         "packetpool", "packetpool",
                                         "varslot");
         if (tv_detect_ncpu == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
         }
         TmModule *tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
@@ -265,14 +245,12 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName RespondReject failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName RespondReject failed");
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         }
     }
 
@@ -300,12 +278,11 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
     /* create the threads */
     for (int thread = 0; thread < threads_count; thread++) {
         char tname[TM_THREAD_NAME_MAX];
-        ThreadVars *tv = NULL;
         TmModule *tm_module = NULL;
         const char *visual_devname = LiveGetShortName(live_dev);
         char *printable_threadname = SCMalloc(sizeof(char) * (strlen(thread_name)+5+strlen(live_dev)));
         if (unlikely(printable_threadname == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "failed to alloc printable thread name: %s", strerror(errno));
+            FatalError(SC_ERR_MEM_ALLOC, "failed to alloc printable thread name: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
 
@@ -319,49 +296,43 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
             snprintf(printable_threadname, strlen(thread_name)+5+strlen(live_dev), "%s#%02d-%s",
                      thread_name, thread+1, live_dev);
         }
-        tv = TmThreadCreatePacketHandler(tname,
+        ThreadVars *tv = TmThreadCreatePacketHandler(tname,
                 "packetpool", "packetpool",
                 "packetpool", "packetpool",
                 "pktacqloop");
         if (tv == NULL) {
-            SCLogError(SC_ERR_THREAD_CREATE, "TmThreadsCreate failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_THREAD_CREATE, "TmThreadsCreate failed");
         }
         tv->printable_name = printable_threadname;
 
         tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName failed for %s", recv_mod_name);
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_INVALID_VALUE, "TmModuleGetByName failed for %s", recv_mod_name);
         }
         TmSlotSetFuncAppend(tv, tm_module, aconf);
 
         tm_module = TmModuleGetByName(decode_mod_name);
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName %s failed", decode_mod_name);
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_INVALID_VALUE, "TmModuleGetByName %s failed", decode_mod_name);
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName RespondReject failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName RespondReject failed");
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         TmThreadSetCPU(tv, WORKER_CPU_SET);
 
         if (TmThreadSpawn(tv) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
         }
     }
 
@@ -384,8 +355,7 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
             aconf = ConfigParser(live_dev);
             live_dev_c = live_dev;
             if (unlikely(live_dev_c == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate interface name");
-                exit(EXIT_FAILURE);
+                FatalError(SC_ERR_MEM_ALLOC, "Can't allocate interface name");
             }
         } else {
             live_dev_c = LiveGetDeviceName(ldev);
@@ -414,9 +384,8 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
     void *aconf;
 
     if (nlive > 1) {
-        SCLogError(SC_ERR_RUNMODE,
+        FatalError(SC_ERR_RUNMODE,
                 "Can't use the 'single' runmode with multiple devices");
-        exit(EXIT_FAILURE);
     }
 
     if (live_dev != NULL) {
@@ -447,14 +416,11 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 {
     SCEnter();
     char tname[TM_THREAD_NAME_MAX];
-    char qname[TM_QUEUE_NAME_MAX];
     TmModule *tm_module ;
-    const char *cur_queue = NULL;
-    char *queues = NULL;
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
-    int nqueue = LiveGetDeviceCount();
+    const int nqueue = LiveGetDeviceCount();
 
     int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);
     /* always create at least one thread */
@@ -467,18 +433,16 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         thread_max = 1024;
     }
 
-    queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
+    char *queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "RunmodeAutoFpCreatePickupQueuesString failed");
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_RUNMODE, "RunmodeAutoFpCreatePickupQueuesString failed");
     }
 
-    for (int i = 0; i < nqueue; i++) {
     /* create the threads */
-        cur_queue = LiveGetDeviceName(i);
+    for (int i = 0; i < nqueue; i++) {
+        const char *cur_queue = LiveGetDeviceName(i);
         if (cur_queue == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "invalid queue number");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "invalid queue number");
         }
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "%s-%s", thread_name_autofp, cur_queue);
@@ -488,33 +452,30 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
                     "packetpool", "packetpool",
                     queues, "flow", "pktacqloop");
         if (tv_receive == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
         }
         tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for %s", recv_mod_name);
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName failed for %s", recv_mod_name);
         }
         TmSlotSetFuncAppend(tv_receive, tm_module, (void *) ConfigParser(i));
 
         tm_module = TmModuleGetByName(decode_mod_name);
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
         }
         TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
 
         TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
 
         if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         }
 
     }
     for (int thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, thread+1);
+        char qname[TM_QUEUE_NAME_MAX];
         snprintf(qname, sizeof(qname), "pickup%u", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
@@ -525,14 +486,12 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
                                         "verdict-queue", "simple",
                                         "varslot");
         if (tv_detect_ncpu == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
         }
 
         tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
@@ -541,8 +500,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         }
     }
 
@@ -557,28 +515,24 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
                                         "packetpool", "packetpool",
                                         "varslot");
         if (tv_verdict == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
         }
         tm_module = TmModuleGetByName(verdict_mod_name);
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", verdict_mod_name);
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", verdict_mod_name);
         }
         TmSlotSetFuncAppend(tv_verdict, tm_module, (void *)ConfigParser(i));
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for RespondReject failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName for RespondReject failed");
         }
         TmSlotSetFuncAppend(tv_verdict, tm_module, NULL);
 
         TmThreadSetCPU(tv_verdict, VERDICT_CPU_SET);
 
         if (TmThreadSpawn(tv_verdict) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         }
     }
 
@@ -593,73 +547,62 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         const char *verdict_mod_name,
         const char *decode_mod_name)
 {
-    char tname[TM_THREAD_NAME_MAX];
-    ThreadVars *tv = NULL;
     TmModule *tm_module = NULL;
-    const char *cur_queue = NULL;
-
-    int nqueue = LiveGetDeviceCount();
+    const int nqueue = LiveGetDeviceCount();
 
     for (int i = 0; i < nqueue; i++) {
         /* create the threads */
-        cur_queue = LiveGetDeviceName(i);
+        const char *cur_queue = LiveGetDeviceName(i);
         if (cur_queue == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "invalid queue number");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "invalid queue number");
         }
+
+        char tname[TM_THREAD_NAME_MAX];
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "%s-%s", thread_name_workers, cur_queue);
 
-        tv = TmThreadCreatePacketHandler(tname,
+        ThreadVars *tv = TmThreadCreatePacketHandler(tname,
                 "packetpool", "packetpool",
                 "packetpool", "packetpool",
                 "pktacqloop");
         if (tv == NULL) {
-            SCLogError(SC_ERR_THREAD_CREATE, "TmThreadsCreate failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_THREAD_CREATE, "TmThreadsCreate failed");
         }
 
         tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName failed for %s", recv_mod_name);
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_INVALID_VALUE, "TmModuleGetByName failed for %s", recv_mod_name);
         }
         TmSlotSetFuncAppend(tv, tm_module, (void *) ConfigParser(i));
 
         tm_module = TmModuleGetByName(decode_mod_name);
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName %s failed", decode_mod_name);
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_INVALID_VALUE, "TmModuleGetByName %s failed", decode_mod_name);
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         tm_module = TmModuleGetByName(verdict_mod_name);
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", verdict_mod_name);
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", verdict_mod_name);
         }
-
         TmSlotSetFuncAppend(tv, tm_module, (void *) ConfigParser(i));
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for RespondReject failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmModuleGetByName for RespondReject failed");
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         TmThreadSetCPU(tv, WORKER_CPU_SET);
 
         if (TmThreadSpawn(tv) != TM_ECODE_OK) {
-            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
-            exit(EXIT_FAILURE);
+            FatalError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         }
     }
 
