@@ -27,8 +27,8 @@
 #include "tm-modules.h"
 #include "output.h"
 #include "output-packet.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/util-profiling.h"
+#include "util/util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {
     void *thread_data;

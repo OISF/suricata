@@ -45,7 +45,7 @@
 #include "detect-content.h"
 #include "detect-http-header.h"
 
-#include "util-debug.h"
+#include "util/util-debug.h"
 
 static int g_buffer_id = 0;
 

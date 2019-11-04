@@ -30,8 +30,8 @@
 #include "suricata.h"
 #include "tm-threads.h"
 
-#include "util-privs.h"
-#include "util-device.h"
+#include "util/util-privs.h"
+#include "util/util-device.h"
 #include "tmqh-packetpool.h"
 #include "source-erf-dag.h"
 

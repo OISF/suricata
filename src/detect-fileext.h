@@ -24,7 +24,7 @@
 #ifndef __DETECT_FILEEXT_H__
 #define __DETECT_FILEEXT_H__
 
-#include "util-spm-bm.h"
+#include "util/util-spm-bm.h"
 
 typedef struct DetectFileextData_ {
     uint8_t *ext;  /** file extension to match */

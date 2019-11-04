@@ -27,7 +27,7 @@
 #include "flow.h"
 #include "app-layer-events.h"
 #include "app-layer-parser.h"
-#include "util-enum.h"
+#include "util/util-enum.h"
 
 /* events raised during protocol detection are stored in the
  * packets storage, not in the flow. */

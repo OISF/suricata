@@ -25,7 +25,7 @@
 
 #include "source-pcap-file-directory-helper.h"
 #include "runmode-unix-socket.h"
-#include "util-mem.h"
+#include "util/util-mem.h"
 #include "source-pcap-file.h"
 
 static void GetTime(struct timespec *tm);

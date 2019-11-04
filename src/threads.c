@@ -25,9 +25,9 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
+#include "util/util-unittest.h"
 #include "debug.h"
-#include "util-debug.h"
+#include "util/util-debug.h"
 #include "threads.h"
 
 #ifdef UNITTESTS /* UNIT TESTS */

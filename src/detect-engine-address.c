@@ -31,9 +31,9 @@
 #include "detect.h"
 #include "flow-var.h"
 
-#include "util-cidr.h"
-#include "util-unittest.h"
-#include "util-rule-vars.h"
+#include "util/util-cidr.h"
+#include "util/util-unittest.h"
+#include "util/util-rule-vars.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
@@ -43,9 +43,9 @@
 #include "detect-engine-address-ipv6.h"
 #include "detect-engine-port.h"
 
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-var.h"
+#include "util/util-debug.h"
+#include "util/util-print.h"
+#include "util/util-var.h"
 
 /* prototypes */
 void DetectAddressPrint(DetectAddress *);
@@ -1386,7 +1386,7 @@ int DetectAddressTestConfVars(void)
     return -1;
 }
 
-#include "util-hash-lookup3.h"
+#include "util/util-hash-lookup3.h"
 
 typedef struct DetectAddressMap_ {
     char *string;

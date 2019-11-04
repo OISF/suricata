@@ -46,18 +46,18 @@ extern int run_mode;
 #include "detect-engine.h"
 #include "detect-engine-state.h"
 
-#include "util-checksum.h"
+#include "util/util-checksum.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
 
 #include "flow-var.h"
 
-#include "util-debug.h"
+#include "util/util-debug.h"
 
 #include "pkt-var.h"
 #include "host.h"
-#include "util-profiling.h"
+#include "util/util-profiling.h"
 
 static int DetectReplaceSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectReplaceRegisterTests(void);

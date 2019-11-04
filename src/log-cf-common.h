@@ -61,7 +61,7 @@
 
 /* Include */
 #include "suricata-common.h"
-#include "util-buffer.h"
+#include "util/util-buffer.h"
 
 typedef struct LogCustomFormatNode_ {
     uint32_t type;              /**< Node format type. ie: LOG_CF_LITERAL, ... */

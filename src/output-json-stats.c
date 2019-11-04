@@ -34,16 +34,16 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-print.h"
-#include "util-unittest.h"
+#include "util/util-print.h"
+#include "util/util-unittest.h"
 
-#include "util-debug.h"
+#include "util/util-debug.h"
 #include "output.h"
-#include "util-privs.h"
-#include "util-buffer.h"
+#include "util/util-privs.h"
+#include "util/util-buffer.h"
 
-#include "util-logopenfile.h"
-#include "util-crypt.h"
+#include "util/util-logopenfile.h"
+#include "util/util-crypt.h"
 
 #include "output-json.h"
 #include "output-json-stats.h"

@@ -38,10 +38,10 @@
 #include "flow-storage.h"
 #include "app-layer-parser.h"
 
-#include "util-time.h"
-#include "util-debug.h"
+#include "util/util-time.h"
+#include "util/util-debug.h"
 
-#include "util-hash-lookup3.h"
+#include "util/util-hash-lookup3.h"
 
 #include "conf.h"
 #include "output.h"

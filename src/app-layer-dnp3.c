@@ -17,11 +17,11 @@
 
 #include "suricata-common.h"
 #include "stream.h"
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-hashlist.h"
+#include "util/util-byte.h"
+#include "util/util-unittest.h"
+#include "util/util-hashlist.h"
 
-#include "util-print.h"
+#include "util/util-print.h"
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"

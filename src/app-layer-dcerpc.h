@@ -29,7 +29,7 @@
 #include "app-layer-dcerpc-common.h"
 #include "flow.h"
 #include "queue.h"
-#include "util-byte.h"
+#include "util/util-byte.h"
 
 typedef struct DCERPCState_ {
     DCERPC dcerpc;

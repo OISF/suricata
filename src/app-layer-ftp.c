@@ -30,8 +30,8 @@
 #include "decode.h"
 #include "threads.h"
 
-#include "util-print.h"
-#include "util-pool.h"
+#include "util/util-print.h"
+#include "util/util-pool.h"
 
 #include "flow-util.h"
 #include "flow-storage.h"
@@ -49,15 +49,15 @@
 #include "app-layer-ftp.h"
 #include "app-layer-expectation.h"
 
-#include "util-spm.h"
-#include "util-mpm.h"
-#include "util-unittest.h"
-#include "util-debug.h"
-#include "util-memcmp.h"
-#include "util-memrchr.h"
-#include "util-byte.h"
-#include "util-mem.h"
-#include "util-misc.h"
+#include "util/util-spm.h"
+#include "util/util-mpm.h"
+#include "util/util-unittest.h"
+#include "util/util-debug.h"
+#include "util/util-memcmp.h"
+#include "util/util-memrchr.h"
+#include "util/util-byte.h"
+#include "util/util-mem.h"
+#include "util/util-misc.h"
 
 #include "rust-ftp-mod-gen.h"
 

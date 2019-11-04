@@ -30,12 +30,12 @@
 #include "runmode-windivert.h"
 #include "output.h"
 
-#include "util-affinity.h"
-#include "util-cpu.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-runmodes.h"
-#include "util-time.h"
+#include "util/util-affinity.h"
+#include "util/util-cpu.h"
+#include "util/util-debug.h"
+#include "util/util-device.h"
+#include "util/util-runmodes.h"
+#include "util/util-time.h"
 
 const char *RunModeIpsWinDivertGetDefaultMode(void)
 {

@@ -24,7 +24,7 @@
 
 #include "suricata-common.h"
 
-#include "util-crypt.h"
+#include "util/util-crypt.h"
 
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"

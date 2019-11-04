@@ -45,9 +45,9 @@
 #include "app-layer.h"
 #include "app-layer-ssl.h"
 
-#include "util-time.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/util-time.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
 
 /**
  *   [tls_notbefore|tls_notafter]:[<|>]<date string>[<><date string>];

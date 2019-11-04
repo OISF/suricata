@@ -30,8 +30,8 @@
 #include "decode.h"
 #include "threads.h"
 
-#include "util-print.h"
-#include "util-pool.h"
+#include "util/util-print.h"
+#include "util/util-pool.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -44,13 +44,13 @@
 
 #include "conf.h"
 
-#include "util-spm.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/util-spm.h"
+#include "util/util-unittest.h"
+#include "util/util-debug.h"
 #include "flow-private.h"
 
-#include "util-byte.h"
-#include "util-memcmp.h"
+#include "util/util-byte.h"
+#include "util/util-memcmp.h"
 
 /** \internal
  *  \brief Function to parse the SSH version string of the client

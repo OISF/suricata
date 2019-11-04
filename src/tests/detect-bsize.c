@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-#include "../util-unittest.h"
+#include "../util/util-unittest.h"
 
 #define TEST_OK(str, m, lo, hi) {                       \
     DetectBsizeData *bsz = DetectBsizeParse((str));     \

@@ -26,8 +26,8 @@
 
 #include "detect-engine.h"
 #include "detect-file-hash-common.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
 
 #include "detect-filemd5.h"
 

@@ -31,10 +31,10 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-print.h"
-#include "util-unittest.h"
+#include "util/util-print.h"
+#include "util/util-unittest.h"
 
-#include "util-debug.h"
+#include "util/util-debug.h"
 
 #include "output.h"
 #include "app-layer-htp.h"
@@ -42,11 +42,11 @@
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
 #include "app-layer-parser.h"
-#include "util-privs.h"
-#include "util-buffer.h"
-#include "util-proto-name.h"
-#include "util-logopenfile.h"
-#include "util-time.h"
+#include "util/util-privs.h"
+#include "util/util-buffer.h"
+#include "util/util-proto-name.h"
+#include "util/util-logopenfile.h"
+#include "util/util-time.h"
 
 #include "output-lua.h"
 
@@ -56,14 +56,14 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include "util-lua.h"
-#include "util-lua-common.h"
-#include "util-lua-http.h"
-#include "util-lua-dns.h"
-#include "util-lua-ja3.h"
-#include "util-lua-tls.h"
-#include "util-lua-ssh.h"
-#include "util-lua-smtp.h"
+#include "util/util-lua.h"
+#include "util/util-lua-common.h"
+#include "util/util-lua-http.h"
+#include "util/util-lua-dns.h"
+#include "util/util-lua-ja3.h"
+#include "util/util-lua-tls.h"
+#include "util/util-lua-ssh.h"
+#include "util/util-lua-smtp.h"
 
 #define MODULE_NAME "LuaLog"
 

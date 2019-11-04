@@ -30,7 +30,7 @@
 #include "flow.h"
 #include "flow-util.h"
 #include "detect-hostbits.h"
-#include "util-spm.h"
+#include "util/util-spm.h"
 
 #include "detect-engine-sigorder.h"
 
@@ -43,9 +43,9 @@
 
 #include "flow-bit.h"
 #include "host-bit.h"
-#include "util-var-name.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/util-var-name.h"
+#include "util/util-unittest.h"
+#include "util/util-debug.h"
 
 /*
     hostbits:isset,bitname;

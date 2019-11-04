@@ -32,9 +32,9 @@
 #include "decode.h"
 #include "threads.h"
 
-#include "util-print.h"
-#include "util-pool.h"
-#include "util-radix-tree.h"
+#include "util/util-print.h"
+#include "util/util-pool.h"
+#include "util/util-radix-tree.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -46,13 +46,13 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-body.h"
 
-#include "util-spm.h"
-#include "util-debug.h"
+#include "util/util-spm.h"
+#include "util/util-debug.h"
 #include "app-layer-htp-file.h"
-#include "util-time.h"
+#include "util/util-time.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
 #include "flow-util.h"
 
 #include "detect-engine.h"
@@ -61,7 +61,7 @@
 
 #include "conf.h"
 
-#include "util-memcmp.h"
+#include "util/util-memcmp.h"
 
 static StreamingBufferConfig default_cfg = {
     0, 0, 3072, HTPMalloc, HTPCalloc, HTPRealloc, HTPFree };

@@ -44,16 +44,16 @@
 #include "tm-threads.h"
 #include "tm-threads-common.h"
 #include "conf.h"
-#include "util-cpu.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-ebpf.h"
-#include "util-error.h"
-#include "util-privs.h"
-#include "util-optimize.h"
-#include "util-checksum.h"
-#include "util-ioctl.h"
-#include "util-host-info.h"
+#include "util/util-cpu.h"
+#include "util/util-debug.h"
+#include "util/util-device.h"
+#include "util/util-ebpf.h"
+#include "util/util-error.h"
+#include "util/util-privs.h"
+#include "util/util-optimize.h"
+#include "util/util-checksum.h"
+#include "util/util-ioctl.h"
+#include "util/util-host-info.h"
 #include "tmqh-packetpool.h"
 #include "source-af-packet.h"
 #include "runmodes.h"
@@ -70,7 +70,7 @@
 #endif
 
 #ifdef HAVE_PACKET_EBPF
-#include "util-ebpf.h"
+#include "util/util-ebpf.h"
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #endif
@@ -88,7 +88,7 @@ struct bpf_program {
 #include <pcap/pcap.h>
 #endif
 
-#include "util-bpf.h"
+#include "util/util-bpf.h"
 
 #if HAVE_LINUX_IF_ETHER_H
 #include <linux/if_ether.h>

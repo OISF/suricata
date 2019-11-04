@@ -29,16 +29,16 @@
 #include "detect.h"
 #include "flow-var.h"
 
-#include "util-cidr.h"
-#include "util-unittest.h"
+#include "util/util-cidr.h"
+#include "util/util-unittest.h"
 
 #include "detect-engine-address.h"
 #include "detect-engine-address-ipv4.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-port.h"
 
-#include "util-error.h"
-#include "util-debug.h"
+#include "util/util-error.h"
+#include "util/util-debug.h"
 
 /**
  * \brief Compares 2 addresses(address ranges) and returns the relationship

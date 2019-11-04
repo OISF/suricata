@@ -32,10 +32,10 @@
 #include "detect-engine-mpm.h"
 #include "detect-fast-pattern.h"
 
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/util-error.h"
+#include "util/util-debug.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
 
 #define PARSE_REGEX "^(\\s*only\\s*)|\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*$"
 

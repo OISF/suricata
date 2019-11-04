@@ -25,8 +25,8 @@
 #include "../app-layer.h"
 #include "../app-layer-parser.h"
 #include "../app-layer-htp.h"
-#include "../util-unittest.h"
-#include "../util-unittest-helper.h"
+#include "../util/util-unittest.h"
+#include "../util/util-unittest-helper.h"
 
 #include "../flow.h"
 #include "../flow-util.h"

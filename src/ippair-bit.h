@@ -25,7 +25,7 @@
 #define __IPPAIR_BIT_H__
 
 #include "ippair.h"
-#include "util-var.h"
+#include "util/util-var.h"
 
 void IPPairBitInitCtx(void);
 void IPPairBitRegisterTests(void);

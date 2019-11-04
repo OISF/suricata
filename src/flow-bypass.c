@@ -26,7 +26,7 @@
 #include "flow.h"
 #include "flow-bypass.h"
 #include "flow-private.h"
-#include "util-ebpf.h"
+#include "util/util-ebpf.h"
 
 #ifdef CAPTURE_OFFLOAD_MANAGER
 

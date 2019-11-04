@@ -33,10 +33,10 @@
 #include "flow-var.h"
 #include "decode-events.h"
 
-#include "util-debug.h"
+#include "util/util-debug.h"
 
 #include "detect-ipopts.h"
-#include "util-unittest.h"
+#include "util/util-unittest.h"
 
 #define PARSE_REGEX "\\S[A-z]"
 

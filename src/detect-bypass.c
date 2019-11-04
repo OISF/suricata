@@ -44,11 +44,11 @@
 
 #include "stream-tcp.h"
 
-#include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-device.h"
+#include "util/util-debug.h"
+#include "util/util-spm-bm.h"
+#include "util/util-unittest.h"
+#include "util/util-unittest-helper.h"
+#include "util/util-device.h"
 
 static int DetectBypassMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);

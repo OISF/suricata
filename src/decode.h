@@ -33,7 +33,7 @@
 #include "flow-worker.h"
 
 #ifdef HAVE_NAPATECH
-#include "util-napatech.h"
+#include "util/util-napatech.h"
 #endif /* HAVE_NAPATECH */
 
 
