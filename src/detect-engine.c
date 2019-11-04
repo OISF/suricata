@@ -1724,10 +1724,9 @@ static void InjectPackets(ThreadVars **detect_tvs,
                           DetectEngineThreadCtx **new_det_ctx,
                           int no_of_detect_tvs)
 {
-    int i;
     /* inject a fake packet if the detect thread isn't using the new ctx yet,
      * this speeds up the process */
-    for (i = 0; i < no_of_detect_tvs; i++) {
+    for (int i = 0; i < no_of_detect_tvs; i++) {
         if (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
             if (detect_tvs[i]->inq != NULL) {
                 Packet *p = PacketGetFromAlloc();
