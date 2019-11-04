@@ -29,7 +29,7 @@
 use nom::IResult;
 use nom::bytes::complete::take;
 use nom::combinator::{opt, map_opt, map_res};
-use nom::number::complete::{be_u16, be_u8, le_u16, le_u32, le_u8};
+use nom::number::streaming::{be_u16, be_u8, le_u16, le_u32, le_u8};
 use crate::rdp::error::RdpError;
 use crate::rdp::util::{
     le_slice_to_string, parse_per_length_determinant, utf7_slice_to_string,
