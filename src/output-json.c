@@ -64,7 +64,7 @@
 #include "flow-var.h"
 #include "flow-bit.h"
 
-#include "source-pcap-file.h"
+#include "sources/pcap-file.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"

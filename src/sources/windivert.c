@@ -41,8 +41,8 @@
 
 #include "queue.h"
 
-#include "source-windivert-prototypes.h"
-#include "source-windivert.h"
+#include "windivert-prototypes.h"
+#include "windivert.h"
 
 #ifdef WINDIVERT
 // clang-format off

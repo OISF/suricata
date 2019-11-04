@@ -75,7 +75,7 @@
 #include "util/runmodes.h"
 #include "util/random.h"
 
-#include "source-pcap-file.h"
+#include "sources/pcap-file.h"
 
 //#define DEBUG
 

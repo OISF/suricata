@@ -47,7 +47,7 @@
 
 #include "log-httplog.h"
 
-#include "source-pfring.h"
+#include "sources/pfring.h"
 
 #include "tmqh-flow.h"
 #include "flow-manager.h"
