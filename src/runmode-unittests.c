@@ -113,7 +113,7 @@
 #endif
 
 #ifdef WINDIVERT
-#include "source-windivert.h"
+#include "sources/source-windivert.h"
 #endif
 
 #ifdef HAVE_NSS

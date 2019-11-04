@@ -53,7 +53,7 @@
 #include "util/util-runmodes.h"
 #include "util/util-ioctl.h"
 
-#include "source-netmap.h"
+#include "sources/source-netmap.h"
 
 extern int max_pending_packets;
 

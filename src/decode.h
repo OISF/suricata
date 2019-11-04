@@ -58,15 +58,15 @@ enum PktSrcEnum {
     PKT_SRC_DECODER_VXLAN,
 };
 
-#include "source-nflog.h"
-#include "source-nfq.h"
-#include "source-ipfw.h"
-#include "source-pcap.h"
-#include "source-af-packet.h"
-#include "source-netmap.h"
-#include "source-windivert.h"
+#include "sources/source-nflog.h"
+#include "sources/source-nfq.h"
+#include "sources/source-ipfw.h"
+#include "sources/source-pcap.h"
+#include "sources/source-af-packet.h"
+#include "sources/source-netmap.h"
+#include "sources/source-windivert.h"
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
-#include "source-pfring.h"
+#include "sources/source-pfring.h"
 #endif
 
 #include "action-globals.h"

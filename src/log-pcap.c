@@ -59,7 +59,7 @@
 #include "util/util-cpu.h"
 #include "util/util-atomic.h"
 
-#include "source-pcap.h"
+#include "sources/source-pcap.h"
 
 #include "output.h"
 

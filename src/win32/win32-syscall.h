@@ -31,7 +31,7 @@
 
 #include <iptypes.h>
 
-#include "util-device.h"
+#include "util/util-device.h"
 
 const char *Win32GetErrorString(DWORD error_code, HMODULE ext_module);
 
