@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1685,8 +1685,7 @@ int DetectEngineInspectPktBufferGeneric(
 static void BreakCapture(void)
 {
     SCMutexLock(&tv_root_lock);
-    ThreadVars *tv = tv_root[TVT_PPT];
-    while (tv) {
+    for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
         /* find the correct slot */
         TmSlot *slots = tv->tm_slots;
         while (slots != NULL) {
@@ -1711,7 +1710,6 @@ static void BreakCapture(void)
 
             break;
         }
-        tv = tv->next;
     }
     SCMutexUnlock(&tv_root_lock);
 }
@@ -1760,37 +1758,10 @@ static void InjectPackets(ThreadVars **detect_tvs,
 static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 {
     SCEnter();
-    int i = 0;
-    int no_of_detect_tvs = 0;
-    ThreadVars *tv = NULL;
+    uint32_t i = 0;
 
     /* count detect threads in use */
-    SCMutexLock(&tv_root_lock);
-    tv = tv_root[TVT_PPT];
-    while (tv) {
-        /* obtain the slots for this TV */
-        TmSlot *slots = tv->tm_slots;
-        while (slots != NULL) {
-            TmModule *tm = TmModuleGetById(slots->tm_id);
-
-            if (suricata_ctl_flags != 0) {
-                SCLogInfo("rule reload interupted by engine shutdown");
-                SCMutexUnlock(&tv_root_lock);
-                return -1;
-            }
-
-            if (!(tm->flags & TM_FLAG_DETECT_TM)) {
-                slots = slots->slot_next;
-                continue;
-            }
-            no_of_detect_tvs++;
-            break;
-        }
-
-        tv = tv->next;
-    }
-    SCMutexUnlock(&tv_root_lock);
-
+    uint32_t no_of_detect_tvs = TmThreadCountThreadsByTmmFlags(TM_FLAG_DETECT_TM);
     /* can be zero in unix socket mode */
     if (no_of_detect_tvs == 0) {
         return 0;
@@ -1808,8 +1779,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 
     /* get reference to tv's and setup new_det_ctx array */
     SCMutexLock(&tv_root_lock);
-    tv = tv_root[TVT_PPT];
-    while (tv) {
+    for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
         /* obtain the slots for this TV */
         TmSlot *slots = tv->tm_slots;
         while (slots != NULL) {
@@ -1840,23 +1810,15 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
             i++;
             break;
         }
-
-        tv = tv->next;
     }
     BUG_ON(i != no_of_detect_tvs);
 
     /* atomicly replace the det_ctx data */
     i = 0;
-    tv = tv_root[TVT_PPT];
-    while (tv) {
+    for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
         /* find the correct slot */
         TmSlot *slots = tv->tm_slots;
         while (slots != NULL) {
-            if (suricata_ctl_flags != 0) {
-                SCMutexUnlock(&tv_root_lock);
-                return -1;
-            }
-
             TmModule *tm = TmModuleGetById(slots->tm_id);
             if (!(tm->flags & TM_FLAG_DETECT_TM)) {
                 slots = slots->slot_next;
@@ -1867,7 +1829,6 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
             FlowWorkerReplaceDetectCtx(SC_ATOMIC_GET(slots->slot_data), new_det_ctx[i++]);
             break;
         }
-        tv = tv->next;
     }
     SCMutexUnlock(&tv_root_lock);
 
@@ -1902,8 +1863,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
      * silently after setting RUNNING_DONE flag and while waiting for
      * THV_DEINIT flag */
     if (i != no_of_detect_tvs) { // not all threads we swapped
-        tv = tv_root[TVT_PPT];
-        while (tv) {
+        for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
             /* obtain the slots for this TV */
             TmSlot *slots = tv->tm_slots;
             while (slots != NULL) {
@@ -1919,8 +1879,6 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 
                 slots = slots->slot_next;
             }
-
-            tv = tv->next;
         }
     }
 
