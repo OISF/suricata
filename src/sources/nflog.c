@@ -66,7 +66,7 @@ TmEcode NoNFLOGSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #else /* implied we do have NFLOG support */
 
-#include "source-nflog.h"
+#include "nflog.h"
 
 TmEcode ReceiveNFLOGThreadInit(ThreadVars *, const void *, void **);
 TmEcode ReceiveNFLOGThreadDeinit(ThreadVars *, void *);

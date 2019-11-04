@@ -23,7 +23,7 @@
 #include "output.h"
 
 #include "detect-engine.h"
-#include "source-pcap-file.h"
+#include "sources/pcap-file.h"
 
 #include "util/util-debug.h"
 #include "util/util-time.h"

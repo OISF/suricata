@@ -39,7 +39,7 @@
 #include "conf.h"
 #include "config.h"
 #include "conf-yaml-loader.h"
-#include "source-nfq-prototypes.h"
+#include "nfq-prototypes.h"
 #include "action-globals.h"
 
 #include "util/util-debug.h"
@@ -51,7 +51,7 @@
 
 #include "runmodes.h"
 
-#include "source-nfq.h"
+#include "nfq.h"
 
 /* Handle the case where no NFQ support is compiled in. */
 #ifndef NFQ

@@ -22,7 +22,7 @@
  */
 
 #include "suricata-common.h"
-#include "source-pcap-file-helper.h"
+#include "sources/pcap-file-helper.h"
 #include "queue.h"
 
 #ifndef __SOURCE_PCAP_FILE_DIRECTORY_HELPER_H__

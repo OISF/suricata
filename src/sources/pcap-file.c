@@ -24,9 +24,9 @@
  */
 
 #include "suricata-common.h"
-#include "source-pcap-file.h"
-#include "source-pcap-file-helper.h"
-#include "source-pcap-file-directory-helper.h"
+#include "pcap-file.h"
+#include "pcap-file-helper.h"
+#include "pcap-file-directory-helper.h"
 #include "flow-manager.h"
 #include "util/util-checksum.h"
 

@@ -77,27 +77,27 @@
 
 #include "stream-tcp.h"
 
-#include "source-nfq.h"
-#include "source-nfq-prototypes.h"
+#include "sources/nfq.h"
+#include "sources/nfq-prototypes.h"
 
-#include "source-nflog.h"
+#include "sources/nflog.h"
 
-#include "source-ipfw.h"
+#include "sources/ipfw.h"
 
-#include "source-pcap.h"
-#include "source-pcap-file.h"
+#include "sources/pcap.h"
+#include "sources/pcap-file.h"
 
-#include "source-pfring.h"
+#include "sources/pfring.h"
 
-#include "source-erf-file.h"
-#include "source-erf-dag.h"
-#include "source-napatech.h"
+#include "sources/erf-file.h"
+#include "sources/erf-dag.h"
+#include "sources/napatech.h"
 
-#include "source-af-packet.h"
-#include "source-netmap.h"
+#include "sources/af-packet.h"
+#include "sources/netmap.h"
 
-#include "source-windivert.h"
-#include "source-windivert-prototypes.h"
+#include "sources/windivert.h"
+#include "sources/windivert-prototypes.h"
 
 #include "respond-reject.h"
 

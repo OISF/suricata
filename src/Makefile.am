@@ -1,8 +1,8 @@
 noinst_HEADERS = action-globals.h \
     app-layer-nbss.h app-layer-dcerpc-common.h \
     debug.h \
-	flow-private.h queue.h source-nfq-prototypes.h \
-	source-windivert-prototypes.h \
+	flow-private.h queue.h sources/nfq-prototypes.h \
+	sources/windivert-prototypes.h \
 	suricata-common.h threadvars.h tree.h \
     util/util-validate.h
 bin_PROGRAMS = suricata
@@ -382,20 +382,20 @@ runmode-unix-socket.c runmode-unix-socket.h \
 runmode-windivert.c runmode-windivert.h \
 runmodes.c runmodes.h \
 rust.h \
-source-af-packet.c source-af-packet.h \
-source-erf-dag.c source-erf-dag.h \
-source-erf-file.c source-erf-file.h \
-source-ipfw.c source-ipfw.h \
-source-napatech.c source-napatech.h \
-source-netmap.c source-netmap.h \
-source-nfq.c source-nfq.h \
-source-nflog.c source-nflog.h \
-source-pcap.c source-pcap.h \
-source-pcap-file.c source-pcap-file.h \
-source-pcap-file-directory-helper.c source-pcap-file-directory-helper.h \
-source-pcap-file-helper.c source-pcap-file-helper.h \
-source-pfring.c source-pfring.h \
-source-windivert.c source-windivert.h \
+sources/af-packet.c sources/af-packet.h \
+sources/erf-dag.c sources/erf-dag.h \
+sources/erf-file.c sources/erf-file.h \
+sources/ipfw.c sources/ipfw.h \
+sources/napatech.c sources/napatech.h \
+sources/netmap.c sources/netmap.h \
+sources/nfq.c sources/nfq.h \
+sources/nflog.c sources/nflog.h \
+sources/pcap.c sources/pcap.h \
+sources/pcap-file.c sources/pcap-file.h \
+sources/pcap-file-directory-helper.c sources/pcap-file-directory-helper.h \
+sources/pcap-file-helper.c sources/pcap-file-helper.h \
+sources/pfring.c sources/pfring.h \
+sources/windivert.c sources/windivert.h \
 stream.c stream.h \
 stream-tcp.c stream-tcp.h stream-tcp-private.h \
 stream-tcp-inline.c stream-tcp-inline.h \

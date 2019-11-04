@@ -31,7 +31,7 @@
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
-#include "source-pcap.h"
+#include "pcap.h"
 #include "conf.h"
 #include "util/util-debug.h"
 #include "util/util-error.h"

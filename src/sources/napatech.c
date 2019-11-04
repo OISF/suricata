@@ -36,7 +36,7 @@
 #include "util/util-privs.h"
 #include "tmqh-packetpool.h"
 #include "util/util-napatech.h"
-#include "source-napatech.h"
+#include "napatech.h"
 
 #ifndef HAVE_NAPATECH
 

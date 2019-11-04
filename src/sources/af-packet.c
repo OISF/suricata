@@ -55,7 +55,7 @@
 #include "util/util-ioctl.h"
 #include "util/util-host-info.h"
 #include "tmqh-packetpool.h"
-#include "source-af-packet.h"
+#include "af-packet.h"
 #include "runmodes.h"
 #include "flow-storage.h"
 

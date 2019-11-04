@@ -32,7 +32,7 @@
 #include "util/util-runmodes.h"
 #include "util/util-misc.h"
 
-#include "source-nflog.h"
+#include "sources/nflog.h"
 
 const char *RunModeIdsNflogGetDefaultMode(void)
 {
