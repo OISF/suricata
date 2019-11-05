@@ -31,8 +31,8 @@
 #include "detect-parse.h"
 #include "detect-transform-sha256.h"
 
-#include "util/util-unittest.h"
-#include "util/util-print.h"
+#include "util/unittest.h"
+#include "util/print.h"
 
 static int DetectTransformToSha256Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef HAVE_NSS

@@ -37,7 +37,7 @@
 #include "tm-queuehandlers.h"
 
 #include "conf.h"
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 
 Packet *TmqhInputFlow(ThreadVars *t);
 void TmqhOutputFlowHash(ThreadVars *t, Packet *p);

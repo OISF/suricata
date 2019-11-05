@@ -34,8 +34,8 @@
 
 #include "detect-sameip.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 static int DetectSameipMatch(DetectEngineThreadCtx *, Packet *,
                              const Signature *, const SigMatchCtx *);

@@ -25,7 +25,7 @@
 #define __HOST_H__
 
 #include "decode.h"
-#include "util/util-storage.h"
+#include "util/storage.h"
 
 /** Spinlocks or Mutex for the flow buckets. */
 //#define HRLOCK_SPIN

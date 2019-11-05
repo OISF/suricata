@@ -28,7 +28,7 @@
 #include "pcap-file-helper.h"
 #include "pcap-file-directory-helper.h"
 #include "flow-manager.h"
-#include "util/util-checksum.h"
+#include "util/checksum.h"
 
 extern int max_pending_packets;
 PcapFileGlobalVars pcap_g;

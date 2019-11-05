@@ -28,9 +28,9 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-sid.h"
-#include "util/util-debug.h"
-#include "util/util-error.h"
-#include "util/util-unittest.h"
+#include "util/debug.h"
+#include "util/error.h"
+#include "util/unittest.h"
 
 static int DetectSidSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectSidRegisterTests(void);

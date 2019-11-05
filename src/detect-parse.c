@@ -46,12 +46,12 @@
 
 #include "pkt-var.h"
 #include "host.h"
-#include "util/util-profiling.h"
+#include "util/profiling.h"
 #include "decode.h"
 
 #include "flow.h"
 
-#include "util/util-rule-vars.h"
+#include "util/rule-vars.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
@@ -60,10 +60,10 @@
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
-#include "util/util-classification-config.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-debug.h"
+#include "util/classification-config.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
 #include "string.h"
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
@@ -2409,7 +2409,7 @@ void DetectSetupParseRegexes(const char *parse_str,
 }
 
 #ifdef AFLFUZZ_RULES
-#include "util/util-reference-config.h"
+#include "util/reference-config.h"
 int RuleParseDataFromFile(char *filename)
 {
     char buffer[65536];

@@ -41,10 +41,10 @@
 #include "threads.h"
 #include "counters.h"
 
-#include "util/util-print.h"
-#include "util/util-pool.h"
-#include "util/util-radix-tree.h"
-#include "util/util-file.h"
+#include "util/print.h"
+#include "util/pool.h"
+#include "util/radix-tree.h"
+#include "util/file.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -61,13 +61,13 @@
 #include "app-layer-htp-libhtp.h"
 #include "app-layer-htp-xff.h"
 
-#include "util/util-spm.h"
-#include "util/util-debug.h"
-#include "util/util-time.h"
-#include "util/util-misc.h"
+#include "util/spm.h"
+#include "util/debug.h"
+#include "util/time.h"
+#include "util/misc.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 #include "flow-util.h"
 
 #include "detect-engine.h"
@@ -76,9 +76,9 @@
 
 #include "decode-events.h"
 
-#include "util/util-memcmp.h"
-#include "util/util-random.h"
-#include "util/util-validate.h"
+#include "util/memcmp.h"
+#include "util/random.h"
+#include "util/validate.h"
 
 //#define PRINT
 

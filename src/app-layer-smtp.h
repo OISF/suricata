@@ -25,9 +25,9 @@
 #define __APP_LAYER_SMTP_H__
 
 #include "decode-events.h"
-#include "util/util-decode-mime.h"
+#include "util/decode-mime.h"
 #include "queue.h"
-#include "util/util-streaming-buffer.h"
+#include "util/streaming-buffer.h"
 
 enum {
     SMTP_DECODER_EVENT_INVALID_REPLY,

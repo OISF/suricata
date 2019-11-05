@@ -25,7 +25,7 @@
 #define __HOST_BIT_H__
 
 #include "host.h"
-#include "util/util-var.h"
+#include "util/var.h"
 
 void HostBitInitCtx(void);
 void HostBitRegisterTests(void);

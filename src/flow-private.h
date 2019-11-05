@@ -27,7 +27,7 @@
 #include "flow-hash.h"
 #include "flow-queue.h"
 
-#include "util/util-atomic.h"
+#include "util/atomic.h"
 
 /* global flow flags */
 

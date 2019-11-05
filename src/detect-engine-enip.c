@@ -32,7 +32,7 @@
 
 #include "flow.h"
 
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 #if 0
 /**
@@ -290,8 +290,8 @@ int DetectEngineInspectENIP(ThreadVars *tv,
 #include "detect-engine.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 static uint8_t listIdentity[] = {/* List ID */    0x00, 0x63,
                                  /* Length */     0x00, 0x00,

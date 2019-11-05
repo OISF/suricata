@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 /**
  * \test This is a test for a valid value 2.

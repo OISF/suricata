@@ -26,8 +26,8 @@
  */
 
 #include "log-cf-common.h"
-#include "util/util-print.h"
-#include "util/util-unittest.h"
+#include "util/print.h"
+#include "util/unittest.h"
 
 /**
  *  \brief Creates a custom format node

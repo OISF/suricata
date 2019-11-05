@@ -40,10 +40,10 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util/util-debug.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-spm.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/spm.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"

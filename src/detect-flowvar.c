@@ -36,10 +36,10 @@
 #include "pkt-var.h"
 #include "detect-flowvar.h"
 
-#include "util/util-spm.h"
-#include "util/util-var-name.h"
-#include "util/util-debug.h"
-#include "util/util-print.h"
+#include "util/spm.h"
+#include "util/var-name.h"
+#include "util/debug.h"
+#include "util/print.h"
 
 #define PARSE_REGEX         "(.*),(.*)"
 static pcre *parse_regex;

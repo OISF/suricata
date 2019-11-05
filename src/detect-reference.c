@@ -36,12 +36,12 @@
 #include "decode-events.h"
 #include "stream-tcp.h"
 
-#include "util/util-reference-config.h"
+#include "util/reference-config.h"
 #include "detect-reference.h"
 
-#include "util/util-unittest.h"
-#include "util/util-byte.h"
-#include "util/util-debug.h"
+#include "util/unittest.h"
+#include "util/byte.h"
+#include "util/debug.h"
 
 #define PARSE_REGEX "^\\s*([A-Za-z0-9]+)\\s*,\"?\\s*\"?\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\"?\\s*\"?"
 

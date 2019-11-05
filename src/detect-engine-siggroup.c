@@ -42,15 +42,15 @@
 #include "detect-uricontent.h"
 #include "detect-tcp-flags.h"
 
-#include "util/util-hash.h"
-#include "util/util-hashlist.h"
+#include "util/hash.h"
+#include "util/hashlist.h"
 
-#include "util/util-error.h"
-#include "util/util-debug.h"
-#include "util/util-cidr.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-memcmp.h"
+#include "util/error.h"
+#include "util/debug.h"
+#include "util/cidr.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/memcmp.h"
 
 /* prototypes */
 int SigGroupHeadClearSigs(SigGroupHead *);

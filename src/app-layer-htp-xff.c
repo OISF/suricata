@@ -29,9 +29,9 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 
-#include "util/util-misc.h"
-#include "util/util-memrchr.h"
-#include "util/util-unittest.h"
+#include "util/misc.h"
+#include "util/memrchr.h"
+#include "util/unittest.h"
 
 /** XFF header value minimal length */
 #define XFF_CHAIN_MINLEN 7

@@ -26,11 +26,11 @@
 
 #include "suricata-common.h"
 
-#include "util/util-debug.h"
-#include "util/util-byte.h"
-#include "util/util-enum.h"
-#include "util/util-mem.h"
-#include "util/util-misc.h"
+#include "util/debug.h"
+#include "util/byte.h"
+#include "util/enum.h"
+#include "util/mem.h"
+#include "util/misc.h"
 
 #include "stream.h"
 
@@ -46,11 +46,11 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "util/util-byte.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 #include "pkt-var.h"
-#include "util/util-profiling.h"
+#include "util/profiling.h"
 
 
 SCEnumCharMap enip_decoder_event_table[ ] = {
@@ -554,8 +554,8 @@ void RegisterENIPTCPParsers(void)
 #include "detect-engine.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 static uint8_t listIdentity[] = {/* List ID */    0x63, 0x00,
                                  /* Length */     0x00, 0x00,

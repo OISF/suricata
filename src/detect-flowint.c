@@ -31,11 +31,11 @@
 #include "flow.h"
 #include "flow-var.h"
 #include "detect-flowint.h"
-#include "util/util-spm.h"
-#include "util/util-var-name.h"
-#include "util/util-debug.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/spm.h"
+#include "util/var-name.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -44,7 +44,7 @@
 
 #include "pkt-var.h"
 #include "host.h"
-#include "util/util-profiling.h"
+#include "util/profiling.h"
 
 /*                         name             modifiers          value      */
 #define PARSE_REGEX "^\\s*([a-zA-Z][\\w\\d_./]+)\\s*,\\s*([+=-]{1}|==|!=|<|<=|>|>=|isset|notset)\\s*,?\\s*([a-zA-Z][\\w\\d]+|[\\d]{1,10})?\\s*$"

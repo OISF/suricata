@@ -38,8 +38,8 @@
 #include "respond-reject.h"
 #include "respond-reject-libnet11.h"
 
-#include "util/util-debug.h"
-#include "util/util-privs.h"
+#include "util/debug.h"
+#include "util/privs.h"
 
 int RejectSendIPv4TCP(ThreadVars *, Packet *, void *);
 int RejectSendIPv4ICMP(ThreadVars *, Packet *, void *);

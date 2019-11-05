@@ -464,16 +464,16 @@ typedef enum {
     LOGGER_SIZE,
 } LoggerId;
 
-#include "util/util-optimize.h"
+#include "util/optimize.h"
 #include <htp/htp.h>
 #include "threads.h"
 #include "tm-threads-common.h"
-#include "util/util-debug.h"
-#include "util/util-error.h"
-#include "util/util-mem.h"
+#include "util/debug.h"
+#include "util/error.h"
+#include "util/mem.h"
 #include "detect-engine-alert.h"
-#include "util/util-path.h"
-#include "util/util-conf.h"
+#include "util/path.h"
+#include "util/conf.h"
 
 #ifdef HAVE_LUA
 #include <lua.h>

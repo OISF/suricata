@@ -32,7 +32,7 @@
 #include "suricata-common.h"
 #include "decode.h"
 #include "pkt-var.h"
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 /* get the pktvar with name 'name' from the pkt
  *

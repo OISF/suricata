@@ -25,7 +25,7 @@
 
 #include "suricata-common.h"
 #include "stream-tcp.h"
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -33,7 +33,7 @@
 #include "flow.h"
 #include "detect-stream_size.h"
 #include "stream-tcp-private.h"
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 /**
  * \brief Regex for parsing our flow options

@@ -43,11 +43,11 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util/util-byte.h"
-#include "util/util-debug.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-spm.h"
+#include "util/byte.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/spm.h"
 
 /* the default value of endianess to be used, if none's specified */
 #define DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT DETECT_BYTE_EXTRACT_ENDIAN_BIG

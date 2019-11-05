@@ -32,7 +32,7 @@
 #include "flow-var.h"
 #include "decode-events.h"
 
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 #include "stream-tcp.h"
 
@@ -40,7 +40,7 @@
 /* Need to get the DEvents[] array */
 
 #include "detect-engine-event.h"
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 
 #define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z0-9_+.]+$"
 

@@ -46,9 +46,9 @@
 #include "app-layer-dcerpc.h"
 #include "app-layer-smtp.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-profiling.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/profiling.h"
 
 
 /**

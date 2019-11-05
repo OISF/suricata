@@ -47,7 +47,7 @@
 #include "action-globals.h"
 #include "respond-reject.h"
 #include "respond-reject-libnet11.h"
-#include "util/util-device.h"
+#include "util/device.h"
 
 #ifdef HAVE_LIBNET11
 

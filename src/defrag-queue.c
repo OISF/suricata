@@ -27,9 +27,9 @@
 #include "threads.h"
 #include "debug.h"
 #include "defrag-queue.h"
-#include "util/util-error.h"
-#include "util/util-debug.h"
-#include "util/util-print.h"
+#include "util/error.h"
+#include "util/debug.h"
+#include "util/print.h"
 
 DefragTrackerQueue *DefragTrackerQueueInit (DefragTrackerQueue *q)
 {

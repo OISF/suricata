@@ -32,7 +32,7 @@
 #include "flow-bit.h"
 #include "flow-util.h"
 #include "detect-flowbits.h"
-#include "util/util-spm.h"
+#include "util/spm.h"
 
 #include "app-layer-parser.h"
 
@@ -41,9 +41,9 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
-#include "util/util-var-name.h"
-#include "util/util-unittest.h"
-#include "util/util-debug.h"
+#include "util/var-name.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 #define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
 static pcre *parse_regex;
@@ -532,8 +532,8 @@ end:
 }
 
 #ifdef PROFILING
-#include "output-json.h"
-#include "util/util-buffer.h"
+#include "outputs/json.h"
+#include "util/buffer.h"
 SCMutex g_flowbits_dump_write_m = SCMUTEX_INITIALIZER;
 static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         struct FBAnalyze *array, uint32_t elements)

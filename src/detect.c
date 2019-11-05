@@ -56,8 +56,8 @@
 #include "detect-flowvar.h"
 #include "detect-replace.h"
 
-#include "util/util-validate.h"
-#include "util/util-detect.h"
+#include "util/validate.h"
+#include "util/detect.h"
 
 typedef struct DetectRunScratchpad {
     const AppProto alproto;

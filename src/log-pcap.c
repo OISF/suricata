@@ -26,7 +26,7 @@
  */
 
 #include "suricata-common.h"
-#include "util/util-fmemopen.h"
+#include "util/fmemopen.h"
 
 #ifdef HAVE_LIBLZ4
 #include <lz4frame.h>
@@ -47,17 +47,17 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 #include "log-pcap.h"
 #include "decode-ipv4.h"
 
-#include "util/util-error.h"
-#include "util/util-debug.h"
-#include "util/util-time.h"
-#include "util/util-byte.h"
-#include "util/util-misc.h"
-#include "util/util-cpu.h"
-#include "util/util-atomic.h"
+#include "util/error.h"
+#include "util/debug.h"
+#include "util/time.h"
+#include "util/byte.h"
+#include "util/misc.h"
+#include "util/cpu.h"
+#include "util/atomic.h"
 
 #include "sources/pcap.h"
 

@@ -23,7 +23,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-dns-common.h"
 
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 
 #include "app-layer-dns-udp.h"
 #include "rust-dns-dns-gen.h"
@@ -195,7 +195,7 @@ void RegisterDNSUDPParsers(void)
 
 #ifdef UNITTESTS
 
-#include "util/util-unittest-helper.h"
+#include "util/unittest-helper.h"
 
 static int RustDNSUDPParserTest01 (void)
 {

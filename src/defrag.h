@@ -25,7 +25,7 @@
 #define __DEFRAG_H__
 
 #include "tree.h"
-#include "util/util-pool.h"
+#include "util/pool.h"
 
 /**
  * A context for an instance of a fragmentation re-assembler, in case

@@ -37,10 +37,10 @@
 
 #include "detect-tcp-ack.h"
 
-#include "util/util-byte.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-debug.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
 
 /* prototypes */
 static int DetectAckSetup(DetectEngineCtx *, Signature *, const char *);

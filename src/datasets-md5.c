@@ -25,10 +25,10 @@
 #include "conf.h"
 #include "datasets.h"
 #include "datasets-md5.h"
-#include "util/util-thash.h"
-#include "util/util-print.h"
-#include "util/util-crypt.h"     // encode base64
-#include "util/util-base64.h"    // decode base64
+#include "util/thash.h"
+#include "util/print.h"
+#include "util/crypt.h"     // encode base64
+#include "util/base64.h"    // decode base64
 
 int Md5StrSet(void *dst, void *src)
 {

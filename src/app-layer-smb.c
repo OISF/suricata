@@ -22,13 +22,13 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 
 #include "rust.h"
 #include "app-layer-smb.h"
 #include "rust-smb-smb-gen.h"
 #include "rust-smb-files-gen.h"
-#include "util/util-misc.h"
+#include "util/misc.h"
 
 #define MIN_REC_SIZE 32+4 // SMB hdr + nbss hdr
 
@@ -357,7 +357,7 @@ void RegisterSMBParsers(void)
 
 #ifdef UNITTESTS
 #include "stream-tcp.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest-helper.h"
 
 /** \test multi transactions and cleanup */
 static int SMBParserTxCleanupTest(void)

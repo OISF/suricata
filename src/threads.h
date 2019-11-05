@@ -37,9 +37,9 @@
 #endif
 
 #ifdef PROFILING
-#include "util/util-cpu.h"
+#include "util/cpu.h"
 #ifdef PROFILE_LOCKING
-#include "util/util-profiling-locks.h"
+#include "util/profiling-locks.h"
 #endif /* PROFILE_LOCKING */
 #endif /* PROFILING */
 

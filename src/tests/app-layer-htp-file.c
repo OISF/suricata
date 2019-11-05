@@ -17,7 +17,7 @@
  */
 
 #include "../app-layer-htp-file.h"
-#include "../util/util-unittest.h"
+#include "../util/unittest.h"
 
 /**
  * \test AppLayerHtpFileParseContentRangeTest01 is a test

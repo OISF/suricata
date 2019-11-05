@@ -29,15 +29,15 @@
 #include "detect.h"
 #include "flow-var.h"
 
-#include "util/util-cidr.h"
-#include "util/util-unittest.h"
+#include "util/cidr.h"
+#include "util/unittest.h"
 
 #include "detect-engine-address.h"
 #include "detect-engine-address-ipv6.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-port.h"
 
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 /**
  * \brief Compares 2 ipv6 addresses and returns if the first address(a) is less

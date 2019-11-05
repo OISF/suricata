@@ -25,7 +25,7 @@
 #define __DETECT_FILEMAGIC_H__
 
 #ifdef HAVE_MAGIC
-#include "util/util-spm-bm.h"
+#include "util/spm-bm.h"
 
 typedef struct DetectFilemagicThreadData {
     magic_t ctx;

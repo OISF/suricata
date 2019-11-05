@@ -26,8 +26,8 @@
 #ifndef __DEVICE_STORAGE_H__
 #define __DEVICE_STORAGE_H__
 
-#include "util/util-storage.h"
-#include "util/util-device.h"
+#include "util/storage.h"
+#include "util/device.h"
 
 unsigned int LiveDevStorageSize(void);
 

@@ -35,10 +35,10 @@
 #include "detect-threshold.h"
 #include "detect-parse.h"
 
-#include "util/util-byte.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-debug.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
 
 #define TRACK_DST      1
 #define TRACK_SRC      2
@@ -270,8 +270,8 @@ static void DetectDetectionFilterFree(void *df_ptr)
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-threshold.h"
-#include "util/util-time.h"
-#include "util/util-hashlist.h"
+#include "util/time.h"
+#include "util/hashlist.h"
 
 /**
  * \test DetectDetectionFilterTestParse01 is a test for a valid detection_filter options

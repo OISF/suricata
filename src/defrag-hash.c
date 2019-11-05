@@ -20,10 +20,10 @@
 #include "defrag-hash.h"
 #include "defrag-queue.h"
 #include "defrag-config.h"
-#include "util/util-random.h"
-#include "util/util-byte.h"
-#include "util/util-misc.h"
-#include "util/util-hash-lookup3.h"
+#include "util/random.h"
+#include "util/byte.h"
+#include "util/misc.h"
+#include "util/hash-lookup3.h"
 
 static DefragTracker *DefragTrackerGetUsedDefragTracker(void);
 

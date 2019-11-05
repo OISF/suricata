@@ -33,11 +33,11 @@
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
 #include "ipfw.h"
-#include "util/util-debug.h"
+#include "util/debug.h"
 #include "conf.h"
-#include "util/util-byte.h"
-#include "util/util-privs.h"
-#include "util/util-device.h"
+#include "util/byte.h"
+#include "util/privs.h"
+#include "util/device.h"
 #include "runmodes.h"
 
 #define IPFW_ACCEPT 0

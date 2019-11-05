@@ -31,10 +31,10 @@
 #include "detect-parse.h"
 #include "detect-transform-dotprefix.h"
 
-#include "util/util-unittest.h"
-#include "util/util-print.h"
-#include "util/util-memrchr.h"
-#include "util/util-memcpy.h"
+#include "util/unittest.h"
+#include "util/print.h"
+#include "util/memrchr.h"
+#include "util/memcpy.h"
 
 static int DetectTransformDotPrefixSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformDotPrefixRegisterTests(void);

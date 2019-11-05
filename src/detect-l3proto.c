@@ -40,11 +40,11 @@
 
 #include "detect-l3proto.h"
 
-#include "util/util-byte.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 static int DetectL3ProtoSetup(DetectEngineCtx *, Signature *, const char *);
 

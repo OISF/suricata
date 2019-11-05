@@ -30,8 +30,8 @@
 #include "tm-threads.h"
 #include "runmodes.h"
 
-#include "util/util-random.h"
-#include "util/util-time.h"
+#include "util/random.h"
+#include "util/time.h"
 
 #include "flow.h"
 #include "flow-queue.h"
@@ -47,13 +47,13 @@
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-byte.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/byte.h"
 
-#include "util/util-debug.h"
-#include "util/util-privs.h"
-#include "util/util-signal.h"
+#include "util/debug.h"
+#include "util/privs.h"
+#include "util/signal.h"
 
 #include "threads.h"
 #include "detect.h"
@@ -66,7 +66,7 @@
 #include "defrag-timeout.h"
 #include "ippair-timeout.h"
 
-#include "output-flow.h"
+#include "outputs/flow.h"
 
 /* Run mode selected at suricata.c */
 extern int run_mode;

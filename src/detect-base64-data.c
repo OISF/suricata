@@ -22,7 +22,7 @@
 #include "detect-parse.h"
 #include "detect-base64-data.h"
 
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 
 static int DetectBase64DataSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectBase64DataRegisterTests(void);

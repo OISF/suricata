@@ -33,9 +33,9 @@
 #include "ippair-bit.h"
 #include "ippair.h"
 #include "detect.h"
-#include "util/util-var.h"
-#include "util/util-debug.h"
-#include "util/util-unittest.h"
+#include "util/var.h"
+#include "util/debug.h"
+#include "util/unittest.h"
 #include "ippair-storage.h"
 
 static int ippair_bit_id = -1;                /**< IPPair storage id for bits */

@@ -31,8 +31,8 @@
 #include "detect-parse.h"
 #include "app-layer.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "detect-isdataat.h"
 #include "detect-content.h"
@@ -41,8 +41,8 @@
 #include "flow.h"
 #include "flow-var.h"
 
-#include "util/util-debug.h"
-#include "util/util-byte.h"
+#include "util/debug.h"
+#include "util/byte.h"
 #include "detect-pcre.h"
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"

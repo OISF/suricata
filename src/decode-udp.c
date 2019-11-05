@@ -36,8 +36,8 @@
 #include "decode-teredo.h"
 #include "decode-vxlan.h"
 #include "decode-events.h"
-#include "util/util-unittest.h"
-#include "util/util-debug.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 #include "flow.h"
 #include "app-layer.h"
 

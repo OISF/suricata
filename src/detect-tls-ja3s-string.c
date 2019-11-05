@@ -44,19 +44,19 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
-#include "util/util-debug.h"
-#include "util/util-unittest.h"
-#include "util/util-spm.h"
-#include "util/util-print.h"
-#include "util/util-ja3.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/spm.h"
+#include "util/print.h"
+#include "util/ja3.h"
 
 #include "stream-tcp.h"
 
 #include "app-layer.h"
 #include "app-layer-ssl.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 static int DetectTlsJa3SStringSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

@@ -21,12 +21,12 @@
 #include "runmodes.h"
 #include "runmode-pcap-file.h"
 #include "output.h"
-#include "output-json.h"
+#include "outputs/json.h"
 
-#include "util/util-debug.h"
-#include "util/util-time.h"
-#include "util/util-cpu.h"
-#include "util/util-affinity.h"
+#include "util/debug.h"
+#include "util/time.h"
+#include "util/cpu.h"
+#include "util/affinity.h"
 #include "unix-manager.h"
 
 #include "detect-engine.h"
@@ -44,8 +44,8 @@
 #include "app-layer-htp-mem.h"
 #include "host-bit.h"
 
-#include "util/util-misc.h"
-#include "util/util-profiling.h"
+#include "util/misc.h"
+#include "util/profiling.h"
 
 #include "conf-yaml-loader.h"
 
