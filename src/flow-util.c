@@ -32,8 +32,8 @@
 #include "flow-var.h"
 #include "app-layer.h"
 
-#include "util/util-var.h"
-#include "util/util-debug.h"
+#include "util/var.h"
+#include "util/debug.h"
 #include "flow-storage.h"
 
 #include "detect.h"

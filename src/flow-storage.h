@@ -26,7 +26,7 @@
 #ifndef __FLOW_STORAGE_H__
 #define __FLOW_STORAGE_H__
 
-#include "util/util-storage.h"
+#include "util/storage.h"
 #include "flow.h"
 
 unsigned int FlowStorageSize(void);

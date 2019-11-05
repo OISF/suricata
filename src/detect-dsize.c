@@ -35,13 +35,13 @@
 #include "detect-content.h"
 #include "detect-dsize.h"
 
-#include "util/util-unittest.h"
-#include "util/util-debug.h"
-#include "util/util-byte.h"
+#include "util/unittest.h"
+#include "util/debug.h"
+#include "util/byte.h"
 
 #include "pkt-var.h"
 #include "host.h"
-#include "util/util-profiling.h"
+#include "util/profiling.h"
 
 /**
  *  dsize:[<>]<0-65535>[<><0-65535>];

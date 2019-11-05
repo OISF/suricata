@@ -23,7 +23,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-dns-common.h"
 
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 
 #include "app-layer-dns-tcp.h"
 #include "rust-dns-dns-gen.h"
@@ -188,7 +188,7 @@ void RegisterDNSTCPParsers(void)
 
 #ifdef UNITTESTS
 
-#include "util/util-unittest-helper.h"
+#include "util/unittest-helper.h"
 
 static int RustDNSTCPParserTestMultiRecord(void)
 {

@@ -29,14 +29,14 @@
 #include "runmodes.h"
 #include "conf.h"
 
-#include "output-json-stats.h"
+#include "outputs/json-stats.h"
 
-#include "util/util-privs.h"
-#include "util/util-debug.h"
-#include "util/util-device.h"
-#include "util/util-ebpf.h"
-#include "util/util-signal.h"
-#include "util/util-buffer.h"
+#include "util/privs.h"
+#include "util/debug.h"
+#include "util/device.h"
+#include "util/ebpf.h"
+#include "util/signal.h"
+#include "util/buffer.h"
 
 #if (defined BUILD_UNIX_SOCKET) && (defined HAVE_SYS_UN_H) && (defined HAVE_SYS_STAT_H) && (defined HAVE_SYS_TYPES_H)
 #include <sys/un.h>
@@ -44,7 +44,7 @@
 #include <sys/types.h>
 
 #include "output.h"
-#include "output-json.h"
+#include "outputs/json.h"
 
 // MSG_NOSIGNAL does not exists on OS X
 #ifdef OS_DARWIN

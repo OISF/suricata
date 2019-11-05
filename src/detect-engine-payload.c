@@ -39,14 +39,14 @@
 #include "stream.h"
 #include "stream-tcp.h"
 
-#include "util/util-debug.h"
-#include "util/util-print.h"
+#include "util/debug.h"
+#include "util/print.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-validate.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/validate.h"
 
-#include "util/util-mpm-ac.h"
+#include "util/mpm-ac.h"
 
 struct StreamMpmData {
     DetectEngineThreadCtx *det_ctx;

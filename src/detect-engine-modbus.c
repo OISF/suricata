@@ -44,7 +44,7 @@
 
 #include "flow.h"
 
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 /** \internal
  *
@@ -282,8 +282,8 @@ int DetectEngineInspectModbus(ThreadVars            *tv,
 
 #include "stream-tcp.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 /* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
 /* Example of a request to read discrete outputs 20-38 */

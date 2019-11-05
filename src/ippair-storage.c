@@ -25,7 +25,7 @@
 
 #include "suricata-common.h"
 #include "ippair-storage.h"
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 
 unsigned int IPPairStorageSize(void)
 {

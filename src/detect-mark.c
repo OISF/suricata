@@ -34,8 +34,8 @@
 #include "detect-mark.h"
 #include "detect-parse.h"
 
-#include "util/util-unittest.h"
-#include "util/util-debug.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 #define PARSE_REGEX "([0x]*[0-9a-f]+)/([0x]*[0-9a-f]+)"
 

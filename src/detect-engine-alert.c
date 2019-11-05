@@ -27,7 +27,7 @@
 #include "flow.h"
 #include "flow-private.h"
 
-#include "util/util-profiling.h"
+#include "util/profiling.h"
 
 /** tag signature we use for tag alerts */
 static Signature g_tag_signature;

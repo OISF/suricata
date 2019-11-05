@@ -19,9 +19,9 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-base64-decode.h"
-#include "util/util-base64.h"
-#include "util/util-byte.h"
-#include "util/util-print.h"
+#include "util/base64.h"
+#include "util/byte.h"
+#include "util/print.h"
 
 /* Arbitrary maximum buffer size for decoded base64 data. */
 #define BASE64_DECODE_MAX 65535
@@ -249,8 +249,8 @@ static void DetectBase64DecodeFree(void *ptr)
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 #include "app-layer-parser.h"
 #include "flow-util.h"
 #include "stream-tcp.h"

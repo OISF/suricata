@@ -26,7 +26,7 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest-helper.h"
 
 #define TEST_INIT                                                       \
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();                    \

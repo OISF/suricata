@@ -35,9 +35,9 @@
 
 #include "detect-fragoffset.h"
 
-#include "util/util-byte.h"
-#include "util/util-unittest.h"
-#include "util/util-debug.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 #define PARSE_REGEX "^\\s*(?:(<|>))?\\s*([0-9]+)"
 

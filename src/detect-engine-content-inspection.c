@@ -50,16 +50,16 @@
 
 #include "app-layer-dcerpc.h"
 
-#include "util/util-spm.h"
-#include "util/util-debug.h"
-#include "util/util-print.h"
+#include "util/spm.h"
+#include "util/debug.h"
+#include "util/print.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-profiling.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/profiling.h"
 
 #ifdef HAVE_LUA
-#include "util/util-lua.h"
+#include "util/lua.h"
 #endif
 
 /**

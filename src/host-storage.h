@@ -26,7 +26,7 @@
 #ifndef __HOST_STORAGE_H__
 #define __HOST_STORAGE_H__
 
-#include "util/util-storage.h"
+#include "util/storage.h"
 #include "host.h"
 
 unsigned int HostStorageSize(void);

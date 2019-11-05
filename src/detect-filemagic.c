@@ -39,13 +39,13 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util/util-debug.h"
-#include "util/util-spm-bm.h"
-#include "util/util-magic.h"
-#include "util/util-print.h"
+#include "util/debug.h"
+#include "util/spm-bm.h"
+#include "util/magic.h"
+#include "util/print.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"

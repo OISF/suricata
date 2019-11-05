@@ -39,10 +39,10 @@
 
 #include "flow.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-debug.h"
-#include "util/util-print.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
+#include "util/print.h"
 
 /**
  * Note, this is the IP header, plus a bit of the original packet, not the whole thing!

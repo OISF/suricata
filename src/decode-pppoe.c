@@ -41,8 +41,8 @@
 
 #include "flow.h"
 
-#include "util/util-unittest.h"
-#include "util/util-debug.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 /**
  * \brief Main decoding function for PPPOE Discovery packets

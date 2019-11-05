@@ -26,7 +26,7 @@
 #ifndef __UTIL_DETECT_FILE_HASH_H__
 #define __UTIL_DETECT_FILE_HASH_H__
 
-#include "util/util-rohash.h"
+#include "util/rohash.h"
 
 typedef struct DetectFileHashData_ {
     ROHashTable *hash;

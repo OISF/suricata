@@ -31,8 +31,8 @@
 #include "detect-parse.h"
 #include "detect-transform-compress-whitespace.h"
 
-#include "util/util-unittest.h"
-#include "util/util-print.h"
+#include "util/unittest.h"
+#include "util/print.h"
 
 static int DetectTransformCompressWhitespaceSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformCompressWhitespaceRegisterTests(void);

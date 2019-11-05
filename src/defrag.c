@@ -39,16 +39,16 @@
 #include "threads.h"
 #include "conf.h"
 #include "decode-ipv6.h"
-#include "util/util-hashlist.h"
-#include "util/util-pool.h"
-#include "util/util-time.h"
-#include "util/util-print.h"
-#include "util/util-debug.h"
-#include "util/util-fix_checksum.h"
-#include "util/util-random.h"
+#include "util/hashlist.h"
+#include "util/pool.h"
+#include "util/time.h"
+#include "util/print.h"
+#include "util/debug.h"
+#include "util/fix_checksum.h"
+#include "util/random.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-#include "util/util-host-os-info.h"
+#include "util/host-os-info.h"
 
 #include "defrag.h"
 #include "defrag-hash.h"
@@ -59,7 +59,7 @@
 #include "decode.h"
 
 #ifdef UNITTESTS
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 #endif
 
 #define DEFAULT_DEFRAG_HASH_SIZE 0xffff

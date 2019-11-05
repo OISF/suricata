@@ -25,7 +25,7 @@
 #define __FLOW_BIT_H__
 
 #include "flow.h"
-#include "util/util-var.h"
+#include "util/var.h"
 
 typedef struct FlowBit_ {
     uint8_t type; /* type, DETECT_FLOWBITS in this case */

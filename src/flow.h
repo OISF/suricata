@@ -25,11 +25,11 @@
 #define __FLOW_H__
 
 #include "decode.h"
-#include "util/util-var.h"
-#include "util/util-atomic.h"
-#include "util/util-device.h"
+#include "util/var.h"
+#include "util/atomic.h"
+#include "util/device.h"
 #include "detect-tag.h"
-#include "util/util-optimize.h"
+#include "util/optimize.h"
 
 /* Part of the flow structure, so we declare it here.
  * The actual declaration is in app-layer-parser.c */

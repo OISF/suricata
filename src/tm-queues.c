@@ -26,7 +26,7 @@
 #include "suricata.h"
 #include "threads.h"
 #include "tm-queues.h"
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 #define TMQ_MAX_QUEUES 256
 

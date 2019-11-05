@@ -36,9 +36,9 @@
 #include "decode-events.h"
 
 #include "detect-tcp-flags.h"
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 /**
  *  Regex (by Brian Rectanus)

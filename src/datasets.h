@@ -18,7 +18,7 @@
 #ifndef __DATASETS_H__
 #define __DATASETS_H__
 
-#include "util/util-thash.h"
+#include "util/thash.h"
 #include "datasets-reputation.h"
 
 int DatasetsInit(void);

@@ -46,9 +46,9 @@
 #include "../app-layer-protos.h"
 #include "../app-layer-parser.h"
 
-#include "../util/util-unittest.h"
-#include "../util/util-unittest-helper.h"
-#include "../util/util-validate.h"
+#include "../util/unittest.h"
+#include "../util/unittest-helper.h"
+#include "../util/validate.h"
 
 /***********************************Unittests**********************************/
 

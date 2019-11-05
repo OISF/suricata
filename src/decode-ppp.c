@@ -37,8 +37,8 @@
 
 #include "flow.h"
 
-#include "util/util-unittest.h"
-#include "util/util-debug.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len, PacketQueue *pq)

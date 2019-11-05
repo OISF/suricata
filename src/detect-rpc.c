@@ -35,10 +35,10 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
-#include "util/util-debug.h"
-#include "util/util-byte.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
+#include "util/byte.h"
 
 /**
  * \brief Regex for parsing our rpc options

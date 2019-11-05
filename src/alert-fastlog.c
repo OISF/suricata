@@ -36,26 +36,26 @@
 #include "threads.h"
 #include "tm-threads.h"
 #include "threadvars.h"
-#include "util/util-debug.h"
+#include "util/debug.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
-#include "util/util-classification-config.h"
+#include "util/classification-config.h"
 
 #include "output.h"
 #include "alert-fastlog.h"
 
-#include "util/util-privs.h"
-#include "util/util-print.h"
-#include "util/util-proto-name.h"
-#include "util/util-optimize.h"
-#include "util/util-logopenfile.h"
-#include "util/util-time.h"
+#include "util/privs.h"
+#include "util/print.h"
+#include "util/proto-name.h"
+#include "util/optimize.h"
+#include "util/logopenfile.h"
+#include "util/time.h"
 
 #define DEFAULT_LOG_FILENAME "fast.log"
 

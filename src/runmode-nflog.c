@@ -27,10 +27,10 @@
 #include "runmodes.h"
 #include "runmode-nflog.h"
 
-#include "util/util-debug.h"
-#include "util/util-device.h"
-#include "util/util-runmodes.h"
-#include "util/util-misc.h"
+#include "util/debug.h"
+#include "util/device.h"
+#include "util/runmodes.h"
+#include "util/misc.h"
 
 #include "sources/nflog.h"
 

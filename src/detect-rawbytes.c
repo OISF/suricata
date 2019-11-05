@@ -36,7 +36,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 static int DetectRawbytesSetup (DetectEngineCtx *, Signature *, const char *);
 

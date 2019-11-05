@@ -23,7 +23,7 @@
 
 #include "../detect-tcphdr.h"
 
-#include "../util/util-unittest.h"
+#include "../util/unittest.h"
 
 static int DetectUdphdrParseTest01 (void)
 {

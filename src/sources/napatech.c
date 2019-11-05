@@ -29,13 +29,13 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "threadvars.h"
-#include "util/util-optimize.h"
+#include "util/optimize.h"
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
 #include "tm-modules.h"
-#include "util/util-privs.h"
+#include "util/privs.h"
 #include "tmqh-packetpool.h"
-#include "util/util-napatech.h"
+#include "util/napatech.h"
 #include "napatech.h"
 
 #ifndef HAVE_NAPATECH

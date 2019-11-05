@@ -25,7 +25,7 @@
 #define __STREAM_TCP_SACK_H__
 
 #include "suricata-common.h"
-#include "util/util-optimize.h"
+#include "util/optimize.h"
 
 /**
  *  \brief Get the size of the SACKed ranges

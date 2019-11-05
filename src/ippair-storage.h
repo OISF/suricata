@@ -26,7 +26,7 @@
 #ifndef __IPPAIR_STORAGE_H__
 #define __IPPAIR_STORAGE_H__
 
-#include "util/util-storage.h"
+#include "util/storage.h"
 #include "ippair.h"
 
 unsigned int IPPairStorageSize(void);

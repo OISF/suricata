@@ -19,8 +19,8 @@
 #define __APP_LAYER_DNP3_H__
 
 #include "detect-engine-state.h"
-#include "util/util-hashlist.h"
-#include "util/util-byte.h"
+#include "util/hashlist.h"
+#include "util/byte.h"
 
 /**
  * The maximum size of a DNP3 link PDU.

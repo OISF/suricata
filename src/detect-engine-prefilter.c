@@ -53,7 +53,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
-#include "util/util-profiling.h"
+#include "util/profiling.h"
 
 static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
         const char *name, void (*FreeFunc)(void *));
@@ -558,7 +558,7 @@ const char *PrefilterStoreGetName(const uint32_t id)
 }
 #endif
 
-#include "util/util-print.h"
+#include "util/print.h"
 
 typedef struct PrefilterMpmCtx {
     int list_id;

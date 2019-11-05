@@ -40,7 +40,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-template.h"
 
-#include "util/util-unittest.h"
+#include "util/unittest.h"
 
 
 /* The default port to probe for echo traffic if not provided in the

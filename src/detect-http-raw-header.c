@@ -45,7 +45,7 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"

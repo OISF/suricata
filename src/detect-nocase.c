@@ -31,7 +31,7 @@
 #include "detect-content.h"
 #include "detect-nocase.h"
 
-#include "util/util-debug.h"
+#include "util/debug.h"
 
 static int DetectNocaseSetup (DetectEngineCtx *, Signature *, const char *);
 

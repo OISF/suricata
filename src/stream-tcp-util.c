@@ -30,11 +30,11 @@
 #include "stream-tcp.h"
 #include "stream-tcp-util.h"
 
-#include "util/util-memcmp.h"
-#include "util/util-print.h"
+#include "util/memcmp.h"
+#include "util/print.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 #include "ippair.h"
 
 #ifdef UNITTESTS

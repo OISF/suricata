@@ -38,10 +38,10 @@
 #include "decode-events.h"
 #include "defrag.h"
 #include "pkt-var.h"
-#include "util/util-debug.h"
-#include "util/util-print.h"
-#include "util/util-unittest.h"
-#include "util/util-profiling.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/unittest.h"
+#include "util/profiling.h"
 #include "host.h"
 
 /**

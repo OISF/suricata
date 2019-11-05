@@ -24,7 +24,7 @@
 #ifndef __DETECT_FILENAME_H__
 #define __DETECT_FILENAME_H__
 
-#include "util/util-spm-bm.h"
+#include "util/spm-bm.h"
 
 typedef struct DetectFilenameData {
     uint8_t *name; /** name of the file to match */

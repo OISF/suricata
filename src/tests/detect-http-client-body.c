@@ -48,16 +48,16 @@
 
 
 #include "flow-util.h"
-#include "util/util-debug.h"
-#include "util/util-print.h"
+#include "util/debug.h"
+#include "util/print.h"
 #include "flow.h"
 
 #include "app-layer-parser.h"
 
 #include "stream-tcp.h"
 
-#include "util/util-unittest.h"
-#include "util/util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
@@ -65,7 +65,7 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
-#include "util/util-validate.h"
+#include "util/validate.h"
 
 #ifdef UNITTESTS
 

@@ -22,9 +22,9 @@
 #include "../stream-tcp-inline.h"
 #include "../stream-tcp-list.h"
 #include "../stream-tcp-util.h"
-#include "../util/util-streaming-buffer.h"
-#include "../util/util-print.h"
-#include "../util/util-unittest.h"
+#include "../util/streaming-buffer.h"
+#include "../util/print.h"
+#include "../util/unittest.h"
 
 struct TestReassembleRawCallbackData {
     const uint8_t *expect_data;

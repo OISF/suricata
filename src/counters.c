@@ -30,17 +30,17 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 #include "conf.h"
-#include "util/util-time.h"
-#include "util/util-unittest.h"
-#include "util/util-debug.h"
-#include "util/util-privs.h"
-#include "util/util-signal.h"
+#include "util/time.h"
+#include "util/unittest.h"
+#include "util/debug.h"
+#include "util/privs.h"
+#include "util/signal.h"
 #include "unix-manager.h"
 #include "runmodes.h"
 
 #include "output.h"
-#include "output-stats.h"
-#include "output-json-stats.h"
+#include "outputs/stats.h"
+#include "outputs/json-stats.h"
 
 /* Time interval for syncing the local counters with the global ones */
 #define STATS_WUT_TTS 3

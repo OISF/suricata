@@ -31,8 +31,8 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-metadata.h"
-#include "util/util-hash-string.h"
-#include "util/util-unittest.h"
+#include "util/hash-string.h"
+#include "util/unittest.h"
 
 static int DetectMetadataSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectMetadataRegisterTests(void);
