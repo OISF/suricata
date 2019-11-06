@@ -120,3 +120,9 @@ Example::
 
     alert http any any -> any any (msg:"HTTP with pcrexform"; http.request_line; \
         pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; content:"/dropper.php"; sid:1;)
+
+url_decode
+----------
+
+Decodes url-encoded data, ie replacing '+' with space and '%HH' with its value.
+This does not decode unicode '%uZZZZ' encoding
