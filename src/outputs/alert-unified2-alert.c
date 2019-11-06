@@ -31,7 +31,7 @@
 #include "runmodes.h"
 #include "debug.h"
 #include "detect.h"
-#include "flow.h"
+#include "../flow.h"
 #include "conf.h"
 #include "pkt-var.h"
 #include "threads.h"
