@@ -41,9 +41,9 @@
 
 #include "output.h"
 
-#include "alert-fastlog.h"
-#include "alert-prelude.h"
-#include "alert-debuglog.h"
+#include "outputs/alert-fastlog.h"
+#include "outputs/alert-prelude.h"
+#include "outputs/alert-debuglog.h"
 
 #include "log-httplog.h"
 

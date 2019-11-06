@@ -40,9 +40,9 @@
 #include "log-httplog.h"
 #include "detect-engine-mpm.h"
 
-#include "alert-fastlog.h"
-#include "alert-prelude.h"
-#include "alert-debuglog.h"
+#include "outputs/alert-fastlog.h"
+#include "outputs/alert-prelude.h"
+#include "outputs/alert-debuglog.h"
 
 #include "util/debug.h"
 #include "util/time.h"

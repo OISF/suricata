@@ -8,10 +8,6 @@ noinst_HEADERS = action-globals.h \
 bin_PROGRAMS = suricata
 
 suricata_SOURCES = \
-alert-debuglog.c alert-debuglog.h \
-alert-fastlog.c alert-fastlog.h \
-alert-prelude.c alert-prelude.h \
-alert-syslog.c alert-syslog.h \
 app-layer.c app-layer.h \
 app-layer-dcerpc.c app-layer-dcerpc.h \
 app-layer-dcerpc-udp.c app-layer-dcerpc-udp.h \
@@ -323,6 +319,10 @@ log-tlslog.c log-tlslog.h \
 log-tlsstore.c log-tlsstore.h \
 main.c \
 output.c output.h \
+outputs/alert-debuglog.c outputs/alert-debuglog.h \
+outputs/alert-fastlog.c outputs/alert-fastlog.h \
+outputs/alert-prelude.c outputs/alert-prelude.h \
+outputs/alert-syslog.c outputs/alert-syslog.h \
 outputs/file.c outputs/file.h \
 outputs/filedata.c outputs/filedata.h \
 outputs/filestore.c outputs/filestore.h \
