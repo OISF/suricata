@@ -43,5 +43,4 @@ log files is still the responsibility of external tools. These outputs
 include:
 
 - :ref:`Eve <output_eve_rotate>`
-- :ref:`Unified2 <suricata_yaml_unified2>`
 - :ref:`PCAP log <suricata_yaml_pcap_log>`
