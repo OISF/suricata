@@ -38,7 +38,6 @@
 
 #include "alert-fastlog.h"
 #include "alert-prelude.h"
-#include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
 
 #include "util-debug.h"

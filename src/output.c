@@ -41,7 +41,6 @@
 #include "output.h"
 
 #include "alert-fastlog.h"
-#include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
 #include "alert-syslog.h"
@@ -1099,8 +1098,6 @@ void OutputRegisterLoggers(void)
     AlertPreludeRegister();
     /* syslog log */
     AlertSyslogRegister();
-    /* unified2 log */
-    Unified2AlertRegister();
     /* drop log */
     LogDropLogRegister();
     JsonDropLogRegister();

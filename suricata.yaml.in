@@ -287,12 +287,6 @@ outputs:
         # flowints.
         #- metadata
 
-  # deprecated - unified2 alert format for use with Barnyard2
-  - unified2-alert:
-      enabled: no
-      # for further options see:
-      # https://suricata.readthedocs.io/en/suricata-5.0.0/configuration/suricata-yaml.html#alert-output-for-use-with-barnyard2-unified2-alert
-
   # a line based log of HTTP requests (no alerts)
   - http-log:
       enabled: no
