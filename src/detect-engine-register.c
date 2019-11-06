@@ -211,6 +211,7 @@
 #include "detect-transform-sha256.h"
 #include "detect-transform-dotprefix.h"
 #include "detect-transform-pcrexform.h"
+#include "detect-transform-urldecode.h"
 
 #include "util-rule-vars.h"
 
@@ -597,6 +598,7 @@ void SigTableSetup(void)
     DetectTransformSha256Register();
     DetectTransformDotPrefixRegister();
     DetectTransformPcrexformRegister();
+    DetectTransformUrlDecodeRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
