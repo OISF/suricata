@@ -161,9 +161,6 @@ outputs section and storing them in outputs.yaml
       filename: fast.log
       append: yes
 
-  - unified2-alert:
-      enabled: yes
-
   ...
 
 ::
@@ -189,9 +186,6 @@ different YAML file.
           enabled: yes
           filename: fast.log
           append: yes
-
-      - unified2-alert:
-          enabled: yes
 
 ::
 
@@ -325,80 +319,6 @@ integration with 3rd party tools like logstash.
 For more advanced configuration options, see :ref:`Eve JSON Output <eve-json-output>`.
 
 The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
-
-.. _suricata_yaml_unified2:
-
-Alert output for use with Barnyard2 (unified2.alert)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. note:: Unified2 output has been deprecated and will be removed by
-          December 2019. Please see the `deprecation policy`_ for more
-          information.
-
-This log format is a binary format compatible with the unified2 output
-of another popular IDS format and is designed for use with Barnyard2
-or other tools that consume the unified2 log format.
-
-By default a file with the given filename and a timestamp (unix epoch
-format) will be created until the file hits the configured size limit,
-then a new file, with a new timestamp will be created. It is the job
-of other tools, such as Barnyard2 to cleanup old unified2 files.
-
-If the `nostamp` option is set the log file will not have a timestamp
-appended. The file will be re-opened on SIGHUP like other log files
-allowing external log rotation tools to work as expected. However, if
-the limit is reach the file will be deleted and re-opened.
-
-This output supports IPv6 and IPv4 events.
-
-::
-
-  - unified2-alert:
-      enabled: yes
-
-      # The filename to log to in the default log directory. A
-      # timestamp in unix epoch time will be appended to the filename
-      # unless nostamp is set to yes.
-      filename: unified2.alert
-
-      # File size limit.  Can be specified in kb, mb, gb.  Just a number
-      # is parsed as bytes.
-      #limit: 32mb
-
-      # By default unified2 log files have the file creation time (in
-      # unix epoch format) appended to the filename. Set this to yes to
-      # disable this behavior.
-      #nostamp: no
-
-      # Sensor ID field of unified2 alerts.
-      #sensor-id: 0
-
-      # Include payload of packets related to alerts. Defaults to true, set to
-      # false if payload is not required.
-      #payload: yes
-
-      # HTTP X-Forwarded-For support by adding the unified2 extra header or
-      # overwriting the source or destination IP address (depending on flow
-      # direction) with the one reported in the X-Forwarded-For HTTP header.
-      # This is helpful when reviewing alerts for traffic that is being reverse
-      # or forward proxied.
-      xff:
-        enabled: no
-        # Two operation modes are available, "extra-data" and "overwrite". Note
-        # that in the "overwrite" mode, if the reported IP address in the HTTP
-        # X-Forwarded-For header is of a different version of the packet
-        # received, it will fall-back to "extra-data" mode.
-        mode: extra-data
-        # Two proxy deployments are supported, "reverse" and "forward". In
-        # a "reverse" deployment the IP address used is the last one, in a
-        # "forward" deployment the first IP address is used.
-        deployment: reverse
-        # Header name where the actual IP address will be reported, if more
-        # than one IP address is present, the last IP address will be the
-        # one taken into consideration.
-        header: X-Forwarded-For
-
-This alert output needs Barnyard2.
 
 A line based log of HTTP requests (http.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
