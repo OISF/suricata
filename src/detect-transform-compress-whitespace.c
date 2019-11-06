@@ -43,7 +43,8 @@ void DetectTransformCompressWhitespaceRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].name = "compress_whitespace";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].desc =
-        "modify buffer to strip whitespace before inspection";
+        "modify buffer to commpress consecutive whitespaces "
+        "into a single one before inspection";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].url =
         DOC_URL DOC_VERSION "/rules/transforms.html#compress-whitespace";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Transform =
@@ -157,24 +158,6 @@ static int DetectTransformCompressWhitespaceTest02(void)
     PASS;
 }
 
-static int DetectTransformCompressWhitespaceTest03(void)
-{
-    const char rule[] = "alert http any any -> any any (http_request_line; strip_whitespace; content:\"GET/HTTP\"; sid:1;)";
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    memset(&th_v, 0, sizeof(th_v));
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-    Signature *s = DetectEngineAppendSig(de_ctx, rule);
-    FAIL_IF_NULL(s);
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
-
 #endif
 
 static void DetectTransformCompressWhitespaceRegisterTests(void)
@@ -184,7 +167,5 @@ static void DetectTransformCompressWhitespaceRegisterTests(void)
             DetectTransformCompressWhitespaceTest01);
     UtRegisterTest("DetectTransformCompressWhitespaceTest02",
             DetectTransformCompressWhitespaceTest02);
-    UtRegisterTest("DetectTransformCompressWhitespaceTest03",
-            DetectTransformCompressWhitespaceTest03);
 #endif
 }
