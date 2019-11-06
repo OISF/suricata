@@ -473,13 +473,6 @@
                   [AC_MSG_ERROR([clang needed to build ebpf files])])
           ])
 
-  # enable workaround for old barnyard2 for unified alert output
-    AC_ARG_ENABLE(old-barnyard2,
-           AS_HELP_STRING([--enable-old-barnyard2], [Use workaround for old barnyard2 in unified2 output]),[enable_old_barnyard2=$enableval],[enable_old_barnyard2=no])
-    AS_IF([test "x$enable_old_barnyard2" = "xyes"], [
-        AC_DEFINE([HAVE_OLD_BARNYARD2],[1],[Use workaround for old barnyard2 in unified2 output])
-    ])
-
   # enable debug output
     AC_ARG_ENABLE(debug,
            AS_HELP_STRING([--enable-debug], [Enable debug output]),[enable_debug=$enableval],[enable_debug=no])
