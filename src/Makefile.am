@@ -308,15 +308,6 @@ ippair-bit.c ippair-bit.h \
 ippair-queue.c ippair-queue.h \
 ippair-storage.c ippair-storage.h \
 ippair-timeout.c ippair-timeout.h \
-log-droplog.c log-droplog.h \
-log-filestore.c log-filestore.h \
-log-cf-common.c log-cf-common.h \
-log-httplog.c log-httplog.h \
-log-pcap.c log-pcap.h \
-log-stats.c log-stats.h \
-log-tcp-data.c log-tcp-data.h \
-log-tlslog.c log-tlslog.h \
-log-tlsstore.c log-tlsstore.h \
 main.c \
 output.c output.h \
 outputs/alert-debuglog.c outputs/alert-debuglog.h \
@@ -355,6 +346,15 @@ outputs/json-template.c outputs/json-template.h \
 outputs/json-template-rust.c outputs/json-template-rust.h \
 outputs/json-rdp.c outputs/json-rdp.h \
 outputs/json-metadata.c outputs/json-metadata.h \
+outputs/log-droplog.c outputs/log-droplog.h \
+outputs/log-filestore.c outputs/log-filestore.h \
+outputs/log-cf-common.c outputs/log-cf-common.h \
+outputs/log-httplog.c outputs/log-httplog.h \
+outputs/log-pcap.c outputs/log-pcap.h \
+outputs/log-stats.c outputs/log-stats.h \
+outputs/log-tcp-data.c outputs/log-tcp-data.h \
+outputs/log-tlslog.c outputs/log-tlslog.h \
+outputs/log-tlsstore.c outputs/log-tlsstore.h \
 outputs/lua.c outputs/lua.h \
 outputs/packet.c outputs/packet.h \
 outputs/stats.c outputs/stats.h \

@@ -45,7 +45,7 @@
 #include "outputs/alert-prelude.h"
 #include "outputs/alert-debuglog.h"
 
-#include "log-httplog.h"
+#include "outputs/log-httplog.h"
 
 #include "sources/pfring.h"
 
