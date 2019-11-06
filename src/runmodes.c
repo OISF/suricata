@@ -46,7 +46,7 @@
 #include "outputs/alert-unified2-alert.h"
 #include "outputs/alert-debuglog.h"
 
-#include "log-httplog.h"
+#include "outputs/log-httplog.h"
 
 #include "sources/pfring.h"
 
