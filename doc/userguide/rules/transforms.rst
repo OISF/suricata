@@ -106,3 +106,8 @@ Example::
 
 .. note:: depends on libnss being compiled into Suricata
 
+url_decode
+----------
+
+Decodes url-encoded data, ie replacing '+' with space and '%HH' with its value.
+This does not decode unicode '%uZZZZ' encoding
