@@ -318,7 +318,7 @@ sub printhelp {
         -x=<(optional) regex for excluding certian files incase something blows up but we want to continue fuzzing .>
         -z=<(optional) regex for excluding certian files from fuzzing but still process them note: the original files will be processed and not removed.>
         -y <shuffle the array, this is useful if running multiple instances of this script.>
-        -k <will keep alert-debug.log fast.log http.log and stats.log instead of removing them at the end of each run. Note unified logs are still removed>
+        -k <will keep alert-debug.log fast.log http.log and stats.log instead of removing them at the end of each run.>
         Example usage:
         First thing to do is download and build suricata from git with -O0 so vars don't get optimized out. See the example below:
         git clone git://phalanx.openinfosecfoundation.org/oisf.git suricatafuzz1 && cd suricatafuzz1 && ./autogen.sh && CFLAGS=\"-g -O0\" ./configure && make
@@ -641,7 +641,7 @@ sub clean_logs {
         #system("$rmcmd");
     }
 
-    foreach my $file (glob "$logdir/unified2.* $logdir/*.log $logdir/*.json") {
+    foreach my $file (glob "$logdir/*.log $logdir/*.json") {
         #print $file . "\n";
         if (unlink($file) <= 0) {
             print "clean_logs: failed to delete log file $file\n";
