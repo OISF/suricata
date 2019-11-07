@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Implements the nocase keyword
+ * Implements the compress_whitespace tranform keyword
  */
 
 #include "suricata-common.h"
@@ -43,7 +43,7 @@ void DetectTransformCompressWhitespaceRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].name = "compress_whitespace";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].desc =
-        "modify buffer to commpress consecutive whitespace characters "
+        "modify buffer to compress consecutive whitespace characters "
         "into a single one before inspection";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].url =
         DOC_URL DOC_VERSION "/rules/transforms.html#compress-whitespace";
@@ -59,7 +59,7 @@ void DetectTransformCompressWhitespaceRegister(void)
 
 /**
  *  \internal
- *  \brief Apply the nocase keyword to the last pattern match, either content or uricontent
+ *  \brief Apply the compress_whitespace keyword to the last pattern match
  *  \param det_ctx detection engine ctx
  *  \param s signature
  *  \param nullstr should be null
