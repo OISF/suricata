@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Implements the nocase keyword
+ * Implements the compress_whitespace tranform keyword
  */
 
 #include "suricata-common.h"
@@ -59,7 +59,7 @@ void DetectTransformCompressWhitespaceRegister(void)
 
 /**
  *  \internal
- *  \brief Apply the nocase keyword to the last pattern match, either content or uricontent
+ *  \brief Apply the compress_whitespace keyword to the last pattern match
  *  \param det_ctx detection engine ctx
  *  \param s signature
  *  \param nullstr should be null
