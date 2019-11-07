@@ -22,7 +22,7 @@
 #include "detect-engine-threshold.h"
 #include "detect-engine-tag.h"
 
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "flow.h"
 #include "flow-private.h"

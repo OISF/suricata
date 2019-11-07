@@ -31,9 +31,9 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "decode-tcp.h"
-#include "decode-events.h"
+#include "decoders/decode.h"
+#include "decoders/tcp.h"
+#include "decoders/events.h"
 #include "util/unittest.h"
 #include "util/debug.h"
 #include "util/optimize.h"

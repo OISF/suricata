@@ -47,7 +47,7 @@
 #include "pkt-var.h"
 #include "host.h"
 #include "util/profiling.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "flow.h"
 

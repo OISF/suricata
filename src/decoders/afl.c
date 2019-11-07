@@ -18,7 +18,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "conf.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "util/debug.h"
 #include "util/mem.h"
 #include "app-layer-detect-proto.h"

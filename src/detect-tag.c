@@ -35,7 +35,7 @@
 #include "app-layer-parser.h"
 
 #include "debug.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "flow.h"
 #include "flow-var.h"

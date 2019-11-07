@@ -24,7 +24,7 @@
 #define __APP_LAYER_H__
 
 #include "threadvars.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "flow.h"
 
 #include "stream-tcp-private.h"

@@ -26,7 +26,7 @@
 #define __APP_LAYER_EVENTS_H__
 
 /* contains fwd declaration of AppLayerDecoderEvents_ */
-#include "decode.h"
+#include "decoders/decode.h"
 
 /**
  * \brief Data structure to store app layer decoder events.

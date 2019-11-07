@@ -25,7 +25,7 @@
 #define __PACKET_QUEUE_H__
 
 #include "threads.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 void PacketEnqueue (PacketQueue *, Packet *);
 Packet *PacketDequeue (PacketQueue *);

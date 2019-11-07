@@ -53,7 +53,7 @@
 
 #include "conf.h"
 #include "conf-yaml-loader.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 SCEnumCharMap modbus_decoder_event_table[ ] = {
     /* Modbus Application Data Unit messages - ADU Modbus */

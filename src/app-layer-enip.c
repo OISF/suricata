@@ -42,7 +42,7 @@
 #include "app-layer-detect-proto.h"
 
 #include "conf.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"

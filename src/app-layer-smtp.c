@@ -24,7 +24,7 @@
 #include "suricata.h"
 #include "suricata-common.h"
 #include "debug.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "threads.h"
 
 #include "stream-tcp-private.h"
@@ -50,7 +50,7 @@
 #include "detect-engine-state.h"
 #include "detect-parse.h"
 
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "conf.h"
 
 #include "util/mem.h"

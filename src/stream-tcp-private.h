@@ -25,7 +25,7 @@
 #define __STREAM_TCP_PRIVATE_H__
 
 #include "tree.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "util/pool.h"
 #include "util/pool-thread.h"
 #include "util/streaming-buffer.h"

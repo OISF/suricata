@@ -24,7 +24,7 @@
 #ifndef __DETECT_ENGINE_EVENT_H__
 #define __DETECT_ENGINE_EVENT_H__
 
-#include "decode-events.h"
+#include "decoders/events.h"
 
 typedef struct DetectEngineEventData_ {
     uint8_t event;

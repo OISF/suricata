@@ -25,7 +25,7 @@
 
 #include "../suricata-common.h"
 #include "../conf-yaml-loader.h"
-#include "../decode.h"
+#include "../decoders/decode.h"
 #include "../flow.h"
 #include "../detect.h"
 

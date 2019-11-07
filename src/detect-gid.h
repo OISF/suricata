@@ -26,9 +26,9 @@
 #ifndef __DETECT_GID_H__
 #define __DETECT_GID_H__
 
-#include "decode-events.h"
-#include "decode-ipv4.h"
-#include "decode-tcp.h"
+#include "decoders/events.h"
+#include "decoders/ipv4.h"
+#include "decoders/tcp.h"
 
 /**
  * Registration function for gid: keyword

@@ -24,7 +24,7 @@
 #ifndef __DEFRAG_HASH_H__
 #define __DEFRAG_HASH_H__
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "defrag.h"
 
 /** Spinlocks or Mutex for the flow buckets. */

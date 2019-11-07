@@ -42,11 +42,11 @@
 
 #include "util/unittest.h"
 #include "alert-unified2-alert.h"
-#include "decode-ipv4.h"
+#include "decoders/ipv4.h"
 
 #include "host.h"
 #include "util/profiling.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "util/error.h"
 #include "util/debug.h"

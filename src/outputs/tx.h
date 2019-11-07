@@ -26,7 +26,7 @@
 #ifndef __OUTPUT_TX_H__
 #define __OUTPUT_TX_H__
 
-#include "decode.h"
+#include "decoders/decode.h"
 
 /** packet logger function pointer type */
 typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);

@@ -37,7 +37,7 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "debug.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "threads.h"
 #include "counters.h"
 
@@ -74,7 +74,7 @@
 #include "detect-engine-state.h"
 #include "detect-parse.h"
 
-#include "decode-events.h"
+#include "decoders/events.h"
 
 #include "util/memcmp.h"
 #include "util/random.h"

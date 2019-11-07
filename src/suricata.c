@@ -38,7 +38,7 @@
 #endif
 
 #include "suricata.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "detect.h"
 #include "packet-queue.h"
 #include "threads.h"

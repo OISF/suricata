@@ -27,7 +27,7 @@
 #include "suricata-common.h"
 #include "threads.h"
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "detect-engine-state.h"
 
 #include "flow.h"

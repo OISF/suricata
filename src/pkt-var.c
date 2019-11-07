@@ -30,7 +30,7 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "pkt-var.h"
 #include "util/debug.h"
 

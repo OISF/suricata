@@ -28,7 +28,7 @@
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "util/ja3.h"
 #include "queue.h"
 

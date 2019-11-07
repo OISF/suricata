@@ -23,7 +23,7 @@
 
 #include "suricata-common.h"
 #include "threads.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "detect.h"
 #include "detect-parse.h"

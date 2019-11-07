@@ -23,7 +23,7 @@
 
 #include "suricata-common.h"
 #include "threads.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "app-layer.h"
 #include "app-layer-protos.h"
@@ -39,7 +39,7 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "util/byte.h"
 #include "util/debug.h"
 #include "util/unittest.h"

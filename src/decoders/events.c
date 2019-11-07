@@ -23,7 +23,7 @@
 
 #include "suricata-common.h"
 
-#include "decode-events.h"
+#include "decoders/events.h"
 /* code moved to app-layer-events */
 
 const struct DecodeEvents_ DEvents[] = {

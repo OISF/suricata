@@ -30,7 +30,7 @@
 #include "util/enum.h"
 #include "util/debug-filters.h"
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "detect.h"
 #include "packet-queue.h"
 #include "threadvars.h"

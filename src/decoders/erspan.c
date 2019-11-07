@@ -32,9 +32,9 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "decode.h"
-#include "decode-events.h"
-#include "decode-erspan.h"
+#include "decoders/decode.h"
+#include "decoders/events.h"
+#include "decoders/erspan.h"
 
 #include "util/unittest.h"
 #include "util/debug.h"

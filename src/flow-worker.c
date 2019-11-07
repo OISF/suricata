@@ -34,7 +34,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "stream-tcp.h"
 #include "app-layer.h"
 #include "detect-engine.h"

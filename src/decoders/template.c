@@ -32,9 +32,9 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "decode.h"
-#include "decode-events.h"
-#include "decode-template.h"
+#include "decoders/decode.h"
+#include "decoders/events.h"
+#include "decoders/template.h"
 
 /**
  * \brief Function to decode TEMPLATE packets
