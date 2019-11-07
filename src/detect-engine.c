@@ -1726,6 +1726,7 @@ static void InjectPackets(ThreadVars **detect_tvs,
                 Packet *p = PacketGetFromAlloc();
                 if (p != NULL) {
                     p->flags |= PKT_PSEUDO_STREAM_END;
+                    PKT_SET_SRC(p, PKT_SRC_DETECT_RELOAD_FLUSH);
                     PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
                     SCMutexLock(&q->mutex_q);
                     PacketEnqueue(q, p);
