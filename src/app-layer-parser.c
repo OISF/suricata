@@ -1980,7 +1980,7 @@ static int TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *ps
                               void *local_data, const uint8_t flags)
 {
     SCEnter();
-    SCReturnInt((input != NULL && input_len != 0 && input[0] == 0x11) ? -1 : 0);
+    SCReturnInt(((input != NULL && input_len != 0 && input[0] == 0x11) ? -1 : 0));
 }
 
 /** \brief Function to allocates the Test protocol state memory
