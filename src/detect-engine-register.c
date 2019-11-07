@@ -69,7 +69,7 @@
 #include "detect-nfs-version.h"
 
 #include "detect-engine-event.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "detect-smb-share.h"
 

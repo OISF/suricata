@@ -45,7 +45,7 @@
 #include "util/print.h"
 #include "util/profiling.h"
 #include "util/validate.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 
 #include "app-layer-htp-mem.h"
 #include "app-layer-dns-common.h"

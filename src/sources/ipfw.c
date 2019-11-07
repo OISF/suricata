@@ -26,7 +26,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "packet-queue.h"
 #include "threads.h"
 #include "threadvars.h"

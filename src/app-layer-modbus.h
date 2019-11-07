@@ -34,7 +34,7 @@
 #ifndef __APP_LAYER_MODBUS_H__
 #define __APP_LAYER_MODBUS_H__
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "detect-engine-state.h"
 #include "queue.h"
 

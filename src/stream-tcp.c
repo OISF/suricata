@@ -29,7 +29,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "debug.h"
 #include "detect.h"
 

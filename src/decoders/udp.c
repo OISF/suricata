@@ -31,11 +31,11 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "decode-udp.h"
-#include "decode-teredo.h"
-#include "decode-vxlan.h"
-#include "decode-events.h"
+#include "decoders/decode.h"
+#include "decoders/udp.h"
+#include "decoders/teredo.h"
+#include "decoders/vxlan.h"
+#include "decoders/events.h"
 #include "util/unittest.h"
 #include "util/debug.h"
 #include "flow.h"

@@ -26,7 +26,7 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "util/unittest.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "threads.h"
 
 #include "util/print.h"
@@ -76,7 +76,7 @@
 #include "util/spm.h"
 
 #include "util/debug.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "util/unittest-helper.h"
 #include "util/validate.h"
 

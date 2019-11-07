@@ -34,11 +34,11 @@
 
 #include "suricata-common.h"
 
-#include "decode.h"
-#include "decode-ipv4.h"
-#include "decode-tcp.h"
-#include "decode-sctp.h"
-#include "decode-udp.h"
+#include "decoders/decode.h"
+#include "decoders/ipv4.h"
+#include "decoders/tcp.h"
+#include "decoders/sctp.h"
+#include "decoders/udp.h"
 #include "packet-queue.h"
 #include "threads.h"
 #include "threadvars.h"

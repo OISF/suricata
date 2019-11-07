@@ -25,7 +25,7 @@
 
 #include "suricata.h"
 #include "packet-queue.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "detect.h"
 #include "detect-uricontent.h"
 #include "threads.h"

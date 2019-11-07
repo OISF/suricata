@@ -26,7 +26,7 @@
 
 #include "suricata-common.h"
 #include "debug.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "threads.h"
 
 #include "stream-tcp-private.h"
@@ -39,7 +39,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssl.h"
 
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "conf.h"
 
 #include "util/crypt.h"

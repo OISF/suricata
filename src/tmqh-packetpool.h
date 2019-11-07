@@ -24,7 +24,7 @@
 #ifndef __TMQH_PACKETPOOL_H__
 #define __TMQH_PACKETPOOL_H__
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "threads.h"
 #include "util/atomic.h"
 

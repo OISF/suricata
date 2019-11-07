@@ -34,10 +34,10 @@
 
 #include "packet-queue.h"
 
-#include "decode.h"
-#include "decode-ppp.h"
-#include "decode-pppoe.h"
-#include "decode-events.h"
+#include "decoders/decode.h"
+#include "decoders/ppp.h"
+#include "decoders/pppoe.h"
+#include "decoders/events.h"
 
 #include "flow.h"
 

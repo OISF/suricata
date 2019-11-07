@@ -28,7 +28,7 @@
 
 #include "threads.h"
 #include "debug.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "detect.h"
 #include "detect-parse.h"

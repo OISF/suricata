@@ -28,7 +28,7 @@
 #ifndef __DETECT_MARK_H__
 #define __DETECT_MARK_H__
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "detect.h"
 
 /**

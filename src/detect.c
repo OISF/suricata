@@ -27,7 +27,7 @@
 #include "suricata.h"
 #include "conf.h"
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "flow.h"
 #include "stream-tcp.h"
 #include "app-layer.h"

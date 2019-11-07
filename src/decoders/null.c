@@ -32,9 +32,9 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "decode-raw.h"
-#include "decode-events.h"
+#include "decoders/decode.h"
+#include "decoders/raw.h"
+#include "decoders/events.h"
 
 #include "util/unittest.h"
 #include "util/debug.h"

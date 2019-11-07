@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "util/unittest.h"
 
 #define MPLS_HEADER_LEN         4

@@ -31,12 +31,12 @@
  */
 
 #include "suricata-common.h"
-#include "decode-icmpv6.h"
-#include "decode.h"
-#include "decode-tcp.h"
-#include "decode-sctp.h"
-#include "decode-udp.h"
-#include "decode-events.h"
+#include "decoders/icmpv6.h"
+#include "decoders/decode.h"
+#include "decoders/tcp.h"
+#include "decoders/sctp.h"
+#include "decoders/udp.h"
+#include "decoders/events.h"
 #include "util/unittest.h"
 #include "flow.h"
 #include "util/debug.h"

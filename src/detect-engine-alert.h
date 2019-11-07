@@ -25,7 +25,7 @@
 #define __DETECT_ENGINE_ALERT_H__
 
 #include "suricata-common.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "detect.h"
 
 void PacketAlertFinalize(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);

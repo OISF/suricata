@@ -25,7 +25,7 @@
 
 #include "suricata.h"
 #include "suricata-common.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "util/debug.h"
 #include "util/unittest.h"
 #include "util/print.h"

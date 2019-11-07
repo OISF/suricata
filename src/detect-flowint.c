@@ -25,7 +25,7 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "detect.h"
 #include "threads.h"
 #include "flow.h"

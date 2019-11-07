@@ -24,7 +24,7 @@
 #ifndef __FLOW_H__
 #define __FLOW_H__
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "util/var.h"
 #include "util/atomic.h"
 #include "util/device.h"

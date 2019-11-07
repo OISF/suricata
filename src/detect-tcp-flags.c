@@ -25,7 +25,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -33,7 +33,7 @@
 #include "detect-engine-prefilter-common.h"
 
 #include "flow-var.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 
 #include "detect-tcp-flags.h"
 #include "util/unittest.h"

@@ -30,7 +30,7 @@
 #define IPPROTO_GRE 47
 #endif
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "threadvars.h"
 
 typedef struct GREHdr_

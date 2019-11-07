@@ -33,9 +33,9 @@
 
 #include "suricata-common.h"
 #include "packet-queue.h"
-#include "decode.h"
-#include "decode-ipv4.h"
-#include "decode-events.h"
+#include "decoders/decode.h"
+#include "decoders/ipv4.h"
+#include "decoders/events.h"
 #include "defrag.h"
 #include "pkt-var.h"
 #include "host.h"

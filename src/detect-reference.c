@@ -31,9 +31,9 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "flow-var.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "stream-tcp.h"
 
 #include "util/reference-config.h"

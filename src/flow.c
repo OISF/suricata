@@ -25,7 +25,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "decode.h"
+#include "decoders/decode.h"
 #include "conf.h"
 #include "threadvars.h"
 #include "tm-threads.h"

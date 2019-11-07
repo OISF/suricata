@@ -26,7 +26,7 @@
 #ifndef __OUTPUT_FLOW_H__
 #define __OUTPUT_FLOW_H__
 
-#include "decode.h"
+#include "decoders/decode.h"
 
 /** flow logger function pointer type */
 typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);

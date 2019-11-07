@@ -26,7 +26,7 @@
 #ifndef __OUTPUT_PACKET_H__
 #define __OUTPUT_PACKET_H__
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "output.h"
 
 /** packet logger function pointer type */

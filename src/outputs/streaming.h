@@ -26,7 +26,7 @@
 #ifndef __OUTPUT_STREAMING_H__
 #define __OUTPUT_STREAMING_H__
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "util/file.h"
 
 #define OUTPUT_STREAMING_FLAG_OPEN          0x01

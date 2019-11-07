@@ -34,7 +34,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "decode.h"
+#include "decoders/decode.h"
 
 #include "host.h"
 #include "host-storage.h"
@@ -43,7 +43,7 @@
 #include "detect-parse.h"
 
 #include "flow-var.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "stream-tcp.h"
 
 #include "detect-threshold.h"

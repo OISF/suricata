@@ -24,7 +24,7 @@
 #ifndef __HOST_H__
 #define __HOST_H__
 
-#include "decode.h"
+#include "decoders/decode.h"
 #include "util/storage.h"
 
 /** Spinlocks or Mutex for the flow buckets. */
