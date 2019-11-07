@@ -36,7 +36,7 @@
 #include "flow-private.h"
 #include "flow-manager.h"
 #include "flow-storage.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "util/time.h"
 #include "util/debug.h"

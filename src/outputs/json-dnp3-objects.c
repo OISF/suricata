@@ -26,8 +26,8 @@
 
 #include "util/crypt.h"
 
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
+#include "app-layer/dnp3.h"
+#include "app-layer/dnp3-objects.h"
 #include "outputs/json-dnp3-objects.h"
 #include "outputs/json.h"
 

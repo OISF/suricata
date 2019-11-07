@@ -28,7 +28,7 @@
 #include "suricata.h"
 
 #include "detect-engine.h"
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 
 #include "util/file-decompression.h"
 #include "util/file-swf-decompression.h"

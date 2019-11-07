@@ -27,7 +27,7 @@
 #include "suricata.h"
 #include "suricata-common.h"
 
-#include "app-layer-protos.h"
+#include "app-layer/protos.h"
 
 #include "decoders/decode.h"
 #include "detect.h"

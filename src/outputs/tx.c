@@ -27,8 +27,8 @@
 #include "tm-modules.h"
 #include "output.h"
 #include "outputs/tx.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 #include "util/profiling.h"
 #include "util/validate.h"
 

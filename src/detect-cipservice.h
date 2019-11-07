@@ -24,11 +24,11 @@
 #ifndef _DETECT_CIPSERVICE_H
 #define	_DETECT_CIPSERVICE_H
 
-#include "app-layer-protos.h"
-#include "app-layer-parser.h"
+#include "app-layer/protos.h"
+#include "app-layer/app-layer-parser.h"
 #include "flow.h"
 #include "queue.h"
-#include "app-layer-enip-common.h"
+#include "app-layer/enip-common.h"
 
 #define ENIP_PORT 44818 //standard EtherNet/IP port
 

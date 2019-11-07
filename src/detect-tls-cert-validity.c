@@ -42,8 +42,8 @@
 
 #include "stream-tcp.h"
 
-#include "app-layer.h"
-#include "app-layer-ssl.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/ssl.h"
 
 #include "util/time.h"
 #include "util/unittest.h"

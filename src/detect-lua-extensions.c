@@ -49,7 +49,7 @@
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
 
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 #include "stream-tcp.h"
 
@@ -58,7 +58,7 @@
 #include "queue.h"
 #include "util/cpu.h"
 
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 #ifdef HAVE_LUA
 

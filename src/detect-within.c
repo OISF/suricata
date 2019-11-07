@@ -35,7 +35,7 @@
 #include "detect-uricontent.h"
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 #include "flow-var.h"
 

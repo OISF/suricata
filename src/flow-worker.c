@@ -37,10 +37,10 @@
 #include "decoders/decode.h"
 #include "detect.h"
 #include "stream-tcp.h"
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 #include "detect-engine.h"
 #include "output.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "util/validate.h"
 

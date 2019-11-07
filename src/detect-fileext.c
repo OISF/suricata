@@ -46,7 +46,7 @@
 #include "util/print.h"
 #include "util/memcmp.h"
 
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 #include "stream-tcp.h"
 #include "detect-fileext.h"

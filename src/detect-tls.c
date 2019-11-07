@@ -53,9 +53,9 @@
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
 
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
-#include "app-layer-ssl.h"
+#include "app-layer/ssl.h"
 #include "detect-tls.h"
 
 #include "stream-tcp.h"

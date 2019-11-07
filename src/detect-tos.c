@@ -32,7 +32,7 @@
 #include "detect-engine-state.h"
 #include "detect-tos.h"
 
-#include "app-layer-protos.h"
+#include "app-layer/protos.h"
 
 #include "flow.h"
 #include "flow-var.h"

@@ -29,7 +29,7 @@
 #include "../flow.h"
 #include "conf.h"
 #include "stream.h"
-#include "app-layer-protos.h"
+#include "app-layer/protos.h"
 
 #include "threads.h"
 #include "threadvars.h"

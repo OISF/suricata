@@ -53,8 +53,8 @@
 
 #include "stream-tcp.h"
 
-#include "app-layer.h"
-#include "app-layer-dns-common.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/dns-common.h"
 #include "detect-dns-query.h"
 #include "detect-engine-dns.h"
 

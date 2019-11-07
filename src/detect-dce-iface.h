@@ -24,7 +24,7 @@
 #ifndef __DETECT_DCE_IFACE_H__
 #define __DETECT_DCE_IFACE_H__
 
-#include "app-layer-dcerpc.h"
+#include "app-layer/dcerpc.h"
 
 typedef enum DetectDceIfaceOperators_ {
     DETECT_DCE_IFACE_OP_NONE = 0,

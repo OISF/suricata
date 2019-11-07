@@ -38,7 +38,7 @@
 #include "flow-util.h"
 #include "flow-var.h"
 #include "detect-flow.h"
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 #include "util/unittest.h"
 #include "util/print.h"
 #include "util/debug.h"

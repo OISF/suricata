@@ -37,9 +37,9 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-file-data.h"
 
-#include "app-layer-parser.h"
-#include "app-layer-htp.h"
-#include "app-layer-smtp.h"
+#include "app-layer/app-layer-parser.h"
+#include "app-layer/htp.h"
+#include "app-layer/smtp.h"
 
 #include "flow.h"
 #include "flow-var.h"

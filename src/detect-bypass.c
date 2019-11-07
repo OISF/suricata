@@ -24,8 +24,8 @@
 
 #include "suricata-common.h"
 #include "threads.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 #include "debug.h"
 #include "decoders/decode.h"
 
@@ -101,7 +101,7 @@ static int DetectBypassMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 }
 
 #ifdef UNITTESTS
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 
 static int callback_var = 0;
 

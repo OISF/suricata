@@ -27,7 +27,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
-#include "app-layer-dnp3.h"
+#include "app-layer/dnp3.h"
 
 static int g_dnp3_match_buffer_id = 0;
 static int g_dnp3_data_buffer_id = 0;
@@ -610,7 +610,7 @@ void DetectDNP3Register(void)
 
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 #include "detect-engine.h"
 #include "flow-util.h"
 #include "stream-tcp.h"

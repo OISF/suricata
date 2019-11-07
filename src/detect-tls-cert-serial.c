@@ -47,8 +47,8 @@
 
 #include "stream-tcp.h"
 
-#include "app-layer.h"
-#include "app-layer-ssl.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/ssl.h"
 #include "detect-tls-cert-serial.h"
 
 #include "util/unittest.h"

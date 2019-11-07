@@ -51,9 +51,9 @@
 #include "util/spm.h"
 #include "util/print.h"
 
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 #include "detect-http-uri.h"
 #include "detect-uricontent.h"
 #include "stream-tcp.h"

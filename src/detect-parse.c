@@ -55,10 +55,10 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
-#include "app-layer.h"
-#include "app-layer-protos.h"
-#include "app-layer-parser.h"
-#include "app-layer-htp.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/protos.h"
+#include "app-layer/app-layer-parser.h"
+#include "app-layer/htp.h"
 
 #include "util/classification-config.h"
 #include "util/unittest.h"
@@ -67,7 +67,7 @@
 #include "string.h"
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
-#include "app-layer-detect-proto.h"
+#include "app-layer/detect-proto.h"
 
 /* Table with all SigMatch registrations */
 SigTableElmt sigmatch_table[DETECT_TBLSIZE];

@@ -17,7 +17,7 @@
 
 #include "../util/unittest.h"
 #include "../util/unittest-helper.h"
-#include "../app-layer-parser.h"
+#include "../app-layer/app-layer-parser.h"
 #include "../detect-engine.h"
 #include "../detect-parse.h"
 #include "../flow-util.h"

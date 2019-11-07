@@ -24,7 +24,7 @@
 #ifndef __DETECT_TLS_SNI_H__
 #define __DETECT_TLS_SNI_H__
 
-#include "app-layer-ssl.h"
+#include "app-layer/ssl.h"
 
 void DetectTlsSniRegister(void);
 uint32_t DetectTlsSniInspectMpm(DetectEngineThreadCtx *det_ctx, SSLState *ssl_state);

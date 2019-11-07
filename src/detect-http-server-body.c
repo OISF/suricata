@@ -52,10 +52,10 @@
 #include "util/unittest-helper.h"
 #include "util/spm.h"
 
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 #include "detect-http-server-body.h"
 #include "stream-tcp.h"
 

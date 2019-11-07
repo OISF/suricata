@@ -40,7 +40,7 @@ extern int run_mode;
 #include "detect-uricontent.h"
 #include "detect-byte-extract.h"
 #include "detect-replace.h"
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 #include "detect-engine-mpm.h"
 #include "detect-engine.h"

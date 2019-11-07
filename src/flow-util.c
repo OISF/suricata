@@ -30,7 +30,7 @@
 #include "flow-private.h"
 #include "flow-util.h"
 #include "flow-var.h"
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 #include "util/var.h"
 #include "util/debug.h"

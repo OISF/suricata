@@ -57,9 +57,9 @@
 #include "stream.h"
 
 #include "util/debug.h"
-#include "app-layer-protos.h"
-#include "app-layer.h"
-#include "app-layer-events.h"
+#include "app-layer/protos.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/events.h"
 
 #include "detect-engine-state.h"
 

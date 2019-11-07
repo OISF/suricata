@@ -34,7 +34,7 @@
 #include "util/debug.h"
 #include "util/memcmp.h"
 #include "util/print.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 #include "util/validate.h"
 
 extern int g_detect_disabled;

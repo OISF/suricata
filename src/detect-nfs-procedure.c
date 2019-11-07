@@ -34,7 +34,7 @@
 #include "detect-pcre.h"
 #include "detect-nfs-procedure.h"
 
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "flow.h"
 #include "flow-util.h"
@@ -43,7 +43,7 @@
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
 
-#include "app-layer-nfs-tcp.h"
+#include "app-layer/nfs-tcp.h"
 #include "rust.h"
 
 /**

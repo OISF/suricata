@@ -37,9 +37,9 @@
 #include "util/byte.h"
 #include "output.h"
 #include "outputs/json.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "app-layer-rdp.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
+#include "app-layer/rdp.h"
 #include "outputs/json-rdp.h"
 #include "rust.h"
 

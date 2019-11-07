@@ -33,7 +33,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-snmp-community.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 #include "rust.h"
 
 static int DetectSNMPCommunitySetup(DetectEngineCtx *, Signature *,

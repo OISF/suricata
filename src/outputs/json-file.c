@@ -35,7 +35,7 @@
 
 #include "threads.h"
 
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "detect-filemagic.h"
 
@@ -63,8 +63,8 @@
 #include "outputs/json-nfs.h"
 #include "outputs/json-smb.h"
 
-#include "app-layer-htp.h"
-#include "app-layer-htp-xff.h"
+#include "app-layer/htp.h"
+#include "app-layer/htp-xff.h"
 #include "util/memcmp.h"
 #include "stream-tcp-reassemble.h"
 

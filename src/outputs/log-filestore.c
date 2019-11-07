@@ -33,7 +33,7 @@
 
 #include "threads.h"
 
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "detect-filemagic.h"
 
@@ -53,8 +53,8 @@
 #include "log-filestore.h"
 #include "util/logopenfile.h"
 
-#include "app-layer-htp.h"
-#include "app-layer-smtp.h"
+#include "app-layer/htp.h"
+#include "app-layer/smtp.h"
 #include "util/decode-mime.h"
 #include "util/memcmp.h"
 #include "stream-tcp-reassemble.h"

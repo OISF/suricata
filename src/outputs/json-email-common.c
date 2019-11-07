@@ -39,10 +39,10 @@
 #include "util/unittest.h"
 
 #include "util/debug.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 #include "output.h"
-#include "app-layer-smtp.h"
-#include "app-layer.h"
+#include "app-layer/smtp.h"
+#include "app-layer/app-layer.h"
 #include "util/privs.h"
 #include "util/buffer.h"
 #include "util/byte.h"

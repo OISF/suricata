@@ -62,10 +62,10 @@
 #include "pkt-var.h"
 #include "host.h"
 
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp-mem.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
+#include "app-layer/protos.h"
+#include "app-layer/htp-mem.h"
 
 #include "util/host-os-info.h"
 #include "util/privs.h"

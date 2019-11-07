@@ -55,10 +55,10 @@
 #include "util/spm.h"
 #include "util/print.h"
 
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 #include "detect-http-stat-msg.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp.h"

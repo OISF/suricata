@@ -32,7 +32,7 @@
 #include "detect-engine-tag.h"
 #include "detect-engine.h"
 #include "detect-engine-state.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "debug.h"
 #include "decoders/decode.h"

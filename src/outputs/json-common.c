@@ -38,8 +38,8 @@
 #include "output.h"
 #include "outputs/json.h"
 
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 
 static void OutputJsonLogDeInitCtxSub(OutputCtx *output_ctx)
 {

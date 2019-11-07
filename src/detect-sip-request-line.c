@@ -45,14 +45,14 @@
 #include "util/unittest-helper.h"
 #include "util/spm.h"
 
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "detect-sip-request-line.h"
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-sip.h"
+#include "app-layer/sip.h"
 
 #define KEYWORD_NAME "sip.request_line"
 #define KEYWORD_DOC  "sip-keywords.html#sip-request-line"

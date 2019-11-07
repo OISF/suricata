@@ -35,12 +35,12 @@
 #include "suricata.h"
 #include "flow-util.h"
 #include "flow.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
-#include "app-layer.h"
-#include "app-layer-htp.h"
-#include "app-layer-protos.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/htp.h"
+#include "app-layer/protos.h"
 
 /**
  * \test Test that the http_user_agent content matches against a http request

@@ -42,9 +42,9 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "app-layer-ssh.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
+#include "app-layer/ssh.h"
 #include "detect-ssh-proto.h"
 
 #define KEYWORD_NAME "ssh.proto"

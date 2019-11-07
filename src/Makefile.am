@@ -1,5 +1,5 @@
 noinst_HEADERS = action-globals.h \
-    app-layer-nbss.h app-layer-dcerpc-common.h \
+    app-layer/nbss.h app-layer/dcerpc-common.h \
     debug.h \
 	flow-private.h queue.h sources/nfq-prototypes.h \
 	sources/windivert-prototypes.h \
@@ -8,46 +8,46 @@ noinst_HEADERS = action-globals.h \
 bin_PROGRAMS = suricata
 
 suricata_SOURCES = \
-app-layer.c app-layer.h \
-app-layer-dcerpc.c app-layer-dcerpc.h \
-app-layer-dcerpc-udp.c app-layer-dcerpc-udp.h \
-app-layer-detect-proto.c app-layer-detect-proto.h \
-app-layer-dnp3.c app-layer-dnp3.h \
-app-layer-dnp3-objects.c app-layer-dnp3-objects.h \
-app-layer-dns-common.c app-layer-dns-common.h \
-app-layer-dns-tcp.c app-layer-dns-tcp.h \
-app-layer-dns-udp.c app-layer-dns-udp.h \
-app-layer-enip.c app-layer-enip.h \
-app-layer-enip-common.c app-layer-enip-common.h \
-app-layer-events.c app-layer-events.h \
-app-layer-expectation.c app-layer-expectation.h \
-app-layer-ftp.c app-layer-ftp.h \
-app-layer-htp-body.c app-layer-htp-body.h \
-app-layer-htp.c app-layer-htp.h \
-app-layer-htp-file.c app-layer-htp-file.h \
-app-layer-htp-libhtp.c app-layer-htp-libhtp.h \
-app-layer-htp-mem.c app-layer-htp-mem.h \
-app-layer-htp-xff.c app-layer-htp-xff.h \
-app-layer-modbus.c app-layer-modbus.h \
-app-layer-parser.c app-layer-parser.h \
-app-layer-protos.c app-layer-protos.h \
-app-layer-smb.c app-layer-smb.h \
-app-layer-smtp.c app-layer-smtp.h \
-app-layer-snmp.c app-layer-snmp.h \
-app-layer-nfs-tcp.c app-layer-nfs-tcp.h \
-app-layer-nfs-udp.c app-layer-nfs-udp.h \
-app-layer-ntp.c app-layer-ntp.h \
-app-layer-register.c app-layer-register.h \
-app-layer-tftp.c app-layer-tftp.h \
-app-layer-ikev2.c app-layer-ikev2.h \
-app-layer-krb5.c app-layer-krb5.h \
-app-layer-dhcp.c app-layer-dhcp.h \
-app-layer-template.c app-layer-template.h \
-app-layer-template-rust.c app-layer-template-rust.h \
-app-layer-rdp.c app-layer-rdp.h \
-app-layer-ssh.c app-layer-ssh.h \
-app-layer-ssl.c app-layer-ssl.h \
-app-layer-sip.c app-layer-sip.h \
+app-layer/app-layer.c app-layer/app-layer.h \
+app-layer/dcerpc.c app-layer/dcerpc.h \
+app-layer/dcerpc-udp.c app-layer/dcerpc-udp.h \
+app-layer/detect-proto.c app-layer/detect-proto.h \
+app-layer/dnp3.c app-layer/dnp3.h \
+app-layer/dnp3-objects.c app-layer/dnp3-objects.h \
+app-layer/dns-common.c app-layer/dns-common.h \
+app-layer/dns-tcp.c app-layer/dns-tcp.h \
+app-layer/dns-udp.c app-layer/dns-udp.h \
+app-layer/enip.c app-layer/enip.h \
+app-layer/enip-common.c app-layer/enip-common.h \
+app-layer/events.c app-layer/events.h \
+app-layer/expectation.c app-layer/expectation.h \
+app-layer/ftp.c app-layer/ftp.h \
+app-layer/htp-body.c app-layer/htp-body.h \
+app-layer/htp.c app-layer/htp.h \
+app-layer/htp-file.c app-layer/htp-file.h \
+app-layer/htp-libhtp.c app-layer/htp-libhtp.h \
+app-layer/htp-mem.c app-layer/htp-mem.h \
+app-layer/htp-xff.c app-layer/htp-xff.h \
+app-layer/modbus.c app-layer/modbus.h \
+app-layer/app-layer-parser.c app-layer/app-layer-parser.h \
+app-layer/protos.c app-layer/protos.h \
+app-layer/smb.c app-layer/smb.h \
+app-layer/smtp.c app-layer/smtp.h \
+app-layer/snmp.c app-layer/snmp.h \
+app-layer/nfs-tcp.c app-layer/nfs-tcp.h \
+app-layer/nfs-udp.c app-layer/nfs-udp.h \
+app-layer/ntp.c app-layer/ntp.h \
+app-layer/register.c app-layer/register.h \
+app-layer/tftp.c app-layer/tftp.h \
+app-layer/ikev2.c app-layer/ikev2.h \
+app-layer/krb5.c app-layer/krb5.h \
+app-layer/dhcp.c app-layer/dhcp.h \
+app-layer/template.c app-layer/template.h \
+app-layer/template-rust.c app-layer/template-rust.h \
+app-layer/rdp.c app-layer/rdp.h \
+app-layer/ssh.c app-layer/ssh.h \
+app-layer/ssl.c app-layer/ssl.h \
+app-layer/sip.c app-layer/sip.h \
 conf.c conf.h \
 conf-yaml-loader.c conf-yaml-loader.h \
 counters.c counters.h \

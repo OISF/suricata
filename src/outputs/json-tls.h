@@ -26,7 +26,7 @@
 
 void JsonTlsLogRegister(void);
 
-#include "app-layer-ssl.h"
+#include "app-layer/ssl.h"
 
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state);
 void JsonTlsLogJSONExtended(json_t *js, SSLState *ssl_state);
