@@ -55,10 +55,10 @@
 #include "util/misc.h"
 #include "util/logopenfile.h"
 
-#include "app-layer-parser.h"
-#include "app-layer-htp.h"
-#include "app-layer.h"
-#include "app-layer-htp-xff.h"
+#include "app-layer/app-layer-parser.h"
+#include "app-layer/htp.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/htp-xff.h"
 
 #include "util/privs.h"
 

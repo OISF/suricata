@@ -37,7 +37,7 @@
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-template-rust-buffer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 #include "rust-applayertemplate-template-gen.h"
 
 static int DetectTemplateRustBufferSetup(DetectEngineCtx *, Signature *,
@@ -120,7 +120,7 @@ static int DetectEngineInspectTemplateRustBuffer(ThreadVars *tv,
 
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "flow-util.h"

@@ -251,7 +251,7 @@ static void DetectBase64DecodeFree(void *ptr)
 #include "detect-engine.h"
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
 

@@ -33,7 +33,7 @@
 #include "detect-iprep.h"
 #include "util/spm.h"
 
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"

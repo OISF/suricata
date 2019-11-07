@@ -37,7 +37,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "app-layer-template.h"
+#include "app-layer/template.h"
 #include "detect-template-buffer.h"
 
 static int DetectTemplateBufferSetup(DetectEngineCtx *, Signature *, const char *);

@@ -24,7 +24,7 @@
 
 #include "suricata-common.h"
 
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 #include "detect.h"
 #include "detect-cipservice.h"
@@ -285,7 +285,7 @@ int DetectEngineInspectENIP(ThreadVars *tv,
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "flow-util.h"

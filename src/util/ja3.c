@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "app-layer-ssl.h"
+#include "app-layer/ssl.h"
 #include "util/validate.h"
 #include "util/ja3.h"
 

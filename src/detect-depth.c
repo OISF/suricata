@@ -36,7 +36,7 @@
 #include "detect-depth.h"
 
 #include "flow-var.h"
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 #include "util/byte.h"
 #include "util/debug.h"

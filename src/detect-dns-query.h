@@ -24,7 +24,7 @@
 #ifndef __DETECT_DNS_QUERY_H__
 #define __DETECT_DNS_QUERY_H__
 
-#include "app-layer-dns-common.h"
+#include "app-layer/dns-common.h"
 
 void DetectDnsQueryRegister (void);
 

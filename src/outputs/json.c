@@ -42,7 +42,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 #include "util/classification-config.h"
 #include "util/syslog.h"
 

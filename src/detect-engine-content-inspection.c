@@ -48,7 +48,7 @@
 #include "detect-dataset.h"
 #include "detect-datarep.h"
 
-#include "app-layer-dcerpc.h"
+#include "app-layer/dcerpc.h"
 
 #include "util/spm.h"
 #include "util/debug.h"

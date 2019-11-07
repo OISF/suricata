@@ -31,7 +31,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 #include "detect-content.h"
 #include "detect-uricontent.h"

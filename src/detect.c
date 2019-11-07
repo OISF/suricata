@@ -30,8 +30,8 @@
 #include "decoders/decode.h"
 #include "flow.h"
 #include "stream-tcp.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "detect.h"
 #include "detect-engine.h"

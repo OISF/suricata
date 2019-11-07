@@ -27,7 +27,7 @@
 
 #include "stream-tcp-private.h"
 #include "stream.h"
-#include "app-layer-detect-proto.h"
+#include "app-layer/detect-proto.h"
 #include "stream-tcp-private.h"
 
 /** Supported OS list and default OS policy is BSD */

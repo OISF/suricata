@@ -58,8 +58,8 @@
 #include "detect-engine-state.h"
 #include "stream.h"
 
-#include "app-layer-parser.h"
-#include "app-layer.h"
+#include "app-layer/app-layer-parser.h"
+#include "app-layer/app-layer.h"
 
 #include "util/profiling.h"
 

@@ -43,10 +43,10 @@
 #include "output.h"
 #include "outputs/json.h"
 
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 
-#include "app-layer-ftp.h"
+#include "app-layer/ftp.h"
 #include "outputs/json-ftp.h"
 
 typedef struct LogFTPFileCtx_ {

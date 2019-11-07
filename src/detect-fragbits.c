@@ -35,8 +35,8 @@
 
 #include "flow-var.h"
 #include "decoders/events.h"
-#include "app-layer.h"
-#include "app-layer-detect-proto.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/detect-proto.h"
 
 #include "detect-fragbits.h"
 #include "util/unittest.h"

@@ -29,7 +29,7 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 #include "util/unittest.h"
 #include "util/unittest-helper.h"

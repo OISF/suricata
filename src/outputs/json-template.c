@@ -47,10 +47,10 @@
 #include "output.h"
 #include "outputs/json.h"
 
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 
-#include "app-layer-template.h"
+#include "app-layer/template.h"
 #include "outputs/json-template.h"
 
 typedef struct LogTemplateFileCtx_ {

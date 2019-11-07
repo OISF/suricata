@@ -47,12 +47,12 @@
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
 
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 #include "stream-tcp.h"
 
 #include "detect-filename.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 static int DetectFilenameMatch (DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);

@@ -30,7 +30,7 @@
 
 #include "detect-file-hash-common.h"
 
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 
 #ifdef HAVE_NSS
 

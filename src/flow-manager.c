@@ -60,7 +60,7 @@
 #include "detect-engine-state.h"
 #include "stream.h"
 
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "host-timeout.h"
 #include "defrag-timeout.h"

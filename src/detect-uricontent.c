@@ -42,10 +42,10 @@
 
 #include "stream-tcp.h"
 #include "stream.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
+#include "app-layer/protos.h"
+#include "app-layer/htp.h"
 
 #include "util/mpm.h"
 #include "util/print.h"

@@ -22,9 +22,9 @@
  */
 
 #include "../suricata-common.h"
-#include "../app-layer.h"
-#include "../app-layer-parser.h"
-#include "../app-layer-htp.h"
+#include "../app-layer/app-layer.h"
+#include "../app-layer/app-layer-parser.h"
+#include "../app-layer/htp.h"
 #include "../util/unittest.h"
 #include "../util/unittest-helper.h"
 

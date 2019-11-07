@@ -24,8 +24,8 @@
  */
 
 #include "suricata-common.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp.h"
+#include "app-layer/protos.h"
+#include "app-layer/htp.h"
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
 #include "util/misc.h"
@@ -319,7 +319,7 @@ static void DetectFilesizeFree(void *ptr)
 #include "stream-tcp-reassemble.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 /** \test   Test the Filesize keyword setup */
 static int DetectFilesizeParseTest01(void)

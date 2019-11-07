@@ -205,11 +205,11 @@
 
 #include "util/rule-vars.h"
 
-#include "app-layer.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp.h"
-#include "app-layer-smtp.h"
-#include "app-layer-template.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/protos.h"
+#include "app-layer/htp.h"
+#include "app-layer/smtp.h"
+#include "app-layer/template.h"
 #include "detect-tls.h"
 #include "detect-tls-cert-validity.h"
 #include "detect-tls-version.h"

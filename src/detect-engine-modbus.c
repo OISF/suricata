@@ -34,8 +34,8 @@
 
 #include "suricata-common.h"
 
-#include "app-layer.h"
-#include "app-layer-modbus.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/modbus.h"
 
 #include "detect.h"
 #include "detect-modbus.h"
@@ -272,7 +272,7 @@ int DetectEngineInspectModbus(ThreadVars            *tv,
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 #include "detect-parse.h"
 

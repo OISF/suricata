@@ -31,10 +31,10 @@
 #include "util/crypt.h"
 #include "util/debug.h"
 
-#include "app-layer.h"
-#include "app-layer-parser.h"
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
+#include "app-layer/dnp3.h"
+#include "app-layer/dnp3-objects.h"
 
 #include "detect-dnp3.h"
 

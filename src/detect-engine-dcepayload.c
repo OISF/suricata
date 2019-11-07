@@ -40,8 +40,8 @@
 
 #include "stream-tcp.h"
 
-#include "app-layer.h"
-#include "app-layer-dcerpc.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/dcerpc.h"
 #include "flow-util.h"
 #include "util/debug.h"
 

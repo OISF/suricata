@@ -39,7 +39,7 @@
 #include "util/unittest.h"
 #include "util/debug.h"
 #include "flow.h"
-#include "app-layer.h"
+#include "app-layer/app-layer.h"
 
 static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_t len)
 {

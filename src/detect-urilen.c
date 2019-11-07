@@ -24,9 +24,9 @@
  */
 
 #include "suricata-common.h"
-#include "app-layer.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/protos.h"
+#include "app-layer/htp.h"
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
 
@@ -371,7 +371,7 @@ bool DetectUrilenValidateContent(const Signature *s, int list, const char **sige
 #include "stream-tcp-reassemble.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer-parser.h"
 
 /** \test   Test the Urilen keyword setup */
 static int DetectUrilenParseTest01(void)

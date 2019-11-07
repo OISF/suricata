@@ -49,14 +49,14 @@
 #include "util/pool.h"
 
 #include "conf.h"
-#include "app-layer.h"
-#include "app-layer-htp.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/htp.h"
 #include "stream.h"
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-#include "app-layer-protos.h"
-#include "app-layer-parser.h"
+#include "app-layer/protos.h"
+#include "app-layer/app-layer-parser.h"
 #include "util/pages.h"
 
 /* pcre named substring capture supports only 32byte names, A-z0-9 plus _

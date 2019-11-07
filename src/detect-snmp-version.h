@@ -24,7 +24,7 @@
 #ifndef __DETECT_SNMP_VERSION_H__
 #define __DETECT_SNMP_VERSION_H__
 
-#include "app-layer-snmp.h"
+#include "app-layer/snmp.h"
 
 void DetectSNMPVersionRegister(void);
 

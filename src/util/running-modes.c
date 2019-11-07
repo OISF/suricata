@@ -22,9 +22,9 @@
 
 #include "suricata-common.h"
 #include "config.h"
-#include "app-layer-detect-proto.h"
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/detect-proto.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 #include "util/unittest.h"
 #include "util/debug.h"
 #include "conf-yaml-loader.h"

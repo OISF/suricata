@@ -41,10 +41,10 @@
 #include "output.h"
 #include "outputs/json.h"
 
-#include "app-layer.h"
-#include "app-layer-parser.h"
+#include "app-layer/app-layer.h"
+#include "app-layer/app-layer-parser.h"
 
-#include "app-layer-ikev2.h"
+#include "app-layer/ikev2.h"
 #include "outputs/json-ikev2.h"
 
 #include "rust.h"
