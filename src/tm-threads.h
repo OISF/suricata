@@ -243,6 +243,7 @@ static inline void TmThreadsCaptureInjectPacket(ThreadVars *tv, TmSlot *slot, Pa
         p = PacketGetFromQueueOrAlloc();
     if (p != NULL) {
         p->flags |= PKT_PSEUDO_STREAM_END;
+        PKT_SET_SRC(p, PKT_SRC_CAPTURE_TIMEOUT);
         if (TmThreadsSlotProcessPkt(tv, slot, p) != TM_ECODE_OK) {
             TmqhOutputPacketpool(tv, p);
         }

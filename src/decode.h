@@ -55,6 +55,8 @@ enum PktSrcEnum {
     PKT_SRC_FFR,
     PKT_SRC_STREAM_TCP_DETECTLOG_FLUSH,
     PKT_SRC_DECODER_VXLAN,
+    PKT_SRC_DETECT_RELOAD_FLUSH,
+    PKT_SRC_CAPTURE_TIMEOUT,
 };
 
 #include "source-nflog.h"

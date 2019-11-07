@@ -660,6 +660,12 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
         case PKT_SRC_DECODER_VXLAN:
             pkt_src_str = "vxlan encapsulation";
             break;
+        case PKT_SRC_DETECT_RELOAD_FLUSH:
+            pkt_src_str = "detect reload flush";
+            break;
+        case PKT_SRC_CAPTURE_TIMEOUT:
+            pkt_src_str = "capture timeout flush";
+            break;
     }
     return pkt_src_str;
 }
