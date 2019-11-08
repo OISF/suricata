@@ -232,11 +232,10 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
                 }
             }
         } else {
+            if (TmThreadsCheckFlag(tv, THV_KILL)) {
+                break;
+            }
             SleepUsec(1);
-        }
-
-        if (tv->stream_pq->len == 0 && TmThreadsCheckFlag(tv, THV_KILL)) {
-            break;
         }
     }
     SCLogDebug("flow end loop complete");
