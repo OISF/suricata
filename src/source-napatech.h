@@ -31,10 +31,14 @@ void TmModuleNapatechDecodeRegister(void);
 #ifdef HAVE_NAPATECH
 #include <nt.h>
 
-struct NapatechStreamDevConf {
+struct NapatechStreamDevConf
+{
     uint16_t stream_id;
     intmax_t hba;
 };
+
+int NapatechSetPortmap(int port, int peer);
+int NapatechGetAdapter(uint8_t port);
 
 #endif /* HAVE_NAPATECH */
 #endif /* __SOURCE_NAPATECH_H__ */
