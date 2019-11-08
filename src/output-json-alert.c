@@ -91,6 +91,7 @@
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
 #define LOG_JSON_RULE_METADATA     BIT_U16(8)
 #define LOG_JSON_RULE              BIT_U16(9)
+#define LOG_JSON_HTTP_HEADERS      BIT_U16(10)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -485,6 +486,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                         if (json_output_ctx->flags & LOG_JSON_HTTP_BODY_BASE64) {
                             EveHttpLogJSONBodyBase64(jb, p->flow, pa->tx_id);
                         }
+                        if (json_output_ctx->flags & LOG_JSON_HTTP_HEADERS) {
+                            EveHttpLogAllJSONHeaders(jb, p->flow, pa->tx_id);
+                        }
                     }
                     jb_close(jb);
                     break;
@@ -860,6 +864,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
+        SetFlag(conf, "http-headers", LOG_JSON_HTTP_HEADERS, &flags);
 
         /* Check for obsolete configuration flags to enable specific
          * protocols. These are now just aliases for enabling
