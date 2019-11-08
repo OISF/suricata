@@ -1649,6 +1649,21 @@ again:
     return;
 }
 
+static void TmThreadDebugValidateNoMorePackets(void)
+{
+#ifdef DEBUG_VALIDATION
+    SCMutexLock(&tv_root_lock);
+    for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
+        if (ThreadStillHasPackets(tv)) {
+            SCMutexUnlock(&tv_root_lock);
+            TmThreadDumpThreads();
+            abort();
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
+#endif
+}
+
 /**
  * \brief Disable all threads having the specified TMs.
  */
@@ -1660,6 +1675,7 @@ void TmThreadDisablePacketThreads(void)
 
     /* first drain all packet threads of their packets */
     TmThreadDrainPacketThreads();
+    TmThreadDebugValidateNoMorePackets();
 
     gettimeofday(&start_ts, NULL);
 again:
@@ -1680,16 +1696,6 @@ again:
      * receive TM amongst the slots in a tv, it indicates we are done
      * with all receive threads */
     while (tv) {
-        if (ThreadStillHasPackets(tv)) {
-            /* we wait till we dry out all the inq packets, before we
-             * kill this thread.  Do note that you should have disabled
-             * packet acquire by now using TmThreadDisableReceiveThreads()*/
-            SCMutexUnlock(&tv_root_lock);
-            /* don't sleep while holding a lock */
-            SleepMsec(1);
-            goto again;
-        }
-
         /* we found our receive TV.  Send it a KILL signal.  This is all
          * we need to do to kill receive threads */
         TmThreadsSetFlag(tv, THV_KILL);
