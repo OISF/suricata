@@ -29,6 +29,7 @@ void JsonHttpLogRegister(void);
 json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id);
 void JsonHttpLogJSONBodyPrintable(json_t *js, Flow *f, uint64_t tx_id);
 void JsonHttpLogJSONBodyBase64(json_t *js, Flow *f, uint64_t tx_id);
+void JsonHttpLogAllJSONHeaders(json_t *hjs, Flow *f, uint64_t tx_id);
 
 #endif /* __OUTPUT_JSON_HTTP_H__ */
 
