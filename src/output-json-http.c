@@ -582,6 +582,19 @@ json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id)
     return NULL;
 }
 
+void JsonHttpLogAllJSONHeaders(json_t *hjs, Flow *f, uint64_t tx_id)
+{
+
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
+    if (htp_state) {
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        if (tx) {
+            JsonHttpLogJSONHeaders(hjs, LOG_HTTP_REQ_HEADERS, tx);
+            JsonHttpLogJSONHeaders(hjs, LOG_HTTP_RES_HEADERS, tx);
+        }
+    }
+}
+
 static void OutputHttpLogDeinit(OutputCtx *output_ctx)
 {
     LogHttpFileCtx *http_ctx = output_ctx->data;

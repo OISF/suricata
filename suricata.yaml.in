@@ -151,6 +151,7 @@ outputs:
             # metadata: no             # enable inclusion of app layer metadata with alert. Default yes
             # http-body: yes           # Requires metadata; enable dumping of http body in Base64
             # http-body-printable: yes # Requires metadata; enable dumping of http body in printable format
+            # http-headers: yes        # Requires metadata; enable dumping of http headers
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
