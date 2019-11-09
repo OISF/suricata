@@ -467,9 +467,7 @@ static void PcapLogUnlock(PcapLogData *pl)
  *
  * \param t threadvar
  * \param p packet
- * \param data thread module specific data
- * \param pq pre-packet-queue
- * \param postpq post-packet-queue
+ * \param thread_data thread module specific data
  *
  * \retval TM_ECODE_OK on succes
  * \retval TM_ECODE_FAILED on serious error
