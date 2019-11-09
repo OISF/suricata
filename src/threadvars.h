@@ -83,8 +83,10 @@ typedef struct ThreadVars_ {
     void *(*tm_func)(void *);
     struct TmSlot_ *tm_slots;
 
-    /** stream packet queue for flow time out injection */
+    /** Stream packet queue for flow time out injection. Either a pointer to the
+     *  workers input queue or to stream_pq_local */
     struct PacketQueue_ *stream_pq;
+    struct PacketQueue_ *stream_pq_local;
 
     uint8_t thread_setup_flags;
 

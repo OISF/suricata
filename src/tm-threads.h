@@ -71,11 +71,6 @@ typedef struct TmSlot_ {
      * The locks in the queue are NOT used */
     PacketQueue slot_pre_pq;
 
-    /* queue filled by the SlotFunc with packets that will
-     * be processed futher _after_ the current packet. The
-     * locks in the queue are NOT used */
-    PacketQueue slot_post_pq;
-
     /* store the thread module id */
     int tm_id;
 
@@ -149,37 +144,38 @@ uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags);
 
 static inline void TmThreadsSlotProcessPktFail(ThreadVars *tv, TmSlot *s, Packet *p)
 {
-    TmqhOutputPacketpool(tv, p);
-    for (TmSlot *slot = s; slot != NULL; slot = slot->slot_next) {
-        SCMutexLock(&slot->slot_post_pq.mutex_q);
-        TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
-        SCMutexUnlock(&slot->slot_post_pq.mutex_q);
+    if (p != NULL) {
+        TmqhOutputPacketpool(tv, p);
+    }
+    TmqhReleasePacketsToPacketPool(&s->slot_pre_pq);
+    if (tv->stream_pq_local) {
+        SCMutexLock(&tv->stream_pq_local->mutex_q);
+        TmqhReleasePacketsToPacketPool(tv->stream_pq_local);
+        SCMutexUnlock(&tv->stream_pq_local->mutex_q);
     }
     TmThreadsSetFlag(tv, THV_FAILED);
 }
 
 /**
  *  \brief Handle timeout from the capture layer. Checks
- *         post-pq which may have been filled by the flow
+ *         stream_pq which may have been filled by the flow
  *         manager.
+ *  \param s pipeline to run on these packets.
  */
-static inline void TmThreadsSlotHandlePostPQs(ThreadVars *tv, TmSlot *s)
+static inline void TmThreadsHandleInjectedPackets(ThreadVars *tv, TmSlot *s)
 {
-    /* post process pq: only the first slot will possible have used it */
-    if (s->slot_post_pq.top != NULL) {
+    PacketQueue *pq = tv->stream_pq_local;
+    if (pq && pq->len > 0) {
         while (1) {
-            SCMutexLock(&s->slot_post_pq.mutex_q);
-            Packet *extra_p = PacketDequeue(&s->slot_post_pq);
-            SCMutexUnlock(&s->slot_post_pq.mutex_q);
+            SCMutexLock(&pq->mutex_q);
+            Packet *extra_p = PacketDequeue(pq);
+            SCMutexUnlock(&pq->mutex_q);
             if (extra_p == NULL)
                 break;
-
-            if (s->slot_next != NULL) {
-                TmEcode r = TmThreadsSlotVarRun(tv, extra_p, s->slot_next);
-                if (r == TM_ECODE_FAILED) {
-                    TmThreadsSlotProcessPktFail(tv, s, extra_p);
-                    break;
-                }
+            TmEcode r = TmThreadsSlotVarRun(tv, extra_p, s);
+            if (r == TM_ECODE_FAILED) {
+                TmThreadsSlotProcessPktFail(tv, s, extra_p);
+                break;
             }
             tv->tmqh_out(tv, extra_p);
         }
@@ -204,7 +200,7 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
 
     tv->tmqh_out(tv, p);
 
-    TmThreadsSlotHandlePostPQs(tv, s);
+    TmThreadsHandleInjectedPackets(tv, s);
 
     return TM_ECODE_OK;
 }
@@ -233,7 +229,7 @@ static inline void TmThreadsCaptureHandleTimeout(ThreadVars *tv, TmSlot *slot, P
     if (TmThreadsCheckFlag(tv, THV_CAPTURE_INJECT_PKT)) {
         TmThreadsCaptureInjectPacket(tv, slot, p);
     } else {
-        TmThreadsSlotHandlePostPQs(tv, slot);
+        TmThreadsHandleInjectedPackets(tv, slot);
 
         /* packet could have been passed to us that we won't use
          * return it to the pool. */
