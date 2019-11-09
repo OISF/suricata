@@ -313,8 +313,6 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
  * \param tv    Pointer to the threadvars
  * \param p     Pointer to the packet
  * \param data  pointer to the AlertSyslogThread
- * \param pq    pointer the to packet queue
- * \param postpq pointer to the post processed packet queue
  *
  * \return On succes return TM_ECODE_OK
  */
