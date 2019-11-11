@@ -65,6 +65,8 @@ typedef struct ThreadVars_ {
     /** TmModule::flags for each module part of this thread */
     uint8_t tmm_flags;
 
+    uint8_t cap_flags; /**< Flags to indicate the capabilities of all the
+                            TmModules resgitered under this thread */
     /** local id */
     int id;
 
@@ -114,8 +116,6 @@ typedef struct ThreadVars_ {
     SCCtrlMutex *ctrl_mutex;
     SCCtrlCondT *ctrl_cond;
 
-    uint8_t cap_flags; /**< Flags to indicate the capabilities of all the
-                            TmModules resgitered under this thread */
     struct ThreadVars_ *next;
     struct ThreadVars_ *prev;
 } ThreadVars;
