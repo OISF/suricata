@@ -304,7 +304,6 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 
         if (TmThreadsSlotProcessPkt(tv, ((TmSlot *) slot)->slot_next, p)
                 != TM_ECODE_OK) {
-            TmqhOutputPacketpool(tv, p);
             SCReturnInt(TM_ECODE_FAILED);
         }
 

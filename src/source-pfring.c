@@ -417,7 +417,6 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             PfringProcessPacket(ptv, &hdr, p);
 
             if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
-                TmqhOutputPacketpool(ptv->tv, p);
                 SCReturnInt(TM_ECODE_FAILED);
             }
 

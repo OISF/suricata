@@ -744,7 +744,6 @@ static int AFPRead(AFPThreadVars *ptv)
     }
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
-        TmqhOutputPacketpool(ptv->tv, p);
         SCReturnInt(AFP_SURI_FAILURE);
     }
     SCReturnInt(AFP_READ_OK);
@@ -1058,7 +1057,6 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             if (++ptv->frame_offset >= ptv->req.v2.tp_frame_nr) {
                 ptv->frame_offset = 0;
             }
-            TmqhOutputPacketpool(ptv->tv, p);
             SCReturnInt(AFP_SURI_FAILURE);
         }
 
@@ -1157,7 +1155,6 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     }
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
-        TmqhOutputPacketpool(ptv->tv, p);
         SCReturnInt(AFP_SURI_FAILURE);
     }
 

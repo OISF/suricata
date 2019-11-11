@@ -542,7 +542,6 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
     ewtn->bytes += wlen;
 
     if (TmThreadsSlotProcessPkt(ewtn->tv, ewtn->slot, p) != TM_ECODE_OK) {
-        TmqhOutputPacketpool(ewtn->tv, p);
         SCReturnInt(TM_ECODE_FAILED);
     }
 

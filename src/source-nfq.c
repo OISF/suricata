@@ -562,14 +562,8 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 #endif /* COUNTERS */
     (void) SC_ATOMIC_ADD(ntv->livedev->pkts, 1);
 
-    if (ntv->slot) {
-        if (TmThreadsSlotProcessPkt(tv, ntv->slot, p) != TM_ECODE_OK) {
-            TmqhOutputPacketpool(ntv->tv, p);
-            return -1;
-        }
-    } else {
-        /* pass on... */
-        tv->tmqh_out(tv, p);
+    if (TmThreadsSlotProcessPkt(tv, ntv->slot, p) != TM_ECODE_OK) {
+        return -1;
     }
 
     return 0;

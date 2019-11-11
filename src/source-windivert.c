@@ -500,7 +500,6 @@ static TmEcode WinDivertRecvHelper(ThreadVars *tv, WinDivertThreadVars *wd_tv)
      * or push it to a packet pool. So processing time can vary.
      */
     if (TmThreadsSlotProcessPkt(tv, wd_tv->slot, p) != TM_ECODE_OK) {
-        TmqhOutputPacketpool(tv, p);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
