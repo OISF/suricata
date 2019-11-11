@@ -612,10 +612,7 @@ DecodeErfDag(ThreadVars *tv, Packet *p, void *data)
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
-    /* XXX HACK: flow timeout can call us for injected pseudo packets
-     *           see bug: https://redmine.openinfosecfoundation.org/issues/1107 */
-    if (p->flags & PKT_PSEUDO_STREAM_END)
-        return TM_ECODE_OK;
+    BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     /* update counters */
     DecodeUpdatePacketCounters(tv, dtv, p);

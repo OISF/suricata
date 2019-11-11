@@ -863,12 +863,7 @@ TmEcode DecodeWinDivert(ThreadVars *tv, Packet *p, void *data)
     IPV6Hdr *ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
     DecodeThreadVars *d_tv = (DecodeThreadVars *)data;
 
-    /* XXX HACK: flow timeout can call us for injected pseudo packets
-     *           see bug:
-     * https://redmine.openinfosecfoundation.org/issues/1107
-     */
-    if (PKT_IS_PSEUDOPKT(p))
-        SCReturnInt(TM_ECODE_OK);
+    BUG_ON(PKT_IS_PSEUDOPKT(p));
 
     DecodeUpdatePacketCounters(tv, d_tv, p);
 
