@@ -101,7 +101,6 @@ typedef struct ThreadVars_ {
     uint8_t type;
 
     uint16_t cpu_affinity; /** cpu or core number to set affinity to */
-    uint16_t rank;
     int thread_priority; /** priority (real time) for this thread. Look at threads.h */
 
     /* counters */
