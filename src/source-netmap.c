@@ -640,7 +640,7 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
             StatsSyncCountersIfSignalled(tv);
 
             /* poll timed out, lets handle the timeout */
-            TmThreadsCaptureHandleTimeout(tv, ntv->slot, NULL);
+            TmThreadsCaptureHandleTimeout(tv, NULL);
             continue;
         }
 

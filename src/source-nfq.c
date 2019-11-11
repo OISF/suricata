@@ -980,7 +980,7 @@ static void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
                 NFQVerdictCacheFlush(t);
 
             /* handle timeout */
-            TmThreadsCaptureHandleTimeout(tv->tv, tv->slot, NULL);
+            TmThreadsCaptureHandleTimeout(tv->tv, NULL);
         } else {
 #ifdef COUNTERS
             NFQMutexLock(t);

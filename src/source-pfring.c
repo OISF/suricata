@@ -434,7 +434,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             }
 
             /* pfring didn't use the packet yet */
-            TmThreadsCaptureHandleTimeout(tv, ptv->slot, p);
+            TmThreadsCaptureHandleTimeout(tv, p);
 
         } else {
             SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
