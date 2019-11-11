@@ -48,15 +48,34 @@ void TmqhCleanup(void)
 {
 }
 
-Tmqh* TmqhGetQueueHandlerByName(const char *name)
+int TmqhNameToID(const char *name)
 {
-    int i;
+    for (int i = 0; i < TMQH_SIZE; i++) {
+        if (tmqh_table[i].name != NULL) {
+            if (strcmp(name, tmqh_table[i].name) == 0)
+                return i;
+        }
+    }
 
-    for (i = 0; i < TMQH_SIZE; i++) {
-        if (strcmp(name, tmqh_table[i].name) == 0)
-            return &tmqh_table[i];
+    return -1;
+}
+
+Tmqh *TmqhGetQueueHandlerByName(const char *name)
+{
+    for (int i = 0; i < TMQH_SIZE; i++) {
+        if (tmqh_table[i].name != NULL) {
+            if (strcmp(name, tmqh_table[i].name) == 0)
+                return &tmqh_table[i];
+        }
     }
 
     return NULL;
 }
 
+Tmqh *TmqhGetQueueHandlerByID(const int id)
+{
+    if (id <= 0 || id >= TMQH_SIZE)
+        return NULL;
+
+    return &tmqh_table[id];
+}
