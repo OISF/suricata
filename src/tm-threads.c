@@ -1608,41 +1608,37 @@ static void TmThreadDebugValidateNoMorePackets(void)
 }
 
 /**
- * \brief Disable all threads having the specified TMs.
+ * \brief Disable all packet threads
  */
 void TmThreadDisablePacketThreads(void)
 {
-    ThreadVars *tv = NULL;
     struct timeval start_ts;
     struct timeval cur_ts;
 
     /* first drain all packet threads of their packets */
     TmThreadDrainPacketThreads();
+
+    /* since all the threads possibly able to produce more packets
+     * are now gone or inactive, we should see no packets anywhere
+     * anymore. */
     TmThreadDebugValidateNoMorePackets();
 
     gettimeofday(&start_ts, NULL);
 again:
     gettimeofday(&cur_ts, NULL);
     if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
-        FatalError(SC_ERR_FATAL, "Engine unable to disable detect "
-                "thread - \"%s\". Killing engine",
-                tv ? tv->name : "<unknown>");
+        FatalError(SC_ERR_FATAL, "Engine unable to disable packet  "
+                "threads. Killing engine");
     }
 
+    /* loop through the packet threads and kill them */
     SCMutexLock(&tv_root_lock);
-
-    /* all receive threads are part of packet processing threads */
-    tv = tv_root[TVT_PPT];
-
-    /* we do have to keep in mind that TVs are arranged in the order
-     * right from receive to log.  The moment we fail to find a
-     * receive TM amongst the slots in a tv, it indicates we are done
-     * with all receive threads */
-    while (tv) {
-        /* we found our receive TV.  Send it a KILL signal.  This is all
-         * we need to do to kill receive threads */
+    for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
         TmThreadsSetFlag(tv, THV_KILL);
 
+        /* separate worker threads (autofp) will still wait at their
+         * input queues. So nudge them here so they will observe the
+         * THV_KILL flag. */
         if (tv->inq != NULL) {
             for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
                 SCCondSignal(&trans_q[tv->inq->id].cond_q);
@@ -1656,12 +1652,8 @@ again:
             SleepMsec(1);
             goto again;
         }
-
-        tv = tv->next;
     }
-
     SCMutexUnlock(&tv_root_lock);
-
     return;
 }
 
