@@ -303,17 +303,16 @@ typedef struct AFPThreadVars_
 
 } AFPThreadVars;
 
-TmEcode ReceiveAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode ReceiveAFPThreadInit(ThreadVars *, const void *, void **);
-void ReceiveAFPThreadExitStats(ThreadVars *, void *);
-TmEcode ReceiveAFPThreadDeinit(ThreadVars *, void *);
-TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot);
+static TmEcode ReceiveAFPThreadInit(ThreadVars *, const void *, void **);
+static void ReceiveAFPThreadExitStats(ThreadVars *, void *);
+static TmEcode ReceiveAFPThreadDeinit(ThreadVars *, void *);
+static TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot);
 
-TmEcode DecodeAFPThreadInit(ThreadVars *, const void *, void **);
-TmEcode DecodeAFPThreadDeinit(ThreadVars *tv, void *data);
-TmEcode DecodeAFP(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode DecodeAFPThreadInit(ThreadVars *, const void *, void **);
+static TmEcode DecodeAFPThreadDeinit(ThreadVars *tv, void *data);
+static TmEcode DecodeAFP(ThreadVars *, Packet *, void *, PacketQueue *);
 
-TmEcode AFPSetBPFFilter(AFPThreadVars *ptv);
+static TmEcode AFPSetBPFFilter(AFPThreadVars *ptv);
 static int AFPGetIfnumByDev(int fd, const char *ifname, int verbose);
 static int AFPGetDevFlags(int fd, const char *ifname);
 static int AFPDerefSocket(AFPPeer* peer);
