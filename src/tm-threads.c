@@ -301,6 +301,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
         /* if the flowworker module is the first, get the threads input queue */
         if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
             tv->stream_pq = &trans_q[tv->inq->id];
+            tv->tm_flowworker = slot;
             SCLogDebug("pre-stream packetqueue %p (inq)", tv->stream_pq);
         /* setup a queue */
         } else if (slot->tm_id == TMM_FLOWWORKER) {
@@ -309,6 +310,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
                 FatalError(SC_ERR_MEM_ALLOC, "failed to alloc PacketQueue");
             SCMutexInit(&tv->stream_pq_local->mutex_q, NULL);
             tv->stream_pq = tv->stream_pq_local;
+            tv->tm_flowworker = slot;
             SCLogDebug("pre-stream packetqueue %p (local)", tv->stream_pq);
         }
     }
@@ -427,6 +429,7 @@ static void *TmThreadsSlotPktAcqLoopAFL(void *td)
         /* if the flowworker module is the first, get the threads input queue */
         if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
             tv->stream_pq = &trans_q[tv->inq->id];
+            tv->tm_flowworker = slot;
             SCLogDebug("pre-stream packetqueue %p (inq)", tv->stream_pq);
         /* setup a queue */
         } else if (slot->tm_id == TMM_FLOWWORKER) {
@@ -435,6 +438,7 @@ static void *TmThreadsSlotPktAcqLoopAFL(void *td)
                 FatalError(SC_ERR_MEM_ALLOC, "failed to alloc PacketQueue");
             SCMutexInit(&tv->stream_pq_local->mutex_q, NULL);
             tv->stream_pq = tv->stream_pq_local;
+            tv->tm_flowworker = slot;
             SCLogDebug("pre-stream packetqueue %p (local)", tv->stream_pq);
         }
     }
@@ -541,6 +545,7 @@ static void *TmThreadsSlotVar(void *td)
         /* if the flowworker module is the first, get the threads input queue */
         if (s == (TmSlot *)tv->tm_slots && (s->tm_id == TMM_FLOWWORKER)) {
             tv->stream_pq = &trans_q[tv->inq->id];
+            tv->tm_flowworker = s;
             SCLogDebug("pre-stream packetqueue %p (inq)", tv->stream_pq);
         /* setup a queue */
         } else if (s->tm_id == TMM_FLOWWORKER) {
@@ -549,6 +554,7 @@ static void *TmThreadsSlotVar(void *td)
                 FatalError(SC_ERR_MEM_ALLOC, "failed to alloc PacketQueue");
             SCMutexInit(&tv->stream_pq_local->mutex_q, NULL);
             tv->stream_pq = tv->stream_pq_local;
+            tv->tm_flowworker = s;
             SCLogDebug("pre-stream packetqueue %p (local)", tv->stream_pq);
         }
     }
