@@ -82,6 +82,10 @@ typedef struct ThreadVars_ {
     /** slot functions */
     void *(*tm_func)(void *);
     struct TmSlot_ *tm_slots;
+    /** pointer to the flowworker in the pipeline. Used as starting point
+     *  for injected packets. Can be NULL if the flowworker is not part
+     *  of this thread. */
+    struct TmSlot_ *tm_flowworker;
 
     /** Stream packet queue for flow time out injection. Either a pointer to the
      *  workers input queue or to stream_pq_local */
