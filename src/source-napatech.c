@@ -542,8 +542,7 @@ TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data)
  * \param data pointer that gets cast into PcapThreadVars for ptv
  * \param pq pointer to the current PacketQueue
  */
-TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-        PacketQueue *postpq)
+TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
 

@@ -5177,7 +5177,7 @@ int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn
     return 0;
 }
 
-TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     StreamTcpThread *stt = (StreamTcpThread *)data;
 

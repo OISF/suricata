@@ -311,7 +311,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot);
 
 TmEcode DecodeAFPThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodeAFPThreadDeinit(ThreadVars *tv, void *data);
-TmEcode DecodeAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode DecodeAFP(ThreadVars *, Packet *, void *, PacketQueue *);
 
 TmEcode AFPSetBPFFilter(AFPThreadVars *ptv);
 static int AFPGetIfnumByDev(int fd, const char *ifname, int verbose);
@@ -2887,7 +2887,7 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
  * \param data pointer that gets cast into AFPThreadVars for ptv
  * \param pq pointer to the current PacketQueue
  */
-TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;

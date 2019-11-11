@@ -347,14 +347,12 @@ TmEcode ReceiveWinDivertThreadDeinit(ThreadVars *, void *);
 void ReceiveWinDivertThreadExitStats(ThreadVars *, void *);
 
 /* Verdict functions */
-TmEcode VerdictWinDivert(ThreadVars *, Packet *, void *, PacketQueue *,
-                         PacketQueue *);
+TmEcode VerdictWinDivert(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode VerdictWinDivertThreadInit(ThreadVars *, const void *, void **);
 TmEcode VerdictWinDivertThreadDeinit(ThreadVars *, void *);
 
 /* Decode functions */
-TmEcode DecodeWinDivert(ThreadVars *, Packet *, void *, PacketQueue *,
-                        PacketQueue *);
+TmEcode DecodeWinDivert(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode DecodeWinDivertThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodeWinDivertThreadDeinit(ThreadVars *, void *);
 
@@ -734,8 +732,7 @@ void ReceiveWinDivertThreadExitStats(ThreadVars *tv, void *data)
 /**
  * \brief WinDivert verdict module packet entry function
  */
-TmEcode VerdictWinDivert(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                         PacketQueue *postpq)
+TmEcode VerdictWinDivert(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq);
 {
     SCEnter();
 
@@ -859,8 +856,7 @@ TmEcode VerdictWinDivertThreadDeinit(ThreadVars *tv, void *data)
  * to differentiate the two, so instead we must check the version and go
  * from there.
  */
-TmEcode DecodeWinDivert(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                        PacketQueue *postpq)
+TmEcode DecodeWinDivert(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
 

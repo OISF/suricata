@@ -98,7 +98,7 @@ TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data);
 
 TmEcode DecodePcapThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
-TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *);
 
 /** protect pcap_compile and pcap_setfilter, as they are not thread safe:
  *  http://seclists.org/tcpdump/2009/q1/62 */
@@ -555,7 +555,7 @@ TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data)
  * \param data pointer that gets cast into PcapThreadVars for ptv
  * \param pq pointer to the current PacketQueue
  */
-TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;

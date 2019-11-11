@@ -49,7 +49,7 @@ typedef struct TmModule_ {
     TmEcode (*ThreadDeinit)(ThreadVars *, void *);
 
     /** the packet processing function */
-    TmEcode (*Func)(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+    TmEcode (*Func)(ThreadVars *, Packet *, void *, PacketQueue *);
 
     TmEcode (*PktAcqLoop)(ThreadVars *, void *, void *);
 

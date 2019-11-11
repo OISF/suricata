@@ -131,20 +131,20 @@ static SCMutex ipfw_init_lock;
 /* IPFW Prototypes */
 void *IPFWGetQueue(int number);
 TmEcode ReceiveIPFWThreadInit(ThreadVars *, const void *, void **);
-TmEcode ReceiveIPFW(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode ReceiveIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot);
 void ReceiveIPFWThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveIPFWThreadDeinit(ThreadVars *, void *);
 
 TmEcode IPFWSetVerdict(ThreadVars *, IPFWThreadVars *, Packet *);
-TmEcode VerdictIPFW(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode VerdictIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode VerdictIPFWThreadInit(ThreadVars *, const void *, void **);
 void VerdictIPFWThreadExitStats(ThreadVars *, void *);
 TmEcode VerdictIPFWThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodeIPFWThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodeIPFWThreadDeinit(ThreadVars *tv, void *data);
-TmEcode DecodeIPFW(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode DecodeIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
 
 /**
  * \brief Registration Function for RecieveIPFW.
@@ -439,7 +439,7 @@ TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data)
  * \param data pointer that gets cast into IPFWThreadVars for ptv
  * \param pq pointer to the PacketQueue
  */
-TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     IPV4Hdr *ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
     IPV6Hdr *ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
@@ -613,7 +613,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
  * \param data pointer that gets cast into IPFWThreadVars for ptv
  * \param pq pointer for the Packet Queue access (Not used)
  */
-TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     TmEcode retval = TM_ECODE_OK;
