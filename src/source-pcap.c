@@ -90,15 +90,15 @@ typedef struct PcapThreadVars_
     LiveDevice *livedev;
 } PcapThreadVars;
 
-TmEcode ReceivePcapThreadInit(ThreadVars *, const void *, void **);
-void ReceivePcapThreadExitStats(ThreadVars *, void *);
-TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
-TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
-TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data);
+static TmEcode ReceivePcapThreadInit(ThreadVars *, const void *, void **);
+static void ReceivePcapThreadExitStats(ThreadVars *, void *);
+static TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
+static TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
+static TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data);
 
-TmEcode DecodePcapThreadInit(ThreadVars *, const void *, void **);
-TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
-TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode DecodePcapThreadInit(ThreadVars *, const void *, void **);
+static TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
+static TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *);
 
 /** protect pcap_compile and pcap_setfilter, as they are not thread safe:
  *  http://seclists.org/tcpdump/2009/q1/62 */
@@ -240,7 +240,7 @@ static void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 /**
  *  \brief Main PCAP reading Loop function
  */
-TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
+static TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 {
     SCEnter();
 
@@ -298,7 +298,7 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 /**
  * \brief PCAP Break Loop function.
  */
-TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data)
+static TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data)
 {
     SCEnter();
     PcapThreadVars *ptv = (PcapThreadVars *)data;
@@ -324,7 +324,7 @@ TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data)
  *
  * \todo Create a general pcap setup function.
  */
-TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
+static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
     PcapIfaceConfig *pcapconfig = (PcapIfaceConfig *)initdata;
@@ -500,7 +500,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into PcapThreadVars for ptv
  */
-void ReceivePcapThreadExitStats(ThreadVars *tv, void *data)
+static void ReceivePcapThreadExitStats(ThreadVars *tv, void *data)
 {
     SCEnter();
     PcapThreadVars *ptv = (PcapThreadVars *)data;
@@ -536,7 +536,7 @@ void ReceivePcapThreadExitStats(ThreadVars *tv, void *data)
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into PcapThreadVars for ptv
  */
-TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data)
+static TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data)
 {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
@@ -555,7 +555,7 @@ TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data)
  * \param data pointer that gets cast into PcapThreadVars for ptv
  * \param pq pointer to the current PacketQueue
  */
-TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+static TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -598,7 +598,7 @@ TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode DecodePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
+static TmEcode DecodePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
 
@@ -613,7 +613,7 @@ TmEcode DecodePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data)
+static TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data)
 {
     if (data != NULL)
         DecodeThreadVarsFree(tv, data);

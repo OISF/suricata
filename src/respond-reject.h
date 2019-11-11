@@ -30,6 +30,5 @@
 #define REJECT_DIR_DST 1
 
 void TmModuleRespondRejectRegister (void);
-TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq);
 
 #endif /* __RESPOND_REJECT_H__ */

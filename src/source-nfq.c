@@ -132,20 +132,20 @@ static NFQQueueVars *g_nfq_q;
 static uint16_t receive_queue_num = 0;
 static SCMutex nfq_init_lock;
 
-TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot);
-TmEcode ReceiveNFQThreadInit(ThreadVars *, const void *, void **);
-TmEcode ReceiveNFQThreadDeinit(ThreadVars *, void *);
-void ReceiveNFQThreadExitStats(ThreadVars *, void *);
+static TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot);
+static TmEcode ReceiveNFQThreadInit(ThreadVars *, const void *, void **);
+static TmEcode ReceiveNFQThreadDeinit(ThreadVars *, void *);
+static void ReceiveNFQThreadExitStats(ThreadVars *, void *);
 
-TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode VerdictNFQThreadInit(ThreadVars *, const void *, void **);
-TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
+static TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode VerdictNFQThreadInit(ThreadVars *, const void *, void **);
+static TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 
-TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode DecodeNFQThreadInit(ThreadVars *, const void *, void **);
-TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data);
+static TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode DecodeNFQThreadInit(ThreadVars *, const void *, void **);
+static TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data);
 
-TmEcode NFQSetVerdict(Packet *p);
+static TmEcode NFQSetVerdict(Packet *p);
 
 typedef enum NFQMode_ {
     NFQ_ACCEPT_MODE,
