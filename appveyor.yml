@@ -61,6 +61,7 @@ build_script:
   - git clone https://github.com/OISF/libhtp -b 0.5.x
   - bash autogen.sh
   - bash configure %CONFIGURE% --disable-shared --%RUST%-rust
+  - bash cat config.log
   - make -j3
   - ldd src\suricata
   - src\suricata --build-info
