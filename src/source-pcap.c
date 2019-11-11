@@ -92,7 +92,6 @@ typedef struct PcapThreadVars_
 
 static TmEcode ReceivePcapThreadInit(ThreadVars *, const void *, void **);
 static void ReceivePcapThreadExitStats(ThreadVars *, void *);
-static TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
 static TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
 static TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data);
 
@@ -529,19 +528,6 @@ static void ReceivePcapThreadExitStats(ThreadVars *tv, void *data)
                 (uint64_t)pcap_s.ps_drop,
                 (((float)(uint64_t)pcap_s.ps_drop)/(float)(uint64_t)pcap_s.ps_recv)*100);
     }
-}
-
-/**
- * \brief DeInit function closes pcap_handle at exit.
- * \param tv pointer to ThreadVars
- * \param data pointer that gets cast into PcapThreadVars for ptv
- */
-static TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data)
-{
-    PcapThreadVars *ptv = (PcapThreadVars *)data;
-
-    pcap_close(ptv->pcap_handle);
-    SCReturnInt(TM_ECODE_OK);
 }
 
 /**
