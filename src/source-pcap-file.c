@@ -58,8 +58,7 @@ static TmEcode ReceivePcapFileThreadInit(ThreadVars *, const void *, void **);
 static void ReceivePcapFileThreadExitStats(ThreadVars *, void *);
 static TmEcode ReceivePcapFileThreadDeinit(ThreadVars *, void *);
 
-static TmEcode DecodePcapFile(ThreadVars *, Packet *, void *, PacketQueue *,
-                              PacketQueue *);
+static TmEcode DecodePcapFile(ThreadVars *, Packet *, void *, PacketQueue *);
 static TmEcode DecodePcapFileThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data);
 
@@ -390,7 +389,7 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data)
 
 static double prev_signaled_ts = 0;
 
-TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;

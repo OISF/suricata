@@ -137,11 +137,11 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *, const void *, void **);
 TmEcode ReceiveNFQThreadDeinit(ThreadVars *, void *);
 void ReceiveNFQThreadExitStats(ThreadVars *, void *);
 
-TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode VerdictNFQThreadInit(ThreadVars *, const void *, void **);
 TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 
-TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode DecodeNFQThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data);
 
@@ -1199,7 +1199,7 @@ TmEcode NFQSetVerdict(Packet *p)
 /**
  * \brief NFQ verdict module packet entry function
  */
-TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
     /* update counters */
@@ -1230,7 +1230,7 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
 /**
  * \brief Decode a packet coming from NFQ
  */
-TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
 
     IPV4Hdr *ip4h = (IPV4Hdr *)GET_PKT_DATA(p);

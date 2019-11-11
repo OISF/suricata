@@ -35,6 +35,7 @@
 #include "suricata.h"
 
 #include "decode.h"
+#include "detect.h"
 #include "stream-tcp.h"
 #include "app-layer.h"
 #include "detect-engine.h"
@@ -176,9 +177,6 @@ static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
     return TM_ECODE_OK;
 }
 
-TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
-TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-
 static void FlowPruneFiles(Packet *p)
 {
     if (p->flow && p->flow->alstate) {
@@ -191,7 +189,7 @@ static void FlowPruneFiles(Packet *p)
     }
 }
 
-static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, PacketQueue *unused)
+static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq)
 {
     FlowWorkerThreadData *fw = data;
     void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
@@ -242,7 +240,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *pr
         }
 
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_STREAM);
-        StreamTcp(tv, p, fw->stream_thread, &fw->pq, NULL);
+        StreamTcp(tv, p, fw->stream_thread, &fw->pq);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);
 
         if (FlowChangeProto(p->flow)) {
@@ -259,7 +257,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *pr
             //StreamTcp(tv, x, fw->stream_thread, &fw->pq, NULL);
             if (detect_thread != NULL) {
                 FLOWWORKER_PROFILING_START(x, PROFILE_FLOWWORKER_DETECT);
-                Detect(tv, x, detect_thread, NULL, NULL);
+                Detect(tv, x, detect_thread);
                 FLOWWORKER_PROFILING_END(x, PROFILE_FLOWWORKER_DETECT);
             }
 
@@ -286,7 +284,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *pr
 
     if (detect_thread != NULL) {
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
-        Detect(tv, p, detect_thread, NULL, NULL);
+        Detect(tv, p, detect_thread);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
     }
 

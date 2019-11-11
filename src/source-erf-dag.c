@@ -610,8 +610,7 @@ ReceiveErfDagCloseStream(int dagfd, int stream)
  * \param pq pointer to the current PacketQueue
  */
 TmEcode
-DecodeErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-    PacketQueue *postpq)
+DecodeErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;

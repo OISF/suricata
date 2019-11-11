@@ -746,9 +746,8 @@ static TmEcode DecodeNetmapThreadInit(ThreadVars *tv, const void *initdata, void
  * \param p pointer to the current packet
  * \param data pointer that gets cast into NetmapThreadVars for ntv
  * \param pq pointer to the current PacketQueue
- * \param postpq
  */
-static TmEcode DecodeNetmap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode DecodeNetmap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
 

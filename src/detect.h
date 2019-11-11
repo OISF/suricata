@@ -1450,7 +1450,7 @@ SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
 /* detection api */
-TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
+TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
 
 SigMatch *SigMatchAlloc(void);
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);

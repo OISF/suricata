@@ -75,7 +75,7 @@ void ReceiveNFLOGThreadExitStats(ThreadVars *, void *);
 
 TmEcode DecodeNFLOGThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodeNFLOGThreadDeinit(ThreadVars *tv, void *data);
-TmEcode DecodeNFLOG(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode DecodeNFLOG(ThreadVars *, Packet *, void *, PacketQueue *);
 
 static int runmode_workers;
 
@@ -501,7 +501,7 @@ void ReceiveNFLOGThreadExitStats(ThreadVars *tv, void *data)
  *
  * \retval TM_ECODE_OK is always returned
  */
-TmEcode DecodeNFLOG(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode DecodeNFLOG(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     SCEnter();
     IPV4Hdr *ip4h = (IPV4Hdr *)GET_PKT_DATA(p);

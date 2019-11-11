@@ -53,7 +53,7 @@ void ReceivePfringThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePfringThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodePfringThreadInit(ThreadVars *, const void *, void **);
-TmEcode DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *);
 TmEcode DecodePfringThreadDeinit(ThreadVars *tv, void *data);
 
 extern int max_pending_packets;
@@ -720,7 +720,7 @@ TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data)
  *
  * \retval TM_ECODE_OK is always returned
  */
-TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
