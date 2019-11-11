@@ -79,8 +79,11 @@ typedef struct ThreadVars_ {
     void (*InShutdownHandler)(struct ThreadVars_ *);
     void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
 
-    /** slot functions */
+    /** function pointer to the function that runs the packet pipeline for
+     *  this thread. It is passed directly to pthread_create(), hence the
+     *  void pointers in and out. */
     void *(*tm_func)(void *);
+    /** list of of TmSlot objects together forming the packet pipeline. */
     struct TmSlot_ *tm_slots;
     /** pointer to the flowworker in the pipeline. Used as starting point
      *  for injected packets. Can be NULL if the flowworker is not part
