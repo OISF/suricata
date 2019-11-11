@@ -1319,7 +1319,6 @@ void TmThreadAppend(ThreadVars *tv, int type)
     if (tv_root[type] == NULL) {
         tv_root[type] = tv;
         tv->next = NULL;
-        tv->prev = NULL;
 
         SCMutexUnlock(&tv_root_lock);
 
@@ -1331,7 +1330,6 @@ void TmThreadAppend(ThreadVars *tv, int type)
     while (t) {
         if (t->next == NULL) {
             t->next = tv;
-            tv->prev = t;
             tv->next = NULL;
             break;
         }

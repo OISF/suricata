@@ -118,7 +118,6 @@ typedef struct ThreadVars_ {
     SCCtrlCondT *ctrl_cond;
 
     struct ThreadVars_ *next;
-    struct ThreadVars_ *prev;
 } ThreadVars;
 
 /** Thread setup flags: */
