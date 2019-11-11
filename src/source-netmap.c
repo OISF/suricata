@@ -590,11 +590,7 @@ static void NetmapCallback(u_char *user, const struct nm_pkthdr *ph, const u_cha
     SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
             GET_PKT_LEN(p), p, GET_PKT_DATA(p));
 
-    if (TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK) {
-        TmqhOutputPacketpool(ntv->tv, p);
-        return;
-    }
-    return;
+    (void)TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p);
 }
 
 /**

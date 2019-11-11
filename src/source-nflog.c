@@ -193,7 +193,6 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
     (void) SC_ATOMIC_ADD(ntv->livedev->pkts, 1);
 
     if (TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK) {
-        TmqhOutputPacketpool(ntv->tv, p);
         return -1;
     }
 

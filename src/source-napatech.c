@@ -450,7 +450,6 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
         }
 
         if (unlikely(TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK)) {
-            TmqhOutputPacketpool(ntv->tv, p);
             NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
