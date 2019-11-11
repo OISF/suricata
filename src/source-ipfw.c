@@ -129,22 +129,22 @@ static uint16_t receive_port_num = 0;
 static SCMutex ipfw_init_lock;
 
 /* IPFW Prototypes */
-void *IPFWGetQueue(int number);
-TmEcode ReceiveIPFWThreadInit(ThreadVars *, const void *, void **);
-TmEcode ReceiveIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot);
-void ReceiveIPFWThreadExitStats(ThreadVars *, void *);
-TmEcode ReceiveIPFWThreadDeinit(ThreadVars *, void *);
+static void *IPFWGetQueue(int number);
+static TmEcode ReceiveIPFWThreadInit(ThreadVars *, const void *, void **);
+static TmEcode ReceiveIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot);
+static void ReceiveIPFWThreadExitStats(ThreadVars *, void *);
+static TmEcode ReceiveIPFWThreadDeinit(ThreadVars *, void *);
 
-TmEcode IPFWSetVerdict(ThreadVars *, IPFWThreadVars *, Packet *);
-TmEcode VerdictIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
-TmEcode VerdictIPFWThreadInit(ThreadVars *, const void *, void **);
-void VerdictIPFWThreadExitStats(ThreadVars *, void *);
-TmEcode VerdictIPFWThreadDeinit(ThreadVars *, void *);
+static TmEcode IPFWSetVerdict(ThreadVars *, IPFWThreadVars *, Packet *);
+static TmEcode VerdictIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode VerdictIPFWThreadInit(ThreadVars *, const void *, void **);
+static void VerdictIPFWThreadExitStats(ThreadVars *, void *);
+static TmEcode VerdictIPFWThreadDeinit(ThreadVars *, void *);
 
-TmEcode DecodeIPFWThreadInit(ThreadVars *, const void *, void **);
-TmEcode DecodeIPFWThreadDeinit(ThreadVars *tv, void *data);
-TmEcode DecodeIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode DecodeIPFWThreadInit(ThreadVars *, const void *, void **);
+static TmEcode DecodeIPFWThreadDeinit(ThreadVars *tv, void *data);
+static TmEcode DecodeIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
 
 /**
  * \brief Registration Function for RecieveIPFW.

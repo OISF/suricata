@@ -45,6 +45,7 @@ int RejectSendIPv4TCP(ThreadVars *, Packet *, void *);
 int RejectSendIPv4ICMP(ThreadVars *, Packet *, void *);
 int RejectSendIPv6TCP(ThreadVars *, Packet *, void *);
 int RejectSendIPv6ICMP(ThreadVars *, Packet *, void *);
+static TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq);
 
 void TmModuleRespondRejectRegister (void)
 {
@@ -56,7 +57,7 @@ void TmModuleRespondRejectRegister (void)
     tmm_modules[TMM_RESPONDREJECT].cap_flags = 0; /* libnet is not compat with caps */
 }
 
-TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+static TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     int ret = 0;
 
