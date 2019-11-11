@@ -266,7 +266,7 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
             if (r == PCAP_ERROR_BREAK && ptv->cb_result == TM_ECODE_FAILED) {
                 SCReturnInt(TM_ECODE_FAILED);
             }
-            TmThreadsCaptureHandleTimeout(tv, ptv->slot, NULL);
+            TmThreadsCaptureHandleTimeout(tv, NULL);
         } else if (unlikely(r < 0)) {
             int dbreak = 0;
             SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",

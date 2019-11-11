@@ -588,7 +588,7 @@ static void *TmThreadsSlotVar(void *td)
             tv->tmqh_out(tv, p);
 
             /* now handle the stream pq packets */
-            TmThreadsHandleInjectedPackets(tv, s);
+            TmThreadsHandleInjectedPackets(tv);
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {

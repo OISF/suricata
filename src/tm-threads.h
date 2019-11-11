@@ -162,7 +162,7 @@ static inline void TmThreadsSlotProcessPktFail(ThreadVars *tv, TmSlot *s, Packet
  *         manager.
  *  \param s pipeline to run on these packets.
  */
-static inline void TmThreadsHandleInjectedPackets(ThreadVars *tv, TmSlot *s)
+static inline void TmThreadsHandleInjectedPackets(ThreadVars *tv)
 {
     PacketQueue *pq = tv->stream_pq_local;
     if (pq && pq->len > 0) {
@@ -172,9 +172,9 @@ static inline void TmThreadsHandleInjectedPackets(ThreadVars *tv, TmSlot *s)
             SCMutexUnlock(&pq->mutex_q);
             if (extra_p == NULL)
                 break;
-            TmEcode r = TmThreadsSlotVarRun(tv, extra_p, s);
+            TmEcode r = TmThreadsSlotVarRun(tv, extra_p, tv->tm_flowworker);
             if (r == TM_ECODE_FAILED) {
-                TmThreadsSlotProcessPktFail(tv, s, extra_p);
+                TmThreadsSlotProcessPktFail(tv, tv->tm_flowworker, extra_p);
                 break;
             }
             tv->tmqh_out(tv, extra_p);
@@ -200,7 +200,7 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
 
     tv->tmqh_out(tv, p);
 
-    TmThreadsHandleInjectedPackets(tv, s);
+    TmThreadsHandleInjectedPackets(tv);
 
     return TM_ECODE_OK;
 }
@@ -210,7 +210,7 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
  *
  *  Meant for detect reload process that interupts an sleeping capture thread
  *  to force a packet through the engine to complete a reload */
-static inline void TmThreadsCaptureInjectPacket(ThreadVars *tv, TmSlot *slot, Packet *p)
+static inline void TmThreadsCaptureInjectPacket(ThreadVars *tv, Packet *p)
 {
     TmThreadsUnsetFlag(tv, THV_CAPTURE_INJECT_PKT);
     if (p == NULL)
@@ -218,18 +218,18 @@ static inline void TmThreadsCaptureInjectPacket(ThreadVars *tv, TmSlot *slot, Pa
     if (p != NULL) {
         p->flags |= PKT_PSEUDO_STREAM_END;
         PKT_SET_SRC(p, PKT_SRC_CAPTURE_TIMEOUT);
-        if (TmThreadsSlotProcessPkt(tv, slot, p) != TM_ECODE_OK) {
+        if (TmThreadsSlotProcessPkt(tv, tv->tm_flowworker, p) != TM_ECODE_OK) {
             TmqhOutputPacketpool(tv, p);
         }
     }
 }
 
-static inline void TmThreadsCaptureHandleTimeout(ThreadVars *tv, TmSlot *slot, Packet *p)
+static inline void TmThreadsCaptureHandleTimeout(ThreadVars *tv, Packet *p)
 {
     if (TmThreadsCheckFlag(tv, THV_CAPTURE_INJECT_PKT)) {
-        TmThreadsCaptureInjectPacket(tv, slot, p);
+        TmThreadsCaptureInjectPacket(tv, p);
     } else {
-        TmThreadsHandleInjectedPackets(tv, slot);
+        TmThreadsHandleInjectedPackets(tv);
 
         /* packet could have been passed to us that we won't use
          * return it to the pool. */
