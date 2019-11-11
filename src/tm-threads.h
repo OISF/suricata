@@ -107,7 +107,6 @@ void TmThreadKillThreadsFamily(int family);
 void TmThreadKillThreads(void);
 void TmThreadClearThreadsFamily(int family);
 void TmThreadAppend(ThreadVars *, int);
-void TmThreadRemove(ThreadVars *, int);
 void TmThreadSetGroupName(ThreadVars *tv, const char *name);
 void TmThreadDumpThreads(void);
 
