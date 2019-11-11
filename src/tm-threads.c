@@ -1344,42 +1344,6 @@ void TmThreadAppend(ThreadVars *tv, int type)
     return;
 }
 
-/**
- * \brief Removes this TV from tv_root based on its type
- *
- * \param tv   The tv instance to remove from the global tv list.
- * \param type Holds the type this TV belongs to.
- */
-void TmThreadRemove(ThreadVars *tv, int type)
-{
-    SCMutexLock(&tv_root_lock);
-
-    if (tv_root[type] == NULL) {
-        SCMutexUnlock(&tv_root_lock);
-
-        return;
-    }
-
-    ThreadVars *t = tv_root[type];
-    while (t != tv) {
-        t = t->next;
-    }
-
-    if (t != NULL) {
-        if (t->prev != NULL)
-            t->prev->next = t->next;
-        if (t->next != NULL)
-            t->next->prev = t->prev;
-
-    if (t == tv_root[type])
-        tv_root[type] = t->next;;
-    }
-
-    SCMutexUnlock(&tv_root_lock);
-
-    return;
-}
-
 static bool ThreadStillHasPackets(ThreadVars *tv)
 {
     if (tv->inq != NULL && !tv->inq->is_packet_pool) {
