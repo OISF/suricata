@@ -1109,12 +1109,16 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
     if (inqh_name != NULL) {
         SCLogDebug("inqh_name \"%s\"", inqh_name);
 
+        int id = TmqhNameToID(inqh_name);
+        if (id <= 0) {
+            goto error;
+        }
         tmqh = TmqhGetQueueHandlerByName(inqh_name);
         if (tmqh == NULL)
             goto error;
 
         tv->tmqh_in = tmqh->InHandler;
-        tv->InShutdownHandler = tmqh->InShutdownHandler;
+        tv->inq_id = (uint8_t)id;
         SCLogDebug("tv->tmqh_in %p", tv->tmqh_in);
     }
 
@@ -1122,12 +1126,17 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
     if (outqh_name != NULL) {
         SCLogDebug("outqh_name \"%s\"", outqh_name);
 
+        int id = TmqhNameToID(outqh_name);
+        if (id <= 0) {
+            goto error;
+        }
+
         tmqh = TmqhGetQueueHandlerByName(outqh_name);
         if (tmqh == NULL)
             goto error;
 
         tv->tmqh_out = tmqh->OutHandler;
-        tv->outqh_name = tmqh->name;
+        tv->outq_id = (uint8_t)id;
 
         if (outq_name != NULL && strcmp(outq_name, "packetpool") != 0) {
             SCLogDebug("outq_name \"%s\"", outq_name);
@@ -1423,8 +1432,11 @@ static int TmThreadKillThread(ThreadVars *tv)
 
     /* to be sure, signal more */
     if (!(TmThreadsCheckFlag(tv, THV_CLOSED))) {
-        if (tv->InShutdownHandler != NULL) {
-            tv->InShutdownHandler(tv);
+        if (tv->inq_id != TMQH_NOT_SET) {
+            Tmqh *qh = TmqhGetQueueHandlerByID(tv->inq_id);
+            if (qh != NULL && qh->InShutdownHandler != NULL) {
+                qh->InShutdownHandler(tv);
+            }
         }
         if (tv->inq != NULL) {
             for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
@@ -1440,13 +1452,12 @@ static int TmThreadKillThread(ThreadVars *tv)
     }
 
     if (tv->outctx != NULL) {
-        Tmqh *tmqh = TmqhGetQueueHandlerByName(tv->outqh_name);
-        if (tmqh == NULL)
-            BUG_ON(1);
-
-        if (tmqh->OutHandlerCtxFree != NULL) {
-            tmqh->OutHandlerCtxFree(tv->outctx);
-            tv->outctx = NULL;
+        if (tv->outq_id != TMQH_NOT_SET) {
+            Tmqh *qh = TmqhGetQueueHandlerByID(tv->outq_id);
+            if (qh != NULL && qh->OutHandlerCtxFree != NULL) {
+                qh->OutHandlerCtxFree(tv->outctx);
+                tv->outctx = NULL;
+            }
         }
     }
 

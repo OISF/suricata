@@ -67,6 +67,9 @@ typedef struct ThreadVars_ {
 
     uint8_t cap_flags; /**< Flags to indicate the capabilities of all the
                             TmModules resgitered under this thread */
+    uint8_t inq_id;
+    uint8_t outq_id;
+
     /** local id */
     int id;
 
@@ -74,11 +77,9 @@ typedef struct ThreadVars_ {
     Tmq *inq;
     Tmq *outq;
     void *outctx;
-    const char *outqh_name;
 
     /** queue handlers */
     struct Packet_ * (*tmqh_in)(struct ThreadVars_ *);
-    void (*InShutdownHandler)(struct ThreadVars_ *);
     void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
 
     /** function pointer to the function that runs the packet pipeline for
