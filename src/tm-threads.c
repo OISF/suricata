@@ -205,8 +205,8 @@ static void CheckSlot(const TmSlot *slot)
 {
     if (slot->slot_pre_pq.len) {
         for (Packet *xp = slot->slot_pre_pq.top; xp != NULL; xp = xp->next) {
-            SCLogNotice("pre_pq: slot id %u slot tm_id %u pre_pq.len %u packet src %s",
-                    slot->id, slot->tm_id, slot->slot_pre_pq.len, PktSrcToString(xp->pkt_src));
+            SCLogNotice("pre_pq: slot tm_id %u pre_pq.len %u packet src %s",
+                    slot->tm_id, slot->slot_pre_pq.len, PktSrcToString(xp->pkt_src));
         }
         TmThreadDumpThreads();
         abort();
@@ -798,7 +798,6 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
 
     if (tv->tm_slots == NULL) {
         tv->tm_slots = slot;
-        slot->id = 0;
     } else {
         TmSlot *a = (TmSlot *)tv->tm_slots, *b = NULL;
 
@@ -809,7 +808,6 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
         /* append the new slot */
         if (b != NULL) {
             b->slot_next = slot;
-            slot->id = b->id + 1;
         }
     }
     return;
@@ -2092,11 +2090,11 @@ static void TmThreadDoDumpSlots(const ThreadVars *tv)
 {
     for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
         TmModule *m = TmModuleGetById(s->tm_id);
-        SCLogNotice("tv %p: -> slot %p id %d tm_id %d name %s",
-            tv, s, s->id, s->tm_id, m->name);
+        SCLogNotice("tv %p: -> slot %p tm_id %d name %s",
+            tv, s, s->tm_id, m->name);
         for (Packet *xp = s->slot_pre_pq.top; xp != NULL; xp = xp->next) {
-            SCLogNotice("tv %p: ==> pre_pq: slot id %u slot tm_id %u pre_pq.len %u packet src %s",
-                    tv, s->id, s->tm_id, s->slot_pre_pq.len, PktSrcToString(xp->pkt_src));
+            SCLogNotice("tv %p: ==> pre_pq: slot tm_id %u pre_pq.len %u packet src %s",
+                    tv, s->tm_id, s->slot_pre_pq.len, PktSrcToString(xp->pkt_src));
         }
     }
 }
