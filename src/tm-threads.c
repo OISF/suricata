@@ -175,15 +175,8 @@ static void CheckSlot(const TmSlot *slot)
  */
 static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
 {
-    TmSlot *fw_slot = NULL;
+    TmSlot *fw_slot = tv->tm_flowworker;
     int r = TM_ECODE_OK;
-
-    for (TmSlot *slot = s; slot != NULL; slot = slot->slot_next) {
-        if (slot->tm_id == TMM_FLOWWORKER) {
-            fw_slot = slot;
-            break;
-        }
-    }
 
     if (tv->stream_pq == NULL || fw_slot == NULL) {
         SCLogDebug("not running TmThreadTimeoutLoop %p/%p", tv->stream_pq, fw_slot);
