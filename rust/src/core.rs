@@ -19,6 +19,7 @@
 
 use std;
 use crate::filecontainer::*;
+use crate::sclog;
 
 /// Opaque C types.
 pub enum Flow {}
@@ -149,6 +150,7 @@ pub extern "C" fn rs_init(context: &'static mut SuricataContext)
     unsafe {
         SC = Some(context);
         ALPROTO_FAILED = StringToAppProto("failed\0".as_ptr());
+        sclog::init();
     }
 }
 

@@ -18,6 +18,7 @@
 use std;
 use std::ffi::CString;
 use std::path::Path;
+use log;
 
 use crate::core::*;
 
@@ -189,4 +190,38 @@ fn to_safe_cstring(val: &str) -> CString {
             CString::new("<failed to encode string>").unwrap()
         }
     }
+}
+
+struct StandardLogger;
+
+impl log::Log for StandardLogger {
+    fn enabled(&self, _metadata: &log::Metadata) -> bool {
+        return true;
+    }
+
+    fn log(&self, record: &log::Record) {
+        if self.enabled(record.metadata()) {
+            let level = match record.level() {
+                log::Level::Error => Level::Error,
+                log::Level::Warn => Level::Warning,
+                log::Level::Info => Level::Info,
+                log::Level::Debug => Level::Debug,
+                log::Level::Trace => Level::Debug,
+            };
+            let filename = record.file().unwrap_or("unknown");
+            let line = record.line().unwrap_or(0);
+            let msg = format!("{}", record.args());
+            sc_log_message(level, basename(filename), line, "<rust>", 0, &msg);
+        }
+    }
+
+    fn flush(&self) {}
+}
+
+pub fn init() {
+    log::set_boxed_logger(Box::new(StandardLogger))
+        .map(|()| log::set_max_level(log::LevelFilter::Warn))
+        .unwrap_or_else(|err| {
+            eprintln!("Failed to initialize Rust standard logging: {}", err);
+        });
 }
