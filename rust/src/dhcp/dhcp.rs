@@ -25,6 +25,7 @@ use crate::parser::*;
 use std;
 use std::ffi::{CStr,CString};
 use std::mem::transmute;
+use log;
 
 static mut ALPROTO_DHCP: AppProto = ALPROTO_UNKNOWN;
 
@@ -462,6 +463,7 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+        log::info!("Rust DHCP parser initialized.");
     } else {
         SCLogDebug!("Protocol detector and parser disabled for DHCP.");
     }
