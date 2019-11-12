@@ -50,13 +50,15 @@ static inline void SleepUsec(uint64_t usec)
 typedef TmEcode (*TmSlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *);
 
 typedef struct TmSlot_ {
-    /* the TV holding this slot */
-    ThreadVars *tv;
-
     /* function pointers */
-    TmSlotFunc SlotFunc;
-
-    TmEcode (*PktAcqLoop)(ThreadVars *, void *, void *);
+    union {
+        TmSlotFunc SlotFunc;
+        TmEcode (*PktAcqLoop)(ThreadVars *, void *, void *);
+        TmEcode (*Management)(ThreadVars *, void *);
+    };
+    /** linked list of slots, used when a pipeline has multiple slots
+     *  in a single thread. */
+    struct TmSlot_ *slot_next;
 
     TmEcode (*SlotThreadInit)(ThreadVars *, const void *, void **);
     void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
@@ -76,12 +78,6 @@ typedef struct TmSlot_ {
 
     /* slot id, only used my TmVarSlot to know what the first slot is */
     int id;
-
-    /* linked list, only used when you have multiple slots(used by TmVarSlot) */
-    struct TmSlot_ *slot_next;
-
-    /* just called once, so not perf critical */
-    TmEcode (*Management)(ThreadVars *, void *);
 
 } TmSlot;
 

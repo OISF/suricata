@@ -785,12 +785,15 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
         return;
     memset(slot, 0, sizeof(TmSlot));
     SC_ATOMIC_INIT(slot->slot_data);
-    slot->tv = tv;
     slot->SlotThreadInit = tm->ThreadInit;
     slot->slot_initdata = data;
-    slot->SlotFunc = tm->Func;
-    slot->PktAcqLoop = tm->PktAcqLoop;
-    slot->Management = tm->Management;
+    if (tm->Func) {
+        slot->SlotFunc = tm->Func;
+    } else if (tm->PktAcqLoop) {
+        slot->PktAcqLoop = tm->PktAcqLoop;
+    } else if (tm->Management) {
+        slot->Management = tm->Management;
+    }
     slot->SlotThreadExitPrintStats = tm->ThreadExitPrintStats;
     slot->SlotThreadDeinit = tm->ThreadDeinit;
     /* we don't have to check for the return value "-1".  We wouldn't have
