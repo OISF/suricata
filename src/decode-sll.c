@@ -37,7 +37,7 @@
 #include "util-debug.h"
 
 int DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint32_t len)
 {
     StatsIncr(tv, dtv->counter_sll);
 
@@ -58,18 +58,18 @@ int DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 return TM_ECODE_FAILED;
             }
             DecodeIPV4(tv, dtv, p, pkt + SLL_HEADER_LEN,
-                       len - SLL_HEADER_LEN, pq);
+                       len - SLL_HEADER_LEN);
             break;
         case ETHERNET_TYPE_IPV6:
             if (unlikely(len > SLL_HEADER_LEN + USHRT_MAX)) {
                 return TM_ECODE_FAILED;
             }
             DecodeIPV6(tv, dtv, p, pkt + SLL_HEADER_LEN,
-                       len - SLL_HEADER_LEN, pq);
+                       len - SLL_HEADER_LEN);
             break;
         case ETHERNET_TYPE_VLAN:
             DecodeVLAN(tv, dtv, p, pkt + SLL_HEADER_LEN,
-                                 len - SLL_HEADER_LEN, pq);
+                                 len - SLL_HEADER_LEN);
             break;
         default:
             SCLogDebug("p %p pkt %p sll type %04x not supported", p,

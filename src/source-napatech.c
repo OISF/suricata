@@ -97,7 +97,7 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot);
 
 TmEcode NapatechDecodeThreadInit(ThreadVars *, const void *, void **);
 TmEcode NapatechDecodeThreadDeinit(ThreadVars *tv, void *data);
-TmEcode NapatechDecode(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode NapatechDecode(ThreadVars *, Packet *, void *);
 
 /* These are used as the threads are exiting to get a comprehensive count of
  * all the packets received and dropped.
@@ -533,15 +533,14 @@ TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data)
 /**
  * \brief   This function passes off to link type decoders.
  *
- * NapatechDecode reads packets from the PacketQueue and passes
+ * NapatechDecode decodes packets from Napatech and passes
  * them off to the proper link type decoder.
  *
  * \param t pointer to ThreadVars
  * \param p pointer to the current packet
  * \param data pointer that gets cast into PcapThreadVars for ptv
- * \param pq pointer to the current PacketQueue
  */
-TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
 
@@ -557,7 +556,7 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     switch (p->datalink) {
         case LINKTYPE_ETHERNET:
-            DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,

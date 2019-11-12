@@ -117,7 +117,7 @@ typedef struct VXLANHeader_ {
  *  \param len length in bytes of pkt
  */
 int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint32_t len)
 {
     if (unlikely(!g_vxlan_enabled))
         return TM_ECODE_FAILED;
@@ -147,28 +147,26 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case ETHERNET_TYPE_ARP:
             SCLogDebug("VXLAN found ARP");
             break;
-        case ETHERNET_TYPE_IP:
+        case ETHERNET_TYPE_IP: {
             SCLogDebug("VXLAN found IPv4");
-            if (pq != NULL) {
-                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
-                        len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), DECODE_TUNNEL_IPV4, pq);
-                if (tp != NULL) {
-                    PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
-                    PacketEnqueue(pq, tp);
-                }
+            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
+                    len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), DECODE_TUNNEL_IPV4);
+            if (tp != NULL) {
+                PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
             }
             break;
-        case ETHERNET_TYPE_IPV6:
+        }
+        case ETHERNET_TYPE_IPV6: {
             SCLogDebug("VXLAN found IPv6");
-            if (pq != NULL) {
-                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
-                        len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), DECODE_TUNNEL_IPV6, pq);
-                if (tp != NULL) {
-                    PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
-                    PacketEnqueue(pq, tp);
-                }
+            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
+                    len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), DECODE_TUNNEL_IPV6);
+            if (tp != NULL) {
+                PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
             }
             break;
+        }
         default:
             SCLogDebug("VXLAN found no known Ethertype - only checks for IPv4, IPv6, ARP");
             /* ENGINE_SET_INVALID_EVENT(p, VXLAN_UNKNOWN_PAYLOAD_TYPE);*/
@@ -200,21 +198,19 @@ static int DecodeVXLANtest01 (void)
     FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-    PacketQueue pq;
 
     DecodeVXLANConfigPorts("4789");
 
-    memset(&pq, 0, sizeof(PacketQueue));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan), &pq);
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
 
     FAIL_IF(p->udph == NULL);
-    FAIL_IF(pq.top == NULL);
-    Packet *tp = PacketDequeue(&pq);
+    FAIL_IF(tv.decode_pq.top == NULL);
+    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
     FAIL_IF(tp->udph == NULL);
     FAIL_IF_NOT(tp->sp == 53);
 
@@ -243,20 +239,18 @@ static int DecodeVXLANtest02 (void)
     FAIL_IF_NULL(p);
     ThreadVars tv;
     DecodeThreadVars dtv;
-    PacketQueue pq;
 
     DecodeVXLANConfigPorts("1");
 
-    memset(&pq, 0, sizeof(PacketQueue));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan), &pq);
+    DecodeUDP(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan));
 
     FAIL_IF(p->udph == NULL);
-    FAIL_IF(pq.top != NULL);
+    FAIL_IF(tv.decode_pq.top != NULL);
 
     DecodeVXLANConfigPorts("4789"); /* reset */
     FlowShutdown();

@@ -310,7 +310,7 @@ static TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot);
 
 static TmEcode DecodeAFPThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodeAFPThreadDeinit(ThreadVars *tv, void *data);
-static TmEcode DecodeAFP(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode DecodeAFP(ThreadVars *, Packet *, void *);
 
 static TmEcode AFPSetBPFFilter(AFPThreadVars *ptv);
 static int AFPGetIfnumByDev(int fd, const char *ifname, int verbose);
@@ -2875,15 +2875,14 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
 /**
  * \brief This function passes off to link type decoders.
  *
- * DecodeAFP reads packets from the PacketQueue and passes
+ * DecodeAFP decodes packets from AF_PACKET and passes
  * them off to the proper link type decoder.
  *
  * \param t pointer to ThreadVars
  * \param p pointer to the current packet
  * \param data pointer that gets cast into AFPThreadVars for ptv
- * \param pq pointer to the current PacketQueue
  */
-TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -2904,20 +2903,20 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     /* call the decoder */
     switch (p->datalink) {
         case LINKTYPE_ETHERNET:
-            DecodeEthernet(tv, dtv, p,GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodeEthernet(tv, dtv, p,GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         case LINKTYPE_LINUX_SLL:
-            DecodeSll(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodeSll(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         case LINKTYPE_PPP:
-            DecodePPP(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodePPP(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         case LINKTYPE_RAW:
         case LINKTYPE_GRE_OVER_IP:
-            DecodeRaw(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodeRaw(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         case LINKTYPE_NULL:
-            DecodeNull(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodeNull(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "Error: datalink type %" PRId32 " not yet supported in module DecodeAFP", p->datalink);

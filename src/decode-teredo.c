@@ -61,7 +61,7 @@ void DecodeTeredoConfig(void)
  * \retval TM_ECODE_FAILED if packet is not a Teredo packet, TM_ECODE_OK if it is
  */
 int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint16_t len)
 {
     if (!g_teredo_enabled)
         return TM_ECODE_FAILED;
@@ -120,18 +120,16 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
         if (len ==  IPV6_HEADER_LEN +
                 IPV6_GET_RAW_PLEN(thdr) + (start - pkt)) {
-            if (pq != NULL) {
-                int blen = len - (start - pkt);
-                /* spawn off tunnel packet */
-                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, start, blen,
-                                                  DECODE_TUNNEL_IPV6_TEREDO, pq);
-                if (tp != NULL) {
-                    PKT_SET_SRC(tp, PKT_SRC_DECODER_TEREDO);
-                    /* add the tp to the packet queue. */
-                    PacketEnqueue(pq,tp);
-                    StatsIncr(tv, dtv->counter_teredo);
-                    return TM_ECODE_OK;
-                }
+            int blen = len - (start - pkt);
+            /* spawn off tunnel packet */
+            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, start, blen,
+                    DECODE_TUNNEL_IPV6_TEREDO);
+            if (tp != NULL) {
+                PKT_SET_SRC(tp, PKT_SRC_DECODER_TEREDO);
+                /* add the tp to the packet queue. */
+                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                StatsIncr(tv, dtv->counter_teredo);
+                return TM_ECODE_OK;
             }
         }
         return TM_ECODE_FAILED;

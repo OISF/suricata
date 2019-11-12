@@ -28,6 +28,7 @@
 #include "tm-queues.h"
 #include "counters.h"
 #include "threads.h"
+#include "packet-queue.h"
 
 struct TmSlot_;
 
@@ -103,6 +104,10 @@ typedef struct ThreadVars_ {
     Tmq *outq;
     void *outctx;
     void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
+
+    /** queue for decoders to temporarily store extra packets they
+     *  generate. */
+    PacketQueueNoLock decode_pq;
 
     /** Stream packet queue for flow time out injection. Either a pointer to the
      *  workers input queue or to stream_pq_local */

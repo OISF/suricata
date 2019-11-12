@@ -53,7 +53,7 @@ void ReceivePfringThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePfringThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodePfringThreadInit(ThreadVars *, const void *, void **);
-TmEcode DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DecodePfring(ThreadVars *, Packet *, void *);
 TmEcode DecodePfringThreadDeinit(ThreadVars *tv, void *data);
 
 extern int max_pending_packets;
@@ -705,13 +705,12 @@ TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data)
 /**
  * \brief This function passes off to link type decoders.
  *
- * DecodePfring reads packets from the PacketQueue. Inside of libpcap version of
+ * DecodePfring decodes raw packets from PF_RING. Inside of libpcap version of
  * PF_RING all packets are marked as a link type of ethernet so that is what we do here.
  *
  * \param tv pointer to ThreadVars
  * \param p pointer to the current packet
  * \param data pointer that gets cast into PfringThreadVars for ptv
- * \param pq pointer to the current PacketQueue
  *
  * \todo Verify that PF_RING only deals with ethernet traffic
  *
@@ -719,7 +718,7 @@ TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data)
  *
  * \retval TM_ECODE_OK is always returned
  */
-TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data)
 {
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
@@ -736,7 +735,7 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         StatsIncr(tv, dtv->counter_vlan);
     }
 
-    DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+    DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     PacketDecodeFinalize(tv, dtv, p);
 

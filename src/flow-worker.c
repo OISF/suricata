@@ -189,7 +189,7 @@ static void FlowPruneFiles(Packet *p)
     }
 }
 
-static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq)
+static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 {
     FlowWorkerThreadData *fw = data;
     void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
@@ -266,7 +266,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *pr
 
             /* put these packets in the preq queue so that they are
              * by the other thread modules before packet 'p'. */
-            PacketEnqueue(preq, x);
+            PacketEnqueueNoLock(&tv->decode_pq, x);
         }
 
     /* handle the app layer part of the UDP packet payload */

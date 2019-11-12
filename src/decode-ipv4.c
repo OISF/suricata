@@ -515,7 +515,7 @@ static int DecodeIPV4Packet(Packet *p, const uint8_t *pkt, uint16_t len)
 }
 
 int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint16_t len)
 {
     StatsIncr(tv, dtv->counter_ipv4);
 
@@ -531,9 +531,9 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     /* If a fragment, pass off for re-assembly. */
     if (unlikely(IPV4_GET_IPOFFSET(p) > 0 || IPV4_GET_MF(p) == 1)) {
-        Packet *rp = Defrag(tv, dtv, p, pq);
+        Packet *rp = Defrag(tv, dtv, p);
         if (rp != NULL) {
-            PacketEnqueue(pq, rp);
+            PacketEnqueueNoLock(&tv->decode_pq, rp);
         }
         p->flags |= PKT_IS_FRAGMENT;
         return TM_ECODE_OK;
@@ -557,44 +557,42 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     switch (IPV4_GET_IPPROTO(p)) {
         case IPPROTO_TCP:
             DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
+                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
             break;
         case IPPROTO_UDP:
             DecodeUDP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
+                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
             break;
         case IPPROTO_ICMP:
             DecodeICMPV4(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                         IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
+                         IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
             break;
         case IPPROTO_GRE:
             DecodeGRE(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
+                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
             break;
         case IPPROTO_SCTP:
             DecodeSCTP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
+                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
             break;
         case IPPROTO_IPV6:
             {
-                if (pq != NULL) {
-                    /* spawn off tunnel packet */
-                    Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                            IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p),
-                            DECODE_TUNNEL_IPV6, pq);
-                    if (tp != NULL) {
-                        PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
-                        PacketEnqueue(pq,tp);
-                    }
-                    FlowSetupPacket(p);
+                /* spawn off tunnel packet */
+                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
+                        IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p),
+                        DECODE_TUNNEL_IPV6);
+                if (tp != NULL) {
+                    PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
+                    PacketEnqueueNoLock(&tv->decode_pq,tp);
                 }
+                FlowSetupPacket(p);
                 break;
             }
         case IPPROTO_IP:
             /* check PPP VJ uncompressed packets and decode tcp dummy */
             if(p->ppph != NULL && SCNtohs(p->ppph->protocol) == PPP_VJ_UCOMP)    {
                 DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
-                          IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p), pq);
+                          IPV4_GET_IPLEN(p) -  IPV4_GET_HLEN(p));
             }
             break;
         case IPPROTO_ICMPV6:
@@ -1247,19 +1245,17 @@ static int DecodeIPV4DefragTest01(void)
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
-    PacketQueue pq;
     int result = 1;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&pq, 0, sizeof(PacketQueue));
 
     FlowInitConfig(FLOW_QUIET);
     DefragInit();
 
     PacketCopyData(p, pkt1, sizeof(pkt1));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
-               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN, &pq);
+               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     if (p->tcph != NULL) {
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         result = 0;
@@ -1269,7 +1265,7 @@ static int DecodeIPV4DefragTest01(void)
 
     PacketCopyData(p, pkt2, sizeof(pkt2));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
-               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN, &pq);
+               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     if (p->tcph != NULL) {
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         result = 0;
@@ -1279,13 +1275,13 @@ static int DecodeIPV4DefragTest01(void)
 
     PacketCopyData(p, pkt3, sizeof(pkt3));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
-               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN, &pq);
+               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     if (p->tcph != NULL) {
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         result = 0;
         goto end;
     }
-    Packet *tp = PacketDequeue(&pq);
+    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
     if (tp == NULL) {
         printf("Failed to get defragged pseudo packet\n");
         result = 0;
@@ -1384,19 +1380,17 @@ static int DecodeIPV4DefragTest02(void)
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
-    PacketQueue pq;
     int result = 0;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&pq, 0, sizeof(PacketQueue));
 
     FlowInitConfig(FLOW_QUIET);
     DefragInit();
 
     PacketCopyData(p, pkt1, sizeof(pkt1));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
-               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN, &pq);
+               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     if (p->tcph != NULL) {
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         goto end;
@@ -1405,7 +1399,7 @@ static int DecodeIPV4DefragTest02(void)
 
     PacketCopyData(p, pkt2, sizeof(pkt2));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
-               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN, &pq);
+               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     if (p->tcph != NULL) {
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         goto end;
@@ -1415,12 +1409,12 @@ static int DecodeIPV4DefragTest02(void)
     p->recursion_level = 3;
     PacketCopyData(p, pkt3, sizeof(pkt3));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
-               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN, &pq);
+               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     if (p->tcph != NULL) {
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         goto end;
     }
-    Packet *tp = PacketDequeue(&pq);
+    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
     if (tp == NULL) {
         printf("Failed to get defragged pseudo packet\n");
         goto end;
@@ -1511,19 +1505,17 @@ static int DecodeIPV4DefragTest03(void)
         return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
-    PacketQueue pq;
     int result = 1;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&pq, 0, sizeof(PacketQueue));
 
     FlowInitConfig(FLOW_QUIET);
     DefragInit();
 
     PacketCopyData(p, pkt, sizeof(pkt));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
-               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN, &pq);
+               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     if (p->tcph == NULL) {
         printf("tcp header shouldn't be NULL, but it is\n");
         result = 0;
@@ -1538,7 +1530,7 @@ static int DecodeIPV4DefragTest03(void)
 
     PacketCopyData(p, pkt1, sizeof(pkt1));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
-               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN, &pq);
+               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     if (p->tcph != NULL) {
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         result = 0;
@@ -1548,7 +1540,7 @@ static int DecodeIPV4DefragTest03(void)
 
     PacketCopyData(p, pkt2, sizeof(pkt2));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
-               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN, &pq);
+               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     if (p->tcph != NULL) {
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         result = 0;
@@ -1558,14 +1550,14 @@ static int DecodeIPV4DefragTest03(void)
 
     PacketCopyData(p, pkt3, sizeof(pkt3));
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
-               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN, &pq);
+               GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     if (p->tcph != NULL) {
         printf("tcp header should be NULL for ip fragment, but it isn't\n");
         result = 0;
         goto end;
     }
 
-    Packet *tp = PacketDequeue(&pq);
+    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
     if (tp == NULL) {
         printf("Failed to get defragged pseudo packet\n");
         result = 0;
@@ -1639,7 +1631,7 @@ static int DecodeEthernetTestIPv4Opt(void)
     memset(&tv,  0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
 
-    DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
+    DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
     SCFree(p);
     DefragDestroy();

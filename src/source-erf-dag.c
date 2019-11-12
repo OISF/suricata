@@ -124,8 +124,7 @@ void ReceiveErfDagThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveErfDagThreadDeinit(ThreadVars *, void *);
 TmEcode DecodeErfDagThreadInit(ThreadVars *, void *, void **);
 TmEcode DecodeErfDagThreadDeinit(ThreadVars *tv, void *data);
-TmEcode DecodeErfDag(ThreadVars *, Packet *, void *, PacketQueue *,
-    PacketQueue *);
+TmEcode DecodeErfDag(ThreadVars *, Packet *, void *);
 void ReceiveErfDagCloseStream(int dagfd, int stream);
 
 /**
@@ -600,16 +599,15 @@ ReceiveErfDagCloseStream(int dagfd, int stream)
 /**
  * \brief   This function passes off to link type decoders.
  *
- * DecodeErfDag reads packets from the PacketQueue and passes
+ * DecodeErfDag decodes packets from DAG and passes
  * them off to the proper link type decoder.
  *
  * \param t pointer to ThreadVars
  * \param p pointer to the current packet
  * \param data pointer that gets cast into PcapThreadVars for ptv
- * \param pq pointer to the current PacketQueue
  */
 TmEcode
-DecodeErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+DecodeErfDag(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -625,7 +623,7 @@ DecodeErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
         /* call the decoder */
     switch(p->datalink) {
         case LINKTYPE_ETHERNET:
-            DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,

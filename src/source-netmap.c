@@ -735,15 +735,11 @@ static TmEcode DecodeNetmapThreadInit(ThreadVars *tv, const void *initdata, void
 /**
  * \brief This function passes off to link type decoders.
  *
- * DecodeNetmap reads packets from the PacketQueue and passes
- * them off to the proper link type decoder.
- *
  * \param t pointer to ThreadVars
  * \param p pointer to the current packet
  * \param data pointer that gets cast into NetmapThreadVars for ntv
- * \param pq pointer to the current PacketQueue
  */
-static TmEcode DecodeNetmap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+static TmEcode DecodeNetmap(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
 
@@ -757,7 +753,7 @@ static TmEcode DecodeNetmap(ThreadVars *tv, Packet *p, void *data, PacketQueue *
     /* update counters */
     DecodeUpdatePacketCounters(tv, dtv, p);
 
-    DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+    DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     PacketDecodeFinalize(tv, dtv, p);
 

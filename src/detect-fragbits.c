@@ -484,7 +484,7 @@ static int FragBitsTestParse03 (void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
+    DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
     de = DetectFragBitsParse("D");
 
@@ -571,7 +571,7 @@ static int FragBitsTestParse04 (void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
+    DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
 
     de = DetectFragBitsParse("!D");

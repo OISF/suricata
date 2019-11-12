@@ -45,7 +45,7 @@
 #define MPLS_PROTO_IPV6         6
 
 int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint32_t len)
 {
     uint32_t shim;
     int label;
@@ -68,7 +68,7 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         if (len > USHRT_MAX) {
             return TM_ECODE_FAILED;
         }
-        return DecodeIPV4(tv, dtv, p, pkt, len, pq);
+        return DecodeIPV4(tv, dtv, p, pkt, len);
     }
     else if (label == MPLS_LABEL_ROUTER_ALERT) {
         /* Not valid at the bottom of the stack. */
@@ -78,7 +78,7 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         if (len > USHRT_MAX) {
             return TM_ECODE_FAILED;
         }
-        return DecodeIPV6(tv, dtv, p, pkt, len, pq);
+        return DecodeIPV6(tv, dtv, p, pkt, len);
     }
     else if (label == MPLS_LABEL_NULL) {
         /* Shouldn't appear on the wire. */
@@ -105,17 +105,16 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         if (len > USHRT_MAX) {
             return TM_ECODE_FAILED;
         }
-        DecodeIPV4(tv, dtv, p, pkt, len, pq);
+        DecodeIPV4(tv, dtv, p, pkt, len);
         break;
     case MPLS_PROTO_IPV6:
         if (len > USHRT_MAX) {
             return TM_ECODE_FAILED;
         }
-        DecodeIPV6(tv, dtv, p, pkt, len, pq);
+        DecodeIPV6(tv, dtv, p, pkt, len);
         break;
     case MPLS_PROTO_ETHERNET_PW:
-        DecodeEthernet(tv, dtv, p, pkt + MPLS_PW_LEN, len - MPLS_PW_LEN,
-            pq);
+        DecodeEthernet(tv, dtv, p, pkt + MPLS_PW_LEN, len - MPLS_PW_LEN);
         break;
     default:
         ENGINE_SET_INVALID_EVENT(p, MPLS_UNKNOWN_PAYLOAD_TYPE);
@@ -151,7 +150,7 @@ static int DecodeMPLSTestHeaderTooSmall(void)
     memset(&tv,  0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
 
-    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt), NULL);
+    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
 
     if (!ENGINE_ISSET_EVENT(p, MPLS_HEADER_TOO_SMALL)) {
         ret = 0;
@@ -172,28 +171,28 @@ static int DecodeMPLSTestPacketTooSmall(void)
     Packet *p0 = SCCalloc(1, SIZE_OF_PACKET);
     memset(p0, 0, SIZE_OF_PACKET);
     uint8_t pkt0[] = { 0x00, 0x01, 0x51, 0xff };
-    DecodeMPLS(&tv, &dtv, p0, pkt0, sizeof(pkt0), NULL);
+    DecodeMPLS(&tv, &dtv, p0, pkt0, sizeof(pkt0));
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p0, MPLS_PKT_TOO_SMALL));
     SCFree(p0);
 
     Packet *p1 = SCCalloc(1, SIZE_OF_PACKET);
     FAIL_IF_NULL(p1);
     uint8_t pkt1[] = { 0x00, 0x01, 0x51, 0xff, 0x45 };
-    DecodeMPLS(&tv, &dtv, p1, pkt1, sizeof(pkt1), NULL);
+    DecodeMPLS(&tv, &dtv, p1, pkt1, sizeof(pkt1));
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p1, MPLS_PKT_TOO_SMALL));
     SCFree(p1);
 
     Packet *p2 = SCCalloc(1, SIZE_OF_PACKET);
     FAIL_IF_NULL(p2);
     uint8_t pkt2[] = { 0x00, 0x01, 0x51, 0xff, 0x45, 0x01 };
-    DecodeMPLS(&tv, &dtv, p2, pkt2, sizeof(pkt2), NULL);
+    DecodeMPLS(&tv, &dtv, p2, pkt2, sizeof(pkt2));
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p2, MPLS_PKT_TOO_SMALL));
     SCFree(p2);
 
     Packet *p3 = SCCalloc(1, SIZE_OF_PACKET);
     FAIL_IF_NULL(p3);
     uint8_t pkt3[] = { 0x00, 0x01, 0x51, 0xff, 0x45, 0x01, 0x02 };
-    DecodeMPLS(&tv, &dtv, p3, pkt3, sizeof(pkt3), NULL);
+    DecodeMPLS(&tv, &dtv, p3, pkt3, sizeof(pkt3));
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p3, MPLS_PKT_TOO_SMALL));
     SCFree(p3);
 
@@ -202,7 +201,7 @@ static int DecodeMPLSTestPacketTooSmall(void)
     Packet *p4 = SCCalloc(1, SIZE_OF_PACKET);
     FAIL_IF_NULL(p4);
     uint8_t pkt4[] = { 0x00, 0x01, 0x51, 0xff, 0x45, 0x01, 0x02, 0x03 };
-    DecodeMPLS(&tv, &dtv, p4, pkt4, sizeof(pkt4), NULL);
+    DecodeMPLS(&tv, &dtv, p4, pkt4, sizeof(pkt4));
     FAIL_IF(ENGINE_ISSET_EVENT(p4, MPLS_PKT_TOO_SMALL));
     SCFree(p4);
 
@@ -239,7 +238,7 @@ static int DecodeMPLSTestBadLabelRouterAlert(void)
     memset(&tv,  0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
 
-    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt), NULL);
+    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
 
     if (!ENGINE_ISSET_EVENT(p, MPLS_BAD_LABEL_ROUTER_ALERT)) {
         ret = 0;
@@ -279,7 +278,7 @@ static int DecodeMPLSTestBadLabelImplicitNull(void)
     memset(&tv,  0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
 
-    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt), NULL);
+    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
 
     if (!ENGINE_ISSET_EVENT(p, MPLS_BAD_LABEL_IMPLICIT_NULL)) {
         ret = 0;
@@ -319,7 +318,7 @@ static int DecodeMPLSTestBadLabelReserved(void)
     memset(&tv,  0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
 
-    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt), NULL);
+    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
 
     if (!ENGINE_ISSET_EVENT(p, MPLS_BAD_LABEL_RESERVED)) {
         ret = 0;
@@ -363,7 +362,7 @@ static int DecodeMPLSTestUnknownPayloadType(void)
     memset(&tv,  0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
 
-    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt), NULL);
+    DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
 
     if (!ENGINE_ISSET_EVENT(p, MPLS_UNKNOWN_PAYLOAD_TYPE)) {
         ret = 0;

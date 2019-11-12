@@ -131,20 +131,20 @@ static SCMutex ipfw_init_lock;
 /* IPFW Prototypes */
 static void *IPFWGetQueue(int number);
 static TmEcode ReceiveIPFWThreadInit(ThreadVars *, const void *, void **);
-static TmEcode ReceiveIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode ReceiveIPFW(ThreadVars *, Packet *, void *);
 static TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot);
 static void ReceiveIPFWThreadExitStats(ThreadVars *, void *);
 static TmEcode ReceiveIPFWThreadDeinit(ThreadVars *, void *);
 
 static TmEcode IPFWSetVerdict(ThreadVars *, IPFWThreadVars *, Packet *);
-static TmEcode VerdictIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode VerdictIPFW(ThreadVars *, Packet *, void *);
 static TmEcode VerdictIPFWThreadInit(ThreadVars *, const void *, void **);
 static void VerdictIPFWThreadExitStats(ThreadVars *, void *);
 static TmEcode VerdictIPFWThreadDeinit(ThreadVars *, void *);
 
 static TmEcode DecodeIPFWThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodeIPFWThreadDeinit(ThreadVars *tv, void *data);
-static TmEcode DecodeIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode DecodeIPFW(ThreadVars *, Packet *, void *);
 
 /**
  * \brief Registration Function for RecieveIPFW.
@@ -430,15 +430,14 @@ TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data)
  * \brief This function passes off to link type decoders.
  * \todo Unit tests are needed for this module.
  *
- * DecodeIPFW reads packets from the PacketQueue and passes
+ * DecodeIPFW decodes packets from IPFW and passes
  * them off to the proper link type decoder.
  *
  * \param tv pointer to ThreadVars
  * \param p pointer to the current packet
  * \param data pointer that gets cast into IPFWThreadVars for ptv
- * \param pq pointer to the PacketQueue
  */
-TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data)
 {
     IPV4Hdr *ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
     IPV6Hdr *ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
@@ -460,14 +459,14 @@ TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
             return TM_ECODE_FAILED;
         }
         SCLogDebug("DecodeIPFW ip4 processing");
-        DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+        DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
         if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
             return TM_ECODE_FAILED;
         }
         SCLogDebug("DecodeIPFW ip6 processing");
-        DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+        DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     } else {
         /* We don't support anything besides IP packets for now, bridged packets? */
@@ -610,9 +609,8 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
  * \param tv pointer to ThreadVars
  * \param p pointer to the Packet
  * \param data pointer that gets cast into IPFWThreadVars for ptv
- * \param pq pointer for the Packet Queue access (Not used)
  */
-TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data)
 {
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     TmEcode retval = TM_ECODE_OK;

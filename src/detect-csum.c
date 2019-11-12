@@ -1038,7 +1038,7 @@ static int DetectCsumICMPV6Test01(void)
     FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
 
-    DecodeEthernet(&tv, &dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), NULL);
+    DecodeEthernet(&tv, &dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 

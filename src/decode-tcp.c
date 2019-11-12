@@ -232,7 +232,7 @@ static int DecodeTCPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint16
 }
 
 int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint16_t len)
 {
     StatsIncr(tv, dtv->counter_tcp);
 
@@ -372,7 +372,7 @@ static int TCPGetWscaleTest01(void)
 
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
+    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
 
     if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");
@@ -418,7 +418,7 @@ static int TCPGetWscaleTest02(void)
     p->ip4h = &ip4h;
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
+    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
 
     if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");
@@ -463,7 +463,7 @@ static int TCPGetWscaleTest03(void)
     p->ip4h = &ip4h;
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
+    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
 
     if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");
@@ -512,7 +512,7 @@ static int TCPGetSackTest01(void)
     p->ip4h = &ip4h;
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
+    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp));
 
     if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");

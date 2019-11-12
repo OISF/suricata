@@ -46,7 +46,7 @@
 #define HDR_SIZE 4
 
 int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint32_t len)
 {
     StatsIncr(tv, dtv->counter_null);
 
@@ -63,11 +63,11 @@ int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     switch(type) {
         case AF_INET:
             SCLogDebug("IPV4 Packet");
-            DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p)+HDR_SIZE, GET_PKT_LEN(p)-HDR_SIZE, pq);
+            DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p)+HDR_SIZE, GET_PKT_LEN(p)-HDR_SIZE);
             break;
         case AF_INET6:
             SCLogDebug("IPV6 Packet");
-            DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p)+HDR_SIZE, GET_PKT_LEN(p)-HDR_SIZE, pq);
+            DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p)+HDR_SIZE, GET_PKT_LEN(p)-HDR_SIZE);
             break;
         default:
             SCLogDebug("Unknown Null packet type version %" PRIu32 "", type);
