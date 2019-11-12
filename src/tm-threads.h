@@ -60,12 +60,6 @@ typedef struct TmSlot_ {
      *  in a single thread. */
     struct TmSlot_ *slot_next;
 
-    TmEcode (*SlotThreadInit)(ThreadVars *, const void *, void **);
-    void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
-    TmEcode (*SlotThreadDeinit)(ThreadVars *, void *);
-
-    /* data storage */
-    const void *slot_initdata;
     SC_ATOMIC_DECLARE(void *, slot_data);
 
     /* queue filled by the SlotFunc with packets that will
@@ -73,6 +67,12 @@ typedef struct TmSlot_ {
      * The locks in the queue are NOT used */
     PacketQueue slot_pre_pq;
 
+    TmEcode (*SlotThreadInit)(ThreadVars *, const void *, void **);
+    void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
+    TmEcode (*SlotThreadDeinit)(ThreadVars *, void *);
+
+    /* data storage */
+    const void *slot_initdata;
     /* store the thread module id */
     int tm_id;
 
