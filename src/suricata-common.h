@@ -485,8 +485,6 @@ typedef enum {
 typedef void lua_State;
 #endif
 
-#include "rust-bindings.h"
-
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *, const char *src, size_t siz);
 #endif

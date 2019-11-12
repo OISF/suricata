@@ -33,6 +33,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-ikev2.h"
+#include "rust-prelude.h"
 
 void RegisterIKEV2Parsers(void)
 {

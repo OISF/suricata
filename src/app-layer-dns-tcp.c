@@ -26,6 +26,7 @@
 #include "util-unittest.h"
 
 #include "app-layer-dns-tcp.h"
+#include "rust.h"
 
 #ifdef UNITTESTS
 static void RustDNSTCPParserRegisterTests(void);

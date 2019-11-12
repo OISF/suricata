@@ -34,6 +34,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-snmp.h"
+#include "rust.h"
 
 void RegisterSNMPParsers(void)
 {

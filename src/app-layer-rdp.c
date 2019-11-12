@@ -30,6 +30,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer-rdp.h"
+#include "rust.h"
 
 void RegisterRdpParsers(void) {
     SCLogDebug("Registering rdp parser");

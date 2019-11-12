@@ -33,6 +33,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-krb5.h"
+#include "rust.h"
 
 void RegisterKRB5Parsers(void)
 {

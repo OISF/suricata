@@ -29,6 +29,7 @@
 #include "detect-engine-state.h"
 #include "util-file.h"
 #include "stream-tcp-private.h"
+#include "rust.h"
 
 /* Flags for AppLayerParserState. */
 #define APP_LAYER_PARSER_EOF                    BIT_U8(0)

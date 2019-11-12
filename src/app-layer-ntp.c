@@ -33,6 +33,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-ntp.h"
+#include "rust.h"
 
 void RegisterNTPParsers(void)
 {

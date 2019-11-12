@@ -81,10 +81,6 @@ else
 vendor:
 endif
 
-if !HAVE_RUST_HEADERS
 gen-headers: FORCE
 	cbindgen --config cbindgen.toml --output "gen/rust-bindings.h" > /dev/null
 FORCE:
-else
-gen-headers:
-endif
