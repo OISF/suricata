@@ -76,9 +76,6 @@ typedef struct TmSlot_ {
     /* store the thread module id */
     int tm_id;
 
-    /* slot id, only used my TmVarSlot to know what the first slot is */
-    int id;
-
 } TmSlot;
 
 extern ThreadVars *tv_root[TVT_MAX];
