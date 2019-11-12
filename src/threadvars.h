@@ -56,11 +56,23 @@ struct TmSlot_;
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
     pthread_t t;
+    /** function pointer to the function that runs the packet pipeline for
+     *  this thread. It is passed directly to pthread_create(), hence the
+     *  void pointers in and out. */
+    void *(*tm_func)(void *);
+
     char name[16];
     char *printable_name;
     char *thread_group_name;
 
-    SC_ATOMIC_DECLARE(uint32_t, flags);
+    uint8_t thread_setup_flags;
+
+    /** the type of thread as defined in tm-threads.h (TVT_PPT, TVT_MGMT) */
+    uint8_t type;
+
+    uint16_t cpu_affinity; /** cpu or core number to set affinity to */
+    int thread_priority; /** priority (real time) for this thread. Look at threads.h */
+
 
     /** TmModule::flags for each module part of this thread */
     uint8_t tmm_flags;
@@ -73,51 +85,46 @@ typedef struct ThreadVars_ {
     /** local id */
     int id;
 
-    /** queue's */
+    /** incoming queue and handler */
     Tmq *inq;
-    Tmq *outq;
-    void *outctx;
-
-    /** queue handlers */
     struct Packet_ * (*tmqh_in)(struct ThreadVars_ *);
-    void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
 
-    /** function pointer to the function that runs the packet pipeline for
-     *  this thread. It is passed directly to pthread_create(), hence the
-     *  void pointers in and out. */
-    void *(*tm_func)(void *);
+    SC_ATOMIC_DECLARE(uint32_t, flags);
+
     /** list of of TmSlot objects together forming the packet pipeline. */
     struct TmSlot_ *tm_slots;
+
     /** pointer to the flowworker in the pipeline. Used as starting point
      *  for injected packets. Can be NULL if the flowworker is not part
      *  of this thread. */
     struct TmSlot_ *tm_flowworker;
+
+    /** outgoing queue and handler */
+    Tmq *outq;
+    void *outctx;
+    void (*tmqh_out)(struct ThreadVars_ *, struct Packet_ *);
 
     /** Stream packet queue for flow time out injection. Either a pointer to the
      *  workers input queue or to stream_pq_local */
     struct PacketQueue_ *stream_pq;
     struct PacketQueue_ *stream_pq_local;
 
-    uint8_t thread_setup_flags;
-
-    /** the type of thread as defined in tm-threads.h (TVT_PPT, TVT_MGMT) */
-    uint8_t type;
-
-    uint16_t cpu_affinity; /** cpu or core number to set affinity to */
-    int thread_priority; /** priority (real time) for this thread. Look at threads.h */
-
     /* counters */
-
-    /** public counter store: counter syncs update this */
-    StatsPublicThreadContext perf_public_ctx;
 
     /** private counter store: counter updates modify this */
     StatsPrivateThreadContext perf_private_ctx;
 
+    /** public counter store: counter syncs update this */
+    StatsPublicThreadContext perf_public_ctx;
+
+    /* mutex and condition used by management threads */
+
     SCCtrlMutex *ctrl_mutex;
     SCCtrlCondT *ctrl_cond;
 
+    /** pointer to the next thread */
     struct ThreadVars_ *next;
+
 } ThreadVars;
 
 /** Thread setup flags: */
