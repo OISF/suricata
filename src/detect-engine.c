@@ -1686,17 +1686,18 @@ static void BreakCapture(void)
 {
     SCMutexLock(&tv_root_lock);
     for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
+        if ((tv->tmm_flags & TM_FLAG_RECEIVE_TM) == 0) {
+            continue;
+        }
         /* find the correct slot */
-        TmSlot *slots = tv->tm_slots;
-        while (slots != NULL) {
+        for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
             if (suricata_ctl_flags != 0) {
                 SCMutexUnlock(&tv_root_lock);
                 return;
             }
 
-            TmModule *tm = TmModuleGetById(slots->tm_id);
+            TmModule *tm = TmModuleGetById(s->tm_id);
             if (!(tm->flags & TM_FLAG_RECEIVE_TM)) {
-                slots = slots->slot_next;
                 continue;
             }
 
@@ -1705,9 +1706,8 @@ static void BreakCapture(void)
             /* if the method supports it, BreakLoop. Otherwise we rely on
              * the capture method's recv timeout */
             if (tm->PktAcqLoop && tm->PktAcqBreakLoop) {
-                tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(slots->slot_data));
+                tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(s->slot_data));
             }
-
             break;
         }
     }
@@ -1780,22 +1780,21 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     /* get reference to tv's and setup new_det_ctx array */
     SCMutexLock(&tv_root_lock);
     for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-        /* obtain the slots for this TV */
-        TmSlot *slots = tv->tm_slots;
-        while (slots != NULL) {
-            TmModule *tm = TmModuleGetById(slots->tm_id);
+        if ((tv->tmm_flags & TM_FLAG_DETECT_TM) == 0) {
+            continue;
+        }
+        for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
+            TmModule *tm = TmModuleGetById(s->tm_id);
+            if (!(tm->flags & TM_FLAG_DETECT_TM)) {
+                continue;
+            }
 
             if (suricata_ctl_flags != 0) {
                 SCMutexUnlock(&tv_root_lock);
                 goto error;
             }
 
-            if (!(tm->flags & TM_FLAG_DETECT_TM)) {
-                slots = slots->slot_next;
-                continue;
-            }
-
-            old_det_ctx[i] = FlowWorkerGetDetectCtxPtr(SC_ATOMIC_GET(slots->slot_data));
+            old_det_ctx[i] = FlowWorkerGetDetectCtxPtr(SC_ATOMIC_GET(s->slot_data));
             detect_tvs[i] = tv;
 
             new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx, 1);
@@ -1816,17 +1815,17 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     /* atomicly replace the det_ctx data */
     i = 0;
     for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-        /* find the correct slot */
-        TmSlot *slots = tv->tm_slots;
-        while (slots != NULL) {
-            TmModule *tm = TmModuleGetById(slots->tm_id);
+        if ((tv->tmm_flags & TM_FLAG_DETECT_TM) == 0) {
+            continue;
+        }
+        for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
+            TmModule *tm = TmModuleGetById(s->tm_id);
             if (!(tm->flags & TM_FLAG_DETECT_TM)) {
-                slots = slots->slot_next;
                 continue;
             }
             SCLogDebug("swapping new det_ctx - %p with older one - %p",
-                       new_det_ctx[i], SC_ATOMIC_GET(slots->slot_data));
-            FlowWorkerReplaceDetectCtx(SC_ATOMIC_GET(slots->slot_data), new_det_ctx[i++]);
+                       new_det_ctx[i], SC_ATOMIC_GET(s->slot_data));
+            FlowWorkerReplaceDetectCtx(SC_ATOMIC_GET(s->slot_data), new_det_ctx[i++]);
             break;
         }
     }
@@ -1864,20 +1863,12 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
      * THV_DEINIT flag */
     if (i != no_of_detect_tvs) { // not all threads we swapped
         for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-            /* obtain the slots for this TV */
-            TmSlot *slots = tv->tm_slots;
-            while (slots != NULL) {
-                TmModule *tm = TmModuleGetById(slots->tm_id);
-                if (!(tm->flags & TM_FLAG_DETECT_TM)) {
-                    slots = slots->slot_next;
-                    continue;
-                }
+            if ((tv->tmm_flags & TM_FLAG_DETECT_TM) == 0) {
+                continue;
+            }
 
-                while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
-                    usleep(100);
-                }
-
-                slots = slots->slot_next;
+            while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+                usleep(100);
             }
         }
     }
