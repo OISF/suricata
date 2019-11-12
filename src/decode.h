@@ -618,6 +618,26 @@ extern int g_default_mtu;
 uint32_t default_packet_size;
 #define SIZE_OF_PACKET (default_packet_size + sizeof(Packet))
 
+/** \brief simple fifo queue for packets
+ *
+ *  \note PacketQueueNoLock and PacketQueue need to keep identical
+ *        layouts except for the mutex_q and cond_q fields.
+ */
+typedef struct PacketQueueNoLock_ {
+    Packet *top;
+    Packet *bot;
+    uint32_t len;
+#ifdef DBG_PERF
+    uint32_t dbg_maxlen;
+#endif /* DBG_PERF */
+} PacketQueueNoLock;
+
+/** \brief simple fifo queue for packets with mutex and cond
+ *  Calling the mutex or triggering the cond is responsibility of the caller
+ *
+ *  \note PacketQueueNoLock and PacketQueue need to keep identical
+ *        layouts except for the mutex_q and cond_q fields.
+ */
 typedef struct PacketQueue_ {
     Packet *top;
     Packet *bot;

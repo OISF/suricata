@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2019 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -136,7 +136,7 @@ void PacketQueueValidate(PacketQueue *q)
 }
 #endif /* DEBUG */
 
-void PacketEnqueue (PacketQueue *q, Packet *p)
+static inline void PacketEnqueueDo(PacketQueue *q, Packet *p)
 {
     //PacketQueueValidateDebug(q);
 
@@ -164,25 +164,28 @@ void PacketEnqueue (PacketQueue *q, Packet *p)
     //PacketQueueValidateDebug(q);
 }
 
-Packet *PacketDequeue (PacketQueue *q)
+void PacketEnqueueNoLock(PacketQueueNoLock *qnl, Packet *p)
 {
-    Packet *p = NULL;
+    PacketQueue *q = (PacketQueue *)qnl;
+    PacketEnqueueDo(q, p);
+}
 
+void PacketEnqueue (PacketQueue *q, Packet *p)
+{
+    PacketEnqueueDo(q, p);
+}
+
+static inline Packet *PacketDequeueDo (PacketQueue *q)
+{
     //PacketQueueValidateDebug(q);
     /* if the queue is empty there are no packets left. */
     if (q->len == 0) {
         return NULL;
     }
-
     q->len--;
 
     /* pull the bottom packet from the queue */
-    p = q->bot;
-
-    /* Weird issue: sometimes it looks that two thread arrive
-     * here at the same time so the bot ptr is NULL (only on OS X?)
-     */
-    BUG_ON (p == NULL);
+    Packet *p = q->bot;
 
     /* more packets in queue */
     if (q->bot->prev != NULL) {
@@ -200,3 +203,13 @@ Packet *PacketDequeue (PacketQueue *q)
     return p;
 }
 
+Packet *PacketDequeueNoLock (PacketQueueNoLock *qnl)
+{
+    PacketQueue *q = (PacketQueue *)qnl;
+    return PacketDequeueDo(q);
+}
+
+Packet *PacketDequeue (PacketQueue *q)
+{
+    return PacketDequeueDo(q);
+}
