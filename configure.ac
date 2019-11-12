@@ -733,7 +733,7 @@
     if test "x$pcre_jit_works" = "xyes"; then
 
        AC_MSG_CHECKING(for PCRE JIT EXEC support usability)
-       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+       AC_RUN_IFELSE([AC_LANG_PROGRAM([[
                           #include <pcre.h>
                           #include <string.h>
                           ]],
