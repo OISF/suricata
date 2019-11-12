@@ -47,7 +47,7 @@
  */
 
 int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+                   const uint8_t *pkt, uint32_t len)
 {
     /* TODO add counter for your type of packet to DecodeThreadVars,
      * and register it in DecodeRegisterPerfCounters */
@@ -82,7 +82,7 @@ int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
          */
 
         /* invoke the next decoder on the remainder of the data */
-        return DecodeUDP(tv, dtv, p, (uint8_t *)pkt + hdr_len, len - hdr_len, pq);
+        return DecodeUDP(tv, dtv, p, (uint8_t *)pkt + hdr_len, len - hdr_len);
     } else {
         //ENGINE_SET_EVENT(p,TEMPLATE_UNSUPPORTED_PROTOCOL);
         return TM_ECODE_FAILED;

@@ -907,7 +907,7 @@ static int DetectDsizeIcmpv6Test01 (void)
     p->dst.family = AF_INET6;
     p->ip6h = &ip6h;
 
-    DecodeIPV6(&tv, &dtv, p, raw_icmpv6, sizeof(raw_icmpv6), NULL);
+    DecodeIPV6(&tv, &dtv, p, raw_icmpv6, sizeof(raw_icmpv6));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

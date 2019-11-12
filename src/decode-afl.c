@@ -39,14 +39,14 @@
 
 #ifdef AFLFUZZ_DECODER
 int AFLDecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint32_t len)
 {
-    return DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len, pq);
+    return DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len);
 }
 int AFLDecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint32_t len)
 {
-    return DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len, pq);
+    return DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len);
 }
 
 /* stateful processing of data as packets. Because AFL in case of a
@@ -97,9 +97,9 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
         Packet *p = PacketGetFromAlloc();
         if (p != NULL) {
             PacketSetData(p, buffer, size);
-            (void) Decoder (&tv, dtv, p, buffer, size, &pq);
+            (void) Decoder (&tv, dtv, p, buffer, size);
             while (1) {
-                Packet *extra_p = PacketDequeue(&pq);
+                Packet *extra_p = PacketDequeueNoLock(&tv.decode_pq);
                 if (unlikely(extra_p == NULL))
                     break;
                 PacketFree(extra_p);
@@ -159,9 +159,9 @@ int DecoderParseDataFromFileSerie(char *fileprefix, DecoderFunc Decoder)
         Packet *p = PacketGetFromAlloc();
         if (p != NULL) {
             PacketSetData(p, buffer, size);
-            (void) Decoder (&tv, dtv, p, buffer, size, &pq);
+            (void) Decoder (&tv, dtv, p, buffer, size);
             while (1) {
-                Packet *extra_p = PacketDequeue(&pq);
+                Packet *extra_p = PacketDequeueNoLock(&tv.decode_pq);
                 if (unlikely(extra_p == NULL))
                     break;
                 PacketFree(extra_p);

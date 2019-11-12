@@ -60,7 +60,7 @@ static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint1
 }
 
 int DecodeSCTP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint16_t len)
 {
     StatsIncr(tv, dtv->counter_sctp);
 

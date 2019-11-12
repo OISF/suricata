@@ -3574,7 +3574,7 @@ static int SigTestBidirec04 (void)
     memset(p, 0, SIZE_OF_PACKET);
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeEthernet(&th_v, &dtv, p, rawpkt1_ether, sizeof(rawpkt1_ether), NULL);
+    DecodeEthernet(&th_v, &dtv, p, rawpkt1_ether, sizeof(rawpkt1_ether));
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* At this point we have a list of 4 signatures. The last one

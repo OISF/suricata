@@ -270,7 +270,7 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize,
     dtv.app_tctx = AppLayerGetCtxThread(&th_v);
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeEthernet(&th_v, &dtv, p, GET_PKT_DATA(p), pktsize, NULL);
+    DecodeEthernet(&th_v, &dtv, p, GET_PKT_DATA(p), pktsize);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

@@ -58,7 +58,7 @@ static TmEcode ReceivePcapFileThreadInit(ThreadVars *, const void *, void **);
 static void ReceivePcapFileThreadExitStats(ThreadVars *, void *);
 static TmEcode ReceivePcapFileThreadDeinit(ThreadVars *, void *);
 
-static TmEcode DecodePcapFile(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode DecodePcapFile(ThreadVars *, Packet *, void *);
 static TmEcode DecodePcapFileThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data);
 
@@ -389,7 +389,7 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data)
 
 static double prev_signaled_ts = 0;
 
-static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -412,7 +412,7 @@ static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue
     if(ValidateLinkType(p->datalink, &decoder) == TM_ECODE_OK) {
 
         /* call the decoder */
-        decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+        decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
 #ifdef DEBUG
         BUG_ON(p->pkt_src != PKT_SRC_WIRE && p->pkt_src != PKT_SRC_FFR);

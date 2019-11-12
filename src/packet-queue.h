@@ -24,14 +24,44 @@
 #ifndef __PACKET_QUEUE_H__
 #define __PACKET_QUEUE_H__
 
-#include "threads.h"
+/** \brief simple fifo queue for packets
+ *
+ *  \note PacketQueueNoLock and PacketQueue need to keep identical
+ *        layouts except for the mutex_q and cond_q fields.
+ */
+typedef struct PacketQueueNoLock_ {
+    struct Packet_ *top;
+    struct Packet_ *bot;
+    uint32_t len;
+#ifdef DBG_PERF
+    uint32_t dbg_maxlen;
+#endif /* DBG_PERF */
+} PacketQueueNoLock;
+
+/** \brief simple fifo queue for packets with mutex and cond
+ *  Calling the mutex or triggering the cond is responsibility of the caller
+ *
+ *  \note PacketQueueNoLock and PacketQueue need to keep identical
+ *        layouts except for the mutex_q and cond_q fields.
+ */
+typedef struct PacketQueue_ {
+    struct Packet_ *top;
+    struct Packet_ *bot;
+    uint32_t len;
+#ifdef DBG_PERF
+    uint32_t dbg_maxlen;
+#endif /* DBG_PERF */
+    SCMutex mutex_q;
+    SCCondT cond_q;
+} PacketQueue;
+
 #include "decode.h"
 
-void PacketEnqueueNoLock(PacketQueueNoLock *qnl, Packet *p);
-void PacketEnqueue (PacketQueue *, Packet *);
+void PacketEnqueueNoLock(PacketQueueNoLock *qnl, struct Packet_ *p);
+void PacketEnqueue (PacketQueue *, struct Packet_ *);
 
-Packet *PacketDequeueNoLock (PacketQueueNoLock *qnl);
-Packet *PacketDequeue (PacketQueue *);
+struct Packet_ *PacketDequeueNoLock (PacketQueueNoLock *qnl);
+struct Packet_ *PacketDequeue (PacketQueue *);
 
 #endif /* __PACKET_QUEUE_H__ */
 

@@ -97,7 +97,7 @@ static TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data);
 
 static TmEcode DecodePcapThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
-static TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode DecodePcap(ThreadVars *, Packet *, void *);
 
 /** protect pcap_compile and pcap_setfilter, as they are not thread safe:
  *  http://seclists.org/tcpdump/2009/q1/62 */
@@ -533,15 +533,14 @@ static void ReceivePcapThreadExitStats(ThreadVars *tv, void *data)
 /**
  * \brief This function passes off to link type decoders.
  *
- * DecodePcap reads packets from the PacketQueue and passes
+ * DecodePcap decodes packets from libpcap and passes
  * them off to the proper link type decoder.
  *
  * \param t pointer to ThreadVars
  * \param p pointer to the current packet
  * \param data pointer that gets cast into PcapThreadVars for ptv
- * \param pq pointer to the current PacketQueue
  */
-static TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+static TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -557,20 +556,20 @@ static TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     /* call the decoder */
     switch(p->datalink) {
         case LINKTYPE_LINUX_SLL:
-            DecodeSll(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodeSll(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         case LINKTYPE_ETHERNET:
-            DecodeEthernet(tv, dtv, p,GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodeEthernet(tv, dtv, p,GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         case LINKTYPE_PPP:
-            DecodePPP(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodePPP(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         case LINKTYPE_RAW:
         case LINKTYPE_GRE_OVER_IP:
-            DecodeRaw(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodeRaw(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         case LINKTYPE_NULL:
-            DecodeNull(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            DecodeNull(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "Error: datalink "

@@ -498,7 +498,7 @@ static int DetectIcmpIdMatchTest02 (void)
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
-    DecodeICMPV4(&th_v, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&th_v, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

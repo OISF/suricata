@@ -1927,7 +1927,7 @@ static int DetectIPProtoTestSig2(void)
     memset(&th_v, 0, sizeof(th_v));
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
+    DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -2012,7 +2012,7 @@ static int DetectIPProtoTestSig3(void)
     memset(&th_v, 0, sizeof(th_v));
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
+    DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

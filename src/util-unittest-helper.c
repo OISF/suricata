@@ -302,7 +302,7 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
             SCFree(p);
             return NULL;
         }
-        DecodeEthernet(&th_v, &dtv, p[i], raw_eth[i], pktsize[i], NULL);
+        DecodeEthernet(&th_v, &dtv, p[i], raw_eth[i], pktsize[i]);
     }
     return p;
 }
@@ -326,7 +326,7 @@ Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize)
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
-    DecodeEthernet(&th_v, &dtv, p, raw_eth, pktsize, NULL);
+    DecodeEthernet(&th_v, &dtv, p, raw_eth, pktsize);
     return p;
 }
 

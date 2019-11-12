@@ -532,7 +532,7 @@ int DefragRbFragCompare(struct Frag_ *a, struct Frag_ *b) {
  * \todo Allocate packet buffers from a pool.
  */
 static Packet *
-DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, Packet *p, PacketQueue *pq)
+DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, Packet *p)
 {
     Packet *r = NULL;
     int ltrim = 0;
@@ -887,8 +887,8 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             r = Defrag4Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
                 StatsIncr(tv, dtv->counter_defrag_ipv4_reassembled);
-                if (pq && DecodeIPV4(tv, dtv, r, (void *)r->ip4h,
-                               IPV4_GET_IPLEN(r), pq) != TM_ECODE_OK) {
+                if (DecodeIPV4(tv, dtv, r, (void *)r->ip4h,
+                               IPV4_GET_IPLEN(r)) != TM_ECODE_OK) {
 
                     UNSET_TUNNEL_PKT(r);
                     r->root = NULL;
@@ -903,9 +903,9 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             r = Defrag6Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
                 StatsIncr(tv, dtv->counter_defrag_ipv6_reassembled);
-                if (pq && DecodeIPV6(tv, dtv, r, (uint8_t *)r->ip6h,
-                               IPV6_GET_PLEN(r) + IPV6_HEADER_LEN,
-                               pq) != TM_ECODE_OK) {
+                if (DecodeIPV6(tv, dtv, r, (uint8_t *)r->ip6h,
+                               IPV6_GET_PLEN(r) + IPV6_HEADER_LEN)
+                               != TM_ECODE_OK) {
 
                     UNSET_TUNNEL_PKT(r);
                     r->root = NULL;
@@ -1019,7 +1019,7 @@ DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
  *     NULL is returned.
  */
 Packet *
-Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, PacketQueue *pq)
+Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     uint16_t frag_offset;
     uint8_t more_frags;
@@ -1058,7 +1058,7 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, PacketQueue *pq)
     if (tracker == NULL)
         return NULL;
 
-    Packet *rp = DefragInsertFrag(tv, dtv, tracker, p, pq);
+    Packet *rp = DefragInsertFrag(tv, dtv, tracker, p);
     DefragTrackerRelease(tracker);
 
     return rp;
@@ -1263,10 +1263,10 @@ static int DefragInOrderSimpleTest(void)
     p3 = BuildTestPacket(IPPROTO_ICMP, id, 2, 0, 'C', 3);
     FAIL_IF_NULL(p3);
 
-    FAIL_IF(Defrag(NULL, NULL, p1, NULL) != NULL);
-    FAIL_IF(Defrag(NULL, NULL, p2, NULL) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p1) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p2) != NULL);
 
-    reassembled = Defrag(NULL, NULL, p3, NULL);
+    reassembled = Defrag(NULL, NULL, p3);
     FAIL_IF_NULL(reassembled);
 
     FAIL_IF(IPV4_GET_HLEN(reassembled) != 20);
@@ -1315,10 +1315,10 @@ static int DefragReverseSimpleTest(void)
     p3 = BuildTestPacket(IPPROTO_ICMP, id, 2, 0, 'C', 3);
     FAIL_IF_NULL(p3);
 
-    FAIL_IF(Defrag(NULL, NULL, p3, NULL) != NULL);
-    FAIL_IF(Defrag(NULL, NULL, p2, NULL) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p3) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p2) != NULL);
 
-    reassembled = Defrag(NULL, NULL, p1, NULL);
+    reassembled = Defrag(NULL, NULL, p1);
     FAIL_IF_NULL(reassembled);
 
     FAIL_IF(IPV4_GET_HLEN(reassembled) != 20);
@@ -1368,9 +1368,9 @@ static int IPV6DefragInOrderSimpleTest(void)
     p3 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 2, 0, 'C', 3);
     FAIL_IF_NULL(p3);
 
-    FAIL_IF(Defrag(NULL, NULL, p1, NULL) != NULL);
-    FAIL_IF(Defrag(NULL, NULL, p2, NULL) != NULL);
-    reassembled = Defrag(NULL, NULL, p3, NULL);
+    FAIL_IF(Defrag(NULL, NULL, p1) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p2) != NULL);
+    reassembled = Defrag(NULL, NULL, p3);
     FAIL_IF_NULL(reassembled);
 
     FAIL_IF(IPV6_GET_PLEN(reassembled) != 19);
@@ -1419,9 +1419,9 @@ static int IPV6DefragReverseSimpleTest(void)
     p3 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 2, 0, 'C', 3);
     FAIL_IF_NULL(p3);
 
-    FAIL_IF(Defrag(NULL, NULL, p3, NULL) != NULL);
-    FAIL_IF(Defrag(NULL, NULL, p2, NULL) != NULL);
-    reassembled = Defrag(NULL, NULL, p1, NULL);
+    FAIL_IF(Defrag(NULL, NULL, p3) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p2) != NULL);
+    reassembled = Defrag(NULL, NULL, p1);
     FAIL_IF_NULL(reassembled);
 
     /* 40 bytes in we should find 8 bytes of A. */
@@ -1527,13 +1527,13 @@ static int DefragDoSturgesNovakTest(int policy, u_char *expected,
 
     /* Send all but the last. */
     for (i = 0; i < 9; i++) {
-        Packet *tp = Defrag(NULL, NULL, packets[i], NULL);
+        Packet *tp = Defrag(NULL, NULL, packets[i]);
         FAIL_IF_NOT_NULL(tp);
         FAIL_IF(ENGINE_ISSET_EVENT(packets[i], IPV4_FRAG_OVERLAP));
     }
     int overlap = 0;
     for (; i < 16; i++) {
-        Packet *tp = Defrag(NULL, NULL, packets[i], NULL);
+        Packet *tp = Defrag(NULL, NULL, packets[i]);
         FAIL_IF_NOT_NULL(tp);
         if (ENGINE_ISSET_EVENT(packets[i], IPV4_FRAG_OVERLAP)) {
             overlap++;
@@ -1542,7 +1542,7 @@ static int DefragDoSturgesNovakTest(int policy, u_char *expected,
     FAIL_IF_NOT(overlap);
 
     /* And now the last one. */
-    Packet *reassembled = Defrag(NULL, NULL, packets[16], NULL);
+    Packet *reassembled = Defrag(NULL, NULL, packets[16]);
     FAIL_IF_NULL(reassembled);
 
     FAIL_IF(IPV4_GET_HLEN(reassembled) != 20);
@@ -1639,13 +1639,13 @@ static int IPV6DefragDoSturgesNovakTest(int policy, u_char *expected,
 
     /* Send all but the last. */
     for (i = 0; i < 9; i++) {
-        Packet *tp = Defrag(NULL, NULL, packets[i], NULL);
+        Packet *tp = Defrag(NULL, NULL, packets[i]);
         FAIL_IF_NOT_NULL(tp);
         FAIL_IF(ENGINE_ISSET_EVENT(packets[i], IPV6_FRAG_OVERLAP));
     }
     int overlap = 0;
     for (; i < 16; i++) {
-        Packet *tp = Defrag(NULL, NULL, packets[i], NULL);
+        Packet *tp = Defrag(NULL, NULL, packets[i]);
         FAIL_IF_NOT_NULL(tp);
         if (ENGINE_ISSET_EVENT(packets[i], IPV6_FRAG_OVERLAP)) {
             overlap++;
@@ -1654,7 +1654,7 @@ static int IPV6DefragDoSturgesNovakTest(int policy, u_char *expected,
     FAIL_IF_NOT(overlap);
 
     /* And now the last one. */
-    Packet *reassembled = Defrag(NULL, NULL, packets[16], NULL);
+    Packet *reassembled = Defrag(NULL, NULL, packets[16]);
     FAIL_IF_NULL(reassembled);
     FAIL_IF(memcmp(GET_PKT_DATA(reassembled) + 40, expected, expected_len) != 0);
 
@@ -2107,7 +2107,7 @@ static int DefragTimeoutTest(void)
         Packet *p = BuildTestPacket(IPPROTO_ICMP,i, 0, 1, 'A' + i, 16);
         FAIL_IF_NULL(p);
 
-        Packet *tp = Defrag(NULL, NULL, p, NULL);
+        Packet *tp = Defrag(NULL, NULL, p);
         SCFree(p);
         FAIL_IF_NOT_NULL(tp);
     }
@@ -2118,7 +2118,7 @@ static int DefragTimeoutTest(void)
     FAIL_IF_NULL(p);
 
     p->ts.tv_sec += (defrag_context->timeout + 1);
-    Packet *tp = Defrag(NULL, NULL, p, NULL);
+    Packet *tp = Defrag(NULL, NULL, p);
     FAIL_IF_NOT_NULL(tp);
 
     DefragTracker *tracker = DefragLookupTrackerFromHash(p);
@@ -2154,7 +2154,7 @@ static int DefragIPv4NoDataTest(void)
     FAIL_IF_NULL(p);
 
     /* We do not expect a packet returned. */
-    FAIL_IF(Defrag(NULL, NULL, p, NULL) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p) != NULL);
 
     /* The fragment should have been ignored so no fragments should
      * have been allocated from the pool. */
@@ -2183,7 +2183,7 @@ static int DefragIPv4TooLargeTest(void)
     FAIL_IF_NULL(p);
 
     /* We do not expect a packet returned. */
-    FAIL_IF(Defrag(NULL, NULL, p, NULL) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p) != NULL);
 
     /* We do expect an event. */
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, IPV4_FRAG_PKT_TOO_LARGE));
@@ -2216,15 +2216,15 @@ static int DefragVlanTest(void)
     FAIL_IF_NULL(p2);
 
     /* With no VLAN IDs set, packets should re-assemble. */
-    FAIL_IF((r = Defrag(NULL, NULL, p1, NULL)) != NULL);
-    FAIL_IF((r = Defrag(NULL, NULL, p2, NULL)) == NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p1)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p2)) == NULL);
     SCFree(r);
 
     /* With mismatched VLANs, packets should not re-assemble. */
     p1->vlan_id[0] = 1;
     p2->vlan_id[0] = 2;
-    FAIL_IF((r = Defrag(NULL, NULL, p1, NULL)) != NULL);
-    FAIL_IF((r = Defrag(NULL, NULL, p2, NULL)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p1)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p2)) != NULL);
 
     SCFree(p1);
     SCFree(p2);
@@ -2248,8 +2248,8 @@ static int DefragVlanQinQTest(void)
     FAIL_IF_NULL(p2);
 
     /* With no VLAN IDs set, packets should re-assemble. */
-    FAIL_IF((r = Defrag(NULL, NULL, p1, NULL)) != NULL);
-    FAIL_IF((r = Defrag(NULL, NULL, p2, NULL)) == NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p1)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p2)) == NULL);
     SCFree(r);
 
     /* With mismatched VLANs, packets should not re-assemble. */
@@ -2257,8 +2257,8 @@ static int DefragVlanQinQTest(void)
     p2->vlan_id[0] = 1;
     p1->vlan_id[1] = 1;
     p2->vlan_id[1] = 2;
-    FAIL_IF((r = Defrag(NULL, NULL, p1, NULL)) != NULL);
-    FAIL_IF((r = Defrag(NULL, NULL, p2, NULL)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p1)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p2)) != NULL);
 
     SCFree(p1);
     SCFree(p2);
@@ -2329,14 +2329,14 @@ static int DefragMfIpv4Test(void)
     Packet *p3 = BuildTestPacket(IPPROTO_ICMP, ip_id, 1, 0, 'B', 8);
     FAIL_IF(p1 == NULL || p2 == NULL || p3 == NULL);
 
-    p = Defrag(NULL, NULL, p1, NULL);
+    p = Defrag(NULL, NULL, p1);
     FAIL_IF_NOT_NULL(p);
 
-    p = Defrag(NULL, NULL, p2, NULL);
+    p = Defrag(NULL, NULL, p2);
     FAIL_IF_NOT_NULL(p);
 
     /* This should return a packet as MF=0. */
-    p = Defrag(NULL, NULL, p3, NULL);
+    p = Defrag(NULL, NULL, p3);
     FAIL_IF_NULL(p);
 
     /* Expected IP length is 20 + 8 + 8 = 36 as only 2 of the
@@ -2372,14 +2372,14 @@ static int DefragMfIpv6Test(void)
     Packet *p3 = IPV6BuildTestPacket(IPPROTO_ICMPV6, ip_id, 1, 0, 'B', 8);
     FAIL_IF(p1 == NULL || p2 == NULL || p3 == NULL);
 
-    p = Defrag(NULL, NULL, p1, NULL);
+    p = Defrag(NULL, NULL, p1);
     FAIL_IF_NOT_NULL(p);
 
-    p = Defrag(NULL, NULL, p2, NULL);
+    p = Defrag(NULL, NULL, p2);
     FAIL_IF_NOT_NULL(p);
 
     /* This should return a packet as MF=0. */
-    p = Defrag(NULL, NULL, p3, NULL);
+    p = Defrag(NULL, NULL, p3);
     FAIL_IF_NULL(p);
 
     /* For IPv6 the expected length is just the length of the payload
@@ -2412,9 +2412,9 @@ static int DefragTestBadProto(void)
     p3 = BuildTestPacket(IPPROTO_ICMP, id, 2, 0, 'C', 3);
     FAIL_IF_NULL(p3);
 
-    FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p1, NULL));
-    FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p2, NULL));
-    FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p3, NULL));
+    FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p1));
+    FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p2));
+    FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p3));
 
     SCFree(p1);
     SCFree(p2);
@@ -2456,16 +2456,16 @@ static int DefragTestJeremyLinux(void)
     packets[2] = BuildTestPacket(IPPROTO_ICMP, id, 24 >> 3, 1, 'C', 48);
     packets[3] = BuildTestPacket(IPPROTO_ICMP, id, 88 >> 3, 0, 'D', 14);
 
-    Packet *r = Defrag(NULL, NULL, packets[0], NULL);
+    Packet *r = Defrag(NULL, NULL, packets[0]);
     FAIL_IF_NOT_NULL(r);
 
-    r = Defrag(NULL, NULL, packets[1], NULL);
+    r = Defrag(NULL, NULL, packets[1]);
     FAIL_IF_NOT_NULL(r);
 
-    r = Defrag(NULL, NULL, packets[2], NULL);
+    r = Defrag(NULL, NULL, packets[2]);
     FAIL_IF_NOT_NULL(r);
 
-    r = Defrag(NULL, NULL, packets[3], NULL);
+    r = Defrag(NULL, NULL, packets[3]);
     FAIL_IF_NULL(r);
 
     FAIL_IF(memcmp(expected, GET_PKT_DATA(r) + 20, sizeof(expected)) != 0);

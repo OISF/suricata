@@ -45,7 +45,7 @@
 #include "host.h"
 
 static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len, PacketQueue *pq);
+        const uint8_t *pkt, uint16_t len);
 
 /**
  * \internal
@@ -60,7 +60,7 @@ static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
  *
  */
 int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint32_t len)
 {
     uint32_t proto;
 
@@ -97,22 +97,22 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             }
 
             DecodeIPV4(tv, dtv, p, pkt + VLAN_HEADER_LEN,
-                       len - VLAN_HEADER_LEN, pq);
+                       len - VLAN_HEADER_LEN);
             break;
         case ETHERNET_TYPE_IPV6:
             if (unlikely(len > VLAN_HEADER_LEN + USHRT_MAX)) {
                 return TM_ECODE_FAILED;
             }
             DecodeIPV6(tv, dtv, p, pkt + VLAN_HEADER_LEN,
-                       len - VLAN_HEADER_LEN, pq);
+                       len - VLAN_HEADER_LEN);
             break;
         case ETHERNET_TYPE_PPPOE_SESS:
             DecodePPPOESession(tv, dtv, p, pkt + VLAN_HEADER_LEN,
-                               len - VLAN_HEADER_LEN, pq);
+                               len - VLAN_HEADER_LEN);
             break;
         case ETHERNET_TYPE_PPPOE_DISC:
             DecodePPPOEDiscovery(tv, dtv, p, pkt + VLAN_HEADER_LEN,
-                                 len - VLAN_HEADER_LEN, pq);
+                                 len - VLAN_HEADER_LEN);
             break;
         case ETHERNET_TYPE_VLAN:
         case ETHERNET_TYPE_8021AD:
@@ -121,19 +121,19 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 return TM_ECODE_OK;
             } else {
                 DecodeVLAN(tv, dtv, p, pkt + VLAN_HEADER_LEN,
-                        len - VLAN_HEADER_LEN, pq);
+                        len - VLAN_HEADER_LEN);
             }
             break;
         case ETHERNET_TYPE_8021AH:
             DecodeIEEE8021ah(tv, dtv, p, pkt + VLAN_HEADER_LEN,
-                    len - VLAN_HEADER_LEN, pq);
+                    len - VLAN_HEADER_LEN);
             break;
         case ETHERNET_TYPE_ARP:
             break;
         case ETHERNET_TYPE_MPLS_UNICAST:
         case ETHERNET_TYPE_MPLS_MULTICAST:
             DecodeMPLS(tv, dtv, p, pkt + VLAN_HEADER_LEN,
-                       len - VLAN_HEADER_LEN, pq);
+                       len - VLAN_HEADER_LEN);
             break;
         default:
             SCLogDebug("unknown VLAN type: %" PRIx32 "", proto);
@@ -164,7 +164,7 @@ typedef struct IEEE8021ahHdr_ {
 #define IEEE8021AH_HEADER_LEN sizeof(IEEE8021ahHdr)
 
 static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint16_t len)
 {
     StatsIncr(tv, dtv->counter_ieee8021ah);
 
@@ -180,7 +180,7 @@ static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case ETHERNET_TYPE_VLAN:
         case ETHERNET_TYPE_8021QINQ: {
             DecodeVLAN(tv, dtv, p, pkt + IEEE8021AH_HEADER_LEN,
-                    len - IEEE8021AH_HEADER_LEN, pq);
+                    len - IEEE8021AH_HEADER_LEN);
             break;
         }
     }
@@ -210,7 +210,7 @@ static int DecodeVLANtest01 (void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan), NULL);
+    DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan));
 
     if(ENGINE_ISSET_EVENT(p,VLAN_HEADER_TOO_SMALL))  {
         SCFree(p);
@@ -246,7 +246,7 @@ static int DecodeVLANtest02 (void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan), NULL);
+    DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan));
 
 
     if(ENGINE_ISSET_EVENT(p,VLAN_UNKNOWN_TYPE))  {
@@ -285,7 +285,7 @@ static int DecodeVLANtest03 (void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan), NULL);
+    DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan));
 
 
     if(p->vlan_id[0] == 0) {

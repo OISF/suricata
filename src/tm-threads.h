@@ -47,7 +47,7 @@ static inline void SleepUsec(uint64_t usec)
 #define TM_QUEUE_NAME_MAX 16
 #define TM_THREAD_NAME_MAX 16
 
-typedef TmEcode (*TmSlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *);
+typedef TmEcode (*TmSlotFunc)(ThreadVars *, Packet *, void *);
 
 typedef struct TmSlot_ {
     /* function pointers */
@@ -61,11 +61,6 @@ typedef struct TmSlot_ {
     struct TmSlot_ *slot_next;
 
     SC_ATOMIC_DECLARE(void *, slot_data);
-
-    /* queue filled by the SlotFunc with packets that will
-     * be processed futher _before_ the current packet.
-     * The locks in the queue are NOT used */
-    PacketQueue slot_pre_pq;
 
     TmEcode (*SlotThreadInit)(ThreadVars *, const void *, void **);
     void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
@@ -134,12 +129,22 @@ TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *);
 
 uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags);
 
+static inline void TmThreadsCleanDecodePQ(PacketQueueNoLock *pq)
+{
+    while (1) {
+        Packet *p = PacketDequeueNoLock(pq);
+        if (unlikely(p == NULL))
+            break;
+        TmqhOutputPacketpool(NULL, p);
+    }
+}
+
 static inline void TmThreadsSlotProcessPktFail(ThreadVars *tv, TmSlot *s, Packet *p)
 {
     if (p != NULL) {
         TmqhOutputPacketpool(tv, p);
     }
-    TmqhReleasePacketsToPacketPool(&s->slot_pre_pq);
+    TmThreadsCleanDecodePQ(&tv->decode_pq);
     if (tv->stream_pq_local) {
         SCMutexLock(&tv->stream_pq_local->mutex_q);
         TmqhReleasePacketsToPacketPool(tv->stream_pq_local);

@@ -43,7 +43,7 @@
  * \brief Function to decode ERSPAN packets
  */
 
-int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     StatsIncr(tv, dtv->counter_erspan);
 
@@ -73,7 +73,7 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
         p->vlan_idx++;
     }
 
-    return DecodeEthernet(tv, dtv, p, pkt + sizeof(ErspanHdr), len - sizeof(ErspanHdr), pq);
+    return DecodeEthernet(tv, dtv, p, pkt + sizeof(ErspanHdr), len - sizeof(ErspanHdr));
 }
 
 /**

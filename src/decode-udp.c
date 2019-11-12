@@ -72,7 +72,7 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_
 }
 
 int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint16_t len)
 {
     StatsIncr(tv, dtv->counter_udp);
 
@@ -84,7 +84,7 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     SCLogDebug("UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "",
         UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
 
-    if (unlikely(DecodeTeredo(tv, dtv, p, p->payload, p->payload_len, pq) == TM_ECODE_OK)) {
+    if (unlikely(DecodeTeredo(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
         /* Here we have a Teredo packet and don't need to handle app
          * layer */
         FlowSetupPacket(p);
@@ -93,7 +93,7 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     /* Handle VXLAN if configured */
     if (DecodeVXLANEnabledForPort(p->sp, p->dp) &&
-            unlikely(DecodeVXLAN(tv, dtv, p, p->payload, p->payload_len, pq) == TM_ECODE_OK)) {
+            unlikely(DecodeVXLAN(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
         /* Here we have a VXLAN packet and don't need to handle app
          * layer */
         FlowSetupPacket(p);
