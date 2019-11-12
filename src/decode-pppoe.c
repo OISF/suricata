@@ -48,7 +48,7 @@
  * \brief Main decoding function for PPPOE Discovery packets
  */
 int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint32_t len)
 {
     StatsIncr(tv, dtv->counter_pppoe);
 
@@ -128,7 +128,7 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
  * \brief Main decoding function for PPPOE Session packets
  */
 int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint32_t len)
 {
     StatsIncr(tv, dtv->counter_pppoe);
 
@@ -193,7 +193,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 }
 
                 if(IPV4_GET_RAW_VER((IPV4Hdr *)(pkt + PPPOE_SESSION_HEADER_LEN)) == 4) {
-                    DecodeIPV4(tv, dtv, p, pkt + PPPOE_SESSION_HEADER_LEN, len - PPPOE_SESSION_HEADER_LEN, pq );
+                    DecodeIPV4(tv, dtv, p, pkt + PPPOE_SESSION_HEADER_LEN, len - PPPOE_SESSION_HEADER_LEN);
                 }
                 break;
 
@@ -206,7 +206,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                     return TM_ECODE_FAILED;
                 }
 
-                DecodeIPV4(tv, dtv, p, pkt + PPPOE_SESSION_HEADER_LEN, len - PPPOE_SESSION_HEADER_LEN, pq );
+                DecodeIPV4(tv, dtv, p, pkt + PPPOE_SESSION_HEADER_LEN, len - PPPOE_SESSION_HEADER_LEN);
                 break;
 
             /* PPP IPv6 was not tested */
@@ -219,7 +219,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                     return TM_ECODE_FAILED;
                 }
 
-                DecodeIPV6(tv, dtv, p, pkt + PPPOE_SESSION_HEADER_LEN, len - PPPOE_SESSION_HEADER_LEN, pq );
+                DecodeIPV6(tv, dtv, p, pkt + PPPOE_SESSION_HEADER_LEN, len - PPPOE_SESSION_HEADER_LEN);
                 break;
 
             default:
@@ -249,7 +249,7 @@ static int DecodePPPOEtest01 (void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe), NULL);
+    DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
     if (ENGINE_ISSET_EVENT(p,PPPOE_PKT_TOO_SMALL))  {
         SCFree(p);
@@ -290,7 +290,7 @@ static int DecodePPPOEtest02 (void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe), NULL);
+    DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
     if(ENGINE_ISSET_EVENT(p,PPPOE_PKT_TOO_SMALL))  {
         goto end;
@@ -335,7 +335,7 @@ static int DecodePPPOEtest03 (void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe), NULL);
+    DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
     if (p->pppoedh == NULL) {
     SCFree(p);
     return 0;
@@ -367,7 +367,7 @@ static int DecodePPPOEtest04 (void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe), NULL);
+    DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
     if(ENGINE_ISSET_EVENT(p,PPPOE_WRONG_CODE))  {
         SCFree(p);
@@ -402,7 +402,7 @@ static int DecodePPPOEtest05 (void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe), NULL);
+    DecodePPPOEDiscovery(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
 
     if(ENGINE_ISSET_EVENT(p,PPPOE_MALFORMED_TAGS))  {
         SCFree(p);

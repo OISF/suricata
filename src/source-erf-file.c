@@ -70,7 +70,7 @@ TmEcode ReceiveErfFileThreadDeinit(ThreadVars *, void *);
 
 static TmEcode DecodeErfFileThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodeErfFileThreadDeinit(ThreadVars *tv, void *data);
-static TmEcode DecodeErfFile(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode DecodeErfFile(ThreadVars *, Packet *, void *);
 
 /**
  * \brief Register the ERF file receiver (reader) module.
@@ -275,7 +275,7 @@ TmEcode DecodeErfFileThreadDeinit(ThreadVars *tv, void *data)
  * off to the ethernet decoder.
  */
 TmEcode
-DecodeErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+DecodeErfFile(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -288,7 +288,7 @@ DecodeErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
     /* Update counters. */
     DecodeUpdatePacketCounters(tv, dtv, p);
 
-    DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+    DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     PacketDecodeFinalize(tv, dtv, p);
 

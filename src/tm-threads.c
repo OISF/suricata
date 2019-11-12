@@ -114,8 +114,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
 {
     for (TmSlot *s = slot; s != NULL; s = s->slot_next) {
         PACKET_PROFILING_TMM_START(p, s->tm_id);
-        TmEcode r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data),
-                &s->slot_pre_pq);
+        TmEcode r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data));
         PACKET_PROFILING_TMM_END(p, s->tm_id);
 
         /* handle error */
@@ -126,8 +125,8 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
         }
 
         /* handle new packets */
-        while (s->slot_pre_pq.top != NULL) {
-            Packet *extra_p = PacketDequeue(&s->slot_pre_pq);
+        while (tv->decode_pq.top != NULL) {
+            Packet *extra_p = PacketDequeueNoLock(&tv->decode_pq);
             if (unlikely(extra_p == NULL))
                 continue;
 
@@ -194,23 +193,6 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
     StatsSyncCounters(tv);
 
     return r;
-}
-
-/** \internal
- *  \brief check 'slot' pre_pq and thread cleanup
- *         and dump detailed info about the state of the packets
- *         and threads if in a unexpected state.
- */
-static void CheckSlot(const TmSlot *slot)
-{
-    if (slot->slot_pre_pq.len) {
-        for (Packet *xp = slot->slot_pre_pq.top; xp != NULL; xp = xp->next) {
-            SCLogNotice("pre_pq: slot tm_id %u pre_pq.len %u packet src %s",
-                    slot->tm_id, slot->slot_pre_pq.len, PktSrcToString(xp->pkt_src));
-        }
-        TmThreadDumpThreads();
-        abort();
-    }
 }
 
 /*
@@ -288,8 +270,6 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             }
             (void)SC_ATOMIC_SET(slot->slot_data, slot_data);
         }
-        memset(&slot->slot_pre_pq, 0, sizeof(PacketQueue));
-        SCMutexInit(&slot->slot_pre_pq.mutex_q, NULL);
 
         /* if the flowworker module is the first, get the threads input queue */
         if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
@@ -356,7 +336,6 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
                 goto error;
             }
         }
-        CheckSlot(slot);
     }
 
     tv->stream_pq = NULL;
@@ -416,8 +395,6 @@ static void *TmThreadsSlotPktAcqLoopAFL(void *td)
             }
             (void)SC_ATOMIC_SET(slot->slot_data, slot_data);
         }
-        memset(&slot->slot_pre_pq, 0, sizeof(PacketQueue));
-        SCMutexInit(&slot->slot_pre_pq.mutex_q, NULL);
 
         /* if the flowworker module is the first, get the threads input queue */
         if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
@@ -476,8 +453,6 @@ static void *TmThreadsSlotPktAcqLoopAFL(void *td)
                 goto error;
             }
         }
-
-        CheckSlot(slot);
     }
 
     tv->stream_pq = NULL;
@@ -529,8 +504,6 @@ static void *TmThreadsSlotVar(void *td)
             }
             (void)SC_ATOMIC_SET(s->slot_data, slot_data);
         }
-        memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
-        SCMutexInit(&s->slot_pre_pq.mutex_q, NULL);
 
         /* special case: we need to access the stream queue
          * from the flow timeout code */
@@ -609,7 +582,6 @@ static void *TmThreadsSlotVar(void *td)
                 goto error;
             }
         }
-        CheckSlot(s);
     }
 
     SCLogDebug("%s ending", tv->name);
@@ -655,7 +627,6 @@ static void *TmThreadsManagement(void *td)
         }
         (void)SC_ATOMIC_SET(s->slot_data, slot_data);
     }
-    memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
 
     StatsSetupPrivate(tv);
 
@@ -2092,10 +2063,6 @@ static void TmThreadDoDumpSlots(const ThreadVars *tv)
         TmModule *m = TmModuleGetById(s->tm_id);
         SCLogNotice("tv %p: -> slot %p tm_id %d name %s",
             tv, s, s->tm_id, m->name);
-        for (Packet *xp = s->slot_pre_pq.top; xp != NULL; xp = xp->next) {
-            SCLogNotice("tv %p: ==> pre_pq: slot tm_id %u pre_pq.len %u packet src %s",
-                    tv, s->tm_id, s->slot_pre_pq.len, PktSrcToString(xp->pkt_src));
-        }
     }
 }
 
@@ -2115,6 +2082,10 @@ void TmThreadDumpThreads(void)
                     SCLogNotice("tv %p: ==> stream_pq_local: pq.len %u packet src %s",
                             tv, tv->stream_pq_local->len, PktSrcToString(xp->pkt_src));
                 }
+            }
+            for (Packet *xp = tv->decode_pq.top; xp != NULL; xp = xp->next) {
+                SCLogNotice("tv %p: ==> decode_pq: decode_pq.len %u packet src %s",
+                        tv, tv->decode_pq.len, PktSrcToString(xp->pkt_src));
             }
             TmThreadDoDumpSlots(tv);
             tv = tv->next;

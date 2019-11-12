@@ -44,7 +44,7 @@
 
 
 int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+        const uint8_t *pkt, uint32_t len)
 {
     StatsIncr(tv, dtv->counter_raw);
 
@@ -61,13 +61,13 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             return TM_ECODE_FAILED;
         }
         SCLogDebug("IPV4 Packet");
-        DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+        DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     } else if (IP_GET_RAW_VER(pkt) == 6) {
         if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
             return TM_ECODE_FAILED;
         }
         SCLogDebug("IPV6 Packet");
-        DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+        DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     } else {
         SCLogDebug("Unknown ip version %d", IP_GET_RAW_VER(pkt));
         ENGINE_SET_EVENT(p,IPRAW_INVALID_IPV);
@@ -114,7 +114,7 @@ static int DecodeRawTest01 (void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p), NULL);
+    DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p));
     if (p->ip6h == NULL) {
         printf("expected a valid ipv6 header but it was NULL: ");
         FlowShutdown();
@@ -160,7 +160,7 @@ static int DecodeRawTest02 (void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p), NULL);
+    DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p));
     if (p->ip4h == NULL) {
         printf("expected a valid ipv4 header but it was NULL: ");
         PACKET_RECYCLE(p);
@@ -208,7 +208,7 @@ static int DecodeRawTest03 (void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p), NULL);
+    DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p));
     if (!ENGINE_ISSET_EVENT(p,IPRAW_INVALID_IPV)) {
         printf("expected IPRAW_INVALID_IPV to be set but it wasn't: ");
         FlowShutdown();

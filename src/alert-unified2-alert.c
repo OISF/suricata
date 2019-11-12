@@ -1505,7 +1505,6 @@ static int Unified2Test01(void)
 {
     ThreadVars tv;
     DecodeThreadVars dtv;
-    PacketQueue pq;
     void *data = NULL;
     OutputInitResult oc;
     LogFileCtx *lf;
@@ -1530,7 +1529,6 @@ static int Unified2Test01(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&pq, 0, sizeof(PacketQueue));
     memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
@@ -1542,8 +1540,7 @@ static int Unified2Test01(void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeEthernet(&tv, &dtv, p, raw_ipv4_tcp, sizeof(raw_ipv4_tcp), &pq);
-
+    DecodeEthernet(&tv, &dtv, p, raw_ipv4_tcp, sizeof(raw_ipv4_tcp));
 
     oc = Unified2AlertInitCtx(NULL);
     if (oc.ctx == NULL) {
@@ -1594,7 +1591,6 @@ static int Unified2Test02(void)
 {
     ThreadVars tv;
     DecodeThreadVars dtv;
-    PacketQueue pq;
     void *data = NULL;
     OutputInitResult oc;
     LogFileCtx *lf;
@@ -1621,7 +1617,6 @@ static int Unified2Test02(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&pq, 0, sizeof(PacketQueue));
     memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
@@ -1633,7 +1628,7 @@ static int Unified2Test02(void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeEthernet(&tv, &dtv, p, raw_ipv6_tcp, sizeof(raw_ipv6_tcp), &pq);
+    DecodeEthernet(&tv, &dtv, p, raw_ipv6_tcp, sizeof(raw_ipv6_tcp));
 
     oc = Unified2AlertInitCtx(NULL);
     if (oc.ctx == NULL) {
@@ -1685,7 +1680,6 @@ static int Unified2Test03(void)
 {
     ThreadVars tv;
     DecodeThreadVars dtv;
-    PacketQueue pq;
     void *data = NULL;
     OutputInitResult oc;
     LogFileCtx *lf;
@@ -1718,7 +1712,6 @@ static int Unified2Test03(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&pq, 0, sizeof(PacketQueue));
     memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
@@ -1730,7 +1723,7 @@ static int Unified2Test03(void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeEthernet(&tv, &dtv, p, raw_gre, sizeof(raw_gre), &pq);
+    DecodeEthernet(&tv, &dtv, p, raw_gre, sizeof(raw_gre));
 
     oc = Unified2AlertInitCtx(NULL);
     if (oc.ctx == NULL) {
@@ -1758,11 +1751,11 @@ static int Unified2Test03(void)
 
     Unified2AlertDeInitCtx(oc.ctx);
 
-    pkt = PacketDequeue(&pq);
+    pkt = PacketDequeueNoLock(&tv.decode_pq);
     while (pkt != NULL) {
         PACKET_RECYCLE(pkt);
         SCFree(pkt);
-        pkt = PacketDequeue(&pq);
+        pkt = PacketDequeueNoLock(&tv.decode_pq);
     }
 
     PACKET_RECYCLE(p);
@@ -1771,11 +1764,11 @@ static int Unified2Test03(void)
     return 1;
 
 end:
-    pkt = PacketDequeue(&pq);
+    pkt = PacketDequeueNoLock(&tv.decode_pq);
     while (pkt != NULL) {
         PACKET_RECYCLE(pkt);
         SCFree(pkt);
-        pkt = PacketDequeue(&pq);
+        pkt = PacketDequeueNoLock(&tv.decode_pq);
     }
     PACKET_RECYCLE(p);
     SCFree(p);
@@ -1794,7 +1787,6 @@ static int Unified2Test04(void)
 {
     ThreadVars tv;
     DecodeThreadVars dtv;
-    PacketQueue pq;
     void *data = NULL;
     OutputInitResult oc;
     LogFileCtx *lf;
@@ -1815,7 +1807,6 @@ static int Unified2Test04(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&pq, 0, sizeof(PacketQueue));
     memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
@@ -1827,7 +1818,7 @@ static int Unified2Test04(void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodePPP(&tv, &dtv, p, raw_ppp, sizeof(raw_ppp), &pq);
+    DecodePPP(&tv, &dtv, p, raw_ppp, sizeof(raw_ppp));
 
     oc = Unified2AlertInitCtx(NULL);
     if (oc.ctx == NULL) {
@@ -1878,7 +1869,6 @@ static int Unified2Test05(void)
 {
     ThreadVars tv;
     DecodeThreadVars dtv;
-    PacketQueue pq;
     void *data = NULL;
     OutputInitResult oc;
     LogFileCtx *lf;
@@ -1903,7 +1893,6 @@ static int Unified2Test05(void)
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&pq, 0, sizeof(PacketQueue));
     memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
@@ -1915,7 +1904,7 @@ static int Unified2Test05(void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeEthernet(&tv, &dtv, p, raw_ipv4_tcp, sizeof(raw_ipv4_tcp), &pq);
+    DecodeEthernet(&tv, &dtv, p, raw_ipv4_tcp, sizeof(raw_ipv4_tcp));
 
     p->action = ACTION_DROP;
 

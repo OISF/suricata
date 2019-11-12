@@ -137,11 +137,11 @@ static TmEcode ReceiveNFQThreadInit(ThreadVars *, const void *, void **);
 static TmEcode ReceiveNFQThreadDeinit(ThreadVars *, void *);
 static void ReceiveNFQThreadExitStats(ThreadVars *, void *);
 
-static TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode VerdictNFQ(ThreadVars *, Packet *, void *);
 static TmEcode VerdictNFQThreadInit(ThreadVars *, const void *, void **);
 static TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 
-static TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *);
+static TmEcode DecodeNFQ(ThreadVars *, Packet *, void *);
 static TmEcode DecodeNFQThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data);
 
@@ -1193,7 +1193,7 @@ TmEcode NFQSetVerdict(Packet *p)
 /**
  * \brief NFQ verdict module packet entry function
  */
-TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data)
 {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
     /* update counters */
@@ -1224,7 +1224,7 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 /**
  * \brief Decode a packet coming from NFQ
  */
-TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data)
 {
 
     IPV4Hdr *ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
@@ -1243,13 +1243,13 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
             return TM_ECODE_FAILED;
         }
         SCLogDebug("IPv4 packet");
-        DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+        DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     } else if (IPV6_GET_RAW_VER(ip6h) == 6) {
         if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
             return TM_ECODE_FAILED;
         }
         SCLogDebug("IPv6 packet");
-        DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+        DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     } else {
         SCLogDebug("packet unsupported by NFQ, first byte: %02x", *GET_PKT_DATA(p));
     }

@@ -347,12 +347,12 @@ TmEcode ReceiveWinDivertThreadDeinit(ThreadVars *, void *);
 void ReceiveWinDivertThreadExitStats(ThreadVars *, void *);
 
 /* Verdict functions */
-TmEcode VerdictWinDivert(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode VerdictWinDivert(ThreadVars *, Packet *, void *);
 TmEcode VerdictWinDivertThreadInit(ThreadVars *, const void *, void **);
 TmEcode VerdictWinDivertThreadDeinit(ThreadVars *, void *);
 
 /* Decode functions */
-TmEcode DecodeWinDivert(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DecodeWinDivert(ThreadVars *, Packet *, void *);
 TmEcode DecodeWinDivertThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodeWinDivertThreadDeinit(ThreadVars *, void *);
 
@@ -731,7 +731,7 @@ void ReceiveWinDivertThreadExitStats(ThreadVars *tv, void *data)
 /**
  * \brief WinDivert verdict module packet entry function
  */
-TmEcode VerdictWinDivert(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq);
+TmEcode VerdictWinDivert(ThreadVars *tv, Packet *p, void *data);
 {
     SCEnter();
 
@@ -855,7 +855,7 @@ TmEcode VerdictWinDivertThreadDeinit(ThreadVars *tv, void *data)
  * to differentiate the two, so instead we must check the version and go
  * from there.
  */
-TmEcode DecodeWinDivert(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodeWinDivert(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
 
@@ -874,10 +874,10 @@ TmEcode DecodeWinDivert(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
         SCLogDebug("IPv4 packet");
-        DecodeIPV4(tv, d_tv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+        DecodeIPV4(tv, d_tv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     } else if (IPV6_GET_RAW_VER(ip6h) == 6) {
         SCLogDebug("IPv6 packet");
-        DecodeIPV6(tv, d_tv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+        DecodeIPV6(tv, d_tv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     } else {
         SCLogDebug("packet unsupported by WinDivert, first byte: %02x",
                    *GET_PKT_DATA(p));

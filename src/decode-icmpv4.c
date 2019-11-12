@@ -152,7 +152,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 /** DecodeICMPV4
  *  \brief Main ICMPv4 decoding function
  */
-int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     StatsIncr(tv, dtv->counter_icmpv4);
 
@@ -378,7 +378,7 @@ static int DecodeICMPV4test01(void)
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
 
     if (NULL!=p->icmpv4h) {
         if (p->icmpv4h->type==8 && p->icmpv4h->code==0) {
@@ -429,7 +429,7 @@ static int DecodeICMPV4test02(void)
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
 
     if (NULL!=p->icmpv4h) {
         if (p->icmpv4h->type==0 && p->icmpv4h->code==0) {
@@ -478,7 +478,7 @@ static int DecodeICMPV4test03(void)
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
 
     if (NULL == p->icmpv4h) {
 	    printf("NULL == p->icmpv4h: ");
@@ -558,7 +558,7 @@ static int DecodeICMPV4test04(void)
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
 
     if (NULL == p->icmpv4h) {
         goto end;
@@ -628,7 +628,7 @@ static int DecodeICMPV4test05(void)
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
 
     if (NULL == p->icmpv4h) {
         goto end;
@@ -735,7 +735,7 @@ static int ICMPV4InvalidType07(void)
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
 
     if(ENGINE_ISSET_EVENT(p,ICMPV4_UNKNOWN_TYPE)) {
         ret = 1;
@@ -779,7 +779,7 @@ static int DecodeICMPV4test08(void)
     ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
 
     if (NULL!=p->icmpv4h) {
         if (p->icmpv4h->type==8 && p->icmpv4h->code==0) {

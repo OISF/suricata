@@ -127,7 +127,7 @@ void DefragReload(void); /**< use only in unittests */
 
 uint8_t DefragGetOsPolicy(Packet *);
 void DefragTrackerFreeFrags(DefragTracker *);
-Packet *Defrag(ThreadVars *, DecodeThreadVars *, Packet *, PacketQueue *);
+Packet *Defrag(ThreadVars *, DecodeThreadVars *, Packet *);
 void DefragRegisterTests(void);
 
 #endif /* __DEFRAG_H__ */
