@@ -35,7 +35,7 @@ use std::collections::HashMap;
 use nom;
 
 use crate::core::*;
-use crate::log::*;
+use crate::sclog::*;
 use crate::applayer;
 use crate::applayer::LoggerFlags;
 

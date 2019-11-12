@@ -26,7 +26,7 @@ use std;
 use std::ffi::{CStr,CString};
 use std::mem::transmute;
 
-use crate::log::*;
+use crate::sclog::*;
 
 use der_parser::{DerObjectContent,parse_der_sequence};
 use der_parser::oid::Oid;

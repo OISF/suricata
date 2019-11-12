@@ -28,7 +28,7 @@
  * The tracker does continue to follow the file.
  */
 
-use crate::log::*;
+use crate::sclog::*;
 use crate::core::*;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};

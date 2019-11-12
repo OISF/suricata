@@ -21,7 +21,7 @@ use nom;
 use nom::be_u32;
 
 use crate::core::*;
-use crate::log::*;
+use crate::sclog::*;
 
 use crate::nfs::nfs::*;
 use crate::nfs::types::*;

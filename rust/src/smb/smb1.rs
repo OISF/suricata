@@ -22,7 +22,7 @@
 use nom;
 
 use crate::core::*;
-use crate::log::*;
+use crate::sclog::*;
 
 use crate::smb::smb::*;
 use crate::smb::dcerpc::*;

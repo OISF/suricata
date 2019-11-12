@@ -25,7 +25,7 @@ use std::ffi::CStr;
 
 use nom;
 
-use crate::log::*;
+use crate::sclog::*;
 use crate::applayer;
 use crate::applayer::LoggerFlags;
 use crate::core::*;

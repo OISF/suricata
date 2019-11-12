@@ -26,7 +26,7 @@ use crate::parser::*;
 use std;
 use std::ffi::{CStr,CString};
 
-use crate::log::*;
+use crate::sclog::*;
 
 use nom;
 

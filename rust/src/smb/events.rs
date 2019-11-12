@@ -16,7 +16,7 @@
  */
 
 use crate::core::*;
-use crate::log::*;
+use crate::sclog::*;
 use crate::smb::smb::*;
 
 #[repr(u32)]

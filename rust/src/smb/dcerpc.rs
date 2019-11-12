@@ -17,7 +17,7 @@
 
 // written by Victor Julien
 
-use crate::log::*;
+use crate::sclog::*;
 
 use crate::smb::smb::*;
 use crate::smb::smb2::*;

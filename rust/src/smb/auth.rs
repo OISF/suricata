@@ -17,7 +17,7 @@
 
 use crate::kerberos::*;
 
-use crate::log::*;
+use crate::sclog::*;
 use crate::smb::ntlmssp_records::*;
 use crate::smb::smb::*;
 

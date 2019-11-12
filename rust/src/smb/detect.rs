@@ -18,7 +18,7 @@
 use std;
 use std::ptr;
 use crate::core::*;
-use crate::log::*;
+use crate::sclog::*;
 use crate::smb::smb::*;
 
 #[no_mangle]

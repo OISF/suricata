@@ -18,7 +18,7 @@
 use std::ptr;
 use std::os::raw::{c_void};
 
-use crate::log::*;
+use crate::sclog::*;
 use crate::core::*;
 
 pub struct File;

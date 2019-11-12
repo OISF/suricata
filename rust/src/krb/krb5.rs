@@ -29,7 +29,7 @@ use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
 use crate::parser::*;
 
-use crate::log::*;
+use crate::sclog::*;
 
 #[repr(u32)]
 pub enum KRB5Event {

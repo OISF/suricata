@@ -35,7 +35,7 @@ extern crate tls_parser;
 extern crate x509_parser;
 
 #[macro_use]
-pub mod log;
+pub mod sclog;
 
 #[macro_use]
 pub mod core;

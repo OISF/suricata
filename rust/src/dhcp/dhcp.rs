@@ -20,7 +20,7 @@ use crate::core;
 use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
 use crate::core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
 use crate::dhcp::parser::*;
-use crate::log::*;
+use crate::sclog::*;
 use crate::parser::*;
 use std;
 use std::ffi::{CStr,CString};
@@ -420,7 +420,7 @@ const PARSER_NAME: &'static [u8] = b"dhcp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dhcp_register_parser() {
-    SCLogDebug!("Registering DHCP parser.");
+    SCLogNotice!("Registering DHCP parser.");
     let ports = CString::new("[67,68]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
