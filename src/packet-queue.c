@@ -213,3 +213,20 @@ Packet *PacketDequeue (PacketQueue *q)
 {
     return PacketDequeueDo(q);
 }
+
+PacketQueue *PacketQueueAlloc(void)
+{
+    PacketQueue *pq = SCCalloc(1, sizeof(*pq));
+    if (pq == NULL)
+        return NULL;
+    SCMutexInit(&pq->mutex_q, NULL);
+    SCCondInit(&pq->cond_q, NULL);
+    return pq;
+}
+
+void PacketQueueFree(PacketQueue *pq)
+{
+    SCCondDestroy(&pq->cond_q);
+    SCMutexDestroy(&pq->mutex_q);
+    SCFree(pq);
+}
