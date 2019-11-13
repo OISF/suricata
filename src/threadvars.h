@@ -119,6 +119,9 @@ typedef struct ThreadVars_ {
     /** private counter store: counter updates modify this */
     StatsPrivateThreadContext perf_private_ctx;
 
+    /** pointer to the next thread */
+    struct ThreadVars_ *next;
+
     /** public counter store: counter syncs update this */
     StatsPublicThreadContext perf_public_ctx;
 
@@ -126,9 +129,6 @@ typedef struct ThreadVars_ {
 
     SCCtrlMutex *ctrl_mutex;
     SCCtrlCondT *ctrl_cond;
-
-    /** pointer to the next thread */
-    struct ThreadVars_ *next;
 
 } ThreadVars;
 
