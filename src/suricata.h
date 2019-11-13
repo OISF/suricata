@@ -125,11 +125,6 @@ enum {
 
 #include "runmodes.h"
 
-/* queue's between various other threads
- * XXX move to the TmQueue structure later
- */
-PacketQueue trans_q[256];
-
 typedef struct SCInstance_ {
     enum RunModes run_mode;
     enum RunModes aux_run_mode;
