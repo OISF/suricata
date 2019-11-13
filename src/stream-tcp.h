@@ -73,7 +73,7 @@ typedef struct StreamTcpThread_ {
     /** queue for pseudo packet(s) that were created in the stream
      *  process and need further handling. Currently only used when
      *  receiving (valid) RST packets */
-    PacketQueue pseudo_queue;
+    PacketQueueNoLock pseudo_queue;
 
     uint16_t counter_tcp_sessions;
     /** sessions not picked up because memcap was reached */
@@ -138,7 +138,7 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
         uint64_t *progress_out, bool respect_inspect_depth);
 void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress);
 
-void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueue *pq);
+void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueueNoLock *pq);
 
 
 /** ------- Inline functions: ------ */
@@ -172,14 +172,14 @@ enum {
     STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 1,
 };
 
-TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueueNoLock *);
 int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction);
 TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
 void StreamTcpRegisterTests (void);
 
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
-                     PacketQueue *pq);
+                     PacketQueueNoLock *pq);
 /* clear ssn and return to pool */
 void StreamTcpSessionClear(void *ssnptr);
 /* cleanup ssn, but don't free ssn */

@@ -65,7 +65,7 @@ typedef struct FlowWorkerThreadData_ {
     uint16_t both_bypass_pkts;
     uint16_t both_bypass_bytes;
 
-    PacketQueue pq;
+    PacketQueueNoLock pq;
 
 } FlowWorkerThreadData;
 
@@ -142,8 +142,7 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
     AppLayerRegisterThreadCounters(tv);
 
     /* setup pq for stream end pkts */
-    memset(&fw->pq, 0, sizeof(PacketQueue));
-    SCMutexInit(&fw->pq.mutex_q, NULL);
+    memset(&fw->pq, 0, sizeof(PacketQueueNoLock));
 
     *data = fw;
     return TM_ECODE_OK;
@@ -170,7 +169,6 @@ static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
 
     /* free pq */
     BUG_ON(fw->pq.len);
-    SCMutexDestroy(&fw->pq.mutex_q);
 
     SC_ATOMIC_DESTROY(fw->detect_thread);
     SCFree(fw);
@@ -250,7 +248,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         /* Packets here can safely access p->flow as it's locked */
         SCLogDebug("packet %"PRIu64": extra packets %u", p->pcap_cnt, fw->pq.len);
         Packet *x;
-        while ((x = PacketDequeue(&fw->pq))) {
+        while ((x = PacketDequeueNoLock(&fw->pq))) {
             SCLogDebug("packet %"PRIu64" extra packet %p", p->pcap_cnt, x);
 
             // TODO do we need to call StreamTcp on these pseudo packets or not?
