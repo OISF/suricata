@@ -1724,7 +1724,7 @@ static int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
 
 int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                      TcpSession *ssn, TcpStream *stream,
-                                     Packet *p, PacketQueue *pq)
+                                     Packet *p, PacketQueueNoLock *pq)
 {
     SCEnter();
 
@@ -2057,8 +2057,8 @@ static int StreamTcpReassembleTest33(void)
     StreamTcpUTInit(&ra_ctx);
     StreamTcpUTSetupSession(&ssn);
 
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
+    PacketQueueNoLock pq;
+    memset(&pq,0,sizeof(PacketQueueNoLock));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
     ThreadVars tv;
@@ -2119,8 +2119,8 @@ static int StreamTcpReassembleTest34(void)
 
     StreamTcpUTInit(&ra_ctx);
     StreamTcpUTSetupSession(&ssn);
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
+    PacketQueueNoLock pq;
+    memset(&pq,0,sizeof(PacketQueueNoLock));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
     ThreadVars tv;
@@ -2177,7 +2177,7 @@ static int StreamTcpReassembleTest37(void)
     TCPHdr tcph;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     uint8_t packet[1460] = "";
-    PacketQueue pq;
+    PacketQueueNoLock pq;
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
 
@@ -2186,7 +2186,7 @@ static int StreamTcpReassembleTest37(void)
 
     StreamTcpUTInit(&ra_ctx);
     StreamTcpUTSetupSession(&ssn);
-    memset(&pq,0,sizeof(PacketQueue));
+    memset(&pq,0,sizeof(PacketQueueNoLock));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&tv, 0, sizeof (ThreadVars));
@@ -2250,8 +2250,8 @@ static int StreamTcpReassembleTest39 (void)
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
+    PacketQueueNoLock pq;
+    memset(&pq,0,sizeof(PacketQueueNoLock));
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (stt));
@@ -2733,8 +2733,8 @@ static int StreamTcpReassembleTest40 (void)
     Flow *f = NULL;
     TCPHdr tcph;
     TcpSession ssn;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
+    PacketQueueNoLock pq;
+    memset(&pq,0,sizeof(PacketQueueNoLock));
     memset(&tcph, 0, sizeof (TCPHdr));
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
@@ -2982,8 +2982,8 @@ static int StreamTcpReassembleTest47 (void)
     TCPHdr tcph;
     TcpSession ssn;
     ThreadVars tv;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
+    PacketQueueNoLock pq;
+    memset(&pq,0,sizeof(PacketQueueNoLock));
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&tv, 0, sizeof (ThreadVars));
     StreamTcpInitConfig(TRUE);
