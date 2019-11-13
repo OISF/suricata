@@ -131,6 +131,7 @@ static OutputInitResult OutputSIPLogInitSub(ConfNode *conf,
     SCLogDebug("SIP log sub-module initialized.");
 
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SIP);
 
     result.ctx = output_ctx;
     result.ok = true;

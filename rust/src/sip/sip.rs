@@ -382,7 +382,7 @@ const PARSER_NAME: &'static [u8] = b"sip\0";
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_register_parser() {
     let default_port = CString::new("5060").unwrap();
-    let parser = RustParser {
+    let mut parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: core::IPPROTO_UDP,
@@ -424,6 +424,19 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     } else {
-        SCLogDebug!("Protocol detecter and parser disabled for SIP/UDP.");
+        SCLogDebug!("Protocol detector and parser disabled for SIP/UDP.");
+    }
+
+    // register TCP parser
+    parser.ipproto = core::IPPROTO_TCP;
+    let ip_proto_str = CString::new("tcp").unwrap();
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_SIP = alproto;
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+    } else {
+        SCLogDebug!("Protocol detector and parser disabled for SIP/TCP.");
     }
 }
