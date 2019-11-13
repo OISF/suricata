@@ -33,6 +33,7 @@ typedef struct Tmq_ {
     uint16_t reader_cnt;
     uint16_t writer_cnt;
     PacketQueue *pq;
+    TAILQ_ENTRY(Tmq_) next;
 } Tmq;
 
 Tmq* TmqCreateQueue(const char *name);

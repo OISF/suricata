@@ -28,17 +28,16 @@
 #include "tm-queues.h"
 #include "util-debug.h"
 
-#define TMQ_MAX_QUEUES 256
+static TAILQ_HEAD(TmqList_, Tmq_) tmq_list = TAILQ_HEAD_INITIALIZER(tmq_list);
 
 static uint16_t tmq_id = 0;
-static Tmq tmqs[TMQ_MAX_QUEUES];
 
 Tmq *TmqCreateQueue(const char *name)
 {
-    if (tmq_id >= TMQ_MAX_QUEUES)
+    Tmq *q = SCCalloc(1, sizeof(*q));
+    if (q == NULL)
         goto error;
 
-    Tmq *q = &tmqs[tmq_id];
     q->name = SCStrdup(name);
     if (q->name == NULL)
         goto error;
@@ -50,6 +49,8 @@ Tmq *TmqCreateQueue(const char *name)
     if (q->pq == NULL)
         goto error;
 
+    TAILQ_INSERT_HEAD(&tmq_list, q, next);
+
     SCLogDebug("created queue \'%s\', %p", name, q);
     return q;
 
@@ -60,34 +61,39 @@ error:
 
 Tmq *TmqGetQueueByName(const char *name)
 {
-    for (uint16_t i = 0; i < tmq_id; i++) {
-        if (strcmp(tmqs[i].name, name) == 0)
-            return &tmqs[i];
+    Tmq *tmq = NULL;
+    TAILQ_FOREACH(tmq, &tmq_list, next) {
+        if (strcmp(tmq->name, name) == 0)
+            return tmq;
     }
     return NULL;
 }
 
 void TmqDebugList(void)
 {
-    for (int i = 0; i < tmq_id; i++) {
+    Tmq *tmq = NULL;
+    TAILQ_FOREACH(tmq, &tmq_list, next) {
         /* get a lock accessing the len */
-        SCMutexLock(&tmqs[i].pq->mutex_q);
-        printf("TmqDebugList: id %" PRIu32 ", name \'%s\', len %" PRIu32 "\n", tmqs[i].id, tmqs[i].name, tmqs[i].pq->len);
-        SCMutexUnlock(&tmqs[i].pq->mutex_q);
+        SCMutexLock(&tmq->pq->mutex_q);
+        printf("TmqDebugList: id %" PRIu32 ", name \'%s\', len %" PRIu32 "\n", tmq->id, tmq->name, tmq->pq->len);
+        SCMutexUnlock(&tmq->pq->mutex_q);
     }
 }
 
 void TmqResetQueues(void)
 {
-    for (int i = 0; i < TMQ_MAX_QUEUES; i++) {
-        if (tmqs[i].name) {
-            SCFree(tmqs[i].name);
+    Tmq *tmq;
+
+    while ((tmq = TAILQ_FIRST(&tmq_list))) {
+        TAILQ_REMOVE(&tmq_list, tmq, next);
+        if (tmq->name) {
+            SCFree(tmq->name);
         }
-        if (tmqs[i].pq) {
-            PacketQueueFree(tmqs[i].pq);
+        if (tmq->pq) {
+            PacketQueueFree(tmq->pq);
         }
+        SCFree(tmq);
     }
-    memset(&tmqs, 0x00, sizeof(tmqs));
     tmq_id = 0;
 }
 
@@ -99,16 +105,19 @@ void TmValidateQueueState(void)
 {
     bool err = false;
 
-    for (int i = 0; i < tmq_id; i++) {
-        SCMutexLock(&tmqs[i].pq->mutex_q);
-        if (tmqs[i].reader_cnt == 0) {
-            SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a reader (id %d, max %u)", tmqs[i].name, i, tmq_id);
+    Tmq *tmq = NULL;
+    TAILQ_FOREACH(tmq, &tmq_list, next) {
+        SCMutexLock(&tmq->pq->mutex_q);
+        if (tmq->reader_cnt == 0) {
+            SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a reader (id %d max %u)",
+                    tmq->name, tmq->id, tmq_id);
             err = true;
-        } else if (tmqs[i].writer_cnt == 0) {
-            SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a writer (id %d, max %u)", tmqs[i].name, i, tmq_id);
+        } else if (tmq->writer_cnt == 0) {
+            SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a writer (id %d, max %u)",
+                    tmq->name, tmq->id, tmq_id);
             err = true;
         }
-        SCMutexUnlock(&tmqs[i].pq->mutex_q);
+        SCMutexUnlock(&tmq->pq->mutex_q);
 
         if (err == true)
             goto error;
