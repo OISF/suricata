@@ -273,7 +273,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
 
         /* if the flowworker module is the first, get the threads input queue */
         if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
-            tv->stream_pq = &trans_q[tv->inq->id];
+            tv->stream_pq = tv->inq->pq;
             tv->tm_flowworker = slot;
             SCLogDebug("pre-stream packetqueue %p (inq)", tv->stream_pq);
         /* setup a queue */
@@ -398,7 +398,7 @@ static void *TmThreadsSlotPktAcqLoopAFL(void *td)
 
         /* if the flowworker module is the first, get the threads input queue */
         if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
-            tv->stream_pq = &trans_q[tv->inq->id];
+            tv->stream_pq = tv->inq->pq;
             tv->tm_flowworker = slot;
             SCLogDebug("pre-stream packetqueue %p (inq)", tv->stream_pq);
         /* setup a queue */
@@ -510,7 +510,7 @@ static void *TmThreadsSlotVar(void *td)
 
         /* if the flowworker module is the first, get the threads input queue */
         if (s == (TmSlot *)tv->tm_slots && (s->tm_id == TMM_FLOWWORKER)) {
-            tv->stream_pq = &trans_q[tv->inq->id];
+            tv->stream_pq = tv->inq->pq;
             tv->tm_flowworker = s;
             SCLogDebug("pre-stream packetqueue %p (inq)", tv->stream_pq);
         /* setup a queue */
@@ -1313,7 +1313,7 @@ static bool ThreadStillHasPackets(ThreadVars *tv)
         /* we wait till we dry out all the inq packets, before we
          * kill this thread.  Do note that you should have disabled
          * packet acquire by now using TmThreadDisableReceiveThreads()*/
-        PacketQueue *q = &trans_q[tv->inq->id];
+        PacketQueue *q = tv->inq->pq;
         SCMutexLock(&q->mutex_q);
         uint32_t len = q->len;
         SCMutexUnlock(&q->mutex_q);
@@ -1367,7 +1367,7 @@ static int TmThreadKillThread(ThreadVars *tv)
         }
         if (tv->inq != NULL) {
             for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-                SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                SCCondSignal(&tv->inq->pq->cond_q);
             }
             SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
         }
@@ -1503,7 +1503,7 @@ again:
 
             if (tv->inq != NULL) {
                 for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-                    SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                    SCCondSignal(&tv->inq->pq->cond_q);
                 }
                 SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
             }
@@ -1579,7 +1579,7 @@ again:
          * THV_KILL flag. */
         if (tv->inq != NULL) {
             for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-                SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                SCCondSignal(&tv->inq->pq->cond_q);
             }
             SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
         }
@@ -2075,7 +2075,7 @@ void TmThreadDumpThreads(void)
             const uint32_t flags = SC_ATOMIC_GET(tv->flags);
             SCLogNotice("tv %p: type %u name %s tmm_flags %02X flags %X stream_pq %p",
                     tv, tv->type, tv->name, tv->tmm_flags, flags, tv->stream_pq);
-            if (tv->inq && tv->stream_pq == &trans_q[tv->inq->id]) {
+            if (tv->inq && tv->stream_pq == tv->inq->pq) {
                 SCLogNotice("tv %p: stream_pq at tv->inq %u", tv, tv->inq->id);
             } else if (tv->stream_pq_local != NULL) {
                 for (Packet *xp = tv->stream_pq_local->top; xp != NULL; xp = xp->next) {
@@ -2287,7 +2287,7 @@ int TmThreadsInjectPacketsById(Packet **packets, const int id)
 
     /* wake up listening thread(s) if necessary */
     if (tv->inq != NULL) {
-        SCCondSignal(&trans_q[tv->inq->id].cond_q);
+        SCCondSignal(&tv->inq->pq->cond_q);
     }
     return 1;
 }
