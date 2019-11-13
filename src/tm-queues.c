@@ -36,27 +36,24 @@ Tmq *TmqCreateQueue(const char *name)
 {
     Tmq *q = SCCalloc(1, sizeof(*q));
     if (q == NULL)
-        goto error;
+        FatalError(SC_ERR_MEM_ALLOC, "SCCalloc failed");
 
     q->name = SCStrdup(name);
     if (q->name == NULL)
-        goto error;
+        FatalError(SC_ERR_MEM_ALLOC, "SCStrdup failed");
 
     q->id = tmq_id++;
     q->is_packet_pool = (strcmp(q->name, "packetpool") == 0);
-
-    q->pq = PacketQueueAlloc();
-    if (q->pq == NULL)
-        goto error;
+    if (!q->is_packet_pool) {
+        q->pq = PacketQueueAlloc();
+        if (q->pq == NULL)
+            FatalError(SC_ERR_MEM_ALLOC, "PacketQueueAlloc failed");
+    }
 
     TAILQ_INSERT_HEAD(&tmq_list, q, next);
 
     SCLogDebug("created queue \'%s\', %p", name, q);
     return q;
-
-error:
-    SCLogError(SC_ERR_THREAD_QUEUE, "thread queue setup failed for '%s'", name);
-    return NULL;
 }
 
 Tmq *TmqGetQueueByName(const char *name)
