@@ -46,7 +46,7 @@ void TmqhSimpleRegister (void)
 
 Packet *TmqhInputSimple(ThreadVars *t)
 {
-    PacketQueue *q = &trans_q[t->inq->id];
+    PacketQueue *q = t->inq->pq;
 
     StatsSyncCountersIfSignalled(t);
 
@@ -77,14 +77,14 @@ void TmqhInputSimpleShutdownHandler(ThreadVars *tv)
     }
 
     for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
-        SCCondSignal(&trans_q[tv->inq->id].cond_q);
+        SCCondSignal(&tv->inq->pq->cond_q);
 }
 
 void TmqhOutputSimple(ThreadVars *t, Packet *p)
 {
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true":"false");
 
-    PacketQueue *q = &trans_q[t->outq->id];
+    PacketQueue *q = t->outq->pq;
 
     SCMutexLock(&q->mutex_q);
     PacketEnqueue(q, p);

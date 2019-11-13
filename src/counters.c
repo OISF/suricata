@@ -499,7 +499,7 @@ static void *StatsWakeupThread(void *arg)
             tv->perf_public_ctx.perf_flag = 1;
 
             if (tv->inq != NULL) {
-                PacketQueue *q = &trans_q[tv->inq->id];
+                PacketQueue *q = tv->inq->pq;
                 SCCondSignal(&q->cond_q);
             }
 
