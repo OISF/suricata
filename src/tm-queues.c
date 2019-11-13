@@ -46,6 +46,8 @@ Tmq *TmqCreateQueue(const char *name)
     q->id = tmq_id++;
     q->is_packet_pool = (strcmp(q->name, "packetpool") == 0);
 
+    q->pq = &trans_q[q->id];
+
     SCLogDebug("created queue \'%s\', %p", name, q);
     return q;
 
@@ -67,9 +69,9 @@ void TmqDebugList(void)
 {
     for (int i = 0; i < tmq_id; i++) {
         /* get a lock accessing the len */
-        SCMutexLock(&trans_q[tmqs[i].id].mutex_q);
-        printf("TmqDebugList: id %" PRIu32 ", name \'%s\', len %" PRIu32 "\n", tmqs[i].id, tmqs[i].name, trans_q[tmqs[i].id].len);
-        SCMutexUnlock(&trans_q[tmqs[i].id].mutex_q);
+        SCMutexLock(&tmqs[i].pq->mutex_q);
+        printf("TmqDebugList: id %" PRIu32 ", name \'%s\', len %" PRIu32 "\n", tmqs[i].id, tmqs[i].name, tmqs[i].pq->len);
+        SCMutexUnlock(&tmqs[i].pq->mutex_q);
     }
 }
 
@@ -93,7 +95,7 @@ void TmValidateQueueState(void)
     bool err = false;
 
     for (int i = 0; i < tmq_id; i++) {
-        SCMutexLock(&trans_q[tmqs[i].id].mutex_q);
+        SCMutexLock(&tmqs[i].pq->mutex_q);
         if (tmqs[i].reader_cnt == 0) {
             SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a reader (id %d, max %u)", tmqs[i].name, i, tmq_id);
             err = true;
@@ -101,7 +103,7 @@ void TmValidateQueueState(void)
             SCLogError(SC_ERR_THREAD_QUEUE, "queue \"%s\" doesn't have a writer (id %d, max %u)", tmqs[i].name, i, tmq_id);
             err = true;
         }
-        SCMutexUnlock(&trans_q[tmqs[i].id].mutex_q);
+        SCMutexUnlock(&tmqs[i].pq->mutex_q);
 
         if (err == true)
             goto error;

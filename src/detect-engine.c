@@ -1731,7 +1731,7 @@ static void InjectPackets(ThreadVars **detect_tvs,
                 if (p != NULL) {
                     p->flags |= PKT_PSEUDO_STREAM_END;
                     PKT_SET_SRC(p, PKT_SRC_DETECT_RELOAD_FLUSH);
-                    PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
+                    PacketQueue *q = detect_tvs[i]->inq->pq;
                     SCMutexLock(&q->mutex_q);
                     PacketEnqueue(q, p);
                     SCCondSignal(&q->cond_q);
