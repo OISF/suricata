@@ -328,21 +328,6 @@ uint8_t print_mem_flag = 1;
 
 void GlobalsInitPreConfig(void)
 {
-    memset(trans_q, 0, sizeof(trans_q));
-
-    /* Initialize the trans_q mutex */
-    int blah;
-    int r = 0;
-    for(blah=0;blah<256;blah++) {
-        r |= SCMutexInit(&trans_q[blah].mutex_q, NULL);
-        r |= SCCondInit(&trans_q[blah].cond_q, NULL);
-   }
-
-    if (r != 0) {
-        SCLogInfo("Trans_Q Mutex not initialized correctly");
-        exit(EXIT_FAILURE);
-    }
-
     TimeInit();
     SupportFastPatternForSigMatchTypes();
     SCThresholdConfGlobalInit();

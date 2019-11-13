@@ -46,13 +46,15 @@ Tmq *TmqCreateQueue(const char *name)
     q->id = tmq_id++;
     q->is_packet_pool = (strcmp(q->name, "packetpool") == 0);
 
-    q->pq = &trans_q[q->id];
+    q->pq = PacketQueueAlloc();
+    if (q->pq == NULL)
+        goto error;
 
     SCLogDebug("created queue \'%s\', %p", name, q);
     return q;
 
 error:
-    SCLogError(SC_ERR_THREAD_QUEUE, "too many thread queues %u, max is %u", tmq_id+1, TMQ_MAX_QUEUES);
+    SCLogError(SC_ERR_THREAD_QUEUE, "thread queue setup failed for '%s'", name);
     return NULL;
 }
 
@@ -80,6 +82,9 @@ void TmqResetQueues(void)
     for (int i = 0; i < TMQ_MAX_QUEUES; i++) {
         if (tmqs[i].name) {
             SCFree(tmqs[i].name);
+        }
+        if (tmqs[i].pq) {
+            PacketQueueFree(tmqs[i].pq);
         }
     }
     memset(&tmqs, 0x00, sizeof(tmqs));
