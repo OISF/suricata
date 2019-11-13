@@ -18,7 +18,7 @@
 #ifndef __RUST_H__
 #define __RUST_H__
 
-#include "rust-prelude.h"
+#include "rust-context.h"
 #include "rust-bindings.h"
 
 #endif /* !__RUST_H__ */
