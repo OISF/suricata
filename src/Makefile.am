@@ -408,7 +408,6 @@ threads.c threads.h \
 threads-debug.h threads-profile.h \
 tm-modules.c tm-modules.h \
 tmqh-flow.c tmqh-flow.h \
-tmqh-nfq.c tmqh-nfq.h \
 tmqh-packetpool.c tmqh-packetpool.h \
 tmqh-simple.c tmqh-simple.h \
 tm-queuehandlers.c tm-queuehandlers.h \
