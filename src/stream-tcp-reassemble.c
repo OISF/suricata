@@ -82,7 +82,6 @@ SC_ATOMIC_DECLARE(uint64_t, ra_memuse);
 /* prototypes */
 TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *);
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
-void StreamTcpReassemblePseudoPacketCreate(TcpStream *, Packet *, PacketQueue *);
 
 void StreamTcpReassembleInitMemuse(void)
 {
