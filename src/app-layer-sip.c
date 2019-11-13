@@ -42,6 +42,8 @@ void RegisterSIPParsers(void)
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SIP,
         SIPParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SIP,
+        SIPParserRegisterTests);
 #endif
 }
 
