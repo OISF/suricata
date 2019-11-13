@@ -29,9 +29,7 @@
 #ifdef HAVE_NAPATECH
 #include "util-napatech.h"
 #include <nt.h>
-
-
-#endif
+#endif /* HAVE_NAPATECH */
 
 int RunModeNapatechAutoFp(void);
 int RunModeNapatechWorkers(void);
@@ -41,9 +39,8 @@ const char *RunModeNapatechGetDefaultMode(void);
 uint16_t NapatechGetNumConfiguredStreams(void);
 uint16_t NapatechGetNumFirstStream(void);
 uint16_t NapatechGetNumLastStream(void);
-
 bool NapatechIsAutoConfigEnabled(void);
-
+bool NapatechUseHWBypass(void);
 
 
 #endif /* __RUNMODE_NAPATECH_H__ */
