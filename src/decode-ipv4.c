@@ -374,100 +374,82 @@ static int DecodeIPV4Options(Packet *p, const uint8_t *pkt, uint16_t len, IPV4Op
                     if (opts->o_ts.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
-                        break;
-                    } else if (IPV4OptValidateTimestamp(p, &opt)) {
-                        return 0;
+                    } else if (IPV4OptValidateTimestamp(p, &opt) == 0) {
+                        opts->o_ts = opt;
+                        p->ip4vars.opts_set |= IPV4_OPT_FLAG_TS;
                     }
-                    opts->o_ts = opt;
-                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_TS;
                     break;
                 case IPV4_OPT_RR:
                     if (opts->o_rr.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
-                        break;
-                    } else if (IPV4OptValidateRoute(p, &opt) != 0) {
-                        return 0;
+                    } else if (IPV4OptValidateRoute(p, &opt) == 0) {
+                        opts->o_rr = opt;
+                        p->ip4vars.opts_set |= IPV4_OPT_FLAG_RR;
                     }
-                    opts->o_rr = opt;
-                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_RR;
                     break;
                 case IPV4_OPT_QS:
                     if (opts->o_qs.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
-                        break;
-                    } else if (IPV4OptValidateGeneric(p, &opt)) {
-                        return 0;
+                    } else if (IPV4OptValidateGeneric(p, &opt) == 0) {
+                        opts->o_qs = opt;
+                        p->ip4vars.opts_set |= IPV4_OPT_FLAG_QS;
                     }
-                    opts->o_qs = opt;
-                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_QS;
                     break;
                 case IPV4_OPT_SEC:
                     if (opts->o_sec.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
-                        break;
-                    } else if (IPV4OptValidateGeneric(p, &opt)) {
-                        return 0;
+                    } else if (IPV4OptValidateGeneric(p, &opt) == 0) {
+                        opts->o_sec = opt;
+                        p->ip4vars.opts_set |= IPV4_OPT_FLAG_SEC;
                     }
-                    opts->o_sec = opt;
-                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_SEC;
                     break;
                 case IPV4_OPT_LSRR:
                     if (opts->o_lsrr.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
-                        break;
-                    } else if (IPV4OptValidateRoute(p, &opt) != 0) {
-                        return 0;
+                    } else if (IPV4OptValidateRoute(p, &opt) == 0) {
+                        opts->o_lsrr = opt;
+                        p->ip4vars.opts_set |= IPV4_OPT_FLAG_LSRR;
                     }
-                    opts->o_lsrr = opt;
-                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_LSRR;
                     break;
                 case IPV4_OPT_CIPSO:
                     if (opts->o_cipso.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
-                        break;
-                    } else if (IPV4OptValidateCIPSO(p, &opt) != 0) {
-                        return 0;
+                    } else if (IPV4OptValidateCIPSO(p, &opt) == 0) {
+                        opts->o_cipso = opt;
+                        p->ip4vars.opts_set |= IPV4_OPT_FLAG_CIPSO;
                     }
-                    opts->o_cipso = opt;
-                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_CIPSO;
                     break;
                 case IPV4_OPT_SID:
                     if (opts->o_sid.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
-                        break;
-                    } else if (IPV4OptValidateGeneric(p, &opt)) {
-                        return 0;
+                    } else if (IPV4OptValidateGeneric(p, &opt) == 0) {
+                        opts->o_sid = opt;
+                        p->ip4vars.opts_set |= IPV4_OPT_FLAG_SID;
                     }
-                    opts->o_sid = opt;
-                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_SID;
                     break;
                 case IPV4_OPT_SSRR:
                     if (opts->o_ssrr.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
-                        break;
-                    } else if (IPV4OptValidateRoute(p, &opt) != 0) {
-                        return 0;
+                    } else if (IPV4OptValidateRoute(p, &opt) == 0) {
+                        opts->o_ssrr = opt;
+                        p->ip4vars.opts_set |= IPV4_OPT_FLAG_SSRR;
                     }
-                    opts->o_ssrr = opt;
-                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_SSRR;
                     break;
                 case IPV4_OPT_RTRALT:
                     if (opts->o_rtralt.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
-                        break;
-                    } else if (IPV4OptValidateGeneric(p, &opt)) {
-                        return 0;
+                    } else if (IPV4OptValidateGeneric(p, &opt) == 0) {
+                        opts->o_rtralt = opt;
+                        p->ip4vars.opts_set |= IPV4_OPT_FLAG_RTRALT;
                     }
-                    opts->o_rtralt = opt;
-                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_RTRALT;
                     break;
                 default:
                     SCLogDebug("IPV4OPT <unknown> (%" PRIu8 ") len %" PRIu8,
