@@ -120,7 +120,7 @@ Networks which experience high occurrences of anomalies may experience packet pr
 when anomaly logging is enabled.
 
 Fields
-------
+~~~~~~
 
 * "type": Either "decode", "stream" or "applayer". In rare cases, type will be "unknown".
   When this occurs, an additional field named "code" will be present. Events with type
@@ -139,7 +139,7 @@ When ``packethdr`` is enabled, the first 32 bytes of the packet are included as 
 record. This applies to events of "type" "packet" or "stream" only.
 
 Examples
---------
+~~~~~~~~
 
 ::
 
