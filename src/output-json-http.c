@@ -81,6 +81,8 @@ typedef struct JsonHttpLogThread_ {
 #define LOG_HTTP_ARRAY 4 /* require array handling */
 #define LOG_HTTP_REQ_HEADERS 8
 #define LOG_HTTP_RES_HEADERS 16
+#define LOG_HTTP_BODY 32
+#define LOG_HTTP_BODY_PRINTABLE 64
 
 typedef enum {
     HTTP_FIELD_ACCEPT = 0,
@@ -492,6 +494,20 @@ static void EveHttpLogJSON(JsonHttpLogThread *aft, JsonBuilder *js, Flow * f, ht
         EveHttpLogJSONHeaders(js, LOG_HTTP_REQ_HEADERS, tx);
     if (http_ctx->flags & LOG_HTTP_RES_HEADERS)
         EveHttpLogJSONHeaders(js, LOG_HTTP_RES_HEADERS, tx);
+    if (http_ctx->flags & LOG_HTTP_BODY) {
+        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+        if (htud != NULL) {
+            BodyBase64Buffer(js, &htud->request_body, "request_body");
+            BodyBase64Buffer(js, &htud->response_body, "response_body");
+        }
+    }
+    if (http_ctx->flags & LOG_HTTP_BODY_PRINTABLE) {
+        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+        if (htud != NULL) {
+            BodyPrintableBuffer(js, &htud->request_body, "request_body_printable");
+            BodyPrintableBuffer(js, &htud->response_body, "response_body_printable");
+        }
+    }
 
     jb_close(js);
 }
@@ -640,6 +656,19 @@ static OutputInitResult OutputHttpLogInit(ConfNode *conf)
                              all_headers);
             }
         }
+        const char *bodies = ConfNodeLookupChildValue(conf, "http-body");
+        if (bodies != NULL) {
+            if (ConfValIsTrue(bodies)) {
+                http_ctx->flags |= LOG_HTTP_BODY;
+            }
+        }
+        const char *bodiesprintable = ConfNodeLookupChildValue(
+                conf, "http-body-printable");
+        if (bodiesprintable != NULL) {
+            if (ConfValIsTrue(bodiesprintable)) {
+                http_ctx->flags |= LOG_HTTP_BODY_PRINTABLE;
+            }
+        }
     }
     http_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
     if (http_ctx->xff_cfg != NULL) {
@@ -728,6 +757,19 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
                 http_ctx->flags |= LOG_HTTP_REQ_HEADERS;
             } else if (strncmp(all_headers, "response", 8) == 0) {
                 http_ctx->flags |= LOG_HTTP_RES_HEADERS;
+            }
+        }
+        const char *bodies = ConfNodeLookupChildValue(conf, "http-body");
+        if (bodies != NULL) {
+            if (ConfValIsTrue(bodies)) {
+                http_ctx->flags |= LOG_HTTP_BODY;
+            }
+        }
+        const char *bodiesprintable = ConfNodeLookupChildValue(
+                conf, "http-body-printable");
+        if (bodiesprintable != NULL) {
+            if (ConfValIsTrue(bodiesprintable)) {
+                http_ctx->flags |= LOG_HTTP_BODY_PRINTABLE;
             }
         }
     }
