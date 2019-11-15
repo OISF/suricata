@@ -29,6 +29,7 @@
 #include "util-print.h"
 #include "util-crypt.h"     // encode base64
 #include "util-base64.h"    // decode base64
+#include "util-hash.h"    // HashFunctionDjb2
 
 #if 0
 static int StringAsAscii(const void *s, char *out, size_t out_size)
@@ -87,15 +88,14 @@ bool StringCompare(void *a, void *b)
 
 uint32_t StringHash(void *s)
 {
-    uint32_t hash = 5381;
     StringType *str = s;
-
-    for (uint32_t i = 0; i < str->len; i++) {
-        int c = str->ptr[i];
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-    }
-
-    return hash;
+#if defined(TEST_HASH_MURMUR)
+    return HashFunctionMurmur(str->ptr, str->len);
+#elif defined(TEST_HASH_CRC32)
+    return HashFunctionCRC32(str->ptr, str->len);
+#else
+    return HashFunctionDjb2(str->ptr, str->len);
+#endif
 }
 
 // base data stays in hash

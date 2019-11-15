@@ -29,6 +29,7 @@
 #include "util-print.h"
 #include "util-crypt.h"     // encode base64
 #include "util-base64.h"    // decode base64
+#include "util-hash.h"    // HashFunctionDjb2
 
 int Sha256StrSet(void *dst, void *src)
 {
@@ -50,12 +51,13 @@ bool Sha256StrCompare(void *a, void *b)
 uint32_t Sha256StrHash(void *s)
 {
     Sha256Type *str = s;
-    uint32_t hash = 5381;
-
-    for (int i = 0; i < (int)sizeof(str->sha256); i++) {
-        hash = ((hash << 5) + hash) + str->sha256[i]; /* hash * 33 + c */
-    }
-    return hash;
+#if defined(TEST_HASH_MURMUR)
+    return HashFunctionMurmur(str->sha256, sizeof(str->sha256));
+#elif defined(TEST_HASH_CRC32)
+    return HashFunctionCRC32(str->sha256, sizeof(str->sha256));
+#else
+    return HashFunctionDjb2(str->sha256, sizeof(str->sha256));
+#endif
 }
 
 // data stays in hash
