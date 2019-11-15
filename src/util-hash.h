@@ -57,5 +57,9 @@ char HashTableDefaultCompare(void *, uint16_t, void *, uint16_t);
 
 void HashTableRegisterTests(void);
 
+uint32_t HashFunctionCRC32(const uint8_t *buf, uint32_t len);
+uint32_t HashFunctionMurmur(const uint8_t *buf, uint32_t len);
+uint32_t HashFunctionDjb2(const uint8_t *buf, uint32_t len);
+
 #endif /* __HASH_H__ */
 

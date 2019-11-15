@@ -29,6 +29,7 @@
 #include "util-print.h"
 #include "util-crypt.h"     // encode base64
 #include "util-base64.h"    // decode base64
+#include "util-hash.h"    // HashFunctionDjb2
 
 int Md5StrSet(void *dst, void *src)
 {
@@ -50,12 +51,7 @@ bool Md5StrCompare(void *a, void *b)
 uint32_t Md5StrHash(void *s)
 {
     const Md5Type *str = s;
-    uint32_t hash = 5381;
-
-    for (int i = 0; i < (int)sizeof(str->md5); i++) {
-        hash = ((hash << 5) + hash) + str->md5[i]; /* hash * 33 + c */
-    }
-    return hash;
+    return HashFunctionDjb2(str->md5, sizeof(str->md5));
 }
 
 // data stays in hash
