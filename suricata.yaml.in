@@ -198,6 +198,10 @@ outputs:
             # set this value to one and only one among {both, request, response}
             # to dump all http headers for every http request and/or response
             # dump-all-headers: none
+            # Log request and response bodies with every request. This setup is
+            # recommended for forensic purpose only.
+            #http-body: yes
+            #http-body-printable: yes
         - dns:
             # This configuration uses the new DNS logging format,
             # the old configuration is still available:
