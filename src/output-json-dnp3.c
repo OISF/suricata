@@ -227,7 +227,7 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
             return TM_ECODE_OK;
         }
 
-        EveAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
+        EveAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js, buffer);
 
         jb_open_object(js, "dnp3");
         JsonDNP3LogRequest(js, tx);
@@ -255,7 +255,7 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
             return TM_ECODE_OK;
         }
 
-        EveAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
+        EveAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js, buffer);
         jb_open_object(js, "dnp3");
         JsonDNP3LogResponse(js, tx);
         jb_close(js);

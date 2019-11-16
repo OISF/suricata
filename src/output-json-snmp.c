@@ -71,7 +71,7 @@ static int JsonSNMPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    EveAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, jb);
+    EveAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, jb, thread->buffer);
 
     jb_open_object(jb, "snmp");
     if (!rs_snmp_log_json_response(jb, state, snmptx)) {

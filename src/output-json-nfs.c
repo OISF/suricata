@@ -85,7 +85,7 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     if (unlikely(jb == NULL)) {
         return TM_ECODE_OK;
     }
-    EveAddCommonOptions(&thread->ctx->cfg, p, f, jb);
+    EveAddCommonOptions(&thread->ctx->cfg, p, f, jb, thread->buffer);
 
     jb_open_object(jb, "rpc");
     rs_rpc_log_json_response(tx, jb);
