@@ -72,6 +72,10 @@
 #define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_INFO
 #define MODULE_NAME "OutputJSON"
 
+
+#define JSONLOG_JSON_PAYLOAD           BIT_U16(0)
+#define JSONLOG_JSON_PAYLOAD_BASE64    BIT_U16(1)
+
 #define MAX_JSON_SIZE 2048
 
 static void OutputJsonDeInitCtx(OutputCtx *);
@@ -387,12 +391,115 @@ static void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
     }
 }
 
+static void JsonAddPayload(json_t *js, const Packet *p, uint16_t flags)
+{
+    if (flags & JSONLOG_JSON_PAYLOAD_BASE64) {
+        unsigned long len = p->payload_len * 2 + 1;
+        uint8_t encoded[len];
+        if (Base64Encode(p->payload, p->payload_len, encoded, &len) == SC_BASE64_OK) {
+            json_object_set_new(js, "payload", json_string((char *)encoded));
+        }
+    }
+
+    if (flags & JSONLOG_JSON_PAYLOAD) {
+        uint8_t printable_buf[p->payload_len + 1];
+        uint32_t offset = 0;
+        PrintStringsToBuffer(printable_buf, &offset,
+                p->payload_len + 1,
+                p->payload, p->payload_len);
+        printable_buf[p->payload_len] = '\0';
+        json_object_set_new(js, "payload_printable", json_string((char *)printable_buf));
+    }
+}
+
+
+
+/* Callback function to pack payload contents from a stream into a buffer
+ * so we can report them in JSON output. */
+static int JsonDumpStreamSegmentCallback(const Packet *p, void *data, const uint8_t *buf, uint32_t buflen)
+{
+    MemBuffer *payload = (MemBuffer *)data;
+    MemBufferWriteRaw(payload, buf, buflen);
+
+    return 1;
+}
+
+
+static void JsonAddStreamDataOneWay(const Packet *p, const Flow *f, json_t *js,
+                                    uint8_t flags, MemBuffer *payload, uint8_t flag)
+{
+    StreamSegmentForEach((const Packet *)p, flag,
+            JsonDumpStreamSegmentCallback,
+            (void *)payload);
+    if (payload->offset) {
+        if (flags & JSONLOG_JSON_PAYLOAD_BASE64) {
+            unsigned long len = payload->offset * 2 + 1;
+            uint8_t encoded[len];
+            Base64Encode(payload->buffer, payload->offset, encoded, &len);
+            json_object_set_new(js, "payload", json_string((char *)encoded));
+        }
+
+        if (flags & JSONLOG_JSON_PAYLOAD) {
+            uint8_t printable_buf[payload->offset + 1];
+            uint32_t offset = 0;
+            PrintStringsToBuffer(printable_buf, &offset,
+                    sizeof(printable_buf),
+                    payload->buffer, payload->offset);
+            json_object_set_new(js, "payload_printable",
+                    json_string((char *)printable_buf));
+        }
+    }
+}
+
+static void JsonAddStreamData(const Packet *p, const Flow *f, json_t *js,
+                              uint8_t flags, MemBuffer *payload)
+{
+    json_t *stream_js = json_object();
+    json_t *sjs = json_object();
+    json_t *cjs = json_object();
+
+    if (!stream_js || !cjs || !sjs)
+        return;
+
+    MemBufferReset(payload);
+    JsonAddStreamDataOneWay(p, f, sjs, flags, payload, FLOW_PKT_TOSERVER);
+    MemBufferReset(payload);
+    JsonAddStreamDataOneWay(p, f, cjs, flags, payload, FLOW_PKT_TOCLIENT);
+    if (json_object_size(sjs)) {
+        json_object_set_new(stream_js, "server", sjs);
+    } else {
+        json_decref(sjs);
+    }
+    if (json_object_size(cjs)) {
+        json_object_set_new(stream_js, "client", cjs);
+    } else {
+        json_decref(cjs);
+    }
+    if (json_object_size(stream_js)) {
+        json_object_set_new(js, "stream", stream_js);
+    } else {
+        json_decref(stream_js);
+        if (p->payload_len) {
+            /* Fallback on packet payload */
+            JsonAddPayload(js, p, flags);
+        }
+    }
+    MemBufferReset(payload);
+}
+
 void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
-        const Packet *p, const Flow *f, json_t *js)
+        const Packet *p, const Flow *f, json_t *js, MemBuffer *payload)
 {
     if (cfg->include_metadata) {
         JsonAddMetadata(p, f, js);
     }
+
+    if (payload) {
+        if (cfg->include_streamdata) {
+            JsonAddStreamData(p, f, js, cfg->include_streamdata, payload);
+        }
+    }
+
     if (cfg->include_community_id && f != NULL) {
         CreateJSONCommunityFlowId(js, f, cfg->community_id_seed);
     }
@@ -1041,6 +1148,21 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                            "invalid community-id-seed: %s", cid_seed);
                 exit(EXIT_FAILURE);
             }
+        }
+
+        json_ctx->cfg.include_streamdata = 0;
+        /* Check if stream data should be logged. */
+        const ConfNode *streamdata = ConfNodeLookupChild(conf, "stream-data");
+        if (streamdata && streamdata->val && ConfValIsTrue(streamdata->val)) {
+            SCLogConfig("Enabling eve stream data logging.");
+            json_ctx->cfg.include_streamdata |= JSONLOG_JSON_PAYLOAD_BASE64;
+        }
+
+        /* Check if stream data should be logged. */
+        const ConfNode *streamdatap = ConfNodeLookupChild(conf, "stream-data-printable");
+        if (streamdatap && streamdatap->val && ConfValIsTrue(streamdatap->val)) {
+            SCLogConfig("Enabling eve stream data logging.");
+            json_ctx->cfg.include_streamdata |= JSONLOG_JSON_PAYLOAD;
         }
 
         /* Do we have a global eve xff configuration? */

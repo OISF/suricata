@@ -537,7 +537,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    JsonAddCommonOptions(&jhl->httplog_ctx->cfg, p, f, js);
+    JsonAddCommonOptions(&jhl->httplog_ctx->cfg, p, f, js, jhl->buffer);
 
     SCLogDebug("got a HTTP request and now logging !!");
 

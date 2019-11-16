@@ -71,7 +71,7 @@ static int JsonSNMPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    JsonAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, js);
+    JsonAddCommonOptions(&thread->snmplog_ctx->cfg, p, f, js, thread->buffer);
 
     snmpjs = rs_snmp_log_json_response(state, snmptx);
     if (unlikely(snmpjs == NULL)) {
