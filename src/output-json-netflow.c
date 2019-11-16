@@ -304,7 +304,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToServer(jhl, js, f);
-    JsonAddCommonOptions(&netflow_ctx->cfg, NULL, f, js);
+    JsonAddCommonOptions(&netflow_ctx->cfg, NULL, f, js, NULL);
     OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "netflow");
     json_object_clear(js);
@@ -318,7 +318,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
         JsonNetFlowLogJSONToClient(jhl, js, f);
-        JsonAddCommonOptions(&netflow_ctx->cfg, NULL, f, js);
+        JsonAddCommonOptions(&netflow_ctx->cfg, NULL, f, js, NULL);
         OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
         json_object_del(js, "netflow");
         json_object_clear(js);
