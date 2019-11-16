@@ -263,10 +263,20 @@ static void OutputFileLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
+static uint32_t OutputFileLoggerGetActiveCount(void)
+{
+    uint32_t cnt = 0;
+    for (OutputFileLogger *p = list; p != NULL; p = p->next) {
+        cnt++;
+    }
+    return cnt;
+}
+
 void OutputFileLoggerRegister(void)
 {
     OutputRegisterRootLogger(OutputFileLogThreadInit,
-        OutputFileLogThreadDeinit, OutputFileLogExitPrintStats, OutputFileLog);
+        OutputFileLogThreadDeinit, OutputFileLogExitPrintStats,
+        OutputFileLog, OutputFileLoggerGetActiveCount);
 }
 
 void OutputFileShutdown(void)

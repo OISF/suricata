@@ -531,6 +531,8 @@ void RunModeShutDown(void)
     OutputStatsShutdown();
     OutputFlowShutdown();
 
+    OutputClearActiveLoggers();
+
     /* Reset logger counts. */
     file_logger_count = 0;
     filedata_logger_count = 0;
@@ -890,6 +892,7 @@ void RunModeInitializeOutputs(void)
             AppLayerParserRegisterLoggerBits(IPPROTO_UDP, a, logger_bits[a]);
 
     }
+    OutputSetupActiveLoggers();
 }
 
 float threading_detect_ratio = 1;

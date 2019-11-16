@@ -210,11 +210,20 @@ static void OutputPacketLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
+static uint32_t OutputPacketLoggerGetActiveCount(void)
+{
+    uint32_t cnt = 0;
+    for (OutputPacketLogger *p = list; p != NULL; p = p->next) {
+        cnt++;
+    }
+    return cnt;
+}
+
 void OutputPacketLoggerRegister(void)
 {
     OutputRegisterRootLogger(OutputPacketLogThreadInit,
         OutputPacketLogThreadDeinit, OutputPacketLogExitPrintStats,
-        OutputPacketLog);
+        OutputPacketLog, OutputPacketLoggerGetActiveCount);
 }
 
 void OutputPacketShutdown(void)

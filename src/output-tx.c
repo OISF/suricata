@@ -371,10 +371,20 @@ static void OutputTxLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
+static uint32_t OutputTxLoggerGetActiveCount(void)
+{
+    uint32_t cnt = 0;
+    for (OutputTxLogger *p = list; p != NULL; p = p->next) {
+        cnt++;
+    }
+    return cnt;
+}
+
+
 void OutputTxLoggerRegister (void)
 {
     OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
-        OutputTxLogExitPrintStats, OutputTxLog);
+        OutputTxLogExitPrintStats, OutputTxLog, OutputTxLoggerGetActiveCount);
 }
 
 void OutputTxShutdown(void)
