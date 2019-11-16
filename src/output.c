@@ -929,9 +929,8 @@ TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data)
     RootLogger *logger = TAILQ_FIRST(&active_loggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
     while (logger && thread_store_node) {
-        if (logger->LogFunc != NULL) {
-            logger->LogFunc(tv, p, thread_store_node->thread_data);
-        }
+        logger->LogFunc(tv, p, thread_store_node->thread_data);
+
         logger = TAILQ_NEXT(logger, entries);
         thread_store_node = TAILQ_NEXT(thread_store_node, entries);
     }
@@ -1015,6 +1014,8 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats,
     OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc)
 {
+    BUG_ON(LogFunc == NULL);
+
     RootLogger *logger = SCCalloc(1, sizeof(*logger));
     if (logger == NULL) {
         return;
