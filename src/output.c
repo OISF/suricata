@@ -93,8 +93,9 @@ typedef struct RootLogger_ {
     TAILQ_ENTRY(RootLogger_) entries;
 } RootLogger;
 
-static TAILQ_HEAD(, RootLogger_) RootLoggers =
-    TAILQ_HEAD_INITIALIZER(RootLoggers);
+/* List of registered root loggers. */
+static TAILQ_HEAD(, RootLogger_) registered_loggers =
+    TAILQ_HEAD_INITIALIZER(registered_loggers);
 
 typedef struct LoggerThreadStoreNode_ {
     void *thread_data;
@@ -917,7 +918,7 @@ void OutputNotifyFileRotation(void) {
 TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
-    RootLogger *logger = TAILQ_FIRST(&RootLoggers);
+    RootLogger *logger = TAILQ_FIRST(&registered_loggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
     while (logger && thread_store_node) {
         if (logger->LogFunc != NULL) {
@@ -940,7 +941,7 @@ TmEcode OutputLoggerThreadInit(ThreadVars *tv, const void *initdata, void **data
     *data = (void *)thread_store;
 
     RootLogger *logger;
-    TAILQ_FOREACH(logger, &RootLoggers, entries) {
+    TAILQ_FOREACH(logger, &registered_loggers, entries) {
 
         void *child_thread_data = NULL;
         if (logger->ThreadInit != NULL) {
@@ -967,7 +968,7 @@ TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
         return TM_ECODE_FAILED;
 
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
-    RootLogger *logger = TAILQ_FIRST(&RootLoggers);
+    RootLogger *logger = TAILQ_FIRST(&registered_loggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
     while (logger && thread_store_node) {
         if (logger->ThreadDeinit != NULL) {
@@ -990,7 +991,7 @@ TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
 void OutputLoggerExitPrintStats(ThreadVars *tv, void *thread_data)
 {
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
-    RootLogger *logger = TAILQ_FIRST(&RootLoggers);
+    RootLogger *logger = TAILQ_FIRST(&registered_loggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
     while (logger && thread_store_node) {
         if (logger->ThreadExitPrintStats != NULL) {
@@ -1014,7 +1015,7 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
     logger->ThreadDeinit = ThreadDeinit;
     logger->ThreadExitPrintStats = ThreadExitPrintStats;
     logger->LogFunc = LogFunc;
-    TAILQ_INSERT_TAIL(&RootLoggers, logger, entries);
+    TAILQ_INSERT_TAIL(&registered_loggers, logger, entries);
 }
 
 void TmModuleLoggerRegister(void)
