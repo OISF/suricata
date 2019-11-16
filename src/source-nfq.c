@@ -475,7 +475,7 @@ static int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
 static void NFQReleasePacket(Packet *p)
 {
     if (unlikely(!p->nfq_v.verdicted)) {
-        PACKET_UPDATE_ACTION(p, ACTION_DROP);
+        PacketUpdateAction(p, ACTION_DROP);
         NFQSetVerdict(p);
     }
     PacketFreeOrRelease(p);
@@ -1036,7 +1036,7 @@ static inline uint32_t GetVerdict(const Packet *p)
 {
     uint32_t verdict = NF_ACCEPT;
 
-    if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+    if (PacketTestAction(p, ACTION_DROP)) {
         verdict = NF_DROP;
     } else {
         switch (nfq_config.mode) {
@@ -1058,7 +1058,7 @@ static inline uint32_t GetVerdict(const Packet *p)
 #ifdef COUNTERS
 static inline void UpdateCounters(NFQQueueVars *t, const Packet *p)
 {
-    if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+    if (PacketTestAction(p, ACTION_DROP)) {
         t->dropped++;
     } else {
         if (p->flags & PKT_STREAM_MODIFIED) {

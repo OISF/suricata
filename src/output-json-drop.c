@@ -351,7 +351,7 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
             ret = TRUE;
 
         return ret;
-    } else if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+    } else if (PacketTestAction(p, ACTION_DROP)) {
         return TRUE;
     }
 

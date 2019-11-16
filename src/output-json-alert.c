@@ -344,7 +344,7 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa,
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
-        if (PACKET_TEST_ACTION(p, (ACTION_DROP|ACTION_REJECT|
+        if (PacketTestAction(p, (ACTION_DROP|ACTION_REJECT|
                                    ACTION_REJECT_DST|ACTION_REJECT_BOTH))) {
             action = "blocked";
         }

@@ -533,7 +533,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
     IPFWpoll.events = POLLWRNORM;
 #endif
 
-    if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+    if (PacketTestAction(p, ACTION_DROP)) {
         verdict = IPFW_DROP;
     } else {
         verdict = IPFW_ACCEPT;

@@ -515,7 +515,7 @@ error:
 static TmEcode NetmapWritePacket(NetmapThreadVars *ntv, Packet *p)
 {
     if (ntv->copy_mode == NETMAP_COPY_MODE_IPS) {
-        if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+        if (PacketTestAction(p, ACTION_DROP)) {
             return TM_ECODE_OK;
         }
     }

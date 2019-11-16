@@ -483,7 +483,7 @@ static int DetectIPRepTest01(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     FAIL_IF(p->alerts.cnt != 1);
-    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
 
     UTHFreePacket(p);
 
@@ -535,7 +535,7 @@ static int DetectIPRepTest02(void)
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(p->alerts.cnt != 1);
-    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
 
     UTHFreePacket(p);
 
@@ -587,7 +587,7 @@ static int DetectIPRepTest03(void)
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(p->alerts.cnt != 1);
-    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
 
     UTHFreePacket(p);
 
@@ -640,7 +640,7 @@ static int DetectIPRepTest04(void)
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(p->alerts.cnt != 1);
-    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
 
     UTHFreePacket(p);
 
@@ -692,7 +692,7 @@ static int DetectIPRepTest05(void)
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(p->alerts.cnt != 0);
-    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
 
     UTHFreePacket(p);
 
@@ -744,7 +744,7 @@ static int DetectIPRepTest06(void)
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(p->alerts.cnt != 1);
-    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
 
     UTHFreePacket(p);
 
@@ -796,7 +796,7 @@ static int DetectIPRepTest07(void)
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(p->alerts.cnt != 1);
-    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
 
     UTHFreePacket(p);
 
@@ -849,7 +849,7 @@ static int DetectIPRepTest08(void)
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(p->alerts.cnt != 0);
-    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
 
     UTHFreePacket(p);
 
@@ -902,7 +902,7 @@ static int DetectIPRepTest09(void)
     p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(p->alerts.cnt != 1);
-    FAIL_IF(PACKET_TEST_ACTION(p, ACTION_DROP));
+    FAIL_IF(PacketTestAction(p, ACTION_DROP));
 
     UTHFreePacket(p);
 

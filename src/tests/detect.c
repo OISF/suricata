@@ -4805,7 +4805,7 @@ static int SigTestDropFlow03(void)
         goto end;
     }
 
-    if ( !(PACKET_TEST_ACTION(p2, ACTION_DROP))) {
+    if ( !(PacketTestAction(p2, ACTION_DROP))) {
         printf("A \"drop\" action should be set from the flow to the packet: ");
         goto end;
     }
@@ -4943,7 +4943,7 @@ static int SigTestDropFlow04(void)
         goto end;
     }
 
-    if (!(PACKET_TEST_ACTION(p1, ACTION_DROP))) {
+    if (!(PacketTestAction(p1, ACTION_DROP))) {
         printf("A \"drop\" action was set from the flow to the packet "
                "which is right, but setting the flag shouldn't disable "
                "inspection on the packet in IDS mode");
@@ -4988,7 +4988,7 @@ static int SigTestDropFlow04(void)
         goto end;
     }
 
-    if (!(PACKET_TEST_ACTION(p2, ACTION_DROP))) {
+    if (!(PacketTestAction(p2, ACTION_DROP))) {
         printf("A \"drop\" action was set from the flow to the packet "
                "which is right, but setting the flag shouldn't disable "
                "inspection on the packet in IDS mode");
