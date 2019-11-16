@@ -285,7 +285,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             /* set actions on packet */
             DetectSignatureApplyActions(p, p->alerts.alerts[i].s, p->alerts.alerts[i].flags);
 
-            if (PACKET_TEST_ACTION(p, ACTION_PASS)) {
+            if (PacketTestAction(p, ACTION_PASS)) {
                 /* Ok, reset the alert cnt to end in the previous of pass
                  * so we ignore the rest with less prio */
                 p->alerts.cnt = i;
@@ -293,11 +293,10 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
             /* if the signature wants to drop, check if the
              * PACKET_ALERT_FLAG_DROP_FLOW flag is set. */
-            } else if ((PACKET_TEST_ACTION(p, ACTION_DROP)) &&
-                    ((p->alerts.alerts[i].flags & PACKET_ALERT_FLAG_DROP_FLOW) ||
-                         (s->flags & SIG_FLAG_APPLAYER))
-                       && p->flow != NULL)
-            {
+            } else if ((PacketTestAction(p, ACTION_DROP)) &&
+                       ((p->alerts.alerts[i].flags & PACKET_ALERT_FLAG_DROP_FLOW) ||
+                               (s->flags & SIG_FLAG_APPLAYER)) &&
+                       p->flow != NULL) {
                 /* This will apply only on IPS mode (check StreamTcpPacket) */
                 p->flow->flags |= FLOW_ACTION_DROP; // XXX API?
             }

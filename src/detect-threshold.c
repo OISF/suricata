@@ -1045,17 +1045,17 @@ static int DetectThresholdTestSig7(void)
     TimeGet(&p->ts);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     TimeSetIncrementTime(200);
@@ -1063,17 +1063,17 @@ static int DetectThresholdTestSig7(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     if (alerts == 1 && drops == 6)
@@ -1139,17 +1139,17 @@ static int DetectThresholdTestSig8(void)
     TimeGet(&p->ts);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     TimeSetIncrementTime(200);
@@ -1157,17 +1157,17 @@ static int DetectThresholdTestSig8(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     if (alerts == 2 && drops == 6)
@@ -1233,17 +1233,17 @@ static int DetectThresholdTestSig9(void)
     TimeGet(&p->ts);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     TimeSetIncrementTime(200);
@@ -1251,17 +1251,17 @@ static int DetectThresholdTestSig9(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     if (alerts == 2 && drops == 2)
@@ -1327,17 +1327,17 @@ static int DetectThresholdTestSig10(void)
     TimeGet(&p->ts);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     TimeSetIncrementTime(200);
@@ -1345,17 +1345,17 @@ static int DetectThresholdTestSig10(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     if (alerts == 1 && drops == 1)
@@ -1421,17 +1421,17 @@ static int DetectThresholdTestSig11(void)
     TimeGet(&p->ts);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     TimeSetIncrementTime(200);
@@ -1439,17 +1439,17 @@ static int DetectThresholdTestSig11(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     if (alerts == 1 && drops == 4)
@@ -1515,17 +1515,17 @@ static int DetectThresholdTestSig12(void)
     TimeGet(&p->ts);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     TimeSetIncrementTime(200);
@@ -1533,17 +1533,17 @@ static int DetectThresholdTestSig12(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    drops += ((PACKET_TEST_ACTION(p, ACTION_DROP))?1:0);
+    drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
     if (alerts == 1 && drops == 2)

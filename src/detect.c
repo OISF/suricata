@@ -1540,7 +1540,7 @@ next:
 void DetectSignatureApplyActions(Packet *p,
         const Signature *s, const uint8_t alert_flags)
 {
-    PACKET_UPDATE_ACTION(p, s->action);
+    PacketUpdateAction(p, s->action);
 
     if (s->action & ACTION_DROP) {
         if (p->alerts.drop.action == 0) {
@@ -1601,9 +1601,7 @@ static void DetectNoFlow(ThreadVars *tv,
                          Packet *p)
 {
     /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if ((p->flags & PKT_NOPACKET_INSPECTION) ||
-        (PACKET_TEST_ACTION(p, ACTION_DROP)))
-    {
+    if ((p->flags & PKT_NOPACKET_INSPECTION) || (PacketTestAction(p, ACTION_DROP))) {
         return;
     }
 
