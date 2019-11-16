@@ -71,7 +71,7 @@ static int JsonIKEv2Logger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    EveAddCommonOptions(&thread->ikev2log_ctx->cfg, p, f, jb);
+    EveAddCommonOptions(&thread->ikev2log_ctx->cfg, p, f, jb, thread->buffer);
 
     jb_open_object(jb, "ikev2");
     if (unlikely(!rs_ikev2_log_json_response(state, ikev2tx, jb))) {
