@@ -91,6 +91,7 @@ typedef struct OutputJsonCommonSettings_ {
     bool include_metadata;
     bool include_community_id;
     bool include_ethernet;
+    uint16_t include_streamdata;
     uint16_t community_id_seed;
 } OutputJsonCommonSettings;
 
@@ -115,6 +116,6 @@ json_t *SCJsonString(const char *val);
 void SCJsonDecref(json_t *js);
 
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
-        const Packet *p, const Flow *f, JsonBuilder *js);
+        const Packet *p, const Flow *f, JsonBuilder *js, MemBuffer *payload);
 
 #endif /* __OUTPUT_JSON_H__ */

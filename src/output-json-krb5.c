@@ -71,7 +71,7 @@ static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    EveAddCommonOptions(&thread->krb5log_ctx->cfg, p, f, jb);
+    EveAddCommonOptions(&thread->krb5log_ctx->cfg, p, f, jb, thread->buffer);
 
     jb_open_object(jb, "krb5");
     if (!rs_krb5_log_json_response(jb, state, krb5tx)) {

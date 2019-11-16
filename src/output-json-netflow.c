@@ -287,7 +287,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     if (unlikely(jb == NULL))
         return TM_ECODE_OK;
     NetFlowLogEveToServer(jhl, jb, f);
-    EveAddCommonOptions(&netflow_ctx->cfg, NULL, f, jb);
+    EveAddCommonOptions(&netflow_ctx->cfg, NULL, f, jb, NULL);
     OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
     jb_free(jb);
 
@@ -299,7 +299,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
         NetFlowLogEveToClient(jhl, jb, f);
-        EveAddCommonOptions(&netflow_ctx->cfg, NULL, f, jb);
+        EveAddCommonOptions(&netflow_ctx->cfg, NULL, f, jb, NULL);
         OutputJsonBuilderBuffer(jb, jhl->file_ctx, &jhl->buffer);
         jb_free(jb);
     }
