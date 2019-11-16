@@ -864,11 +864,14 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
  * handle the case of a root packet
  * for tunnels */
 
-#define PACKET_SET_ACTION(p, a) do { \
-    ((p)->root ? \
-     ((p)->root->action = a) : \
-     ((p)->action = a)); \
-} while (0)
+static inline void PACKET_SET_ACTION(Packet *p, const uint8_t a)
+{
+    if (likely(p->root == NULL)) {
+        p->action = a;
+    } else {
+        p->root->action = a;
+    }
+}
 
 #define PACKET_ALERT(p) PACKET_SET_ACTION(p, ACTION_ALERT)
 
@@ -884,16 +887,23 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
 
 #define PACKET_PASS(p) PACKET_SET_ACTION(p, ACTION_PASS)
 
-#define PACKET_TEST_ACTION(p, a) \
-    ((p)->root ? \
-     ((p)->root->action & a) : \
-     ((p)->action & a))
+static inline uint8_t PACKET_TEST_ACTION(const Packet *p, const uint8_t a)
+{
+    if (likely(p->root == NULL)) {
+        return p->action & a;
+    } else {
+        return p->root->action & a;
+    }
+}
 
-#define PACKET_UPDATE_ACTION(p, a) do { \
-    ((p)->root ? \
-     ((p)->root->action |= a) : \
-     ((p)->action |= a)); \
-} while (0)
+static inline void PACKET_UPDATE_ACTION(Packet *p, const uint8_t a)
+{
+    if (likely(p->root == NULL)) {
+        p->action |= a;
+    } else {
+        p->root->action |= a;
+    }
+}
 
 #define TUNNEL_INCR_PKT_RTV_NOLOCK(p) do {                                          \
         ((p)->root ? (p)->root->tunnel_rtv_cnt++ : (p)->tunnel_rtv_cnt++);          \
