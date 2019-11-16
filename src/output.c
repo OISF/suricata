@@ -85,17 +85,25 @@
 #include "output-filestore.h"
 
 typedef struct RootLogger_ {
+    OutputLogFunc LogFunc;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
     ThreadExitPrintStatsFunc ThreadExitPrintStats;
-    OutputLogFunc LogFunc;
+    OutputGetActiveCountFunc ActiveCntFunc;
 
     TAILQ_ENTRY(RootLogger_) entries;
 } RootLogger;
 
-/* List of registered root loggers. */
+/* List of registered root loggers. These are registered at start up and
+ * are independent of configuration. Later we will build a list of active
+ * loggers based on configuration. */
 static TAILQ_HEAD(, RootLogger_) registered_loggers =
     TAILQ_HEAD_INITIALIZER(registered_loggers);
+
+/* List of active root loggers. This means that at least one logger is enabled
+ * for each root logger type in the config. */
+static TAILQ_HEAD(, RootLogger_) active_loggers =
+    TAILQ_HEAD_INITIALIZER(active_loggers);
 
 typedef struct LoggerThreadStoreNode_ {
     void *thread_data;
@@ -918,7 +926,7 @@ void OutputNotifyFileRotation(void) {
 TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
-    RootLogger *logger = TAILQ_FIRST(&registered_loggers);
+    RootLogger *logger = TAILQ_FIRST(&active_loggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
     while (logger && thread_store_node) {
         if (logger->LogFunc != NULL) {
@@ -941,7 +949,7 @@ TmEcode OutputLoggerThreadInit(ThreadVars *tv, const void *initdata, void **data
     *data = (void *)thread_store;
 
     RootLogger *logger;
-    TAILQ_FOREACH(logger, &registered_loggers, entries) {
+    TAILQ_FOREACH(logger, &active_loggers, entries) {
 
         void *child_thread_data = NULL;
         if (logger->ThreadInit != NULL) {
@@ -968,7 +976,7 @@ TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
         return TM_ECODE_FAILED;
 
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
-    RootLogger *logger = TAILQ_FIRST(&registered_loggers);
+    RootLogger *logger = TAILQ_FIRST(&active_loggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
     while (logger && thread_store_node) {
         if (logger->ThreadDeinit != NULL) {
@@ -991,7 +999,7 @@ TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
 void OutputLoggerExitPrintStats(ThreadVars *tv, void *thread_data)
 {
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
-    RootLogger *logger = TAILQ_FIRST(&registered_loggers);
+    RootLogger *logger = TAILQ_FIRST(&active_loggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
     while (logger && thread_store_node) {
         if (logger->ThreadExitPrintStats != NULL) {
@@ -1005,7 +1013,7 @@ void OutputLoggerExitPrintStats(ThreadVars *tv, void *thread_data)
 void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
     ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats,
-    OutputLogFunc LogFunc)
+    OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc)
 {
     RootLogger *logger = SCCalloc(1, sizeof(*logger));
     if (logger == NULL) {
@@ -1015,7 +1023,44 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
     logger->ThreadDeinit = ThreadDeinit;
     logger->ThreadExitPrintStats = ThreadExitPrintStats;
     logger->LogFunc = LogFunc;
+    logger->ActiveCntFunc = ActiveCntFunc;
     TAILQ_INSERT_TAIL(&registered_loggers, logger, entries);
+}
+
+static void OutputRegisterActiveLogger(RootLogger *reg)
+{
+    RootLogger *logger = SCCalloc(1, sizeof(*logger));
+    if (logger == NULL) {
+        return;
+    }
+    logger->ThreadInit = reg->ThreadInit;
+    logger->ThreadDeinit = reg->ThreadDeinit;
+    logger->ThreadExitPrintStats = reg->ThreadExitPrintStats;
+    logger->LogFunc = reg->LogFunc;
+    logger->ActiveCntFunc = reg->ActiveCntFunc;
+    TAILQ_INSERT_TAIL(&active_loggers, logger, entries);
+}
+
+void OutputSetupActiveLoggers(void)
+{
+    RootLogger *logger = TAILQ_FIRST(&registered_loggers);
+    while (logger) {
+        uint32_t cnt = logger->ActiveCntFunc();
+        if (cnt) {
+            OutputRegisterActiveLogger(logger);
+        }
+
+        logger = TAILQ_NEXT(logger, entries);
+    }
+}
+
+void OutputClearActiveLoggers(void)
+{
+    RootLogger *logger;
+    while ((logger = TAILQ_FIRST(&active_loggers)) != NULL) {
+        TAILQ_REMOVE(&active_loggers, logger, entries);
+        SCFree(logger);
+    }
 }
 
 void TmModuleLoggerRegister(void)

@@ -435,11 +435,20 @@ static void OutputFiledataLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
+static uint32_t OutputFiledataLoggerGetActiveCount(void)
+{
+    uint32_t cnt = 0;
+    for (OutputFiledataLogger *p = list; p != NULL; p = p->next) {
+        cnt++;
+    }
+    return cnt;
+}
+
 void OutputFiledataLoggerRegister(void)
 {
     OutputRegisterRootLogger(OutputFiledataLogThreadInit,
         OutputFiledataLogThreadDeinit, OutputFiledataLogExitPrintStats,
-        OutputFiledataLog);
+        OutputFiledataLog, OutputFiledataLoggerGetActiveCount);
     SC_ATOMIC_INIT(g_file_store_id);
 }
 
