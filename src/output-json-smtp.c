@@ -79,7 +79,7 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     JsonBuilder *jb = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "smtp", NULL, tx_id);
     if (unlikely(jb == NULL))
         return TM_ECODE_OK;
-    EveAddCommonOptions(&jhl->emaillog_ctx->cfg, p, f, jb);
+    EveAddCommonOptions(&jhl->emaillog_ctx->cfg, p, f, jb, jhl->buffer);
 
     /* reset */
     MemBufferReset(jhl->buffer);

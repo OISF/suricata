@@ -460,7 +460,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "alert", &addr);
         if (unlikely(jb == NULL))
             return TM_ECODE_OK;
-        EveAddCommonOptions(&json_output_ctx->cfg, p, p->flow, jb);
+        EveAddCommonOptions(&json_output_ctx->cfg, p, p->flow, jb, NULL);
 
         MemBufferReset(aft->json_buffer);
 

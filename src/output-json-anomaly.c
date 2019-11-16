@@ -115,7 +115,8 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
         if (!is_ip_pkt) {
             jb_set_string(js, "timestamp", timebuf);
         } else {
-            EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+            EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js,
+                                aft->json_buffer);
         }
 
         if (event_code < DECODE_EVENT_MAX) {
@@ -168,7 +169,7 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
             return TM_ECODE_OK;
         }
 
-        EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+        EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js, aft->json_buffer);
 
         jb_open_object(js, ANOMALY_EVENT_TYPE);
 

@@ -410,7 +410,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    EveAddCommonOptions(&tls_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&tls_ctx->cfg, p, f, js, aft->buffer);
 
     jb_open_object(js, "tls");
 

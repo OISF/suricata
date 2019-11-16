@@ -80,7 +80,7 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
     if (unlikely(js == NULL)) {
         return TM_ECODE_OK;
     }
-    EveAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js, thread->buffer);
 
     if (!rs_sip_log_json(siptx, js)) {
         goto error;

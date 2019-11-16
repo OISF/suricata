@@ -322,7 +322,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
-        EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
+        EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb, td->buffer);
 
         jb_open_object(jb, "dns");
         if (!rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags, jb)) {
@@ -357,7 +357,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             if (unlikely(jb == NULL)) {
                 return TM_ECODE_OK;
             }
-            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
+            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb, td->buffer);
 
             jb_open_object(jb, "dns");
             rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
@@ -373,7 +373,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             if (unlikely(jb == NULL)) {
                 return TM_ECODE_OK;
             }
-            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
+            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb, td->buffer);
 
             JsonBuilder *answer = rs_dns_log_json_answer_v1(txptr, i,
                     td->dnslog_ctx->flags);
@@ -393,7 +393,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             if (unlikely(jb == NULL)) {
                 return TM_ECODE_OK;
             }
-            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
+            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb, td->buffer);
 
             JsonBuilder *answer = rs_dns_log_json_authority_v1(txptr, i,
                     td->dnslog_ctx->flags);

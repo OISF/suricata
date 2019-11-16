@@ -98,6 +98,7 @@ TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
 typedef struct OutputJsonCommonSettings_ {
     bool include_metadata;
     bool include_community_id;
+    uint16_t include_streamdata;
     uint16_t community_id_seed;
 } OutputJsonCommonSettings;
 
@@ -122,8 +123,8 @@ json_t *JsonAddStringN(const char *string, size_t size);
 void SCJsonDecref(json_t *js);
 
 void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
-        const Packet *p, const Flow *f, json_t *js);
+        const Packet *p, const Flow *f, json_t *js, MemBuffer *payload);
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
-        const Packet *p, const Flow *f, JsonBuilder *js);
+        const Packet *p, const Flow *f, JsonBuilder *js, MemBuffer *payload);
 
 #endif /* __OUTPUT_JSON_H__ */
