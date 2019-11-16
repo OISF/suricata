@@ -120,7 +120,8 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
         if (!is_ip_pkt) {
             json_object_set_new(js, "timestamp", json_string(timebuf));
         } else {
-            JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+            JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js,
+                                 aft->json_buffer);
         }
 
         if (aft->json_output_ctx->flags & LOG_JSON_PACKETHDR) {
@@ -180,7 +181,7 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
             return TM_ECODE_OK;
         }
 
-        JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+        JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js, aft->json_buffer);
 
         json_object_set_new(js, "app_proto", json_string(alprotoname));
 

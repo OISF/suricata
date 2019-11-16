@@ -313,7 +313,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
-        JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
+        JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js, td->buffer);
 
         json_t *dns = rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags);
         if (unlikely(dns == NULL)) {
@@ -345,7 +345,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
+    JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js, td->buffer);
 
     if (td->dnslog_ctx->version == DNS_VERSION_2) {
         json_t *answer = rs_dns_log_json_answer(txptr,

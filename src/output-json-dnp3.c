@@ -307,14 +307,14 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
 
     MemBuffer *buffer = (MemBuffer *)thread->buffer;
 
-    MemBufferReset(buffer);
     if (tx->has_request && tx->request_done) {
         json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "dnp3");
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        JsonAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
+        JsonAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js, buffer);
+        MemBufferReset(buffer);
 
         json_t *dnp3js = JsonDNP3LogRequest(tx);
         if (dnp3js != NULL) {
@@ -336,14 +336,14 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
 
     MemBuffer *buffer = (MemBuffer *)thread->buffer;
 
-    MemBufferReset(buffer);
     if (tx->has_response && tx->response_done) {
         json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "dnp3");
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        JsonAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js);
+        JsonAddCommonOptions(&thread->dnp3log_ctx->cfg, p, f, js, buffer);
+        MemBufferReset(buffer);
 
         json_t *dnp3js = JsonDNP3LogResponse(tx);
         if (dnp3js != NULL) {

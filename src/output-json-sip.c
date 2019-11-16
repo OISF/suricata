@@ -85,7 +85,7 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    JsonAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js);
+    JsonAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js, thread->buffer);
 
     sipjs = rs_sip_log_json(state, siptx);
     if (unlikely(sipjs == NULL)) {

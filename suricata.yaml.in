@@ -107,6 +107,9 @@ outputs:
 
       # Include top level metadata. Default yes.
       #metadata: no
+      # Include stream data in application layer events
+      #stream-data: yes
+      #stream-data-printable: yes
 
       # include the name of the input pcap file in pcap file processing mode
       pcap-file: false
