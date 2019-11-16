@@ -85,7 +85,7 @@ static int MetadataJson(ThreadVars *tv, JsonMetadataLogThread *aft, const Packet
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+    JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js, NULL);
     OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
     json_object_del(js, "metadata");
     json_object_clear(js);

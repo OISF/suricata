@@ -90,10 +90,10 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
+    JsonAddCommonOptions(&jhl->emaillog_ctx->cfg, p, f, js, jhl->buffer);
+
     /* reset */
     MemBufferReset(jhl->buffer);
-
-    JsonAddCommonOptions(&jhl->emaillog_ctx->cfg, p, f, js);
 
     json_t *sjs = JsonSmtpDataLogger(f, state, tx, tx_id);
     if (sjs) {

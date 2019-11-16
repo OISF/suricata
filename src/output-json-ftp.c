@@ -161,7 +161,7 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
 
     json_t *js = CreateJSONHeaderWithTxId(p, LOG_DIR_FLOW, event_type, tx_id);
     if (likely(js)) {
-        JsonAddCommonOptions(&ftp_ctx->cfg, p, f, js);
+        JsonAddCommonOptions(&ftp_ctx->cfg, p, f, js, thread->buffer);
         json_t *cjs = NULL;
         if (f->alproto == ALPROTO_FTPDATA) {
             cjs = JsonFTPDataAddMetadata(f);

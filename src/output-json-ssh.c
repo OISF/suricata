@@ -107,7 +107,7 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     if (unlikely(js == NULL))
         return 0;
 
-    JsonAddCommonOptions(&ssh_ctx->cfg, p, f, js);
+    JsonAddCommonOptions(&ssh_ctx->cfg, p, f, js, aft->buffer);
 
     json_t *tjs = json_object();
     if (tjs == NULL) {
