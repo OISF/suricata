@@ -890,6 +890,7 @@ void RunModeInitializeOutputs(void)
             AppLayerParserRegisterLoggerBits(IPPROTO_UDP, a, logger_bits[a]);
 
     }
+    OutputSetupActiveLoggers();
 }
 
 float threading_detect_ratio = 1;

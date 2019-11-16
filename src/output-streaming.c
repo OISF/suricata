@@ -448,10 +448,19 @@ static void OutputStreamingLogExitPrintStats(ThreadVars *tv, void *thread_data) 
     }
 }
 
+static uint32_t OutputStreamingLoggerGetActiveCount(void)
+{
+    uint32_t cnt = 0;
+    for (OutputStreamingLogger *p = list; p != NULL; p = p->next) {
+        cnt++;
+    }
+    return cnt;
+}
+
 void OutputStreamingLoggerRegister(void) {
     OutputRegisterRootLogger(OutputStreamingLogThreadInit,
         OutputStreamingLogThreadDeinit, OutputStreamingLogExitPrintStats,
-        OutputStreamingLog);
+        OutputStreamingLog, OutputStreamingLoggerGetActiveCount);
 }
 
 void OutputStreamingShutdown(void)

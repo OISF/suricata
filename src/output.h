@@ -46,6 +46,7 @@ typedef struct OutputInitResult_ {
 typedef OutputInitResult (*OutputInitFunc)(ConfNode *);
 typedef OutputInitResult (*OutputInitSubFunc)(ConfNode *, OutputCtx *);
 typedef TmEcode (*OutputLogFunc)(ThreadVars *, Packet *, void *);
+typedef uint32_t (*OutputGetActiveCountFunc)(void);
 
 typedef struct OutputModule_ {
     LoggerId logger_id;
@@ -196,12 +197,14 @@ void OutputNotifyFileRotation(void);
 void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
     ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats,
-    OutputLogFunc LogFunc);
+    OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc);
 void TmModuleLoggerRegister(void);
 
 TmEcode OutputLoggerLog(ThreadVars *, Packet *, void *);
 TmEcode OutputLoggerThreadInit(ThreadVars *, const void *, void **);
 TmEcode OutputLoggerThreadDeinit(ThreadVars *, void *);
 void OutputLoggerExitPrintStats(ThreadVars *, void *);
+
+void OutputSetupActiveLoggers(void);
 
 #endif /* ! __OUTPUT_H__ */
