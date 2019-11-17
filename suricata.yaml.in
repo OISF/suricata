@@ -45,6 +45,7 @@ vars:
     FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
     FTP_PORTS: 21
     VXLAN_PORTS: 4789
+    SIP_PORTS: 5060
 
 ##
 ## Step 2: select outputs to enable
