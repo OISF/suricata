@@ -62,6 +62,7 @@ Metadata::
             #packet: yes              # enable dumping of packet (without stream segments)
             #http-body: yes           # Requires metadata; enable dumping of http body in Base64
             #http-body-printable: yes # Requires metadata; enable dumping of http body in printable format
+            #http-headers: yes        # Requires metadata; enable dumping of http headers
 
             # metadata:
 
@@ -140,6 +141,10 @@ Config::
         # set this value to one among {both, request, response} to dump all
         # http headers for every http request and/or response
         # dump-all-headers: [both, request, response]
+        # Log request and response bodies with every request. This setup is
+        # recommended for forensic purpose only.
+        # http-body: yes
+        # http-body-printable: yes
 
 List of custom fields:
 
@@ -473,4 +478,42 @@ YAML::
       community-id-seed: 0
 
 
+Stream data
+~~~~~~~~~~~
+
+It is possible to include stream data in application layer events
+
+YAML::
+
+  
+  - eve-log:
+      # ....
+      stream-data: yes # log data as base64
+      stream-data-printable: yes # log printable data
+
 .. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/
+
+
+Conditional verbosity
+~~~~~~~~~~~~~~~~~~~~~
+
+Flows with alerts contains often interesting data and information. It is possible to use the ``full-log-alerted``
+option to increase the verbosity of log on flows with alerts. If activated, protocols like HTTP and TLS will have
+verbose logging if ever the flow has alerts.
+
+For TLS, extended logging is activated for flows with alerts. For HTTP, extended
+logging is activated, full headers are dumped and HTTP body is added.
+
+
+YAML::
+
+  - eve-log:
+      # ....
+      full-log-alerted: printable # log printable data
+
+Possible value of the option are:
+
+- ``no``: to disable the option (default value)
+- ``base64``: to log raw data in base64
+- ``printable``: to log raw data in printable format
+- ``both``: to log raw data in printable and base64 format
