@@ -51,7 +51,7 @@ pub enum Method {
 
 #[inline]
 fn is_token_char(b: u8) -> bool {
-    is_alphanumeric(b) || b"!%'*+-._`".contains(&b)
+    is_alphanumeric(b) || b"!%'*+-._;=`".contains(&b)
 }
 
 #[inline]
