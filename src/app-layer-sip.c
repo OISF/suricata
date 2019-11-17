@@ -40,7 +40,7 @@ void RegisterSIPParsers(void)
     rs_sip_register_parser();
 
 #ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SIP,
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_SIP,
         SIPParserRegisterTests);
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SIP,
         SIPParserRegisterTests);
