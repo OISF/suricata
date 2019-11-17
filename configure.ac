@@ -700,13 +700,10 @@
        AC_MSG_CHECKING(for PCRE JIT support usability)
        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]],
            [[
-           const char* regexstr = "(a|b|c|d)";
-           pcre *re;
            const char *error;
-           pcre_extra *extra;
            int err_offset;
-           re = pcre_compile(regexstr,0, &error, &err_offset,NULL);
-           extra = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
+           pcre *re = pcre_compile("(a|b|c|d)",0, &error, &err_offset,NULL);
+           pcre_extra *extra = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
            if (extra == NULL)
                exit(EXIT_FAILURE);
            int jit = 0;
@@ -725,6 +722,39 @@
            exit 1
        else
            AC_MSG_RESULT(yes)
+       fi
+    else
+        AC_MSG_RESULT(no)
+    fi
+
+    if test "x$pcre_jit_works" = "xyes"; then
+
+       AC_MSG_CHECKING(for PCRE JIT EXEC support usability)
+       AC_RUN_IFELSE([AC_LANG_PROGRAM([[
+                          #include <pcre.h>
+                          #include <string.h>
+                          ]],
+           [[
+           const char *error;
+           int err_offset;
+           pcre *re = pcre_compile("(a|b|c|d)", 0, &error, &err_offset,NULL);
+           pcre_extra *study = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
+           if (study == NULL)
+               exit(EXIT_FAILURE);
+           pcre_jit_stack *stack = pcre_jit_stack_alloc(32*1024,40*1024);
+           if (stack == 0)
+               exit(EXIT_FAILURE);
+           int ret = pcre_jit_exec(re, study, "apple", 5, 0, 0, NULL, 0, stack);
+           if (ret != 0)
+               exit(EXIT_FAILURE);
+           exit(EXIT_SUCCESS);
+           ]])],[ pcre_jit_exec_works=yes ],[:]
+       )
+       if test "x$pcre_jit_exec_works" != "xyes"; then
+           AC_MSG_RESULT(no)
+       else
+           AC_MSG_RESULT(yes)
+           AC_DEFINE([PCRE_HAVE_JIT_EXEC], [1], [Pcre with JIT compiler support enabled supporting pcre_jit_exec])
        fi
     else
         AC_MSG_RESULT(no)
