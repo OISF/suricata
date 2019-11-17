@@ -40,7 +40,7 @@ typedef struct OutputLoggerThreadStore_ {
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
 typedef struct OutputLoggerThreadData_ {
-    OutputLoggerThreadStore *store;
+    OutputLoggerThreadStore *store[ALPROTO_MAX];
 } OutputLoggerThreadData;
 
 /* logger instance, a module + a output ctx,
@@ -62,7 +62,7 @@ typedef struct OutputTxLogger_ {
     void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputTxLogger;
 
-static OutputTxLogger *list = NULL;
+static OutputTxLogger *list[ALPROTO_MAX] = { NULL };
 
 int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            TxLogger LogFunc,
@@ -113,11 +113,11 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
         op->ts_log_progress = ts_log_progress;
     }
 
-    if (list == NULL) {
+    if (list[alproto] == NULL) {
         op->id = 1;
-        list = op;
+        list[alproto] = op;
     } else {
-        OutputTxLogger *t = list;
+        OutputTxLogger *t = list[alproto];
         while (t->next)
             t = t->next;
         if (t->id * 2 > UINT32_MAX) {
@@ -132,22 +132,52 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
     return 0;
 }
 
+static void OutputTxLogList0(ThreadVars *tv,
+        OutputLoggerThreadData *op_thread_data,
+        Packet *p, Flow *f, void *tx, const uint64_t tx_id)
+{
+    const OutputTxLogger *logger = list[ALPROTO_UNKNOWN];
+    const OutputLoggerThreadStore *store = op_thread_data->store[ALPROTO_UNKNOWN];
+
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+    DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store == NULL);
+
+    while (logger && store) {
+        DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
+
+        SCLogDebug("logger %p", logger);
+
+        /* always invoke "wild card" tx loggers */
+        SCLogDebug("Logging tx_id %"PRIu64" to logger %d", tx_id, logger->logger_id);
+        PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
+        logger->LogFunc(tv, store->thread_data, p, f, f->alstate, tx, tx_id);
+        PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
+
+        logger = logger->next;
+        store = store->next;
+
+        DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+        DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+    }
+}
+
 static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
     if (p->flow == NULL)
         return TM_ECODE_OK;
 
-    if (list == NULL) {
-        /* No child loggers registered. */
-        return TM_ECODE_OK;
-    }
-
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
 
     Flow * const f = p->flow;
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
+
+    if (list[alproto] == NULL && list[ALPROTO_UNKNOWN] == NULL) {
+        /* No child loggers registered. */
+        return TM_ECODE_OK;
+    }
 
     if (AppLayerParserProtocolHasLogger(p->proto, alproto) == 0)
         goto end;
@@ -180,6 +210,12 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         void * const tx = ires.tx_ptr;
         tx_id = ires.tx_id;
 
+        if (list[ALPROTO_UNKNOWN] != 0) {
+            OutputTxLogList0(tv, op_thread_data, p, f, tx, tx_id);
+            if (list[alproto] == NULL)
+                goto next_tx;
+        }
+
         LoggerId tx_logged = AppLayerParserGetTxLogged(f, alstate, tx);
         const LoggerId tx_logged_old = tx_logged;
         SCLogDebug("logger: expect %08x, have %08x", logger_expectation, tx_logged);
@@ -195,8 +231,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCLogDebug("tx_progress_ts %d tx_progress_tc %d",
                 tx_progress_ts, tx_progress_tc);
 
-        const OutputTxLogger *logger = list;
-        const OutputLoggerThreadStore *store = op_thread_data->store;
+        const OutputTxLogger *logger = list[alproto];
+        const OutputLoggerThreadStore *store = op_thread_data->store[alproto];
 
         DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
         DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
@@ -204,15 +240,12 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 
         while (logger && store) {
             DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
+            DEBUG_VALIDATE_BUG_ON(logger->alproto == alproto);
 
             SCLogDebug("logger %p, Alproto %d LogCondition %p, ts_log_progress %d "
                     "tc_log_progress %d", logger, logger->alproto, logger->LogCondition,
                     logger->ts_log_progress, logger->tc_log_progress);
-            /* always invoke "wild card" tx loggers */
-            if (logger->alproto == ALPROTO_UNKNOWN ||
-                (logger->alproto == alproto &&
-                 (tx_logged_old & (1<<logger->logger_id)) == 0)) {
-
+            if ((tx_logged_old & (1<<logger->logger_id)) == 0) {
                 SCLogDebug("alproto match %d, logging tx_id %"PRIu64, logger->alproto, tx_id);
 
                 if (!(AppLayerParserStateIssetFlag(f->alparser,
@@ -241,9 +274,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
                 PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
 
-                if (logger->alproto != ALPROTO_UNKNOWN) {
-                    tx_logged |= (1<<logger->logger_id);
-                }
+                tx_logged |= (1<<logger->logger_id);
             }
 
 next_logger:
@@ -303,52 +334,56 @@ static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *initdata, void 
     *data = (void *)td;
     SCLogDebug("OutputTxLogThreadInit happy (*data %p)", *data);
 
-    OutputTxLogger *logger = list;
-    while (logger) {
-        if (logger->ThreadInit) {
-            void *retptr = NULL;
-            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
-                OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
-/* todo */      BUG_ON(ts == NULL);
-                memset(ts, 0x00, sizeof(*ts));
+    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        OutputTxLogger *logger = list[alproto];
+        while (logger) {
+            if (logger->ThreadInit) {
+                void *retptr = NULL;
+                if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+                    OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
+    /* todo */      BUG_ON(ts == NULL);
+                    memset(ts, 0x00, sizeof(*ts));
 
-                /* store thread handle */
-                ts->thread_data = retptr;
+                    /* store thread handle */
+                    ts->thread_data = retptr;
 
-                if (td->store == NULL) {
-                    td->store = ts;
-                } else {
-                    OutputLoggerThreadStore *tmp = td->store;
-                    while (tmp->next != NULL)
-                        tmp = tmp->next;
-                    tmp->next = ts;
+                    if (td->store[alproto] == NULL) {
+                        td->store[alproto] = ts;
+                    } else {
+                        OutputLoggerThreadStore *tmp = td->store[alproto];
+                        while (tmp->next != NULL)
+                            tmp = tmp->next;
+                        tmp->next = ts;
+                    }
+
+                    SCLogDebug("%s is now set up", logger->name);
                 }
-
-                SCLogDebug("%s is now set up", logger->name);
             }
+
+            logger = logger->next;
         }
-
-        logger = logger->next;
     }
-
     return TM_ECODE_OK;
 }
 
 static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
 {
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputTxLogger *logger = list;
 
-    while (logger && store) {
-        if (logger->ThreadDeinit) {
-            logger->ThreadDeinit(tv, store->thread_data);
+    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        OutputLoggerThreadStore *store = op_thread_data->store[alproto];
+        OutputTxLogger *logger = list[alproto];
+
+        while (logger && store) {
+            if (logger->ThreadDeinit) {
+                logger->ThreadDeinit(tv, store->thread_data);
+            }
+
+            OutputLoggerThreadStore *next_store = store->next;
+            SCFree(store);
+            store = next_store;
+            logger = logger->next;
         }
-
-        OutputLoggerThreadStore *next_store = store->next;
-        SCFree(store);
-        store = next_store;
-        logger = logger->next;
     }
 
     SCFree(op_thread_data);
@@ -358,24 +393,29 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
 static void OutputTxLogExitPrintStats(ThreadVars *tv, void *thread_data)
 {
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputTxLogger *logger = list;
 
-    while (logger && store) {
-        if (logger->ThreadExitPrintStats) {
-            logger->ThreadExitPrintStats(tv, store->thread_data);
+    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        OutputLoggerThreadStore *store = op_thread_data->store[alproto];
+        OutputTxLogger *logger = list[alproto];
+
+        while (logger && store) {
+            if (logger->ThreadExitPrintStats) {
+                logger->ThreadExitPrintStats(tv, store->thread_data);
+            }
+
+            logger = logger->next;
+            store = store->next;
         }
-
-        logger = logger->next;
-        store = store->next;
     }
 }
 
 static uint32_t OutputTxLoggerGetActiveCount(void)
 {
     uint32_t cnt = 0;
-    for (OutputTxLogger *p = list; p != NULL; p = p->next) {
-        cnt++;
+    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        for (OutputTxLogger *p = list[alproto]; p != NULL; p = p->next) {
+            cnt++;
+        }
     }
     return cnt;
 }
@@ -389,11 +429,13 @@ void OutputTxLoggerRegister (void)
 
 void OutputTxShutdown(void)
 {
-    OutputTxLogger *logger = list;
-    while (logger) {
-        OutputTxLogger *next_logger = logger->next;
-        SCFree(logger);
-        logger = next_logger;
+    for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        OutputTxLogger *logger = list[alproto];
+        while (logger) {
+            OutputTxLogger *next_logger = logger->next;
+            SCFree(logger);
+            logger = next_logger;
+        }
+        list[alproto] = NULL;
     }
-    list = NULL;
 }
