@@ -62,6 +62,7 @@ Metadata::
             #packet: yes              # enable dumping of packet (without stream segments)
             #http-body: yes           # Requires metadata; enable dumping of http body in Base64
             #http-body-printable: yes # Requires metadata; enable dumping of http body in printable format
+            #http-headers: yes        # Requires metadata; enable dumping of http headers
 
             # metadata:
 
@@ -140,6 +141,10 @@ Config::
         # set this value to one among {both, request, response} to dump all
         # http headers for every http request and/or response
         # dump-all-headers: [both, request, response]
+        # Log request and response bodies with every request. This setup is
+        # recommended for forensic purpose only.
+        # http-body: yes
+        # http-body-printable: yes
 
 List of custom fields:
 
@@ -472,5 +477,18 @@ YAML::
       # Seed value for the ID output. Valid values are 0-65535.
       community-id-seed: 0
 
+
+Stream data
+~~~~~~~~~~~
+
+It is possible to include stream data in application layer events
+
+YAML::
+
+  
+  - eve-log:
+      # ....
+      stream-data: yes # log data as base64
+      stream-data-printable: yes # log printable data
 
 .. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/

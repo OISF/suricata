@@ -277,7 +277,7 @@ The benefits here of using the extended logging is to see if this action for exa
 
 It is also possible to dump every header for HTTP requests/responses or both via the keyword ``dump-all-headers``.
 
-
+HTTP body and HTTP body printable can also be logged via the ``http-body`` and ``http-body-printable`` options.
 
 Examples
 ~~~~~~~~
