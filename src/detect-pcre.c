@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "pcre.h"
 #include "debug.h"
 #include "decode.h"
 #include "detect.h"
@@ -70,14 +71,48 @@
 static int pcre_match_limit = 0;
 static int pcre_match_limit_recursion = 0;
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
-static pcre *parse_capture_regex;
-static pcre_extra *parse_capture_regex_study;
+static DetectParseRegex parse_regex;
+static DetectParseRegex parse_capture_regex;
 
 #ifdef PCRE_HAVE_JIT
 static int pcre_use_jit = 1;
 #endif
+
+#ifdef PCRE_HAVE_JIT_EXEC
+#define PCRE_JIT_MIN_STACK 32*1024
+#define PCRE_JIT_MAX_STACK 512*1024
+
+static int g_jitstack_thread_ctx_id = -1;
+
+#endif
+
+/* \brief Helper function for using pcre_exec with/without JIT
+ */
+static int DetectPcreExec(DetectEngineThreadCtx *det_ctx, DetectParseRegex *regex, const char *str, const size_t strlen,
+                            int start_offset, int options,  int *ovector, int ovector_size)
+{
+    int ret;
+#ifdef PCRE_HAVE_JIT_EXEC
+    if (det_ctx && g_jitstack_thread_ctx_id != -1) {
+        pcre_jit_stack *jit_stack = (pcre_jit_stack *)
+            DetectThreadCtxGetKeywordThreadCtx(det_ctx, g_jitstack_thread_ctx_id);
+        if (jit_stack) {
+            ret = pcre_jit_exec(regex->regex, regex->study, str, strlen,
+                                start_offset, options, ovector, ovector_size,
+                                jit_stack);
+
+            if (ret == PCRE_ERROR_JIT_STACKLIMIT)
+                SCLogNotice("PCRE JIT stack limit exhausted");
+            if (ret < -2 && ret != -8)
+                SCLogNotice("PCRE JIT error %d", ret);
+
+            return ret;
+        }
+    }
+#endif
+    return pcre_exec(regex->regex, regex->study, str, strlen,
+                     start_offset, options, ovector, ovector_size);
+}
 
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectPcreFree(void *);
@@ -124,24 +159,11 @@ void DetectPcreRegister (void)
         }
     }
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     /* setup the capture regex, as it needs PCRE_UNGREEDY we do it manually */
-    const char *eb;
-    int eo;
     int opts = PCRE_UNGREEDY; /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
-
-    parse_capture_regex = pcre_compile(PARSE_CAPTURE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_capture_regex == NULL)
-    {
-        FatalError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_CAPTURE_REGEX, eo, eb);
-    }
-
-    parse_capture_regex_study = pcre_study(parse_capture_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-    }
+    DetectSetupParseRegexesOpts(PARSE_CAPTURE_REGEX, &parse_capture_regex, opts);
 
 #ifdef PCRE_HAVE_JIT
     if (PageSupportsRWX() == 0) {
@@ -150,7 +172,6 @@ void DetectPcreRegister (void)
     }
 #endif
 
-    DetectParseRegexAddToFreeList(parse_capture_regex, parse_capture_regex_study);
     return;
 }
 
@@ -173,7 +194,6 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                            const uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();
-#define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
     const uint8_t *ptr = NULL;
@@ -196,7 +216,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     }
 
     /* run the actual pcre detection */
-    ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPcreExec(det_ctx, &pe->parse_regex, (char *) ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS);
     SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
@@ -334,7 +354,6 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     int opts = 0;
     DetectPcreData *pd = NULL;
     char *op = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     int check_host_header = 0;
@@ -381,8 +400,8 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
 
     char re[slen];
-    ret = pcre_exec(parse_regex, parse_regex_study, regexstr, slen,
-                    0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPcreExec(NULL, &parse_regex, regexstr, slen,
+                         0, 0, ov, MAX_SUBSTRINGS);
     if (ret <= 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre parse error: %s", regexstr);
         goto error;
@@ -406,10 +425,9 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
     //printf("ret %" PRId32 " re \'%s\', op \'%s\'\n", ret, re, op);
 
-    pd = SCMalloc(sizeof(DetectPcreData));
+    pd = SCCalloc(1, sizeof(DetectPcreData));
     if (unlikely(pd == NULL))
         goto error;
-    memset(pd, 0, sizeof(DetectPcreData));
 
     if (negate)
         pd->flags |= DETECT_PCRE_NEGATE;
@@ -613,13 +631,13 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     if (capture_names == NULL || strlen(capture_names) == 0)
         opts |= PCRE_NO_AUTO_CAPTURE;
 
-    pd->re = pcre_compile2(re, opts, &ec, &eb, &eo, NULL);
-    if (pd->re == NULL && ec == 15) { // reference to non-existent subpattern
+    pd->parse_regex.regex = pcre_compile2(re, opts, &ec, &eb, &eo, NULL);
+    if (pd->parse_regex.regex == NULL && ec == 15) { // reference to non-existent subpattern
         opts &= ~PCRE_NO_AUTO_CAPTURE;
-        pd->re = pcre_compile(re, opts, &eb, &eo, NULL);
+        pd->parse_regex.regex = pcre_compile(re, opts, &eb, &eo, NULL);
     }
 
-    if (pd->re == NULL)  {
+    if (pd->parse_regex.regex == NULL)  {
         SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed "
                 "at offset %" PRId32 ": %s", regexstr, eo, eb);
         goto error;
@@ -630,7 +648,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     if (pcre_use_jit)
         options |= PCRE_STUDY_JIT_COMPILE;
 #endif
-    pd->sd = pcre_study(pd->re, options, &eb);
+    pd->parse_regex.study = pcre_study(pd->parse_regex.regex, options, &eb);
     if(eb != NULL)  {
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed : %s", eb);
         goto error;
@@ -638,7 +656,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
 
 #ifdef PCRE_HAVE_JIT
     int jit = 0;
-    ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_JIT, &jit);
+    ret = pcre_fullinfo(pd->parse_regex.regex, pd->parse_regex.study, PCRE_INFO_JIT, &jit);
     if (ret != 0 || jit != 1) {
         /* warning, so we won't print the sig after this. Adding
          * file and line to the message so the admin can figure
@@ -647,29 +665,30 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                 "Falling back to regular PCRE handling (%s:%d)",
                 regexstr, de_ctx->rule_file, de_ctx->rule_line);
     }
+
 #endif /*PCRE_HAVE_JIT*/
 
-    if (pd->sd == NULL)
-        pd->sd = (pcre_extra *) SCCalloc(1,sizeof(pcre_extra));
+    if (pd->parse_regex.study == NULL)
+        pd->parse_regex.study = (pcre_extra *) SCCalloc(1,sizeof(pcre_extra));
 
-    if (pd->sd) {
+    if (pd->parse_regex.study) {
         if(pd->flags & DETECT_PCRE_MATCH_LIMIT) {
             if(pcre_match_limit >= -1)    {
-                pd->sd->match_limit = pcre_match_limit;
-                pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT;
+                pd->parse_regex.study->match_limit = pcre_match_limit;
+                pd->parse_regex.study->flags |= PCRE_EXTRA_MATCH_LIMIT;
             }
 #ifndef NO_PCRE_MATCH_RLIMIT
             if(pcre_match_limit_recursion >= -1)    {
-                pd->sd->match_limit_recursion = pcre_match_limit_recursion;
-                pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+                pd->parse_regex.study->match_limit_recursion = pcre_match_limit_recursion;
+                pd->parse_regex.study->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
             }
 #endif /* NO_PCRE_MATCH_RLIMIT */
         } else {
-            pd->sd->match_limit = SC_MATCH_LIMIT_DEFAULT;
-            pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT;
+            pd->parse_regex.study->match_limit = SC_MATCH_LIMIT_DEFAULT;
+            pd->parse_regex.study->flags |= PCRE_EXTRA_MATCH_LIMIT;
 #ifndef NO_PCRE_MATCH_RLIMIT
-            pd->sd->match_limit_recursion = SC_MATCH_LIMIT_RECURSION_DEFAULT;
-            pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+            pd->parse_regex.study->match_limit_recursion = SC_MATCH_LIMIT_RECURSION_DEFAULT;
+            pd->parse_regex.study->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
 #endif /* NO_PCRE_MATCH_RLIMIT */
         }
     } else {
@@ -678,12 +697,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     return pd;
 
 error:
-    if (pd != NULL && pd->re != NULL)
-        pcre_free(pd->re);
-    if (pd != NULL && pd->sd != NULL)
-        pcre_free_study(pd->sd);
-    if (pd)
-        SCFree(pd);
+    DetectPcreFree(pd);
     return NULL;
 }
 
@@ -705,7 +719,7 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
 
     SCLogDebug("regexstr %s, pd %p", regexstr, pd);
 
-    ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_CAPTURECOUNT, &capture_cnt);
+    ret = pcre_fullinfo(pd->parse_regex.regex, pd->parse_regex.study, PCRE_INFO_CAPTURECOUNT, &capture_cnt);
     SCLogDebug("ret %d capture_cnt %d", ret, capture_cnt);
     if (ret == 0 && capture_cnt && strlen(capture_names) > 0)
     {
@@ -771,7 +785,7 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
     while (1) {
         SCLogDebug("\'%s\'", regexstr);
 
-        ret = pcre_exec(parse_capture_regex, parse_capture_regex_study, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
+        ret = DetectPcreExec(NULL, &parse_capture_regex, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
         if (ret < 3) {
             return 0;
         }
@@ -822,6 +836,25 @@ error:
     return -1;
 }
 
+#ifdef PCRE_HAVE_JIT_EXEC
+static void *DetectPcreThreadInit(void *data /*@unused@*/)
+{
+    pcre_jit_stack *jit_stack = pcre_jit_stack_alloc(PCRE_JIT_MIN_STACK, PCRE_JIT_MAX_STACK);
+
+    if (jit_stack == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "unable to allocate PCRE jit stack");
+    }
+
+    return (void *)jit_stack;
+}
+
+static void DetectPcreThreadFree(void *ctx)
+{
+    if (ctx != NULL)
+        pcre_jit_stack_free((pcre_jit_stack *)ctx);
+}
+
+#endif
 static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *regexstr)
 {
     SCEnter();
@@ -839,6 +872,17 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
         goto error;
     if (DetectPcreParseCapture(regexstr, de_ctx, pd, capture_names) < 0)
         goto error;
+
+#ifdef PCRE_HAVE_JIT_EXEC
+    if (g_jitstack_thread_ctx_id == -1) {
+        g_jitstack_thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "jitstack",
+                DetectPcreThreadInit, (void *) &g_jitstack_thread_ctx_id /* unused */,
+                DetectPcreThreadFree, 1);
+        if (g_jitstack_thread_ctx_id == -1) {
+            SCLogNotice("Error while registering jitstack thread funcs");
+        }
+    }
+#endif
 
     int sm_list = -1;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
@@ -927,13 +971,9 @@ static void DetectPcreFree(void *ptr)
         return;
 
     DetectPcreData *pd = (DetectPcreData *)ptr;
-
-    if (pd->re != NULL)
-        pcre_free(pd->re);
-    if (pd->sd != NULL)
-        pcre_free_study(pd->sd);
-
+    DetectParseFreeRegex(&pd->parse_regex);
     SCFree(pd);
+
     return;
 }
 
