@@ -46,8 +46,7 @@
  */
 #define PARSE_REGEX  "^(?:\\s*)(<|>)?(?:\\s*)([0-9]{1,23}[a-zA-Z]{0,2})(?:\\s*)(?:(<>)(?:\\s*)([0-9]{1,23}[a-zA-Z]{0,2}))?\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 /*prototypes*/
 static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
@@ -71,7 +70,7 @@ void DetectFilesizeRegister(void)
     sigmatch_table[DETECT_FILESIZE].Free = DetectFilesizeFree;
     sigmatch_table[DETECT_FILESIZE].RegisterTests = DetectFilesizeRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
 }
@@ -144,12 +143,10 @@ static DetectFilesizeData *DetectFilesizeParse (const char *str)
     char *arg2 = NULL;
     char *arg3 = NULL;
     char *arg4 = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, str, strlen(str),
-                    0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
         SCLogError(SC_ERR_PCRE_PARSE, "filesize option pcre parse error: \"%s\"", str);
         goto error;

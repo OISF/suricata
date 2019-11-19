@@ -65,8 +65,7 @@
 #define FRAGBITS_HAVE_DF    0x02
 #define FRAGBITS_HAVE_RF    0x04
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectFragBitsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -93,7 +92,7 @@ void DetectFragBitsRegister (void)
     sigmatch_table[DETECT_FRAGBITS].SetupPrefilter = PrefilterSetupFragBits;
     sigmatch_table[DETECT_FRAGBITS].SupportsPrefilter = PrefilterFragBitsIsPrefilterable;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static inline int
@@ -166,7 +165,6 @@ static int DetectFragBitsMatch (DetectEngineThreadCtx *det_ctx,
 static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
 {
     DetectFragBitsData *de = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, found = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr = NULL;
@@ -174,7 +172,7 @@ static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
     char *ptr;
     int i;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
