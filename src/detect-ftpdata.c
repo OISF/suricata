@@ -38,8 +38,7 @@
  * \brief Regex for parsing our keyword options
  */
 #define PARSE_REGEX  "^\\s*(stor|retr)\\s*$"
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectFtpdataRegister below */
 static int DetectFtpdataMatch(DetectEngineThreadCtx *,
@@ -86,7 +85,7 @@ void DetectFtpdataRegister(void) {
     g_ftpdata_buffer_id = DetectBufferTypeGetByName("ftpdata_command");
 
     /* set up the PCRE for keyword parsing */
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static int DetectEngineInspectFtpdataGeneric(ThreadVars *tv,
@@ -145,12 +144,9 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
 {
     DetectFtpdataData *ftpcommandd = NULL;
     char arg1[5] = "";
-#define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
 
-    int ret = pcre_exec(parse_regex, parse_regex_study,
-                    ftpcommandstr, strlen(ftpcommandstr),
-                    0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectParsePcreExec(&parse_regex, ftpcommandstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         goto error;
