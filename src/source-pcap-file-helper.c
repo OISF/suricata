@@ -192,8 +192,10 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
         if (pcap_setfilter(pfv->pcap_handle, &pfv->filter) < 0) {
             SCLogError(SC_ERR_BPF,"could not set bpf filter %s for %s",
                        pcap_geterr(pfv->pcap_handle), pfv->filename);
+            pcap_freecode(&pfv->filter);
             SCReturnInt(TM_ECODE_FAILED);
         }
+        pcap_freecode(&pfv->filter);
     }
 
     pfv->datalink = pcap_datalink(pfv->pcap_handle);
