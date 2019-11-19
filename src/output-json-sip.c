@@ -66,30 +66,67 @@ json_t *JsonSIPAddMetadata(const Flow *f, uint64_t tx_id)
     if (state) {
         SIPTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_SIP, state, tx_id);
         if (tx) {
-            return rs_sip_log_json(state, tx);
+            json_t *reqjs = rs_sip_log_json_request(state, tx);
+            if (reqjs != NULL) {
+                return reqjs;
+            }
+            json_t *respjs = rs_sip_log_json_response(state, tx);
+            if (respjs != NULL) {
+                return respjs;
+            }
         }
     }
 
     return NULL;
 }
 
-static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
+static int JsonSIPLoggerToServer(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     SIPTransaction *siptx = tx;
     LogSIPLogThread *thread = thread_data;
     json_t *js, *sipjs;
 
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "sip");
+    js = CreateJSONHeader(p, LOG_DIR_FLOW, "sip");
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
 
     JsonAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js);
 
-    sipjs = rs_sip_log_json(state, siptx);
+    sipjs = rs_sip_log_json_request(state, siptx);
     if (unlikely(sipjs == NULL)) {
-      goto error;
+        json_decref(js);
+        return TM_ECODE_FAILED;
+    }
+
+    json_object_set_new(js, "sip", sipjs);
+
+    MemBufferReset(thread->buffer);
+    OutputJSONBuffer(js, thread->siplog_ctx->file_ctx, &thread->buffer);
+
+    json_decref(js);
+    return TM_ECODE_OK;
+}
+
+static int JsonSIPLoggerToClient(ThreadVars *tv, void *thread_data,
+                                 const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+{
+    SIPTransaction *siptx = tx;
+    LogSIPLogThread *thread = thread_data;
+    json_t *js, *sipjs;
+
+    js = CreateJSONHeader(p, LOG_DIR_FLOW, "sip");
+    if (unlikely(js == NULL)) {
+        return TM_ECODE_FAILED;
+    }
+
+    JsonAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js);
+
+    sipjs = rs_sip_log_json_response(state, siptx);
+    if (unlikely(sipjs == NULL)) {
+        json_decref(js);
+        return TM_ECODE_FAILED;
     }
     json_object_set_new(js, "sip", sipjs);
 
@@ -98,10 +135,6 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
 
     json_decref(js);
     return TM_ECODE_OK;
-
-error:
-    json_decref(js);
-    return TM_ECODE_FAILED;
 }
 
 static void OutputSIPLogDeInitCtxSub(OutputCtx *output_ctx)
@@ -184,11 +217,17 @@ static TmEcode JsonSIPLogThreadDeinit(ThreadVars *t, void *data)
 
 void JsonSIPLogRegister(void)
 {
-    /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_SIP, "eve-log", "JsonSIPLog",
-        "eve-log.sip", OutputSIPLogInitSub, ALPROTO_SIP,
-        JsonSIPLogger, JsonSIPLogThreadInit,
-        JsonSIPLogThreadDeinit, NULL);
+    /* Sub-logger for requests. */
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_SIP_TS, "eve-log",
+                                          "JsonSIPLog", "eve-log.sip", OutputSIPLogInitSub, ALPROTO_SIP,
+                                          JsonSIPLoggerToServer, 0, 1, JsonSIPLogThreadInit,
+                                          JsonSIPLogThreadDeinit, NULL);
+
+    /* Sub-logger for replies. */
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_SIP_TC, "eve-log",
+                                          "JsonSIPLog", "eve-log.sip", OutputSIPLogInitSub, ALPROTO_SIP,
+                                          JsonSIPLoggerToClient, 1, 1, JsonSIPLogThreadInit, JsonSIPLogThreadDeinit,
+                                          NULL);
 
     SCLogDebug("SIP JSON logger registered.");
 }
