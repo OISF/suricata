@@ -948,6 +948,7 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_CLEANUP);
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(det_ctx);
+    InspectionBufferClean(det_ctx);
 
     if (pflow != NULL) {
         /* update inspected tracker for raw reassembly */
