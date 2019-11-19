@@ -156,8 +156,8 @@ pub type GetTxIteratorFn    = extern "C" fn (ipproto: u8, alproto: AppProto,
                                              max_tx_id: u64,
                                              istate: &mut u64)
                                              -> AppLayerGetTxIterTuple;
-pub type GetTxDetectFlagsFn = extern "C" fn(*mut c_void, u8) -> u64;
-pub type SetTxDetectFlagsFn = extern "C" fn(*mut c_void, u8, u64);
+pub type GetTxDetectFlagsFn = unsafe extern "C" fn(*mut c_void, u8) -> u64;
+pub type SetTxDetectFlagsFn = unsafe extern "C" fn(*mut c_void, u8, u64);
 
 // Defined in app-layer-register.h
 extern {

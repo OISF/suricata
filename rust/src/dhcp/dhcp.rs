@@ -27,6 +27,7 @@ use parser::*;
 use std;
 use std::ffi::{CStr,CString};
 use std::mem::transmute;
+use applayer::TxDetectFlags;
 
 static mut ALPROTO_DHCP: AppProto = ALPROTO_UNKNOWN;
 
@@ -87,6 +88,7 @@ pub struct DHCPTransaction {
     logged: applayer::LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
+    detect_flags: TxDetectFlags,
 }
 
 impl DHCPTransaction {
@@ -97,6 +99,7 @@ impl DHCPTransaction {
             logged: applayer::LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
+            detect_flags: Default::default(),
         }
     }
 
@@ -389,6 +392,9 @@ pub extern "C" fn rs_dhcp_state_get_tx_iterator(
     }
 }
 
+export_tx_detect_flags_set!(rs_dhcp_tx_detect_flags_set, DHCPTransaction);
+export_tx_detect_flags_get!(rs_dhcp_tx_detect_flags_get, DHCPTransaction);
+
 const PARSER_NAME: &'static [u8] = b"dhcp\0";
 
 #[no_mangle]
@@ -424,8 +430,8 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         set_tx_mpm_id: None,
         get_files: None,
         get_tx_iterator: Some(rs_dhcp_state_get_tx_iterator),
-        set_tx_detect_flags: None,
-        get_tx_detect_flags: None,
+        set_tx_detect_flags: rs_dhcp_tx_detect_flags_set,
+        get_tx_detect_flags: rs_dhcp_tx_detect_flags_get,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
