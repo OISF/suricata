@@ -60,26 +60,22 @@
  * \brief Regex for parsing the Modbus unit id string
  */
 #define PARSE_REGEX_UNIT_ID "^\\s*\"?\\s*unit\\s+([<>]?\\d+)(<>\\d+)?(,\\s*(.*))?\\s*\"?\\s*$"
-static pcre         *unit_id_parse_regex;
-static pcre_extra   *unit_id_parse_regex_study;
+static DetectParseRegex unit_id_parse_regex;
 
 /**
  * \brief Regex for parsing the Modbus function string
  */
 #define PARSE_REGEX_FUNCTION "^\\s*\"?\\s*function\\s*(!?[A-z0-9]+)(,\\s*subfunction\\s+(\\d+))?\\s*\"?\\s*$"
-static pcre         *function_parse_regex;
-static pcre_extra   *function_parse_regex_study;
+static DetectParseRegex function_parse_regex;
 
 /**
  * \brief Regex for parsing the Modbus access string
  */
 #define PARSE_REGEX_ACCESS "^\\s*\"?\\s*access\\s*(read|write)\\s*(discretes|coils|input|holding)?(,\\s*address\\s+([<>]?\\d+)(<>\\d+)?(,\\s*value\\s+([<>]?\\d+)(<>\\d+)?)?)?\\s*\"?\\s*$"
-static pcre         *access_parse_regex;
-static pcre_extra   *access_parse_regex_study;
+static DetectParseRegex access_parse_regex;
 
 static int g_modbus_buffer_id = 0;
 
-#define MAX_SUBSTRINGS 30
 
 void DetectModbusRegisterTests(void);
 
@@ -126,8 +122,7 @@ static DetectModbus *DetectModbusAccessParse(const char *str)
     char    arg[MAX_SUBSTRINGS];
     int     ov[MAX_SUBSTRINGS], ret, res;
 
-    ret = pcre_exec(access_parse_regex, access_parse_regex_study, str, strlen(str), 0, 0, ov, MAX_SUBSTRINGS);
-
+    ret = DetectParsePcreExec(&access_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1)
         goto error;
 
@@ -294,8 +289,7 @@ static DetectModbus *DetectModbusFunctionParse(const char *str)
     char    arg[MAX_SUBSTRINGS], *ptr = arg;
     int     ov[MAX_SUBSTRINGS], res, ret;
 
-    ret = pcre_exec(function_parse_regex, function_parse_regex_study, str, strlen(str), 0, 0, ov, MAX_SUBSTRINGS);
-
+    ret = DetectParsePcreExec(&function_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1)
         goto error;
 
@@ -388,8 +382,7 @@ static DetectModbus *DetectModbusUnitIdParse(const char *str)
     char    arg[MAX_SUBSTRINGS];
     int     ov[MAX_SUBSTRINGS], ret, res;
 
-    ret = pcre_exec(unit_id_parse_regex, unit_id_parse_regex_study, str, strlen(str), 0, 0, ov, MAX_SUBSTRINGS);
-
+    ret = DetectParsePcreExec(&unit_id_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1)
         goto error;
 
@@ -524,12 +517,9 @@ void DetectModbusRegister(void)
     sigmatch_table[DETECT_AL_MODBUS].Free          = DetectModbusFree;
     sigmatch_table[DETECT_AL_MODBUS].RegisterTests = DetectModbusRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX_UNIT_ID,
-            &unit_id_parse_regex, &unit_id_parse_regex_study);
-    DetectSetupParseRegexes(PARSE_REGEX_FUNCTION,
-            &function_parse_regex, &function_parse_regex_study);
-    DetectSetupParseRegexes(PARSE_REGEX_ACCESS,
-            &access_parse_regex, &access_parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX_UNIT_ID, &unit_id_parse_regex);
+    DetectSetupParseRegexes(PARSE_REGEX_FUNCTION, &function_parse_regex);
+    DetectSetupParseRegexes(PARSE_REGEX_ACCESS, &access_parse_regex);
 
     DetectAppLayerInspectEngineRegister("modbus",
             ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0,

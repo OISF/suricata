@@ -45,8 +45,7 @@
 
 #define PARSE_REGEX  "^\\s*(!?\\s*[0-9]{1,3}|!?\\s*[xX][0-9a-fA-F]{1,2})\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectTosSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectTosMatch(DetectEngineThreadCtx *, Packet *,
@@ -73,7 +72,7 @@ void DetectTosRegister(void)
     sigmatch_table[DETECT_TOS].url =
         DOC_URL DOC_VERSION "/rules/header-keywords.html#tos";
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -108,13 +107,10 @@ static int DetectTosMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 static DetectTosData *DetectTosParse(const char *arg, bool negate)
 {
     DetectTosData *tosd = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, arg, strlen(arg), 0, 0,
-                    ov, MAX_SUBSTRINGS);
-
+    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tos option - %s. "
                    "The tos option value must be in the range "

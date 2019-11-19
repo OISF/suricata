@@ -46,8 +46,7 @@
  */
 #define PARSE_REGEX  "^\\s*([0-9]{1,5}|\"[0-9]{1,5}\")\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectIdMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -74,7 +73,7 @@ void DetectIdRegister (void)
     sigmatch_table[DETECT_ID].SupportsPrefilter = PrefilterIdIsPrefilterable;
     sigmatch_table[DETECT_ID].SetupPrefilter = PrefilterSetupId;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -121,12 +120,10 @@ static DetectIdData *DetectIdParse (const char *idstr)
 {
     uint32_t temp;
     DetectIdData *id_d = NULL;
-	#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, idstr, strlen(idstr), 0, 0,
-                    ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, idstr, 0, 0, ov, MAX_SUBSTRINGS);
 
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'. The id option "
