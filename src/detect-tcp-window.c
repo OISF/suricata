@@ -44,8 +44,7 @@
  */
 #define PARSE_REGEX  "^\\s*([!])?\\s*([0-9]{1,9}+)\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectWindowMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -67,7 +66,7 @@ void DetectWindowRegister (void)
     sigmatch_table[DETECT_WINDOW].Free  = DetectWindowFree;
     sigmatch_table[DETECT_WINDOW].RegisterTests = DetectWindowRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -108,11 +107,10 @@ static int DetectWindowMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 static DetectWindowData *DetectWindowParse(const char *windowstr)
 {
     DetectWindowData *wd = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, windowstr, strlen(windowstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, windowstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
         goto error;

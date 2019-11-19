@@ -33,8 +33,7 @@
  */
 #define PARSE_REGEX  "^\\s*([0-9]*)?\\s*([<>=-]+)?\\s*([0-9]+)?\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex uint_pcre;
 
 
 int DetectU32Match(const uint32_t parg, const DetectU32Data *du32)
@@ -88,7 +87,7 @@ DetectU32Data *DetectU32Parse (const char *u32str)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, u32str, strlen(u32str), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&uint_pcre, u32str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         return NULL;
@@ -225,7 +224,7 @@ void DetectU32Register(void)
 {
     if (g_detect_u32_registered == false) {
         // register only once
-        DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+        DetectSetupParseRegexes(PARSE_REGEX, &uint_pcre);
         g_detect_u32_registered = true;
     }
 }
