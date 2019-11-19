@@ -57,8 +57,7 @@
  */
 #define PARSE_REGEX  "^\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+))?\\s*(?:,\\s*([A-z_]+))?\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectFilestoreMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, File *, const Signature *, const SigMatchCtx *);
@@ -87,7 +86,7 @@ void DetectFilestoreRegister(void)
     sigmatch_table[DETECT_FILESTORE_POSTMATCH].Match = DetectFilestorePostMatch;
     sigmatch_table[DETECT_FILESTORE_POSTMATCH].Free  = DetectFilestoreFree;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
 }
@@ -326,7 +325,6 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     DetectFilestoreData *fd = NULL;
     SigMatch *sm = NULL;
     char *args[3] = {NULL,NULL,NULL};
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
@@ -346,7 +344,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     if (str != NULL && strlen(str) > 0) {
         SCLogDebug("str %s", str);
 
-        ret = pcre_exec(parse_regex, parse_regex_study, str, strlen(str), 0, 0, ov, MAX_SUBSTRINGS);
+        ret = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
         if (ret < 1 || ret > 4) {
             SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, str);
             goto error;

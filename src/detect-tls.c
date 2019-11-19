@@ -67,12 +67,9 @@
 #define PARSE_REGEX  "^([A-z0-9\\s\\-\\.=,\\*@]+|\"[A-z0-9\\s\\-\\.=,\\*@]+\")\\s*$"
 #define PARSE_REGEX_FINGERPRINT  "^([A-z0-9\\:\\*]+|\"[A-z0-9\\:\\* ]+\")\\s*$"
 
-static pcre *subject_parse_regex;
-static pcre_extra *subject_parse_regex_study;
-static pcre *issuerdn_parse_regex;
-static pcre_extra *issuerdn_parse_regex_study;
-static pcre *fingerprint_parse_regex;
-static pcre_extra *fingerprint_parse_regex_study;
+static DetectParseRegex subject_parse_regex;
+static DetectParseRegex issuerdn_parse_regex;
+static DetectParseRegex fingerprint_parse_regex;
 
 static int DetectTlsSubjectMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
@@ -155,12 +152,9 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_STORE].RegisterTests = NULL;
     sigmatch_table[DETECT_AL_TLS_STORE].flags |= SIGMATCH_NOOPT;
 
-    DetectSetupParseRegexes(PARSE_REGEX,
-            &subject_parse_regex, &subject_parse_regex_study);
-    DetectSetupParseRegexes(PARSE_REGEX,
-            &issuerdn_parse_regex, &issuerdn_parse_regex_study);
-    DetectSetupParseRegexes(PARSE_REGEX_FINGERPRINT,
-            &fingerprint_parse_regex, &fingerprint_parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &subject_parse_regex);
+    DetectSetupParseRegexes(PARSE_REGEX, &issuerdn_parse_regex);
+    DetectSetupParseRegexes(PARSE_REGEX_FINGERPRINT, &fingerprint_parse_regex);
 
     g_tls_cert_list_id = DetectBufferTypeRegister("tls_cert");
 
@@ -237,7 +231,6 @@ static int DetectTlsSubjectMatch (DetectEngineThreadCtx *det_ctx,
 static DetectTlsData *DetectTlsSubjectParse (const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
@@ -245,9 +238,7 @@ static DetectTlsData *DetectTlsSubjectParse (const char *str, bool negate)
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = pcre_exec(subject_parse_regex, subject_parse_regex_study, str, strlen(str), 0, 0,
-                    ov, MAX_SUBSTRINGS);
-
+    ret = DetectParsePcreExec(&subject_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.subject option");
         goto error;
@@ -437,7 +428,6 @@ static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *det_ctx,
 static DetectTlsData *DetectTlsIssuerDNParse(const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
@@ -445,8 +435,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(const char *str, bool negate)
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = pcre_exec(issuerdn_parse_regex, issuerdn_parse_regex_study, str, strlen(str), 0, 0,
-                    ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&issuerdn_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.issuerdn option");
         goto error;
@@ -570,7 +559,6 @@ static void DetectTlsIssuerDNFree(void *ptr)
 static DetectTlsData *DetectTlsFingerprintParse (const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     const char *str_ptr;
@@ -578,8 +566,7 @@ static DetectTlsData *DetectTlsFingerprintParse (const char *str, bool negate)
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = pcre_exec(fingerprint_parse_regex, fingerprint_parse_regex_study, str, strlen(str), 0, 0,
-                    ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&fingerprint_parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.fingerprint option");
         goto error;
