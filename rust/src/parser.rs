@@ -97,6 +97,12 @@ pub struct RustParser {
 
     /// Function to get the TX iterator
     pub get_tx_iterator:   Option<GetTxIteratorFn>,
+
+    // Function to set TX detect flags.
+    pub set_tx_detect_flags: Option<SetTxDetectFlagsFn>,
+
+    // Function to get TX detect flags.
+    pub get_tx_detect_flags: Option<GetTxDetectFlagsFn>,
 }
 
 
@@ -150,6 +156,8 @@ pub type GetTxIteratorFn    = extern "C" fn (ipproto: u8, alproto: AppProto,
                                              max_tx_id: u64,
                                              istate: &mut u64)
                                              -> AppLayerGetTxIterTuple;
+pub type GetTxDetectFlagsFn = unsafe extern "C" fn(*mut c_void, u8) -> u64;
+pub type SetTxDetectFlagsFn = unsafe extern "C" fn(*mut c_void, u8, u64);
 
 // Defined in app-layer-register.h
 extern {
@@ -173,4 +181,10 @@ extern {
     pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u8);
     pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u8) -> c_int;
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
+    pub fn AppLayerParserRegisterDetectFlagsFuncs(
+        ipproto: u8,
+        alproto: AppProto,
+        GetTxDetectFlats: GetTxDetectFlagsFn,
+        SetTxDetectFlags: SetTxDetectFlagsFn,
+    );
 }
