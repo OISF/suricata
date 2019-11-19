@@ -36,8 +36,7 @@
 
 #define PARSE_REGEX "^\\s*(\\d+|\"\\d+\")\\s*$"
 
-static pcre *regex = NULL;
-static pcre_extra *regex_study = NULL;
+static DetectParseRegex parse_regex;
 
 static int DetectPrioritySetup (DetectEngineCtx *, Signature *, const char *);
 void SCPriorityRegisterTests(void);
@@ -53,18 +52,17 @@ void DetectPriorityRegister (void)
     sigmatch_table[DETECT_PRIORITY].Setup = DetectPrioritySetup;
     sigmatch_table[DETECT_PRIORITY].RegisterTests = SCPriorityRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &regex, &regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char copy_str[128] = "";
 
-#define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(regex, regex_study, rawstr, strlen(rawstr), 0, 0, ov, 30);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, 30);
     if (ret < 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "Invalid Priority in Signature "
                      "- %s", rawstr);

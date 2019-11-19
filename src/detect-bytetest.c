@@ -59,8 +59,7 @@
                      "(?:\\s*,\\s*([^\\s,]+))?" \
                      "\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectBytetestMatch(DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx);
@@ -78,7 +77,7 @@ void DetectBytetestRegister (void)
     sigmatch_table[DETECT_BYTETEST].Free  = DetectBytetestFree;
     sigmatch_table[DETECT_BYTETEST].RegisterTests = DetectBytetestRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /** \brief Bytetest detection code
@@ -250,7 +249,6 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
         NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
         NULL
     };
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     int i;
@@ -258,8 +256,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
     const char *str_ptr = NULL;
 
     /* Execute the regex and populate args with captures. */
-    ret = pcre_exec(parse_regex, parse_regex_study, optstr,
-                    strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 6 || ret > 10) {
         SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32
                ", string %s", ret, optstr);

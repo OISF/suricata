@@ -39,8 +39,7 @@
  */
 #define PARSE_REGEX  "^\\s*([0-9]*)?\\s*([<>=-]+)?\\s*([0-9]+)?\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 /* prototypes */
 static int DetectTtlMatch (DetectEngineThreadCtx *, Packet *,
@@ -71,7 +70,7 @@ void DetectTtlRegister(void)
     sigmatch_table[DETECT_TTL].SupportsPrefilter = PrefilterTtlIsPrefilterable;
     sigmatch_table[DETECT_TTL].SetupPrefilter = PrefilterSetupTtl;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
     return;
 }
 
@@ -133,13 +132,12 @@ static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
 static DetectTtlData *DetectTtlParse (const char *ttlstr)
 {
-#define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     char arg1[6] = "";
     char arg2[6] = "";
     char arg3[6] = "";
 
-    int ret = pcre_exec(parse_regex, parse_regex_study, ttlstr, strlen(ttlstr), 0, 0, ov, MAX_SUBSTRINGS);
+    int ret = DetectParsePcreExec(&parse_regex, ttlstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         return NULL;

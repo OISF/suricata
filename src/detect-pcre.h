@@ -24,6 +24,8 @@
 #ifndef __DETECT_PCRE_H__
 #define __DETECT_PCRE_H__
 
+#include "detect-parse.h"
+
 #define DETECT_PCRE_RELATIVE            0x00001
 #define DETECT_PCRE_RAWBYTES            0x00002
 #define DETECT_PCRE_CASELESS            0x00004
@@ -36,8 +38,7 @@
 
 typedef struct DetectPcreData_ {
     /* pcre options */
-    pcre *re;
-    pcre_extra *sd;
+    DetectParseRegex parse_regex;
     int opts;
     uint16_t flags;
     uint8_t idx;
