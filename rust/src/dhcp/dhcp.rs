@@ -17,7 +17,7 @@
 
 use crate::applayer;
 use crate::core;
-use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
+use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP, STREAM_TOSERVER};
 use crate::core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
 use crate::dhcp::parser::*;
 use crate::log::*;
@@ -95,6 +95,8 @@ pub struct DHCPTransaction {
     logged: applayer::LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
+    detect_flags_ts: u64,
+    detect_flags_tc: u64,
 }
 
 impl DHCPTransaction {
@@ -105,6 +107,8 @@ impl DHCPTransaction {
             logged: applayer::LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
+            detect_flags_ts: 0,
+            detect_flags_tc: 0,
         }
     }
 
@@ -416,6 +420,33 @@ pub extern "C" fn rs_dhcp_state_get_tx_iterator(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn rs_dhcp_tx_set_detect_flags(
+    ptr: *mut std::os::raw::c_void,
+    direction: u8,
+    flags: u64,
+) {
+    let tx = cast_pointer!(ptr, DHCPTransaction);
+    if (direction & STREAM_TOSERVER) != 0 {
+        tx.detect_flags_ts = flags as u64;
+    } else {
+        tx.detect_flags_tc = flags as u64;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dhcp_tx_get_detect_flags(
+    ptr: *mut std::os::raw::c_void,
+    direction: u8,
+) -> u64 {
+    let tx = cast_pointer!(ptr, DHCPTransaction);
+    if (direction & STREAM_TOSERVER) != 0 {
+        return tx.detect_flags_ts as u64;
+    } else {
+        return tx.detect_flags_tc as u64;
+    }
+}
+
 const PARSER_NAME: &'static [u8] = b"dhcp\0";
 
 #[no_mangle]
@@ -452,8 +483,8 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         set_tx_mpm_id      : None,
         get_files          : None,
         get_tx_iterator    : Some(rs_dhcp_state_get_tx_iterator),
-        set_tx_detect_flags: None,
-        get_tx_detect_flags: None,
+        set_tx_detect_flags: Some(rs_dhcp_tx_set_detect_flags),
+        get_tx_detect_flags: Some(rs_dhcp_tx_get_detect_flags),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
