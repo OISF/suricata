@@ -86,8 +86,7 @@
     "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?" \
     "$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectByteExtractSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectByteExtractRegisterTests(void);
@@ -106,7 +105,7 @@ void DetectByteExtractRegister(void)
     sigmatch_table[DETECT_BYTE_EXTRACT].Free = DetectByteExtractFree;
     sigmatch_table[DETECT_BYTE_EXTRACT].RegisterTests = DetectByteExtractRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *smd,
@@ -211,13 +210,13 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
 static inline DetectByteExtractData *DetectByteExtractParse(const char *arg)
 {
     DetectByteExtractData *bed = NULL;
+#undef MAX_SUBSTRINGS
 #define MAX_SUBSTRINGS 100
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     int i = 0;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, arg,
-                    strlen(arg), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, arg,  0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 19) {
         SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32
                    ", string \"%s\"", ret, arg);

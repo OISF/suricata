@@ -52,8 +52,7 @@
  */
 #define PARSE_REGEX  "^\\s*!?([^\\s,]+)\\s*(,\\s*relative)?\\s*(,\\s*rawbytes\\s*)?\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 int DetectIsdataatSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectIsdataatRegisterTests(void);
@@ -81,7 +80,7 @@ void DetectIsdataatRegister(void)
     sigmatch_table[DETECT_ENDS_WITH].Setup = DetectEndsWithSetup;
     sigmatch_table[DETECT_ENDS_WITH].flags = SIGMATCH_NOOPT;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -96,12 +95,11 @@ static DetectIsdataatData *DetectIsdataatParse (const char *isdataatstr, char **
 {
     DetectIsdataatData *idad = NULL;
     char *args[3] = {NULL,NULL,NULL};
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     int i=0;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, isdataatstr, strlen(isdataatstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, isdataatstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, isdataatstr);
         goto error;
