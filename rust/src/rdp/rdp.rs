@@ -531,6 +531,8 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         set_tx_mpm_id: None,
         get_files: None,
         get_tx_iterator: None,
+        get_tx_detect_flags: None,
+        set_tx_detect_flags: None,
     };
 
     /* For 5.0 we want this disabled by default, so check that it
