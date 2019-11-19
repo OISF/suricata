@@ -171,6 +171,11 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
                 p->GetTxIterator);
     }
 
+    if (p->SetTxDetectFlags && p->GetTxDetectFlags) {
+        AppLayerParserRegisterDetectFlagsFuncs(p->ip_proto, alproto,
+                p->GetTxDetectFlags, p->SetTxDetectFlags);
+    }
+
     return 0;
 }
 
