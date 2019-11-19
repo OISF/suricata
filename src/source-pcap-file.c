@@ -263,10 +263,9 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             SCReturnInt(TM_ECODE_OK);
         }
 
+        pv->shared = &ptv->shared;
         status = InitPcapFile(pv);
         if(status == TM_ECODE_OK) {
-            pv->shared = &ptv->shared;
-
             ptv->is_directory = 0;
             ptv->behavior.file = pv;
         } else {
