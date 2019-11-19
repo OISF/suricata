@@ -56,8 +56,7 @@
  */
 #define PARSE_REGEX  "^\\s*([A-z0-9\\.]+|\"[A-z0-9\\.]+\")\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectTlsVersionMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
@@ -84,7 +83,7 @@ void DetectTlsVersionRegister (void)
     sigmatch_table[DETECT_AL_TLS_VERSION].RegisterTests = DetectTlsVersionRegisterTests;
 #endif
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
 }
@@ -151,13 +150,10 @@ static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
 {
     uint16_t temp;
     DetectTlsVersionData *tls = NULL;
-	#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, str, strlen(str), 0, 0,
-                    ov, MAX_SUBSTRINGS);
-
+    ret = DetectParsePcreExec(&parse_regex, str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.version option");
         goto error;

@@ -36,8 +36,7 @@
  * \brief Regex for parsing our keyword options
  */
 #define PARSE_REGEX  "^\\s*([A-z0-9\\.]+|\"[A-z0-9_\\.]+\")\\s*$"
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectKrb5MsgTypeRegister below */
 static int DetectKrb5MsgTypeMatch (DetectEngineThreadCtx *, Flow *,
@@ -79,7 +78,7 @@ void DetectKrb5MsgTypeRegister(void) {
             DetectEngineInspectKRB5Generic);
 
     /* set up the PCRE for keyword parsing */
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_krb5_msg_type_list_id = DetectBufferTypeRegister("krb5_msg_type");
     SCLogDebug("g_krb5_msg_type_list_id %d", g_krb5_msg_type_list_id);
@@ -136,13 +135,10 @@ static DetectKrb5MsgTypeData *DetectKrb5MsgTypeParse (const char *krb5str)
 {
     DetectKrb5MsgTypeData *krb5d = NULL;
     char arg1[4] = "";
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study,
-                    krb5str, strlen(krb5str),
-                    0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, krb5str, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         goto error;

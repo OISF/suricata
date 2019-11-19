@@ -50,8 +50,7 @@
  *   [nfs_procedure]:[<|>]<proc>[<><proc>];
  */
 #define PARSE_REGEX "^\\s*(<=|>=|<|>)?\\s*([0-9]+)\\s*(?:(<>)\\s*([0-9]+))?\\s*$"
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 enum DetectNfsVersionMode {
     PROCEDURE_EQ = 1, /* equal */
@@ -98,7 +97,7 @@ void DetectNfsVersionRegister (void)
     sigmatch_table[DETECT_AL_NFS_VERSION].Free = DetectNfsVersionFree;
     sigmatch_table[DETECT_AL_NFS_VERSION].RegisterTests = DetectNfsVersionRegisterTests;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister("nfs_request",
             ALPROTO_NFS, SIG_FLAG_TOSERVER, 0,
@@ -197,7 +196,6 @@ static int DetectNfsVersionMatch (DetectEngineThreadCtx *det_ctx,
 static DetectNfsVersionData *DetectNfsVersionParse (const char *rawstr)
 {
     DetectNfsVersionData *dd = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     char mode[2] = "";
@@ -205,8 +203,7 @@ static DetectNfsVersionData *DetectNfsVersionParse (const char *rawstr)
     char value2[20] = "";
     char range[3] = "";
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0,
-                    0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
         goto error;

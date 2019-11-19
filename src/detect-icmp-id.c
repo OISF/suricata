@@ -40,8 +40,7 @@
 
 #define PARSE_REGEX "^\\s*(\"\\s*)?([0-9]+)(\\s*\")?\\s*$"
 
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
+static DetectParseRegex parse_regex;
 
 static int DetectIcmpIdMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
@@ -67,7 +66,7 @@ void DetectIcmpIdRegister (void)
     sigmatch_table[DETECT_ICMP_ID].SupportsPrefilter = PrefilterIcmpIdIsPrefilterable;
     sigmatch_table[DETECT_ICMP_ID].SetupPrefilter = PrefilterSetupIcmpId;
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 static inline bool GetIcmpId(Packet *p, uint16_t *id)
@@ -157,11 +156,10 @@ static DetectIcmpIdData *DetectIcmpIdParse (const char *icmpidstr)
 {
     DetectIcmpIdData *iid = NULL;
     char *substr[3] = {NULL, NULL, NULL};
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, icmpidstr, strlen(icmpidstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectParsePcreExec(&parse_regex, icmpidstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
         SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", icmpidstr);
         goto error;
