@@ -1008,7 +1008,7 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
 {
     RootLogger *logger = SCCalloc(1, sizeof(*logger));
     if (logger == NULL) {
-        return;
+        FatalError(SC_ERR_MEM_ALLOC, "failed to alloc root logger");
     }
     logger->ThreadInit = ThreadInit;
     logger->ThreadDeinit = ThreadDeinit;
