@@ -67,8 +67,10 @@ static void *ParseNflogConfig(const char *group)
     NflogGroupConfig *nflogconf = SCMalloc(sizeof(*nflogconf));
     intmax_t bufsize;
     intmax_t bufsize_max;
+#ifndef HAVE_LIBMNL
     intmax_t qthreshold;
     intmax_t qtimeout;
+#endif /* HAVE_LIBMNL */
     int boolval;
 
     if (unlikely(nflogconf == NULL))
@@ -133,6 +135,7 @@ static void *ParseNflogConfig(const char *group)
         nflogconf->nlbufsiz = nflogconf->nlbufsiz_max;
     }
 
+#ifndef HAVE_LIBMNL
     boolval = ConfGetChildValueIntWithDefault(group_root, group_default,
                                               "qthreshold", &qthreshold);
 
@@ -154,6 +157,7 @@ static void *ParseNflogConfig(const char *group)
         SCFree(nflogconf);
         return NULL;
     }
+#endif /* HAVE_LIBMNL */
 
     return nflogconf;
 }

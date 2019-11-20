@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author Giuseppe Longo <giuseppelng@gmail.com>
+ * \author Giuseppe Longo <giuseppe@glongo.it>
  */
 
 #ifndef __SOURCE_NFLOG_H__
@@ -27,6 +27,9 @@
 #ifdef HAVE_NFLOG
 #include <libnetfilter_log/libnetfilter_log.h>
 #include <libnfnetlink/libnfnetlink.h>
+#ifdef HAVE_LIBMNL
+#include <libmnl/libmnl.h>
+#endif /* HAVE_LIBMNL */
 #endif /* HAVE_NFLOG */
 
 #define NFLOG_GROUP_NAME_LENGTH 48

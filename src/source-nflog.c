@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author Giuseppe Longo <giuseppelng@gmail.com>
+ * \author Giuseppe Longo <giuseppe@glongo.it>
  *
  *  Netfilter's netfilter_log support
  */
@@ -90,11 +90,17 @@ typedef struct NFLOGThreadVars_ {
     uint16_t group;
     uint32_t nlbufsiz;
     uint32_t nlbufsiz_max;
+
+#ifdef HAVE_LIBMNL
+    struct mnl_socket *nl;
+    struct nlmsghdr *nlh;
+    unsigned int portid;
+#else
     uint32_t qthreshold;
     uint32_t qtimeout;
-
     struct nflog_handle *h;
     struct nflog_g_handle *gh;
+#endif /* HAVE_LIBMNL */
 
     LiveDevice *livedev;
     int nful_overrun_warned;
@@ -136,10 +142,172 @@ void TmModuleDecodeNFLOGRegister (void)
     tmm_modules[TMM_DECODENFLOG].flags = TM_FLAG_DECODE_TM;
 }
 
+#ifdef HAVE_LIBMNL
+static struct nlmsghdr *nflog_build_cfg_pf_request(char *buf, uint8_t command)
+{
+    struct nlmsghdr *nlh = mnl_nlmsg_put_header(buf);
+    nlh->nlmsg_type = (NFNL_SUBSYS_ULOG << 8) | NFULNL_MSG_CONFIG;
+    nlh->nlmsg_flags = NLM_F_REQUEST;
+
+    struct nfgenmsg *nfg = mnl_nlmsg_put_extra_header(nlh, sizeof(*nfg));
+    nfg->nfgen_family = AF_INET;
+    nfg->version = NFNETLINK_V0;
+
+    struct nfulnl_msg_config_cmd cmd = {
+        .command = command,
+    };
+    mnl_attr_put(nlh, NFULA_CFG_CMD, sizeof(cmd), &cmd);
+
+    return nlh;
+}
+
+static struct nlmsghdr *nflog_build_cfg_request(char *buf, uint8_t command, int qnum)
+{
+    struct nlmsghdr *nlh = mnl_nlmsg_put_header(buf);
+    nlh->nlmsg_type = (NFNL_SUBSYS_ULOG << 8) | NFULNL_MSG_CONFIG;
+    nlh->nlmsg_flags = NLM_F_REQUEST;
+
+    struct nfgenmsg *nfg = mnl_nlmsg_put_extra_header(nlh, sizeof(*nfg));
+    nfg->nfgen_family = AF_INET;
+    nfg->version = NFNETLINK_V0;
+    nfg->res_id = htons(qnum);
+
+    struct nfulnl_msg_config_cmd cmd = {
+        .command = command,
+    };
+    mnl_attr_put(nlh, NFULA_CFG_CMD, sizeof(cmd), &cmd);
+
+    return nlh;
+}
+
+static struct nlmsghdr *nflog_build_cfg_params(char *buf, uint8_t mode, int range, int qnum)
+{
+    struct nlmsghdr *nlh = mnl_nlmsg_put_header(buf);
+    nlh->nlmsg_type = (NFNL_SUBSYS_ULOG << 8) | NFULNL_MSG_CONFIG;
+    nlh->nlmsg_flags = NLM_F_REQUEST;
+
+    struct nfgenmsg *nfg = mnl_nlmsg_put_extra_header(nlh, sizeof(*nfg));
+    nfg->nfgen_family = AF_UNSPEC;
+    nfg->version = NFNETLINK_V0;
+    nfg->res_id = htons(qnum);
+
+    struct nfulnl_msg_config_mode params = {
+        .copy_range = htonl(range),
+        .copy_mode = mode,
+    };
+    mnl_attr_put(nlh, NFULA_CFG_MODE, sizeof(params), &params);
+
+    return nlh;
+}
+
+static int nflog_parse_attr_cb(const struct nlattr *attr, void *data)
+{
+    const struct nlattr **tb = data;
+    int type = mnl_attr_get_type(attr);
+
+    /* skip unsupported attribute in user-space */
+    if (mnl_attr_type_valid(attr, NFULA_MAX) < 0)
+        return MNL_CB_OK;
+
+    switch (type) {
+        case NFULA_MARK:
+        case NFULA_IFINDEX_INDEV:
+        case NFULA_IFINDEX_OUTDEV:
+        case NFULA_IFINDEX_PHYSINDEV:
+        case NFULA_IFINDEX_PHYSOUTDEV:
+            if (mnl_attr_validate(attr, MNL_TYPE_U32) < 0) {
+                return MNL_CB_ERROR;
+            }
+            break;
+        case NFULA_TIMESTAMP:
+            if (mnl_attr_validate2(
+                        attr, MNL_TYPE_UNSPEC, sizeof(struct nfulnl_msg_packet_timestamp)) < 0) {
+                return MNL_CB_ERROR;
+            }
+            break;
+        case NFULA_HWADDR:
+            if (mnl_attr_validate2(attr, MNL_TYPE_UNSPEC, sizeof(struct nfulnl_msg_packet_hw)) <
+                    0) {
+                return MNL_CB_ERROR;
+            }
+            break;
+        case NFULA_PREFIX:
+            if (mnl_attr_validate(attr, MNL_TYPE_NUL_STRING) < 0) {
+                return MNL_CB_ERROR;
+            }
+            break;
+        case NFULA_PAYLOAD:
+            break;
+    }
+    tb[type] = attr;
+    return MNL_CB_OK;
+}
+
 /**
  * \brief NFLOG callback function
  * This function setup a packet from a nflog message
  */
+static int NFLOGCallback(const struct nlmsghdr *nlh, void *data)
+{
+    NFLOGThreadVars *ntv = (NFLOGThreadVars *)data;
+    if (ntv == NULL) {
+        return MNL_CB_ERROR;
+    }
+    struct nlattr *tb[NFULA_MAX + 1] = {};
+    struct nfulnl_msg_packet_hdr *ph;
+    char *payload;
+    uint32_t payload_len;
+
+    /* grab a packet*/
+    Packet *p = PacketGetFromQueueOrAlloc();
+    if (p == NULL)
+        return MNL_CB_ERROR;
+
+    PKT_SET_SRC(p, PKT_SRC_WIRE);
+
+    mnl_attr_parse(nlh, sizeof(struct nfgenmsg), nflog_parse_attr_cb, tb);
+    if (tb[NFULA_PACKET_HDR]) {
+        ph = mnl_attr_get_payload(tb[NFULA_PACKET_HDR]);
+        p->nflog_v.hw_protocol = ph->hw_protocol;
+    }
+    if (tb[NFULA_IFINDEX_INDEV]) {
+        p->nflog_v.ifi = mnl_attr_get_u32(tb[NFULA_IFINDEX_INDEV]);
+    }
+    if (tb[NFULA_IFINDEX_OUTDEV]) {
+        p->nflog_v.ifi = mnl_attr_get_u32(tb[NFULA_IFINDEX_OUTDEV]);
+    }
+    payload_len = mnl_attr_get_payload_len(tb[NFULA_PAYLOAD]);
+    payload = mnl_attr_get_payload(tb[NFULA_PAYLOAD]);
+    if (payload_len > 0) {
+        if (payload_len > 65536) {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "NFLOG sent too big packet");
+            SET_PKT_LEN(p, 0);
+        } else if (runmode_workers)
+            PacketSetData(p, (uint8_t *)payload, payload_len);
+        else
+            PacketCopyData(p, (uint8_t *)payload, payload_len);
+    } else
+        SET_PKT_LEN(p, 0);
+
+    memset(&p->ts, 0, sizeof(struct timeval));
+    gettimeofday(&p->ts, NULL);
+
+    p->datalink = DLT_RAW;
+
+#ifdef COUNTERS
+    ntv->pkts++;
+    ntv->bytes += GET_PKT_LEN(p);
+#endif
+    (void)SC_ATOMIC_ADD(ntv->livedev->pkts, 1);
+
+    if (TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK) {
+        TmqhOutputPacketpool(ntv->tv, p);
+        return MNL_CB_ERROR;
+    }
+
+    return MNL_CB_OK;
+}
+#else
 static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
                          struct nflog_data *nfa, void *data)
 {
@@ -196,6 +364,7 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
 
     return 0;
 }
+#endif /* HAVE_LIBMNL */
 
 /**
  * \brief Receives packet from a nflog group via libnetfilter_log
@@ -226,10 +395,48 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     ntv->group = nflconfig->group;
     ntv->nlbufsiz = nflconfig->nlbufsiz;
     ntv->nlbufsiz_max = nflconfig->nlbufsiz_max;
+#ifndef HAVE_LIBMNL
     ntv->qthreshold = nflconfig->qthreshold;
     ntv->qtimeout = nflconfig->qtimeout;
+#endif /* HAVE_LIBMNL */
     ntv->nful_overrun_warned = nflconfig->nful_overrun_warned;
 
+#ifdef HAVE_LIBMNL
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+
+    ntv->nl = mnl_socket_open(NETLINK_NETFILTER);
+    if (ntv->nl == NULL) {
+        SCLogError(SC_ERR_MNL_OPEN, "mnl_socket_open() failed");
+        exit(EXIT_FAILURE);
+    }
+
+    if (mnl_socket_bind(ntv->nl, 0, MNL_SOCKET_AUTOPID) < 0) {
+        SCLogError(SC_ERR_MNL_BIND, "mnl_socket_bind() failed");
+        exit(EXIT_FAILURE);
+    }
+    ntv->portid = mnl_socket_get_portid(ntv->nl);
+
+    ntv->nlh = nflog_build_cfg_pf_request(buf, NFULNL_CFG_CMD_PF_BIND);
+    if (mnl_socket_sendto(ntv->nl, ntv->nlh, ntv->nlh->nlmsg_len) < 0) {
+        SCLogError(SC_ERR_MNL_SENDTO, "nflog_build_cfg_pf_request() failed");
+        return TM_ECODE_FAILED;
+    }
+
+    ntv->nlh = nflog_build_cfg_request(buf, NFULNL_CFG_CMD_BIND, ntv->group);
+    if (mnl_socket_sendto(ntv->nl, ntv->nlh, ntv->nlh->nlmsg_len) < 0) {
+        SCLogError(SC_ERR_MNL_SENDTO, "nflog_build_cfg_request() failed");
+        return TM_ECODE_FAILED;
+    }
+
+    ntv->nlh = nflog_build_cfg_params(buf, NFULNL_COPY_PACKET, 0xFFFF, ntv->group);
+    if (mnl_socket_sendto(ntv->nl, ntv->nlh, ntv->nlh->nlmsg_len) < 0) {
+        SCLogError(SC_ERR_MNL_SENDTO, "can't sent packet copy mode");
+        return TM_ECODE_FAILED;
+    }
+
+    setsockopt(mnl_socket_get_fd(ntv->nl), SOL_SOCKET, SO_RCVBUFFORCE, &ntv->nlbufsiz,
+            sizeof(socklen_t));
+#else
     ntv->h = nflog_open();
     if (ntv->h == NULL) {
         SCLogError(SC_ERR_NFLOG_OPEN, "nflog_open() failed");
@@ -282,12 +489,13 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     else
         SCLogDebug("NFLOG netlink queue timeout can't be set to %d",
                     ntv->qtimeout);
+#endif /* HAVE_LIBMNL */
 
     ntv->livedev = LiveGetDevice(nflconfig->numgroup);
     if (ntv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
-	    SCFree(ntv);
-		SCReturnInt(TM_ECODE_FAILED);
+        SCFree(ntv);
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     /* set a timeout to the socket so we can check for a signal
@@ -296,8 +504,13 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     timev.tv_sec = 1;
     timev.tv_usec = 0;
 
+#ifdef HAVE_LIBMNL
+    int r = setsockopt(mnl_socket_get_fd(ntv->nl), SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev));
+#else
     int fd = nflog_fd(ntv->h);
-    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
+    int r = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev));
+#endif /* HAVE_LIBMNL */
+    if (r == -1) {
         SCLogWarning(SC_WARN_NFLOG_SETSOCKOPT, "can't set socket "
                 "timeout: %s", strerror(errno));
     }
@@ -341,8 +554,20 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
 TmEcode ReceiveNFLOGThreadDeinit(ThreadVars *tv, void *data)
 {
     NFLOGThreadVars *ntv = (NFLOGThreadVars *)data;
-
     SCLogDebug("closing nflog group %d", ntv->group);
+
+#ifdef HAVE_LIBMNL
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    ntv->nlh = nflog_build_cfg_pf_request(buf, NFULNL_CFG_CMD_PF_UNBIND);
+    if (mnl_socket_sendto(ntv->nl, ntv->nlh, ntv->nlh->nlmsg_len) < 0) {
+        FatalError(SC_ERR_FATAL, "nflog_build_cfg_pf_request() failed");
+    }
+
+    if (ntv->nl) {
+        mnl_socket_close(ntv->nl);
+        ntv->nl = NULL;
+    }
+#else
     if (nflog_unbind_pf(ntv->h, AF_INET) < 0) {
         FatalError(SC_ERR_FATAL, "nflog_unbind_pf() for AF_INET failed");
     }
@@ -360,6 +585,7 @@ TmEcode ReceiveNFLOGThreadDeinit(ThreadVars *tv, void *data)
         nflog_close(ntv->h);
         ntv->h = NULL;
     }
+#endif /* HAVE_LIBMNL */
 
     if (ntv->data != NULL) {
         SCFree(ntv->data);
@@ -381,21 +607,26 @@ TmEcode ReceiveNFLOGThreadDeinit(ThreadVars *tv, void *data)
  * \param data pointer that gets cast into NFLOGThreadVars
  * \param size netlink buffer size
  */
-static int NFLOGSetnlbufsiz(void *data, unsigned int size)
+static int NFLOGSetnlbufsiz(void *data)
 {
     SCEnter();
     NFLOGThreadVars *ntv = (NFLOGThreadVars *)data;
 
-    if (size < ntv->nlbufsiz_max) {
+    if (ntv->nlbufsiz < ntv->nlbufsiz_max) {
+#ifdef HAVE_LIBMNL
+        setsockopt(mnl_socket_get_fd(ntv->nl), SOL_SOCKET, SO_RCVBUFFORCE, &ntv->nlbufsiz,
+                sizeof(socklen_t));
+#else
         ntv->nlbufsiz = nfnl_rcvbufsiz(nflog_nfnlh(ntv->h), ntv->nlbufsiz);
+#endif /* HAVE_LIBMNL */
         return 1;
     }
 
     SCLogWarning(SC_WARN_NFLOG_MAXBUFSIZ_REACHED,
-                 "Maximum buffer size (%d) in NFLOG has been "
-                 "reached. Please, consider raising "
-                 "`buffer-size` and `max-size` in nflog configuration",
-                 ntv->nlbufsiz);
+            "Maximum buffer size (%d) in NFLOG has been "
+            "reached. Please, consider raising "
+            "`buffer-size` and `max-size` in nflog configuration",
+            ntv->nlbufsiz_max);
     return 0;
 
 }
@@ -416,22 +647,27 @@ TmEcode ReceiveNFLOGLoop(ThreadVars *tv, void *data, void *slot)
 {
     SCEnter();
     NFLOGThreadVars *ntv = (NFLOGThreadVars *)data;
-    int rv, fd;
+    int rv;
     int ret = -1;
 
     ntv->slot = ((TmSlot *) slot)->slot_next;
 
-    fd = nflog_fd(ntv->h);
+#ifndef HAVE_LIBMNL
+    int fd = nflog_fd(ntv->h);
     if (fd < 0) {
         SCLogError(SC_ERR_NFLOG_FD, "Can't obtain a file descriptor");
         SCReturnInt(TM_ECODE_FAILED);
     }
+#endif /* HAVE_LIBMNL */
 
     while (1) {
         if (suricata_ctl_flags != 0)
             break;
-
+#ifdef HAVE_LIBMNL
+        rv = mnl_socket_recvfrom(ntv->nl, ntv->data, ntv->datalen);
+#else
         rv = recv(fd, ntv->data, ntv->datalen, 0);
+#endif
         if (rv < 0) {
             /*We received an error on socket read */
             if (errno == EINTR || errno == EWOULDBLOCK) {
@@ -439,8 +675,8 @@ TmEcode ReceiveNFLOGLoop(ThreadVars *tv, void *data, void *slot)
                 continue;
             } else if (errno == ENOBUFS) {
                 if (!ntv->nful_overrun_warned) {
-                    int s = ntv->nlbufsiz * 2;
-                    if (NFLOGSetnlbufsiz((void *)ntv, s)) {
+                    ntv->nlbufsiz *= 2;
+                    if (NFLOGSetnlbufsiz((void *)ntv)) {
                         SCLogWarning(SC_WARN_NFLOG_LOSING_EVENTS,
                                 "We are losing events, "
                                 "increasing buffer size "
@@ -458,10 +694,16 @@ TmEcode ReceiveNFLOGLoop(ThreadVars *tv, void *data, void *slot)
             }
         }
 
+#ifdef HAVE_LIBMNL
+        ret = mnl_cb_run(ntv->data, rv, 0, ntv->portid, NFLOGCallback, (void *)ntv);
+        if (ret == -1)
+            SCLogWarning(SC_ERR_MNL_CB, "mnl_cb_run() failed: %s", strerror(errno));
+#else
         ret = nflog_handle_packet(ntv->h, ntv->data, rv);
         if (ret != 0)
             SCLogWarning(SC_ERR_NFLOG_HANDLE_PKT,
                          "nflog_handle_packet error %" PRId32 "", ret);
+#endif /* HAVE_LIBMNL */
 
         StatsSyncCountersIfSignalled(tv);
     }

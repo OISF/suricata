@@ -377,6 +377,12 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_PLUGIN);
         CASE_CODE(SC_ERR_LOG_OUTPUT);
         CASE_CODE(SC_ERR_RULE_INVALID_UTF8);
+#ifdef HAVE_LIBMNL
+        CASE_CODE(SC_ERR_MNL_OPEN);
+        CASE_CODE(SC_ERR_MNL_BIND);
+        CASE_CODE(SC_ERR_MNL_SENDTO);
+        CASE_CODE(SC_ERR_MNL_CB);
+#endif /*HAVE_LIBMNL */
 
         CASE_CODE (SC_ERR_MAX);
     }
