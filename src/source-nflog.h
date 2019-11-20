@@ -27,6 +27,7 @@
 #ifdef HAVE_NFLOG
 #include <libnetfilter_log/libnetfilter_log.h>
 #include <libnfnetlink/libnfnetlink.h>
+#include <libmnl/libmnl.h>
 #endif /* HAVE_NFLOG */
 
 #define NFLOG_GROUP_NAME_LENGTH 48
