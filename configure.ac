@@ -967,6 +967,44 @@
             fi
             ;;
         esac
+   #libmnl
+        case $host in
+            *-*-mingw32*)
+                ;;
+            *)
+                AC_ARG_WITH(libmnl_includes,
+                        [  --with-libmnl-includes=DIR  libmnl include directory],
+                        [with_libmnl_includes="$withval"],[with_libmnl_includes=no])
+                AC_ARG_WITH(libmnl_libraries,
+                        [  --with-libmnl-libraries=DIR    libmnl library directory],
+                        [with_libmnl_libraries="$withval"],[with_libmnl_libraries="no"])
+
+                if test "$with_libmnl_includes" != "no"; then
+                    CPPFLAGS="${CPPFLAGS} -I${with_libmnl_includes}"
+                fi
+
+                if test "$with_libmnl_libraries" != "no"; then
+                    LDFLAGS="${LDFLAGS}  -L${with_libmnl_libraries}"
+                fi
+
+                MNL=""
+                AC_CHECK_LIB(mnl, mnl_socket_open,, MNL="no")
+
+                if test "$MNL" = "no"; then
+                    echo
+                    echo "   libmnl library not found, go get it"
+                    echo "   from www.netfilter.org."
+                    echo "   we automatically append libnetfilter_queue/ when searching"
+                    echo "   for headers etc. when the --with-libnfnetlink-includes directive"
+                    echo "   is used"
+                    echo "   Ubuntu: apt-get install libnetfilter-queue-dev"
+                    echo "   Fedora: dnf install libnetfilter_queue-devel"
+                    echo "   CentOS/RHEL: yum install libnetfilter_queue-devel"
+                    echo
+                    exit 1
+                fi
+                ;;
+            esac
     fi
 
     # enable support for NFQUEUE
