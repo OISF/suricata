@@ -67,6 +67,7 @@ pub struct NTPTransaction {
     events: *mut core::AppLayerDecoderEvents,
 
     logged: applayer::LoggerFlags,
+    detect_flags: applayer::TxDetectFlags,
 }
 
 
@@ -151,6 +152,7 @@ impl NTPTransaction {
             de_state: None,
             events: std::ptr::null_mut(),
             logged: applayer::LoggerFlags::new(),
+            detect_flags: applayer::TxDetectFlags::default(),
         }
     }
 
@@ -362,6 +364,8 @@ pub extern "C" fn ntp_probing_parser(_flow: *const Flow, input:*const u8, input_
         },
     }
 }
+export_tx_detect_flags_set!(rs_ntp_tx_detect_flags_set, NTPTransaction);
+export_tx_detect_flags_get!(rs_ntp_tx_detect_flags_get, NTPTransaction);
 
 const PARSER_NAME : &'static [u8] = b"ntp\0";
 
@@ -397,8 +401,8 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         set_tx_mpm_id     : None,
         get_files         : None,
         get_tx_iterator   : None,
-        get_tx_detect_flags: None,
-        set_tx_detect_flags: None,
+        get_tx_detect_flags: rs_ntp_tx_detect_flags_get,
+        set_tx_detect_flags: rs_ntp_tx_detect_flags_set,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
