@@ -7,7 +7,6 @@ EXTRA_DIST= access-pkt-packet.cocci \
     realloc.cocci \
     siginit.cocci \
     size_t.cocci \
-    struct-flags.cocci \
     sz3.cocci \
     uint.cocci \
     run_check.sh struct-flags.py
@@ -16,7 +15,7 @@ if HAVE_COCCINELLE
 struct-flags.cocci:
 	$(srcdir)/struct-flags.py > $(top_builddir)/qa/coccinelle/struct-flags.cocci
 
-check:
+check: struct-flags.cocci
 	TOP_SRCDIR=$(abs_top_srcdir) $(top_srcdir)/qa/coccinelle/run_check.sh
 
 distclean-local:
