@@ -100,6 +100,7 @@ pub struct IKEV2Transaction {
     events: *mut core::AppLayerDecoderEvents,
 
     logged: applayer::LoggerFlags,
+    detect_flags: applayer::TxDetectFlags,
 }
 
 
@@ -410,6 +411,7 @@ impl IKEV2Transaction {
             de_state: None,
             events: std::ptr::null_mut(),
             logged: applayer::LoggerFlags::new(),
+            detect_flags: applayer::TxDetectFlags::default(),
         }
     }
 
@@ -651,6 +653,9 @@ pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow,
     }
 }
 
+export_tx_detect_flags_set!(rs_ikev2_tx_detect_flags_set, IKEV2Transaction);
+export_tx_detect_flags_get!(rs_ikev2_tx_detect_flags_get, IKEV2Transaction);
+
 const PARSER_NAME : &'static [u8] = b"ikev2\0";
 
 #[no_mangle]
@@ -685,8 +690,8 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
         set_tx_mpm_id     : None,
         get_files         : None,
         get_tx_iterator   : None,
-        get_tx_detect_flags: None,
-        set_tx_detect_flags: None,
+        get_tx_detect_flags: rs_ikev2_tx_detect_flags_get,
+        set_tx_detect_flags: rs_ikev2_tx_detect_flags_set,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
