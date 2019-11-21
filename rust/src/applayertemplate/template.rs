@@ -20,7 +20,7 @@ use core::{self, ALPROTO_UNKNOWN, AppProto, Flow};
 use libc;
 use log::*;
 use std::mem::transmute;
-use applayer::{self, LoggerFlags};
+use applayer::{self, LoggerFlags, TxDetectFlags};
 use parser::*;
 use std::ffi::CString;
 use nom;
@@ -36,6 +36,7 @@ pub struct TemplateTransaction {
     logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
+    detect_flags: TxDetectFlags,
 }
 
 impl TemplateTransaction {
@@ -47,6 +48,7 @@ impl TemplateTransaction {
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
+            detect_flags: TxDetectFlags::default(),
         }
     }
 
@@ -504,6 +506,9 @@ pub extern "C" fn rs_template_get_response_buffer(
     return 0;
 }
 
+export_tx_detect_flags_set!(rs_template_tx_detect_flags_set, TemplateTransaction);
+export_tx_detect_flags_get!(rs_template_tx_detect_flags_get, TemplateTransaction);
+
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"template-rust\0";
 
@@ -539,8 +544,8 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         set_tx_mpm_id: None,
         get_files: None,
         get_tx_iterator: Some(rs_template_state_get_tx_iterator),
-        get_tx_detect_flags: None,
-        set_tx_detect_flags: None,
+        get_tx_detect_flags: rs_template_tx_detect_flags_get,
+        set_tx_detect_flags: rs_template_tx_detect_flags_set,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
