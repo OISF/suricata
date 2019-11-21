@@ -79,6 +79,7 @@ pub struct KRB5Transaction {
     events: *mut core::AppLayerDecoderEvents,
 
     logged: applayer::LoggerFlags,
+    detect_flags: applayer::TxDetectFlags,
 }
 
 pub fn to_hex_string(bytes: &[u8]) -> String {
@@ -230,6 +231,7 @@ impl KRB5Transaction {
             de_state: None,
             events: std::ptr::null_mut(),
             logged: applayer::LoggerFlags::new(),
+            detect_flags: applayer::TxDetectFlags::default(),
         }
     }
 }
@@ -600,6 +602,8 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
     status
 }
 
+export_tx_detect_flags_set!(rs_krb5_tx_detect_flags_set, KRB5Transaction);
+export_tx_detect_flags_get!(rs_krb5_tx_detect_flags_get, KRB5Transaction);
 
 const PARSER_NAME : &'static [u8] = b"krb5\0";
 
@@ -635,8 +639,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         set_tx_mpm_id     : None,
         get_files         : None,
         get_tx_iterator   : None,
-        get_tx_detect_flags: None,
-        set_tx_detect_flags: None,
+        get_tx_detect_flags: rs_krb5_tx_detect_flags_get,
+        set_tx_detect_flags: rs_krb5_tx_detect_flags_set,
     };
     // register UDP parser
     let ip_proto_str = CString::new("udp").unwrap();
