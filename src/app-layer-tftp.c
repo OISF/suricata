@@ -277,6 +277,8 @@ void RegisterTFTPParsers(void)
                                            TFTPStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_TFTP,
                                             TFTPGetEvents);
+
+        rs_tftp_register(ALPROTO_TFTP);
     }
     else {
         SCLogDebug("TFTP protocol parsing disabled.");

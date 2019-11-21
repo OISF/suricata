@@ -23,8 +23,11 @@ extern crate nom;
 use std::str;
 use std;
 use std::mem::transmute;
+use libc::IPPROTO_UDP;
 
-use applayer::LoggerFlags;
+use core::AppProto;
+use applayer::{LoggerFlags, TxDetectFlags};
+use parser;
 
 #[derive(Debug)]
 pub struct TFTPTransaction {
@@ -33,6 +36,7 @@ pub struct TFTPTransaction {
     pub mode : String,
     pub logged : LoggerFlags,
     id: u64,
+    detect_flags: TxDetectFlags,
 }
 
 pub struct TFTPState {
@@ -63,6 +67,7 @@ impl TFTPTransaction {
             mode : mode.to_lowercase(),
             logged : LoggerFlags::new(),
             id : 0,
+            detect_flags: TxDetectFlags::default(),
         }
     }
     pub fn is_mode_ok(&self) -> bool {
@@ -153,4 +158,13 @@ pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
         },
         _ => 0
     }
+}
+
+export_tx_detect_flags_set!(rs_tftp_tx_detect_flags_set, TFTPTransaction);
+export_tx_detect_flags_get!(rs_tftp_tx_detect_flags_get, TFTPTransaction);
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_tftp_register(alproto: AppProto) {
+    parser::AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_UDP as u8, alproto,
+         rs_tftp_tx_detect_flags_get, rs_tftp_tx_detect_flags_set);
 }
