@@ -4759,6 +4759,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
     /* broken TCP http://ask.wireshark.org/questions/3183/acknowledgment-number-broken-tcp-the-acknowledge-field-is-nonzero-while-the-ack-flag-is-not-set */
     if (!(p->tcph->th_flags & TH_ACK) && TCP_GET_ACK(p) != 0) {
         StreamTcpSetEvent(p, STREAM_PKT_BROKEN_ACK);
+        goto error;
     }
 
     /* If we are on IPS mode, and got a drop action triggered from
@@ -6883,7 +6884,7 @@ static int StreamTcpTest10 (void)
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
-    tcph.th_ack = htonl(11);
+    tcph.th_ack = 0;
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
 
