@@ -165,7 +165,7 @@ def OpenBuildbotSession():
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
     urllib2.install_opener(opener)
     request = urllib2.Request(BASE_URI + 'login', params)
-    page = urllib2.urlopen(request)
+    _ = urllib2.urlopen(request)
     return cookie
 
 
@@ -310,12 +310,10 @@ def RmContainer():
             cli.remove_container('suri-buildbot')
         except:
             print "Unable to remove suri-buildbot container"
-            pass
         try:
             cli.remove_image('regit/suri-buildbot:latest')
         except:
             print "Unable to remove suri-buildbot images"
-            pass
     else:
         cli = DockerClient()
         cli.containers.get('suri-buildbot').remove()
