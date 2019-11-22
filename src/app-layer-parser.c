@@ -875,6 +875,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     if (unlikely(p->StateTransactionFree == NULL))
         SCReturn;
 
+    const bool has_tx_detect_flags = (p->GetTxDetectFlags != NULL);
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
     void * const alstate = f->alstate;
@@ -919,22 +920,24 @@ void AppLayerParserTransactionsCleanup(Flow *f)
             skipped = true;
             goto next;
         }
-        if (f->sgh_toserver != NULL) {
-            uint64_t detect_flags_ts = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, STREAM_TOSERVER);
-            if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
-                SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
-                        tx, i, detect_flags_ts);
-                skipped = true;
-                goto next;
+        if (has_tx_detect_flags) {
+            if (f->sgh_toserver != NULL) {
+                uint64_t detect_flags_ts = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, STREAM_TOSERVER);
+                if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
+                    SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
+                            tx, i, detect_flags_ts);
+                    skipped = true;
+                    goto next;
+                }
             }
-        }
-        if (f->sgh_toclient != NULL) {
-            uint64_t detect_flags_tc = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, STREAM_TOCLIENT);
-            if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
-                SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
-                        tx, i, detect_flags_tc);
-                skipped = true;
-                goto next;
+            if (f->sgh_toclient != NULL) {
+                uint64_t detect_flags_tc = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, STREAM_TOCLIENT);
+                if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
+                    SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
+                            tx, i, detect_flags_tc);
+                    skipped = true;
+                    goto next;
+                }
             }
         }
         if (logger_expectation != 0) {
