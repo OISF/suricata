@@ -181,7 +181,7 @@ def gen_headers(filename):
     writer = StringIO()
 
     for fn in re.findall(
-            r"^pub (unsafe )?extern \"C\" fn ([A_Za-z0-9_]+)\(([^{]+)?\)"
+            r"^pub (unsafe )?extern \"C\" fn ([A-Za-z0-9_]+)\(([^{]+)?\)"
             r"(\s+-> ([^{]+))?",
             buf,
             re.M | re.DOTALL):
