@@ -301,9 +301,32 @@ uint64_t FileTrackedSize(const File *file)
     return 0;
 }
 
+/** \brief test if file is ready to be pruned
+ *
+ *  If a file is in the 'CLOSED' state, it means it has been processed
+ *  completely by the pipeline in the correct direction. So we can
+ *  prune it then.
+ *
+ *  For other states, as well as for files we may not need to track
+ *  until the close state, more specific checks are done.
+ *
+ *  Also does house keeping within the file: move streaming buffer
+ *  forward if possible.
+ *
+ *  \retval 1 prune (free) this file
+ *  \retval 0 file not ready to be freed
+ */
 static int FilePruneFile(File *file)
 {
     SCEnter();
+
+    /* file is done when state is closed+, logging/storing is done (if any) */
+    SCLogDebug("file->state %d. Is >= FILE_STATE_CLOSED: %s",
+            file->state, (file->state >= FILE_STATE_CLOSED) ? "yes" : "no");
+    if (file->state >= FILE_STATE_CLOSED) {
+        SCReturnInt(1);
+    }
+
 #ifdef HAVE_MAGIC
     if (!(file->flags & FILE_NOMAGIC)) {
         /* need magic but haven't set it yet, bail out */
@@ -315,9 +338,9 @@ static int FilePruneFile(File *file)
         SCLogDebug("file->flags & FILE_NOMAGIC == true");
     }
 #endif
-    uint64_t left_edge = file->content_stored;
-    if (file->flags & FILE_NOSTORE) {
-        left_edge = FileDataSize(file);
+    uint64_t left_edge = FileDataSize(file);
+    if (file->flags & FILE_STORE) {
+        left_edge = MIN(left_edge,file->content_stored);
     }
     if (file->flags & FILE_USE_DETECT) {
         left_edge = MIN(left_edge, file->content_inspected);
@@ -347,18 +370,7 @@ static int FilePruneFile(File *file)
         StreamingBufferSlideToOffset(file->sb, left_edge);
     }
 
-    if (left_edge != FileDataSize(file)) {
-        SCReturnInt(0);
-    }
-
-    SCLogDebug("file->state %d. Is >= FILE_STATE_CLOSED: %s", file->state, (file->state >= FILE_STATE_CLOSED) ? "yes" : "no");
-
-    /* file is done when state is closed+, logging/storing is done (if any) */
-    if (file->state >= FILE_STATE_CLOSED) {
-        SCReturnInt(1);
-    } else {
-        SCReturnInt(0);
-    }
+    SCReturnInt(0);
 }
 
 void FilePrune(FileContainer *ffc)
