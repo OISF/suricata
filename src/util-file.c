@@ -332,10 +332,7 @@ static int FilePruneFile(File *file)
     SCLogDebug("file->state %d. Is >= FILE_STATE_CLOSED: %s", file->state, (file->state >= FILE_STATE_CLOSED) ? "yes" : "no");
 
     /* file is done when state is closed+, logging/storing is done (if any) */
-    if (file->state >= FILE_STATE_CLOSED &&
-        (!RunModeOutputFileEnabled() || (file->flags & FILE_LOGGED)) &&
-        (!RunModeOutputFiledataEnabled() || (file->flags & (FILE_STORED|FILE_NOSTORE))))
-    {
+    if (file->state >= FILE_STATE_CLOSED) {
         SCReturnInt(1);
     } else {
         SCReturnInt(0);

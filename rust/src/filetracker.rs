@@ -110,7 +110,6 @@ impl FileTransferTracker {
         }
         self.file_open = false;
         self.tracked = 0;
-        files.files_prune();
     }
 
     pub fn trunc (&mut self, files: &mut FileContainer, flags: u16) {
@@ -120,7 +119,6 @@ impl FileTransferTracker {
         let myflags = flags | 1; // TODO util-file.c::FILE_TRUNCATED
         files.file_close(&self.track_id, myflags);
         SCLogDebug!("truncated file");
-        files.files_prune();
         self.file_is_truncated = true;
     }
 
@@ -322,7 +320,6 @@ impl FileTransferTracker {
                 consumed += data.len();
             }
         }
-        files.files_prune();
         consumed as u32
     }
 
