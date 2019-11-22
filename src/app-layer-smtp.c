@@ -1225,7 +1225,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                 if (FileOpenFileWithId(state->files_ts, &smtp_config.sbcfg,
                         state->file_track_id++,
                         (uint8_t*) msgname, strlen(msgname), NULL, 0,
-                        FILE_NOMD5|FILE_NOMAGIC) == 0) {
+                        FILE_NOMD5|FILE_NOMAGIC|FILE_USE_DETECT) == 0) {
                     FlagDetectStateNewFile(state->curr_tx);
                 }
             } else if (smtp_config.decode_mime) {
