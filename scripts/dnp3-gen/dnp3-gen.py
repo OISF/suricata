@@ -23,9 +23,7 @@ from __future__ import print_function
 
 import sys
 import re
-from cStringIO import StringIO
 import yaml
-import types
 
 import jinja2
 
