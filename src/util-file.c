@@ -872,7 +872,6 @@ int FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
         return -1;
 
     ff->file_track_id = track_id;
-    ff->flags |= FILE_USE_TRACKID;
     return 0;
 }
 
