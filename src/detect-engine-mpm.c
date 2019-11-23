@@ -74,7 +74,7 @@ const char *builtin_mpms[] = {
 
     NULL };
 
-/* Registery for mpm keywords
+/* Registry for mpm keywords
  *
  * Keywords are registered at engine start up
  */
@@ -690,7 +690,7 @@ void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matche
  *  Longer patterns score better than short patters.
  *
  *  \param pat pattern
- *  \param patlen length of the patternn
+ *  \param patlen length of the pattern
  *
  *  \retval s pattern score
  */
@@ -1756,7 +1756,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
     if (struct_total_size + content_total_size == 0)
         return 0;
 
-    /* array hash buffer - i've run out of ideas to name it */
+    /* array hash buffer - I've run out of ideas to name it */
     uint8_t *ahb = SCMalloc(sizeof(uint8_t) * (struct_total_size + content_total_size));
     if (unlikely(ahb == NULL))
         return -1;
@@ -1827,7 +1827,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
                 /* Need to store case-insensitive patterns as lower case
                  * because SCMemcmpLowercase() above assumes that all
                  * patterns are stored lower case so that it doesn't
-                 * need to relower its first argument.
+                 * need to re-lower its first argument.
                  */
                 memcpy_tolower(struct_offset->content, content, content_len);
             } else {
