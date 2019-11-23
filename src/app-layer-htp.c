@@ -204,6 +204,18 @@ static int HTPStateGetAlstateProgress(void *tx, uint8_t direction);
 static uint64_t HTPStateGetTxCnt(void *alstate);
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction);
 
+static inline uint64_t HtpGetActiveRequestTxID(HtpState *s)
+{
+    uint64_t id = HTPStateGetTxCnt(s);
+    BUG_ON(id == 0);
+    return id - 1;
+}
+
+static inline uint64_t HtpGetActiveResponseTxID(HtpState *s)
+{
+    return s->transaction_cnt;
+}
+
 #ifdef DEBUG
 /**
  * \internal
@@ -272,7 +284,8 @@ static int HTPLookupPersonality(const char *str)
     return -1;
 }
 
-static void HTPSetEvent(HtpState *s, HtpTxUserData *htud, uint8_t e)
+static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
+        const uint8_t dir, const uint8_t e)
 {
     SCLogDebug("setting event %u", e);
 
@@ -282,9 +295,12 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud, uint8_t e)
         return;
     }
 
-    htp_tx_t *tx = HTPStateGetTx(s, s->transaction_cnt);
-    if (tx == NULL && s->transaction_cnt > 0)
-        tx = HTPStateGetTx(s, s->transaction_cnt - 1);
+    const uint64_t tx_id = (dir == STREAM_TOSERVER) ?
+        HtpGetActiveRequestTxID(s) : HtpGetActiveResponseTxID(s);
+
+    htp_tx_t *tx = HTPStateGetTx(s, tx_id);
+    if (tx == NULL && tx_id > 0)
+        tx = HTPStateGetTx(s, tx_id - 1);
     if (tx != NULL) {
         htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud != NULL) {
@@ -660,8 +676,9 @@ static int HTPHandleErrorGetId(const char *msg)
  *  \brief Check state for errors, warnings and add any as events
  *
  *  \param s state
+ *  \param dir direction: STREAM_TOSERVER or STREAM_TOCLIENT
  */
-static void HTPHandleError(HtpState *s)
+static void HTPHandleError(HtpState *s, const uint8_t dir)
 {
     if (s == NULL || s->conn == NULL ||
         s->conn->messages == NULL) {
@@ -691,7 +708,7 @@ static void HTPHandleError(HtpState *s)
         }
 
         if (id > 0) {
-            HTPSetEvent(s, htud, id);
+            HTPSetEvent(s, htud, dir, id);
         }
     }
     s->htp_messages_offset = (uint16_t)msg;
@@ -712,29 +729,30 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
             return;
 
         if (tx->flags & HTP_REQUEST_INVALID_T_E)
-            HTPSetEvent(s, htud,
+            HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST);
         if (tx->flags & HTP_REQUEST_INVALID_C_L)
-            HTPSetEvent(s, htud,
+            HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST);
         if (tx->flags & HTP_HOST_MISSING)
-            HTPSetEvent(s, htud,
+            HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_MISSING_HOST_HEADER);
         if (tx->flags & HTP_HOST_AMBIGUOUS)
-            HTPSetEvent(s, htud,
+            HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS);
         if (tx->flags & HTP_HOSTU_INVALID)
-            HTPSetEvent(s, htud,
+            HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_URI_HOST_INVALID);
         if (tx->flags & HTP_HOSTH_INVALID)
-            HTPSetEvent(s, htud,
+            HTPSetEvent(s, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_HEADER_HOST_INVALID);
     }
     if (tx->request_auth_type == HTP_AUTH_UNRECOGNIZED) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
-        HTPSetEvent(s, htud, HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED);
+        HTPSetEvent(s, htud, STREAM_TOSERVER,
+                HTTP_DECODER_EVENT_AUTH_UNRECOGNIZED);
     }
     if (tx->is_protocol_0_9 && tx->request_method_number == HTP_M_UNKNOWN &&
         (tx->request_protocol_number == HTP_PROTOCOL_INVALID ||
@@ -742,7 +760,8 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
-        HTPSetEvent(s, htud, HTTP_DECODER_EVENT_REQUEST_LINE_INVALID);
+        HTPSetEvent(s, htud, STREAM_TOSERVER,
+                HTTP_DECODER_EVENT_REQUEST_LINE_INVALID);
     }
 }
 
@@ -851,7 +870,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             default:
                 break;
         }
-        HTPHandleError(hstate);
+        HTPHandleError(hstate, STREAM_TOSERVER);
     }
 
     /* if the TCP connection is closed, then close the HTTP connection */
@@ -913,7 +932,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
             default:
                 break;
         }
-        HTPHandleError(hstate);
+        HTPHandleError(hstate, STREAM_TOCLIENT);
     }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
@@ -1184,12 +1203,12 @@ static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
         }
         uint8_t *sc = (uint8_t *)memchr(line, ':', line_len);
         if (sc == NULL) {
-            HTPSetEvent(hstate, htud,
+            HTPSetEvent(hstate, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
             /* if the : we found is the final char, it means we have
              * no value */
         } else if (line_len > 0 && sc == &line[line_len - 1]) {
-            HTPSetEvent(hstate, htud,
+            HTPSetEvent(hstate, htud, STREAM_TOSERVER,
                     HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
         } else {
 #ifdef PRINT
@@ -1329,7 +1348,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
             }
 
             if (filedata_len > chunks_buffer_len) {
-                HTPSetEvent(hstate, htud,
+                HTPSetEvent(hstate, htud, STREAM_TOSERVER,
                         HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
                 goto end;
             }
@@ -1423,11 +1442,11 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
             if (form_end != NULL) {
                 filedata = header_end + 4;
                 if (form_end == filedata) {
-                    HTPSetEvent(hstate, htud,
+                    HTPSetEvent(hstate, htud, STREAM_TOSERVER,
                             HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA);
                     goto end;
                 } else if (form_end < filedata) {
-                    HTPSetEvent(hstate, htud,
+                    HTPSetEvent(hstate, htud, STREAM_TOSERVER,
                             HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
                     goto end;
                 }
@@ -1443,7 +1462,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 }
 
                 if (filedata_len > chunks_buffer_len) {
-                    HTPSetEvent(hstate, htud,
+                    HTPSetEvent(hstate, htud, STREAM_TOSERVER,
                             HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
                     goto end;
                 }
@@ -1455,7 +1474,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 #endif
 
                 result = HTPFileOpen(hstate, filename, filename_len,
-                            filedata, filedata_len, hstate->transaction_cnt,
+                            filedata, filedata_len, HtpGetActiveRequestTxID(hstate),
                             STREAM_TOSERVER);
                 if (result == -1) {
                     goto end;
@@ -1478,7 +1497,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 SCLogDebug("filedata_len %u (chunks_buffer_len %u)", filedata_len, chunks_buffer_len);
 
                 if (filedata_len > chunks_buffer_len) {
-                    HTPSetEvent(hstate, htud,
+                    HTPSetEvent(hstate, htud, STREAM_TOSERVER,
                             HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
                     goto end;
                 }
@@ -1504,7 +1523,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     htud->request_body.body_parsed += offset;
 
                     result = HTPFileOpen(hstate, filename, filename_len,
-                            NULL, 0, hstate->transaction_cnt,
+                            NULL, 0, HtpGetActiveRequestTxID(hstate),
                             STREAM_TOSERVER);
                     if (result == -1) {
                         goto end;
@@ -1518,7 +1537,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     SCLogDebug("filedata_len %u", filedata_len);
 
                     result = HTPFileOpen(hstate, filename, filename_len,
-                            filedata, filedata_len, hstate->transaction_cnt,
+                            filedata, filedata_len, HtpGetActiveRequestTxID(hstate),
                             STREAM_TOSERVER);
                     if (result == -1) {
                         goto end;
@@ -1604,7 +1623,7 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
 
         if (filename != NULL) {
             result = HTPFileOpen(hstate, filename, (uint32_t)filename_len, data, data_len,
-                    hstate->transaction_cnt, STREAM_TOSERVER);
+                    HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
@@ -1658,7 +1677,7 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
 
         if (filename != NULL) {
             result = HTPFileOpen(hstate, filename, (uint32_t)filename_len, data, data_len,
-                    hstate->transaction_cnt, STREAM_TOSERVER);
+                    HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
@@ -1729,7 +1748,7 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
 
         if (filename != NULL) {
             result = HTPFileOpen(hstate, filename, (uint32_t)filename_len,
-                    data, data_len, hstate->transaction_cnt, STREAM_TOCLIENT);
+                    data, data_len, HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
             SCLogDebug("result %d", result);
             if (result == -1) {
                 goto end;
@@ -2246,7 +2265,8 @@ static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
         HtpState *s = htp_connp_get_user_data(tx->connp);
         if (s == NULL)
             return HTP_OK;
-        HTPSetEvent(s, htud, HTTP_DECODER_EVENT_DOUBLE_ENCODED_URI);
+        HTPSetEvent(s, htud, STREAM_TOSERVER,
+                HTTP_DECODER_EVENT_DOUBLE_ENCODED_URI);
     }
 
     return HTP_OK;
