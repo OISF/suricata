@@ -246,6 +246,13 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 prev_buffer_offset = 0;
             }
 
+            /* If the value came from a variable, make sure to adjust the depth so it's relative
+             * to the offset value.
+             */
+            if (cd->flags & (DETECT_CONTENT_DISTANCE_BE|DETECT_CONTENT_OFFSET_BE|DETECT_CONTENT_DEPTH_BE)) {
+                 depth += offset;
+            }
+
             /* update offset with prev_offset if we're searching for
              * matches after the first occurence. */
             SCLogDebug("offset %"PRIu32", prev_offset %"PRIu32, offset, prev_offset);
