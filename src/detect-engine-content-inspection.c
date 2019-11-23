@@ -255,7 +255,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             }
 
             /* update offset with prev_offset if we're searching for
-             * matches after the first occurence. */
+             * matches after the first occurrence. */
             SCLogDebug("offset %"PRIu32", prev_offset %"PRIu32, offset, prev_offset);
             if (prev_offset != 0)
                 offset = prev_offset;
@@ -339,7 +339,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                     KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
 
                     /* see if the next buffer keywords match. If not, we will
-                     * search for another occurence of this content and see
+                     * search for another occurrence of this content and see
                      * if the others match then until we run out of matches */
                     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
                             p, f, buffer, buffer_len, stream_start_offset, flags,
@@ -440,7 +440,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             prev_offset = det_ctx->pcre_match_start_offset;
 
             /* see if the next payload keywords match. If not, we will
-             * search for another occurence of this pcre and see
+             * search for another occurrence of this pcre and see
              * if the others match, until we run out of matches */
             r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
                     p, f, buffer, buffer_len, stream_start_offset, flags,
