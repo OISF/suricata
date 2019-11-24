@@ -1,0 +1,548 @@
+name: builds
+
+on:
+  - push
+  - pull_request
+
+jobs:
+
+  centos-8:
+    name: CentOS 8
+    runs-on: ubuntu-latest
+    container: centos:8
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Install system packages
+        run: |
+          yum -y install dnf-plugins-core
+          yum config-manager --set-enabled PowerTools
+          yum -y install \
+                autoconf \
+                automake \
+                cargo-vendor \
+                diffutils \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                nss-devel \
+                pcre-devel \
+                pkgconfig \
+                python3-devel \
+                python3-sphinx \
+                python3-yaml \
+                rust-toolset \
+                sudo \
+                which \
+                zlib-devel
+          # These packages required to build the PDF.
+          yum -y install \
+                texlive-latex \
+                texlive-cmap \
+                texlive-collection-latexrecommended \
+                texlive-fncychap \
+                texlive-titlesec \
+                texlive-tabulary \
+                texlive-framed \
+                texlive-wrapfig \
+                texlive-upquote \
+                texlive-capt-of \
+                texlive-needspace \
+      - uses: actions/checkout@v1
+      - name: Bundling libhtp
+        run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - name: Bundling suricata-update
+        run: |
+          curl -L \
+              https://github.com/OISF/suricata-update/archive/master.tar.gz | \
+              tar zxvf - --strip-components=1
+        working-directory: suricata-update
+      - name: Configuring
+        run: |
+          ./autogen.sh
+          ./configure --enable-unittests \
+                --enable-debug \
+                --enable-lua \
+                --enable-geoip \
+                --enable-profiling \
+                --enable-profiling-locks
+      - name: Building
+        run: make -j2
+      - name: Running unittests
+        run: make check
+      - name: Building distribution
+        run: |
+          make dist
+          mkdir dist
+          mv suricata-*.tar.gz dist
+      - uses: actions/upload-artifact@v1
+        name: Uploading distribution
+        with:
+          name: dist
+          path: dist
+
+  centos-7:
+    name: CentOS 7
+    runs-on: ubuntu-latest
+    container: centos:7
+    needs: centos-8
+    steps:
+      - name: Install system dependencies
+        run: |
+          yum -y install epel-release
+          yum -y install \
+                cargo \
+                diffutils \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                lz4-devel \
+                make \
+                nss-devel \
+                pcre-devel \
+                pkgconfig \
+                rust \
+                sudo \
+                which \
+                zlib-devel
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: dist
+      - run: mkdir suricata
+      - working-directory: suricata
+        run: tar zxvf ../dist/suricata-*.tar.gz --strip-components=1
+      - working-directory: suricata
+        run: ./configure
+      - working-directory: suricata
+        run: make -j2
+      - working-directory: suricata
+        run: make install
+      - working-directory: suricata
+        run: make install-conf
+
+  centos-6:
+    name: CentOS 6
+    runs-on: ubuntu-latest
+    container: centos:6
+    needs: centos-8
+    steps:
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
+      - run: echo "::add-path::/github/home/.cargo/bin"
+      - name: Install system dependencies
+        run: |
+          yum -y install epel-release
+          yum -y install \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                jq \
+                jansson-devel \
+                make \
+                libyaml-devel \
+                libpcap-devel \
+                pcre-devel \
+                python34-PyYAML \
+                nss-devel \
+                sudo \
+                which \
+                zlib-devel
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: dist
+      - run: mkdir suricata
+      - working-directory: suricata
+        run: tar zxvf ../dist/suricata-*.tar.gz --strip-components=1
+      - working-directory: suricata
+        run: ./configure
+      - working-directory: suricata
+        run: make -j2
+      - working-directory: suricata
+        run: make install
+      - working-directory: suricata
+        run: make install-conf
+
+  fedora-31:
+    name: Fedora 31
+    runs-on: ubuntu-latest
+    container: fedora:31
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - run: |
+          dnf -y install \
+                autoconf \
+                automake \
+                cargo \
+                ccache \
+                diffutils \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                nspr-devel \
+                nss-devel \
+                nss-softokn-devel \
+                pcre-devel \
+                pkgconfig \
+                python3-yaml \
+                sudo \
+                which \
+                zlib-devel
+      - uses: actions/checkout@v1
+      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests
+      - run: make -j2
+      - run: make check
+      - name: Fetching suricata-verify
+        run: git clone https://github.com/OISF/suricata-verify.git
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py
+
+  ubuntu-18-04:
+    name: Ubuntu 18.04 (Cocci)
+    runs-on: ubuntu-18.04
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt -y install \
+                libpcre3 \
+                libpcre3-dev \
+                build-essential \
+                autoconf \
+                automake \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libhiredis-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1.6 \
+                libjansson-dev \
+                make \
+                parallel \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev
+      - name: Install Coccinelle
+        run: |
+          sudo add-apt-repository -y ppa:npalix/coccinelle
+          sudo apt -y install coccinelle
+      - uses: actions/checkout@v1
+      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests --enable-coccinelle
+      - run: make -j2
+      - name: Running unit tests and cocci checks
+        # Set the concurrency level for cocci.
+        run: CONCURRENCY_LEVEL=2 make check
+      - name: Fetching suricata-verify
+        run: git clone https://github.com/OISF/suricata-verify.git
+      - name: Running suricata-verify
+        run: ./suricata-verify/run.py
+
+  # An Ubuntu 16.04 build using the tarball generated in the CentOS 8
+  # build above.
+  ubuntu-16-04:
+    name: Ubuntu 16.04
+    runs-on: ubuntu-latest
+    container: ubuntu:16.04
+    needs: centos-8
+    steps:
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                build-essential \
+                curl \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libevent-dev \
+                libhiredis-dev \
+                libjansson-dev \
+                libmagic-dev \
+                libnet1-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libnss3-dev \
+                libpcre3 \
+                libpcre3-dev \
+                libpcap-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                make \
+                python3-yaml \
+                zlib1g \
+                zlib1g-dev
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
+      - run: echo "::add-path::/github/home/.cargo/bin"
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: dist
+      - run: mkdir suricata
+      - name: Extract
+        working-directory: suricata
+        run: tar zxvf ../dist/suricata-*.tar.gz --strip-components=1
+      - name: Configure
+        working-directory: suricata
+        run: ./configure
+      - name: Build
+        working-directory: suricata
+        run: make -j2
+      - name: Testing
+        working-directory: suricata
+        run: make check
+      - working-directory: suricata
+        run: make install
+      - working-directory: suricata
+        run: make install-conf
+      - working-directory: suricata
+        run: make install-rules
+
+  debian-10:
+    name: Debian 10
+    runs-on: ubuntu-latest
+    container: debian:10
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - run: |
+          apt update
+          apt -y install \
+                automake \
+                autoconf \
+                build-essential \
+                ccache \
+                curl \
+                git \
+                gosu \
+                jq \
+                libpcre3 \
+                libpcre3-dbg \
+                libpcre3-dev \
+                libpcap-dev   \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libjansson-dev \
+                libnss3-dev \
+                libgeoip-dev \
+                liblua5.1-dev \
+                libhiredis-dev \
+                libevent-dev \
+                libtool \
+                m4 \
+                make \
+                python-yaml \
+                pkg-config \
+                rustc \
+                sudo \
+                zlib1g \
+                zlib1g-dev
+      - uses: actions/checkout@v1
+      - name: Bundling libhtp
+        run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - name: Bundling suricata-update
+        run: |
+          curl -L \
+              https://github.com/OISF/suricata-update/archive/master.tar.gz | \
+              tar zxvf - --strip-components=1
+        working-directory: suricata-update
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests
+      - run: make -j2
+      - run: make check
+      - name: Fetching suricata-verify
+        run: git clone https://github.com/OISF/suricata-verify.git
+      - name: Running suricata-verify
+        run: ./suricata-verify/run.py
+
+  debian-9:
+    name: Debian 9
+    runs-on: ubuntu-latest
+    container: debian:9
+    steps:
+      - run: |
+          apt update
+          apt -y install \
+                automake \
+                autoconf \
+                build-essential \
+                ccache \
+                curl \
+                git-core \
+                gosu \
+                jq \
+                libpcre3 \
+                libpcre3-dbg \
+                libpcre3-dev \
+                libpcap-dev   \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libjansson-dev \
+                libnss3-dev \
+                libgeoip-dev \
+                liblua5.1-dev \
+                libhiredis-dev \
+                libevent-dev \
+                libtool \
+                m4 \
+                make \
+                python-yaml \
+                pkg-config \
+                sudo \
+                zlib1g \
+                zlib1g-dev
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
+      - run: echo "::add-path::/github/home/.cargo/bin"
+      - uses: actions/checkout@v1
+      - name: Bundling libhtp
+        run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - name: Bundling suricata-update
+        run: |
+          curl -L \
+              https://github.com/OISF/suricata-update/archive/master.tar.gz | \
+              tar zxvf - --strip-components=1
+        working-directory: suricata-update
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests
+      - run: make -j2
+      - run: make check
+      - name: Fetching suricata-verify
+        run: git clone https://github.com/OISF/suricata-verify.git
+      - name: Running suricata-verify
+        run: ./suricata-verify/run.py
+
+  macos-latest:
+    name: MacOS Latest
+    runs-on: macos-latest
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+      - run: |
+         brew install \
+          autoconf \
+          automake \
+          curl \
+          hiredis \
+          jansson \
+          jq \
+          libmagic \
+          libnet \
+          libtool \
+          libyaml \
+          lua \
+          nss \
+          nspr \
+          pcre \
+          pkg-config \
+          rust \
+          xz
+      - run: pip install PyYAML
+      - uses: actions/checkout@v1
+      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests
+      - run: make -j2
+      - run: make check
+      - name: Fetching suricata-verify
+        run: git clone https://github.com/OISF/suricata-verify.git
+      - name: Running suricata-verify
+        run: ./suricata-verify/run.py
