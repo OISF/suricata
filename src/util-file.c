@@ -37,6 +37,8 @@
 #include "app-layer-parser.h"
 #include "util-validate.h"
 
+extern int g_detect_disabled;
+
 /** \brief switch to force filestore on all files
  *         regardless of the rules.
  */
@@ -804,7 +806,7 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
         SCLogDebug("not doing sha256 for this file");
         ff->flags |= FILE_NOSHA256;
     }
-    if (flags & FILE_USE_DETECT) {
+    if (!g_detect_disabled && flags & FILE_USE_DETECT) {
         SCLogDebug("considering content_inspect tracker when pruning");
         ff->flags |= FILE_USE_DETECT;
     }
