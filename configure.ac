@@ -2364,7 +2364,8 @@ fi
     enable_rust="yes"
     rust_compiler_version=$($RUSTC --version)
     rustc_version=$(echo "$rust_compiler_version" | sed 's/^.*[[^0-9]]\([[0-9]]*\.[[0-9]]*\.[[0-9]]*\).*$/\1/')
-    rust_cargo_version=$($CARGO --version)
+    cargo_version_output=$($CARGO --version)
+    cargo_version=$(echo "$cargo_version_output" | sed 's/^.*[[^0-9]]\([[0-9]]*\.[[0-9]]*\.[[0-9]]*\).*$/\1/')
 
     MIN_RUSTC_VERSION="1.33.0"
     AC_MSG_CHECKING(for Rust version $MIN_RUSTC_VERSION or newer)
@@ -2437,15 +2438,22 @@ fi
     AC_SUBST(rust_vendor_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
 
-    if test "x$enable_rust" = "xyes" || test "x$enable_rust" = "xyes (default)"; then
-      AC_PATH_PROG(HAVE_CARGO_VENDOR, cargo-vendor, "no")
-      if test "x$HAVE_CARGO_VENDOR" = "xno"; then
-        echo "   Warning: cargo-vendor not found, but it is only required"
-        echo "       for building the distribution"
-        echo "   To install: cargo install cargo-vendor"
-      fi
+    # With Rust/Cargo 1.37 and greater, cargo-vendor is built-in.
+    AC_MSG_CHECKING(for cargo vendor support)
+    AS_VERSION_COMPARE([$cargo_version], [1.37.0],
+        [have_cargo_vendor="no"],
+        [have_cargo_vendor="yes"],
+        [have_cargo_vendor="yes"])
+    AC_MSG_RESULT($have_cargo_vendor)
+
+    # If Rust is older than 1.37, check for cargo-vendor as an
+    # external sub-command.
+    if test "x$have_cargo_vendor" != "xyes"; then
+        AC_CHECK_PROG(have_cargo_vendor_bin, cargo-vendor, yes, no)
+        have_cargo_vendor=$have_cargo_vendor_bin
     fi
-    AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$HAVE_CARGO_VENDOR" != "xno"])
+
+    AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$have_cargo_vendor" != "xno"])
 
     AC_ARG_ENABLE(rust_strict,
            AS_HELP_STRING([--enable-rust-strict], [Rust warnings as errors]),[enable_rust_strict=$enableval],[enable_rust_strict=no])
@@ -2614,7 +2622,8 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Rust compiler path:                      ${RUSTC}
   Rust compiler version:                   ${rust_compiler_version}
   Cargo path:                              ${CARGO}
-  Cargo version:                           ${rust_cargo_version}
+  Cargo version:                           ${cargo_version_output}
+  Cargo vendor:                            ${have_cargo_vendor}
 
   Python support:                          ${enable_python}
   Python path:                             ${python_path}
