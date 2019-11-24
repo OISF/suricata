@@ -354,41 +354,6 @@ static SMTPTransaction *SMTPTransactionCreate(void)
     return tx;
 }
 
-/** \internal
- *  \brief update inspected tracker if it gets to far behind
- *
- *  As smtp uses the FILE_USE_DETECT flag in the file API, we are responsible
- *  for making sure that File::content_inspected is not getting too far
- *  behind.
- */
-static void SMTPPruneFiles(FileContainer *files)
-{
-    SCLogDebug("cfg: win %"PRIu32" min_size %"PRIu32,
-            smtp_config.content_inspect_window, smtp_config.content_inspect_min_size);
-
-    File *file = files->head;
-    while (file) {
-        SCLogDebug("file %p", file);
-        uint32_t window = smtp_config.content_inspect_window;
-        if (file->sb->stream_offset == 0)
-            window = MAX(window, smtp_config.content_inspect_min_size);
-
-        uint64_t file_size = FileDataSize(file);
-        uint64_t data_size = file_size - file->sb->stream_offset;
-
-        SCLogDebug("window %"PRIu32", file_size %"PRIu64", data_size %"PRIu64,
-                window, file_size, data_size);
-
-        if (data_size > (window * 3)) {
-            uint64_t left_edge = file_size - window;
-            SCLogDebug("file->content_inspected now %"PRIu64, left_edge);
-            file->content_inspected = left_edge;
-        }
-
-        file = file->next;
-    }
-}
-
 static void FlagDetectStateNewFile(SMTPTransaction *tx)
 {
     if (tx && tx->de_state) {
@@ -454,6 +419,8 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 SCLogDebug("FileOpenFile() failed");
             }
             FlagDetectStateNewFile(smtp_state->curr_tx);
+            files->tail->inspect_window = smtp_config.content_inspect_window;
+            files->tail->inspect_min_size = smtp_config.content_inspect_min_size;
 
             /* If close in the same chunk, then pass in empty bytes */
             if (state->body_end) {
@@ -504,11 +471,6 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
     } else {
         SCLogDebug("Body not a Ctnt_attachment");
     }
-
-    if (files != NULL) {
-        SMTPPruneFiles(files);
-    }
-
     SCReturnInt(ret);
 }
 

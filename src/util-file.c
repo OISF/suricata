@@ -319,6 +319,26 @@ static int FilePruneFile(File *file)
     }
     if (file->flags & FILE_USE_DETECT) {
         left_edge = MIN(left_edge, file->content_inspected);
+
+        /* if file has inspect window and min size set, we
+         * do some house keeping here */
+        if (file->inspect_window != 0 && file->inspect_min_size != 0) {
+            uint32_t window = file->inspect_window;
+            if (file->sb->stream_offset == 0)
+                window = MAX(window, file->inspect_min_size);
+
+            uint64_t file_size = FileDataSize(file);
+            uint64_t data_size = file_size - file->sb->stream_offset;
+
+            SCLogDebug("window %"PRIu32", file_size %"PRIu64", data_size %"PRIu64,
+                    window, file_size, data_size);
+
+            if (data_size > (window * 3)) {
+                left_edge = file_size - window;
+                SCLogDebug("file->content_inspected now %"PRIu64, left_edge);
+                file->content_inspected = left_edge;
+            }
+        }
     }
 
     if (left_edge) {

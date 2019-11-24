@@ -87,6 +87,8 @@ typedef struct File_ {
                                      *   flag is set */
     uint64_t content_stored;
     uint64_t size;
+    uint32_t inspect_window;
+    uint32_t inspect_min_size;
 } File;
 
 typedef struct FileContainer_ {
