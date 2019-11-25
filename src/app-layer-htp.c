@@ -1311,14 +1311,16 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
     HtpRequestBodySetupBoundary(htud, boundary, htud->boundary_len + 4);
 
     /* search for the header start, header end and form end */
-    uint8_t *header_start = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
+    const uint8_t *header_start = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
             boundary, expected_boundary_len);
+    /* end marker belonging to header_start */
     uint8_t *header_end = NULL;
     if (header_start != NULL) {
         header_end = Bs2bmSearch(header_start, chunks_buffer_len - (header_start - chunks_buffer),
                 (uint8_t *)"\r\n\r\n", 4);
     }
-    uint8_t *form_end = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
+    /* end of the multipart form */
+    const uint8_t *form_end = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
             boundary, expected_boundary_end_len);
 
     SCLogDebug("header_start %p, header_end %p, form_end %p", header_start,
@@ -1329,20 +1331,27 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
     tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER);
     /* if we're in the file storage process, deal with that now */
     if (htud->tsflags & HTP_FILENAME_SET) {
-        if (header_start != NULL || form_end != NULL || (tx_progress > HTP_REQUEST_BODY)) {
+        if (header_start != NULL || (tx_progress > HTP_REQUEST_BODY)) {
             SCLogDebug("reached the end of the file");
 
             const uint8_t *filedata = chunks_buffer;
             uint32_t filedata_len = 0;
             uint8_t flags = 0;
 
-            if (header_start < form_end || (header_start != NULL && form_end == NULL)) {
-                filedata_len = header_start - filedata - 2; /* 0d 0a */
-            } else if (form_end != NULL && form_end < header_start) {
-                filedata_len = form_end - filedata;
-            } else if (form_end != NULL && form_end == header_start) {
-                filedata_len = form_end - filedata - 2; /* 0d 0a */
-            } else if (tx_progress > HTP_REQUEST_BODY) {
+            if (header_start != NULL) {
+                if (header_start == filedata + 2) {
+                    /* last chunk had all data, but not the boundary */
+                    SCLogDebug("last chunk had all data, but not the boundary");
+                    filedata_len = 0;
+                } else if (header_start > filedata + 2) {
+                    SCLogDebug("some data from last file before the boundary");
+                    /* some data from last file before the boundary */
+                    filedata_len = header_start - filedata - 2;
+                }
+            }
+            /* body parsing done, we did not get our form end. Use all data
+             * we still have and signal to files API we have an issue. */
+            if (tx_progress > HTP_REQUEST_BODY) {
                 filedata_len = chunks_buffer_len;
                 flags = FILE_TRUNCATED;
             }
@@ -1413,14 +1422,14 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 
         uint32_t header_len = header_end - header_start;
         SCLogDebug("header_len %u", header_len);
-        uint8_t *header = header_start;
+        uint8_t *header = (uint8_t *)header_start;
 
         /* skip empty records */
         if (expected_boundary_len == header_len) {
             goto next;
         } else if ((uint32_t)(expected_boundary_len + 2) <= header_len) {
             header_len -= (expected_boundary_len + 2);
-            header = header_start + (expected_boundary_len + 2); // + for 0d 0a
+            header = (uint8_t *)header_start + (expected_boundary_len + 2); // + for 0d 0a
         }
 
         HtpRequestBodyMultipartParseHeader(hstate, htud, header, header_len,
@@ -1440,6 +1449,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 
             /* everything until the final boundary is the file */
             if (form_end != NULL) {
+                SCLogDebug("have form_end");
+
                 filedata = header_end + 4;
                 if (form_end == filedata) {
                     HTPSetEvent(hstate, htud, STREAM_TOSERVER,
@@ -1507,23 +1518,27 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 PrintRawDataFp(stdout, filedata, filedata_len);
                 printf("FILEDATA END: \n");
 #endif
-                /* form doesn't end in this chunk, but part might. Lets
+                /* form doesn't end in this chunk, but the part might. Lets
                  * see if have another coming up */
                 uint8_t *header_next = Bs2bmSearch(filedata, filedata_len,
                         boundary, expected_boundary_len);
                 SCLogDebug("header_next %p", header_next);
                 if (header_next == NULL) {
-                    /* no, but we'll handle the file data when we see the
-                     * form_end */
-
                     SCLogDebug("more file data to come");
 
                     uint32_t offset = (header_end + 4) - chunks_buffer;
                     SCLogDebug("offset %u", offset);
                     htud->request_body.body_parsed += offset;
 
+                    if (filedata_len >= (uint32_t)(expected_boundary_len + 2)) {
+                        filedata_len -= (uint32_t)(expected_boundary_len + 2 - 1);
+                        SCLogDebug("opening file with partial data");
+                    } else {
+                        filedata = NULL;
+                        filedata_len = 0;
+                    }
                     result = HTPFileOpen(hstate, filename, filename_len,
-                            NULL, 0, HtpGetActiveRequestTxID(hstate),
+                            filedata, filedata_len, HtpGetActiveRequestTxID(hstate),
                             STREAM_TOSERVER);
                     if (result == -1) {
                         goto end;
@@ -1531,6 +1546,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                         htud->tsflags |= HTP_DONTSTORE;
                     }
                     FlagDetectStateNewFile(htud, STREAM_TOSERVER);
+                    htud->request_body.body_parsed += filedata_len;
+                    SCLogDebug("htud->request_body.body_parsed %"PRIu64, htud->request_body.body_parsed);
 
                 } else if (header_next - filedata > 2) {
                     filedata_len = header_next - filedata - 2;
