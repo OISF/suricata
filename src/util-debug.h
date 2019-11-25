@@ -352,6 +352,8 @@ extern int sc_log_module_cleaned;
 
 #define SCReturnPtr(x, type)            return x
 
+#define SCReturnBool(x)                 return x
+
 /* Please use it only for debugging purposes */
 #else
 
@@ -529,6 +531,24 @@ extern int sc_log_module_cleaned;
                                   if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
                                       SCLogDebug("Returning pointer %p of "  \
                                               "type %s ... <<", x, type);    \
+                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
+                                  }                                          \
+                                  return x;                                  \
+                              } while(0)
+
+/**
+ * \brief Macro used to log debug messages on function exit.  Comes under the
+ *        debugging sybsystem, and hence will be enabled only in the presence
+ *        of the DEBUG macro.  Apart from logging function_exit logs, it also
+ *        processes the FD filters, if any FD filters are registered.  This
+ *        function_exit macro should be used for functions that returns a
+ *        boolean value.
+ *
+ * \retval x Variable of type 'bool' that has to be returned
+ */
+#define SCReturnBool(x)        do {                                           \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
+                                      SCLogDebug("Returning: %s ... <<", x ? "true" : "false"); \
                                       SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \
