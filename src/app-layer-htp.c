@@ -1298,8 +1298,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 {
     int result = 0;
     uint8_t boundary[htud->boundary_len + 4]; /**< size limited to HTP_BOUNDARY_MAX + 4 */
-    uint8_t expected_boundary_len = htud->boundary_len + 2;
-    uint8_t expected_boundary_end_len = htud->boundary_len + 4;
+    uint32_t expected_boundary_len = htud->boundary_len + 2;
+    uint32_t expected_boundary_end_len = htud->boundary_len + 4;
     int tx_progress = 0;
 
 #ifdef PRINT
@@ -1428,7 +1428,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
         /* skip empty records */
         if (expected_boundary_len == header_len) {
             goto next;
-        } else if ((uint32_t)(expected_boundary_len + 2) <= header_len) {
+        } else if ((expected_boundary_len + 2) <= header_len) {
             header_len -= (expected_boundary_len + 2);
             header = (uint8_t *)header_start + (expected_boundary_len + 2); // + for 0d 0a
         }
@@ -1531,8 +1531,8 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     SCLogDebug("offset %u", offset);
                     htud->request_body.body_parsed += offset;
 
-                    if (filedata_len >= (uint32_t)(expected_boundary_len + 2)) {
-                        filedata_len -= (uint32_t)(expected_boundary_len + 2 - 1);
+                    if (filedata_len >= (expected_boundary_len + 2)) {
+                        filedata_len -= (expected_boundary_len + 2 - 1);
                         SCLogDebug("opening file with partial data");
                     } else {
                         filedata = NULL;
