@@ -132,6 +132,13 @@ void DetectAppLayerInspectEngineRegister(const char *name,
         AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback)
 {
+    if (AppLayerParserIsTxAware(alproto)) {
+        if (!AppLayerParserSupportsTxDetectFlags(alproto)) {
+            FatalError(SC_ERR_INITIALIZATION,
+                "Inspect engine registered for app-layer protocol without "
+                "TX detect flag support: %s", AppProtoToString(alproto));
+        }
+    }
     DetectBufferTypeRegister(name);
     const int sm_list = DetectBufferTypeGetByName(name);
     if (sm_list == -1) {
