@@ -227,6 +227,7 @@ int AppLayerParserSetTxDetectState(const Flow *f, void *tx, DetectEngineState *s
 
 uint64_t AppLayerParserGetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx, uint8_t dir);
 void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx, uint8_t dir, uint64_t);
+bool AppLayerParserSupportsTxDetectFlags(uint8_t ipproto, AppProto alproto);
 
 /***** General *****/
 
