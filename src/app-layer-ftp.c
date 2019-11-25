@@ -1211,6 +1211,26 @@ static DetectEngineState *FTPDataGetTxDetectState(void *vtx)
     return ftp_state->de_state;
 }
 
+static void FTPDataSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
+{
+    FtpDataState *ftp_state = (FtpDataState *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        ftp_state->detect_flags_ts = flags;
+    } else {
+        ftp_state->detect_flags_tc = flags;
+    }
+}
+
+static uint64_t FTPDataGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    FtpDataState *ftp_state = (FtpDataState *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return ftp_state->detect_flags_ts;
+    } else {
+        return ftp_state->detect_flags_tc;
+    }
+}
+
 static void FTPDataStateTransactionFree(void *state, uint64_t tx_id)
 {
     /* do nothing */
@@ -1337,6 +1357,8 @@ void RegisterFTPParsers(void)
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateTransactionFree);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_FTPDATA,
                 FTPDataGetTxDetectState, FTPDataSetTxDetectState);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_FTPDATA,
+                FTPDataGetTxDetectFlags, FTPDataSetTxDetectFlags);
 
         AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateGetFiles);
 
