@@ -1649,6 +1649,21 @@ again:
     return;
 }
 
+static void TmThreadDebugValidateNoMorePackets(void)
+{
+#ifdef DEBUG_VALIDATION
+    SCMutexLock(&tv_root_lock);
+    for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
+        if (ThreadStillHasPackets(tv)) {
+            SCMutexUnlock(&tv_root_lock);
+            TmThreadDumpThreads();
+            abort();
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
+#endif
+}
+
 /**
  * \brief Disable all threads having the specified TMs.
  */
@@ -1660,6 +1675,7 @@ void TmThreadDisablePacketThreads(void)
 
     /* first drain all packet threads of their packets */
     TmThreadDrainPacketThreads();
+    TmThreadDebugValidateNoMorePackets();
 
     gettimeofday(&start_ts, NULL);
 again:
