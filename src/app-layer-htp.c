@@ -1313,15 +1313,16 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
     /* search for the header start, header end and form end */
     const uint8_t *header_start = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
             boundary, expected_boundary_len);
+    /* end of the multipart form */
+    uint8_t *form_end = NULL;
     /* end marker belonging to header_start */
     uint8_t *header_end = NULL;
     if (header_start != NULL) {
         header_end = Bs2bmSearch(header_start, chunks_buffer_len - (header_start - chunks_buffer),
                 (uint8_t *)"\r\n\r\n", 4);
+        form_end = Bs2bmSearch(header_start, chunks_buffer_len - (header_start - chunks_buffer),
+                boundary, expected_boundary_end_len);
     }
-    /* end of the multipart form */
-    const uint8_t *form_end = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
-            boundary, expected_boundary_end_len);
 
     SCLogDebug("header_start %p, header_end %p, form_end %p", header_start,
             header_end, form_end);
