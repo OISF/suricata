@@ -12,30 +12,30 @@ All HTTP keywords are modifiers. Note the difference between content modifiers
 and sticky buffers. See :ref:`rules-modifiers` for more information. As a
 refresher:
 
+* **'sticky buffers'** are placed first and all keywords following it apply to that buffer, for instance::
+
+      alert http any any -> any any (http.response_line; content:"403 Forbidden"; sid:1;)
+      
 * **'content modifiers'** look back in the rule, e.g.::
 
       alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
-
-* **'sticky buffers'** are placed first and all keywords following it apply to that buffer, for instance::
-
-      alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
 
 The following **request** keywords are available:
 
 ============================== ======================== ==================
 Keyword                        Sticky or Modifier       Direction
 ============================== ======================== ==================
-http.uri                       Modifier                 Request
-http.uri.raw                   Modifier                 Request
-http.method                    Modifier                 Request
+http.uri                       Sticky Buffer            Request
+http.uri.raw                   Sticky Buffer            Request
+http.method                    Sticky Buffer            Request
 http.request_line              Sticky Buffer            Request
-http.request_body               Modifier                 Request
-http.header                    Modifier                 Both
-http.header.raw                Modifier                 Both
-http.cookie                    Modifier                 Both
-http.user_agent                Modifier                 Request
-http.host                      Modifier                 Request
-http.host.raw                  Modifier                 Request
+http.request_body              Sticky Buffer            Request
+http.header                    Sticky Buffer            Both
+http.header.raw                Sticky Buffer            Both
+http.cookie                    Sticky Buffer            Both
+http.user_agent                Sticky Buffer            Request
+http.host                      Sticky Buffer            Request
+http.host.raw                  Sticky Buffer            Request
 http.accept                    Sticky Buffer            Request
 http.accept_lang               Sticky Buffer            Request
 http.accept_enc                Sticky Buffer            Request
@@ -53,15 +53,15 @@ The following **response** keywords are available:
 ============================== ======================== ==================
 Keyword                        Sticky or Modifier       Direction
 ============================== ======================== ==================
-http.stat_msg                  Modifier                 Response
-http.stat_code                 Modifier                 Response
+http.stat_msg                  Sticky Buffer            Response
+http.stat_code                 Sticky Buffer            Response
 http.response_line             Sticky Buffer            Response
-http.header                    Modifier                 Both
-http.header.raw                Modifier                 Both
-http.cookie                    Modifier                 Both
-http.server_body               Modifier                 Response
-http.server                    Modifier                 Response
-http.location                  Modifier                 Response
+http.header                    Sticky Buffer            Both
+http.header.raw                Sticky Buffer            Both
+http.cookie                    Sticky Buffer            Both
+http.server_body               Sticky Buffer            Response
+http.server                    Sticky Buffer            Response
+http.location                  Sticky Buffer            Response
 file_data                      Sticky Buffer            Response
 http.content_type              Sticky Buffer            Both
 http.content_len               Sticky Buffer            Both
@@ -114,8 +114,8 @@ Request:
 .. image:: http-keywords/request2.png
 
 Although cookies are sent in an HTTP header, you can not match on them
-with the ``http_header`` keyword. Cookies are matched with their own
-keyword, namely ``http_cookie``.
+with the ``http.header`` keyword. Cookies are matched with their own
+keyword, namely ``http.cookie``.
 
 Each part of the table belongs to a so-called *buffer*. The HTTP
 method belongs to the method buffer, HTTP headers to the header buffer
@@ -131,7 +131,7 @@ with relative modifiers.
 http.method
 -----------
 
-With the ``http_method`` content modifier, it is possible to match
+With the ``http.method`` content modifier, it is possible to match
 specifically and only on the HTTP method buffer. The keyword can be
 used in combination with all previously mentioned content modifiers
 such as: ``depth``, ``distance``, ``offset``, ``nocase`` and ``within``.
@@ -156,19 +156,19 @@ Example of the purpose of method:
 http.uri and http.uri.raw
 -------------------------
 
-With the ``http_uri`` and the ``http_raw_uri`` content modifiers, it
+With the ``http.uri`` and the ``http.uri.raw`` content modifiers, it
 is possible to match specifically and only on the request URI
 buffer. The keyword can be used in combination with all previously
 mentioned content modifiers like ``depth``, ``distance``, ``offset``,
 ``nocase`` and ``within``.
 
-The uri has two appearances in Suricata: the raw_uri and the
+The uri has two appearances in Suricata: the uri.raw and the
 normalized uri. The space for example can be indicated with the
 heximal notation %20. To convert this notation in a space, means
 normalizing it. It is possible though to match specific on the
-characters %20 in a uri. This means matching on the raw_uri.  The
-raw_uri and the normalized uri are separate buffers. So, the raw_uri
-inspects the raw_uri buffer and can not inspect the normalized buffer.
+characters %20 in a uri. This means matching on the uri.raw. The
+uri.raw and the normalized uri are separate buffers. So, the uri.raw
+inspects the uri.raw buffer and can not inspect the normalized buffer.
 
 Example of the URI in a HTTP request:
 
@@ -182,7 +182,7 @@ uricontent
 ----------
 
 The ``uricontent`` keyword has the exact same effect as the
-``http_uri`` content modifier. ``uricontent`` is a deprecated
+``http.uri`` content modifier. ``uricontent`` is a deprecated
 (although still supported) way to match specifically and only on the
 request URI buffer.
 
@@ -198,8 +198,8 @@ The difference between ``http_uri`` and ``uricontent`` is the syntax:
 
 .. image:: http-keywords/http_uri.png
 
-When authoring new rules, it is recommended that the ``http_uri``
-content modifier be used rather than the deprecated ``uricontent``
+When authoring new rules, it is recommended that the ``http.uri``
+content sticky buffer be used rather than the deprecated ``uricontent``
 keyword.
 
 urilen
