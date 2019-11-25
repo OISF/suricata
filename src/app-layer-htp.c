@@ -1269,7 +1269,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 filedata_len = form_end - filedata;
             } else if (form_end != NULL && form_end == header_start) {
                 filedata_len = form_end - filedata - 2; /* 0d 0a */
-            } else if (tx_progress > HTP_RESPONSE_BODY) {
+            } else if (tx_progress > HTP_REQUEST_BODY) {
                 filedata_len = chunks_buffer_len;
                 flags = FILE_TRUNCATED;
             }
