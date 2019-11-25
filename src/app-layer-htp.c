@@ -1314,9 +1314,9 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
     const uint8_t *header_start = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
             boundary, expected_boundary_len);
     /* end of the multipart form */
-    uint8_t *form_end = NULL;
+    const uint8_t *form_end = NULL;
     /* end marker belonging to header_start */
-    uint8_t *header_end = NULL;
+    const uint8_t *header_end = NULL;
     if (header_start != NULL) {
         header_end = Bs2bmSearch(header_start, chunks_buffer_len - (header_start - chunks_buffer),
                 (uint8_t *)"\r\n\r\n", 4);
@@ -1437,7 +1437,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 &filename, &filename_len, &filetype, &filetype_len);
 
         if (filename != NULL) {
-            uint8_t *filedata = NULL;
+            const uint8_t *filedata = NULL;
             uint32_t filedata_len = 0;
 
             SCLogDebug("we have a filename");
