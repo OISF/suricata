@@ -114,6 +114,8 @@ typedef struct ModbusTransaction_ {
 
     AppLayerDecoderEvents *decoder_events;  /**< per tx events */
     DetectEngineState *de_state;
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
 
     TAILQ_ENTRY(ModbusTransaction_) next;
 } ModbusTransaction;
