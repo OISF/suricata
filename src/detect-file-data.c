@@ -467,10 +467,12 @@ typedef struct PrefilterMpmFiledata {
 /** \brief Filedata Filedata Mpm prefilter callback
  *
  *  \param det_ctx detection engine thread ctx
+ *  \param pectx inspection context
  *  \param p packet to inspect
  *  \param f flow to inspect
  *  \param txv tx to inspect
- *  \param pectx inspection context
+ *  \param idx transaction id
+ *  \param flags STREAM_* flags including direction
  */
 static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
         const void *pectx,
