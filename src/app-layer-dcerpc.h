@@ -35,6 +35,8 @@ typedef struct DCERPCState_ {
     DCERPC dcerpc;
     uint8_t data_needed_for_dir;
     DetectEngineState *de_state;
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
 } DCERPCState;
 
 void DCERPCInit(DCERPC *dcerpc);

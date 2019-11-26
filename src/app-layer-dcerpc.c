@@ -2039,6 +2039,26 @@ static int DCERPCGetAlstateProgress(void *tx, uint8_t direction)
     return 0;
 }
 
+static void DCERPCSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
+{
+    DCERPCState *dcerpc_state = (DCERPCState *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        dcerpc_state->detect_flags_ts = flags;
+    } else {
+        dcerpc_state->detect_flags_tc = flags;
+    }
+}
+
+static uint64_t DCERPCGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    DCERPCState *dcerpc_state = (DCERPCState *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return dcerpc_state->detect_flags_ts;
+    } else {
+        return dcerpc_state->detect_flags_tc;
+    }
+}
+
 static int DCERPCRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_DCERPC,
@@ -2092,6 +2112,8 @@ void RegisterDCERPCParsers(void)
 
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DCERPC,
                                                                DCERPCGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_DCERPC,
+                DCERPCGetTxDetectFlags, DCERPCSetTxDetectFlags);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
