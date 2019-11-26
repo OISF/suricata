@@ -174,7 +174,7 @@ Example of the URI in a HTTP request:
 
 .. image:: http-keywords/uri1.png
 
-Example of the purpose of ``http_uri``:
+Example of the purpose of ``http.uri``:
 
 .. image:: http-keywords/uri.png
 
@@ -192,7 +192,7 @@ Example of ``uricontent``:
 
     alert tcp $HOME_NET any -> $EXTERNAL_NET $HTTP_PORTS (msg:"ET TROJAN Possible Vundo Trojan Variant reporting to Controller"; flow:established,to_server; content:"POST "; depth:5; :example-rule-emphasis:`uricontent:"/frame.html?";` urilen: > 80; classtype:trojan-activity; reference:url,doc.emergingthreats.net/2009173; reference:url,www.emergingthreats.net/cgi-bin/cvsweb.cgi/sigs/VIRUS/TROJAN_Vundo; sid:2009173; rev:2;)
 
-The difference between ``http_uri`` and ``uricontent`` is the syntax:
+The difference between ``http.uri`` and ``uricontent`` is the syntax:
 
 .. image:: http-keywords/uricontent1.png
 
@@ -253,14 +253,14 @@ Example::
     alert http any any -> any any (flow:to_server; http.protocol; content:"HTTP/1.0"; sid:1;)
 
 
-http_request_line
+http.request_line
 -----------------
 
-The ``http_request_line`` forces the whole HTTP request line to be inspected.
+The ``http.request_line`` forces the whole HTTP request line to be inspected.
 
 Example::
 
-    alert http any any -> any any (http_request_line; content:"GET / HTTP/1.0"; sid:1;)
+    alert http any any -> any any (http.request_line; content:"GET / HTTP/1.0"; sid:1;)
 
 http.header and http.header.raw
 -------------------------------
@@ -447,7 +447,7 @@ To do a numeric inspection of the content length, ``byte_test`` can be used.
 Example, match if C-L is equal to or bigger than 8079::
 
     alert http any any -> any any (flow:to_client; \
-            http_content_len; byte_test:0,>=,8079,0,string,dec; sid:3;)
+            http.content_len; byte_test:0,>=,8079,0,string,dec; sid:3;)
 
 http.referer
 ---------------
@@ -518,7 +518,7 @@ Example of ``http.request_body`` in a HTTP request:
 
 .. image:: http-keywords/client_body.png
 
-Example of the purpose of ``http_client_body``:
+Example of the purpose of ``http.client_body``:
 
 .. image:: http-keywords/client_body1.png
 
@@ -560,7 +560,7 @@ Example of ``http.stat_msg`` in a HTTP response:
 
 .. image:: http-keywords/stat_msg.png
 
-Example of the purpose of ``http_stat_msg``:
+Example of the purpose of ``http.stat_msg``:
 
 .. image:: http-keywords/stat_msg_1.png
 
@@ -697,10 +697,7 @@ file_data
 ---------
 
 With ``file_data``, the HTTP response body is inspected, just like
-with ``http_server_body``. The ``file_data`` keyword works a bit
-differently from the normal content modifiers; when used in a rule,
-all content matches following it in the rule are affected (modified)
-by it.
+with ``http.response_body``. The ``file_data`` keyword is a sticky buffer.
 
 Example::
 
