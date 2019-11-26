@@ -274,6 +274,26 @@ static LoggerId ModbusGetTxLogged(void *alstate, void *vtx)
     return tx->logged;
 }
 
+static void ModbusSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
+{
+    ModbusTransaction *tx = (ModbusTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        tx->detect_flags_ts = flags;
+    } else {
+        tx->detect_flags_ts = flags;
+    }
+}
+
+static uint64_t ModbusGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    ModbusTransaction *tx = (ModbusTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return tx->detect_flags_ts;
+    } else {
+        return tx->detect_flags_tc;
+    }
+}
+
 static uint64_t ModbusGetTxCnt(void *alstate)
 {
     return ((uint64_t) ((ModbusState *) alstate)->transaction_max);
@@ -1547,6 +1567,8 @@ void RegisterModbusParsers(void)
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateGetEventInfoById);
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_MODBUS, STREAM_TOSERVER);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_MODBUS,
+                ModbusGetTxDetectFlags, ModbusSetTxDetectFlags);
 
         AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_MODBUS, stream_depth);
     } else {
