@@ -405,11 +405,6 @@ static int DetectEngineInspectFiledata(
     int r = 0;
     int match = 0;
 
-    // TODO remove
-    if (f->alproto == ALPROTO_HTTP) {
-        abort();
-    }
-
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
         transforms = engine->v2.transforms;
