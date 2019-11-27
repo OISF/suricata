@@ -1189,9 +1189,13 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         warn_no_direction += 1;
         rule_warning += 1;
     }
-    if ((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) {
-        warn_both_direction += 1;
-        rule_warning += 1;
+
+    /* No warning about direction for ICMP protos */
+    if (!(DetectProtoContainsProto(&s->proto, IPPROTO_ICMP) && DetectProtoContainsProto(&s->proto, IPPROTO_ICMP))) {
+        if ((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) {
+            warn_both_direction += 1;
+            rule_warning += 1;
+        }
     }
 
     if (!rule_warnings_only || (rule_warnings_only && rule_warning > 0)) {
