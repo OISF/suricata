@@ -1149,6 +1149,17 @@ int AppLayerParserSetTxDetectState(const Flow *f,
     SCReturnInt(r);
 }
 
+bool AppLayerParserForProto(AppProto alproto)
+{
+    for (uint8_t p = 0; p < FLOW_PROTO_MAX; p++) {
+        const AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[p][alproto];
+        if (ctx->Parser[0] != NULL || ctx->Parser[1] != NULL) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool AppLayerParserSupportsTxDetectFlags(AppProto alproto)
 {
     SCEnter();
