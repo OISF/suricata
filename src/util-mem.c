@@ -17,6 +17,9 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
+#include "util-atomic.h"
+
+SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 void *SCMallocFunc(const size_t sz)
 {

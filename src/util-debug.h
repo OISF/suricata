@@ -30,6 +30,7 @@
 #include "util-enum.h"
 #include "util-error.h"
 #include "util-debug-filters.h"
+#include "util-atomic.h"
 
 /**
  * \brief ENV vars that can be used to set the properties for the logging module
@@ -540,6 +541,7 @@ void SCLogErr(int x, const char *file, const char *func, const int line,
  *         errors to be fatal errors */
 #if !defined(__clang_analyzer__)
 #define FatalErrorOnInit(x, ...) do {                                       \
+    SC_ATOMIC_EXTERN(unsigned int, engine_stage);                           \
     int init_errors_fatal = 0;                                              \
     ConfGetBool("engine.init-failure-fatal", &init_errors_fatal);           \
     if (init_errors_fatal && (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT))\

@@ -31,8 +31,6 @@
 #ifndef __UTIL_MEM_H__
 #define __UTIL_MEM_H__
 
-#include "util-atomic.h"
-
 #if CPPCHECK==1 || defined(__clang_analyzer__)
 #define SCMalloc malloc
 #define SCCalloc calloc
@@ -48,8 +46,6 @@
 #if defined(_WIN32) || defined(__WIN32)
 #include "mm_malloc.h"
 #endif
-
-SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 void *SCMallocFunc(const size_t sz);
 #define SCMalloc(sz) SCMallocFunc((sz))
