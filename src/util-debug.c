@@ -615,6 +615,44 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
     return SC_OK;
 }
 
+void SCLog(int x, const char *file, const char *func, const int line,
+        const char *fmt, ...)
+{
+    if (sc_log_global_log_level >= x &&
+            (sc_log_fg_filters_present == 0 ||
+             SCLogMatchFGFilterWL(file, func, line) == 1 ||
+             SCLogMatchFGFilterBL(file, func, line) == 1) &&
+            (sc_log_fd_filters_present == 0 ||
+             SCLogMatchFDFilter(func) == 1))
+    {
+        char msg[SC_LOG_MAX_LOG_MSG_LEN];
+        va_list ap;
+        va_start(ap, fmt);
+        vsnprintf(msg, sizeof(msg), fmt, ap);
+        va_end(ap);
+        SCLogMessage(x, file, line, func, SC_OK, msg);
+    }
+}
+
+void SCLogErr(int x, const char *file, const char *func, const int line,
+        const int err, const char *fmt, ...)
+{
+    if (sc_log_global_log_level >= x &&
+            (sc_log_fg_filters_present == 0 ||
+             SCLogMatchFGFilterWL(file, func, line) == 1 ||
+             SCLogMatchFGFilterBL(file, func, line) == 1) &&
+            (sc_log_fd_filters_present == 0 ||
+             SCLogMatchFDFilter(func) == 1))
+    {
+        char msg[SC_LOG_MAX_LOG_MSG_LEN];
+        va_list ap;
+        va_start(ap, fmt);
+        vsnprintf(msg, sizeof(msg), fmt, ap);
+        va_end(ap);
+        SCLogMessage(x, file, line, func, err, msg);
+    }
+}
+
 /**
  * \brief Returns whether debug messages are enabled to be logged or not
  *
