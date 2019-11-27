@@ -210,6 +210,8 @@ typedef struct ENIPTransaction_
 
     TAILQ_ENTRY(ENIPTransaction_) next;
     DetectEngineState *de_state;
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
 } ENIPTransaction;
 
 /** \brief Per flow ENIP state container */
