@@ -1454,6 +1454,9 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
         goto bad;
     }
 */
+    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->GetTxDetectFlags, ctx->SetTxDetectFlags))) {
+        goto bad;
+    }
 
     return;
 bad:
