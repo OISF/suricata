@@ -313,20 +313,6 @@ static void SignalHandlerSigHup(/*@unused@*/ int sig)
 }
 #endif
 
-#ifdef DBG_MEM_ALLOC
-#ifndef _GLOBAL_MEM_
-#define _GLOBAL_MEM_
-/* This counter doesn't complain realloc's(), it's gives
- * an aproximation for the startup */
-size_t global_mem = 0;
-#ifdef DBG_MEM_ALLOC_SKIP_STARTUP
-uint8_t print_mem_flag = 0;
-#else
-uint8_t print_mem_flag = 1;
-#endif
-#endif
-#endif
-
 void GlobalsInitPreConfig(void)
 {
     TimeInit();
@@ -339,13 +325,6 @@ static void GlobalsDestroy(SCInstance *suri)
     HostShutdown();
     HTPFreeConfig();
     HTPAtExitPrintStats();
-
-#ifdef DBG_MEM_ALLOC
-    SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
-#ifdef DBG_MEM_ALLOC_SKIP_STARTUP
-    print_mem_flag = 0;
-#endif
-#endif
 
     AppLayerHtpPrintStats();
 
@@ -2790,13 +2769,6 @@ int SuricataMain(int argc, char **argv)
     TmThreadContinueThreads();
 
     PostRunStartedDetectSetup(&suricata);
-
-#ifdef DBG_MEM_ALLOC
-    SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
-#ifdef DBG_MEM_ALLOC_SKIP_STARTUP
-    print_mem_flag = 1;
-#endif
-#endif
 
     SCPledge();
     SuricataMainLoop(&suricata);
