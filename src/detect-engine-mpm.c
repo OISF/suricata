@@ -1118,7 +1118,7 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
             htb = HashListTableGetListNext(htb))
     {
         const MpmStore *ms = (MpmStore *)HashListTableGetListData(htb);
-        if (ms == NULL) {
+        if (ms == NULL || ms->mpm_ctx == NULL) {
             continue;
         }
         if (ms->buffer < MPMB_MAX)
