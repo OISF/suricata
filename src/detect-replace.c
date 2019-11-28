@@ -211,7 +211,7 @@ void DetectReplaceExecuteInternal(Packet *p, DetectReplaceList *replist)
     SCLogDebug("replace: Executing match");
     while (replist) {
         memcpy(replist->found, replist->cd->replace, replist->cd->replace_len);
-        SCLogDebug("replace: injecting '%s'", replist->cd->replace);
+        SCLogDebug("replace: replaced data");
         p->flags |= PKT_STREAM_MODIFIED;
         ReCalculateChecksum(p);
         tlist = replist;
