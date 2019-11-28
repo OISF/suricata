@@ -24,9 +24,7 @@
 #ifndef __UTIL_DEBUG_H__
 #define __UTIL_DEBUG_H__
 
-#include <stdio.h>
-#include <stdint.h>
-#include <pcre.h>
+#include "suricata-common.h"
 
 #include "threads.h"
 #include "util-enum.h"

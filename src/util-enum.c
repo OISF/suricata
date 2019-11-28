@@ -21,8 +21,7 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#include <stdio.h>
-#include <string.h>
+#include "suricata-common.h"
 
 #include "util-enum.h"
 #include "util-debug.h"
