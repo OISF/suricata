@@ -442,7 +442,7 @@ static void AutoSlide(StreamingBuffer *sb)
     SBBPrune(sb);
 }
 
-static int __attribute__((warn_unused_result))
+static int WARN_UNUSED
 GrowToSize(StreamingBuffer *sb, uint32_t size)
 {
     /* try to grow in multiples of sb->cfg->buf_size */
@@ -476,7 +476,7 @@ GrowToSize(StreamingBuffer *sb, uint32_t size)
  *  \retval 0 ok
  *  \retval -1 failed, buffer unchanged
  */
-static int __attribute__((warn_unused_result)) Grow(StreamingBuffer *sb)
+static int WARN_UNUSED Grow(StreamingBuffer *sb)
 {
     uint32_t grow = sb->buf_size * 2;
     void *ptr = REALLOC(sb->cfg, sb->buf, sb->buf_size, grow);
