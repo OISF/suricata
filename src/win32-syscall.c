@@ -51,6 +51,7 @@
 #undef _snprintf
 #define _snprintf StringCbPrintfA
 
+#include "suricata-common.h"
 #include "util-debug.h"
 #include "util-device.h"
 #include "util-mem.h"

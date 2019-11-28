@@ -43,10 +43,6 @@
 #else /* CPPCHECK */
 
 
-#if defined(_WIN32) || defined(__WIN32)
-#include "mm_malloc.h"
-#endif
-
 void *SCMallocFunc(const size_t sz);
 #define SCMalloc(sz) SCMallocFunc((sz))
 

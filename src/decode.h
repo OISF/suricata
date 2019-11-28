@@ -29,6 +29,7 @@
 
 #include "suricata-common.h"
 #include "threadvars.h"
+#include "util-debug.h"
 #include "decode-events.h"
 #include "flow-worker.h"
 
