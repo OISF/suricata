@@ -371,6 +371,12 @@
 
 #define WARN_UNUSED __attribute__((warn_unused_result))
 
+#if defined(__GNUC__)
+#define ATTR_FMT_PRINTF(x, y) __attribute__((format(printf, (x), (y))))
+#else
+#define ATTR_FMT_PRINTF(x, y)
+#endif
+
 #define SCNtohl(x) (uint32_t)ntohl((x))
 #define SCNtohs(x) (uint16_t)ntohs((x))
 
