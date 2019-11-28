@@ -4,12 +4,85 @@ on:
   - push
   - pull_request
 
+env:
+  DEFAULT_LIBHTP_REPO: https://github.com/OISF/libhtp
+  DEFAULT_LIBHTP_BRANCH: 0.5.x
+  DEFAULT_SU_REPO: https://github.com/OISF/suricata-update
+  DEFAULT_SU_BRANCH: master
+  DEFAULT_SV_REPO: https://github.com/OISF/suricata-verify
+  DEFAULT_SV_BRANCH: master
+
 jobs:
+
+  prep:
+    name: Prepare Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt -y install jq curl git
+      - name: Process pull-request
+        env:
+          # If not a pull request PULL will be empty.
+          PULL: ${{ github.event.pull_request._links.self.href }}
+        run: |
+          if test "${PULL}"; then
+              body=$(curl -s "${PULL}" | jq -r .body)
+              libhtp_repo=$(echo "${body}" | awk '/^libhtp-repo/ { print $2 }')
+              libhtp_branch=$(echo "${body}" | awk '/^libhtp-branch/ { print $2 }')
+              su_repo=$(echo "${body}" | awk '/^suricata-update-repo/ { print $2 }')
+              su_branch=$(echo "${body}" | awk '/^suricata-update-branch/ { print $2 }')
+              sv_repo=$(echo "${body}" | awk '/^suricata-verify-repo/ { print $2 }')
+              sv_branch=$(echo "${body}" | awk '/^suricata-verify-branch/ { print $2 }')
+          fi
+          echo "::set-env name=libhtp_repo::${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}"
+          echo "::set-env name=libhtp_branch::${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}"
+          echo "::set-env name=su_repo::${su_repo:-${DEFAULT_SU_REPO}}"
+          echo "::set-env name=su_branch::${su_branch:-${DEFAULT_SU_BRANCH}}"
+          echo "::set-env name=sv_repo::${sv_repo:-${DEFAULT_SV_REPO}}"
+          echo "::set-env name=sv_branch::${sv_branch:-${DEFAULT_SV_BRANCH}}"
+      - name: Fetching libhtp
+        run: |
+          echo "Downloading ${libhtp_repo}/archive/${libhtp_branch}.tar.gz"
+          mkdir libhtp
+          cd libhtp
+          curl -Ls ${libhtp_repo}/archive/${libhtp_branch}.tar.gz | \
+              tar zxvf - --strip-components=1
+          cd ..
+          tar zcvf libhtp.tar.gz libhtp
+          rm -rf libhtp
+      - name: Fetching suricata-update
+        run: |
+          echo "Downloading ${su_repo}/archive/${su_branch}.tar.gz"
+          mkdir suricata-update
+          cd suricata-update
+          curl -Ls ${su_repo}/archive/${su_branch}.tar.gz | \
+              tar zxvf - --strip-components=1
+          cd ..
+          tar zcvf suricata-update.tar.gz suricata-update
+          rm -rf suricata-update
+      - name: Fetching suricata-verify
+        run: |
+          echo "Downloading ${sv_repo}/archive/${sv_branch}.tar.gz"
+          mkdir suricata-verify
+          cd suricata-verify
+          curl -Ls ${sv_repo}/archive/${sv_branch}.tar.gz | \
+              tar zxvf - --strip-components=1
+          cd ..
+          tar zcvf suricata-verify.tar.gz suricata-verify
+          rm -rf suricata-verify
+      - uses: actions/upload-artifact@v1
+        name: Uploading prep archive
+        with:
+          name: prep
+          path: .
 
   centos-8:
     name: CentOS 8
     runs-on: ubuntu-latest
     container: centos:8
+    needs: prep
     steps:
 
       # Cache Rust stuff.
@@ -71,14 +144,14 @@ jobs:
                 texlive-capt-of \
                 texlive-needspace \
       - uses: actions/checkout@v1
-      - name: Bundling libhtp
-        run: git clone https://github.com/OISF/libhtp -b 0.5.x
-      - name: Bundling suricata-update
-        run: |
-          curl -L \
-              https://github.com/OISF/suricata-update/archive/master.tar.gz | \
-              tar zxvf - --strip-components=1
-        working-directory: suricata-update
+      - name: Downloading prep archive
+        uses: actions/download-artifact@v1
+        with:
+          name: prep
+      - name: Extracting libhtp
+        run: tar zxvf ./prep/libhtp.tar.gz
+      - name: Extracting suricata-update
+        run: tar zxvf ./prep/suricata-update.tar.gz
       - name: Configuring
         run: |
           ./autogen.sh
@@ -92,6 +165,10 @@ jobs:
         run: make -j2
       - name: Running unittests
         run: make check
+      - name: Running suricata-verify
+        run: |
+          tar zxvf ./prep/suricata-verify.tar.gz
+          python3 ./suricata-verify/run.py
       - name: Building distribution
         run: |
           make dist
@@ -139,21 +216,15 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - name: Download suricata.tar.gz
+      - name: Downloading suricata.tar.gz
         uses: actions/download-artifact@v1
         with:
           name: dist
-      - run: mkdir suricata
-      - working-directory: suricata
-        run: tar zxvf ../dist/suricata-*.tar.gz --strip-components=1
-      - working-directory: suricata
-        run: ./configure
-      - working-directory: suricata
-        run: make -j2
-      - working-directory: suricata
-        run: make install
-      - working-directory: suricata
-        run: make install-conf
+      - run: tar zxvf ./dist/suricata-*.tar.gz --strip-components=1
+      - run: ./configure
+      - run: make -j2
+      - run: make install
+      - run: make install-conf
 
   centos-6:
     name: CentOS 6
@@ -182,26 +253,21 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - name: Download suricata.tar.gz
+      - name: Downloading suricata.tar.gz
         uses: actions/download-artifact@v1
         with:
           name: dist
-      - run: mkdir suricata
-      - working-directory: suricata
-        run: tar zxvf ../dist/suricata-*.tar.gz --strip-components=1
-      - working-directory: suricata
-        run: ./configure
-      - working-directory: suricata
-        run: make -j2
-      - working-directory: suricata
-        run: make install
-      - working-directory: suricata
-        run: make install-conf
+      - run: tar zxvf ./dist/suricata-*.tar.gz --strip-components=1
+      - run: ./configure
+      - run: make -j2
+      - run: make install
+      - run: make install-conf
 
   fedora-31:
     name: Fedora 31
     runs-on: ubuntu-latest
     container: fedora:31
+    needs: prep
     steps:
 
       # Cache Rust stuff.
@@ -247,19 +313,24 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@v1
-      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - name: Downloading prep archive
+        uses: actions/download-artifact@v1
+        with:
+          name: prep
+      - run: tar xf ./prep/libhtp.tar.gz
+      - run: tar xf ./prep/suricata-update.tar.gz
+      - run: tar xf ./prep/suricata-verify.tar.gz
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
       - run: make -j2
       - run: make check
-      - name: Fetching suricata-verify
-        run: git clone https://github.com/OISF/suricata-verify.git
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
 
   ubuntu-18-04:
     name: Ubuntu 18.04 (Cocci)
     runs-on: ubuntu-18.04
+    needs: prep
     steps:
 
       # Cache Rust stuff.
@@ -305,15 +376,19 @@ jobs:
           sudo add-apt-repository -y ppa:npalix/coccinelle
           sudo apt -y install coccinelle
       - uses: actions/checkout@v1
-      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - name: Downloading prep archive
+        uses: actions/download-artifact@v1
+        with:
+          name: prep
+      - run: tar xf ./prep/libhtp.tar.gz
+      - run: tar xf ./prep/suricata-update.tar.gz
+      - run: tar xf ./prep/suricata-verify.tar.gz
       - run: ./autogen.sh
       - run: ./configure --enable-unittests --enable-coccinelle
       - run: make -j2
       - name: Running unit tests and cocci checks
         # Set the concurrency level for cocci.
         run: CONCURRENCY_LEVEL=2 make check
-      - name: Fetching suricata-verify
-        run: git clone https://github.com/OISF/suricata-verify.git
       - name: Running suricata-verify
         run: ./suricata-verify/run.py
 
@@ -359,30 +434,22 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: dist
-      - run: mkdir suricata
-      - name: Extract
-        working-directory: suricata
-        run: tar zxvf ../dist/suricata-*.tar.gz --strip-components=1
+      - run: tar xf ./dist/suricata-*.tar.gz --strip-components=1
       - name: Configure
-        working-directory: suricata
         run: ./configure
       - name: Build
-        working-directory: suricata
         run: make -j2
       - name: Testing
-        working-directory: suricata
         run: make check
-      - working-directory: suricata
-        run: make install
-      - working-directory: suricata
-        run: make install-conf
-      - working-directory: suricata
-        run: make install-rules
+      - run: make install
+      - run: make install-conf
+      - run: make install-rules
 
   debian-10:
     name: Debian 10
     runs-on: ubuntu-latest
     container: debian:10
+    needs: prep
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -428,20 +495,17 @@ jobs:
                 zlib1g \
                 zlib1g-dev
       - uses: actions/checkout@v1
-      - name: Bundling libhtp
-        run: git clone https://github.com/OISF/libhtp -b 0.5.x
-      - name: Bundling suricata-update
-        run: |
-          curl -L \
-              https://github.com/OISF/suricata-update/archive/master.tar.gz | \
-              tar zxvf - --strip-components=1
-        working-directory: suricata-update
+      - name: Downloading prep archive
+        uses: actions/download-artifact@v1
+        with:
+          name: prep
+      - run: tar xf ./prep/libhtp.tar.gz
+      - run: tar xf ./prep/suricata-update.tar.gz
+      - run: tar xf ./prep/suricata-verify.tar.gz
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
       - run: make -j2
       - run: make check
-      - name: Fetching suricata-verify
-        run: git clone https://github.com/OISF/suricata-verify.git
       - name: Running suricata-verify
         run: ./suricata-verify/run.py
 
@@ -449,6 +513,7 @@ jobs:
     name: Debian 9
     runs-on: ubuntu-latest
     container: debian:9
+    needs: prep
     steps:
       - run: |
           apt update
@@ -489,26 +554,24 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
       - run: echo "::add-path::/github/home/.cargo/bin"
       - uses: actions/checkout@v1
-      - name: Bundling libhtp
-        run: git clone https://github.com/OISF/libhtp -b 0.5.x
-      - name: Bundling suricata-update
-        run: |
-          curl -L \
-              https://github.com/OISF/suricata-update/archive/master.tar.gz | \
-              tar zxvf - --strip-components=1
-        working-directory: suricata-update
+      - name: Downloading prep archive
+        uses: actions/download-artifact@v1
+        with:
+          name: prep
+      - run: tar xf ./prep/libhtp.tar.gz
+      - run: tar xf ./prep/suricata-update.tar.gz
+      - run: tar xf ./prep/suricata-verify.tar.gz
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
       - run: make -j2
       - run: make check
-      - name: Fetching suricata-verify
-        run: git clone https://github.com/OISF/suricata-verify.git
       - name: Running suricata-verify
         run: ./suricata-verify/run.py
 
   macos-latest:
     name: MacOS Latest
     runs-on: macos-latest
+    needs: prep
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -516,7 +579,8 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
-      - run: |
+      - name: Installing system dependencies
+        run: |
          brew install \
           autoconf \
           automake \
@@ -535,14 +599,19 @@ jobs:
           pkg-config \
           rust \
           xz
-      - run: pip install PyYAML
+         pip install PyYAML
       - uses: actions/checkout@v1
-      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - name: Downloading prep archive
+        uses: actions/download-artifact@v1
+        with:
+          name: prep
+      - run: tar zxf ./prep/libhtp.tar.gz
+      - run: tar zxf ./prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
       - run: make -j2
       - run: make check
-      - name: Fetching suricata-verify
-        run: git clone https://github.com/OISF/suricata-verify.git
       - name: Running suricata-verify
-        run: ./suricata-verify/run.py
+        run: |
+          tar zxf ./prep/suricata-verify.tar.gz
+          ./suricata-verify/run.py
