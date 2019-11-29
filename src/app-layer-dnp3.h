@@ -207,6 +207,10 @@ typedef TAILQ_HEAD(DNP3ObjectList_, DNP3Object_) DNP3ObjectList;
  * \brief DNP3 transaction.
  */
 typedef struct DNP3Transaction_ {
+    /** detection engine flags */
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
+
     uint64_t tx_num; /**< Internal transaction ID. */
     uint32_t logged; /**< Flags indicating which loggers have logged this tx. */
 
