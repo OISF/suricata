@@ -42,16 +42,16 @@ struct%d->%s@p1 &= ~struct_flags%d
 
     i += 1
 
-print header
-print "position p1;"
-print "@@"
-print ""
-print "(" + "|".join(body) + ")"
-print ""
-print """@script:python@
+print(header)
+print("position p1;")
+print("@@")
+print("")
+print("(" + "|".join(body) + ")")
+print("")
+print("""@script:python@
 p1 << flags.p1;
 @@
 
 print "Invalid usage of flags field at %s:%s, flags value is incorrect (wrong family)." % (p1[0].file, p1[0].line)
 import sys
-sys.exit(1)"""
+sys.exit(1)""")
