@@ -13,7 +13,7 @@ EXTRA_DIST= access-pkt-packet.cocci \
 
 if HAVE_COCCINELLE
 struct-flags.cocci:
-	$(srcdir)/struct-flags.py > $(top_builddir)/qa/coccinelle/struct-flags.cocci
+	$(srcdir)/struct-flags.py  $(top_srcdir)/src > $(top_builddir)/qa/coccinelle/struct-flags.cocci
 
 check: struct-flags.cocci
 	TOP_BUILDDIR=${abs_top_builddir} TOP_SRCDIR=$(abs_top_srcdir) $(top_srcdir)/qa/coccinelle/run_check.sh
