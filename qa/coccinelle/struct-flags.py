@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import re
 from os import listdir
+from string import Template
 
 SRC_DIR = "../../src/"
 
@@ -81,3 +82,36 @@ p1 << flags.p1;
 print "Invalid usage of flags field at %s:%s, flags value is incorrect (wrong family)." % (p1[0].file, p1[0].line)
 import sys
 sys.exit(1)""")
+
+i = 1
+setter_template = """
+@settergetter${i}@
+identifier SetterGetter =~ "${function}";
+identifier f_flags =~ "^(?!${value}).+";
+identifier ${params_line};
+position p1;
+@@
+
+SetterGetter@p1(${prefix_param}f_flags${suffix_param})
+
+@script:python@
+p1 << settergetter${i}.p1;
+@@
+print "Invalid usage of ${function} at %s:%s, flags value is incorrect (wrong family)." % (p1[0].file, p1[0].line)
+import sys
+sys.exit(1)
+"""
+
+for sg in setter_getter_list:
+    prefix_param = ""
+    for index in list(range(1, sg.params[1])):
+        prefix_param += "param%d, " % (index)
+    if sg.params[1] < sg.params[0]:
+        suffix_param = ", " + ", ".join(["param%d" % (index + 1) for index in list(range(sg.params[1], sg.params[0]))])
+    else:
+        suffix_param = ""
+    params_elts = list(range(1, sg.params[1])) + list(range(sg.params[1] + 1, sg.params[0] + 1))
+    params_line = ", ".join(["param%d" % (x) for x in params_elts])
+    print(Template(setter_template).substitute(i=i, function=sg.function, value=sg.value,
+                prefix_param=prefix_param, suffix_param=suffix_param, params_line=params_line))
+    i += 1
