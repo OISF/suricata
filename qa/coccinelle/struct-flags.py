@@ -2,11 +2,13 @@
 import re
 from os import listdir
 
-SRC_DIR="../../src/"
+SRC_DIR = "../../src/"
+
 
 class Structure:
     def __init__(self, string):
         (self.struct, self.flags, self.values) = string.split(":")
+
 
 cmd = "grep -h coccinelle ../../src/*[ch] | sed -e 's/.*coccinelle: \(.*\) \*\//\1/'"
 
@@ -28,7 +30,7 @@ i = 0
 for struct in struct_list:
     header += """
 %s *struct%d;
-identifier struct_flags%d =~ "^(?!%s).+";""" % ( struct.struct, i, i, struct.values)
+identifier struct_flags%d =~ "^(?!%s).+";""" % (struct.struct, i, i, struct.values)
 
     body.append("""
 struct%d->%s@p1 |= struct_flags%d
@@ -38,7 +40,7 @@ struct%d->%s@p1 & struct_flags%d
 struct%d->%s@p1 &= ~struct_flags%d
 """ % (i, struct.flags, i, i, struct.flags, i, i, struct.flags, i))
 
-    i+=1
+    i += 1
 
 print header
 print "position p1;"
