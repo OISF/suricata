@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 import re
-from os import listdir
+import sys
+import os
 from string import Template
 
-SRC_DIR = "../../src/"
+if len(sys.argv) == 2:
+    SRC_DIR = sys.argv[1]
+else:
+    SRC_DIR = "../../src/"
 
 
 class Structure:
@@ -22,10 +26,10 @@ cmd = "grep -h coccinelle ../../src/*[ch] | sed -e 's/.*coccinelle: \(.*\) \*\//
 struct_list = []
 setter_getter_list = []
 
-dirList = listdir(SRC_DIR)
+dirList = os.listdir(SRC_DIR)
 for fname in dirList:
     if re.search("\.[ch]$", fname):
-        for line in open(SRC_DIR + fname):
+        for line in open(os.path.join(SRC_DIR, fname)):
             if "coccinelle:" in line:
                 m = re.search("coccinelle: (.*) \*\/", line)
                 if "()" not in m.group(1):
