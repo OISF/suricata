@@ -1555,6 +1555,7 @@ void AppLayerParserRegisterProtocolParsers(void)
 }
 
 
+/* coccinelle: AppLayerParserStateSetFlag():2,2:APP_LAYER_PARSER_ */
 void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint8_t flag)
 {
     SCEnter();
@@ -1562,6 +1563,7 @@ void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint8_t flag)
     SCReturn;
 }
 
+/* coccinelle: AppLayerParserStateIssetFlag():2,2:APP_LAYER_PARSER_ */
 int AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint8_t flag)
 {
     SCEnter();

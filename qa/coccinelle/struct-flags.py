@@ -9,10 +9,17 @@ class Structure:
     def __init__(self, string):
         (self.struct, self.flags, self.values) = string.split(":")
 
+class SetterGetter:
+    def __init__(self, string):
+        (function, params, self.value) = string.split(":")
+        self.function = function.strip("()")
+        self.params = [int(a) for a in params.split(",")]
+
 
 cmd = "grep -h coccinelle ../../src/*[ch] | sed -e 's/.*coccinelle: \(.*\) \*\//\1/'"
 
 struct_list = []
+setter_getter_list = []
 
 dirList = listdir(SRC_DIR)
 for fname in dirList:
@@ -20,11 +27,20 @@ for fname in dirList:
         for line in open(SRC_DIR + fname):
             if "coccinelle:" in line:
                 m = re.search("coccinelle: (.*) \*\/", line)
-                struct = Structure(m.group(1))
-                struct_list.append(struct)
+                if "()" not in m.group(1):
+                    struct = Structure(m.group(1))
+                    struct_list.append(struct)
+                else:
+                    function = SetterGetter(m.group(1))
+                    setter_getter_list.append(function)
 
 header = "@flags@"
 body = []
+
+# Handle setter and getter
+setter_getter = [x.function for x in setter_getter_list]
+if len(setter_getter):
+    header += "\nidentifier NotSetterGetter !~ \"^(%s)$\";" % ("|".join(setter_getter))
 
 i = 0
 for struct in struct_list:
@@ -46,9 +62,19 @@ print(header)
 print("position p1;")
 print("@@")
 print("")
+print("""
+NotSetterGetter(...)
+{
+    <...
+""")
+print("")
 print("(" + "|".join(body) + ")")
 print("")
-print("""@script:python@
+print("""
+...>
+}
+
+@script:python@
 p1 << flags.p1;
 @@
 
