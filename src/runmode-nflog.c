@@ -68,8 +68,6 @@ static void *ParseNflogConfig(const char *group)
     NflogGroupConfig *nflogconf = SCMalloc(sizeof(*nflogconf));
     intmax_t bufsize;
     intmax_t bufsize_max;
-    intmax_t qthreshold;
-    intmax_t qtimeout;
     int boolval;
 
     if (unlikely(nflogconf == NULL))
@@ -133,28 +131,6 @@ static void *ParseNflogConfig(const char *group)
         SCLogWarning(SC_ERR_INVALID_ARGUMENT, "buffer-size value larger "
                 "than max-size value, adjusting buffer-size");
         nflogconf->nlbufsiz = nflogconf->nlbufsiz_max;
-    }
-
-    boolval = ConfGetChildValueIntWithDefault(group_root, group_default,
-                                              "qthreshold", &qthreshold);
-
-    if (boolval)
-        nflogconf->qthreshold = qthreshold;
-    else {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid qthreshold value");
-        SCFree(nflogconf);
-        return NULL;
-    }
-
-    boolval = ConfGetChildValueIntWithDefault(group_root, group_default,
-                                              "qtimeout", &qtimeout);
-
-    if (boolval)
-        nflogconf->qtimeout = qtimeout;
-    else {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid qtimeout value");
-        SCFree(nflogconf);
-        return NULL;
     }
 
     return nflogconf;

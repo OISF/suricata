@@ -90,14 +90,10 @@ typedef struct NFLOGThreadVars_ {
     uint16_t group;
     uint32_t nlbufsiz;
     uint32_t nlbufsiz_max;
-    uint32_t qthreshold;
-    uint32_t qtimeout;
 
     struct mnl_socket *nl;
     struct nlmsghdr *nlh;
     unsigned int portid;
-    struct nflog_handle *h;
-    struct nflog_g_handle *gh;
 
     LiveDevice *livedev;
     int nful_overrun_warned;
@@ -339,8 +335,6 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     ntv->group = nflconfig->group;
     ntv->nlbufsiz = nflconfig->nlbufsiz;
     ntv->nlbufsiz_max = nflconfig->nlbufsiz_max;
-    ntv->qthreshold = nflconfig->qthreshold;
-    ntv->qtimeout = nflconfig->qtimeout;
     ntv->nful_overrun_warned = nflconfig->nful_overrun_warned;
 
     ntv->nl = mnl_socket_open(NETLINK_NETFILTER);
@@ -375,20 +369,6 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
 
     setsockopt(mnl_socket_get_fd(ntv->nl), SOL_SOCKET, SO_RCVBUFFORCE,
               &ntv->nlbufsiz, sizeof(socklen_t));
-
-//    if (nflog_set_qthresh(ntv->gh, ntv->qthreshold) >= 0)
-//        SCLogDebug("NFLOG netlink queue threshold has been set to %d",
-//                    ntv->qthreshold);
-//    else
-//        SCLogDebug("NFLOG netlink queue threshold can't be set to %d",
-//                    ntv->qthreshold);
-//
-//    if (nflog_set_timeout(ntv->gh, ntv->qtimeout) >= 0)
-//        SCLogDebug("NFLOG netlink queue timeout has been set to %d",
-//                    ntv->qtimeout);
-//    else
-//        SCLogDebug("NFLOG netlink queue timeout can't be set to %d",
-//                    ntv->qtimeout);
 
     ntv->livedev = LiveGetDevice(nflconfig->numgroup);
     if (ntv->livedev == NULL) {

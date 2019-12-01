@@ -1597,10 +1597,6 @@ nflog:
     buffer-size: 18432
     # put default value here
   - group: default
-    # set number of packet to queue inside kernel
-    qthreshold: 1
-    # set the delay before flushing packet in the queue inside kernel
-    qtimeout: 100
     # netlink max buffer size
     max-size: 20000
 
