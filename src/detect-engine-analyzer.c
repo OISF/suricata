@@ -526,10 +526,18 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
         const char *name = DetectBufferTypeGetNameById(de_ctx, list_type);
         if (desc && name) {
             fprintf(rule_engine_analysis_FD, "%s (%s)", desc, name);
+        } else if (desc || name) {
+            fprintf(rule_engine_analysis_FD, "%s", desc ? desc : name);
         }
+
     }
 
-    fprintf(rule_engine_analysis_FD, "\" buffer.\n");
+    fprintf(rule_engine_analysis_FD, "\" ");
+    if (de_ctx->buffer_type_map[list_type] && de_ctx->buffer_type_map[list_type]->transforms.cnt) {
+        fprintf(rule_engine_analysis_FD, "(with %d transform(s)) ",
+                de_ctx->buffer_type_map[list_type]->transforms.cnt);
+    }
+    fprintf(rule_engine_analysis_FD, "buffer.\n");
 
     return;
 }
