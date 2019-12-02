@@ -55,6 +55,7 @@
 
 #include "util-mem.h"
 #include "util-misc.h"
+#include "util-validate.h"
 
 /* content-limit default value */
 #define FILEDATA_CONTENT_LIMIT 100000
@@ -366,6 +367,23 @@ static void FlagDetectStateNewFile(SMTPTransaction *tx)
     }
 }
 
+static void SMTPNewFile(SMTPTransaction *tx, File *file)
+{
+    DEBUG_VALIDATE_BUG_ON(tx == NULL);
+    DEBUG_VALIDATE_BUG_ON(file == NULL);
+#ifdef UNITTESTS
+    if (RunmodeIsUnittests()) {
+        if (tx == NULL || file == NULL) {
+            return;
+        }
+    }
+#endif
+    FlagDetectStateNewFile(tx);
+    FileSetTx(file, tx->tx_id);
+    file->inspect_window = smtp_config.content_inspect_window;
+    file->inspect_min_size = smtp_config.content_inspect_min_size;
+}
+
 int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state)
 {
@@ -418,9 +436,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 ret = MIME_DEC_ERR_DATA;
                 SCLogDebug("FileOpenFile() failed");
             }
-            FlagDetectStateNewFile(smtp_state->curr_tx);
-            files->tail->inspect_window = smtp_config.content_inspect_window;
-            files->tail->inspect_min_size = smtp_config.content_inspect_min_size;
+            SMTPNewFile(smtp_state->curr_tx, files->tail);
 
             /* If close in the same chunk, then pass in empty bytes */
             if (state->body_end) {
