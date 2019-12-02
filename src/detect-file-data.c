@@ -503,6 +503,7 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
                         &det_ctx->mtcu, &det_ctx->pmq,
                         buffer->inspect, buffer->inspect_len);
             }
+            local_file_id++;
         }
     }
 }
