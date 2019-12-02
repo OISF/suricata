@@ -626,6 +626,26 @@ static DetectEngineState *FTPGetTxDetectState(void *vtx)
     return ftp_state->de_state;
 }
 
+static uint64_t FTPGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    FtpState *tx = (FtpState *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return tx->detect_flags_ts;
+    } else {
+        return tx->detect_flags_tc;
+    }
+}
+
+static void FTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
+{
+    FtpState *tx = (FtpState *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        tx->detect_flags_ts = flags;
+    } else {
+        tx->detect_flags_tc = flags;
+    }
+}
+
 static void FTPStateTransactionFree(void *state, uint64_t tx_id)
 {
     /* do nothing */
@@ -946,6 +966,9 @@ void RegisterFTPParsers(void)
 
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_FTP,
                 FTPGetTxDetectState, FTPSetTxDetectState);
+
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_FTP,
+                                               FTPGetTxDetectFlags, FTPSetTxDetectFlags);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_FTP, FTPGetTx);
 

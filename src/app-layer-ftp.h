@@ -137,6 +137,8 @@ typedef struct FtpState_ {
     uint32_t logged;
 
     DetectEngineState *de_state;
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
 } FtpState;
 
 enum {
