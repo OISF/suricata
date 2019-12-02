@@ -1127,6 +1127,7 @@ impl SMBState {
                     Ok("lsarpc") => ("lsarpc", true),
                     Ok("samr") => ("samr", true),
                     Ok("spoolss") => ("spoolss", true),
+                    Ok("winreg") => ("winreg", true),
                     Ok("suricata::dcerpc") => ("unknown", true),
                     Err(_) => ("MALFORMED", false),
                     Ok(&_) => {
