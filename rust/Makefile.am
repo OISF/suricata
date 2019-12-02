@@ -23,6 +23,10 @@ if DEBUG
 RUST_FEATURES +=	debug
 endif
 
+if RUST_CROSS_COMPILE 
+RUST_TARGET = --target $(host_triplet)
+endif
+
 all-local:
 if HAVE_PYTHON
 	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
@@ -33,13 +37,13 @@ if HAVE_CYGPATH
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$$rustpath/rust/target" \
 		$(CARGO) build $(RELEASE) $(FROZEN) \
-			--features "$(RUST_FEATURES)"
+			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 else
 	cd $(top_srcdir)/rust && @rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
 		$(CARGO) build $(RELEASE) $(FROZEN) \
-			--features "$(RUST_FEATURES)"
+			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
 
 clean-local:

@@ -2338,6 +2338,7 @@ fi
     AM_CONDITIONAL([HAVE_PDFLATEX], [test "x$enable_pdflatex" != "xno"])
 
 # Cargo/Rust
+    AM_CONDITIONAL([RUST_CROSS_COMPILE], [test "x$cross_compiling" = "xyes"])
     AC_PATH_PROG(RUSTC, rustc, "no")
     if test "$RUSTC" = "no"; then
         echo ""
@@ -2394,10 +2395,17 @@ fi
         echo
         exit 1
     fi
-    if test "x$enable_debug" = "xyes"; then
-      RUST_SURICATA_LIB="../rust/target/debug/${RUST_SURICATA_LIBNAME}"
+
+    if test "x$cross_compiling" = "xyes"; then
+      RUST_SURICATA_LIB_XC_DIR="${host_alias}/"
     else
-      RUST_SURICATA_LIB="../rust/target/release/${RUST_SURICATA_LIBNAME}"
+      RUST_SURICATA_LIB_XC_DIR=
+    fi
+
+    if test "x$enable_debug" = "xyes"; then
+      RUST_SURICATA_LIB="../rust/target/${RUST_SURICATA_LIB_XC_DIR}debug/${RUST_SURICATA_LIBNAME}"
+    else
+      RUST_SURICATA_LIB="../rust/target/${RUST_SURICATA_LIB_XC_DIR}release/${RUST_SURICATA_LIBNAME}"
     fi
 
     RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
@@ -2429,7 +2437,12 @@ fi
     AC_SUBST([RUSTUP_HOME_PATH], [$rustup_home_path])
     AC_SUBST([rustup_home])
 
-    AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
+    if test "x$cross_compiling" != "xyes"; then
+      AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
+    else
+      AS_IF([test -d "$srcdir/rust/vendor"], have_rust_vendor="yes", [])
+    fi
+
     if test "x$have_rust_vendor" = "xyes"; then
       rust_vendor_comment=""
     fi
