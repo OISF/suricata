@@ -321,6 +321,7 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                         },
                         _ => {
                             tx.set_event(SMBEvent::MalformedData);
+                            tx.request_done = true;
                         },
                     }
                 },
@@ -353,17 +354,21 @@ pub fn smb_write_dcerpc_record<'b>(state: &mut SMBState,
                                 }
                                 bind_ifaces = Some(ifaces);
                             }
-                            tx.request_done = true;
                         },
                         _ => {
                             tx.set_event(SMBEvent::MalformedData);
                         },
                     }
+                    tx.request_done = true;
                 }
                 21..=255 => {
                     tx.set_event(SMBEvent::MalformedData);
+                    tx.request_done = true;
                 },
-                _ => { }, // valid type w/o special processing
+                _ => {
+                    // valid type w/o special processing
+                    tx.request_done = true;
+                },
             }
         },
         _ => {
