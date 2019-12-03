@@ -1510,6 +1510,19 @@ static int SMBGetAlstateProgress(void *tx, uint8_t direction)
     return 0;
 }
 
+/* Not implemented. This parser doesn't really support transactions
+ * so we need to re-inspect the tx (state really) to avoid FNs. */
+static uint64_t SMBGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    return 0;
+}
+
+/* Not implemented. See SMBGetTxDetectFlags */
+static void SMBSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
+{
+    /* no-op */
+}
+
 #define SMB_PROBING_PARSER_MIN_DEPTH 8
 
 static uint16_t SMBProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
@@ -1608,6 +1621,8 @@ void RegisterSMBParsers(void)
 
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMB,
                                                SMBGetTxDetectState, SMBSetTxDetectState);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SMB,
+                                               SMBGetTxDetectFlags, SMBSetTxDetectFlags);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMB, SMBGetTx);
 
