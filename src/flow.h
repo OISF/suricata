@@ -537,6 +537,8 @@ uint64_t FlowGetMemuse(void);
 int GetFlowBypassInfoID(void);
 void RegisterFlowBypassInfo(void);
 
+void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs);
+
 /** ----- Inline functions ----- */
 
 /** \brief Set the No Packet Inspection Flag without locking the flow.
