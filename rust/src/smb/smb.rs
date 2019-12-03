@@ -1142,46 +1142,39 @@ impl SMBState {
         (&name, is_dcerpc)
     }
 
-    /* if we have marked the ssn as 'gapped' we check to see if
-     * we've caught up. The check is to see if we have the last
-     * tx in our list is done. This means we've seen both sides
-     * and we're back in sync. Mark older txs as 'done' */
-    fn check_gap_resync(&mut self, prior_max_id: u64)
+    /* after a gap we will consider all transactions complete for our
+     * direction. File transfer transactions are an exception. Those
+     * can handle gaps. */
+    fn post_gap_housekeeping(&mut self, dir: u8)
     {
-        SCLogDebug!("check_gap_resync2: post-GAP resync check ({}/{})", self.ts_ssn_gap, self.tc_ssn_gap);
-        if !self.ts_ssn_gap && !self.tc_ssn_gap {
-            return;
-        }
-
-        let (last_done, id) = match self.transactions.last() {
-            Some(tx) => {
-                (tx.request_done && tx.response_done, tx.id)
-            },
-            None => (false, 0),
-        };
-        if last_done && id > 0 {
-            SCLogDebug!("check_gap_resync2: TX {} is done post-GAP, mark all older ones complete", id);
-            self.ts_ssn_gap = false;
-            self.tc_ssn_gap = false;
-            self.close_non_file_txs(prior_max_id);
-        }
-    }
-
-    /* close all txs execpt file xfers. */
-    fn close_non_file_txs(&mut self, max_id: u64) {
-        SCLogDebug!("close_non_file_txs: checking for non-file txs to wrap up");
-        for tx in &mut self.transactions {
-            if tx.id >= max_id {
-                SCLogDebug!("close_non_file_txs: done");
-                break;
+        if self.ts_ssn_gap && dir == STREAM_TOSERVER {
+            for tx in &mut self.transactions {
+                if tx.id >= self.tx_id {
+                    SCLogDebug!("post_gap_housekeeping: done");
+                    break;
+                }
+                if let Some(SMBTransactionTypeData::FILE(_)) = tx.type_data {
+                    // leaving FILE txs open as they can deal with gaps.
+                } else {
+                    SCLogDebug!("post_gap_housekeeping: tx {} marked as done TS", tx.id);
+                    tx.request_done = true;
+                }
             }
-            if let Some(SMBTransactionTypeData::FILE(_)) = tx.type_data {
-                // leaving FILE txs open as they can deal with gaps.
-            } else {
-                SCLogDebug!("ose_non_file_txs: tx {} marked as done", tx.id);
-                tx.request_done = true;
-                tx.response_done = true;
+        } else if self.tc_ssn_gap && dir == STREAM_TOCLIENT {
+            for tx in &mut self.transactions {
+                if tx.id >= self.tx_id {
+                    SCLogDebug!("post_gap_housekeeping: done");
+                    break;
+                }
+                if let Some(SMBTransactionTypeData::FILE(_)) = tx.type_data {
+                    // leaving FILE txs open as they can deal with gaps.
+                } else {
+                    SCLogDebug!("post_gap_housekeeping: tx {} marked as done TC", tx.id);
+                    tx.request_done = true;
+                    tx.response_done = true;
+                }
             }
+
         }
     }
 
@@ -1323,8 +1316,6 @@ impl SMBState {
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> u32
     {
-        let max_tx_id = self.tx_id;
-
         let mut v : Vec<u8>;
         //println!("parse_tcp_data_ts ({})",i.len());
         //println!("{:?}",i);
@@ -1464,7 +1455,7 @@ impl SMBState {
             }
         };
 
-        self.check_gap_resync(max_tx_id);
+        self.post_gap_housekeeping(STREAM_TOSERVER);
         0
     }
 
@@ -1551,8 +1542,6 @@ impl SMBState {
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> u32
     {
-        let max_tx_id = self.tx_id;
-
         let mut v : Vec<u8>;
         // Check if TCP data is being defragmented
         let tcp_buffer = match self.tcp_buffer_tc.len() {
@@ -1693,7 +1682,7 @@ impl SMBState {
                 },
             }
         };
-        self.check_gap_resync(max_tx_id);
+        self.post_gap_housekeeping(STREAM_TOCLIENT);
         self._debug_tx_stats();
         0
     }
