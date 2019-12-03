@@ -1113,6 +1113,19 @@ void FlowUpdateState(Flow *f, enum FlowState s)
     }
 }
 
+/**
+ * \brief Get flow last time as individual values.
+ *
+ * Instead of returning a pointer to the timeval copy the timeval
+ * parts into output pointers to make it simpler to call from Rust
+ * over FFI using only basic data types.
+ */
+void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs)
+{
+    *secs = (uint64_t)flow->lastts.tv_sec;
+    *usecs = (uint64_t)flow->lastts.tv_usec;
+}
+
 /************************************Unittests*******************************/
 
 #ifdef UNITTESTS
