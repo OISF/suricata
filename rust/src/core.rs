@@ -19,10 +19,10 @@
 
 extern crate libc;
 
+use std;
 use filecontainer::*;
 
 /// Opaque C types.
-pub enum Flow {}
 pub enum DetectEngineState {}
 pub enum AppLayerDecoderEvents {}
 
@@ -178,6 +178,29 @@ pub fn sc_app_layer_decoder_events_free_events(
     unsafe {
         if let Some(c) = SC {
             (c.AppLayerDecoderEventsFreeEvents)(events);
+        }
+    }
+}
+
+/// Opaque flow type (defined in C)
+pub enum Flow {}
+
+/// Extern functions operating on Flow.
+extern {
+    pub fn FlowGetLastTimeAsParts(flow: &Flow, secs: *mut u64, usecs: *mut u64);
+}
+
+/// Rust implementation of Flow.
+impl Flow {
+
+    /// Return the time of the last flow update as a `Duration`
+    /// since the epoch.
+    pub fn get_last_time(&mut self) -> std::time::Duration {
+        unsafe {
+            let mut secs: u64 = 0;
+            let mut usecs: u64 = 0;
+            FlowGetLastTimeAsParts(self, &mut secs, &mut usecs);
+            std::time::Duration::new(secs, usecs as u32 * 1000)
         }
     }
 }

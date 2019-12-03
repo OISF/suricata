@@ -519,6 +519,8 @@ int FlowSetMemcap(uint64_t size);
 uint64_t FlowGetMemcap(void);
 uint64_t FlowGetMemuse(void);
 
+void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs);
+
 /** ----- Inline functions ----- */
 
 /** \brief Set the No Packet Inspection Flag without locking the flow.
