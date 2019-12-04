@@ -1048,21 +1048,19 @@ fn smb1_request_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, even
 /// on the response. We only create a tx for the response side
 /// if we didn't already update a tx, and we have to set events
 fn smb1_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
-    // see if we want a tx per command
-    if smb1_create_new_tx(r.command) {
-        let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.get_generic_tx(1, r.command as u16, &tx_key);
-        if let Some(tx) = tx {
+    let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+    match state.get_generic_tx(1, r.command as u16, &tx_key) {
+        Some(tx) => {
             tx.request_done = true;
             tx.response_done = true;
             SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);
             tx.set_status(r.nt_status, r.is_dos_error);
             tx.set_events(events);
             return;
-        }
+        },
+        None => {},
     }
     if events.len() > 0 {
-        let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
         let tx = state.new_generic_tx(1, r.command as u16, tx_key);
         tx.request_done = true;
         tx.response_done = true;
