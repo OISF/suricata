@@ -146,4 +146,4 @@ Example
 
 ::
 
-  dnp3_data; content:|c3 06|;
+  dnp3_data; content:"|c3 06|";
