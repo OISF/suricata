@@ -102,7 +102,7 @@ Extra for iptables/nftables IPS integration::
 
     apt-get install libnetfilter-queue-dev libnetfilter-queue1  \
                     libnetfilter-log-dev libnetfilter-log1      \
-                    libnfnetlink-dev libnfnetlink0
+                    libmnl0 libmnl-dev libnfnetlink-dev libnfnetlink0
 
 For Rust support::
 
