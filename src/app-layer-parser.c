@@ -766,9 +766,9 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
                         tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
             }
         }
+        idx++;
         if (!ires.has_next)
             break;
-        idx++;
     }
     pstate->inspect_id[direction] = idx;
     SCLogDebug("inspect_id now %"PRIu64, pstate->inspect_id[direction]);
