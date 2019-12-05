@@ -770,6 +770,12 @@ int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
     SCReturnInt(-1);
 }
 
+void FileSetInspectSizes(File *file, const uint32_t win, const uint32_t min)
+{
+    file->inspect_window = win;
+    file->inspect_min_size = min;
+}
+
 /**
  *  \brief Sets the offset range for a file.
  *
