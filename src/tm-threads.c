@@ -239,6 +239,7 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
         }
     }
     SCLogDebug("flow end loop complete");
+    StatsSyncCounters(tv);
 
     return r;
 }
