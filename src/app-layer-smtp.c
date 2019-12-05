@@ -380,8 +380,12 @@ static void SMTPNewFile(SMTPTransaction *tx, File *file)
 #endif
     FlagDetectStateNewFile(tx);
     FileSetTx(file, tx->tx_id);
-    file->inspect_window = smtp_config.content_inspect_window;
-    file->inspect_min_size = smtp_config.content_inspect_min_size;
+
+    /* set inspect sizes used in file pruning logic.
+     * TODO consider moving this to the file.data code that
+     * would actually have use for this. */
+    FileSetInspectSizes(file, smtp_config.content_inspect_window,
+            smtp_config.content_inspect_min_size);
 }
 
 int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
