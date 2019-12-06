@@ -47,6 +47,7 @@
 #define FILE_STORED     BIT_U16(11)
 #define FILE_NOTRACK    BIT_U16(12) /**< track size of file */
 #define FILE_USE_DETECT BIT_U16(13) /**< use content_inspected tracker */
+#define FILE_KEEP_PART  BIT_U16(14)
 #define FILE_HAS_GAPS   BIT_U16(15)
 
 typedef enum FileState_ {
@@ -89,6 +90,7 @@ typedef struct File_ {
     uint64_t size;
     uint64_t start;
     uint64_t end;
+    uint64_t totalsize;
 
     uint32_t *sid; /* signature id of a rule that triggered the filestore event */
     uint32_t sid_cnt;
@@ -172,11 +174,12 @@ int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
  *  \param ffc the container
  *  \param start start offset
  *  \param end end offset
+ *  \param total total size of file
  *
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileSetRange(FileContainer *, uint64_t start, uint64_t end);
+int FileSetRange(FileContainer *, uint64_t start, uint64_t end, uint64_t total);
 
 /**
  *  \brief Tag a file for storing

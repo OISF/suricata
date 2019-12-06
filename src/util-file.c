@@ -313,6 +313,9 @@ static int FilePruneFile(File *file)
         SCLogDebug("file->flags & FILE_NOMAGIC == true");
     }
 #endif
+    if (file->flags & FILE_KEEP_PART) {
+        SCReturnInt(0);
+    }
     uint64_t left_edge = file->content_stored;
     if (file->flags & FILE_NOSTORE) {
         left_edge = FileDataSize(file);
@@ -746,7 +749,7 @@ int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
  *  \retval  0 ok
  *  \retval -1 error
  */
-int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end)
+int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end, uint64_t totalsize)
 {
     SCEnter();
 
@@ -755,6 +758,10 @@ int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end)
     }
     ffc->tail->start = start;
     ffc->tail->end = end;
+    ffc->tail->totalsize = totalsize;
+    if (start > 0 || end < totalsize) {
+        ffc->tail->flags |= FILE_KEEP_PART;
+    }
     SCReturnInt(0);
 }
 

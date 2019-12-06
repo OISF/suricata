@@ -248,7 +248,7 @@ int HTPFileSetRange(HtpState *s, bstr *rawvalue)
         SCLogDebug("negative end in range");
         SCReturnInt(-3);
     }
-    int retval = FileSetRange(files, crparsed.start, crparsed.end);
+    int retval = FileSetRange(files, crparsed.start, crparsed.end, crparsed.size);
     if (retval == -1) {
         SCLogDebug("set range failed");
     }
@@ -304,6 +304,64 @@ end:
     SCReturnInt(retval);
 }
 
+static void HTPReassembleRanges(FileContainer *files, HtpState *s, uint8_t flags, uint8_t direction) {
+    File *f = files->head;
+    if (f->flags & FILE_KEEP_PART) {
+        uint64_t nbytes = 0;
+        uint64_t total = f->totalsize;
+        // first linear check if we have enough bytes
+        while(f) {
+            nbytes += f->size;
+            f = f->next;
+        }
+        if (nbytes >= total) {
+            //TODO improve : sort first
+            uint64_t offset = 0;
+            f = files->head;
+            // check that we get complete coverage
+            while(f) {
+                if (f->start == offset) {
+                    offset += f->size;
+                }
+                f = f->next;
+            }
+            if (offset == total) {
+                // ok : let's build the new complete file
+                const StreamingBufferConfig *sbcfg = NULL;
+                if (direction & STREAM_TOCLIENT) {
+                    sbcfg = &s->cfg->response.sbcfg;
+                } else {
+                    sbcfg = &s->cfg->request.sbcfg;
+                }
+
+                if (FileOpenFileWithId(files, sbcfg, s->file_track_id++,
+                                       files->head->name, files->head->name_len,
+                                       NULL, 0, flags) == 0)
+                {
+                    f = files->head;
+                    // check that we get complete coverage
+                    const uint8_t *data;
+                    uint32_t data_len;
+                    uint64_t stream_offset;
+                    while(f && f != files->tail) {
+                        stream_offset = 0;
+                        while(stream_offset < f->size) {
+                            StreamingBufferGetDataAtOffset(f->sb, &data, &data_len, stream_offset);
+                            if (data_len == 0) {
+                                break;
+                            }
+                            FileAppendData(files, data, data_len);
+                            stream_offset += data_len;
+                        }
+                        f = f->next;
+                    }
+                    FileCloseFile(files, NULL, 0, flags);
+                }
+            }
+        }
+    }
+}
+
 /**
  *  \brief Close the file in the flow
  *
@@ -350,6 +408,7 @@ int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
     } else if (result == -2) {
         retval = -2;
     }
+    HTPReassembleRanges(files, s, flags, direction);
 
 end:
     SCReturnInt(retval);
