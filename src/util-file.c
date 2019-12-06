@@ -786,7 +786,7 @@ void FileSetInspectSizes(File *file, const uint32_t win, const uint32_t min)
  *  \retval  0 ok
  *  \retval -1 error
  */
-int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end)
+int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end, uint64_t totalsize)
 {
     SCEnter();
 
@@ -795,9 +795,46 @@ int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end)
     }
     ffc->tail->start = start;
     ffc->tail->end = end;
+    ffc->tail->totalsize = totalsize;
     SCReturnInt(0);
 }
 
+/**
+ *  \brief Checks a file specified by id has the right name and offset
+ *
+ *  \param ffc the container
+ *  \param track_id the file identifier
+ *  \param name file name
+ *  \param name_len file name length
+ *  \param start current offset
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ *  \retval 1 differences
+ */
+int FileCheckNameAndOffsetById(FileContainer *ffc, uint32_t track_id,
+        const uint8_t *name, uint16_t name_len, uint64_t start) {
+    SCEnter();
+
+    if (ffc == NULL || ffc->tail == NULL) {
+        SCReturnInt(-1);
+    }
+
+    File *ff = ffc->head;
+    for ( ; ff != NULL; ff = ff->next) {
+        if (track_id == ff->file_track_id) {
+            if (ff->size != start) {
+                SCReturnInt(1);
+            }
+            if (ff->name_len != name_len) {
+                SCReturnInt(1);
+            }
+            SCReturnInt(SCMemcmp(ff->name, name, name_len));
+        }
+    }
+    SCReturnInt(-1);
+
+}
 /**
  *  \brief Open a new File
  *

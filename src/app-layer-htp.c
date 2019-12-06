@@ -1765,8 +1765,19 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            result = HTPFileOpen(hstate, filename, (uint32_t)filename_len,
-                    data, data_len, HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
+            //set range if present
+            htp_header_t *h_content_range = htp_table_get_c(tx->response_headers,
+                                                            "content-range");
+            if (h_content_range != NULL) {
+                result = HTPFileOpenWithRange(hstate, filename, (uint32_t)filename_len,
+                                              data, data_len,
+                                              HtpGetActiveResponseTxID(hstate),
+                                              h_content_range->value);
+            } else {
+                result = HTPFileOpen(hstate, filename, (uint32_t)filename_len,
+                                     data, data_len,
+                                     HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
+            }
             SCLogDebug("result %d", result);
             if (result == -1) {
                 goto end;
@@ -1776,11 +1787,6 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
                 FlagDetectStateNewFile(htud, STREAM_TOCLIENT);
                 htud->tcflags |= HTP_FILENAME_SET;
                 htud->tcflags &= ~HTP_DONTSTORE;
-            }
-            //set range if present
-            htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
-            if (h_content_range != NULL) {
-                HTPFileSetRange(hstate, h_content_range->value);
             }
         }
     }

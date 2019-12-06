@@ -257,9 +257,13 @@ typedef struct HtpState_ {
     uint16_t events;
     uint16_t htp_messages_offset; /**< offset into conn->messages list */
     uint32_t file_track_id;             /**< used to assign file track ids to files */
+    uint32_t file_range_ids;             /**< used to assign track ids to range file */
     uint64_t last_request_data_stamp;
     uint64_t last_response_data_stamp;
 } HtpState;
+
+/** Flag to track reassembled file from multiple ranges */
+#define FLAG_FILE_RANGES 0x80000000
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */
 #define HTP_REQUIRE_REQUEST_BODY        (1 << 0)
