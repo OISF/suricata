@@ -91,6 +91,7 @@ typedef struct File_ {
     uint32_t inspect_min_size;
     uint64_t start;
     uint64_t end;
+    uint64_t totalsize;
 
     uint32_t *sid; /* signature id of a rule that triggered the filestore event */
     uint32_t sid_cnt;
@@ -168,6 +169,22 @@ int FileAppendDataById(FileContainer *, uint32_t track_id,
 int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
         const uint8_t *data, uint32_t data_len);
 
+/**
+ *  \brief Checks a file specified by id has the right name and offset
+ *
+ *  \param ffc the container
+ *  \param track_id the file identifier
+ *  \param name file name
+ *  \param name_len file name length
+ *  \param start current offset
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ *  \retval 1 differences
+ */
+int FileCheckNameAndOffsetById(FileContainer *, uint32_t track_id,
+        const uint8_t *name, uint16_t name_len, uint64_t start);
+
 void FileSetInspectSizes(File *file, const uint32_t win, const uint32_t min);
 
 /**
@@ -176,11 +193,12 @@ void FileSetInspectSizes(File *file, const uint32_t win, const uint32_t min);
  *  \param ffc the container
  *  \param start start offset
  *  \param end end offset
+ *  \param total total size of file
  *
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileSetRange(FileContainer *, uint64_t start, uint64_t end);
+int FileSetRange(FileContainer *, uint64_t start, uint64_t end, uint64_t total);
 
 /**
  *  \brief Tag a file for storing

@@ -128,6 +128,10 @@ enum {
     HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED,
     HTTP_DECODER_EVENT_COMPRESSION_BOMB,
 
+    HTTP_DECODER_EVENT_RANGE_INVALID,
+    HTTP_DECODER_EVENT_RANGE_INTERSECTED,
+    HTTP_DECODER_EVENT_RANGE_UNORDERED,
+
     /* suricata errors/warnings */
     HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR,
     HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA,
@@ -257,6 +261,7 @@ typedef struct HtpState_ {
     uint16_t events;
     uint16_t htp_messages_offset; /**< offset into conn->messages list */
     uint32_t file_track_id;             /**< used to assign file track ids to files */
+    uint32_t file_range_ids;             /**< used to assign track ids to range file */
     uint64_t last_request_data_stamp;
     uint64_t last_response_data_stamp;
 } HtpState;
@@ -291,6 +296,9 @@ void HTPConfigure(void);
 
 void HtpConfigCreateBackup(void);
 void HtpConfigRestoreBackup(void);
+
+void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
+                 const uint8_t dir, const uint8_t e);
 
 #endif	/* __APP_LAYER_HTP_H__ */
 
