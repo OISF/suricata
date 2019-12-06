@@ -91,6 +91,7 @@ typedef struct File_ {
     uint32_t inspect_min_size;
     uint64_t start;
     uint64_t end;
+    uint64_t totalsize;
 
     uint32_t *sid; /* signature id of a rule that triggered the filestore event */
     uint32_t sid_cnt;
@@ -176,11 +177,12 @@ void FileSetInspectSizes(File *file, const uint32_t win, const uint32_t min);
  *  \param ffc the container
  *  \param start start offset
  *  \param end end offset
+ *  \param total total size of file
  *
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileSetRange(FileContainer *, uint64_t start, uint64_t end);
+int FileSetRange(FileContainer *, uint64_t start, uint64_t end, uint64_t total);
 
 /**
  *  \brief Tag a file for storing

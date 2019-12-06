@@ -113,6 +113,11 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         }
 
         sbcfg = &s->cfg->response.sbcfg;
+        //TODO handle intersected download
+        if (s->file_range_id != 0) {
+            FileCloseFileById(files, s->file_range_id, NULL, 0, FILE_TRUNCATED);
+            s->file_range_id = 0;
+        }
 
     } else {
         if (s->files_ts == NULL) {
@@ -225,9 +230,12 @@ int HTPParseContentRange(bstr * rawvalue, HtpContentRange *range)
  *  \retval -2 error parsing
  *  \retval -3 error negative end in range
  */
-int HTPFileSetRange(HtpState *s, bstr *rawvalue)
+int HTPFileOpenWithRange(HtpState *s,const uint8_t *filename, uint16_t filename_len,
+                         const uint8_t *data, uint32_t data_len,
+                         uint64_t txid, bstr *rawvalue)
 {
     SCEnter();
+    uint16_t flags = 0;
 
     if (s == NULL) {
         SCReturnInt(-1);
@@ -235,10 +243,14 @@ int HTPFileSetRange(HtpState *s, bstr *rawvalue)
 
     FileContainer * files = s->files_tc;
     if (files == NULL) {
-        SCLogDebug("no files in state");
-        SCReturnInt(-1);
+        s->files_tc = FileContainerAlloc();
+        if (s->files_tc == NULL) {
+            SCReturnInt(-1);
+        }
+        files = s->files_tc;
     }
 
+    //TODO handle file anyways
     HtpContentRange crparsed;
     if (HTPParseContentRange(rawvalue, &crparsed) != 0) {
         SCLogDebug("parsing range failed");
@@ -248,7 +260,48 @@ int HTPFileSetRange(HtpState *s, bstr *rawvalue)
         SCLogDebug("negative end in range");
         SCReturnInt(-3);
     }
-    int retval = FileSetRange(files, crparsed.start, crparsed.end);
+
+    flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
+    if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||
+        ((s->flags & HTP_FLAG_STORE_FILES_TX_TS) && txid == s->store_tx_id)) {
+        flags |= FILE_STORE;
+        flags &= ~FILE_NOSTORE;
+    } else if (!(flags & FILE_STORE) && (s->f->file_flags & FLOWFILE_NO_STORE_TC)) {
+        flags |= FILE_NOSTORE;
+    }
+
+    //TODO handle unordered ranges
+    if (crparsed.start == 0 && crparsed.end < crparsed.size) {
+        // open another file for the whole ranges
+        if (s->file_range_id != 0) {
+            // TODO handle parallel range downloads
+            if (FileCloseFileById(files, s->file_range_id, NULL, 0, FILE_TRUNCATED) != 0) {
+                SCLogDebug("close file for range failed");
+            }
+        }
+        //TODO use a flag ?
+        s->file_range_id = ~s->file_track_id;
+
+        if (FileOpenFileWithId(files, &s->cfg->response.sbcfg, s->file_range_id,
+                               filename, filename_len,
+                               data, data_len, flags) != 0) {
+            SCLogDebug("open file for range failed");
+            SCReturnInt(-1);
+        }
+    } else if (s->file_range_id != 0){
+        // TODO check this is next range and same file
+        if (FileAppendDataById(files, s->file_range_id, data, data_len) != 0) {
+            SCReturnInt(-1);
+        }
+    }
+    if (FileOpenFileWithId(files, &s->cfg->response.sbcfg, s->file_track_id++,
+                           filename, filename_len,
+                           data, data_len, flags) != 0) {
+        SCReturnInt(-1);
+    }
+    FileSetTx(files->tail, txid);
+
+    int retval = FileSetRange(files, crparsed.start, crparsed.end, crparsed.size);
     if (retval == -1) {
         SCLogDebug("set range failed");
     }
@@ -292,6 +345,12 @@ int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
         goto end;
     }
 
+    if (s->file_range_id != 0) {
+        result = FileAppendDataById(files, s->file_range_id, data, data_len);
+        if (result != 0) {
+            return result;
+        }
+    }
     result = FileAppendData(files, data, data_len);
     if (result == -1) {
         SCLogDebug("appending data failed");
@@ -349,6 +408,17 @@ int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
         retval = -1;
     } else if (result == -2) {
         retval = -2;
+    }
+    if (s->file_range_id != 0) {
+        File *f = files->tail;
+        if (f->end + 1 >= f->totalsize || (flags & FILE_TRUNCATED)) {
+            FileCloseFileById(files, s->file_range_id, data, data_len, flags);
+            s->file_range_id = 0;
+        } else {
+            if (FileAppendDataById(files, s->file_range_id, data, data_len) != 0) {
+                SCReturnInt(-1);
+            }
+        }
     }
 
 end:

@@ -786,7 +786,7 @@ void FileSetInspectSizes(File *file, const uint32_t win, const uint32_t min)
  *  \retval  0 ok
  *  \retval -1 error
  */
-int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end)
+int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end, uint64_t totalsize)
 {
     SCEnter();
 
@@ -795,6 +795,7 @@ int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end)
     }
     ffc->tail->start = start;
     ffc->tail->end = end;
+    ffc->tail->totalsize = totalsize;
     SCReturnInt(0);
 }
 
