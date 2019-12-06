@@ -8,25 +8,13 @@ if [[ "${NO_UNITTESTS}" != "yes" ]]; then
     ARGS="${ARGS} --enable-unittests"
 fi
 
-if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-    export CFLAGS="${CFLAGS} ${EXTRA_CFLAGS}"
-    if ! ./configure --enable-nfqueue --enable-hiredis ${ARGS}; then
-        if [[ "${CONFIGURE_SHOULD_FAIL}" = "yes" ]]; then
-           EXIT_CODE=0
-        else
-           EXIT_CODE=1
-        fi
+export CFLAGS="${CFLAGS} ${EXTRA_CFLAGS}"
+if ! ./configure --enable-nfqueue --enable-hiredis ${ARGS}; then
+    if [[ "${CONFIGURE_SHOULD_FAIL}" = "yes" ]]; then
+       EXIT_CODE=0
+    else
+       EXIT_CODE=1
     fi
-elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    export CFLAGS="${CFLAGS} ${EXTRA_CFLAGS}"
-    ./configure --enable-hiredis --enable-ipfw \
-        --enable-lua --with-libpcre-includes=/usr/local/include \
-        --with-libpcre-includes=/usr/local/include \
-        --with-libpcre-libraries=/usr/local/lib \
-        --with-libnss-includes=/usr/local/opt/nss/include/nss \
-        --with-libnss-libraries=/usr/local/opt/nss/lib \
-        --with-libnspr-includes=/usr/local/opt/nspr/include/nspr \
-        --with-libnspr-libraries=/usr/local/opt/nspr/lib ${ARGS}
 fi
 
 if [[ "${EXIT_CODE}" ]]; then

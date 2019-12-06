@@ -97,24 +97,6 @@ matrix:
         - DO_CHECK_SETUP_SCRIPTS="yes"
         - DO_DISTCHECK="yes"
   include:
-    # Linux, gcc, coccinelle.
-    - os: linux
-      compiler: gcc-7
-      env:
-        - NAME="linux,gcc-7,cocci"
-        - *default-cflags
-        - NO_UNITTESTS=yes
-      addons:
-        apt:
-          sources:
-            - sourceline: ppa:npalix/coccinelle
-            # For gcc-7.
-            - sourceline: ppa:ubuntu-toolchain-r/test
-          packages:
-            - *packages
-            - coccinelle
-            - gcc-7
-            - python3-sphinx
     # Linux, gcc, Rust (latest stable).
     # This is allowed to fail, update allow_failures if the env changes.
     - os: linux
@@ -192,14 +174,6 @@ matrix:
         - NAME="Unsupported Rust version"
         - RUST_VERSION="1.32.0"
         - CONFIGURE_SHOULD_FAIL="yes"
-    # OSX 10.13, XCode 8.3
-    - os: osx
-      compiler: gcc
-      osx_image: xcode8.3
-      sudo: true
-      env:
-        - NAME="osx,gcc"
-        - *default-cflags
     # Linux, gcc, no nss/nspr.
     - os: linux
       compiler: gcc
@@ -224,41 +198,4 @@ before_install:
     # match the requested version.
     rustup default "${RUST_VERSION}"
     rustc --version
-  - |
-    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        brew update
-
-        # Unlink and install each dependency to avoid errors where a
-        # formula might already be installed but is not the current
-        # version.
-        packages=""
-        packages="$packages pkg-config"
-        packages="$packages libmagic"
-        packages="$packages libyaml"
-        packages="$packages nss"
-        packages="$packages nspr"
-        packages="$packages jansson"
-        packages="$packages libnet"
-        packages="$packages lua"
-        packages="$packages pcre"
-        packages="$packages hiredis"
-        packages="$packages jq"
-        packages="$packages xz"
-        for package in $packages; do
-            if brew ls $package --versions > /dev/null; then
-                brew unlink $package
-            fi
-        done
-
-        # Now install.
-        brew install $packages
-
-        # Now relink, becuase if a newer version of a package wasn't
-        # installed above, it will remain unlinked.
-        brew link $packages
-
-        curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-        sudo python ./get-pip.py
-        sudo pip install PyYAML
-    fi
   - ./qa/travis-libhtp.sh
