@@ -128,6 +128,18 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
      */
     char alert_buffer[MAX_FASTLOG_BUFFER_SIZE];
 
+    char proto[16] = "";
+    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
+        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
+    } else {
+        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
+    }
+    uint16_t src_port_or_icmp = p->sp;
+    uint16_t dst_port_or_icmp = p->dp;
+    if (IP_GET_IPPROTO(p) == IPPROTO_ICMP || IP_GET_IPPROTO(p) == IPPROTO_ICMPV6) {
+        src_port_or_icmp = p->icmp_s.type;
+        dst_port_or_icmp = p->icmp_s.code;
+    }
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
@@ -144,18 +156,6 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         /* Create the alert string without locking. */
         int size = 0;
         if (likely(decoder_event == 0)) {
-            char proto[16] = "";
-            if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
-                strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
-            } else {
-                snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
-            }
-            uint16_t src_port_or_icmp = p->sp;
-            uint16_t dst_port_or_icmp = p->dp;
-            if (IP_GET_IPPROTO(p) == IPPROTO_ICMP || IP_GET_IPPROTO(p) == IPPROTO_ICMPV6) {
-                src_port_or_icmp = p->icmp_s.type;
-                dst_port_or_icmp = p->icmp_s.code;
-            }
             PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
                             "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                             PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
