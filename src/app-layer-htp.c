@@ -188,6 +188,13 @@ SCEnumCharMap http_decoder_event_table[ ] = {
     { "COMPRESSION_BOMB",
         HTTP_DECODER_EVENT_COMPRESSION_BOMB},
 
+    { "RANGE_INVALID",
+        HTTP_DECODER_EVENT_RANGE_INVALID},
+    { "RANGE_INTERSECTED",
+        HTTP_DECODER_EVENT_RANGE_INTERSECTED},
+    { "RANGE_UNORDERED",
+        HTTP_DECODER_EVENT_RANGE_UNORDERED},
+
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
         HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR},
@@ -284,7 +291,7 @@ static int HTPLookupPersonality(const char *str)
     return -1;
 }
 
-static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
+void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
         const uint8_t dir, const uint8_t e)
 {
     SCLogDebug("setting event %u", e);
@@ -1765,8 +1772,19 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            result = HTPFileOpen(hstate, filename, (uint32_t)filename_len,
-                    data, data_len, HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
+            //set range if present
+            htp_header_t *h_content_range = htp_table_get_c(tx->response_headers,
+                                                            "content-range");
+            if (h_content_range != NULL) {
+                result = HTPFileOpenWithRange(hstate, filename, (uint32_t)filename_len,
+                                              data, data_len,
+                                              HtpGetActiveResponseTxID(hstate),
+                                              h_content_range->value, htud);
+            } else {
+                result = HTPFileOpen(hstate, filename, (uint32_t)filename_len,
+                                     data, data_len,
+                                     HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
+            }
             SCLogDebug("result %d", result);
             if (result == -1) {
                 goto end;
@@ -1776,11 +1794,6 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
                 FlagDetectStateNewFile(htud, STREAM_TOCLIENT);
                 htud->tcflags |= HTP_FILENAME_SET;
                 htud->tcflags &= ~HTP_DONTSTORE;
-            }
-            //set range if present
-            htp_header_t *h_content_range = htp_table_get_c(tx->response_headers, "content-range");
-            if (h_content_range != NULL) {
-                HTPFileSetRange(hstate, h_content_range->value);
             }
         }
     }

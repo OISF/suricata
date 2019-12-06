@@ -81,4 +81,7 @@ alert http any any -> any any (msg:"SURICATA HTTP duplicate content length field
 
 alert http any any -> any any (msg:"SURICATA HTTP compression bomb"; flow:established; app-layer-event:http.compression_bomb; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221049; rev:1;)
 
-# next sid 2221050
+alert http any any -> any any (msg:"SURICATA HTTP invalid Range header value"; flow:established; app-layer-event:http.range_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221050; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP parallel Range downloads"; flow:established; app-layer-event:http.range_intersected; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221051; rev:1;)
+alert http any any -> any any (msg:"SURICATA HTTP unordered Range downloads"; flow:established; app-layer-event:http.range_unordered; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221052; rev:1;)
+# next sid 2221053
