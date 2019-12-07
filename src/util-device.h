@@ -61,6 +61,8 @@ typedef struct LiveDeviceName_ {
 } LiveDeviceName;
 
 int LiveRegisterDeviceName(const char *dev);
+int LiveGetDeviceNameCount(void);
+const char *LiveGetDeviceNameName(int number);
 int LiveRegisterDevice(const char *dev);
 int LiveGetDeviceCount(void);
 const char *LiveGetDeviceName(int number);
