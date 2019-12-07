@@ -2531,9 +2531,9 @@ static int ConfigGetCaptureValue(SCInstance *suri)
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
             case RUNMODE_PFRING:
-                nlive = LiveGetDeviceCount();
+                nlive = LiveGetDeviceNameCount();
                 for (lthread = 0; lthread < nlive; lthread++) {
-                    const char *live_dev = LiveGetDeviceName(lthread);
+                    const char *live_dev = LiveGetDeviceNameName(lthread);
                     char dev[128]; /* need to be able to support GUID names on Windows */
                     (void)strlcpy(dev, live_dev, sizeof(dev));
 
