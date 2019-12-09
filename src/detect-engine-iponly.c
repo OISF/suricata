@@ -301,7 +301,7 @@ static int IPOnlyCIDRItemSetup(IPOnlyCIDRItem *gh, char *s)
     /* parse the address */
     if (IPOnlyCIDRItemParseSingle(gh, s) == -1) {
         SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
-                   "DetectAddressParse error \"%s\"", s);
+                   "address parsing error \"%s\"", s);
         goto error;
     }
 
@@ -768,7 +768,7 @@ static int IPOnlyCIDRListParse(const DetectEngineCtx *de_ctx,
 
     *gh = IPOnlyCIDRListParse2(de_ctx, str, 0);
     if (*gh == NULL) {
-        SCLogDebug("DetectAddressParse2 returned null");
+        SCLogDebug("IPOnlyCIDRListParse2 returned null");
         goto error;
     }
 
@@ -984,6 +984,8 @@ void IPOnlyMatchPacket(ThreadVars *tv,
     SigNumArray *dst = NULL;
     void *user_data_src = NULL, *user_data_dst = NULL;
 
+    SCEnter();
+
     if (p->src.family == AF_INET) {
         (void)SCRadixFindKeyIPV4BestMatch((uint8_t *)&GET_IPV4_SRC_ADDR_U32(p),
                                               io_ctx->tree_ipv4src, &user_data_src);
@@ -1004,7 +1006,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
     dst = user_data_dst;
 
     if (src == NULL || dst == NULL)
-        return;
+        SCReturn;
 
     uint32_t u;
     for (u = 0; u < src->size; u++) {
@@ -1103,6 +1105,7 @@ void IPOnlyMatchPacket(ThreadVars *tv,
             }
         }
     }
+    SCReturn;
 }
 
 /**
