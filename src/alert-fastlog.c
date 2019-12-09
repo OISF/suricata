@@ -152,7 +152,7 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
             }
             uint16_t src_port_or_icmp = p->sp;
             uint16_t dst_port_or_icmp = p->dp;
-            if (IP_GET_IPPROTO(p) == IPPROTO_ICMP) {
+            if (IP_GET_IPPROTO(p) == IPPROTO_ICMP || IP_GET_IPPROTO(p) == IPPROTO_ICMPV6) {
                 src_port_or_icmp = p->icmp_s.type;
                 dst_port_or_icmp = p->icmp_s.code;
             }
