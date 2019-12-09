@@ -64,6 +64,6 @@ void DetectAddressTests(void);
 int DetectAddressMapInit(DetectEngineCtx *de_ctx);
 void DetectAddressMapFree(DetectEngineCtx *de_ctx);
 const DetectAddressHead *DetectParseAddress(DetectEngineCtx *de_ctx,
-        const char *string);
+        const char *string, bool *contains_negation);
 
 #endif /* __DETECT_ADDRESS_H__ */
