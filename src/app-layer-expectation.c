@@ -144,7 +144,7 @@ static inline int GetFlowAddresses(Flow *f, Address *ip_src, Address *ip_dst)
     return 0;
 }
 
-static Expectation *AppLayerExpectationLookup(Flow *f, int direction, IPPair **ipp)
+static Expectation *AppLayerExpectationLookup(Flow *f, IPPair **ipp)
 {
     Address ip_src, ip_dst;
     if (GetFlowAddresses(f, &ip_src, &ip_dst) == -1)
@@ -282,7 +282,7 @@ AppProto AppLayerExpectationHandle(Flow *f, int direction)
     }
 
     /* Call will take reference of the ip pair in 'ipp' */
-    Expectation *exp = AppLayerExpectationLookup(f, direction, &ipp);
+    Expectation *exp = AppLayerExpectationLookup(f, &ipp);
     if (exp == NULL)
         goto out;
 
