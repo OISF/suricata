@@ -68,6 +68,7 @@ static int g_expectation_data_id = -1;
 SC_ATOMIC_DECLARE(uint32_t, expectation_count);
 
 #define EXPECTATION_TIMEOUT 30
+#define EXPECTATION_MAX_LEVEL 10
 
 typedef struct Expectation_ {
     struct timeval ts;
@@ -75,6 +76,8 @@ typedef struct Expectation_ {
     Port dp;
     AppProto alproto;
     int direction;
+    uint8_t level;
+    Flow *orig_f;
     void *data;
     struct Expectation_ *next;
 } Expectation;
@@ -188,6 +191,8 @@ int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
     exp->dp = dst;
     exp->alproto = alproto;
     exp->ts = f->lastts;
+    exp->orig_f = f;
+    exp->level = 0;
     exp->data = data;
     exp->direction = direction;
 
@@ -199,9 +204,18 @@ int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
 
     iexp = IPPairGetStorageById(ipp, g_expectation_id);
     exp->next = iexp;
-    IPPairSetStorageById(ipp, g_expectation_id, exp);
+    if (iexp) {
+        exp->level = iexp->level + 1;
+    }
+    if (exp->level > EXPECTATION_MAX_LEVEL) {
+        SCFree(exp);
+        IPPairRelease(ipp);
+        return -1;
+    } else {
+        IPPairSetStorageById(ipp, g_expectation_id, exp);
 
-    SC_ATOMIC_ADD(expectation_count, 1);
+        SC_ATOMIC_ADD(expectation_count, 1);
+    }
     /* As we are creating the expectation, we release lock on IPPair without
      * setting the ref count to 0. This way the IPPair will be kept till
      * cleanup */
