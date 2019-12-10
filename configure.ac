@@ -2439,7 +2439,7 @@ fi
     AC_SUBST([RUSTUP_HOME_PATH], [$rustup_home_path])
     AC_SUBST([rustup_home])
 
-    if test -f "$srcdir/rust/vendor"; then
+    if test -e "$srcdir/rust/vendor"; then
       have_rust_vendor="yes"
     fi
 
