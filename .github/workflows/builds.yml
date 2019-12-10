@@ -149,6 +149,9 @@ jobs:
       - working-directory: suricata
         run: ./configure
       - working-directory: suricata
+        name: Check that Rust is using --frozen
+        run: grep -q '^FROZEN' rust/Makefile
+      - working-directory: suricata
         run: make -j2
       - working-directory: suricata
         run: make install
