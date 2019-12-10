@@ -340,6 +340,41 @@ out:
     return alproto;
 }
 
+
+void AppLayerExpectationClean(Flow *f)
+{
+    IPPair *ipp = NULL;
+    Expectation *lexp = NULL;
+    Expectation *pexp = NULL;
+
+    int x = SC_ATOMIC_GET(expectation_count);
+    if (x == 0) {
+        return;
+    }
+
+    /* Call will take reference of the ip pair in 'ipp' */
+    Expectation *exp = AppLayerExpectationLookup(f, &ipp);
+    if (exp == NULL)
+        goto out;
+
+    pexp = NULL;
+    while (exp) {
+        lexp = exp->next;
+        /* Cleaning remove old entries */
+        if (exp && (exp->orig_f == f)) {
+            exp = RemoveExpectationAndGetNext(ipp, pexp, exp, lexp);
+            continue;
+        }
+        pexp = exp;
+        exp = lexp;
+    }
+
+out:
+    if (ipp)
+        IPPairRelease(ipp);
+    return;
+}
+
 /**
  * @}
  */
