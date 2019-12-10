@@ -2382,8 +2382,6 @@ fi
 
     if test "x$enable_rust" = "xyes" || test "x$enable_rust" = "xyes (default)"; then
       cargo_version=$(echo "$rust_cargo_version" | sed 's/^.*[[^0-9]]\([[0-9]]*\.[[0-9]]*\.[[0-9]]*\).*$/\1/')
-      echo "$rust_cargo_version"
-      echo "$cargo_version"
 
       # With Rust/Cargo 1.37 and greater, cargo-vendor is built-in.
       AC_MSG_CHECKING(for cargo vendor support)
