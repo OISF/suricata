@@ -112,34 +112,37 @@ the signature.
 Event type: Anomaly
 -------------------
 
-Events with type "anomaly" report unexpected conditions such as truncated packets, packets
-with invalid values, events that render the packet invalid for further processing or unexpected
-behaviors.
+Events with type "anomaly" report unexpected conditions such as truncated
+packets, packets with invalid values, events that render the packet invalid
+for further processing or unexpected behaviors.
 
-Networks which experience high occurrences of anomalies may experience packet processing degradation
-when anomaly logging is enabled.
+Networks which experience high occurrences of anomalies may experience packet
+processing degradation when anomaly logging is enabled.
 
 Fields
-------
+~~~~~~
 
-* "type": Either "decode", "stream" or "applayer". In rare cases, type will be "unknown".
-  When this occurs, an additional field named "code" will be present. Events with type
+* "type": Either "decode", "stream" or "applayer". In rare cases, type will be
+  "unknown". When this occurs, an additional field named "code" will be
+  present. Events with type
   "applayer" are detected by the application layer parsers.
 * "event" The name of the anomalous event. Events of type "decode" are prefixed
   with "decoder"; events of type "stream" are prefixed with "stream".
-* "code" If "type" is "unknown", than "code" contains the unrecognized event code. Otherwise,
-  this field is not present.
+* "code" If "type" is "unknown", than "code" contains the unrecognized event
+  code. Otherwise, this field is not present.
 
 The following field is included when "type" has the value "applayer":
 
-* "layer"  Indicates the handling layer that detected the event. This will be "proto_parser"
-  (protocol parser), "proto_detect" (protocol detection) or "parser."
+* "layer" Indicates the handling layer that detected the event. This will be
+  "proto_parser" (protocol parser), "proto_detect" (protocol detection) or
+  "parser."
 
-When ``packethdr`` is enabled, the first 32 bytes of the packet are included as a byte64-encoded blob in the main part of
-record. This applies to events of "type" "packet" or "stream" only.
+When ``packethdr`` is enabled, the first 32 bytes of the packet are included
+as a byte64-encoded blob in the main part of record. This applies to events
+of "type" "packet" or "stream" only.
 
 Examples
---------
+~~~~~~~~
 
 ::
 
@@ -231,7 +234,8 @@ Fields
 * "http_content_type": The type of data returned (ex: application/x-gzip)
 * "cookie"
 
-In addition to these fields, if the extended logging is enabled in the suricata.yaml file the following fields are (can) also included:
+In addition to these fields, if the extended logging is enabled in the
+suricata.yaml file the following fields are (can) also included:
 
 * "length": The content size of the HTTP body
 * "status": HTTP status code
@@ -239,8 +243,9 @@ In addition to these fields, if the extended logging is enabled in the suricata.
 * "http_method": The HTTP method (ex: GET, POST, HEAD)
 * "http_refer": The referrer for this action
 
-In addition to the extended logging fields one can also choose to enable/add from more than 50 additional custom logging HTTP fields enabled in the suricata.yaml file. The additional fields can be enabled as following:
-
+In addition to the extended logging fields one can also choose to enable/add
+from more than 50 additional custom logging HTTP fields enabled in the
+suricata.yaml file. The additional fields can be enabled as following:
 
 ::
 
@@ -273,10 +278,12 @@ In addition to the extended logging fields one can also choose to enable/add fro
               www-authenticate, x-flash-version, x-authenticated-user]
 
 
-The benefits here of using the extended logging is to see if this action for example was a POST or perhaps if a download of an executable actually returned any bytes.
+The benefits here of using the extended logging is to see if this action for
+example was a POST or perhaps if a download of an executable actually returned
+any bytes.
 
-It is also possible to dump every header for HTTP requests/responses or both via the keyword ``dump-all-headers``.
-
+It is also possible to dump every header for HTTP requests/responses or both
+via the keyword ``dump-all-headers``.
 
 
 Examples
