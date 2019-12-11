@@ -215,6 +215,7 @@ int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
         IPPairSetStorageById(ipp, g_expectation_id, exp);
 
         SC_ATOMIC_ADD(expectation_count, 1);
+        f->flags |= FLOW_HAS_EXPECTATION;
     }
     /* As we are creating the expectation, we release lock on IPPair without
      * setting the ref count to 0. This way the IPPair will be kept till
@@ -346,6 +347,9 @@ void AppLayerExpectationClean(Flow *f)
     IPPair *ipp = NULL;
     Expectation *lexp = NULL;
     Expectation *pexp = NULL;
+
+    if (!(f->flags & FLOW_HAS_EXPECTATION))
+        return;
 
     int x = SC_ATOMIC_GET(expectation_count);
     if (x == 0) {
