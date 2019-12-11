@@ -1025,7 +1025,11 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             continue;
         } else if (mydata == NULL || mydata_len == 0) {
             /* Possibly a gap, but no new data. */
-            return 0;
+            if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED)
+                SCReturnInt(0);
+
+            mydata = NULL;
+            mydata_len = 0;
         }
         SCLogDebug("%"PRIu64" got %p/%u", p->pcap_cnt, mydata, mydata_len);
         break;
