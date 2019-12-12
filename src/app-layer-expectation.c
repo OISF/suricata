@@ -164,7 +164,9 @@ static Expectation *AppLayerExpectationLookup(Flow *f, IPPair **ipp)
  * Create an entry in expectation list
  *
  * Create a expectation from an existing Flow. Currently, only Flow between
- * the two original IP addresses are supported.
+ * the two original IP addresses are supported. In case of success, the
+ * ownership of the data pointer is taken. In case of error, the pointer
+ * to data has to be freed by the caller.
  *
  * \param f a pointer to the original Flow
  * \param direction the direction of the data in the expectation flow
