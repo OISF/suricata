@@ -260,6 +260,7 @@ jobs:
   ubuntu-18-04:
     name: Ubuntu 18.04 (Cocci)
     runs-on: ubuntu-18.04
+    container: ubuntu:18.04
     steps:
 
       # Cache Rust stuff.
@@ -271,13 +272,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt -y install \
+          apt update
+          apt -y install \
                 libpcre3 \
                 libpcre3-dev \
                 build-essential \
                 autoconf \
                 automake \
+                git \
+                jq \
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
@@ -295,15 +298,18 @@ jobs:
                 libevent-dev \
                 libevent-pthreads-2.1.6 \
                 libjansson-dev \
+                libpython2.7 \
                 make \
                 parallel \
+                python3-yaml \
+                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
       - name: Install Coccinelle
         run: |
-          sudo add-apt-repository -y ppa:npalix/coccinelle
-          sudo apt -y install coccinelle
+          add-apt-repository -y ppa:npalix/coccinelle
+          apt -y install coccinelle
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
@@ -315,7 +321,7 @@ jobs:
       - name: Fetching suricata-verify
         run: git clone https://github.com/OISF/suricata-verify.git
       - name: Running suricata-verify
-        run: ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py
 
   # An Ubuntu 16.04 build using the tarball generated in the CentOS 8
   # build above.
