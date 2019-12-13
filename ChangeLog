@@ -1,3 +1,30 @@
+4.1.6 -- 2019-12-13
+
+Bug #3276: address parsing: memory leak in error path (4.1.x)
+Bug #3278: segfault when test a nfs pcap file (4.1.x)
+Bug #3279: ikev2 enabled in config even if Rust is disabled
+Bug #3325: lua issues on arm (fedora:29) (4.1.x)
+Bug #3326: Static build with pcap fails (4.1.x)
+Bug #3327: tcp: empty SACK option leads to decoder event (4.1.x)
+Bug #3347: BPF filter on command line not honored for pcap file (4.1.x)
+Bug #3355: DNS: DNS over TCP transactions logged with wrong direction. (4.1.x)
+Bug #3356: DHCP: Slow down over time due to lack of detect flags (4.1.x)
+Bug #3369: byte_extract does not work in some situations (4.1.x)
+Bug #3385: fast-log: icmp type prints wrong value (4.1.x)
+Bug #3387: suricata is logging tls log repeatedly if custom mode is enabled (4.1.x)
+Bug #3388: TLS Lua output does not work without TLS log (4.1.x)
+Bug #3391: Suricata is unable to get MTU from NIC after 4.1.0 (4.1.x)
+Bug #3393: http: pipelining tx id handling broken (4.1.x)
+Bug #3394: TCP evasion technique by overlapping a TCP segment with a fake packet (4.1.x)
+Bug #3395: TCP evasion technique by faking a closed TCP session (4.1.x)
+Bug #3402: smb: post-GAP some transactions never close (4.1.x)
+Bug #3403: smb1: 'event only' transactions for bad requests never close (4.1.x)
+Bug #3404: smtp: file tracking issues when more than one attachment in a tx (4.1.x)
+Bug #3405: Filehash rule does not fire without filestore keyword
+Bug #3410: intermittent abort()s at shutdown and in unix-socket (4.1.x)
+Bug #3412: detect/asn1: crashes on packets smaller than offset setting (4.1.x)
+Task #3367: configure: Rust 1.37+ has cargo-vendor support bundled into cargo (4.1.x)
+
 4.1.5 -- 2019-09-24
 
 Feature #3068: protocol parser: vxlan (4.1.x)
