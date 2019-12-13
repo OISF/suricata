@@ -1,3 +1,41 @@
+5.0.1 -- 2019-12-13
+
+Bug #1871: intermittent abort()s at shutdown and in unix-socket
+Bug #2810: enabling add request/response http headers in master
+Bug #3047: byte_extract does not work in some situations
+Bug #3073: AC_CHECK_FILE on cross compile
+Bug #3103: --engine-analysis warning for flow on an icmp request rule
+Bug #3120: nfq_handle_packet error -1 Resource temporarily unavailable warnings
+Bug #3237: http_accept not treated as sticky buffer by --engine-analysis
+Bug #3254: tcp: empty SACK option leads to decoder event
+Bug #3263: nfq: invalid number of bytes reported
+Bug #3264: EVE DNS Warning about defaulting to v2 as version is not set.
+Bug #3266: fast-log: icmp type prints wrong value
+Bug #3267: Support for tcp.hdr Behavior
+Bug #3275: address parsing: memory leak in error path
+Bug #3277: segfault when test a nfs pcap file
+Bug #3281: Impossible to cross-compile due to AC_CHECK_FILE
+Bug #3284: hash function for string in dataset is not correct
+Bug #3286: TCP evasion technique by faking a closed TCP session
+Bug #3324: TCP evasion technique by overlapping a TCP segment with a fake packet
+Bug #3328: bad ip option evasion
+Bug #3340: DNS: DNS over TCP transactions logged with wrong direction.
+Bug #3341: tcp.hdr content matches don't work as expected
+Bug #3345: App-Layer: Not all parsers register TX detect flags that should
+Bug #3346: BPF filter on command line not honored for pcap file
+Bug #3362: cross compiling not affecting rust component of surrcata
+Bug #3376: http: pipelining tx id handling broken
+Bug #3386: Suricata is unable to get MTU from NIC after 4.1.0
+Bug #3389: EXTERNAL_NET no longer working in 5.0 as expected
+Bug #3390: Eve log does not generate pcap_filename when Interacting via unix socket in pcap processing mode
+Bug #3397: smtp: file tracking issues when more than one attachment in a tx
+Bug #3398: smtp: 'raw-message' option file tracking issues with multi-tx
+Bug #3399: smb: post-GAP some transactions never close
+Bug #3401: smb1: 'event only' transactions for bad requests never close
+Bug #3411: detect/asn1: crashes on packets smaller than offset setting
+Task #3364: configure: Rust 1.37+ has cargo-vendor support bundled into cargo.
+Documentation #2885: update documentation to indicate -i can be used multiple times
+
 5.0.0 -- 2019-10-15
 
 Feature #1851: add verbosity level description to the help command
