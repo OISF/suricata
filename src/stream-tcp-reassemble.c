@@ -1023,6 +1023,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
     while (1) {
         GetAppBuffer(*stream, &mydata, &mydata_len, app_progress);
+        DEBUG_VALIDATE_BUG_ON(mydata_len > (uint32_t)INT_MAX);
         if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, *stream, p)) {
             SCLogDebug("sending GAP to app-layer (size: %u)", mydata_len);
 
