@@ -569,6 +569,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     SCEnter();
 
     DEBUG_ASSERT_FLOW_LOCKED(f);
+    DEBUG_VALIDATE_BUG_ON(data_len > (uint32_t)INT_MAX);
 
     AppLayerThreadCtx *app_tctx = ra_ctx->app_tctx;
     AppProto alproto;
