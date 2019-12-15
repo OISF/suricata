@@ -666,6 +666,9 @@ static void DetectBytetestFree(void *ptr)
 /* UNITTESTS */
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+#include "app-layer-parser.h"
+#include "app-layer-dns-common.h"
+#include "flow-util.h"
 static int g_file_data_buffer_id = 0;
 static int g_dce_stub_data_buffer_id = 0;
 
@@ -1370,21 +1373,21 @@ static int DetectBytetestTestParse22(void)
  */
 static int DetectBytetestTestParse23(void)
 {
-    int result = 0;
-    DetectBytetestData *data = NULL;
+    DetectBytetestData *data;
     data = DetectBytetestParse("4, <, 5, 0, bitmask 0xf8", NULL, NULL);
-    result = data
-             && data->op == DETECT_BYTETEST_OP_LT
-             && data->nbytes == 4
-             && data->value == 5
-             && data->offset == 0
-             && data->flags & DETECT_BYTETEST_BITMASK
-             && data->bitmask == 0xf8
-             && data->bitmask_shift_count == 3;
-    if (data)
-        DetectBytetestFree(data);
 
-    return result;
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_LT);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 5);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->flags & DETECT_BYTETEST_BITMASK);
+    FAIL_IF_NOT(data->bitmask == 0xf8);
+    FAIL_IF_NOT(data->bitmask_shift_count == 3);
+
+    DetectBytetestFree(data);
+
+    PASS;
 }
 
 /**
@@ -1392,25 +1395,24 @@ static int DetectBytetestTestParse23(void)
  */
 static int DetectBytetestTestParse24(void)
 {
-    int result = 0;
-    DetectBytetestData *data = NULL;
+    DetectBytetestData *data;
     data = DetectBytetestParse("4, !<, 5, 0, relative,string,hex, big, bitmask 0xf8", NULL, NULL);
-    result =  data &&
-              data->op == DETECT_BYTETEST_OP_LT &&
-              data->nbytes == 4 &&
-              data->value == 5 &&
-              data->offset == 0 &&
-              data->base == DETECT_BYTETEST_BASE_HEX &&
-              data->flags & DETECT_BYTETEST_BIG &&
-              data->flags & DETECT_BYTETEST_RELATIVE &&
-              data->flags & DETECT_BYTETEST_STRING &&
-              data->flags & DETECT_BYTETEST_BITMASK &&
-              data->bitmask == 0xf8 &&
-              data->bitmask_shift_count == 3;
-    if (data)
-        DetectBytetestFree(data);
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_LT);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 5);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_HEX);
+    FAIL_IF_NOT(data->flags & DETECT_BYTETEST_BIG);
+    FAIL_IF_NOT(data->flags & DETECT_BYTETEST_RELATIVE);
+    FAIL_IF_NOT(data->flags & DETECT_BYTETEST_STRING);
+    FAIL_IF_NOT(data->flags & DETECT_BYTETEST_BITMASK);
+    FAIL_IF_NOT(data->bitmask == 0xf8);
+    FAIL_IF_NOT(data->bitmask_shift_count == 3);
 
-    return result;
+    DetectBytetestFree(data);
+
+    PASS;
 }
 
 
@@ -1567,6 +1569,106 @@ static int DetectByteTestTestPacket05(void)
 end:
     return result;
 }
+/** \test simple dns match on first byte */
+static int DetectByteTestTestPacket06(void)
+{
+    uint8_t buf[] = {   0x38, 0x35, 0x01, 0x00, 0x00, 0x01,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x001, 0x00, 0x01, 0x00,};
+    Flow f;
+    RSDNSState *dns_state = NULL;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 53);
+
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
+
+    p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    f.alproto = ALPROTO_DNS;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->mpm_matcher = mpm_default_matcher;
+    de_ctx->flags |= DE_QUIET;
+
+    /*
+     * Check first byte
+     * (0x38 & 0xF8) --> 0x38
+     * 0x38 >> 3 --> 0x7
+     * 0x7 = 0x07
+     */
+    /* this rule should alert */
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                              "(msg:\"Byte test against first byte\"; "
+                              "byte_test:1,=,0x07,0,bitmask 0xF8;"
+                              "sid:1;)");
+    FAIL_IF_NULL(s);
+
+    /* this rule should not alert */
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                              "(msg:\"Test dns_query option\"; "
+                              "byte_test:1,=,0x07,0,bitmask 0xFF;"
+                              "sid:2;)");
+    FAIL_IF_NULL(s);
+
+    /*
+     * Check 3rd byte
+     * (0x01 & 0xFF) --> 0x01
+     * 0x01 >> 0 --> 0x1
+     * 0x1 = 0x01
+     */
+    /* this rule should alert */
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                              "(msg:\"Test dns_query option\"; "
+                              "byte_test:3,=,0x01,0,bitmask 0xFF;"
+                              "sid:3;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF_NULL(det_ctx);
+
+    FAIL_IF_NOT(0 == AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
+                                        STREAM_TOSERVER, buf, sizeof(buf)));
+
+    dns_state = f.alstate;
+    FAIL_IF_NULL(dns_state);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    FAIL_IF(PacketAlertCheck(p, 2));
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 3));
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    PASS;
+}
 
 #endif /* UNITTESTS */
 
@@ -1602,12 +1704,15 @@ static void DetectBytetestRegisterTests(void)
     UtRegisterTest("DetectBytetestTestParse20", DetectBytetestTestParse20);
     UtRegisterTest("DetectBytetestTestParse21", DetectBytetestTestParse21);
     UtRegisterTest("DetectBytetestTestParse22", DetectBytetestTestParse22);
+    UtRegisterTest("DetectBytetestTestParse23", DetectBytetestTestParse23);
+    UtRegisterTest("DetectBytetestTestParse24", DetectBytetestTestParse24);
 
     UtRegisterTest("DetectByteTestTestPacket01", DetectByteTestTestPacket01);
     UtRegisterTest("DetectByteTestTestPacket02", DetectByteTestTestPacket02);
     UtRegisterTest("DetectByteTestTestPacket03", DetectByteTestTestPacket03);
     UtRegisterTest("DetectByteTestTestPacket04", DetectByteTestTestPacket04);
     UtRegisterTest("DetectByteTestTestPacket05", DetectByteTestTestPacket05);
+    UtRegisterTest("DetectByteTestTestPacket06", DetectByteTestTestPacket06);
 #endif /* UNITTESTS */
 }
 
