@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -40,21 +40,24 @@
 #define DETECT_BYTETEST_BASE_HEX   16 /**< "hex" type value string */
 
 /** Bytetest Flags */
-#define DETECT_BYTETEST_NEGOP    0x01 /**< "!" negated operator */
-#define DETECT_BYTETEST_LITTLE   0x02 /**< "little" endian value */
-#define DETECT_BYTETEST_BIG      0x04 /**< "bi" endian value */
-#define DETECT_BYTETEST_STRING   0x08 /**< "string" value */
-#define DETECT_BYTETEST_RELATIVE 0x10 /**< "relative" offset */
-#define DETECT_BYTETEST_DCE      0x20 /**< dce enabled */
-#define DETECT_BYTETEST_VALUE_BE  0x40 /**< byte extract value enabled */
-#define DETECT_BYTETEST_OFFSET_BE 0x80 /**< byte extract value enabled */
+#define DETECT_BYTETEST_NEGOP     BIT_U16(0) /**< "!" negated operator */
+#define DETECT_BYTETEST_LITTLE    BIT_U16(1) /**< "little" endian value */
+#define DETECT_BYTETEST_BIG       BIT_U16(2) /**< "bi" endian value */
+#define DETECT_BYTETEST_STRING    BIT_U16(3) /**< "string" value */
+#define DETECT_BYTETEST_RELATIVE  BIT_U16(4) /**< "relative" offset */
+#define DETECT_BYTETEST_DCE       BIT_U16(5) /**< dce enabled */
+#define DETECT_BYTETEST_BITMASK   BIT_U16(6) /**< bitmask supplied*/
+#define DETECT_BYTETEST_VALUE_BE  BIT_U16(7) /**< byte extract value enabled */
+#define DETECT_BYTETEST_OFFSET_BE BIT_U16(8) /**< byte extract value enabled */
 
 typedef struct DetectBytetestData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */
     uint8_t op;                       /**< Operator used to compare */
     uint8_t base;                     /**< String value base (oct|dec|hex) */
-    uint8_t flags;                    /**< Flags (big|little|relative|string) */
+    uint8_t bitmask_shift_count;      /**< bitmask trailing 0 count */
+    uint16_t flags;                   /**< Flags (big|little|relative|string|bitmask) */
     int32_t offset;                   /**< Offset in payload */
+    uint32_t bitmask;                 /**< bitmask value */
     uint64_t value;                   /**< Value to compare against */
 } DetectBytetestData;
 
