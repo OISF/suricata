@@ -336,7 +336,7 @@ Format::
 +----------------+------------------------------------------------------------------------------+
 | [string] <num> | 										|
 |		 | - hex - Converted string represented in hex					|
-|		 | - dec - Converted string represented in dedimal				|
+|		 | - dec - Converted string represented in decimal				|
 |		 | - oct - Converted string represented in octal				|
 +----------------+------------------------------------------------------------------------------+
 | [dce]		 | Allow the DCE module determine the byte order 				|
@@ -361,7 +361,7 @@ Example::
 
   alert tcp any any -> any any \ 
          (msg:"Byte_Test Example - Detect Large Values"; content:"|00 01 00 02|"; \
-         byte_test:2,>,1000,relavtive;)
+         byte_test:2,>,1000,relative;)
 
   alert tcp any any -> any any \
 	 (msg:"Byte_Test Example - Lowest bit is set"; \
