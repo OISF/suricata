@@ -135,7 +135,6 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
         if (ptr == NULL || len <= 0) {
             SCReturnInt(0);
         }
-        //PrintRawDataFp(stdout,ptr,len);
     }
     else {
         SCLogDebug("absolute, data->offset %"PRIi32"", data->offset);
@@ -160,7 +159,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
         extbytes = ByteExtractStringUint64(&val, data->base,
                                            data->nbytes, (const char *)ptr);
         if (extbytes <= 0) {
-            /* strtoull() return 0 if there is no numeric value in data string */
+            /* ByteExtractStringUint64() returns 0 if there is no numeric value in data string */
             if (val == 0) {
                 SCLogDebug("No Numeric value");
                 SCReturnInt(0);
@@ -227,15 +226,15 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
             }
             break;
         case DETECT_BYTETEST_OP_GE:
-        if (val >= value) {
-            match = 1;
-        }
-        break;
+            if (val >= value) {
+                match = 1;
+            }
+            break;
         case DETECT_BYTETEST_OP_LE:
-        if (val <= value) {
-            match = 1;
-        }
-        break;
+            if (val <= value) {
+                match = 1;
+            }
+            break;
         default:
             /* Should never get here as we handle this in parsing. */
             SCReturnInt(-1);
