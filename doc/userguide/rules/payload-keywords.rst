@@ -299,7 +299,11 @@ Example of dsize in a rule:
 
 byte_test
 ---------
-The ``byte_test`` keyword extracts ``<num of bytes>`` and performs an operation selected with ``<operator>`` against the value in ``<test value>`` at a particular ``<offset>``.
+The ``byte_test`` keyword extracts ``<num of bytes>`` and performs an operation selected
+with ``<operator>`` against the value in ``<test value>`` at a particular ``<offset>``.
+The ``<bitmask value>`` is applied to the extracted bytes (before the operator is applied),
+and the final result will be right shifted one bit for each trailing ``0`` in
+the ``<bitmask value>``.
 
 Format::
   
