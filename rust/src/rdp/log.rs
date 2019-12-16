@@ -18,9 +18,9 @@
 // Author: Zach Kelly <zach.kelly@lmco.com>
 
 use super::rdp::{RdpTransaction, RdpTransactionItem};
-use json::{Json, JsonT};
-use rdp::parser::*;
-use rdp::windows;
+use crate::json::{Json, JsonT};
+use crate::rdp::parser::*;
+use crate::rdp::windows;
 use std;
 use x509_parser::parse_x509_der;
 
@@ -78,7 +78,7 @@ fn to_json(tx: &RdpTransaction) -> Option<Json> {
 
 /// json helper for X224ConnectionRequest
 fn x224_req_to_json(js: &Json, x224: &X224ConnectionRequest) {
-    use rdp::parser::NegotiationRequestFlags as Flags;
+    use crate::rdp::parser::NegotiationRequestFlags as Flags;
 
     js.set_string("event_type", "initial_request");
     if let Some(ref cookie) = x224.cookie {
@@ -108,7 +108,7 @@ fn x224_req_to_json(js: &Json, x224: &X224ConnectionRequest) {
 
 /// json helper for X224ConnectionConfirm
 fn x224_conf_to_json(js: &Json, x224: &X224ConnectionConfirm) {
-    use rdp::parser::NegotiationResponseFlags as Flags;
+    use crate::rdp::parser::NegotiationResponseFlags as Flags;
 
     js.set_string("event_type", "initial_response");
     if let Some(ref from_server) = x224.negotiation_from_server {
@@ -292,7 +292,7 @@ fn mcs_req_to_json(js: &Json, mcs: &McsConnectRequest) {
                 if let Some(ref early_capability_flags) =
                     client.early_capability_flags
                 {
-                    use rdp::parser::EarlyCapabilityFlags as Flags;
+                    use crate::rdp::parser::EarlyCapabilityFlags as Flags;
 
                     if !early_capability_flags.is_empty() {
                         let flags = Json::array();

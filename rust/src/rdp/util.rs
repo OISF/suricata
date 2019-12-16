@@ -21,7 +21,7 @@ use byteorder::ReadBytesExt;
 use memchr::memchr;
 use nom;
 use nom::{ErrorKind, IResult, Needed};
-use rdp::error::RDP_UNIMPLEMENTED_LENGTH_DETERMINANT;
+use crate::rdp::error::RDP_UNIMPLEMENTED_LENGTH_DETERMINANT;
 use std::io::Cursor;
 use widestring::U16CString;
 
@@ -105,7 +105,7 @@ pub fn parse_per_length_determinant(input: &[u8]) -> IResult<&[u8], u32> {
 mod tests {
     use super::*;
     use nom;
-    use rdp::error::RDP_UNIMPLEMENTED_LENGTH_DETERMINANT;
+    use crate::rdp::error::RDP_UNIMPLEMENTED_LENGTH_DETERMINANT;
 
     #[test]
     fn test_le_string_abc() {

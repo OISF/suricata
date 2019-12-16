@@ -27,11 +27,11 @@
 //! * x.691-spec: <https://www.itu.int/rec/T-REC-X.691/en>
 
 use nom::{be_u16, be_u8, le_u16, le_u32, le_u8, ErrorKind, IResult};
-use rdp::error::RDP_NOT_X224_CLASS_0_ERROR;
-use rdp::util::{
+use crate::rdp::error::RDP_NOT_X224_CLASS_0_ERROR;
+use crate::rdp::util::{
     le_slice_to_string, parse_per_length_determinant, utf7_slice_to_string,
 };
-use rdp::windows;
+use crate::rdp::windows;
 
 /// constrains dimension to a range, per spec
 /// rdp-spec, section 2.2.1.3.2 Client Core Data
@@ -1111,7 +1111,7 @@ fn parse_mcs_connect_response(
 
 #[cfg(test)]
 mod tests_cookie_21182 {
-    use rdp::parser::*;
+    use crate::rdp::parser::*;
 
     static BYTES: [u8; 37] = [
         0x03, 0x00, 0x00, 0x25, 0x20, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x43,
@@ -1145,7 +1145,7 @@ mod tests_cookie_21182 {
 
 #[cfg(test)]
 mod tests_negotiate_49350 {
-    use rdp::parser::*;
+    use crate::rdp::parser::*;
 
     static BYTES: [u8; 20] = [
         0x03, 0x00, 0x00, 0x13, 0x0e, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
@@ -1188,7 +1188,7 @@ mod tests_negotiate_49350 {
 
 #[cfg(test)]
 mod tests_core_49350 {
-    use rdp::parser::*;
+    use crate::rdp::parser::*;
 
     static BYTES: [u8; 429] = [
         0x03, 0x00, 0x01, 0xac, 0x02, 0xf0, 0x80, 0x7f, 0x65, 0x82, 0x01, 0xa0,
@@ -1310,7 +1310,7 @@ mod tests_core_49350 {
 
 #[cfg(test)]
 mod tests_x223_response_49350 {
-    use rdp::parser::*;
+    use crate::rdp::parser::*;
 
     // changed offset 9 from 0x65 to 0x66 so it is no longer an mcs connect
     static BYTES: [u8; 9] =
@@ -1337,7 +1337,7 @@ mod tests_x223_response_49350 {
 
 #[cfg(test)]
 mod tests_t123_raw_49350 {
-    use rdp::parser::*;
+    use crate::rdp::parser::*;
 
     // changed offset 4 from 0x02 to 0x03 so it is no longer an X223 data object
     static BYTES: [u8; 9] =
@@ -1360,7 +1360,7 @@ mod tests_t123_raw_49350 {
 
 #[cfg(test)]
 mod tests_x224_raw_49350 {
-    use rdp::parser::*;
+    use crate::rdp::parser::*;
 
     // changed offset 11 from 0x01 to 0x02 so it is not a known X224 payload type
     static BYTES: [u8; 19] = [
@@ -1396,7 +1396,7 @@ mod tests_x224_raw_49350 {
 
 #[cfg(test)]
 mod tests_x223_raw_49350 {
-    use rdp::parser::*;
+    use crate::rdp::parser::*;
 
     // changed offset 9 from 0x65 to 0xff so it is no longer an mcs connect
     static BYTES: [u8; 9] =
@@ -1422,7 +1422,7 @@ mod tests_x223_raw_49350 {
 #[cfg(test)]
 mod tests_negotiate_incomplete_49350 {
     use nom;
-    use rdp::parser::*;
+    use crate::rdp::parser::*;
 
     static BYTES: [u8; 19] = [
         0x03, 0x00, 0x00, 0x13, 0x0e, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
@@ -1476,7 +1476,7 @@ mod tests_negotiate_incomplete_49350 {
 #[cfg(test)]
 mod tests_core_incomplete_49350 {
     use nom;
-    use rdp::parser::*;
+    use crate::rdp::parser::*;
 
     static BYTES: [u8; 428] = [
         0x03, 0x00, 0x01, 0xac, 0x02, 0xf0, 0x80, 0x7f, 0x65, 0x82, 0x01, 0xa0,
