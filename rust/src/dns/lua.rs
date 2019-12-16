@@ -17,9 +17,9 @@
 
 use std::os::raw::c_int;
 
-use lua::*;
-use dns::dns::*;
-use dns::log::*;
+use crate::lua::*;
+use crate::dns::dns::*;
+use crate::dns::log::*;
 
 #[no_mangle]
 pub extern "C" fn rs_dns_lua_get_tx_id(clua: &mut CLuaState,
