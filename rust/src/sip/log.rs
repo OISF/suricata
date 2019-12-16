@@ -17,8 +17,8 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-use json::*;
-use sip::sip::{SIPState, SIPTransaction};
+use crate::json::*;
+use crate::sip::sip::{SIPState, SIPTransaction};
 
 #[no_mangle]
 pub extern "C" fn rs_sip_log_json(_state: &mut SIPState, tx: &mut SIPTransaction) -> *mut JsonT {

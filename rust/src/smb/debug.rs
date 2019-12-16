@@ -18,7 +18,7 @@
 use crate::smb::smb::*;
 
 #[cfg(feature = "debug")]
-use log::*;
+use crate::log::*;
 
 impl SMBState {
     #[cfg(not(feature = "debug"))]
