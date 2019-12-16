@@ -152,7 +152,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
     }
 
-    neg = flags & DETECT_BYTETEST_NEGOP;
+    neg = data->neg_op;
 
     /* Extract the byte data */
     if (flags & DETECT_BYTETEST_STRING) {
@@ -331,13 +331,15 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
         int offset = 0;
         char *op_ptr;
         if (args[1][offset] == '!') {
-            data->flags |= DETECT_BYTETEST_NEGOP;
+            data->neg_op = true;
             op_ptr = &args[1][1];
             while (isspace((char)*op_ptr) || (*op_ptr == ',')) op_ptr++;
             offset = op_ptr - &args[1][0];
+        } else {
+            data->neg_op = false;
         }
         op_ptr = args[1] + offset;
-        if ((strcmp("=", op_ptr) == 0) || ((data->flags & DETECT_BYTETEST_NEGOP)
+        if ((strcmp("=", op_ptr) == 0) || (data->neg_op
                 && strcmp("", op_ptr) == 0)) {
             data->op |= DETECT_BYTETEST_OP_EQ;
         } else if (strcmp("<", op_ptr) == 0) {
@@ -698,7 +700,7 @@ static int DetectBytetestTestParse02(void)
             && (data->nbytes == 4)
             && (data->value == 1)
             && (data->offset == 0)
-            && (data->flags == DETECT_BYTETEST_NEGOP)
+            && (data->neg_op)
             && (data->base == DETECT_BYTETEST_BASE_UNSET))
         {
             result = 1;
@@ -722,8 +724,8 @@ static int DetectBytetestTestParse03(void)
             && (data->nbytes == 4)
             && (data->value == 1)
             && (data->offset == 0)
-            && (data->flags == ( DETECT_BYTETEST_NEGOP
-                                |DETECT_BYTETEST_RELATIVE))
+            && (data->neg_op)
+            && (data->flags == DETECT_BYTETEST_RELATIVE)
             && (data->base == DETECT_BYTETEST_BASE_UNSET))
         {
             result = 1;
@@ -747,8 +749,8 @@ static int DetectBytetestTestParse04(void)
             && (data->nbytes == 4)
             && (data->value == 1)
             && (data->offset == 0)
-            && (data->flags == ( DETECT_BYTETEST_NEGOP
-                                |DETECT_BYTETEST_STRING))
+            && (data->neg_op)
+            && (data->flags == DETECT_BYTETEST_STRING)
             && (data->base == DETECT_BYTETEST_BASE_OCT))
         {
             result = 1;
@@ -820,7 +822,7 @@ static int DetectBytetestTestParse07(void)
             && (data->nbytes == 4)
             && (data->value == 5)
             && (data->offset == 0)
-            && (data->flags == 4)
+            && (data->flags & DETECT_BYTETEST_BIG)
             && (data->base == DETECT_BYTETEST_BASE_UNSET))
         {
             result = 1;
@@ -868,7 +870,7 @@ static int DetectBytetestTestParse09(void)
             && (data->nbytes == 4)
             && (data->value == 5)
             && (data->offset == 0)
-            && (data->flags == DETECT_BYTETEST_NEGOP)
+            && (data->neg_op)
             && (data->base == DETECT_BYTETEST_BASE_UNSET))
         {
             result = 1;
@@ -892,7 +894,8 @@ static int DetectBytetestTestParse10(void)
             && (data->nbytes == 4)
             && (data->value == 5)
             && (data->offset == 0)
-            && (data->flags == (DETECT_BYTETEST_NEGOP|DETECT_BYTETEST_LITTLE))
+            && (data->neg_op)
+            && (data->flags == DETECT_BYTETEST_LITTLE)
             && (data->base == DETECT_BYTETEST_BASE_UNSET))
         {
             result = 1;
@@ -916,8 +919,8 @@ static int DetectBytetestTestParse11(void)
             && (data->nbytes == 4)
             && (data->value == 5)
             && (data->offset == 0)
-            && (data->flags == ( DETECT_BYTETEST_NEGOP
-                                |DETECT_BYTETEST_LITTLE
+            && (data->neg_op)
+            && (data->flags == (DETECT_BYTETEST_LITTLE
                                 |DETECT_BYTETEST_STRING
                                 |DETECT_BYTETEST_RELATIVE))
             && (data->base == DETECT_BYTETEST_BASE_HEX))
@@ -1123,7 +1126,7 @@ static int DetectBytetestTestParse20(void)
         (bd->flags & DETECT_BYTETEST_STRING) &&
         (bd->flags & DETECT_BYTETEST_BIG) &&
         (bd->flags & DETECT_BYTETEST_LITTLE) &&
-        (bd->flags & DETECT_BYTETEST_NEGOP) ) {
+        (bd->neg_op) ) {
         result = 0;
         goto end;
     }
@@ -1150,7 +1153,7 @@ static int DetectBytetestTestParse20(void)
         (bd->flags & DETECT_BYTETEST_STRING) &&
         (bd->flags & DETECT_BYTETEST_BIG) &&
         (bd->flags & DETECT_BYTETEST_LITTLE) &&
-        (bd->flags & DETECT_BYTETEST_NEGOP) ) {
+        (bd->neg_op) ) {
         result = 0;
         goto end;
     }
@@ -1177,7 +1180,7 @@ static int DetectBytetestTestParse20(void)
         (bd->flags & DETECT_BYTETEST_STRING) &&
         (bd->flags & DETECT_BYTETEST_BIG) &&
         (bd->flags & DETECT_BYTETEST_LITTLE) &&
-        (bd->flags & DETECT_BYTETEST_NEGOP) ) {
+        (bd->neg_op) ) {
         result = 0;
         goto end;
     }
@@ -1350,7 +1353,7 @@ static int DetectBytetestTestParse22(void)
         (bd->flags & DETECT_BYTETEST_STRING) &&
         (bd->flags & DETECT_BYTETEST_BIG) &&
         (bd->flags & DETECT_BYTETEST_LITTLE) &&
-        (bd->flags & DETECT_BYTETEST_NEGOP) ) {
+        (bd->neg_op) ) {
         printf("wrong flags: ");
         goto end;
     }
