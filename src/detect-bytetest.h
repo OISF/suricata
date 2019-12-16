@@ -40,22 +40,22 @@
 #define DETECT_BYTETEST_BASE_HEX   16 /**< "hex" type value string */
 
 /** Bytetest Flags */
-#define DETECT_BYTETEST_NEGOP     BIT_U16(0) /**< "!" negated operator */
-#define DETECT_BYTETEST_LITTLE    BIT_U16(1) /**< "little" endian value */
-#define DETECT_BYTETEST_BIG       BIT_U16(2) /**< "bi" endian value */
-#define DETECT_BYTETEST_STRING    BIT_U16(3) /**< "string" value */
-#define DETECT_BYTETEST_RELATIVE  BIT_U16(4) /**< "relative" offset */
-#define DETECT_BYTETEST_DCE       BIT_U16(5) /**< dce enabled */
-#define DETECT_BYTETEST_BITMASK   BIT_U16(6) /**< bitmask supplied*/
-#define DETECT_BYTETEST_VALUE_BE  BIT_U16(7) /**< byte extract value enabled */
-#define DETECT_BYTETEST_OFFSET_BE BIT_U16(8) /**< byte extract value enabled */
+#define DETECT_BYTETEST_LITTLE    BIT_U8(0) /**< "little" endian value */
+#define DETECT_BYTETEST_BIG       BIT_U8(1) /**< "bi" endian value */
+#define DETECT_BYTETEST_STRING    BIT_U8(2) /**< "string" value */
+#define DETECT_BYTETEST_RELATIVE  BIT_U8(3) /**< "relative" offset */
+#define DETECT_BYTETEST_DCE       BIT_U8(4) /**< dce enabled */
+#define DETECT_BYTETEST_BITMASK   BIT_U8(5) /**< bitmask supplied*/
+#define DETECT_BYTETEST_VALUE_BE  BIT_U8(6) /**< byte extract value enabled */
+#define DETECT_BYTETEST_OFFSET_BE BIT_U8(7) /**< byte extract value enabled */
 
 typedef struct DetectBytetestData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */
     uint8_t op;                       /**< Operator used to compare */
     uint8_t base;                     /**< String value base (oct|dec|hex) */
     uint8_t bitmask_shift_count;      /**< bitmask trailing 0 count */
-    uint16_t flags;                   /**< Flags (big|little|relative|string|bitmask) */
+    uint8_t flags;                   /**< Flags (big|little|relative|string|bitmask) */
+    bool neg_op;
     int32_t offset;                   /**< Offset in payload */
     uint32_t bitmask;                 /**< bitmask value */
     uint64_t value;                   /**< Value to compare against */
