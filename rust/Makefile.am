@@ -49,7 +49,6 @@ endif
 if HAVE_RUST_HEADERS
 
 all-local: build-rust
-	echo Rust headers available
 
 clean-local:
 	-rm -rf target
@@ -60,7 +59,6 @@ distclean-local: clean-local
 else 
 
 all-local: gen-headers build-rust
-	$(info Generating rust headers)
 
 clean-local:
 	-rm -rf target gen
