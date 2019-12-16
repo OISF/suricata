@@ -17,8 +17,8 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-use core::{STREAM_TOCLIENT, STREAM_TOSERVER};
-use sip::sip::SIPTransaction;
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::sip::sip::SIPTransaction;
 use std::ptr;
 
 #[no_mangle]

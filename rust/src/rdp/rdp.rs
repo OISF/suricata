@@ -19,13 +19,13 @@
 
 //! RDP application layer
 
-use core::{
+use crate::core::{
     self, AppProto, DetectEngineState, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP,
 };
-use conf;
+use crate::conf;
 use nom;
-use parser::*;
-use rdp::parser::*;
+use crate::parser::*;
+use crate::rdp::parser::*;
 use std;
 use std::mem::transmute;
 use tls_parser::{
@@ -561,7 +561,7 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rdp::parser::{RdpCookie, X224ConnectionRequest};
+    use crate::rdp::parser::{RdpCookie, X224ConnectionRequest};
 
     #[test]
     fn test_probe_rdp() {
