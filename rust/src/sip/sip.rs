@@ -19,13 +19,13 @@
 
 extern crate nom;
 
-use applayer;
-use conf;
-use core;
-use core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
-use log::*;
-use parser::*;
-use sip::parser::*;
+use crate::applayer;
+use crate::conf;
+use crate::core;
+use crate::core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
+use crate::log::*;
+use crate::parser::*;
+use crate::sip::parser::*;
 use std;
 use std::ffi::{CStr, CString};
 
