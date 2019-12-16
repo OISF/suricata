@@ -1,8 +1,9 @@
-EXTRA_DIST = Cargo.toml Cargo.lock \
+EXTRA_DIST =	Cargo.toml \
+		Cargo.lock \
 		src \
 		.cargo/config.in \
-                gen \
-                cbindgen.toml
+		cbindgen.toml \
+		gen/rust-bindings.h
 
 if HAVE_CARGO_VENDOR
 EXTRA_DIST +=	vendor
@@ -28,9 +29,11 @@ if RUST_CROSS_COMPILE
 RUST_TARGET = --target $(host_triplet)
 endif
 
-build-rust:
-	cd $(top_srcdir)/rust
-
+all-local:
+if !HAVE_RUST_HEADERS
+	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
+		--quiet --output $(abs_top_builddir)/rust/gen/rust-bindings.h
+endif
 if HAVE_CYGPATH
 	rustpath=`cygpath -a -t mixed $(abs_top_builddir)`
 	cd $(top_srcdir)/rust && @rustup_home@ \
@@ -46,29 +49,17 @@ else
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
 
-if HAVE_RUST_HEADERS
-
-all-local: build-rust
-	echo Rust headers available
-
 clean-local:
-	-rm -rf target
-
-distclean-local: clean-local
-	rm -rf vendor Cargo.lock
-
-else 
-
-all-local: gen-headers build-rust
-	$(info Generating rust headers)
-
-clean-local:
-	-rm -rf target gen
-
-distclean-local: clean-local
-	rm -rf vendor gen Cargo.lock
-
+	rm -rf target
+if !HAVE_RUST_HEADERS
+	rm -rf gen
 endif
+
+distclean-local:
+	rm -rf Cargo.lock
+
+maintainerclean-local:
+	rm -rf Cargo.lock vendor gen
 
 check:
 	CARGO_HOME="$(CARGO_HOME)" @rustup_home@
@@ -85,6 +76,8 @@ else
 vendor:
 endif
 
-gen-headers: FORCE
-	cbindgen --config cbindgen.toml -q --output "gen/rust-bindings.h" > /dev/null
-FORCE:
+if !HAVE_RUST_HEADERS
+gen/rust-bindings.h:
+	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
+		--quiet --output $(abs_top_builddir)/rust/gen/rust-bindings.h
+endif
