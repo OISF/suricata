@@ -16,7 +16,7 @@
  */
 
 use std;
-use core::{STREAM_TOSERVER};
+use crate::core::{STREAM_TOSERVER};
 
 #[repr(C)]
 pub struct AppLayerGetTxIterTuple {
