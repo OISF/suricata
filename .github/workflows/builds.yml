@@ -72,6 +72,7 @@ jobs:
                 texlive-needspace \
       - name: Install cbindgen
         run: cargo install --force cbindgen
+      - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
@@ -141,8 +142,6 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - name: Install cbindgen
-        run: cargo install --force cbindgen
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -170,7 +169,7 @@ jobs:
     steps:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
-      - run: echo "::add-path::/github/home/.cargo/bin"
+      - run: echo "::add-path::$HOME/.cargo/bin"
       - name: Install system dependencies
         run: |
           yum -y install epel-release
@@ -189,8 +188,6 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
-      - name: Install cbindgen
-        run: cargo install --force cbindgen
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -257,6 +254,7 @@ jobs:
                 zlib-devel
       - name: Install cbindgen
         run: cargo install --force cbindgen
+      - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
@@ -323,6 +321,7 @@ jobs:
           apt -y install coccinelle
       - name: Install cbindgen
         run: cargo install --force cbindgen
+      - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
@@ -373,9 +372,7 @@ jobs:
                 zlib1g-dev
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
-      - run: echo "::add-path::/github/home/.cargo/bin"
-      - name: Install cbindgen
-        run: cargo install --force cbindgen
+      - run: echo "::add-path::$HOME/.cargo/bin"
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -450,6 +447,7 @@ jobs:
                 zlib1g-dev
       - name: Install cbindgen
         run: cargo install --force cbindgen
+      - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
@@ -510,7 +508,7 @@ jobs:
                 zlib1g-dev
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
-      - run: echo "::add-path::/github/home/.cargo/bin"
+      - run: echo "::add-path::$HOME/.cargo/bin"
       - name: Install cbindgen
         run: cargo install --force cbindgen
       - uses: actions/checkout@v1
@@ -562,6 +560,7 @@ jobs:
           xz
       - name: Install cbindgen
         run: cargo install --force cbindgen
+      - run: echo "::add-path::$HOME/.cargo/bin"
       - run: pip install PyYAML
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
