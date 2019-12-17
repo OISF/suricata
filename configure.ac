@@ -2464,7 +2464,7 @@ fi
         echo "  To install: cargo install --force cbindgen"
         AC_MSG_ERROR([cbindgen required])
       fi
-      required_version=0.9.0
+      required_version=0.10.0
       cbindgen_version=$(cbindgen --version | cut -d' ' -f2-)
       lowest_version=$(printf '%s\n' $required_version $cbindgen_version | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n | head -n1)
       if test "x$lowest_version" != "x$required_version"; then
