@@ -86,5 +86,5 @@ vendor:
 endif
 
 gen-headers: FORCE
-	cbindgen --config cbindgen.toml --output "gen/rust-bindings.h" > /dev/null
+	cbindgen --config cbindgen.toml -q --output "gen/rust-bindings.h" > /dev/null
 FORCE:
