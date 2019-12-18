@@ -875,7 +875,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
 
                 /* TODO: implement option "apply_to" */
 
-                if (ByteExtractStringUint32(&parsed_timeout, 10, strlen(th_timeout), th_timeout) <= 0) {
+                if (StringParseUint32(&parsed_timeout, 10, strlen(th_timeout), th_timeout) <= 0) {
                     goto error;
                 }
 
@@ -923,7 +923,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                 goto error;
             }
 
-            if (ByteExtractStringUint32(&parsed_count, 10, strlen(th_count), th_count) <= 0) {
+            if (StringParseUint32(&parsed_count, 10, strlen(th_count), th_count) <= 0) {
                 goto error;
             }
             if (parsed_count == 0) {
@@ -931,7 +931,7 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                 goto error;
             }
 
-            if (ByteExtractStringUint32(&parsed_seconds, 10, strlen(th_seconds), th_seconds) <= 0) {
+            if (StringParseUint32(&parsed_seconds, 10, strlen(th_seconds), th_seconds) <= 0) {
                 goto error;
             }
 
@@ -954,11 +954,11 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
             break;
     }
 
-    if (ByteExtractStringUint32(&id, 10, strlen(th_sid), th_sid) <= 0) {
+    if (StringParseUint32(&id, 10, strlen(th_sid), th_sid) <= 0) {
         goto error;
     }
 
-    if (ByteExtractStringUint32(&gid, 10, strlen(th_gid), th_gid) <= 0) {
+    if (StringParseUint32(&gid, 10, strlen(th_gid), th_gid) <= 0) {
         goto error;
     }
 

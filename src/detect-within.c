@@ -113,7 +113,7 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
         cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         cd->flags |= DETECT_CONTENT_WITHIN_BE;
     } else {
-        if (ByteExtractStringInt32(&cd->within, 0, 0, str) != (int)strlen(str)) {
+        if (StringParseInt32(&cd->within, 0, 0, str) != (int)strlen(str)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
                       "invalid value for within: %s", str);
             goto end;

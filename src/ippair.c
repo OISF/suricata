@@ -200,7 +200,7 @@ void IPPairInitConfig(char quiet)
     }
     if ((ConfGet("ippair.hash-size", &conf_val)) == 1)
     {
-        if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
+        if (StringParseUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             ippair_config.hash_size = configval;
         }
@@ -208,7 +208,7 @@ void IPPairInitConfig(char quiet)
 
     if ((ConfGet("ippair.prealloc", &conf_val)) == 1)
     {
-        if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
+        if (StringParseUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
             ippair_config.prealloc = configval;
         } else {

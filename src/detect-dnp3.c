@@ -195,7 +195,7 @@ static int DetectEngineInspectDNP3(ThreadVars *tv, DetectEngineCtx *de_ctx,
  */
 static int DetectDNP3FuncParseFunctionCode(const char *str, uint8_t *fc)
 {
-    if (ByteExtractStringUint8(fc, 10, strlen(str), str) >= 0) {
+    if (StringParseUint8(fc, 10, strlen(str), str) >= 0) {
         return 1;
     }
 
@@ -287,7 +287,7 @@ static int DetectDNP3IndParse(const char *str, uint16_t *flags)
 {
     *flags = 0;
 
-    if (ByteExtractStringUint16(flags, 0, strlen(str), str) > 0) {
+    if (StringParseUint16(flags, 0, strlen(str), str) > 0) {
         return 1;
     }
 
@@ -362,11 +362,11 @@ static int DetectDNP3ObjParse(const char *str, uint8_t *group, uint8_t *var)
     *sep = '\0';
     varstr = sep + 1;
 
-    if (ByteExtractStringUint8(group, 0, strlen(groupstr), groupstr) < 0) {
+    if (StringParseUint8(group, 0, strlen(groupstr), groupstr) < 0) {
         return 0;
     }
 
-    if (ByteExtractStringUint8(var, 0, strlen(varstr), varstr) < 0) {
+    if (StringParseUint8(var, 0, strlen(varstr), varstr) < 0) {
         return 0;
     }
 
