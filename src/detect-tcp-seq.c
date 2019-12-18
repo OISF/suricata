@@ -114,7 +114,7 @@ static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char *op
 
     sm->type = DETECT_SEQ;
 
-    if (-1 == ByteExtractStringUint32(&data->seq, 10, 0, optstr)) {
+    if (-1 == StringParseUint32(&data->seq, 10, 0, optstr)) {
         goto error;
     }
     sm->ctx = (SigMatchCtx*)data;

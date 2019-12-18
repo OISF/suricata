@@ -106,7 +106,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
         cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         cd->flags |= DETECT_CONTENT_OFFSET_BE;
     } else {
-        if (ByteExtractStringUint16(&cd->offset, 0, 0, str) != (int)strlen(str))
+        if (StringParseUint16(&cd->offset, 0, 0, str) != (int)strlen(str))
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid value for offset: %s.", str);
             goto end;
