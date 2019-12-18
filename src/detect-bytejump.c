@@ -390,7 +390,7 @@ static DetectBytejumpData *DetectBytejumpParse(const char *optstr, char **offset
      */
 
     /* Number of bytes */
-    if (ByteExtractStringUint32(&nbytes, 10, strlen(args[0]), args[0]) <= 0) {
+    if (StringParseUint32(&nbytes, 10, strlen(args[0]), args[0]) <= 0) {
         SCLogError(SC_ERR_INVALID_VALUE, "Malformed number of bytes: %s", optstr);
         goto error;
     }
@@ -407,7 +407,7 @@ static DetectBytejumpData *DetectBytejumpParse(const char *optstr, char **offset
         if (*offset == NULL)
             goto error;
     } else {
-        if (ByteExtractStringInt32(&data->offset, 0, strlen(args[1]), args[1]) <= 0) {
+        if (StringParseInt32(&data->offset, 0, strlen(args[1]), args[1]) <= 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Malformed offset: %s", optstr);
             goto error;
         }
@@ -438,7 +438,7 @@ static DetectBytejumpData *DetectBytejumpParse(const char *optstr, char **offset
         } else if (strcasecmp("align", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_ALIGN;
         } else if (strncasecmp("multiplier ", args[i], 11) == 0) {
-            if (ByteExtractStringUint32(&data->multiplier, 10,
+            if (StringParseUint32(&data->multiplier, 10,
                                         strlen(args[i]) - 11,
                                         args[i] + 11) <= 0)
             {
@@ -446,7 +446,7 @@ static DetectBytejumpData *DetectBytejumpParse(const char *optstr, char **offset
                 goto error;
             }
         } else if (strncasecmp("post_offset ", args[i], 12) == 0) {
-            if (ByteExtractStringInt32(&data->post_offset, 10,
+            if (StringParseInt32(&data->post_offset, 10,
                                        strlen(args[i]) - 12,
                                        args[i] + 12) <= 0)
             {

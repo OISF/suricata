@@ -119,7 +119,7 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, const char *opt
 
     sm->type = DETECT_ACK;
 
-    if (-1 == ByteExtractStringUint32(&data->ack, 10, 0, optstr)) {
+    if (StringParseUint32(&data->ack, 10, 0, optstr) < 0) {
         goto error;
     }
     sm->ctx = (SigMatchCtx*)data;

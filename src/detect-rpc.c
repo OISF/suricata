@@ -194,7 +194,7 @@ static DetectRpcData *DetectRpcParse (const char *rpcstr)
         if (args[i]) {
             switch (i) {
                 case 0:
-                    if (ByteExtractStringUint32(&rd->program, 10, strlen(args[i]), args[i]) <= 0) {
+                    if (StringParseUint32(&rd->program, 10, strlen(args[i]), args[i]) <= 0) {
                         SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid size specified for the rpc program:\"%s\"", args[i]);
                         goto error;
                     }
@@ -202,7 +202,7 @@ static DetectRpcData *DetectRpcParse (const char *rpcstr)
                     break;
                 case 1:
                     if (args[i][0] != '*') {
-                        if (ByteExtractStringUint32(&rd->program_version, 10, strlen(args[i]), args[i]) <= 0) {
+                        if (StringParseUint32(&rd->program_version, 10, strlen(args[i]), args[i]) <= 0) {
                             SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid size specified for the rpc version:\"%s\"", args[i]);
                             goto error;
                         }
@@ -211,7 +211,7 @@ static DetectRpcData *DetectRpcParse (const char *rpcstr)
                     break;
                 case 2:
                     if (args[i][0] != '*') {
-                        if (ByteExtractStringUint32(&rd->procedure, 10, strlen(args[i]), args[i]) <= 0) {
+                        if (StringParseUint32(&rd->procedure, 10, strlen(args[i]), args[i]) <= 0) {
                             SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid size specified for the rpc procedure:\"%s\"", args[i]);
                             goto error;
                         }
