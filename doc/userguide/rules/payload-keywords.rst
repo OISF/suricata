@@ -291,7 +291,7 @@ Format::
 
   dsize:<number>;
 
-example of dsize in a rule:
+Example of dsize in a rule:
 
 .. container:: example-rule
 
