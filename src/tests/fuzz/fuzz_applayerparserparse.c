@@ -63,7 +63,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         alp_tctx = AppLayerParserThreadCtxAlloc();
         const char* forceLayerStr = getenv("FUZZ_APPLAYER");
         if (forceLayerStr) {
-            if (ByteExtractString(&forceLayer, 10, 0, forceLayerStr) < 0) {
+            if (ByteExtractStringUint64(&forceLayer, 10, 0, forceLayerStr) < 0) {
                 forceLayer = 0;
                 printf("Invalid numeric value for FUZZ_APPLAYER environment variable");
             }
