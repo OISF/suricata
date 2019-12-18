@@ -264,6 +264,21 @@ You can also use the negation (!) before isdataat.
 
 .. image:: payload-keywords/isdataat1.png
 
+bsize
+-----
+
+With the bsize keyword, you can match on the length of the buffer. This adds precision to the content match, previously this could have been done with isdataat.
+
+Format::
+
+  bsize:<number>;
+
+Example of bsize in a rule:
+
+.. container:: example-rule
+
+   alert dns any any -> any any (msg:"test bsize rule"; dns.query; content:"google.com"; bsize:10; sid:123; rev:1;)
+
 dsize
 -----
 
