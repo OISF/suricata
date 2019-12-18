@@ -129,11 +129,12 @@ int ByteExtractUint16(uint16_t *res, int e, uint16_t len, const uint8_t *bytes);
  * \param base Base of the number to extract
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
+ * \param bool Enable strict check for parsers
  *
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str);
+int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str, bool strict);
 
 /**
  * Extract unsigned integer value from a string as uint64_t.
@@ -195,11 +196,12 @@ int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str
  * \param base Base of the number to extract
  * \param len Number of bytes to extract (23 max or 0 for unbounded)
  * \param str String to extract from
+ * \param bool Enable strict check for parsers
  *
  * \return n Number of bytes extracted on success
  * \return -1 On error
  */
-int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *str);
+int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *str, bool strict);
 
 /**
  * Extract signed integer value from a string as uint64_t.
@@ -252,6 +254,111 @@ int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const char *str
  * \return -1 On error
  */
 int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char *str);
+
+/**
+ * Extract unsigned integer value from a string as uint64_t strictly.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param len Number of bytes to extract (23 max)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int ByteParseStringUint64(uint64_t *res, int base, uint16_t len, const char *str);
+
+/**
+ * Extract unsigned integer value from a string as uint32_t strictly.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int ByteParseStringUint32(uint32_t *res, int base, uint16_t len, const char *str);
+
+/**
+ * Extract unsigned integer value from a string as uint16_t strictly.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int ByteParseStringUint16(uint16_t *res, int base, uint16_t len, const char *str);
+
+/**
+ * Extract unsigned integer value from a string as uint8_t strictly.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int ByteParseStringUint8(uint8_t *res, int base, uint16_t len, const char *str);
+
+/**
+ * Extract signed integer value from a string as uint64_t strictly.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int ByteParseStringInt64(int64_t *res, int base, uint16_t len, const char *str);
+
+/**
+ * Extract signed integer value from a string as uint32_t strictly.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int ByteParseStringInt32(int32_t *res, int base, uint16_t len, const char *str);
+
+/**
+ * Extract signed integer value from a string as uint16_t strictly.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int ByteParseStringInt16(int16_t *res, int base, uint16_t len, const char *str);
+
+/**
+ * Extract signed integer value from a string as uint8_t strictly.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int ByteParseStringInt8(int8_t *res, int base, uint16_t len, const char *str);
 
 #ifdef UNITTESTS
 void ByteRegisterTests(void);
