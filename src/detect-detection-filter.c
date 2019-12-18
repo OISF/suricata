@@ -164,12 +164,12 @@ static DetectThresholdData *DetectDetectionFilterParse (const char *rawstr)
         goto error;
     }
 
-    if (ByteExtractStringUint32(&df->count, 10, strlen(args[count_pos]),
+    if (StringParseUint32(&df->count, 10, strlen(args[count_pos]),
                 args[count_pos]) <= 0) {
         goto error;
     }
 
-    if (ByteExtractStringUint32(&df->seconds, 10, strlen(args[seconds_pos]),
+    if (StringParseUint32(&df->seconds, 10, strlen(args[seconds_pos]),
                 args[seconds_pos]) <= 0) {
         goto error;
     }

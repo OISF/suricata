@@ -734,7 +734,7 @@ static int PcapLogGetTimeOfFile(const char *filename, uint64_t *secs,
                 1, buf, sizeof(buf)) < 0) {
             return 0;
         }
-        if (ByteExtractStringUint64(secs, 10, 0, buf) < 0) {
+        if (StringParseUint64(secs, 10, 0, buf) < 0) {
             return 0;
         }
     }
@@ -744,7 +744,7 @@ static int PcapLogGetTimeOfFile(const char *filename, uint64_t *secs,
                 3, buf, sizeof(buf)) < 0) {
             return 0;
         }
-        if (ByteExtractStringUint32(usecs, 10, 0, buf) < 0) {
+        if (StringParseUint32(usecs, 10, 0, buf) < 0) {
             return 0;
         }
     }
@@ -1430,7 +1430,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
         const char *max_number_of_files_s = NULL;
         max_number_of_files_s = ConfNodeLookupChildValue(conf, "max-files");
         if (max_number_of_files_s != NULL) {
-            if (ByteExtractStringUint32(&max_file_limit, 10, 0,
+            if (StringParseUint32(&max_file_limit, 10, 0,
                                         max_number_of_files_s) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to initialize "
                            "pcap-log output, invalid number of files limit: %s",

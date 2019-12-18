@@ -134,12 +134,12 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
     int64_t tos = 0;
 
     if (tosbytes_str[0] == 'x' || tosbytes_str[0] == 'X') {
-        int r = ByteExtractStringInt64(&tos, 16, 0, &tosbytes_str[1]);
+        int r = StringParseInt64(&tos, 16, 0, &tosbytes_str[1]);
         if (r < 0) {
             goto error;
         }
     } else {
-        int r = ByteExtractStringInt64(&tos, 10, 0, &tosbytes_str[0]);
+        int r = StringParseInt64(&tos, 10, 0, &tosbytes_str[0]);
         if (r < 0) {
             goto error;
         }
