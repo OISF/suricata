@@ -1139,6 +1139,9 @@ static int SCHInfoTestValidIPV6Address08(void)
                              SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
+    if (SCHInfoAddHostOSInfo("vista", "8.8.8.0/24", SC_HINFO_IS_IPV4) == -1) {
+        goto end;
+    }
     if (SCHInfoAddHostOSInfo("irix", "default", SC_HINFO_IS_IPV6) == -1) {
         goto end;
     }
@@ -1229,7 +1232,10 @@ static int SCHInfoTestValidIPV6Address08(void)
         SCMapEnumNameToValue("irix", sc_hinfo_os_policy_map)) {
         goto end;
     }
-
+    if (SCHInfoGetHostOSFlavour("8.8.8.8") !=
+            SCMapEnumNameToValue("vista", sc_hinfo_os_policy_map)) {
+        goto end;
+    }
     result = 1;
 
  end:
