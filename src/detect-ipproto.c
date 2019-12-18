@@ -129,7 +129,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
         data->proto = (uint8_t)pent->p_proto;
     }
     else {
-        if (ByteExtractStringUint8(&data->proto, 10, 0, args[1]) <= 0) {
+        if (StringParseUint8(&data->proto, 10, 0, args[1]) <= 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Malformed protocol number: %s",
                        str_ptr);
             goto error;

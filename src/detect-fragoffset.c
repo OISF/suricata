@@ -186,7 +186,7 @@ static DetectFragOffsetData *DetectFragOffsetParse (const char *fragoffsetstr)
         }
     }
 
-    if (ByteExtractStringUint16(&fragoff->frag_off, 10, 0, substr[1]) < 0) {
+    if (StringParseUint16(&fragoff->frag_off, 10, 0, substr[1]) < 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "specified frag offset %s is not "
                                         "valid", substr[1]);
         goto error;

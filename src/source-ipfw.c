@@ -710,7 +710,7 @@ int IPFWRegisterQueue(char *queue)
     IPFWQueueVars *nq = NULL;
     /* Extract the queue number from the specified command line argument */
     uint16_t port_num = 0;
-    if ((ByteExtractStringUint16(&port_num, 10, strlen(queue), queue)) < 0)
+    if ((StringParseUint16(&port_num, 10, strlen(queue), queue)) < 0)
     {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "specified queue number %s is not "
                                         "valid", queue);

@@ -1006,7 +1006,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
         const char *sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
         if (sensor_id_s != NULL) {
-            if (ByteExtractStringUint64((uint64_t *)&sensor_id, 10, 0, sensor_id_s) == -1) {
+            if (StringParseUint64((uint64_t *)&sensor_id, 10, 0, sensor_id_s) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Failed to initialize JSON output, "
                            "invalid sensor-id: %s", sensor_id_s);
@@ -1033,8 +1033,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         }
         const char *cid_seed = ConfNodeLookupChildValue(conf, "community-id-seed");
         if (cid_seed != NULL) {
-            if (ByteExtractStringUint16(&json_ctx->cfg.community_id_seed,
-                        10, 0, cid_seed) == -1)
+            if (StringParseUint16(&json_ctx->cfg.community_id_seed,
+                        10, 0, cid_seed) < 0)
             {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Failed to initialize JSON output, "

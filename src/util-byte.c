@@ -313,8 +313,8 @@ int StringParseUint32(uint32_t *res, int base, uint16_t len, const char *str)
     *res = (uint32_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        SCLogError("Numeric value out of range (%" PRIu64 " > %" PRIuMAX ")",
-                i64, (uintmax_t)UINT_MAX);
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)UINT_MAX);
         return -1;
     }
 
@@ -333,8 +333,8 @@ int StringParseUint16(uint16_t *res, int base, uint16_t len, const char *str)
     *res = (uint16_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        SCLogError("Numeric value out of range (%" PRIu64 " > %" PRIuMAX ")",
-                i64, (uintmax_t)USHRT_MAX);
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)USHRT_MAX);
         return -1;
     }
 
@@ -353,8 +353,8 @@ int StringParseUint8(uint8_t *res, int base, uint16_t len, const char *str)
     *res = (uint8_t)i64;
 
     if ((uint64_t)(*res) != i64) {
-        SCLogError("Numeric value out of range (%" PRIu64 " > %" PRIuMAX ")",
-                i64, (uintmax_t)UCHAR_MAX);
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)UCHAR_MAX);
         return -1;
     }
 
