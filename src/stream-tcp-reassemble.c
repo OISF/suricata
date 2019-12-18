@@ -360,7 +360,7 @@ static int StreamTcpReassemblyConfig(char quiet)
     ConfNode *seg = ConfGetNode("stream.reassembly.segment-prealloc");
     if (seg) {
         uint32_t prealloc = 0;
-        if (ByteExtractStringUint32(&prealloc, 10, strlen(seg->val), seg->val) == -1)
+        if (ByteParseStringUint32(&prealloc, 10, strlen(seg->val), seg->val) == -1)
         {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "segment-prealloc of "
                     "%s is invalid", seg->val);

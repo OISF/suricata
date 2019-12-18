@@ -290,7 +290,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
      */
 
     /* Number of bytes */
-    if (ByteExtractStringUint32(&nbytes, 10, 0, args[0]) <= 0) {
+    if (ByteParseStringUint32(&nbytes, 10, 0, args[0]) <= 0) {
         SCLogError(SC_ERR_INVALID_VALUE, "Malformed number of bytes: %s", str_ptr);
         goto error;
     }
@@ -335,7 +335,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
         if (*value == NULL)
             goto error;
     } else {
-        if (ByteExtractStringUint64(&data->value, 0, 0, args[3]) <= 0) {
+        if (ByteParseStringUint64(&data->value, 0, 0, args[3]) <= 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Malformed value: %s", str_ptr);
             goto error;
         }
@@ -353,7 +353,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
         if (*offset == NULL)
             goto error;
     } else {
-        if (ByteExtractStringInt32(&data->offset, 0, 0, args[4]) <= 0) {
+        if (ByteParseStringInt32(&data->offset, 0, 0, args[4]) <= 0) {
             SCLogError(SC_ERR_INVALID_VALUE, " Malformed offset: %s", str_ptr);
             goto error;
         }

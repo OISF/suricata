@@ -143,7 +143,7 @@ static int DetectDatarepParse(const char *str,
                 return -1;
             }
 
-            if (ByteExtractStringUint16(rep_value, 10, 0, key) != (int)strlen(key))
+            if (ByteParseStringUint16(rep_value, 10, 0, key) != (int)strlen(key))
                 return -1;
 
             value_set = true;

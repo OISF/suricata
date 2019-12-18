@@ -152,7 +152,7 @@ static DetectIsdataatData *DetectIsdataatParse (const char *isdataatstr, char **
             if (*offset == NULL)
                 goto error;
         } else {
-            if (ByteExtractStringUint16(&idad->dataat, 10,
+            if (ByteParseStringUint16(&idad->dataat, 10,
                                         strlen(args[0]), args[0]) < 0 ) {
                 SCLogError(SC_ERR_INVALID_VALUE, "isdataat out of range");
                 SCFree(idad);

@@ -147,7 +147,7 @@ static DetectWindowData *DetectWindowParse(const char *windowstr)
 
             /* Get the window size if it's a valid value (in packets, we
              * should alert if this doesn't happend from decode) */
-            if (-1 == ByteExtractStringUint16(&wd->size, 10, 0, copy_str)) {
+            if (-1 == ByteParseStringUint16(&wd->size, 10, 0, copy_str)) {
                 goto error;
             }
         }

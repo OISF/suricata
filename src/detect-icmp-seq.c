@@ -199,7 +199,7 @@ static DetectIcmpSeqData *DetectIcmpSeqParse (const char *icmpseqstr)
     }
 
     uint16_t seq = 0;
-    if (ByteExtractStringUint16(&seq, 10, 0, substr[1]) < 0) {
+    if (ByteParseStringUint16(&seq, 10, 0, substr[1]) < 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp seq %s is not "
                                         "valid", substr[1]);
         goto error;

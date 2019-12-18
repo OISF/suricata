@@ -158,7 +158,7 @@ void SCProfilingRulesGlobalInit(void)
 
             val = ConfNodeLookupChildValue(conf, "limit");
             if (val != NULL) {
-                if (ByteExtractStringUint32(&profiling_rules_limit, 10,
+                if (ByteParseStringUint32(&profiling_rules_limit, 10,
                             (uint16_t)strlen(val), val) <= 0) {
                     SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid limit: %s", val);
                     exit(EXIT_FAILURE);

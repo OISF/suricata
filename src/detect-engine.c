@@ -2277,7 +2277,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
                 }
             }
             if (max_uniq_toclient_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_toclient_groups, 10,
+                if (ByteParseStringUint16(&de_ctx->max_uniq_toclient_groups, 10,
                     strlen(max_uniq_toclient_groups_str),
                     (const char *)max_uniq_toclient_groups_str) <= 0)
                 {
@@ -2294,7 +2294,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             SCLogConfig("toclient-groups %u", de_ctx->max_uniq_toclient_groups);
 
             if (max_uniq_toserver_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_toserver_groups, 10,
+                if (ByteParseStringUint16(&de_ctx->max_uniq_toserver_groups, 10,
                     strlen(max_uniq_toserver_groups_str),
                     (const char *)max_uniq_toserver_groups_str) <= 0)
                 {
@@ -3433,7 +3433,7 @@ static int DetectEngineMultiTenantSetupLoadLivedevMappings(const ConfNode *mappi
                 goto bad_mapping;
 
             uint32_t tenant_id = 0;
-            if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
+            if (ByteParseStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
                         tenant_id_node->val) == -1)
             {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
@@ -3493,7 +3493,7 @@ static int DetectEngineMultiTenantSetupLoadVlanMappings(const ConfNode *mappings
                 goto bad_mapping;
 
             uint32_t tenant_id = 0;
-            if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
+            if (ByteParseStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
                         tenant_id_node->val) == -1)
             {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
@@ -3502,7 +3502,7 @@ static int DetectEngineMultiTenantSetupLoadVlanMappings(const ConfNode *mappings
             }
 
             uint16_t vlan_id = 0;
-            if (ByteExtractStringUint16(&vlan_id, 10, strlen(vlan_id_node->val),
+            if (ByteParseStringUint16(&vlan_id, 10, strlen(vlan_id_node->val),
                         vlan_id_node->val) == -1)
             {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
@@ -3649,7 +3649,7 @@ int DetectEngineMultiTenantSetup(void)
                 }
 
                 uint32_t tenant_id = 0;
-                if (ByteExtractStringUint32(&tenant_id, 10, strlen(id_node->val),
+                if (ByteParseStringUint32(&tenant_id, 10, strlen(id_node->val),
                             id_node->val) == -1)
                 {
                     SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant_id  "

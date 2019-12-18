@@ -122,7 +122,7 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
 
     if (pcre_rc >= 3) {
         if (pcre_get_substring((char *)str, ov, max, 2, &bytes_str) > 0) {
-            if (ByteExtractStringUint32(bytes, 10, 0, bytes_str) <= 0) {
+            if (ByteParseStringUint32(bytes, 10, 0, bytes_str) <= 0) {
                 SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
                     "Bad value for bytes: \"%s\"", bytes_str);
                 goto error;
@@ -132,7 +132,7 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
 
     if (pcre_rc >= 5) {
         if (pcre_get_substring((char *)str, ov, max, 4, &offset_str)) {
-            if (ByteExtractStringUint32(offset, 10, 0, offset_str) <= 0) {
+            if (ByteParseStringUint32(offset, 10, 0, offset_str) <= 0) {
                 SCLogError(SC_ERR_INVALID_RULE_ARGUMENT,
                     "Bad value for offset: \"%s\"", offset_str);
                 goto error;

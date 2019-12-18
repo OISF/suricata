@@ -187,12 +187,12 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
         goto error;
     }
 
-    if (ByteExtractStringUint32(&de->count, 10, strlen(args[count_pos]),
+    if (ByteParseStringUint32(&de->count, 10, strlen(args[count_pos]),
                 args[count_pos]) <= 0) {
         goto error;
     }
 
-    if (ByteExtractStringUint32(&de->seconds, 10, strlen(args[second_pos]),
+    if (ByteParseStringUint32(&de->seconds, 10, strlen(args[second_pos]),
                 args[second_pos]) <= 0) {
         goto error;
     }

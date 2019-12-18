@@ -184,7 +184,7 @@ static DetectICodeData *DetectICodeParse(const char *icodestr)
             goto error;
         }
         /* we have only a comparison ("<", ">") */
-        if (ByteExtractStringUint8(&icd->code1, 10, 0, args[1]) < 0) {
+        if (ByteParseStringUint8(&icd->code1, 10, 0, args[1]) < 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
                                         "valid", args[1]);
             goto error;
@@ -195,12 +195,12 @@ static DetectICodeData *DetectICodeParse(const char *icodestr)
         /* we have a range ("<>") */
         if (args[2] != NULL) {
             icd->mode = (uint8_t) DETECT_ICODE_RN;
-            if (ByteExtractStringUint8(&icd->code1, 10, 0, args[1]) < 0) {
+            if (ByteParseStringUint8(&icd->code1, 10, 0, args[1]) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
                                             "valid", args[1]);
                 goto error;
             }
-            if (ByteExtractStringUint8(&icd->code2, 10, 0, args[2]) < 0) {
+            if (ByteParseStringUint8(&icd->code2, 10, 0, args[2]) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
                                             "valid", args[2]);
                 goto error;
@@ -214,7 +214,7 @@ static DetectICodeData *DetectICodeParse(const char *icodestr)
             }
         } else { /* we have an equality */
             icd->mode = DETECT_ICODE_EQ;
-            if (ByteExtractStringUint8(&icd->code1, 10, 0, args[1]) < 0) {
+            if (ByteParseStringUint8(&icd->code1, 10, 0, args[1]) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
                                                     "valid", args[1]);
                 goto error;
