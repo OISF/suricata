@@ -2469,7 +2469,7 @@ fi
       lowest_version=$(printf '%s\n' $required_version $cbindgen_version | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n | head -n1)
       if test "x$lowest_version" != "x$required_version"; then
         HAVE_CARGO_BINDGEN="no"
-        echo "  Warning: cbindgen must be at least version $required_version, version was $cbindgen_version, lowest version was $lowest_version"
+        echo "  Warning: cbindgen must be at least version $required_version, found $cbindgen_version"
         echo "  To install: cargo install --force cbindgen"
         AC_MSG_ERROR([incorrect cbindgen version])
       fi
