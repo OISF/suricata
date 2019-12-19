@@ -274,6 +274,8 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             tv->stream_pq = tv->inq->pq;
             tv->tm_flowworker = slot;
             SCLogDebug("pre-stream packetqueue %p (inq)", tv->stream_pq);
+            tv->flow_queue = FlowQueueNew();
+            assert(tv->flow_queue); //TODO
         /* setup a queue */
         } else if (slot->tm_id == TMM_FLOWWORKER) {
             tv->stream_pq_local = SCCalloc(1, sizeof(PacketQueue));
@@ -283,6 +285,8 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
             tv->stream_pq = tv->stream_pq_local;
             tv->tm_flowworker = slot;
             SCLogDebug("pre-stream packetqueue %p (local)", tv->stream_pq);
+            tv->flow_queue = FlowQueueNew();
+            assert(tv->flow_queue); //TODO
         }
     }
 
@@ -356,7 +360,7 @@ static void *TmThreadsSlotVar(void *td)
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
-    PacketPoolInitEmpty();
+    PacketPoolInit();//Empty();
 
     /* Set the thread name */
     if (SCSetThreadName(tv->name) < 0) {
@@ -395,6 +399,8 @@ static void *TmThreadsSlotVar(void *td)
             tv->stream_pq = tv->inq->pq;
             tv->tm_flowworker = s;
             SCLogDebug("pre-stream packetqueue %p (inq)", tv->stream_pq);
+            tv->flow_queue = FlowQueueNew();
+            assert(tv->flow_queue); //TODO
         /* setup a queue */
         } else if (s->tm_id == TMM_FLOWWORKER) {
             tv->stream_pq_local = SCCalloc(1, sizeof(PacketQueue));
@@ -404,6 +410,8 @@ static void *TmThreadsSlotVar(void *td)
             tv->stream_pq = tv->stream_pq_local;
             tv->tm_flowworker = s;
             SCLogDebug("pre-stream packetqueue %p (local)", tv->stream_pq);
+            tv->flow_queue = FlowQueueNew();
+            assert(tv->flow_queue); //TODO
         }
     }
 
@@ -1308,6 +1316,30 @@ again:
             SleepMsec(1);
             goto again;
         }
+        if (tv->flow_queue) {
+            FQLOCK_LOCK(tv->flow_queue);
+            bool fq_done = (tv->flow_queue->qlen == 0);
+            FQLOCK_UNLOCK(tv->flow_queue);
+            if (!fq_done) {
+                SCMutexUnlock(&tv_root_lock);
+
+                    Packet *p = PacketGetFromAlloc();
+                    if (p != NULL) {
+                        //SCLogNotice("flush packet created");
+                        p->flags |= PKT_PSEUDO_STREAM_END;
+                        PKT_SET_SRC(p, PKT_SRC_DETECT_RELOAD_FLUSH);
+                        PacketQueue *q = tv->stream_pq;
+                        SCMutexLock(&q->mutex_q);
+                        PacketEnqueue(q, p);
+                        SCCondSignal(&q->cond_q);
+                        SCMutexUnlock(&q->mutex_q);
+                    }
+
+                /* don't sleep while holding a lock */
+                SleepMsec(1);
+                goto again;
+            }
+        }
         tv = tv->next;
     }
 
@@ -1371,6 +1403,31 @@ again:
                 /* don't sleep while holding a lock */
                 SleepMsec(1);
                 goto again;
+            }
+
+            if (tv->flow_queue) {
+                FQLOCK_LOCK(tv->flow_queue);
+                bool fq_done = (tv->flow_queue->qlen == 0);
+                FQLOCK_UNLOCK(tv->flow_queue);
+                if (!fq_done) {
+                    SCMutexUnlock(&tv_root_lock);
+
+                    Packet *p = PacketGetFromAlloc();
+                    if (p != NULL) {
+                        //SCLogNotice("flush packet created");
+                        p->flags |= PKT_PSEUDO_STREAM_END;
+                        PKT_SET_SRC(p, PKT_SRC_DETECT_RELOAD_FLUSH);
+                        PacketQueue *q = tv->stream_pq;
+                        SCMutexLock(&q->mutex_q);
+                        PacketEnqueue(q, p);
+                        SCCondSignal(&q->cond_q);
+                        SCMutexUnlock(&q->mutex_q);
+                    }
+
+                    /* don't sleep while holding a lock */
+                    SleepMsec(1);
+                    goto again;
+                }
             }
 
             /* we found a receive TV. Send it a KILL_PKTACQ signal. */
@@ -1554,6 +1611,11 @@ static void TmThreadFree(ThreadVars *tv)
         return;
 
     SCLogDebug("Freeing thread '%s'.", tv->name);
+
+    if (tv->flow_queue) {
+        BUG_ON(tv->flow_queue->qlen != 0);
+        SCFree(tv->flow_queue);
+    }
 
     StatsThreadCleanup(tv);
 
@@ -2223,4 +2285,25 @@ int TmThreadsInjectPacketsById(Packet **packets, const int id)
         SCCondSignal(&tv->inq->pq->cond_q);
     }
     return 1;
+}
+
+/** \brief inject a flow into a threads flow queue
+ */
+void TmThreadsInjectFlowById(Flow *f, const int id)
+{
+    BUG_ON(id <= 0 || id > (int)thread_store.threads_size);
+
+    int idx = id - 1;
+
+    Thread *t = &thread_store.threads[idx];
+    ThreadVars *tv = t->tv;
+
+    BUG_ON(tv == NULL || tv->flow_queue == NULL);
+
+    FlowEnqueue(tv->flow_queue, f);
+
+    /* wake up listening thread(s) if necessary */
+    if (tv->inq != NULL) {
+        SCCondSignal(&tv->inq->pq->cond_q);
+    }
 }

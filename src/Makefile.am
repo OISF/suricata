@@ -333,6 +333,7 @@ flow-hash.c flow-hash.h \
 flow-manager.c flow-manager.h \
 flow-queue.c flow-queue.h \
 flow-storage.c flow-storage.h \
+flow-spare-pool.c flow-spare-pool.h \
 flow-timeout.c flow-timeout.h \
 flow-util.c flow-util.h \
 flow-var.c flow-var.h \

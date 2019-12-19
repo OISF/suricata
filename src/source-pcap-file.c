@@ -413,7 +413,9 @@ static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data)
     double curr_ts = p->ts.tv_sec + p->ts.tv_usec / 1000.0;
     if (curr_ts < prev_signaled_ts || (curr_ts - prev_signaled_ts) > 60.0) {
         prev_signaled_ts = curr_ts;
+#if 0
         FlowWakeupFlowManagerThread();
+#endif
     }
 
     DecoderFunc decoder;

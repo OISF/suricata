@@ -107,8 +107,6 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_DIR_REVERSED               BIT_U32(26)
 /** Indicate that the flow did trigger an expectation creation */
 #define FLOW_HAS_EXPECTATION            BIT_U32(27)
-/** Make sure flow is not 'found' during flow hash lookup. */
-#define FLOW_TIMED_OUT                  BIT_U32(28)
 
 /* File flags */
 
@@ -367,8 +365,33 @@ typedef struct Flow_
     uint8_t proto;
     uint8_t recursion_level;
     uint16_t vlan_id[2];
+    /** how many references exist to this flow *right now*
+     *
+     *  On receiving a packet the counter is incremented while the flow
+     *  bucked is locked, which is also the case on timeout pruning.
+     */
+    FlowRefCount use_cnt;
+
     uint8_t vlan_idx;
 
+    /* track toserver/toclient flow timeout needs */
+    union {
+        struct {
+            uint8_t ffr_ts:4;
+            uint8_t ffr_tc:4;
+        };
+        uint8_t ffr;
+    };
+
+    /** timestamp in seconds of the moment this flow will timeout
+     *  according to the timeout policy. Does *not* take emergency
+     *  mode into account. */
+    uint32_t timeout_at;
+
+    /** Thread ID for the stream/detect portion of this flow */
+    FlowThreadId thread_id[2];
+
+    struct Flow_ *next; /* (hash) list next */
     /** Incoming interface */
     struct LiveDevice_ *livedev;
 
@@ -382,15 +405,11 @@ typedef struct Flow_
 
     /* end of flow "header" */
 
-    SC_ATOMIC_DECLARE(FlowStateType, flow_state);
+    /** timeout policy value in seconds to add to the lastts.tv_sec
+     *  when a packet has been received. */
+    uint32_t timeout_policy;
 
-    /** how many pkts and stream msgs are using the flow *right now*. This
-     *  variable is atomic so not protected by the Flow mutex "m".
-     *
-     *  On receiving a packet the counter is incremented while the flow
-     *  bucked is locked, which is also the case on timeout pruning.
-     */
-    SC_ATOMIC_DECLARE(FlowRefCount, use_cnt);
+    FlowStateType flow_state;
 
     /** flow tenant id, used to setup flow timeout and stream pseudo
      *  packets with the correct tenant id set */
@@ -444,9 +463,6 @@ typedef struct Flow_
      *  stored sgh ptrs are reset. */
     uint32_t de_ctx_version;
 
-    /** Thread ID for the stream/detect portion of this flow */
-    FlowThreadId thread_id[2];
-
     /** ttl tracking */
     uint8_t min_ttl_toserver;
     uint8_t max_ttl_toserver;
@@ -469,14 +485,8 @@ typedef struct Flow_
     /* pointer to the var list */
     GenericVar *flowvar;
 
-    /** hash list pointers, protected by fb->s */
-    struct Flow_ *hnext; /* hash list */
-    struct Flow_ *hprev;
     struct FlowBucket_ *fb;
 
-    /** queue list pointers, protected by queue mutex */
-    struct Flow_ *lnext; /* list */
-    struct Flow_ *lprev;
     struct timeval startts;
 
     uint32_t todstpktcnt;
@@ -516,12 +526,23 @@ typedef struct FlowBypassInfo_ {
     uint64_t todstbytecnt;
 } FlowBypassInfo;
 
+#include "flow-queue.h"
+
+typedef struct FlowLookupStruct_ // TODO name
+{
+    /** thread store of spare queues */
+    FlowQueuePrivate spare_queue;
+    DecodeThreadVars *dtv;
+    FlowQueuePrivate work_queue;
+    uint32_t emerg_spare_sync_stamp;
+} FlowLookupStruct;
+
 /** \brief prepare packet for a life with flow
  *  Set PKT_WANTS_FLOW flag to incidate workers should do a flow lookup
  *  and calc the hash value to be used in the lookup and autofp flow
  *  balancing. */
 void FlowSetupPacket(Packet *p);
-void FlowHandlePacket (ThreadVars *, DecodeThreadVars *, Packet *);
+void FlowHandlePacket (ThreadVars *, FlowLookupStruct *, Packet *);
 void FlowInitConfig (char);
 void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
@@ -538,8 +559,6 @@ int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
 void FlowUpdateQueue(Flow *);
-
-struct FlowQueue_;
 
 int FlowUpdateSpareFlows(void);
 
@@ -601,7 +620,7 @@ static inline void FlowIncrUsecnt(Flow *f)
     if (f == NULL)
         return;
 
-    (void) SC_ATOMIC_ADD(f->use_cnt, 1);
+    f->use_cnt++;
 }
 
 /**
@@ -614,7 +633,7 @@ static inline void FlowDecrUsecnt(Flow *f)
     if (f == NULL)
         return;
 
-    (void) SC_ATOMIC_SUB(f->use_cnt, 1);
+    f->use_cnt--;
 }
 
 /** \brief Reference the flow, bumping the flows use_cnt
@@ -656,6 +675,32 @@ static inline int64_t FlowGetId(const Flow *f)
      * max out there. */
     id &= 0x7ffffffffffffLL;
     return id;
+}
+
+static inline void FlowSetEndFlags(Flow *f)
+{
+    uint8_t flow_end_flags;
+    const int state = f->flow_state;
+    if (state == FLOW_STATE_NEW)
+        flow_end_flags = FLOW_END_FLAG_STATE_NEW;
+    else if (state == FLOW_STATE_ESTABLISHED)
+        flow_end_flags = FLOW_END_FLAG_STATE_ESTABLISHED;
+    else if (state == FLOW_STATE_CLOSED)
+        flow_end_flags = FLOW_END_FLAG_STATE_CLOSED;
+    else if (state == FLOW_STATE_LOCAL_BYPASSED)
+        flow_end_flags = FLOW_END_FLAG_STATE_BYPASSED;
+#ifdef CAPTURE_OFFLOAD
+    else if (state == FLOW_STATE_CAPTURE_BYPASSED)
+        flow_end_flags = FLOW_END_FLAG_STATE_BYPASSED;
+#endif
+    else
+        flow_end_flags = 0;
+
+//    if (emergency)
+//        flow_end_flags |= FLOW_END_FLAG_EMERGENCY; // TODO set from FW/FM
+
+    //flow_end_flags |= FLOW_END_FLAG_TIMEOUT; // TODO set from FW/FM
+    f->flow_end_flags |= flow_end_flags;
 }
 
 int FlowClearMemory(Flow *,uint8_t );

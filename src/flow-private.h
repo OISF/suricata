@@ -89,7 +89,7 @@ extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
 extern FlowProtoFreeFunc flow_freefuncs[FLOW_PROTO_MAX];
 
 /** spare/unused/prealloced flows live here */
-extern FlowQueue flow_spare_q;
+//extern FlowQueue flow_spare_q;
 
 /** queue to pass flows to cleanup/log thread(s) */
 extern FlowQueue flow_recycle_q;
@@ -101,7 +101,35 @@ extern FlowConfig flow_config;
 SC_ATOMIC_EXTERN(uint64_t, flow_memuse);
 
 typedef FlowProtoTimeout *FlowProtoTimeoutPtr;
-SC_ATOMIC_DECLARE(FlowProtoTimeoutPtr, flow_timeouts);
+SC_ATOMIC_EXTERN(FlowProtoTimeoutPtr, flow_timeouts);
+
+static inline uint32_t FlowGetFlowTimeoutDirect(
+        const FlowProtoTimeoutPtr flow_timeouts,
+        const enum FlowState state, const uint8_t protomap)
+{
+    uint32_t timeout;
+    switch (state) {
+        default:
+        case FLOW_STATE_NEW:
+            timeout = flow_timeouts[protomap].new_timeout;
+            break;
+        case FLOW_STATE_ESTABLISHED:
+            timeout = flow_timeouts[protomap].est_timeout;
+            break;
+        case FLOW_STATE_CLOSED:
+            timeout = flow_timeouts[protomap].closed_timeout;
+            break;
+#ifdef CAPTURE_OFFLOAD
+        case FLOW_STATE_CAPTURE_BYPASSED:
+            timeout = FLOW_BYPASSED_TIMEOUT;
+            break;
+#endif
+        case FLOW_STATE_LOCAL_BYPASSED:
+            timeout = flow_timeouts[protomap].bypassed_timeout;
+            break;
+    }
+    return timeout;
+}
 
 /** \internal
  *  \brief get timeout for flow
@@ -113,9 +141,24 @@ SC_ATOMIC_DECLARE(FlowProtoTimeoutPtr, flow_timeouts);
  */
 static inline uint32_t FlowGetFlowTimeout(const Flow *f, enum FlowState state)
 {
-    uint32_t timeout;
     FlowProtoTimeoutPtr flow_timeouts = SC_ATOMIC_GET(flow_timeouts);
-    switch(state) {
+    return FlowGetFlowTimeoutDirect(flow_timeouts, state, f->protomap);
+}
+
+/** \internal
+ *  \brief get timeout policy for flow
+ *  \note does not take emergency mode into account. Always
+ *        returns the 'normal' policy.
+ *
+ *  \param f flow
+ *
+ *  \retval timeout timeout in seconds
+ */
+static inline uint32_t FlowGetTimeoutPolicy(const Flow *f)
+{
+    uint32_t timeout;
+    FlowProtoTimeoutPtr flow_timeouts = flow_timeouts_normal;
+    switch (f->flow_state) {
         default:
         case FLOW_STATE_NEW:
             timeout = flow_timeouts[f->protomap].new_timeout;
@@ -137,7 +180,4 @@ static inline uint32_t FlowGetFlowTimeout(const Flow *f, enum FlowState state)
     }
     return timeout;
 }
-
-
 #endif /* __FLOW_PRIVATE_H__ */
-
