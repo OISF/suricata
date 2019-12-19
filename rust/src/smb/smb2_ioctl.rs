@@ -38,7 +38,7 @@ impl SMBTransactionIoctl {
 
 impl SMBState {
     pub fn new_ioctl_tx(&mut self, hdr: SMBCommonHdr, func: u32)
-        -> (&mut SMBTransaction)
+        -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
         tx.hdr = hdr;
