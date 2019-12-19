@@ -38,6 +38,13 @@
 
 #include <stdatomic.h>
 
+#define SC_ATOMIC_MEMORY_ORDER_RELAXED memory_order_relaxed
+#define SC_ATOMIC_MEMORY_ORDER_CONSUME memory_order_consume
+#define SC_ATOMIC_MEMORY_ORDER_ACQUIRE memory_order_acquire
+#define SC_ATOMIC_MEMORY_ORDER_RELEASE memory_order_release
+#define SC_ATOMIC_MEMORY_ORDER_ACQ_REL memory_order_acq_rel
+#define SC_ATOMIC_MEMORY_ORDER_SEQ_CST memory_order_seq_cst
+
 /**
  *  \brief wrapper for declaring atomic variables.
  *
@@ -137,6 +144,9 @@
 #define SC_ATOMIC_GET(name) \
     atomic_load(&(name ## _sc_atomic__))
 
+#define SC_ATOMIC_LOAD_EXPLICIT(name, order) \
+    atomic_load_explicit(&(name ## _sc_atomic__), (order))
+
 /**
  *  \brief Set the value for the atomic variable.
  *
@@ -146,6 +156,13 @@
     atomic_store(&(name ## _sc_atomic__), (val))
 
 #else
+
+#define SC_ATOMIC_MEMORY_ORDER_RELAXED
+#define SC_ATOMIC_MEMORY_ORDER_CONSUME
+#define SC_ATOMIC_MEMORY_ORDER_ACQUIRE
+#define SC_ATOMIC_MEMORY_ORDER_RELEASE
+#define SC_ATOMIC_MEMORY_ORDER_ACQ_REL
+#define SC_ATOMIC_MEMORY_ORDER_SEQ_CST
 
 /**
  *  \brief wrapper for OS/compiler specific atomic compare and swap (CAS)
@@ -345,6 +362,9 @@
  *  \retval var value
  */
 #define SC_ATOMIC_GET(name) \
+    (name ## _sc_atomic__)
+
+#define SC_ATOMIC_LOAD_EXPLICIT(name, order) \
     (name ## _sc_atomic__)
 
 /**

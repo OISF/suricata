@@ -177,6 +177,11 @@ tryagain:
     return ret;
 }
 #endif /* BUILD_WITH_UNIXSOCKET */
+static inline void OutputWriteLock(pthread_mutex_t *m)
+{
+    SCMutexLock(m);
+
+}
 
 /**
  * \brief Write buffer to log file.
@@ -219,7 +224,7 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
  */
 static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
 {
-    SCMutexLock(&log_ctx->fp_mutex);
+    OutputWriteLock(&log_ctx->fp_mutex);
     int ret = 0;
 
 #ifdef BUILD_WITH_UNIXSOCKET

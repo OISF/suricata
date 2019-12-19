@@ -250,7 +250,7 @@ static void EveFlowLogJSON(JsonFlowLogThread *aft, JsonBuilder *jb, Flow *f)
         state = "closed";
     else if (f->flow_end_flags & FLOW_END_FLAG_STATE_BYPASSED) {
         state = "bypassed";
-        int flow_state = SC_ATOMIC_GET(f->flow_state);
+        int flow_state = f->flow_state;
         switch (flow_state) {
             case FLOW_STATE_LOCAL_BYPASSED:
                 JB_SET_STRING(jb, "bypass", "local");
@@ -270,12 +270,14 @@ static void EveFlowLogJSON(JsonFlowLogThread *aft, JsonBuilder *jb, Flow *f)
     jb_set_string(jb, "state", state);
 
     const char *reason = NULL;
-    if (f->flow_end_flags & FLOW_END_FLAG_TIMEOUT)
-        reason = "timeout";
-    else if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
+    if (f->flow_end_flags & FLOW_END_FLAG_FORCED)
         reason = "forced";
     else if (f->flow_end_flags & FLOW_END_FLAG_SHUTDOWN)
         reason = "shutdown";
+    else if (f->flow_end_flags & FLOW_END_FLAG_TIMEOUT)
+        reason = "timeout";
+    else
+        reason = "unknown";
 
     jb_set_string(jb, "reason", reason);
 
