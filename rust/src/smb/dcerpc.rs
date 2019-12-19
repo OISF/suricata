@@ -196,7 +196,7 @@ impl SMBTransactionDCERPC {
 
 impl SMBState {
     fn new_dcerpc_tx(&mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, cmd: u8, call_id: u32)
-        -> (&mut SMBTransaction)
+        -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
         tx.hdr = hdr;
@@ -211,7 +211,7 @@ impl SMBState {
     }
 
     fn new_dcerpc_tx_for_response(&mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, call_id: u32)
-        -> (&mut SMBTransaction)
+        -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
         tx.hdr = hdr;

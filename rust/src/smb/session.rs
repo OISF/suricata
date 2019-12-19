@@ -42,7 +42,7 @@ impl SMBTransactionSessionSetup {
 
 impl SMBState {
     pub fn new_sessionsetup_tx(&mut self, hdr: SMBCommonHdr)
-        -> (&mut SMBTransaction)
+        -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
 
