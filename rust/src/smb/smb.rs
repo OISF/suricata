@@ -393,7 +393,7 @@ impl SMBTransactionSetFilePathInfo {
 impl SMBState {
     pub fn new_setfileinfo_tx(&mut self, filename: Vec<u8>, fid: Vec<u8>,
             subcmd: u16, loi: u16, delete_on_close: bool)
-        -> (&mut SMBTransaction)
+        -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
 
@@ -411,7 +411,7 @@ impl SMBState {
 
     pub fn new_setpathinfo_tx(&mut self, filename: Vec<u8>,
             subcmd: u16, loi: u16, delete_on_close: bool)
-        -> (&mut SMBTransaction)
+        -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
 
@@ -446,7 +446,7 @@ impl SMBTransactionRename {
 
 impl SMBState {
     pub fn new_rename_tx(&mut self, fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>)
-        -> (&mut SMBTransaction)
+        -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
 
@@ -933,7 +933,7 @@ impl SMBState {
      * track a single cmd request/reply pair. */
 
     pub fn new_generic_tx(&mut self, smb_ver: u8, smb_cmd: u16, key: SMBCommonHdr)
-        -> (&mut SMBTransaction)
+        -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
         if smb_ver == 1 && smb_cmd <= 255 {
@@ -1007,7 +1007,7 @@ impl SMBState {
     }
 
     pub fn new_negotiate_tx(&mut self, smb_ver: u8)
-        -> (&mut SMBTransaction)
+        -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
         if smb_ver == 1 {
@@ -1049,7 +1049,7 @@ impl SMBState {
     }
 
     pub fn new_treeconnect_tx(&mut self, hdr: SMBCommonHdr, name: Vec<u8>)
-        -> (&mut SMBTransaction)
+        -> &mut SMBTransaction
     {
         let mut tx = self.new_tx();
 
