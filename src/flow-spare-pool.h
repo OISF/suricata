@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,15 +18,24 @@
 /**
  * \file
  *
- * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __FLOW_TIMEOUT_H__
-#define __FLOW_TIMEOUT_H__
+#ifndef __FLOW_SPARE_POOL_H__
+#define __FLOW_SPARE_POOL_H__
 
-int FlowForceReassemblyForFlow(Flow *f);
-int FlowForceReassemblyNeedReassembly(Flow *f);
-void FlowForceReassembly(void);
-void FlowForceReassemblySetup(int detect_disabled);
+#include "suricata-common.h"
+#include "flow.h"
 
-#endif /* __FLOW_TIMEOUT_H__ */
+void FlowSparePoolInit(void);
+void FlowSparePoolDestroy(void);
+void FlowSparePoolUpdate(uint32_t size);
+
+uint32_t FlowSpareGetPoolSize(void);
+
+FlowQueuePrivate FlowSpareGetFromPool(void);
+
+void FlowSparePoolReturnFlow(Flow *f);
+void FlowSparePoolReturnFlows(FlowQueuePrivate *fqp);
+
+#endif /* __FLOW_SPARE_POOL_H__ */

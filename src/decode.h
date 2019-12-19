@@ -677,6 +677,17 @@ typedef struct DecodeThreadVars_
     uint16_t counter_flow_udp;
     uint16_t counter_flow_icmp4;
     uint16_t counter_flow_icmp6;
+    uint16_t counter_flow_tcp_reuse;
+    uint16_t counter_flow_get_used;
+    uint16_t counter_flow_get_used_eval;
+    uint16_t counter_flow_get_used_eval_reject;
+    uint16_t counter_flow_get_used_eval_busy;
+    uint16_t counter_flow_get_used_failed;
+
+    uint16_t counter_flow_spare_sync;
+    uint16_t counter_flow_spare_sync_empty;
+    uint16_t counter_flow_spare_sync_incomplete;
+    uint16_t counter_flow_spare_sync_avg;
 
     uint16_t counter_engine_events[DECODE_EVENT_MAX];
 

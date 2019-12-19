@@ -239,6 +239,7 @@ void TmThreadsListThreads(void);
 int TmThreadsRegisterThread(ThreadVars *tv, const int type);
 void TmThreadsUnregisterThread(const int id);
 int TmThreadsInjectPacketsById(Packet **, int id);
+void TmThreadsInjectFlowById(Flow *f, const int id);
 
 void TmThreadsInitThreadsTimestamp(const struct timeval *ts);
 void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts);

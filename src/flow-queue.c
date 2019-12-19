@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -63,6 +63,108 @@ void FlowQueueDestroy (FlowQueue *q)
     FQLOCK_DESTROY(q);
 }
 
+void FlowQueuePrivateAppendFlow(FlowQueuePrivate *fqc, Flow *f)
+{
+    if (fqc->top == NULL) {
+        fqc->top = fqc->bot = f;
+        fqc->len = 1;
+    } else {
+        fqc->bot->next = f;
+        fqc->bot = f;
+        fqc->len++;
+    }
+    f->next = NULL;
+}
+
+void FlowQueuePrivatePrependFlow(FlowQueuePrivate *fqc, Flow *f)
+{
+    f->next = fqc->top;
+    fqc->top = f;
+    if (f->next == NULL) {
+        fqc->bot = f;
+    }
+    fqc->len++;
+}
+
+void FlowQueuePrivateAppendPrivate(FlowQueuePrivate *dest, FlowQueuePrivate *src)
+{
+    if (src->top == NULL)
+        return;
+
+    if (dest->bot == NULL) {
+        dest->top = src->top;
+        dest->bot = src->bot;
+        dest->len = src->len;
+    } else {
+        dest->bot->next = src->top;
+        dest->bot = src->bot;
+        dest->len += src->len;
+    }
+    src->top = src->bot = NULL;
+    src->len = 0;
+}
+
+static inline void FlowQueueAtomicSetNonEmpty(FlowQueue *fq)
+{
+    if (SC_ATOMIC_GET(fq->non_empty) == false) {
+        SC_ATOMIC_SET(fq->non_empty, true);
+    }
+}
+static inline void FlowQueueAtomicSetEmpty(FlowQueue *fq)
+{
+    if (SC_ATOMIC_GET(fq->non_empty) == true) {
+        SC_ATOMIC_SET(fq->non_empty, false);
+    }
+}
+
+void FlowQueueAppendPrivate(FlowQueue *fq, FlowQueuePrivate *fqc)
+{
+    if (fqc->top == NULL)
+        return;
+
+    FQLOCK_LOCK(fq);
+    if (fq->qbot == NULL) {
+        fq->qtop = fqc->top;
+        fq->qbot = fqc->bot;
+        fq->qlen = fqc->len;
+    } else {
+        fq->qbot->next = fqc->top;
+        fq->qbot = fqc->bot;
+        fq->qlen += fqc->len;
+    }
+    FlowQueueAtomicSetNonEmpty(fq);
+    FQLOCK_UNLOCK(fq);
+    fqc->top = fqc->bot = NULL;
+    fqc->len = 0;
+}
+
+FlowQueuePrivate FlowQueueExtractPrivate(FlowQueue *fq)
+{
+    FQLOCK_LOCK(fq);
+    FlowQueuePrivate fqc = fq->priv;
+    fq->qtop = fq->qbot = NULL;
+    fq->qlen = 0;
+    FlowQueueAtomicSetEmpty(fq);
+    FQLOCK_UNLOCK(fq);
+    return fqc;
+}
+
+Flow *FlowQueuePrivateGetFromTop(FlowQueuePrivate *fqc)
+{
+    Flow *f = fqc->top;
+    if (f == NULL) {
+        return NULL;
+    }
+
+    fqc->top = f->next;
+    f->next = NULL;
+    fqc->len--;
+    if (fqc->top == NULL) {
+        fqc->bot = NULL;
+    }
+    return f;
+}
+
 /**
  *  \brief add a flow to a queue
  *
@@ -74,24 +176,9 @@ void FlowEnqueue (FlowQueue *q, Flow *f)
 #ifdef DEBUG
     BUG_ON(q == NULL || f == NULL);
 #endif
-
     FQLOCK_LOCK(q);
-
-    /* more flows in queue */
-    if (q->top != NULL) {
-        f->lnext = q->top;
-        q->top->lprev = f;
-        q->top = f;
-    /* only flow */
-    } else {
-        q->top = f;
-        q->bot = f;
-    }
-    q->len++;
-#ifdef DBG_PERF
-    if (q->len > q->dbg_maxlen)
-        q->dbg_maxlen = q->len;
-#endif /* DBG_PERF */
+    FlowQueuePrivateAppendFlow(&q->priv, f);
+    FlowQueueAtomicSetNonEmpty(q);
     FQLOCK_UNLOCK(q);
 }
 
@@ -105,64 +192,9 @@ void FlowEnqueue (FlowQueue *q, Flow *f)
 Flow *FlowDequeue (FlowQueue *q)
 {
     FQLOCK_LOCK(q);
-
-    Flow *f = q->bot;
-    if (f == NULL) {
-        FQLOCK_UNLOCK(q);
-        return NULL;
-    }
-
-    /* more packets in queue */
-    if (q->bot->lprev != NULL) {
-        q->bot = q->bot->lprev;
-        q->bot->lnext = NULL;
-    /* just the one we remove, so now empty */
-    } else {
-        q->top = NULL;
-        q->bot = NULL;
-    }
-
-#ifdef DEBUG
-    BUG_ON(q->len == 0);
-#endif
-    if (q->len > 0)
-        q->len--;
-
-    f->lnext = NULL;
-    f->lprev = NULL;
-
+    Flow *f = FlowQueuePrivateGetFromTop(&q->priv);
+    if (f == NULL)
+        FlowQueueAtomicSetEmpty(q);
     FQLOCK_UNLOCK(q);
     return f;
 }
-
-/**
- *  \brief Transfer a flow from a queue to the spare queue
- *
- *  \param f the flow to be transfered
- *  \param q the source queue, where the flow will be removed. This queue is locked.
- *
- *  \note spare queue needs locking
- */
-void FlowMoveToSpare(Flow *f)
-{
-    /* now put it in spare */
-    FQLOCK_LOCK(&flow_spare_q);
-
-    /* add to new queue (append) */
-    f->lprev = flow_spare_q.bot;
-    if (f->lprev != NULL)
-        f->lprev->lnext = f;
-    f->lnext = NULL;
-    flow_spare_q.bot = f;
-    if (flow_spare_q.top == NULL)
-        flow_spare_q.top = f;
-
-    flow_spare_q.len++;
-#ifdef DBG_PERF
-    if (flow_spare_q.len > flow_spare_q.dbg_maxlen)
-        flow_spare_q.dbg_maxlen = flow_spare_q.len;
-#endif /* DBG_PERF */
-
-    FQLOCK_UNLOCK(&flow_spare_q);
-}
-

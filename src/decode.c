@@ -402,13 +402,16 @@ void PacketDefragPktSetupParent(Packet *parent)
     DecodeSetNoPayloadInspectionFlag(parent);
 }
 
+/**
+ *  \note if p->flow is set, the flow is locked
+ */
 void PacketBypassCallback(Packet *p)
 {
 #ifdef CAPTURE_OFFLOAD
     /* Don't try to bypass if flow is already out or
      * if we have failed to do it once */
     if (p->flow) {
-        int state = SC_ATOMIC_GET(p->flow->flow_state);
+        int state = p->flow->flow_state;
         if ((state == FLOW_STATE_LOCAL_BYPASSED) ||
                 (state == FLOW_STATE_CAPTURE_BYPASSED)) {
             return;
@@ -431,7 +434,7 @@ void PacketBypassCallback(Packet *p)
     }
 #else /* CAPTURE_OFFLOAD */
     if (p->flow) {
-        int state = SC_ATOMIC_GET(p->flow->flow_state);
+        int state = p->flow->flow_state;
         if (state == FLOW_STATE_LOCAL_BYPASSED)
             return;
         FlowUpdateState(p->flow, FLOW_STATE_LOCAL_BYPASSED);
@@ -515,6 +518,17 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_flow_udp = StatsRegisterCounter("flow.udp", tv);
     dtv->counter_flow_icmp4 = StatsRegisterCounter("flow.icmpv4", tv);
     dtv->counter_flow_icmp6 = StatsRegisterCounter("flow.icmpv6", tv);
+    dtv->counter_flow_tcp_reuse = StatsRegisterCounter("flow.tcp_reuse", tv);
+    dtv->counter_flow_get_used = StatsRegisterCounter("flow.get_used", tv);
+    dtv->counter_flow_get_used_eval = StatsRegisterCounter("flow.get_used_eval", tv);
+    dtv->counter_flow_get_used_eval_reject = StatsRegisterCounter("flow.get_used_eval_reject", tv);
+    dtv->counter_flow_get_used_eval_busy = StatsRegisterCounter("flow.get_used_eval_busy", tv);
+    dtv->counter_flow_get_used_failed = StatsRegisterCounter("flow.get_used_failed", tv);
+
+    dtv->counter_flow_spare_sync_avg = StatsRegisterAvgCounter("flow.wrk.spare_sync_avg", tv);
+    dtv->counter_flow_spare_sync = StatsRegisterCounter("flow.wrk.spare_sync", tv);
+    dtv->counter_flow_spare_sync_incomplete = StatsRegisterCounter("flow.wrk.spare_sync_incomplete", tv);
+    dtv->counter_flow_spare_sync_empty = StatsRegisterCounter("flow.wrk.spare_sync_empty", tv);
 
     dtv->counter_defrag_ipv4_fragments =
         StatsRegisterCounter("defrag.ipv4.fragments", tv);
