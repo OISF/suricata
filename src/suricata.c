@@ -39,6 +39,7 @@
 
 #include "suricata.h"
 #include "decode.h"
+#include "feature.h"
 #include "detect.h"
 #include "packet-queue.h"
 #include "threads.h"
@@ -363,6 +364,7 @@ static void GlobalsDestroy(SCInstance *suri)
 
     LiveDeviceListClean();
     OutputDeregisterAll();
+    FeatureTrackingRelease();
     TimeDeinit();
     SCProtoNameDeInit();
     if (!suri->disabled_detect) {
@@ -2819,6 +2821,7 @@ int PostConfLoadedSetup(SCInstance *suri)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    FeatureTrackingRegister(); /* must occur prior to output mod registration */
     RegisterAllModules();
 
     AppLayerHtpNeedFileInspection();
