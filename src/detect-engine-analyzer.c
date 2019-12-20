@@ -35,6 +35,7 @@
 #include "detect-content.h"
 #include "detect-flow.h"
 #include "detect-tcp-flags.h"
+#include "feature.h"
 #include "util-print.h"
 
 static int rule_warnings_only = 0;
@@ -1011,6 +1012,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     uint32_t rule_warning = 0;
     uint32_t stream_buf = 0;
     uint32_t packet_buf = 0;
+    uint32_t file_store = 0;
     uint32_t warn_pcre_no_content = 0;
     uint32_t warn_pcre_http_content = 0;
     uint32_t warn_pcre_http = 0;
@@ -1023,6 +1025,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     uint32_t warn_method_serverbody = 0;
     uint32_t warn_pcre_method = 0;
     uint32_t warn_encoding_norm_http_buf = 0;
+    uint32_t warn_file_store_not_present = 0;
     uint32_t warn_offset_depth_pkt_stream = 0;
     uint32_t warn_offset_depth_alproto = 0;
     uint32_t warn_non_alproto_fp_for_alproto_sig = 0;
@@ -1040,6 +1043,9 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
         packet_buf += 1;
+    }
+    if (s->flags & SIG_FLAG_FILESTORE) {
+        file_store += 1;
     }
     if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
         stream_buf += 1;
@@ -1120,6 +1126,11 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 
     } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
 
+
+    if (file_store && !RequiresFeature("output::file-store")) {
+        rule_warning += 1;
+        warn_file_store_not_present = 1;
+    }
 
     if (rule_pcre > 0 && rule_content == 0 && rule_content_http == 0) {
         rule_warning += 1;
@@ -1318,6 +1329,9 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         }
         if (warn_both_direction) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule is inspecting both the request and the response.\n");
+        }
+        if (warn_file_store_not_present) {
+            fprintf(rule_engine_analysis_FD, "    Warning: Rule requires file-store but the output file-store is not enabled.\n");
         }
         if (rule_warning == 0) {
             fprintf(rule_engine_analysis_FD, "    No warnings for this rule.\n");
