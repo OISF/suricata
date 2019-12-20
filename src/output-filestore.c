@@ -22,6 +22,8 @@
 #include "app-layer-htp-xff.h"
 #include "app-layer-smtp.h"
 
+#include "feature.h"
+
 #include "output.h"
 #include "output-filestore.h"
 #include "output-json-file.h"
@@ -470,6 +472,8 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
 
     /* The new filestore requires SHA256. */
     FileForceSha256Enable();
+
+    ProvidesFeature(FEATURE_OUTPUT_FILESTORE);
 
     const char *stream_depth_str = ConfNodeLookupChildValue(conf,
             "stream-depth");
