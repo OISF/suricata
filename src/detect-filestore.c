@@ -35,6 +35,8 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
+#include "feature.h"
+
 #include "flow.h"
 #include "flow-var.h"
 #include "flow-util.h"
@@ -321,6 +323,24 @@ continue_after_realloc_fail:
 static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
+
+    static bool warn_not_configured = false;
+    static uint32_t de_version = 0;
+
+    /* Check on first-time loads (includes following a reload) */
+    if (!warn_not_configured || (de_ctx->version != de_version)) {
+        if (de_version != de_ctx->version) {
+            SCLogDebug("reload-detected; re-checking feature presence; DE version now %"PRIu32,
+                       de_ctx->version);
+        }
+        if (!RequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
+            SCLogWarning(SC_WARN_ALERT_CONFIG, "One or more rule(s) depends on the "
+                         "file-store output log which is not enabled. "
+                         "Enable the output \"file-store\".");
+        }
+        warn_not_configured = true;
+        de_version = de_ctx->version;
+    }
 
     DetectFilestoreData *fd = NULL;
     SigMatch *sm = NULL;
