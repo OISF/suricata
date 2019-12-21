@@ -148,7 +148,11 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
             ns->threads = 0;
             ns->threads_auto = true;
         } else {
-            ns->threads = atoi(threadsstr);
+            if (StringParseUint16(&ns->threads, 10, 0, threadsstr) < 0) {
+                SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid config value for "
+                        "threads: %s, resetting to 0", threadsstr);
+                ns->threads = 0;
+            }
         }
     }
 

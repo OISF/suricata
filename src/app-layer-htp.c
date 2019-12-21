@@ -45,6 +45,7 @@
 #include "util-pool.h"
 #include "util-radix-tree.h"
 #include "util-file.h"
+#include "util-byte.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -2779,7 +2780,16 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 cfg_prec->randomize = ConfValIsTrue(p->val);
             }
         } else if (strcasecmp("randomize-inspection-range", p->name) == 0) {
-            uint32_t range = atoi(p->val);
+            uint32_t range;
+            if (StringParseUint32(&range, 10, 0,
+                                        (const char *)p->val) < 0) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for randomize"
+                           "-inspection-range setting from conf file - \"%s\"."
+                           " It should be a valid integer less than 100."
+                           " Killing engine",
+                           p->val);
+                exit(EXIT_FAILURE);
+            }
             if (range > 100) {
                 SCLogError(SC_ERR_SIZE_PARSE, "Invalid value for randomize"
                            " inspection range setting from conf file - %s."

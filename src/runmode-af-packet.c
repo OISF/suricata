@@ -194,7 +194,11 @@ static void *ParseAFPConfig(const char *iface)
             if (strcmp(threadsstr, "auto") == 0) {
                 aconf->threads = 0;
             } else {
-                aconf->threads = atoi(threadsstr);
+                if (StringParseInt32(&aconf->threads, 10, 0, (const char *)threadsstr) < 0) {
+                    SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid number of "
+                                 "threads, resetting to default");
+                    aconf->threads = 0;
+                }
             }
         }
     }
@@ -289,7 +293,10 @@ static void *ParseAFPConfig(const char *iface)
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
         aconf->cluster_id = (uint16_t)(cluster_id_auto++);
     } else {
-        aconf->cluster_id = (uint16_t)atoi(tmpclusterid);
+        if (StringParseInt32(&aconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
+            SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid cluster_id, resetting to 0");
+            aconf->cluster_id = 0;
+        }
         SCLogDebug("Going to use cluster-id %" PRId32, aconf->cluster_id);
     }
 

@@ -33,6 +33,7 @@
 #include "util-time.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-byte.h"
 #include "util-privs.h"
 #include "util-signal.h"
 #include "unix-manager.h"
@@ -251,7 +252,12 @@ static void StatsInitCtxPreOutput(void)
 
         const char *interval = ConfNodeLookupChildValue(stats, "interval");
         if (interval != NULL)
-            stats_tts = (uint32_t) atoi(interval);
+            if (StringParseUint32(&stats_tts, 10, 0, interval) < 0) {
+                SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid value for "
+                             "interval: \"%s\". Resetting to %d.", interval,
+                             STATS_MGMTT_TTS);
+                stats_tts = STATS_MGMTT_TTS;
+            }
 
         int b;
         int ret = ConfGetChildValueBool(stats, "decoder-events", &b);
