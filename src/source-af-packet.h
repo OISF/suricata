@@ -92,7 +92,7 @@ typedef struct AFPIfaceConfig_
     /* block timeout for tpacket_v3 in milliseconds */
     int block_timeout;
     /* cluster param */
-    int cluster_id;
+    uint16_t cluster_id;
     int cluster_type;
     /* promisc mode */
     int promisc;
