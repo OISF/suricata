@@ -123,24 +123,30 @@ void ProvidesFeature(const char *feature_name)
 
 bool RequiresFeature(const char *feature_name)
 {
-    FeatureEntryType t = { 0, feature_name };
+    FeatureEntryType f = { feature_name };
 
     SCMutexLock(&feature_table_mutex);
-    FeatureEntryType *feature = HashTableLookup(feature_hash_table, &t, sizeof(t));
+    FeatureEntryType *feature = HashListTableLookup(feature_hash_table, &f, sizeof(f));
     SCMutexUnlock(&feature_table_mutex);
-
     return feature != NULL;
 }
 
 void FeatureTrackingRelease(void)
 {
     if (feature_hash_table != NULL) {
-        HashTableFree(feature_hash_table);
+        HashListTableFree(feature_hash_table);
         feature_hash_table = NULL;
-        feature_table_id = 0;
     }
 }
 
+void FeatureDump(void)
+{
+    HashListTableBucket *hb = HashListTableGetListHead(feature_hash_table);
+    for (; hb != NULL; hb = HashListTableGetListNext(hb)) {
+        FeatureEntryType *f = HashListTableGetListData(hb);
+        printf("provided feature name: %s\n", f->feature);
+    }
+}
 void FeatureTrackingRegister(void)
 {
     FeatureInit();

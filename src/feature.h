@@ -30,6 +30,8 @@
 void ProvidesFeature(const char *);
 bool RequiresFeature(const char *);
 
+void FeatureDump(void);
+
 void FeatureTrackingRelease(void);
 void FeatureTrackingRegister(void);
 

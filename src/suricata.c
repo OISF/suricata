@@ -621,6 +621,7 @@ static void PrintUsage(const char *progname)
     printf("\t--init-errors-fatal                  : enable fatal failure on signature init error\n");
     printf("\t--disable-detection                  : disable detection engine\n");
     printf("\t--dump-config                        : show the running configuration\n");
+    printf("\t--dump-features                      : display provided features\n");
     printf("\t--build-info                         : display build information\n");
     printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces from suricata.yaml\n");
     printf("\t--pcap-file-continuous               : when running in pcap mode with a directory, continue checking directory for pcaps until interrupted\n");
@@ -1421,6 +1422,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int opt;
 
     int dump_config = 0;
+    int dump_features = 0;
     int list_app_layer_protocols = 0;
     int list_unittests = 0;
     int list_runmodes = 0;
@@ -1441,6 +1443,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
+        {"dump-features", 0, &dump_features, 1},
         {"pfring", optional_argument, 0, 0},
         {"pfring-int", required_argument, 0, 0},
         {"pfring-cluster-id", required_argument, 0, 0},
@@ -2137,6 +2140,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         suri->run_mode = RUNMODE_LIST_UNITTEST;
     if (dump_config)
         suri->run_mode = RUNMODE_DUMP_CONFIG;
+    if (dump_features)
+        suri->run_mode = RUNMODE_DUMP_FEATURES;
     if (conf_test)
         suri->run_mode = RUNMODE_CONF_TEST;
     if (engine_analysis)
@@ -3062,6 +3067,9 @@ int SuricataMain(int argc, char **argv)
         goto out;
     } else if (suricata.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
+        goto out;
+    } else if (suricata.run_mode == RUNMODE_DUMP_FEATURES) {
+        FeatureDump();
         goto out;
     }
 
