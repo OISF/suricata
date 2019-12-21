@@ -851,7 +851,7 @@ typedef struct DetectEngineCtx_ {
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
 
-    /** version of the detect engine */
+    /** version of the detect engine. The version is incremented on reloads */
     uint32_t version;
 
     /** sgh for signatures that match against invalid packets. In those cases
