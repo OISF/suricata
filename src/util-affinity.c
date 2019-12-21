@@ -26,6 +26,7 @@
 #define _THREAD_AFFINITY
 #include "util-affinity.h"
 #include "util-cpu.h"
+#include "util-byte.h"
 #include "conf.h"
 #include "threads.h"
 #include "queue.h"
@@ -280,7 +281,10 @@ void AffinitySetupLoadFromConfig()
 
         node = ConfNodeLookupChild(affinity->head.tqh_first, "threads");
         if (node != NULL) {
-            taf->nb_threads = atoi(node->val);
+            if (StringParseUint32(&taf->nb_threads, 10, 0, (const char *)node->val) < 0) {
+                FatalError(SC_ERR_INVALID_ARGUMENT, "invalid value for threads "
+                           "count: '%s'", node->val);
+            }
             if (! taf->nb_threads) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "bad value for threads count");
                 exit(EXIT_FAILURE);
