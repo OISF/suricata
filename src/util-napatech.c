@@ -800,10 +800,19 @@ static uint32_t CountWorkerThreads(void)
 
                         char copystr[16];
                         strlcpy(copystr, lnode->val, 16);
-
-                        ByteExtractStringUint8(&start, 10,  0, copystr);
-                        ByteExtractStringUint8(&end, 10,  0, strchr(copystr, '-') + 1);
-
+                        if (StringParseUint8(&start, 10, 0, (const char *)copystr) < 0) {
+                            FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
+                                       " worker range start: '%s'", copystr);
+                        }
+                        char *end_str = strchr(copystr, '-');
+                        if (end_str != NULL && StringParseUint8(&end, 10, 0, (const char *) (end_str + 1)) < 0) {
+                            FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
+                                       " worker range end: '%s'", strchr(copystr, '-') + 1);
+                        }
+                        if (end < start) {
+                            FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid"
+                                       " worker range start: '%s' is greater than end: '%s'", start, end);
+                        }
                         worker_count = end - start + 1;
 
                     } else {
@@ -948,8 +957,15 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
 
                     char copystr[16];
                     strlcpy(copystr, stream->val, 16);
-                    ByteExtractStringUint16(&start, 10,  0, copystr);
-                    ByteExtractStringUint16(&end, 10,  0, strchr(copystr, '-') + 1);
+                    if (StringParseUint8(&start, 10, 0, (const char *)copystr) < 0) {
+                        FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
+                                   "stream_id start: '%s'", copystr);
+                    }
+                    char *end_str = strchr(copystr, '-');
+                    if (end_str != NULL && StringParseUint8(&end, 10, 0, (const char *) (end_str + 1)) < 0) {
+                        FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
+                                   "stream_id end: '%s'", strchr(copystr, '-') + 1);
+                    }
                 } else {
                     if (stream_spec == CONFIG_SPECIFIER_RANGE) {
                         SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
@@ -957,7 +973,11 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                         exit(EXIT_FAILURE);
                     }
                     stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
-                    ByteExtractStringUint16(&stream_config[instance_cnt].stream_id, 10,  0, stream->val);
+                    if (StringParseUint16(&stream_config[instance_cnt].stream_id,
+                                          10, 0, (const char *)stream->val) < 0) {
+                        FatalError(SC_ERR_INVALID_VALUE, "Napatech invalid "
+                                   "stream id: '%s'", stream->val);
+                    }
                     start = stream_config[instance_cnt].stream_id;
                     end = stream_config[instance_cnt].stream_id;
                 }
