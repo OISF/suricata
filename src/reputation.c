@@ -28,6 +28,7 @@
 #include "suricata-common.h"
 #include "util-error.h"
 #include "util-debug.h"
+#include "util-byte.h"
 #include "util-ip.h"
 #include "util-radix-tree.h"
 #include "util-unittest.h"
@@ -251,10 +252,9 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
 
     SCLogDebug("%s, %s", ptrs[0], ptrs[1]);
 
-    int c = atoi(ptrs[0]);
-    if (c < 0 || c >= SREP_MAX_CATS) {
+    int c;
+    if (StringParseI32RangeCheck(&c, 10, 0, (const char *)ptrs[0], 0, SREP_MAX_CATS + 1) < 0)
         return -1;
-    }
 
     *cat = (uint8_t)c;
     strlcpy(shortname, ptrs[1], shortname_len);
@@ -305,15 +305,12 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
     if (strcmp(ptrs[0], "ip") == 0)
         return 1;
 
-    int c = atoi(ptrs[1]);
-    if (c < 0 || c >= SREP_MAX_CATS) {
+    int c, v;
+    if (StringParseI32RangeCheck(&c, 10, 0, (const char *)ptrs[1], 0, SREP_MAX_CATS + 1) < 0)
         return -1;
-    }
 
-    int v = atoi(ptrs[2]);
-    if (v < 0 || v > SREP_MAX_VAL) {
+    if (StringParseI32RangeCheck(&v, 10, 0, (const char *)ptrs[2], 0, SREP_MAX_VAL) < 0)
         return -1;
-    }
 
     if (strchr(ptrs[0], '/') != NULL) {
         SRepCIDRAddNetblock(cidr_ctx, ptrs[0], c, v);
