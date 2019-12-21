@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "config.h"
 #include "util-host-info.h"
+#include "util-byte.h"
 
 #ifndef OS_WIN32
 #include <sys/utsname.h>
@@ -83,12 +84,22 @@ int SCKernelVersionIsAtLeast(int major, int minor)
 
     pcre_get_substring_list(kuname.release, ov, ret, &list);
 
-    kmajor = atoi(list[1]);
-    kminor = atoi(list[2]);
+    bool err = false;
+    if (StringParseInt32(&kmajor, 10, 0, (const char *)list[1]) < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for kmajor: '%s'", list[1]);
+        err = true;
+    }
+    if (StringParseInt32(&kminor, 10, 0, (const char *)list[2]) < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for kminor: '%s'", list[2]);
+        err = true;
+    }
 
     pcre_free_substring_list(list);
     pcre_free_study(version_regex_study);
     pcre_free(version_regex);
+
+    if (err)
+        goto error;
 
     if (kmajor > major)
         return 1;
