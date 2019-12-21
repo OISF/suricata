@@ -1775,7 +1775,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
             TmModule *tm = TmModuleGetById(slots->tm_id);
 
             if (suricata_ctl_flags != 0) {
-                SCLogInfo("rule reload interupted by engine shutdown");
+                SCLogInfo("rule reload interrupted by engine shutdown");
                 SCMutexUnlock(&tv_root_lock);
                 return -1;
             }
@@ -1846,7 +1846,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     }
     BUG_ON(i != no_of_detect_tvs);
 
-    /* atomicly replace the det_ctx data */
+    /* atomically replace the det_ctx data */
     i = 0;
     tv = tv_root[TVT_PPT];
     while (tv) {
@@ -2148,7 +2148,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 /** \brief  Function that load DetectEngineCtx config for grouping sigs
  *          used by the engine
  *  \retval 0 if no config provided, 1 if config was provided
- *          and loaded successfuly
+ *          and loaded successfully
  */
 static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 {
@@ -2765,7 +2765,7 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
  *  \param data[out] pointer to store our thread detection ctx
  *
  *  \retval TM_ECODE_OK if all went well
- *  \retval TM_ECODE_FAILED on serious erro
+ *  \retval TM_ECODE_FAILED on serious errors
  */
 TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 {
