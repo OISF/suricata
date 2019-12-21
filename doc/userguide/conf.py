@@ -50,7 +50,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Suricata'
-copyright = u'2016, OISF'
+copyright = u'2016-2019, OISF'
 author = u'OISF'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -64,7 +64,7 @@ try:
     version = os.environ.get('version', None)
     if not version:
         version = re.search(
-            "AC_INIT\(suricata,\s*(.*)?\)",
+            "AC_INIT\(\[suricata\],\s*\[(.*)?\]\)",
             open("../../configure.ac").read()).groups()[0]
     if not version:
         version = "unknown"
