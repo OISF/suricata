@@ -294,11 +294,11 @@ static void *ParseAFPConfig(const char *iface)
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
         aconf->cluster_id = (uint16_t)(cluster_id_auto++);
     } else {
-        if (StringParseInt32(&aconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
+        if (StringParseUint16(&aconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE, "Invalid cluster_id, resetting to 0");
             aconf->cluster_id = 0;
         }
-        SCLogDebug("Going to use cluster-id %" PRId32, aconf->cluster_id);
+        SCLogDebug("Going to use cluster-id %" PRIu16, aconf->cluster_id);
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
