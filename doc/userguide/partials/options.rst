@@ -158,6 +158,13 @@
    Dump the configuration loaded from the configuration file to the
    terminal and exit.
 
+.. option:: --dump-features
+
+   Dump the features provided by Suricata modules and exit. Features
+   list (a subset of) the configuration values and are intended to
+   assist with comparing provided features with those required by
+   one or more rules.
+
 .. option:: --build-info
 
    Display the build information the Suricata was built with.
