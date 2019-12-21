@@ -33,6 +33,7 @@
 #include "suricata.h"
 
 #include "util-privs.h"
+#include "util-byte.h"
 
 #ifdef HAVE_LIBCAP_NG
 
@@ -156,11 +157,14 @@ int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, ui
 
     /* Get the user ID */
     if (isdigit((unsigned char)user_name[0]) != 0) {
-        userid = atoi(user_name);
+        if (ByteExtractStringUint32(&userid, 10, 0, (const char *)user_name) < 0) {
+            SCLogError(SC_ERR_UID_FAILED, "invalid user name: '%s'", user_name);
+            exit(EXIT_FAILURE);
+        }
         pw = getpwuid(userid);
        if (pw == NULL) {
             SCLogError(SC_ERR_UID_FAILED, "unable to get the user ID, "
-                    "check if user exist!!");
+                       "check if user exist!!");
             exit(EXIT_FAILURE);
         }
     } else {
@@ -178,7 +182,10 @@ int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, ui
         struct group *gp;
 
         if (isdigit((unsigned char)group_name[0]) != 0) {
-            groupid = atoi(group_name);
+            if (ByteExtractStringUint32(&groupid, 10, 0, (const char *)group_name) < 0) {
+                SCLogError(SC_ERR_GID_FAILED, "invalid group id: '%s'", group_name);
+                exit(EXIT_FAILURE);
+            }
         } else {
             gp = getgrnam(group_name);
             if (gp == NULL) {
@@ -218,7 +225,10 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
 
     /* Get the group ID */
     if (isdigit((unsigned char)group_name[0]) != 0) {
-        grpid = atoi(group_name);
+        if (ByteExtractStringUint32(&grpid, 10, 0, (const char *)group_name) < 0) {
+            SCLogError(SC_ERR_GID_FAILED, "invalid group id: '%s'", group_name);
+            exit(EXIT_FAILURE);
+        }
     } else {
         gp = getgrnam(group_name);
         if (gp == NULL) {

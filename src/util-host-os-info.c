@@ -29,6 +29,7 @@
 #include "util-debug.h"
 #include "util-ip.h"
 #include "util-radix-tree.h"
+#include "util-byte.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 
@@ -186,7 +187,13 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
             SCRadixAddKeyIPV4((uint8_t *)ipv4_addr, sc_hinfo_tree,
                               (void *)user_data);
         } else {
-            netmask_value = atoi(netmask_str);
+            if (StringParseInt32(&netmask_value, 10, 0, (const char *)netmask_str) < 0) {
+                SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV4 Netblock");
+                SCHInfoFreeUserDataOSPolicy(user_data);
+                SCFree(ipv4_addr);
+                SCFree(ip_str);
+                return -1;
+            }
             if (netmask_value < 0 || netmask_value > 32) {
                 SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV4 Netblock");
                 SCHInfoFreeUserDataOSPolicy(user_data);
@@ -212,7 +219,13 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
             SCRadixAddKeyIPV6((uint8_t *)ipv6_addr, sc_hinfo_tree,
                               (void *)user_data);
         } else {
-            netmask_value = atoi(netmask_str);
+            if (StringParseInt32(&netmask_value, 10, 0, (const char *)netmask_str) < 0) {
+                SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV6 Netblock");
+                SCHInfoFreeUserDataOSPolicy(user_data);
+                SCFree(ipv6_addr);
+                SCFree(ip_str);
+                return -1;
+            }
             if (netmask_value < 0 || netmask_value > 128) {
                 SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Invalid IPV6 Netblock");
                 SCHInfoFreeUserDataOSPolicy(user_data);

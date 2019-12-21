@@ -30,6 +30,7 @@
 #include "util-ip.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
+#include "util-byte.h"
 
 /**
  * \brief Allocates and returns a new instance of SCRadixUserData.
@@ -947,7 +948,7 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
 
     /* Does it have a mask? */
     if (NULL != (mask_str = strchr(ip_str, '/'))) {
-        int cidr;
+        uint8_t cidr;
         *(mask_str++) = '\0';
 
         /* Dotted type netmask not supported (yet) */
@@ -956,10 +957,11 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
         }
 
         /* Get binary values for cidr mask */
-        cidr = atoi(mask_str);
-        if ((cidr < 0) || (cidr > 32)) {
+        if (StringParseUint8(&cidr, 10, 0, (const char *)mask_str) < 0)
             return NULL;
-        }
+        if (cidr > 32)
+            return NULL;
+
         netmask = (uint8_t)cidr;
     }
 
@@ -995,7 +997,7 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
 
     /* Does it have a mask? */
     if (NULL != (mask_str = strchr(ip_str, '/'))) {
-        int cidr;
+        uint8_t cidr;
         *(mask_str++) = '\0';
 
         /* Dotted type netmask not supported (yet) */
@@ -1004,10 +1006,11 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
         }
 
         /* Get binary values for cidr mask */
-        cidr = atoi(mask_str);
-        if ((cidr < 0) || (cidr > 128)) {
+        if (StringParseUint8(&cidr, 10, 0, (const char *)mask_str) < 0)
             return NULL;
-        }
+        if (cidr > 128)
+            return NULL;
+
         netmask = (uint8_t)cidr;
     }
 
