@@ -44,6 +44,7 @@
 #include "detect-engine-port.h"
 
 #include "util-debug.h"
+#include "util-byte.h"
 #include "util-print.h"
 #include "util-var.h"
 
@@ -483,10 +484,9 @@ static int DetectAddressParseString(DetectAddress *dd, const char *str)
                         goto error;
                 }
 
-                int cidr = atoi(mask);
-                if (cidr < 0 || cidr > 32)
+                int cidr;
+                if (StringParseI32RangeCheck(&cidr, 10, 0, (const char *)mask, 0, 32) < 0)
                     goto error;
-
                 netmask = CIDRGet(cidr);
             } else {
                 /* 1.2.3.4/255.255.255.0 format */
@@ -543,9 +543,9 @@ static int DetectAddressParseString(DetectAddress *dd, const char *str)
             ip[mask - ip] = '\0';
             mask++;
 
-            int cidr = atoi(mask);
-            if (cidr < 0 || cidr > 128)
-                    goto error;
+            int cidr;
+            if (StringParseI32RangeCheck(&cidr, 10, 0, (const char *)mask, 0, 128) < 0)
+                goto error;
 
             r = inet_pton(AF_INET6, ip, &in6);
             if (r <= 0)

@@ -38,6 +38,7 @@
 #include "flow-var.h"
 
 #include "util-debug.h"
+#include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
@@ -150,12 +151,9 @@ static DetectIdData *DetectIdParse (const char *idstr)
     }
 
     /* ok, fill the id data */
-    temp = atoi((char *)tmp_str);
-
-    if (temp > DETECT_IPID_MAX) {
-        SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'. The id option "
-                    "value must be in the range %u - %u",
-                    idstr, DETECT_IPID_MIN, DETECT_IPID_MAX);
+    if (StringParseU32RangeCheck(&temp, 10, 0, (const char *)tmp_str,
+                                 DETECT_IPID_MIN, DETECT_IPID_MAX) < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "invalid id option '%s'", tmp_str);
         return NULL;
     }
 
