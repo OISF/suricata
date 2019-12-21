@@ -48,7 +48,7 @@ typedef struct NetmapIfaceSettings_
     bool ips;       /**< set to true if checksum_mode != NETMAP_COPY_MODE_NONE */
     bool threads_auto;
 
-    int threads;
+    uint16_t threads;
     int copy_mode;
     ChecksumValidationMode checksum_mode;
     const char *bpf_filter;
