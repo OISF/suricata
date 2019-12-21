@@ -34,6 +34,7 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-fmemopen.h"
+#include "util-byte.h"
 
 /* Regex to parse the classtype argument from a Signature.  The first substring
  * holds the classtype name, the second substring holds the classtype the
@@ -244,7 +245,7 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
     char ct_name[CLASSTYPE_NAME_MAX_LEN];
     char ct_desc[CLASSTYPE_DESC_MAX_LEN];
     char ct_priority_str[16];
-    int ct_priority = 0;
+    uint32_t ct_priority = 0;
     uint16_t ct_id = index;
 
     SCClassConfClasstype *ct_new = NULL;
@@ -281,11 +282,9 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
         SCLogInfo("pcre_copy_substring() failed");
         goto error;
     }
-    if (strlen(ct_priority_str) == 0) {
+    if (StringParseUint32(&ct_priority, 10, 0, (const char *)ct_priority_str) < 0) {
         goto error;
     }
-
-    ct_priority = atoi(ct_priority_str);
 
     /* Create a new instance of the parsed Classtype string */
     ct_new = SCClassConfAllocClasstype(ct_id, ct_name, ct_desc, ct_priority);
