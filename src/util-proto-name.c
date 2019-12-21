@@ -26,6 +26,7 @@
 
 #include "suricata-common.h"
 #include "util-proto-name.h"
+#include "util-byte.h"
 
 /** Lookup array to hold the information related to known protocol
  *  in /etc/protocols */
@@ -60,10 +61,9 @@ void SCProtoNameInit()
             if (proto_ch == NULL)
                 continue;
 
-            int proto = atoi(proto_ch);
-            if (proto >= 255)
+            uint8_t proto;
+            if (StringParseU8RangeCheck(&proto, 10, 0, (const char *)proto_ch, 0, 254) < 0)
                 continue;
-
             char *cname = strtok_r(NULL, " \t", &ptr);
 
             if (known_proto[proto] != NULL) {
