@@ -169,8 +169,8 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
         }
     }
 
-    int ttl1 = 0;
-    int ttl2 = 0;
+    uint8_t ttl1 = 0;
+    uint8_t ttl2 = 0;
     int mode = 0;
 
     if (strlen(arg2) > 0) {
@@ -180,7 +180,7 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
                     return NULL;
 
                 mode = DETECT_TTL_LT;
-                if (StringParseInt32(&ttl1, 10, 0, (const char *)arg3) < 0) {
+                if (StringParseUint8(&ttl1, 10, 0, (const char *)arg3) < 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first ttl "
                                "value: \"%s\"", arg3);
                     return NULL;
@@ -195,7 +195,7 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
                     return NULL;
 
                 mode = DETECT_TTL_GT;
-                if (StringParseInt32(&ttl1, 10, 0, (const char *)arg3) < 0) {
+                if (StringParseUint8(&ttl1, 10, 0, (const char *)arg3) < 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first ttl "
                                "value: \"%s\"", arg3);
                     return NULL;
@@ -211,12 +211,12 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
 
                 mode = DETECT_TTL_RA;
 
-                if (StringParseInt32(&ttl1, 10, 0, (const char *)arg1) < 0) {
+                if (StringParseUint8(&ttl1, 10, 0, (const char *)arg1) < 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first ttl "
                                "value: \"%s\"", arg1);
                     return NULL;
                 }
-                if (StringParseInt32(&ttl2, 10, 0, (const char *)arg3) < 0) {
+                if (StringParseUint8(&ttl2, 10, 0, (const char *)arg3) < 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid second ttl "
                                "value: \"%s\"", arg3);
                     return NULL;
@@ -234,7 +234,7 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
                     (strlen(arg3) > 0) ||
                     (strlen(arg1) == 0))
                     return NULL;
-                if (StringParseInt32(&ttl1, 10, 0, (const char *)arg1) < 0) {
+                if (StringParseUint8(&ttl1, 10, 0, (const char *)arg1) < 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first ttl "
                                "value: \"%s\"", arg1);
                     return NULL;
@@ -247,17 +247,11 @@ static DetectTtlData *DetectTtlParse (const char *ttlstr)
         if ((strlen(arg3) > 0) ||
             (strlen(arg1) == 0))
             return NULL;
-        if (StringParseInt32(&ttl1, 10, 0, (const char *)arg1) < 0) {
+        if (StringParseUint8(&ttl1, 10, 0, (const char *)arg1) < 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid first ttl "
                         "value: \"%s\"", arg1);
             return NULL;
         }
-    }
-
-    if (ttl1 < 0 || ttl1 > UCHAR_MAX ||
-        ttl2 < 0 || ttl2 > UCHAR_MAX) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ttl value(s)");
-        return NULL;
     }
 
     DetectTtlData *ttld = SCMalloc(sizeof(DetectTtlData));
