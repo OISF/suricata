@@ -166,8 +166,8 @@ static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
     if (ret == 3 || ret == 5)
         did->any_frag = 1;
 
-    /* if the regex has 4 or 5, version/operator is present in the signature */
-    if (ret == 4 || ret == 5) {
+    /* if the regex has 4 or 5, version/operator might be present in the signature */
+    if (ret == 4 || (ret == 5 && ov[4] != -1)) {
         /* first handle the version number, so that we can do some additional
          * validations of the version number, wrt. the operator */
         res = pcre_copy_substring(arg, ov, MAX_SUBSTRINGS, 3, copy_str, sizeof(copy_str));
