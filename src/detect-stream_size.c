@@ -34,6 +34,7 @@
 #include "detect-stream_size.h"
 #include "stream-tcp-private.h"
 #include "util-debug.h"
+#include "util-byte.h"
 
 /**
  * \brief Regex for parsing our flow options
@@ -243,8 +244,10 @@ static DetectStreamSizeData *DetectStreamSizeParse (const char *streamstr)
     }
 
     /* set the value */
-    sd->ssize = (uint32_t)atoi(value);
-
+    if (StringParseUint32(&sd->ssize, 10, 0, (const char *)value) < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for stream size: %s", value);
+        goto error;
+    }
     /* inspect our options and set the flags */
     if (strcmp(arg, "server") == 0) {
         sd->flags |= STREAM_SIZE_SERVER;

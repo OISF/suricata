@@ -43,6 +43,7 @@
 #include "util-debug.h"
 #include "util-spm-bm.h"
 #include "util-print.h"
+#include "util-byte.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -280,8 +281,15 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("k='%s', v='%s'", k, v);
 
                 if (strcmp(k, "retval") == 0) {
-                    if (atoi(v) == 1)
+                    int val;
+                    if (StringParseInt32(&val, 10, 0, (const char *)v) < 0) {
+                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value "
+                                   "for \"retval\" from LUA return table: '%s'", v);
+                        ret = 0;
+                    }
+                    else if (val == 1) {
                         ret = 1;
+                    }
                 } else {
                     /* set flow var? */
                 }
@@ -428,8 +436,16 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("k='%s', v='%s'", k, v);
 
                 if (strcmp(k, "retval") == 0) {
-                    if (atoi(v) == 1)
+                    int val;
+                    if (StringParseInt32(&val, 10, 0,
+                                         (const char *)v) < 0) {
+                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value "
+                                   "for \"retval\" from LUA return table: '%s'", v);
+                        ret = 0;
+                    }
+                    else if (val == 1) {
                         ret = 1;
+                    }
                 } else {
                     /* set flow var? */
                 }
@@ -530,8 +546,16 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("k='%s', v='%s'", k, v);
 
                 if (strcmp(k, "retval") == 0) {
-                    if (atoi(v) == 1)
+                    int val;
+                    if (StringParseInt32(&val, 10, 0,
+                                         (const char *)v) < 0) {
+                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value "
+                                   "for \"retval\" from LUA return table: '%s'", v);
+                        ret = 0;
+                    }
+                    else if (val == 1) {
                         ret = 1;
+                    }
                 } else {
                     /* set flow var? */
                 }
