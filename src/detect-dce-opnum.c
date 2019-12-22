@@ -171,16 +171,25 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         if ((hyphen_token = strchr(dup_str_temp, '-')) != NULL) {
             hyphen_token[0] = '\0';
             hyphen_token++;
-            dor->range1 = atoi(dup_str_temp);
+            if (StringParseUint32(&dor->range1, 10, 0,
+                                  (const char *)dup_str_temp) < 0) {
+                goto error;
+            }
             if (dor->range1 > DCE_OPNUM_RANGE_MAX)
                 goto error;
-            dor->range2 = atoi(hyphen_token);
+            if (StringParseUint32(&dor->range2, 10, 0,
+                                  (const char *)hyphen_token) < 0) {
+                goto error;
+            }
             if (dor->range2 > DCE_OPNUM_RANGE_MAX)
                 goto error;
             if (dor->range1 > dor->range2)
                 goto error;
         }
-        dor->range1 = atoi(dup_str_temp);
+        if (StringParseUint32(&dor->range1, 10, 0,
+                              (const char *)dup_str_temp) < 0) {
+            goto error;
+        }
         if (dor->range1 > DCE_OPNUM_RANGE_MAX)
             goto error;
 
@@ -199,16 +208,25 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
     if ( (hyphen_token = strchr(dup_str, '-')) != NULL) {
         hyphen_token[0] = '\0';
         hyphen_token++;
-        dor->range1 = atoi(dup_str);
+        if (StringParseUint32(&dor->range1, 10, 0,
+                              (const char *)dup_str) < 0) {
+            goto error;
+        }
         if (dor->range1 > DCE_OPNUM_RANGE_MAX)
             goto error;
-        dor->range2 = atoi(hyphen_token);
+        if (StringParseUint32(&dor->range2, 10, 0,
+                              (const char *)hyphen_token) < 0) {
+            goto error;
+        }
         if (dor->range2 > DCE_OPNUM_RANGE_MAX)
             goto error;
         if (dor->range1 > dor->range2)
             goto error;
     }
-    dor->range1 = atoi(dup_str);
+    if (StringParseUint32(&dor->range1, 10, 0,
+                          (const char *)dup_str) < 0) {
+        goto error;
+    }
     if (dor->range1 > DCE_OPNUM_RANGE_MAX)
         goto error;
 

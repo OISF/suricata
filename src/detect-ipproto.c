@@ -478,7 +478,8 @@ static int DetectIPProtoTestParse02(void)
 static int DetectIPProtoTestSetup01(void)
 {
     const char *value_str = "14";
-    int value = atoi(value_str);
+    int value;
+    FAIL_IF(StringParseInt32(&value, 10, 0, (const char *)value_str) < 0);
     int i;
 
     Signature *sig = SigAlloc();

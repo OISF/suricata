@@ -124,7 +124,7 @@ static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
     int i = 0, j = 0;
     int len = 0;
     char temp_str[3] = "";
-    int version;
+    uint16_t version;
 
     ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2) {
@@ -175,11 +175,9 @@ static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
-
-        version = atoi(copy_str);
-        if (version > UINT16_MAX) {
+        if (StringParseUint16(&version, 10, 0, (const char *)copy_str) < 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "DCE_IFACE interface version "
-                       "invalid: %d\n", version);
+                       "invalid: %s\n", copy_str);
             goto error;
         }
         did->version = version;
