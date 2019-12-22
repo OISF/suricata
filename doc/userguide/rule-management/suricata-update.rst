@@ -98,7 +98,7 @@ Similarly, to disable rules use /etc/suricata/disable.conf:
 
 ::
 
-    2019401                   # enable this sid
+    2019401                   # disable this sid
     group:emerging-info.rules # disable this rulefile
     re:heartbleed             # disable all rules with this string
 
