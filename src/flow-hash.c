@@ -634,49 +634,17 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
     }
 
     /* ok, we have a flow in the bucket. Let's find out if it is our flow */
+    Flow *pf = NULL; /* previous flow */
     f = fb->head;
-
-    /* see if this is the flow we are looking for */
-    if (FlowCompare(f, p) == 0) {
-        Flow *pf = NULL; /* previous flow */
-
-        while (f) {
-            pf = f;
-            f = f->hnext;
-
-            if (f == NULL) {
-                f = pf->hnext = FlowGetNew(tv, dtv, p);
-                if (f == NULL) {
-                    FBLOCK_UNLOCK(fb);
-                    return NULL;
-                }
-                fb->tail = f;
-
-                /* flow is locked */
-
-                f->hprev = pf;
-
-                /* initialize and return */
-                FlowInit(f, p);
-                f->flow_hash = hash;
-                f->fb = fb;
-                FlowUpdateState(f, FLOW_STATE_NEW);
-
-                FlowReference(dest, f);
-
-                FBLOCK_UNLOCK(fb);
-                return f;
-            }
-
-            if (FlowCompare(f, p) != 0) {
-                /* we found our flow, lets put it on top of the
-                 * hash list -- this rewards active flows */
+    do {
+        if (FlowCompare(f, p) != 0) {
+            /* we found our flow, lets put it on top of the
+             * hash list -- this rewards active flows */
+            if (f->hprev) {
                 if (f->hnext) {
                     f->hnext->hprev = f->hprev;
                 }
-                if (f->hprev) {
-                    f->hprev->hnext = f->hnext;
-                }
+                f->hprev->hnext = f->hnext;
                 if (f == fb->tail) {
                     fb->tail = f->hprev;
                 }
@@ -685,39 +653,51 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
                 f->hprev = NULL;
                 fb->head->hprev = f;
                 fb->head = f;
-
-                /* found our flow, lock & return */
-                FLOWLOCK_WRLOCK(f);
-                if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
-                    f = TcpReuseReplace(tv, dtv, fb, f, hash, p);
-                    if (f == NULL) {
-                        FBLOCK_UNLOCK(fb);
-                        return NULL;
-                    }
-                }
-
-                FlowReference(dest, f);
-
-                FBLOCK_UNLOCK(fb);
-                return f;
             }
-        }
-    }
+            /* found our flow, lock & return */
+            FLOWLOCK_WRLOCK(f);
+            if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
+                f = TcpReuseReplace(tv, dtv, fb, f, hash, p);
+                if (f == NULL) {
+                    FBLOCK_UNLOCK(fb);
+                    return NULL;
+                }
+            }
 
-    /* lock & return */
-    FLOWLOCK_WRLOCK(f);
-    if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
-        f = TcpReuseReplace(tv, dtv, fb, f, hash, p);
-        if (f == NULL) {
+            FlowReference(dest, f);
+
             FBLOCK_UNLOCK(fb);
-            return NULL;
+            return f;
         }
-    }
+        if (f->hnext == NULL) {
+            pf = f;
+            f = pf->hnext = FlowGetNew(tv, dtv, p);
+            if (f == NULL) {
+                FBLOCK_UNLOCK(fb);
+                return NULL;
+            }
+            fb->tail = f;
 
-    FlowReference(dest, f);
+            /* flow is locked */
 
-    FBLOCK_UNLOCK(fb);
-    return f;
+            f->hprev = pf;
+
+            /* initialize and return */
+            FlowInit(f, p);
+            f->flow_hash = hash;
+            f->fb = fb;
+            FlowUpdateState(f, FLOW_STATE_NEW);
+            FlowReference(dest, f);
+            FBLOCK_UNLOCK(fb);
+            return f;
+        }
+        pf = f;
+        f = f->hnext;
+    } while (f != NULL);
+
+    /* should be unreachable */
+    BUG_ON(1);
+    return NULL;
 }
 
 static inline int FlowCompareKey(Flow *f, FlowKey *key)
