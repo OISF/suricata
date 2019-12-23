@@ -483,7 +483,9 @@ static uint32_t FlowTimeoutHash(struct timeval *ts, uint32_t try_cnt,
         /* we have a flow, or more than one */
         cnt += FlowManagerHashRowTimeout(fb->tail, ts, emergency, counters, &next_ts);
 
-        SC_ATOMIC_SET(fb->next_ts, next_ts);
+        if (SC_ATOMIC_GET(fb->next_ts) != next_ts) {
+            SC_ATOMIC_SET(fb->next_ts, next_ts);
+        }
 
 next:
         FBLOCK_UNLOCK(fb);
