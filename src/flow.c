@@ -440,7 +440,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     if (state != FLOW_STATE_CAPTURE_BYPASSED) {
 #endif
         /* update the last seen timestamp of this flow */
-        COPY_TIMESTAMP(&p->ts, &f->lastts);
+        if (timercmp(&p->ts, &f->lastts, >))
+            COPY_TIMESTAMP(&p->ts, &f->lastts);
 #ifdef CAPTURE_OFFLOAD
     } else {
         /* still seeing packet, we downgrade to local bypass */
