@@ -100,5 +100,44 @@ extern FlowConfig flow_config;
 /** flow memuse counter (atomic), for enforcing memcap limit */
 SC_ATOMIC_EXTERN(uint64_t, flow_memuse);
 
+typedef FlowProtoTimeout *FlowProtoTimeoutPtr;
+SC_ATOMIC_DECLARE(FlowProtoTimeoutPtr, flow_timeouts);
+
+/** \internal
+ *  \brief get timeout for flow
+ *
+ *  \param f flow
+ *  \param state flow state
+ *
+ *  \retval timeout timeout in seconds
+ */
+static inline uint32_t FlowGetFlowTimeout(const Flow *f, enum FlowState state)
+{
+    uint32_t timeout;
+    FlowProtoTimeoutPtr flow_timeouts = SC_ATOMIC_GET(flow_timeouts);
+    switch(state) {
+        default:
+        case FLOW_STATE_NEW:
+            timeout = flow_timeouts[f->protomap].new_timeout;
+            break;
+        case FLOW_STATE_ESTABLISHED:
+            timeout = flow_timeouts[f->protomap].est_timeout;
+            break;
+        case FLOW_STATE_CLOSED:
+            timeout = flow_timeouts[f->protomap].closed_timeout;
+            break;
+#ifdef CAPTURE_OFFLOAD
+        case FLOW_STATE_CAPTURE_BYPASSED:
+            timeout = FLOW_BYPASSED_TIMEOUT;
+            break;
+#endif
+        case FLOW_STATE_LOCAL_BYPASSED:
+            timeout = flow_timeouts[f->protomap].bypassed_timeout;
+            break;
+    }
+    return timeout;
+}
+
+
 #endif /* __FLOW_PRIVATE_H__ */
 

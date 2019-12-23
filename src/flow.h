@@ -107,6 +107,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_DIR_REVERSED               BIT_U32(26)
 /** Indicate that the flow did trigger an expectation creation */
 #define FLOW_HAS_EXPECTATION            BIT_U32(27)
+/** Make sure flow is not 'found' during flow hash lookup. */
+#define FLOW_TIMED_OUT                  BIT_U32(28)
 
 /* File flags */
 

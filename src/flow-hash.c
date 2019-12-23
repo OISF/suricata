@@ -413,16 +413,6 @@ static inline int FlowCompare(Flow *f, const Packet *p)
 {
     if (p->proto == IPPROTO_ICMP) {
         return FlowCompareICMPv4(f, p);
-    } else if (p->proto == IPPROTO_TCP) {
-        if (CmpFlowPacket(f, p) == 0)
-            return 0;
-
-        /* if this session is 'reused', we don't return it anymore,
-         * so return false on the compare */
-        if (f->flags & FLOW_TCP_REUSED)
-            return 0;
-
-        return 1;
     } else {
         return CmpFlowPacket(f, p);
     }
@@ -638,36 +628,44 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
     f = fb->head;
     do {
         if (FlowCompare(f, p) != 0) {
-            /* we found our flow, lets put it on top of the
-             * hash list -- this rewards active flows */
-            if (f->hprev) {
-                if (f->hnext) {
-                    f->hnext->hprev = f->hprev;
-                }
-                f->hprev->hnext = f->hnext;
-                if (f == fb->tail) {
-                    fb->tail = f->hprev;
-                }
-
-                f->hnext = fb->head;
-                f->hprev = NULL;
-                fb->head->hprev = f;
-                fb->head = f;
-            }
-            /* found our flow, lock & return */
             FLOWLOCK_WRLOCK(f);
-            if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
-                f = TcpReuseReplace(tv, dtv, fb, f, hash, p);
-                if (f == NULL) {
+            if ((f->flags & (FLOW_TCP_REUSED|FLOW_TIMED_OUT)) == 0) {
+                uint32_t timeout = FlowGetFlowTimeout(f, SC_ATOMIC_GET(f->flow_state));
+                int32_t flow_times_out_at = (int32_t)(f->lastts.tv_sec + timeout);
+                /* do the timeout check */
+                if (flow_times_out_at >= p->ts.tv_sec) {
+                    /* we found our flow, lets put it on top of the
+                     * hash list -- this rewards active flows */
+                    if (f->hprev) {
+                        if (f->hnext) {
+                            f->hnext->hprev = f->hprev;
+                        }
+                        f->hprev->hnext = f->hnext;
+                        if (f == fb->tail) {
+                            fb->tail = f->hprev;
+                        }
+
+                        f->hnext = fb->head;
+                        f->hprev = NULL;
+                        fb->head->hprev = f;
+                        fb->head = f;
+                    }
+                    if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
+                        f = TcpReuseReplace(tv, dtv, fb, f, hash, p);
+                        if (f == NULL) {
+                            FBLOCK_UNLOCK(fb);
+                            return NULL;
+                        }
+                    }
+
+                    FlowReference(dest, f);
+
                     FBLOCK_UNLOCK(fb);
-                    return NULL;
+                    return f;
                 }
+                f->flags |= FLOW_TIMED_OUT;
             }
-
-            FlowReference(dest, f);
-
-            FBLOCK_UNLOCK(fb);
-            return f;
+            FLOWLOCK_UNLOCK(f);
         }
         if (f->hnext == NULL) {
             pf = f;
