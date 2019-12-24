@@ -693,6 +693,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     struct timespec cond_time;
     int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
     int flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
+    uint32_t other_last_sec = 0; /**< last sec stamp when defrag etc ran */
 /* VJ leaving disabled for now, as hosts are only used by tags and the numbers
  * are really low. Might confuse ppl
     uint16_t flow_mgr_host_prune = StatsRegisterCounter("hosts.pruned", th_v);
@@ -741,11 +742,13 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         FlowTimeoutHash(&ts, 0 /* check all */, ftd->min, ftd->max, &counters);
 
 
-        if (ftd->instance == 0) {
+        if (ftd->instance == 0 &&
+                (other_last_sec == 0 || other_last_sec < (uint32_t)ts.tv_sec)) {
             DefragTimeoutHash(&ts);
             //uint32_t hosts_pruned =
             HostTimeoutHash(&ts);
             IPPairTimeoutHash(&ts);
+            other_last_sec = (uint32_t)ts.tv_sec;
         }
 /*
         StatsAddUI64(th_v, flow_mgr_host_prune, (uint64_t)hosts_pruned);
