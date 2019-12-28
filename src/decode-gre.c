@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -252,8 +252,8 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
         case ETHERNET_TYPE_ERSPAN:
         {
             if (pq != NULL) {
-                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
-                        len - header_len, DECODE_TUNNEL_ERSPAN, pq);
+                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len,
+                        p->greh->version == 0 ? DECODE_TUNNEL_ERSPANI : DECODE_TUNNEL_ERSPANII, pq);
                 if (tp != NULL) {
                     PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
                     PacketEnqueue(pq,tp);
