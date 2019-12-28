@@ -161,7 +161,7 @@ typedef struct Address_ {
         (a)->addr_data32[3] = 0; \
     } while (0)
 
-/* Set the IPv6 addressesinto the Addrs of the Packet.
+/* Set the IPv6 addresses into the Addrs of the Packet.
  * Make sure p->ip6h is initialized and validated. */
 #define SET_IPV6_SRC_ADDR(p, a) do {                    \
         (a)->family = AF_INET6;                         \
@@ -386,7 +386,7 @@ typedef struct PktProfiling_ {
 
 #endif /* PROFILING */
 
-/* forward declartion since Packet struct definition requires this */
+/* forward declaration since Packet struct definition requires this */
 struct PacketQueue_;
 
 /* sizes of the members:
@@ -1080,7 +1080,7 @@ void DecodeUnregisterCounters(void);
 #define PKT_ALLOC                       (1<<3)      /**< Packet was alloc'd this run, needs to be freed */
 #define PKT_HAS_TAG                     (1<<4)      /**< Packet has matched a tag */
 #define PKT_STREAM_ADD                  (1<<5)      /**< Packet payload was added to reassembled stream */
-#define PKT_STREAM_EST                  (1<<6)      /**< Packet is part of establised stream */
+#define PKT_STREAM_EST                  (1<<6)      /**< Packet is part of established stream */
 #define PKT_STREAM_EOF                  (1<<7)      /**< Stream is in eof state */
 #define PKT_HAS_FLOW                    (1<<8)
 #define PKT_PSEUDO_STREAM_END           (1<<9)      /**< Pseudo packet to end the stream */
