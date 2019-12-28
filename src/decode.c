@@ -28,7 +28,7 @@
  * example we have DecodeIPV4() for IPv4 and DecodePPP() for
  * PPP.
  *
- * These functions have all a pkt and and a len argument which
+ * These functions have all a pkt and a len argument which
  * are respectively a pointer to the protocol data and the length
  * of this protocol data.
  *
@@ -110,7 +110,7 @@ void PacketFree(Packet *p)
  * \brief Finalize decoding of a packet
  *
  * This function needs to be call at the end of decode
- * functions when decoding has been succesful.
+ * functions when decoding has been successful.
  *
  */
 void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
@@ -287,7 +287,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
         SCReturnPtr(NULL, "Packet");
     }
 
-    /* copy packet and set lenght, proto */
+    /* copy packet and set length, proto */
     PacketCopyData(p, pkt, len);
     p->recursion_level = parent->recursion_level + 1;
     p->ts.tv_sec = parent->ts.tv_sec;
@@ -384,7 +384,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
 
 /**
  *  \brief inform defrag "parent" that a pseudo packet is
- *         now assosiated to it.
+ *         now associated to it.
  */
 void PacketDefragPktSetupParent(Packet *parent)
 {
@@ -646,7 +646,7 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
 }
 
 /**
- * \brief Set data for Packet and set length when zeo copy is used
+ * \brief Set data for Packet and set length when zero copy is used
  *
  *  \param Pointer to the Packet to modify
  *  \param Pointer to the data
