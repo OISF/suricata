@@ -88,8 +88,10 @@ int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             return DecodeVLAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ETHERNET:
             return DecodeEthernet(tv, dtv, p, pkt, len);
-        case DECODE_TUNNEL_ERSPAN:
+        case DECODE_TUNNEL_ERSPANII:
             return DecodeERSPAN(tv, dtv, p, pkt, len);
+        case DECODE_TUNNEL_ERSPANI:
+            return DecodeERSPANTypeI(tv, dtv, p, pkt, len);
         default:
             SCLogDebug("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
             break;
