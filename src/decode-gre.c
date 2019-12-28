@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -252,8 +252,16 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
         case ETHERNET_TYPE_ERSPAN:
         {
             if (pq != NULL) {
+                // Determine if it's Type I or Type II based on the flags in the GRE header.
+                // Type I:  0|0|0|0|0|00000|000000000|00000
+                // Type II: 0|0|0|1|0|00000|000000000|00000
+                //                Seq
                 Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
-                        len - header_len, DECODE_TUNNEL_ERSPAN, pq);
+                        len - header_len,
+                        GRE_FLAG_ISSET_SQ(p->greh) == 0 ?
+                                DECODE_TUNNEL_ERSPANI :
+                                DECODE_TUNNEL_ERSPANII,
+                        pq);
                 if (tp != NULL) {
                     PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
                     PacketEnqueue(pq,tp);
