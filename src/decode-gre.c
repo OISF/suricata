@@ -252,8 +252,8 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
         case ETHERNET_TYPE_ERSPAN:
         {
             if (pq != NULL) {
-                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
-                        len - header_len, DECODE_TUNNEL_ERSPAN, pq);
+                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len,
+                        p->greh->version == 0 ? DECODE_TUNNEL_ERSPAN_TYPEI : DECODE_TUNNEL_ERSPAN, pq);
                 if (tp != NULL) {
                     PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
                     PacketEnqueue(pq,tp);

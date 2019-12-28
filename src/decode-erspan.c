@@ -27,7 +27,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Decodes ERSPAN
+ * Decodes ERSPAN Types I and II
  */
 
 #include "suricata-common.h"
@@ -40,9 +40,22 @@
 #include "util-debug.h"
 
 /**
- * \brief Function to decode ERSPAN packets
+ * \brief Functions to decode ERSPAN Type I and II packets
  */
 
+/**
+ * \brief ERSPAN Type I
+ */
+int DecodeERSPANTypeI(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len, PacketQueue *pq)
+{
+    StatsIncr(tv, dtv->counter_erspan);
+
+    return DecodeEthernet(tv, dtv, p, pkt, len, pq);
+}
+
+/**
+ * \brief ERSPAN Type II
+ */
 int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_erspan);
