@@ -66,7 +66,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
     {
         case GRE_VERSION_0:
 
-            /* GRE version 0 doenst support the fields below RFC 1701 */
+            /* GRE version 0 doesn't support the fields below RFC 1701 */
 
             /**
              * \todo We need to make sure this does not allow bypassing
@@ -130,7 +130,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
 
         case GRE_VERSION_1:
 
-            /* GRE version 1 doenst support the fields below RFC 1701 */
+            /* GRE version 1 doesn't support the fields below RFC 1701 */
 
             /**
              * \todo We need to make sure this does not allow bypassing
