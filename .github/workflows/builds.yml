@@ -146,20 +146,14 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: dist
-      - run: mkdir suricata
-      - working-directory: suricata
-        run: tar zxvf ../dist/suricata-*.tar.gz --strip-components=1
-      - working-directory: suricata
-        run: ./configure
-      - working-directory: suricata
-        name: Check that Rust is using --frozen
+      - run: tar zxvf ./dist/suricata-*.tar.gz --strip-components=1
+      - run: ./configure
+      - name: Check that Rust is using --frozen
         run: grep -q '^FROZEN' rust/Makefile
-      - working-directory: suricata
-        run: make -j2
-      - working-directory: suricata
-        run: make install
-      - working-directory: suricata
-        run: make install-conf
+      - run: make -j2
+      - run: make install
+      - run: make install-conf
+      - run: make distcheck
 
   centos-6:
     name: CentOS 6
