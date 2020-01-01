@@ -7,11 +7,11 @@ if HAVE_PYTHON
 if HAVE_PYTHON_DISTUTILS
 all-local:
 	cd $(srcdir) && \
-		$(HAVE_PYTHON) setup.py build --build-base "$(abs_builddir)"
+		$(HAVE_PYTHON) setup.py build -e "$(TARGET_PYTHON)" --build-base "$(abs_builddir)"
 
 install-exec-local:
 	cd $(srcdir) && \
-		$(HAVE_PYTHON) setup.py build --build-base "$(abs_builddir)" \
+		$(HAVE_PYTHON) setup.py build -e "$(TARGET_PYTHON)" --build-base "$(abs_builddir)" \
 		install --prefix $(DESTDIR)$(prefix)
 
 uninstall-local:

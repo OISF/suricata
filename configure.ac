@@ -150,6 +150,13 @@
        echo ""
     fi
 
+    # Allow the user to specify what is the target python to use in the python
+    # scripts (can be useful when cross-compiling)
+    AC_ARG_WITH(target-python,
+           AS_HELP_STRING([--with-target-python], [Target python to use in python scripts]),
+           [TARGET_PYTHON=$withval],[TARGET_PYTHON=$HAVE_PYTHON])
+    AC_SUBST(TARGET_PYTHON)
+
     # Check for python-yaml.
     have_python_yaml="no"
     if test "x$enable_python" = "xyes"; then
@@ -2639,6 +2646,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
 
   Python support:                          ${enable_python}
   Python path:                             ${python_path}
+  Target python:                           ${TARGET_PYTHON}
   Python distutils                         ${have_python_distutils}
   Python yaml                              ${have_python_yaml}
   Install suricatactl:                     ${install_suricatactl}
