@@ -82,12 +82,62 @@ static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
 static size_t traffic_id_prefix_len = 0;
 static size_t traffic_label_prefix_len = 0;
 
+SC_ATOMIC_DECLARE(uint64_t, json_events_counter);
+SC_ATOMIC_DECLARE(uint64_t, json_events_bytes);
+SC_ATOMIC_DECLARE(uint64_t, json_events_max_size);
+SC_ATOMIC_DECLARE(uint64_t, json_events_min_size);
+
 void OutputJsonRegister (void)
 {
     OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
 
     traffic_id_prefix_len = strlen(TRAFFIC_ID_PREFIX);
     traffic_label_prefix_len = strlen(TRAFFIC_LABEL_PREFIX);
+
+}
+
+static uint64_t OutputJsonEventGlobalCounter(void)
+{
+    uint64_t tmpval = SC_ATOMIC_GET(json_events_counter);
+    return tmpval;
+}
+
+static uint64_t OutputJsonEventMinSize(void)
+{
+    uint64_t tmpval = SC_ATOMIC_GET(json_events_min_size);
+    return tmpval;
+}
+
+static uint64_t OutputJsonEventMaxSize(void)
+{
+    uint64_t tmpval = SC_ATOMIC_GET(json_events_max_size);
+    return tmpval;
+}
+
+static uint64_t OutputJsonEventBytes(void)
+{
+    uint64_t tmpval = SC_ATOMIC_GET(json_events_bytes);
+    return tmpval;
+}
+
+static uint64_t OutputJsonEventAvgSize(void)
+{
+    uint64_t tmpbytes = SC_ATOMIC_GET(json_events_bytes);
+    uint64_t tmpcnt = SC_ATOMIC_GET(json_events_counter);
+    return tmpbytes/tmpcnt;
+}
+
+void OutputJsonRegisterGlobalCounters(void)
+{
+    SC_ATOMIC_INIT(json_events_counter);
+    StatsRegisterGlobalCounter("json.events", OutputJsonEventGlobalCounter);
+    SC_ATOMIC_INIT(json_events_counter);
+    StatsRegisterGlobalCounter("json.bytes", OutputJsonEventBytes);
+    SC_ATOMIC_INIT(json_events_min_size);
+    StatsRegisterGlobalCounter("json.min_size", OutputJsonEventMinSize);
+    SC_ATOMIC_INIT(json_events_max_size);
+    StatsRegisterGlobalCounter("json.max_size", OutputJsonEventMaxSize);
+    StatsRegisterGlobalCounter("json.avg_size", OutputJsonEventAvgSize);
 }
 
 json_t *SCJsonBool(int val)
@@ -831,6 +881,17 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
             file_ctx->json_flags);
     if (r != 0)
         return TM_ECODE_OK;
+
+    SC_ATOMIC_ADD(json_events_counter, 1);
+    SC_ATOMIC_ADD(json_events_bytes, (*buffer)->offset);
+    uint64_t max_size = SC_ATOMIC_GET(json_events_max_size);
+    if ((*buffer)->offset > max_size) {
+        SC_ATOMIC_SET(json_events_max_size, (*buffer)->offset);
+    }
+    uint64_t min_size = SC_ATOMIC_GET(json_events_min_size);
+    if (((*buffer)->offset < min_size) || (min_size == 0)) {
+        SC_ATOMIC_SET(json_events_min_size, (*buffer)->offset);
+    }
 
     LogFileWrite(file_ctx, *buffer);
     return 0;

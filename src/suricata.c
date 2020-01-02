@@ -75,6 +75,8 @@
 
 #include "datasets.h"
 
+#include "output-json.h"
+
 #include "stream-tcp.h"
 
 #include "source-nfq.h"
@@ -2309,6 +2311,7 @@ void PreRunInit(const int runmode)
     StreamTcpInitConfig(STREAM_VERBOSE);
     AppLayerParserPostStreamSetup();
     AppLayerRegisterGlobalCounters();
+    OutputJsonRegisterGlobalCounters();
 }
 
 /* tasks we need to run before packets start flowing,

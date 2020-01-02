@@ -32,6 +32,7 @@
 #include "app-layer-htp-xff.h"
 
 void OutputJsonRegister(void);
+void OutputJsonRegisterGlobalCounters(void);
 
 enum OutputJsonLogDirection {
     LOG_DIR_PACKET = 0,
