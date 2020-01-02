@@ -148,6 +148,7 @@ json_t *JsonAddStringN(const char *string, size_t size)
 
     return SCJsonString(tmpbuf);
 }
+
 static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
 {
     if (p == NULL || p->pktvar == NULL) {
