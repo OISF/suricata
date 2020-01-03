@@ -1915,11 +1915,15 @@
         fi
     fi
 
-  # Napatech - Using the 3GD API
+    # Napatech - Using the 3GD API
     AC_ARG_ENABLE(napatech,
                 AS_HELP_STRING([--enable-napatech],[Enabled Napatech Devices]),
                 [ enable_napatech=$enableval ],
                 [ enable_napatech=no])
+    AC_ARG_ENABLE(napatech_bypass,
+                AS_HELP_STRING([--disable-napatech-bypass],[Disable Bypass feature on Napatech cards]),
+                [ napatech_bypass=$enableval ],
+                [ napatech_bypass=yes])
     AC_ARG_WITH(napatech_includes,
                 [  --with-napatech-includes=DIR   napatech include directory],
                 [with_napatech_includes="$withval"],[with_napatech_includes="/opt/napatech3/include"])
@@ -1957,6 +1961,17 @@
         fi
 
         AC_DEFINE([HAVE_NAPATECH],[1],(Napatech capture card support))
+        if test "$napatech_bypass" = "yes"; then        
+            AC_CHECK_LIB(ntapi, NT_FlowOpenAttrInit,NTFLOW="yes",NTFLOW="no")
+            if test "$NTFLOW" = "yes"; then
+                echo "   Napatech Flow Processing is Enabled (--disable-napatech-bypass if not needed)"
+                AC_DEFINE([NAPATECH_ENABLE_BYPASS],[1],(Napatech flowdirector support))
+            else
+                echo "Napatech Flow Processing is not available"
+            fi
+        else 
+            echo "Napatech Flow Processing is Disabled."
+        fi      
     fi
 
   # liblua
