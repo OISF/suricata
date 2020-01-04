@@ -963,6 +963,12 @@ static void EngineAnalysisItemsInit(void)
         DetectEngineAnalyzerItems *analyzer_item = &analyzer_items[i];
 
         analyzer_item->item_id = DetectBufferTypeGetByName(analyzer_item->item_name);
+        if (analyzer_item->item_id == -1) {
+            /* Mismatch between the analyzer_items array and what's supported */
+            FatalError(SC_ERR_INITIALIZATION,
+                       "unable to initialize engine-analysis table: detect buffer \"%s\" not recognized.",
+                       analyzer_item->item_name);
+        }
         analyzer_item->item_seen = false;
 
         if (analyzer_item->export_item_seen) {
