@@ -1765,21 +1765,55 @@ napatech:
     #
     streams: ["0-3"]
 
+    # Stream stats can be enabled to provide fine grain packet and byte counters 
+    # for each thread/stream that is configured.
+    #
+    enable-stream-stats: no
+
     # When auto-config is enabled the streams will be created and assigned
     # automatically to the NUMA node where the thread resides.  If cpu-affinity
     # is enabled in the threading section.  Then the streams will be created
     # according to the number of worker threads specified in the worker cpu set.
     # Otherwise, the streams array is used to define the streams.
     #
-    # This option cannot be used simultaneous with "use-all-streams".
+    # This option is intended primarily to support legacy configurations.
+    #
+    # This option cannot be used simultaneous with either "use-all-streams"
+    # or hardware-bypass.
     #
     auto-config: yes
+
+    # Enable hardware level flow bypass.
+    #
+    hardware-bypass: yes
+    
+    # Enable inline operation.  When enabled traffic arriving on a given port is 
+    # automatically forwarded out it's peer port after analysis by suricata.
+    # 
+    inline: no
 
     # Ports indicates which napatech ports are to be used in auto-config mode.
     # these are the port ID's of the ports that will be merged prior to the
     # traffic being distributed to the streams.
     #
-    # This can be specified in any of the following ways:
+    # When hardware-bypass is enabled the ports must be configured as a segement
+    # specify the port(s) on which upstream and downstream traffic will arrive. 
+    # This information is necessary for the hardware to properly process flows. 
+    #
+    # When using a tap configuration one of the ports will receive inbound traffic 
+    # for the network and the other will receive outbound traffic. The two ports on a 
+    # given segment must reside on the same network adapter.
+    #
+    # When using a SPAN-port configuration the upstream and downstream traffic 
+    # arrives on a single port. This is configured by setting the two sides of the
+    # segment to reference the same port.  (e.g. 0-0 to configure a SPAN port on 
+    # port 0).
+    # 
+    # port segments are specified in the form:
+    #    ports: [0-1,2-3,4-5,6-6,7-7]
+    #
+    # For legecy systems when hardware-bypass is disabled this can be specified in any 
+    # of the following ways:
     #
     #   a list of individual ports (e.g. ports: [0,1,2,3])
     #
@@ -1788,9 +1822,9 @@ napatech:
     #   "all" to indicate that all ports are to be merged together
     #   (e.g. ports: [all])
     #
-    # This has no effect if auto-config is disabled.
+    # This parameter has no effect if auto-config is disabled.
     #
-    ports: [all]
+    ports: [0-1,2-3]
 
     # When auto-config is enabled the hashmode specifies the algorithm for
     # determining to which stream a given packet is to be delivered.
@@ -1801,7 +1835,7 @@ napatech:
     #
     # See Napatech NTPL documentation other hashmodes and details on their use.
     #
-    # This has no effect if auto-config is disabled.
+    # This parameter has no effect if auto-config is disabled.
     #
     hashmode: hash5tuplesorted
 
