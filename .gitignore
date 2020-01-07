@@ -45,6 +45,8 @@ stamp-h1
 src/build-info.h
 qa/log/
 qa/coccinelle/struct-flags.cocci
+.idea
+.vscode
 
 /suricata-update/*
 !/suricata-update/Makefile.am
