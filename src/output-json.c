@@ -578,6 +578,135 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
     json_object_set_new(js, "proto", json_string(proto));
 }
 
+/**
+ * Version of JsonFiveTuple for JsonBuilder.
+ */
+void EveFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, JsonBuilder *js)
+{
+    char srcip[46] = {0}, dstip[46] = {0};
+    Port sp, dp;
+    char proto[16];
+
+    switch (dir) {
+        case LOG_DIR_PACKET:
+            if (PKT_IS_IPV4(p)) {
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                        srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                        dstip, sizeof(dstip));
+            } else if (PKT_IS_IPV6(p)) {
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                        srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                        dstip, sizeof(dstip));
+            } else {
+                /* Not an IP packet so don't do anything */
+                return;
+            }
+            sp = p->sp;
+            dp = p->dp;
+            break;
+        case LOG_DIR_FLOW:
+        case LOG_DIR_FLOW_TOSERVER:
+            if ((PKT_IS_TOSERVER(p))) {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->sp;
+                dp = p->dp;
+            } else {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->dp;
+                dp = p->sp;
+            }
+            break;
+        case LOG_DIR_FLOW_TOCLIENT:
+            if ((PKT_IS_TOCLIENT(p))) {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->sp;
+                dp = p->dp;
+            } else {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->dp;
+                dp = p->sp;
+            }
+            break;
+        default:
+            DEBUG_VALIDATE_BUG_ON(1);
+            return;
+    }
+
+    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
+        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
+    } else {
+        snprintf(proto, sizeof(proto), "%03" PRIu32, IP_GET_IPPROTO(p));
+    }
+
+    scjs_set_string(js, "src_ip", srcip);
+
+    switch(p->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            scjs_set_uint(js, "src_port", sp);
+            break;
+    }
+
+    scjs_set_string(js, "dest_ip", dstip);
+
+    switch(p->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            scjs_set_uint(js, "dest_port", dp);
+            break;
+    }
+
+    scjs_set_string(js, "proto", proto);
+}
+
 static void CreateJSONCommunityFlowIdv4(json_t *js, const Flow *f,
         const uint16_t seed)
 {
@@ -707,6 +836,89 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
     }
 }
 
+/**
+ * Variation of CreateJSONFlowId but for JsonBuilder.
+ */
+void EveSetFlowId(JsonBuilder *js, const Flow *f)
+{
+    if (f == NULL) {
+        return;
+    }
+    int64_t flow_id = FlowGetId(f);
+    scjs_set_uint(js, "flow_id", flow_id);
+    if (f->parent_id) {
+        scjs_set_uint(js, "parent_id", f->parent_id);
+    }
+}
+
+JsonBuilder *EveOpenHeader(const Packet *p, enum OutputJsonLogDirection dir,
+    const char *event_type)
+{
+    char timebuf[64];
+    const Flow *f = (const Flow *)p->flow;
+
+    JsonBuilder *js = scjs_new_object();
+    if (unlikely(js == NULL)) {
+        return NULL;
+    }
+
+    CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    scjs_set_string(js, "timestamp", timebuf);
+
+    EveSetFlowId(js, f);
+
+    /* sensor id */
+    if (sensor_id >= 0) {
+        scjs_set_uint(js, "sensor_id", sensor_id);
+    }
+
+    /* input interface */
+    if (p->livedev) {
+        scjs_set_string(js, "in_iface", p->livedev->dev);
+    }
+
+    /* pcap_cnt */
+    if (p->pcap_cnt != 0) {
+        scjs_set_uint(js, "pcap_cnt", p->pcap_cnt);
+    }
+
+    if (event_type) {
+        scjs_set_string(js, "event_type", event_type);
+    }
+
+    /* vlan */
+    if (p->vlan_idx > 0) {
+        scjs_open_array(js, "vlan");
+        scjs_add_uint(js, p->vlan_id[0]);
+        if (p->vlan_idx > 1) {
+            scjs_add_uint(js, p->vlan_id[1]);
+        }
+        scjs_close(js);
+    }
+
+    /* 5-tuple */
+    EveFiveTuple(p, dir, js);
+
+    /* icmp */
+    switch (p->proto) {
+        case IPPROTO_ICMP:
+            if (p->icmpv4h) {
+                scjs_set_uint(js, "icmp_type", p->icmpv4h->type);
+                scjs_set_uint(js, "icmp_code", p->icmpv4h->code);
+            }
+            break;
+        case IPPROTO_ICMPV6:
+            if (p->icmpv6h) {
+                scjs_set_uint(js, "icmp_type", p->icmpv6h->type);
+                scjs_set_uint(js, "icmp_code", p->icmpv6h->code);
+            }
+            break;
+    }
+
+    return js;
+}
+
 json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
                          const char *event_type)
 {
@@ -832,6 +1044,39 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
         return TM_ECODE_OK;
 
     LogFileWrite(file_ctx, *buffer);
+    return 0;
+}
+
+int OutputSCJSONBuffer(JsonBuilder *js, LogFileCtx *file_ctx, MemBuffer **buffer)
+{
+    if (file_ctx->sensor_name) {
+        scjs_set_string(js, "host", file_ctx->sensor_name);
+    }
+
+    if (file_ctx->is_pcap_offline) {
+        scjs_set_string(js, "pcap_filename", PcapFileGetFilename());
+    }
+
+    if (file_ctx->prefix) {
+        MemBufferWriteRaw((*buffer), file_ctx->prefix, file_ctx->prefix_len);
+    }
+
+    /* We can probably do better here... */
+    size_t slen = 0;
+    char *s = scjs_to_cstring(js, &slen);
+    if (unlikely(s == NULL)) {
+        /* TODO: How to indicate error? */
+        return 0;
+    }
+
+    if (MEMBUFFER_OFFSET(*buffer) + slen >= MEMBUFFER_SIZE(*buffer)) {
+        MemBufferExpand(buffer, slen);
+    }
+
+    MemBufferWriteRaw((*buffer), s, slen);
+    LogFileWrite(file_ctx, *buffer);
+
+    free(s);
     return 0;
 }
 

@@ -30,6 +30,7 @@
 #include "output.h"
 
 #include "app-layer-htp-xff.h"
+#include "rust.h"
 
 void OutputJsonRegister(void);
 
@@ -94,5 +95,11 @@ void SCJsonDecref(json_t *js);
 
 void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
         const Packet *p, const Flow *f, json_t *js);
+
+JsonBuilder *EveOpenHeader(const Packet *p, enum OutputJsonLogDirection dir,
+    const char *event_type);
+void EveFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, JsonBuilder *js);
+void EveSetFlowId(JsonBuilder *js, const Flow *f);
+int OutputSCJSONBuffer(JsonBuilder *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 
 #endif /* __OUTPUT_JSON_H__ */
