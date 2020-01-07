@@ -94,7 +94,8 @@ exclude = [
     "SuricataContext",
     "SuricataFileContext",
     "TFTPState",
-    "TFTPTransaction"
+    "TFTPTransaction",
+    "free",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.
