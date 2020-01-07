@@ -17,6 +17,11 @@
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 
+// Clippy lints we want to disable globally for now.
+#![allow(clippy::needless_return)]
+#![allow(clippy::redundant_field_names)]
+
+
 #[macro_use]
 extern crate nom;
 
