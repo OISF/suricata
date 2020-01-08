@@ -2455,8 +2455,6 @@ fi
     fi
 
     AC_CHECK_FILES([$srcdir/rust/gen], [have_rust_headers="yes"])
-    AC_DEFINE([HAVE_RUST_HEADERS],[1],[Enable Rust language])
-    AM_CONDITIONAL([HAVE_RUST_HEADERS], [test "x$have_rust_headers" = "xyes"])
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then
       cbindgen_version=$(cbindgen --version | cut -d' ' -f2-)
@@ -2470,6 +2468,8 @@ fi
         echo "      found $cbindgen_version."
         echo "  To update: cargo install --force cbindgen"
         CBINDGEN="no"
+      else
+        have_rust_headers="no"
       fi
     fi
 
@@ -2483,6 +2483,7 @@ fi
       fi
     fi
 
+    AM_CONDITIONAL([HAVE_RUST_HEADERS], [test "x$have_rust_headers" = "xyes"])
     AM_CONDITIONAL([HAVE_CBINDGEN], [test "x$CBINDGEN" != "xno"])
     AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$have_cargo_vendor" != "xno"])
 
