@@ -255,6 +255,7 @@ jobs:
       - run: ./configure --enable-unittests
       - run: make -j2
       - run: make check
+      - run: make distcheck
       - name: Fetching suricata-verify
         run: git clone https://github.com/OISF/suricata-verify.git
       - name: Running suricata-verify
