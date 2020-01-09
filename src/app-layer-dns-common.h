@@ -27,13 +27,6 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
-enum {
-    DNS_DECODER_EVENT_MALFORMED_DATA,
-    DNS_DECODER_EVENT_NOT_A_REQUEST,
-    DNS_DECODER_EVENT_NOT_A_RESPONSE,
-    DNS_DECODER_EVENT_Z_FLAG_SET,
-};
-
 /** Opaque Rust types. */
 
 /** \brief DNS packet header */
@@ -46,10 +39,6 @@ typedef struct DNSHeader_ {
     uint16_t additional_rr;
 } __attribute__((__packed__)) DNSHeader;
 
-int DNSStateGetEventInfo(const char *event_name,
-                         int *event_id, AppLayerEventType *event_type);
-int DNSStateGetEventInfoById(int event_id, const char **event_name,
-                             AppLayerEventType *event_type);
 void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto);
 void DNSAppLayerRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto);
 
