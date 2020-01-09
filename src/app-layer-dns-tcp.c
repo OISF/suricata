@@ -166,8 +166,10 @@ void RegisterDNSTCPParsers(void)
                 RustDNSGetAlstateProgress);
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DNS,
                 rs_dns_state_progress_completion_status);
-        DNSAppLayerRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_DNS);
-        DNSAppLayerRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_DNS);
+        AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_DNS,
+            rs_dns_state_get_event_info);
+        AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_DNS,
+            rs_dns_state_get_event_info_by_id);
 
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_DNS,
