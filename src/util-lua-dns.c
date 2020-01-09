@@ -86,20 +86,11 @@ static int DnsGetRcode(lua_State *luastate)
 {
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
         return LuaCallbackError(luastate, "error: protocol not dns");
-    uint16_t rcode = 0;
     RSDNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL) {
         return LuaCallbackError(luastate, "internal error: no tx");
     }
-    uint16_t flags = rs_dns_tx_get_response_flags(tx);
-    rcode = flags & 0x000f;
-    if (rcode) {
-        char rcode_str[16] = "";
-        DNSCreateRcodeString(rcode, rcode_str, sizeof(rcode_str));
-        return LuaPushStringBuffer(luastate, (const uint8_t *)rcode_str, strlen(rcode_str));
-    } else {
-        return 0;
-    }
+    return rs_dns_lua_get_rcode(luastate, tx);
 }
 
 static int DnsGetRecursionDesired(lua_State *luastate)
