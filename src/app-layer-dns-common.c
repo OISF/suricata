@@ -25,13 +25,10 @@
 #include "app-layer-dns-common.h"
 
 SCEnumCharMap dns_decoder_event_table[ ] = {
-    { "UNSOLLICITED_RESPONSE",      DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE, },
     { "MALFORMED_DATA",             DNS_DECODER_EVENT_MALFORMED_DATA, },
     { "NOT_A_REQUEST",              DNS_DECODER_EVENT_NOT_A_REQUEST, },
     { "NOT_A_RESPONSE",             DNS_DECODER_EVENT_NOT_A_RESPONSE, },
     { "Z_FLAG_SET",                 DNS_DECODER_EVENT_Z_FLAG_SET, },
-    { "FLOODED",                    DNS_DECODER_EVENT_FLOODED, },
-    { "STATE_MEMCAP_REACHED",       DNS_DECODER_EVENT_STATE_MEMCAP_REACHED, },
 
     { NULL,                         -1 },
 };

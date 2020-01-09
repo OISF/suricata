@@ -124,13 +124,10 @@ const MAX_TRANSACTIONS: usize = 32;
 
 #[repr(u32)]
 pub enum DNSEvent {
-    UnsolicitedResponse = 0,
     MalformedData,
     NotRequest,
     NotResponse,
     ZFlagSet,
-    Flooded,
-    StateMemCapReached,
 }
 
 #[derive(Debug,PartialEq)]
