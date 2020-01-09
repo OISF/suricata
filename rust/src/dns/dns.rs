@@ -127,10 +127,82 @@ const MAX_TRANSACTIONS: usize = 32;
 
 #[repr(u32)]
 pub enum DNSEvent {
-    MalformedData,
-    NotRequest,
-    NotResponse,
-    ZFlagSet,
+    MalformedData = 0,
+    NotRequest = 1,
+    NotResponse = 2,
+    ZFlagSet = 3,
+}
+
+impl DNSEvent {
+    pub fn to_cstring(&self) -> &str {
+        match *self {
+            DNSEvent::MalformedData => "MALFORMED_DATA\0",
+            DNSEvent::NotRequest => "NOT_A_REQUEST\0",
+            DNSEvent::NotResponse => "NOT_A_RESPONSE\0",
+            DNSEvent::ZFlagSet => "Z_FLAG_SET\0",
+        }
+    }
+
+    pub fn from_id(id: u32) -> Option<DNSEvent> {
+        match id {
+            0 => Some(DNSEvent::MalformedData),
+            1 => Some(DNSEvent::NotRequest),
+            2 => Some(DNSEvent::NotResponse),
+            4 => Some(DNSEvent::ZFlagSet),
+            _ => None,
+        }
+    }
+
+    pub fn from_string(s: &str) -> Option<DNSEvent> {
+        match s.to_lowercase().as_ref() {
+            "malformed_data" => Some(DNSEvent::MalformedData),
+            "not_a_request" => Some(DNSEvent::NotRequest),
+            "not_a_response" => Some(DNSEvent::NotRequest),
+            "z_flag_set" => Some(DNSEvent::ZFlagSet),
+            _ => None
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dns_state_get_event_info_by_id(
+    event_id: std::os::raw::c_int,
+    event_name: *mut *const std::os::raw::c_char,
+    event_type: *mut core::AppLayerEventType,
+) -> std::os::raw::c_int {
+    if let Some(e) = DNSEvent::from_id(event_id as u32) {
+        *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
+        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        return 0;
+    }
+    return -1;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dns_state_get_event_info(
+    event_name: *const std::os::raw::c_char,
+    event_id: *mut std::os::raw::c_int,
+    event_type: *mut core::AppLayerEventType
+) -> std::os::raw::c_int {
+    if event_name == std::ptr::null() {
+        return -1;
+    }
+
+    let event_name = std::ffi::CStr::from_ptr(event_name);
+    if let Ok(event_name) = event_name.to_str() {
+        if let Some(event) = DNSEvent::from_string(event_name) {
+            *event_id = event as std::os::raw::c_int;
+            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        } else {
+            // Unknown event...
+            return -1;
+        }
+    } else {
+        // UTF-8 conversion failed. Should not happen.
+        return -1;
+    }
+
+    return 0;
 }
 
 #[derive(Debug,PartialEq)]
