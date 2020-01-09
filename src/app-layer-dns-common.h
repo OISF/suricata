@@ -139,7 +139,6 @@ int DNSStateGetEventInfoById(int event_id, const char **event_name,
 void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto);
 void DNSAppLayerRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto);
 
-void DNSCreateTypeString(uint16_t type, char *str, size_t str_size);
 void DNSCreateRcodeString(uint8_t rcode, char *str, size_t str_size);
 
 #endif /* __APP_LAYER_DNS_COMMON_H__ */
