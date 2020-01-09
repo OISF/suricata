@@ -88,28 +88,6 @@
 #define DNS_RECORD_TYPE_ANY         255
 #define DNS_RECORD_TYPE_URI         256
 
-#define DNS_RCODE_NOERROR       0
-#define DNS_RCODE_FORMERR       1
-#define DNS_RCODE_SERVFAIL      2
-#define DNS_RCODE_NXDOMAIN      3
-#define DNS_RCODE_NOTIMP        4
-#define DNS_RCODE_REFUSED       5
-#define DNS_RCODE_YXDOMAIN      6
-#define DNS_RCODE_YXRRSET       7
-#define DNS_RCODE_NXRRSET       8
-#define DNS_RCODE_NOTAUTH       9
-#define DNS_RCODE_NOTZONE       10
-// Support for OPT RR from RFC6891 will be needed to
-// parse RCODE values over 15
-#define DNS_RCODE_BADVERS       16
-#define DNS_RCODE_BADSIG        16
-#define DNS_RCODE_BADKEY        17
-#define DNS_RCODE_BADTIME       18
-#define DNS_RCODE_BADMODE       19
-#define DNS_RCODE_BADNAME       20
-#define DNS_RCODE_BADALG        21
-#define DNS_RCODE_BADTRUNC      22
-
 enum {
     DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE,
     DNS_DECODER_EVENT_MALFORMED_DATA,
@@ -138,7 +116,5 @@ int DNSStateGetEventInfoById(int event_id, const char **event_name,
                              AppLayerEventType *event_type);
 void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto);
 void DNSAppLayerRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto);
-
-void DNSCreateRcodeString(uint8_t rcode, char *str, size_t str_size);
 
 #endif /* __APP_LAYER_DNS_COMMON_H__ */
