@@ -274,7 +274,7 @@ static void ModbusSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
     if (dir & STREAM_TOSERVER) {
         tx->detect_flags_ts = flags;
     } else {
-        tx->detect_flags_ts = flags;
+        tx->detect_flags_tc = flags;
     }
 }
 
