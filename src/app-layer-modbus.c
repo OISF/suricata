@@ -1733,7 +1733,7 @@ static uint8_t readWriteMultipleRegistersRsp[] = {/* Transaction ID */          
                                                                                 0x00};
 
 /* Modbus Application Protocol Specification V1.1b3 6.8.1: 04 Force Listen Only Mode */
-/* Example of a request to to remote device to its Listen Only MOde for Modbus Communications. */
+/* Example of a request to to remote device to its Listen Only Mode for Modbus Communications. */
 static uint8_t forceListenOnlyMode[] = {/* Transaction ID */     0x0A, 0x00,
                                         /* Protocol ID */        0x00, 0x00,
                                         /* Length */             0x00, 0x06,
