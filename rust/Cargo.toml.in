@@ -3,6 +3,9 @@ name = "suricata"
 version = "@PACKAGE_VERSION@"
 edition = "2018"
 
+[workspace]
+members = [".", "./derive"]
+
 [lib]
 crate-type = ["staticlib", "rlib"]
 path = "@e_rustdir@/src/lib.rs"
