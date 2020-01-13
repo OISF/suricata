@@ -115,84 +115,12 @@ pub const DNS_RCODE_BADTRUNC: u16 = 22;
 
 static mut ALPROTO_DNS: AppProto = ALPROTO_UNKNOWN;
 
-#[repr(u32)]
+#[derive(Debug, PartialEq, AppLayerEvent)]
 pub enum DNSEvent {
-    MalformedData = 0,
-    NotRequest = 1,
-    NotResponse = 2,
-    ZFlagSet = 3,
-}
-
-impl DNSEvent {
-    pub fn to_cstring(&self) -> &str {
-        match *self {
-            DNSEvent::MalformedData => "MALFORMED_DATA\0",
-            DNSEvent::NotRequest => "NOT_A_REQUEST\0",
-            DNSEvent::NotResponse => "NOT_A_RESPONSE\0",
-            DNSEvent::ZFlagSet => "Z_FLAG_SET\0",
-        }
-    }
-
-    pub fn from_id(id: u32) -> Option<DNSEvent> {
-        match id {
-            0 => Some(DNSEvent::MalformedData),
-            1 => Some(DNSEvent::NotRequest),
-            2 => Some(DNSEvent::NotResponse),
-            4 => Some(DNSEvent::ZFlagSet),
-            _ => None,
-        }
-    }
-
-    pub fn from_string(s: &str) -> Option<DNSEvent> {
-        match s.to_lowercase().as_ref() {
-            "malformed_data" => Some(DNSEvent::MalformedData),
-            "not_a_request" => Some(DNSEvent::NotRequest),
-            "not_a_response" => Some(DNSEvent::NotRequest),
-            "z_flag_set" => Some(DNSEvent::ZFlagSet),
-            _ => None
-        }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int,
-    event_name: *mut *const std::os::raw::c_char,
-    event_type: *mut core::AppLayerEventType,
-) -> i8 {
-    if let Some(e) = DNSEvent::from_id(event_id as u32) {
-        *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        return 0;
-    }
-    return -1;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_event_info(
-    event_name: *const std::os::raw::c_char,
-    event_id: *mut std::os::raw::c_int,
-    event_type: *mut core::AppLayerEventType
-) -> std::os::raw::c_int {
-    if event_name == std::ptr::null() {
-        return -1;
-    }
-
-    let event_name = std::ffi::CStr::from_ptr(event_name);
-    if let Ok(event_name) = event_name.to_str() {
-        if let Some(event) = DNSEvent::from_string(event_name) {
-            *event_id = event as std::os::raw::c_int;
-            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
-        } else {
-            // Unknown event...
-            return -1;
-        }
-    } else {
-        // UTF-8 conversion failed. Should not happen.
-        return -1;
-    }
-
-    return 0;
+    MalformedData,
+    NotRequest,
+    NotResponse,
+    ZFlagSet,
 }
 
 #[derive(Debug,PartialEq)]
@@ -1058,8 +986,8 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
         get_events: Some(rs_dns_state_get_events),
-        get_eventinfo: Some(rs_dns_state_get_event_info),
-        get_eventinfo_byid: Some(rs_dns_state_get_event_info_by_id),
+        get_eventinfo: Some(DNSEvent::get_event_info),
+        get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
@@ -1104,8 +1032,8 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         tx_comp_st_tc: 1,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
         get_events: Some(rs_dns_state_get_events),
-        get_eventinfo: Some(rs_dns_state_get_event_info),
-        get_eventinfo_byid: Some(rs_dns_state_get_event_info_by_id),
+        get_eventinfo: Some(DNSEvent::get_event_info),
+        get_eventinfo_byid: Some(DNSEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_files: None,
@@ -1531,5 +1459,25 @@ mod tests {
             AppLayerResult::ok(),
             state.parse_request_tcp(buf3)
         );
+    }
+
+    #[test]
+    fn test_dns_event_from_id() {
+        assert_eq!(DNSEvent::from_id(0), Some(DNSEvent::MalformedData));
+        assert_eq!(DNSEvent::from_id(3), Some(DNSEvent::ZFlagSet));
+        assert_eq!(DNSEvent::from_id(9), None);
+    }
+
+    #[test]
+    fn test_dns_event_to_cstring() {
+        assert_eq!(DNSEvent::MalformedData.to_cstring(), "malformed_data\0");
+    }
+
+    #[test]
+    fn test_dns_event_from_string() {
+        let name = "malformed_data";
+        let event = DNSEvent::from_string(&name).unwrap();
+        assert_eq!(event, DNSEvent::MalformedData);
+        assert_eq!(event.to_cstring(), format!("{}\0", name));
     }
 }
