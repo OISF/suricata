@@ -64,26 +64,29 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
     LogDHCPLogThread *thread = thread_data;
     LogDHCPFileCtx *ctx = thread->dhcplog_ctx;
 
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "dhcp", NULL);
+    if (!rs_dhcp_logger_do_log(ctx->rs_logger, tx)) {
+        return TM_ECODE_OK;
+    }
+
+    JsonBuilder *js = CreateEveHeader((Packet *)p, 0, "dhcp", NULL);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    json_t *dhcp_js = rs_dhcp_logger_log(ctx->rs_logger, tx);
-    if (unlikely(dhcp_js == NULL)) {
-        goto skip;
+    rs_dhcp_logger_log(ctx->rs_logger, tx, js);
+    if (!jb_close(js)) {
+        goto fail;
     }
-    json_object_set_new(js, "dhcp", dhcp_js);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->dhcplog_ctx->file_ctx, &thread->buffer);
-    json_decref(js);
+    OutputJsonBuilderBuffer(js, thread->dhcplog_ctx->file_ctx, &thread->buffer);
+    jb_free(js);
 
     return TM_ECODE_OK;
 
-skip:
-    json_decref(js);
-    return TM_ECODE_OK;
+fail:
+    jb_free(js);
+    return TM_ECODE_FAILED;
 }
 
 static void OutputDHCPLogDeInitCtxSub(OutputCtx *output_ctx)
