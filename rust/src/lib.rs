@@ -86,6 +86,9 @@ extern crate tls_parser;
 extern crate x509_parser;
 
 #[macro_use]
+extern crate suricata_derive;
+
+#[macro_use]
 pub mod log;
 
 #[macro_use]
