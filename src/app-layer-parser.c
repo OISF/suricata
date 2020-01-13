@@ -63,7 +63,6 @@
 #include "app-layer-tftp.h"
 #include "app-layer-ikev2.h"
 #include "app-layer-krb5.h"
-#include "app-layer-dhcp.h"
 #include "app-layer-snmp.h"
 #include "app-layer-sip.h"
 #include "app-layer-template.h"
@@ -79,6 +78,8 @@
 #include "util-validate.h"
 
 #include "runmodes.h"
+
+#include "rust.h"
 
 struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];
@@ -1545,7 +1546,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterTFTPParsers();
     RegisterIKEV2Parsers();
     RegisterKRB5Parsers();
-    RegisterDHCPParsers();
+    rs_dhcp_register_parser();
     RegisterSNMPParsers();
     RegisterSIPParsers();
     RegisterTemplateRustParsers();
