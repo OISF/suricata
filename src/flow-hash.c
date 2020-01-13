@@ -634,22 +634,6 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
                 int32_t flow_times_out_at = (int32_t)(f->lastts.tv_sec + timeout);
                 /* do the timeout check */
                 if (flow_times_out_at >= p->ts.tv_sec) {
-                    /* we found our flow, lets put it on top of the
-                     * hash list -- this rewards active flows */
-                    if (f->hprev) {
-                        if (f->hnext) {
-                            f->hnext->hprev = f->hprev;
-                        }
-                        f->hprev->hnext = f->hnext;
-                        if (f == fb->tail) {
-                            fb->tail = f->hprev;
-                        }
-
-                        f->hnext = fb->head;
-                        f->hprev = NULL;
-                        fb->head->hprev = f;
-                        fb->head = f;
-                    }
                     if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
                         f = TcpReuseReplace(tv, dtv, fb, f, hash, p);
                         if (f == NULL) {
