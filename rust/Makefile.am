@@ -73,7 +73,7 @@ maintainerclean-local:
 check:
 	CARGO_HOME="$(CARGO_HOME)" @rustup_home@ \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
-		$(CARGO) test $(RELEASE) --features "$(RUST_FEATURES)"
+		$(CARGO) test --all $(RELEASE) --features "$(RUST_FEATURES)"
 
 if HAVE_CARGO_VENDOR
 vendor:

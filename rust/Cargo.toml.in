@@ -3,6 +3,9 @@ name = "suricata"
 version = "@PACKAGE_VERSION@"
 edition = "2018"
 
+[workspace]
+members = [".", "./derive"]
+
 [lib]
 crate-type = ["staticlib", "rlib"]
 path = "@e_rustdir@/src/lib.rs"
@@ -49,6 +52,8 @@ sha-1 = "~0.9.2"
 md-5 = "~0.9.1"
 regex = "~1.4.2"
 lazy_static = "~1.4.0"
+
+suricata-derive = { path = "./derive" }
 
 [dev-dependencies]
 test-case = "~1.1.0"
