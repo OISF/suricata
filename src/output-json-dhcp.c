@@ -42,7 +42,6 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-dhcp.h"
 #include "output-json-dhcp.h"
 #include "rust.h"
 
