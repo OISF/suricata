@@ -627,13 +627,13 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
     Flow *pf = NULL; /* previous flow */
     f = fb->head;
     do {
-        if (FlowCompare(f, p) != 0) {
-            FLOWLOCK_WRLOCK(f);
-            if ((f->flags & (FLOW_TCP_REUSED|FLOW_TIMED_OUT)) == 0) {
-                uint32_t timeout = FlowGetFlowTimeout(f, SC_ATOMIC_GET(f->flow_state));
-                int32_t flow_times_out_at = (int32_t)(f->lastts.tv_sec + timeout);
-                /* do the timeout check */
-                if (flow_times_out_at >= p->ts.tv_sec) {
+        FLOWLOCK_WRLOCK(f);
+        if ((f->flags & (FLOW_TCP_REUSED|FLOW_TIMED_OUT)) == 0) {
+            uint32_t timeout = FlowGetFlowTimeout(f, SC_ATOMIC_GET(f->flow_state));
+            int32_t flow_times_out_at = (int32_t)(f->lastts.tv_sec + timeout);
+            /* do the timeout check */
+            if (flow_times_out_at >= p->ts.tv_sec) {
+                if (FlowCompare(f, p) != 0) {
                     if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
                         f = TcpReuseReplace(tv, dtv, fb, f, hash, p);
                         if (f == NULL) {
@@ -649,8 +649,8 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
                 }
                 f->flags |= FLOW_TIMED_OUT;
             }
-            FLOWLOCK_UNLOCK(f);
         }
+        FLOWLOCK_UNLOCK(f);
         if (f->hnext == NULL) {
             pf = f;
             f = pf->hnext = FlowGetNew(tv, dtv, p);
