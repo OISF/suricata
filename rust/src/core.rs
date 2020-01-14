@@ -23,6 +23,7 @@ use crate::filecontainer::*;
 /// Opaque C types.
 pub enum DetectEngineState {}
 pub enum AppLayerDecoderEvents {}
+pub enum AppLayerParserState {}
 
 // From app-layer-events.h
 pub type AppLayerEventType = std::os::raw::c_int;
