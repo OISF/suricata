@@ -190,7 +190,7 @@ static void AlertJsonDnp3(const Flow *f, const uint64_t tx_id, json_t *js)
 
 static void AlertJsonDns(const Flow *f, const uint64_t tx_id, json_t *js)
 {
-    RSDNSState *dns_state = (RSDNSState *)FlowGetAppState(f);
+    void *dns_state = (void *)FlowGetAppState(f);
     if (dns_state) {
         void *txptr = AppLayerParserGetTx(f->proto, ALPROTO_DNS,
                                           dns_state, tx_id);

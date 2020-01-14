@@ -77,6 +77,7 @@ include = ["AppLayerGetTxIterTuple"]
 # default: []
 exclude = [
     "AppLayerDecoderEvents",
+    "AppLayerParserState",
     "CLuaState",
     "DetectEngineState",
     "Flow",
@@ -118,7 +119,6 @@ item_types = ["structs","opaque","functions"]
 # [export]
 # prefix = "capi_"
 [export.rename]
-"DNSState" = "RSDNSState"
 "DNSTransaction" = "RSDNSTransaction"
 "JsonT" = "json_t"
 "CLuaState" = "lua_State"

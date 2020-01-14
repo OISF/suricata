@@ -54,7 +54,7 @@
 #include "stream-tcp.h"
 
 #include "app-layer.h"
-#include "app-layer-dns-common.h"
+#include "app-layer-parser.h"
 #include "detect-dns-query.h"
 #include "detect-engine-dns.h"
 
@@ -275,7 +275,7 @@ static int DetectDnsQueryTest01(void)
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    RSDNSState *dns_state = NULL;
+    void *dns_state = NULL;
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -380,7 +380,7 @@ static int DetectDnsQueryTest02(void)
                         0x65, 0x03, 0x6E, 0x65, 0x74, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    RSDNSState *dns_state = NULL;
+    void *dns_state = NULL;
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -534,7 +534,7 @@ static int DetectDnsQueryTest03(void)
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    RSDNSState *dns_state = NULL;
+    void *dns_state = NULL;
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -623,7 +623,7 @@ static int DetectDnsQueryTest04(void)
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    RSDNSState *dns_state = NULL;
+    void *dns_state = NULL;
     Packet *p1 = NULL, *p2 = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -764,7 +764,7 @@ static int DetectDnsQueryTest05(void)
                         0x65, 0x03, 0x6E, 0x65, 0x74, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    RSDNSState *dns_state = NULL;
+    void *dns_state = NULL;
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL, *p4 = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -950,7 +950,7 @@ static int DetectDnsQueryTest06(void)
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    RSDNSState *dns_state = NULL;
+    void *dns_state = NULL;
     Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -1066,7 +1066,7 @@ static int DetectDnsQueryTest07(void)
                         0x65, 0x03, 0x6E, 0x65, 0x74, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
     Flow f;
-    RSDNSState *dns_state = NULL;
+    void *dns_state = NULL;
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     Signature *s = NULL;
     ThreadVars tv;

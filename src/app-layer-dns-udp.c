@@ -32,22 +32,6 @@
 static void RustDNSUDPParserRegisterTests(void);
 #endif
 
-static int RustDNSUDPParseRequest(Flow *f, void *state,
-        AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
-        void *local_data, const uint8_t flags)
-{
-    return rs_dns_parse_request(f, state, pstate, input, input_len,
-            local_data);
-}
-
-static int RustDNSUDPParseResponse(Flow *f, void *state,
-        AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
-        void *local_data, const uint8_t flags)
-{
-    return rs_dns_parse_response(f, state, pstate, input, input_len,
-            local_data);
-}
-
 static uint16_t DNSUDPProbe(Flow *f, uint8_t direction,
         const uint8_t *input, uint32_t len, uint8_t *rdir)
 {
@@ -61,62 +45,6 @@ static uint16_t DNSUDPProbe(Flow *f, uint8_t direction,
     }
 
     return ALPROTO_DNS;
-}
-
-static int RustDNSGetAlstateProgress(void *tx, uint8_t direction)
-{
-    return rs_dns_tx_get_alstate_progress(tx, direction);
-}
-
-static uint64_t RustDNSGetTxCnt(void *alstate)
-{
-    return rs_dns_state_get_tx_count(alstate);
-}
-
-static void *RustDNSGetTx(void *alstate, uint64_t tx_id)
-{
-    return rs_dns_state_get_tx(alstate, tx_id);
-}
-
-static void RustDNSSetTxLogged(void *alstate, void *tx, LoggerId logged)
-{
-    rs_dns_tx_set_logged(alstate, tx, logged);
-}
-
-static LoggerId RustDNSGetTxLogged(void *alstate, void *tx)
-{
-    return rs_dns_tx_get_logged(alstate, tx);
-}
-
-static void RustDNSStateTransactionFree(void *state, uint64_t tx_id)
-{
-    rs_dns_state_tx_free(state, tx_id);
-}
-
-static DetectEngineState *RustDNSGetTxDetectState(void *tx)
-{
-    return rs_dns_state_get_tx_detect_state(tx);
-}
-
-static int RustDNSSetTxDetectState(void *tx, DetectEngineState *s)
-{
-    rs_dns_state_set_tx_detect_state(tx, s);
-    return 0;
-}
-
-static void RustDNSSetDetectFlags(void *tx, uint8_t dir, uint64_t flags)
-{
-    rs_dns_tx_set_detect_flags(tx, dir, flags);
-}
-
-static uint64_t RustDNSGetDetectFlags(void *tx, uint8_t dir)
-{
-    return rs_dns_tx_get_detect_flags(tx, dir);
-}
-
-static AppLayerDecoderEvents *RustDNSGetEvents(void *tx)
-{
-    return rs_dns_state_get_events(tx);
 }
 
 void RegisterDNSUDPParsers(void)
@@ -155,27 +83,27 @@ void RegisterDNSUDPParsers(void)
 
     if (AppLayerParserConfParserEnabled("udp", proto_name)) {
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DNS, STREAM_TOSERVER,
-                RustDNSUDPParseRequest);
+                rs_dns_parse_request);
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DNS, STREAM_TOCLIENT,
-                RustDNSUDPParseResponse);
+                rs_dns_parse_response);
         AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_DNS,
                 rs_dns_state_new, rs_dns_state_free);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_DNS,
-                RustDNSStateTransactionFree);
+                rs_dns_state_tx_free);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_DNS,
-                RustDNSGetEvents);
+                rs_dns_state_get_events);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_DNS,
-                RustDNSGetTxDetectState, RustDNSSetTxDetectState);
+                rs_dns_state_get_tx_detect_state, rs_dns_state_set_tx_detect_state);
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_UDP, ALPROTO_DNS,
-                RustDNSGetDetectFlags, RustDNSSetDetectFlags);
+                rs_dns_tx_get_detect_flags, rs_dns_tx_set_detect_flags);
 
-        AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_DNS, RustDNSGetTx);
+        AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_DNS, rs_dns_state_get_tx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_DNS,
-                RustDNSGetTxCnt);
+                rs_dns_state_get_tx_count);
         AppLayerParserRegisterLoggerFuncs(IPPROTO_UDP, ALPROTO_DNS,
-                RustDNSGetTxLogged, RustDNSSetTxLogged);
+                rs_dns_tx_get_logged, rs_dns_tx_set_logged);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_DNS,
-                RustDNSGetAlstateProgress);
+                rs_dns_tx_get_alstate_progress);
 
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DNS,
                 rs_dns_state_progress_completion_status);
@@ -225,7 +153,7 @@ static int RustDNSUDPParserTest01 (void)
     f->alstate = rs_dns_state_new();
     FAIL_IF_NULL(f->alstate);
 
-    FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
+    FAIL_IF_NOT(rs_dns_parse_response(f, f->alstate, NULL, buf, buflen,
                     NULL, STREAM_START));
 
     UTHFreeFlow(f);
@@ -256,7 +184,7 @@ static int RustDNSUDPParserTest02 (void)
     f->alstate = rs_dns_state_new();
     FAIL_IF_NULL(f->alstate);
 
-    FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
+    FAIL_IF_NOT(rs_dns_parse_response(f, f->alstate, NULL, buf, buflen,
                     NULL, STREAM_START));
 
     UTHFreeFlow(f);
@@ -287,7 +215,7 @@ static int RustDNSUDPParserTest03 (void)
     f->alstate = rs_dns_state_new();
     FAIL_IF_NULL(f->alstate);
 
-    FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
+    FAIL_IF_NOT(rs_dns_parse_response(f, f->alstate, NULL, buf, buflen,
                     NULL, STREAM_START));
 
     UTHFreeFlow(f);
@@ -321,7 +249,7 @@ static int RustDNSUDPParserTest04 (void)
     f->alstate = rs_dns_state_new();
     FAIL_IF_NULL(f->alstate);
 
-    FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
+    FAIL_IF_NOT(rs_dns_parse_response(f, f->alstate, NULL, buf, buflen,
                     NULL, STREAM_START));
 
     UTHFreeFlow(f);
@@ -355,7 +283,7 @@ static int RustDNSUDPParserTest05 (void)
     f->alstate = rs_dns_state_new();
     FAIL_IF_NULL(f->alstate);
 
-    FAIL_IF(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
+    FAIL_IF(rs_dns_parse_response(f, f->alstate, NULL, buf, buflen,
                     NULL, STREAM_START) != -1);
 
     UTHFreeFlow(f);
