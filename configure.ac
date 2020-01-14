@@ -2460,26 +2460,36 @@ fi
     fi
 
     AC_CHECK_FILES([$srcdir/rust/gen], [have_rust_headers="yes"])
-    AC_DEFINE([HAVE_RUST_HEADERS],[1],[Enable Rust language])
-    AM_CONDITIONAL([HAVE_RUST_HEADERS], [test "x$have_rust_headers" = "xyes"])
-    if test "x$have_rust_headers" != "xyes"; then
-      AC_PATH_PROG(HAVE_CARGO_CBINDGEN, cbindgen, "no") 
-      if test "x$HAVE_CARGO_CBINDGEN" = "xno"; then
-        echo "  Warning: cbindgen not found, it is required to generate header files"
-        echo "  To install: cargo install --force cbindgen"
-        AC_MSG_ERROR([cbindgen required])
-      fi
-      required_version=0.9.0
+    AC_PATH_PROG(CBINDGEN, cbindgen, "no")
+    if test "x$CBINDGEN" != "xno"; then
       cbindgen_version=$(cbindgen --version | cut -d' ' -f2-)
-      lowest_version=$(printf '%s\n' $required_version $cbindgen_version | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n | head -n1)
-      if test "x$lowest_version" != "x$required_version"; then
-        HAVE_CARGO_BINDGEN="no"
-        echo "  Warning: cbindgen must be at least version $required_version, version was $cbindgen_version, lowest version was $lowest_version"
-        echo "  To install: cargo install --force cbindgen"
-        AC_MSG_ERROR([incorrect cbindgen version])
+      min_cbindgen_version="0.10.0"
+      AS_VERSION_COMPARE([$cbindgen_version], [$min_cbindgen_version],
+          [cbindgen_ok="no"],
+          [cbindgen_ok="yes"],
+          [cbindgen_ok="yes"])
+      if test "x$cbindgen_ok" != "xyes"; then
+        echo "  Warning: cbindgen must be at least version $min_cbindgen_version,"
+        echo "      found $cbindgen_version."
+        echo "  To update: cargo install --force cbindgen"
+        CBINDGEN="no"
+      else
+        have_rust_headers="no"
       fi
     fi
 
+    # Require cbindgen if generated headers are not bundled.
+    if test "x$have_rust_headers" != "xyes"; then
+      if test "x$CBINDGEN" = "xno"; then
+        echo "  Warning: cbindgen too old or not found, it is required to "
+        echo "      generate header files."
+        echo "  To install: cargo install --force cbindgen"
+        AC_MSG_ERROR([cbindgen required])
+      fi
+    fi
+
+    AM_CONDITIONAL([HAVE_RUST_HEADERS], [test "x$have_rust_headers" = "xyes"])
+    AM_CONDITIONAL([HAVE_CBINDGEN], [test "x$CBINDGEN" != "xno"])
     AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$have_cargo_vendor" != "xno"])
 
     AC_ARG_ENABLE(rust_strict,

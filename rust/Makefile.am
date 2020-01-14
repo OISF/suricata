@@ -1,7 +1,7 @@
 EXTRA_DIST =	src \
 		.cargo/config.in \
-                gen \
-                cbindgen.toml
+		cbindgen.toml \
+		gen/rust-bindings.h
 
 if HAVE_CARGO_VENDOR
 EXTRA_DIST +=	vendor
@@ -23,9 +23,11 @@ if RUST_CROSS_COMPILE
 RUST_TARGET = --target $(host_triplet)
 endif
 
-build-rust:
-	cd $(top_srcdir)/rust
-
+all-local:
+if HAVE_CBINDGEN
+	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
+		--quiet --output $(abs_top_builddir)/rust/gen/rust-bindings.h
+endif
 if HAVE_CYGPATH
 	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
@@ -40,29 +42,11 @@ else
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
 
-if HAVE_RUST_HEADERS
-
-all-local: build-rust
-	echo Rust headers available
-
-clean-local:
-	-rm -rf target
-
-distclean-local: clean-local
-	rm -rf vendor Cargo.lock
-
-else 
-
-all-local: gen-headers build-rust
-	$(info Generating rust headers)
-
 clean-local:
 	-rm -rf target gen
 
 distclean-local: clean-local
 	rm -rf vendor gen Cargo.lock
-
-endif
 
 check:
 	CARGO_HOME="$(CARGO_HOME)" @rustup_home@ \
@@ -76,6 +60,11 @@ else
 vendor:
 endif
 
-gen-headers: FORCE
-	cbindgen --config cbindgen.toml --output "gen/rust-bindings.h" > /dev/null
-FORCE:
+# Can only include the headers if we have Python to generate them.
+if HAVE_CBINDGEN
+gen/rust-bindings.h:
+	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
+		--quiet --output $(abs_top_builddir)/rust/gen/rust-bindings.h
+else
+gen/rust-bindings.h:
+endif
