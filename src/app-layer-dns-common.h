@@ -24,11 +24,6 @@
 #ifndef __APP_LAYER_DNS_COMMON_H__
 #define __APP_LAYER_DNS_COMMON_H__
 
-#include "app-layer-protos.h"
-#include "app-layer-parser.h"
-
-/** Opaque Rust types. */
-
 /** \brief DNS packet header */
 typedef struct DNSHeader_ {
     uint16_t tx_id;
@@ -38,8 +33,5 @@ typedef struct DNSHeader_ {
     uint16_t authority_rr;
     uint16_t additional_rr;
 } __attribute__((__packed__)) DNSHeader;
-
-void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto);
-void DNSAppLayerRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto);
 
 #endif /* __APP_LAYER_DNS_COMMON_H__ */
