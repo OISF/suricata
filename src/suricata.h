@@ -179,6 +179,7 @@ extern int g_disable_randomness;
 extern uint16_t g_vlan_mask;
 
 int InitGlobal(void);
+int PostConfLoadedSetup(SCInstance *suri);
 
 #include <ctype.h>
 #define u8_tolower(c) tolower((uint8_t)(c))
