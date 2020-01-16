@@ -1,5 +1,4 @@
-EXTRA_DIST = 	Cargo.toml \
-		src \
+EXTRA_DIST =	src \
 		.cargo/config.in \
 		gen-c-headers.py
 
