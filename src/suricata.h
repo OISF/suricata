@@ -188,6 +188,8 @@ int SuriHasSigFile(void);
 
 extern int run_mode;
 
+int InitGlobal(void);
+
 void PreRunInit(const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);
 void PostRunDeinit(const int runmode, struct timeval *start_time);
