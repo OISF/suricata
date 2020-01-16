@@ -2242,8 +2242,10 @@ static int MayDaemonize(SCInstance *suri)
 static int InitSignalHandler(SCInstance *suri)
 {
     /* registering signals we use */
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
     UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+#endif
 #ifndef OS_WIN32
     UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
     UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
@@ -2718,7 +2720,7 @@ static void SetupUserMode(SCInstance *suri)
  * This function is meant to contain code that needs
  * to be run once the configuration has been loaded.
  */
-static int PostConfLoadedSetup(SCInstance *suri)
+int PostConfLoadedSetup(SCInstance *suri)
 {
     /* do this as early as possible #1577 #1955 */
 #ifdef HAVE_LUAJIT
@@ -2893,7 +2895,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     LiveDeviceFinalize();
 
     /* set engine mode if L2 IPS */
-    if (PostDeviceFinalizedSetup(&suricata) != TM_ECODE_OK) {
+    if (PostDeviceFinalizedSetup(suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
@@ -2989,7 +2991,11 @@ int InitGlobal(void) {
     return 0;
 }
 
-int main(int argc, char **argv)
+// hack to use different main function for fuzzing
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#define SC_main main
+#endif
+int SC_main(int argc, char **argv)
 {
     SCInstanceInit(&suricata, argv[0]);
 
