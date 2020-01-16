@@ -79,6 +79,7 @@ type_map = {
     "Flow": "Flow",
     "DNSState": "RSDNSState",
     "DNSTransaction": "RSDNSTransaction",
+    "DCERPCUDPState": "DCERPCUDPState",
     "NFSState": "NFSState",
     "NFSTransaction": "NFSTransaction",
     "NTPState": "NTPState",
