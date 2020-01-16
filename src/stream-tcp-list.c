@@ -141,7 +141,7 @@ static inline bool CheckOverlap(struct TCPSEG *tree, TcpSegment *seg)
             return true;
         // prev's right edge is beyond our seq, overlap
         const uint32_t prev_re = SEG_SEQ_RIGHT_EDGE(prev);
-        if (SEQ_GT(prev_re, prev->seq))
+        if (SEQ_GT(prev_re, seg->seq))
             return true;
     }
 
