@@ -145,8 +145,6 @@ jobs:
           name: dist
       - run: tar zxvf ./dist/suricata-*.tar.gz --strip-components=1
       - run: ./configure
-      - name: Check that Rust is using --frozen
-        run: grep -q '^FROZEN' rust/Makefile
       - run: make -j2
       - run: make install
       - run: make install-conf
