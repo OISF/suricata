@@ -2941,11 +2941,10 @@ static void SuricataMainLoop(SCInstance *suri)
     }
 }
 
-int main(int argc, char **argv)
-{
-    SCInstanceInit(&suricata, argv[0]);
+SuricataContext context;
 
-    SuricataContext context;
+// Global initialization common to all runmodes
+int InitGlobal(void) {
     context.SCLogMessage = SCLogMessage;
     context.DetectEngineStateFree = DetectEngineStateFree;
     context.AppLayerDecoderEventsSetEventRaw =
@@ -2977,12 +2976,26 @@ int main(int argc, char **argv)
     UtilSignalHandlerSetup(SIGUSR2, SIG_IGN);
     if (UtilSignalBlock(SIGUSR2)) {
         SCLogError(SC_ERR_INITIALIZATION, "SIGUSR2 initialization error");
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 #endif
 
     ParseSizeInit();
     RunModeRegisterRunModes();
+
+    /* Initialize the configuration module. */
+    ConfInit();
+
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    SCInstanceInit(&suricata, argv[0]);
+
+    if (InitGlobal() != 0) {
+        exit(EXIT_FAILURE);
+    }
 
 #ifdef OS_WIN32
     /* service initialization */
@@ -2990,9 +3003,6 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 #endif /* OS_WIN32 */
-
-    /* Initialize the configuration module. */
-    ConfInit();
 
     if (ParseCommandLine(argc, argv, &suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
