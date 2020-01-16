@@ -70,3 +70,4 @@ pub mod dhcp;
 pub mod sip;
 pub mod applayertemplate;
 pub mod rdp;
+pub mod dcerpc;
