@@ -27,10 +27,9 @@ if HAVE_PYTHON
 	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
 endif
 if HAVE_CYGPATH
-	rustpath=`cygpath -a -t mixed $(abs_top_builddir)`
 	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
-		CARGO_TARGET_DIR="$$rustpath/rust/target" \
+		CARGO_TARGET_DIR="$(e_rustdir)/target" \
 		$(CARGO) build $(RELEASE) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 else

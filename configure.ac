@@ -85,7 +85,7 @@
     AC_PROG_GREP
 
     AC_PATH_PROG(HAVE_CYGPATH, cygpath, "no")
-    AM_CONDITIONAL([HAVE_CYGPATH], [test "x$enable_cygpath" = "xyes"])
+    AM_CONDITIONAL([HAVE_CYGPATH], [test "x$HAVE_CYGPATH" != "xno"])
 
     AC_PATH_PROG(HAVE_PKG_CONFIG, pkg-config, "no")
     if test "$HAVE_PKG_CONFIG" = "no"; then
@@ -2415,7 +2415,12 @@ fi
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
     if test "x$CARGO_HOME" = "x"; then
-      AC_SUBST([CARGO_HOME], [~/.cargo])
+        if test "x$HAVE_CYGPATH" != "no"; then
+          CYGPATH_CARGO_HOME=$(cygpath -a -t mixed ~/.cargo)
+          AC_SUBST([CARGO_HOME], [$CYGPATH_CARGO_HOME])
+        else
+          AC_SUBST([CARGO_HOME], [~/.cargo])
+        fi
     else
       AC_SUBST([CARGO_HOME], [$CARGO_HOME])
     fi
