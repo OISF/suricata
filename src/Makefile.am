@@ -355,6 +355,7 @@ output-json-snmp.c output-json-snmp.h \
 output-json-template.c output-json-template.h \
 output-json-template-rust.c output-json-template-rust.h \
 output-json-rdp.c output-json-rdp.h \
+output-json-dcerpc.c output-json-dcerpc.h \
 output-json-metadata.c output-json-metadata.h \
 output-lua.c output-lua.h \
 output-packet.c output-packet.h \
