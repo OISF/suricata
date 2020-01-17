@@ -15,6 +15,9 @@
  * 02110-1301, USA.
  */
 
-pub mod dcerpc;
-pub mod parser;
-pub mod log;
+#ifndef __OUTPUT_JSON_DCERPC_H__
+#define __OUTPUT_JSON_DCERPC_H__
+
+void JsonDCERPCLogRegister(void);
+
+#endif /* __OUTPUT_JSON_DCERPC_H__ */

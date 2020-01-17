@@ -29,8 +29,54 @@ pub const DCERPC_UDP_HDR_LEN: i32 = 80;
 pub const PFC_FIRST_FRAG: u8 = 0x01;
 
 // DCERPCUDP Header packet types
-pub const DCERPCUDP_TYPE_REQUEST: u8 = 0;
-pub const DCERPCUDP_TYPE_RESPONSE: u8 = 2;
+pub const DCERPC_TYPE_REQUEST:              u8 = 0;
+pub const DCERPC_TYPE_PING:                 u8 = 1;
+pub const DCERPC_TYPE_RESPONSE:             u8 = 2;
+pub const DCERPC_TYPE_FAULT:                u8 = 3;
+pub const DCERPC_TYPE_WORKING:              u8 = 4;
+pub const DCERPC_TYPE_NOCALL:               u8 = 5;
+pub const DCERPC_TYPE_REJECT:               u8 = 6;
+pub const DCERPC_TYPE_ACK:                  u8 = 7;
+pub const DCERPC_TYPE_CL_CANCEL:            u8 = 8;
+pub const DCERPC_TYPE_FACK:                 u8 = 9;
+pub const DCERPC_TYPE_CANCEL_ACK:           u8 = 10;
+pub const DCERPC_TYPE_BIND:                 u8 = 11;
+pub const DCERPC_TYPE_BINDACK:              u8 = 12;
+pub const DCERPC_TYPE_BINDNAK:              u8 = 13;
+pub const DCERPC_TYPE_ALTER_CONTEXT:        u8 = 14;
+pub const DCERPC_TYPE_ALTER_CONTEXT_RESP:   u8 = 15;
+pub const DCERPC_TYPE_AUTH3:                u8 = 16;
+pub const DCERPC_TYPE_SHUTDOWN:             u8 = 17;
+pub const DCERPC_TYPE_CO_CANCEL:            u8 = 18;
+pub const DCERPC_TYPE_ORPHANED:             u8 = 19;
+pub const DCERPC_TYPE_RTS:                  u8 = 20;
+
+pub fn dcerpc_type_string(t: u8) -> String {
+    match t {
+        DCERPC_TYPE_REQUEST             => "REQUEST",
+        DCERPC_TYPE_PING                => "PING",
+        DCERPC_TYPE_RESPONSE            => "RESPONSE",
+        DCERPC_TYPE_FAULT               => "FAULT",
+        DCERPC_TYPE_WORKING             => "WORKING",
+        DCERPC_TYPE_NOCALL              => "NOCALL",
+        DCERPC_TYPE_REJECT              => "REJECT",
+        DCERPC_TYPE_ACK                 => "ACK",
+        DCERPC_TYPE_CL_CANCEL           => "CL_CANCEL",
+        DCERPC_TYPE_FACK                => "FACK",
+        DCERPC_TYPE_CANCEL_ACK          => "CANCEL_ACK",
+        DCERPC_TYPE_BIND                => "BIND",
+        DCERPC_TYPE_BINDACK             => "BINDACK",
+        DCERPC_TYPE_BINDNAK             => "BINDNAK",
+        DCERPC_TYPE_ALTER_CONTEXT       => "ALTER_CONTEXT",
+        DCERPC_TYPE_ALTER_CONTEXT_RESP  => "ALTER_CONTEXT_RESP",
+        DCERPC_TYPE_AUTH3               => "AUTH3",
+        DCERPC_TYPE_SHUTDOWN            => "SHUTDOWN",
+        DCERPC_TYPE_CO_CANCEL           => "CO_CANCEL",
+        DCERPC_TYPE_ORPHANED            => "ORPHANED",
+        DCERPC_TYPE_RTS                 => "RTS",
+        _ => { return (t).to_string(); },
+    }.to_string()
+}
 
 #[derive(Debug)]
 pub struct DCERPCUDPRequest {
@@ -156,10 +202,10 @@ impl DCERPCUDPState {
 
     fn create_new_tx(&mut self, pkt_type: u8) {
         match pkt_type {
-            DCERPCUDP_TYPE_REQUEST => {
+            DCERPC_TYPE_REQUEST => {
                 self.new_request();
             }
-            DCERPCUDP_TYPE_RESPONSE => {
+            DCERPC_TYPE_RESPONSE => {
                 self.new_response();
             }
             _ => {
@@ -199,7 +245,7 @@ impl DCERPCUDPState {
 
         // Update the stub params based on the packaet type
         match self.get_hdr_pkt_type() {
-            DCERPCUDP_TYPE_REQUEST => {
+            DCERPC_TYPE_REQUEST => {
                 if let Some(ref mut req) = self.dcerpcudprequest {
                     retval = evaluate_stub_params(
                         input,
@@ -211,7 +257,7 @@ impl DCERPCUDPState {
                     );
                 }
             }
-            DCERPCUDP_TYPE_RESPONSE => {
+            DCERPC_TYPE_RESPONSE => {
                 if let Some(ref mut resp) = self.dcerpcudpresponse {
                     retval = evaluate_stub_params(
                         input,
