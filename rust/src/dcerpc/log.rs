@@ -22,7 +22,7 @@ fn log_dcerpc_header(state: &DCERPCUDPState) -> Json
 {
     let js = Json::object();
 
-    match state.dcerpcudprequest {
+    match state.dcerpcrequest {
         Some(ref req) => {
             match state.dcerpchdrudp {
                 Some(ref hdr) => {
@@ -41,7 +41,7 @@ fn log_dcerpc_header(state: &DCERPCUDPState) -> Json
         }
     }
 
-    match state.dcerpcudpresponse {
+    match state.dcerpcresponse {
         Some(ref resp) => {
             match state.dcerpchdrudp {
                 Some(ref hdr) => {
