@@ -319,7 +319,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, const uint8_t *input, uin
 
 #ifdef UNITTESTS
                     if (RunmodeIsUnittests()) {
-                        printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+                        printUUID("yep BIND", dcerpc->dcerpcbindbindack.uuid_entry);
                     }
 #endif
                     dcerpc->dcerpcbindbindack.numctxitemsleft--;
@@ -638,7 +638,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, const uint8_t *input, uin
                         next);
 #ifdef UNITTESTS
                 if (RunmodeIsUnittests()) {
-                    printUUID("BINDACK", dcerpc->dcerpcbindbindack.uuid_entry);
+                    printUUID("yep BINDACK", dcerpc->dcerpcbindbindack.uuid_entry);
                 }
 #endif
                 dcerpc->dcerpcbindbindack.numctxitemsleft--;
@@ -881,6 +881,7 @@ static uint32_t DCERPCParseBIND(DCERPC *dcerpc, const uint8_t *input, uint32_t i
     if (input_len) {
         switch (dcerpc->bytesprocessed) {
             case 16:
+                SCLogInfo("Inside case 16 of bind parser");
                 dcerpc->dcerpcbindbindack.numctxitems = 0;
                 if (input_len >= 12) {
                     DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.uuid_list);
@@ -1467,6 +1468,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
      * all the endless loops cases */
     int counter = 0;
 
+    SCLogInfo(">>>>>>Inside the parse function, input_len: %d\n", input_len);
+
     while (input_len) {
         /* in case we have any corner cases remainging, we have this */
         if (counter++ == 30) {
@@ -1475,9 +1478,10 @@ int32_t DCERPCParser(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
             DCERPCResetParsingState(dcerpc);
             SCReturnInt(0);
         }
-
+        SCLogInfo("bytesprocessed: %d, input_len: %d\n", dcerpc->bytesprocessed, input_len);
         while (dcerpc->bytesprocessed < DCERPC_HDR_LEN && input_len) {
             hdrretval = DCERPCParseHeader(dcerpc, input + parsed, input_len);
+            SCLogInfo("Inside the header parse function, hdrretval: %d\n", hdrretval);
             if (hdrretval == -1 || hdrretval > (int32_t)input_len) {
                 SCLogDebug("Error parsing dce header.  Discarding "
                         "PDU and reseting parsing state to parse next PDU");
@@ -1527,11 +1531,13 @@ int32_t DCERPCParser(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
                        && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length
                        && input_len) {
                     retval = DCERPCParseBIND(dcerpc, input + parsed, input_len);
+                    SCLogInfo("BIND: retval: %d, input_len: %d\n", retval, input_len);
                     if (retval && retval <= input_len) {
                         parsed += retval;
                         input_len -= retval;
+                        SCLogInfo("BIND: inside successful block");
                     } else if (input_len) {
-                        SCLogDebug("Error Parsing DCERPC %s PDU",
+                        SCLogInfo("Error Parsing DCERPC %s PDU",
                                    (dcerpc->dcerpchdr.type == BIND) ?
                                    "BIND" : "ALTER_CONTEXT");
                         parsed = 0;
@@ -1542,12 +1548,13 @@ int32_t DCERPCParser(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
                         SCReturnInt(0);
                     }
                 }
-                SCLogDebug("Done with DCERPCParseBIND bytesprocessed %u/%u numctxitems %u",
+                SCLogInfo("Done with DCERPCParseBIND bytesprocessed %u/%u numctxitems %u",
                            dcerpc->bytesprocessed, dcerpc->dcerpchdr.frag_length,
                            dcerpc->dcerpcbindbindack.numctxitems);
                 while (dcerpc->dcerpcbindbindack.numctxitemsleft && dcerpc->bytesprocessed
                        < dcerpc->dcerpchdr.frag_length && input_len) {
                     retval = DCERPCParseBINDCTXItem(dcerpc, input + parsed, input_len);
+                    SCLogInfo("BINDCTXItem: numctxitemsleft: %d\n", dcerpc->dcerpcbindbindack.numctxitemsleft);
                     if (retval && retval <= input_len) {
                         if (dcerpc->dcerpcbindbindack.ctxbytesprocessed == 44) {
                             dcerpc->dcerpcbindbindack.ctxbytesprocessed = 0;
@@ -1609,11 +1616,11 @@ int32_t DCERPCParser(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
                     if (retval && retval <= input_len) {
                         parsed += retval;
                         input_len -= retval;
-                        SCLogDebug("DCERPCParseBINDACK processed %u/%u input_len left %u",
+                        SCLogInfo("DCERPCParseBINDACK processed %u/%u input_len left %u",
                                    dcerpc->bytesprocessed,
                                    dcerpc->dcerpchdr.frag_length, input_len);
                     } else if (input_len) {
-                        SCLogDebug("Error parsing %s\n",
+                        SCLogInfo("Error parsing %s\n",
                                    (dcerpc->dcerpchdr.type == BIND_ACK) ?
                                    "BIND_ACK" : "ALTER_CONTEXT_RESP");
                         parsed = 0;
@@ -3237,6 +3244,7 @@ static int DCERPCParserTest06(void)
     result &= (dcerpc_state->dcerpc.dcerpcbindbindack.numctxitems == 16);
     result &= (dcerpc_state->dcerpc.dcerpcbindbindack.numctxitemsleft == 8);
 
+    SCLogInfo("Moving toward parsing bind2\n");
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
                             STREAM_TOSERVER, bind2, bind2_len);
