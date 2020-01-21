@@ -30,6 +30,9 @@ pub struct SMBTransactionFile {
     pub file_name: Vec<u8>,
     pub share_name: Vec<u8>,
     pub file_tracker: FileTransferTracker,
+    /// after a gap, this will be set to a time in the future. If the file
+    /// receives no updates before that, it will be considered complete.
+    pub post_gap_ts: u64,
 }
 
 impl SMBTransactionFile {
@@ -40,6 +43,7 @@ impl SMBTransactionFile {
             file_name: Vec::new(),
             share_name: Vec::new(),
             file_tracker: FileTransferTracker::new(),
+            post_gap_ts: 0,
         }
     }
 }
@@ -199,6 +203,11 @@ impl SMBState {
                             SCLogDebug!("QUEUED size {} while we've seen GAPs. Truncating file.", queued_data);
                             tdf.file_tracker.trunc(files, flags);
                         }
+                    }
+
+                    // reset timestamp if we get called after a gap
+                    if tdf.post_gap_ts > 0 {
+                        tdf.post_gap_ts = 0;
                     }
 
                     let file_data = &data[0..data_to_handle_len];
