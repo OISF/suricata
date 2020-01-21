@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -784,6 +784,8 @@ pub struct SMBState<> {
     pub ts_trunc: bool, // no more data for TOSERVER
     pub tc_trunc: bool, // no more data for TOCLIENT
 
+    check_post_gap_file_txs: bool,
+
     /// transactions list
     pub transactions: Vec<SMBTransaction>,
 
@@ -798,6 +800,8 @@ pub struct SMBState<> {
     /// dcerpc interfaces, stored here to be able to match
     /// them while inspecting DCERPC REQUEST txs
     pub dcerpc_ifaces: Option<Vec<DCERPCIface>>,
+
+    ts: u64,
 }
 
 impl SMBState {
@@ -824,11 +828,13 @@ impl SMBState {
             tc_gap: false,
             ts_trunc: false,
             tc_trunc: false,
+            check_post_gap_file_txs: false,
             transactions: Vec::new(),
             tx_id:0,
             dialect:0,
             dialect_vec: None,
             dcerpc_ifaces: None,
+            ts: 0,
         }
     }
 
@@ -1143,9 +1149,29 @@ impl SMBState {
         (&name, is_dcerpc)
     }
 
+    fn post_gap_housekeeping_for_files(&mut self)
+    {
+        let mut post_gap_txs = false;
+        for tx in &mut self.transactions {
+            if let Some(SMBTransactionTypeData::FILE(ref f)) = tx.type_data {
+                if f.post_gap_ts > 0 {
+                    if self.ts > f.post_gap_ts {
+                        tx.request_done = true;
+                        tx.response_done = true;
+                    } else {
+                        post_gap_txs = true;
+                    }
+                }
+            }
+        }
+        self.check_post_gap_file_txs = post_gap_txs;
+    }
+
     /* after a gap we will consider all transactions complete for our
      * direction. File transfer transactions are an exception. Those
-     * can handle gaps. */
+     * can handle gaps. For the file transactions we set the current
+     * (flow) time and prune them in 60 seconds if no update for them
+     * was received. */
     fn post_gap_housekeeping(&mut self, dir: u8)
     {
         if self.ts_ssn_gap && dir == STREAM_TOSERVER {
@@ -1154,8 +1180,12 @@ impl SMBState {
                     SCLogDebug!("post_gap_housekeeping: done");
                     break;
                 }
-                if let Some(SMBTransactionTypeData::FILE(_)) = tx.type_data {
+                if let Some(SMBTransactionTypeData::FILE(ref mut f)) = tx.type_data {
                     // leaving FILE txs open as they can deal with gaps.
+                    if f.post_gap_ts != 0 {
+                        f.post_gap_ts = self.ts + 60;
+                        self.check_post_gap_file_txs = true;
+                    }
                 } else {
                     SCLogDebug!("post_gap_housekeeping: tx {} marked as done TS", tx.id);
                     tx.request_done = true;
@@ -1167,8 +1197,12 @@ impl SMBState {
                     SCLogDebug!("post_gap_housekeeping: done");
                     break;
                 }
-                if let Some(SMBTransactionTypeData::FILE(_)) = tx.type_data {
+                if let Some(SMBTransactionTypeData::FILE(ref mut f)) = tx.type_data {
                     // leaving FILE txs open as they can deal with gaps.
+                    if f.post_gap_ts != 0 {
+                        f.post_gap_ts = self.ts + 60;
+                        self.check_post_gap_file_txs = true;
+                    }
                 } else {
                     SCLogDebug!("post_gap_housekeeping: tx {} marked as done TC", tx.id);
                     tx.request_done = true;
@@ -1457,6 +1491,9 @@ impl SMBState {
         };
 
         self.post_gap_housekeeping(STREAM_TOSERVER);
+        if self.check_post_gap_file_txs {
+            self.post_gap_housekeeping_for_files();
+        }
         0
     }
 
@@ -1684,6 +1721,9 @@ impl SMBState {
             }
         };
         self.post_gap_housekeeping(STREAM_TOCLIENT);
+        if self.check_post_gap_file_txs {
+            self.post_gap_housekeeping_for_files();
+        }
         self._debug_tx_stats();
         0
     }
@@ -1783,7 +1823,7 @@ pub extern "C" fn rs_smb_state_free(state: *mut std::os::raw::c_void) {
 
 /// C binding parse a SMB request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_smb_parse_request_tcp(_flow: *mut Flow,
+pub extern "C" fn rs_smb_parse_request_tcp(flow: &mut Flow,
                                        state: &mut SMBState,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -1800,6 +1840,7 @@ pub extern "C" fn rs_smb_parse_request_tcp(_flow: *mut Flow,
         state.ts_gap = true;
     }
 
+    state.ts = flow.get_last_time().as_secs();
     if state.parse_tcp_data_ts(buf) == 0 {
         return 1;
     } else {
@@ -1821,7 +1862,7 @@ pub extern "C" fn rs_smb_parse_request_tcp_gap(
 
 
 #[no_mangle]
-pub extern "C" fn rs_smb_parse_response_tcp(_flow: *mut Flow,
+pub extern "C" fn rs_smb_parse_response_tcp(flow: &mut Flow,
                                         state: &mut SMBState,
                                         _pstate: *mut std::os::raw::c_void,
                                         input: *const u8,
@@ -1838,6 +1879,7 @@ pub extern "C" fn rs_smb_parse_response_tcp(_flow: *mut Flow,
         state.tc_gap = true;
     }
 
+    state.ts = flow.get_last_time().as_secs();
     if state.parse_tcp_data_tc(buf) == 0 {
         return 1;
     } else {
