@@ -2893,7 +2893,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     LiveDeviceFinalize();
 
     /* set engine mode if L2 IPS */
-    if (PostDeviceFinalizedSetup(&suricata) != TM_ECODE_OK) {
+    if (PostDeviceFinalizedSetup(suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
