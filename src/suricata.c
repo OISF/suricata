@@ -2996,7 +2996,7 @@ int InitGlobal(void) {
     return 0;
 }
 
-int main(int argc, char **argv)
+int SC_main(int argc, char **argv)
 {
     SCInstanceInit(&suricata, argv[0]);
 
