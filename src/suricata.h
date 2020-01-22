@@ -194,6 +194,7 @@ int SuriHasSigFile(void);
 extern int run_mode;
 
 int InitGlobal(void);
+int PostConfLoadedSetup(SCInstance *suri);
 
 void PreRunInit(const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);
