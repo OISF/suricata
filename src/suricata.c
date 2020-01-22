@@ -2702,7 +2702,7 @@ static void SetupUserMode(SCInstance *suri)
  * This function is meant to contain code that needs
  * to be run once the configuration has been loaded.
  */
-static int PostConfLoadedSetup(SCInstance *suri)
+int PostConfLoadedSetup(SCInstance *suri)
 {
     /* do this as early as possible #1577 #1955 */
 #ifdef HAVE_LUAJIT
