@@ -193,6 +193,7 @@ int SuriHasSigFile(void);
 
 extern int run_mode;
 
+int SC_main(int argc, char **argv);
 int InitGlobal(void);
 int PostConfLoadedSetup(SCInstance *suri);
 
