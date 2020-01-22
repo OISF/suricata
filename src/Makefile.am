@@ -321,6 +321,7 @@ log-stats.c log-stats.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \
 log-tlsstore.c log-tlsstore.h \
+main.c \
 output.c output.h \
 output-file.c output-file.h \
 output-filedata.c output-filedata.h \

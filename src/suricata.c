@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2980,7 +2980,7 @@ int InitGlobal(void) {
     return 0;
 }
 
-int main(int argc, char **argv)
+int SuricataMain(int argc, char **argv)
 {
     SCInstanceInit(&suricata, argv[0]);
 
