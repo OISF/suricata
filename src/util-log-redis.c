@@ -369,6 +369,12 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
                             redis = ctx->sync;
                             if (redis) {
                                 SCLogInfo("Reconnected to redis server");
+                                redisAppendCommand(redis, "%s %s %s",
+                                        file_ctx->redis_setup.command,
+                                        file_ctx->redis_setup.key,
+                                        string);
+                                ctx->batch_count++;
+                                return 0;
                             } else {
                                 SCLogInfo("Unable to reconnect to redis server");
                                 return -1;
