@@ -376,6 +376,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     p->vlan_id[0] = parent->vlan_id[0];
     p->vlan_id[1] = parent->vlan_id[1];
     p->vlan_idx = parent->vlan_idx;
+    p->livedev = parent->livedev;
 
     SCReturnPtr(p, "Packet");
 }
