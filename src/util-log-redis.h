@@ -55,6 +55,7 @@ typedef struct SCLogRedisContext_ {
 #endif /* HAVE_LIBEVENT */
     time_t tried;
     int  batch_count;
+    time_t last_push;
 } SCLogRedisContext;
 
 void SCLogRedisInit(void);
