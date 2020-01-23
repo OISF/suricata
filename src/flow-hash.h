@@ -80,7 +80,5 @@ Flow *FlowGetFromFlowKey(FlowKey *key, struct timespec *ttime, const uint32_t ha
 Flow *FlowGetExistingFlowFromHash(FlowKey * key, uint32_t hash);
 uint32_t FlowKeyGetHash(FlowKey *flow_key);
 
-void FlowDisableTcpReuseHandling(void);
-
 #endif /* __FLOW_HASH_H__ */
 
