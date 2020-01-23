@@ -67,6 +67,7 @@ static SCLogRedisContext *SCLogRedisContextAlloc(void)
     ctx->async   = NULL;
 #endif
     ctx->batch_count = 0;
+    ctx->last_push = 0;
     ctx->tried = 0;
 
     return ctx;
@@ -92,6 +93,7 @@ static SCLogRedisContext *SCLogRedisContextAsyncAlloc(void)
     ctx->ev_base = NULL;
     ctx->connected = 0;
     ctx->batch_count = 0;
+    ctx->last_push = 0;
     ctx->tried = 0;
 
     return ctx;
@@ -347,11 +349,14 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
                 file_ctx->redis_setup.command,
                 file_ctx->redis_setup.key,
                 string);
-        if (ctx->batch_count == file_ctx->redis_setup.batch_size) {
+        time_t now = time(NULL);
+        if ((ctx->batch_count == file_ctx->redis_setup.batch_size) || (ctx->last_push < now)) {
             redisReply *reply;
             int i;
+            int batch_size = ctx->batch_count;
             ctx->batch_count = 0;
-            for (i = 0; i <= file_ctx->redis_setup.batch_size; i++) {
+            ctx->last_push = now;
+            for (i = 0; i <= batch_size; i++) {
                 if (redisGetReply(redis, (void **)&reply) == REDIS_OK) {
                     freeReplyObject(reply);
                     ret = 0;
