@@ -630,6 +630,9 @@ void RegisterSSHParsers(void)
             return;
     }
 
+    SCLogNotice("Registring Rust SSH parser.");
+    rs_ssh_register_parser();
+
     if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SSH, STREAM_TOSERVER,
                                      SSHParseRequest);
