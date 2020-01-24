@@ -21,12 +21,7 @@ use super::ssh::SSHTransaction;
 
 fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
     let js = Json::object();
-    if let Some(ref request) = tx.request {
-        js.set_string("request", request);
-    }
-    if let Some(ref response) = tx.response {
-        js.set_string("response", response);
-    }
+    js.set_integer("todo", tx.cli_hdr.pkt_len as u64);
     return Some(js);
 }
 

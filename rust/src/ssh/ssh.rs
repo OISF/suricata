@@ -22,8 +22,6 @@ use std::mem::transmute;
 use crate::applayer::{LoggerFlags, TxDetectFlags};
 use crate::parser::*;
 use std::ffi::CString;
-use nom;
-use super::parser;
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 
@@ -33,10 +31,22 @@ pub enum SSHConnectionState {
     SshStateFinished,
 }
 
+pub struct SshHeader {
+//TODO1 complete
+    pub pkt_len : u32,
+}
+
+impl SshHeader {
+    pub fn new() -> SshHeader {
+        SshHeader {
+            pkt_len: 0,
+        }
+    }
+}
+
 pub struct SSHTransaction {
-    tx_id: u64,
-    pub request: Option<String>,
-    pub response: Option<String>,
+    pub srv_hdr : SshHeader,
+    pub cli_hdr : SshHeader,
 
     logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
@@ -46,9 +56,8 @@ pub struct SSHTransaction {
 impl SSHTransaction {
     pub fn new() -> SSHTransaction {
         SSHTransaction {
-            tx_id: 0,
-            request: None,
-            response: None,
+            srv_hdr: SshHeader::new(),
+            cli_hdr: SshHeader::new(),
             logged: LoggerFlags::new(),
             de_state: None,
             detect_flags: TxDetectFlags::default(),
@@ -69,180 +78,27 @@ impl Drop for SSHTransaction {
 }
 
 pub struct SSHState {
-//TODO
-    tx_id: u64,
-    request_buffer: Vec<u8>,
-    response_buffer: Vec<u8>,
-    transactions: Vec<SSHTransaction>,
+    transaction: SSHTransaction,
 }
 
 impl SSHState {
     pub fn new() -> Self {
         Self {
-            tx_id: 0,
-            request_buffer: Vec::new(),
-            response_buffer: Vec::new(),
-            transactions: Vec::new(),
+            transaction: SSHTransaction::new(),
         }
-    }
-
-    // Free a transaction by ID.
-    fn free_tx(&mut self, tx_id: u64) {
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.tx_id == tx_id + 1 {
-                found = true;
-                index = i;
-                break;
-            }
-        }
-        if found {
-            self.transactions.remove(index);
-        }
-    }
-
-    pub fn get_tx(&mut self, tx_id: u64) -> Option<&SSHTransaction> {
-        for tx in &mut self.transactions {
-            if tx.tx_id == tx_id + 1 {
-                return Some(tx);
-            }
-        }
-        return None;
-    }
-
-    fn new_tx(&mut self) -> SSHTransaction {
-        let mut tx = SSHTransaction::new();
-        self.tx_id += 1;
-        tx.tx_id = self.tx_id;
-        return tx;
-    }
-
-    fn find_request(&mut self) -> Option<&mut SSHTransaction> {
-        for tx in &mut self.transactions {
-            if tx.response.is_none() {
-                return Some(tx);
-            }
-        }
-        None
     }
 
     fn parse_request(&mut self, input: &[u8]) -> bool {
         // We're not interested in empty requests.
-        if input.len() == 0 {
-            return true;
+        if input.len() < 4 {
+            return false;
         }
 
-        // For simplicity, always extend the buffer and work on it.
-        self.request_buffer.extend(input);
-
-        let tmp: Vec<u8>;
-        let mut current = {
-            tmp = self.request_buffer.split_off(0);
-            tmp.as_slice()
-        };
-
-        while current.len() > 0 {
-            match parser::parse_message(current) {
-                Ok((rem, request)) => {
-                    current = rem;
-
-                    SCLogNotice!("Request: {}", request);
-                    let mut tx = self.new_tx();
-                    tx.request = Some(request);
-                    self.transactions.push(tx);
-                }
-                Err(nom::Err::Incomplete(_)) => {
-                    self.request_buffer.extend_from_slice(current);
-                    break;
-                }
-                Err(_) => {
-                    return false;
-                }
-            }
-        }
+        self.transaction.cli_hdr.pkt_len = 1;
 
         return true;
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> bool {
-        // We're not interested in empty responses.
-        if input.len() == 0 {
-            return true;
-        }
-
-        // For simplicity, always extend the buffer and work on it.
-        self.response_buffer.extend(input);
-
-        let tmp: Vec<u8>;
-        let mut current = {
-            tmp = self.response_buffer.split_off(0);
-            tmp.as_slice()
-        };
-
-        while current.len() > 0 {
-            match parser::parse_message(current) {
-                Ok((rem, response)) => {
-                    current = rem;
-
-                    match self.find_request() {
-                        Some(tx) => {
-                            tx.response = Some(response);
-                            SCLogNotice!("Found response for request:");
-                            SCLogNotice!("- Request: {:?}", tx.request);
-                            SCLogNotice!("- Response: {:?}", tx.response);
-                        }
-                        None => {}
-                    }
-                }
-                Err(nom::Err::Incomplete(_)) => {
-                    self.response_buffer.extend_from_slice(current);
-                    break;
-                }
-                Err(_) => {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    fn tx_iterator(
-        &mut self,
-        min_tx_id: u64,
-        state: &mut u64,
-    ) -> Option<(&SSHTransaction, u64, bool)> {
-        let mut index = *state as usize;
-        let len = self.transactions.len();
-
-        while index < len {
-            let tx = &self.transactions[index];
-            if tx.tx_id < min_tx_id + 1 {
-                index += 1;
-                continue;
-            }
-            *state = index as u64;
-            return Some((tx, tx.tx_id - 1, (len - index) > 1));
-        }
-
-        return None;
-    }
-}
-
-/// Probe to see if this input looks like a request or response.
-///
-/// For the purposes of this template things will be kept simple. The
-/// protocol is text based with the leading text being the length of
-/// the message in bytes. So simply make sure the first character is
-/// between "1" and "9".
-fn probe(input: &[u8]) -> bool {
-    if input.len() > 1 && input[0] >= 49 && input[0] <= 57 {
-        return true;
-    }
-    return false;
 }
 
 // C exports.
@@ -264,8 +120,8 @@ export_tx_detect_flags_get!(rs_ssh_get_tx_detect_flags, SSHTransaction);
 pub extern "C" fn rs_dummy_probing_parser(
     _flow: *const Flow,
     _direction: u8,
-    input: *const u8,
-    input_len: u32,
+    _input: *const u8,
+    _input_len: u32,
     _rdir: *mut u8
 ) -> AppProto {
     return ALPROTO_UNKNOWN;
@@ -280,19 +136,16 @@ pub extern "C" fn rs_ssh_state_new() -> *mut std::os::raw::c_void {
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_free(state: *mut std::os::raw::c_void) {
-//TODO once SSHState is complete
     // Just unbox...
     let _drop: Box<SSHState> = unsafe { transmute(state) };
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_tx_free(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
+    _state: *mut std::os::raw::c_void,
+    _tx_id: u64,
 ) {
-//TODO do nothing instead like C parser ?
-    let state = cast_pointer!(state, SSHState);
-    state.free_tx(tx_id);
+//do nothing
 }
 
 #[no_mangle]
@@ -314,7 +167,7 @@ pub extern "C" fn rs_ssh_parse_request(
     };
 
     if eof {
-        // If needed, handled EOF, or pass it into the parser.
+        // TODO If needed, handled EOF, or pass it into the parser.
     }
 
     let state = cast_pointer!(state, SSHState);
@@ -344,7 +197,7 @@ pub extern "C" fn rs_ssh_parse_response(
     };
     let state = cast_pointer!(state, SSHState);
     let buf = build_slice!(input, input_len as usize);
-    if state.parse_response(buf) {
+    if state.parse_request(buf) {
         return 1;
     }
     return -1;
@@ -353,15 +206,15 @@ pub extern "C" fn rs_ssh_parse_response(
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_get_tx(
     state: *mut std::os::raw::c_void,
-    tx_id: u64,
+    _tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, SSHState);
-    return unsafe { transmute(state) };
+    return unsafe { transmute(&state.transaction) };
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_get_tx_count(
-    state: *mut std::os::raw::c_void,
+    _state: *mut std::os::raw::c_void,
 ) -> u64 {
     return 1;
 }
@@ -375,17 +228,11 @@ pub extern "C" fn rs_ssh_state_progress_completion_status(
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void,
+    _tx: *mut std::os::raw::c_void,
     _direction: u8,
 ) -> std::os::raw::c_int {
-//TODO once SSHTransaction/SSHState is complete
-    let tx = cast_pointer!(tx, SSHTransaction);
-
-    // Transaction is done if we have a response.
-    if tx.response.is_some() {
-        return 1;
-    }
-    return 0;
+//TODO3 once SSHTransaction/SSHState is complete
+    return SSHConnectionState::SshStateInProgress as i32;
 }
 
 #[no_mangle]
@@ -407,51 +254,6 @@ pub extern "C" fn rs_ssh_tx_set_logged(
     tx.logged.set(logged);
 }
 
-/// Get the request buffer for a transaction from C.
-///
-/// No required for parsing, but an example function for retrieving a
-/// pointer to the request buffer from C for detection.
-#[no_mangle]
-pub extern "C" fn rs_ssh_get_request_buffer(
-    tx: *mut std::os::raw::c_void,
-    buf: *mut *const u8,
-    len: *mut u32,
-) -> u8
-{
-    let tx = cast_pointer!(tx, SSHTransaction);
-    if let Some(ref request) = tx.request {
-        if request.len() > 0 {
-            unsafe {
-                *len = request.len() as u32;
-                *buf = request.as_ptr();
-            }
-            return 1;
-        }
-    }
-    return 0;
-}
-
-/// Get the response buffer for a transaction from C.
-#[no_mangle]
-pub extern "C" fn rs_ssh_get_response_buffer(
-    tx: *mut std::os::raw::c_void,
-    buf: *mut *const u8,
-    len: *mut u32,
-) -> u8
-{
-    let tx = cast_pointer!(tx, SSHTransaction);
-    if let Some(ref response) = tx.response {
-        if response.len() > 0 {
-            unsafe {
-                *len = response.len() as u32;
-                *buf = response.as_ptr();
-            }
-            return 1;
-        }
-    }
-    return 0;
-}
-
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"ssh-rust\0";
 
@@ -466,11 +268,11 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         probe_ts: rs_dummy_probing_parser,
         probe_tc: rs_dummy_probing_parser,
         min_depth: 0,
-        max_depth: 0lol,
+        max_depth: 0,
         state_new: rs_ssh_state_new,
         state_free: rs_ssh_state_free,
         tx_free: rs_ssh_state_tx_free,
-//TODO
+//TODO4
         parse_ts: rs_ssh_parse_request,
         parse_tc: rs_ssh_parse_response,
         get_tx_count: rs_ssh_state_get_tx_count,
