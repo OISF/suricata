@@ -152,6 +152,8 @@ jobs:
       - run: make install
       - run: make install-conf
       - run: make distcheck
+      - run: make clean
+      - run: make -j2
 
   centos-6:
     name: CentOS 6
