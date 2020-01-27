@@ -880,10 +880,17 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
 {
     uint32_t idx = SC_ATOMIC_GET(flow_prune_idx) % flow_config.hash_size;
     uint32_t cnt = flow_config.hash_size;
+    uint32_t tried = 0;
 
     while (cnt--) {
+        tried++;
         if (++idx >= flow_config.hash_size)
             idx = 0;
+
+        if (tried >= 25) {
+            (void) SC_ATOMIC_ADD(flow_prune_idx, (flow_config.hash_size - cnt));
+            break;
+        }
 
         FlowBucket *fb = &flow_hash[idx];
 
