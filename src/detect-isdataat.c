@@ -245,8 +245,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
                        "seen in isdataat - %s\n", offset);
             goto end;
         }
-        idad->dataat = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        idad->flags |= ISDATAAT_OFFSET_BE;
+        idad->dataat = index;
+        idad->flags |= ISDATAAT_OFFSET_VAR;
         SCLogDebug("isdataat uses byte_extract with local id %u", idad->dataat);
         SCFree(offset);
         offset = NULL;
