@@ -226,7 +226,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         prev_pm = DetectGetLastSMFromLists(s,
             DETECT_CONTENT, DETECT_PCRE,
             DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-            DETECT_ISDATAAT, -1);
+            DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
         if (prev_pm == NULL)
             sm_list = DETECT_SM_LIST_PMATCH;
         else {

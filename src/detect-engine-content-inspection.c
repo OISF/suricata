@@ -35,6 +35,7 @@
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
+#include "detect-bytemath.h"
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
 #include "detect-replace.h"
@@ -528,11 +529,41 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         if (DetectByteExtractDoMatch(det_ctx, smd, s, buffer,
                                      buffer_len,
-                                     &det_ctx->bj_values[bed->local_id],
+                                     &det_ctx->byte_values[bed->local_id],
                                      endian) != 1) {
             goto no_match;
         }
 
+        SCLogDebug("[BE] Fetched value for index %d: %"PRIu64,
+                   bed->local_id, det_ctx->byte_values[bed->local_id]);
+        goto match;
+
+    } else if (smd->type == DETECT_BYTEMATH) {
+
+        DetectByteMathData *bmd = (DetectByteMathData *)smd->ctx;
+        uint8_t endian = bmd->endian;
+
+        /* if we have dce enabled we will have to use the endianness
+         * specified by the dce header */
+        if ((bmd->flags & DETECT_BYTEMATH_FLAG_ENDIAN) &&
+            endian == DETECT_BYTEMATH_ENDIAN_DCE &&
+            flags & (DETECT_CI_FLAGS_DCE_LE|DETECT_CI_FLAGS_DCE_BE)) {
+
+            /* enable the endianness flag temporarily.  once we are done
+             * processing we reset the flags to the original value*/
+            endian |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
+                       DETECT_BYTEMATH_ENDIAN_LITTLE : DETECT_BYTEMATH_ENDIAN_BIG);
+        }
+
+        if (DetectByteMathDoMatch(det_ctx, smd, s, buffer,
+                                     buffer_len,
+                                     &det_ctx->byte_values[bmd->local_id],
+                                     endian) != 1) {
+            goto no_match;
+        }
+
+        SCLogDebug("[BM] Fetched value for index %d: %"PRIu64,
+                   bmd->local_id, det_ctx->byte_values[bmd->local_id]);
         goto match;
 
     } else if (smd->type == DETECT_BSIZE) {
