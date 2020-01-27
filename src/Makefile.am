@@ -99,6 +99,7 @@ detect-bsize.c detect-bsize.h \
 detect-byte.c detect-byte.h \
 detect-byte-extract.c detect-byte-extract.h \
 detect-bytejump.c detect-bytejump.h \
+detect-bytemath.c detect-bytemath.h \
 detect-bytetest.c detect-bytetest.h \
 detect-bypass.c detect-bypass.h \
 detect.c detect.h \
