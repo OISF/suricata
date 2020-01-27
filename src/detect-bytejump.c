@@ -585,8 +585,8 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
                        "seen in byte_jump - %s\n", offset);
             goto error;
         }
-        data->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        data->flags |= DETECT_BYTEJUMP_OFFSET_BE;
+        data->offset = index;
+        data->flags |= DETECT_BYTEJUMP_OFFSET_VAR;
         SCFree(offset);
         offset = NULL;
     }

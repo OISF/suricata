@@ -110,8 +110,8 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
                        "seen in within - %s\n", str);
             goto end;
         }
-        cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        cd->flags |= DETECT_CONTENT_WITHIN_BE;
+        cd->within = index;
+        cd->flags |= DETECT_CONTENT_WITHIN_VAR;
     } else {
         if (ByteExtractStringInt32(&cd->within, 0, 0, str) != (int)strlen(str)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,

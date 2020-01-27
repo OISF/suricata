@@ -511,8 +511,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
                        "seen in byte_test - %s\n", value);
             goto error;
         }
-        data->value = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        data->flags |= DETECT_BYTETEST_VALUE_BE;
+        data->value = index;
+        data->flags |= DETECT_BYTETEST_VALUE_VAR;
         SCFree(value);
         value = NULL;
     }
@@ -524,8 +524,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
                        "seen in byte_test - %s\n", offset);
             goto error;
         }
-        data->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        data->flags |= DETECT_BYTETEST_OFFSET_BE;
+        data->offset = index;
+        data->flags |= DETECT_BYTETEST_OFFSET_VAR;
         SCFree(offset);
         offset = NULL;
     }

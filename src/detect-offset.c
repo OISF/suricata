@@ -103,8 +103,8 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
                        "seen in offset - %s.", str);
             goto end;
         }
-        cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        cd->flags |= DETECT_CONTENT_OFFSET_BE;
+        cd->offset = index;
+        cd->flags |= DETECT_CONTENT_OFFSET_VAR;
     } else {
         if (ByteExtractStringUint16(&cd->offset, 0, 0, str) != (int)strlen(str))
         {

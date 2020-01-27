@@ -40,14 +40,14 @@
 #define DETECT_BYTETEST_BASE_HEX   16 /**< "hex" type value string */
 
 /** Bytetest Flags */
-#define DETECT_BYTETEST_NEGOP    0x01 /**< "!" negated operator */
-#define DETECT_BYTETEST_LITTLE   0x02 /**< "little" endian value */
-#define DETECT_BYTETEST_BIG      0x04 /**< "bi" endian value */
-#define DETECT_BYTETEST_STRING   0x08 /**< "string" value */
-#define DETECT_BYTETEST_RELATIVE 0x10 /**< "relative" offset */
-#define DETECT_BYTETEST_DCE      0x20 /**< dce enabled */
-#define DETECT_BYTETEST_VALUE_BE  0x40 /**< byte extract value enabled */
-#define DETECT_BYTETEST_OFFSET_BE 0x80 /**< byte extract value enabled */
+#define DETECT_BYTETEST_NEGOP      0x01 /**< "!" negated operator */
+#define DETECT_BYTETEST_LITTLE     0x02 /**< "little" endian value */
+#define DETECT_BYTETEST_BIG        0x04 /**< "bi" endian value */
+#define DETECT_BYTETEST_STRING     0x08 /**< "string" value */
+#define DETECT_BYTETEST_RELATIVE   0x10 /**< "relative" offset */
+#define DETECT_BYTETEST_DCE        0x20 /**< dce enabled */
+#define DETECT_BYTETEST_VALUE_VAR  0x40 /**< byte extract value enabled */
+#define DETECT_BYTETEST_OFFSET_VAR 0x80 /**< byte extract offset enabled */
 
 typedef struct DetectBytetestData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */

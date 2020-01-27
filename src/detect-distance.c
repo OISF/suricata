@@ -110,8 +110,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                        "seen in distance - %s\n", str);
             goto end;
         }
-        cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        cd->flags |= DETECT_CONTENT_DISTANCE_BE;
+        cd->distance = index;
+        cd->flags |= DETECT_CONTENT_DISTANCE_VAR;
     } else {
         if (ByteExtractStringInt32(&cd->distance, 0, 0, str) != (int)strlen(str)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,

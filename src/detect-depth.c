@@ -111,8 +111,8 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
                        "seen in depth - %s.", str);
             goto end;
         }
-        cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        cd->flags |= DETECT_CONTENT_DEPTH_BE;
+        cd->depth = index;
+        cd->flags |= DETECT_CONTENT_DEPTH_VAR;
     } else {
         if (ByteExtractStringUint16(&cd->depth, 0, 0, str) != (int)strlen(str))
         {
