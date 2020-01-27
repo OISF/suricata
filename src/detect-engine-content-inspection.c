@@ -160,8 +160,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
                 int distance = cd->distance;
                 if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                    if (cd->flags & DETECT_CONTENT_DISTANCE_BE) {
-                        distance = det_ctx->bj_values[cd->distance];
+                    if (cd->flags & DETECT_CONTENT_DISTANCE_VAR) {
+                        distance = det_ctx->byte_values[cd->distance];
                     }
                     if (distance < 0 && (uint32_t)(abs(distance)) > offset)
                         offset = 0;
@@ -173,9 +173,9 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 }
 
                 if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if (cd->flags & DETECT_CONTENT_WITHIN_BE) {
-                        if ((int32_t)depth > (int32_t)(prev_buffer_offset + det_ctx->bj_values[cd->within] + distance)) {
-                            depth = prev_buffer_offset + det_ctx->bj_values[cd->within] + distance;
+                    if (cd->flags & DETECT_CONTENT_WITHIN_VAR) {
+                        if ((int32_t)depth > (int32_t)(prev_buffer_offset + det_ctx->byte_values[cd->within] + distance)) {
+                            depth = prev_buffer_offset + det_ctx->byte_values[cd->within] + distance;
                         }
                     } else {
                         if ((int32_t)depth > (int32_t)(prev_buffer_offset + cd->within + distance)) {
@@ -197,9 +197,9 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                     }
                 }
 
-                if (cd->flags & DETECT_CONTENT_DEPTH_BE) {
-                    if ((det_ctx->bj_values[cd->depth] + prev_buffer_offset) < depth) {
-                        depth = prev_buffer_offset + det_ctx->bj_values[cd->depth];
+                if (cd->flags & DETECT_CONTENT_DEPTH_VAR) {
+                    if ((det_ctx->byte_values[cd->depth] + prev_buffer_offset) < depth) {
+                        depth = prev_buffer_offset + det_ctx->byte_values[cd->depth];
                     }
                 } else {
                     if (cd->depth != 0) {
@@ -211,9 +211,9 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                     }
                 }
 
-                if (cd->flags & DETECT_CONTENT_OFFSET_BE) {
-                    if (det_ctx->bj_values[cd->offset] > offset)
-                        offset = det_ctx->bj_values[cd->offset];
+                if (cd->flags & DETECT_CONTENT_OFFSET_VAR) {
+                    if (det_ctx->byte_values[cd->offset] > offset)
+                        offset = det_ctx->byte_values[cd->offset];
                 } else {
                     if (cd->offset > offset) {
                         offset = cd->offset;
@@ -222,8 +222,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 }
             } else { /* implied no relative matches */
                 /* set depth */
-                if (cd->flags & DETECT_CONTENT_DEPTH_BE) {
-                    depth = det_ctx->bj_values[cd->depth];
+                if (cd->flags & DETECT_CONTENT_DEPTH_VAR) {
+                    depth = det_ctx->byte_values[cd->depth];
                 } else {
                     if (cd->depth != 0) {
                         depth = cd->depth;
@@ -241,8 +241,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 }
 
                 /* set offset */
-                if (cd->flags & DETECT_CONTENT_OFFSET_BE)
-                    offset = det_ctx->bj_values[cd->offset];
+                if (cd->flags & DETECT_CONTENT_OFFSET_VAR)
+                    offset = det_ctx->byte_values[cd->offset];
                 else
                     offset = cd->offset;
                 prev_buffer_offset = 0;
@@ -251,7 +251,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             /* If the value came from a variable, make sure to adjust the depth so it's relative
              * to the offset value.
              */
-            if (cd->flags & (DETECT_CONTENT_DISTANCE_BE|DETECT_CONTENT_OFFSET_BE|DETECT_CONTENT_DEPTH_BE)) {
+            if (cd->flags & (DETECT_CONTENT_DISTANCE_VAR|DETECT_CONTENT_OFFSET_VAR|DETECT_CONTENT_DEPTH_VAR)) {
                  depth += offset;
             }
 
@@ -376,8 +376,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         const DetectIsdataatData *id = (DetectIsdataatData *)smd->ctx;
         uint32_t dataat = id->dataat;
-        if (id->flags & ISDATAAT_OFFSET_BE) {
-            uint64_t be_value = det_ctx->bj_values[dataat];
+        if (id->flags & ISDATAAT_OFFSET_VAR) {
+            uint64_t be_value = det_ctx->byte_values[dataat];
             if (be_value >= 100000000) {
                 if ((id->flags & ISDATAAT_NEGATED) == 0) {
                     SCLogDebug("extracted value %"PRIu64" very big: no match", be_value);
@@ -462,11 +462,11 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         uint8_t btflags = btd->flags;
         int32_t offset = btd->offset;
         uint64_t value = btd->value;
-        if (btflags & DETECT_BYTETEST_OFFSET_BE) {
-            offset = det_ctx->bj_values[offset];
+        if (btflags & DETECT_BYTETEST_OFFSET_VAR) {
+            offset = det_ctx->byte_values[offset];
         }
-        if (btflags & DETECT_BYTETEST_VALUE_BE) {
-            value = det_ctx->bj_values[value];
+        if (btflags & DETECT_BYTETEST_VALUE_VAR) {
+            value = det_ctx->byte_values[value];
         }
 
         /* if we have dce enabled we will have to use the endianness
@@ -490,8 +490,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         uint8_t bjflags = bjd->flags;
         int32_t offset = bjd->offset;
 
-        if (bjflags & DETECT_BYTEJUMP_OFFSET_BE) {
-            offset = det_ctx->bj_values[offset];
+        if (bjflags & DETECT_BYTEJUMP_OFFSET_VAR) {
+            offset = det_ctx->byte_values[offset];
         }
 
         /* if we have dce enabled we will have to use the endianness
