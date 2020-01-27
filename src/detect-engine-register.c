@@ -89,6 +89,7 @@
 #include "detect-nocase.h"
 #include "detect-rawbytes.h"
 #include "detect-bytetest.h"
+#include "detect-bytemath.h"
 #include "detect-bytejump.h"
 #include "detect-sameip.h"
 #include "detect-l3proto.h"
@@ -471,6 +472,7 @@ void SigTableSetup(void)
     DetectRawbytesRegister();
     DetectBytetestRegister();
     DetectBytejumpRegister();
+    DetectBytemathRegister();
     DetectSameipRegister();
     DetectGeoipRegister();
     DetectL3ProtoRegister();
