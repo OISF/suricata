@@ -71,7 +71,7 @@
 
 /* if a pattern has no depth/offset limits, no relative specifiers and isn't
  * chopped for the mpm, we can take the mpm and consider this pattern a match
- * w/o futher inspection. Warning: this may still mean other patterns depend
+ * w/o further inspection. Warning: this may still mean other patterns depend
  * on this pattern that force match validation anyway. */
 #define DETECT_CONTENT_MPM_IS_CONCLUSIVE(c) \
                                     !( ((c)->flags & DETECT_CONTENT_DISTANCE) || \
@@ -93,7 +93,7 @@ typedef struct DetectContentData_ {
     uint16_t fp_chop_offset;
     /* would want to move PatIntId here and flags down to remove the padding
      * gap, but I think the first four members was used as a template for
-     * casting.  \todo check this and fix it if posssible */
+     * casting.  \todo check this and fix it if possible */
     uint32_t flags;
     PatIntId id;
     uint16_t depth;
