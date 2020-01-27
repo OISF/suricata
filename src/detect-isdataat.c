@@ -44,8 +44,7 @@
 #include "util-debug.h"
 #include "util-byte.h"
 #include "detect-pcre.h"
-#include "detect-bytejump.h"
-#include "detect-byte-extract.h"
+#include "detect-byte.h"
 
 /**
  * \brief Regex for parsing our isdataat options
@@ -241,8 +240,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
     }
 
     if (offset != NULL) {
-        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(offset, s);
-        if (bed_sm == NULL) {
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(offset, s, &index)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
                        "seen in isdataat - %s\n", offset);
             goto end;
