@@ -2404,7 +2404,7 @@ fi
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
     if test "x$CARGO_HOME" = "x"; then
-        if test "x$HAVE_CYGPATH" != "no"; then
+        if test "x$HAVE_CYGPATH" != "xno"; then
           CYGPATH_CARGO_HOME=$(cygpath -a -t mixed ~/.cargo)
           AC_SUBST([CARGO_HOME], [$CYGPATH_CARGO_HOME])
         else
@@ -2565,7 +2565,7 @@ if test "$WINDOWS_PATH" = "yes"; then
     e_logfilesdir="$e_logdir\\\\files"
     e_logcertsdir="$e_logdir\\\\certs"
     e_datarulesdir="$e_winbase\\\\rules\\\\"
-    if test "$HAVE_CYGPATH" != "no"; then
+    if test "x$HAVE_CYGPATH" != "xno"; then
         # turn srcdir into abs path and convert to the
         # mixed output (/c/Users/dev into  c:/Users/dev)
         e_rustdir="$(cygpath -a -t mixed ${srcdir})/rust"
