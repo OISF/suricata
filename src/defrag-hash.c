@@ -25,6 +25,13 @@
 #include "util-misc.h"
 #include "util-hash-lookup3.h"
 
+/** defrag tracker hash table */
+DefragTrackerHashRow *defragtracker_hash;
+DefragConfig defrag_config;
+SC_ATOMIC_DECLARE(uint64_t,defrag_memuse);
+SC_ATOMIC_DECLARE(unsigned int,defragtracker_counter);
+SC_ATOMIC_DECLARE(unsigned int,defragtracker_prune_idx);
+
 static DefragTracker *DefragTrackerGetUsedDefragTracker(void);
 
 /** queue with spare tracker */
