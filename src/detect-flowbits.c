@@ -48,9 +48,12 @@
 #define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
 static DetectParseRegex parse_regex;
 
+#define MAX_TOKENS 100
+
 int DetectFlowbitMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, const char *);
+static int FlowbitOrAddData(DetectEngineCtx *, DetectFlowbitsData *, char *);
 void DetectFlowbitFree (void *);
 void FlowBitsRegisterTests(void);
 
@@ -69,6 +72,50 @@ void DetectFlowbitsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
+static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, char *arrptr)
+{
+    char *strarr[MAX_TOKENS];
+    char *token;
+    char *saveptr = NULL;
+    uint8_t i = 0;
+
+    while ((token = strtok_r(arrptr, "|", &saveptr))) {
+        // Check for leading/trailing spaces in the token
+        while(isspace((unsigned char)*token))
+            token++;
+        if (*token == 0)
+            continue;
+        char *end = token + strlen(token) - 1;
+        while(end > token && isspace((unsigned char)*end))
+            *(end--) = '\0';
+
+        // Check for spaces in between the flowbit names
+        if (strchr(token, ' ') != NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Spaces are not allowed in flowbit names.");
+            return -1;
+        }
+
+        if (i == MAX_TOKENS) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Number of flowbits exceeds "
+                       "maximum allowed: %d.", MAX_TOKENS);
+            return -1;
+        }
+        strarr[i] = token;
+        arrptr = NULL;
+        i++;
+    }
+
+    cd->or_list_size = i;
+    cd->or_list = SCCalloc(cd->or_list_size, sizeof(uint32_t));
+    if (unlikely(cd->or_list == NULL))
+        return -1;
+    for (uint8_t j = 0; j < cd->or_list_size ; j++) {
+        cd->or_list[j] = VarNameStoreSetupAdd(strarr[j], VAR_TYPE_FLOW_BIT);
+        de_ctx->max_fb_id = MAX(cd->or_list[j], de_ctx->max_fb_id);
+    }
+
+    return 1;
+}
 
 static int DetectFlowbitMatchToggle (Packet *p, const DetectFlowbitsData *fd)
 {
@@ -104,6 +151,13 @@ static int DetectFlowbitMatchIsset (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
+    if (fd->or_list_size > 0) {
+        for (uint8_t i = 0; i < fd->or_list_size; i++) {
+            if (FlowBitIsset(p->flow, fd->or_list[i]) == 1)
+                return 1;
+        }
+        return 0;
+    }
 
     return FlowBitIsset(p->flow,fd->idx);
 }
@@ -112,7 +166,13 @@ static int DetectFlowbitMatchIsnotset (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
-
+    if (fd->or_list_size > 0) {
+        for (uint8_t i = 0; i < fd->or_list_size; i++) {
+            if (FlowBitIsnotset(p->flow, fd->or_list[i]) == 1)
+                return 1;
+        }
+        return 0;
+    }
     return FlowBitIsnotset(p->flow,fd->idx);
 }
 
@@ -181,12 +241,14 @@ static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *nam
             name[strlen(name) - 1] = '\0';
         }
 
-        /* Validate name, spaces are not allowed. */
-        for (size_t i = 0; i < strlen(name); i++) {
-            if (isblank(name[i])) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE,
-                    "spaces not allowed in flowbit names");
-                return 0;
+        if (strchr(name, '|') == NULL) {
+            /* Validate name, spaces are not allowed. */
+            for (size_t i = 0; i < strlen(name); i++) {
+                if (isblank(name[i])) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE,
+                        "spaces not allowed in flowbit names");
+                    return 0;
+                }
             }
         }
     }
@@ -240,17 +302,24 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
             break;
     }
 
-    cd = SCMalloc(sizeof(DetectFlowbitsData));
+    cd = SCCalloc(1, sizeof(DetectFlowbitsData));
     if (unlikely(cd == NULL))
         goto error;
-
-    cd->idx = VarNameStoreSetupAdd(fb_name, VAR_TYPE_FLOW_BIT);
-    de_ctx->max_fb_id = MAX(cd->idx, de_ctx->max_fb_id);
-    cd->cmd = fb_cmd;
-
-    SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
-        cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
-
+    if (strchr(fb_name, '|') != NULL) {
+        int retval = FlowbitOrAddData(de_ctx, cd, fb_name);
+        if (retval == -1) {
+            goto error;
+        }
+        cd->cmd = fb_cmd;
+    } else {
+        cd->idx = VarNameStoreSetupAdd(fb_name, VAR_TYPE_FLOW_BIT);
+        de_ctx->max_fb_id = MAX(cd->idx, de_ctx->max_fb_id);
+        cd->cmd = fb_cmd;
+        cd->or_list_size = 0;
+        cd->or_list = NULL;
+        SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
+            cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
+    }
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
@@ -286,7 +355,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
 
 error:
     if (cd != NULL)
-        SCFree(cd);
+        DetectFlowbitFree(cd);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -295,10 +364,10 @@ error:
 void DetectFlowbitFree (void *ptr)
 {
     DetectFlowbitsData *fd = (DetectFlowbitsData *)ptr;
-
     if (fd == NULL)
         return;
-
+    if (fd->or_list != NULL)
+        SCFree(fd->or_list);
     SCFree(fd);
 }
 
@@ -364,37 +433,74 @@ void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                 {
                     /* figure out the flowbit action */
                     const DetectFlowbitsData *fb = (DetectFlowbitsData *)sm->ctx;
-                    array[fb->idx].cnts[fb->cmd]++;
-                    if (has_state)
-                        array[fb->idx].state_cnts[fb->cmd]++;
-                    if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
-                        if (array[fb->idx].isset_sids_idx >= array[fb->idx].isset_sids_size) {
-                            uint32_t old_size = array[fb->idx].isset_sids_size;
-                            uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
+                    // Handle flowbit array in case of ORed flowbits
+                    for (uint8_t k = 0; k < fb->or_list_size; k++) {
+                        array[fb->or_list[k]].cnts[fb->cmd]++;
+                        if (has_state)
+                            array[fb->or_list[k]].state_cnts[fb->cmd]++;
+                        if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
+                            if (array[fb->or_list[k]].isset_sids_idx >= array[fb->or_list[k]].isset_sids_size) {
+                                uint32_t old_size = array[fb->or_list[k]].isset_sids_size;
+                                uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
 
-                            void *ptr = SCRealloc(array[fb->idx].isset_sids, new_size * sizeof(uint32_t));
-                            if (ptr == NULL)
-                                goto end;
-                            array[fb->idx].isset_sids_size = new_size;
-                            array[fb->idx].isset_sids = ptr;
+                                void *ptr = SCRealloc(array[fb->or_list[k]].isset_sids, new_size * sizeof(uint32_t));
+                                if (ptr == NULL)
+                                    goto end;
+                                array[fb->or_list[k]].isset_sids_size = new_size;
+                                array[fb->or_list[k]].isset_sids = ptr;
+                            }
+
+                            array[fb->or_list[k]].isset_sids[array[fb->or_list[k]].isset_sids_idx] = s->num;
+                            array[fb->or_list[k]].isset_sids_idx++;
+                        } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
+                            if (array[fb->or_list[k]].isnotset_sids_idx >= array[fb->or_list[k]].isnotset_sids_size) {
+                                uint32_t old_size = array[fb->or_list[k]].isnotset_sids_size;
+                                uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
+
+                                void *ptr = SCRealloc(array[fb->or_list[k]].isnotset_sids, new_size * sizeof(uint32_t));
+                                if (ptr == NULL)
+                                    goto end;
+                                array[fb->or_list[k]].isnotset_sids_size = new_size;
+                                array[fb->or_list[k]].isnotset_sids = ptr;
+                            }
+
+                            array[fb->or_list[k]].isnotset_sids[array[fb->or_list[k]].isnotset_sids_idx] = s->num;
+                            array[fb->or_list[k]].isnotset_sids_idx++;
                         }
+                    }
+                    if (fb->or_list_size == 0) {
+                        array[fb->idx].cnts[fb->cmd]++;
+                        if (has_state)
+                            array[fb->idx].state_cnts[fb->cmd]++;
+                        if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
+                            if (array[fb->idx].isset_sids_idx >= array[fb->idx].isset_sids_size) {
+                                uint32_t old_size = array[fb->idx].isset_sids_size;
+                                uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
 
-                        array[fb->idx].isset_sids[array[fb->idx].isset_sids_idx] = s->num;
-                        array[fb->idx].isset_sids_idx++;
-                    } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET){
-                        if (array[fb->idx].isnotset_sids_idx >= array[fb->idx].isnotset_sids_size) {
-                            uint32_t old_size = array[fb->idx].isnotset_sids_size;
-                            uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
+                                void *ptr = SCRealloc(array[fb->idx].isset_sids, new_size * sizeof(uint32_t));
+                                if (ptr == NULL)
+                                    goto end;
+                                array[fb->idx].isset_sids_size = new_size;
+                                array[fb->idx].isset_sids = ptr;
+                            }
 
-                            void *ptr = SCRealloc(array[fb->idx].isnotset_sids, new_size * sizeof(uint32_t));
-                            if (ptr == NULL)
-                                goto end;
-                            array[fb->idx].isnotset_sids_size = new_size;
-                            array[fb->idx].isnotset_sids = ptr;
+                            array[fb->idx].isset_sids[array[fb->idx].isset_sids_idx] = s->num;
+                            array[fb->idx].isset_sids_idx++;
+                        } else if (fb->cmd == DETECT_FLOWBITS_CMD_ISNOTSET) {
+                            if (array[fb->idx].isnotset_sids_idx >= array[fb->idx].isnotset_sids_size) {
+                                uint32_t old_size = array[fb->idx].isnotset_sids_size;
+                                uint32_t new_size = MAX(2 * old_size, MAX_SIDS);
+
+                                void *ptr = SCRealloc(array[fb->idx].isnotset_sids, new_size * sizeof(uint32_t));
+                                if (ptr == NULL)
+                                    goto end;
+                                array[fb->idx].isnotset_sids_size = new_size;
+                                array[fb->idx].isnotset_sids = ptr;
+                            }
+
+                            array[fb->idx].isnotset_sids[array[fb->idx].isnotset_sids_idx] = s->num;
+                            array[fb->idx].isnotset_sids_idx++;
                         }
-
-                        array[fb->idx].isnotset_sids[array[fb->idx].isnotset_sids_idx] = s->num;
-                        array[fb->idx].isnotset_sids_idx++;
                     }
                 }
             }
@@ -807,7 +913,6 @@ static int FlowBitsTestSig04(void)
     Signature *s = NULL;
     DetectEngineCtx *de_ctx = NULL;
     int idx = 0;
-
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
@@ -1076,6 +1181,213 @@ static int FlowBitsTestSig08(void)
     SCFree(p);
     PASS;
 }
+
+/**
+ * \test FlowBitsTestSig09 is to test isset flowbits option with oring
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig09(void)
+{
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    FAIL_IF_NULL(p);
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    Flow f;
+
+    memset(p, 0, SIZE_OF_PACKET);
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(Flow));
+
+    FLOW_INITIALIZE(&f);
+    p->flow = &f;
+
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->payload = buf;
+    p->payload_len = buflen;
+    p->proto = IPPROTO_TCP;
+    p->flags |= PKT_HAS_FLOW;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,fb1; sid:1;)");
+    FAIL_IF_NULL(s);
+    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,fb2; sid:2;)");
+    FAIL_IF_NULL(s);
+    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit isset ored flowbits\"; flowbits:isset,fb3|fb4; sid:3;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+    FAIL_IF_NOT(PacketAlertCheck(p, 2));
+    FAIL_IF(PacketAlertCheck(p, 3));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    FLOW_DESTROY(&f);
+
+    SCFree(p);
+    PASS;
+}
+
+/**
+ * \test FlowBitsTestSig10 is to test isset flowbits option with oring
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig10(void)
+{
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    FAIL_IF_NULL(p);
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    Flow f;
+
+    memset(p, 0, SIZE_OF_PACKET);
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(Flow));
+
+    FLOW_INITIALIZE(&f);
+    p->flow = &f;
+
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->payload = buf;
+    p->payload_len = buflen;
+    p->proto = IPPROTO_TCP;
+    p->flags |= PKT_HAS_FLOW;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,fb1; sid:1;)");
+    FAIL_IF_NULL(s);
+    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,fb2; sid:2;)");
+    FAIL_IF_NULL(s);
+    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,fb3; sid:3;)");
+    FAIL_IF_NULL(s);
+    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit isset ored flowbits\"; flowbits:isset,fb3|fb4; sid:4;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+    FAIL_IF_NOT(PacketAlertCheck(p, 2));
+    FAIL_IF_NOT(PacketAlertCheck(p, 3));
+    FAIL_IF_NOT(PacketAlertCheck(p, 4));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    FLOW_DESTROY(&f);
+
+    SCFree(p);
+    PASS;
+}
+
+/**
+ * \test FlowBitsTestSig11 is to test isnotset flowbits option with oring
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+
+static int FlowBitsTestSig11(void)
+{
+    uint8_t *buf = (uint8_t *)
+                    "GET /one/ HTTP/1.1\r\n"
+                    "Host: one.example.org\r\n"
+                    "\r\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    FAIL_IF_NULL(p);
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    Flow f;
+
+    memset(p, 0, SIZE_OF_PACKET);
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(Flow));
+
+    FLOW_INITIALIZE(&f);
+    p->flow = &f;
+
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->payload = buf;
+    p->payload_len = buflen;
+    p->proto = IPPROTO_TCP;
+    p->flags |= PKT_HAS_FLOW;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,fb1; sid:1;)");
+    FAIL_IF_NULL(s);
+    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,fb2; sid:2;)");
+    FAIL_IF_NULL(s);
+    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,fb3; sid:3;)");
+    FAIL_IF_NULL(s);
+    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit isnotset ored flowbits\"; flowbits:isnotset, fb1 | fb2 ; sid:4;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+    FAIL_IF_NOT(PacketAlertCheck(p, 2));
+    FAIL_IF_NOT(PacketAlertCheck(p, 3));
+    FAIL_IF(PacketAlertCheck(p, 4));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    FLOW_DESTROY(&f);
+
+    SCFree(p);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -1093,5 +1405,8 @@ void FlowBitsRegisterTests(void)
     UtRegisterTest("FlowBitsTestSig06", FlowBitsTestSig06);
     UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07);
     UtRegisterTest("FlowBitsTestSig08", FlowBitsTestSig08);
+    UtRegisterTest("FlowBitsTestSig09", FlowBitsTestSig09);
+    UtRegisterTest("FlowBitsTestSig10", FlowBitsTestSig10);
+    UtRegisterTest("FlowBitsTestSig11", FlowBitsTestSig11);
 #endif /* UNITTESTS */
 }
