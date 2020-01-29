@@ -27,6 +27,9 @@
 #include "suricata-common.h"
 #include "util-proto-name.h"
 
+/** Lookup array to hold the information related to known protocol
+ *  in /etc/protocols */
+char *known_proto[256];
 static int init_once = 0;
 
 /**
