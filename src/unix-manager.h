@@ -26,8 +26,8 @@
 
 #define UNIX_CMD_TAKE_ARGS 1
 
-SCCtrlCondT unix_manager_ctrl_cond;
-SCCtrlMutex unix_manager_ctrl_mutex;
+extern SCCtrlCondT unix_manager_ctrl_cond;
+extern SCCtrlMutex unix_manager_ctrl_mutex;
 
 int UnixManagerInit(void);
 void UnixManagerThreadSpawn(int mode);
