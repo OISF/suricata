@@ -18,6 +18,8 @@
 use std;
 use crate::core::{STREAM_TOSERVER};
 
+pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = BIT_U32!(0);
+
 #[repr(C)]
 pub struct AppLayerGetTxIterTuple {
     tx_ptr: *mut std::os::raw::c_void,
