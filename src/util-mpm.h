@@ -162,8 +162,8 @@ typedef struct MpmTableElmt_ {
     uint8_t flags;
 } MpmTableElmt;
 
-MpmTableElmt mpm_table[MPM_TABLE_SIZE];
-int mpm_default_matcher;
+extern MpmTableElmt mpm_table[MPM_TABLE_SIZE];
+extern int mpm_default_matcher;
 
 struct DetectEngineCtx_;
 
