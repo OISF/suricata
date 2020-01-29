@@ -271,7 +271,7 @@ typedef struct HtpState_ {
 /** part of the engine needs the request body (e.g. file_data keyword) */
 #define HTP_REQUIRE_RESPONSE_BODY       (1 << 3)
 
-SC_ATOMIC_DECLARE(uint32_t, htp_config_flags);
+SC_ATOMIC_EXTERN(uint32_t, htp_config_flags);
 
 void RegisterHTPParsers(void);
 void HTPParserRegisterTests(void);
