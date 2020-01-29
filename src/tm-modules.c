@@ -30,6 +30,8 @@
 #include "threads.h"
 #include "util-logopenfile.h"
 
+TmModule tmm_modules[TMM_SIZE];
+
 void TmModuleDebugList(void)
 {
     TmModule *t;
