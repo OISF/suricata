@@ -109,7 +109,7 @@ int RunModeNeedsBypassManager(void);
 #include "runmode-netmap.h"
 #include "runmode-windivert.h"
 
-int threading_set_cpu_affinity;
+extern int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
 
 extern int debuglog_enabled;
