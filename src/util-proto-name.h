@@ -32,7 +32,7 @@
 
 /** Lookup array to hold the information related to known protocol
  *  in /etc/protocols */
-char *known_proto[256];
+extern char *known_proto[256];
 
 uint8_t SCProtoNameValid(uint16_t);
 void SCProtoNameInit(void);
