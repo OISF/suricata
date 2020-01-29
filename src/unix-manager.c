@@ -57,6 +57,9 @@
 #define SOCKET_FILENAME "suricata-command.socket"
 #define SOCKET_TARGET SOCKET_PATH SOCKET_FILENAME
 
+SCCtrlCondT unix_manager_ctrl_cond;
+SCCtrlMutex unix_manager_ctrl_mutex;
+
 #define MAX_FAILED_RULES   20
 
 typedef struct Command_ {
