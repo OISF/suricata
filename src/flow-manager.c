@@ -70,6 +70,9 @@
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
+/** queue to pass flows to cleanup/log thread(s) */
+FlowQueue flow_recycle_q;
+
 /* multi flow mananger support */
 static uint32_t flowmgr_number = 1;
 /* atomic counter for flow managers, to assign instance id */
@@ -82,6 +85,11 @@ SC_ATOMIC_DECLARE(uint32_t, flowrec_cnt);
 
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
+SCCtrlCondT flow_manager_ctrl_cond;
+SCCtrlMutex flow_manager_ctrl_mutex;
+
+SCCtrlCondT flow_recycler_ctrl_cond;
+SCCtrlMutex flow_recycler_ctrl_mutex;
 
 typedef FlowProtoTimeout *FlowProtoTimeoutPtr;
 SC_ATOMIC_DECLARE(FlowProtoTimeoutPtr, flow_timeouts);

@@ -83,21 +83,21 @@ enum {
 
 /** FlowProto specific timeouts and free/state functions */
 
-FlowProtoTimeout flow_timeouts_normal[FLOW_PROTO_MAX];
-FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
-FlowProtoFreeFunc flow_freefuncs[FLOW_PROTO_MAX];
+extern FlowProtoTimeout flow_timeouts_normal[FLOW_PROTO_MAX];
+extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
+extern FlowProtoFreeFunc flow_freefuncs[FLOW_PROTO_MAX];
 
 /** spare/unused/prealloced flows live here */
-FlowQueue flow_spare_q;
+extern FlowQueue flow_spare_q;
 
 /** queue to pass flows to cleanup/log thread(s) */
-FlowQueue flow_recycle_q;
+extern FlowQueue flow_recycle_q;
 
-FlowBucket *flow_hash;
-FlowConfig flow_config;
+extern FlowBucket *flow_hash;
+extern FlowConfig flow_config;
 
 /** flow memuse counter (atomic), for enforcing memcap limit */
-SC_ATOMIC_DECLARE(uint64_t, flow_memuse);
+SC_ATOMIC_EXTERN(uint64_t, flow_memuse);
 
 #endif /* __FLOW_PRIVATE_H__ */
 

@@ -49,6 +49,7 @@
 
 #define FLOW_DEFAULT_FLOW_PRUNE 5
 
+FlowBucket *flow_hash;
 SC_ATOMIC_EXTERN(unsigned int, flow_prune_idx);
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
