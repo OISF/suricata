@@ -68,6 +68,7 @@
 #include "output-flow.h"
 #include "flow-storage.h"
 
+uint32_t default_packet_size = 0;
 extern bool stats_decoder_events;
 const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
