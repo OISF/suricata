@@ -69,6 +69,9 @@
 #include "detect-engine-iponly.h"
 #include "app-layer-detect-proto.h"
 
+/* Table with all SigMatch registrations */
+SigTableElmt sigmatch_table[DETECT_TBLSIZE];
+
 extern int sc_set_caps;
 
 static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
