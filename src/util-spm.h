@@ -71,7 +71,7 @@ typedef struct SpmTableElmt_ {
                      const uint8_t *haystack, uint32_t haystack_len);
 } SpmTableElmt;
 
-SpmTableElmt spm_table[SPM_TABLE_SIZE];
+extern SpmTableElmt spm_table[SPM_TABLE_SIZE];
 
 void SpmTableSetup(void);
 

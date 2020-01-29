@@ -59,6 +59,8 @@
 #include "hs.h"
 #endif
 
+SpmTableElmt spm_table[SPM_TABLE_SIZE];
+
 /**
  * \brief Returns the single pattern matcher algorithm to be used, based on the
  * spm-algo setting in yaml.
