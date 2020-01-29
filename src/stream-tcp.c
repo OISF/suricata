@@ -116,6 +116,7 @@ static SCMutex ssn_pool_mutex = SCMUTEX_INITIALIZER; /**< init only, protect ini
 static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex */
 #endif
 
+TcpStreamCnf stream_config;
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 SC_ATOMIC_DECLARE(uint64_t, st_memuse);
 
