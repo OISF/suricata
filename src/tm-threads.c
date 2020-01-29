@@ -95,6 +95,11 @@ ThreadVars *tv_root[TVT_MAX] = { NULL };
 /* lock to protect tv_root */
 SCMutex tv_root_lock = SCMUTEX_INITIALIZER;
 
+/* queue's between various other threads
+ * XXX move to the TmQueue structure later
+ */
+PacketQueue trans_q[256];
+
 /**
  * \brief Check if a thread flag is set.
  *
