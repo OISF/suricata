@@ -615,7 +615,7 @@ extern int g_default_mtu;
 #define DEFAULT_PACKET_SIZE (DEFAULT_MTU + ETHERNET_HEADER_LEN)
 /* storage: maximum ip packet size + link header */
 #define MAX_PAYLOAD_SIZE (IPV6_HEADER_LEN + 65536 + 28)
-uint32_t default_packet_size;
+extern uint32_t default_packet_size;
 #define SIZE_OF_PACKET (default_packet_size + sizeof(Packet))
 
 typedef struct PacketQueue_ {
