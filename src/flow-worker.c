@@ -307,7 +307,9 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
         /* run tx cleanup last */
         AppLayerParserTransactionsCleanup(p->flow);
-        FLOWLOCK_UNLOCK(p->flow);
+        Flow *f = p->flow;
+        FlowDeReference(&p->flow);
+        FLOWLOCK_UNLOCK(f);
     }
 
     return TM_ECODE_OK;
