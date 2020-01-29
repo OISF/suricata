@@ -34,6 +34,8 @@
 #include "tmqh-packetpool.h"
 #include "tmqh-flow.h"
 
+Tmqh tmqh_table[TMQH_SIZE];
+
 void TmqhSetup (void)
 {
     memset(&tmqh_table, 0, sizeof(tmqh_table));
