@@ -84,7 +84,7 @@ typedef struct IPPairHashRow_ {
 } __attribute__((aligned(CLS))) IPPairHashRow;
 
 /** ippair hash table */
-IPPairHashRow *ippair_hash;
+extern IPPairHashRow *ippair_hash;
 
 #define IPPAIR_VERBOSE    0
 #define IPPAIR_QUIET      1
@@ -125,10 +125,10 @@ typedef struct IPPairConfig_ {
         }                                             \
     } while (0)
 
-IPPairConfig ippair_config;
-SC_ATOMIC_DECLARE(uint64_t,ippair_memuse);
-SC_ATOMIC_DECLARE(uint32_t,ippair_counter);
-SC_ATOMIC_DECLARE(uint32_t,ippair_prune_idx);
+extern IPPairConfig ippair_config;
+SC_ATOMIC_EXTERN(uint64_t,ippair_memuse);
+SC_ATOMIC_EXTERN(uint32_t,ippair_counter);
+SC_ATOMIC_EXTERN(uint32_t,ippair_prune_idx);
 
 void IPPairInitConfig(char quiet);
 void IPPairShutdown(void);
