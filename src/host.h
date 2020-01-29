@@ -87,7 +87,7 @@ typedef struct HostHashRow_ {
 } __attribute__((aligned(CLS))) HostHashRow;
 
 /** host hash table */
-HostHashRow *host_hash;
+extern HostHashRow *host_hash;
 
 #define HOST_VERBOSE    0
 #define HOST_QUIET      1
@@ -128,10 +128,10 @@ typedef struct HostConfig_ {
         }                                             \
     } while (0)
 
-HostConfig host_config;
-SC_ATOMIC_DECLARE(uint64_t,host_memuse);
-SC_ATOMIC_DECLARE(uint32_t,host_counter);
-SC_ATOMIC_DECLARE(uint32_t,host_prune_idx);
+extern HostConfig host_config;
+SC_ATOMIC_EXTERN(uint64_t,host_memuse);
+SC_ATOMIC_EXTERN(uint32_t,host_counter);
+SC_ATOMIC_EXTERN(uint32_t,host_prune_idx);
 
 void HostInitConfig(char quiet);
 void HostShutdown(void);

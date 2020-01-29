@@ -45,8 +45,15 @@
 
 static Host *HostGetUsedHost(void);
 
+/** host hash table */
+HostHashRow *host_hash;
 /** queue with spare hosts */
 static HostQueue host_spare_q;
+HostConfig host_config;
+
+SC_ATOMIC_DECLARE(uint64_t,host_memuse);
+SC_ATOMIC_DECLARE(uint32_t,host_counter);
+SC_ATOMIC_DECLARE(uint32_t,host_prune_idx);
 
 /** size of the host object. Maybe updated in HostInitConfig to include
  *  the storage APIs additions. */
