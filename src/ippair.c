@@ -44,8 +44,14 @@
 
 static IPPair *IPPairGetUsedIPPair(void);
 
+/** ippair hash table */
+IPPairHashRow *ippair_hash;
 /** queue with spare ippairs */
 static IPPairQueue ippair_spare_q;
+IPPairConfig ippair_config;
+SC_ATOMIC_DECLARE(uint64_t,ippair_memuse);
+SC_ATOMIC_DECLARE(uint32_t,ippair_counter);
+SC_ATOMIC_DECLARE(uint32_t,ippair_prune_idx);
 
 /** size of the ippair object. Maybe updated in IPPairInitConfig to include
  *  the storage APIs additions. */
