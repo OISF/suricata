@@ -70,7 +70,7 @@
 
 uint32_t default_packet_size = 0;
 extern bool stats_decoder_events;
-const char *stats_decoder_events_prefix;
+extern const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
 
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
