@@ -46,7 +46,6 @@
 #include "detect-metadata.h"
 #include "app-layer-parser.h"
 #include "app-layer-dnp3.h"
-#include "app-layer-dns-common.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer-ftp.h"

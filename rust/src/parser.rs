@@ -199,4 +199,5 @@ extern {
         GetTxDetectFlats: GetTxDetectFlagsFn,
         SetTxDetectFlags: SetTxDetectFlagsFn,
     );
+    pub fn AppLayerParserRegisterOptionFlags(ipproto: u8, alproto: AppProto, flags: u32);
 }

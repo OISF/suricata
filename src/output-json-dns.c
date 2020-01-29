@@ -40,7 +40,6 @@
 #include "util-mem.h"
 #include "app-layer-parser.h"
 #include "output.h"
-#include "app-layer-dns-udp.h"
 #include "app-layer.h"
 #include "util-privs.h"
 #include "util-buffer.h"

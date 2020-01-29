@@ -48,7 +48,6 @@
 #include "decode-events.h"
 
 #include "app-layer-htp-mem.h"
-#include "app-layer-dns-common.h"
 
 /**
  * \brief This is for the app layer in general and it contains per thread
