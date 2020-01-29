@@ -53,7 +53,7 @@
 #ifdef HAVE_LIBJANSSON
 
 extern bool stats_decoder_events;
-const char *stats_decoder_events_prefix;
+extern const char *stats_decoder_events_prefix;
 
 /**
  * specify which engine info will be printed in stats log.
