@@ -43,7 +43,7 @@ typedef struct Tmqh_ {
     void (*RegisterTests)(void);
 } Tmqh;
 
-Tmqh tmqh_table[TMQH_SIZE];
+extern Tmqh tmqh_table[TMQH_SIZE];
 
 void TmqhSetup (void);
 void TmqhCleanup(void);
