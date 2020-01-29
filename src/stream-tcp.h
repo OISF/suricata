@@ -103,7 +103,7 @@ typedef struct StreamTcpThread_ {
     TcpReassemblyThreadCtx *ra_ctx;
 } StreamTcpThread;
 
-TcpStreamCnf stream_config;
+extern TcpStreamCnf stream_config;
 void StreamTcpInitConfig (char);
 void StreamTcpFreeConfig(char);
 void StreamTcpRegisterTests (void);
