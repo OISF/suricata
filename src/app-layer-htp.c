@@ -87,6 +87,8 @@ static SCRadixTree *cfgtree;
 /** List of HTP configurations. */
 static HTPCfgRec cfglist;
 
+SC_ATOMIC_DECLARE(uint32_t, htp_config_flags);
+
 #ifdef DEBUG
 static SCMutex htp_state_mem_lock = SCMUTEX_INITIALIZER;
 static uint64_t htp_state_memuse = 0;
