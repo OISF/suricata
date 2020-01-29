@@ -29,8 +29,8 @@ void FlowTimeoutsInit(void);
 void FlowTimeoutsEmergency(void);
 
 /** flow manager scheduling condition */
-SCCtrlCondT flow_manager_ctrl_cond;
-SCCtrlMutex flow_manager_ctrl_mutex;
+extern SCCtrlCondT flow_manager_ctrl_cond;
+extern SCCtrlMutex flow_manager_ctrl_mutex;
 #define FlowWakeupFlowManagerThread() SCCtrlCondSignal(&flow_manager_ctrl_cond)
 
 void FlowManagerThreadSpawn(void);
@@ -38,8 +38,8 @@ void FlowDisableFlowManagerThread(void);
 void FlowMgrRegisterTests (void);
 
 /** flow recycler scheduling condition */
-SCCtrlCondT flow_recycler_ctrl_cond;
-SCCtrlMutex flow_recycler_ctrl_mutex;
+extern SCCtrlCondT flow_recycler_ctrl_cond;
+extern SCCtrlMutex flow_recycler_ctrl_mutex;
 #define FlowWakeupFlowRecyclerThread() \
     SCCtrlCondSignal(&flow_recycler_ctrl_cond)
 

@@ -83,6 +83,20 @@ SC_ATOMIC_DECLARE(unsigned int, flow_prune_idx);
 /** atomic flags */
 SC_ATOMIC_DECLARE(unsigned int, flow_flags);
 
+/** FlowProto specific timeouts and free/state functions */
+
+FlowProtoTimeout flow_timeouts_normal[FLOW_PROTO_MAX];
+FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
+FlowProtoFreeFunc flow_freefuncs[FLOW_PROTO_MAX];
+
+/** spare/unused/prealloced flows live here */
+FlowQueue flow_spare_q;
+
+FlowConfig flow_config;
+
+/** flow memuse counter (atomic), for enforcing memcap limit */
+SC_ATOMIC_DECLARE(uint64_t, flow_memuse);
+
 void FlowRegisterTests(void);
 void FlowInitFlowProto(void);
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
