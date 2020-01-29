@@ -53,7 +53,7 @@
 
 #ifdef HAVE_LIBJANSSON
 
-SC_ATOMIC_DECLARE(unsigned int, cert_id);
+SC_ATOMIC_EXTERN(unsigned int, cert_id);
 
 #define MODULE_NAME "LogTlsLog"
 #define DEFAULT_LOG_FILENAME "tls.json"
