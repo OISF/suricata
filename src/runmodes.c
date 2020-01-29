@@ -56,6 +56,7 @@
 #include "counters.h"
 
 int debuglog_enabled = 0;
+int threading_set_cpu_affinity = FALSE;
 
 /* Runmode Global Thread Names */
 const char *thread_name_autofp = "RX";
