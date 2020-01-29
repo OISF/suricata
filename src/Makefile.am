@@ -18,9 +18,6 @@ app-layer-dcerpc-udp.c app-layer-dcerpc-udp.h \
 app-layer-detect-proto.c app-layer-detect-proto.h \
 app-layer-dnp3.c app-layer-dnp3.h \
 app-layer-dnp3-objects.c app-layer-dnp3-objects.h \
-app-layer-dns-common.h \
-app-layer-dns-tcp.c app-layer-dns-tcp.h \
-app-layer-dns-udp.c app-layer-dns-udp.h \
 app-layer-enip.c app-layer-enip.h \
 app-layer-enip-common.c app-layer-enip-common.h \
 app-layer-events.c app-layer-events.h \
