@@ -70,7 +70,7 @@ typedef struct TmModule_ {
     uint8_t flags;
 } TmModule;
 
-TmModule tmm_modules[TMM_SIZE];
+extern TmModule tmm_modules[TMM_SIZE];
 
 /**
  * Structure that output modules use to maintain private data.
