@@ -46,7 +46,7 @@ const SSH_MAX_BANNER_LEN: usize = 256;
 pub struct SshHeader {
     pub pkt_len: u32,
     flags: SSHTxFlag,
-    banner: Vec<u8>,
+    pub banner: Vec<u8>,
 }
 
 impl SshHeader {
@@ -71,7 +71,7 @@ impl SshHeader {
                     self.banner
                         .extend(&banner[0..SSH_MAX_BANNER_LEN - self.banner.len()]);
                 }
-//TODO parse remaining bytes
+                //TODO parse remaining bytes
                 return true;
             }
             Err(nom::Err::Incomplete(_)) => {
@@ -302,7 +302,7 @@ pub extern "C" fn rs_ssh_tx_set_logged(
 }
 
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"ssh-rust\0";
+const PARSER_NAME: &'static [u8] = b"ssh\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ssh_register_parser() {

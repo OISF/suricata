@@ -21,7 +21,8 @@ use std;
 
 fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
     let js = Json::object();
-    js.set_integer("todo", tx.cli_hdr.pkt_len as u64);
+    js.set_string("client_banner", std::str::from_utf8(&tx.cli_hdr.banner).unwrap());
+    js.set_string("server_banner", std::str::from_utf8(&tx.srv_hdr.banner).unwrap());
     return Some(js);
 }
 

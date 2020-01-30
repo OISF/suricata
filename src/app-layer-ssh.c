@@ -634,36 +634,6 @@ void RegisterSSHParsers(void)
     SCLogNotice("Registring Rust SSH parser.");
     rs_ssh_register_parser();
 
-    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SSH, STREAM_TOSERVER,
-                                     SSHParseRequest);
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SSH, STREAM_TOCLIENT,
-                                     SSHParseResponse);
-        AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
-        AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
-                ALPROTO_SSH, STREAM_TOSERVER|STREAM_TOCLIENT);
-
-        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_SSH, SSHStateTransactionFree);
-
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SSH,
-                                               SSHGetTxDetectState, SSHSetTxDetectState);
-
-        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SSH, SSHGetTx);
-
-        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SSH, SSHGetTxCnt);
-
-        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SSH, SSHGetAlstateProgress);
-
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHGetTxLogged, SSHSetTxLogged);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SSH,
-                SSHGetTxDetectFlags, SSHSetTxDetectFlags);
-
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SSH,
-                                                               SSHGetAlstateProgressCompletionStatus);
-    } else {
-//        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
-//                  "still on.", proto_name);
-    }
 
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SSH, SSHParserRegisterTests);
