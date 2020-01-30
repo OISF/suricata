@@ -15,48 +15,53 @@
  * 02110-1301, USA.
  */
 
-use std;
+use nom::line_ending;
 
-fn parse_len(input: &str) -> Result<u32, std::num::ParseIntError> {
-    input.parse::<u32>()
-}
-
-named!(pub parse_message<String>,
-       do_parse!(
-           len:  map_res!(
-                 map_res!(take_until!(":"), std::str::from_utf8), parse_len) >>
-           _sep: take!(1) >>
-           msg:  take_str!(len) >>
-               (
-                   msg.to_string()
-               )
-       ));
+named!(pub ssh_parse_banner<&[u8], &[u8]>,
+    terminated!(
+        is_not!("\r\n"),
+        line_ending
+    )
+);
 
 #[cfg(test)]
 mod tests {
 
-    use nom::*;
     use super::*;
 
     /// Simple test of some valid data.
     #[test]
-    fn test_parse_valid() {
-        let buf = b"12:Hello World!4:Bye.";
-
-        let result = parse_message(buf);
+    fn test_parse_banner() {
+        let buf = b"SSH-Single\n";
+        let result = ssh_parse_banner(buf);
         match result {
-            Ok((remainder, message)) => {
+            Ok((_, message)) => {
                 // Check the first message.
-                assert_eq!(message, "Hello World!");
-
-                // And we should have 6 bytes left.
-                assert_eq!(remainder.len(), 6);
+                assert_eq!(message, b"SSH-Single");
             }
-            Err(Err::Incomplete(_)) => {
-                panic!("Result should not have been incomplete.");
+            Err(err) => {
+                panic!("Result should not be an error: {:?}.", err);
             }
-            Err(Err::Error(err)) |
-            Err(Err::Failure(err)) => {
+        }
+        let buf2 = b"SSH-Double\r\n";
+        let result2 = ssh_parse_banner(buf2);
+        match result2 {
+            Ok((_, message)) => {
+                // Check the first message.
+                assert_eq!(message, b"SSH-Double");
+            }
+            Err(err) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+        let buf3 = b"SSH-Oops\rMore\r\n";
+        let result3 = ssh_parse_banner(buf3);
+        match result3 {
+            Ok((_, message)) => {
+                // Check the first message.
+                assert_eq!(message, b"SSH-Oops\rMore");
+            }
+            Err(err) => {
                 panic!("Result should not be an error: {:?}.", err);
             }
         }

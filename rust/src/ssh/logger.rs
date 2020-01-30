@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-use std;
-use crate::json::*;
 use super::ssh::SSHTransaction;
+use crate::json::*;
+use std;
 
 fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
     let js = Json::object();
