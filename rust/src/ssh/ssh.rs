@@ -15,13 +15,14 @@
  * 02110-1301, USA.
  */
 
-use std;
-use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
-use crate::log::*;
-use std::mem::transmute;
 use crate::applayer::{LoggerFlags, TxDetectFlags};
+use crate::core::STREAM_TOSERVER;
+use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::log::*;
 use crate::parser::*;
+use std;
 use std::ffi::CString;
+use std::mem::transmute;
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
 
@@ -31,22 +32,32 @@ pub enum SSHConnectionState {
     SshStateFinished,
 }
 
+bitflags! {
+pub struct SSHTransactionFlag: u8 {
+const SSH_FLAG_NONE = 0;
+const SSH_FLAG_VERSION_PARSED=1;
+const SSH_FLAG_PARSER_DONE=2;
+}
+}
+
 pub struct SshHeader {
-//TODO1 complete
-    pub pkt_len : u32,
+    //TODO1 complete
+    pub pkt_len: u32,
+    flags: SSHTransactionFlag,
 }
 
 impl SshHeader {
     pub fn new() -> SshHeader {
         SshHeader {
             pkt_len: 0,
+            flags: SSHTransactionFlag::SSH_FLAG_NONE,
         }
     }
 }
 
 pub struct SSHTransaction {
-    pub srv_hdr : SshHeader,
-    pub cli_hdr : SshHeader,
+    pub srv_hdr: SshHeader,
+    pub cli_hdr: SshHeader,
 
     logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
@@ -98,19 +109,12 @@ impl SSHState {
 
         return true;
     }
-
 }
 
 // C exports.
 
-export_tx_get_detect_state!(
-    rs_ssh_tx_get_detect_state,
-    SSHTransaction
-);
-export_tx_set_detect_state!(
-    rs_ssh_tx_set_detect_state,
-    SSHTransaction
-);
+export_tx_get_detect_state!(rs_ssh_tx_get_detect_state, SSHTransaction);
+export_tx_set_detect_state!(rs_ssh_tx_set_detect_state, SSHTransaction);
 
 export_tx_detect_flags_set!(rs_ssh_set_tx_detect_flags, SSHTransaction);
 export_tx_detect_flags_get!(rs_ssh_get_tx_detect_flags, SSHTransaction);
@@ -122,7 +126,7 @@ pub extern "C" fn rs_dummy_probing_parser(
     _direction: u8,
     _input: *const u8,
     _input_len: u32,
-    _rdir: *mut u8
+    _rdir: *mut u8,
 ) -> AppProto {
     return ALPROTO_UNKNOWN;
 }
@@ -141,39 +145,33 @@ pub extern "C" fn rs_ssh_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_state_tx_free(
-    _state: *mut std::os::raw::c_void,
-    _tx_id: u64,
-) {
-//do nothing
+pub extern "C" fn rs_ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id: u64) {
+    //do nothing
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
+    _pstate: *mut std::os::raw::c_void,
     input: *const u8,
     input_len: u32,
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    let eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
-            true
-        } else {
-            false
-        }
-    };
-
-    if eof {
-        // TODO If needed, handled EOF, or pass it into the parser.
-    }
-
     let state = cast_pointer!(state, SSHState);
     let buf = build_slice!(input, input_len as usize);
-    if state.parse_request(buf) {
-        return 1;
+    if !(state
+        .transaction
+        .cli_hdr
+        .flags
+        .contains(SSHTransactionFlag::SSH_FLAG_VERSION_PARSED))
+    {
+        //TODO
+    } else {
+        if state.parse_request(buf) {
+            return 1;
+        }
     }
     return -1;
 }
@@ -182,19 +180,12 @@ pub extern "C" fn rs_ssh_parse_request(
 pub extern "C" fn rs_ssh_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
+    _pstate: *mut std::os::raw::c_void,
     input: *const u8,
     input_len: u32,
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    let _eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
-            true
-        } else {
-            false
-        }
-    };
     let state = cast_pointer!(state, SSHState);
     let buf = build_slice!(input, input_len as usize);
     if state.parse_request(buf) {
@@ -213,25 +204,52 @@ pub extern "C" fn rs_ssh_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_state_get_tx_count(
-    _state: *mut std::os::raw::c_void,
-) -> u64 {
+pub extern "C" fn rs_ssh_state_get_tx_count(_state: *mut std::os::raw::c_void) -> u64 {
     return 1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_state_progress_completion_status(
-    _direction: u8,
-) -> std::os::raw::c_int {
+pub extern "C" fn rs_ssh_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
     return SSHConnectionState::SshStateFinished as i32;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_tx_get_alstate_progress(
-    _tx: *mut std::os::raw::c_void,
-    _direction: u8,
+    tx: *mut std::os::raw::c_void,
+    direction: u8,
 ) -> std::os::raw::c_int {
-//TODO3 once SSHTransaction/SSHState is complete
+    let tx = cast_pointer!(tx, SSHTransaction);
+
+    if tx
+        .cli_hdr
+        .flags
+        .contains(SSHTransactionFlag::SSH_FLAG_PARSER_DONE)
+        && tx
+            .srv_hdr
+            .flags
+            .contains(SSHTransactionFlag::SSH_FLAG_PARSER_DONE)
+    {
+        return SSHConnectionState::SshStateFinished as i32;
+    }
+
+    if direction == STREAM_TOSERVER {
+        if tx
+            .cli_hdr
+            .flags
+            .contains(SSHTransactionFlag::SSH_FLAG_VERSION_PARSED)
+        {
+            return SSHConnectionState::SshStateBannerDone as i32;
+        }
+    } else {
+        if tx
+            .srv_hdr
+            .flags
+            .contains(SSHTransactionFlag::SSH_FLAG_VERSION_PARSED)
+        {
+            return SSHConnectionState::SshStateBannerDone as i32;
+        }
+    }
+
     return SSHConnectionState::SshStateInProgress as i32;
 }
 
@@ -264,7 +282,7 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-//simple patterns, no probing
+        //simple patterns, no probing
         probe_ts: rs_dummy_probing_parser,
         probe_tc: rs_dummy_probing_parser,
         min_depth: 0,
@@ -272,7 +290,7 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         state_new: rs_ssh_state_new,
         state_free: rs_ssh_state_free,
         tx_free: rs_ssh_state_tx_free,
-//TODO4
+        //TODO4
         parse_ts: rs_ssh_parse_request,
         parse_tc: rs_ssh_parse_response,
         get_tx_count: rs_ssh_state_get_tx_count,
@@ -285,7 +303,7 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         set_de_state: rs_ssh_tx_set_detect_state,
         get_events: None,
         get_eventinfo: None,
-        get_eventinfo_byid : None,
+        get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
         get_tx_mpm_id: None,
@@ -298,18 +316,10 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(
-        ip_proto_str.as_ptr(),
-        parser.name,
-    ) != 0
-    {
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_SSH = alproto;
-        if AppLayerParserConfParserEnabled(
-            ip_proto_str.as_ptr(),
-            parser.name,
-        ) != 0
-        {
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogNotice!("Rust ssh parser registered.");
