@@ -17,17 +17,25 @@
 
 use super::ssh::SSHTransaction;
 use crate::json::*;
+use crate::log::*;
 use std;
 
 fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
     let js = Json::object();
-    js.set_string("client_banner", std::str::from_utf8(&tx.cli_hdr.banner).unwrap());
-    js.set_string("server_banner", std::str::from_utf8(&tx.srv_hdr.banner).unwrap());
+    //TODO complete
+    js.set_string(
+        "client_banner",
+        std::str::from_utf8(&tx.cli_hdr.banner).unwrap(),
+    );
+    js.set_string(
+        "server_banner",
+        std::str::from_utf8(&tx.srv_hdr.banner).unwrap(),
+    );
     return Some(js);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_logger_log(tx: *mut std::os::raw::c_void) -> *mut JsonT {
+pub extern "C" fn rs_ssh_log_json(tx: *mut std::os::raw::c_void) -> *mut JsonT {
     let tx = cast_pointer!(tx, SSHTransaction);
     match log_ssh(tx) {
         Some(js) => js.unwrap(),
