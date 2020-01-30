@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use super::parser;
 use crate::applayer::{LoggerFlags, TxDetectFlags};
 use crate::core::STREAM_TOSERVER;
 use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
@@ -33,24 +34,45 @@ pub enum SSHConnectionState {
 }
 
 bitflags! {
-pub struct SSHTransactionFlag: u8 {
-const SSH_FLAG_NONE = 0;
-const SSH_FLAG_VERSION_PARSED=1;
-const SSH_FLAG_PARSER_DONE=2;
-}
+    pub struct SSHTxFlag: u8 {
+        const SSH_FLAG_NONE = 0;
+        const SSH_FLAG_VERSION_PARSED=1;
+        const SSH_FLAG_PARSER_DONE=2;
+    }
 }
 
+const SSH_MAX_BANNER_LEN: usize = 256;
+
 pub struct SshHeader {
-    //TODO1 complete
     pub pkt_len: u32,
-    flags: SSHTransactionFlag,
+    flags: SSHTxFlag,
+    banner: Vec<u8>,
 }
 
 impl SshHeader {
     pub fn new() -> SshHeader {
         SshHeader {
             pkt_len: 0,
-            flags: SSHTransactionFlag::SSH_FLAG_NONE,
+            flags: SSHTxFlag::SSH_FLAG_NONE,
+            banner: Vec::with_capacity(SSH_MAX_BANNER_LEN),
+        }
+    }
+
+    fn parse_banner(&mut self, input: &[u8]) -> bool {
+        match parser::ssh_parse_banner(input) {
+            Ok((_, banner)) => {
+                //TODO complete buffer
+                self.banner.extend(banner);
+                return true;
+            }
+            Err(nom::Err::Incomplete(_)) => {
+                //TODO bufferize
+                return true;
+            }
+            Err(_) => {
+                //TODO self.set_event(SSHEvent::InvalidData);
+                return false;
+            }
         }
     }
 }
@@ -161,14 +183,13 @@ pub extern "C" fn rs_ssh_parse_request(
 ) -> i32 {
     let state = cast_pointer!(state, SSHState);
     let buf = build_slice!(input, input_len as usize);
-    if !(state
-        .transaction
-        .cli_hdr
-        .flags
-        .contains(SSHTransactionFlag::SSH_FLAG_VERSION_PARSED))
-    {
-        //TODO
+    let hdr = &mut state.transaction.cli_hdr;
+    if !(hdr.flags.contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)) {
+        if hdr.parse_banner(buf) {
+            return 1;
+        }
     } else {
+        //TODO
         if state.parse_request(buf) {
             return 1;
         }
@@ -220,14 +241,8 @@ pub extern "C" fn rs_ssh_tx_get_alstate_progress(
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SSHTransaction);
 
-    if tx
-        .cli_hdr
-        .flags
-        .contains(SSHTransactionFlag::SSH_FLAG_PARSER_DONE)
-        && tx
-            .srv_hdr
-            .flags
-            .contains(SSHTransactionFlag::SSH_FLAG_PARSER_DONE)
+    if tx.cli_hdr.flags.contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
+        && tx.srv_hdr.flags.contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
     {
         return SSHConnectionState::SshStateFinished as i32;
     }
@@ -236,7 +251,7 @@ pub extern "C" fn rs_ssh_tx_get_alstate_progress(
         if tx
             .cli_hdr
             .flags
-            .contains(SSHTransactionFlag::SSH_FLAG_VERSION_PARSED)
+            .contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)
         {
             return SSHConnectionState::SshStateBannerDone as i32;
         }
@@ -244,7 +259,7 @@ pub extern "C" fn rs_ssh_tx_get_alstate_progress(
         if tx
             .srv_hdr
             .flags
-            .contains(SSHTransactionFlag::SSH_FLAG_VERSION_PARSED)
+            .contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)
         {
             return SSHConnectionState::SshStateBannerDone as i32;
         }
@@ -290,7 +305,6 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         state_new: rs_ssh_state_new,
         state_free: rs_ssh_state_free,
         tx_free: rs_ssh_state_tx_free,
-        //TODO4
         parse_ts: rs_ssh_parse_request,
         parse_tc: rs_ssh_parse_response,
         get_tx_count: rs_ssh_state_get_tx_count,

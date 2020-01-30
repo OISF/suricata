@@ -15,6 +15,6 @@
  * 02110-1301, USA.
  */
 
-pub mod ssh;
-mod parser;
 pub mod logger;
+mod parser;
+pub mod ssh;
