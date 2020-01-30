@@ -15,12 +15,13 @@
  * 02110-1301, USA.
  */
 
-use nom::line_ending;
+//use nom::line_ending;
 
+//may leave \r at the end to be removed
 named!(pub ssh_parse_banner<&[u8], &[u8]>,
     terminated!(
-        is_not!("\r\n"),
-        line_ending
+        take_until!("\n"),
+        tag!("\n")
     )
 );
 
@@ -48,7 +49,7 @@ mod tests {
         match result2 {
             Ok((_, message)) => {
                 // Check the first message.
-                assert_eq!(message, b"SSH-Double");
+                assert_eq!(message, b"SSH-Double\r");
             }
             Err(err) => {
                 panic!("Result should not be an error: {:?}.", err);
@@ -59,7 +60,7 @@ mod tests {
         match result3 {
             Ok((_, message)) => {
                 // Check the first message.
-                assert_eq!(message, b"SSH-Oops\rMore");
+                assert_eq!(message, b"SSH-Oops\rMore\r");
             }
             Err(err) => {
                 panic!("Result should not be an error: {:?}.", err);
