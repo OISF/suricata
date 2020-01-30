@@ -71,6 +71,7 @@ impl SshHeader {
                     self.banner
                         .extend(&banner[0..SSH_MAX_BANNER_LEN - self.banner.len()]);
                 }
+                self.flags = SSHTxFlag::SSH_FLAG_VERSION_PARSED;
                 //TODO parse remaining bytes
                 return true;
             }
