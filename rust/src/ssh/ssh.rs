@@ -61,12 +61,26 @@ impl SshHeader {
     fn parse_banner(&mut self, input: &[u8]) -> bool {
         match parser::ssh_parse_banner(input) {
             Ok((_, banner)) => {
-                //TODO complete buffer
-                self.banner.extend(banner);
+                if self.banner.len() + banner.len() <= SSH_MAX_BANNER_LEN {
+                    self.banner.extend(banner);
+                    //remove final CR if any
+                    if self.banner.last() == Some(&13) {
+                        self.banner.pop();
+                    }
+                } else if self.banner.len() < SSH_MAX_BANNER_LEN {
+                    self.banner
+                        .extend(&banner[0..SSH_MAX_BANNER_LEN - self.banner.len()]);
+                }
+//TODO parse remaining bytes
                 return true;
             }
             Err(nom::Err::Incomplete(_)) => {
-                //TODO bufferize
+                if self.banner.len() + input.len() <= SSH_MAX_BANNER_LEN {
+                    self.banner.extend(input);
+                } else if self.banner.len() < SSH_MAX_BANNER_LEN {
+                    self.banner
+                        .extend(&input[0..SSH_MAX_BANNER_LEN - self.banner.len()]);
+                }
                 return true;
             }
             Err(_) => {
