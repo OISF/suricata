@@ -41,6 +41,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
+#include "rust-ssh-ssh-gen.h"
 
 #include "conf.h"
 
