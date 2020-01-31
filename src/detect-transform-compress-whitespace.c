@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Implements the compress_whitespace tranform keyword
+ * Implements the compress_whitespace transform keyword
  */
 
 #include "suricata-common.h"
