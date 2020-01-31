@@ -17,7 +17,6 @@
 
 use super::ssh::SSHTransaction;
 use crate::json::*;
-use crate::log::*;
 use std;
 
 fn log_ssh(tx: &SSHTransaction) -> Option<Json> {

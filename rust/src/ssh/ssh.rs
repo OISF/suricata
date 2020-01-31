@@ -59,20 +59,16 @@ impl SshHeader {
     }
 
     fn parse_banner(&mut self, input: &[u8]) -> bool {
-        match parser::ssh_parse_banner(input) {
+        match parser::ssh_parse_line(input) {
             Ok((_, banner)) => {
                 if self.banner.len() + banner.len() <= SSH_MAX_BANNER_LEN {
                     self.banner.extend(banner);
-                    //remove final CR if any
-                    if self.banner.last() == Some(&13) {
-                        self.banner.pop();
-                    }
                 } else if self.banner.len() < SSH_MAX_BANNER_LEN {
                     self.banner
                         .extend(&banner[0..SSH_MAX_BANNER_LEN - self.banner.len()]);
                 }
                 self.flags = SSHTxFlag::SSH_FLAG_VERSION_PARSED;
-                //TODO parse remaining bytes
+                //TODO1 parse banner + remaining bytes
                 return true;
             }
             Err(nom::Err::Incomplete(_)) => {
@@ -204,7 +200,7 @@ pub extern "C" fn rs_ssh_parse_request(
             return 1;
         }
     } else {
-        //TODO
+        //TODO2 parse record
         if state.parse_request(buf) {
             return 1;
         }
@@ -224,6 +220,7 @@ pub extern "C" fn rs_ssh_parse_response(
 ) -> i32 {
     let state = cast_pointer!(state, SSHState);
     let buf = build_slice!(input, input_len as usize);
+    //TODO3 same as rs_ssh_parse_request with state.transaction.srv_hdr;
     if state.parse_request(buf) {
         return 1;
     }
