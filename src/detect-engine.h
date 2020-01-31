@@ -55,7 +55,7 @@ void DetectBufferTypeRegisterValidateCallback(const char *name,
         bool (*ValidateCallback)(const Signature *, const char **sigerror));
 
 int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
-        int *transforms, int transform_cnt);
+        TransformData *transforms, int transform_cnt);
 const char *DetectBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id);
 bool DetectBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int id);
 bool DetectBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id);
