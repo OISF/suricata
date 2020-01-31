@@ -84,7 +84,7 @@ static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
 typedef struct SigDuplWrapper_ {
     /* the signature we want to wrap */
     Signature *s;
-    /* the signature right before the above signatue in the det_ctx->sig_list */
+    /* the signature right before the above signature in the det_ctx->sig_list */
     Signature *s_prev;
 } SigDuplWrapper;
 
@@ -1066,7 +1066,7 @@ static inline int SigParseToken(char **input, char *output,
  * Parses rule tokens that may be lists such as addresses and ports
  * handling the case when they may not be lists.
  *
- * \param input ouble pointer to input buffer, will be advanced as input is
+ * \param input double pointer to input buffer, will be advanced as input is
  *     parsed.
  * \param output buffer to copy token into.
  * \param output_size length of output buffer.
@@ -1292,7 +1292,7 @@ Signature *SigAlloc (void)
 
 /**
  * \internal
- * \brief Free Medadata list
+ * \brief Free Metadata list
  *
  * \param s Pointer to the signature
  */
@@ -1591,7 +1591,7 @@ static int SigMatchListLen(SigMatch *sm)
 }
 
 /** \brief convert SigMatch list to SigMatchData array
- *  \note ownership of sm->ctx is transfered to smd->ctx
+ *  \note ownership of sm->ctx is transferred to smd->ctx
  */
 SigMatchData* SigMatchList2DataArray(SigMatch *head)
 {
@@ -2285,7 +2285,7 @@ end:
  *        If the signature is bidirectional it should append two signatures
  *        (with the addresses switched) into the list.  Also handle duplicate
  *        signatures.  In case of duplicate sigs, use the ones that have the
- *        latest revision.  We use the sid and the msg to identifiy duplicate
+ *        latest revision.  We use the sid and the msg to identify duplicate
  *        sigs.  If 2 sigs have the same sid and gid, they are duplicates.
  *
  * \param de_ctx Pointer to the Detection Engine Context.
@@ -4072,7 +4072,7 @@ static int SigParseBidirWithSameSrcAndDest02(void)
 
     SigFree(s);
 
-    // Source is a subset of destinationn
+    // Source is a subset of destination
     s = SigInit(de_ctx,
             "alert tcp [1.2.3.4, ::1] [80, 81, 82] <> [1.2.3.4, ::1] [80, 81] (sid:1; rev:1;)");
     FAIL_IF_NULL(s);
