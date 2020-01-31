@@ -730,7 +730,10 @@ static HashListTable *g_buffer_type_hash = NULL;
 static int g_buffer_type_id = DETECT_SM_LIST_DYNAMIC_START;
 static int g_buffer_type_reg_closed = 0;
 
-static DetectEngineTransforms no_transforms = { .transforms = { 0 }, .cnt = 0, };
+static DetectEngineTransforms no_transforms = {
+    .transforms[0] = {0, NULL},
+    .cnt = 0,
+};
 
 int DetectBufferTypeMaxId(void)
 {
@@ -763,6 +766,19 @@ static char DetectBufferTypeCompareFunc(void *data1, uint16_t len1, void *data2,
 static void DetectBufferTypeFreeFunc(void *data)
 {
     DetectBufferType *map = (DetectBufferType *)data;
+
+    /* Release transformation option memory, if any */
+    for (int i = 0; i < map->transforms.cnt; i++) {
+        if (map->transforms.transforms[i].options == NULL)
+            continue;
+        if (sigmatch_table[map->transforms.transforms[i].transform].Free == NULL) {
+            SCLogError(SC_ERR_UNIMPLEMENTED,
+                       "%s allocates transform option memory but has no free routine",
+                       sigmatch_table[map->transforms.transforms[i].transform].name);
+            continue;
+        }
+        sigmatch_table[map->transforms.transforms[i].transform].Free(NULL, map->transforms.transforms[i].options);
+    }
     if (map != NULL) {
         SCFree(map);
     }
@@ -973,7 +989,7 @@ int DetectBufferSetActiveList(Signature *s, const int list)
 {
     BUG_ON(s->init_data == NULL);
 
-    if (s->init_data->list && s->init_data->transform_cnt) {
+    if (s->init_data->list && s->init_data->transforms.cnt) {
         return -1;
     }
     s->init_data->list = list;
@@ -986,19 +1002,19 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
 {
     BUG_ON(s->init_data == NULL);
 
-    if (s->init_data->transform_cnt) {
+    if (s->init_data->list && s->init_data->transforms.cnt) {
         if (s->init_data->list == DETECT_SM_LIST_NOTSET ||
             s->init_data->list < DETECT_SM_LIST_DYNAMIC_START) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "previous transforms not consumed "
                     "(list: %u, transform_cnt %u)", s->init_data->list,
-                    s->init_data->transform_cnt);
+                    s->init_data->transforms.cnt);
             SCReturnInt(-1);
         }
 
         SCLogDebug("buffer %d has transform(s) registered: %d",
-                s->init_data->list, s->init_data->transforms[0]);
+                s->init_data->list, s->init_data->transforms.cnt);
         int new_list = DetectBufferTypeGetByIdTransforms(de_ctx, s->init_data->list,
-                s->init_data->transforms, s->init_data->transform_cnt);
+                s->init_data->transforms.transforms, s->init_data->transforms.cnt);
         if (new_list == -1) {
             SCReturnInt(-1);
         }
@@ -1006,7 +1022,7 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
         s->init_data->list = new_list;
         s->init_data->list_set = false;
         // reset transforms now that we've set up the list
-        s->init_data->transform_cnt = 0;
+        s->init_data->transforms.cnt = 0;
     }
 
     SCReturnInt(0);
@@ -1150,11 +1166,11 @@ void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
 {
     if (transforms) {
         for (int i = 0; i < DETECT_TRANSFORMS_MAX; i++) {
-            const int id = transforms->transforms[i];
+            const int id = transforms->transforms[i].transform;
             if (id == 0)
                 break;
             BUG_ON(sigmatch_table[id].Transform == NULL);
-            sigmatch_table[id].Transform(buffer);
+            sigmatch_table[id].Transform(buffer, transforms->transforms[i].options);
             SCLogDebug("applied transform %s", sigmatch_table[id].name);
         }
     }
@@ -1242,7 +1258,7 @@ void DetectBufferTypeCloseRegistration(void)
 }
 
 int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
-        int *transforms, int transform_cnt)
+        TransformData *transforms, int transform_cnt)
 {
     const DetectBufferType *base_map = DetectBufferTypeGetById(de_ctx, id);
     if (!base_map) {
