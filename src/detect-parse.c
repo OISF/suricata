@@ -1386,6 +1386,15 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
         IPOnlyCIDRListFree(s->CidrSrc);
 
     int i;
+
+    if (s->init_data && s->init_data->transforms.cnt) {
+        for(i = 0; i < s->init_data->transforms.cnt; i++) {
+            if (s->init_data->transforms.transforms[i].options) {
+                SCFree(s->init_data->transforms.transforms[i].options);
+                s->init_data->transforms.transforms[i].options = NULL;
+            }
+        }
+    }
     if (s->init_data) {
         const int nlists = s->init_data->smlists_array_size;
         for (i = 0; i < nlists; i++) {
@@ -1439,7 +1448,7 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     SCFree(s);
 }
 
-int DetectSignatureAddTransform(Signature *s, int transform)
+int DetectSignatureAddTransform(Signature *s, int transform, void *options)
 {
     /* we only support buffers */
     if (s->init_data->list == 0) {
@@ -1449,10 +1458,18 @@ int DetectSignatureAddTransform(Signature *s, int transform)
         SCLogError(SC_ERR_INVALID_SIGNATURE, "transforms must directly follow stickybuffers");
         SCReturnInt(-1);
     }
-    if (s->init_data->transform_cnt >= DETECT_TRANSFORMS_MAX) {
+    if (s->init_data->transforms.cnt >= DETECT_TRANSFORMS_MAX) {
         SCReturnInt(-1);
     }
-    s->init_data->transforms[s->init_data->transform_cnt++] = transform;
+
+    s->init_data->transforms.transforms[s->init_data->transforms.cnt].transform = transform;
+    s->init_data->transforms.transforms[s->init_data->transforms.cnt].options = options;
+
+    s->init_data->transforms.cnt++;
+    SCLogDebug("Added transform #%d [%s]",
+            s->init_data->transforms.cnt,
+            s->sig_str);
+
     SCReturnInt(0);
 }
 
