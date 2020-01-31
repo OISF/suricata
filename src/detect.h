@@ -502,7 +502,7 @@ typedef struct SignatureInitData_ {
     int transform_cnt;
 
     /** score to influence rule grouping. A higher value leads to a higher
-     *  likelyhood of a rulegroup with this sig ending up as a contained
+     *  likelihood of a rulegroup with this sig ending up as a contained
      *  group. */
     int whitelist;
 
@@ -1002,7 +1002,7 @@ typedef struct RuleMatchCandidateTx {
   */
 typedef struct DetectEngineThreadCtx_ {
     /** \note multi-tenant hash lookup code from Detect() *depends*
-     *        on this beeing the first member */
+     *        on this being the first member */
     uint32_t tenant_id;
 
     /** ticker that is incremented once per packet. */
