@@ -39,7 +39,8 @@
 static int DetectTransformDotPrefixSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformDotPrefixRegisterTests(void);
 
-static void TransformDotPrefix(InspectionBuffer *buffer);
+static void TransformDotPrefix(InspectionBuffer *buffer, void *options);
+static void DetectTransformDotPrefixFree(void *);
 
 void DetectTransformDotPrefixRegister(void)
 {
@@ -50,12 +51,23 @@ void DetectTransformDotPrefixRegister(void)
         DOC_URL DOC_VERSION "/rules/transforms.html#dotprefix";
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].Transform = TransformDotPrefix;
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].Setup = DetectTransformDotPrefixSetup;
+    sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].Free = DetectTransformDotPrefixFree;
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].RegisterTests =
         DetectTransformDotPrefixRegisterTests;
 
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].flags |= SIGMATCH_NOOPT;
 }
 
+/* Example -- to be removed before final pr. Transforms that supply
+ * options implement Free. This function is only called when the options
+ * value is non-null
+ */
+static void DetectTransformDotPrefixFree(void *ptr)
+{
+    SCLogNotice("Entering %s with %p", __FUNCTION__, ptr);
+    if (ptr)
+        SCFree(ptr);
+}
 /**
  *  \internal
  *  \brief Extract the dotprefix, if any, the last pattern match, either content or uricontent
@@ -68,7 +80,12 @@ void DetectTransformDotPrefixRegister(void)
 static int DetectTransformDotPrefixSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_DOTPREFIX);
+    /* Example: to be removed from the final pr. This exemplifies what happens if a transform
+     * detects options. The detection logic is TBD and will likely be `transform:option-values`
+     */
+    char *foo = SCMalloc(10);
+    SCLogNotice("%s allocated %p", __FUNCTION__, foo);
+    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_DOTPREFIX, foo);
     SCReturnInt(r);
 }
 
@@ -102,7 +119,7 @@ static int DetectTransformDotPrefixSetup (DetectEngineCtx *de_ctx, Signature *s,
  * 4. something.google.co.uk --> match
  * 5. google.com --> no match
  */
-static void TransformDotPrefix(InspectionBuffer *buffer)
+static void TransformDotPrefix(InspectionBuffer *buffer, void *options)
 {
     const size_t input_len = buffer->inspect_len;
 
@@ -128,7 +145,7 @@ static int DetectTransformDotPrefixTest01(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformDotPrefix(&buffer);
+    TransformDotPrefix(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
@@ -148,7 +165,7 @@ static int DetectTransformDotPrefixTest02(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformDotPrefix(&buffer);
+    TransformDotPrefix(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
