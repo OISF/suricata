@@ -173,7 +173,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
                 for (int i = 0; i < transforms->cnt; i++) {
                     char ttstr[64];
                     (void)snprintf(ttstr,sizeof(ttstr), "%s,",
-                            sigmatch_table[transforms->transforms[i]].name);
+                            sigmatch_table[transforms->transforms[i].transform].name);
                     strlcat(xforms, ttstr, sizeof(xforms));
                 }
                 xforms[strlen(xforms)-1] = '\0';
