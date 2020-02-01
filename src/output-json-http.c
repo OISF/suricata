@@ -488,20 +488,25 @@ static void EveHttpLogJSON(JsonHttpLogThread *aft, JsonBuilder *js, Flow * f, ht
     /* log custom fields if configured */
     if (http_ctx->fields != 0)
         EveHttpLogJSONCustom(http_ctx, js, tx);
-    if (http_ctx->flags & LOG_HTTP_EXTENDED)
+    if ((http_ctx->flags & LOG_HTTP_EXTENDED) ||
+        OutputJSONNeedFullLog(&aft->httplog_ctx->cfg, f, tx_id, LOG_TYPE_STRING))
         EveHttpLogJSONExtended(js, tx);
-    if (http_ctx->flags & LOG_HTTP_REQ_HEADERS)
+    if ((http_ctx->flags & LOG_HTTP_REQ_HEADERS) ||
+        OutputJSONNeedFullLog(&aft->httplog_ctx->cfg, f, tx_id, LOG_TYPE_STRING))
         EveHttpLogJSONHeaders(js, LOG_HTTP_REQ_HEADERS, tx);
-    if (http_ctx->flags & LOG_HTTP_RES_HEADERS)
+    if ((http_ctx->flags & LOG_HTTP_RES_HEADERS) ||
+        OutputJSONNeedFullLog(&aft->httplog_ctx->cfg, f, tx_id, LOG_TYPE_STRING))
         EveHttpLogJSONHeaders(js, LOG_HTTP_RES_HEADERS, tx);
-    if (http_ctx->flags & LOG_HTTP_BODY) {
+    if ((http_ctx->flags & LOG_HTTP_BODY) ||
+        OutputJSONNeedFullLog(&aft->httplog_ctx->cfg, f, tx_id, LOG_TYPE_BASE64)) {
         HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         if (htud != NULL) {
             BodyBase64Buffer(js, &htud->request_body, "request_body");
             BodyBase64Buffer(js, &htud->response_body, "response_body");
         }
     }
-    if (http_ctx->flags & LOG_HTTP_BODY_PRINTABLE) {
+    if ((http_ctx->flags & LOG_HTTP_BODY_PRINTABLE) ||
+        OutputJSONNeedFullLog(&aft->httplog_ctx->cfg, f, tx_id, LOG_TYPE_PRINTABLE)) {
         HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         if (htud != NULL) {
             BodyPrintableBuffer(js, &htud->request_body, "request_body_printable");
