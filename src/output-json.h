@@ -120,4 +120,13 @@ void SCJsonDecref(json_t *js);
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, const Flow *f,
         JsonBuilder *js, MemBuffer *payload);
 
+enum OutputJsonvalueType {
+    LOG_TYPE_BASE64 = 0,
+    LOG_TYPE_PRINTABLE,
+    LOG_TYPE_STRING,
+};
+
+bool OutputJSONNeedFullLog(const OutputJsonCommonSettings *cfg, const Flow *f, uint64_t tx_id,
+        enum OutputJsonvalueType type);
+
 #endif /* __OUTPUT_JSON_H__ */
