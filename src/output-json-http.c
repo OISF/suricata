@@ -490,7 +490,7 @@ void JsonHttpLogJSONBodyBase64(json_t *js, Flow *f, uint64_t tx_id)
 }
 
 /* JSON format logging */
-static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, uint64_t tx_id)
+static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, Flow *f, htp_tx_t *tx, uint64_t tx_id)
 {
     LogHttpFileCtx *http_ctx = aft->httplog_ctx;
     json_t *hjs = json_object();
@@ -502,20 +502,25 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, ui
     /* log custom fields if configured */
     if (http_ctx->fields != 0)
         JsonHttpLogJSONCustom(http_ctx, hjs, tx);
-    if (http_ctx->flags & LOG_HTTP_EXTENDED)
+    if ((http_ctx->flags & LOG_HTTP_EXTENDED) ||
+        OutputJSONNeedFullLog(&aft->httplog_ctx->cfg, f, tx_id, LOG_TYPE_STRING))
         JsonHttpLogJSONExtended(hjs, tx);
-    if (http_ctx->flags & LOG_HTTP_REQ_HEADERS)
+    if ((http_ctx->flags & LOG_HTTP_REQ_HEADERS) ||
+        OutputJSONNeedFullLog(&aft->httplog_ctx->cfg, f, tx_id, LOG_TYPE_STRING))
         JsonHttpLogJSONHeaders(hjs, LOG_HTTP_REQ_HEADERS, tx);
-    if (http_ctx->flags & LOG_HTTP_RES_HEADERS)
+    if ((http_ctx->flags & LOG_HTTP_RES_HEADERS) ||
+        OutputJSONNeedFullLog(&aft->httplog_ctx->cfg, f, tx_id, LOG_TYPE_STRING))
         JsonHttpLogJSONHeaders(hjs, LOG_HTTP_RES_HEADERS, tx);
-    if (http_ctx->flags & LOG_HTTP_BODY) {
+    if ((http_ctx->flags & LOG_HTTP_BODY) ||
+        OutputJSONNeedFullLog(&aft->httplog_ctx->cfg, f, tx_id, LOG_TYPE_BASE64)) {
         HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         if (htud != NULL) {
             BodyBase64Buffer(hjs, &htud->request_body, "request_body");
             BodyBase64Buffer(hjs, &htud->response_body, "response_body");
         }
     }
-    if (http_ctx->flags & LOG_HTTP_BODY_PRINTABLE) {
+    if ((http_ctx->flags & LOG_HTTP_BODY_PRINTABLE) ||
+        OutputJSONNeedFullLog(&aft->httplog_ctx->cfg, f, tx_id, LOG_TYPE_PRINTABLE)) {
         HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         if (htud != NULL) {
             BodyPrintableBuffer(hjs, &htud->request_body, "request_body_printable");
@@ -544,7 +549,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     /* reset */
     MemBufferReset(jhl->buffer);
 
-    JsonHttpLogJSON(jhl, js, tx, tx_id);
+    JsonHttpLogJSON(jhl, js, f, tx, tx_id);
     HttpXFFCfg *xff_cfg = jhl->httplog_ctx->xff_cfg != NULL ?
         jhl->httplog_ctx->xff_cfg : jhl->httplog_ctx->parent_xff_cfg;
 

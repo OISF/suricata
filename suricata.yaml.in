@@ -110,6 +110,9 @@ outputs:
       # Include stream data in application layer events
       #stream-data: yes
       #stream-data-printable: yes
+      # Full log for alerted flow. Maximize verbosity of event when the flow
+      # has alerts. Disabled by default. Possible value no, printable, base64, both.
+      #full-log-alerted: printable
 
       # include the name of the input pcap file in pcap file processing mode
       pcap-file: false

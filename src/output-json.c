@@ -73,8 +73,10 @@
 #define MODULE_NAME "OutputJSON"
 
 
-#define JSONLOG_JSON_PAYLOAD           BIT_U16(0)
-#define JSONLOG_JSON_PAYLOAD_BASE64    BIT_U16(1)
+#define JSONLOG_JSON_PAYLOAD                    BIT_U16(0)
+#define JSONLOG_JSON_PAYLOAD_BASE64             BIT_U16(1)
+#define JSONLOG_JSON_FULL_ALERTED               BIT_U16(2)
+#define JSONLOG_JSON_FULL_ALERTED_BASE64        BIT_U16(3)
 
 #define MAX_JSON_SIZE 2048
 
@@ -1165,6 +1167,21 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->cfg.include_streamdata |= JSONLOG_JSON_PAYLOAD;
         }
 
+        /* Check if verbosity of events should be max for alerted flows. */
+        const ConfNode *fulldatap = ConfNodeLookupChild(conf, "full-log-alerted");
+        if (fulldatap && fulldatap->val && !ConfValIsFalse(fulldatap->val)) {
+            SCLogConfig("Enabling full logging for alerted flows.");
+            if (!strcmp(fulldatap->val, "printable")) {
+                json_ctx->cfg.include_streamdata |= JSONLOG_JSON_FULL_ALERTED;
+            }
+            if (!strcmp(fulldatap->val, "base64")) {
+                json_ctx->cfg.include_streamdata |= JSONLOG_JSON_FULL_ALERTED_BASE64;
+            }
+            if (!strcmp(fulldatap->val, "both")) {
+                json_ctx->cfg.include_streamdata |= JSONLOG_JSON_FULL_ALERTED_BASE64|JSONLOG_JSON_FULL_ALERTED;
+            }
+        }
+
         /* Do we have a global eve xff configuration? */
         const ConfNode *xff = ConfNodeLookupChild(conf, "xff");
         if (xff != NULL) {
@@ -1207,4 +1224,27 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
     LogFileFreeCtx(logfile_ctx);
     SCFree(json_ctx);
     SCFree(output_ctx);
+}
+
+bool OutputJSONNeedFullLog(const OutputJsonCommonSettings *cfg, const Flow *f,
+                           uint64_t tx_id, enum OutputJsonvalueType type)
+{
+    if (FlowHasAlerts(f)) {
+        if (type == LOG_TYPE_BASE64) {
+            if (cfg->include_streamdata & JSONLOG_JSON_FULL_ALERTED_BASE64)
+                return true;
+        }
+        if (type == LOG_TYPE_PRINTABLE) {
+            if (cfg->include_streamdata & JSONLOG_JSON_FULL_ALERTED)
+                return true;
+        }
+        if (type == LOG_TYPE_STRING) {
+            if (cfg->include_streamdata & (JSONLOG_JSON_FULL_ALERTED|JSONLOG_JSON_FULL_ALERTED_BASE64))
+                return true;
+        }
+        return false;
+    } else {
+        return false;
+    }
+    return false;
 }
