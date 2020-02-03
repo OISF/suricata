@@ -635,15 +635,19 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state,
                     if (data == NULL)
                         SCReturnStruct(APP_LAYER_ERROR);
                     data->DFree = FtpTransferCmdFree;
-                    /* Min size has been checked in FTPParseRequestCommand */
-                    data->file_name = FTPCalloc(state->current_line_len - 4, sizeof(char));
+                    /*
+                     * Min size has been checked in FTPParseRequestCommand
+                     * PATH_MAX includes the null
+                     */
+                    int file_name_len = MIN(PATH_MAX - 1, state->current_line_len - 5);
+                    data->file_name = FTPCalloc(file_name_len + 1, sizeof(char));
                     if (data->file_name == NULL) {
                         FtpTransferCmdFree(data);
                         SCReturnStruct(APP_LAYER_ERROR);
                     }
-                    data->file_name[state->current_line_len - 5] = 0;
-                    data->file_len = state->current_line_len - 5;
-                    memcpy(data->file_name, state->current_line + 5, state->current_line_len - 5);
+                    data->file_name[file_name_len] = 0;
+                    data->file_len = file_name_len;
+                    memcpy(data->file_name, state->current_line + 5, file_name_len);
                     data->cmd = state->command;
                     data->flow_id = FlowGetId(f);
                     int ret = AppLayerExpectationCreate(f,
