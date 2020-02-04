@@ -45,8 +45,6 @@ const SSH_MAX_BANNER_LEN: usize = 256;
 
 pub struct SshHeader {
     pkt_len: u32,
-padding_len: u8,
-msg_code: u8,
     flags: SSHTxFlag,
     banner: Vec<u8>,
     pub protover: Vec<u8>,
