@@ -42,11 +42,14 @@ bitflags! {
 }
 
 const SSH_MAX_BANNER_LEN: usize = 256;
+const SSH_RECORD_HEADER_LEN: usize = 6;
 
 pub struct SshHeader {
-    pkt_len: u32,
+    record_left: u32,
+    record_buf: Vec<u8>,
     flags: SSHTxFlag,
     banner: Vec<u8>,
+    //can we have these be references to banner ?
     pub protover: Vec<u8>,
     pub swver: Vec<u8>,
 }
@@ -54,7 +57,8 @@ pub struct SshHeader {
 impl SshHeader {
     pub fn new() -> SshHeader {
         SshHeader {
-            pkt_len: 0,
+            record_left: 0,
+            record_buf: Vec::with_capacity(SSH_RECORD_HEADER_LEN),
             flags: SSHTxFlag::SSH_FLAG_NONE,
             banner: Vec::with_capacity(SSH_MAX_BANNER_LEN),
             protover: Vec::new(),
@@ -62,9 +66,83 @@ impl SshHeader {
         }
     }
 
-    fn parse_record(&mut self, input: &[u8]) -> bool {
-//TODO1 parse remaining bytes
-        return true
+    fn parse_record(&mut self, mut input: &[u8]) -> bool {
+        //first skip record left bytes
+        if self.record_left > 0 {
+            //should we check for overflow ?
+            let ilen = input.len() as u32;
+            if self.record_left >= ilen {
+                self.record_left -= ilen;
+                return true;
+            } else {
+                let start = self.record_left as usize;
+                input = &input[start..];
+                self.record_left = 0;
+            }
+        } else if self.record_buf.len() > 0 {
+            //complete already present record_buf
+            if self.record_buf.len() + input.len() < SSH_RECORD_HEADER_LEN {
+                self.record_buf.extend(input);
+                return true;
+            } else {
+                let needed = SSH_RECORD_HEADER_LEN - self.record_buf.len();
+                self.record_buf.extend(&input[..needed]);
+                input = &input[needed..];
+            }
+        }
+        if self.record_buf.len() > 0 {
+            //parse header out of completed record_buf
+            match parser::ssh_parse_record_header(&self.record_buf) {
+                Ok((_, head)) => self.record_left = head.pkt_len - 2,
+                Err(_) => {
+                    //TODO self.set_event(SSHEvent::InvalidData);
+                    return false;
+                }
+            }
+            //empty buffer
+            self.record_buf.clear();
+            if self.record_left > 0 {
+                let ilen = input.len() as u32;
+                if self.record_left >= ilen {
+                    self.record_left -= ilen;
+                    return true;
+                } else {
+                    let start = self.record_left as usize;
+                    input = &input[start..];
+                    self.record_left = 0;
+                }
+            }
+        }
+        //parse records out of input
+        while input.len() > 0 {
+            match parser::ssh_parse_record(input) {
+                Ok((rem, _)) => {
+                    input = rem;
+                }
+                Err(nom::Err::Incomplete(_)) => {
+                    match parser::ssh_parse_record_header(input) {
+                        Ok((rem, head)) => {
+                            let remlen = rem.len() as u32;
+                            self.record_left = head.pkt_len - 2 - remlen;
+                            return true;
+                        }
+                        Err(nom::Err::Incomplete(_)) => {
+                            self.record_buf.extend(input);
+                            return true;
+                        }
+                        Err(_) => {
+                            //TODO self.set_event(SSHEvent::InvalidData);
+                            return false;
+                        }
+                    }
+                }
+                Err(_) => {
+                    //TODO self.set_event(SSHEvent::InvalidData);
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     fn parse_banner(&mut self, input: &[u8]) -> bool {
@@ -238,7 +316,6 @@ pub extern "C" fn rs_ssh_parse_response(
         }
     }
     return -1;
-
 }
 
 #[no_mangle]
