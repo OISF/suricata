@@ -1,4 +1,5 @@
 /* Copyright (C) 2012 BAE Systems
+ * Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1830,28 +1831,74 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
  * \param search_start The start of the search (ie. boundary=\")
  * \param search_end The end of the search (ie. \")
  * \param tlen The output length of the token (if found)
+ * \param max_len The maximum offset in which to search
+ *
+ * \return A pointer to the token if found, otherwise NULL if not found
+ */
+static uint8_t * FindMimeHeaderTokenRestrict(MimeDecField *field, const char *search_start,
+        const char *search_end, uint32_t *tlen, uint32_t max_len, bool *toolong)
+{
+    uint8_t *fptr, *tptr = NULL, *tok = NULL;
+
+    if (toolong)
+        *toolong = false;
+
+    SCLogDebug("Looking for token: %s", search_start);
+
+    /* Check for token definition */
+    size_t ss_len = strlen(search_start);
+    fptr = FindBuffer(field->value, field->value_len, (const uint8_t *)search_start, ss_len);
+    if (fptr != NULL) {
+        fptr += ss_len; /* Start at end of start string */
+        uint32_t offset = fptr - field->value;
+        if (offset > field->value_len) {
+            return tok;
+        }
+        uint32_t search_len = field->value_len - offset;
+        if (max_len && search_len > max_len) {
+            SCLogDebug("Token value length for %s exceeds limit: %d; truncating to limit: %d",
+                       search_start, search_len, max_len);
+            search_len = max_len;
+            *toolong = true;
+        }
+        tok = GetToken(fptr, search_len, search_end, &tptr, tlen);
+        if (tok == NULL) {
+            if (toolong) {
+                /* reset */
+                *toolong = false;
+            }
+            return tok;
+        }
+
+        SCLogDebug("Found mime token");
+
+        /* Compare the actual token length against the maximum; it's possible that
+         * the actual token length is fine */
+        if (toolong && *toolong) {
+            SCLogDebug("Checking if restriction applies: token length %d ... restricted length %d", *tlen, search_len -1);
+            if (*tlen < (search_len - 1)) {
+                *toolong = false;
+            }
+        }
+    }
+
+    return tok;
+}
+
+/**
+ * \brief Finds a mime header token within the specified field
+ *
+ * \param field The current field
+ * \param search_start The start of the search (ie. boundary=\")
+ * \param search_end The end of the search (ie. \")
+ * \param tlen The output length of the token (if found)
  *
  * \return A pointer to the token if found, otherwise NULL if not found
  */
 static uint8_t * FindMimeHeaderToken(MimeDecField *field, const char *search_start,
         const char *search_end, uint32_t *tlen)
 {
-    uint8_t *fptr, *tptr = NULL, *tok = NULL;
-
-    SCLogDebug("Looking for token: %s", search_start);
-
-    /* Check for token definition */
-    fptr = FindBuffer(field->value, field->value_len, (const uint8_t *)search_start, strlen(search_start));
-    if (fptr != NULL) {
-        fptr += strlen(search_start); /* Start at end of start string */
-        tok = GetToken(fptr, field->value_len - (fptr - field->value), search_end,
-                &tptr, tlen);
-        if (tok != NULL) {
-            SCLogDebug("Found mime token");
-        }
-    }
-
-    return tok;
+    return FindMimeHeaderTokenRestrict(field, search_start, search_end, tlen, 0);
 }
 
 /**
@@ -1899,7 +1946,7 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         /* Check for file attachment in content disposition */
         field = MimeDecFindField(entity, CTNT_DISP_STR);
         if (field != NULL) {
-            bptr = FindMimeHeaderToken(field, "filename=", TOK_END_STR, &blen);
+            bptr = FindMimeHeaderTokenRestrict(field, "filename=", TOK_END_STR, &blen, NAME_MAX);
             if (bptr != NULL) {
                 SCLogDebug("File attachment found in disposition");
                 entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
@@ -1941,7 +1988,7 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
 
             /* Look for file name (if not already found) */
             if (!(entity->ctnt_flags & CTNT_IS_ATTACHMENT)) {
-                bptr = FindMimeHeaderToken(field, "name=", TOK_END_STR, &blen);
+                bptr = FindMimeHeaderTokenRestrict(field, "name=", TOK_END_STR, &blen, NAME_MAX);
                 if (bptr != NULL) {
                     SCLogDebug("File attachment found");
                     entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
