@@ -65,44 +65,15 @@ typedef struct JsonSshLogThread_ {
 } JsonSshLogThread;
 
 
-void JsonSshLogJSON(json_t *tjs, SshState *ssh_state)
-{
-    json_t *cjs = json_object();
-    if (cjs != NULL) {
-        json_object_set_new(cjs, "proto_version",
-                SCJsonString((char *)ssh_state->cli_hdr.proto_version));
-
-        json_object_set_new(cjs, "software_version",
-                SCJsonString((char *)ssh_state->cli_hdr.software_version));
-    }
-    json_object_set_new(tjs, "client", cjs);
-
-    json_t *sjs = json_object();
-    if (sjs != NULL) {
-        json_object_set_new(sjs, "proto_version",
-                SCJsonString((char *)ssh_state->srv_hdr.proto_version));
-
-        json_object_set_new(sjs, "software_version",
-                SCJsonString((char *)ssh_state->srv_hdr.software_version));
-    }
-    json_object_set_new(tjs, "server", sjs);
-
-}
-
 static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                          Flow *f, void *state, void *txptr, uint64_t tx_id)
 {
     JsonSshLogThread *aft = (JsonSshLogThread *)thread_data;
     OutputSshCtx *ssh_ctx = aft->sshlog_ctx;
 
-    /*SshState *ssh_state = (SshState *)state;
-    if (unlikely(ssh_state == NULL)) {
+    if (unlikely(state == NULL)) {
         return 0;
     }
-
-    if (ssh_state->cli_hdr.software_version == NULL ||
-        ssh_state->srv_hdr.software_version == NULL)
-        return 0;*/
 
     json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "ssh");
     if (unlikely(js == NULL))
@@ -110,25 +81,15 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     JsonAddCommonOptions(&ssh_ctx->cfg, p, f, js);
 
-    json_t *ssshjs = rs_ssh_log_json(txptr);
-    if (unlikely(ssshjs == NULL)) {
-        free(js);
-        return 0;
-    }
-    json_object_set_new(js, "ssh", ssshjs);
-
-    /*json_t *tjs = json_object();
-    if (tjs == NULL) {
-        free(js);
-        return 0;
-    }*/
-
     /* reset */
     MemBufferReset(aft->buffer);
 
-    /*JsonSshLogJSON(tjs, ssh_state);
-
-    json_object_set_new(js, "ssh", tjs);*/
+    json_t *tjs = rs_ssh_log_json(txptr);
+    if (unlikely(tjs == NULL)) {
+        free(js);
+        return 0;
+    }
+    json_object_set_new(js, "ssh", tjs);
 
     OutputJSONBuffer(js, ssh_ctx->file_ctx, &aft->buffer);
     json_object_clear(js);

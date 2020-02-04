@@ -20,27 +20,38 @@ use crate::json::*;
 use std;
 
 fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
+    if tx.cli_hdr.protover.len() == 0 && tx.srv_hdr.protover.len() == 0 {
+        return None;
+    }
     let js = Json::object();
-    let cjs = Json::object();
-    cjs.set_string(
-        "proto_version",
-        std::str::from_utf8(&tx.cli_hdr.protover).unwrap(),
-    );
-    cjs.set_string(
-        "software_version",
-        std::str::from_utf8(&tx.cli_hdr.swver).unwrap(),
-    );
-    let sjs = Json::object();
-    sjs.set_string(
-        "proto_version",
-        std::str::from_utf8(&tx.srv_hdr.protover).unwrap(),
-    );
-    sjs.set_string(
-        "software_version",
-        std::str::from_utf8(&tx.srv_hdr.swver).unwrap(),
-    );
-    js.set("client", cjs);
-    js.set("server", sjs);
+    if tx.cli_hdr.protover.len() > 0 {
+        let cjs = Json::object();
+        cjs.set_string(
+            "proto_version",
+            std::str::from_utf8(&tx.cli_hdr.protover).unwrap(),
+        );
+        if tx.cli_hdr.swver.len() > 0 {
+            cjs.set_string(
+                "software_version",
+                std::str::from_utf8(&tx.cli_hdr.swver).unwrap(),
+            );
+        }
+        js.set("client", cjs);
+    }
+    if tx.srv_hdr.protover.len() > 0 {
+        let sjs = Json::object();
+        sjs.set_string(
+            "proto_version",
+            std::str::from_utf8(&tx.srv_hdr.protover).unwrap(),
+        );
+        if tx.srv_hdr.swver.len() > 0 {
+            sjs.set_string(
+                "software_version",
+                std::str::from_utf8(&tx.srv_hdr.swver).unwrap(),
+            );
+        }
+        js.set("server", sjs);
+    }
     return Some(js);
 }
 
