@@ -55,7 +55,7 @@ named!(pub ssh_parse_banner<SshBanner>,
 pub struct SshRecordHeader {
     pub pkt_len: u32,
     padding_len: u8,
-    msg_code: u8,
+    pub msg_code: u8,
 }
 
 named!(pub ssh_parse_record_header<SshRecordHeader>,
@@ -72,7 +72,7 @@ named!(pub ssh_parse_record<SshRecordHeader>,
         pkt_len: verify!(be_u32, |val:u32| val > 1) >>
         padding_len: be_u8 >>
         msg_code: be_u8 >>
-        take!(pkt_len as usize) >>
+        take!((pkt_len-2) as usize) >>
         (SshRecordHeader{pkt_len, padding_len, msg_code})
     )
 );

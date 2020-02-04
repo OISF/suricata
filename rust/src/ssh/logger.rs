@@ -21,15 +21,26 @@ use std;
 
 fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
     let js = Json::object();
-    //TODO complete
-    js.set_string(
-        "client_banner",
+    let cjs = Json::object();
+    cjs.set_string(
+        "proto_version",
         std::str::from_utf8(&tx.cli_hdr.protover).unwrap(),
     );
-    js.set_string(
-        "server_banner",
+    cjs.set_string(
+        "software_version",
+        std::str::from_utf8(&tx.cli_hdr.swver).unwrap(),
+    );
+    let sjs = Json::object();
+    sjs.set_string(
+        "proto_version",
+        std::str::from_utf8(&tx.srv_hdr.protover).unwrap(),
+    );
+    sjs.set_string(
+        "software_version",
         std::str::from_utf8(&tx.srv_hdr.swver).unwrap(),
     );
+    js.set("client", cjs);
+    js.set("server", sjs);
     return Some(js);
 }
 
