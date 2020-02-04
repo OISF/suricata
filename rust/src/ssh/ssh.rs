@@ -93,7 +93,10 @@ impl SshHeader {
         if self.record_buf.len() > 0 {
             //parse header out of completed record_buf
             match parser::ssh_parse_record_header(&self.record_buf) {
-                Ok((_, head)) => self.record_left = head.pkt_len - 2,
+                Ok((_, head)) => {
+                    self.record_left = head.pkt_len - 2;
+                    //header with input as maybe incomplete data
+                }
                 Err(_) => {
                     //TODO self.set_event(SSHEvent::InvalidData);
                     return false;
@@ -116,14 +119,16 @@ impl SshHeader {
         //parse records out of input
         while input.len() > 0 {
             match parser::ssh_parse_record(input) {
-                Ok((rem, _)) => {
+                Ok((rem, _head)) => {
                     input = rem;
+                    //header and complete data (not returned)
                 }
                 Err(nom::Err::Incomplete(_)) => {
                     match parser::ssh_parse_record_header(input) {
                         Ok((rem, head)) => {
                             let remlen = rem.len() as u32;
                             self.record_left = head.pkt_len - 2 - remlen;
+                            //header with rem as incomplete data
                             return true;
                         }
                         Err(nom::Err::Incomplete(_)) => {
