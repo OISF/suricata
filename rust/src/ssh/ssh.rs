@@ -22,10 +22,28 @@ use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::log::*;
 use crate::parser::*;
 use std;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::mem::transmute;
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
+
+#[repr(u32)]
+pub enum SSHEvent {
+    InvalidBanner = 0,
+    LongBanner,
+    InvalidRecord,
+}
+
+impl SSHEvent {
+    fn from_i32(value: i32) -> Option<SSHEvent> {
+        match value {
+            0 => Some(SSHEvent::InvalidBanner),
+            1 => Some(SSHEvent::LongBanner),
+            2 => Some(SSHEvent::InvalidRecord),
+            _ => None,
+        }
+    }
+}
 
 pub enum SSHConnectionState {
     SshStateInProgress,
@@ -65,129 +83,6 @@ impl SshHeader {
             swver: Vec::new(),
         }
     }
-
-    fn parse_record(&mut self, mut input: &[u8]) -> bool {
-        //first skip record left bytes
-        if self.record_left > 0 {
-            //should we check for overflow ?
-            let ilen = input.len() as u32;
-            if self.record_left >= ilen {
-                self.record_left -= ilen;
-                return true;
-            } else {
-                let start = self.record_left as usize;
-                input = &input[start..];
-                self.record_left = 0;
-            }
-        } else if self.record_buf.len() > 0 {
-            //complete already present record_buf
-            if self.record_buf.len() + input.len() < SSH_RECORD_HEADER_LEN {
-                self.record_buf.extend(input);
-                return true;
-            } else {
-                let needed = SSH_RECORD_HEADER_LEN - self.record_buf.len();
-                self.record_buf.extend(&input[..needed]);
-                input = &input[needed..];
-            }
-        }
-        if self.record_buf.len() > 0 {
-            //parse header out of completed record_buf
-            match parser::ssh_parse_record_header(&self.record_buf) {
-                Ok((_, head)) => {
-                    self.record_left = head.pkt_len - 2;
-                    //header with input as maybe incomplete data
-                }
-                Err(_) => {
-                    //TODO self.set_event(SSHEvent::InvalidData);
-                    return false;
-                }
-            }
-            //empty buffer
-            self.record_buf.clear();
-            if self.record_left > 0 {
-                let ilen = input.len() as u32;
-                if self.record_left >= ilen {
-                    self.record_left -= ilen;
-                    return true;
-                } else {
-                    let start = self.record_left as usize;
-                    input = &input[start..];
-                    self.record_left = 0;
-                }
-            }
-        }
-        //parse records out of input
-        while input.len() > 0 {
-            match parser::ssh_parse_record(input) {
-                Ok((rem, _head)) => {
-                    input = rem;
-                    //header and complete data (not returned)
-                }
-                Err(nom::Err::Incomplete(_)) => {
-                    match parser::ssh_parse_record_header(input) {
-                        Ok((rem, head)) => {
-                            let remlen = rem.len() as u32;
-                            self.record_left = head.pkt_len - 2 - remlen;
-                            //header with rem as incomplete data
-                            return true;
-                        }
-                        Err(nom::Err::Incomplete(_)) => {
-                            self.record_buf.extend(input);
-                            return true;
-                        }
-                        Err(_) => {
-                            //TODO self.set_event(SSHEvent::InvalidData);
-                            return false;
-                        }
-                    }
-                }
-                Err(_) => {
-                    //TODO self.set_event(SSHEvent::InvalidData);
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    fn parse_banner(&mut self, input: &[u8]) -> bool {
-        match parser::ssh_parse_line(input) {
-            Ok((rem, line)) => {
-                if self.banner.len() + line.len() <= SSH_MAX_BANNER_LEN {
-                    self.banner.extend(line);
-                } else if self.banner.len() < SSH_MAX_BANNER_LEN {
-                    self.banner
-                        .extend(&line[0..SSH_MAX_BANNER_LEN - self.banner.len()]);
-                }
-                self.flags = SSHTxFlag::SSH_FLAG_VERSION_PARSED;
-                match parser::ssh_parse_banner(&self.banner) {
-                    Ok((_, banner)) => {
-                        self.protover.extend(banner.protover);
-                        if banner.swver.len() > 0 {
-                            self.swver.extend(banner.swver);
-                        }
-                    }
-                    Err(_) => {
-                        //TODO4 self.set_event(SSHEvent::InvalidData);
-                    }
-                }
-                return self.parse_record(rem);
-            }
-            Err(nom::Err::Incomplete(_)) => {
-                if self.banner.len() + input.len() <= SSH_MAX_BANNER_LEN {
-                    self.banner.extend(input);
-                } else if self.banner.len() < SSH_MAX_BANNER_LEN {
-                    self.banner
-                        .extend(&input[0..SSH_MAX_BANNER_LEN - self.banner.len()]);
-                }
-                return true;
-            }
-            Err(_) => {
-                //TODO self.set_event(SSHEvent::InvalidData);
-                return false;
-            }
-        }
-    }
 }
 
 pub struct SSHTransaction {
@@ -197,6 +92,7 @@ pub struct SSHTransaction {
     logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
     detect_flags: TxDetectFlags,
+    events: *mut core::AppLayerDecoderEvents,
 }
 
 impl SSHTransaction {
@@ -207,10 +103,14 @@ impl SSHTransaction {
             logged: LoggerFlags::new(),
             de_state: None,
             detect_flags: TxDetectFlags::default(),
+            events: std::ptr::null_mut(),
         }
     }
 
     pub fn free(&mut self) {
+        if self.events != std::ptr::null_mut() {
+            core::sc_app_layer_decoder_events_free_events(&mut self.events);
+        }
         if let Some(state) = self.de_state {
             core::sc_detect_engine_state_free(state);
         }
@@ -233,6 +133,148 @@ impl SSHState {
             transaction: SSHTransaction::new(),
         }
     }
+
+    fn set_event(&mut self, event: SSHEvent) {
+        let ev = event as u8;
+        core::sc_app_layer_decoder_events_set_event_raw(&mut self.transaction.events, ev);
+    }
+
+    fn parse_record(&mut self, mut input: &[u8], resp: bool) -> bool {
+        let mut hdr = &mut self.transaction.cli_hdr;
+        if resp {
+            hdr = &mut self.transaction.srv_hdr;
+        }
+        //first skip record left bytes
+        if hdr.record_left > 0 {
+            //should we check for overflow ?
+            let ilen = input.len() as u32;
+            if hdr.record_left >= ilen {
+                hdr.record_left -= ilen;
+                return true;
+            } else {
+                let start = hdr.record_left as usize;
+                input = &input[start..];
+                hdr.record_left = 0;
+            }
+        } else if hdr.record_buf.len() > 0 {
+            //complete already present record_buf
+            if hdr.record_buf.len() + input.len() < SSH_RECORD_HEADER_LEN {
+                hdr.record_buf.extend(input);
+                return true;
+            } else {
+                let needed = SSH_RECORD_HEADER_LEN - hdr.record_buf.len();
+                hdr.record_buf.extend(&input[..needed]);
+                input = &input[needed..];
+            }
+        }
+        if hdr.record_buf.len() > 0 {
+            //parse header out of completed record_buf
+            match parser::ssh_parse_record_header(&hdr.record_buf) {
+                Ok((_, head)) => {
+                    hdr.record_left = head.pkt_len - 2;
+                    //header with input as maybe incomplete data
+                }
+                Err(_) => {
+                    self.set_event(SSHEvent::InvalidRecord);
+                    return false;
+                }
+            }
+            //empty buffer
+            hdr.record_buf.clear();
+            if hdr.record_left > 0 {
+                let ilen = input.len() as u32;
+                if hdr.record_left >= ilen {
+                    hdr.record_left -= ilen;
+                    return true;
+                } else {
+                    let start = hdr.record_left as usize;
+                    input = &input[start..];
+                    hdr.record_left = 0;
+                }
+            }
+        }
+        //parse records out of input
+        while input.len() > 0 {
+            match parser::ssh_parse_record(input) {
+                Ok((rem, _head)) => {
+                    input = rem;
+                    //header and complete data (not returned)
+                }
+                Err(nom::Err::Incomplete(_)) => {
+                    match parser::ssh_parse_record_header(input) {
+                        Ok((rem, head)) => {
+                            let remlen = rem.len() as u32;
+                            hdr.record_left = head.pkt_len - 2 - remlen;
+                            //header with rem as incomplete data
+                            return true;
+                        }
+                        Err(nom::Err::Incomplete(_)) => {
+                            hdr.record_buf.extend(input);
+                            return true;
+                        }
+                        Err(_) => {
+                            self.set_event(SSHEvent::InvalidRecord);
+                            return false;
+                        }
+                    }
+                }
+                Err(_) => {
+                    self.set_event(SSHEvent::InvalidRecord);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    fn parse_banner(&mut self, input: &[u8], resp: bool) -> bool {
+        let mut hdr = &mut self.transaction.cli_hdr;
+        if resp {
+            hdr = &mut self.transaction.srv_hdr;
+        }
+        match parser::ssh_parse_line(input) {
+            Ok((rem, line)) => {
+                hdr.flags = SSHTxFlag::SSH_FLAG_VERSION_PARSED;
+                let mut setlong = false;
+                if hdr.banner.len() + line.len() <= SSH_MAX_BANNER_LEN {
+                    hdr.banner.extend(line);
+                } else if hdr.banner.len() < SSH_MAX_BANNER_LEN {
+                    hdr.banner
+                        .extend(&line[0..SSH_MAX_BANNER_LEN - hdr.banner.len()]);
+                    setlong = true;
+                }
+                match parser::ssh_parse_banner(&hdr.banner) {
+                    Ok((_, banner)) => {
+                        hdr.protover.extend(banner.protover);
+                        if banner.swver.len() > 0 {
+                            hdr.swver.extend(banner.swver);
+                        }
+                    }
+                    Err(_) => {
+                        self.set_event(SSHEvent::InvalidBanner);
+                    }
+                }
+                if setlong {
+                    self.set_event(SSHEvent::LongBanner);
+                }
+                return self.parse_record(rem, resp);
+            }
+            Err(nom::Err::Incomplete(_)) => {
+                if hdr.banner.len() + input.len() <= SSH_MAX_BANNER_LEN {
+                    hdr.banner.extend(input);
+                } else if hdr.banner.len() < SSH_MAX_BANNER_LEN {
+                    hdr.banner
+                        .extend(&input[0..SSH_MAX_BANNER_LEN - hdr.banner.len()]);
+                    self.set_event(SSHEvent::LongBanner);
+                }
+                return true;
+            }
+            Err(_) => {
+                self.set_event(SSHEvent::InvalidBanner);
+                return false;
+            }
+        }
+    }
 }
 
 // C exports.
@@ -242,6 +284,64 @@ export_tx_set_detect_state!(rs_ssh_tx_set_detect_state, SSHTransaction);
 
 export_tx_detect_flags_set!(rs_ssh_set_tx_detect_flags, SSHTransaction);
 export_tx_detect_flags_get!(rs_ssh_get_tx_detect_flags, SSHTransaction);
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_state_get_events(
+    tx: *mut std::os::raw::c_void,
+) -> *mut core::AppLayerDecoderEvents {
+    let tx = cast_pointer!(tx, SSHTransaction);
+    return tx.events;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_state_get_event_info(
+    event_name: *const std::os::raw::c_char,
+    event_id: *mut std::os::raw::c_int,
+    event_type: *mut core::AppLayerEventType,
+) -> std::os::raw::c_int {
+    if event_name == std::ptr::null() {
+        return -1;
+    }
+    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
+    let event = match c_event_name.to_str() {
+        Ok(s) => {
+            match s {
+                "invalid_banner" => SSHEvent::InvalidBanner as i32,
+                "long_banner" => SSHEvent::LongBanner as i32,
+                "invalid_record" => SSHEvent::InvalidRecord as i32,
+                _ => -1, // unknown event
+            }
+        }
+        Err(_) => -1, // UTF-8 conversion failed
+    };
+    unsafe {
+        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        *event_id = event as std::os::raw::c_int;
+    };
+    0
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_state_get_event_info_by_id(
+    event_id: std::os::raw::c_int,
+    event_name: *mut *const std::os::raw::c_char,
+    event_type: *mut core::AppLayerEventType,
+) -> i8 {
+    if let Some(e) = SSHEvent::from_i32(event_id as i32) {
+        let estr = match e {
+            SSHEvent::InvalidBanner => "invalid_banner\0",
+            SSHEvent::LongBanner => "long_banner\0",
+            SSHEvent::InvalidRecord => "invalid_record\0",
+        };
+        unsafe {
+            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
+            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        };
+        0
+    } else {
+        -1
+    }
+}
 
 /// C entry point for a probing parser.
 #[no_mangle]
@@ -283,15 +383,15 @@ pub extern "C" fn rs_ssh_parse_request(
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    let state = cast_pointer!(state, SSHState);
+    let state = &mut cast_pointer!(state, SSHState);
     let buf = build_slice!(input, input_len as usize);
     let hdr = &mut state.transaction.cli_hdr;
     if !(hdr.flags.contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)) {
-        if hdr.parse_banner(buf) {
+        if state.parse_banner(buf, false) {
             return 1;
         }
     } else {
-        if hdr.parse_record(buf) {
+        if state.parse_record(buf, false) {
             return 1;
         }
     }
@@ -308,15 +408,15 @@ pub extern "C" fn rs_ssh_parse_response(
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    let state = cast_pointer!(state, SSHState);
+    let state = &mut cast_pointer!(state, SSHState);
     let buf = build_slice!(input, input_len as usize);
     let hdr = &mut state.transaction.srv_hdr;
     if !(hdr.flags.contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)) {
-        if hdr.parse_banner(buf) {
+        if state.parse_banner(buf, true) {
             return 1;
         }
     } else {
-        if hdr.parse_record(buf) {
+        if state.parse_record(buf, true) {
             return 1;
         }
     }
@@ -423,9 +523,9 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         set_tx_logged: Some(rs_ssh_tx_set_logged),
         get_de_state: rs_ssh_tx_get_detect_state,
         set_de_state: rs_ssh_tx_set_detect_state,
-        get_events: None,
-        get_eventinfo: None,
-        get_eventinfo_byid: None,
+        get_events: Some(rs_ssh_state_get_events),
+        get_eventinfo: Some(rs_ssh_state_get_event_info),
+        get_eventinfo_byid: Some(rs_ssh_state_get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_mpm_id: None,

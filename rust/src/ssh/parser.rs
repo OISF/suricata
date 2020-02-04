@@ -67,6 +67,7 @@ named!(pub ssh_parse_record_header<SshRecordHeader>,
     )
 );
 
+//test for evasion against pkt_len=0or1...
 named!(pub ssh_parse_record<SshRecordHeader>,
     do_parse!(
         pkt_len: verify!(be_u32, |val:u32| val > 1) >>
