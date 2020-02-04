@@ -15,7 +15,8 @@
  * 02110-1301, USA.
  */
 
-//use nom::line_ending;
+use nom::rest;
+//nom5 use nom::bytes::complete::is_not;
 
 //may leave \r at the end to be removed
 named!(pub ssh_parse_line<&[u8], &[u8]>,
@@ -30,12 +31,60 @@ named!(pub ssh_parse_line<&[u8], &[u8]>,
     )
 );
 
+#[derive(PartialEq)]
+pub struct SshBanner<'a> {
+    pub protover: &'a [u8],
+    pub swver: &'a [u8],
+}
+
+impl<'a> SshBanner<'a> {}
+
+// Could be simplified adding dummy \n at the end
+// or use nom5 nom::bytes::complete::is_not
+named!(pub ssh_parse_banner<SshBanner>,
+    do_parse!(
+        tag!("SSH-") >>
+        protover: alt!(is_not!("-") | rest) >>
+        opt!( complete!( char!('-') ) ) >>
+        swver: alt!( rest | eof!() ) >>
+        (SshBanner{protover, swver})
+    )
+);
+
 #[cfg(test)]
 mod tests {
 
     use super::*;
 
     /// Simple test of some valid data.
+    #[test]
+    fn test_ssh_parse_banner() {
+        let buf = b"SSH-Single-";
+        let result = ssh_parse_banner(buf);
+        match result {
+            Ok((_, message)) => {
+                // Check the first message.
+                assert_eq!(message.protover, b"Single");
+                assert_eq!(message.swver, b"");
+            }
+            Err(err) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+        let buf2 = b"SSH-2.0-Soft";
+        let result2 = ssh_parse_banner(buf2);
+        match result2 {
+            Ok((_, message)) => {
+                // Check the first message.
+                assert_eq!(message.protover, b"2.0");
+                assert_eq!(message.swver, b"Soft");
+            }
+            Err(err) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+    }
+
     #[test]
     fn test_parse_line() {
         let buf = b"SSH-Single\n";
@@ -74,7 +123,7 @@ mod tests {
         let buf4 = b"SSH-Miss\r";
         let result4 = ssh_parse_line(buf4);
         match result4 {
-            Ok((_, message)) => {
+            Ok((_, _)) => {
                 panic!("Expected incomplete result");
             }
             Err(nom::Err::Incomplete(_)) => {

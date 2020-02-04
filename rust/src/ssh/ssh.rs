@@ -44,9 +44,13 @@ bitflags! {
 const SSH_MAX_BANNER_LEN: usize = 256;
 
 pub struct SshHeader {
-    pub pkt_len: u32,
+    pkt_len: u32,
+padding_len: u8,
+msg_code: u8,
     flags: SSHTxFlag,
-    pub banner: Vec<u8>,
+    banner: Vec<u8>,
+    pub protover: Vec<u8>,
+    pub swver: Vec<u8>,
 }
 
 impl SshHeader {
@@ -55,21 +59,38 @@ impl SshHeader {
             pkt_len: 0,
             flags: SSHTxFlag::SSH_FLAG_NONE,
             banner: Vec::with_capacity(SSH_MAX_BANNER_LEN),
+            protover: Vec::new(),
+            swver: Vec::new(),
         }
+    }
+
+    fn parse_record(&mut self, input: &[u8]) -> bool {
+//TODO1 parse remaining bytes
+        return true
     }
 
     fn parse_banner(&mut self, input: &[u8]) -> bool {
         match parser::ssh_parse_line(input) {
-            Ok((_, banner)) => {
-                if self.banner.len() + banner.len() <= SSH_MAX_BANNER_LEN {
-                    self.banner.extend(banner);
+            Ok((rem, line)) => {
+                if self.banner.len() + line.len() <= SSH_MAX_BANNER_LEN {
+                    self.banner.extend(line);
                 } else if self.banner.len() < SSH_MAX_BANNER_LEN {
                     self.banner
-                        .extend(&banner[0..SSH_MAX_BANNER_LEN - self.banner.len()]);
+                        .extend(&line[0..SSH_MAX_BANNER_LEN - self.banner.len()]);
                 }
                 self.flags = SSHTxFlag::SSH_FLAG_VERSION_PARSED;
-                //TODO1 parse banner + remaining bytes
-                return true;
+                match parser::ssh_parse_banner(&self.banner) {
+                    Ok((_, banner)) => {
+                        self.protover.extend(banner.protover);
+                        if banner.swver.len() > 0 {
+                            self.swver.extend(banner.swver);
+                        }
+                    }
+                    Err(_) => {
+                        //TODO4 self.set_event(SSHEvent::InvalidData);
+                    }
+                }
+                return self.parse_record(rem);
             }
             Err(nom::Err::Incomplete(_)) => {
                 if self.banner.len() + input.len() <= SSH_MAX_BANNER_LEN {
@@ -131,17 +152,6 @@ impl SSHState {
             transaction: SSHTransaction::new(),
         }
     }
-
-    fn parse_request(&mut self, input: &[u8]) -> bool {
-        // We're not interested in empty requests.
-        if input.len() < 4 {
-            return false;
-        }
-
-        self.transaction.cli_hdr.pkt_len = 1;
-
-        return true;
-    }
 }
 
 // C exports.
@@ -200,8 +210,7 @@ pub extern "C" fn rs_ssh_parse_request(
             return 1;
         }
     } else {
-        //TODO2 parse record
-        if state.parse_request(buf) {
+        if hdr.parse_record(buf) {
             return 1;
         }
     }
@@ -220,11 +229,18 @@ pub extern "C" fn rs_ssh_parse_response(
 ) -> i32 {
     let state = cast_pointer!(state, SSHState);
     let buf = build_slice!(input, input_len as usize);
-    //TODO3 same as rs_ssh_parse_request with state.transaction.srv_hdr;
-    if state.parse_request(buf) {
-        return 1;
+    let hdr = &mut state.transaction.srv_hdr;
+    if !(hdr.flags.contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)) {
+        if hdr.parse_banner(buf) {
+            return 1;
+        }
+    } else {
+        if hdr.parse_record(buf) {
+            return 1;
+        }
     }
     return -1;
+
 }
 
 #[no_mangle]
