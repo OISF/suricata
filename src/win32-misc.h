@@ -40,4 +40,10 @@ int inet_pton(int af, const char *src, void *dst);
 
 #define geteuid() (0)
 
+#ifdef MAX_PATH
+#define NAME_MAX MAX_PATH
+#else
+#define NAME_MAX 255
+#endif
+
 #endif
