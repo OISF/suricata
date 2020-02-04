@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-use nom::rest;
 //nom5 use nom::bytes::complete::is_not;
+use nom::{be_u32, be_u8, rest};
 
 //may leave \r at the end to be removed
 named!(pub ssh_parse_line<&[u8], &[u8]>,
@@ -48,6 +48,32 @@ named!(pub ssh_parse_banner<SshBanner>,
         opt!( complete!( char!('-') ) ) >>
         swver: alt!( rest | eof!() ) >>
         (SshBanner{protover, swver})
+    )
+);
+
+#[derive(PartialEq)]
+pub struct SshRecordHeader {
+    pub pkt_len: u32,
+    padding_len: u8,
+    msg_code: u8,
+}
+
+named!(pub ssh_parse_record_header<SshRecordHeader>,
+    do_parse!(
+        pkt_len: verify!(be_u32, |val:u32| val > 1) >>
+        padding_len: be_u8 >>
+        msg_code: be_u8 >>
+        (SshRecordHeader{pkt_len, padding_len, msg_code})
+    )
+);
+
+named!(pub ssh_parse_record<SshRecordHeader>,
+    do_parse!(
+        pkt_len: verify!(be_u32, |val:u32| val > 1) >>
+        padding_len: be_u8 >>
+        msg_code: be_u8 >>
+        take!(pkt_len as usize) >>
+        (SshRecordHeader{pkt_len, padding_len, msg_code})
     )
 );
 
