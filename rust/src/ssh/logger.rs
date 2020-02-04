@@ -24,11 +24,11 @@ fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
     //TODO complete
     js.set_string(
         "client_banner",
-        std::str::from_utf8(&tx.cli_hdr.banner).unwrap(),
+        std::str::from_utf8(&tx.cli_hdr.protover).unwrap(),
     );
     js.set_string(
         "server_banner",
-        std::str::from_utf8(&tx.srv_hdr.banner).unwrap(),
+        std::str::from_utf8(&tx.srv_hdr.swver).unwrap(),
     );
     return Some(js);
 }
