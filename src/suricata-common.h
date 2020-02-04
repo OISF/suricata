@@ -473,5 +473,10 @@ char *strptime(const char * __restrict, const char * __restrict, struct tm * __r
 extern int coverage_unittests;
 extern int g_ut_modules;
 extern int g_ut_covered;
+
+#ifndef NAME_MAX
+#define NAME_MAX 255
+#endif
+
 #endif /* __SURICATA_COMMON_H__ */
 
