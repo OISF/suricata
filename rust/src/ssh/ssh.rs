@@ -61,6 +61,8 @@ bitflags! {
 
 const SSH_MAX_BANNER_LEN: usize = 256;
 const SSH_RECORD_HEADER_LEN: usize = 6;
+//TODO complete enum and parse messages contents
+const SSH_MSG_NEWKEYS: u8 = 21;
 
 pub struct SshHeader {
     record_left: u32,
@@ -140,6 +142,7 @@ impl SSHState {
     }
 
     fn parse_record(&mut self, mut input: &[u8], resp: bool) -> bool {
+//TODO add SCLogDebug ?
         let mut hdr = &mut self.transaction.cli_hdr;
         if resp {
             hdr = &mut self.transaction.srv_hdr;
@@ -172,6 +175,9 @@ impl SSHState {
             match parser::ssh_parse_record_header(&hdr.record_buf) {
                 Ok((_, head)) => {
                     hdr.record_left = head.pkt_len - 2;
+                    if head.msg_code == SSH_MSG_NEWKEYS {
+                        hdr.flags = SSHTxFlag::SSH_FLAG_PARSER_DONE;
+                    }
                     //header with input as maybe incomplete data
                 }
                 Err(_) => {
@@ -196,8 +202,11 @@ impl SSHState {
         //parse records out of input
         while input.len() > 0 {
             match parser::ssh_parse_record(input) {
-                Ok((rem, _head)) => {
+                Ok((rem, head)) => {
                     input = rem;
+                    if head.msg_code == SSH_MSG_NEWKEYS {
+                        hdr.flags = SSHTxFlag::SSH_FLAG_PARSER_DONE;
+                    }
                     //header and complete data (not returned)
                 }
                 Err(nom::Err::Incomplete(_)) => {
@@ -206,6 +215,9 @@ impl SSHState {
                             let remlen = rem.len() as u32;
                             hdr.record_left = head.pkt_len - 2 - remlen;
                             //header with rem as incomplete data
+                            if head.msg_code == SSH_MSG_NEWKEYS {
+                                hdr.flags = SSHTxFlag::SSH_FLAG_PARSER_DONE;
+                            }
                             return true;
                         }
                         Err(nom::Err::Incomplete(_)) => {
