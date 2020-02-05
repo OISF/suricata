@@ -502,7 +502,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
  *
  * \param state The smtp state.
  *
- * \retval  0 On suceess.
+ * \retval  0 On success.
  * \retval -1 Either when we don't have any new lines to supply anymore or
  *            on failure.
  */
@@ -832,7 +832,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
     SCEnter();
 
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-        /* looks like are still waiting for a confirmination from the server */
+        /* looks like are still waiting for a confirmation from the server */
         return 0;
     }
 
@@ -2942,7 +2942,7 @@ end:
 }
 
 /*
- * \test Test smtp with just <LF> delimter instead of <CR><LF>.
+ * \test Test smtp with just <LF> delimiter instead of <CR><LF>.
  */
 static int SMTPParserTest04(void)
 {
