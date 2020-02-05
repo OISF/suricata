@@ -1832,6 +1832,7 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
  * \param search_end The end of the search (ie. \")
  * \param tlen The output length of the token (if found)
  * \param max_len The maximum offset in which to search
+ * \param toolong Set if the field value was truncated to max_len.
  *
  * \return A pointer to the token if found, otherwise NULL if not found
  */
@@ -1883,7 +1884,7 @@ static uint8_t * FindMimeHeaderTokenRestrict(MimeDecField *field, const char *se
 static uint8_t * FindMimeHeaderToken(MimeDecField *field, const char *search_start,
         const char *search_end, uint32_t *tlen)
 {
-    return FindMimeHeaderTokenRestrict(field, search_start, search_end, tlen, 0);
+    return FindMimeHeaderTokenRestrict(field, search_start, search_end, tlen, 0, NULL);
 }
 
 /**
@@ -1931,7 +1932,8 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         /* Check for file attachment in content disposition */
         field = MimeDecFindField(entity, CTNT_DISP_STR);
         if (field != NULL) {
-            bptr = FindMimeHeaderTokenRestrict(field, "filename=", TOK_END_STR, &blen, NAME_MAX);
+            bool truncated_name = false;
+            bptr = FindMimeHeaderTokenRestrict(field, "filename=", TOK_END_STR, &blen, NAME_MAX, &truncated_name);
             if (bptr != NULL) {
                 SCLogDebug("File attachment found in disposition");
                 entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
@@ -1944,6 +1946,11 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                 }
                 memcpy(entity->filename, bptr, blen);
                 entity->filename_len = blen;
+
+                if (truncated_name) {
+                    state->stack->top->data->anomaly_flags |= ANOM_LONG_FILENAME;
+                    state->msg->anomaly_flags |= ANOM_LONG_FILENAME;
+                }
             }
         }
 
@@ -1973,7 +1980,8 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
 
             /* Look for file name (if not already found) */
             if (!(entity->ctnt_flags & CTNT_IS_ATTACHMENT)) {
-                bptr = FindMimeHeaderTokenRestrict(field, "name=", TOK_END_STR, &blen, NAME_MAX);
+                bool truncated_name = false;
+                bptr = FindMimeHeaderTokenRestrict(field, "name=", TOK_END_STR, &blen, NAME_MAX, &truncated_name);
                 if (bptr != NULL) {
                     SCLogDebug("File attachment found");
                     entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
@@ -1986,6 +1994,11 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                     }
                     memcpy(entity->filename, bptr, blen);
                     entity->filename_len = blen;
+
+                    if (truncated_name) {
+                        state->stack->top->data->anomaly_flags |= ANOM_LONG_FILENAME;
+                        state->msg->anomaly_flags |= ANOM_LONG_FILENAME;
+                    }
                 }
             }
 
