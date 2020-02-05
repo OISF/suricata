@@ -147,6 +147,8 @@ SCEnumCharMap smtp_decoder_event_table[ ] = {
       SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE },
     { "MIME_LONG_BOUNDARY",
       SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG },
+    { "MIME_LONG_FILENAME",
+      SMTP_DECODER_EVENT_MIME_LONG_FILENAME },
 
     /* Invalid behavior or content */
     { "DUPLICATE_FIELDS",
@@ -871,6 +873,9 @@ static void SetMimeEvents(SMTPState *state)
         SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
     }
     if (msg->anomaly_flags & ANOM_LONG_BOUNDARY) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
+    }
+    if (msg->anomaly_flags & ANOM_LONG_FILENAME) {
         SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
     }
 }
