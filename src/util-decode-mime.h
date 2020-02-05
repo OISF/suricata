@@ -52,7 +52,7 @@
 
 /* Anomaly Flags */
 #define ANOM_INVALID_BASE64      1  /* invalid base64 chars */
-#define ANOM_INVALID_QP          2  /* invalid qouted-printable chars */
+#define ANOM_INVALID_QP          2  /* invalid quoted-printable chars */
 #define ANOM_LONG_HEADER_NAME    4  /* header is abnormally long */
 #define ANOM_LONG_HEADER_VALUE   8  /* header value is abnormally long
                                      * (includes multi-line) */
