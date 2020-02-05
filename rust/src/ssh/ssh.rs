@@ -170,6 +170,7 @@ impl SSHState {
                 input = &input[needed..];
             }
         }
+// Should we make the code with less duplicates ?
         if hdr.record_buf.len() > 0 {
             //parse header out of completed record_buf
             match parser::ssh_parse_record_header(&hdr.record_buf) {
