@@ -359,3 +359,23 @@ named!(pub parse_rpc_udp_reply<RpcReplyPacket>,
            }
    ))
 );
+
+#[cfg(test)]
+mod tests {
+    use crate::nfs::rpc_records::*;
+    use nom::Err::Incomplete;
+    use nom::Needed::Size;
+
+    #[test]
+    fn test_parse_input_too_short() {
+        let buf: &[u8] = &[
+            0x80, 0x0, 0x0, 0x9c, 0x8e, 0x28, 0x2, 0x7e
+        ];
+        let r = parse_rpc_request_partial(buf);
+        match r {
+            Err(Incomplete(e)) => { assert_eq!(e, Size(4)); },
+             _ => { panic!("failed {:?}",r); }
+       }
+    }
+}
+
