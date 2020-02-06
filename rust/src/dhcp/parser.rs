@@ -20,7 +20,7 @@ use std::cmp::min;
 use crate::dhcp::dhcp::*;
 use nom::IResult;
 use nom::combinator::rest;
-use nom::number::complete::{be_u8, be_u16, be_u32};
+use nom::number::streaming::{be_u8, be_u16, be_u32};
 
 pub struct DHCPMessage {
     pub header: DHCPHeader,

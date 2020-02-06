@@ -26,7 +26,7 @@ use crate::nfs::rpc_records::*;
 use crate::nfs::nfs3_records::*;
 
 use nom::IResult;
-use nom::number::complete::be_u32;
+use nom::number::streaming::be_u32;
 
 impl NFSState {
     /// complete NFS3 request record

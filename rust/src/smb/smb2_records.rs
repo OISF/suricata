@@ -18,7 +18,7 @@
 use nom;
 use nom::IResult;
 use nom::combinator::rest;
-use nom::number::complete::{le_u8, le_u16, le_u32, le_u64};
+use nom::number::streaming::{le_u8, le_u16, le_u32, le_u64};
 use crate::smb::smb::*;
 
 #[derive(Debug,PartialEq)]

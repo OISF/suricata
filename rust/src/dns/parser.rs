@@ -20,7 +20,7 @@
 use nom::IResult;
 use nom::error::ErrorKind;
 use nom::multi::length_data;
-use nom::number::complete::{be_u8, be_u16, be_u32};
+use nom::number::streaming::{be_u8, be_u16, be_u32};
 use nom;
 use crate::dns::dns::*;
 
