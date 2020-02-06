@@ -20,7 +20,7 @@ use kerberos_parser::krb5::{ApReq,Realm,PrincipalName};
 use nom;
 use nom::IResult;
 use nom::error::{ErrorKind, ParseError};
-use nom::number::complete::le_u16;
+use nom::number::streaming::le_u16;
 use der_parser;
 use der_parser::error::BerError;
 use der_parser::der::parse_der_oid;

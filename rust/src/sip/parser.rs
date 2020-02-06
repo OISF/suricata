@@ -20,7 +20,7 @@
 use nom::*;
 use nom::IResult;
 use nom::character::{is_alphabetic, is_alphanumeric, is_space};
-use nom::character::complete::crlf;
+use nom::character::streaming::crlf;
 use std;
 use std::collections::HashMap;
 

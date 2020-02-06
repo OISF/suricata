@@ -19,7 +19,7 @@
 
 use nom::IResult;
 use nom::combinator::rest;
-use nom::number::complete::{be_u32, be_u64};
+use nom::number::streaming::{be_u32, be_u64};
 use crate::nfs::nfs_records::*;
 
 #[derive(Debug,PartialEq)]

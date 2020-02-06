@@ -27,7 +27,7 @@
 //! * x.691-spec: <https://www.itu.int/rec/T-REC-X.691/en>
 
 use nom::IResult;
-use nom::bytes::complete::take;
+use nom::bytes::streaming::take;
 use nom::combinator::{opt, map_opt, map_res};
 use nom::number::streaming::{be_u16, be_u8, le_u16, le_u32, le_u8};
 use crate::rdp::error::RdpError;

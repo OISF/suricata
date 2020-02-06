@@ -26,7 +26,7 @@ use crate::core;
 use crate::dns::parser;
 
 use nom::IResult;
-use nom::number::complete::be_u16;
+use nom::number::streaming::be_u16;
 
 /// DNS record types.
 pub const DNS_RECORD_TYPE_A           : u16 = 1;
