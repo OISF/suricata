@@ -13,3 +13,4 @@ Performance
    packet-profiling
    rule-profiling
    tcmalloc
+   debug
