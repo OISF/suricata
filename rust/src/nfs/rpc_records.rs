@@ -19,7 +19,7 @@
 
 use nom::IResult;
 use nom::combinator::rest;
-use nom::number::complete::be_u32;
+use nom::number::streaming::be_u32;
 
 #[derive(Debug,PartialEq)]
 pub enum RpcRequestCreds<'a> {

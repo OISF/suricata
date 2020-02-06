@@ -21,7 +21,7 @@ use std;
 use std::ffi::{CStr,CString};
 use nom;
 use nom::IResult;
-use nom::number::complete::be_u32;
+use nom::number::streaming::be_u32;
 use der_parser::der::der_read_element_header;
 use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};

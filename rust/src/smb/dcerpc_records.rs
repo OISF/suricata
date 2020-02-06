@@ -20,7 +20,7 @@ use nom;
 use nom::IResult;
 use nom::combinator::rest;
 use nom::number::Endianness;
-use nom::number::complete::{be_u16, le_u8, le_u16, le_u32};
+use nom::number::streaming::{be_u16, le_u8, le_u16, le_u32};
 
 #[derive(Debug,PartialEq)]
 pub struct DceRpcResponseRecord<'a> {
