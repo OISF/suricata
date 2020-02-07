@@ -62,6 +62,7 @@
 #include "stream.h"
 
 #include "app-layer-parser.h"
+#include "app-layer-expectation.h"
 
 #define FLOW_DEFAULT_EMERGENCY_RECOVERY 30
 
@@ -980,6 +981,9 @@ int FlowClearMemory(Flow* f, uint8_t proto_map)
     }
 
     FlowFreeStorage(f);
+
+    if (f->flags & FLOW_HAS_EXPECTATION)
+        AppLayerExpectationClean(f);
 
     FLOW_RECYCLE(f);
 
