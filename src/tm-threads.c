@@ -187,6 +187,27 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
     return TM_ECODE_OK;
 }
 
+/** \internal
+ *  \brief check 'slot' pre_pq and post_pq at thread cleanup
+ *         and dump detailed info about the state of the packets
+ *         and threads if in a unexpected state.
+ */
+static void CheckSlot(const TmSlot *slot)
+{
+    if (slot->slot_pre_pq.len || slot->slot_post_pq.len) {
+        for (Packet *xp = slot->slot_pre_pq.top; xp != NULL; xp = xp->next) {
+            SCLogNotice("pre_pq: slot id %u slot tm_id %u pre_pq.len %u packet src %s",
+                    slot->id, slot->tm_id, slot->slot_pre_pq.len, PktSrcToString(xp->pkt_src));
+        }
+        for (Packet *xp = slot->slot_post_pq.top; xp != NULL; xp = xp->next) {
+            SCLogNotice("post_pq: slot id %u slot tm_id %u post_pq.len %u packet src %s",
+                    slot->id, slot->tm_id, slot->slot_post_pq.len, PktSrcToString(xp->pkt_src));
+        }
+        TmThreadDumpThreads();
+        abort();
+    }
+}
+
 #ifndef AFLFUZZ_PCAP_RUNMODE
 
 /** \internal
@@ -242,27 +263,6 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
     StatsSyncCounters(tv);
 
     return r;
-}
-
-/** \internal
- *  \brief check 'slot' pre_pq and post_pq at thread cleanup
- *         and dump detailed info about the state of the packets
- *         and threads if in a unexpected state.
- */
-static void CheckSlot(const TmSlot *slot)
-{
-    if (slot->slot_pre_pq.len || slot->slot_post_pq.len) {
-        for (Packet *xp = slot->slot_pre_pq.top; xp != NULL; xp = xp->next) {
-            SCLogNotice("pre_pq: slot id %u slot tm_id %u pre_pq.len %u packet src %s",
-                    slot->id, slot->tm_id, slot->slot_pre_pq.len, PktSrcToString(xp->pkt_src));
-        }
-        for (Packet *xp = slot->slot_post_pq.top; xp != NULL; xp = xp->next) {
-            SCLogNotice("post_pq: slot id %u slot tm_id %u post_pq.len %u packet src %s",
-                    slot->id, slot->tm_id, slot->slot_post_pq.len, PktSrcToString(xp->pkt_src));
-        }
-        TmThreadDumpThreads();
-        abort();
-    }
 }
 
 /*
