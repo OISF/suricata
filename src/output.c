@@ -75,6 +75,7 @@
 #include "output-json-dhcp.h"
 #include "output-json-snmp.h"
 #include "output-json-sip.h"
+#include "output-json-rfb.h"
 #include "output-json-template.h"
 #include "output-json-template-rust.h"
 #include "output-json-rdp.h"
@@ -1157,6 +1158,8 @@ void OutputRegisterLoggers(void)
     JsonSNMPLogRegister();
     /* SIP JSON logger. */
     JsonSIPLogRegister();
+    /* RFB JSON logger. */
+    JsonRFBLogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
     /* Template Rust JSON logger. */
