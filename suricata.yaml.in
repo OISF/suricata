@@ -263,6 +263,7 @@ outputs:
         - ikev2
         - krb5
         - snmp
+        - rfb
         #- sip
         - dhcp:
             enabled: yes
@@ -711,6 +712,10 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    rfb:
+      enabled: yes
+      detection-ports:
+        dp: 5900, 5901, 5902, 5903, 5904, 5905, 5906, 5907, 5908, 5909
     krb5:
       enabled: yes
     snmp:
