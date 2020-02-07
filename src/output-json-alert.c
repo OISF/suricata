@@ -68,6 +68,7 @@
 #include "output-json-smb.h"
 #include "output-json-flow.h"
 #include "output-json-sip.h"
+#include "output-json-rfb.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -471,6 +472,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     hjs = JsonSIPAddMetadata(p->flow, pa->tx_id);
                     if (hjs)
                         json_object_set_new(js, "sip", hjs);
+                    break;
+                case ALPROTO_RFB:
+                    hjs = JsonRFBAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "rfb", hjs);
                     break;
                 case ALPROTO_FTPDATA:
                     hjs = JsonFTPDataAddMetadata(p->flow);
