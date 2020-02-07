@@ -30,6 +30,8 @@ int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
 AppProto AppLayerExpectationHandle(Flow *f, int direction);
 int AppLayerExpectationGetDataId(void);
 
+void AppLayerExpectationClean(Flow *f);
+
 uint64_t ExpectationGetCounter(void);
 
 #endif /* __APP_LAYER_EXPECTATION__H__ */
