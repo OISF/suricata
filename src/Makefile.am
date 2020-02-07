@@ -42,6 +42,7 @@ app-layer-register.c app-layer-register.h \
 app-layer-tftp.c app-layer-tftp.h \
 app-layer-ikev2.c app-layer-ikev2.h \
 app-layer-krb5.c app-layer-krb5.h \
+app-layer-rfb.c app-layer-rfb.h \
 app-layer-template.c app-layer-template.h \
 app-layer-template-rust.c app-layer-template-rust.h \
 app-layer-rdp.c app-layer-rdp.h \
@@ -246,6 +247,9 @@ detect-sip-stat-code.c detect-sip-stat-code.h \
 detect-sip-stat-msg.c detect-sip-stat-msg.h \
 detect-sip-request-line.c detect-sip-request-line.h \
 detect-sip-response-line.c detect-sip-response-line.h \
+detect-rfb-secresult.c detect-rfb-secresult.h \
+detect-rfb-sectype.c detect-rfb-sectype.h \
+detect-rfb-name.c detect-rfb-name.h \
 detect-ssh-proto.c detect-ssh-proto.h \
 detect-ssh-proto-version.c detect-ssh-proto-version.h \
 detect-ssh-software.c detect-ssh-software.h \
@@ -348,6 +352,7 @@ output-json-ikev2.c output-json-ikev2.h \
 output-json-krb5.c output-json-krb5.h \
 output-json-dhcp.c output-json-dhcp.h \
 output-json-snmp.c output-json-snmp.h \
+output-json-rfb.c output-json-rfb.h \
 output-json-template.c output-json-template.h \
 output-json-template-rust.c output-json-template-rust.h \
 output-json-rdp.c output-json-rdp.h \
