@@ -550,4 +550,16 @@ struct {								\
 	_Q_INVALIDATE((elm)->field.cqe_next);				\
 } while (0)
 
+#define	CIRCLEQ_FOREACH_SAFE(var, head, field, tvar)			\
+    for ((var) = CIRCLEQ_FIRST(head);				\
+        (var) != CIRCLEQ_END(head) &&				\
+        ((tvar) = CIRCLEQ_NEXT(var, field), 1);			\
+        (var) = (tvar))
+
+#define	CIRCLEQ_FOREACH_REVERSE_SAFE(var, head, headname, field, tvar)	\
+    for ((var) = CIRCLEQ_LAST(head, headname);			\
+        (var) != CIRCLEQ_END(head) && 				\
+        ((tvar) = CIRCLEQ_PREV(var, headname, field), 1);		\
+        (var) = (tvar))
+
 #endif	/* !_SYS_QUEUE_H_ */
