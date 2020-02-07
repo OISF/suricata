@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -297,24 +297,18 @@ impl NFSState {
                     // store all handle/filename mappings
                     match many0_nfs3_response_readdirplus_entries(d) {
                         Ok((_, ref entries)) => {
+                            SCLogDebug!("READDIRPLUS ENTRIES reply {:?}", entries);
                             for ce in entries {
                                 SCLogDebug!("ce {:?}", ce);
-                                match ce.entry {
-                                    Some(ref e) => {
-                                        SCLogDebug!("e {:?}", e);
-                                        match e.handle {
-                                            Some(ref h) => {
-                                                SCLogDebug!("h {:?}", h);
-                                                self.namemap.insert(h.value.to_vec(), e.name_vec.to_vec());
-                                            },
-                                            _ => { },
-                                        }
-                                    },
-                                    _ => { },
+                                if let Some(ref e) = ce.entry {
+                                    SCLogDebug!("e {:?}", e);
+                                    if let Some(ref h) = e.handle {
+                                        SCLogDebug!("h {:?}", h);
+                                        self.namemap.insert(h.value.to_vec(),
+                                                e.name_vec.to_vec());
+                                    }
                                 }
                             }
-
-                            SCLogDebug!("READDIRPLUS ENTRIES reply {:?}", entries);
                         },
                         _ => {
                             self.set_event(NFSEvent::MalformedData);
@@ -345,6 +339,4 @@ impl NFSState {
 
         0
     }
-
 }
-
