@@ -360,6 +360,38 @@ out:
     return alproto;
 }
 
+
+void AppLayerExpectationClean(Flow *f)
+{
+    IPPair *ipp = NULL;
+    Expectation *exp = NULL;
+    Expectation *pexp = NULL;
+
+    int x = SC_ATOMIC_GET(expectation_count);
+    if (x == 0) {
+        return;
+    }
+
+    /* Call will take reference of the ip pair in 'ipp' */
+    ExpectationList *exp_list = AppLayerExpectationLookup(f, &ipp);
+    if (exp_list == NULL)
+        goto out;
+
+    CIRCLEQ_FOREACH_SAFE(exp, exp_list, entries, pexp) {
+        /* Cleaning remove old entries */
+        if (exp && (exp->orig_f == (void *)f)) {
+            exp_list = AppLayerExpectationRemove(ipp, exp_list, exp);
+            if (exp_list == NULL)
+                goto out;
+        }
+    }
+
+out:
+    if (ipp)
+        IPPairRelease(ipp);
+    return;
+}
+
 /**
  * @}
  */
