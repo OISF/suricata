@@ -61,6 +61,7 @@
 #include "stream.h"
 
 #include "app-layer-parser.h"
+#include "app-layer-expectation.h"
 
 #include "host-timeout.h"
 #include "defrag-timeout.h"
@@ -983,6 +984,8 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 
                 (void)OutputFlowLog(th_v, ftd->output_thread_data, f);
 
+                if (f->flags & FLOW_HAS_EXPECTATION)
+                    AppLayerExpectationClean(f);
                 FlowClearMemory (f, f->protomap);
                 FLOWLOCK_UNLOCK(f);
                 FlowMoveToSpare(f);
