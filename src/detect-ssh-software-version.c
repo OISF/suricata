@@ -55,6 +55,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
 #include "detect-ssh-software-version.h"
+#include "rust-ssh-detect-gen.h"
 
 #include "stream-tcp.h"
 
@@ -136,13 +137,19 @@ static int DetectSshSoftwareVersionMatch (DetectEngineThreadCtx *det_ctx,
     }
 
     int ret = 0;
-    if ((flags & STREAM_TOCLIENT) && (ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        SCLogDebug("looking for ssh server softwareversion %s length %"PRIu16" on %s", ssh->software_ver, ssh->len, ssh_state->srv_hdr.software_version);
-        ret = (strncmp((char *) ssh_state->srv_hdr.software_version, (char *) ssh->software_ver, ssh->len) == 0)? 1 : 0;
-    } else if ((flags & STREAM_TOSERVER) && (ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        SCLogDebug("looking for ssh client softwareversion %s length %"PRIu16" on %s", ssh->software_ver, ssh->len, ssh_state->cli_hdr.software_version);
-        ret = (strncmp((char *) ssh_state->cli_hdr.software_version, (char *) ssh->software_ver, ssh->len) == 0)? 1 : 0;
+    const uint8_t *software = NULL;
+    uint32_t b_len = 0;
+
+    if (rs_ssh_tx_get_software(txv, &software, &b_len, flags) != 1)
+        SCReturnInt(0);
+    if (software == NULL || b_len == 0)
+        SCReturnInt(0);
+    if (b_len == ssh->len) {
+        if (memcmp(software, ssh->software_ver, ssh->len) == 0) {
+            ret = 1;
+        }
     }
+
     SCReturnInt(ret);
 }
 

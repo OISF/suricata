@@ -51,6 +51,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
 #include "detect-ssh-proto-version.h"
+#include "rust-ssh-detect-gen.h"
 
 #include "stream-tcp.h"
 
@@ -117,27 +118,29 @@ static int DetectSshVersionMatch (DetectEngineThreadCtx *det_ctx,
     }
 
     int ret = 0;
-    if ((flags & STREAM_TOCLIENT) && (ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        if (ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT) {
-            SCLogDebug("looking for ssh server protoversion 2 compat");
-            if (strncmp((char *) ssh_state->srv_hdr.proto_version, "2", 1) == 0 ||
-                strncmp((char *) ssh_state->srv_hdr.proto_version, "2.", 2) == 0 ||
-                strncmp((char *) ssh_state->srv_hdr.proto_version, "1.99", 4) == 0)
+    const uint8_t *protocol = NULL;
+    uint32_t b_len = 0;
+
+    if (rs_ssh_tx_get_protocol(txv, &protocol, &b_len, flags) != 1)
+        SCReturnInt(0);
+    if (protocol == NULL || b_len == 0)
+        SCReturnInt(0);
+
+    if (ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT) {
+        SCLogDebug("looking for ssh protoversion 2 compat");
+        if (protocol[0] == '2') {
+            ret = 1;
+        } else if (b_len >= 4) {
+            if (memcmp(protocol, "1.99", 4) == 0)    {
                 ret = 1;
-        } else {
-            SCLogDebug("looking for ssh server protoversion %s length %"PRIu16"", ssh->ver, ssh->len);
-            ret = (strncmp((char *) ssh_state->srv_hdr.proto_version, (char *) ssh->ver, ssh->len) == 0)? 1 : 0;
+            }
         }
-    } else if ((flags & STREAM_TOSERVER) && (ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        if (ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT) {
-            SCLogDebug("looking for client ssh client protoversion 2 compat");
-            if (strncmp((char *) ssh_state->cli_hdr.proto_version, "2", 1) == 0 ||
-                strncmp((char *) ssh_state->cli_hdr.proto_version, "2.", 2) == 0 ||
-                strncmp((char *) ssh_state->cli_hdr.proto_version, "1.99", 4) == 0)
+    } else {
+        SCLogDebug("looking for ssh protoversion %s length %"PRIu16"", ssh->ver, ssh->len);
+        if (b_len == ssh->len) {
+            if (memcmp(protocol, ssh->ver, ssh->len) == 0) {
                 ret = 1;
-        } else {
-            SCLogDebug("looking for ssh client protoversion %s length %"PRIu16"", ssh->ver, ssh->len);
-            ret = (strncmp((char *) ssh_state->cli_hdr.proto_version, (char *) ssh->ver, ssh->len) == 0)? 1 : 0;
+            }
         }
     }
     SCReturnInt(ret);
