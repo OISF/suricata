@@ -18,10 +18,18 @@
 //nom5 use nom::bytes::complete::is_not;
 use nom::{be_u32, be_u8, rest};
 
+#[inline]
+fn is_not_lineend(b: u8) -> bool {
+    if b == 10 || b == 13 {
+        return false;
+    }
+    return true;
+}
+
 //may leave \r at the end to be removed
 named!(pub ssh_parse_line<&[u8], &[u8]>,
     terminated!(
-        is_not!("\r\n"),
+        take_while!(is_not_lineend),
         alt!( tag!("\n") | tag!("\r\n") |
               do_parse!(
                     bytes: tag!("\r") >>
@@ -156,6 +164,17 @@ mod tests {
             Err(nom::Err::Incomplete(_)) => {
                 //OK
                 assert_eq!(1, 1);
+            }
+            Err(err) => {
+                panic!("Result should not be an error: {:?}.", err);
+            }
+        }
+        let buf5 = b"\n";
+        let result5 = ssh_parse_line(buf5);
+        match result5 {
+            Ok((_, message)) => {
+                // Check empty line
+                assert_eq!(message, b"");
             }
             Err(err) => {
                 panic!("Result should not be an error: {:?}.", err);
