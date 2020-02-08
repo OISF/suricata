@@ -142,7 +142,7 @@ impl SSHState {
     }
 
     fn parse_record(&mut self, mut input: &[u8], resp: bool) -> bool {
-//TODO add SCLogDebug ?
+        //TODO add SCLogDebug ?
         let mut hdr = &mut self.transaction.cli_hdr;
         if resp {
             hdr = &mut self.transaction.srv_hdr;
@@ -170,7 +170,7 @@ impl SSHState {
                 input = &input[needed..];
             }
         }
-// Should we make the code with less duplicates ?
+        // Should we make the code with less duplicates ?
         if hdr.record_buf.len() > 0 {
             //parse header out of completed record_buf
             match parser::ssh_parse_record_header(&hdr.record_buf) {

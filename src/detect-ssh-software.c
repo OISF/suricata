@@ -46,6 +46,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
 #include "detect-ssh-software.h"
+#include "rust-ssh-detect-gen.h"
 
 #define KEYWORD_NAME "ssh.software"
 #define KEYWORD_NAME_LEGACY "ssh_software"
@@ -63,27 +64,17 @@ static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
 
     if (buffer->inspect == NULL) {
-        uint8_t *software = NULL;
-        SshState *ssh_state = (SshState *) txv;
+        const uint8_t *software = NULL;
+        uint32_t b_len = 0;
 
-        if (flow_flags & STREAM_TOSERVER)
-            software = ssh_state->cli_hdr.software_version;
-        else if (flow_flags & STREAM_TOCLIENT)
-            software = ssh_state->srv_hdr.software_version;
-
-        if (software == NULL) {
-            SCLogDebug("SSL software version not set");
+        if (rs_ssh_tx_get_software(txv, &software, &b_len, flow_flags) != 1)
+            return NULL;
+        if (software == NULL || b_len == 0) {
+            SCLogDebug("SSH software version not set");
             return NULL;
         }
 
-        uint32_t data_len = strlen((char *)software);
-        uint8_t *data = software;
-        if (data == NULL || data_len == 0) {
-            SCLogDebug("SSL software version not present");
-            return NULL;
-        }
-
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(buffer, software, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
