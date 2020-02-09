@@ -42,6 +42,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
 #include "rust-ssh-ssh-gen.h"
+#include "rust-ssh-detect-gen.h"
 
 #include "conf.h"
 
@@ -124,27 +125,37 @@ static int SSHParserTest01(void)
         goto end;
     }
 
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER);
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SSH_FLAG_VERSION_PARSED ) {
         printf("Client version string not parsed: ");
         goto end;
     }
 
-    if (ssh_state->cli_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
+    const uint8_t *protocol = NULL;
+    uint32_t p_len = 0;
+    if (rs_ssh_tx_get_protocol(tx, &protocol, &p_len, STREAM_TOSERVER) != 1)
         goto end;
-    }
-
-    if (ssh_state->cli_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
+    if (protocol == NULL)
         goto end;
-    }
 
-    if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
+    if (p_len != strlen("2.0"))
+        goto end;
+    if (memcmp(protocol, "2.0", strlen("2.0")) != 0) {
         printf("Client version string not parsed correctly: ");
         goto end;
     }
 
-    if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
+    const uint8_t *software = NULL;
+    uint32_t s_len = 0;
+
+    if (rs_ssh_tx_get_software(tx, &software, &s_len, STREAM_TOSERVER) != 1)
+        goto end;
+    if (software == NULL)
+        goto end;
+    if (s_len != strlen("MySSHClient-0.5.1"))
+        goto end;
+    if (memcmp(software, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
         printf("Client version string not parsed correctly: ");
         goto end;
     }
@@ -2074,8 +2085,8 @@ static int SSHParserTest25(void)
 void SSHParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    /*UtRegisterTest("SSHParserTest01 - ToServer", SSHParserTest01);
-    UtRegisterTest("SSHParserTest02 - ToServer", SSHParserTest02);
+    UtRegisterTest("SSHParserTest01 - ToServer", SSHParserTest01);
+    /*UtRegisterTest("SSHParserTest02 - ToServer", SSHParserTest02);
     UtRegisterTest("SSHParserTest03 - ToServer", SSHParserTest03);
     UtRegisterTest("SSHParserTest04 - ToClient", SSHParserTest04);
     UtRegisterTest("SSHParserTest05 - ToClient", SSHParserTest05);
