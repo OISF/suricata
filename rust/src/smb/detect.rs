@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
-use std;
 use std::ptr;
 use crate::core::*;
 use crate::log::*;
 use crate::smb::smb::*;
+use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
@@ -111,17 +111,22 @@ pub extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_get_dce_opnum(tx: &mut SMBTransaction,
-                                            opnum: *mut u16)
+pub extern "C" fn rs_smb_tx_match_dce_opnum(tx: &mut SMBTransaction,
+                                          dce_data: &mut DCEOpnumData)
                                             -> u8
 {
     SCLogDebug!("rs_smb_tx_get_dce_opnum: start");
     match tx.type_data {
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
             if x.req_cmd == 1 { // REQUEST
-                unsafe {
-                    *opnum = x.opnum as u16;
-                    return 1;
+                for range in dce_data.data.iter() {
+                    if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
+                        if range.range1 == x.opnum as u32 {
+                            return 1;
+                        } else if range.range1 <= x.opnum as u32 && range.range2 >= x.opnum as u32 {
+                            return 1;
+                        }
+                    }
                 }
             }
         }
@@ -129,9 +134,6 @@ pub extern "C" fn rs_smb_tx_get_dce_opnum(tx: &mut SMBTransaction,
         }
     }
 
-    unsafe {
-        *opnum = 0;
-    }
     return 0;
 }
 
@@ -176,12 +178,12 @@ fn match_version(op: u8, them: u16, us: u16) -> bool {
 #[no_mangle]
 pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
                                             tx: &mut SMBTransaction,
-                                            uuid_ptr: *mut u8,
-                                            uuid_len: u16,
-                                            ver_op: u8,
-                                            ver_check: u16)
+                                            dce_data: &mut DCEIfaceData)
                                             -> u8
 {
+    let if_uuid = dce_data.if_uuid.as_slice();
+    let if_op = dce_data.op;
+    let if_version = dce_data.version;
     let is_dcerpc_request = match tx.type_data {
         Some(SMBTransactionTypeData::DCERPC(ref x)) => { x.req_cmd == 1 },
         _ => { false },
@@ -196,14 +198,13 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
         },
     };
 
-    let uuid = unsafe{std::slice::from_raw_parts(uuid_ptr, uuid_len as usize)};
-    SCLogDebug!("looking for UUID {:?}", uuid);
+    SCLogDebug!("looking for UUID {:?}", if_uuid);
 
     for i in ifaces {
         SCLogDebug!("stored UUID {:?} acked {} ack_result {}", i, i.acked, i.ack_result);
 
-        if i.acked && i.ack_result == 0 && i.uuid == uuid {
-            if match_version(ver_op as u8, ver_check as u16, i.ver) {
+        if i.acked && i.ack_result == 0 && i.uuid == if_uuid {
+            if match_version(if_op as u8, if_version as u16, i.ver) {
                 return 1;
             }
         }
