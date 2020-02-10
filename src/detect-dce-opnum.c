@@ -49,6 +49,8 @@
 #include "stream-tcp.h"
 
 #include "rust.h"
+#include "rust-smb-detect-gen.h"
+#include "rust-dcerpc-detect-gen.h"
 
 #define PARSE_REGEX "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
 
@@ -80,151 +82,6 @@ void DetectDceOpnumRegister(void)
 }
 
 /**
- * \internal
- * \brief Creates and returns a new instance of DetectDceOpnumRange.
- *
- * \retval dor Pointer to the new instance DetectDceOpnumRange.
- */
-static DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
-{
-    DetectDceOpnumRange *dor = NULL;
-
-    if ( (dor = SCCalloc(1, sizeof(DetectDceOpnumRange))) == NULL)
-        return NULL;
-    dor->range1 = dor->range2 = DCE_OPNUM_RANGE_UNINITIALIZED;
-    return dor;
-}
-
-/**
- * \internal
- * \brief Parses the argument sent along with the "dce_opnum" keyword.
- *
- * \param arg Pointer to the string containing the argument to be parsed.
- *
- * \retval did Pointer to a DetectDceIfaceData instance that holds the data
- *             from the parsed arg.
- */
-static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
-{
-    DetectDceOpnumData *dod = NULL;
-
-    DetectDceOpnumRange *dor = NULL;
-    DetectDceOpnumRange *prev_dor = NULL;
-
-    int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
-    const char *pcre_sub_str = NULL;
-
-    char *dup_str = NULL;
-    char *dup_str_temp = NULL;
-    char *dup_str_head = NULL;
-    char *comma_token = NULL;
-    char *hyphen_token = NULL;
-
-    if (arg == NULL) {
-        goto error;
-    }
-
-    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 2) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, arg);
-        goto error;
-    }
-
-    res = pcre_get_substring(arg, ov, MAX_SUBSTRINGS, 0, &pcre_sub_str);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
-    }
-
-    if ( (dod = SCMalloc(sizeof(DetectDceOpnumData))) == NULL)
-        goto error;
-    memset(dod, 0, sizeof(DetectDceOpnumData));
-
-    if ( (dup_str = SCStrdup(pcre_sub_str)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        goto error;
-    }
-
-    /* free the substring */
-    pcre_free_substring(pcre_sub_str);
-
-    /* keep a copy of the strdup string in dup_str_head so that we can free it
-     * once we are done using it */
-    dup_str_head = dup_str;
-    dup_str_temp = dup_str;
-    while ( (comma_token = strchr(dup_str, ',')) != NULL) {
-        comma_token[0] = '\0';
-        dup_str = comma_token + 1;
-
-        dor = DetectDceOpnumAllocDetectDceOpnumRange();
-        if (dor == NULL)
-            goto error;
-        if (prev_dor == NULL) {
-            prev_dor = dor;
-            dod->range = dor;
-        } else {
-            prev_dor->next = dor;
-            prev_dor = dor;
-        }
-
-        if ((hyphen_token = strchr(dup_str_temp, '-')) != NULL) {
-            hyphen_token[0] = '\0';
-            hyphen_token++;
-            dor->range1 = atoi(dup_str_temp);
-            if (dor->range1 > DCE_OPNUM_RANGE_MAX)
-                goto error;
-            dor->range2 = atoi(hyphen_token);
-            if (dor->range2 > DCE_OPNUM_RANGE_MAX)
-                goto error;
-            if (dor->range1 > dor->range2)
-                goto error;
-        }
-        dor->range1 = atoi(dup_str_temp);
-        if (dor->range1 > DCE_OPNUM_RANGE_MAX)
-            goto error;
-
-        dup_str_temp = dup_str;
-    }
-
-    dor = DetectDceOpnumAllocDetectDceOpnumRange();
-    if (dor == NULL)
-        goto error;
-    if (prev_dor == NULL) {
-        dod->range = dor;
-    } else {
-        prev_dor->next = dor;
-    }
-
-    if ( (hyphen_token = strchr(dup_str, '-')) != NULL) {
-        hyphen_token[0] = '\0';
-        hyphen_token++;
-        dor->range1 = atoi(dup_str);
-        if (dor->range1 > DCE_OPNUM_RANGE_MAX)
-            goto error;
-        dor->range2 = atoi(hyphen_token);
-        if (dor->range2 > DCE_OPNUM_RANGE_MAX)
-            goto error;
-        if (dor->range1 > dor->range2)
-            goto error;
-    }
-    dor->range1 = atoi(dup_str);
-    if (dor->range1 > DCE_OPNUM_RANGE_MAX)
-        goto error;
-
-    if (dup_str_head != NULL)
-        SCFree(dup_str_head);
-
-    return dod;
-
- error:
-    if (dup_str_head != NULL)
-        SCFree(dup_str_head);
-    DetectDceOpnumFree(dod);
-    return NULL;
-}
-
-/**
  * \brief App layer match function for the "dce_opnum" keyword.
  *
  * \param t       Pointer to the ThreadVars instance.
@@ -238,38 +95,6 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
  * \retval 1 On Match.
  * \retval 0 On no match.
  */
-static int DetectDceOpnumMatch(DetectEngineThreadCtx *det_ctx,
-                        Flow *f, uint8_t flags, void *state, void *txv,
-                        const Signature *s, const SigMatchCtx *m)
-{
-    SCEnter();
-
-    DetectDceOpnumData *dce_data = (DetectDceOpnumData *)m;
-
-    DCERPCState *dcerpc_state = state;
-    if (dcerpc_state == NULL) {
-        SCLogDebug("No DCERPCState for the flow");
-        SCReturnInt(0);
-    }
-
-    uint16_t opnum = dcerpc_state->dcerpc.dcerpcrequest.opnum;
-    DetectDceOpnumRange *dor = dce_data->range;
-    for ( ; dor != NULL; dor = dor->next) {
-        if (dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED) {
-            if (dor->range1 == opnum) {
-                SCReturnInt(1);
-            }
-        } else {
-            if (dor->range1 <= opnum && dor->range2 >= opnum)
-            {
-                SCReturnInt(1);
-            }
-        }
-    }
-
-    SCReturnInt(0);
-}
-
 static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, void *txv,
         const Signature *s, const SigMatchCtx *m)
@@ -277,36 +102,19 @@ static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     if (f->alproto == ALPROTO_DCERPC) {
-        return DetectDceOpnumMatch(det_ctx, f, flags,
-                                   state, txv, s, m);
+        // TODO check for NULL state
+        return rs_dcerpc_opnum_match(state, (void *)m);
     }
 
-    const DetectDceOpnumData *dce_data = (DetectDceOpnumData *)m;
-    const DetectDceOpnumRange *dor = dce_data->range;
-
-    uint16_t opnum;
-    if (rs_smb_tx_get_dce_opnum(txv, &opnum) != 1)
+    if (rs_smb_tx_match_dce_opnum(txv, (void *)m) != 1)
         SCReturnInt(0);
-    SCLogDebug("(rust) opnum %u", opnum);
 
-    for ( ; dor != NULL; dor = dor->next) {
-        if (dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED) {
-            if (dor->range1 == opnum) {
-                SCReturnInt(1);
-            }
-        } else {
-            if (dor->range1 <= opnum && dor->range2 >= opnum) {
-                SCReturnInt(1);
-            }
-        }
-    }
-
-    SCReturnInt(0);
+    SCReturnInt(1);
 }
 
 /**
  * \brief Creates a SigMatch for the "dce_opnum" keyword being sent as argument,
- *        and appends it to the Signature(s).
+ *        and appends it to the rs_dcerpc_opnum_matchSignature(s).
  *
  * \param de_ctx Pointer to the detection engine context.
  * \param s      Pointer to signature for the current Signature being parsed
@@ -324,7 +132,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
-    DetectDceOpnumData *dod = DetectDceOpnumArgParse(arg);
+    void *dod = rs_dcerpc_opnum_parse(arg);
     if (dod == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
                    "signature");
@@ -346,326 +154,16 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
 static void DetectDceOpnumFree(void *ptr)
 {
-    DetectDceOpnumData *dod = ptr;
-    DetectDceOpnumRange *dor = NULL;
-    DetectDceOpnumRange *dor_temp = NULL;
-
-    if (dod != NULL) {
-        dor = dod->range;
-        while (dor != NULL) {
-            dor_temp = dor;
-            dor = dor->next;
-            SCFree(dor_temp);
-        }
-        SCFree(dod);
+    SCEnter();
+    if (ptr != NULL) {
+        rs_dcerpc_opnum_free(ptr);
     }
-
-    return;
+    SCReturn;
 }
 
 /************************************Unittests*********************************/
 
 #ifdef UNITTESTS
-
-static int DetectDceOpnumTestParse01(void)
-{
-    Signature *s = SigAlloc();
-    int result = 0;
-
-    result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
-    result &= (DetectDceOpnumSetup(NULL, s, "12,24") == 0);
-    result &= (DetectDceOpnumSetup(NULL, s, "12,12-24") == 0);
-    result &= (DetectDceOpnumSetup(NULL, s, "12-14,12,121,62-78") == 0);
-    result &= (DetectDceOpnumSetup(NULL, s, "12,26,62,61,6513-6666") == 0);
-    result &= (DetectDceOpnumSetup(NULL, s, "12,26,62,61,6513--") == -1);
-    result &= (DetectDceOpnumSetup(NULL, s, "12-14,12,121,62-8") == -1);
-
-    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
-        SigFree(s);
-        result &= 1;
-    }
-
-    return result;
-}
-
-static int DetectDceOpnumTestParse02(void)
-{
-    Signature *s = SigAlloc();
-    int result = 0;
-    DetectDceOpnumData *dod = NULL;
-    DetectDceOpnumRange *dor = NULL;
-    SigMatch *temp = NULL;
-
-    result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
-
-    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
-        temp = s->sm_lists[g_dce_generic_list_id];
-        dod = (DetectDceOpnumData *)temp->ctx;
-        if (dod == NULL)
-            goto end;
-        dor = dod->range;
-        result &= (dor->range1 == 12 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        result &= (dor->next == NULL);
-    } else {
-        result = 0;
-    }
-
- end:
-    SigFree(s);
-    return result;
-}
-
-static int DetectDceOpnumTestParse03(void)
-{
-    Signature *s = SigAlloc();
-    int result = 0;
-    DetectDceOpnumData *dod = NULL;
-    DetectDceOpnumRange *dor = NULL;
-    SigMatch *temp = NULL;
-
-    result = (DetectDceOpnumSetup(NULL, s, "12-24") == 0);
-
-    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
-        temp = s->sm_lists[g_dce_generic_list_id];
-        dod = (DetectDceOpnumData *)temp->ctx;
-        if (dod == NULL)
-            goto end;
-        dor = dod->range;
-        result &= (dor->range1 == 12 && dor->range2 == 24);
-        result &= (dor->next == NULL);
-    } else {
-        result = 0;
-    }
-
- end:
-    SigFree(s);
-    return result;
-}
-
-static int DetectDceOpnumTestParse04(void)
-{
-    Signature *s = SigAlloc();
-    int result = 0;
-    DetectDceOpnumData *dod = NULL;
-    DetectDceOpnumRange *dor = NULL;
-    SigMatch *temp = NULL;
-
-    result = (DetectDceOpnumSetup(NULL, s, "12-24,24,62-72,623-635,62,25,213-235") == 0);
-
-    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
-        temp = s->sm_lists[g_dce_generic_list_id];
-        dod = (DetectDceOpnumData *)temp->ctx;
-        if (dod == NULL)
-            goto end;
-        dor = dod->range;
-        result &= (dor->range1 == 12 && dor->range2 == 24);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 24 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 62 && dor->range2 == 72);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 623 && dor->range2 == 635);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 62 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 25 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 213 && dor->range2 == 235);
-        if (result == 0)
-            goto end;
-    } else {
-        result = 0;
-    }
-
- end:
-    SigFree(s);
-    return result;
-}
-
-static int DetectDceOpnumTestParse05(void)
-{
-    Signature *s = SigAlloc();
-    int result = 0;
-    DetectDceOpnumData *dod = NULL;
-    DetectDceOpnumRange *dor = NULL;
-    SigMatch *temp = NULL;
-
-    result = (DetectDceOpnumSetup(NULL, s, "1,2,3,4,5,6,7") == 0);
-
-    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
-        temp = s->sm_lists[g_dce_generic_list_id];
-        dod = (DetectDceOpnumData *)temp->ctx;
-        if (dod == NULL)
-            goto end;
-        dor = dod->range;
-        result &= (dor->range1 == 1 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 2 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 3 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 4 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 5 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 6 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 7 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        if (result == 0)
-            goto end;
-    } else {
-        result = 0;
-    }
-
- end:
-    SigFree(s);
-    return result;
-}
-
-static int DetectDceOpnumTestParse06(void)
-{
-    Signature *s = SigAlloc();
-    int result = 0;
-    DetectDceOpnumData *dod = NULL;
-    DetectDceOpnumRange *dor = NULL;
-    SigMatch *temp = NULL;
-
-    result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8") == 0);
-
-    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
-        temp = s->sm_lists[g_dce_generic_list_id];
-        dod = (DetectDceOpnumData *)temp->ctx;
-        if (dod == NULL)
-            goto end;
-        dor = dod->range;
-        result &= (dor->range1 == 1 && dor->range2 == 2);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 3 && dor->range2 == 4);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 5 && dor->range2 == 6);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 7 && dor->range2 == 8);
-        if (result == 0)
-            goto end;
-    } else {
-        result = 0;
-    }
-
- end:
-    SigFree(s);
-    return result;
-}
-
-static int DetectDceOpnumTestParse07(void)
-{
-    Signature *s = SigAlloc();
-    int result = 0;
-    DetectDceOpnumData *dod = NULL;
-    DetectDceOpnumRange *dor = NULL;
-    SigMatch *temp = NULL;
-
-    result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8,9") == 0);
-
-    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
-        temp = s->sm_lists[g_dce_generic_list_id];
-        dod = (DetectDceOpnumData *)temp->ctx;
-        if (dod == NULL)
-            goto end;
-        dor = dod->range;
-        result &= (dor->range1 == 1 && dor->range2 == 2);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 3 && dor->range2 == 4);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 5 && dor->range2 == 6);
-        result &= (dor->next != NULL);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 7 && dor->range2 == 8);
-        if (result == 0)
-            goto end;
-
-        dor = dor->next;
-        result &= (dor->range1 == 9 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
-        if (result == 0)
-            goto end;
-    } else {
-        result = 0;
-    }
-
- end:
-    SigFree(s);
-    return result;
-}
 
 /**
  * \test Test a valid dce_opnum entry with a bind, bind_ack and a request.
@@ -2912,13 +2410,6 @@ static int DetectDceOpnumTestParse13(void)
 static void DetectDceOpnumRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDceOpnumTestParse01", DetectDceOpnumTestParse01);
-    UtRegisterTest("DetectDceOpnumTestParse02", DetectDceOpnumTestParse02);
-    UtRegisterTest("DetectDceOpnumTestParse03", DetectDceOpnumTestParse03);
-    UtRegisterTest("DetectDceOpnumTestParse04", DetectDceOpnumTestParse04);
-    UtRegisterTest("DetectDceOpnumTestParse05", DetectDceOpnumTestParse05);
-    UtRegisterTest("DetectDceOpnumTestParse06", DetectDceOpnumTestParse06);
-    UtRegisterTest("DetectDceOpnumTestParse07", DetectDceOpnumTestParse07);
     UtRegisterTest("DetectDceOpnumTestParse08", DetectDceOpnumTestParse08);
     UtRegisterTest("DetectDceOpnumTestParse09", DetectDceOpnumTestParse09);
     /* Disabled because of bug_753.  Would be enabled, once we rewrite
