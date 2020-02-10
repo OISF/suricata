@@ -55,6 +55,8 @@
 #include "stream-tcp.h"
 
 #include "rust.h"
+#include "rust-smb-detect-gen.h"
+#include "rust-dcerpc-dcerpc-gen.h"
 
 #define BUFFER_NAME "dce_stub_data"
 #define KEYWORD_NAME "dce_stub_data"
@@ -91,20 +93,13 @@ static InspectionBuffer *GetDCEData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t data_len = 0;
-        uint8_t *data = NULL;
+        const uint8_t *data = NULL;
 
         DCERPCState *dcerpc_state = txv;
         if (dcerpc_state == NULL)
             return NULL;
 
-        if (flow_flags & STREAM_TOSERVER) {
-            data_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
-            data = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
-        } else if (flow_flags & STREAM_TOCLIENT) {
-            data_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
-            data = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
-        }
-        if (dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) {
+        if (rs_dcerpc_set_buffer(txv, &data, &data_len)) {
             buffer->flags = DETECT_CI_FLAGS_DCE_LE;
         } else {
             buffer->flags |= DETECT_CI_FLAGS_DCE_BE;
