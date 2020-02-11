@@ -119,6 +119,10 @@ pub struct NFSTransactionFile {
     /// last xid of this file transfer. Last READ or COMMIT normally.
     pub file_last_xid: u32,
 
+    /// after a gap, this will be set to a time in the future. If the file
+    /// receives no updates before that, it will be considered complete.
+    pub post_gap_ts: u64,
+
     /// file tracker for a single file. Boxed so that we don't use
     /// as much space if we're not a file tx.
     pub file_tracker: FileTransferTracker,
@@ -130,6 +134,7 @@ impl NFSTransactionFile {
             file_additional_procs: Vec::new(),
             chunk_count:0,
             file_last_xid: 0,
+            post_gap_ts: 0,
             file_tracker: FileTransferTracker::new(),
         }
     }
@@ -338,12 +343,20 @@ pub struct NFSState {
 
     is_udp: bool,
 
+    /// true as long as we have file txs that are in a post-gap
+    /// state. It means we'll do extra house keeping for those.
+    check_post_gap_file_txs: bool,
+
     pub nfs_version: u16,
 
     pub events: u16,
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
+
+    /// Timestamp in seconds of last update. This is packet time,
+    /// potentially coming from pcaps.
+    ts: u64,
 }
 
 impl NFSState {
@@ -366,9 +379,11 @@ impl NFSState {
             ts_gap:false,
             tc_gap:false,
             is_udp:false,
+            check_post_gap_file_txs:false,
             nfs_version:0,
             events:0,
             tx_id:0,
+            ts: 0,
         }
     }
     pub fn free(&mut self) {
@@ -480,6 +495,71 @@ impl NFSState {
             None => {
                 //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
             },
+        }
+    }
+
+    fn post_gap_housekeeping_for_files(&mut self)
+    {
+        let mut post_gap_txs = false;
+        for tx in &mut self.transactions {
+            if let Some(NFSTransactionTypeData::FILE(ref f)) = tx.type_data {
+                if f.post_gap_ts > 0 {
+                    if self.ts > f.post_gap_ts {
+                        tx.request_done = true;
+                        tx.response_done = true;
+                    } else {
+                        post_gap_txs = true;
+                    }
+                }
+            }
+        }
+        self.check_post_gap_file_txs = post_gap_txs;
+    }
+
+    /* after a gap we will consider all transactions complete for our
+     * direction. File transfer transactions are an exception. Those
+     * can handle gaps. For the file transactions we set the current
+     * (flow) time and prune them in 60 seconds if no update for them
+     * was received. */
+    fn post_gap_housekeeping(&mut self, dir: u8)
+    {
+        if self.ts_ssn_gap && dir == STREAM_TOSERVER {
+            for tx in &mut self.transactions {
+                if tx.id >= self.tx_id {
+                    SCLogDebug!("post_gap_housekeeping: done");
+                    break;
+                }
+                if let Some(NFSTransactionTypeData::FILE(ref mut f)) = tx.type_data {
+                    // leaving FILE txs open as they can deal with gaps. We
+                    // remove them after 60 seconds of no activity though.
+                    if f.post_gap_ts == 0 {
+                        f.post_gap_ts = self.ts + 60;
+                        self.check_post_gap_file_txs = true;
+                    }
+                } else {
+                    SCLogDebug!("post_gap_housekeeping: tx {} marked as done TS", tx.id);
+                    tx.request_done = true;
+                }
+            }
+        } else if self.tc_ssn_gap && dir == STREAM_TOCLIENT {
+            for tx in &mut self.transactions {
+                if tx.id >= self.tx_id {
+                    SCLogDebug!("post_gap_housekeeping: done");
+                    break;
+                }
+                if let Some(NFSTransactionTypeData::FILE(ref mut f)) = tx.type_data {
+                    // leaving FILE txs open as they can deal with gaps. We
+                    // remove them after 60 seconds of no activity though.
+                    if f.post_gap_ts == 0 {
+                        f.post_gap_ts = self.ts + 60;
+                        self.check_post_gap_file_txs = true;
+                    }
+                } else {
+                    SCLogDebug!("post_gap_housekeeping: tx {} marked as done TC", tx.id);
+                    tx.request_done = true;
+                    tx.response_done = true;
+                }
+            }
         }
     }
 
@@ -762,6 +842,11 @@ impl NFSState {
                             SCLogDebug!("QUEUED size {} while we've seen GAPs. Truncating file.", queued_data);
                             tdf.file_tracker.trunc(files, flags);
                         }
+                    }
+
+                    // reset timestamp if we get called after a gap
+                    if tdf.post_gap_ts > 0 {
+                        tdf.post_gap_ts = 0;
                     }
 
                     tdf.chunk_count += 1;
@@ -1113,6 +1198,12 @@ impl NFSState {
                 },
             }
         };
+
+        self.post_gap_housekeeping(STREAM_TOSERVER);
+        if self.check_post_gap_file_txs {
+            self.post_gap_housekeeping_for_files();
+        }
+
         status
     }
 
@@ -1271,6 +1362,10 @@ impl NFSState {
                 },
             }
         };
+        self.post_gap_housekeeping(STREAM_TOCLIENT);
+        if self.check_post_gap_file_txs {
+            self.post_gap_housekeeping_for_files();
+        }
         status
     }
     /// Parsing function
@@ -1357,7 +1452,7 @@ pub extern "C" fn rs_nfs_state_free(state: *mut std::os::raw::c_void) {
 
 /// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_request(_flow: *mut Flow,
+pub extern "C" fn rs_nfs_parse_request(flow: &mut Flow,
                                        state: &mut NFSState,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -1368,6 +1463,7 @@ pub extern "C" fn rs_nfs_parse_request(_flow: *mut Flow,
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
+    state.ts = flow.get_last_time().as_secs();
     if state.parse_tcp_data_ts(buf) == 0 {
         1
     } else {
@@ -1388,7 +1484,7 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_parse_response(_flow: *mut Flow,
+pub extern "C" fn rs_nfs_parse_response(flow: &mut Flow,
                                         state: &mut NFSState,
                                         _pstate: *mut std::os::raw::c_void,
                                         input: *const u8,
@@ -1399,6 +1495,7 @@ pub extern "C" fn rs_nfs_parse_response(_flow: *mut Flow,
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
 
+    state.ts = flow.get_last_time().as_secs();
     if state.parse_tcp_data_tc(buf) == 0 {
         1
     } else {
