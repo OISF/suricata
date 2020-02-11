@@ -1819,6 +1819,7 @@
             echo "   Fedora: dnf install nspr-devel"
             echo "   CentOS/RHEL: yum install nspr-devel"
             echo
+            enable_nspr="no"
         fi
     fi
 
@@ -1871,6 +1872,7 @@
             echo "   Fedora: dnf install nss-devel"
             echo "   CentOS/RHEL: yum install nss-devel"
             echo
+            enable_nss="no"
         fi
     fi
 
