@@ -245,9 +245,16 @@ impl SSHState {
         if resp {
             hdr = &mut self.transaction.srv_hdr;
         }
-        match parser::ssh_parse_line(input) {
+        let mut iline = input;
+        let mut vec = vec![13u8];
+        if hdr.banner.len() > 0 {
+            if hdr.banner[hdr.banner.len() - 1] == 13 {
+                vec.extend(input);
+                iline = &vec[..];
+            }
+        }
+        match parser::ssh_parse_line(iline) {
             Ok((rem, line)) => {
-                hdr.flags = SSHTxFlag::SSH_FLAG_VERSION_PARSED;
                 let mut setlong = false;
                 if hdr.banner.len() + line.len() <= SSH_MAX_BANNER_LEN {
                     hdr.banner.extend(line);
@@ -262,9 +269,11 @@ impl SSHState {
                         if banner.swver.len() > 0 {
                             hdr.swver.extend(banner.swver);
                         }
+                        hdr.flags = SSHTxFlag::SSH_FLAG_VERSION_PARSED;
                     }
                     Err(_) => {
                         self.set_event(SSHEvent::InvalidBanner);
+                        return false;
                     }
                 }
                 if setlong {
@@ -390,7 +399,7 @@ pub extern "C" fn rs_ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id
 pub extern "C" fn rs_ssh_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
+    pstate: *mut std::os::raw::c_void,
     input: *const u8,
     input_len: u32,
     _data: *const std::os::raw::c_void,
@@ -399,23 +408,45 @@ pub extern "C" fn rs_ssh_parse_request(
     let state = &mut cast_pointer!(state, SSHState);
     let buf = build_slice!(input, input_len as usize);
     let hdr = &mut state.transaction.cli_hdr;
+    let mut rv = -1;
     if !(hdr.flags.contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)) {
         if state.parse_banner(buf, false) {
-            return 1;
+            rv = 1;
         }
     } else {
         if state.parse_record(buf, false) {
-            return 1;
+            rv = 1;
         }
     }
-    return -1;
+    if state
+        .transaction
+        .cli_hdr
+        .flags
+        .contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
+        && state
+            .transaction
+            .srv_hdr
+            .flags
+            .contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
+    {
+        unsafe {
+            AppLayerParserStateSetFlag(
+                pstate,
+                APP_LAYER_PARSER_NO_INSPECTION
+                    | APP_LAYER_PARSER_NO_REASSEMBLY
+                    | APP_LAYER_PARSER_BYPASS_READY,
+            );
+        }
+    }
+
+    return rv;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
+    pstate: *mut std::os::raw::c_void,
     input: *const u8,
     input_len: u32,
     _data: *const std::os::raw::c_void,
@@ -424,16 +455,37 @@ pub extern "C" fn rs_ssh_parse_response(
     let state = &mut cast_pointer!(state, SSHState);
     let buf = build_slice!(input, input_len as usize);
     let hdr = &mut state.transaction.srv_hdr;
+    let mut rv = -1;
     if !(hdr.flags.contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)) {
         if state.parse_banner(buf, true) {
-            return 1;
+            rv = 1;
         }
     } else {
         if state.parse_record(buf, true) {
-            return 1;
+            rv = 1;
         }
     }
-    return -1;
+    if state
+        .transaction
+        .cli_hdr
+        .flags
+        .contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
+        && state
+            .transaction
+            .srv_hdr
+            .flags
+            .contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
+    {
+        unsafe {
+            AppLayerParserStateSetFlag(
+                pstate,
+                APP_LAYER_PARSER_NO_INSPECTION
+                    | APP_LAYER_PARSER_NO_REASSEMBLY
+                    | APP_LAYER_PARSER_BYPASS_READY,
+            );
+        }
+    }
+    return rv;
 }
 
 #[no_mangle]
@@ -453,6 +505,19 @@ pub extern "C" fn rs_ssh_state_get_tx_count(_state: *mut std::os::raw::c_void) -
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
     return SSHConnectionState::SshStateFinished as i32;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_tx_get_flags(
+    tx: *mut std::os::raw::c_void,
+    direction: u8,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, SSHTransaction);
+    if direction == STREAM_TOSERVER {
+        return tx.cli_hdr.flags.bits() as i32;
+    } else {
+        return tx.srv_hdr.flags.bits() as i32;
+    }
 }
 
 #[no_mangle]

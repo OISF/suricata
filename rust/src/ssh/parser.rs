@@ -52,9 +52,10 @@ impl<'a> SshBanner<'a> {}
 named!(pub ssh_parse_banner<SshBanner>,
     do_parse!(
         tag!("SSH-") >>
-        protover: alt!(is_not!("-") | rest) >>
-        opt!( complete!( char!('-') ) ) >>
-        swver: alt!( rest | eof!() ) >>
+        protover: is_not!("-") >>
+        char!('-') >>
+        swver: alt!( complete!( is_not!(" \r") ) | rest ) >>
+        //remaning after space is comments
         (SshBanner{protover, swver})
     )
 );
@@ -147,9 +148,10 @@ mod tests {
         let buf3 = b"SSH-Oops\rMore\r\n";
         let result3 = ssh_parse_line(buf3);
         match result3 {
-            Ok((_, message)) => {
+            Ok((rem, message)) => {
                 // Check the first message.
                 assert_eq!(message, b"SSH-Oops");
+                assert_eq!(rem, b"More\r\n");
             }
             Err(err) => {
                 panic!("Result should not be an error: {:?}.", err);
