@@ -529,13 +529,8 @@ int DetectAddressParseString(DetectAddress *dd, const char *str)
     int r = 0;
     char ipstr[256];
 
-    while (*str != '\0' && *str == ' ')
-        str++;
-
     /* shouldn't see 'any' here */
-    if(strcasecmp(str, "any") == 0) {
-        return -1;
-    }
+    BUG_ON(strcasecmp(str, "any") == 0);
 
     strlcpy(ipstr, str, sizeof(ipstr));
     SCLogDebug("str %s", str);
@@ -739,6 +734,9 @@ error:
 static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
 {
     SCLogDebug("gh %p, s %s", gh, s);
+
+    while (*s != '\0' && *s == ' ')
+        s++;
 
     if (strcasecmp(s, "any") == 0) {
         SCLogDebug("adding 0.0.0.0/0 and ::/0 as we\'re handling \'any\'");
