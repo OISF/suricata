@@ -1,3 +1,16 @@
+5.0.2 -- 2020-02-13
+
+Bug #2993: Suricata 5.0.0beta1 memory allocation of 4294966034 bytes failed
+Bug #3380: Segfault when using multi-detect
+Bug #3400: smb: post-GAP file tx handling
+Bug #3424: nfs: post-GAP some transactions never close
+Bug #3425: nfs: post-GAP file tx handling
+Bug #3433: coverity: CID 1456679: Memory - corruptions (NEGATIVE_RETURNS)
+Bug #3434: coverity: CID 1456680: Incorrect expression (IDENTICAL_BRANCHES)
+Bug #3469: gcc10: compilation failure unless -fcommon is supplied (5.0.x)
+Bug #3473: Dropping privileges does not work with NFLOG (5.0.x)
+Documentation #3423: readthedocs shows title of documentation as "Suricata unknown documentation"
+
 5.0.1 -- 2019-12-13
 
 Bug #1871: intermittent abort()s at shutdown and in unix-socket
