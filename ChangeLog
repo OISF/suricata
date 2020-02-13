@@ -1,3 +1,14 @@
+4.1.7 -- 2020-02-13
+
+Bug #3417: --disable-geoip does not work (4.1.x)
+Bug #3448: Suricata 4.1 Seg Fault: Socket Control pcap-file and corrupt pcap
+Bug #3452: smb: post-GAP file tx handling (4.1.x)
+Bug #3453: coverity: CID 1456680: Incorrect expression (IDENTICAL_BRANCHES) (4.1.x)
+Bug #3470: gcc10: compilation failure unless -fcommon is supplied (4.1.x)
+Bug #3471: nfs: post-GAP some transactions never close (4.1.x)
+Bug #3472: nfs: post-GAP file tx handling (4.1.x)
+Bug #3474: Dropping privileges does not work with NFLOG (4.1.x)
+
 4.1.6 -- 2019-12-13
 
 Bug #3276: address parsing: memory leak in error path (4.1.x)
