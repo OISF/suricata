@@ -74,6 +74,7 @@ enum PktSrcEnum {
 
 #include "decode-erspan.h"
 #include "decode-ethernet.h"
+#include "decode-chdlc.h"
 #include "decode-gre.h"
 #include "decode-ppp.h"
 #include "decode-pppoe.h"
@@ -633,6 +634,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_invalid;
 
     uint16_t counter_eth;
+    uint16_t counter_chdlc;
     uint16_t counter_ipv4;
     uint16_t counter_ipv6;
     uint16_t counter_tcp;
@@ -935,6 +937,7 @@ int DecodeVXLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uin
 int DecodeMPLS(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeERSPANTypeI(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeCHDLC(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeTEMPLATE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 
 #ifdef UNITTESTS
@@ -1039,6 +1042,10 @@ void DecodeUnregisterCounters(void);
 #define DLT_EN10MB 1
 #endif
 
+#ifndef DLT_C_HDLC
+#define DLT_C_HDLC 104
+#endif
+
 /* taken from pcap's bpf.h */
 #ifndef DLT_RAW
 #ifdef __OpenBSD__
@@ -1064,6 +1071,7 @@ void DecodeUnregisterCounters(void);
 #define LINKTYPE_RAW2        101
 #define LINKTYPE_IPV4        228
 #define LINKTYPE_GRE_OVER_IP 778
+#define LINKTYPE_CISCO_HDLC  DLT_C_HDLC
 #define PPP_OVER_GRE         11
 #define VLAN_OVER_GRE        13
 
@@ -1170,6 +1178,9 @@ static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             break;
         case LINKTYPE_NULL:
             DecodeNull(tv, dtv, p, data, len);
+            break;
+       case LINKTYPE_CISCO_HDLC:
+            DecodeCHDLC(tv, dtv, p, data, len);
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "datalink type "
