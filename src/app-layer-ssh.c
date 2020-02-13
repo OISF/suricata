@@ -41,8 +41,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
-#include "rust-ssh-ssh-gen.h"
-#include "rust-ssh-detect-gen.h"
+#include "rust.h"
 
 #include "conf.h"
 
@@ -124,7 +123,7 @@ static int SSHParserTestUtilCheck(const char *protoexp, const char *softexp, voi
         if (software == NULL)
             return 1;
         if (s_len != strlen(softexp)) {
-            printf("Software string not parsed correctly length: %d %d", s_len, strlen(softexp));
+            printf("Software string not parsed correctly length: ");
             return 1;
         }
         if (memcmp(software, softexp, strlen(softexp)) != 0) {
@@ -160,7 +159,7 @@ static int SSHParserTest01(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -211,7 +210,7 @@ static int SSHParserTest02(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -261,7 +260,7 @@ static int SSHParserTest03(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -313,7 +312,7 @@ static int SSHParserTest04(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -363,7 +362,7 @@ static int SSHParserTest05(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -413,7 +412,7 @@ static int SSHParserTest06(void)
     }
     /* Ok, it returned an error. Let's make sure we didn't parse the string at all */
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -473,7 +472,7 @@ static int SSHParserTest07(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -538,7 +537,7 @@ static int SSHParserTest08(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -593,7 +592,7 @@ static int SSHParserTest09(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -658,7 +657,7 @@ static int SSHParserTest10(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -714,7 +713,7 @@ static int SSHParserTest11(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -777,7 +776,7 @@ static int SSHParserTest12(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -844,7 +843,7 @@ static int SSHParserTest13(void)
             goto end;
         }
     }
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -926,7 +925,7 @@ static int SSHParserTest14(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1008,7 +1007,7 @@ static int SSHParserTest15(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1071,7 +1070,7 @@ static int SSHParserTest16(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1142,7 +1141,7 @@ static int SSHParserTest17(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1228,7 +1227,7 @@ static int SSHParserTest18(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1312,7 +1311,7 @@ static int SSHParserTest19(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1403,7 +1402,7 @@ static int SSHParserTest20(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1486,7 +1485,7 @@ static int SSHParserTest21(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1595,7 +1594,7 @@ static int SSHParserTest22(void)
         goto end;
     }
 #endif
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1676,7 +1675,7 @@ static int SSHParserTest24(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1720,7 +1719,7 @@ static int SSHParserTest25(void)
                                 STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     FAIL_IF(r != -1);
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     FAIL_IF_NULL(ssh_state);
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
     FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) == SSH_FLAG_VERSION_PARSED );
