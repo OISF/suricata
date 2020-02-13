@@ -2345,10 +2345,15 @@ fi
         if test "x$HAVE_CARGO" != "xno"; then
           if test "x$HAVE_RUSTC" != "xno"; then
             AC_DEFINE([HAVE_RUST],[1],[Enable Rust language])
-            if test "x$enable_debug" = "xyes"; then
-              RUST_SURICATA_LIB="../rust/target/debug/${RUST_SURICATA_LIBNAME}"
+            if test "x$cross_compiling" = "xyes"; then
+              RUST_SURICATA_LIB_XC_DIR="${host_alias}/"
             else
-              RUST_SURICATA_LIB="../rust/target/release/${RUST_SURICATA_LIBNAME}"
+              RUST_SURICATA_LIB_XC_DIR=
+            fi
+            if test "x$enable_debug" = "xyes"; then
+              RUST_SURICATA_LIB="../rust/target/${RUST_SURICATA_LIB_XC_DIR}debug/${RUST_SURICATA_LIBNAME}"
+            else
+              RUST_SURICATA_LIB="../rust/target/${RUST_SURICATA_LIB_XC_DIR}release/${RUST_SURICATA_LIBNAME}"
             fi
             RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
             CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
@@ -2369,6 +2374,25 @@ fi
             rust_config_comment=""
             rust_compiler_version=$(rustc --version)
             rust_cargo_version=$(cargo --version)
+
+            # Check for rustup. RUSTUP_HOME needs to be set if rustup is in
+            # use, and a user uses sudo (depending on configuration), or su to
+            # perform the install
+            rustup_home_path="no"
+            if test "x$RUSTUP_HOME" != "x"; then
+                rustup_home_path="$RUSTUP_HOME"
+            else
+                AC_PATH_PROG(have_rustup, rustup, "no")
+                if test "x$have_rustup" != "xno"; then
+                    rustup_home_path=$($have_rustup show home 2>/dev/null || echo "no")
+                fi
+            fi
+            rustup_home=""
+            if test "x$rustup_home_path" != "xno"; then
+                rustup_home="RUSTUP_HOME=\$(RUSTUP_HOME_PATH)"
+            fi
+            AC_SUBST([RUSTUP_HOME_PATH], [$rustup_home_path])
+            AC_SUBST([rustup_home])
           fi
         fi
       fi
@@ -2379,6 +2403,7 @@ fi
     AC_SUBST(rust_config_enabled)
     AC_SUBST(rust_config_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
+    AM_CONDITIONAL([RUST_CROSS_COMPILE], [test "x$cross_compiling" = "xyes"])
 
     if test "x$enable_rust" = "xyes" || test "x$enable_rust" = "xyes (default)"; then
       cargo_version=$(echo "$rust_cargo_version" | sed 's/^.*[[^0-9]]\([[0-9]]*\.[[0-9]]*\.[[0-9]]*\).*$/\1/')

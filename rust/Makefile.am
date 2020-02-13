@@ -4,14 +4,8 @@ EXTRA_DIST =	src \
 
 if HAVE_RUST
 
-EXTRA_DIST +=	Cargo.lock
-
 if HAVE_CARGO_VENDOR
 EXTRA_DIST +=	vendor
-endif
-
-if HAVE_RUST_VENDOR
-FROZEN = --frozen
 endif
 
 if !RUST_DEBUG
@@ -28,31 +22,34 @@ if DEBUG
 RUST_FEATURES +=	debug
 endif
 
+if RUST_CROSS_COMPILE 
+RUST_TARGET = --target $(host_triplet)
+endif
+
 all-local:
 if HAVE_PYTHON
 	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
 endif
-	cd $(top_srcdir)/rust && \
-		CARGO_HOME=$(CARGO_HOME) \
-		CARGO_TARGET_DIR=$(abs_top_builddir)/rust/target \
-		$(CARGO) build $(RELEASE) $(FROZEN) \
-			--features "$(RUST_FEATURES)"
+	@rustup_home@ \
+		CARGO_HOME="$(CARGO_HOME)" \
+		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
+		$(CARGO) build $(RELEASE) \
+			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 
 clean-local:
-	-rm -rf target
+	-rm -rf target gen
 
 distclean-local: clean-local
 	rm -rf vendor gen Cargo.lock
 
 check:
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) test
-
-Cargo.lock: Cargo.toml
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) generate-lockfile
+	CARGO_HOME="$(CARGO_HOME)" @rustup_home@ \
+            CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
+            $(CARGO) test $(RELEASE) --features "$(RUST_FEATURES)"
 
 if HAVE_CARGO_VENDOR
 vendor:
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) vendor > /dev/null
+	CARGO_HOME="$(CARGO_HOME)" @rustup_home@ $(CARGO) vendor > /dev/null
 else
 vendor:
 endif
