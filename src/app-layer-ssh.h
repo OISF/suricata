@@ -48,39 +48,11 @@
     the lenghts and msg_code (inside payload, if any)
 */
 
-typedef struct SshHeader_ {
-    uint32_t pkt_len;
-    uint8_t padding_len;
-    uint8_t msg_code;
-    uint16_t banner_len;
-    uint8_t buf[6];
-    uint8_t buf_offset;
-    uint8_t flags;
-    uint32_t record_left;
-    uint8_t *proto_version;
-    uint8_t *software_version;
-    uint8_t *banner_buffer;
-} SshHeader;
-
 enum {
     SSH_STATE_IN_PROGRESS,
     SSH_STATE_BANNER_DONE,
     SSH_STATE_FINISHED,
 };
-
-/** structure to store the SSH state values */
-typedef struct SshState_ {
-    SshHeader srv_hdr;
-    SshHeader cli_hdr;
-
-    /* specifies which loggers are done logging */
-    uint32_t logged;
-
-    uint64_t detect_flags_ts;
-    uint64_t detect_flags_tc;
-
-    DetectEngineState *de_state;
-} SshState;
 
 void RegisterSSHParsers(void);
 void SSHParserRegisterTests(void);

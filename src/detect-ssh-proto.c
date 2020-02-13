@@ -46,7 +46,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
 #include "detect-ssh-proto.h"
-#include "rust-ssh-detect-gen.h"
+#include "rust.h"
 
 #define KEYWORD_NAME "ssh.proto"
 #define KEYWORD_NAME_LEGACY "ssh_proto"

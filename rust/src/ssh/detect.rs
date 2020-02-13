@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-use core::{STREAM_TOCLIENT, STREAM_TOSERVER};
-use ssh::ssh::SSHTransaction;
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use super::ssh::SSHTransaction;
 use std::ptr;
 
 #[no_mangle]

@@ -51,7 +51,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
 #include "detect-ssh-proto-version.h"
-#include "rust-ssh-detect-gen.h"
+#include "rust.h"
 
 #include "stream-tcp.h"
 
@@ -111,8 +111,7 @@ static int DetectSshVersionMatch (DetectEngineThreadCtx *det_ctx,
     SCLogDebug("lets see");
 
     DetectSshVersionData *ssh = (DetectSshVersionData *)m;
-    SshState *ssh_state = (SshState *)state;
-    if (ssh_state == NULL) {
+    if (state == NULL) {
         SCLogDebug("no ssh state, no match");
         SCReturnInt(0);
     }
@@ -405,7 +404,7 @@ static int DetectSshVersionTestDetect01(void)
                             sshbuf4, sshlen4);
     FAIL_IF(r != 0);
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     FAIL_IF_NULL(ssh_state);
 
     /* do detect */
@@ -509,7 +508,7 @@ static int DetectSshVersionTestDetect02(void)
     }
     FLOWLOCK_UNLOCK(&f);
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -626,7 +625,7 @@ static int DetectSshVersionTestDetect03(void)
     }
     FLOWLOCK_UNLOCK(&f);
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;

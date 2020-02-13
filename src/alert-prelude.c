@@ -724,7 +724,7 @@ static void PacketToDataProtoTLS(const Packet *p, const PacketAlert *pa, idmef_a
 static void PacketToDataProtoSSH(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
     json_t *js, *s_js;
-    SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
+    void *ssh_state = FlowGetAppState(p->flow);
 
     if (ssh_state == NULL)
         return;

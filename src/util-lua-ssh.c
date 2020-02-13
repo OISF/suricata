@@ -47,6 +47,7 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "rust.h"
 
 #ifdef HAVE_LUA
 
@@ -63,14 +64,16 @@ static int GetServerProtoVersion(lua_State *luastate, const Flow *f)
     void *state = FlowGetAppState(f);
     if (state == NULL)
         return LuaCallbackError(luastate, "error: no app layer state");
+    const uint8_t *protocol = NULL;
+    uint32_t b_len = 0;
 
-    SshState *ssh_state = (SshState *)state;
-
-    if (ssh_state->srv_hdr.proto_version == NULL)
+    if (rs_ssh_tx_get_protocol(txv, &protocol, &b_len, STREAM_TOCLIENT) != 1)
         return LuaCallbackError(luastate, "error: no server proto version");
+    if (software == NULL || b_len == 0) {
+        return LuaCallbackError(luastate, "error: no server proto version");
+    }
 
-    return LuaPushStringBuffer(luastate, ssh_state->srv_hdr.proto_version,
-                               strlen((char *)ssh_state->srv_hdr.proto_version));
+    return LuaPushStringBuffer(luastate, protocol, b_len);
 }
 
 static int SshGetServerProtoVersion(lua_State *luastate)
@@ -95,13 +98,16 @@ static int GetServerSoftwareVersion(lua_State *luastate, const Flow *f)
     if (state == NULL)
         return LuaCallbackError(luastate, "error: no app layer state");
 
-    SshState *ssh_state = (SshState *)state;
+    const uint8_t *software = NULL;
+    uint32_t b_len = 0;
 
-    if (ssh_state->srv_hdr.software_version == NULL)
-        return LuaCallbackError(luastate, "error: no server software version");
+    if (rs_ssh_tx_get_software(txv, &software, &b_len, STREAM_TOCLIENT) != 1)
+        return LuaCallbackError(luastate, "error: no server proto version");
+    if (software == NULL || b_len == 0) {
+        return LuaCallbackError(luastate, "error: no server proto version");
+    }
 
-    return LuaPushStringBuffer(luastate, ssh_state->srv_hdr.software_version,
-                               strlen((char *)ssh_state->srv_hdr.software_version));
+    return LuaPushStringBuffer(luastate, software, b_len);
 }
 
 static int SshGetServerSoftwareVersion(lua_State *luastate)
@@ -126,13 +132,16 @@ static int GetClientProtoVersion(lua_State *luastate, const Flow *f)
     if (state == NULL)
         return LuaCallbackError(luastate, "error: no app layer state");
 
-    SshState *ssh_state = (SshState *)state;
+    const uint8_t *protocol = NULL;
+    uint32_t b_len = 0;
 
-    if (ssh_state->cli_hdr.proto_version == NULL)
+    if (rs_ssh_tx_get_protocol(txv, &protocol, &b_len, STREAM_TOSERVER) != 1)
         return LuaCallbackError(luastate, "error: no client proto version");
+    if (software == NULL || b_len == 0) {
+        return LuaCallbackError(luastate, "error: no client proto version");
+    }
 
-    return LuaPushStringBuffer(luastate, ssh_state->cli_hdr.proto_version,
-                               strlen((char *)ssh_state->cli_hdr.proto_version));
+    return LuaPushStringBuffer(luastate, protocol, b_len);
 }
 
 static int SshGetClientProtoVersion(lua_State *luastate)
@@ -157,13 +166,16 @@ static int GetClientSoftwareVersion(lua_State *luastate, const Flow *f)
     if (state == NULL)
         return LuaCallbackError(luastate, "error: no app layer state");
 
-    SshState *ssh_state = (SshState *)state;
+    const uint8_t *software = NULL;
+    uint32_t b_len = 0;
 
-    if (ssh_state->cli_hdr.software_version == NULL)
-        return LuaCallbackError(luastate, "error: no client software version");
+    if (rs_ssh_tx_get_software(txv, &software, &b_len, STREAM_TOSERVER) != 1)
+        return LuaCallbackError(luastate, "error: no server proto version");
+    if (software == NULL || b_len == 0) {
+        return LuaCallbackError(luastate, "error: no server proto version");
+    }
 
-    return LuaPushStringBuffer(luastate, ssh_state->cli_hdr.software_version,
-                               strlen((char *)ssh_state->cli_hdr.software_version));
+    return LuaPushStringBuffer(luastate, software, b_len);
 }
 
 static int SshGetClientSoftwareVersion(lua_State *luastate)

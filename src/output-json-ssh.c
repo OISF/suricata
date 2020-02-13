@@ -49,7 +49,7 @@
 
 #include "output-json.h"
 #include "output-json-ssh.h"
-#include "rust-ssh-logger-gen.h"
+#include "rust.h"
 
 #define MODULE_NAME "LogSshLog"
 
