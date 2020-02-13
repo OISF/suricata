@@ -143,5 +143,8 @@ alert pkthdr any any -> any any (msg:"SURICATA ERSPAN too many vlan layers"; dec
 # Cisco Fabric Path/DCE
 alert pkthdr any any -> any any (msg:"SURICATA DCE packet too small"; decode-event:dce.pkt_too_small; classtype:protocol-command-decode; sid:2200110; rev:2;)
 
-# next sid is 2200114
+# Cisco HDLC
+alert pkthdr any any -> any any (msg:"SURICATA HDLC packet too small"; decode-event:hdlc.pkt_too_small; classtype:protocol-command-decode; sid:2200115; rev:1;)
+
+# next sid is 2200116
 
