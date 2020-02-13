@@ -146,6 +146,7 @@ static void RegisterUnittests(void)
     IPPairBitRegisterTests();
     StatsRegisterTests();
     DecodeEthernetRegisterTests();
+    DecodeHdlcRegisterTests();
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
     DecodeVXLANRegisterTests();

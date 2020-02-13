@@ -222,6 +222,9 @@ TmEcode ValidateLinkType(int datalink, DecoderFunc *decoder)
         case LINKTYPE_NULL:
             *decoder = DecodeNull;
             break;
+        case LINKTYPE_CISCO_HDLC:
+            *decoder =  DecodeHDLC;
+            break;
 
         default:
             SCLogError(
