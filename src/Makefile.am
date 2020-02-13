@@ -61,6 +61,7 @@ datasets-sha256.c datasets-sha256.h \
 datasets-md5.c datasets-md5.h \
 decode.c decode.h \
 decode-afl.c \
+decode-chdlc.c decode-chdlc.h \
 decode-erspan.c decode-erspan.h \
 decode-ethernet.c decode-ethernet.h \
 decode-events.c decode-events.h \
