@@ -230,18 +230,13 @@
     AC_FUNC_MALLOC
     AC_FUNC_REALLOC
     AC_CHECK_FUNCS([gettimeofday memset strcasecmp strchr strrchr strdup strndup strerror strncasecmp strtol strtoul memchr memrchr clock_gettime])
-    AC_CHECK_FUNCS([strptime])
+    AC_CHECK_FUNCS([strptime memmem utime])
 
     AC_CHECK_DECL([getrandom],
         AC_DEFINE([HAVE_GETRANDOM], [1], [Use getrandom]),
         [], [
             #include <sys/random.h> 
             ])
-
-    AC_CHECK_FUNC([memmem],
-        AC_DEFINE([HAVE_MEMMEM], [1], [Use memmem]), [])
-
-    AC_CHECK_FUNCS([utime])
 
     OCFLAGS=$CFLAGS
     CFLAGS=""
