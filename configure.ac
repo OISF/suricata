@@ -79,6 +79,7 @@
     AC_PROG_AWK
     AC_PROG_CC
     AC_PROG_CPP
+    AC_PROG_RANLIB
     AC_PROG_INSTALL
     AC_PROG_LN_S
     AC_PROG_MAKE_SET
@@ -184,15 +185,16 @@
     AC_CHECK_HEADERS([limits.h netdb.h netinet/in.h poll.h sched.h signal.h])
     AC_CHECK_HEADERS([stdarg.h stdint.h stdio.h stdlib.h stdbool.h string.h strings.h sys/ioctl.h])
     AC_CHECK_HEADERS([syslog.h sys/prctl.h sys/socket.h sys/stat.h sys/syscall.h])
-    AC_CHECK_HEADERS([sys/time.h time.h unistd.h])
+    AC_CHECK_HEADERS([sys/time.h time.h unistd.h sys/param.h])
     AC_CHECK_HEADERS([sys/ioctl.h linux/if_ether.h linux/if_packet.h linux/filter.h])
     AC_CHECK_HEADERS([linux/ethtool.h linux/sockios.h])
-    AC_CHECK_HEADERS([glob.h])
+    AC_CHECK_HEADERS([glob.h locale.h])
     AC_CHECK_HEADERS([dirent.h fnmatch.h])
     AC_CHECK_HEADERS([sys/resource.h sys/types.h sys/un.h])
     AC_CHECK_HEADERS([sys/random.h])
     AC_CHECK_HEADERS([utime.h])
     AC_CHECK_HEADERS([libgen.h])
+    AC_CHECK_HEADERS([mach/mach.h])
 
     AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h linux/if_arp.h], [], [],
     [[#ifdef HAVE_SYS_SOCKET_H
@@ -217,20 +219,37 @@
 
     # Checks for typedefs, structures, and compiler characteristics.
     AC_C_INLINE
+    AC_C_RESTRICT
     AC_TYPE_PID_T
+    AC_TYPE_MODE_T
     AC_TYPE_SIZE_T
+    AC_TYPE_SSIZE_T
+    AC_TYPE_INT8_T
+    AC_TYPE_INT16_T
     AC_TYPE_INT32_T
+    AC_TYPE_INT64_T
+    AC_TYPE_UINT8_T
     AC_TYPE_UINT16_T
     AC_TYPE_UINT32_T
     AC_TYPE_UINT64_T
-    AC_TYPE_UINT8_T
+    AC_STRUCT_TIMEZONE
+    AC_CHECK_TYPES([ptrdiff_t])
     AC_HEADER_STDBOOL
 
     # Checks for library functions.
     AC_FUNC_MALLOC
     AC_FUNC_REALLOC
-    AC_CHECK_FUNCS([gettimeofday memset strcasecmp strchr strrchr strdup strndup strerror strncasecmp strtol strtoul memchr memrchr clock_gettime])
-    AC_CHECK_FUNCS([strptime memmem utime])
+    AC_FUNC_FORK
+    AC_FUNC_MKTIME
+    AC_FUNC_MMAP
+    AC_FUNC_STRTOD
+
+    AC_CHECK_FUNCS([memmem memset memchr memrchr memmove])
+    AC_CHECK_FUNCS([strcasecmp strchr strrchr strdup strndup strncasecmp strtol strtoul strstr strpbrk strtoull strtoumax])
+    AC_CHECK_FUNCS([strerror])
+    AC_CHECK_FUNCS([gethostname inet_ntoa uname])
+    AC_CHECK_FUNCS([gettimeofday clock_gettime utime strptime tzset localtime_r])
+    AC_CHECK_FUNCS([socket setenv select putenv dup2 endgrent endpwent atexit munmap])
 
     AC_CHECK_DECL([getrandom],
         AC_DEFINE([HAVE_GETRANDOM], [1], [Use getrandom]),
