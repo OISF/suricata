@@ -296,6 +296,9 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
         if (i == 2) {
             test_value = (char *) str_ptr;
             data_offset = SCStrdup((char *) str_ptr);
+            if (data_offset == NULL) {
+                goto error;
+            }
         } else {
             args[i] = (char *)str_ptr;
         }
@@ -390,8 +393,7 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
 
     /* Offset -- note that this *also* contains test_value, offset so parse accordingly */
     if (data_offset) {
-        char *end_ptr = test_value;
-        end_ptr = data_offset;
+        char *end_ptr = data_offset;
         while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ','))) end_ptr++;
         str_ptr = ++end_ptr;
         while (isspace((unsigned char)*str_ptr) || (*str_ptr == ',')) str_ptr++;
