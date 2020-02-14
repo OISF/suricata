@@ -3095,6 +3095,125 @@ static int MimeIsIpv6HostTest01(void)
 }
 #undef TEST
 
+static int MimeDecParseLongFilename01(void)
+{
+    /* contains 276 character filename -- length restricted to 255 chars */
+    char mimemsg[] = "Content-Disposition: attachment; filename=\""
+                     "12characters12characters12characters12characters"
+                     "12characters12characters12characters12characters"
+                     "12characters12characters12characters12characters"
+                     "12characters12characters12characters12characters"
+                     "12characters12characters12characters12characters"
+                     "12characters12characters12characters.exe\"";
+
+    uint32_t line_count = 0;
+
+    MimeDecGetConfig()->decode_base64 = 1;
+    MimeDecGetConfig()->decode_quoted_printable = 1;
+    MimeDecGetConfig()->extract_urls = 1;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count,
+            TestDataChunkCallback);
+
+    const char *str = "From: Sender1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "To: Recipient1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "Content-Type: text/plain";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    /* Contains 276 character filename */
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)mimemsg, strlen(mimemsg), 1, state));
+
+    str = "";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "A simple message line 1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    /* Completed */
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseComplete(state));
+
+    MimeDecEntity *msg = state->msg;
+    FAIL_IF_NOT(msg);
+
+    FAIL_IF_NOT(msg->anomaly_flags & ANOM_LONG_FILENAME);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    PASS;
+}
+
+static int MimeDecParseLongFilename02(void)
+{
+    /* contains 40 character filename and 500+ characters following filename */
+    char mimemsg[] = "Content-Disposition: attachment; filename=\""
+                     "12characters12characters12characters.exe\"; "
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd"
+                     "somejunkasfdasfsafasafdsasdasassdssdsd";
+
+    uint32_t line_count = 0;
+
+    MimeDecGetConfig()->decode_base64 = 1;
+    MimeDecGetConfig()->decode_quoted_printable = 1;
+    MimeDecGetConfig()->extract_urls = 1;
+
+    /* Init parser */
+    MimeDecParseState *state = MimeDecInitParser(&line_count,
+            TestDataChunkCallback);
+
+    const char *str = "From: Sender1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "To: Recipient1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "Content-Type: text/plain";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    /* Contains 40 character filename */
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)mimemsg, strlen(mimemsg), 1, state));
+
+    str = "";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    str = "A simple message line 1";
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseLine((uint8_t *)str, strlen(str), 1, state));
+
+    /* Completed */
+    FAIL_IF_NOT(MIME_DEC_OK == MimeDecParseComplete(state));
+
+    MimeDecEntity *msg = state->msg;
+    FAIL_IF_NOT(msg);
+
+    /* filename is not too long */
+    FAIL_IF(msg->anomaly_flags & ANOM_LONG_FILENAME);
+
+    MimeDecFreeEntity(msg);
+
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void MimeDecRegisterTests(void)
@@ -3108,5 +3227,7 @@ void MimeDecRegisterTests(void)
     UtRegisterTest("MimeIsExeURLTest01", MimeIsExeURLTest01);
     UtRegisterTest("MimeIsIpv4HostTest01", MimeIsIpv4HostTest01);
     UtRegisterTest("MimeIsIpv6HostTest01", MimeIsIpv6HostTest01);
+    UtRegisterTest("MimeDecParseLongFilename01", MimeDecParseLongFilename01);
+    UtRegisterTest("MimeDecParseLongFilename02", MimeDecParseLongFilename02);
 #endif /* UNITTESTS */
 }
