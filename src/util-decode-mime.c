@@ -1997,6 +1997,7 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
 
                     if (truncated_name) {
                         state->stack->top->data->anomaly_flags |= ANOM_LONG_FILENAME;
+                        state->msg->anomaly_flags |= ANOM_LONG_FILENAME;
                     }
                 }
             }
