@@ -297,5 +297,15 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
 
 #endif /* SIMD */
 
+static inline int SCBufferCmp(const void *s1, size_t len1, const void *s2, size_t len2)
+{
+    if (len1 == len2) {
+        return SCMemcmp(s1, s2, len1);
+    } else if (len1 < len2) {
+        return -1;
+    }
+    return 1;
+}
+
 #endif /* __UTIL_MEMCMP_H__ */
 
