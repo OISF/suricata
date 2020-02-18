@@ -59,6 +59,7 @@ app-layer-ssl.c app-layer-ssl.h \
 app-layer-sip.c app-layer-sip.h \
 conf.c conf.h \
 conf-yaml-loader.c conf-yaml-loader.h \
+containers.c containers.h \
 counters.c counters.h \
 datasets.c datasets.h datasets-reputation.h \
 datasets-string.c datasets-string.h \

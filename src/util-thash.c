@@ -37,7 +37,7 @@
 static THashData *THashGetUsed(THashTableContext *ctx);
 static void THashDataEnqueue (THashDataQueue *q, THashData *h);
 
-static void THashDataMoveToSpare(THashTableContext *ctx, THashData *h)
+void THashDataMoveToSpare(THashTableContext *ctx, THashData *h)
 {
     THashDataEnqueue(&ctx->spare_q, h);
     (void) SC_ATOMIC_SUB(ctx->counter, 1);
