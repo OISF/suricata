@@ -644,7 +644,7 @@ static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
 {
     SCLogDebug("gh %p, s %s", gh, s);
 
-    while (*s != '\0' && *s == ' ')
+    while (*s != '\0' && isspace(*s))
         s++;
 
     if (strcasecmp(s, "any") == 0) {
