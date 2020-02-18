@@ -647,8 +647,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         name               : PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port       : default_port.as_ptr(),
         ipproto            : core::IPPROTO_UDP,
-        probe_ts           : rs_krb5_probing_parser,
-        probe_tc           : rs_krb5_probing_parser,
+        probe_ts           : Some(rs_krb5_probing_parser),
+        probe_tc           : Some(rs_krb5_probing_parser),
         min_depth          : 0,
         max_depth          : 16,
         state_new          : rs_krb5_state_new,
@@ -690,8 +690,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
     }
     // register TCP parser
     parser.ipproto = core::IPPROTO_TCP;
-    parser.probe_ts = rs_krb5_probing_parser_tcp;
-    parser.probe_tc = rs_krb5_probing_parser_tcp;
+    parser.probe_ts = Some(rs_krb5_probing_parser_tcp);
+    parser.probe_tc = Some(rs_krb5_probing_parser_tcp);
     parser.parse_ts = rs_krb5_parse_request_tcp;
     parser.parse_tc = rs_krb5_parse_response_tcp;
     let ip_proto_str = CString::new("tcp").unwrap();

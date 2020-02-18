@@ -38,9 +38,9 @@ pub struct RustParser {
     pub ipproto:            c_int,
 
     /// Probing function, for packets going to server
-    pub probe_ts:           ProbeFn,
+    pub probe_ts:           Option<ProbeFn>,
     /// Probing function, for packets going to client
-    pub probe_tc:           ProbeFn,
+    pub probe_tc:           Option<ProbeFn>,
 
     /// Minimum frame depth for probing
     pub min_depth:          u16,

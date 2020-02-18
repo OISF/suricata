@@ -54,6 +54,10 @@ AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *p, int e
 
     AppLayerProtoDetectRegisterProtocol(alproto, p->name);
 
+    if (p->ProbeTS == NULL || p->ProbeTC == NULL) {
+        return alproto;
+    }
+
     if (RunmodeIsUnittests()) {
 
         SCLogDebug("Unittest mode, registering default configuration.");
