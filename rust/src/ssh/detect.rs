@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use super::ssh::SSHTransaction;
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use std::ptr;
 
 #[no_mangle]
@@ -31,8 +31,8 @@ pub extern "C" fn rs_ssh_tx_get_protocol(
         STREAM_TOSERVER => {
             let m = &tx.cli_hdr.protover;
             if m.len() > 0 {
-                unsafe { *buffer = m.as_ptr() };
                 unsafe {
+                    *buffer = m.as_ptr();
                     *buffer_len = m.len() as u32;
                 }
                 return 1;
@@ -43,8 +43,6 @@ pub extern "C" fn rs_ssh_tx_get_protocol(
             if m.len() > 0 {
                 unsafe {
                     *buffer = m.as_ptr();
-                }
-                unsafe {
                     *buffer_len = m.len() as u32;
                 }
                 return 1;
@@ -54,8 +52,6 @@ pub extern "C" fn rs_ssh_tx_get_protocol(
     }
     unsafe {
         *buffer = ptr::null();
-    }
-    unsafe {
         *buffer_len = 0;
     }
 
@@ -76,8 +72,6 @@ pub extern "C" fn rs_ssh_tx_get_software(
             if m.len() > 0 {
                 unsafe {
                     *buffer = m.as_ptr();
-                }
-                unsafe {
                     *buffer_len = m.len() as u32;
                 }
                 return 1;
@@ -88,8 +82,6 @@ pub extern "C" fn rs_ssh_tx_get_software(
             if m.len() > 0 {
                 unsafe {
                     *buffer = m.as_ptr();
-                }
-                unsafe {
                     *buffer_len = m.len() as u32;
                 }
                 return 1;
@@ -99,8 +91,6 @@ pub extern "C" fn rs_ssh_tx_get_software(
     }
     unsafe {
         *buffer = ptr::null();
-    }
-    unsafe {
         *buffer_len = 0;
     }
 

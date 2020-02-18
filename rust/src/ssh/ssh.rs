@@ -255,13 +255,13 @@ impl SSHState {
         }
         match parser::ssh_parse_line(iline) {
             Ok((rem, line)) => {
-                let mut setlong = false;
+                let mut set_event_long = false;
                 if hdr.banner.len() + line.len() <= SSH_MAX_BANNER_LEN {
                     hdr.banner.extend(line);
                 } else if hdr.banner.len() < SSH_MAX_BANNER_LEN {
                     hdr.banner
                         .extend(&line[0..SSH_MAX_BANNER_LEN - hdr.banner.len()]);
-                    setlong = true;
+                    set_event_long = true;
                 }
                 match parser::ssh_parse_banner(&hdr.banner) {
                     Ok((_, banner)) => {
@@ -276,7 +276,7 @@ impl SSHState {
                         return false;
                     }
                 }
-                if setlong {
+                if set_event_long {
                     self.set_event(SSHEvent::LongBanner);
                 }
                 return self.parse_record(rem, resp);
