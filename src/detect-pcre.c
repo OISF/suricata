@@ -842,6 +842,13 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
 
     int sm_list = -1;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        if (parsed_sm_list != DETECT_SM_LIST_NOTSET && parsed_sm_list != s->init_data->list) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "Expression seen with a sticky buffer still set; either (1) reset sticky "
+                    "buffer with pkt_data or (2) use a sticky buffer providing \"%s\".",
+                    DetectBufferTypeGetDescriptionById(de_ctx, parsed_sm_list));
+            goto error;
+        }
         if (DetectBufferGetActiveList(de_ctx, s) == -1)
             goto error;
 
