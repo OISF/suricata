@@ -384,38 +384,41 @@ static int ThresholdTestParse05(void)
 /**
  * \test ThresholdTestParse06 is a test for thresholding by_both
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int ThresholdTestParse06(void)
 {
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("count 10, track by_both, seconds 60, type limit");
-    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_BOTH) && (de->count == 10) && (de->seconds == 60)) {
-        DetectThresholdFree(de);
-        return 1;
-    }
-
-    return 0;
+    FAIL_IF_NULL(de);
+    FAIL_IF_NOT(de->type == TYPE_LIMIT);
+    FAIL_IF_NOT(de->track == TRACK_BOTH);
+    FAIL_IF_NOT(de->count == 10);
+    FAIL_IF_NOT(de->seconds == 60);
+    DetectThresholdFree(de);
+    PASS;
 }
 
 /**
  * \test ThresholdTestParse07 is a test for thresholding by_rule
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int ThresholdTestParse07(void)
 {
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("count 10, track by_rule, seconds 60, type limit");
-    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_RULE) && (de->count == 10) && (de->seconds == 60)) {
-        DetectThresholdFree(de);
-        return 1;
-    }
-
-    return 0;
+    FAIL_IF_NULL(de);
+    FAIL_IF_NOT(de->type == TYPE_LIMIT);
+    FAIL_IF_NOT(de->track == TRACK_RULE);
+    FAIL_IF_NOT(de->count == 10);
+    FAIL_IF_NOT(de->seconds == 60);
+    DetectThresholdFree(de);
+    PASS;
 }
+
 /**
  * \test DetectThresholdTestSig1 is a test for checking the working of limit keyword
  *       by setting up the signature and later testing its working by matching
@@ -1516,6 +1519,160 @@ end:
     return result;
 }
 
+/**
+ * \test DetectThresholdTestSig13 is a test for checking the working by_rule limits
+ *       by setting up the signature and later testing its working by matching
+ *       received packets against the sig.
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+
+static int DetectThresholdTestSig13(void)
+{
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int alerts = 0;
+
+    HostInitConfig(HOST_QUIET);
+
+    memset(&th_v, 0, sizeof(th_v));
+    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_rule, count 2, seconds 60; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    ThresholdHashRealloc(de_ctx);
+
+    /* should alert twice */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+
+    FAIL_IF(alerts != 2);
+
+    TimeSetIncrementTime(70);
+    TimeGet(&p->ts);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+
+    FAIL_IF(alerts != 4);
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p, 1);
+    HostShutdown();
+    PASS;
+}
+
+/**
+ * \test DetectThresholdTestSig14 is a test for checking the working by_both limits
+ *       by setting up the signature and later testing its working by matching
+ *       received packets against the sig.
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+
+static int DetectThresholdTestSig14(void)
+{
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    int alerts1 = 0;
+    int alerts2 = 0;
+
+    HostInitConfig(HOST_QUIET);
+    IPPairInitConfig(IPPAIR_QUIET);
+
+    memset(&th_v, 0, sizeof(th_v));
+    p1 = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    p2 = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "3.3.3.3", 1024, 80);
+    FAIL_IF_NULL(p1);
+    FAIL_IF_NULL(p2);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_both, count 2, seconds 60; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* Both p1 and p2 should alert twice */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts1 += PacketAlertCheck(p1, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts1 += PacketAlertCheck(p1, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts1 += PacketAlertCheck(p1, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts1 += PacketAlertCheck(p1, 1);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts2 += PacketAlertCheck(p2, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts2 += PacketAlertCheck(p2, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts2 += PacketAlertCheck(p2, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts2 += PacketAlertCheck(p2, 1);
+
+    FAIL_IF(alerts1 != 2);
+    FAIL_IF(alerts2 != 2);
+
+    TimeSetIncrementTime(70);
+    TimeGet(&p1->ts);
+    TimeGet(&p2->ts);
+
+    /* Now they should both alert again after previous alerts expire */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts1 += PacketAlertCheck(p1, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts2 += PacketAlertCheck(p2, 1);
+
+    FAIL_IF(alerts1 != 3);
+    FAIL_IF(alerts2 != 3);
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    HostShutdown();
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void ThresholdRegisterTests(void)
@@ -1541,6 +1698,8 @@ void ThresholdRegisterTests(void)
     UtRegisterTest("DetectThresholdTestSig10", DetectThresholdTestSig10);
     UtRegisterTest("DetectThresholdTestSig11", DetectThresholdTestSig11);
     UtRegisterTest("DetectThresholdTestSig12", DetectThresholdTestSig12);
+    UtRegisterTest("DetectThresholdTestSig13", DetectThresholdTestSig13);
+    UtRegisterTest("DetectThresholdTestSig14", DetectThresholdTestSig14);
 #endif /* UNITTESTS */
 }
 
