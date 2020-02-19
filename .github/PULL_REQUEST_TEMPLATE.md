@@ -13,3 +13,5 @@ Describe changes:
 
 [PRScript](https://redmine.openinfosecfoundation.org/projects/suricata/wiki/PRscript) output (if applicable):
 
+[Suricata-Verify](https://github.com/OISF/suricata-verify/) pull request (if applicable):
+        (NNN)[https://github.com/OISF/suricata-verify/pull/NNN]
