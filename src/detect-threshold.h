@@ -72,11 +72,10 @@ typedef struct DetectThresholdEntry_ {
     uint32_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
                                  its not "seconds", that define the time interval */
     uint32_t seconds;       /**< Event seconds */
-    uint32_t tv_sec1;       /**< Var for time control */
-    uint32_t tv_usec1;       /**< Var for time control */
     uint32_t current_count; /**< Var for count control */
     int track;          /**< Track type: by_src, by_src */
 
+    struct timeval tv1;     /**< Var for time control */
     struct DetectThresholdEntry_ *next;
 } DetectThresholdEntry;
 
