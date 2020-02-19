@@ -59,7 +59,7 @@
 #include "util-cpu.h"
 #endif
 
-#define PARSE_REGEX "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|\\d+)\\s*"
+#define PARSE_REGEX "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*"
 
 static DetectParseRegex parse_regex;
 
@@ -174,6 +174,10 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
             de->track = TRACK_DST;
         if (strncasecmp(args[i],"by_src",strlen("by_src")) == 0)
             de->track = TRACK_SRC;
+        if (strncasecmp(args[i],"by_both",strlen("by_both")) == 0)
+            de->track = TRACK_BOTH;
+        if (strncasecmp(args[i],"by_rule",strlen("by_rule")) == 0)
+            de->track = TRACK_RULE;
         if (strncasecmp(args[i],"count",strlen("count")) == 0)
             count_pos = i+1;
         if (strncasecmp(args[i],"seconds",strlen("seconds")) == 0)
@@ -374,7 +378,41 @@ static int ThresholdTestParse05(void)
     return 0;
 }
 
+/**
+ * \test ThresholdTestParse06 is a test for thresholding by_both
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int ThresholdTestParse06(void)
+{
+    DetectThresholdData *de = NULL;
+    de = DetectThresholdParse("count 10, track by_both, seconds 60, type limit");
+    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_BOTH) && (de->count == 10) && (de->seconds == 60)) {
+        DetectThresholdFree(de);
+        return 1;
+    }
 
+    return 0;
+}
+
+/**
+ * \test ThresholdTestParse07 is a test for thresholding by_rule
+ *
+ *  \retval 1 on succces
+ *  \retval 0 on failure
+ */
+static int ThresholdTestParse07(void)
+{
+    DetectThresholdData *de = NULL;
+    de = DetectThresholdParse("count 10, track by_rule, seconds 60, type limit");
+    if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_RULE) && (de->count == 10) && (de->seconds == 60)) {
+        DetectThresholdFree(de);
+        return 1;
+    }
+
+    return 0;
+}
 /**
  * \test DetectThresholdTestSig1 is a test for checking the working of limit keyword
  *       by setting up the signature and later testing its working by matching
@@ -1485,6 +1523,8 @@ void ThresholdRegisterTests(void)
     UtRegisterTest("ThresholdTestParse03", ThresholdTestParse03);
     UtRegisterTest("ThresholdTestParse04", ThresholdTestParse04);
     UtRegisterTest("ThresholdTestParse05", ThresholdTestParse05);
+    UtRegisterTest("ThresholdTestParse06", ThresholdTestParse06);
+    UtRegisterTest("ThresholdTestParse07", ThresholdTestParse07);
     UtRegisterTest("DetectThresholdTestSig1", DetectThresholdTestSig1);
     UtRegisterTest("DetectThresholdTestSig2", DetectThresholdTestSig2);
     UtRegisterTest("DetectThresholdTestSig3", DetectThresholdTestSig3);
