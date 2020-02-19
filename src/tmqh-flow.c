@@ -220,7 +220,7 @@ void TmqhOutputFlowFreeCtx(void *ctx)
 
 void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
 {
-    int16_t qid = 0;
+    uint16_t qid = 0;
 
     TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
 
@@ -251,7 +251,7 @@ void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
  */
 void TmqhOutputFlowIPPair(ThreadVars *tv, Packet *p)
 {
-    int16_t qid = 0;
+    uint16_t qid = 0;
     uint32_t addr_hash = 0;
     int i;
 
@@ -265,8 +265,6 @@ void TmqhOutputFlowIPPair(ThreadVars *tv, Packet *p)
         addr_hash = p->src.addr_data32[0] + p->dst.addr_data32[0];
     }
 
-    /* we don't have to worry about possible overflow, since
-     * ctx->size will be lesser than 2 ** 31 for sure */
     qid = addr_hash % ctx->size;
 
     PacketQueue *q = ctx->queues[qid].q;
