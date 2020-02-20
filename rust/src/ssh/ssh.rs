@@ -45,10 +45,14 @@ impl SSHEvent {
     }
 }
 
+//TODO Exporting constant to C works, enum does not...
+//pub const SSH_STATE_IN_PROGRESS: isize = 0;
+
+#[repr(C)]
 pub enum SSHConnectionState {
-    SshStateInProgress,
-    SshStateBannerDone,
-    SshStateFinished,
+    SshStateInProgress = 0,
+    SshStateBannerDone = 1,
+    SshStateFinished = 2,
 }
 
 bitflags! {
