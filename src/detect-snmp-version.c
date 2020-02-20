@@ -41,9 +41,9 @@ static pcre_extra *parse_regex_study;
 enum DetectSNMPVersionMode {
     PROCEDURE_EQ = 1, /* equal */
     PROCEDURE_LT, /* less than */
-    PROCEDURE_LE, /* less than */
+    PROCEDURE_LE, /* less than or equal */
     PROCEDURE_GT, /* greater than */
-    PROCEDURE_GE, /* greater than */
+    PROCEDURE_GE, /* greater than or equal */
 };
 
 typedef struct DetectSNMPVersionData_ {
