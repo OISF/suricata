@@ -55,13 +55,9 @@ pub enum SSHConnectionState {
     SshStateFinished = 2,
 }
 
-bitflags! {
-    pub struct SSHTxFlag: u8 {
-        const SSH_FLAG_NONE = 0;
-        const SSH_FLAG_VERSION_PARSED=1;
-        const SSH_FLAG_PARSER_DONE=2;
-    }
-}
+const SSH_FLAG_NONE: u8 = 0;
+const SSH_FLAG_VERSION_PARSED: u8 = 1;
+const SSH_FLAG_PARSER_DONE: u8 = 2;
 
 const SSH_MAX_BANNER_LEN: usize = 256;
 const SSH_RECORD_HEADER_LEN: usize = 6;
@@ -71,7 +67,7 @@ const SSH_MSG_NEWKEYS: u8 = 21;
 pub struct SshHeader {
     record_left: u32,
     record_buf: Vec<u8>,
-    flags: SSHTxFlag,
+    flags: u8,
     banner: Vec<u8>,
     //can we have these be references to banner ?
     pub protover: Vec<u8>,
@@ -83,7 +79,7 @@ impl SshHeader {
         SshHeader {
             record_left: 0,
             record_buf: Vec::with_capacity(SSH_RECORD_HEADER_LEN),
-            flags: SSHTxFlag::SSH_FLAG_NONE,
+            flags: SSH_FLAG_NONE,
             banner: Vec::with_capacity(SSH_MAX_BANNER_LEN),
             protover: Vec::new(),
             swver: Vec::new(),
@@ -181,7 +177,7 @@ impl SSHState {
                 Ok((_, head)) => {
                     hdr.record_left = head.pkt_len - 2;
                     if head.msg_code == SSH_MSG_NEWKEYS {
-                        hdr.flags = SSHTxFlag::SSH_FLAG_PARSER_DONE;
+                        hdr.flags = SSH_FLAG_PARSER_DONE;
                     }
                     //header with input as maybe incomplete data
                 }
@@ -210,7 +206,7 @@ impl SSHState {
                 Ok((rem, head)) => {
                     input = rem;
                     if head.msg_code == SSH_MSG_NEWKEYS {
-                        hdr.flags = SSHTxFlag::SSH_FLAG_PARSER_DONE;
+                        hdr.flags = SSH_FLAG_PARSER_DONE;
                     }
                     //header and complete data (not returned)
                 }
@@ -221,7 +217,7 @@ impl SSHState {
                             hdr.record_left = head.pkt_len - 2 - remlen;
                             //header with rem as incomplete data
                             if head.msg_code == SSH_MSG_NEWKEYS {
-                                hdr.flags = SSHTxFlag::SSH_FLAG_PARSER_DONE;
+                                hdr.flags = SSH_FLAG_PARSER_DONE;
                             }
                             return true;
                         }
@@ -273,7 +269,7 @@ impl SSHState {
                         if banner.swver.len() > 0 {
                             hdr.swver.extend(banner.swver);
                         }
-                        hdr.flags = SSHTxFlag::SSH_FLAG_VERSION_PARSED;
+                        hdr.flags = SSH_FLAG_VERSION_PARSED;
                     }
                     Err(_) => {
                         self.set_event(SSHEvent::InvalidBanner);
@@ -401,7 +397,7 @@ pub extern "C" fn rs_ssh_parse_request(
     let buf = build_slice!(input, input_len as usize);
     let hdr = &mut state.transaction.cli_hdr;
     let mut rv = -1;
-    if !(hdr.flags.contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)) {
+    if hdr.flags < SSH_FLAG_VERSION_PARSED {
         if state.parse_banner(buf, false) {
             rv = 1;
         }
@@ -410,16 +406,8 @@ pub extern "C" fn rs_ssh_parse_request(
             rv = 1;
         }
     }
-    if state
-        .transaction
-        .cli_hdr
-        .flags
-        .contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
-        && state
-            .transaction
-            .srv_hdr
-            .flags
-            .contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
+    if state.transaction.cli_hdr.flags >= SSH_FLAG_PARSER_DONE
+        && state.transaction.srv_hdr.flags >= SSH_FLAG_PARSER_DONE
     {
         unsafe {
             AppLayerParserStateSetFlag(
@@ -448,7 +436,7 @@ pub extern "C" fn rs_ssh_parse_response(
     let buf = build_slice!(input, input_len as usize);
     let hdr = &mut state.transaction.srv_hdr;
     let mut rv = -1;
-    if !(hdr.flags.contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)) {
+    if hdr.flags < SSH_FLAG_VERSION_PARSED {
         if state.parse_banner(buf, true) {
             rv = 1;
         }
@@ -457,16 +445,8 @@ pub extern "C" fn rs_ssh_parse_response(
             rv = 1;
         }
     }
-    if state
-        .transaction
-        .cli_hdr
-        .flags
-        .contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
-        && state
-            .transaction
-            .srv_hdr
-            .flags
-            .contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
+    if state.transaction.cli_hdr.flags >= SSH_FLAG_PARSER_DONE
+        && state.transaction.srv_hdr.flags >= SSH_FLAG_PARSER_DONE
     {
         unsafe {
             AppLayerParserStateSetFlag(
@@ -506,9 +486,9 @@ pub extern "C" fn rs_ssh_tx_get_flags(
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SSHTransaction);
     if direction == STREAM_TOSERVER {
-        return tx.cli_hdr.flags.bits() as i32;
+        return tx.cli_hdr.flags as i32;
     } else {
-        return tx.srv_hdr.flags.bits() as i32;
+        return tx.srv_hdr.flags as i32;
     }
 }
 
@@ -519,26 +499,16 @@ pub extern "C" fn rs_ssh_tx_get_alstate_progress(
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SSHTransaction);
 
-    if tx.cli_hdr.flags.contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
-        && tx.srv_hdr.flags.contains(SSHTxFlag::SSH_FLAG_PARSER_DONE)
-    {
+    if tx.cli_hdr.flags >= SSH_FLAG_PARSER_DONE && tx.srv_hdr.flags >= SSH_FLAG_PARSER_DONE {
         return SSHConnectionState::SshStateFinished as i32;
     }
 
     if direction == STREAM_TOSERVER {
-        if tx
-            .cli_hdr
-            .flags
-            .contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)
-        {
+        if tx.cli_hdr.flags >= SSH_FLAG_VERSION_PARSED {
             return SSHConnectionState::SshStateBannerDone as i32;
         }
     } else {
-        if tx
-            .srv_hdr
-            .flags
-            .contains(SSHTxFlag::SSH_FLAG_VERSION_PARSED)
-        {
+        if tx.srv_hdr.flags >= SSH_FLAG_VERSION_PARSED {
             return SSHConnectionState::SshStateBannerDone as i32;
         }
     }
