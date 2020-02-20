@@ -74,7 +74,6 @@ void DetectSNMPPduTypeRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].RegisterTests = DetectSNMPPduTypeRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].flags |= SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 

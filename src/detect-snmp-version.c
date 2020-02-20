@@ -86,7 +86,6 @@ void DetectSNMPVersionRegister (void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SNMP_VERSION].RegisterTests = DetectSNMPVersionRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_SNMP_VERSION].flags |= SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
