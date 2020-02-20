@@ -365,18 +365,6 @@ pub extern "C" fn rs_ssh_state_get_event_info_by_id(
     }
 }
 
-/// C entry point for a probing parser.
-#[no_mangle]
-pub extern "C" fn rs_dummy_probing_parser(
-    _flow: *const Flow,
-    _direction: u8,
-    _input: *const u8,
-    _input_len: u32,
-    _rdir: *mut u8,
-) -> AppProto {
-    return ALPROTO_UNKNOWN;
-}
-
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_new() -> *mut std::os::raw::c_void {
     let state = SSHState::new();
@@ -584,8 +572,8 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
         //simple patterns, no probing
-        probe_ts: rs_dummy_probing_parser,
-        probe_tc: rs_dummy_probing_parser,
+        probe_ts: None,
+        probe_tc: None,
         min_depth: 0,
         max_depth: 0,
         state_new: rs_ssh_state_new,
