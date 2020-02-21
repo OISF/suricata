@@ -509,6 +509,7 @@ static inline int TlsDecodeHSCertificateAddCertToChain(SSLState *ssl_state,
     return 0;
 }
 
+/** \retval consumed bytes consumed or -1 on error */
 static int TlsDecodeHSCertificate(SSLState *ssl_state,
                                   const uint8_t * const initial_input,
                                   const uint32_t input_len)
@@ -518,7 +519,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
     Asn1Generic *cert = NULL;
 
     if (!(HAS_SPACE(3)))
-        return 1;
+        return 0;
 
     uint32_t cert_chain_len = *input << 16 | *(input + 1) << 8 | *(input + 2);
     input += 3;
