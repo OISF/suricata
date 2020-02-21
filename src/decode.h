@@ -1149,5 +1149,33 @@ static inline bool VerdictTunnelPacket(Packet *p)
     return verdict;
 }
 
+static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
+        const int datalink, Packet *p, const uint8_t *data, const uint32_t len)
+{
+    /* call the decoder */
+    switch (datalink) {
+        case LINKTYPE_ETHERNET:
+            DecodeEthernet(tv, dtv, p, data, len);
+            break;
+        case LINKTYPE_LINUX_SLL:
+            DecodeSll(tv, dtv, p, data, len);
+            break;
+        case LINKTYPE_PPP:
+            DecodePPP(tv, dtv, p, data, len);
+            break;
+        case LINKTYPE_RAW:
+        case LINKTYPE_GRE_OVER_IP:
+            DecodeRaw(tv, dtv, p, data, len);
+            break;
+        case LINKTYPE_NULL:
+            DecodeNull(tv, dtv, p, data, len);
+            break;
+        default:
+            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "datalink type "
+                    "%"PRId32" not yet supported", datalink);
+            break;
+    }
+}
+
 #endif /* __DECODE_H__ */
 
