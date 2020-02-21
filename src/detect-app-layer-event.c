@@ -204,10 +204,17 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
     }
 
     if (r < 0) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
-                   "protocol \"%s\" doesn't have event \"%s\" registered",
-                   alproto_name, p_idx + 1);
-        return -1;
+        if (SigMatchStrictEnabled(DETECT_AL_APP_LAYER_EVENT)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
+                    "protocol \"%s\" doesn't have event \"%s\" registered",
+                    alproto_name, p_idx + 1);
+            return -1;
+        } else {
+            SCLogWarning(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
+                    "protocol \"%s\" doesn't have event \"%s\" registered",
+                    alproto_name, p_idx + 1);
+            return -3;
+        }
     }
     data->event_id = event_id;
 
@@ -284,13 +291,14 @@ static int DetectAppLayerEventSetupP2(Signature *s,
 {
     AppLayerEventType event_type = 0;
 
-    if (DetectAppLayerEventParseAppP2((DetectAppLayerEventData *)sm->ctx, s->proto.proto,
-                                      &event_type) < 0) {
+    int ret = DetectAppLayerEventParseAppP2((DetectAppLayerEventData *)sm->ctx,
+            s->proto.proto, &event_type);
+    if (ret < 0) {
         /* DetectAppLayerEventParseAppP2 prints errors */
 
         /* sm has been removed from lists by DetectAppLayerEventPrepare */
         SigMatchFree(sm);
-        return -1;
+        return ret;
     }
     SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
     /* We should have set this flag already in SetupP1 */
@@ -363,7 +371,8 @@ int DetectAppLayerEventPrepare(Signature *s)
          * called by DetectAppLayerEventSetupP2
          */
         sm->next = sm->prev = NULL;
-        if (DetectAppLayerEventSetupP2(s, sm) < 0) {
+        int ret = DetectAppLayerEventSetupP2(s, sm);
+        if (ret < 0) {
             // current one was freed, let's free the next ones
             sm = smn;
             while(sm) {
@@ -371,7 +380,7 @@ int DetectAppLayerEventPrepare(Signature *s)
                 SigMatchFree(sm);
                 sm = smn;
             }
-            return -1;
+            return ret;
         }
         sm = smn;
     }
