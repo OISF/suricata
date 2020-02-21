@@ -1345,10 +1345,39 @@ end:
     return 0;
 }
 
+/** \internal
+ *  \brief setup or grow the `trec` space in the connp
+ */
+static int EnsureRecordSpace(SSLStateConnp *curr_connp, const uint32_t input_len)
+{
+    if (curr_connp->trec == NULL) {
+        curr_connp->trec_len = 2 * curr_connp->record_length + SSLV3_RECORD_HDR_LEN + 1;
+        curr_connp->trec = SCMalloc(curr_connp->trec_len);
+        if (unlikely(curr_connp->trec == NULL))
+            goto error;
+    }
+
+    if (curr_connp->trec_pos + input_len >= curr_connp->trec_len) {
+        curr_connp->trec_len = curr_connp->trec_pos + 2 * input_len + 1;
+        void *ptmp = SCRealloc(curr_connp->trec, curr_connp->trec_len);
+        if (unlikely(ptmp == NULL)) {
+            SCFree(curr_connp->trec);
+            curr_connp->trec = NULL;
+            goto error;
+        }
+        curr_connp->trec = ptmp;
+    }
+
+    return 0;
+error:
+    curr_connp->trec_len = 0;
+    curr_connp->trec_pos = 0;
+    return -1;
+}
+
 static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
                                    uint32_t input_len, uint8_t direction)
 {
-    void *ptmp;
     const uint8_t *initial_input = input;
     uint32_t parsed = 0;
     int rc;
@@ -1402,28 +1431,8 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
                            "direction!");
                 break;
             }
-            if (ssl_state->curr_connp->trec == NULL) {
-                ssl_state->curr_connp->trec_len =
-                        2 * ssl_state->curr_connp->record_length +
-                        SSLV3_RECORD_HDR_LEN + 1;
-                ssl_state->curr_connp->trec =
-                        SCMalloc(ssl_state->curr_connp->trec_len);
-            }
-            if (ssl_state->curr_connp->trec_pos + input_len >=
-                    ssl_state->curr_connp->trec_len) {
-                ssl_state->curr_connp->trec_len =
-                        ssl_state->curr_connp->trec_pos + 2 * input_len + 1;
-                ptmp = SCRealloc(ssl_state->curr_connp->trec,
-                        ssl_state->curr_connp->trec_len);
 
-                if (unlikely(ptmp == NULL)) {
-                    SCFree(ssl_state->curr_connp->trec);
-                }
-
-                ssl_state->curr_connp->trec = ptmp;
-            }
-            if (unlikely(ssl_state->curr_connp->trec == NULL)) {
-                ssl_state->curr_connp->trec_len = 0;
+            if (EnsureRecordSpace(ssl_state->curr_connp, input_len) < 0) {
                 /* error, skip packet */
                 parsed += input_len;
                 (void)parsed; /* for scan-build */
