@@ -104,16 +104,16 @@ void DetectSshProtocolRegister(void)
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetSshData,
-			ALPROTO_SSH, SSH_STATE_BANNER_DONE),
+			ALPROTO_SSH, SshStateBannerDone),
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetSshData,
-			ALPROTO_SSH, SSH_STATE_BANNER_DONE),
+			ALPROTO_SSH, SshStateBannerDone),
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_SSH, SIG_FLAG_TOSERVER, SSH_STATE_BANNER_DONE,
+            ALPROTO_SSH, SIG_FLAG_TOSERVER, SshStateBannerDone,
             DetectEngineInspectBufferGeneric, GetSshData);
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_SSH, SIG_FLAG_TOCLIENT, SSH_STATE_BANNER_DONE,
+            ALPROTO_SSH, SIG_FLAG_TOCLIENT, SshStateBannerDone,
             DetectEngineInspectBufferGeneric, GetSshData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);

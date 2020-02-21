@@ -166,7 +166,7 @@ static int SSHParserTest01(void)
     }
 
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -217,7 +217,7 @@ static int SSHParserTest02(void)
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -267,7 +267,7 @@ static int SSHParserTest03(void)
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) == SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) == SshStateBannerDone ) {
         printf("Client version string parsed? It's not a valid string: ");
         goto end;
     }
@@ -319,7 +319,7 @@ static int SSHParserTest04(void)
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -369,7 +369,7 @@ static int SSHParserTest05(void)
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -419,7 +419,7 @@ static int SSHParserTest06(void)
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) == SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) == SshStateBannerDone ) {
         printf("Client version string parsed? It's not a valid string: ");
         goto end;
     }
@@ -478,7 +478,7 @@ static int SSHParserTest07(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -543,7 +543,7 @@ static int SSHParserTest08(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -599,7 +599,7 @@ static int SSHParserTest09(void)
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -664,7 +664,7 @@ static int SSHParserTest10(void)
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -719,7 +719,7 @@ static int SSHParserTest11(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -782,7 +782,7 @@ static int SSHParserTest12(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -849,7 +849,7 @@ static int SSHParserTest13(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -931,7 +931,7 @@ static int SSHParserTest14(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1013,7 +1013,7 @@ static int SSHParserTest15(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1076,7 +1076,7 @@ static int SSHParserTest16(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1147,7 +1147,7 @@ static int SSHParserTest17(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1233,7 +1233,7 @@ static int SSHParserTest18(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1317,7 +1317,7 @@ static int SSHParserTest19(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): %d", rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT));
         goto end;
     }
@@ -1408,7 +1408,7 @@ static int SSHParserTest20(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1491,7 +1491,7 @@ static int SSHParserTest21(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1600,7 +1600,7 @@ static int SSHParserTest22(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SSH_FLAG_PARSER_DONE ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1681,7 +1681,7 @@ static int SSHParserTest24(void)
         goto end;
     }
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SSH_FLAG_VERSION_PARSED ) {
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1722,7 +1722,7 @@ static int SSHParserTest25(void)
     void *ssh_state = f.alstate;
     FAIL_IF_NULL(ssh_state);
     void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) == SSH_FLAG_VERSION_PARSED );
+    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) == SshStateBannerDone );
     const uint8_t *dummy = NULL;
     uint32_t dummy_len = 0;
     FAIL_IF (rs_ssh_tx_get_software(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0);
