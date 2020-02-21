@@ -550,30 +550,7 @@ static TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data)
     /* update counters */
     DecodeUpdatePacketCounters(tv, dtv, p);
 
-    /* call the decoder */
-    switch(p->datalink) {
-        case LINKTYPE_LINUX_SLL:
-            DecodeSll(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
-            break;
-        case LINKTYPE_ETHERNET:
-            DecodeEthernet(tv, dtv, p,GET_PKT_DATA(p), GET_PKT_LEN(p));
-            break;
-        case LINKTYPE_PPP:
-            DecodePPP(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
-            break;
-        case LINKTYPE_RAW:
-        case LINKTYPE_GRE_OVER_IP:
-            DecodeRaw(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
-            break;
-        case LINKTYPE_NULL:
-            DecodeNull(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
-            break;
-        default:
-            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "Error: datalink "
-                    "type %" PRId32 " not yet supported in module "
-                    "DecodePcap", p->datalink);
-            break;
-    }
+    DecodeLinkLayer(tv, dtv, p->datalink, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     PacketDecodeFinalize(tv, dtv, p);
 
