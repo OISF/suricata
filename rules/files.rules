@@ -36,7 +36,7 @@
 #alert http any any -> any any (msg:"FILE tracking PNG (1x1 pixel) (1)"; filemagic:"PNG image data, 1 x 1,"; sid:19; rev:1;)
 #alert http any any -> any any (msg:"FILE tracking PNG (1x1 pixel) (2)"; filemagic:"PNG image data, 1 x 1|00|"; sid:20; rev:1;)
 
-# Alert on GIT with 1x1 pixels (tracking)
+# Alert on GIF with 1x1 pixels (tracking)
 # The pattern matches on |00| which is the end of the magic buffer, this way we won't match on 1 x 128.
 #alert http any any -> any any (msg:"FILE tracking GIF (1x1 pixel)"; filemagic:"GIF image data, version 89a, 1 x 1|00|"; sid:21; rev:1;)
 
