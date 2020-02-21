@@ -655,7 +655,6 @@ static PacketQueue packets_to_release[MAX_STREAMS];
  */
 static void NapatechReleasePacket(struct Packet_ *p)
 {
-    PacketFreeOrRelease(p);
     PacketEnqueue(&packets_to_release[p->ntpv.stream_id], p);
 }
 
@@ -874,14 +873,15 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         }
 
         Packet *p = PacketGetFromQueueOrAlloc();
-#ifdef NAPATECH_ENABLE_BYPASS
-        p->ntpv.bypass = 0;
-#endif
 
         if (unlikely(p == NULL)) {
             NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
+
+#ifdef NAPATECH_ENABLE_BYPASS
+        p->ntpv.bypass = 0;
+#endif
 
         pkt_ts = NT_NET_GET_PKT_TIMESTAMP(packet_buffer);
 
@@ -958,7 +958,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         while (rel_pkt != NULL) {
 #ifdef NAPATECH_ENABLE_BYPASS
             if (rel_pkt->ntpv.bypass == 1) {
-                if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+                if (PACKET_TEST_ACTION(rel_pkt, ACTION_DROP)) {
                     if (is_inline) {
                         rel_pkt->ntpv.dyn3->wireLength = 0;
                     }
@@ -966,6 +966,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
                 ProgramFlow(rel_pkt, is_inline);
             }
 #endif
+            PacketFreeOrRelease(rel_pkt);
             NT_NetRxRelease(ntv->rx_stream, rel_pkt->ntpv.nt_packet_buf);
             rel_pkt = PacketDequeue(&packets_to_release[ntv->stream_id]);
         }
