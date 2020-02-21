@@ -10,6 +10,7 @@
 #include "flow-util.h"
 #include "app-layer-parser.h"
 #include "util-unittest-helper.h"
+#include "util-byte.h"
 
 #define HEADER_LEN 6
 
@@ -29,6 +30,7 @@ AppLayerParserThreadCtx *alp_tctx = NULL;
 
 const uint8_t separator[] = {0x01, 0xD5, 0xCA, 0x7A};
 SCInstance suricata;
+uint64_t forceLayer = 0;
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -59,6 +61,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
         PostConfLoadedSetup(&suricata);
         alp_tctx = AppLayerParserThreadCtxAlloc();
+        const char* forceLayerStr = getenv("FUZZ_APPLAYER");
+        if (forceLayerStr) {
+            if (ByteExtractString(&forceLayer, 10, 0, forceLayerStr) < 0) {
+                forceLayer = 0;
+                printf("Invalid numeric value for FUZZ_APPLAYER environment variable");
+            }
+        }
     }
 
     if (data[0] >= ALPROTO_MAX) {
@@ -78,7 +87,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     memset(&ssn, 0, sizeof(TcpSession));
     f->protoctx = &ssn;
     f->protomap = FlowGetProtoMapping(f->proto);
-    f->alproto = data[0];
+    if (forceLayer > 0) {
+        f->alproto = forceLayer;
+    } else {
+        f->alproto = data[0];
+    }
 
     /*
      * We want to fuzz multiple calls to AppLayerParserParse
