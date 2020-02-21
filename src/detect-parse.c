@@ -1901,8 +1901,13 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
             AppLayerProtoDetectSupportedIpprotos(sig->alproto, sig->proto.proto);
     }
 
-    if (DetectAppLayerEventPrepare(sig) < 0)
+    ret = DetectAppLayerEventPrepare(sig);
+    if (ret == -2) {
+        de_ctx->sigerror_silent = true;
         goto error;
+    } else if (ret < 0) {
+        goto error;
+    }
 
     /* set the packet and app layer flags, but only if the
      * app layer flag wasn't already set in which case we
