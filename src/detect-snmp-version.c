@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2019 Open Information Security Foundation
+/* Copyright (C) 2015-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -265,6 +265,11 @@ static int DetectSNMPVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
 {
     DetectSNMPVersionData *dd = NULL;
     SigMatch *sm = NULL;
+
+    if (rawstr == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT,"snmp.version requires a value");
+        return -1;
+    }
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0)
         return -1;
