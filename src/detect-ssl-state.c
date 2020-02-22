@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -165,8 +165,8 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
     int ret = 0, res = 0;
     int ov1[MAX_SUBSTRINGS];
     int ov2[MAX_SUBSTRINGS];
-    const char *str1;
-    const char *str2;
+    char str1[32];
+    char str2[32];
     int negate = 0;
     uint32_t flags = 0, mask = 0;
     DetectSslStateData *ssd = NULL;
@@ -179,17 +179,16 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
         goto error;
     }
 
-    res = pcre_get_substring((char *)arg, ov1, MAX_SUBSTRINGS, 1, &str1);
+    res = pcre_copy_substring((char *)arg, ov1, MAX_SUBSTRINGS, 1, str1, sizeof(str1));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
     negate = !strcmp("!", str1);
-    pcre_free_substring(str1);
 
-    res = pcre_get_substring((char *)arg, ov1, MAX_SUBSTRINGS, 2, &str1);
+    res = pcre_copy_substring((char *)arg, ov1, MAX_SUBSTRINGS, 2, str1, sizeof(str1));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
@@ -219,11 +218,9 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
         goto error;
     }
 
-    pcre_free_substring(str1);
-
-    res = pcre_get_substring((char *)arg, ov1, MAX_SUBSTRINGS, 3, &str1);
+    res = pcre_copy_substring((char *)arg, ov1, MAX_SUBSTRINGS, 3, str1, sizeof(str1));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
     while (res > 0) {
@@ -235,17 +232,16 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
             goto error;
         }
 
-        res = pcre_get_substring((char *)str1, ov2, MAX_SUBSTRINGS, 1, &str2);
+        res = pcre_copy_substring((char *)str1, ov2, MAX_SUBSTRINGS, 1, str2, sizeof(str2));
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
         negate = !strcmp("!", str2);
-        pcre_free_substring(str2);
 
-        res = pcre_get_substring((char *)str1, ov2, MAX_SUBSTRINGS, 2, &str2);
+        res = pcre_copy_substring((char *)str1, ov2, MAX_SUBSTRINGS, 2, str2, sizeof(str2));
         if (res <= 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
         if (strcmp("client_hello", str2) == 0) {
@@ -274,16 +270,14 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
             goto error;
         }
 
-        res = pcre_get_substring((char *)str1, ov2, MAX_SUBSTRINGS, 3, &str2);
+        res = pcre_copy_substring((char *)str1, ov2, MAX_SUBSTRINGS, 3, str2, sizeof(str2));
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
 
-        pcre_free_substring(str1);
-        str1 = str2;
+        memcpy(str1, str2, sizeof(str1));
     }
-    pcre_free_substring(str1);
 
     if ( (ssd = SCMalloc(sizeof(DetectSslStateData))) == NULL) {
         goto error;
