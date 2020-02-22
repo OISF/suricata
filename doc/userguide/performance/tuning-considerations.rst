@@ -20,10 +20,10 @@ The memory is set up at start and the usage is as follows:
 mpm-algo: <ac|hs|ac-bs|ac-ks>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Controls the pattern matcher algorithm. AC (``Aho–Corasick ``) is the default. 
+Controls the pattern matcher algorithm. AC (``Aho–Corasick``) is the default. 
 On supported platforms, :doc:`hyperscan` is the best option. On commodity 
 hardware if Hyperscan is not available the suggested setting is 
-``mpm-algo: ac-ks`` (``Aho–Corasick `` Ken Steele variant) as it performs better than 
+``mpm-algo: ac-ks`` (``Aho–Corasick`` Ken Steele variant) as it performs better than 
 ``mpm-algo: ac``
 
 detect.profile: <low|medium|high|custom>
