@@ -156,7 +156,7 @@ static int DetectSslStateMatch(DetectEngineThreadCtx *det_ctx,
  *
  * \param arg Pointer to the string to be parsed.
  *
- * \retval ssd  Pointer to DetectSslStateData on succese.
+ * \retval ssd  Pointer to DetectSslStateData on success.
  * \retval NULL On failure.
  */
 static DetectSslStateData *DetectSslStateParse(const char *arg)
