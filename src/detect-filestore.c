@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -314,6 +314,9 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     sm->type = DETECT_FILESTORE;
 
     if (str != NULL && strlen(str) > 0) {
+        char str_0[32];
+        char str_1[32];
+        char str_2[32];
         SCLogDebug("str %s", str);
 
         ret = pcre_exec(parse_regex, parse_regex_study, str, strlen(str), 0, 0, ov, MAX_SUBSTRINGS);
@@ -323,29 +326,28 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         }
 
         if (ret > 1) {
-            const char *str_ptr;
-            res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+            res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 1, str_0, sizeof(str_0));
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
                 goto error;
             }
-            args[0] = (char *)str_ptr;
+            args[0] = (char *)str_0;
 
             if (ret > 2) {
-                res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+                res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 2, str_1, sizeof(str_1));
                 if (res < 0) {
-                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
                     goto error;
                 }
-                args[1] = (char *)str_ptr;
+                args[1] = (char *)str_1;
             }
             if (ret > 3) {
-                res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+                res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 3, str_2, sizeof(str_2));
                 if (res < 0) {
-                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                    SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
                     goto error;
                 }
-                args[2] = (char *)str_ptr;
+                args[2] = (char *)str_2;
             }
         }
 
