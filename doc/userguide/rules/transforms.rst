@@ -1,7 +1,8 @@
 Transformations
 ===============
 
-Transformation keywords turn the data at a sticky buffer into something else.
+Transformation keywords turn the data at a sticky buffer into something else. Some transformations
+support options for greater control over the transformation process
 
 Example::
 
@@ -12,7 +13,7 @@ This example will match on traffic even if there are one or more spaces between
 the ``navigate`` and ``(``.
 
 The transforms can be chained. They are processed in the order in which they
-appear in a rule. Each transforms output acts as input for the next one.
+appear in a rule. Each transform's output acts as input for the next one.
 
 Example::
 
@@ -106,3 +107,16 @@ Example::
 
 .. note:: depends on libnss being compiled into Suricata
 
+pcrexform
+---------
+
+Takes the buffer, applies the required regular expression, and outputs the *first captured expression*.
+
+.. note:: this transform requires a mandatory option string containing a regular expression.
+
+
+This example alerts if ``http.request_line`` contains ``/dropper.php``
+Example::
+
+    alert http any any -> any any (msg:"HTTP with pcrexform"; http.request_line; \
+        pcrexform:"[a-zA-Z]+\s+(.*)\s+HTTP"; content:"/dropper.php"; sid:1;)
