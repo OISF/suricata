@@ -1235,7 +1235,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
         if (s_limit != NULL) {
             if (ParseSizeStringU64(s_limit, &pl->size_limit) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "Failed to initialize unified2 output, invalid limit: %s",
+                    "Failed to initialize pcap output, invalid limit: %s",
                     s_limit);
                 exit(EXIT_FAILURE);
             }
