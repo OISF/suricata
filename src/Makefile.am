@@ -291,6 +291,7 @@ detect-transform-md5.c detect-transform-md5.h \
 detect-transform-sha1.c detect-transform-sha1.h \
 detect-transform-sha256.c detect-transform-sha256.h \
 detect-transform-dotprefix.c detect-transform-dotprefix.h \
+detect-transform-pcrexform.c detect-transform-pcrexform.h \
 detect-ttl.c detect-ttl.h \
 detect-uricontent.c detect-uricontent.h \
 detect-urilen.c detect-urilen.h \
