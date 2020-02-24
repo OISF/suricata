@@ -23,7 +23,7 @@ if RUST_CROSS_COMPILE
 RUST_TARGET = --target $(host_triplet)
 endif
 
-all-local:
+all-local: Cargo.toml
 if HAVE_CBINDGEN
 	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --output $(abs_top_builddir)/rust/gen/rust-bindings.h
