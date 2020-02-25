@@ -195,7 +195,9 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
             if (rule_engine_analysis_set) {
                 EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
             }
-            bad++;
+            if (!de_ctx->sigerror_ok) {
+                bad++;
+            }
         }
         multiline = 0;
     }
