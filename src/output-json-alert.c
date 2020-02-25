@@ -69,6 +69,7 @@
 #include "output-json-flow.h"
 #include "output-json-sip.h"
 #include "output-json-rfb.h"
+#include "output-json-ikev1.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -191,6 +192,8 @@ static void AlertJsonDnp3(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
             }
         }
     }
+
+    return;
 }
 
 static void AlertJsonDns(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
@@ -497,6 +500,12 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             break;
         case ALPROTO_DNS:
             AlertJsonDns(p->flow, tx_id, jb);
+            break;
+        case ALPROTO_IKEV1:
+            jb_get_mark(jb, &mark);
+            if (!JsonIKEV1AddMetadata(p->flow, pa->tx_id, jb)) {
+                jb_restore_mark(jb, &mark);
+            }
             break;
         default:
             break;
