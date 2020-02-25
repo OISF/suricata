@@ -25,6 +25,7 @@ Suricata Rules
    snmp-keywords
    base64-keywords
    sip-keywords
+   rfb-keywords
    app-layer
    xbits
    thresholding
