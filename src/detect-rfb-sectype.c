@@ -73,7 +73,7 @@ void DetectRfbSectypeRegister (void)
 {
     sigmatch_table[DETECT_AL_RFB_SECTYPE].name = "rfb.sectype";
     sigmatch_table[DETECT_AL_RFB_SECTYPE].desc = "match RFB security type";
-    sigmatch_table[DETECT_AL_RFB_SECTYPE].url = DOC_URL DOC_VERSION "/rules/rfb-keywords.html#security-type";
+    sigmatch_table[DETECT_AL_RFB_SECTYPE].url = DOC_URL DOC_VERSION "/rules/rfb-keywords.html#rfb-sectype";
     sigmatch_table[DETECT_AL_RFB_SECTYPE].Match = NULL;
     sigmatch_table[DETECT_AL_RFB_SECTYPE].AppLayerTxMatch = DetectRfbSectypeMatch;
     sigmatch_table[DETECT_AL_RFB_SECTYPE].Setup = DetectRfbSectypeSetup;

@@ -54,7 +54,7 @@
 #include "rust-bindings.h"
 
 #define KEYWORD_NAME "rfb.name"
-#define KEYWORD_DOC  ""
+#define KEYWORD_DOC  "rfb-keywords.html#rfb-name";
 #define BUFFER_NAME  "rfb.name"
 #define BUFFER_DESC  "rfb name"
 static int g_buffer_id = 0;
@@ -94,6 +94,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 void DetectRfbNameRegister(void)
 {
     sigmatch_table[DETECT_AL_RFB_NAME].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_RFB_NAME].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC
     sigmatch_table[DETECT_AL_RFB_NAME].desc = "sticky buffer to match on the RFB desktop name";
     sigmatch_table[DETECT_AL_RFB_NAME].Setup = DetectRfbNameSetup;
     sigmatch_table[DETECT_AL_RFB_NAME].flags |= SIGMATCH_NOOPT;
