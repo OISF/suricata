@@ -49,6 +49,7 @@ app-layer-tftp.c app-layer-tftp.h \
 app-layer-ikev2.c app-layer-ikev2.h \
 app-layer-krb5.c app-layer-krb5.h \
 app-layer-rfb.c app-layer-rfb.h \
+app-layer-ikev1.c app-layer-ikev1.h \
 app-layer-template.c app-layer-template.h \
 app-layer-template-rust.c app-layer-template-rust.h \
 app-layer-rdp.c app-layer-rdp.h \
@@ -299,6 +300,14 @@ detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
+detect-ikev1-exch-type.c detect-ikev1-exch-type.h \
+detect-ikev1-spi.c detect-ikev1-spi.h \
+detect-ikev1-vendor.c detect-ikev1-vendor.h \
+detect-ikev1-chosen-sa.c detect-ikev1-chosen-sa.h \
+detect-ikev1-key-exchange-payload-length.c detect-ikev1-key-exchange-payload-length.h \
+detect-ikev1-nonce-payload-length.c detect-ikev1-nonce-payload-length.h \
+detect-ikev1-nonce-payload.c detect-ikev1-nonce-payload.h \
+detect-ikev1-key-exchange-payload.c detect-ikev1-key-exchange-payload.h \
 device-storage.c device-storage.h \
 feature.c feature.h \
 flow-bit.c flow-bit.h \
@@ -359,6 +368,7 @@ output-json-krb5.c output-json-krb5.h \
 output-json-dhcp.c output-json-dhcp.h \
 output-json-snmp.c output-json-snmp.h \
 output-json-rfb.c output-json-rfb.h \
+output-json-ikev1.c output-json-ikev1.h \
 output-json-template.c output-json-template.h \
 output-json-template-rust.c output-json-template-rust.h \
 output-json-rdp.c output-json-rdp.h \

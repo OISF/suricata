@@ -229,6 +229,14 @@
 #include "detect-modbus.h"
 #include "detect-cipservice.h"
 #include "detect-dnp3.h"
+#include "detect-ikev1-exch-type.h"
+#include "detect-ikev1-spi.h"
+#include "detect-ikev1-vendor.h"
+#include "detect-ikev1-chosen-sa.h"
+#include "detect-ikev1-key-exchange-payload-length.h"
+#include "detect-ikev1-nonce-payload-length.h"
+#include "detect-ikev1-nonce-payload.h"
+#include "detect-ikev1-key-exchange-payload.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -455,6 +463,15 @@ void SigTableSetup(void)
     DetectCipServiceRegister();
     DetectEnipCommandRegister();
     DetectDNP3Register();
+
+    DetectIkev1ExchTypeRegister();
+    DetectIkev1SpiRegister();
+    DetectIkev1VendorRegister();
+    DetectIkev1ChosenSaRegister();
+    DetectIkev1KeyExchangePayloadLengthRegister();
+    DetectIkev1NoncePayloadLengthRegister();
+    DetectIkev1NonceRegister();
+    DetectIkev1KeyExchangeRegister();
 
     DetectTlsSniRegister();
     DetectTlsIssuerRegister();

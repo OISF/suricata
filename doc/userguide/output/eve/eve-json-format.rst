@@ -1287,3 +1287,109 @@ Example of RFB logging, with full VNC style authentication parameters:
         "blue_shift": 0
       }
     }
+
+Event type: IKEv1
+-----------------
+
+Fields
+~~~~~~
+
+* "spi_initiator", "spi_responder": The Security Parameter Index (SPI) of the initiator and responder.
+* "maj_ver": Major version of the ISAKMP header.
+* "min_ver": Minor version of the ISAKMP header.
+* "contained_payload_types": List of payload types in the current packet, as numeric values.
+* "contained_payload_types_verbose": List of payload types in the current packet, in human-readable form. Needs ``extended: yes`` set in the ``ikev1`` EVE output option.
+* "encrypted_payloads": Set to ``true`` if the payloads in the packet are encrypted.
+* "exchange_type": Type of the exchange, as numeric values.
+* "exchange_type_verbose": Type of the exchange, in human-readable form. Needs ``extended: yes`` set in the ``ikev1`` EVE output option.
+* "doi": Value of the domain of interpretation (DOI).
+* "server.key_exchange_payload", "client.key_exchange_payload": Public key exchange payloads of the server and client.
+* "server.key_exchange_payload_length", "client.key_exchange_payload_length": Length of the public key exchange payload.
+* "server.nonce_payload", "client.nonce_payload": Nonce payload of the server and client.
+* "server.nonce_payload_length", "client.nonce_payload_length": Length of the nonce payload.
+* "client.client_proposals": List of the security associations proposed to the server.
+* "server.chosen_proposal": The chosen security association by the server.
+* "vendor_ids": List of the vendor IDs observed in the communication.
+
+Examples
+~~~~~~~~
+
+Example of IKEv1 logging:
+
+::
+
+  "ikev1": {
+    "spi_initiator": "e47a591fd057587f",
+    "spi_responder": "a00b8ef0902bb8ec",
+    "maj_ver": 1,
+    "min_ver": 0,
+    "contained_payload_types": [
+      "10",
+      "20",
+      "4",
+      "13"
+    ],
+    "contained_payload_types_verbose": [
+      "Nonce",
+      "NatDiscovery",
+      "KeyExchange",
+      "VendorID"
+    ],
+    "doi": 1,
+    "encrypted_payloads": false,
+    "exchange_type": 2,
+    "exchange_type_verbose": "Identity Protection",
+    "client": {
+      "key_exchange_payload": "3504d3d2ed14e0ca03b851a51a9da2e5a4c14c1d7ec3e1fbe9...",
+      "key_exchange_payload_length": 128,
+      "nonce_payload": "89d7c8fbf94b515b521d5d9589c2602021e1a709",
+      "nonce_payload_length": 20,
+      "proposals": [
+        {
+          "encryption_algorithm": 7,
+          "encryption_algorithm_verbose": "EaAesCbc",
+          "key_length": 128,
+          "hash_algorithm": 2,
+          "hash_algorithm_verbose": "HashSha",
+          "group_description": 2,
+          "group_description_verbose": "GroupAlternate1024BitModpGroup",
+          "authentication_method": 1,
+          "authentication_method_verbose": "AuthPreSharedKey",
+          "life_type": 1,
+          "life_type_verbose": "LifeTypeSeconds",
+          "life_duration": 86400
+        }
+      ]
+    },
+    "server": {
+      "key_exchange_payload": "6d026d5616c45be05e5b898411e9f95d195cea009ad22c62be...",
+      "key_exchange_payload_length": 128,
+      "nonce_payload": "15b688421ed5c3dd92d3b86e47a76f0d39cc09e0",
+      "nonce_payload_length": 20,
+      "chosen_proposal": {
+        "encryption_algorithm": 7,
+        "encryption_algorithm_verbose": "EaAesCbc",
+        "key_length": 128,
+        "hash_algorithm": 2,
+        "hash_algorithm_verbose": "HashSha",
+        "group_description": 2,
+        "group_description_verbose": "GroupAlternate1024BitModpGroup",
+        "authentication_method": 1,
+        "authentication_method_verbose": "AuthPreSharedKey",
+        "life_type": 1,
+        "life_type_verbose": "LifeTypeSeconds",
+        "life_duration": 86400
+      }
+    },
+    "vendor_ids": [
+      "afcad71368a1f1c96b8696fc77570100",
+      "439b59f8ba676c4c7737ae22eab8f582",
+      "7d9419a65310ca6f2c179d9215529d56",
+      "11bdfe02d056587f2c18125972c32401",
+      "09002689dfd6b712",
+      "4a131c81070358455c5728f20e95452f",
+      "55cc29ed902ab8ec53b1df867c610929",
+      "12f5f28c457168a9702d9fe274cc0100",
+      "90cb80913ebb696e086381b5ec427b1f"
+    ]
+  }

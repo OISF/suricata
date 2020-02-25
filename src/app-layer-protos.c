@@ -105,6 +105,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_RFB:
             proto_name = "rfb";
             break;
+        case ALPROTO_IKEV1:
+            proto_name = "ikev1";
+            break;
         case ALPROTO_TEMPLATE:
             proto_name = "template";
             break;
@@ -154,6 +157,7 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"snmp")==0) return ALPROTO_SNMP;
     if (strcmp(proto_name,"sip")==0) return ALPROTO_SIP;
     if (strcmp(proto_name,"rfb")==0) return ALPROTO_RFB;
+    if (strcmp(proto_name,"ikev1")==0) return ALPROTO_IKEV1;
     if (strcmp(proto_name,"template")==0) return ALPROTO_TEMPLATE;
     if (strcmp(proto_name,"template-rust")==0) return ALPROTO_TEMPLATE_RUST;
     if (strcmp(proto_name,"rdp")==0) return ALPROTO_RDP;
