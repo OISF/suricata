@@ -89,6 +89,8 @@ exclude = [
     "JsonT",
     "IKEV2State",
     "IKEV2Transaction",
+    "IKEV1State",
+    "IKEV1Transaction",
     "KRB5State",
     "KRB5Transaction",
     "NTPState",
