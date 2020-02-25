@@ -115,8 +115,6 @@ static OutputInitResult OutputRFBLogInitSub(ConfNode *conf,
     output_ctx->data = rfblog_ctx;
     output_ctx->DeInit = OutputRFBLogDeInitCtxSub;
 
-    SCLogNotice("RFB log sub-module initialized.");
-
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RFB);
 
     result.ctx = output_ctx;
@@ -169,6 +167,4 @@ void JsonRFBLogRegister(void)
         "JsonRFBLog", "eve-log.rfb",
         OutputRFBLogInitSub, ALPROTO_RFB, JsonRFBLogger,
         JsonRFBLogThreadInit, JsonRFBLogThreadDeinit, NULL);
-
-    SCLogNotice("RFB JSON logger registered.");
 }

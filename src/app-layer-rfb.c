@@ -39,7 +39,6 @@
 
 void RegisterRFBParsers(void)
 {
-    SCLogNotice("Registering Rust rfb parser.");
     rs_rfb_register_parser();
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_RFB,
