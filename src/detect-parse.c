@@ -1863,7 +1863,12 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     sig->gid = 1;
 
     int ret = SigParse(de_ctx, sig, sigstr, dir, &parser);
-    if (ret == -2) {
+    if (ret == -3) {
+        de_ctx->sigerror_silent = true;
+        de_ctx->sigerror_ok = true;
+        goto error;
+    }
+    else if (ret == -2) {
         de_ctx->sigerror_silent = true;
         goto error;
     } else if (ret < 0) {
@@ -1902,7 +1907,12 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     }
 
     ret = DetectAppLayerEventPrepare(sig);
-    if (ret == -2) {
+    if (ret == -3) {
+        de_ctx->sigerror_silent = true;
+        de_ctx->sigerror_ok = true;
+        goto error;
+    }
+    else if (ret == -2) {
         de_ctx->sigerror_silent = true;
         goto error;
     } else if (ret < 0) {
