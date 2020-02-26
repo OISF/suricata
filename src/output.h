@@ -30,13 +30,13 @@
 #define DEFAULT_LOG_MODE_APPEND     "yes"
 #define DEFAULT_LOG_FILETYPE        "regular"
 
-#include "output-packet.h"
-#include "output-tx.h"
-#include "output-file.h"
-#include "output-filedata.h"
-#include "output-flow.h"
-#include "output-streaming.h"
-#include "output-stats.h"
+#include "outputs/packet.h"
+#include "outputs/tx.h"
+#include "outputs/file.h"
+#include "outputs/filedata.h"
+#include "outputs/flow.h"
+#include "outputs/streaming.h"
+#include "outputs/stats.h"
 
 typedef struct OutputInitResult_ {
     OutputCtx *ctx;

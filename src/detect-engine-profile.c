@@ -27,7 +27,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
-#include "output-json.h"
+#include "outputs/json.h"
 #include "util/buffer.h"
 #include "util/print.h"
 #include "detect-engine-profile.h"

@@ -32,7 +32,7 @@
 #include "util/mpm-ac.h"
 
 #include "output.h"
-#include "output-flow.h"
+#include "outputs/flow.h"
 
 #include "defrag.h"
 #include "flow.h"

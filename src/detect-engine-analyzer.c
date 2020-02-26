@@ -555,7 +555,7 @@ void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
 }
 
 #include "util/buffer.h"
-#include "output-json.h"
+#include "outputs/json.h"
 
 typedef struct RuleAnalyzer {
     json_t *js; /* document root */

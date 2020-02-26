@@ -532,7 +532,7 @@ end:
 }
 
 #ifdef PROFILING
-#include "output-json.h"
+#include "outputs/json.h"
 #include "util/buffer.h"
 SCMutex g_flowbits_dump_write_m = SCMUTEX_INITIALIZER;
 static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
