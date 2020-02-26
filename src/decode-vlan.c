@@ -45,7 +45,7 @@
 #include "host.h"
 
 static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len);
+        const uint8_t *pkt, uint32_t len);
 
 /**
  * \internal
@@ -164,7 +164,7 @@ typedef struct IEEE8021ahHdr_ {
 #define IEEE8021AH_HEADER_LEN sizeof(IEEE8021ahHdr)
 
 static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len)
+        const uint8_t *pkt, uint32_t len)
 {
     StatsIncr(tv, dtv->counter_ieee8021ah);
 
