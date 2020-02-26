@@ -159,7 +159,7 @@ static int DecodeEthernetTestDceNextTooSmall(void)
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
-    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, ETHERNET_PKT_TOO_SMALL));
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, DCE_PKT_TOO_SMALL));
 
     SCFree(p);
     PASS;
