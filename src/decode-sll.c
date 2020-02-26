@@ -52,29 +52,8 @@ int DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     SCLogDebug("p %p pkt %p sll_protocol %04x", p, pkt, SCNtohs(sllh->sll_protocol));
 
-    switch (SCNtohs(sllh->sll_protocol)) {
-        case ETHERNET_TYPE_IP:
-            if (unlikely(len > SLL_HEADER_LEN + USHRT_MAX)) {
-                return TM_ECODE_FAILED;
-            }
-            DecodeIPV4(tv, dtv, p, pkt + SLL_HEADER_LEN,
-                       len - SLL_HEADER_LEN);
-            break;
-        case ETHERNET_TYPE_IPV6:
-            if (unlikely(len > SLL_HEADER_LEN + USHRT_MAX)) {
-                return TM_ECODE_FAILED;
-            }
-            DecodeIPV6(tv, dtv, p, pkt + SLL_HEADER_LEN,
-                       len - SLL_HEADER_LEN);
-            break;
-        case ETHERNET_TYPE_VLAN:
-            DecodeVLAN(tv, dtv, p, pkt + SLL_HEADER_LEN,
-                                 len - SLL_HEADER_LEN);
-            break;
-        default:
-            SCLogDebug("p %p pkt %p sll type %04x not supported", p,
-                       pkt, SCNtohs(sllh->sll_protocol));
-    }
+    DecodeNetworkLayer(tv, dtv, SCNtohs(sllh->sll_protocol), p,
+            pkt + SLL_HEADER_LEN, len - SLL_HEADER_LEN);
 
     return TM_ECODE_OK;
 }

@@ -930,6 +930,7 @@ int DecodeUDP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint1
 int DecodeSCTP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint16_t);
 int DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeIEEE8021ah(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVXLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeMPLS(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
@@ -1177,5 +1178,56 @@ static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
     }
 }
 
-#endif /* __DECODE_H__ */
+static inline void DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
+        const uint16_t proto, Packet *p, const uint8_t *data, const uint32_t len)
+{
+    switch (proto) {
+        case ETHERNET_TYPE_IP: {
+            uint16_t ip_len = (len < USHRT_MAX) ? (uint16_t)len : (uint16_t)USHRT_MAX;
+            DecodeIPV4(tv, dtv, p, data, ip_len);
+            break;
+        }
+        case ETHERNET_TYPE_IPV6: {
+            uint16_t ip_len = (len < USHRT_MAX) ? (uint16_t)len : (uint16_t)USHRT_MAX;
+            DecodeIPV6(tv, dtv, p, data, ip_len);
+            break;
+        }
+        case ETHERNET_TYPE_PPPOE_SESS:
+            DecodePPPOESession(tv, dtv, p, data, len);
+            break;
+        case ETHERNET_TYPE_PPPOE_DISC:
+            DecodePPPOEDiscovery(tv, dtv, p, data, len);
+            break;
+        case ETHERNET_TYPE_VLAN:
+        case ETHERNET_TYPE_8021AD:
+        case ETHERNET_TYPE_8021QINQ:
+            if (p->vlan_idx >= 2) {
+                ENGINE_SET_EVENT(p,VLAN_HEADER_TOO_MANY_LAYERS);
+            } else {
+                DecodeVLAN(tv, dtv, p, data, len);
+            }
+            break;
+        case ETHERNET_TYPE_8021AH:
+            DecodeIEEE8021ah(tv, dtv, p, data, len);
+            break;
+        case ETHERNET_TYPE_ARP:
+            break;
+        case ETHERNET_TYPE_MPLS_UNICAST:
+        case ETHERNET_TYPE_MPLS_MULTICAST:
+            DecodeMPLS(tv, dtv, p, data, len);
+            break;
+        case ETHERNET_TYPE_DCE:
+            if (unlikely(len < ETHERNET_DCE_HEADER_LEN)) {
+                ENGINE_SET_INVALID_EVENT(p, DCE_PKT_TOO_SMALL);
+            } else {
+                DecodeEthernet(tv, dtv, p, data, len);
+            }
+            break;
+        default:
+            SCLogDebug("unknown ether type: %" PRIx32 "", proto);
+            ENGINE_SET_INVALID_EVENT(p, VLAN_UNKNOWN_TYPE); // TODO
+            break;
+    }
+}
 
+#endif /* __DECODE_H__ */
