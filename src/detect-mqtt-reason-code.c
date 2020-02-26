@@ -1,0 +1,330 @@
+/* Copyright (C) 2020 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * \author Sascha Steinbiss <sascha@steinbiss.name>
+ */
+
+#include "suricata-common.h"
+#include "conf.h"
+#include "detect.h"
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "detect-engine-content-inspection.h"
+#include "detect-mqtt-reason-code.h"
+#include "util-unittest.h"
+
+#include "rust-bindings.h"
+
+#define PARSE_REGEX "^\\s*\\d+\\s*$"
+static DetectParseRegex parse_regex;
+
+static int mqtt_reason_code_id = 0;
+
+static int DetectMQTTReasonCodeMatch(DetectEngineThreadCtx *det_ctx,
+                               Flow *f, uint8_t flags, void *state,
+                               void *txv, const Signature *s,
+                               const SigMatchCtx *ctx);
+static int DetectMQTTReasonCodeSetup (DetectEngineCtx *, Signature *, const char *);
+void MQTTReasonCodeRegisterTests(void);
+void DetectMQTTReasonCodeFree(void *);
+
+static int DetectEngineInspectMQTTReasonCodeGeneric(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id);
+
+typedef struct DetectMQTTReasonCodeData_ {
+    uint8_t reason_code;
+} DetectMQTTReasonCodeData;
+
+/**
+ * \brief Registration function for mqtt.reason_code: keyword
+ */
+void DetectMQTTReasonCodeRegister (void)
+{
+    sigmatch_table[DETECT_AL_MQTT_REASON_CODE].name = "mqtt.reason_code";
+    sigmatch_table[DETECT_AL_MQTT_REASON_CODE].alias = "mqtt.connack.return_code";
+    sigmatch_table[DETECT_AL_MQTT_REASON_CODE].desc = "match MQTT 5.0+ reason code";
+    sigmatch_table[DETECT_AL_MQTT_REASON_CODE].url = DOC_URL DOC_VERSION "/rules/mqtt-keywords.html#mqtt-reason-code";
+    sigmatch_table[DETECT_AL_MQTT_REASON_CODE].AppLayerTxMatch = DetectMQTTReasonCodeMatch;
+    sigmatch_table[DETECT_AL_MQTT_REASON_CODE].Setup = DetectMQTTReasonCodeSetup;
+    sigmatch_table[DETECT_AL_MQTT_REASON_CODE].Free  = DetectMQTTReasonCodeFree;
+    sigmatch_table[DETECT_AL_MQTT_REASON_CODE].RegisterTests = MQTTReasonCodeRegisterTests;
+
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
+
+    DetectAppLayerInspectEngineRegister("mqtt.reason_code",
+            ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
+            DetectEngineInspectMQTTReasonCodeGeneric);
+
+    mqtt_reason_code_id = DetectBufferTypeGetByName("mqtt.reason_code");
+}
+
+static int DetectEngineInspectMQTTReasonCodeGeneric(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
+{
+    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
+                                          f, flags, alstate, txv, tx_id);
+}
+
+/**
+ * \internal
+ * \brief Function to match reason code of an MQTT 5.0 Tx
+ *
+ * \param det_ctx Pointer to the pattern matcher thread.
+ * \param f       Pointer to the current flow.
+ * \param flags   Flags.
+ * \param state   App layer state.
+ * \param txv     Pointer to the transaction.
+ * \param s       Pointer to the Signature.
+ * \param ctx     Pointer to the sigmatch that we will cast into DetectMQTTReasonCodeData.
+ *
+ * \retval 0 no match.
+ * \retval 1 match.
+ */
+static int DetectMQTTReasonCodeMatch(DetectEngineThreadCtx *det_ctx,
+                               Flow *f, uint8_t flags, void *state,
+                               void *txv, const Signature *s,
+                               const SigMatchCtx *ctx)
+{
+    const DetectMQTTReasonCodeData *de = (const DetectMQTTReasonCodeData *)ctx;
+    uint8_t code;
+
+    if (!de)
+        return 0;
+
+    if (rs_mqtt_tx_get_reason_code(txv, &code) == 0) {
+        bool result = false;
+        rs_mqtt_tx_unsuback_has_reason_code(txv, &result, de->reason_code);
+        return (result ? 1 : 0);
+    } else {
+        if (code == de->reason_code)
+            return 1;
+    }
+    return 0;
+}
+
+/**
+ * \internal
+ * \brief This function is used to parse options passed via mqtt.reason_code: keyword
+ *
+ * \param rawstr Pointer to the user provided options
+ *
+ * \retval de pointer to DetectMQTTReasonCodeData on success
+ * \retval NULL on failure
+ */
+static DetectMQTTReasonCodeData *DetectMQTTReasonCodeParse(const char *rawstr)
+{
+    DetectMQTTReasonCodeData *de = NULL;
+#define MAX_SUBSTRINGS 30
+    int ret = 0;
+    uint64_t val;
+    int ov[MAX_SUBSTRINGS];
+
+    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
+    if (ret < 1) {
+        SCLogError(SC_ERR_PCRE_MATCH, "invalid MQTT reason code: %s", rawstr);
+        return NULL;
+    }
+
+    ret = sscanf(rawstr, "%ld", &val);
+    if (ret != 1) {
+        SCLogError(SC_ERR_UNKNOWN_VALUE, "invalid MQTT reason code: %s", rawstr);
+        return NULL;
+    }
+    if (val > 255) {
+        SCLogError(SC_ERR_UNKNOWN_VALUE, "invalid MQTT reason code: %ld (must be <256)", val);
+        return NULL;
+    }
+
+    de = SCMalloc(sizeof(DetectMQTTReasonCodeData));
+    if (unlikely(de == NULL))
+        return NULL;
+    de->reason_code = (uint8_t) val;
+
+    return de;
+}
+
+/**
+ * \internal
+ * \brief this function is used to add the parsed sigmatch  into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param rawstr pointer to the user provided options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectMQTTReasonCodeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+{
+    DetectMQTTReasonCodeData *de = NULL;
+    SigMatch *sm = NULL;
+
+    de = DetectMQTTReasonCodeParse(rawstr);
+    if (de == NULL)
+        goto error;
+
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_AL_MQTT_REASON_CODE;
+    sm->ctx = (SigMatchCtx *)de;
+
+    SigMatchAppendSMToList(s, sm, mqtt_reason_code_id);
+
+    return 0;
+
+error:
+    if (de) SCFree(de);
+    if (sm) SCFree(sm);
+    return -1;
+}
+
+/**
+ * \internal
+ * \brief this function will free memory associated with DetectMQTTReasonCodeData
+ *
+ * \param de pointer to DetectMQTTReasonCodeData
+ */
+void DetectMQTTReasonCodeFree(void *de_ptr)
+{
+    DetectMQTTReasonCodeData *de = (DetectMQTTReasonCodeData *)de_ptr;
+    if(de) SCFree(de);
+}
+
+/*
+ * ONLY TESTS BELOW THIS COMMENT
+ */
+
+#ifdef UNITTESTS
+/**
+ * \test MQTTReasonCodeTestParse01 is a test for a valid value
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int MQTTReasonCodeTestParse01 (void)
+{
+    DetectMQTTReasonCodeData *de = NULL;
+    de = DetectMQTTReasonCodeParse("3");
+    if (!de) {
+        return 0;
+    }
+    DetectMQTTReasonCodeFree(de);
+    de = DetectMQTTReasonCodeParse("   4");
+    if (!de) {
+        return 0;
+    }
+    DetectMQTTReasonCodeFree(de);
+    de = DetectMQTTReasonCodeParse("  5   ");
+    if (!de) {
+        return 0;
+    }
+    DetectMQTTReasonCodeFree(de);
+    de = DetectMQTTReasonCodeParse("3   ");
+    if (!de) {
+        return 0;
+    }
+    DetectMQTTReasonCodeFree(de);
+    de = DetectMQTTReasonCodeParse("255");
+    if (!de) {
+        return 0;
+    }
+    DetectMQTTReasonCodeFree(de);
+
+    return 1;
+}
+
+/**
+ * \test MQTTReasonCodeTestParse02 is a test for an invalid value
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int MQTTReasonCodeTestParse02 (void)
+{
+    DetectMQTTReasonCodeData *de = NULL;
+    de = DetectMQTTReasonCodeParse("6X");
+    if (de) {
+        DetectMQTTReasonCodeFree(de);
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * \test MQTTReasonCodeTestParse03 is a test for an invalid value
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int MQTTReasonCodeTestParse03 (void)
+{
+    DetectMQTTReasonCodeData *de = NULL;
+    de = DetectMQTTReasonCodeParse("");
+    if (de) {
+        DetectMQTTReasonCodeFree(de);
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * \test MQTTReasonCodeTestParse04 is a test for an invalid value
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int MQTTReasonCodeTestParse04 (void)
+{
+    DetectMQTTReasonCodeData *de = NULL;
+    de = DetectMQTTReasonCodeParse("256");
+    if (de) {
+        DetectMQTTReasonCodeFree(de);
+        return 0;
+    }
+
+    return 1;
+}
+
+
+
+#endif /* UNITTESTS */
+
+/**
+ * \brief this function registers unit tests for MQTTReasonCode
+ */
+void MQTTReasonCodeRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("MQTTReasonCodeTestParse01", MQTTReasonCodeTestParse01);
+    UtRegisterTest("MQTTReasonCodeTestParse02", MQTTReasonCodeTestParse02);
+    UtRegisterTest("MQTTReasonCodeTestParse03", MQTTReasonCodeTestParse03);
+    UtRegisterTest("MQTTReasonCodeTestParse04", MQTTReasonCodeTestParse04);
+#endif /* UNITTESTS */
+}

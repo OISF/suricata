@@ -1321,6 +1321,7 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_JSON_SIP);
         CASE_CODE (LOGGER_JSON_TEMPLATE_RUST);
         CASE_CODE (LOGGER_JSON_RFB);
+        CASE_CODE (LOGGER_JSON_MQTT);
         CASE_CODE (LOGGER_JSON_TEMPLATE);
         CASE_CODE (LOGGER_JSON_RDP);
         CASE_CODE (LOGGER_TLS_STORE);
