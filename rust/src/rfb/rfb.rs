@@ -621,7 +621,7 @@ pub extern "C" fn rs_rfb_state_tx_free(
 pub extern "C" fn rs_rfb_parse_request(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
+    _pstate: *mut std::os::raw::c_void,
     input: *const u8,
     input_len: u32,
     _data: *const std::os::raw::c_void,
@@ -643,7 +643,7 @@ pub extern "C" fn rs_rfb_parse_request(
 pub extern "C" fn rs_rfb_parse_response(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
+    _pstate: *mut std::os::raw::c_void,
     input: *const u8,
     input_len: u32,
     _data: *const std::os::raw::c_void,
