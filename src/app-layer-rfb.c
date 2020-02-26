@@ -52,7 +52,7 @@ void RegisterRFBParsers(void)
 #include "stream-tcp.h"
 #include "util-unittest-helper.h"
 
-int RFBParserTest(void)
+static int RFBParserTest(void)
 {
     uint64_t ret[4];
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();

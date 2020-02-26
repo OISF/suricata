@@ -1233,8 +1233,8 @@ Event type: RFB
 Fields
 ~~~~~~
 
-* "server_protocol_version.major", "server_protocol_version.major": The RFB protocol version offered by the server.
-* "client_protocol_version.major", "client_protocol_version.major": The RFB protocol version agreed by the client.
+* "server_protocol_version.major", "server_protocol_version.minor": The RFB protocol version offered by the server.
+* "client_protocol_version.major", "client_protocol_version.minor": The RFB protocol version agreed by the client.
 * "authentication.security_type": Security type agreed upon in the logged transaction, e.g. ``2`` is VNC auth. 
 * "authentication.vnc.challenge", "authentication.vnc.response": Only available when security type 2 is used. Contains the challenge and response byte buffers exchanged by the server and client as hex strings.
 * "authentication.security-result": Result of the authentication process (``OK``, ``FAIL`` or ``TOOMANY``).
@@ -1242,7 +1242,7 @@ Fields
 * "framebuffer": Contains metadata about the initial screen setup process. Only available when the handshake completed this far.
 * "framebuffer.width", "framebuffer.height": Screen size as offered by the server.
 * "framebuffer.name": Desktop name as advertised by the server.
-* "framebuffer.pixel_format": Pixel representation information, such as color depth. See RFC for details.
+* "framebuffer.pixel_format": Pixel representation information, such as color depth. See RFC6143 (https://tools.ietf.org/html/rfc6143) for details.
 
 
 Examples

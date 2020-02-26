@@ -22,7 +22,7 @@ Examples::
 rfb.sectype
 -----------
 
-Match on the value of the RFB security type field, e.g. ``2`` for VNC challenge-response authentication, ``0`` for no authentication, and `30` for Apple's custom Remote Desktop authentication.
+Match on the value of the RFB security type field, e.g. ``2`` for VNC challenge-response authentication, ``0`` for no authentication, and ``30`` for Apple's custom Remote Desktop authentication.
 
 This keyword takes a numeric argument after a colon and supports additional qualifiers, such as:
 

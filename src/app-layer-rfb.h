@@ -25,10 +25,6 @@
 #define __APP_LAYER_RFB_H__
 
 void RegisterRFBParsers(void);
-
-#ifdef UNITTESTS
 void RFBParserRegisterTests(void);
-int RFBParserTest(void);
-#endif
 
 #endif /* __APP_LAYER_RFB_H__ */

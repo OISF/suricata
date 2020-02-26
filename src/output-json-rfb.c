@@ -24,9 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "debug.h"
-#include "detect.h"
-#include "pkt-var.h"
 #include "conf.h"
 
 #include "threads.h"
@@ -63,7 +60,6 @@ typedef struct LogRFBLogThread_ {
 static int JsonRFBLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
-    SCLogNotice("JsonRFBLogger");
     LogRFBLogThread *thread = thread_data;
 
     json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "rfb");
@@ -124,14 +120,13 @@ static OutputInitResult OutputRFBLogInitSub(ConfNode *conf,
 
 static TmEcode JsonRFBLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogRFBLogThread *thread = SCCalloc(1, sizeof(*thread));
-    if (unlikely(thread == NULL)) {
+    if (initdata == NULL) {
+        SCLogDebug("Error getting context for EveLogRFB.  \"initdata\" is NULL.");
         return TM_ECODE_FAILED;
     }
 
-    if (initdata == NULL) {
-        SCLogDebug("Error getting context for EveLogRFB.  \"initdata\" is NULL.");
-        SCFree(thread);
+    LogRFBLogThread *thread = SCCalloc(1, sizeof(*thread));
+    if (unlikely(thread == NULL)) {
         return TM_ECODE_FAILED;
     }
 

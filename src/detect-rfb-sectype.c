@@ -135,14 +135,13 @@ SectypeMatch(const uint32_t version,
  * \internal
  * \brief Function to match security type of a RFB TX
  *
- * \param t       Pointer to thread vars.
  * \param det_ctx Pointer to the pattern matcher thread.
  * \param f       Pointer to the current flow.
  * \param flags   Flags.
  * \param state   App layer state.
+ * \param txv     Pointer to the RFBTransaction.
  * \param s       Pointer to the Signature.
- * \param m       Pointer to the sigmatch that we will cast into
- *                DetectRfbSectypeData.
+ * \param ctx     Pointer to the sigmatch that we will cast into DetectRfbSectypeData.
  *
  * \retval 0 no match.
  * \retval 1 match.
@@ -244,13 +243,11 @@ error:
  * \param de_ctx Pointer to the Detection Engine Context.
  * \param s      Pointer to the Current Signature.
  * \param rawstr Pointer to the user provided flags options.
- * \param type   Defines if this is notBefore or notAfter.
  *
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectRfbSectypeSetup (DetectEngineCtx *de_ctx, Signature *s,
-                                   const char *rawstr)
+static int DetectRfbSectypeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectRfbSectypeData *dd = NULL;
     SigMatch *sm = NULL;

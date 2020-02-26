@@ -181,7 +181,7 @@ impl RFBState {
                     match parser::parse_protocol_version(current) {
                         Ok((rem, request)) => {
                             current = rem;
-                            if request.major.to_string() == "003" && request.minor.to_string() == "003" {
+                            if request.major == "003" && request.minor == "003" {
                                 // in version 3.3 the server decided security type
                                 self.state = parser::RFBGlobalState::TCServerSecurityType;
                             } else {
@@ -627,16 +627,8 @@ pub extern "C" fn rs_rfb_parse_request(
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    let eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
-            true
-        } else {
-            false
-        }
-    };
-
-    if eof {
-        // If needed, handled EOF, or pass it into the parser.
+    if input_len == 0 {
+        return -1;
     }
 
     let state = cast_pointer!(state, RFBState);
@@ -657,13 +649,6 @@ pub extern "C" fn rs_rfb_parse_response(
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    let _eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
-            true
-        } else {
-            false
-        }
-    };
     let state = cast_pointer!(state, RFBState);
     let buf = build_slice!(input, input_len as usize);
     if state.parse_response(buf) {

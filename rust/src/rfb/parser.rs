@@ -37,20 +37,20 @@ pub enum RFBGlobalState {
 
 impl fmt::Display for RFBGlobalState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-       match *self {
-           RFBGlobalState::TCServerProtocolVersion => write!(f, "TCServerProtocolVersion"),
-           RFBGlobalState::TCSupportedSecurityTypes => write!(f, "TCSupportedSecurityTypes"),
-           RFBGlobalState::TCVncChallenge => write!(f, "TCVncChallenge"),
-           RFBGlobalState::TCServerInit => write!(f, "TCServerInit"),
-           RFBGlobalState::TCFailureReason => write!(f, "TCFailureReason"),
-           RFBGlobalState::TSClientProtocolVersion => write!(f, "TSClientProtocolVersion"),
-           RFBGlobalState::TSSecurityTypeSelection => write!(f, "TSSecurityTypeSelection"),
-           RFBGlobalState::TSVncResponse => write!(f, "TSVncResponse"),
-           RFBGlobalState::TCSecurityResult => write!(f, "TCSecurityResult"),
-           RFBGlobalState::TCServerSecurityType => write!(f, "TCServerSecurityType"),
-           RFBGlobalState::TSClientInit => write!(f, "TSClientInit"),
-           RFBGlobalState::Message => write!(f, "Message")
-       }
+        match *self {
+            RFBGlobalState::TCServerProtocolVersion => write!(f, "TCServerProtocolVersion"),
+            RFBGlobalState::TCSupportedSecurityTypes => write!(f, "TCSupportedSecurityTypes"),
+            RFBGlobalState::TCVncChallenge => write!(f, "TCVncChallenge"),
+            RFBGlobalState::TCServerInit => write!(f, "TCServerInit"),
+            RFBGlobalState::TCFailureReason => write!(f, "TCFailureReason"),
+            RFBGlobalState::TSClientProtocolVersion => write!(f, "TSClientProtocolVersion"),
+            RFBGlobalState::TSSecurityTypeSelection => write!(f, "TSSecurityTypeSelection"),
+            RFBGlobalState::TSVncResponse => write!(f, "TSVncResponse"),
+            RFBGlobalState::TCSecurityResult => write!(f, "TCSecurityResult"),
+            RFBGlobalState::TCServerSecurityType => write!(f, "TCServerSecurityType"),
+            RFBGlobalState::TSClientInit => write!(f, "TSClientInit"),
+            RFBGlobalState::Message => write!(f, "Message")
+        }
     }
 }
 
@@ -110,33 +110,33 @@ pub struct ServerInit {
 }
 
 named!(pub parse_protocol_version<ProtocolVersion>,
-       do_parse!(
-           _rfb_string: take_str!(3)
-           >> be_u8
-           >> major: take_str!(3)
-           >> be_u8
-           >> minor: take_str!(3)
-           >> be_u8
-           >> (
-                   ProtocolVersion{
-                       major: major.to_string(),
-                       minor: minor.to_string(),
-                   }
-               )
-       )
+    do_parse!(
+        _rfb_string: take_str!(3)
+        >> be_u8
+        >> major: take_str!(3)
+        >> be_u8
+        >> minor: take_str!(3)
+        >> be_u8
+        >> (
+            ProtocolVersion{
+                major: major.to_string(),
+                minor: minor.to_string(),
+            }
+        )
+    )
 );
 
 named!(pub parse_supported_security_types<SupportedSecurityTypes>,
-        do_parse!(
-            number_of_types: be_u8
-            >> types: take!(number_of_types)
-            >> (
-                SupportedSecurityTypes{
-                    number_of_types: number_of_types,
-                    types: types.to_vec()
-                }
-            )
+    do_parse!(
+        number_of_types: be_u8
+        >> types: take!(number_of_types)
+        >> (
+            SupportedSecurityTypes{
+                number_of_types: number_of_types,
+                types: types.to_vec()
+            }
         )
+    )
 );
 
 named!(pub parse_server_security_type<ServerSecurityType>,
@@ -151,14 +151,14 @@ named!(pub parse_server_security_type<ServerSecurityType>,
 );
 
 named!(pub parse_vnc_auth<VncAuth>,
-        do_parse!(
-            secret: take!(16)
-            >> (
-                VncAuth {
-                    secret: secret.to_vec()
-                }
-            )
+    do_parse!(
+        secret: take!(16)
+        >> (
+            VncAuth {
+                secret: secret.to_vec()
+            }
         )
+    )
 );
 
 named!(pub parse_security_type_selection<SecurityTypeSelection>,
@@ -173,14 +173,14 @@ named!(pub parse_security_type_selection<SecurityTypeSelection>,
 );
 
 named!(pub parse_security_result<SecurityResult>,
-        do_parse!(
-            status: be_u32
-            >> (
-                SecurityResult {
-                    status: status
-                }
-            )
+    do_parse!(
+        status: be_u32
+        >> (
+            SecurityResult {
+                status: status
+            }
         )
+    )
 );
 
 named!(pub parse_failure_reason<FailureReason>,
@@ -237,22 +237,22 @@ named!(pub parse_pixel_format<PixelFormat>,
 );
 
 named!(pub parse_server_init<ServerInit>,
-        do_parse!(
-            width: be_u16
-            >> height: be_u16
-            >> pixel_format: parse_pixel_format
-            >> name_length: be_u32
-            >> name: take!(name_length)
-            >> (
-                ServerInit {
-                    width: width,
-                    height: height,
-                    pixel_format: pixel_format,
-                    name_length: name_length,
-                    name: name.to_vec()
-                }
-            )
+    do_parse!(
+        width: be_u16
+        >> height: be_u16
+        >> pixel_format: parse_pixel_format
+        >> name_length: be_u32
+        >> name: take!(name_length)
+        >> (
+            ServerInit {
+                width: width,
+                height: height,
+                pixel_format: pixel_format,
+                name_length: name_length,
+                name: name.to_vec()
+            }
         )
+    )
 );
 
 #[cfg(test)]
