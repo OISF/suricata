@@ -51,7 +51,7 @@ void TimeSetIncrementTime(uint32_t);
 
 void TimeModeSetLive(void);
 void TimeModeSetOffline (void);
-int TimeModeIsLive(void);
+bool TimeModeIsLive(void);
 
 struct tm *SCLocalTime(time_t timep, struct tm *result);
 void CreateTimeString(const struct timeval *ts, char *str, size_t size);
