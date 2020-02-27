@@ -628,7 +628,8 @@ pub extern "C" fn rs_rfb_parse_request(
     _flags: u8,
 ) -> i32 {
     if input_len == 0 {
-        return -1;
+        // ignoring empty packets and hope to catch up with the next...
+        return 1;
     }
 
     let state = cast_pointer!(state, RFBState);
