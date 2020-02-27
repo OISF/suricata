@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -74,6 +74,12 @@ typedef struct PcapFileFileVars_
     struct bpf_program filter;
 
     PcapFileSharedVars *shared;
+
+    /* fields used to get the first packets timestamp early,
+     * so it can be used to setup the time subsys. */
+    const u_char *first_pkt_data;
+    struct pcap_pkthdr *first_pkt_hdr;
+    struct timeval first_pkt_ts;
 } PcapFileFileVars;
 
 /**
