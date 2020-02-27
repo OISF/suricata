@@ -61,7 +61,7 @@ static struct timeval current_time = { 0, 0 };
 #endif
 //static SCMutex current_time_mutex = SCMUTEX_INITIALIZER;
 static SCSpinlock current_time_spinlock;
-static char live = TRUE;
+static bool live_time_tracking = true;
 
 struct tm *SCLocalTime(time_t timep, struct tm *result);
 struct tm *SCUtcTime(time_t timep, struct tm *result);
@@ -81,24 +81,24 @@ void TimeDeinit(void)
 
 void TimeModeSetLive(void)
 {
-    live = TRUE;
+    live_time_tracking = true;
     SCLogDebug("live time mode enabled");
 }
 
 void TimeModeSetOffline (void)
 {
-    live = FALSE;
+    live_time_tracking = false;
     SCLogDebug("offline time mode enabled");
 }
 
-int TimeModeIsLive(void)
+bool TimeModeIsLive(void)
 {
-    return live;
+    return live_time_tracking;
 }
 
 void TimeSetByThread(const int thread_id, const struct timeval *tv)
 {
-    if (live == TRUE)
+    if (live_time_tracking)
         return;
 
     TmThreadsSetThreadTimestamp(thread_id, tv);
@@ -107,7 +107,7 @@ void TimeSetByThread(const int thread_id, const struct timeval *tv)
 #ifdef UNITTESTS
 void TimeSet(struct timeval *tv)
 {
-    if (live == TRUE)
+    if (live_time_tracking)
         return;
 
     if (tv == NULL)
@@ -140,7 +140,7 @@ void TimeGet(struct timeval *tv)
     if (tv == NULL)
         return;
 
-    if (live == TRUE) {
+    if (live_time_tracking) {
         gettimeofday(tv, NULL);
     } else {
 #ifdef UNITTESTS
