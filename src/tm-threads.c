@@ -2388,6 +2388,7 @@ end:
     SCMutexUnlock(&thread_store_lock);
 }
 
+#define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec) // XXX unify with flow-util.h
 void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts)
 {
     SCMutexLock(&thread_store_lock);
@@ -2398,12 +2399,22 @@ void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts)
 
     int idx = id - 1;
     Thread *t = &thread_store.threads[idx];
-    t->ts.tv_sec = ts->tv_sec;
-    t->ts.tv_usec = ts->tv_usec;
+    COPY_TIMESTAMP(ts, &t->ts);
     SCMutexUnlock(&thread_store_lock);
 }
 
-#define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec) // XXX unify with flow-util.h
+void TmThreadsInitThreadsTimestamp(const struct timeval *ts)
+{
+    SCMutexLock(&thread_store_lock);
+    for (size_t s = 0; s < thread_store.threads_size; s++) {
+        Thread *t = &thread_store.threads[s];
+        if (!t->in_use)
+            break;
+        COPY_TIMESTAMP(ts, &t->ts);
+    }
+    SCMutexUnlock(&thread_store_lock);
+}
+
 void TmThreadsGetMinimalTimestamp(struct timeval *ts)
 {
     struct timeval local, nullts;
