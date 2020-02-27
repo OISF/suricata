@@ -28,6 +28,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-rfb-sectype.h"
 #include "app-layer-parser.h"
+#include "util-byte.h"
 
 #include "rust-bindings.h"
 
@@ -74,7 +75,6 @@ void DetectRfbSectypeRegister (void)
     sigmatch_table[DETECT_AL_RFB_SECTYPE].name = "rfb.sectype";
     sigmatch_table[DETECT_AL_RFB_SECTYPE].desc = "match RFB security type";
     sigmatch_table[DETECT_AL_RFB_SECTYPE].url = DOC_URL DOC_VERSION "/rules/rfb-keywords.html#rfb-sectype";
-    sigmatch_table[DETECT_AL_RFB_SECTYPE].Match = NULL;
     sigmatch_table[DETECT_AL_RFB_SECTYPE].AppLayerTxMatch = DetectRfbSectypeMatch;
     sigmatch_table[DETECT_AL_RFB_SECTYPE].Setup = DetectRfbSectypeSetup;
     sigmatch_table[DETECT_AL_RFB_SECTYPE].Free = DetectRfbSectypeFree;
@@ -178,7 +178,6 @@ static DetectRfbSectypeData *DetectRfbSectypeParse (const char *rawstr)
     int ov[MAX_SUBSTRINGS];
     char mode[2] = "";
     char value1[20] = "";
-    char *endptr = NULL;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0,
                     0, ov, MAX_SUBSTRINGS);
@@ -205,7 +204,9 @@ static DetectRfbSectypeData *DetectRfbSectypeParse (const char *rawstr)
     if (unlikely(dd == NULL))
         goto error;
 
-    if (strlen(mode) == 1) {
+    if (strlen(mode) == 0) {
+        dd->mode = PROCEDURE_EQ;
+    } else if (strlen(mode) == 1) {
         if (mode[0] == '<')
             dd->mode = PROCEDURE_LT;
         else if (mode[0] == '>')
@@ -215,6 +216,9 @@ static DetectRfbSectypeData *DetectRfbSectypeParse (const char *rawstr)
             dd->mode = PROCEDURE_LE;
         if (strcmp(mode, ">=") == 0)
             dd->mode = PROCEDURE_GE;
+    } else {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid mode for rfb.sectype keyword");
+        goto error;
     }
 
     if (dd->mode == 0) {
@@ -222,8 +226,7 @@ static DetectRfbSectypeData *DetectRfbSectypeParse (const char *rawstr)
     }
 
     /* set the first value */
-    dd->version = strtoul(value1, &endptr, 10);
-    if (endptr == NULL || *endptr != '\0') {
+    if (ByteExtractStringUint32(&dd->version, 10, strlen(value1), value1) <= 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
                    "to rfb.sectype keyword");
         goto error;
@@ -249,13 +252,10 @@ error:
  */
 static int DetectRfbSectypeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectRfbSectypeData *dd = NULL;
-    SigMatch *sm = NULL;
-
     if (DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0)
         return -1;
 
-    dd = DetectRfbSectypeParse(rawstr);
+    DetectRfbSectypeData *dd = DetectRfbSectypeParse(rawstr);
     if (dd == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
         goto error;
@@ -263,7 +263,7 @@ static int DetectRfbSectypeSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
+    SigMatch *sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
 

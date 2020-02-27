@@ -24,8 +24,6 @@
 #ifndef __DETECT_RFB_SECTYPE_H__
 #define __DETECT_RFB_SECTYPE_H__
 
-#include "app-layer-rfb.h"
-
 void DetectRfbSectypeRegister(void);
 
 #endif /* __DETECT_RFB_SECTYPE_H__ */

@@ -30,8 +30,6 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "detect-content.h"
-#include "detect-pcre.h"
 #include "detect-urilen.h"
 
 #include "flow.h"
