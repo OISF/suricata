@@ -89,10 +89,9 @@ static inline int TcpmssMatch(const uint16_t parg, const uint8_t mode,
 /**
  * \brief This function is used to match TCPMSS rule option on a packet with those passed via tcpmss:
  *
- * \param t pointer to thread vars
  * \param det_ctx pointer to the pattern matcher thread
  * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectTcpmssData
+ * \param ctx pointer to the sigmatch that we will cast into DetectTcpmssData
  *
  * \retval 0 no match
  * \retval 1 match
@@ -255,7 +254,7 @@ error:
 }
 
 /**
- * \brief this function is used to atcpmssd the parsed tcpmss data into the current signature
+ * \brief this function is used to attach the parsed tcpmss data into the current signature
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
