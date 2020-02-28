@@ -111,6 +111,11 @@ The named variant of that example would be::
 
     ip_proto:PIM
 
+ipv6.hdr
+^^^^^^^
+
+Sticky buffer to match on the whole IPv6 header.
+
 id
 ^^
 
