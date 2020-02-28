@@ -159,7 +159,7 @@ void TimeGet(struct timeval *tv)
             SCSpinUnlock(&current_time_spinlock);
         } else {
 #endif
-            TmreadsGetMinimalTimestamp(tv);
+            TmThreadsGetMinimalTimestamp(tv);
 #ifdef UNITTESTS
         }
 #endif
