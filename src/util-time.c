@@ -79,6 +79,13 @@ void TimeDeinit(void)
     SCSpinDestroy(&current_time_spinlock);
 }
 
+bool TimeModeIsReady(void)
+{
+    if (live_time_tracking)
+        return true;
+    return TmThreadsTimeSubsysIsReady();
+}
+
 void TimeModeSetLive(void)
 {
     live_time_tracking = true;
