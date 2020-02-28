@@ -203,6 +203,7 @@ detect-http-uri.c detect-http-uri.h \
 detect-icmp-id.c detect-icmp-id.h \
 detect-icmp-seq.c detect-icmp-seq.h \
 detect-icmpv6hdr.c detect-icmpv6hdr.h \
+detect-icmpv6-mtu.c detect-icmpv6-mtu.h \
 detect-icode.c detect-icode.h \
 detect-id.c detect-id.h \
 detect-ipopts.c detect-ipopts.h \
@@ -286,6 +287,7 @@ detect-transform-dotprefix.c detect-transform-dotprefix.h \
 detect-ttl.c detect-ttl.h \
 detect-uricontent.c detect-uricontent.h \
 detect-urilen.c detect-urilen.h \
+detect-util-uint.c detect-util-uint.h \
 detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
