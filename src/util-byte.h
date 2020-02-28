@@ -97,7 +97,7 @@ void BytesToStringBuffer(const uint8_t *bytes, size_t nbytes, char *outstr, size
 int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes);
 
 /**
- * Extract bytes from a byte string and convert to a unint32_t.
+ * Extract bytes from a byte string and convert to a uint32_t.
  *
  * \param res Stores result
  * \param e Endianness (BYTE_BIG_ENDIAN or BYTE_LITTLE_ENDIAN)
