@@ -2404,7 +2404,7 @@ void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts)
 }
 
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec) // XXX unify with flow-util.h
-void TmreadsGetMinimalTimestamp(struct timeval *ts)
+void TmThreadsGetMinimalTimestamp(struct timeval *ts)
 {
     struct timeval local, nullts;
     memset(&local, 0, sizeof(local));
