@@ -2300,7 +2300,8 @@ typedef struct Thread_ {
     int type;
     int in_use;         /**< bool to indicate this is in use */
 
-    struct timeval ts;  /**< current time of this thread (offline mode) */
+    struct timeval pktts;   /**< current packet time of this thread
+                             *   (offline mode) */
 } Thread;
 
 typedef struct Threads_ {
@@ -2428,7 +2429,7 @@ void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts)
 
     int idx = id - 1;
     Thread *t = &thread_store.threads[idx];
-    COPY_TIMESTAMP(ts, &t->ts);
+    COPY_TIMESTAMP(ts, &t->pktts);
     SCMutexUnlock(&thread_store_lock);
 }
 
@@ -2439,7 +2440,7 @@ void TmThreadsInitThreadsTimestamp(const struct timeval *ts)
         Thread *t = &thread_store.threads[s];
         if (!t->in_use)
             break;
-        COPY_TIMESTAMP(ts, &t->ts);
+        COPY_TIMESTAMP(ts, &t->pktts);
     }
     SCMutexUnlock(&thread_store_lock);
 }
@@ -2457,14 +2458,14 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
         Thread *t = &thread_store.threads[s];
         if (t == NULL || t->in_use == 0)
             continue;
-        if (!(timercmp(&t->ts, &nullts, ==))) {
+        if (!(timercmp(&t->pktts, &nullts, ==))) {
             if (!set) {
-                local.tv_sec = t->ts.tv_sec;
-                local.tv_usec = t->ts.tv_usec;
+                local.tv_sec = t->pktts.tv_sec;
+                local.tv_usec = t->pktts.tv_usec;
                 set = 1;
             } else {
-                if (timercmp(&t->ts, &local, <)) {
-                    COPY_TIMESTAMP(&t->ts, &local);
+                if (timercmp(&t->pktts, &local, <)) {
+                    COPY_TIMESTAMP(&t->pktts, &local);
                 }
             }
         }
