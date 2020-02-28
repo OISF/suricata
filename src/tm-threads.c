@@ -2302,6 +2302,8 @@ typedef struct Thread_ {
 
     struct timeval pktts;   /**< current packet time of this thread
                              *   (offline mode) */
+    uint32_t sys_sec_stamp; /**< timestamp in seconds of the real system
+                             *   time when the pktts was last updated. */
 } Thread;
 
 typedef struct Threads_ {
@@ -2430,17 +2432,40 @@ void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts)
     int idx = id - 1;
     Thread *t = &thread_store.threads[idx];
     COPY_TIMESTAMP(ts, &t->pktts);
+    struct timeval systs;
+    gettimeofday(&systs, NULL);
+    t->sys_sec_stamp = (uint32_t)systs.tv_sec;
     SCMutexUnlock(&thread_store_lock);
+}
+
+bool TmThreadsTimeSubsysIsReady(void)
+{
+    bool ready = true;
+    SCMutexLock(&thread_store_lock);
+    for (size_t s = 0; s < thread_store.threads_size; s++) {
+        Thread *t = &thread_store.threads[s];
+        if (!t->in_use)
+            break;
+        if (t->sys_sec_stamp == 0) {
+            ready = false;
+            break;
+        }
+    }
+    SCMutexUnlock(&thread_store_lock);
+    return ready;
 }
 
 void TmThreadsInitThreadsTimestamp(const struct timeval *ts)
 {
+    struct timeval systs;
+    gettimeofday(&systs, NULL);
     SCMutexLock(&thread_store_lock);
     for (size_t s = 0; s < thread_store.threads_size; s++) {
         Thread *t = &thread_store.threads[s];
         if (!t->in_use)
             break;
         COPY_TIMESTAMP(ts, &t->pktts);
+        t->sys_sec_stamp = (uint32_t)systs.tv_sec;
     }
     SCMutexUnlock(&thread_store_lock);
 }
@@ -2452,13 +2477,19 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
     memset(&nullts, 0, sizeof(nullts));
     int set = 0;
     size_t s;
+    struct timeval systs;
+    gettimeofday(&systs, NULL);
 
     SCMutexLock(&thread_store_lock);
     for (s = 0; s < thread_store.threads_size; s++) {
         Thread *t = &thread_store.threads[s];
-        if (t == NULL || t->in_use == 0)
-            continue;
+        if (t->in_use == 0)
+            break;
         if (!(timercmp(&t->pktts, &nullts, ==))) {
+            /* ignore sleeping threads */
+            if (t->sys_sec_stamp + 1 < (uint32_t)systs.tv_sec)
+                continue;
+
             if (!set) {
                 local.tv_sec = t->pktts.tv_sec;
                 local.tv_usec = t->pktts.tv_usec;
