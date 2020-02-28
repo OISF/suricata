@@ -229,34 +229,32 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
     SCReturnInt(validated);
 }
 
-TmEcode ValidateLinkType(int datalink, Decoder *decoder)
+TmEcode ValidateLinkType(int datalink, DecoderFunc *DecoderFn)
 {
     switch (datalink) {
         case LINKTYPE_LINUX_SLL:
-            *decoder = DecodeSll;
+            *DecoderFn = DecodeSll;
             break;
         case LINKTYPE_ETHERNET:
-            *decoder = DecodeEthernet;
+            *DecoderFn = DecodeEthernet;
             break;
         case LINKTYPE_PPP:
-            *decoder = DecodePPP;
+            *DecoderFn = DecodePPP;
             break;
         case LINKTYPE_IPV4:
         case LINKTYPE_RAW:
         case LINKTYPE_RAW2:
         case LINKTYPE_GRE_OVER_IP:
-            *decoder = DecodeRaw;
+            *DecoderFn = DecodeRaw;
             break;
         case LINKTYPE_NULL:
-            *decoder = DecodeNull;
+            *DecoderFn = DecodeNull;
             break;
 
         default:
-            SCLogError(
-                    SC_ERR_UNIMPLEMENTED,
-                    "datalink type %" PRId32 " not (yet) supported in module PcapFile.",
-                    datalink
-            );
+            SCLogError(SC_ERR_UNIMPLEMENTED,
+                    "datalink type %"PRId32" not (yet) supported in module PcapFile.",
+                    datalink);
             SCReturnInt(TM_ECODE_FAILED);
     }
 
