@@ -288,5 +288,6 @@ int TmThreadsInjectPacketsById(Packet **, int id);
 void TmThreadsInitThreadsTimestamp(const struct timeval *ts);
 void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts);
 void TmThreadsGetMinimalTimestamp(struct timeval *ts);
+bool TmThreadsTimeSubsysIsReady(void);
 
 #endif /* __TM_THREADS_H__ */

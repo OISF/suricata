@@ -39,6 +39,7 @@ void TimeSetToCurrentTime(void);
 void TimeSetIncrementTime(uint32_t);
 #endif
 
+bool TimeModeIsReady(void);
 void TimeModeSetLive(void);
 void TimeModeSetOffline (void);
 bool TimeModeIsLive(void);
