@@ -626,3 +626,21 @@ icmpv6.hdr
 ^^^^^^^^^^
 
 Sticky buffer to match on the whole ICMPv6 header.
+
+icmpv6.mtu
+^^^^^^^^^^
+
+Match on the ICMPv6 MTU optional value. Will not match if the MTU is not
+present.
+
+The format of the keyword::
+
+  icmpv6.mtu:<min>-<max>;
+  icmpv6.mtu:[<|>]<number>;
+  icmpv6.mtu:<value>;
+
+Example rule:
+
+.. container:: example-rule
+
+    alert ip $EXTERNAL_NET any -> $HOME_NET any (:example-rule-emphasis:`icmpv6.mtu:<1280;` sid:1234; rev:5;)
