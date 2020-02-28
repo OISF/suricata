@@ -117,6 +117,8 @@
 #define ICMPV6_GET_UNUSED(p)       (p)->icmpv6h->icmpv6b.icmpv6e.unused
 /** macro for icmpv6 "error_ptr" access */
 #define ICMPV6_GET_ERROR_PTR(p)    (p)->icmpv6h->icmpv6b.icmpv6e.error_ptr
+/** macro for icmpv6 "mtu" accessibility */
+#define ICMPV6_HAS_MTU(p)          ((p)->icmpv6h->type == ICMP6_PACKET_TOO_BIG)
 /** macro for icmpv6 "mtu" access */
 #define ICMPV6_GET_MTU(p)          SCNtohl((p)->icmpv6h->icmpv6b.icmpv6e.mtu)
 
