@@ -13,6 +13,10 @@ int main(int argc, char** argv)
     if (argc != 2) {
         return 1;
     }
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    while (__AFL_LOOP(1000)) {
+#endif /* AFLFUZZ_PERSISTANT_MODE */
+
     //opens the file, get its size, and reads it into a buffer
     fp = fopen(argv[1], "rb");
     if (fp == NULL) {
@@ -46,6 +50,10 @@ int main(int argc, char** argv)
     LLVMFuzzerTestOneInput(data, size);
     free(data);
     fclose(fp);
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    }
+#endif /* AFLFUZZ_PERSISTANT_MODE */
+
     return 0;
 }
 
