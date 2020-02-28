@@ -740,6 +740,12 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 */
     memset(&ts, 0, sizeof(ts));
 
+    /* don't start our activities until time is setup */
+    while (!TimeModeIsReady()) {
+        if (suricata_ctl_flags != 0)
+            return TM_ECODE_OK;
+    }
+
     while (1)
     {
         if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
