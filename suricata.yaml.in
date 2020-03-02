@@ -89,6 +89,7 @@ outputs:
       #facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
+      #log-ethernet: yes  # log ethernet header in events when available
       #redis:
       #  server: 127.0.0.1
       #  port: 6379
@@ -104,6 +105,7 @@ outputs:
       #  pipelining:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
+      
 
       # Include top level metadata. Default yes.
       #metadata: no

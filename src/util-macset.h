@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,17 +18,23 @@
 /**
  * \file
  *
- * \author Tom DeCanio <td@npulsetech.com>
+ * \author Sascha Steinbiss <sascha.steinbiss@dcso.de>
  */
 
-#ifndef __OUTPUT_JSON_FILE_H__
-#define __OUTPUT_JSON_FILE_H__
+#ifndef __MACSET_H__
+#define __MACSET_H__
 
-#include "app-layer-htp-xff.h"
+#include <stdint.h>
 
-void JsonFileLogRegister(void);
-json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
-        const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg,
-        uint8_t options_flags);
+typedef struct MacSet_ MacSet;
 
-#endif /* __OUTPUT_JSON_FILE_H__ */
+typedef int (*MacSetIteratorFunc)(uint8_t *addr, int direction, void*);
+
+MacSet*       MacSetInit(int size);
+int           MacSetAdd(MacSet*, uint8_t *addr, int direction);
+int           MacSetForEach(MacSet*, MacSetIteratorFunc, void*);
+unsigned long MacSetSize(MacSet*);
+void          MacSetReset(MacSet*);
+void          MacSetFree(MacSet*);
+
+#endif /* __MACSET_H__ */

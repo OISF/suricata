@@ -62,6 +62,23 @@ typedef struct JsonFlowLogThread_ {
     MemBuffer *buffer;
 } JsonFlowLogThread;
 
+typedef struct JSONMACAddrInfo {
+    json_t *src, *dst;
+} JSONMACAddrInfo;
+
+static int JSONFlowAddMACAddrs(uint8_t *val, int direction, void *data) {
+    JSONMACAddrInfo *info = (JSONMACAddrInfo*) data;
+    char eth_addr[19];
+    snprintf(eth_addr, 19, "%02x:%02x:%02x:%02x:%02x:%02x",
+             val[0], val[1], val[2], val[3], val[4], val[5]);
+    if (direction == TOSERVER) {
+        json_array_append_new(info->dst, json_string(eth_addr));
+    } else {
+        json_array_append_new(info->src, json_string(eth_addr));
+    }
+    return 0;
+}
+
 static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
 {
     char timebuf[64];
@@ -117,6 +134,19 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
     if (sensor_id >= 0)
         json_object_set_new(js, "sensor_id", json_integer(sensor_id));
 #endif
+
+    if (f->macset && MacSetSize(f->macset) > 0) {
+        JSONMACAddrInfo info;
+        json_t *ejs = json_object();
+        if (ejs != NULL) {
+            info.dst = json_array();
+            info.src = json_array();
+            (void) MacSetForEach(f->macset, JSONFlowAddMACAddrs, &info);
+            json_object_set_new(ejs, "dst_macs", info.dst);
+            json_object_set_new(ejs, "src_macs", info.src);
+            json_object_set_new(js, "ether", ejs);
+        }
+    }
 
     /* input interface */
     if (f->livedev) {

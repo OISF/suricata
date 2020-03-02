@@ -86,7 +86,8 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCEnter();
     JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
 
-    json_t *js = CreateJSONHeaderWithTxId(p, LOG_DIR_FLOW, "smtp", tx_id);
+    json_t *js = CreateJSONHeaderWithTxId(p, LOG_DIR_FLOW, "smtp",
+                                          jhl->emaillog_ctx->file_ctx->options_flags, tx_id);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 

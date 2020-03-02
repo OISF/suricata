@@ -66,7 +66,8 @@ static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
     LogKRB5LogThread *thread = thread_data;
     json_t *js, *krb5js;
 
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "krb5");
+    js = CreateJSONHeader(p, LOG_DIR_PACKET, "krb5",
+                          thread->krb5log_ctx->file_ctx->options_flags);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }

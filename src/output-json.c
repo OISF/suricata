@@ -708,7 +708,7 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
 }
 
 json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
-                         const char *event_type)
+                         const char *event_type, uint8_t options_flags)
 {
     char timebuf[64];
     const Flow *f = (const Flow *)p->flow;
@@ -723,6 +723,41 @@ json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
     json_object_set_new(js, "timestamp", json_string(timebuf));
 
     CreateJSONFlowId(js, f);
+
+    if (p->ethh && (options_flags & LOGFILE_LOG_ETHERNET)) {
+        json_t *ejs = json_object();
+        if (ejs != NULL) {
+            char eth_addr[19];
+            uint8_t *src, *dst;
+
+            if ((PKT_IS_TOCLIENT(p))) {
+                src = p->ethh->eth_dst;
+                dst = p->ethh->eth_src;
+            } else {
+                src = p->ethh->eth_src;
+                dst = p->ethh->eth_dst;
+            }
+
+            json_object_set_new(ejs, "type", json_integer(ntohs(p->ethh->eth_type)));
+            snprintf(eth_addr, 19, "%02x:%02x:%02x:%02x:%02x:%02x",
+                    src[0],
+                    src[1],
+                    src[2],
+                    src[3],
+                    src[4],
+                    src[5]);
+            json_object_set_new(ejs, "src_mac", json_string(eth_addr));
+            snprintf(eth_addr, 19, "%02x:%02x:%02x:%02x:%02x:%02x",
+                    dst[0],
+                    dst[1],
+                    dst[2],
+                    dst[3],
+                    dst[4],
+                    dst[5]);
+            json_object_set_new(ejs, "dst_mac", json_string(eth_addr));
+            json_object_set_new(js, "ether", ejs);
+        }
+    }
 
     /* sensor id */
     if (sensor_id >= 0)
@@ -781,9 +816,10 @@ json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
 }
 
 json_t *CreateJSONHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
-                                 const char *event_type, uint64_t tx_id)
+                                 const char *event_type, uint8_t options_flags,
+                                 uint64_t tx_id)
 {
-    json_t *js = CreateJSONHeader(p, dir, event_type);
+    json_t *js = CreateJSONHeader(p, dir, event_type, options_flags);
     if (unlikely(js == NULL))
         return NULL;
 
@@ -1057,6 +1093,11 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->file_ctx->is_pcap_offline =
                 (RunmodeGetCurrent() == RUNMODE_PCAP_FILE ||
                  RunmodeGetCurrent() == RUNMODE_UNIX_SOCKET);
+        }
+
+        const char *v = ConfNodeLookupChildValue(conf, "log-ethernet");
+        if (v != NULL && ConfValIsTrue(v)) {
+            json_ctx->file_ctx->options_flags |= LOGFILE_LOG_ETHERNET;
         }
 
         json_ctx->file_ctx->type = json_ctx->json_out;

@@ -65,7 +65,8 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
     LogDHCPLogThread *thread = thread_data;
     LogDHCPFileCtx *ctx = thread->dhcplog_ctx;
 
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "dhcp");
+    json_t *js = CreateJSONHeader((Packet *)p, 0, "dhcp",
+                                  thread->dhcplog_ctx->file_ctx->options_flags);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }

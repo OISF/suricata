@@ -159,7 +159,7 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
     LogFTPLogThread *thread = thread_data;
     LogFTPFileCtx *ftp_ctx = thread->ftplog_ctx;
 
-    json_t *js = CreateJSONHeaderWithTxId(p, LOG_DIR_FLOW, event_type, tx_id);
+    json_t *js = CreateJSONHeaderWithTxId(p, LOG_DIR_FLOW, event_type, thread->ftplog_ctx->file_ctx->options_flags, tx_id);
     if (likely(js)) {
         JsonAddCommonOptions(&ftp_ctx->cfg, p, f, js);
         json_t *cjs = NULL;

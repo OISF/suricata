@@ -401,7 +401,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
         return TM_ECODE_OK;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "alert");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "alert",
+                                  json_output_ctx->file_ctx->options_flags);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
@@ -602,7 +603,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags &
             LOG_JSON_TAGGED_PACKETS)) {
         MemBufferReset(aft->json_buffer);
-        json_t *packetjs = CreateJSONHeader(p, LOG_DIR_PACKET, "packet");
+        json_t *packetjs = CreateJSONHeader(p, LOG_DIR_PACKET, "packet",
+                                            json_output_ctx->file_ctx->options_flags);
         if (unlikely(packetjs != NULL)) {
             JsonPacket(p, packetjs, 0);
             OutputJSONBuffer(packetjs, aft->file_ctx, &aft->json_buffer);

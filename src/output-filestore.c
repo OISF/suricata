@@ -170,7 +170,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
                 "Failed to write file info record. Output filename truncated.");
         } else {
             json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, dir,
-                    ctx->xff_cfg);
+                    ctx->xff_cfg, 0);
             if (likely(js_fileinfo != NULL)) {
                 json_dump_file(js_fileinfo, js_metadata_filename, 0);
                 json_decref(js_fileinfo);

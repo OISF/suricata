@@ -81,7 +81,8 @@ typedef struct JsonFileLogThread_ {
 } JsonFileLogThread;
 
 json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
-        const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg)
+        const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg,
+        uint8_t flags)
 {
     json_t *hjs = NULL;
     enum OutputJsonLogDirection fdir = LOG_DIR_FLOW;
@@ -98,7 +99,7 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             break;
     }
 
-    json_t *js = CreateJSONHeader(p, fdir, "fileinfo");
+    json_t *js = CreateJSONHeader(p, fdir, "fileinfo", flags);
     if (unlikely(js == NULL))
         return NULL;
 
@@ -258,7 +259,8 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p,
     HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ?
         aft->filelog_ctx->xff_cfg : aft->filelog_ctx->parent_xff_cfg;;
     json_t *js = JsonBuildFileInfoRecord(p, ff,
-            ff->flags & FILE_STORED ? true : false, dir, xff_cfg);
+            ff->flags & FILE_STORED ? true : false, dir, xff_cfg,
+            aft->filelog_ctx->file_ctx->options_flags);
     if (unlikely(js == NULL)) {
         return;
     }

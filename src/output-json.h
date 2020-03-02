@@ -56,9 +56,9 @@ void JsonTcpFlags(uint8_t flags, json_t *js);
 void JsonPacket(const Packet *p, json_t *js, unsigned long max_length);
 void JsonFiveTuple(const Packet *, enum OutputJsonLogDirection, json_t *);
 json_t *CreateJSONHeader(const Packet *p,
-        enum OutputJsonLogDirection dir, const char *event_type);
+        enum OutputJsonLogDirection dir, const char *event_type, uint8_t options_flags);
 json_t *CreateJSONHeaderWithTxId(const Packet *p,
-        enum OutputJsonLogDirection dir, const char *event_type, uint64_t tx_id);
+        enum OutputJsonLogDirection dir, const char *event_type, uint8_t options_flags, uint64_t tx_id);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputInitResult OutputJsonInitCtx(ConfNode *);
 
