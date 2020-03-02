@@ -92,6 +92,7 @@
 #include "util-pool.h"
 #include "util-byte.h"
 #include "util-proto-name.h"
+#include "util-macset.h"
 #include "util-memrchr.h"
 
 #include "util-mpm-ac.h"
@@ -198,6 +199,7 @@ static void RegisterUnittests(void)
     AppLayerUnittestsRegister();
     MimeDecRegisterTests();
     StreamingBufferRegisterTests();
+    MacSetRegisterTests();
 #ifdef OS_WIN32
     Win32SyscallRegisterTests();
 #endif

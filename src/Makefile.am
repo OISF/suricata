@@ -505,6 +505,7 @@ util-lua-tls.c util-lua-tls.h \
 util-lua-ssh.c util-lua-ssh.h \
 util-lua-hassh.c util-lua-hassh.h \
 util-lua-smtp.c util-lua-smtp.h \
+util-macset.c util-macset.h \
 util-magic.c util-magic.h \
 util-memcmp.c util-memcmp.h \
 util-memcpy.h \
