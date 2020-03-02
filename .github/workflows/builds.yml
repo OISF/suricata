@@ -162,7 +162,7 @@ jobs:
     needs: centos-8
     steps:
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.34.2 -y
       - run: echo "::add-path::$HOME/.cargo/bin"
       - name: Install system dependencies
         run: |
@@ -366,7 +366,7 @@ jobs:
                 zlib1g \
                 zlib1g-dev
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.34.2 -y
       - run: echo "::add-path::$HOME/.cargo/bin"
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v1
@@ -502,7 +502,7 @@ jobs:
                 zlib1g \
                 zlib1g-dev
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.34.2 -y
       - run: echo "::add-path::$HOME/.cargo/bin"
       - name: Install cbindgen
         run: cargo install --force cbindgen

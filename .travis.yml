@@ -81,7 +81,7 @@ env:
     # The version of Rust that will be used if not otherwise set.
     - RUST_VERSION="stable"
     # The minimum version of Rust supported.
-    - RUST_VERSION_MIN="1.33.0"
+    - RUST_VERSION_MIN="1.34.2"
     # A known recent working version of stable Rust
     - RUST_VERSION_KNOWN="1.37.0"
 
