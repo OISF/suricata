@@ -452,6 +452,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
             f->flags &= ~FLOW_PROTO_DETECT_TS_DONE;
             p->flags |= PKT_PROTO_DETECT_TS_DONE;
         }
+        if (f->macset != NULL && p->ethh != NULL)
+            MacSetAdd(f->macset, p->ethh->eth_src, p->ethh->eth_dst);
     } else {
         f->tosrcpktcnt++;
         f->tosrcbytecnt += GET_PKT_LEN(p);
@@ -467,6 +469,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
             f->flags &= ~FLOW_PROTO_DETECT_TC_DONE;
             p->flags |= PKT_PROTO_DETECT_TC_DONE;
         }
+        if (f->macset != NULL && p->ethh != NULL)
+            MacSetAdd(f->macset, p->ethh->eth_dst, p->ethh->eth_src);
     }
 
     if (SC_ATOMIC_GET(f->flow_state) == FLOW_STATE_ESTABLISHED) {

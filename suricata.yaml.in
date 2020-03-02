@@ -89,6 +89,7 @@ outputs:
       #facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
+      #ethernet: yes  # log ethernet header in events when available
       #redis:
       #  server: 127.0.0.1
       #  port: 6379

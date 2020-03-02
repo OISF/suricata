@@ -201,6 +201,12 @@ void FlowInit(Flow *f, const Packet *p)
 
     f->protomap = FlowGetProtoMapping(f->proto);
 
+    if (f->macset != NULL) {
+        MacSetReset(f->macset);
+    } else {
+        f->macset = MacSetInit(10);
+    }
+
     SCReturn;
 }
 
