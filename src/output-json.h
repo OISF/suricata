@@ -55,6 +55,7 @@ void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
 void JsonPacket(const Packet *p, json_t *js, unsigned long max_length);
 void JsonFiveTuple(const Packet *, enum OutputJsonLogDirection, json_t *);
+int CreateJSONEther(json_t *parent, const Packet *p, const Flow *f);
 json_t *CreateJSONHeader(const Packet *p,
         enum OutputJsonLogDirection dir, const char *event_type);
 json_t *CreateJSONHeaderWithTxId(const Packet *p,
@@ -69,6 +70,7 @@ TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
 typedef struct OutputJsonCommonSettings_ {
     bool include_metadata;
     bool include_community_id;
+    bool include_ethernet;
     uint16_t community_id_seed;
 } OutputJsonCommonSettings;
 
