@@ -63,6 +63,7 @@
 
 #include "flow-var.h"
 #include "flow-bit.h"
+#include "flow-storage.h"
 
 #include "source-pcap-file.h"
 
@@ -435,11 +436,18 @@ static void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js)
     }
 }
 
+int CreateJSONEther(JsonBuilder *parent, const Packet *p, const MacSet *ms);
+
 void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
         const Packet *p, const Flow *f, JsonBuilder *js)
 {
     if (cfg->include_metadata) {
         EveAddMetadata(p, f, js);
+    }
+    if (cfg->include_ethernet) {
+        MacSet *ms = FlowGetStorageById((Flow*) f, MacSetGetFlowStorageID());
+        if (ms != NULL)
+            CreateJSONEther(js, p, ms);
     }
     if (cfg->include_community_id && f != NULL) {
         CreateEveCommunityFlowId(js, f, cfg->community_id_seed);
@@ -756,6 +764,80 @@ void CreateEveFlowId(JsonBuilder *js, const Flow *f)
     if (f->parent_id) {
         jb_set_uint(js, "parent_id", f->parent_id);
     }
+}
+
+static inline void JSONFormatAndAddMACAddr(JsonBuilder *js, const char *key,
+                                   uint8_t *val, bool is_array)
+{
+    char eth_addr[19];
+    (void) snprintf(eth_addr, 19, "%02x:%02x:%02x:%02x:%02x:%02x",
+                    val[0], val[1], val[2], val[3], val[4], val[5]);
+    if (is_array) {
+        jb_append_string(js, eth_addr);
+    } else {
+        jb_set_string(js, key, eth_addr);
+    }
+}
+
+/* only required to traverse the MAC address set */
+typedef struct JSONMACAddrInfo {
+    JsonBuilder *src, *dst;
+} JSONMACAddrInfo;
+
+static int MacSetIterateToJSON(uint8_t *val, MacSetSide side, void *data)
+{
+    JSONMACAddrInfo *info = (JSONMACAddrInfo*) data;
+    if (side == MAC_SET_DST) {
+        JSONFormatAndAddMACAddr(info->dst, NULL, val, true);
+    } else {
+        JSONFormatAndAddMACAddr(info->src, NULL, val, true);
+    }
+    return 0;
+}
+
+int CreateJSONEther(JsonBuilder *js, const Packet *p, const MacSet *ms)
+{
+    jb_open_object(js, "ether");
+    if (unlikely(js == NULL))
+        return 0;
+    if (p == NULL) {
+        /* we are creating an ether object in a flow context, so we need to
+           append to arrays */
+        if (MacSetSize(ms) > 0) {
+            JSONMACAddrInfo info;
+            info.dst = jb_new_array();
+            info.src = jb_new_array();
+            int ret = MacSetForEach(ms, MacSetIterateToJSON, &info);
+            if (unlikely(ret != 0)) {
+                /* should not happen, JSONFlowAppendMACAddrs is sane */
+                jb_free(info.dst);
+                jb_free(info.src);
+                return ret;
+            }
+            jb_close(info.dst);
+            jb_close(info.src);
+            jb_set_object(js, "dest_macs", info.dst);
+            jb_set_object(js, "src_macs", info.src);
+            jb_free(info.dst);
+            jb_free(info.src);
+        }
+    } else {
+        /* this is a packet context, so we need to add scalar fields */
+        uint8_t *src, *dst;
+        if (p->ethh != NULL) {
+            if ((PKT_IS_TOCLIENT(p))) {
+                src = p->ethh->eth_dst;
+                dst = p->ethh->eth_src;
+            } else {
+                src = p->ethh->eth_src;
+                dst = p->ethh->eth_dst;
+            }
+            JSONFormatAndAddMACAddr(js, "src_mac", src, false);
+            JSONFormatAndAddMACAddr(js, "dest_mac", dst, false);
+        }
+    }
+    jb_close(js);
+    return 0;
 }
 
 JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
@@ -1103,6 +1185,15 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->cfg.include_metadata = true;
         }
 
+        /* Check if ethernet information should be logged. */
+        const ConfNode *ethernet = ConfNodeLookupChild(conf, "ethernet");
+        if (ethernet && ethernet->val && ConfValIsTrue(ethernet->val)) {
+            SCLogConfig("Enabling Ethernet MAC address logging.");
+            json_ctx->cfg.include_ethernet = true;
+        } else {
+            json_ctx->cfg.include_ethernet = false;
+        }
+
         /* See if we want to enable the community id */
         const ConfNode *community_id = ConfNodeLookupChild(conf, "community-id");
         if (community_id && community_id->val && ConfValIsTrue(community_id->val)) {
@@ -1141,7 +1232,6 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
         json_ctx->file_ctx->type = json_ctx->json_out;
     }
-
 
     SCLogDebug("returning output_ctx %p", output_ctx);
 

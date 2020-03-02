@@ -115,6 +115,12 @@
         (f)->sgh_toclient = NULL; \
         GenericVarFree((f)->flowvar); \
         (f)->flowvar = NULL; \
+        if (MacSetFlowStorageEnabled()) { \
+            MacSet *ms = FlowGetStorageById((f), MacSetGetFlowStorageID()); \
+            if (ms != NULL) { \
+                MacSetReset(ms); \
+            } \
+        } \
         RESET_COUNTERS((f)); \
     } while(0)
 

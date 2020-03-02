@@ -631,6 +631,8 @@ typedef struct DecodeThreadVars_
     uint16_t counter_bytes;
     uint16_t counter_avg_pkt_size;
     uint16_t counter_max_pkt_size;
+    uint16_t counter_max_mac_addrs_src;
+    uint16_t counter_max_mac_addrs_dst;
 
     uint16_t counter_invalid;
 
