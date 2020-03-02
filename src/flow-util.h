@@ -73,6 +73,7 @@
         (f)->hprev = NULL; \
         (f)->lnext = NULL; \
         (f)->lprev = NULL; \
+        (f)->macset = NULL; \
         RESET_COUNTERS((f)); \
     } while (0)
 
@@ -115,6 +116,7 @@
         (f)->sgh_toclient = NULL; \
         GenericVarFree((f)->flowvar); \
         (f)->flowvar = NULL; \
+        MacSetReset((f)->macset); \
         RESET_COUNTERS((f)); \
     } while(0)
 
@@ -125,6 +127,7 @@
         \
         FLOWLOCK_DESTROY((f)); \
         GenericVarFree((f)->flowvar); \
+        MacSetFree((f)->macset); \
     } while(0)
 
 /** \brief check if a memory alloc would fit in the memcap

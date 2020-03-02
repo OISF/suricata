@@ -113,7 +113,7 @@ typedef struct LogFileCtx_ {
     uint8_t send_flags;
 
     /* Flag if file is a regular file or not.  Only regular files
-     * allow for rotataion. */
+     * allow for rotation. */
     uint8_t is_regular;
 
     /* JSON flags */
