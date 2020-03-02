@@ -29,6 +29,7 @@
 #include "util-atomic.h"
 #include "util-device.h"
 #include "detect-tag.h"
+#include "util-macset.h"
 #include "util-optimize.h"
 
 /* Part of the flow structure, so we declare it here.
@@ -475,6 +476,8 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
+
+    MacSet *macset;
 } Flow;
 
 enum FlowState {
