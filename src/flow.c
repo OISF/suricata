@@ -401,16 +401,37 @@ static inline void FlowUpdateTTL(Flow *f, Packet *p, uint8_t ttl)
     }
 }
 
+static inline void FlowUpdateEthernet(ThreadVars *tv, DecodeThreadVars *dtv,
+                                      Flow *f, EthernetHdr *ethh, bool toserver)
+{
+    if (ethh && MacSetFlowStorageEnabled()) {
+        MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
+        if (ms != NULL) {
+            if (toserver) {
+                MacSetAddWithCtr(ms, ethh->eth_src, ethh->eth_dst, tv,
+                                 dtv->counter_max_mac_addrs_src,
+                                 dtv->counter_max_mac_addrs_dst);
+            } else {
+                MacSetAddWithCtr(ms, ethh->eth_dst, ethh->eth_src, tv,
+                                 dtv->counter_max_mac_addrs_dst,
+                                 dtv->counter_max_mac_addrs_src);
+            }
+        }
+    }
+}
+
 /** \brief Update Packet and Flow
  *
  *  Updates packet and flow based on the new packet.
  *
+ *  \param tv threadvars
+ *  \param dtv decode thread vars (for flow output api thread data)
  *  \param f locked flow
  *  \param p packet
  *
  *  \note overwrites p::flowflags
  */
-void FlowHandlePacketUpdate(Flow *f, Packet *p)
+void FlowHandlePacketUpdate(ThreadVars *tv, DecodeThreadVars *dtv, Flow *f, Packet *p)
 {
     SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
 
@@ -453,6 +474,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
             f->flags &= ~FLOW_PROTO_DETECT_TS_DONE;
             p->flags |= PKT_PROTO_DETECT_TS_DONE;
         }
+        FlowUpdateEthernet(tv, dtv, f, p->ethh, true);
     } else {
         f->tosrcpktcnt++;
         f->tosrcbytecnt += GET_PKT_LEN(p);
@@ -468,6 +490,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
             f->flags &= ~FLOW_PROTO_DETECT_TC_DONE;
             p->flags |= PKT_PROTO_DETECT_TC_DONE;
         }
+        FlowUpdateEthernet(tv, dtv, f, p->ethh, false);
     }
 
     if (SC_ATOMIC_GET(f->flow_state) == FLOW_STATE_ESTABLISHED) {
@@ -493,7 +516,6 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
     }
-
 
     /* update flow's ttl fields if needed */
     if (PKT_IS_IPV4(p)) {
