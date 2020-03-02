@@ -75,7 +75,7 @@ typedef struct FlowWorkerThreadData_ {
  */
 static inline TmEcode FlowUpdate(ThreadVars *tv, FlowWorkerThreadData *fw, Packet *p)
 {
-    FlowHandlePacketUpdate(p->flow, p);
+    FlowHandlePacketUpdate(p->flow, p, tv, fw->dtv);
 
     int state = SC_ATOMIC_GET(p->flow->flow_state);
     switch (state) {

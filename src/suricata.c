@@ -2454,6 +2454,9 @@ int PostConfLoadedSetup(SCInstance *suri)
     LiveDevRegisterExtension();
 #endif
     RegisterFlowBypassInfo();
+
+    MacSetRegisterFlowStorage();
+
     AppLayerSetup();
 
     /* Suricata will use this umask if provided. By default it will use the

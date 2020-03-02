@@ -29,6 +29,7 @@
 #include "util-atomic.h"
 #include "util-device.h"
 #include "detect-tag.h"
+#include "util-macset.h"
 #include "util-optimize.h"
 
 /* Part of the flow structure, so we declare it here.
@@ -658,6 +659,6 @@ AppProto FlowGetAppProtocol(const Flow *f);
 void *FlowGetAppState(const Flow *f);
 uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 
-void FlowHandlePacketUpdate(Flow *f, Packet *p);
+void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars *dtv);
 
 #endif /* __FLOW_H__ */

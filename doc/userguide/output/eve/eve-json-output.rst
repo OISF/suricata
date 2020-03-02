@@ -14,6 +14,9 @@ where all these logs go into a single file.
 Each alert, http log, etc will go into this one file: 'eve.json'. This file
 can then be processed by 3rd party tools like Logstash (ELK) or jq.
 
+If ``ethernet`` is set to yes, then ethernet headers will be added to events
+if available.
+
 Output types
 ~~~~~~~~~~~~
 
@@ -30,6 +33,7 @@ Output types::
       #facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
+      #ethernet: no # log ethernet header in events when available
       #redis:
       #  server: 127.0.0.1
       #  port: 6379

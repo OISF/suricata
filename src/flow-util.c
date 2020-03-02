@@ -201,6 +201,16 @@ void FlowInit(Flow *f, const Packet *p)
 
     f->protomap = FlowGetProtoMapping(f->proto);
 
+    if (MacSetFlowStorageEnabled()) {
+        MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
+        if (ms != NULL) {
+            MacSetReset(ms);
+        } else {
+            ms = MacSetInit(10);
+            FlowSetStorageById(f, MacSetGetFlowStorageID(), ms);
+        }
+    }
+
     SCReturn;
 }
 

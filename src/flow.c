@@ -410,7 +410,7 @@ static inline void FlowUpdateTTL(Flow *f, Packet *p, uint8_t ttl)
  *
  *  \note overwrites p::flowflags
  */
-void FlowHandlePacketUpdate(Flow *f, Packet *p)
+void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars *dtv)
 {
     SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
 
@@ -453,6 +453,14 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
             f->flags &= ~FLOW_PROTO_DETECT_TS_DONE;
             p->flags |= PKT_PROTO_DETECT_TS_DONE;
         }
+        if (MacSetFlowStorageEnabled()) {
+            MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
+            if (ms != NULL && p->ethh != NULL) {
+                MacSetAddWithCtr(ms, p->ethh->eth_src, p->ethh->eth_dst, tv,
+                                dtv->counter_max_mac_addrs_src,
+                                dtv->counter_max_mac_addrs_dst);
+            }
+        }
     } else {
         f->tosrcpktcnt++;
         f->tosrcbytecnt += GET_PKT_LEN(p);
@@ -467,6 +475,15 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
         if (f->flags & FLOW_PROTO_DETECT_TC_DONE) {
             f->flags &= ~FLOW_PROTO_DETECT_TC_DONE;
             p->flags |= PKT_PROTO_DETECT_TC_DONE;
+        }
+        if (MacSetFlowStorageEnabled()) {
+            MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
+            SCLogNotice("macset:::(%d) %p", MacSetGetFlowStorageID(), ms);
+            if (ms != NULL && p->ethh != NULL) {
+                MacSetAddWithCtr(ms, p->ethh->eth_dst, p->ethh->eth_src, tv,
+                                dtv->counter_max_mac_addrs_dst,
+                                dtv->counter_max_mac_addrs_src);
+            }
         }
     }
 
@@ -493,7 +510,6 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
     }
-
 
     /* update flow's ttl fields if needed */
     if (PKT_IS_IPV4(p)) {
