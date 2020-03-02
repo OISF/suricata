@@ -1189,7 +1189,9 @@ static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
     }
 }
 
-static inline void DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
+/** \brief decode network layer
+ *  \retval bool true if successful, false if unknown */
+static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
         const uint16_t proto, Packet *p, const uint8_t *data, const uint32_t len)
 {
     switch (proto) {
@@ -1235,10 +1237,10 @@ static inline void DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             }
             break;
         default:
-            SCLogDebug("unknown ether type: %" PRIx32 "", proto);
-            ENGINE_SET_INVALID_EVENT(p, VLAN_UNKNOWN_TYPE); // TODO
-            break;
+            SCLogDebug("unknown ether type: %" PRIx16 "", proto);
+            return false;
     }
+    return true;
 }
 
 #endif /* __DECODE_H__ */
