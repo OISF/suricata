@@ -34,4 +34,5 @@ typedef struct ErspanHdr_ {
     uint32_t padding;
 } __attribute__((__packed__)) ErspanHdr;
 
+void DecodeERSPANConfig(void);
 #endif /* __DECODE_ERSPAN_H__ */
