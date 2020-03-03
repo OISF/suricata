@@ -1338,6 +1338,10 @@ decoder:
   vxlan:
     enabled: true
     ports: $VXLAN_PORTS # syntax: '8472, 4789'
+  # ERSPAN Type I decode support
+  erspan:
+    typeI:
+      enabled: false
 
 
 ##
