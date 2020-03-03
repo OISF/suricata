@@ -231,7 +231,7 @@ Now that ntservice is running we need to execute a few NTPL (Napatech Programmin
 commands to complete the setup. Create a file will the following commands::
 
 	Delete=All				# Delete any existing filters
-	Assign[streamid=(0..3)]= all	# Assign all phisical ports to stream ID 0
+	Assign[streamid=(0..3)]= all	# Assign all physical ports to stream ID 0
 
 Next execute those command using the ntpl tool::
 
