@@ -1,0 +1,27 @@
+.example-rule {
+    padding: 12px 12px;
+    font-family: Consolas,"Andale Mono WT","Andale Mono","Lucida Console","Lucida Sans Typewriter","DejaVu Sans Mono","Bitstream Vera Sans Mono","Liberation Mono","Nimbus Mono L",Monaco,"Courier New",Courier,monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    display: block;
+    overflow: auto;
+    color: #404040;
+
+    border: 1px solid #e1e4e5;
+    background: #fff;
+    margin: 1px 0 24px 0;
+}
+.example-rule-emphasis {
+    color: #f00;
+    font-weight: bold;
+}
+
+.example-rule-action {
+    color: #f00;
+}
+.example-rule-header {
+    color: #090;
+}
+.example-rule-options {
+    color: #00f;
+}
