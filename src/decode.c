@@ -732,6 +732,7 @@ void DecodeGlobalConfig(void)
 {
     DecodeTeredoConfig();
     DecodeVXLANConfig();
+    DecodeERSPANConfig();
 }
 
 /**

@@ -43,12 +43,25 @@
  * \brief Functions to decode ERSPAN Type I and II packets
  */
 
+bool g_erspan_typeI_enabled = false;
+
+void DecodeERSPANConfig(void)
+{
+    int enabled = 0;
+    if (ConfGetBool("decoder.erspan_typeI.enabled", &enabled) == 1) {
+        g_erspan_typeI_enabled = enabled == 1;
+    }
+}
+
 /**
  * \brief ERSPAN Type I
  */
 int DecodeERSPANTypeI(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                       const uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
+    if (unlikely(!g_erspan_typeI_enabled))
+            return TM_ECODE_FAILED;
+
     StatsIncr(tv, dtv->counter_erspan);
 
     return DecodeEthernet(tv, dtv, p, pkt, len, pq);
