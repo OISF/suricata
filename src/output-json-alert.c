@@ -531,11 +531,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     }
                     break;
                 case ALPROTO_SIP:
-                    hjs = JsonSIPAddMetadata(p->flow, pa->tx_id);
-                    if (hjs) {
-                        jb_set_jsont(jb, "sip", hjs);
-                        json_decref(hjs);
-                    }
+                    JsonSIPAddMetadata(jb, p->flow, pa->tx_id);
                     break;
                 case ALPROTO_RFB:
                     hjs = JsonRFBAddMetadata(p->flow, pa->tx_id);
