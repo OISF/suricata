@@ -71,7 +71,10 @@ documentation_style = "doxy"
 # found but otherwise don't appear to be used by the public API.
 #
 # default: []
-include = ["AppLayerGetTxIterTuple"]
+include = [
+    "AppLayerGetTxIterTuple",
+    "SIPState",
+]
 
 # A list of items to not include in the generated bindings
 # default: []
