@@ -95,6 +95,8 @@ void SCJsonDecref(json_t *js);
 
 void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
         const Packet *p, const Flow *f, json_t *js);
+void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
+        const Packet *p, const Flow *f, JsonBuilder *js);
 
 JsonBuilder *EveOpenHeader(const Packet *p, enum OutputJsonLogDirection dir,
     const char *event_type);
