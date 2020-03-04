@@ -289,7 +289,7 @@ static void DetectThresholdFree(void *de_ptr)
 /**
  * \test ThresholdTestParse01 is a test for a valid threshold options
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int ThresholdTestParse01(void)
@@ -307,7 +307,7 @@ static int ThresholdTestParse01(void)
 /**
  * \test ThresholdTestParse02 is a test for a invalid threshold options
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int ThresholdTestParse02(void)
@@ -325,7 +325,7 @@ static int ThresholdTestParse02(void)
 /**
  * \test ThresholdTestParse03 is a test for a valid threshold options in any order
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int ThresholdTestParse03(void)
@@ -344,7 +344,7 @@ static int ThresholdTestParse03(void)
 /**
  * \test ThresholdTestParse04 is a test for an invalid threshold options in any order
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int ThresholdTestParse04(void)
@@ -362,7 +362,7 @@ static int ThresholdTestParse04(void)
 /**
  * \test ThresholdTestParse05 is a test for a valid threshold options in any order
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int ThresholdTestParse05(void)
@@ -383,7 +383,7 @@ static int ThresholdTestParse05(void)
  *       by setting up the signature and later testing its working by matching
  *       the received packet against the sig.
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -487,7 +487,7 @@ end:
  *       by setting up the signature and later testing its working by matching
  *       the received packet against the sig.
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -565,7 +565,7 @@ end:
  *       by setting up the signature and later testing its working by matching
  *       the received packet against the sig.
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -670,7 +670,7 @@ end:
  *       by setting up the signature and later testing its working by matching
  *       the received packet against the sig.
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -748,7 +748,7 @@ end:
  *       by setting up the signature and later testing its working by matching
  *       the received packet against the sig.
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
