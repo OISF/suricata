@@ -18,7 +18,41 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::json::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::sip::sip::{SIPState, SIPTransaction};
+
+fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    js.open_object("dhcp")?;
+
+    if let Some(req) = &tx.request {
+        js.set_string("method", &req.method)?
+            .set_string("uri", &req.path)?
+            .set_string("version", &req.version)?;
+    }
+
+    if let Some(req_line) = &tx.request_line {
+        js.set_string("request_line", &req_line)?;
+    }
+
+    if let Some(resp) = &tx.response {
+        js.set_string("version", &resp.version)?
+            .set_string("code", &resp.code)?
+            .set_string("reason", &resp.reason)?;
+    }
+
+    if let Some(resp_line) = &tx.response_line {
+        js.set_string("response_line", &resp_line)?;
+    }
+
+    js.close()?;
+
+    Ok(())
+}
+
+#[no_mangle]
+pub extern "C" fn rs_sip_log_json_new(tx: &mut SIPTransaction, js: &mut JsonBuilder) -> bool {
+    log(tx, js).is_ok()
+}
 
 #[no_mangle]
 pub extern "C" fn rs_sip_log_json(_state: &mut SIPState, tx: &mut SIPTransaction) -> *mut JsonT {

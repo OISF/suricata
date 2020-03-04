@@ -77,29 +77,27 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
 {
     SIPTransaction *siptx = tx;
     LogSIPLogThread *thread = thread_data;
-    json_t *js, *sipjs;
 
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "sip");
+    JsonBuilder *js = EveOpenHeader((Packet *)p, LOG_DIR_PACKET, "sip");
     if (unlikely(js == NULL)) {
-        return TM_ECODE_FAILED;
+        return TM_ECODE_OK;
+    }
+    EveAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js);
+
+    if (!rs_sip_log_json_new(siptx, js)) {
+        goto error;
+    }
+    if (!jb_close(js)) {
+        goto error;
     }
 
-    JsonAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js);
+    OutputSCJSONBuffer(js, thread->siplog_ctx->file_ctx, &thread->buffer);
+    jb_free(js);
 
-    sipjs = rs_sip_log_json(state, siptx);
-    if (unlikely(sipjs == NULL)) {
-      goto error;
-    }
-    json_object_set_new(js, "sip", sipjs);
-
-    MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->siplog_ctx->file_ctx, &thread->buffer);
-
-    json_decref(js);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(js);
     return TM_ECODE_FAILED;
 }
 
