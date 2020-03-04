@@ -41,16 +41,6 @@
     case "$compiler" in
         clang)
             CLANG_CFLAGS="-Wextra -Werror-implicit-function-declaration -Wno-error=unused-command-line-argument"
-            AC_MSG_CHECKING([clang __sync_bool_compare_and_swap support])
-            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdio.h>]],
-                [[ unsigned int i = 0; (void)__sync_bool_compare_and_swap(&i, 1, 1);]])],
-                [
-                    AC_DEFINE([__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1], [1], [Fake GCC atomic support])
-                    AC_DEFINE([__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2], [1], [Fake GCC atomic support])
-                    AC_DEFINE([__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4], [1], [Fake GCC atomic support])
-                    AC_DEFINE([__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8], [1], [Fake GCC atomic support])
-                    AC_MSG_RESULT([yes])],
-                [AC_MSG_RESULT([no])])
             AC_SUBST(CLANG_CFLAGS)
             ;;
         gcc)
