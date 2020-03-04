@@ -108,7 +108,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
                     ((uint8_t *)p->ip6h + (ptrdiff_t)hlen),
                     ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)),
                     IPV6_GET_EXTHDRS_LEN(p));
-            return NULL;
+            SCReturnPtr(NULL, "InspectionBuffer");
         }
 
         const uint32_t data_len = hlen;
@@ -118,7 +118,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
-    return buffer;
+    SCReturnPtr(buffer, "InspectionBuffer");
 }
 
 #ifdef UNITTESTS
