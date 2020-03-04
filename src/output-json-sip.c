@@ -59,17 +59,15 @@ typedef struct LogSIPLogThread_ {
     MemBuffer          *buffer;
 } LogSIPLogThread;
 
-json_t *JsonSIPAddMetadata(const Flow *f, uint64_t tx_id)
+void JsonSIPAddMetadata(JsonBuilder *js, const Flow *f, uint64_t tx_id)
 {
     SIPState *state = FlowGetAppState(f);
     if (state) {
         SIPTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_SIP, state, tx_id);
         if (tx) {
-            return rs_sip_log_json(state, tx);
+            rs_sip_log_json(tx, js);
         }
     }
-
-    return NULL;
 }
 
 static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
@@ -77,29 +75,28 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
 {
     SIPTransaction *siptx = tx;
     LogSIPLogThread *thread = thread_data;
-    json_t *js, *sipjs;
 
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "sip", NULL);
+    JsonBuilder *js = CreateEveHeader((Packet *)p, LOG_DIR_PACKET, "sip", NULL);
     if (unlikely(js == NULL)) {
-        return TM_ECODE_FAILED;
+        return TM_ECODE_OK;
     }
+    EveAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js);
 
-    JsonAddCommonOptions(&thread->siplog_ctx->cfg, p, f, js);
-
-    sipjs = rs_sip_log_json(state, siptx);
-    if (unlikely(sipjs == NULL)) {
-      goto error;
+    if (!rs_sip_log_json(siptx, js)) {
+        goto error;
     }
-    json_object_set_new(js, "sip", sipjs);
+    if (!jb_close(js)) {
+        goto error;
+    }
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->siplog_ctx->file_ctx, &thread->buffer);
+    OutputJsonBuilderBuffer(js, thread->siplog_ctx->file_ctx, &thread->buffer);
+    jb_free(js);
 
-    json_decref(js);
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(js);
     return TM_ECODE_FAILED;
 }
 
