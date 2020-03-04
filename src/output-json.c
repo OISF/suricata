@@ -707,8 +707,10 @@ void EveFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, JsonBuilder 
     jb_set_string(js, "proto", proto);
 }
 
-static void CreateJSONCommunityFlowIdv4(json_t *js, const Flow *f,
-        const uint16_t seed)
+#define COMMUNITY_ID_BUF_SIZE 64
+
+static bool CalculateCommunityFlowIdv4(const Flow *f,
+        const uint16_t seed, unsigned char *base64buf)
 {
     struct {
         uint16_t seed;
@@ -748,12 +750,13 @@ static void CreateJSONCommunityFlowIdv4(json_t *js, const Flow *f,
 
     uint8_t hash[20];
     if (ComputeSHA1((const uint8_t *)&ipv4, sizeof(ipv4), hash, sizeof(hash)) == 1) {
-        unsigned char base64buf[64] = "1:";
-        unsigned long out_len = sizeof(base64buf) - 2;
+        strlcpy((char *)base64buf, "1:", COMMUNITY_ID_BUF_SIZE);
+        unsigned long out_len = COMMUNITY_ID_BUF_SIZE - 2;
         if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
-            json_object_set_new(js, "community_id", json_string((const char *)base64buf));
+            return true;
         }
     }
+    return false;
 }
 
 static inline bool FlowHashRawAddressIPv6LtU32(const uint32_t *a, const uint32_t *b)
@@ -768,8 +771,8 @@ static inline bool FlowHashRawAddressIPv6LtU32(const uint32_t *a, const uint32_t
     return false;
 }
 
-static void CreateJSONCommunityFlowIdv6(json_t *js, const Flow *f,
-        const uint16_t seed)
+static bool CalculateCommunityFlowIdv6(const Flow *f,
+        const uint16_t seed, unsigned char *base64buf)
 {
     struct {
         uint16_t seed;
@@ -809,20 +812,27 @@ static void CreateJSONCommunityFlowIdv6(json_t *js, const Flow *f,
 
     uint8_t hash[20];
     if (ComputeSHA1((const uint8_t *)&ipv6, sizeof(ipv6), hash, sizeof(hash)) == 1) {
-        unsigned char base64buf[64] = "1:";
-        unsigned long out_len = sizeof(base64buf) - 2;
+        strlcpy((char *)base64buf, "1:", COMMUNITY_ID_BUF_SIZE);
+        unsigned long out_len = COMMUNITY_ID_BUF_SIZE - 2;
         if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
-            json_object_set_new(js, "community_id", json_string((const char *)base64buf));
+            return true;
         }
     }
+    return false;
 }
 
 static void CreateJSONCommunityFlowId(json_t *js, const Flow *f, const uint16_t seed)
 {
-    if (f->flags & FLOW_IPV4)
-        return CreateJSONCommunityFlowIdv4(js, f, seed);
-    else if (f->flags & FLOW_IPV6)
-        return CreateJSONCommunityFlowIdv6(js, f, seed);
+    unsigned char buf[COMMUNITY_ID_BUF_SIZE];
+    if (f->flags & FLOW_IPV4) {
+        if (CalculateCommunityFlowIdv4(f, seed, buf)) {
+            json_object_set_new(js, "community_id", json_string((const char *)buf));
+        }
+    } else if (f->flags & FLOW_IPV6) {
+        if (CalculateCommunityFlowIdv6(f, seed, buf)) {
+            json_object_set_new(js, "community_id", json_string((const char *)buf));
+        }
+    }
 }
 
 void CreateJSONFlowId(json_t *js, const Flow *f)
