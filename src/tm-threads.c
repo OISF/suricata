@@ -2216,7 +2216,6 @@ end:
     SCMutexUnlock(&thread_store_lock);
 }
 
-#define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec) // XXX unify with flow-util.h
 void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts)
 {
     SCMutexLock(&thread_store_lock);
@@ -2227,7 +2226,7 @@ void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts)
 
     int idx = id - 1;
     Thread *t = &thread_store.threads[idx];
-    COPY_TIMESTAMP(ts, &t->pktts);
+    t->pktts = *ts;
     struct timeval systs;
     gettimeofday(&systs, NULL);
     t->sys_sec_stamp = (uint32_t)systs.tv_sec;
@@ -2260,7 +2259,7 @@ void TmThreadsInitThreadsTimestamp(const struct timeval *ts)
         Thread *t = &thread_store.threads[s];
         if (!t->in_use)
             break;
-        COPY_TIMESTAMP(ts, &t->pktts);
+        t->pktts = *ts;
         t->sys_sec_stamp = (uint32_t)systs.tv_sec;
     }
     SCMutexUnlock(&thread_store_lock);
@@ -2287,21 +2286,19 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
                 continue;
 
             if (!set) {
-                local.tv_sec = t->pktts.tv_sec;
-                local.tv_usec = t->pktts.tv_usec;
+                local = t->pktts;
                 set = 1;
             } else {
                 if (timercmp(&t->pktts, &local, <)) {
-                    COPY_TIMESTAMP(&t->pktts, &local);
+                    local = t->pktts;
                 }
             }
         }
     }
     SCMutexUnlock(&thread_store_lock);
-    COPY_TIMESTAMP(&local, ts);
+    *ts = local;
     SCLogDebug("ts->tv_sec %"PRIuMAX, (uintmax_t)ts->tv_sec);
 }
-#undef COPY_TIMESTAMP
 
 /**
  *  \retval r 1 if packet was accepted, 0 otherwise
