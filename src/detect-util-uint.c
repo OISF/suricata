@@ -207,6 +207,7 @@ PrefilterPacketU32Set(PrefilterPacketHeaderValue *v, void *smctx)
     const DetectU32Data *a = smctx;
     v->u8[0] = a->mode;
     v->u32[1] = a->arg1;
+    v->u32[2] = a->arg2;
 }
 
 bool
@@ -214,7 +215,8 @@ PrefilterPacketU32Compare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectU32Data *a = smctx;
     if (v.u8[0] == a->mode &&
-        v.u32[1] == a->arg1)
+        v.u32[1] == a->arg1 &&
+        v.u32[2] == a->arg2)
         return true;
     return false;
 }
