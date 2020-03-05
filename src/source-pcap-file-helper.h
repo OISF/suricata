@@ -75,7 +75,7 @@ typedef struct PcapFileFileVars_
 
     PcapFileSharedVars *shared;
 
-    /* fields used to get the first packets timestamp early,
+    /* fields used to get the first packet's timestamp early,
      * so it can be used to setup the time subsys. */
     const u_char *first_pkt_data;
     struct pcap_pkthdr *first_pkt_hdr;

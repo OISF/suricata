@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -120,16 +120,16 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
 {
     SCEnter();
 
-    /* initialize all the threads initial timestamp */
+    /* initialize all the thread's initial timestamp */
     if (likely(ptv->first_pkt_hdr != NULL)) {
         TmThreadsInitThreadsTimestamp(&ptv->first_pkt_ts);
-        PcapFileCallbackLoop((char *)ptv, ptv->first_pkt_hdr, (u_char *)ptv->first_pkt_data);
+        PcapFileCallbackLoop((char *)ptv, ptv->first_pkt_hdr,
+                (u_char *)ptv->first_pkt_data);
         ptv->first_pkt_hdr = NULL;
         ptv->first_pkt_data = NULL;
     }
 
     int packet_q_len = 64;
-    int r;
     TmEcode loop_result = TM_ECODE_OK;
     strlcpy(pcap_filename, ptv->filename, sizeof(pcap_filename));
 
@@ -143,7 +143,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
         PacketPoolWait();
 
         /* Right now we just support reading packets one at a time. */
-        r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
+        int r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
                           (pcap_handler)PcapFileCallbackLoop, (u_char *)ptv);
         if (unlikely(r == -1)) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s for %s",
@@ -170,6 +170,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
 
 /** \internal
  *  \brief get the timestamp of the first packet and rewind
+ *  \param pfv pcap file variables for storing the timestamp
  *  \retval bool true on success, false on error
  */
 static bool PeekFirstPacketTimestamp(PcapFileFileVars *pfv)
@@ -180,6 +181,8 @@ static bool PeekFirstPacketTimestamp(PcapFileFileVars *pfv)
                 "failed to get first packet timestamp. pcap_next_ex(): %d", r);
         return false;
     }
+    /* timestamp in pfv->first_pkt_hdr may not be 'struct timeval' so
+     * do a manual copy of the members. */
     pfv->first_pkt_ts.tv_sec = pfv->first_pkt_hdr->ts.tv_sec;
     pfv->first_pkt_ts.tv_usec = pfv->first_pkt_hdr->ts.tv_usec;
     return true;
@@ -224,8 +227,8 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
     if (!PeekFirstPacketTimestamp(pfv))
         SCReturnInt(TM_ECODE_FAILED);
 
-    DecoderFunc temp;
-    TmEcode validated = ValidateLinkType(pfv->datalink, &temp);
+    DecoderFunc UnusedFnPtr;
+    TmEcode validated = ValidateLinkType(pfv->datalink, &UnusedFnPtr);
     SCReturnInt(validated);
 }
 
@@ -260,4 +263,3 @@ TmEcode ValidateLinkType(int datalink, DecoderFunc *DecoderFn)
 
     SCReturnInt(TM_ECODE_OK);
 }
-/* eof */
