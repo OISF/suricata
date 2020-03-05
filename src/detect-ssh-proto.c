@@ -46,6 +46,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
 #include "detect-ssh-proto.h"
+#include "rust.h"
 
 #define KEYWORD_NAME "ssh.proto"
 #define KEYWORD_NAME_LEGACY "ssh_proto"
@@ -63,27 +64,17 @@ static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
 
     if (buffer->inspect == NULL) {
-        uint8_t *protocol = NULL;
-        SshState *ssh_state = (SshState *) txv;
+        const uint8_t *protocol = NULL;
+        uint32_t b_len = 0;
 
-        if (flow_flags & STREAM_TOSERVER)
-            protocol = ssh_state->cli_hdr.proto_version;
-        else if (flow_flags & STREAM_TOCLIENT)
-            protocol = ssh_state->srv_hdr.proto_version;
-
-        if (protocol == NULL) {
-            SCLogDebug("SSL protocol not set");
+        if (rs_ssh_tx_get_protocol(txv, &protocol, &b_len, flow_flags) != 1)
+            return NULL;
+        if (protocol == NULL || b_len == 0) {
+            SCLogDebug("SSH protocol not set");
             return NULL;
         }
 
-        uint32_t data_len = strlen((char *)protocol);
-        uint8_t *data = protocol;
-        if (data == NULL || data_len == 0) {
-            SCLogDebug("SSL protocol not present");
-            return NULL;
-        }
-
-        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferSetup(buffer, protocol, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
 
@@ -113,16 +104,16 @@ void DetectSshProtocolRegister(void)
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterGenericMpmRegister, GetSshData,
-			ALPROTO_SSH, SSH_STATE_BANNER_DONE),
+			ALPROTO_SSH, SshStateBannerDone),
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetSshData,
-			ALPROTO_SSH, SSH_STATE_BANNER_DONE),
+			ALPROTO_SSH, SshStateBannerDone),
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_SSH, SIG_FLAG_TOSERVER, SSH_STATE_BANNER_DONE,
+            ALPROTO_SSH, SIG_FLAG_TOSERVER, SshStateBannerDone,
             DetectEngineInspectBufferGeneric, GetSshData);
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_SSH, SIG_FLAG_TOCLIENT, SSH_STATE_BANNER_DONE,
+            ALPROTO_SSH, SIG_FLAG_TOCLIENT, SshStateBannerDone,
             DetectEngineInspectBufferGeneric, GetSshData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
