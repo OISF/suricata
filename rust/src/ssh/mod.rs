@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,18 +15,7 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
- * \author Victor Julien <victor@inliniac.net>
- */
-
-#ifndef __APP_LAYER_SSH_H__
-#define __APP_LAYER_SSH_H__
-
-void RegisterSSHParsers(void);
-void SSHParserRegisterTests(void);
-
-#endif /* __APP_LAYER_SSH_H__ */
-
+pub mod detect;
+pub mod logger;
+mod parser;
+pub mod ssh;
