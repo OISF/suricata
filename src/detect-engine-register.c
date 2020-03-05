@@ -174,6 +174,7 @@
 #include "detect-tcpmss.h"
 #include "detect-udphdr.h"
 #include "detect-icmpv6hdr.h"
+#include "detect-icmpv6-mtu.h"
 #include "detect-ipv4hdr.h"
 #include "detect-ipv6hdr.h"
 #include "detect-krb5-cname.h"
@@ -547,6 +548,7 @@ void SigTableSetup(void)
     DetectUdphdrRegister();
     DetectTcpmssRegister();
     DetectICMPv6hdrRegister();
+    DetectICMPv6mtuRegister();
     DetectIpv4hdrRegister();
     DetectIpv6hdrRegister();
     DetectKrb5CNameRegister();
