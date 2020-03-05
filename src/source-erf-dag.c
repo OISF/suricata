@@ -432,16 +432,17 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
 
         /* Only support ethernet at this time. */
         switch (hdr_type & 0x7f) {
-        case TYPE_PAD:
+        case ERF_TYPE_PAD:
+        case ERF_TYPE_META:
             /* Skip. */
             continue;
-        case TYPE_DSM_COLOR_ETH:
-        case TYPE_COLOR_ETH:
-        case TYPE_COLOR_HASH_ETH:
+        case ERF_TYPE_DSM_COLOR_ETH:
+        case ERF_TYPE_COLOR_ETH:
+        case ERF_TYPE_COLOR_HASH_ETH:
             /* In these types the color value overwrites the lctr
              * (drop count). */
             break;
-        case TYPE_ETH:
+        case ERF_TYPE_ETH:
             if (dr->lctr) {
                 StatsAddUI64(ewtn->tv, ewtn->drops, SCNtohs(dr->lctr));
             }
