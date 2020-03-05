@@ -41,6 +41,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
+#include "rust.h"
 
 #include "conf.h"
 
@@ -52,562 +53,6 @@
 #include "util-byte.h"
 #include "util-memcmp.h"
 
-/** \internal
- *  \brief Function to parse the SSH version string of the client
- *
- *  The input to this function is a byte buffer starting with SSH-
- *
- *  \param  ssh_state   Pointer the state in which the value to be stored
- *  \param  input       Pointer the received input data
- *  \param  input_len   Length in bytes of the received data
- *
- *  \retval len remaining length in input
- */
-static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *input, uint32_t input_len)
-{
-    const uint8_t *line_ptr = input;
-    uint32_t line_len = input_len;
-
-    /* is it the version line? */
-    if (line_len < 4) {
-        SCReturnInt(-1);
-    }
-    if (SCMemcmp("SSH-", line_ptr, 4) != 0) {
-        SCReturnInt(-1);
-    }
-
-    const uint8_t *banner_end = BasicSearch(line_ptr, line_len, (uint8_t*)"\r", 1);
-    if (banner_end == NULL) {
-        banner_end = BasicSearch(line_ptr, line_len, (uint8_t*)"\n", 1);
-        if (banner_end == NULL) {
-            SCLogDebug("No EOL at the end of banner buffer");
-            SCReturnInt(-1);
-        }
-    }
-
-    if ((banner_end - line_ptr) > 255) {
-        SCLogDebug("Invalid version string, it should be less than 255 "
-                "characters including <CR><NL>, input value is %"PRIuMAX,
-                (uintmax_t)(banner_end - line_ptr));
-        SCReturnInt(-1);
-    }
-
-    /* don't search things behind the end of banner */
-    line_len = banner_end - line_ptr;
-
-    /* ok, we have found the version line/string, skip it and parse proto version */
-    line_ptr += 4;
-    line_len -= 4;
-
-    uint8_t *proto_end = BasicSearch(line_ptr, line_len, (uint8_t*)"-", 1);
-    if (proto_end == NULL) {
-        /* Strings starting with SSH- are not allowed
-         * if they are not the real version string */
-        SCLogDebug("Info Version String for SSH (invalid usage of SSH- prefix)");
-        SCReturnInt(-1);
-    }
-    uint64_t proto_ver_len = (uint64_t)(proto_end - line_ptr);
-    header->proto_version = SCMalloc(proto_ver_len + 1);
-    if (header->proto_version == NULL) {
-        SCReturnInt(-1);
-    }
-    memcpy(header->proto_version, line_ptr, proto_ver_len);
-    header->proto_version[proto_ver_len] = '\0';
-
-    /* Now lets parse the software & version */
-    line_ptr += proto_ver_len + 1;
-    line_len -= proto_ver_len + 1;
-    if (line_len < 1) {
-        SCLogDebug("No software version specified (weird)");
-        header->flags |= SSH_FLAG_VERSION_PARSED;
-        /* Return the remaining length */
-        SCReturnInt(0);
-    }
-
-    uint64_t sw_ver_len = (uint64_t)(banner_end - line_ptr);
-    /* sanity check on this arithmetic */
-    if ((sw_ver_len <= 1) || (sw_ver_len >= input_len)) {
-        SCLogDebug("Should not have sw version length '%" PRIu64 "'", sw_ver_len);
-        header->flags |= SSH_FLAG_VERSION_PARSED;
-        SCReturnInt(-1);
-    }
-
-    header->software_version = SCMalloc(sw_ver_len + 1);
-    if (header->software_version == NULL) {
-        header->flags |= SSH_FLAG_VERSION_PARSED;
-        SCReturnInt(-1);
-    }
-    memcpy(header->software_version, line_ptr, sw_ver_len);
-    header->software_version[sw_ver_len] = '\0';
-    if (header->software_version[sw_ver_len - 1] == 0x0d)
-        header->software_version[sw_ver_len - 1] = '\0';
-
-    header->flags |= SSH_FLAG_VERSION_PARSED;
-
-    /* Return the remaining length */
-    int len = input_len - (banner_end - input);
-    SCReturnInt(len);
-}
-
-static int SSHParseRecordHeader(SshState *state, SshHeader *header,
-        const uint8_t *input, uint32_t input_len)
-{
-#ifdef DEBUG
-    BUG_ON(input_len != 6);
-#else
-    if (input_len < 6)
-        SCReturnInt(-1);
-#endif
-    /* input and input_len now point past initial line */
-    uint32_t pkt_len = 0;
-    int r = ByteExtractUint32(&pkt_len, BYTE_BIG_ENDIAN,
-            4, input);
-    if (r != 4) {
-        SCLogDebug("xtract 4 bytes failed %d", r);
-        SCReturnInt(-1);
-    }
-    if (pkt_len < 2) {
-        SCReturnInt(-1);
-    }
-
-    header->pkt_len = pkt_len;
-    SCLogDebug("pkt len: %"PRIu32, pkt_len);
-
-    input += 4;
-    //input_len -= 4;
-
-    header->padding_len = *input;
-
-    input += 1;
-    //input_len -= 1;
-
-    SCLogDebug("padding: %u", header->padding_len);
-
-    header->msg_code = *input;
-
-    SCLogDebug("msg code: %u", header->msg_code);
-
-    if (header->msg_code == SSH_MSG_NEWKEYS) {
-        /* done */
-        SCLogDebug("done");
-        header->flags |= SSH_FLAG_PARSER_DONE;
-    } else {
-        /* not yet done */
-        SCLogDebug("not done");
-    }
-    SCReturnInt(0);
-}
-
-/** \internal
- *  \brief Function to parse the SSH field in packet received from the client
- *
- *  Input to this function is a byte buffer starting with SSH- up to at least
- *  a \r or \n character.
- *
- *  \param  ssh_state   Pointer the state in which the value to be stored
- *  \param  input       Pointer the received input data
- *  \param  input_len   Length in bytes of the received data
- */
-static int SSHParseRecord(SshState *state, SshHeader *header, const uint8_t *input, uint32_t input_len)
-{
-    SCEnter();
-    int ret = 0;
-
-    if (header->flags & SSH_FLAG_PARSER_DONE) {
-        SCReturnInt(0);
-    }
-
-    SCLogDebug("state %p, input %p,input_len %" PRIu32,
-               state, input, input_len);
-    //PrintRawDataFp(stdout, input, input_len);
-
-    if (!(header->flags & SSH_FLAG_VERSION_PARSED)) {
-        ret = SSHParseBanner(state, header, input, input_len);
-        if (ret < 0) {
-            SCLogDebug("Invalid version string");
-            SCReturnInt(-1);
-        } else if (header->flags & SSH_FLAG_VERSION_PARSED) {
-            SCLogDebug("Version string parsed, remaining length %d", ret);
-            input += input_len - ret;
-            input_len -= (input_len - ret);
-
-            uint32_t u = 0;
-            while (u < input_len && (input[u] == '\r' || input[u] == '\n')) {
-                u++;
-            }
-            SCLogDebug("skipping %u EOL bytes", u);
-            input += u;
-            input_len -= u;
-
-            if (input_len == 0)
-                SCReturnInt(0);
-
-        } else {
-            BUG_ON(1);// we only call this when we have enough data
-            SCLogDebug("Version string not parsed yet");
-            //pstate->parse_field = 0;
-            SCReturnInt(0);
-        }
-    } else {
-        SCLogDebug("Version string already parsed");
-    }
-
-    /* skip bytes from the current record if we have to */
-    if (header->record_left > 0) {
-        SCLogDebug("skipping bytes part of the current record");
-        if (header->record_left > input_len) {
-            header->record_left -= input_len;
-            SCLogDebug("all input skipped, %u left in record", header->record_left);
-            SCReturnInt(0);
-        } else {
-            input_len -= header->record_left;
-            input += header->record_left;
-            header->record_left = 0;
-
-            if (input_len == 0) {
-                SCLogDebug("all input skipped");
-                SCReturnInt(0);
-            }
-        }
-    }
-
-again:
-    /* input is too small, even when combined with stored bytes */
-    if (header->buf_offset + input_len < 6) {
-        memcpy(header->buf + header->buf_offset, input, input_len);
-        header->buf_offset += input_len;
-        SCReturnInt(0);
-
-    /* we have enough bytes to parse 6 bytes, lets see if we have
-     * previously stored some */
-    } else if (header->buf_offset > 0) {
-        uint8_t needed = 6 - header->buf_offset;
-
-        SCLogDebug("parse stored");
-        memcpy(header->buf + header->buf_offset, input, needed);
-        header->buf_offset = 6;
-
-        // parse the 6
-        if (SSHParseRecordHeader(state, header, header->buf, 6) < 0)
-            SCReturnInt(-1);
-        header->buf_offset = 0;
-
-        uint32_t record_left = header->pkt_len - 2;
-        input_len -= needed;
-        input += needed;
-
-        if (record_left > input_len) {
-            header->record_left = record_left - input_len;
-        } else {
-            input_len -= record_left;
-            if (input_len == 0)
-                SCReturnInt(0);
-
-            input += record_left;
-
-            SCLogDebug("we have %u left to parse", input_len);
-            goto again;
-
-        }
-
-    /* nothing stored, lets parse this directly */
-    } else {
-        SCLogDebug("parse direct");
-        //PrintRawDataFp(stdout, input, input_len);
-        if (SSHParseRecordHeader(state, header, input, 6) < 0)
-            SCReturnInt(-1);
-
-        uint32_t record_left = header->pkt_len - 2;
-        SCLogDebug("record left %u", record_left);
-        input_len -= 6;
-        input += 6;
-
-        if (record_left > input_len) {
-            header->record_left = record_left - input_len;
-        } else {
-            input_len -= record_left;
-            if (input_len == 0)
-                SCReturnInt(0);
-            input += record_left;
-            //PrintRawDataFp(stdout, input, input_len);
-
-            SCLogDebug("we have %u left to parse", input_len);
-            goto again;
-        }
-    }
-
-    SCReturnInt(0);
-}
-
-static int EnoughData(const uint8_t *input, uint32_t input_len)
-{
-    uint32_t u;
-    for (u = 0; u < input_len; u++) {
-        if (input[u] == '\r' || input[u] == '\n')
-            return TRUE;
-    }
-    return FALSE;
-}
-
-#define MAX_BANNER_LEN 256
-
-static int SSHParseData(SshState *state, SshHeader *header,
-                        const uint8_t *input, uint32_t input_len)
-{
-    /* we're looking for the banner */
-    if (!(header->flags & SSH_FLAG_VERSION_PARSED))
-    {
-        int banner_eol = EnoughData(input, input_len);
-
-        /* fast track normal case: no buffering */
-        if (header->banner_buffer == NULL && banner_eol)
-        {
-            SCLogDebug("enough data, parse now");
-            // parse now
-            int r = SSHParseRecord(state, header, input, input_len);
-            SCReturnInt(r);
-
-        /* banner EOL with existing buffer present. Time for magic. */
-        } else if (banner_eol) {
-            SCLogDebug("banner EOL with existing buffer");
-
-            uint32_t tocopy = MAX_BANNER_LEN - header->banner_len;
-            if (tocopy > input_len)
-                tocopy = input_len;
-
-            SCLogDebug("tocopy %u input_len %u", tocopy, input_len);
-            memcpy(header->banner_buffer + header->banner_len, input, tocopy);
-            header->banner_len += tocopy;
-
-            SCLogDebug("header->banner_len %u", header->banner_len);
-            int r = SSHParseRecord(state, header,
-                    header->banner_buffer, header->banner_len);
-            if (r == 0) {
-                input += tocopy;
-                input_len -= tocopy;
-                if (input_len > 0) {
-                    SCLogDebug("handling remaining data %u", input_len);
-                    r = SSHParseRecord(state, header, input, input_len);
-                }
-            }
-            SCReturnInt(r);
-
-        /* no banner EOL, so we need to buffer */
-        } else if (!banner_eol) {
-            if (header->banner_buffer == NULL) {
-                header->banner_buffer = SCMalloc(MAX_BANNER_LEN);
-                if (header->banner_buffer == NULL)
-                    SCReturnInt(-1);
-            }
-
-            uint32_t tocopy = MAX_BANNER_LEN - header->banner_len;
-            if (tocopy > input_len)
-                tocopy = input_len;
-            SCLogDebug("tocopy %u", tocopy);
-
-            memcpy(header->banner_buffer + header->banner_len, input, tocopy);
-            header->banner_len += tocopy;
-            SCLogDebug("header->banner_len %u", header->banner_len);
-        }
-
-    /* we have a banner, the rest is just records */
-    } else {
-        int r = SSHParseRecord(state, header, input, input_len);
-        SCReturnInt(r);
-    }
-
-    //PrintRawDataFp(stdout, input, input_len);
-    return 0;
-}
-
-static AppLayerResult SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
-                           const uint8_t *input, uint32_t input_len,
-                           void *local_data, const uint8_t flags)
-{
-    SshState *ssh_state = (SshState *)state;
-    SshHeader *ssh_header = &ssh_state->cli_hdr;
-
-    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnStruct(APP_LAYER_OK);
-    } else if (input == NULL || input_len == 0) {
-        SCReturnStruct(APP_LAYER_ERROR);
-    }
-
-    int r = SSHParseData(ssh_state, ssh_header, input, input_len);
-
-    if (ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE &&
-        ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE) {
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
-    }
-
-    if (r < 0) {
-        SCReturnStruct(APP_LAYER_ERROR);
-    }
-    SCReturnStruct(APP_LAYER_OK);
-}
-
-static AppLayerResult SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-                            const uint8_t *input, uint32_t input_len,
-                            void *local_data, const uint8_t flags)
-{
-    SshState *ssh_state = (SshState *)state;
-    SshHeader *ssh_header = &ssh_state->srv_hdr;
-
-    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnStruct(APP_LAYER_OK);
-    } else if (input == NULL || input_len == 0) {
-        SCReturnStruct(APP_LAYER_ERROR);
-    }
-
-    int r = SSHParseData(ssh_state, ssh_header, input, input_len);
-
-    if (ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE &&
-        ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE) {
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
-    }
-
-    if (r < 0) {
-        SCReturnStruct(APP_LAYER_ERROR);
-    }
-    SCReturnStruct(APP_LAYER_OK);
-}
-
-/** \brief Function to allocates the SSH state memory
- */
-static void *SSHStateAlloc(void)
-{
-    void *s = SCMalloc(sizeof(SshState));
-    if (unlikely(s == NULL))
-        return NULL;
-
-    memset(s, 0, sizeof(SshState));
-    return s;
-}
-
-/** \brief Function to free the SSH state memory
- */
-static void SSHStateFree(void *state)
-{
-    SshState *s = (SshState *)state;
-    if (s->cli_hdr.proto_version != NULL)
-        SCFree(s->cli_hdr.proto_version);
-    if (s->cli_hdr.software_version != NULL)
-        SCFree(s->cli_hdr.software_version);
-    if (s->cli_hdr.banner_buffer != NULL)
-        SCFree(s->cli_hdr.banner_buffer);
-
-    if (s->srv_hdr.proto_version != NULL)
-        SCFree(s->srv_hdr.proto_version);
-    if (s->srv_hdr.software_version != NULL)
-        SCFree(s->srv_hdr.software_version);
-    if (s->srv_hdr.banner_buffer != NULL)
-        SCFree(s->srv_hdr.banner_buffer);
-
-    //AppLayerDecoderEventsFreeEvents(&s->decoder_events);
-
-    if (s->de_state != NULL) {
-        DetectEngineStateFree(s->de_state);
-    }
-
-    SCFree(s);
-}
-
-static int SSHSetTxDetectState(void *vtx, DetectEngineState *de_state)
-{
-    SshState *ssh_state = (SshState *)vtx;
-    ssh_state->de_state = de_state;
-    return 0;
-}
-
-static DetectEngineState *SSHGetTxDetectState(void *vtx)
-{
-    SshState *ssh_state = (SshState *)vtx;
-    return ssh_state->de_state;
-}
-
-static void SSHStateTransactionFree(void *state, uint64_t tx_id)
-{
-    /* do nothing */
-}
-
-static void *SSHGetTx(void *state, uint64_t tx_id)
-{
-    SshState *ssh_state = (SshState *)state;
-    return ssh_state;
-}
-
-static uint64_t SSHGetTxCnt(void *state)
-{
-    /* single tx */
-    return 1;
-}
-
-static void SSHSetTxLogged(void *state, void *tx, LoggerId logged)
-{
-    SshState *ssh_state = (SshState *)state;
-    if (ssh_state)
-        ssh_state->logged = logged;
-}
-
-static LoggerId SSHGetTxLogged(void *state, void *tx)
-{
-    SshState *ssh_state = (SshState *)state;
-    if (ssh_state) {
-        return ssh_state->logged;
-    }
-    return 0;
-}
-
-static uint64_t SSHGetTxDetectFlags(void *vtx, uint8_t dir)
-{
-    SshState *ssh_state = (SshState *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        return ssh_state->detect_flags_ts;
-    } else {
-        return ssh_state->detect_flags_tc;
-    }
-}
-
-static void SSHSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
-{
-    SshState *ssh_state = (SshState *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        ssh_state->detect_flags_ts = flags;
-    } else {
-        ssh_state->detect_flags_tc = flags;
-    }
-}
-
-static int SSHGetAlstateProgressCompletionStatus(uint8_t direction)
-{
-    return SSH_STATE_FINISHED;
-}
-
-static int SSHGetAlstateProgress(void *tx, uint8_t direction)
-{
-    SshState *ssh_state = (SshState *)tx;
-
-    if (ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE &&
-        ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE) {
-        return SSH_STATE_FINISHED;
-    }
-
-    if (direction == STREAM_TOSERVER) {
-        if (ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED) {
-            return SSH_STATE_BANNER_DONE;
-        }
-    } else {
-        if (ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED) {
-            return SSH_STATE_BANNER_DONE;
-        }
-    }
-
-    return SSH_STATE_IN_PROGRESS;
-}
 
 static int SSHRegisterPatternsForProtocolDetection(void)
 {
@@ -636,36 +81,9 @@ void RegisterSSHParsers(void)
             return;
     }
 
-    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SSH, STREAM_TOSERVER,
-                                     SSHParseRequest);
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SSH, STREAM_TOCLIENT,
-                                     SSHParseResponse);
-        AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
-        AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
-                ALPROTO_SSH, STREAM_TOSERVER|STREAM_TOCLIENT);
+    SCLogNotice("Registring Rust SSH parser.");
+    rs_ssh_register_parser();
 
-        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_SSH, SSHStateTransactionFree);
-
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SSH,
-                                               SSHGetTxDetectState, SSHSetTxDetectState);
-
-        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SSH, SSHGetTx);
-
-        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SSH, SSHGetTxCnt);
-
-        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SSH, SSHGetAlstateProgress);
-
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHGetTxLogged, SSHSetTxLogged);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SSH,
-                SSHGetTxDetectFlags, SSHSetTxDetectFlags);
-
-        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SSH,
-                                                               SSHGetAlstateProgressCompletionStatus);
-    } else {
-//        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
-//                  "still on.", proto_name);
-    }
 
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SSH, SSHParserRegisterTests);
@@ -675,6 +93,47 @@ void RegisterSSHParsers(void)
 /* UNITTESTS */
 #ifdef UNITTESTS
 #include "flow-util.h"
+
+static int SSHParserTestUtilCheck(const char *protoexp, const char *softexp, void *tx, uint8_t flags) {
+    const uint8_t *protocol = NULL;
+    uint32_t p_len = 0;
+    const uint8_t *software = NULL;
+    uint32_t s_len = 0;
+
+    if (rs_ssh_tx_get_protocol(tx, &protocol, &p_len, flags) != 1) {
+        printf("Version string not parsed correctly return: ");
+        return 1;
+    }
+    if (protocol == NULL) {
+        printf("Version string not parsed correctly NULL: ");
+        return 1;
+    }
+
+    if (p_len != strlen(protoexp)) {
+        printf("Version string not parsed correctly length: ");
+        return 1;
+    }
+    if (memcmp(protocol, protoexp, strlen(protoexp)) != 0) {
+        printf("Version string not parsed correctly: ");
+        return 1;
+    }
+
+    if (softexp != NULL) {
+        if (rs_ssh_tx_get_software(tx, &software, &s_len, flags) != 1)
+            return 1;
+        if (software == NULL)
+            return 1;
+        if (s_len != strlen(softexp)) {
+            printf("Software string not parsed correctly length: ");
+            return 1;
+        }
+        if (memcmp(software, softexp, strlen(softexp)) != 0) {
+            printf("Software string not parsed correctly: ");
+            return 1;
+        }
+    }
+    return 0;
+}
 
 /** \test Send a version string in one chunk (client version str). */
 static int SSHParserTest01(void)
@@ -701,36 +160,20 @@ static int SSHParserTest01(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
 
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
 
-    if (ssh_state->cli_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER))
         goto end;
-    }
-
-    if (ssh_state->cli_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
 
     result = 1;
 end:
@@ -768,36 +211,19 @@ static int SSHParserTest02(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
-
-    if (ssh_state->cli_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER))
         goto end;
-    }
-
-    if (ssh_state->cli_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
 
     result = 1;
 end:
@@ -835,24 +261,23 @@ static int SSHParserTest03(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if (ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) == SshStateBannerDone ) {
         printf("Client version string parsed? It's not a valid string: ");
         goto end;
     }
-
-    if (ssh_state->cli_hdr.proto_version != NULL) {
+    const uint8_t *dummy = NULL;
+    uint32_t dummy_len = 0;
+    if (rs_ssh_tx_get_protocol(tx, &dummy, &dummy_len, STREAM_TOSERVER) != 0)
         goto end;
-    }
-
-    if (ssh_state->cli_hdr.software_version != NULL) {
+    if (rs_ssh_tx_get_software(tx, &dummy, &dummy_len, STREAM_TOSERVER) != 0)
         goto end;
-    }
 
     result = 1;
 end:
@@ -888,36 +313,19 @@ static int SSHParserTest04(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
-
-    if (ssh_state->srv_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT))
         goto end;
-    }
-
-    if (ssh_state->srv_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
 
     result = 1;
 
@@ -955,36 +363,19 @@ static int SSHParserTest05(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
-
-    if (ssh_state->srv_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT))
         goto end;
-    }
-
-    if (ssh_state->srv_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
 
     result = 1;
 end:
@@ -1022,24 +413,24 @@ static int SSHParserTest06(void)
     }
     /* Ok, it returned an error. Let's make sure we didn't parse the string at all */
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if (ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) == SshStateBannerDone ) {
         printf("Client version string parsed? It's not a valid string: ");
         goto end;
     }
-
-    if (ssh_state->srv_hdr.proto_version != NULL) {
+    const uint8_t *dummy = NULL;
+    uint32_t dummy_len = 0;
+    if (rs_ssh_tx_get_protocol(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0)
         goto end;
-    }
-
-    if (ssh_state->srv_hdr.software_version != NULL) {
+    if (rs_ssh_tx_get_software(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0)
         goto end;
-    }
+
 
     result = 1;
 end:
@@ -1082,36 +473,19 @@ static int SSHParserTest07(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
 
-    if (ssh_state->cli_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER))
         goto end;
-    }
-
-    if (ssh_state->cli_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
 
     result = 1;
 
@@ -1164,36 +538,19 @@ static int SSHParserTest08(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
 
-    if (ssh_state->cli_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER))
         goto end;
-    }
-
-    if (ssh_state->cli_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
 
     result = 1;
 end:
@@ -1236,36 +593,19 @@ static int SSHParserTest09(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
-
-    if (ssh_state->srv_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT))
         goto end;
-    }
-
-    if (ssh_state->srv_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
 
     result = 1;
 
@@ -1318,36 +658,19 @@ static int SSHParserTest10(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
         printf("Client version string not parsed: ");
         goto end;
     }
-
-    if (ssh_state->srv_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT))
         goto end;
-    }
-
-    if (ssh_state->srv_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
 
     result = 1;
 end:
@@ -1391,41 +714,18 @@ static int SSHParserTest11(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER))
+        goto end;
 
     result = 1;
 end:
@@ -1477,41 +777,18 @@ static int SSHParserTest12(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER))
+        goto end;
 
     result = 1;
 end:
@@ -1567,41 +844,18 @@ static int SSHParserTest13(void)
             goto end;
         }
     }
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER))
+        goto end;
 
     result = 1;
 end:
@@ -1672,41 +926,18 @@ static int SSHParserTest14(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER))
+        goto end;
 
     result = 1;
 end:
@@ -1777,41 +1008,18 @@ static int SSHParserTest15(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->cli_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER))
+        goto end;
 
     result = 1;
 end:
@@ -1863,41 +1071,18 @@ static int SSHParserTest16(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->srv_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->srv_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ( !(ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT))
+        goto end;
 
     result = 1;
 end:
@@ -1957,41 +1142,18 @@ static int SSHParserTest17(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->srv_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->srv_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.software_version, "MySSHClient-0.5.1", strlen("MySSHClient-0.5.1")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ( !(ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
+    if (SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT))
+        goto end;
 
     result = 1;
 end:
@@ -2066,18 +1228,13 @@ static int SSHParserTest18(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE)) {
-        printf("Didn't detect the msg code of new keys (ciphered data starts): ");
-        goto end;
-    }
-
-    if ( !(ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -2155,24 +1312,14 @@ static int SSHParserTest19(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->srv_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->srv_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished ) {
+        printf("Didn't detect the msg code of new keys (ciphered data starts): %d", rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT));
         goto end;
     }
 
@@ -2182,20 +1329,8 @@ static int SSHParserTest19(void)
     strlcpy(name, (char *)sshbuf3, 256);
     name[strlen(name) - 1] = '\0'; // strip \r
 
-    if (strcmp((char*)ssh_state->srv_hdr.software_version, name) != 0) {
-        printf("Client version string not parsed correctly: ");
+    if (SSHParserTestUtilCheck("2.0", name, tx, STREAM_TOCLIENT))
         goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ( !(ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
-        printf("Didn't detect the msg code of new keys (ciphered data starts): ");
-        goto end;
-    }
 
     result = 1;
 end:
@@ -2268,36 +1403,20 @@ static int SSHParserTest20(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
+        printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
 
-    if (ssh_state->srv_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
+    if (SSHParserTestUtilCheck("2.0", NULL, tx, STREAM_TOCLIENT))
         goto end;
-    }
 
-    if (ssh_state->srv_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ((ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
-        printf("detected the msg code of new keys (ciphered data starts): ");
-        goto end;
-    }
     result = 1;
 end:
     if (alp_tctx != NULL)
@@ -2367,36 +1486,18 @@ static int SSHParserTest21(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->srv_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->srv_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ( !(ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
+    if (SSHParserTestUtilCheck("2.0", NULL, tx, STREAM_TOCLIENT))
+        goto end;
 
     result = 1;
 end:
@@ -2494,36 +1595,18 @@ static int SSHParserTest22(void)
         goto end;
     }
 #endif
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if (!(ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->srv_hdr.software_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (ssh_state->srv_hdr.proto_version == NULL) {
-        printf("Client version string not parsed: ");
-        goto end;
-    }
-
-    if (strncmp((char*)ssh_state->srv_hdr.proto_version, "2.0", strlen("2.0")) != 0) {
-        printf("Client version string not parsed correctly: ");
-        goto end;
-    }
-
-    if ( !(ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE)) {
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished ) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
+    if (SSHParserTestUtilCheck("2.0", "libssh", tx, STREAM_TOCLIENT))
+        goto end;
 
     result = 1;
 end:
@@ -2593,21 +1676,18 @@ static int SSHParserTest24(void)
         goto end;
     }
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
     }
-
-    if ( !(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        printf("Client version string not parsed: ");
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
+        printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
-
-    if (ssh_state->cli_hdr.software_version) {
-        printf("Client version string should not be parsed: ");
+    if (SSHParserTestUtilCheck("2.0", NULL, tx, STREAM_TOSERVER))
         goto end;
-    }
 
     result = 1;
 end:
@@ -2640,11 +1720,13 @@ static int SSHParserTest25(void)
                                 STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     FAIL_IF(r != -1);
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     FAIL_IF_NULL(ssh_state);
-
-    FAIL_IF_NOT(!(ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED));
-    FAIL_IF(ssh_state->cli_hdr.software_version);
+    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) == SshStateBannerDone );
+    const uint8_t *dummy = NULL;
+    uint32_t dummy_len = 0;
+    FAIL_IF (rs_ssh_tx_get_software(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
