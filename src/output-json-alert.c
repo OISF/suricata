@@ -61,6 +61,7 @@
 #include "output-json-http.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
+#include "rust.h"
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
 #include "output-json-nfs.h"
@@ -144,13 +145,12 @@ static void AlertJsonTls(const Flow *f, json_t *js)
 
 static void AlertJsonSsh(const Flow *f, json_t *js)
 {
-    SshState *ssh_state = (SshState *)FlowGetAppState(f);
+    void *ssh_state = FlowGetAppState(f);
     if (ssh_state) {
-        json_t *tjs = json_object();
+        void *tx_ptr = rs_ssh_state_get_tx(ssh_state, 0);
+        json_t *tjs = rs_ssh_log_json(tx_ptr);
         if (unlikely(tjs == NULL))
             return;
-
-        JsonSshLogJSON(tjs, ssh_state);
 
         json_object_set_new(js, "ssh", tjs);
     }
