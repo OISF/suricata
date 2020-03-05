@@ -724,16 +724,15 @@ static void PacketToDataProtoTLS(const Packet *p, const PacketAlert *pa, idmef_a
 static void PacketToDataProtoSSH(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
     json_t *js, *s_js;
-    SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
+    void *ssh_state = FlowGetAppState(p->flow);
 
     if (ssh_state == NULL)
         return;
 
-    js = json_object();
-    if (js == NULL)
+    void *tx_ptr = rs_ssh_state_get_tx(ssh_state, 0);
+    js = rs_ssh_log_json(tx_ptr);
+    if (unlikely(js == NULL))
         return;
-
-    JsonSshLogJSON(js, ssh_state);
 
     s_js = json_object_get(js, "server");
     if (s_js != NULL) {
@@ -742,7 +741,7 @@ static void PacketToDataProtoSSH(const Packet *p, const PacketAlert *pa, idmef_a
 
     s_js = json_object_get(js, "client");
     if (s_js != NULL) {
-        JsonToAdditionalData(NULL, s_js, alert);
+            JsonToAdditionalData(NULL, s_js, alert);
     }
 
     json_decref(js);
