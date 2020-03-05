@@ -55,6 +55,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
 #include "detect-ssh-software-version.h"
+#include "rust.h"
 
 #include "stream-tcp.h"
 
@@ -104,10 +105,10 @@ void DetectSshSoftwareVersionRegister(void)
     g_ssh_banner_list_id = DetectBufferTypeRegister("ssh_banner");
 
     DetectAppLayerInspectEngineRegister("ssh_banner",
-            ALPROTO_SSH, SIG_FLAG_TOSERVER, SSH_STATE_BANNER_DONE,
+            ALPROTO_SSH, SIG_FLAG_TOSERVER, SshStateBannerDone,
             InspectSshBanner);
     DetectAppLayerInspectEngineRegister("ssh_banner",
-            ALPROTO_SSH, SIG_FLAG_TOCLIENT, SSH_STATE_BANNER_DONE,
+            ALPROTO_SSH, SIG_FLAG_TOCLIENT, SshStateBannerDone,
             InspectSshBanner);
 }
 
@@ -129,20 +130,25 @@ static int DetectSshSoftwareVersionMatch (DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     DetectSshSoftwareVersionData *ssh = (DetectSshSoftwareVersionData *)m;
-    SshState *ssh_state = (SshState *)state;
-    if (ssh_state == NULL) {
+    if (state == NULL) {
         SCLogDebug("no ssh state, no match");
         SCReturnInt(0);
     }
 
     int ret = 0;
-    if ((flags & STREAM_TOCLIENT) && (ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        SCLogDebug("looking for ssh server softwareversion %s length %"PRIu16" on %s", ssh->software_ver, ssh->len, ssh_state->srv_hdr.software_version);
-        ret = (strncmp((char *) ssh_state->srv_hdr.software_version, (char *) ssh->software_ver, ssh->len) == 0)? 1 : 0;
-    } else if ((flags & STREAM_TOSERVER) && (ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED)) {
-        SCLogDebug("looking for ssh client softwareversion %s length %"PRIu16" on %s", ssh->software_ver, ssh->len, ssh_state->cli_hdr.software_version);
-        ret = (strncmp((char *) ssh_state->cli_hdr.software_version, (char *) ssh->software_ver, ssh->len) == 0)? 1 : 0;
+    const uint8_t *software = NULL;
+    uint32_t b_len = 0;
+
+    if (rs_ssh_tx_get_software(txv, &software, &b_len, flags) != 1)
+        SCReturnInt(0);
+    if (software == NULL || b_len == 0)
+        SCReturnInt(0);
+    if (b_len == ssh->len) {
+        if (memcmp(software, ssh->software_ver, ssh->len) == 0) {
+            ret = 1;
+        }
     }
+
     SCReturnInt(ret);
 }
 
@@ -401,7 +407,7 @@ static int DetectSshSoftwareVersionTestDetect01(void)
     }
     FLOWLOCK_UNLOCK(&f);
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -519,7 +525,7 @@ static int DetectSshSoftwareVersionTestDetect02(void)
     }
     FLOWLOCK_UNLOCK(&f);
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -636,7 +642,7 @@ static int DetectSshSoftwareVersionTestDetect03(void)
     }
     FLOWLOCK_UNLOCK(&f);
 
-    SshState *ssh_state = f.alstate;
+    void *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
