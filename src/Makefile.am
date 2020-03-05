@@ -200,6 +200,7 @@ detect-http-uri.c detect-http-uri.h \
 detect-icmp-id.c detect-icmp-id.h \
 detect-icmp-seq.c detect-icmp-seq.h \
 detect-icmpv6hdr.c detect-icmpv6hdr.h \
+detect-icmpv6-mtu.c detect-icmpv6-mtu.h \
 detect-icode.c detect-icode.h \
 detect-id.c detect-id.h \
 detect-ipopts.c detect-ipopts.h \
