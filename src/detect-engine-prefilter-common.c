@@ -31,7 +31,7 @@ typedef struct PrefilterPacketHeaderHashCtx_ {
 static uint32_t PrefilterPacketHeaderHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     PrefilterPacketHeaderCtx *ctx = data;
-    uint64_t hash = ctx->v1.u64 + ctx->type + ctx->value;
+    uint64_t hash = ctx->v1.u64[0] + ctx->v1.u64[1] + ctx->type + ctx->value;
     hash %= ht->array_size;
     return hash;
 }
@@ -41,7 +41,8 @@ static char PrefilterPacketHeaderCompareFunc(void *data1, uint16_t len1,
 {
     PrefilterPacketHeaderHashCtx *ctx1 = data1;
     PrefilterPacketHeaderHashCtx *ctx2 = data2;
-    return (ctx1->v1.u64 == ctx2->v1.u64 &&
+    return (ctx1->v1.u64[0] == ctx2->v1.u64[0] &&
+            ctx1->v1.u64[1] == ctx2->v1.u64[1] &&
             ctx1->type == ctx2->type &&
             ctx1->value == ctx2->value);
 }
