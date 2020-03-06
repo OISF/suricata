@@ -94,4 +94,15 @@ PrefilterPacketHeaderExtraMatch(const PrefilterPacketHeaderCtx *ctx,
     return TRUE;
 }
 
+static inline bool PrefilterIsPrefilterableById(const Signature *s, enum DetectKeywordId kid)
+{
+    const SigMatch *sm;
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        if (sm->type == kid) {
+            return true;
+        }
+    }
+    return false;
+}
+
 #endif /* __DETECT_ENGINE_PREFILTER_COMMON_H__ */
