@@ -104,6 +104,7 @@ detect-bytetest.c detect-bytetest.h \
 detect-bypass.c detect-bypass.h \
 detect.c detect.h \
 detect-classtype.c detect-classtype.h \
+detect-config.c detect-config.h \
 detect-content.c detect-content.h \
 detect-csum.c detect-csum.h \
 detect-datarep.c detect-datarep.h \
