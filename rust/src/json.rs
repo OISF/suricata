@@ -20,6 +20,7 @@
 
 use std::ffi::CString;
 use std::os::raw::c_char;
+use std::os::raw::c_int;
 
 /// The Rust place holder for the json_t pointer.
 pub enum JsonT {}
@@ -37,6 +38,7 @@ extern {
     fn json_integer(val: u64) -> *mut JsonT;
     fn SCJsonDecref(value: *mut JsonT);
     fn SCJsonBool(val: bool) -> *mut JsonT;
+    pub fn json_dumps(js: *mut JsonT, flags: c_int) -> *const c_char;
 }
 
 pub struct Json {
