@@ -1897,26 +1897,26 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
     DCERPCState *sstate = (DCERPCState *) dcerpc_state;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(1);
+        SCReturnInt(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
     }
 
     if (sstate->dcerpc.bytesprocessed != 0 && sstate->data_needed_for_dir != dir) {
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
     }
 
     retval = DCERPCParser(&sstate->dcerpc, input, input_len);
     if (retval == -1) {
-        SCReturnInt(0);
+        SCReturnInt(APP_LAYER_OK);
     }
 
     sstate->data_needed_for_dir = dir;
 
     if (pstate == NULL)
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
 
-    SCReturnInt(1);
+    SCReturnInt(APP_LAYER_OK);
 }
 
 static int DCERPCParseRequest(Flow *f, void *dcerpc_state,

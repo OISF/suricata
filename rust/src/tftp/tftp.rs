@@ -148,7 +148,7 @@ pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
             state.tx_id += 1;
             rqst.id = state.tx_id;
             state.transactions.push(rqst);
-            1
+            0
         },
         _ => 0
     }

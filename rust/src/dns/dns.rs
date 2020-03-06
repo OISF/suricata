@@ -587,7 +587,7 @@ pub extern "C" fn rs_dns_parse_request(_flow: *mut core::Flow,
                                        -> i8 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     if state.parse_request(buf) {
-        1
+        0
     } else {
         -1
     }
@@ -603,7 +603,7 @@ pub extern "C" fn rs_dns_parse_response(_flow: *mut core::Flow,
                                         -> i8 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     if state.parse_response(buf) {
-        1
+        0
     } else {
         -1
     }
@@ -622,7 +622,8 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *mut core::Flow,
         if input != std::ptr::null_mut() {
             let buf = unsafe{
                 std::slice::from_raw_parts(input, input_len as usize)};
-            return state.parse_request_tcp(buf);
+            let _ = state.parse_request_tcp(buf);
+            return 0;
         }
         state.request_gap(input_len);
     }
@@ -641,7 +642,8 @@ pub extern "C" fn rs_dns_parse_response_tcp(_flow: *mut core::Flow,
         if input != std::ptr::null_mut() {
             let buf = unsafe{
                 std::slice::from_raw_parts(input, input_len as usize)};
-            return state.parse_response_tcp(buf);
+            let _ = state.parse_response_tcp(buf);
+            return 0;
         }
         state.response_gap(input_len);
     }

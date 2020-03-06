@@ -428,9 +428,9 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
     SshHeader *ssh_header = &ssh_state->cli_hdr;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(1);
+        SCReturnInt(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
     }
 
     int r = SSHParseData(ssh_state, ssh_header, input, input_len);
@@ -442,7 +442,10 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
     }
 
-    SCReturnInt(r);
+    if (r < 0) {
+        SCReturnInt(APP_LAYER_ERROR);
+    }
+    SCReturnInt(APP_LAYER_OK);
 }
 
 static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
@@ -453,9 +456,9 @@ static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
     SshHeader *ssh_header = &ssh_state->srv_hdr;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(1);
+        SCReturnInt(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
     }
 
     int r = SSHParseData(ssh_state, ssh_header, input, input_len);
@@ -467,7 +470,10 @@ static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
     }
 
-    SCReturnInt(r);
+    if (r < 0) {
+        SCReturnInt(APP_LAYER_ERROR);
+    }
+    SCReturnInt(APP_LAYER_OK);
 }
 
 /** \brief Function to allocates the SSH state memory

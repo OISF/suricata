@@ -225,7 +225,7 @@ static int RustDNSUDPParserTest01 (void)
     FAIL_IF_NULL(f->alstate);
 
     FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL, STREAM_START));
+                    NULL, STREAM_START) == 0);
 
     UTHFreeFlow(f);
     PASS;
@@ -256,7 +256,7 @@ static int RustDNSUDPParserTest02 (void)
     FAIL_IF_NULL(f->alstate);
 
     FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL, STREAM_START));
+                    NULL, STREAM_START) == 0);
 
     UTHFreeFlow(f);
     PASS;
@@ -287,7 +287,7 @@ static int RustDNSUDPParserTest03 (void)
     FAIL_IF_NULL(f->alstate);
 
     FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL, STREAM_START));
+                    NULL, STREAM_START) == 0);
 
     UTHFreeFlow(f);
     PASS;
@@ -321,7 +321,7 @@ static int RustDNSUDPParserTest04 (void)
     FAIL_IF_NULL(f->alstate);
 
     FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL, STREAM_START));
+                    NULL, STREAM_START) == 0);
 
     UTHFreeFlow(f);
     PASS;
