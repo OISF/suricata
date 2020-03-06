@@ -847,7 +847,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
                                 void *local_data, const uint8_t flags)
 {
     SCEnter();
-    int ret = 1;
+    int ret = 0;
     HtpState *hstate = (HtpState *)htp_state;
 
     /* On the first invocation, create the connection parser structure to
@@ -910,7 +910,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
                                  void *local_data, const uint8_t flags)
 {
     SCEnter();
-    int ret = 1;
+    int ret = 0;
     HtpState *hstate = (HtpState *)htp_state;
 
     /* On the first invocation, create the connection parser structure to

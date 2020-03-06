@@ -2410,9 +2410,9 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
             AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         /* flag session as finished if APP_LAYER_PARSER_EOF is set */
         ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
-        SCReturnInt(1);
+        SCReturnInt(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
     }
 
     if (direction == 0)
@@ -2434,7 +2434,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
             SSLParserReset(ssl_state);
             SSLSetEvent(ssl_state,
                         TLS_DECODER_EVENT_TOO_MANY_RECORDS_IN_PACKET);
-            return -1;
+            return APP_LAYER_ERROR;
         }
 
         /* ssl_state->bytes_processed is zero for a fresh record or
@@ -2454,7 +2454,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
                         SSLParserReset(ssl_state);
                         SSLSetEvent(ssl_state,
                                 TLS_DECODER_EVENT_INVALID_SSL_RECORD);
-                        return -1;
+                        return APP_LAYER_ERROR;
                     } else {
                         input_len -= retval;
                         input += retval;
@@ -2469,7 +2469,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
                         SSLParserReset(ssl_state);
                         SSLSetEvent(ssl_state,
                                 TLS_DECODER_EVENT_INVALID_SSL_RECORD);
-                        return -1;
+                        return APP_LAYER_ERROR;
                     } else {
                         input_len -= retval;
                         input += retval;
@@ -2495,7 +2495,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
                         SCLogDebug("Error parsing SSLv2.x.  Reseting parser "
                                    "state.  Let's get outta here");
                         SSLParserReset(ssl_state);
-                        return 0;
+                        return APP_LAYER_OK;
                     } else {
                         input_len -= retval;
                         input += retval;
@@ -2509,7 +2509,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
                         SCLogDebug("Error parsing SSLv3.x.  Reseting parser "
                                    "state.  Let's get outta here");
                         SSLParserReset(ssl_state);
-                        return 0;
+                        return APP_LAYER_OK;
                     } else {
                         if (retval > input_len) {
                             SCLogDebug("Error parsing SSLv3.x.  Reseting parser "
@@ -2541,7 +2541,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
     if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF))
         ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
 
-    return 1;
+    return APP_LAYER_OK;
 }
 
 static int SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,

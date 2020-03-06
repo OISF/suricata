@@ -1121,7 +1121,7 @@ static int DNP3ParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
     int processed = 0;
 
     if (input_len == 0) {
-        SCReturnInt(1);
+        SCReturnInt(APP_LAYER_OK);
     }
 
     if (buffer->len) {
@@ -1159,12 +1159,12 @@ static int DNP3ParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
         }
     }
 
-    SCReturnInt(1);
+    SCReturnInt(APP_LAYER_OK);
 
 error:
     /* Reset the buffer. */
     DNP3BufferReset(buffer);
-    SCReturnInt(-1);
+    SCReturnInt(APP_LAYER_ERROR);
 }
 
 /**
@@ -1300,13 +1300,13 @@ static int DNP3ParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
     }
 
 done:
-    SCReturnInt(1);
+    SCReturnInt(APP_LAYER_OK);
 
 error:
     /* An error occurred while processing DNP3 frames.  Dump the
      * buffer as we can't be assured that they are valid anymore. */
     DNP3BufferReset(buffer);
-    SCReturnInt(-1);
+    SCReturnInt(APP_LAYER_ERROR);
 }
 
 static AppLayerDecoderEvents *DNP3GetEvents(void *tx)
