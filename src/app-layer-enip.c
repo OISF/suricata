@@ -343,20 +343,20 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
     if (input == NULL && AppLayerParserStateIssetFlag(pstate,
             APP_LAYER_PARSER_EOF))
     {
-        SCReturnInt(1);
+        SCReturnInt(APP_LAYER_OK);
     } else if (input == NULL && input_len != 0) {
         // GAP
-        SCReturnInt(0);
+        SCReturnInt(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0)
     {
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
     }
 
     while (input_len > 0)
     {
         tx = ENIPTransactionAlloc(enip);
         if (tx == NULL)
-            SCReturnInt(0);
+            SCReturnInt(APP_LAYER_OK);
 
         SCLogDebug("ENIPParse input len %d", input_len);
         DecodeENIPPDU(input, input_len, tx);
@@ -379,7 +379,7 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
         }
     }
 
-    return 1;
+    SCReturnInt(APP_LAYER_OK);
 }
 
 

@@ -466,7 +466,7 @@ pub extern "C" fn rs_rdp_parse_ts(
     let buf = build_slice!(input, input_len as usize);
     // attempt to parse bytes as `rdp` protocol
     if state.parse_ts(buf) {
-        return 1;
+        return 0;
     }
     // no need for further parsing
     return -1;
@@ -486,7 +486,7 @@ pub extern "C" fn rs_rdp_parse_tc(
     let buf = build_slice!(input, input_len as usize);
     // attempt to parse bytes as `rdp` protocol
     if state.parse_tc(buf) {
-        return 1;
+        return 0;
     }
     // no need for further parsing
     return -1;

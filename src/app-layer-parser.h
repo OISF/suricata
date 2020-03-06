@@ -51,6 +51,9 @@
  *  completely inspected */
 #define APP_LAYER_TX_PREFILTER_MASK             ~APP_LAYER_TX_INSPECTED_FLAG
 
+#define APP_LAYER_OK        0
+#define APP_LAYER_ERROR    -1
+
 int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto);
 
 /***** transaction handling *****/

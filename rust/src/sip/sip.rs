@@ -362,7 +362,7 @@ pub extern "C" fn rs_sip_parse_request(
     let buf = build_slice!(input, input_len as usize);
     let state = cast_pointer!(state, SIPState);
     if state.parse_request(buf) {
-        1
+        0
     } else {
         -1
     }
@@ -381,7 +381,7 @@ pub extern "C" fn rs_sip_parse_response(
     let buf = build_slice!(input, input_len as usize);
     let state = cast_pointer!(state, SIPState);
     if state.parse_response(buf) {
-        1
+        0
     } else {
         -1
     }

@@ -45,7 +45,7 @@ static int SMBTCPParseRequest(Flow *f, void *state,
         res = rs_smb_parse_request_tcp(f, state, pstate, input, input_len,
             local_data, flags);
     }
-    if (res != 1) {
+    if (res != 0) {
         SCLogDebug("SMB request%s of %u bytes, retval %d",
                 (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res);
     }
@@ -68,7 +68,7 @@ static int SMBTCPParseResponse(Flow *f, void *state,
         res = rs_smb_parse_response_tcp(f, state, pstate, input, input_len,
             local_data, flags);
     }
-    if (res != 1) {
+    if (res != 0) {
         SCLogDebug("SMB response%s of %u bytes, retval %d",
                 (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res);
     }

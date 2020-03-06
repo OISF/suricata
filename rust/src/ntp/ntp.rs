@@ -104,7 +104,7 @@ impl NTPState {
                     tx.xid = msg.ref_id;
                     self.transactions.push(tx);
                 }
-                1
+                0
             },
             Err(nom::Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing NTP data");
@@ -464,6 +464,6 @@ mod tests {
         ];
 
         let mut state = NTPState::new();
-        assert_eq!(1, state.parse(REQ, 0));
+        assert_eq!(0, state.parse(REQ, 0));
     }
 }
