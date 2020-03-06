@@ -494,7 +494,6 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                                        input_len: u32,
                                        _data: *const libc::c_void,
                                        _flags: u8) -> i32 {
-    if input_len < 4 { return -1; }
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
 
@@ -522,6 +521,10 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                     state.record_ts = record as usize;
                     cur_i = rem;
                 },
+                IResult::Incomplete(_) => {
+                    state.defrag_buf_ts.extend_from_slice(cur_i);
+                    return 0;
+                }
                 _ => {
                     SCLogDebug!("rs_krb5_parse_request_tcp: reading record mark failed!");
                     return 1;
@@ -552,7 +555,6 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                                        input_len: u32,
                                        _data: *const libc::c_void,
                                        _flags: u8) -> i32 {
-    if input_len < 4 { return -1; }
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
 
@@ -580,6 +582,10 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                     state.record_tc = record as usize;
                     cur_i = rem;
                 },
+                IResult::Incomplete(_) => {
+                    state.defrag_buf_tc.extend_from_slice(cur_i);
+                    return 0;
+                }
                 _ => {
                     SCLogNotice!("rs_krb5_parse_response_tcp: reading record mark failed!");
                     return 1;
