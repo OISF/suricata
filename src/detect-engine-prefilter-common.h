@@ -19,10 +19,10 @@
 #define __DETECT_ENGINE_PREFILTER_COMMON_H__
 
 typedef union {
-    uint8_t u8[8];
-    uint16_t u16[4];
-    uint32_t u32[2];
-    uint64_t u64;
+    uint8_t u8[16];
+    uint16_t u16[8];
+    uint32_t u32[4];
+    uint64_t u64[2];
 } PrefilterPacketHeaderValue;
 
 #define PREFILTER_EXTRA_MATCH_UNUSED  0
