@@ -208,6 +208,7 @@ detect-ipv4hdr.c detect-ipv4hdr.h \
 detect-ipv6hdr.c detect-ipv6hdr.h \
 detect-isdataat.c detect-isdataat.h \
 detect-itype.c detect-itype.h \
+detect-keyword-config.c detect-keyword-config.h \
 detect-krb5-cname.c detect-krb5-cname.h \
 detect-krb5-errcode.c detect-krb5-errcode.h \
 detect-krb5-msgtype.c detect-krb5-msgtype.h \
