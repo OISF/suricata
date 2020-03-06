@@ -668,7 +668,7 @@ pub extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
     let state = cast_pointer!(state, DNSState);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     if state.parse_request(buf) {
-        1
+        0
     } else {
         -1
     }
@@ -686,7 +686,7 @@ pub extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
     let state = cast_pointer!(state, DNSState);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     if state.parse_response(buf) {
-        1
+        0
     } else {
         -1
     }

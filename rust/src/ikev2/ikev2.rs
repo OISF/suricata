@@ -473,7 +473,11 @@ pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
                                        _flags: u8) -> i32 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,IKEV2State);
-    state.parse(buf, STREAM_TOSERVER)
+    let res = state.parse(buf, STREAM_TOSERVER);
+    if res < 0 {
+        return res;
+    }
+    0
 }
 
 #[no_mangle]
@@ -494,7 +498,10 @@ pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
                                        APP_LAYER_PARSER_BYPASS_READY)
         };
     }
-    res
+    if res < 0 {
+        return res;
+    }
+    0
 }
 
 #[no_mangle]

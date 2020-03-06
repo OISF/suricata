@@ -1361,9 +1361,9 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
     SCEnter();
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(1);
+        SCReturnInt(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
     }
 
     state->input = input;
@@ -1374,18 +1374,18 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
     if (direction == 0) {
         while (SMTPGetLine(state) >= 0) {
             if (SMTPProcessRequest(state, f, pstate) == -1)
-                SCReturnInt(-1);
+                SCReturnInt(APP_LAYER_ERROR);
         }
 
         /* toclient */
     } else {
         while (SMTPGetLine(state) >= 0) {
             if (SMTPProcessReply(state, f, pstate, thread_data) == -1)
-                SCReturnInt(-1);
+                SCReturnInt(APP_LAYER_ERROR);
         }
     }
 
-    SCReturnInt(0);
+    SCReturnInt(APP_LAYER_OK);
 }
 
 static int SMTPParseClientRecord(Flow *f, void *alstate,

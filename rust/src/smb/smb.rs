@@ -1848,7 +1848,7 @@ pub extern "C" fn rs_smb_parse_request_tcp(flow: &mut Flow,
 
     state.ts = flow.get_last_time().as_secs();
     if state.parse_tcp_data_ts(buf) == 0 {
-        return 1;
+        return 0;
     } else {
         return -1;
     }
@@ -1861,7 +1861,7 @@ pub extern "C" fn rs_smb_parse_request_tcp_gap(
                                         -> i8
 {
     if state.parse_tcp_data_ts_gap(input_len as u32) == 0 {
-        return 1;
+        return 0;
     }
     return -1;
 }
@@ -1887,7 +1887,7 @@ pub extern "C" fn rs_smb_parse_response_tcp(flow: &mut Flow,
 
     state.ts = flow.get_last_time().as_secs();
     if state.parse_tcp_data_tc(buf) == 0 {
-        return 1;
+        return 0;
     } else {
         return -1;
     }
@@ -1900,7 +1900,7 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
                                         -> i8
 {
     if state.parse_tcp_data_tc_gap(input_len as u32) == 0 {
-        return 1;
+        return 0;
     }
     return -1;
 }
