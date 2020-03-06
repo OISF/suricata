@@ -547,7 +547,8 @@ static uint32_t CopyCommandLine(uint8_t **dest, const uint8_t *src, uint32_t len
  * \param input_len length of the request
  * \param output the resulting output
  *
- * \retval 1 when the command is parsed, 0 otherwise
+ * \retval APP_LAYER_OK when input was process successfully
+ * \retval APP_LAYER_ERROR when a unrecoverable error was encountered
  */
 static int FTPParseRequest(Flow *f, void *ftp_state,
                            AppLayerParserState *pstate,
@@ -563,9 +564,9 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     void *ptmp;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(1);
+        SCReturnInt(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
     }
 
     state->input = input;
@@ -588,7 +589,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
 
         FTPTransaction *tx = FTPTransactionCreate(state);
         if (unlikely(tx == NULL))
-            return -1;
+            SCReturnInt(APP_LAYER_ERROR);
         state->curr_tx = tx;
 
         tx->command_descriptor = cmd_descriptor;
@@ -609,7 +610,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                             state->port_line = NULL;
                             state->port_line_size = 0;
                         }
-                        return 0;
+                        SCReturnInt(APP_LAYER_OK);
                     }
                     state->port_line = ptmp;
                     state->port_line_size = state->current_line_len;
@@ -624,23 +625,22 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                  */
                 direction = STREAM_TOCLIENT;
                 // fallthrough
-            case FTP_COMMAND_STOR:
-                {
+            case FTP_COMMAND_STOR: {
                     /* Ensure that there is a negotiated dyn port and a file
                      * name -- need more than 5 chars: cmd [4], space, <filename>
                      */
                     if (state->dyn_port == 0 || state->current_line_len < 6) {
-                        SCReturnInt(-1);
+                        SCReturnInt(APP_LAYER_ERROR);
                     }
                     struct FtpTransferCmd *data = FTPCalloc(1, sizeof(struct FtpTransferCmd));
                     if (data == NULL)
-                        SCReturnInt(-1);
+                        SCReturnInt(APP_LAYER_ERROR);
                     data->DFree = FtpTransferCmdFree;
                     /* Min size has been checked in FTPParseRequestCommand */
                     data->file_name = FTPCalloc(state->current_line_len - 4, sizeof(char));
                     if (data->file_name == NULL) {
                         FtpTransferCmdFree(data);
-                        SCReturnInt(-1);
+                        SCReturnInt(APP_LAYER_ERROR);
                     }
                     data->file_name[state->current_line_len - 5] = 0;
                     data->file_len = state->current_line_len - 5;
@@ -653,7 +653,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                     if (ret == -1) {
                         FtpTransferCmdFree(data);
                         SCLogDebug("No expectation created.");
-                        SCReturnInt(-1);
+                        SCReturnInt(APP_LAYER_ERROR);
                     } else {
                         SCLogDebug("Expectation created [direction: %s, dynamic port %"PRIu16"].",
                             state->active ? "to server" : "to client",
@@ -671,7 +671,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
         }
     }
 
-    return 1;
+    SCReturnInt(APP_LAYER_OK);
 }
 
 static int FTPParsePassiveResponse(Flow *f, FtpState *state, const uint8_t *input, uint32_t input_len)
@@ -705,7 +705,7 @@ static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, const uint8_t *in
 
 /**
  * \brief  Handle preliminary replies -- keep tx open
- * \retval: True for a positive preliminary reply; false otherwise
+ * \retval bool True for a positive preliminary reply; false otherwise
  *
  * 1yz   Positive Preliminary reply
  *
@@ -732,10 +732,9 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
                             void *local_data, const uint8_t flags)
 {
     FtpState *state = (FtpState *)ftp_state;
-    int retcode = 1;
 
     if (unlikely(input_len == 0)) {
-        return 1;
+        SCReturnInt(APP_LAYER_OK);
     }
 
     FTPTransaction *tx = FTPGetOldestTx(state);
@@ -743,7 +742,7 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         tx = FTPTransactionCreate(state);
     }
     if (unlikely(tx == NULL)) {
-        return -1;
+        SCReturnInt(APP_LAYER_ERROR);
     }
     if (state->command == FTP_COMMAND_UNKNOWN || tx->command_descriptor == NULL) {
         /* unknown */
@@ -760,7 +759,6 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
     if (state->command == FTP_COMMAND_EPRT) {
         uint16_t dyn_port = rs_ftp_active_eprt(state->port_line, state->port_line_len);
         if (dyn_port == 0) {
-            retcode = 0;
             goto tx_complete;
         }
         state->dyn_port = dyn_port;
@@ -774,7 +772,6 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         if ((flags & STREAM_TOCLIENT)) {
             uint16_t dyn_port = rs_ftp_active_port(state->port_line, state->port_line_len);
             if (dyn_port == 0) {
-                retcode = 0;
                 goto tx_complete;
             }
             state->dyn_port = dyn_port;
@@ -807,12 +804,12 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
 
     /* Handle preliminary replies -- keep tx open */
     if (FTPIsPPR(input, input_len)) {
-        return retcode;
+        SCReturnInt(APP_LAYER_OK);
     }
 
 tx_complete:
     tx->done = true;
-    return retcode;
+    SCReturnInt(APP_LAYER_OK);
 }
 
 

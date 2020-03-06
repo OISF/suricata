@@ -1233,10 +1233,11 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0 || (flags & STREAM_EOF)) {
         /* invoke the parser */
-        if (p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
+        int parse_res = p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
                 input, input_len,
                 alp_tctx->alproto_local_storage[f->protomap][alproto],
-                flags) < 0)
+                flags);
+        if (parse_res < 0)
         {
             goto error;
         }

@@ -725,9 +725,9 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
     SCEnter();
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(1);
+        SCReturnInt(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
     }
 
     DCERPCUDPState *sstate = (DCERPCUDPState *) dcerpc_state;
@@ -779,9 +779,9 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
         sstate->bytesprocessed = 0;
     }
     if (pstate == NULL)
-        SCReturnInt(-1);
+        SCReturnInt(APP_LAYER_ERROR);
 
-    SCReturnInt(1);
+    SCReturnInt(APP_LAYER_OK);
 }
 
 static void *DCERPCUDPStateAlloc(void)

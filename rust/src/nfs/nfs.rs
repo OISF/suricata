@@ -603,7 +603,7 @@ impl NFSState {
             2 => {
                 self.process_request_record_v2(r)
             },
-            _ => { 1 },
+            _ => { 0 },
         }
     }
 
@@ -1021,7 +1021,7 @@ impl NFSState {
         let consumed = self.filetracker_update(STREAM_TOSERVER, &gap, gap_size);
         if consumed > gap_size {
             SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
-            return 1;
+            return 0;
         }
         self.ts_ssn_gap = true;
         self.ts_gap = true;
@@ -1038,7 +1038,7 @@ impl NFSState {
         let consumed = self.filetracker_update(STREAM_TOCLIENT, &gap, gap_size);
         if consumed > gap_size {
             SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
-            return 1;
+            return 0;
         }
         self.tc_ssn_gap = true;
         self.tc_gap = true;
@@ -1175,7 +1175,7 @@ impl NFSState {
                             // bad.
                             self.set_event(NFSEvent::MalformedData);
 
-                            status = 1;
+                            status = 0;
                         },
                         Err(nom::Err::Error(_e)) |
                         Err(nom::Err::Failure(_e)) => {
@@ -1339,7 +1339,7 @@ impl NFSState {
                             // bad.
                             self.set_event(NFSEvent::MalformedData);
 
-                            status = 1;
+                            status = 0;
                         },
                         Err(nom::Err::Error(_e)) |
                         Err(nom::Err::Failure(_e)) => {
@@ -1383,7 +1383,7 @@ impl NFSState {
                         2 => {
                             status |= self.process_request_record_v2(rpc_record);
                         },
-                        _ => { status = 1; },
+                        _ => { status = 0; },
                     }
                 },
                 Err(nom::Err::Incomplete(_)) => {
@@ -1392,6 +1392,7 @@ impl NFSState {
                 Err(nom::Err::Failure(_e)) => { SCLogDebug!("Parsing failed: {:?}", _e); }
             }
         }
+        SCLogDebug!("status {}", status);
         status
     }
 
@@ -1465,7 +1466,7 @@ pub extern "C" fn rs_nfs_parse_request(flow: &mut Flow,
 
     state.ts = flow.get_last_time().as_secs();
     if state.parse_tcp_data_ts(buf) == 0 {
-        1
+        0
     } else {
         -1
     }
@@ -1478,7 +1479,7 @@ pub extern "C" fn rs_nfs_parse_request_tcp_gap(
                                         -> i8
 {
     if state.parse_tcp_data_ts_gap(input_len as u32) == 0 {
-        return 1;
+        return 0;
     }
     return -1;
 }
@@ -1497,7 +1498,7 @@ pub extern "C" fn rs_nfs_parse_response(flow: &mut Flow,
 
     state.ts = flow.get_last_time().as_secs();
     if state.parse_tcp_data_tc(buf) == 0 {
-        1
+        0
     } else {
         -1
     }
@@ -1510,7 +1511,7 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
                                         -> i8
 {
     if state.parse_tcp_data_tc_gap(input_len as u32) == 0 {
-        return 1;
+        return 0;
     }
     return -1;
 }
@@ -1529,7 +1530,7 @@ pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
     if state.parse_udp_ts(buf) == 0 {
-        1
+        0
     } else {
         -1
     }
@@ -1548,7 +1549,7 @@ pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
 
     if state.parse_udp_tc(buf) == 0 {
-        1
+        0
     } else {
         -1
     }
