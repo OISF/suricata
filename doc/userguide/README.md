@@ -1,7 +1,7 @@
 # Suricata User Guide
 
 This directory contains the Suricata Guide. The
-[Sphinx Document Generate](http://sphinx-doc.org) is used to build the
+[Sphinx Document Generator](http://sphinx-doc.org) is used to build the
 documentation. For a primer os reStructuredText see the
 [reStructuredText Primer](http://sphinx-doc.org/rest.html).
 
