@@ -263,6 +263,7 @@ enum DetectKeywordId {
     DETECT_TRANSFORM_SHA1,
     DETECT_TRANSFORM_SHA256,
     DETECT_TRANSFORM_DOTPREFIX,
+    DETECT_TRANSFORM_PCREXFORM,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
