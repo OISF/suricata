@@ -577,7 +577,9 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     while (FTPGetLine(state) >= 0) {
         const FtpCommand *cmd_descriptor;
 
-        if (!FTPParseRequestCommand(thread_data, state->current_line, state->current_line_len, &cmd_descriptor)) {
+        if (!FTPParseRequestCommand(thread_data,
+                    state->current_line, state->current_line_len,
+                    &cmd_descriptor)) {
             state->command = FTP_COMMAND_UNKNOWN;
             continue;
         }
@@ -590,7 +592,8 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
         state->curr_tx = tx;
 
         tx->command_descriptor = cmd_descriptor;
-        tx->request_length = CopyCommandLine(&tx->request, state->current_line, state->current_line_len);
+        tx->request_length = CopyCommandLine(&tx->request,
+                state->current_line, state->current_line_len);
 
         switch (state->command) {
             case FTP_COMMAND_EPRT:
