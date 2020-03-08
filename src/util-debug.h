@@ -354,6 +354,8 @@ extern int sc_log_module_cleaned;
 
 #define SCReturnBool(x)                 return x
 
+#define SCReturnStruct(x)                 return x
+
 /* Please use it only for debugging purposes */
 #else
 
@@ -549,6 +551,14 @@ extern int sc_log_module_cleaned;
 #define SCReturnBool(x)        do {                                           \
                                   if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
                                       SCLogDebug("Returning: %s ... <<", x ? "true" : "false"); \
+                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
+                                  }                                          \
+                                  return x;                                  \
+                              } while(0)
+
+#define SCReturnStruct(x)     do {                                           \
+                                  if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
+                                      SCLogDebug("Returning: ... <<");       \
                                       SCLogCheckFDFilterExit(__FUNCTION__);  \
                                   }                                          \
                                   return x;                                  \

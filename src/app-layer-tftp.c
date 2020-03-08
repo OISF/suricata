@@ -96,7 +96,7 @@ static AppProto TFTPProbingParser(Flow *f, uint8_t direction,
     return ALPROTO_UNKNOWN;
 }
 
-static int TFTPParseRequest(Flow *f, void *state,
+static AppLayerReturn TFTPParseRequest(Flow *f, void *state,
     AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
@@ -105,26 +105,30 @@ static int TFTPParseRequest(Flow *f, void *state,
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
         AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        return 0;
+        SCReturnStruct(APP_LAYER_OK);
     }
 
     /* Probably don't want to create a transaction in this case
      * either. */
     if (input == NULL || input_len == 0) {
-        return 0;
+        SCReturnStruct(APP_LAYER_OK);
     }
 
-    return rs_tftp_request(state, input, input_len);
+    int res = rs_tftp_request(state, input, input_len);
+    if (res < 0) {
+        SCReturnStruct(APP_LAYER_ERROR);
+    }
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 /**
  * \brief Response parsing is not implemented
  */
-static int TFTPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
+static AppLayerReturn TFTPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
     const uint8_t *input, uint32_t input_len, void *local_data,
     const uint8_t flags)
 {
-    return 0;
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 static uint64_t TFTPGetTxCnt(void *state)

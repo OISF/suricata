@@ -237,7 +237,7 @@ static AppProto TemplateProbingParserTc(Flow *f, uint8_t direction,
     return ALPROTO_UNKNOWN;
 }
 
-static int TemplateParseRequest(Flow *f, void *statev,
+static AppLayerReturn TemplateParseRequest(Flow *f, void *statev,
     AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
@@ -248,13 +248,13 @@ static int TemplateParseRequest(Flow *f, void *statev,
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
         AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        return 0;
+        SCReturnStruct(APP_LAYER_OK);
     }
 
     /* Probably don't want to create a transaction in this case
      * either. */
     if (input == NULL || input_len == 0) {
-        return 0;
+        SCReturnStruct(APP_LAYER_OK);
     }
 
     /* Normally you would parse out data here and store it in the
@@ -302,10 +302,10 @@ static int TemplateParseRequest(Flow *f, void *statev,
     }
 
 end:
-    return 0;
+    SCReturnStruct(APP_LAYER_OK);
 }
 
-static int TemplateParseResponse(Flow *f, void *statev, AppLayerParserState *pstate,
+static AppLayerReturn TemplateParseResponse(Flow *f, void *statev, AppLayerParserState *pstate,
     const uint8_t *input, uint32_t input_len, void *local_data,
     const uint8_t flags)
 {
@@ -317,13 +317,13 @@ static int TemplateParseResponse(Flow *f, void *statev, AppLayerParserState *pst
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
         AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        return 0;
+        SCReturnStruct(APP_LAYER_OK);
     }
 
     /* Probably don't want to create a transaction in this case
      * either. */
     if (input == NULL || input_len == 0) {
-        return 0;
+        SCReturnStruct(APP_LAYER_OK);
     }
 
     /* Look up the existing transaction for this response. In the case
@@ -371,7 +371,7 @@ static int TemplateParseResponse(Flow *f, void *statev, AppLayerParserState *pst
     tx->response_done = 1;
 
 end:
-    return 0;
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 static uint64_t TemplateGetTxCnt(void *statev)

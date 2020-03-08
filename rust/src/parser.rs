@@ -26,6 +26,30 @@ use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
 use crate::applayer::{AppLayerGetTxIterTuple};
 
+#[repr(C)]
+pub struct AppLayerReturn {
+    pub status: i32,
+    pub consumed: u32,
+    pub needed: u32,
+}
+
+impl AppLayerReturn {
+    pub fn ok() -> AppLayerReturn {
+        return AppLayerReturn {
+            status: 0,
+            consumed: 0,
+            needed: 0,
+        };
+    }
+    pub fn err() -> AppLayerReturn {
+        return AppLayerReturn {
+            status: -1,
+            consumed: 0,
+            needed: 0,
+        };
+    }
+}
+
 /// Rust parser declaration
 #[repr(C)]
 pub struct RustParser {
@@ -133,7 +157,7 @@ pub type ParseFn      = extern "C" fn (flow: *const Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        data: *const c_void,
-                                       flags: u8) -> i32;
+                                       flags: u8) -> AppLayerReturn;
 pub type ProbeFn      = extern "C" fn (flow: *const Flow,direction: u8,input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
 pub type StateAllocFn = extern "C" fn () -> *mut c_void;
 pub type StateFreeFn  = extern "C" fn (*mut c_void);

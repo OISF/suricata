@@ -289,13 +289,13 @@ pub extern "C" fn rs_dhcp_parse(_flow: *const core::Flow,
                                 input: *const u8,
                                 input_len: u32,
                                 _data: *const std::os::raw::c_void,
-                                _flags: u8) -> i32 {
+                                _flags: u8) -> AppLayerReturn {
     let state = cast_pointer!(state, DHCPState);
     let buf = build_slice!(input, input_len as usize);
     if state.parse(buf) {
-        return 0;
+        return AppLayerReturn::ok();
     }
-    return -1;
+    return AppLayerReturn::err();
 }
 
 #[no_mangle]

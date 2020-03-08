@@ -51,8 +51,8 @@
  *  completely inspected */
 #define APP_LAYER_TX_PREFILTER_MASK             ~APP_LAYER_TX_INSPECTED_FLAG
 
-#define APP_LAYER_OK        0
-#define APP_LAYER_ERROR    -1
+#define APP_LAYER_OK (AppLayerReturn) { 0, 0, 0 }
+#define APP_LAYER_ERROR (AppLayerReturn) { -1, 0, 0 }
 
 int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto);
 
@@ -93,7 +93,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
                                     const char *alproto_name);
 
 /** \brief Prototype for parsing functions */
-typedef int (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
+typedef AppLayerReturn (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
         AppLayerParserState *pstate,
         const uint8_t *buf, uint32_t buf_len,
         void *local_storage, const uint8_t flags);

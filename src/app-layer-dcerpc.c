@@ -1886,7 +1886,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
     SCReturnInt(parsed);
 }
 
-static int DCERPCParse(Flow *f, void *dcerpc_state,
+static AppLayerReturn DCERPCParse(Flow *f, void *dcerpc_state,
                        AppLayerParserState *pstate,
                        const uint8_t *input, uint32_t input_len,
                        void *local_data, int dir)
@@ -1897,29 +1897,29 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
     DCERPCState *sstate = (DCERPCState *) dcerpc_state;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(APP_LAYER_OK);
+        SCReturnStruct(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
 
     if (sstate->dcerpc.bytesprocessed != 0 && sstate->data_needed_for_dir != dir) {
-        SCReturnInt(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
 
     retval = DCERPCParser(&sstate->dcerpc, input, input_len);
     if (retval == -1) {
-        SCReturnInt(APP_LAYER_OK);
+        SCReturnStruct(APP_LAYER_OK);
     }
 
     sstate->data_needed_for_dir = dir;
 
     if (pstate == NULL)
-        SCReturnInt(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_ERROR);
 
-    SCReturnInt(APP_LAYER_OK);
+    SCReturnStruct(APP_LAYER_OK);
 }
 
-static int DCERPCParseRequest(Flow *f, void *dcerpc_state,
+static AppLayerReturn DCERPCParseRequest(Flow *f, void *dcerpc_state,
                               AppLayerParserState *pstate,
                               const uint8_t *input, uint32_t input_len,
                               void *local_data, const uint8_t flags)
@@ -1928,7 +1928,7 @@ static int DCERPCParseRequest(Flow *f, void *dcerpc_state,
                        local_data, 0);
 }
 
-static int DCERPCParseResponse(Flow *f, void *dcerpc_state,
+static AppLayerReturn DCERPCParseResponse(Flow *f, void *dcerpc_state,
                                AppLayerParserState *pstate,
                                const uint8_t *input, uint32_t input_len,
                                void *local_data, const uint8_t flags)

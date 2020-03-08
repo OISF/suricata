@@ -93,7 +93,7 @@ impl NTPState {
 impl NTPState {
     /// Parse an NTP request message
     ///
-    /// Returns The number of messages parsed, or -1 on error
+    /// Returns 0 if successful, or -1 on error
     fn parse(&mut self, i: &[u8], _direction: u8) -> i32 {
         match parse_ntp(i) {
             Ok((_,ref msg)) => {
@@ -205,10 +205,13 @@ pub extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> i32 {
+                                       _flags: u8) -> AppLayerReturn {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,NTPState);
-    state.parse(buf, 0)
+    if state.parse(buf, 0) < 0 {
+        return AppLayerReturn::err();
+    }
+    AppLayerReturn::ok()
 }
 
 #[no_mangle]
@@ -218,10 +221,13 @@ pub extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> i32 {
+                                       _flags: u8) -> AppLayerReturn {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,NTPState);
-    state.parse(buf, 1)
+    if state.parse(buf, 1) < 0 {
+        return AppLayerReturn::err();
+    }
+    AppLayerReturn::ok()
 }
 
 #[no_mangle]

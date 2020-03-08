@@ -2395,7 +2395,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
  *
  * \retval >=0 On success.
  */
-static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserState *pstate,
+static AppLayerReturn SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserState *pstate,
                      const uint8_t *input, uint32_t ilen)
 {
     SSLState *ssl_state = (SSLState *)alstate;
@@ -2410,9 +2410,9 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
             AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         /* flag session as finished if APP_LAYER_PARSER_EOF is set */
         ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
-        SCReturnInt(APP_LAYER_OK);
+        SCReturnStruct(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
 
     if (direction == 0)
@@ -2544,14 +2544,14 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
     return APP_LAYER_OK;
 }
 
-static int SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
+static AppLayerReturn SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
                          const uint8_t *input, uint32_t input_len,
                          void *local_data, const uint8_t flags)
 {
     return SSLDecode(f, 0 /* toserver */, alstate, pstate, input, input_len);
 }
 
-static int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
+static AppLayerReturn SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
                          const uint8_t *input, uint32_t input_len,
                          void *local_data, const uint8_t flags)
 {

@@ -32,20 +32,28 @@
 static void RustDNSUDPParserRegisterTests(void);
 #endif
 
-static int RustDNSUDPParseRequest(Flow *f, void *state,
+static AppLayerReturn RustDNSUDPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
-    return rs_dns_parse_request(f, state, pstate, input, input_len,
+    int r = rs_dns_parse_request(f, state, pstate, input, input_len,
             local_data);
+    if (r < 0) {
+        SCReturnStruct(APP_LAYER_ERROR);
+    }
+    SCReturnStruct(APP_LAYER_OK);
 }
 
-static int RustDNSUDPParseResponse(Flow *f, void *state,
+static AppLayerReturn RustDNSUDPParseResponse(Flow *f, void *state,
         AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
-    return rs_dns_parse_response(f, state, pstate, input, input_len,
+    int r = rs_dns_parse_response(f, state, pstate, input, input_len,
             local_data);
+    if (r < 0) {
+        SCReturnStruct(APP_LAYER_ERROR);
+    }
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 static uint16_t DNSUDPProbe(Flow *f, uint8_t direction,
@@ -224,8 +232,9 @@ static int RustDNSUDPParserTest01 (void)
     f->alstate = rs_dns_state_new();
     FAIL_IF_NULL(f->alstate);
 
-    FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL, STREAM_START) == 0);
+    AppLayerReturn r = RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
+                    NULL, STREAM_START);
+    FAIL_IF_NOT(r.status == 0);
 
     UTHFreeFlow(f);
     PASS;
@@ -255,8 +264,9 @@ static int RustDNSUDPParserTest02 (void)
     f->alstate = rs_dns_state_new();
     FAIL_IF_NULL(f->alstate);
 
-    FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL, STREAM_START) == 0);
+    AppLayerReturn r = RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
+                    NULL, STREAM_START);
+    FAIL_IF_NOT(r.status == 0);
 
     UTHFreeFlow(f);
     PASS;
@@ -286,8 +296,9 @@ static int RustDNSUDPParserTest03 (void)
     f->alstate = rs_dns_state_new();
     FAIL_IF_NULL(f->alstate);
 
-    FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL, STREAM_START) == 0);
+    AppLayerReturn r = RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
+                    NULL, STREAM_START);
+    FAIL_IF_NOT(r.status == 0);
 
     UTHFreeFlow(f);
     PASS;
@@ -320,8 +331,9 @@ static int RustDNSUDPParserTest04 (void)
     f->alstate = rs_dns_state_new();
     FAIL_IF_NULL(f->alstate);
 
-    FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL, STREAM_START) == 0);
+    AppLayerReturn r = RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
+                    NULL, STREAM_START);
+    FAIL_IF_NOT(r.status == 0);
 
     UTHFreeFlow(f);
     PASS;
@@ -354,8 +366,9 @@ static int RustDNSUDPParserTest05 (void)
     f->alstate = rs_dns_state_new();
     FAIL_IF_NULL(f->alstate);
 
-    FAIL_IF(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL, STREAM_START) != -1);
+    AppLayerReturn r = RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
+                    NULL, STREAM_START);
+    FAIL_IF_NOT(r.status == -1);
 
     UTHFreeFlow(f);
     PASS;

@@ -136,24 +136,32 @@ static AppProto NFSProbingParser(Flow *f, uint8_t direction,
     return ALPROTO_UNKNOWN;
 }
 
-static int NFSParseRequest(Flow *f, void *state,
+static AppLayerReturn NFSParseRequest(Flow *f, void *state,
     AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
     rs_nfs_setfileflags(0, state, file_flags);
 
-    return rs_nfs_parse_request_udp(f, state, pstate, input, input_len, local_data);
+    int res = rs_nfs_parse_request_udp(f, state, pstate, input, input_len, local_data);
+    if (res < 0) {
+        SCReturnStruct(APP_LAYER_ERROR);
+    }
+    SCReturnStruct(APP_LAYER_OK);
 }
 
-static int NFSParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
+static AppLayerReturn NFSParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
     const uint8_t *input, uint32_t input_len, void *local_data,
     const uint8_t flags)
 {
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
     rs_nfs_setfileflags(1, state, file_flags);
 
-    return rs_nfs_parse_response_udp(f, state, pstate, input, input_len, local_data);
+    int res = rs_nfs_parse_response_udp(f, state, pstate, input, input_len, local_data);
+    if (res < 0) {
+        SCReturnStruct(APP_LAYER_ERROR);
+    }
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 static uint64_t NFSGetTxCnt(void *state)
