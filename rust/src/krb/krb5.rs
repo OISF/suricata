@@ -615,7 +615,7 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                     cur_i = rem;
                 },
                 _ => {
-                    SCLogNotice!("rs_krb5_parse_response_tcp: reading record mark failed!");
+                    SCLogDebug!("reading record mark failed!");
                     return 1;
                 }
             }
