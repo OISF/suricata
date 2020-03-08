@@ -156,7 +156,7 @@ static AppProto NFSTCPProbingParser(Flow *f,
     return ALPROTO_UNKNOWN;
 }
 
-static int NFSTCPParseRequest(Flow *f, void *state,
+static AppLayerResult NFSTCPParseRequest(Flow *f, void *state,
     AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
@@ -169,10 +169,13 @@ static int NFSTCPParseRequest(Flow *f, void *state,
     } else {
         res = rs_nfs_parse_request(f, state, pstate, input, input_len, local_data);
     }
-    return res;
+    if (res < 0) {
+        SCReturnStruct(APP_LAYER_ERROR);
+    }
+    SCReturnStruct(APP_LAYER_OK);
 }
 
-static int NFSTCPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
+static AppLayerResult NFSTCPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
     const uint8_t *input, uint32_t input_len, void *local_data,
     const uint8_t flags)
 {
@@ -185,7 +188,10 @@ static int NFSTCPParseResponse(Flow *f, void *state, AppLayerParserState *pstate
     } else {
         res = rs_nfs_parse_response(f, state, pstate, input, input_len, local_data);
     }
-    return res;
+    if (res < 0) {
+        SCReturnStruct(APP_LAYER_ERROR);
+    }
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 static uint64_t NFSTCPGetTxCnt(void *state)

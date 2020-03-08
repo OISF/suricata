@@ -664,13 +664,13 @@ pub extern "C" fn rs_dns_parse_request(_flow: *const core::Flow,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
                                        _flags: u8)
-                                       -> std::os::raw::c_int {
+                                       -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     if state.parse_request(buf) {
-        0
+        AppLayerResult::ok()
     } else {
-        -1
+        AppLayerResult::err()
     }
 }
 
@@ -682,13 +682,13 @@ pub extern "C" fn rs_dns_parse_response(_flow: *const core::Flow,
                                         input_len: u32,
                                         _data: *const std::os::raw::c_void,
                                         _flags: u8)
-                                        -> std::os::raw::c_int {
+                                        -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     if state.parse_response(buf) {
-        0
+        AppLayerResult::ok()
     } else {
-        -1
+        AppLayerResult::err()
     }
 }
 
@@ -701,17 +701,21 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
                                            input_len: u32,
                                            _data: *const std::os::raw::c_void,
                                            _flags: u8)
-                                           -> std::os::raw::c_int {
+                                           -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
     if input_len > 0 {
         if input != std::ptr::null_mut() {
             let buf = unsafe{
                 std::slice::from_raw_parts(input, input_len as usize)};
-            return state.parse_request_tcp(buf) as std::os::raw::c_int;
+            if state.parse_request_tcp(buf) >= 0 {
+                return AppLayerResult::ok();
+            } else {
+                return AppLayerResult::err();
+            }
         }
         state.request_gap(input_len);
     }
-    return 0;
+    AppLayerResult::ok()
 }
 
 #[no_mangle]
@@ -722,17 +726,21 @@ pub extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
                                             input_len: u32,
                                             _data: *const std::os::raw::c_void,
                                             _flags: u8)
-                                            -> std::os::raw::c_int {
+                                            -> AppLayerResult {
     let state = cast_pointer!(state, DNSState);
     if input_len > 0 {
         if input != std::ptr::null_mut() {
             let buf = unsafe{
                 std::slice::from_raw_parts(input, input_len as usize)};
-            return state.parse_response_tcp(buf) as std::os::raw::c_int;
+            if state.parse_response_tcp(buf) >= 0 {
+                return AppLayerResult::ok();
+            } else {
+                return AppLayerResult::err();
+            }
         }
         state.response_gap(input_len);
     }
-    return 0;
+    AppLayerResult::ok()
 }
 
 #[no_mangle]

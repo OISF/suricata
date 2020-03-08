@@ -1233,11 +1233,11 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0 || (flags & STREAM_EOF)) {
         /* invoke the parser */
-        int parse_res = p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
+        AppLayerResult res = p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
                 input, input_len,
                 alp_tctx->alproto_local_storage[f->protomap][alproto],
                 flags);
-        if (parse_res < 0)
+        if (res.status < 0)
         {
             goto error;
         }
@@ -1988,12 +1988,12 @@ typedef struct TestState_ {
  *  \brief  Test parser function to test the memory deallocation of app layer
  *          parser of occurence of an error.
  */
-static int TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
+static AppLayerResult TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
                               const uint8_t *input, uint32_t input_len,
                               void *local_data, const uint8_t flags)
 {
     SCEnter();
-    SCReturnInt(-1);
+    SCReturnStruct(APP_LAYER_ERROR);
 }
 
 /** \brief Function to allocates the Test protocol state memory

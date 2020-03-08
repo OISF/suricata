@@ -1285,9 +1285,9 @@ static int ModbusParseHeader(ModbusState   *modbus,
  * \param input     Input line of the command
  * \param input_len Length of the request
  *
- * \retval 1 when the command is parsed, 0 otherwise
+ * \retval AppLayerResult APP_LAYER_OK or APP_LAYER_ERROR
  */
-static int ModbusParseRequest(Flow                  *f,
+static AppLayerResult ModbusParseRequest(Flow       *f,
                               void                  *state,
                               AppLayerParserState   *pstate,
                               const uint8_t         *input,
@@ -1301,9 +1301,9 @@ static int ModbusParseRequest(Flow                  *f,
     ModbusHeader        header;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(APP_LAYER_OK);
+        SCReturnStruct(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
 
     while (input_len > 0) {
@@ -1312,17 +1312,17 @@ static int ModbusParseRequest(Flow                  *f,
 
         /* Extract MODBUS Header */
         if (ModbusParseHeader(modbus, &header, adu, adu_len))
-            SCReturnInt(APP_LAYER_OK);
+            SCReturnStruct(APP_LAYER_OK);
 
         /* Update ADU length with length in Modbus header. */
         adu_len = (uint32_t) sizeof(ModbusHeader) + (uint32_t) header.length - 1;
         if (adu_len > input_len)
-            SCReturnInt(APP_LAYER_OK);
+            SCReturnStruct(APP_LAYER_OK);
 
         /* Allocate a Transaction Context and add it to Transaction list */
         tx = ModbusTxAlloc(modbus);
         if (tx == NULL)
-            SCReturnInt(APP_LAYER_OK);
+            SCReturnStruct(APP_LAYER_OK);
 
         /* Check MODBUS Header */
         ModbusCheckHeader(modbus, &header);
@@ -1340,7 +1340,7 @@ static int ModbusParseRequest(Flow                  *f,
         input_len   -= adu_len;
     }
 
-    SCReturnInt(APP_LAYER_OK);
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 /** \internal
@@ -1350,9 +1350,9 @@ static int ModbusParseRequest(Flow                  *f,
  * \param input     Input line of the command
  * \param input_len Length of the request
  *
- * \retval 1 when the command is parsed, 0 otherwise
+ * \retval AppLayerResult APP_LAYER_OK or APP_LAYER_ERROR
  */
-static int ModbusParseResponse(Flow                 *f,
+static AppLayerResult ModbusParseResponse(Flow      *f,
                                void                 *state,
                                AppLayerParserState  *pstate,
                                const uint8_t        *input,
@@ -1366,9 +1366,9 @@ static int ModbusParseResponse(Flow                 *f,
     ModbusTransaction   *tx;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(APP_LAYER_OK);
+        SCReturnStruct(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
 
     while (input_len > 0) {
@@ -1377,12 +1377,12 @@ static int ModbusParseResponse(Flow                 *f,
 
         /* Extract MODBUS Header */
         if (ModbusParseHeader(modbus, &header, adu, adu_len))
-            SCReturnInt(APP_LAYER_OK);
+            SCReturnStruct(APP_LAYER_OK);
 
         /* Update ADU length with length in Modbus header. */
         adu_len = (uint32_t) sizeof(ModbusHeader) + (uint32_t) header.length - 1;
         if (adu_len > input_len)
-            SCReturnInt(APP_LAYER_OK);
+            SCReturnStruct(APP_LAYER_OK);
 
         /* Find the transaction context thanks to transaction ID (and function code) */
         tx = ModbusTxFindByTransaction(modbus, header.transactionId);
@@ -1391,7 +1391,7 @@ static int ModbusParseResponse(Flow                 *f,
             /* and add it to Transaction list */
             tx = ModbusTxAlloc(modbus);
             if (tx == NULL)
-                SCReturnInt(APP_LAYER_OK);
+                SCReturnStruct(APP_LAYER_OK);
 
             SCLogDebug("MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE");
             ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE);
@@ -1414,7 +1414,7 @@ static int ModbusParseResponse(Flow                 *f,
         input_len   -= adu_len;
     }
 
-    SCReturnInt(APP_LAYER_OK);
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 /** \internal
