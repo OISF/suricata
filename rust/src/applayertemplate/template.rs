@@ -302,7 +302,7 @@ pub extern "C" fn rs_template_parse_request(
     input_len: u32,
     _data: *const std::os::raw::c_void,
     _flags: u8,
-) -> i32 {
+) -> AppLayerResult {
     let eof = unsafe {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
             true
@@ -317,10 +317,10 @@ pub extern "C" fn rs_template_parse_request(
 
     let state = cast_pointer!(state, TemplateState);
     let buf = build_slice!(input, input_len as usize);
-    if state.parse_request(buf) {
-        return 1;
+    if !state.parse_request(buf) {
+        return AppLayerResult::err();
     }
-    return -1;
+    AppLayerResult::ok()
 }
 
 #[no_mangle]
@@ -332,7 +332,7 @@ pub extern "C" fn rs_template_parse_response(
     input_len: u32,
     _data: *const std::os::raw::c_void,
     _flags: u8,
-) -> i32 {
+) -> AppLayerResult {
     let _eof = unsafe {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
             true
@@ -342,10 +342,10 @@ pub extern "C" fn rs_template_parse_response(
     };
     let state = cast_pointer!(state, TemplateState);
     let buf = build_slice!(input, input_len as usize);
-    if state.parse_response(buf) {
-        return 1;
+    if !state.parse_response(buf) {
+        return AppLayerResult::err();
     }
-    return -1;
+    AppLayerResult::ok()
 }
 
 #[no_mangle]
