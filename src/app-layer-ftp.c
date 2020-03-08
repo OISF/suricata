@@ -550,7 +550,7 @@ static uint32_t CopyCommandLine(uint8_t **dest, const uint8_t *src, uint32_t len
  * \retval APP_LAYER_OK when input was process successfully
  * \retval APP_LAYER_ERROR when a unrecoverable error was encountered
  */
-static int FTPParseRequest(Flow *f, void *ftp_state,
+static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state,
                            AppLayerParserState *pstate,
                            const uint8_t *input, uint32_t input_len,
                            void *local_data, const uint8_t flags)
@@ -564,9 +564,9 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     void *ptmp;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(APP_LAYER_OK);
+        SCReturnStruct(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
 
     state->input = input;
@@ -589,7 +589,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
 
         FTPTransaction *tx = FTPTransactionCreate(state);
         if (unlikely(tx == NULL))
-            SCReturnInt(APP_LAYER_ERROR);
+            SCReturnStruct(APP_LAYER_ERROR);
         state->curr_tx = tx;
 
         tx->command_descriptor = cmd_descriptor;
@@ -610,7 +610,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                             state->port_line = NULL;
                             state->port_line_size = 0;
                         }
-                        SCReturnInt(APP_LAYER_OK);
+                        SCReturnStruct(APP_LAYER_OK);
                     }
                     state->port_line = ptmp;
                     state->port_line_size = state->current_line_len;
@@ -630,17 +630,17 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                      * name -- need more than 5 chars: cmd [4], space, <filename>
                      */
                     if (state->dyn_port == 0 || state->current_line_len < 6) {
-                        SCReturnInt(APP_LAYER_ERROR);
+                        SCReturnStruct(APP_LAYER_ERROR);
                     }
                     struct FtpTransferCmd *data = FTPCalloc(1, sizeof(struct FtpTransferCmd));
                     if (data == NULL)
-                        SCReturnInt(APP_LAYER_ERROR);
+                        SCReturnStruct(APP_LAYER_ERROR);
                     data->DFree = FtpTransferCmdFree;
                     /* Min size has been checked in FTPParseRequestCommand */
                     data->file_name = FTPCalloc(state->current_line_len - 4, sizeof(char));
                     if (data->file_name == NULL) {
                         FtpTransferCmdFree(data);
-                        SCReturnInt(APP_LAYER_ERROR);
+                        SCReturnStruct(APP_LAYER_ERROR);
                     }
                     data->file_name[state->current_line_len - 5] = 0;
                     data->file_len = state->current_line_len - 5;
@@ -653,7 +653,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                     if (ret == -1) {
                         FtpTransferCmdFree(data);
                         SCLogDebug("No expectation created.");
-                        SCReturnInt(APP_LAYER_ERROR);
+                        SCReturnStruct(APP_LAYER_ERROR);
                     } else {
                         SCLogDebug("Expectation created [direction: %s, dynamic port %"PRIu16"].",
                             state->active ? "to server" : "to client",
@@ -671,7 +671,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
         }
     }
 
-    SCReturnInt(APP_LAYER_OK);
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 static int FTPParsePassiveResponse(Flow *f, FtpState *state, const uint8_t *input, uint32_t input_len)
@@ -727,14 +727,14 @@ static inline bool FTPIsPPR(const uint8_t *input, uint32_t input_len)
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
+static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
                             const uint8_t *input, uint32_t input_len,
                             void *local_data, const uint8_t flags)
 {
     FtpState *state = (FtpState *)ftp_state;
 
     if (unlikely(input_len == 0)) {
-        SCReturnInt(APP_LAYER_OK);
+        SCReturnStruct(APP_LAYER_OK);
     }
 
     FTPTransaction *tx = FTPGetOldestTx(state);
@@ -742,7 +742,7 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
         tx = FTPTransactionCreate(state);
     }
     if (unlikely(tx == NULL)) {
-        SCReturnInt(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
     if (state->command == FTP_COMMAND_UNKNOWN || tx->command_descriptor == NULL) {
         /* unknown */
@@ -804,12 +804,12 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
 
     /* Handle preliminary replies -- keep tx open */
     if (FTPIsPPR(input, input_len)) {
-        SCReturnInt(APP_LAYER_OK);
+        SCReturnStruct(APP_LAYER_OK);
     }
 
 tx_complete:
     tx->done = true;
-    SCReturnInt(APP_LAYER_OK);
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 
@@ -1045,7 +1045,7 @@ static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
+static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         AppLayerParserState *pstate,
         const uint8_t *input, uint32_t input_len,
         void *local_data, int direction)
@@ -1057,13 +1057,13 @@ static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
     if (ftpdata_state->files == NULL) {
         struct FtpTransferCmd *data = (struct FtpTransferCmd *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
         if (data == NULL) {
-            SCReturnInt(-1);
+            SCReturnStruct(APP_LAYER_ERROR);
         }
 
         ftpdata_state->files = FileContainerAlloc();
         if (ftpdata_state->files == NULL) {
             FlowFreeStorageById(f, AppLayerExpectationGetDataId());
-            SCReturnInt(-1);
+            SCReturnStruct(APP_LAYER_ERROR);
         }
 
         ftpdata_state->file_name = data->file_name;
@@ -1119,7 +1119,10 @@ static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
     }
 
 out:
-    return ret;
+    if (ret < 0) {
+        SCReturnStruct(APP_LAYER_ERROR);
+    }
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 static void FTPStateSetTxLogged(void *state, void *vtx, LoggerId logged)
@@ -1133,7 +1136,7 @@ static LoggerId FTPStateGetTxLogged(void *state, void *vtx)
     FTPTransaction *tx = vtx;
     return tx->logged;
 }
-static int FTPDataParseRequest(Flow *f, void *ftp_state,
+static AppLayerResult FTPDataParseRequest(Flow *f, void *ftp_state,
         AppLayerParserState *pstate,
         const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
@@ -1142,7 +1145,7 @@ static int FTPDataParseRequest(Flow *f, void *ftp_state,
                                local_data, STREAM_TOSERVER);
 }
 
-static int FTPDataParseResponse(Flow *f, void *ftp_state,
+static AppLayerResult FTPDataParseResponse(Flow *f, void *ftp_state,
         AppLayerParserState *pstate,
         const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)

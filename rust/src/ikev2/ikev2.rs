@@ -470,14 +470,13 @@ pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> i32 {
+                                       _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,IKEV2State);
-    let res = state.parse(buf, STREAM_TOSERVER);
-    if res < 0 {
-        return res;
+    if state.parse(buf, STREAM_TOSERVER) < 0 {
+        return AppLayerResult::err();
     }
-    0
+    return AppLayerResult::ok();
 }
 
 #[no_mangle]
@@ -487,7 +486,7 @@ pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> i32 {
+                                       _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,IKEV2State);
     let res = state.parse(buf, STREAM_TOCLIENT);
@@ -499,9 +498,9 @@ pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
         };
     }
     if res < 0 {
-        return res;
+        return AppLayerResult::err();
     }
-    0
+    return AppLayerResult::ok();
 }
 
 #[no_mangle]

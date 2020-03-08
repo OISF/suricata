@@ -32,22 +32,30 @@
 static void RustDNSTCPParserRegisterTests(void);
 #endif
 
-static int RustDNSTCPParseRequest(Flow *f, void *state,
+static AppLayerResult RustDNSTCPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
     SCLogDebug("RustDNSTCPParseRequest");
-    return rs_dns_parse_request_tcp(f, state, pstate, input, input_len,
+    int r = rs_dns_parse_request_tcp(f, state, pstate, input, input_len,
             local_data);
+    if (r < 0) {
+        SCReturnStruct(APP_LAYER_ERROR);
+    }
+    SCReturnStruct(APP_LAYER_OK);
 }
 
-static int RustDNSTCPParseResponse(Flow *f, void *state,
+static AppLayerResult RustDNSTCPParseResponse(Flow *f, void *state,
         AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
     SCLogDebug("RustDNSTCPParseResponse");
-    return rs_dns_parse_response_tcp(f, state, pstate, input, input_len,
+    int r = rs_dns_parse_response_tcp(f, state, pstate, input, input_len,
             local_data);
+    if (r < 0) {
+        SCReturnStruct(APP_LAYER_ERROR);
+    }
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 static uint16_t RustDNSTCPProbe(Flow *f, uint8_t direction,
@@ -292,8 +300,9 @@ static int RustDNSTCPParserTestMultiRecord(void)
     f->alproto = ALPROTO_DNS;
     f->alstate = state;
 
-    FAIL_IF(RustDNSTCPParseRequest(f, f->alstate, NULL, req, reqlen,
-                    NULL, STREAM_START) < 0);
+    AppLayerResult r = RustDNSTCPParseRequest(f, f->alstate, NULL, req, reqlen,
+                    NULL, STREAM_START);
+    FAIL_IF(r.status != 0);
     FAIL_IF(rs_dns_state_get_tx_count(state) != 20);
 
     UTHFreeFlow(f);

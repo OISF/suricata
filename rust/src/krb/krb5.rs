@@ -116,12 +116,12 @@ impl KRB5State {
 
     /// Parse a Kerberos request message
     ///
-    /// Returns The number of messages parsed, or -1 on error
+    /// Returns 0 in case of success, or -1 on error
     fn parse(&mut self, i: &[u8], _direction: u8) -> i32 {
         match der_read_element_header(i) {
             Ok((_rem,hdr)) => {
                 // Kerberos messages start with an APPLICATION header
-                if hdr.class != 0b01 { return 1; }
+                if hdr.class != 0b01 { return 0; }
                 match hdr.tag.0 {
                     10 => {
                         self.req_id = 10;
@@ -501,10 +501,13 @@ pub extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> i32 {
+                                       _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
-    state.parse(buf, STREAM_TOSERVER)
+    if state.parse(buf, STREAM_TOSERVER) < 0 {
+        return AppLayerResult::err();
+    }
+    AppLayerResult::ok()
 }
 
 #[no_mangle]
@@ -514,10 +517,13 @@ pub extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> i32 {
+                                       _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
-    state.parse(buf, STREAM_TOCLIENT)
+    if state.parse(buf, STREAM_TOCLIENT) < 0 {
+        return AppLayerResult::err();
+    }
+    AppLayerResult::ok()
 }
 
 #[no_mangle]
@@ -527,12 +533,11 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> i32 {
+                                       _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
 
     let mut v : Vec<u8>;
-    let mut status = 0;
     let tcp_buffer = match state.record_ts {
         0 => buf,
         _ => {
@@ -540,7 +545,7 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
             if state.defrag_buf_ts.len() + buf.len() > 100000 {
                 SCLogDebug!("rs_krb5_parse_request_tcp: TCP buffer exploded {} {}",
                             state.defrag_buf_ts.len(), buf.len());
-                return 1;
+                return AppLayerResult::err();
             }
             v = state.defrag_buf_ts.split_off(0);
             v.extend_from_slice(buf);
@@ -557,28 +562,27 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                 },
                 Err(nom::Err::Incomplete(_)) => {
                     state.defrag_buf_ts.extend_from_slice(cur_i);
-                    return 0;
+                    return AppLayerResult::ok();
                 }
                 _ => {
                     SCLogDebug!("rs_krb5_parse_request_tcp: reading record mark failed!");
-                    return 1;
+                    return AppLayerResult::err();
                 }
             }
         }
         if cur_i.len() >= state.record_ts {
-            status = state.parse(cur_i, STREAM_TOSERVER);
-            if status != 0 {
-                return status;
+            if state.parse(cur_i, STREAM_TOSERVER) < 0 {
+                return AppLayerResult::err();
             }
             state.record_ts = 0;
             cur_i = &cur_i[state.record_ts..];
         } else {
             // more fragments required
             state.defrag_buf_ts.extend_from_slice(cur_i);
-            return 0;
+            return AppLayerResult::ok();
         }
     }
-    status
+    AppLayerResult::ok()
 }
 
 #[no_mangle]
@@ -588,12 +592,11 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> i32 {
+                                       _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
 
     let mut v : Vec<u8>;
-    let mut status = 0;
     let tcp_buffer = match state.record_tc {
         0 => buf,
         _ => {
@@ -601,7 +604,7 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
             if state.defrag_buf_tc.len() + buf.len() > 100000 {
                 SCLogDebug!("rs_krb5_parse_response_tcp: TCP buffer exploded {} {}",
                             state.defrag_buf_tc.len(), buf.len());
-                return 1;
+                return AppLayerResult::err();
             }
             v = state.defrag_buf_tc.split_off(0);
             v.extend_from_slice(buf);
@@ -618,28 +621,27 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                 },
                 Err(nom::Err::Incomplete(_)) => {
                     state.defrag_buf_tc.extend_from_slice(cur_i);
-                    return 0;
+                    return AppLayerResult::ok();
                 }
                 _ => {
                     SCLogDebug!("reading record mark failed!");
-                    return 1;
+                    return AppLayerResult::ok();
                 }
             }
         }
         if cur_i.len() >= state.record_tc {
-            status = state.parse(cur_i, STREAM_TOCLIENT);
-            if status != 0 {
-                return status;
+            if state.parse(cur_i, STREAM_TOCLIENT) < 0 {
+                return AppLayerResult::err();
             }
             state.record_tc = 0;
             cur_i = &cur_i[state.record_tc..];
         } else {
             // more fragments required
             state.defrag_buf_tc.extend_from_slice(cur_i);
-            return 0;
+            return AppLayerResult::ok();
         }
     }
-    status
+    AppLayerResult::ok()
 }
 
 export_tx_detect_flags_set!(rs_krb5_tx_detect_flags_set, KRB5Transaction);

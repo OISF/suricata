@@ -30,7 +30,7 @@
 
 #define MIN_REC_SIZE 32+4 // SMB hdr + nbss hdr
 
-static int SMBTCPParseRequest(Flow *f, void *state,
+static AppLayerResult SMBTCPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
@@ -48,11 +48,12 @@ static int SMBTCPParseRequest(Flow *f, void *state,
     if (res != 0) {
         SCLogDebug("SMB request%s of %u bytes, retval %d",
                 (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
-    return res;
+    SCReturnStruct(APP_LAYER_OK);
 }
 
-static int SMBTCPParseResponse(Flow *f, void *state,
+static AppLayerResult SMBTCPParseResponse(Flow *f, void *state,
         AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
         void *local_data, const uint8_t flags)
 {
@@ -71,8 +72,9 @@ static int SMBTCPParseResponse(Flow *f, void *state,
     if (res != 0) {
         SCLogDebug("SMB response%s of %u bytes, retval %d",
                 (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
-    return res;
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 static uint16_t SMBTCPProbe(Flow *f, uint8_t direction,
