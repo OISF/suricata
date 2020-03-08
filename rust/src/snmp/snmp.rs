@@ -186,7 +186,7 @@ impl SNMPState {
 
     /// Parse an SNMP request message
     ///
-    /// Returns The number of messages parsed, or -1 on error
+    /// Returns 0 if successful, or -1 on error
     fn parse(&mut self, i: &[u8], direction: u8) -> i32 {
         if self.version == 0 {
             match parse_pdu_enveloppe_version(i) {
@@ -323,10 +323,13 @@ pub extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> i32 {
+                                       _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,SNMPState);
-    state.parse(buf, STREAM_TOSERVER)
+    if state.parse(buf, STREAM_TOSERVER) < 0 {
+        return AppLayerResult::err();
+    }
+    AppLayerResult::ok()
 }
 
 #[no_mangle]
@@ -336,10 +339,13 @@ pub extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *const std::os::raw::c_void,
-                                       _flags: u8) -> i32 {
+                                       _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,SNMPState);
-    state.parse(buf, STREAM_TOCLIENT)
+    if state.parse(buf, STREAM_TOCLIENT) < 0 {
+        return AppLayerResult::err();
+    }
+    AppLayerResult::ok()
 }
 
 #[no_mangle]

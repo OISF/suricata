@@ -715,7 +715,7 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
     SCReturnInt((p - input));
 }
 
-static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
+static AppLayerResult DCERPCUDPParse(Flow *f, void *dcerpc_state,
     AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
@@ -725,9 +725,9 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
     SCEnter();
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        SCReturnInt(APP_LAYER_OK);
+        SCReturnStruct(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
-        SCReturnInt(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_ERROR);
     }
 
     DCERPCUDPState *sstate = (DCERPCUDPState *) dcerpc_state;
@@ -736,7 +736,7 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
             input_len);
         if (hdrretval == -1 || hdrretval > (int32_t)input_len) {
             sstate->bytesprocessed = 0;
-            SCReturnInt(hdrretval);
+            SCReturnStruct(APP_LAYER_ERROR);
         } else {
             parsed += hdrretval;
             input_len -= hdrretval;
@@ -779,9 +779,9 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
         sstate->bytesprocessed = 0;
     }
     if (pstate == NULL)
-        SCReturnInt(APP_LAYER_ERROR);
+        SCReturnStruct(APP_LAYER_ERROR);
 
-    SCReturnInt(APP_LAYER_OK);
+    SCReturnStruct(APP_LAYER_OK);
 }
 
 static void *DCERPCUDPStateAlloc(void)

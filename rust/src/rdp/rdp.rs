@@ -461,15 +461,16 @@ pub extern "C" fn rs_rdp_parse_ts(
     input_len: u32,
     _data: *const std::os::raw::c_void,
     _flags: u8,
-) -> i32 {
+) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = build_slice!(input, input_len as usize);
     // attempt to parse bytes as `rdp` protocol
     if state.parse_ts(buf) {
-        return 0;
+        AppLayerResult::ok()
+    } else {
+        // no need for further parsing
+        AppLayerResult::err()
     }
-    // no need for further parsing
-    return -1;
 }
 
 #[no_mangle]
@@ -481,15 +482,16 @@ pub extern "C" fn rs_rdp_parse_tc(
     input_len: u32,
     _data: *const std::os::raw::c_void,
     _flags: u8,
-) -> i32 {
+) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = build_slice!(input, input_len as usize);
     // attempt to parse bytes as `rdp` protocol
     if state.parse_tc(buf) {
-        return 0;
+        AppLayerResult::ok()
+    } else {
+        // no need for further parsing
+        AppLayerResult::err()
     }
-    // no need for further parsing
-    return -1;
 }
 
 //
