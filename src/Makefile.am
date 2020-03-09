@@ -436,8 +436,6 @@ util-daemon.c util-daemon.h \
 util-debug.c util-debug.h \
 util-debug-filters.c util-debug-filters.h \
 util-decode-asn1.c util-decode-asn1.h \
-util-decode-der.c util-decode-der.h \
-util-decode-der-get.c util-decode-der-get.h \
 util-decode-mime.c util-decode-mime.h \
 util-detect.c util-detect.h \
 util-device.c util-device.h \

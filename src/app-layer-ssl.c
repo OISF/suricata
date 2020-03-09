@@ -43,8 +43,6 @@
 #include "conf.h"
 
 #include "util-crypt.h"
-#include "util-decode-der.h"
-#include "util-decode-der-get.h"
 #include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -355,36 +353,6 @@ void SSLVersionToString(uint16_t version, char *buffer)
     }
 }
 
-static void TlsDecodeHSCertificateErrSetEvent(SSLState *ssl_state, uint32_t err)
-{
-    switch (err) {
-        case ERR_DER_UNKNOWN_ELEMENT:
-            SSLSetEvent(ssl_state,
-                        TLS_DECODER_EVENT_CERTIFICATE_UNKNOWN_ELEMENT);
-            break;
-        case ERR_DER_ELEMENT_SIZE_TOO_BIG:
-        case ERR_DER_INVALID_SIZE:
-        case ERR_DER_RECURSION_LIMIT:
-            SSLSetEvent(ssl_state,
-                        TLS_DECODER_EVENT_CERTIFICATE_INVALID_LENGTH);
-            break;
-        case ERR_DER_UNSUPPORTED_STRING:
-            SSLSetEvent(ssl_state,
-                        TLS_DECODER_EVENT_CERTIFICATE_INVALID_STRING);
-            break;
-        case ERR_DER_MISSING_ELEMENT:
-            SSLSetEvent(ssl_state,
-                        TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT);
-            break;
-        case ERR_DER_INVALID_TAG:
-        case ERR_DER_INVALID_OBJECT:
-        case ERR_DER_GENERIC:
-        default:
-            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
-            break;
-    }
-}
-
 static inline int TlsDecodeHSCertificateFingerprint(SSLState *ssl_state,
                                                     const uint8_t *input,
                                                     uint32_t cert_len)
@@ -464,7 +432,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
 
             x509 = rs_x509_decode(input, cert_len);
             if (x509 == NULL) {
-                TlsDecodeHSCertificateErrSetEvent(ssl_state, ERR_DER_GENERIC);
+                SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
                 goto next;
             }
 
