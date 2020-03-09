@@ -38,19 +38,20 @@ static AppLayerResult SMBTCPParseRequest(Flow *f, void *state,
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
     rs_smb_setfileflags(0, state, file_flags|FILE_USE_DETECT);
 
-    int res;
     if (input == NULL && input_len > 0) {
-        res = rs_smb_parse_request_tcp_gap(state, input_len);
+        int res = rs_smb_parse_request_tcp_gap(state, input_len);
+        SCLogDebug("SMB request GAP of %u bytes, retval %d", input_len, res);
+        if (res != 0) {
+            SCReturnStruct(APP_LAYER_ERROR);
+        }
+        SCReturnStruct(APP_LAYER_OK);
     } else {
-        res = rs_smb_parse_request_tcp(f, state, pstate, input, input_len,
-            local_data, flags);
-    }
-    if (res != 0) {
+        AppLayerResult res = rs_smb_parse_request_tcp(f, state, pstate,
+                input, input_len, local_data, flags);
         SCLogDebug("SMB request%s of %u bytes, retval %d",
-                (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res);
-        SCReturnStruct(APP_LAYER_ERROR);
+                (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res.status);
+        SCReturnStruct(res);
     }
-    SCReturnStruct(APP_LAYER_OK);
 }
 
 static AppLayerResult SMBTCPParseResponse(Flow *f, void *state,
@@ -62,19 +63,19 @@ static AppLayerResult SMBTCPParseResponse(Flow *f, void *state,
     rs_smb_setfileflags(1, state, file_flags|FILE_USE_DETECT);
 
     SCLogDebug("SMBTCPParseResponse %p/%u", input, input_len);
-    int res;
     if (input == NULL && input_len > 0) {
-        res = rs_smb_parse_response_tcp_gap(state, input_len);
+        int res = rs_smb_parse_response_tcp_gap(state, input_len);
+        if (res != 0) {
+            SCLogDebug("SMB response%s of %u bytes, retval %d",
+                    (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res);
+            SCReturnStruct(APP_LAYER_ERROR);
+        }
+        SCReturnStruct(APP_LAYER_OK);
     } else {
-        res = rs_smb_parse_response_tcp(f, state, pstate, input, input_len,
-            local_data, flags);
+        AppLayerResult res = rs_smb_parse_response_tcp(f, state, pstate,
+                input, input_len, local_data, flags);
+        SCReturnStruct(res);
     }
-    if (res != 0) {
-        SCLogDebug("SMB response%s of %u bytes, retval %d",
-                (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res);
-        SCReturnStruct(APP_LAYER_ERROR);
-    }
-    SCReturnStruct(APP_LAYER_OK);
 }
 
 static uint16_t SMBTCPProbe(Flow *f, uint8_t direction,
