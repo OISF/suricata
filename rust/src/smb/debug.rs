@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -73,6 +73,6 @@ impl SMBState {
 
     #[cfg(feature = "debug")]
     pub fn _debug_state_stats(&self) {
-        SCLogDebug!("ssn2vec_map {} guid2name_map {} ssn2vecoffset_map {} ssn2tree_map {} ssnguid2vec_map {} tcp_buffer_ts {} tcp_buffer_tc {} file_ts_guid {} file_tc_guid {} transactions {}", self.ssn2vec_map.len(), self.guid2name_map.len(), self.ssn2vecoffset_map.len(), self.ssn2tree_map.len(), self.ssnguid2vec_map.len(), self.tcp_buffer_ts.len(), self.tcp_buffer_tc.len(), self.file_ts_guid.len(), self.file_tc_guid.len(), self.transactions.len());
+        SCLogDebug!("ssn2vec_map {} guid2name_map {} ssn2vecoffset_map {} ssn2tree_map {} ssnguid2vec_map {} file_ts_guid {} file_tc_guid {} transactions {}", self.ssn2vec_map.len(), self.guid2name_map.len(), self.ssn2vecoffset_map.len(), self.ssn2tree_map.len(), self.ssnguid2vec_map.len(), self.file_ts_guid.len(), self.file_tc_guid.len(), self.transactions.len());
     }
 }
