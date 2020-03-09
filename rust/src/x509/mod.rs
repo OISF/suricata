@@ -65,7 +65,12 @@ pub extern "C" fn rs_x509_get_serial(ptr: *const X509) -> *mut c_char {
         return std::ptr::null_mut();
     }
     let x509 = cast_pointer! {ptr, X509};
-    let serial = x509.0.tbs_certificate.serial.to_string();
+    let raw_serial = x509.0.tbs_certificate.raw_serial();
+    let v : Vec<_> = raw_serial
+        .iter()
+        .map(|x| format!("{:02X}", x))
+        .collect();
+    let serial = v.join(":");
     rust_string_to_c(serial)
 }
 
