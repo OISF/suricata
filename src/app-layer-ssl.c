@@ -2477,11 +2477,11 @@ static void SSLStateFree(void *p)
     if (ssl_state->client_connp.trec)
         SCFree(ssl_state->client_connp.trec);
     if (ssl_state->client_connp.cert0_subject)
-        SCFree(ssl_state->client_connp.cert0_subject);
+        rs_cstring_free(ssl_state->client_connp.cert0_subject);
     if (ssl_state->client_connp.cert0_issuerdn)
-        SCFree(ssl_state->client_connp.cert0_issuerdn);
-    if (ssl_state->server_connp.cert0_serial)
-        SCFree(ssl_state->server_connp.cert0_serial);
+        rs_cstring_free(ssl_state->client_connp.cert0_issuerdn);
+    if (ssl_state->client_connp.cert0_serial)
+        rs_cstring_free(ssl_state->client_connp.cert0_serial);
     if (ssl_state->client_connp.cert0_fingerprint)
         SCFree(ssl_state->client_connp.cert0_fingerprint);
     if (ssl_state->client_connp.sni)
@@ -2492,9 +2492,11 @@ static void SSLStateFree(void *p)
     if (ssl_state->server_connp.trec)
         SCFree(ssl_state->server_connp.trec);
     if (ssl_state->server_connp.cert0_subject)
-        SCFree(ssl_state->server_connp.cert0_subject);
+        rs_cstring_free(ssl_state->server_connp.cert0_subject);
     if (ssl_state->server_connp.cert0_issuerdn)
-        SCFree(ssl_state->server_connp.cert0_issuerdn);
+        rs_cstring_free(ssl_state->server_connp.cert0_issuerdn);
+    if (ssl_state->server_connp.cert0_serial)
+        rs_cstring_free(ssl_state->server_connp.cert0_serial);
     if (ssl_state->server_connp.cert0_fingerprint)
         SCFree(ssl_state->server_connp.cert0_fingerprint);
     if (ssl_state->server_connp.sni)
