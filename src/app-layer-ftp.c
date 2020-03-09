@@ -262,7 +262,7 @@ static FTPString *FTPStringAlloc(void)
 static void FTPStringFree(FTPString *str)
 {
     if (str->str) {
-        FTPFree(str->str, str->len);
+        FTPFree(str->str, str->mem_len);
     }
 
     FTPFree(str, sizeof(FTPString));
@@ -335,7 +335,7 @@ static void FTPTransactionFree(FTPTransaction *tx)
     }
 
     if (tx->request) {
-        FTPFree(tx->request, tx->request_length);
+        FTPFree(tx->request, tx->request_mem_length);
     }
 
     FTPString *str = NULL;
@@ -344,7 +344,7 @@ static void FTPTransactionFree(FTPTransaction *tx)
         FTPStringFree(str);
     }
 
-    SCFree(tx);
+    FTPFree(tx, sizeof(*tx));
 }
 
 static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
@@ -504,6 +504,7 @@ struct FtpTransferCmd {
     uint64_t flow_id;
     uint8_t *file_name;
     uint16_t file_len;
+    uint16_t file_mem_len;
     FtpRequestCommand cmd;
 };
 
@@ -513,12 +514,12 @@ static void FtpTransferCmdFree(void *data)
     if (cmd == NULL)
         return;
     if (cmd->file_name) {
-        FTPFree(cmd->file_name, cmd->file_len);
+        FTPFree(cmd->file_name, cmd->file_mem_len);
     }
     FTPFree(cmd, sizeof(struct FtpTransferCmd));
 }
 
-static uint32_t CopyCommandLine(uint8_t **dest, const uint8_t *src, uint32_t length)
+static uint32_t CopyCommandLine(uint8_t **dest, const uint8_t *src, uint32_t length, uint32_t *mem_length)
 {
     if (likely(length)) {
         uint8_t *where = FTPCalloc(length + 1, sizeof(char));
@@ -526,6 +527,7 @@ static uint32_t CopyCommandLine(uint8_t **dest, const uint8_t *src, uint32_t len
             return 0;
         }
         memcpy(where, src, length);
+        *mem_length = length + 1;
 
         /* Remove trailing newlines/carriage returns */
         while (length && isspace((unsigned char) where[length - 1])) {
@@ -590,7 +592,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
         state->curr_tx = tx;
 
         tx->command_descriptor = cmd_descriptor;
-        tx->request_length = CopyCommandLine(&tx->request, state->current_line, state->current_line_len);
+        tx->request_length = CopyCommandLine(&tx->request, state->current_line, state->current_line_len, &tx->request_mem_length);
 
         switch (state->command) {
             case FTP_COMMAND_EPRT:
@@ -641,6 +643,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                     }
                     data->file_name[state->current_line_len - 5] = 0;
                     data->file_len = state->current_line_len - 5;
+                    data->file_mem_len = state->current_line_len - 4;
                     memcpy(data->file_name, state->current_line + 5, state->current_line_len - 5);
                     data->cmd = state->command;
                     data->flow_id = FlowGetId(f);
@@ -797,7 +800,7 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
     if (likely(input_len)) {
         FTPString *response = FTPStringAlloc();
         if (likely(response)) {
-            response->len = CopyCommandLine(&response->str, input, input_len);
+            response->len = CopyCommandLine(&response->str, input, input_len, &response->mem_len);
             TAILQ_INSERT_TAIL(&tx->response_list, response, next);
         }
     }
@@ -1068,8 +1071,10 @@ static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
 
         ftpdata_state->file_name = data->file_name;
         ftpdata_state->file_len = data->file_len;
+        ftpdata_state->file_mem_len = data->file_mem_len;
         data->file_name = NULL;
         data->file_len = 0;
+        data->file_mem_len = 0;
         f->parent_id = data->flow_id;
         ftpdata_state->command = data->cmd;
         switch (data->cmd) {
@@ -1183,12 +1188,12 @@ static void FTPDataStateFree(void *s)
         DetectEngineStateFree(fstate->de_state);
     }
     if (fstate->file_name != NULL) {
-        FTPFree(fstate->file_name, fstate->file_len);
+        FTPFree(fstate->file_name, fstate->file_mem_len);
     }
 
     FileContainerFree(fstate->files);
 
-    SCFree(s);
+    FTPFree(s, sizeof(FtpDataState));
 #ifdef DEBUG
     SCMutexLock(&ftpdata_state_mem_lock);
     ftpdata_state_memcnt--;

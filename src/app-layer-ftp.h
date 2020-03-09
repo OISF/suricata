@@ -126,6 +126,8 @@ typedef struct FtpLineState_ {
 typedef struct FTPString_ {
     uint8_t *str;
     uint16_t len;
+    /** real memory length */
+    uint32_t mem_len;
     TAILQ_ENTRY(FTPString_) next;
 } FTPString;
 
@@ -141,6 +143,8 @@ typedef struct FTPTransaction_  {
 
     /* for the request */
     uint32_t request_length;
+    /** real memory length */
+    uint32_t request_mem_length;
     uint8_t *request;
 
     /* for the command description */
@@ -206,6 +210,7 @@ typedef struct FtpDataState_ {
     DetectEngineState *de_state;
     int32_t input_len;
     int16_t file_len;
+    int16_t file_mem_len;
     FtpRequestCommand command;
     uint8_t state;
     uint8_t direction;
