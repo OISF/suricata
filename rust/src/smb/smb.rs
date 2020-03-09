@@ -38,6 +38,7 @@ use crate::core::*;
 use crate::log::*;
 use crate::applayer;
 use crate::applayer::LoggerFlags;
+use crate::parser::AppLayerResult;
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;
@@ -761,10 +762,6 @@ pub struct SMBState<> {
     // requests for DCERPC.
     pub ssnguid2vec_map: HashMap<SMBHashKeyHdrGuid, Vec<u8>>,
 
-    /// TCP segments defragmentation buffer
-    pub tcp_buffer_ts: Vec<u8>,
-    pub tcp_buffer_tc: Vec<u8>,
-
     pub files: SMBFiles,
 
     skip_ts: u32,
@@ -817,8 +814,6 @@ impl SMBState {
             ssn2vecoffset_map:HashMap::new(),
             ssn2tree_map:HashMap::new(),
             ssnguid2vec_map:HashMap::new(),
-            tcp_buffer_ts:Vec::new(),
-            tcp_buffer_tc:Vec::new(),
             files: SMBFiles::new(),
             skip_ts:0,
             skip_tc:0,
@@ -1328,6 +1323,7 @@ impl SMBState {
 
                                 }
                             } else if smb.version == 0xfe_u8 { // SMB2
+                                SCLogDebug!("NBSS record {:?}", nbss_part_hdr);
                                 SCLogDebug!("SMBv2 record");
                                 match parse_smb2_request_record(&nbss_part_hdr.data) {
                                     Ok((_, ref smb_record)) => {
@@ -1336,6 +1332,7 @@ impl SMBState {
                                         if smb_record.command == SMB2_COMMAND_WRITE {
                                             smb2_write_request_record(self, smb_record);
                                             let consumed = input.len() - output.len();
+                                            SCLogDebug!("consumed {}", consumed);
                                             return consumed;
                                         }
                                     },
@@ -1355,35 +1352,14 @@ impl SMBState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> u32
+    pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> AppLayerResult
     {
-        let mut v : Vec<u8>;
-        //println!("parse_tcp_data_ts ({})",i.len());
-        //println!("{:?}",i);
-        // Check if TCP data is being defragmented
-        let tcp_buffer = match self.tcp_buffer_ts.len() {
-            0 => i,
-            _ => {
-                v = self.tcp_buffer_ts.split_off(0);
-                if self.tcp_buffer_ts.len() + i.len() > 100000 {
-                    self.set_event(SMBEvent::RecordOverflow);
-                    return 1;
-                };
-                v.extend_from_slice(i);
-                v.as_slice()
-            },
-        };
-        //println!("tcp_buffer ({})",tcp_buffer.len());
-        let mut cur_i = tcp_buffer;
-        if cur_i.len() > 1000000 {
-            self.set_event(SMBEvent::RecordOverflow);
-            return 1;
-        }
+        let mut cur_i = i;
         let consumed = self.handle_skip(STREAM_TOSERVER, cur_i.len() as u32);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 self.set_event(SMBEvent::InternalError);
-                return 1;
+                return AppLayerResult::err();
             }
             cur_i = &cur_i[consumed as usize..];
         }
@@ -1393,30 +1369,42 @@ impl SMBState {
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 self.set_event(SMBEvent::InternalError);
-                return 1;
+                return AppLayerResult::err();
             }
             cur_i = &cur_i[consumed as usize..];
+        }
+        if cur_i.len() == 0 {
+            return AppLayerResult::ok();
         }
         // gap
         if self.ts_gap {
             SCLogDebug!("TS trying to catch up after GAP (input {})", cur_i.len());
-            match search_smb_record(cur_i) {
-                Ok((_, pg)) => {
-                    SCLogDebug!("smb record found");
-                    let smb2_offset = cur_i.len() - pg.len();
-                    if smb2_offset < 4 {
-                        return 0;
-                    }
-                    let nbss_offset = smb2_offset - 4;
-                    cur_i = &cur_i[nbss_offset..];
+            while cur_i.len() > 0 { // min record size
+                match search_smb_record(cur_i) {
+                    Ok((_, pg)) => {
+                        SCLogDebug!("smb record found");
+                        let smb2_offset = cur_i.len() - pg.len();
+                        if smb2_offset < 4 {
+                            cur_i = &cur_i[smb2_offset+4..];
+                            continue; // see if we have another record in our data
+                        }
+                        let nbss_offset = smb2_offset - 4;
+                        cur_i = &cur_i[nbss_offset..];
 
-                    self.ts_gap = false;
-                },
-                _ => {
-                    SCLogDebug!("smb record NOT found");
-                    self.tcp_buffer_ts.extend_from_slice(cur_i);
-                    return 0;
-                },
+                        self.ts_gap = false;
+                        break;
+                    },
+                    _ => {
+                        let mut consumed = i.len();
+                        if consumed < 4 {
+                            consumed = 0;
+                        } else {
+                            consumed = consumed - 3;
+                        }
+                        SCLogDebug!("smb record NOT found");
+                        return AppLayerResult::incomplete(consumed as u32, 8);
+                    },
+                }
             }
         }
         while cur_i.len() > 0 { // min record size
@@ -1436,7 +1424,7 @@ impl SMBState {
                                         },
                                         _ => {
                                             self.set_event(SMBEvent::MalformedData);
-                                            return 1;
+                                            return AppLayerResult::err();
                                         },
                                     }
                                 } else if smb.version == 0xfe_u8 { // SMB2
@@ -1452,7 +1440,7 @@ impl SMBState {
                                             },
                                             _ => {
                                                 self.set_event(SMBEvent::MalformedData);
-                                                return 1;
+                                                return AppLayerResult::err();
                                             },
                                         }
                                     }
@@ -1466,7 +1454,7 @@ impl SMBState {
                                             },
                                             _ => {
                                                 self.set_event(SMBEvent::MalformedData);
-                                                return 1;
+                                                return AppLayerResult::err();
                                             },
                                         }
                                     }
@@ -1474,7 +1462,7 @@ impl SMBState {
                             },
                             _ => {
                                 self.set_event(SMBEvent::MalformedData);
-                                return 1;
+                                return AppLayerResult::err();
                             },
                         }
                     } else {
@@ -1482,16 +1470,34 @@ impl SMBState {
                     }
                     cur_i = rem;
                 },
-                Err(nom::Err::Incomplete(_)) => {
-                    let consumed = self.parse_tcp_data_ts_partial(cur_i);
-                    cur_i = &cur_i[consumed ..];
-
-                    self.tcp_buffer_ts.extend_from_slice(cur_i);
-                    break;
+                Err(nom::Err::Incomplete(needed)) => {
+                    if let nom::Needed::Size(n) = needed {
+                        // 512 is the minimum for parse_tcp_data_ts_partial
+                        if n >= 512 && cur_i.len() < 512 {
+                            let total_consumed = i.len() - cur_i.len();
+                            return AppLayerResult::incomplete(total_consumed as u32, 512);
+                        }
+                        let consumed = self.parse_tcp_data_ts_partial(cur_i);
+                        if consumed == 0 {
+                            // if we consumed none we will buffer the entire record
+                            let total_consumed = i.len() - cur_i.len();
+                            SCLogDebug!("setting consumed {} need {} needed {:?} total input {}",
+                                    total_consumed, n, needed, i.len());
+                            let need = n + 4; // Incomplete returns size of data minus NBSS header
+                            return AppLayerResult::incomplete(total_consumed as u32, need as u32);
+                        }
+                        // tracking a write record, which we don't need to
+                        // queue up at the stream level, but can feed to us
+                        // in small chunks
+                        return AppLayerResult::ok();
+                    } else {
+                        self.set_event(SMBEvent::InternalError);
+                        return AppLayerResult::err();
+                    }
                 },
                 Err(_) => {
                     self.set_event(SMBEvent::MalformedData);
-                    return 1;
+                    return AppLayerResult::err();
                 },
             }
         };
@@ -1500,7 +1506,7 @@ impl SMBState {
         if self.check_post_gap_file_txs {
             self.post_gap_housekeeping_for_files();
         }
-        0
+        AppLayerResult::ok()
     }
 
     /// return bytes consumed
@@ -1584,33 +1590,14 @@ impl SMBState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> u32
+    pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> AppLayerResult
     {
-        let mut v : Vec<u8>;
-        // Check if TCP data is being defragmented
-        let tcp_buffer = match self.tcp_buffer_tc.len() {
-            0 => i,
-            _ => {
-                v = self.tcp_buffer_tc.split_off(0);
-                if self.tcp_buffer_tc.len() + i.len() > 100000 {
-                    self.set_event(SMBEvent::RecordOverflow);
-                    return 1;
-                };
-                v.extend_from_slice(i);
-                v.as_slice()
-            },
-        };
-        let mut cur_i = tcp_buffer;
-        SCLogDebug!("cur_i.len {}", cur_i.len());
-        if cur_i.len() > 100000 {
-            self.set_event(SMBEvent::RecordOverflow);
-            return 1;
-        }
+        let mut cur_i = i;
         let consumed = self.handle_skip(STREAM_TOCLIENT, cur_i.len() as u32);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 self.set_event(SMBEvent::InternalError);
-                return 1;
+                return AppLayerResult::err();
             }
             cur_i = &cur_i[consumed as usize..];
         }
@@ -1620,30 +1607,42 @@ impl SMBState {
         if consumed > 0 {
             if consumed > cur_i.len() as u32 {
                 self.set_event(SMBEvent::InternalError);
-                return 1;
+                return AppLayerResult::err();
             }
             cur_i = &cur_i[consumed as usize..];
+        }
+        if cur_i.len() == 0 {
+            return AppLayerResult::ok();
         }
         // gap
         if self.tc_gap {
             SCLogDebug!("TC trying to catch up after GAP (input {})", cur_i.len());
-            match search_smb_record(cur_i) {
-                Ok((_, pg)) => {
-                    SCLogDebug!("smb record found");
-                    let smb2_offset = cur_i.len() - pg.len();
-                    if smb2_offset < 4 {
-                        return 0;
-                    }
-                    let nbss_offset = smb2_offset - 4;
-                    cur_i = &cur_i[nbss_offset..];
+            while cur_i.len() > 0 { // min record size
+                match search_smb_record(cur_i) {
+                    Ok((_, pg)) => {
+                        SCLogDebug!("smb record found");
+                        let smb2_offset = cur_i.len() - pg.len();
+                        if smb2_offset < 4 {
+                            cur_i = &cur_i[smb2_offset+4..];
+                            continue; // see if we have another record in our data
+                        }
+                        let nbss_offset = smb2_offset - 4;
+                        cur_i = &cur_i[nbss_offset..];
 
-                    self.tc_gap = false;
-                },
-                _ => {
-                    SCLogDebug!("smb record NOT found");
-                    self.tcp_buffer_tc.extend_from_slice(cur_i);
-                    return 0;
-                },
+                        self.tc_gap = false;
+                        break;
+                    },
+                    _ => {
+                        let mut consumed = i.len();
+                        if consumed < 4 {
+                            consumed = 0;
+                        } else {
+                            consumed = consumed - 3;
+                        }
+                        SCLogDebug!("smb record NOT found");
+                        return AppLayerResult::incomplete(consumed as u32, 8);
+                    },
+                }
             }
         }
         while cur_i.len() > 0 { // min record size
@@ -1663,7 +1662,7 @@ impl SMBState {
                                         },
                                         _ => {
                                             self.set_event(SMBEvent::MalformedData);
-                                            return 1;
+                                            return AppLayerResult::err();
                                         },
                                     }
                                 } else if smb.version == 0xfe_u8 { // SMB2
@@ -1677,7 +1676,7 @@ impl SMBState {
                                             },
                                             _ => {
                                                 self.set_event(SMBEvent::MalformedData);
-                                                return 1;
+                                                return AppLayerResult::err();
                                             },
                                         }
                                     }
@@ -1691,7 +1690,7 @@ impl SMBState {
                                             },
                                             _ => {
                                                 self.set_event(SMBEvent::MalformedData);
-                                                return 1;
+                                                return AppLayerResult::err();
                                             },
                                         }
                                     }
@@ -1703,7 +1702,7 @@ impl SMBState {
                             },
                             Err(_) => {
                                 self.set_event(SMBEvent::MalformedData);
-                                return 1;
+                                return AppLayerResult::err();
                             },
                         }
                     } else {
@@ -1713,16 +1712,33 @@ impl SMBState {
                 },
                 Err(nom::Err::Incomplete(needed)) => {
                     SCLogDebug!("INCOMPLETE have {} needed {:?}", cur_i.len(), needed);
-                    let consumed = self.parse_tcp_data_tc_partial(cur_i);
-                    cur_i = &cur_i[consumed ..];
-
-                    SCLogDebug!("INCOMPLETE have {}", cur_i.len());
-                    self.tcp_buffer_tc.extend_from_slice(cur_i);
-                    break;
+                    if let nom::Needed::Size(n) = needed {
+                        // 512 is the minimum for parse_tcp_data_tc_partial
+                        if n >= 512 && cur_i.len() < 512 {
+                            let total_consumed = i.len() - cur_i.len();
+                            return AppLayerResult::incomplete(total_consumed as u32, 512);
+                        }
+                        let consumed = self.parse_tcp_data_tc_partial(cur_i);
+                        if consumed == 0 {
+                            // if we consumed none we will buffer the entire record
+                            let total_consumed = i.len() - cur_i.len();
+                            SCLogDebug!("setting consumed {} need {} needed {:?} total input {}",
+                                    total_consumed, n, needed, i.len());
+                            let need = n + 4; // Incomplete returns size of data minus NBSS header
+                            return AppLayerResult::incomplete(total_consumed as u32, need as u32);
+                        }
+                        // tracking a read record, which we don't need to
+                        // queue up at the stream level, but can feed to us
+                        // in small chunks
+                        return AppLayerResult::ok();
+                    } else {
+                        self.set_event(SMBEvent::InternalError);
+                        return AppLayerResult::err();
+                    }
                 },
                 Err(_) => {
                     self.set_event(SMBEvent::MalformedData);
-                    return 1;
+                    return AppLayerResult::err();
                 },
             }
         };
@@ -1731,15 +1747,12 @@ impl SMBState {
             self.post_gap_housekeeping_for_files();
         }
         self._debug_tx_stats();
-        0
+        AppLayerResult::ok()
     }
 
     /// handle a gap in the TOSERVER direction
     /// returns: 0 ok, 1 unrecoverable error
     pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> u32 {
-        if self.tcp_buffer_ts.len() > 0 {
-            self.tcp_buffer_ts.clear();
-        }
         let consumed = self.handle_skip(STREAM_TOSERVER, gap_size);
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
@@ -1761,9 +1774,6 @@ impl SMBState {
     /// handle a gap in the TOCLIENT direction
     /// returns: 0 ok, 1 unrecoverable error
     pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> u32 {
-        if self.tcp_buffer_tc.len() > 0 {
-            self.tcp_buffer_tc.clear();
-        }
         let consumed = self.handle_skip(STREAM_TOCLIENT, gap_size);
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
@@ -1785,7 +1795,6 @@ impl SMBState {
     pub fn trunc_ts(&mut self) {
         SCLogDebug!("TRUNC TS");
         self.ts_trunc = true;
-        self.tcp_buffer_ts.clear();
 
         for tx in &mut self.transactions {
             if !tx.request_done {
@@ -1797,7 +1806,6 @@ impl SMBState {
     pub fn trunc_tc(&mut self) {
         SCLogDebug!("TRUNC TC");
         self.tc_trunc = true;
-        self.tcp_buffer_tc.clear();
 
         for tx in &mut self.transactions {
             if !tx.response_done {
@@ -1836,7 +1844,7 @@ pub extern "C" fn rs_smb_parse_request_tcp(flow: &mut Flow,
                                        input_len: u32,
                                        _data: *mut std::os::raw::c_void,
                                        flags: u8)
-                                       -> i8
+                                       -> AppLayerResult
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
@@ -1847,11 +1855,7 @@ pub extern "C" fn rs_smb_parse_request_tcp(flow: &mut Flow,
     }
 
     state.ts = flow.get_last_time().as_secs();
-    if state.parse_tcp_data_ts(buf) == 0 {
-        return 0;
-    } else {
-        return -1;
-    }
+    state.parse_tcp_data_ts(buf)
 }
 
 #[no_mangle]
@@ -1875,7 +1879,7 @@ pub extern "C" fn rs_smb_parse_response_tcp(flow: &mut Flow,
                                         input_len: u32,
                                         _data: *mut std::os::raw::c_void,
                                         flags: u8)
-                                        -> i8
+                                        -> AppLayerResult
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
@@ -1886,11 +1890,7 @@ pub extern "C" fn rs_smb_parse_response_tcp(flow: &mut Flow,
     }
 
     state.ts = flow.get_last_time().as_secs();
-    if state.parse_tcp_data_tc(buf) == 0 {
-        return 0;
-    } else {
-        return -1;
-    }
+    state.parse_tcp_data_tc(buf)
 }
 
 #[no_mangle]
