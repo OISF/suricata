@@ -20,8 +20,8 @@ use std::mem::transmute;
 use crate::core;
 use crate::dcerpc::parser;
 use crate::log::*;
-use core::STREAM_TOSERVER;
-use nom::Endianness;
+//use core::STREAM_TOSERVER;
+use nom::number::Endianness;
 
 use std::cmp;
 
@@ -607,7 +607,7 @@ impl DCERPCState {
         let input_len = input.len();
         let mut v: Vec<u8>;
         let buffer = match direction {
-            STREAM_TOSERVER => {
+            core::STREAM_TOSERVER => {
                 if self.buffer_ts.len() + input_len > 1024 * 1024 {
                     SCLogDebug!("To Server stream: Buffer Overflow");
                     return -1;
@@ -835,7 +835,7 @@ impl DCERPCUDPState {
 
         // Input left after successful header parsing should be 80 less
         // than the original length
-        // Use checked_* functions to check for overflow/underflow wherever possible
+        // TODO Use checked_* functions to check for overflow/underflow wherever possible
         let mut input_left = input.len() as i32 - 80;
         let pkt_type = self.get_hdr_pkt_type();
         let fraglen = self.get_hdr_fraglen();
@@ -1155,7 +1155,7 @@ pub extern "C" fn rs_dcerpc_set_buffer(
 #[cfg(test)]
 mod tests {
     use crate::dcerpc::dcerpc::{DCERPCState, DCERPCUDPState};
-    use core::STREAM_TOSERVER;
+    use crate::core;
 
     #[test]
     fn test_parse_dcerpchdr_udp_incomplete_hdr() {
@@ -1729,7 +1729,7 @@ mod tests {
             0x69, 0x00,
         ];
         let mut state = DCERPCState::new();
-        assert_eq!(1, state.dcerpc_parse(&dcerpcrequest, STREAM_TOSERVER));
+        assert_eq!(1, state.dcerpc_parse(&dcerpcrequest, core::STREAM_TOSERVER));
         if let Some(hdr) = state.dcerpchdr {
             assert_eq!(0, hdr.hdrtype);
             assert_eq!(5, hdr.rpc_vers);
