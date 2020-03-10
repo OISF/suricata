@@ -44,7 +44,6 @@
 
 #include "app-layer-dcerpc-common.h"
 #include "app-layer-dcerpc.h"
-#include "rust-dcerpc-dcerpc-gen.h"
 
 static AppLayerResult DCERPCParseRequest(Flow *f, void *dcerpc_state,
                               AppLayerParserState *pstate,

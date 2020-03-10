@@ -39,7 +39,6 @@
 #include "output-json-dcerpc.h"
 
 #include "rust.h"
-#include "rust-dcerpc-log-gen.h"
 
 
 static int JsonDCERPCLogger(ThreadVars *tv, void *thread_data,
