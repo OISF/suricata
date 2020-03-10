@@ -1256,10 +1256,8 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                 /* Used only if it's TCP */
                 TcpSession *ssn = f->protoctx;
                 if (ssn != NULL) {
-                    StreamTcpSetSessionNoReassemblyFlag(ssn,
-                            flags & STREAM_TOCLIENT ? 1 : 0);
-                    StreamTcpSetSessionNoReassemblyFlag(ssn,
-                            flags & STREAM_TOSERVER ? 1 : 0);
+                    StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
+                    StreamTcpSetSessionNoReassemblyFlag(ssn, 1);
                 }
             }
             /* Set the bypass flag for both the stream in this TcpSession */
