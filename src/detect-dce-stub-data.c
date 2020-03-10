@@ -55,8 +55,6 @@
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "rust-smb-detect-gen.h"
-#include "rust-dcerpc-dcerpc-gen.h"
 
 #define BUFFER_NAME "dce_stub_data"
 #define KEYWORD_NAME "dce_stub_data"

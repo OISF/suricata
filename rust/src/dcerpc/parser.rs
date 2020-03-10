@@ -14,9 +14,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
-
 use crate::dcerpc::dcerpc::{DCERPCHdrUdp, DCERPCHdr, DCERPCRequest, DCERPCBind, BindCtxItem, DCERPCBindAck, DCERPCBindAckResult, Uuid};
-use nom::{be_u8, le_u8, le_u16, le_u32, Endianness};
+use nom::number::Endianness;
+use nom::number::complete::{be_u8, le_u8, le_u16, le_u32};
 
 named!(pub parse_uuid<Uuid>,
     do_parse!(

@@ -48,8 +48,6 @@
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "rust-smb-detect-gen.h"
-#include "rust-dcerpc-detect-gen.h"
 
 #define PARSE_REGEX "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,\\s*(<|>|=|!)([0-9]{1,5}))?(?:\\s*,\\s*(any_frag))?\\s*$"
 
