@@ -35,6 +35,7 @@ app-layer-htp-file.c app-layer-htp-file.h \
 app-layer-htp-libhtp.c app-layer-htp-libhtp.h \
 app-layer-htp-mem.c app-layer-htp-mem.h \
 app-layer-htp-xff.c app-layer-htp-xff.h \
+app-layer-http2.c app-layer-http2.h \
 app-layer-modbus.c app-layer-modbus.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-protos.c app-layer-protos.h \
@@ -204,6 +205,7 @@ detect-http-stat-code.c detect-http-stat-code.h \
 detect-http-stat-msg.c detect-http-stat-msg.h \
 detect-http-ua.c detect-http-ua.h \
 detect-http-uri.c detect-http-uri.h \
+detect-http2.c detect-http2.h \
 detect-icmp-id.c detect-icmp-id.h \
 detect-icmp-seq.c detect-icmp-seq.h \
 detect-icmpv6hdr.c detect-icmpv6hdr.h \
@@ -347,6 +349,7 @@ output-json-flow.c output-json-flow.h \
 output-json-ftp.c output-json-ftp.h \
 output-json-netflow.c output-json-netflow.h \
 output-json-http.c output-json-http.h \
+output-json-http2.c output-json-http2.h \
 output-json-sip.c output-json-sip.h \
 output-json-smtp.c output-json-smtp.h \
 output-json-ssh.c output-json-ssh.h \
