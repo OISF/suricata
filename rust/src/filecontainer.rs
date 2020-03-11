@@ -21,6 +21,11 @@ use std::os::raw::{c_void};
 use crate::log::*;
 use crate::core::*;
 
+// Defined in util-file.h
+extern {
+    pub fn FileFlowToFlags(flow: *const Flow, flags: u8) -> u16;
+}
+
 pub struct File;
 #[repr(C)]
 #[derive(Debug)]
