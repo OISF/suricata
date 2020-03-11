@@ -103,6 +103,13 @@ void DetectFiledataRegister(void)
     DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmFiledataRegister, NULL,
             ALPROTO_SMB, 0);
+    //TODO8 check min progress
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmFiledataRegister, NULL,
+            ALPROTO_HTTP2, 0);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
+            PrefilterMpmFiledataRegister, NULL,
+            ALPROTO_HTTP2, 0);
 
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
@@ -117,6 +124,12 @@ void DetectFiledataRegister(void)
             DetectEngineInspectFiledata, NULL);
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectFiledata, NULL);
+    DetectAppLayerInspectEngineRegister2("file_data",
+            ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectFiledata, NULL);
+    DetectAppLayerInspectEngineRegister2("file_data",
+            ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectFiledata, NULL);
 
     DetectBufferTypeSetDescriptionByName("file_data",
@@ -167,7 +180,8 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
     if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
         (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
-        s->alproto != ALPROTO_SMTP && s->alproto != ALPROTO_SMB)) {
+        s->alproto != ALPROTO_SMTP && s->alproto != ALPROTO_SMB &&
+        s->alproto != ALPROTO_HTTP2)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }
