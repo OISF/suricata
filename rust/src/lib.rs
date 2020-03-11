@@ -72,3 +72,4 @@ pub mod applayertemplate;
 pub mod rdp;
 pub mod x509;
 pub mod ssh;
+pub mod http2;

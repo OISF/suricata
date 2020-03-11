@@ -274,6 +274,7 @@ outputs:
             # to an IP address is logged.
             extended: no
         - ssh
+        - http2
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
