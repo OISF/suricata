@@ -115,7 +115,10 @@ fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
                     break;
                 }
             }
-            let ctxid = state.get_req_ctxid();
+            let ctxid = match state.get_req_ctxid() {
+                Some(x) => x,
+                None => 0,
+            };
             ret = ret & ((uuidentry.ctxid == ctxid) as u8);
             if ret == 0 {
                 continue;
@@ -234,14 +237,21 @@ fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_iface_match(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
-    if state.get_first_req_seen() == 0 {
+    let first_req_seen = match state.get_first_req_seen() {
+        Some(x) => x,
+        None => 0,   // TODO check if its OK
+    };
+    if first_req_seen == 0 {
         return 0;
     }
 
-    let hdrtype = state.get_hdr_type();
-    if !(hdrtype == DCERPC_TYPE_REQUEST) || !(hdrtype == DCERPC_TYPE_RESPONSE) {
-        return 0;
-    }
+    match state.get_hdr_type() {
+        Some(x) => match x {
+            DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE => {},
+            _ => {return 0;}
+        },
+        None => {return 0;},
+    };
 
     return match_backuuid(state, if_data);
 }
@@ -276,7 +286,10 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_match(
     state: &mut DCERPCState,
     opnum_data: &mut DCEOpnumData,
 ) -> u8 {
-    let opnum = state.get_req_opnum();
+    let opnum = match state.get_req_opnum() {
+        Some(x) => x,
+        None => 0,   // TODO check if this is OK
+    };
     for range in opnum_data.data.iter() {
         if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
             if range.range1 == opnum as u32 {

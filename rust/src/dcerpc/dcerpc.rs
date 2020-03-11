@@ -295,9 +295,7 @@ impl DCERPCState {
         if let Some(ref hdr) = &self.dcerpchdr {
             return hdr.packed_drep[0];
         }
-
-        // Shouldn't happen
-        return 0;
+        0
     }
 
     fn get_endianness(&self) -> Endianness {
@@ -305,61 +303,68 @@ impl DCERPCState {
         if drep_0 & 0x10 == 0 {
             return Endianness::Big;
         }
-        return Endianness::Little;
+        Endianness::Little
     }
 
-    fn get_hdr_fraglen(&self) -> u16 {
+    fn get_hdr_fraglen(&self) -> Option<u16> {
         if let Some(ref hdr) = self.dcerpchdr {
-            return hdr.frag_length;
+            return Some(hdr.frag_length);
         }
         // Shouldn't happen
-        return 0;
+        None
     }
 
-    fn get_hdr_pfcflags(&self) -> u8 {
+    fn get_hdr_pfcflags(&self) -> Option<u8> {
         if let Some(ref hdr) = self.dcerpchdr {
-            return hdr.pfc_flags;
+            return Some(hdr.pfc_flags);
         }
-
         // Shouldn't happen
-        return 99;
+        None
     }
 
-    pub fn get_hdr_type(&self) -> u8 {
+    pub fn get_hdr_type(&self) -> Option<u8> {
         if let Some(ref hdr) = self.dcerpchdr {
-            return hdr.hdrtype;
+            return Some(hdr.hdrtype);
         }
-
-        return 99;
+        // Shouldn't happen
+        None
     }
 
-    pub fn get_req_ctxid(&self) -> u16 {
-        if let Some(ref req) = self.dcerpcrequest {
-            return req.ctxid;
+    pub fn get_hdr_rpc_vers(&self) -> Option<u8> {
+        if let Some(ref hdr) = self.dcerpchdr {
+            return Some(hdr.rpc_vers);
         }
-
-        return 99;
+        // Shouldn't happen
+        None
     }
 
-    pub fn get_first_req_seen(&self) -> u8 {
+    pub fn get_req_ctxid(&self) -> Option<u16> {
         if let Some(ref req) = self.dcerpcrequest {
-            return req.first_request_seen;
+            return Some(req.ctxid);
         }
-
-        return 99;
+        // Shouldn't happen
+        None
     }
 
-    pub fn get_req_opnum(&self) -> u16 {
+    pub fn get_first_req_seen(&self) -> Option<u8> {
         if let Some(ref req) = self.dcerpcrequest {
-            return req.opnum;
+            return Some(req.first_request_seen);
         }
+        // Shouldn't happen
+        None
+    }
 
-        return 99;
+    pub fn get_req_opnum(&self) -> Option<u16> {
+        if let Some(ref req) = self.dcerpcrequest {
+            return Some(req.opnum);
+        }
+        // Shouldn't happen
+        None
     }
 
     pub fn parse_dcerpc_header(&mut self, input: &[u8]) -> i32 {
         match parser::dcerpc_parse_header(input) {
-            Ok((_leftover_bytes, header)) => {
+            Ok((leftover_bytes, header)) => {
                 if header.rpc_vers != 5
                     || (header.rpc_vers_minor != 0 && header.rpc_vers_minor != 1)
                 {
@@ -372,7 +377,7 @@ impl DCERPCState {
                 println!("fraglen: {:?}\n", header.frag_length);
                 println!("authlen: {:?}\n", header.auth_length);
                 self.dcerpchdr = Some(header);
-                16
+                (input.len() - leftover_bytes.len()) as i32
             }
             Err(nom::Err::Incomplete(_)) => {
                 // Insufficient data.
@@ -389,19 +394,20 @@ impl DCERPCState {
 
     pub fn parse_dcerpc_bind(&mut self, input: &[u8]) -> i32 {
         // TODO only do the parsing if bytesprocessed < hdr_len +12
+        let mut retval = 0;
         match parser::dcerpc_parse_bind(input) {
-            Ok((_leftover_bytes, header)) => {
+            Ok((leftover_bytes, header)) => {
                 let numctxitems = header.numctxitems;
                 println!("parse_dcerpc_bind: numctxitems: {:?}\n", numctxitems);
                 self.dcerpcbind = Some(header);
                 for i in 1..=numctxitems {
-                    let retval = self.parse_bindctxitem(&input[12 * i as usize..], i as u16);
+                    retval = self.parse_bindctxitem(&input[12 * i as usize..], i as u16);
                     if retval == -1 {
                         println!("Returning {:?}\n", i);
                         return -1;
                     }
                 }
-                12 + 44 * numctxitems as i32
+                (input.len() - leftover_bytes.len()) as i32 + retval * numctxitems as i32
             }
             Err(nom::Err::Incomplete(_)) => {
                 // Insufficient data.
@@ -428,7 +434,11 @@ impl DCERPCState {
                 uuidentry.versionminor = ctxitem.versionminor;
                 // Store the first frag flag in the uuid as pfc_flags will
                 // be overwritten by new packets
-                if self.get_hdr_pfcflags() & PFC_FIRST_FRAG > 0 {
+                let pfcflags = match self.get_hdr_pfcflags() {
+                    Some(x) => x,
+                    None => 0,
+                };
+                if pfcflags & PFC_FIRST_FRAG > 0 {
                     uuidentry.flags |= DCERPC_UUID_ENTRY_FLAG_FF;
                 }
                 if let Some(ref mut bind) = self.dcerpcbind {
@@ -496,43 +506,55 @@ impl DCERPCState {
 
     pub fn parse_stub_data(&mut self, input: &[u8], input_len: u16) -> u16 {
         let mut retval: u16 = 0;
-        let hdrpfcflags = self.get_hdr_pfcflags();
+        let hdrpfcflags = match self.get_hdr_pfcflags() {
+            Some(x) => x,
+            None => 0,
+        };
+        let rpc_vers = match self.get_hdr_rpc_vers() {
+            Some(x) => x,
+            None => 0,
+        };
         let padleft = self.padleft;
         println!("parse_stub_data: padleft: {:?}\n", padleft);
         // Update the stub params based on the packaet type
         match self.get_hdr_type() {
-            DCERPC_TYPE_REQUEST => {
-                if let Some(ref mut req) = self.dcerpcrequest {
-                    retval = evaluate_stub_params(
-                        input,
-                        input_len,
-                        hdrpfcflags,
-                        padleft,
-                        &mut req.stub_data_buffer,
-                        &mut req.stub_data_buffer_len,
-                        &mut req.stub_data_buffer_reset,
-                    );
+            Some(x) => match x {
+                DCERPC_TYPE_REQUEST => {
+                    if let Some(ref mut req) = self.dcerpcrequest {
+                        retval = evaluate_stub_params(
+                            input,
+                            input_len,
+                            hdrpfcflags,
+                            padleft,
+                            &mut req.stub_data_buffer,
+                            &mut req.stub_data_buffer_len,
+                            &mut req.stub_data_buffer_reset,
+                            rpc_vers,
+                        );
+                    }
+                    println!("parse_stub_data: REQUEST retval: {:?}\n", retval)
                 }
-                println!("parse_stub_data: REQUEST retval: {:?}\n", retval)
-            }
-            DCERPC_TYPE_RESPONSE => {
-                if let Some(ref mut resp) = self.dcerpcresponse {
-                    retval = evaluate_stub_params(
-                        input,
-                        input_len,
-                        hdrpfcflags,
-                        padleft,
-                        &mut resp.stub_data_buffer,
-                        &mut resp.stub_data_buffer_len,
-                        &mut resp.stub_data_buffer_reset,
-                    );
+                DCERPC_TYPE_RESPONSE => {
+                    if let Some(ref mut resp) = self.dcerpcresponse {
+                        retval = evaluate_stub_params(
+                            input,
+                            input_len,
+                            hdrpfcflags,
+                            padleft,
+                            &mut resp.stub_data_buffer,
+                            &mut resp.stub_data_buffer_len,
+                            &mut resp.stub_data_buffer_reset,
+                            rpc_vers,
+                        );
+                    }
+                    println!("parse_stub_data: RESPONSE retval: {:?}\n", retval)
                 }
-                println!("parse_stub_data: RESPONSE retval: {:?}\n", retval)
-            }
-            _ => {
-                SCLogDebug!("Unrecognized packet type");
-                return 0;
-            }
+                _ => {
+                    SCLogDebug!("Unrecognized packet type");
+                    return 0;
+                }
+                },
+            None => {return 0;}
         }
         // Update the remaining fragment length
         self.padleft -= retval;
@@ -541,13 +563,15 @@ impl DCERPCState {
         retval
     }
 
-    pub fn process_common_stub(&mut self, input: &[u8]) -> i32 {
-        let fraglen = self.get_hdr_fraglen();
-        println!("parse_request: hdr fraglen: {:?}\n", fraglen);
-        // TODO fix this for response, no 8B are consumed in that case
-        self.padleft = fraglen - 8 - 16; // bytes processed so far = header length + 8B of request
-        let mut input_left = input.len() as i32 - 8;
-        let mut parsed: i32 = 8; // parsed bytes
+    pub fn process_common_stub(&mut self, input: &[u8], bytes_consumed: i32, dir: u8) -> i32 {
+        let fraglen = match self.get_hdr_fraglen() {
+            Some(x) => x,
+            None => {return -1;}
+        };
+        println!("parse_request: hdr fraglen: {:?}, bytes_consumed: {:?}\n", fraglen, bytes_consumed);
+        self.padleft = fraglen - 16 - bytes_consumed as u16; // bytes processed so far = header length
+        let mut input_left = input.len() as i32 - bytes_consumed;
+        let mut parsed: i32 = bytes_consumed; // parsed bytes
         println!(
             "parse_request: padleft: {:?}, input_left: {:?}\n",
             self.padleft, input_left
@@ -558,7 +582,7 @@ impl DCERPCState {
                 parsed += retval as i32;
                 input_left -= retval as i32;
             } else if input_left > 0 {
-                SCLogDebug!("Error parsing DCERPC stub data"); // TODO mention request or response
+                SCLogDebug!("Error parsing DCERPC {} stub data", if dir == core::STREAM_TOSERVER {"request"} else {"response"});
                 parsed -= input_left;
                 input_left = 0;
             }
@@ -569,9 +593,10 @@ impl DCERPCState {
     pub fn parse_request(&mut self, input: &[u8]) -> i32 {
         let endianness = self.get_endianness();
         match parser::dcerpc_parse_request(input, endianness) {
-            Ok((_leftover_bytes, request)) => {
+            Ok((leftover_input, request)) => {
                 self.dcerpcrequest = Some(request);
-                let parsed = self.process_common_stub(&input);
+                println!("input len: {:?}, leftover_input: {:?}\n", input.len(), leftover_input.len());
+                let parsed = self.process_common_stub(&input, (input.len() - leftover_input.len()) as i32, core::STREAM_TOSERVER);
                 parsed
             }
             Err(nom::Err::Incomplete(_)) => {
@@ -637,46 +662,50 @@ impl DCERPCState {
             self.bytes_consumed += parsed as u16;
         }
 
-        if buffer.len() as u16 != self.get_hdr_fraglen() {
+        let fraglen = match self.get_hdr_fraglen() {
+            Some(x) => x,
+            None => 0,
+        };
+        if buffer.len() as u16 != fraglen {
             println!("Possibly fragmented data, waiting for more..");
             return 1;
         }
 
-        let pkt_type = self.get_hdr_type();
-        println!("dcerpc_parse: pkt_type: {:?}\n", pkt_type);
-
-        match pkt_type {
-            DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                retval = self.parse_dcerpc_bind(&buffer[parsed as usize..]);
-                if retval == -1 {
+        match self.get_hdr_type() {
+            Some(x) => match x {
+                DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
+                    retval = self.parse_dcerpc_bind(&buffer[parsed as usize..]);
+                    if retval == -1 {
+                        return -1;
+                    }
+                },
+                DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
+                    retval = self.parse_bind_ack(&buffer[parsed as usize..]);
+                    if retval == -1 {
+                        return -1;
+                    }
+                },
+                DCERPC_TYPE_REQUEST => {
+                    retval = self.parse_request(&buffer[parsed as usize..]);
+                    if retval == -1 {
+                        return -1;
+                    }
+                },
+                DCERPC_TYPE_RESPONSE => {
+                    let dcerpcresponse = DCERPCResponse::new();
+                    self.dcerpcresponse = Some(dcerpcresponse);
+                    retval = self.process_common_stub(&buffer[parsed as usize..], 0, core::STREAM_TOCLIENT);
+                    if retval == -1 {
+                        return -1;
+                    }
+                    self.tx_id += 1; // Complete response, maybe to be used in future?
+                },
+                _ => {
+                    SCLogDebug!("Unrecognized packet type");
                     return -1;
-                }
-            }
-            DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                retval = self.parse_bind_ack(&buffer[parsed as usize..]);
-                if retval == -1 {
-                    return -1;
-                }
-            }
-            DCERPC_TYPE_REQUEST => {
-                retval = self.parse_request(&buffer[parsed as usize..]);
-                if retval == -1 {
-                    return -1;
-                }
-            }
-            DCERPC_TYPE_RESPONSE => {
-                let dcerpcresponse = DCERPCResponse::new();
-                self.dcerpcresponse = Some(dcerpcresponse);
-                retval = self.process_common_stub(&buffer[parsed as usize..]);
-                if retval == -1 {
-                    return -1;
-                }
-                self.tx_id += 1; // Complete response, maybe to be used in future?
-            }
-            _ => {
-                SCLogDebug!("Unrecognized packet type");
-                return -1;
-            }
+                },
+            },
+            None => {return -1;}
         }
         self.bytes_consumed += retval as u16;
         return 1;
@@ -731,67 +760,87 @@ impl DCERPCUDPState {
         }
     }
 
-    fn get_hdr_pkt_type(&self) -> u8 {
+    fn get_hdr_pkt_type(&self) -> Option<u8> {
         if let Some(ref hdr) = &self.dcerpchdrudp {
-            return hdr.pkt_type;
+            return Some(hdr.pkt_type);
         }
         // Shouldn't happen
-        return 99;
+        None
     }
 
-    fn get_hdr_flags1(&self) -> u8 {
+    fn get_hdr_rpc_vers(&self) -> Option<u8> {
         if let Some(ref hdr) = &self.dcerpchdrudp {
-            return hdr.flags1;
+            return Some(hdr.rpc_vers);
         }
         // Shouldn't happen
-        return 99;
+        None
     }
 
-    pub fn get_hdr_fraglen(&self) -> u16 {
+    fn get_hdr_flags1(&self) -> Option<u8> {
         if let Some(ref hdr) = &self.dcerpchdrudp {
-            return hdr.fraglen;
+            return Some(hdr.flags1);
         }
         // Shouldn't happen
-        return 0;
+        None
+    }
+
+    pub fn get_hdr_fraglen(&self) -> Option<u16> {
+        if let Some(ref hdr) = &self.dcerpchdrudp {
+            return Some(hdr.fraglen);
+        }
+        // Shouldn't happen
+        None
     }
 
     pub fn parse_fragment_data(&mut self, input: &[u8], input_len: u16) -> u16 {
         let mut retval: u16 = 0;
-        let hdrflags1 = self.get_hdr_flags1();
+        let hdrflags1 = match self.get_hdr_flags1() {
+            Some(x) => x,
+            None => 0,   // TODO check if this is OK
+        };
+        let rpc_vers = match self.get_hdr_rpc_vers() {
+            Some(x) => x,
+            None => 0,
+        };
         let fraglenleft = self.fraglenleft;
 
         // Update the stub params based on the packaet type
         match self.get_hdr_pkt_type() {
-            DCERPC_TYPE_REQUEST => {
-                if let Some(ref mut req) = self.dcerpcrequest {
-                    retval = evaluate_stub_params(
-                        input,
-                        input_len,
-                        hdrflags1,
-                        fraglenleft,
-                        &mut req.stub_data_buffer,
-                        &mut req.stub_data_buffer_len,
-                        &mut req.stub_data_buffer_reset,
-                    );
-                }
-            }
-            DCERPC_TYPE_RESPONSE => {
-                if let Some(ref mut resp) = self.dcerpcresponse {
-                    retval = evaluate_stub_params(
-                        input,
-                        input_len,
-                        hdrflags1,
-                        fraglenleft,
-                        &mut resp.stub_data_buffer,
-                        &mut resp.stub_data_buffer_len,
-                        &mut resp.stub_data_buffer_reset,
-                    );
-                }
-            }
-            _ => {
-                SCLogDebug!("Unrecognized packet type");
-                return 0;
-            }
+            Some(x) => match x {
+                DCERPC_TYPE_REQUEST => {
+                    if let Some(ref mut req) = self.dcerpcrequest {
+                        retval = evaluate_stub_params(
+                            input,
+                            input_len,
+                            hdrflags1,
+                            fraglenleft,
+                            &mut req.stub_data_buffer,
+                            &mut req.stub_data_buffer_len,
+                            &mut req.stub_data_buffer_reset,
+                            rpc_vers,
+                        );
+                    }
+                },
+                DCERPC_TYPE_RESPONSE => {
+                    if let Some(ref mut resp) = self.dcerpcresponse {
+                        retval = evaluate_stub_params(
+                            input,
+                            input_len,
+                            hdrflags1,
+                            fraglenleft,
+                            &mut resp.stub_data_buffer,
+                            &mut resp.stub_data_buffer_len,
+                            &mut resp.stub_data_buffer_reset,
+                            rpc_vers,
+                        );
+                    }
+                },
+                _ => {
+                    SCLogDebug!("Unrecognized packet type");
+                    return 0;
+                },
+            },
+            None => {return 0;}
         }
         // Update the remaining fragment length
         self.fraglenleft -= retval;
@@ -835,13 +884,20 @@ impl DCERPCUDPState {
 
         // Input left after successful header parsing should be 80 less
         // than the original length
-        // TODO Use checked_* functions to check for overflow/underflow wherever possible
+        if input.len() < 80 {
+            return -1;
+        }
         let mut input_left = input.len() as i32 - 80;
-        let pkt_type = self.get_hdr_pkt_type();
-        let fraglen = self.get_hdr_fraglen();
+        let pkt_type = match self.get_hdr_pkt_type() {
+            Some(x) => x,
+            None => 0,
+        };
+        let fraglen = match self.get_hdr_fraglen() {
+            Some(x) => x,
+            None => 0,
+        };
         self.fraglenleft = fraglen;
         self.create_new_tx(pkt_type);
-        // TODO check for contrainst on stub data length
         // Parse rest of the body
         while parsed >= DCERPC_UDP_HDR_LEN && parsed < fraglen as i32 && input_left > 0 {
             let retval = self.parse_fragment_data(&input[parsed as usize..], input_left as u16);
@@ -866,6 +922,7 @@ pub fn evaluate_stub_params(
     stub_data_buffer: &mut Vec<u8>,
     stub_data_buffer_len: &mut u16,
     stub_data_buffer_reset: &mut bool,
+    rpc_vers: u8,
 ) -> u16 {
     let stub_len: u16;
     let fragtype = hdrflags & (PFC_FIRST_FRAG | PFC_LAST_FRAG);
@@ -877,20 +934,19 @@ pub fn evaluate_stub_params(
     if stub_len == 0 {
         return 0;
     }
-
-    // TODO do only with TCP
-    if stub_len == lenleft && (fragtype == 0 || (fragtype & PFC_LAST_FRAG > 0)) {
-        *stub_data_buffer_reset = true;
-    }
-
     // If the UDP frag is the the first frag irrespective of it being a part of
     // a multi frag PDU or not, it indicates the previous PDU's stub would
     // have been buffered and processed and we can use the buffer to hold
     // frags from a fresh request/response
-    //    if hdrflags & PFC_FIRST_FRAG > 0 {
-    //        // TODO make this happen only in the case of UDP
-    //        *stub_data_buffer_len = 0;
-    //    }
+    if rpc_vers == 4 && hdrflags & PFC_FIRST_FRAG > 0 {
+        *stub_data_buffer_len = 0;
+    }
+    // If rpc_vers is not 4, considering it to be a TCP fragment
+    // This is not the right way to check for the transport protocol ASK
+    else if stub_len == lenleft && (fragtype == 0 || (fragtype & PFC_LAST_FRAG > 0)) {
+        *stub_data_buffer_reset = true;
+    }
+
 
     let input_slice = &input[..stub_len as usize];
     stub_data_buffer.extend_from_slice(&input_slice);
@@ -900,7 +956,7 @@ pub fn evaluate_stub_params(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_parse(
+pub unsafe extern "C" fn rs_dcerpc_udp_parse(
     _flow: *mut core::Flow,
     state: &mut DCERPCUDPState,
     _pstate: *mut std::os::raw::c_void,
@@ -909,13 +965,11 @@ pub extern "C" fn rs_dcerpc_udp_parse(
     _data: *mut std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    if input_len > 0 {
-        if input != std::ptr::null_mut() {
-            let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
-            return state.parse_dcerpc_udp(buf);
-        }
+    if input_len > 0 && input != std::ptr::null_mut() {
+        let buf = std::slice::from_raw_parts(input, input_len as usize);
+        return state.parse_dcerpc_udp(buf);
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
@@ -924,10 +978,10 @@ pub extern "C" fn rs_dcerpc_udp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_new() -> *mut std::os::raw::c_void {
+pub unsafe extern "C" fn rs_dcerpc_udp_state_new() -> *mut std::os::raw::c_void {
     let state = DCERPCUDPState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    transmute(boxed)
 }
 
 #[no_mangle]
@@ -1003,7 +1057,24 @@ pub extern "C" fn rs_dcerpc_parse_response_gap(state: &mut DCERPCState, _input_l
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_parse_request(
+pub unsafe extern "C" fn rs_dcerpc_parse_request(
+    _flow: *mut core::Flow,
+    state: &mut DCERPCState,
+    _pstate: *mut std::os::raw::c_void,
+    input: *const u8,
+    input_len: u32,
+    _data: *mut std::os::raw::c_void,
+    flags: u8,
+) -> i32 {
+    if input_len > 0 && input != std::ptr::null_mut() {
+        let buf = std::slice::from_raw_parts(input, input_len as usize);
+        return state.dcerpc_parse(buf, flags);
+    }
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dcerpc_parse_response(
     _flow: *mut core::Flow,
     state: &mut DCERPCState,
     _pstate: *mut std::os::raw::c_void,
@@ -1014,42 +1085,23 @@ pub extern "C" fn rs_dcerpc_parse_request(
 ) -> i32 {
     if input_len > 0 {
         if input != std::ptr::null_mut() {
-            let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
+            let buf = std::slice::from_raw_parts(input, input_len as usize);
             return state.dcerpc_parse(buf, flags);
         }
     }
-    return 0;
+    0
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_parse_response(
-    _flow: *mut core::Flow,
-    state: &mut DCERPCState,
-    _pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *mut std::os::raw::c_void,
-    flags: u8,
-) -> i32 {
-    if input_len > 0 {
-        if input != std::ptr::null_mut() {
-            let buf = unsafe { std::slice::from_raw_parts(input, input_len as usize) };
-            return state.dcerpc_parse(buf, flags);
-        }
-    }
-    return 0;
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_state_new() -> *mut std::os::raw::c_void {
+pub unsafe extern "C" fn rs_dcerpc_state_new() -> *mut std::os::raw::c_void {
     let state = DCERPCState::new();
     let boxed = Box::new(state);
-    return unsafe { transmute(boxed) };
+    transmute(boxed)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
-    let _drop: Box<DCERPCState> = unsafe { transmute(state) };
+pub unsafe extern "C" fn rs_dcerpc_state_free(state: *mut std::os::raw::c_void) {
+    let _drop: Box<DCERPCState> = transmute(state);
 }
 
 #[no_mangle]
@@ -1110,9 +1162,8 @@ pub extern "C" fn rs_dcerpc_get_tx_detect_flags(vtx: *mut std::os::raw::c_void, 
     let state = cast_pointer!(vtx, DCERPCState);
     if dir & core::STREAM_TOSERVER != 0 {
         return state.detect_flags_ts;
-    } else {
-        return state.detect_flags_tc;
     }
+    state.detect_flags_tc
 }
 
 #[no_mangle]
@@ -1130,25 +1181,22 @@ pub extern "C" fn rs_dcerpc_set_tx_detect_flags(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_set_buffer(
+pub unsafe extern "C" fn rs_dcerpc_set_buffer(
     state: &mut DCERPCState,
     buf: *mut *const u8,
     len: *mut u32,
 ) -> u8 {
     if let &Some(ref req) = &state.dcerpcrequest {
-        unsafe {
             *len = req.stub_data_buffer_len as u32;
             *buf = req.stub_data_buffer.as_ptr();
-        }
     }
     if let &Some(ref resp) = &state.dcerpcresponse {
-        unsafe {
             *len = resp.stub_data_buffer_len as u32;
             *buf = resp.stub_data_buffer.as_ptr();
-        }
     }
 
-    // TODO good thing to do?
+    // TODO good thing to do? Returning endianness from the function whihch is not meant to do that
+    // ASK about this as two func calls may be costly
     return state.get_hdr_drep_0() & 0x10;
 }
 
@@ -1560,7 +1608,7 @@ mod tests {
         if let Some(back) = state.dcerpcback {
             assert_eq!(1, back.accepted_uuid_list.len());
             assert_eq!(
-                vec!(43, 16, 72, 96, 2, 0, 0, 0, 3, 0, 1, 0, 222, 133, 112, 196),
+                vec!(96, 72, 16, 43, 0, 2, 0, 0, 3, 0, 1, 0, 222, 133, 112, 196),
                 back.accepted_uuid_list[0].uuid
             );
             assert_eq!(11, back.accepted_uuid_list[0].internal_id);
@@ -1739,7 +1787,7 @@ mod tests {
             assert_eq!(1000, req.ctxid);
             assert_eq!(0, req.opnum);
             assert_eq!(1, req.first_request_seen);
-            assert_eq!(1000, req.stub_data_buffer_len);
+            assert_eq!(1004, req.stub_data_buffer_len);
             assert_eq!(true, req.stub_data_buffer_reset);
         }
     }
