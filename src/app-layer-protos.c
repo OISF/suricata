@@ -114,6 +114,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_RDP:
             proto_name = "rdp";
             break;
+        case ALPROTO_HTTP2:
+            proto_name = "http2";
+            break;
         case ALPROTO_FAILED:
             proto_name = "failed";
             break;
