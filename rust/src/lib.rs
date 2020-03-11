@@ -17,6 +17,13 @@
 
 #![cfg_attr(feature = "strict", deny(warnings))]
 
+// Clippy lints we want to suppress due to style, or simply too noisy
+// and not a priority right now.
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::redundant_field_names)]
+#![allow(clippy::len_zero)]
+
 #[macro_use]
 extern crate nom;
 
