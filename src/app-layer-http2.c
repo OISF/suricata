@@ -35,8 +35,27 @@
 #include "app-layer-http2.h"
 #include "rust.h"
 
+static int HTTP2RegisterPatternsForProtocolDetection(void)
+{
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP2,
+                                               "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n",
+                                               24, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    return 0;
+}
+
 void RegisterHTTP2Parsers(void)
 {
+    const char *proto_name = "http2";
+
+    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
+        AppLayerProtoDetectRegisterProtocol(ALPROTO_HTTP2, proto_name);
+        if (HTTP2RegisterPatternsForProtocolDetection() < 0)
+            return;
+    }
+
     rs_http2_register_parser();
 
 #ifdef UNITTESTS

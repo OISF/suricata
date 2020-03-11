@@ -16,6 +16,6 @@
  */
 
 //TODO pub mod detect;
+pub mod http2;
 pub mod logger;
 mod parser;
-pub mod http2;
