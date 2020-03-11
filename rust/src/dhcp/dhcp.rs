@@ -240,7 +240,7 @@ pub unsafe extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
     let slice = build_slice!(input, input_len as usize);
     match parse_header(slice) {
         Ok((_, _)) => {
-            return unsafe { ALPROTO_DHCP };
+            return ALPROTO_DHCP;
         }
         _ => {
             return ALPROTO_UNKNOWN;
@@ -268,7 +268,7 @@ pub unsafe extern "C" fn rs_dhcp_state_get_tx(state: *mut std::os::raw::c_void,
     let state = cast_pointer!(state, DHCPState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return transmute(tx);
         }
         None => {
             return std::ptr::null_mut();
@@ -405,7 +405,7 @@ pub unsafe extern "C" fn rs_dhcp_state_get_tx_iterator(
     let state = cast_pointer!(state, DHCPState);
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = transmute(tx);
             let ires = applayer::AppLayerGetTxIterTuple::with_values(
                 c_tx, out_tx_id, has_next);
             return ires;

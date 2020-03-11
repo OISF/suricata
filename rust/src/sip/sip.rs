@@ -191,7 +191,7 @@ pub unsafe extern "C" fn rs_sip_state_get_tx(
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, SIPState);
     match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe { std::mem::transmute(tx) },
+        Some(tx) => std::mem::transmute(tx),
         None => std::ptr::null_mut(),
     }
 }
@@ -329,7 +329,7 @@ pub unsafe extern "C" fn rs_sip_probing_parser_ts(
 ) -> AppProto {
     let buf = build_slice!(input, input_len as usize);
     if sip_parse_request(buf).is_ok() {
-        return unsafe { ALPROTO_SIP };
+        return ALPROTO_SIP;
     }
     return ALPROTO_UNKNOWN;
 }
@@ -344,7 +344,7 @@ pub unsafe extern "C" fn rs_sip_probing_parser_tc(
 ) -> AppProto {
     let buf = build_slice!(input, input_len as usize);
     if sip_parse_response(buf).is_ok() {
-        return unsafe { ALPROTO_SIP };
+        return ALPROTO_SIP;
     }
     return ALPROTO_UNKNOWN;
 }

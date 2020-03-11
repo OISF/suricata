@@ -1934,7 +1934,7 @@ pub unsafe extern "C" fn rs_nfs_probe_ms(
             if r == 1 {
                 SCLogDebug!("nfs_probe success: dir {:02x} adir {:02x}", direction, adirection);
                 if (direction & (STREAM_TOSERVER|STREAM_TOCLIENT)) != adirection {
-                    unsafe { *rdir = adirection; }
+                    *rdir = adirection;
                 }
                 return 1;
             }

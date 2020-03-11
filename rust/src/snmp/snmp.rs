@@ -349,7 +349,7 @@ pub unsafe extern "C" fn rs_snmp_state_get_tx(state: *mut std::os::raw::c_void,
 {
     let state = cast_pointer!(state,SNMPState);
     match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe{std::mem::transmute(tx)},
+        Some(tx) => std::mem::transmute(tx),
         None     => std::ptr::null_mut(),
     }
 }
@@ -520,7 +520,7 @@ pub unsafe extern "C" fn rs_snmp_get_tx_iterator(_ipproto: u8,
     let state = cast_pointer!(alstate,SNMPState);
     match state.get_tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = transmute(tx);
             let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
             return ires;
         }
@@ -567,12 +567,12 @@ pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
                                          input_len: u32,
                                          _rdir: *mut u8) -> AppProto {
     let slice = build_slice!(input,input_len as usize);
-    let alproto = unsafe{ ALPROTO_SNMP };
-    if slice.len() < 4 { return unsafe{ALPROTO_FAILED}; }
+    let alproto = ALPROTO_SNMP;
+    if slice.len() < 4 { return ALPROTO_FAILED; }
     match parse_pdu_enveloppe_version(slice) {
         Ok((_,_))                    => alproto,
         Err(nom::Err::Incomplete(_)) => ALPROTO_UNKNOWN,
-        _                            => unsafe{ALPROTO_FAILED},
+        _                            => ALPROTO_FAILED,
     }
 }
 

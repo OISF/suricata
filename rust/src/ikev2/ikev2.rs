@@ -488,11 +488,9 @@ pub unsafe extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
     let state = cast_pointer!(state,IKEV2State);
     let res = state.parse(buf, STREAM_TOCLIENT);
     if state.connection_state == IKEV2ConnectionState::ParsingDone {
-        unsafe{
-            AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION |
-                                       APP_LAYER_PARSER_NO_REASSEMBLY |
-                                       APP_LAYER_PARSER_BYPASS_READY)
-        };
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION |
+                                   APP_LAYER_PARSER_NO_REASSEMBLY |
+                                   APP_LAYER_PARSER_BYPASS_READY);
     }
     res
 }
@@ -504,7 +502,7 @@ pub unsafe extern "C" fn rs_ikev2_state_get_tx(state: *mut std::os::raw::c_void,
 {
     let state = cast_pointer!(state,IKEV2State);
     match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe{std::mem::transmute(tx)},
+        Some(tx) => std::mem::transmute(tx),
         None     => std::ptr::null_mut(),
     }
 }
@@ -667,22 +665,22 @@ pub unsafe extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow,
         _rdir: *mut u8) -> AppProto
 {
     let slice = build_slice!(input,input_len as usize);
-    let alproto = unsafe{ ALPROTO_IKEV2 };
+    let alproto = ALPROTO_IKEV2;
     match parse_ikev2_header(slice) {
         Ok((_, ref hdr)) => {
             if hdr.maj_ver != 2 || hdr.min_ver != 0 {
                 SCLogDebug!("ipsec_probe: could be ipsec, but with unsupported/invalid version {}.{}",
                         hdr.maj_ver, hdr.min_ver);
-                return unsafe{ALPROTO_FAILED};
+                return ALPROTO_FAILED;
             }
             if hdr.exch_type.0 < 34 || hdr.exch_type.0 > 37 {
                 SCLogDebug!("ipsec_probe: could be ipsec, but with unsupported/invalid exchange type {}",
                        hdr.exch_type.0);
-                return unsafe{ALPROTO_FAILED};
+                return ALPROTO_FAILED;
             }
             if hdr.length as usize != slice.len() {
                 SCLogDebug!("ipsec_probe: could be ipsec, but length does not match");
-                return unsafe{ALPROTO_FAILED};
+                return ALPROTO_FAILED;
             }
             return alproto;
         },
@@ -690,7 +688,7 @@ pub unsafe extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow,
             return ALPROTO_UNKNOWN;
         },
         Err(_) => {
-            return unsafe{ALPROTO_FAILED};
+            return ALPROTO_FAILED;
         },
     }
 }

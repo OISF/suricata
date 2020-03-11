@@ -90,7 +90,7 @@ pub unsafe extern "C" fn rs_rdp_state_get_tx(
     let state = cast_pointer!(state, RdpState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return transmute(tx);
         }
         None => {
             return std::ptr::null_mut();

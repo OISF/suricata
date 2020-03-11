@@ -231,7 +231,7 @@ pub unsafe extern "C" fn rs_ntp_state_get_tx(state: *mut std::os::raw::c_void,
 {
     let state = cast_pointer!(state,NTPState);
     match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe{std::mem::transmute(tx)},
+        Some(tx) => std::mem::transmute(tx),
         None     => std::ptr::null_mut(),
     }
 }

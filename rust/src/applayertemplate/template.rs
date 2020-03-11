@@ -265,7 +265,7 @@ pub unsafe extern "C" fn rs_template_probing_parser(
     if input_len > 1 && input != std::ptr::null_mut() {
         let slice = build_slice!(input, input_len as usize);
         if probe(slice) {
-            return unsafe { ALPROTO_TEMPLATE };
+            return ALPROTO_TEMPLATE;
         }
     }
     return ALPROTO_UNKNOWN;
@@ -303,7 +303,7 @@ pub unsafe extern "C" fn rs_template_parse_request(
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    let eof = unsafe {
+    let eof = {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
             true
         } else {
@@ -333,7 +333,7 @@ pub unsafe extern "C" fn rs_template_parse_response(
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    let _eof = unsafe {
+    let _eof = {
         if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
             true
         } else {
@@ -356,7 +356,7 @@ pub unsafe extern "C" fn rs_template_state_get_tx(
     let state = cast_pointer!(state, TemplateState);
     match state.get_tx(tx_id) {
         Some(tx) => {
-            return unsafe { transmute(tx) };
+            return transmute(tx);
         }
         None => {
             return std::ptr::null_mut();
@@ -449,7 +449,7 @@ pub unsafe extern "C" fn rs_template_state_get_tx_iterator(
     let state = cast_pointer!(state, TemplateState);
     match state.tx_iterator(min_tx_id, istate) {
         Some((tx, out_tx_id, has_next)) => {
-            let c_tx = unsafe { transmute(tx) };
+            let c_tx = transmute(tx);
             let ires = applayer::AppLayerGetTxIterTuple::with_values(
                 c_tx,
                 out_tx_id,
@@ -477,10 +477,8 @@ pub unsafe extern "C" fn rs_template_get_request_buffer(
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref request) = tx.request {
         if request.len() > 0 {
-            unsafe {
-                *len = request.len() as u32;
-                *buf = request.as_ptr();
-            }
+            *len = request.len() as u32;
+            *buf = request.as_ptr();
             return 1;
         }
     }
@@ -498,10 +496,8 @@ pub unsafe extern "C" fn rs_template_get_response_buffer(
     let tx = cast_pointer!(tx, TemplateTransaction);
     if let Some(ref response) = tx.response {
         if response.len() > 0 {
-            unsafe {
-                *len = response.len() as u32;
-                *buf = response.as_ptr();
-            }
+            *len = response.len() as u32;
+            *buf = response.as_ptr();
             return 1;
         }
     }

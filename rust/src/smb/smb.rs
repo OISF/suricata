@@ -1927,12 +1927,12 @@ pub unsafe extern "C" fn rs_smb_probe_tcp(direction: u8,
                                 if smb_record.flags & 0x80 != 0 {
                                     SCLogDebug!("RESPONSE {:02x}", smb_record.flags);
                                     if direction & STREAM_TOSERVER != 0 {
-                                        unsafe { *rdir = STREAM_TOCLIENT; }
+                                        *rdir = STREAM_TOCLIENT;
                                     }
                                 } else {
                                     SCLogDebug!("REQUEST {:02x}", smb_record.flags);
                                     if direction & STREAM_TOCLIENT != 0 {
-                                        unsafe { *rdir = STREAM_TOSERVER; }
+                                        *rdir = STREAM_TOSERVER;
                                     }
                                 }
                                 return 1;
@@ -1946,12 +1946,12 @@ pub unsafe extern "C" fn rs_smb_probe_tcp(direction: u8,
                                 if direction & STREAM_TOSERVER != 0 {
                                     SCLogDebug!("direction STREAM_TOSERVER smb_record {:?}", smb_record);
                                     if !smb_record.request {
-                                        unsafe { *rdir = STREAM_TOCLIENT; }
+                                        *rdir = STREAM_TOCLIENT;
                                     }
                                 } else {
                                     SCLogDebug!("direction STREAM_TOCLIENT smb_record {:?}", smb_record);
                                     if smb_record.request {
-                                        unsafe { *rdir = STREAM_TOSERVER; }
+                                        *rdir = STREAM_TOSERVER;
                                     }
                                 }
                             },

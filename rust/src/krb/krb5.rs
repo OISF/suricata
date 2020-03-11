@@ -299,7 +299,7 @@ pub unsafe extern "C" fn rs_krb5_state_get_tx(state: *mut std::os::raw::c_void,
 {
     let state = cast_pointer!(state,KRB5State);
     match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe{std::mem::transmute(tx)},
+        Some(tx) => std::mem::transmute(tx),
         None     => std::ptr::null_mut(),
     }
 }
@@ -439,16 +439,16 @@ pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
         _rdir: *mut u8) -> AppProto
 {
     let slice = build_slice!(input,input_len as usize);
-    let alproto = unsafe{ ALPROTO_KRB5 };
-    if slice.len() <= 10 { return unsafe{ALPROTO_FAILED}; }
+    let alproto = ALPROTO_KRB5;
+    if slice.len() <= 10 { return ALPROTO_FAILED; }
     match der_read_element_header(slice) {
         Ok((rem, ref hdr)) => {
             // Kerberos messages start with an APPLICATION header
-            if hdr.class != 0b01 { return unsafe{ALPROTO_FAILED}; }
+            if hdr.class != 0b01 { return ALPROTO_FAILED; }
             // Tag number should be <= 30
-            if hdr.tag.0 >= 30 { return unsafe{ALPROTO_FAILED}; }
+            if hdr.tag.0 >= 30 { return ALPROTO_FAILED; }
             // Kerberos messages contain sequences
-            if rem.is_empty() || rem[0] != 0x30 { return unsafe{ALPROTO_FAILED}; }
+            if rem.is_empty() || rem[0] != 0x30 { return ALPROTO_FAILED; }
             // Check kerberos version
             if let Ok((rem,_hdr)) = der_read_element_header(rem) {
                 if rem.len() > 5 {
@@ -459,13 +459,13 @@ pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
                     }
                 }
             }
-            return unsafe{ALPROTO_FAILED};
+            return ALPROTO_FAILED;
         },
         Err(nom::Err::Incomplete(_)) => {
             return ALPROTO_UNKNOWN;
         },
         Err(_) => {
-            return unsafe{ALPROTO_FAILED};
+            return ALPROTO_FAILED;
         },
     }
 }
@@ -477,11 +477,11 @@ pub unsafe extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
         rdir: *mut u8) -> AppProto
 {
     let slice = build_slice!(input,input_len as usize);
-    if slice.len() <= 14 { return unsafe{ALPROTO_FAILED}; }
+    if slice.len() <= 14 { return ALPROTO_FAILED; }
     match be_u32(slice) as IResult<&[u8],u32> {
         Ok((rem, record_mark)) => {
             // protocol implementations forbid very large requests
-            if record_mark > 16384 { return unsafe{ALPROTO_FAILED}; }
+            if record_mark > 16384 { return ALPROTO_FAILED; }
             return rs_krb5_probing_parser(_flow, direction,
                     rem.as_ptr(), rem.len() as u32, rdir);
         },
@@ -489,7 +489,7 @@ pub unsafe extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow,
             return ALPROTO_UNKNOWN;
         },
         Err(_) => {
-            return unsafe{ALPROTO_FAILED};
+            return ALPROTO_FAILED;
         },
     }
 }
