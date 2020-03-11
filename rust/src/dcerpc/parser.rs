@@ -39,6 +39,18 @@ named!(pub parse_uuid<Uuid>,
         )
     );
 
+fn uuid_to_vec(uuid: Uuid) -> Vec<u8> {
+    let mut uuidtmp = uuid;
+    let mut vect: Vec<u8> = Vec::new();
+    vect.append(&mut uuidtmp.time_low);
+    vect.append(&mut uuidtmp.time_mid);
+    vect.append(&mut uuidtmp.time_hi_and_version);
+    vect.push(uuidtmp.clock_seq_hi_and_reserved);
+    vect.push(uuidtmp.clock_seq_low);
+    vect.append(&mut uuidtmp.node);
+    vect
+}
+
 fn assemble_uuid(uuid: Uuid) -> Vec<u8> {
     let mut uuidtmp = uuid;
     let mut vect: Vec<u8> = Vec::new();
@@ -169,17 +181,24 @@ named_args!(pub parse_bindctx_item(endianness: Endianness) <BindCtxItem>,
     do_parse!(
         ctxid: u16!(endianness) >>
         take!(2) >>  // Not sure what this is for
-        uuid: take!(16) >>  // TODO UUIDs also seem to changed as per endianness
+        uuid: take!(16) >>
         version: u16!(endianness) >>
         versionminor: u16!(endianness) >>
         take!(20) >>
         (
             BindCtxItem {
                 ctxid: ctxid,
-                uuid: uuid.to_vec(),
+                // UUID parsing for TCP seems to change as per endianness
+                uuid: match parse_uuid(uuid) {
+                    Ok((_, vect)) => match endianness {
+                        Endianness::Little => assemble_uuid(vect),
+                        _ => uuid_to_vec(vect),
+                    },
+                    // Shouldn't happen
+                    Err(_e) => {vec![0]},
+                },
                 version: version,
                 versionminor: versionminor,
-//                uuid_entry: None,
                 }
             )
         )
