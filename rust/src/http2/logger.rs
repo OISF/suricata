@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-use std;
-use crate::json::*;
 use super::http2::HTTP2Transaction;
+use crate::json::*;
+use std;
 
 fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
     let js = Json::object();
