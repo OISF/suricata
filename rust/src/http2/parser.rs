@@ -20,7 +20,8 @@ use nom::number::streaming::be_u8;
 #[derive(PartialEq)]
 pub struct HTTP2FrameHeader {
     pub length: u32,
-    ftype: u8,
+    //TODO explicit enum for type settings=4
+    pub ftype: u8,
     pub flags: u8,
     pub reserved: u8,
     stream_id: u32,

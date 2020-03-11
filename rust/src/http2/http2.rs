@@ -180,7 +180,7 @@ export_tx_set_detect_state!(rs_http2_tx_set_detect_state, HTTP2Transaction);
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub extern "C" fn rs_http2_probing_parser(
+pub extern "C" fn rs_http2_probing_parser_tc(
     _flow: *const Flow,
     _direction: u8,
     input: *const u8,
@@ -194,11 +194,11 @@ pub extern "C" fn rs_http2_probing_parser(
                 if header.reserved != 0
                     || header.length > HTTP2_DEFAULT_MAX_FRAME_SIZE
                     || header.flags & 0xFE != 0
+                    || header.ftype != 4
                 {
                     //TODO why unsafe ?
                     return unsafe { ALPROTO_FAILED };
                 }
-                //TODO check known type
                 return unsafe { ALPROTO_HTTP2 };
             }
             Err(nom::Err::Incomplete(_)) => {
@@ -447,8 +447,8 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: Some(rs_http2_probing_parser),
-        probe_tc: Some(rs_http2_probing_parser),
+        probe_ts: None, // big magic string
+        probe_tc: Some(rs_http2_probing_parser_tc),
         min_depth: 0,
         max_depth: 16,
         state_new: rs_http2_state_new,
