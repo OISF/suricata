@@ -67,7 +67,7 @@ impl LoggerFlags {
 macro_rules!export_tx_get_detect_state {
     ($name:ident, $type:ty) => (
         #[no_mangle]
-        pub extern "C" fn $name(tx: *mut std::os::raw::c_void)
+        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
             -> *mut core::DetectEngineState
         {
             let tx = cast_pointer!(tx, $type);
@@ -88,7 +88,7 @@ macro_rules!export_tx_get_detect_state {
 macro_rules!export_tx_set_detect_state {
     ($name:ident, $type:ty) => (
         #[no_mangle]
-        pub extern "C" fn $name(tx: *mut std::os::raw::c_void,
+        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void,
                 de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
         {
             let tx = cast_pointer!(tx, $type);

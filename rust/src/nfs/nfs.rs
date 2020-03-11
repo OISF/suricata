@@ -1697,7 +1697,7 @@ pub extern "C" fn rs_nfs_tx_get_detect_flags(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_nfs_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, NFSTransaction);
@@ -1916,7 +1916,7 @@ pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
 
 /// MIDSTREAM
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_ms(
+pub unsafe extern "C" fn rs_nfs_probe_ms(
         direction: u8, input: *const u8,
         len: u32, rdir: *mut u8) -> i8
 {
@@ -1950,7 +1950,7 @@ pub extern "C" fn rs_nfs_probe_ms(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe(direction: u8,
+pub unsafe extern "C" fn rs_nfs_probe(direction: u8,
         input: *const u8, len: u32)
     -> i8
 {
@@ -1961,7 +1961,7 @@ pub extern "C" fn rs_nfs_probe(direction: u8,
 
 /// TOSERVER probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_udp_ts(input: *const u8, len: u32)
+pub unsafe extern "C" fn rs_nfs_probe_udp_ts(input: *const u8, len: u32)
                                -> i8
 {
     let slice: &[u8] = build_slice!(input, len as usize);
@@ -1970,7 +1970,7 @@ pub extern "C" fn rs_nfs_probe_udp_ts(input: *const u8, len: u32)
 
 /// TOCLIENT probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe_udp_tc(input: *const u8, len: u32)
+pub unsafe extern "C" fn rs_nfs_probe_udp_tc(input: *const u8, len: u32)
                                -> i8
 {
     let slice: &[u8] = build_slice!(input, len as usize);

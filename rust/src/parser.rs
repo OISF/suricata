@@ -116,7 +116,7 @@ pub struct RustParser {
 /// UNSAFE !
 #[macro_export]
 macro_rules! build_slice {
-    ($buf:ident, $len:expr) => ( unsafe{ std::slice::from_raw_parts($buf, $len) } );
+    ($buf:ident, $len:expr) => ( { std::slice::from_raw_parts($buf, $len) } );
 }
 
 /// Cast pointer to a variable, as a mutable reference to an object
@@ -124,37 +124,37 @@ macro_rules! build_slice {
 /// UNSAFE !
 #[macro_export]
 macro_rules! cast_pointer {
-    ($ptr:ident, $ty:ty) => ( unsafe{ &mut *($ptr as *mut $ty) } );
+    ($ptr:ident, $ty:ty) => ( { &mut *($ptr as *mut $ty) } );
 }
 
-pub type ParseFn      = extern "C" fn (flow: *const Flow,
+pub type ParseFn      = unsafe extern "C" fn (flow: *const Flow,
                                        state: *mut c_void,
                                        pstate: *mut c_void,
                                        input: *const u8,
                                        input_len: u32,
                                        data: *const c_void,
                                        flags: u8) -> i32;
-pub type ProbeFn      = extern "C" fn (flow: *const Flow,direction: u8,input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
+pub type ProbeFn      = unsafe extern "C" fn (flow: *const Flow,direction: u8,input:*const u8, input_len: u32, rdir: *mut u8) -> AppProto;
 pub type StateAllocFn = extern "C" fn () -> *mut c_void;
 pub type StateFreeFn  = extern "C" fn (*mut c_void);
-pub type StateTxFreeFn  = extern "C" fn (*mut c_void, u64);
-pub type StateGetTxFn            = extern "C" fn (*mut c_void, u64) -> *mut c_void;
-pub type StateGetTxCntFn         = extern "C" fn (*mut c_void) -> u64;
+pub type StateTxFreeFn  = unsafe extern "C" fn (*mut c_void, u64);
+pub type StateGetTxFn            = unsafe extern "C" fn (*mut c_void, u64) -> *mut c_void;
+pub type StateGetTxCntFn         = unsafe extern "C" fn (*mut c_void) -> u64;
 pub type StateGetTxCompletionStatusFn = extern "C" fn (u8) -> c_int;
-pub type StateGetProgressFn = extern "C" fn (*mut c_void, u8) -> c_int;
-pub type GetDetectStateFn   = extern "C" fn (*mut c_void) -> *mut DetectEngineState;
-pub type SetDetectStateFn   = extern "C" fn (*mut c_void, &mut DetectEngineState) -> c_int;
+pub type StateGetProgressFn = unsafe extern "C" fn (*mut c_void, u8) -> c_int;
+pub type GetDetectStateFn   = unsafe extern "C" fn (*mut c_void) -> *mut DetectEngineState;
+pub type SetDetectStateFn   = unsafe extern "C" fn (*mut c_void, &mut DetectEngineState) -> c_int;
 pub type GetEventInfoFn     = extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
 pub type GetEventInfoByIdFn = extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
-pub type GetEventsFn        = extern "C" fn (*mut c_void) -> *mut AppLayerDecoderEvents;
-pub type GetTxLoggedFn      = extern "C" fn (*mut c_void, *mut c_void) -> u32;
-pub type SetTxLoggedFn      = extern "C" fn (*mut c_void, *mut c_void, u32);
+pub type GetEventsFn        = unsafe extern "C" fn (*mut c_void) -> *mut AppLayerDecoderEvents;
+pub type GetTxLoggedFn      = unsafe extern "C" fn (*mut c_void, *mut c_void) -> u32;
+pub type SetTxLoggedFn      = unsafe extern "C" fn (*mut c_void, *mut c_void, u32);
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
 pub type GetTxMpmIDFn       = extern "C" fn (*mut c_void) -> u64;
 pub type SetTxMpmIDFn       = extern "C" fn (*mut c_void, u64) -> c_int;
 pub type GetFilesFn         = extern "C" fn (*mut c_void, u8) -> *mut FileContainer;
-pub type GetTxIteratorFn    = extern "C" fn (ipproto: u8, alproto: AppProto,
+pub type GetTxIteratorFn    = unsafe extern "C" fn (ipproto: u8, alproto: AppProto,
                                              state: *mut c_void,
                                              min_tx_id: u64,
                                              max_tx_id: u64,
@@ -181,7 +181,7 @@ pub const APP_LAYER_PARSER_NO_REASSEMBLY : u8 = 0b10;
 pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u8 = 0b100;
 pub const APP_LAYER_PARSER_BYPASS_READY : u8 = 0b1000;
 
-pub type AppLayerGetTxIteratorFn = extern "C" fn (ipproto: u8,
+pub type AppLayerGetTxIteratorFn = unsafe extern "C" fn (ipproto: u8,
                                                   alproto: AppProto,
                                                   alstate: *mut c_void,
                                                   min_tx_id: u64,

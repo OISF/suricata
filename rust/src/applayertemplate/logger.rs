@@ -31,7 +31,7 @@ fn log_template(tx: &TemplateTransaction) -> Option<Json> {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_template_logger_log(tx: *mut std::os::raw::c_void) -> *mut JsonT {
+pub unsafe extern "C" fn rs_template_logger_log(tx: *mut std::os::raw::c_void) -> *mut JsonT {
     let tx = cast_pointer!(tx, TemplateTransaction);
     match log_template(tx) {
         Some(js) => js.unwrap(),
