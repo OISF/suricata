@@ -106,5 +106,5 @@ pub unsafe extern "C" fn rs_x509_free(ptr: *mut X509) {
     if ptr.is_null() {
         return;
     }
-    Box::from_raw(ptr);
+    drop(Box::from_raw(ptr));
 }
