@@ -428,7 +428,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
         /* only store fields from the first certificate in the chain */
         if (processed_len == 0) {
             char * str;
-            time_t not_before, not_after;
+            int64_t not_before, not_after;
 
             x509 = rs_x509_decode(input, cert_len);
             if (x509 == NULL) {
@@ -454,8 +454,8 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
             rc = rs_x509_get_validity(x509, &not_before, &not_after);
             if (rc != 0)
                 goto error;
-            ssl_state->server_connp.cert0_not_before = not_before;
-            ssl_state->server_connp.cert0_not_after = not_after;
+            ssl_state->server_connp.cert0_not_before = (time_t)not_before;
+            ssl_state->server_connp.cert0_not_after = (time_t)not_after;
 
             rs_x509_free(x509);
             x509 = NULL;
