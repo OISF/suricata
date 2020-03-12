@@ -5857,7 +5857,7 @@ invalid:
  * \param ssn TCP Session to set the flag in
  * \param direction direction to set the flag in: 0 toserver, 1 toclient
  */
-void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
+void StreamTcpSetSessionNoReassemblyFlag(TcpSession *ssn, char direction)
 {
     ssn->flags |= STREAMTCP_FLAG_APP_LAYER_DISABLED;
     if (direction) {
@@ -5873,7 +5873,7 @@ void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
  * \param ssn TCP Session to set the flag in
  * \param direction direction to set the flag in: 0 toserver, 1 toclient
  */
-void StreamTcpSetDisableRawReassemblyFlag (TcpSession *ssn, char direction)
+void StreamTcpSetDisableRawReassemblyFlag(TcpSession *ssn, char direction)
 {
     direction ? (ssn->server.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED) :
                 (ssn->client.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED);
@@ -5884,7 +5884,7 @@ void StreamTcpSetDisableRawReassemblyFlag (TcpSession *ssn, char direction)
  * \param ssn TCP Session to set the flag in
  * \param direction direction to set the flag in: 0 toserver, 1 toclient
  */
-void StreamTcpSetSessionBypassFlag (TcpSession *ssn)
+void StreamTcpSetSessionBypassFlag(TcpSession *ssn)
 {
     ssn->flags |= STREAMTCP_FLAG_BYPASS;
 }
