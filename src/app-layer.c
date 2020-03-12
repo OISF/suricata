@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -448,8 +448,6 @@ static int TCPProtoDetect(ThreadVars *tv,
         PACKET_PROFILING_APP_END(app_tctx, f->alproto);
         if (r < 0)
             goto failure;
-        (*stream)->app_progress_rel += data_len;
-
     } else {
         /* if the ssn is midstream, we may end up with a case where the
          * start of an HTTP request is missing. We won't detect HTTP based
@@ -518,9 +516,6 @@ static int TCPProtoDetect(ThreadVars *tv,
                             f->alproto, flags,
                             data, data_len);
                     PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-                    if (r >= 0) {
-                        (*stream)->app_progress_rel += data_len;
-                    }
 
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                             APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
@@ -602,7 +597,6 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 flags, data, data_len);
         PACKET_PROFILING_APP_END(app_tctx, f->alproto);
         /* ignore parser result for gap */
-        (*stream)->app_progress_rel += data_len;
         goto end;
     }
 
@@ -660,9 +654,6 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                                     flags, data, data_len);
             PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-            if (r >= 0) {
-                (*stream)->app_progress_rel += data_len;
-            }
         }
     }
 
