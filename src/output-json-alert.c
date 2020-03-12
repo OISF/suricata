@@ -342,6 +342,10 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, json_t *
         AlertJsonMetadata(json_output_ctx, pa, ajs);
     }
 
+    if (flags & LOG_JSON_RULE) {
+        json_object_set_new(ajs, "rule", json_string(pa->s->sig_str));
+    }
+
     /* alert */
     json_object_set_new(js, "alert", ajs);
 }
@@ -559,13 +563,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* base64-encoded full packet */
         if (json_output_ctx->flags & LOG_JSON_PACKET) {
             JsonPacket(p, js, 0);
-        }
-
-        /* signature text */
-        if (json_output_ctx->flags & LOG_JSON_RULE) {
-            hjs = json_object_get(js, "alert");
-            if (json_is_object(hjs))
-                json_object_set_new(hjs, "rule", json_string(pa->s->sig_str));
         }
 
         HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg != NULL ?
