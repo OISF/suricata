@@ -1038,6 +1038,14 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             /* AppLayerHandleTCPData has likely updated progress. */
             app_progress = STREAM_APP_PROGRESS(*stream);
 
+            /* a GAP also consumes 'data required'. TODO perhaps we can use
+             * this to skip post GAP data until the start of a next record. */
+            if ((*stream)->data_required > mydata_len) {
+                (*stream)->data_required -= mydata_len;
+            } else {
+                (*stream)->data_required = 0;
+            }
+
             if (r < 0)
                 return 0;
 
@@ -1083,6 +1091,13 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             }
         }
     }
+    if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED) {
+        if (mydata_len < (*stream)->data_required) {
+            SCLogDebug("mydata_len %u data_required %u", mydata_len, (*stream)->data_required);
+            SCReturnInt(0);
+        }
+    }
+    (*stream)->data_required = 0;
 
     /* update the app-layer */
     (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,

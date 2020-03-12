@@ -5849,6 +5849,21 @@ invalid:
     SCReturnInt(-1);
 }
 
+/** \brief update reassembly progress
+
+ * \param ssn TCP Session
+ * \param direction direction to set the flag in: 0 toserver, 1 toclient
+ */
+void StreamTcpUpdateAppLayerProgress (TcpSession *ssn, char direction,
+        const uint32_t progress)
+{
+    if (direction) {
+        ssn->server.app_progress_rel += progress;
+    } else {
+        ssn->client.app_progress_rel += progress;
+    }
+}
+
 /** \brief disable reassembly
 
  *  Disable app layer and set raw inspect to no longer accept new data.

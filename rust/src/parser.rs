@@ -48,6 +48,13 @@ impl AppLayerReturn {
             needed: 0,
         };
     }
+    pub fn incomplete(consumed: u32, needed: u32) -> AppLayerReturn {
+        return AppLayerReturn {
+            status: 1,
+            consumed: consumed,
+            needed: needed,
+        };
+    }
 }
 
 /// Rust parser declaration

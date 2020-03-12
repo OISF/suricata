@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1179,6 +1179,8 @@ void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx,
 
 /***** General *****/
 
+/** \retval int -1 in case of unrecoverable error. App-layer tracking stops for this flow.
+ *  \retval int 0 ok */
 int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
                         uint8_t flags, const uint8_t *input, uint32_t input_len)
 {
@@ -1190,6 +1192,8 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][alproto];
     void *alstate = NULL;
     uint64_t p_tx_cnt = 0;
+    uint32_t consumed = input_len;
+    const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     /* we don't have the parser registered for this protocol */
     if (p->StateAlloc == NULL)
@@ -1234,7 +1238,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0 || (flags & STREAM_EOF)) {
         /* invoke the parser */
-        AppLayerReturn res = p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
+        AppLayerReturn res = p->Parser[direction](f, alstate, pstate,
                 input, input_len,
                 alp_tctx->alproto_local_storage[f->protomap][alproto],
                 flags);
@@ -1242,8 +1246,27 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         {
             goto error;
         } else if (res.status > 0) {
-            SCLogNotice("%s: %d", AppLayerGetProtoName(alproto), res.status);
-            abort();
+            TcpSession *ssn = f->protoctx;
+            if (ssn != NULL) {
+                SCLogDebug("direction %d/%s", direction, (flags & STREAM_TOSERVER) ? "toserver":"toclient");
+                assert(res.consumed <= input_len);
+                if (direction == 0) {
+                    /* parser told us how much data it needs on top of what it
+                     * consumed. So we need tell stream engine how much we need
+                     * before the next call */
+                    ssn->client.data_required = res.needed;
+                    SCLogDebug("setting data_required %u", ssn->client.data_required);
+                } else {
+                    /* parser told us how much data it needs on top of what it
+                     * consumed. So we need tell stream engine how much we need
+                     * before the next call */
+                    ssn->server.data_required = res.needed;
+                    SCLogDebug("setting data_required %u", ssn->server.data_required);
+                }
+            }
+            BUG_ON(res.needed + res.consumed < input_len);
+            BUG_ON(res.needed == 0);
+            consumed = res.consumed;
         }
     }
 
@@ -1300,6 +1323,12 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         AppLayerParserStreamTruncated(f->proto, alproto, alstate, flags);
 
  end:
+    /* update app progress */
+    if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
+        TcpSession *ssn = f->protoctx;
+        StreamTcpUpdateAppLayerProgress(ssn, direction, consumed);
+    }
+
     SCReturnInt(0);
  error:
     /* Set the no app layer inspection flag for both
