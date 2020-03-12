@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-//TODO pub mod detect;
+//TODO pub mod detect; detect frame type
 pub mod http2;
 pub mod logger;
 mod parser;

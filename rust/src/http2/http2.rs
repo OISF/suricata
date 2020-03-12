@@ -22,12 +22,19 @@ use crate::log::*;
 use crate::parser::*;
 use nom;
 use std;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::mem::transmute;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 
 const HTTP2_DEFAULT_MAX_FRAME_SIZE: u32 = 16384;
+
+#[repr(u8)]
+#[derive(Copy, Clone, PartialOrd, PartialEq)]
+pub enum HTTP2ConnectionState {
+    Http2StateInit = 0,
+    Http2StateMagicDone = 1,
+}
 
 pub struct HTTP2Transaction {
     tx_id: u64,
@@ -67,11 +74,31 @@ impl Drop for HTTP2Transaction {
     }
 }
 
+//TODO rules file
+#[repr(u32)]
+pub enum HTTP2Event {
+    InvalidFrameHeader = 0,
+    InvalidClientMagic,
+}
+
+impl HTTP2Event {
+    fn from_i32(value: i32) -> Option<HTTP2Event> {
+        match value {
+            0 => Some(HTTP2Event::InvalidFrameHeader),
+            1 => Some(HTTP2Event::InvalidClientMagic),
+            _ => None,
+        }
+    }
+}
+
 pub struct HTTP2State {
     tx_id: u64,
     request_buffer: Vec<u8>,
     response_buffer: Vec<u8>,
+    request_frame_size: u32,
+    response_frame_size: u32,
     transactions: Vec<HTTP2Transaction>,
+    progress: HTTP2ConnectionState,
 }
 
 impl HTTP2State {
@@ -80,8 +107,21 @@ impl HTTP2State {
             tx_id: 0,
             request_buffer: Vec::new(),
             response_buffer: Vec::new(),
+            request_frame_size: 0,
+            response_frame_size: 0,
             transactions: Vec::new(),
+            progress: HTTP2ConnectionState::Http2StateInit,
         }
+    }
+
+    fn set_event(&mut self, event: HTTP2Event) {
+        let len = self.transactions.len();
+        if len == 0 {
+            return;
+        }
+        let tx = &mut self.transactions[len - 1];
+        let ev = event as u8;
+        core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
     }
 
     // Free a transaction by ID.
@@ -127,27 +167,133 @@ impl HTTP2State {
         None
     }
 
-    fn parse_request(&mut self, input: &[u8]) -> bool {
-        // We're not interested in empty requests.
-        if input.len() == 0 {
-            return true;
+    fn parse_ts(&mut self, input: &[u8]) -> bool {
+        let mut toparse = input;
+        //first consume frame bytes
+        if self.request_frame_size > 0 {
+            let ilen = input.len() as u32;
+            if self.request_frame_size >= ilen {
+                self.request_frame_size -= ilen;
+                return true;
+            } else {
+                let start = self.request_frame_size as usize;
+                toparse = &toparse[start..];
+                self.request_frame_size = 0;
+            }
         }
-
-        // For simplicity, always extend the buffer and work on it.
-        self.request_buffer.extend(input);
-
+        //second extend buffer if present
+        if self.request_buffer.len() > 0 {
+            self.request_buffer.extend(toparse);
+            //parse one header locally as we borrow self and self.request_buffer
+            match parser::http2_parse_frame_header(&self.request_buffer) {
+                Ok((rem, head)) => {
+                    let hl = head.length as usize;
+                    if rem.len() < hl {
+                        let rl = rem.len() as u32;
+                        self.request_frame_size = head.length - rl;
+                        return true;
+                    } else {
+                        toparse = &toparse[toparse.len() - rem.len() - hl..];
+                    }
+                }
+                Err(nom::Err::Incomplete(_)) => {
+                    return true;
+                }
+                Err(_) => {
+                    self.set_event(HTTP2Event::InvalidFrameHeader);
+                    return false;
+                }
+            }
+        }
+        //then parse all we can
+        while toparse.len() > 0 {
+            match parser::http2_parse_frame_header(toparse) {
+                Ok((rem, head)) => {
+                    let hl = head.length as usize;
+                    if rem.len() < hl {
+                        let rl = rem.len() as u32;
+                        self.request_frame_size = head.length - rl;
+                        return true;
+                    } else {
+                        toparse = &rem[rem.len() - hl..];
+                    }
+                }
+                Err(nom::Err::Incomplete(_)) => {
+                    self.request_buffer.extend(toparse);
+                    return true;
+                }
+                Err(_) => {
+                    self.set_event(HTTP2Event::InvalidFrameHeader);
+                    return false;
+                }
+            }
+        }
         return true;
     }
 
-    fn parse_response(&mut self, input: &[u8]) -> bool {
-        // We're not interested in empty responses.
-        if input.len() == 0 {
-            return true;
+    fn parse_tc(&mut self, input: &[u8]) -> bool {
+        let mut toparse = input;
+        //first consume frame bytes
+        if self.response_frame_size > 0 {
+            let ilen = input.len() as u32;
+            if self.response_frame_size >= ilen {
+                self.response_frame_size -= ilen;
+                return true;
+            } else {
+                let start = self.response_frame_size as usize;
+                toparse = &toparse[start..];
+                self.response_frame_size = 0;
+            }
         }
-
-        // For simplicity, always extend the buffer and work on it.
-        self.response_buffer.extend(input);
-
+        //second extend buffer if present
+        if self.response_buffer.len() > 0 {
+            self.response_buffer.extend(toparse);
+            //parse one header locally as we borrow self and self.response_buffer
+            match parser::http2_parse_frame_header(&self.response_buffer) {
+                Ok((rem, head)) => {
+                    //TODO parse deeper based on frame type
+                    let hl = head.length as usize;
+                    if rem.len() < hl {
+                        let rl = rem.len() as u32;
+                        self.response_frame_size = head.length - rl;
+                        return true;
+                    } else {
+                        toparse = &toparse[toparse.len() - rem.len() - hl..];
+                    }
+                }
+                Err(nom::Err::Incomplete(_)) => {
+                    return true;
+                }
+                Err(_) => {
+                    self.set_event(HTTP2Event::InvalidFrameHeader);
+                    return false;
+                }
+            }
+        }
+        //then parse all we can
+        while toparse.len() > 0 {
+            match parser::http2_parse_frame_header(toparse) {
+                Ok((rem, head)) => {
+                    //TODO parse deeper based on frame type
+                    let hl = head.length as usize;
+                    if rem.len() < hl {
+                        let rl = rem.len() as u32;
+                        self.response_frame_size = head.length - rl;
+                        return true;
+                    } else {
+                        toparse = &rem[rem.len() - hl..];
+                    }
+                }
+                Err(nom::Err::Incomplete(_)) => {
+                    self.response_buffer.extend(toparse);
+                    return true;
+                }
+                Err(_) => {
+                    self.set_event(HTTP2Event::InvalidFrameHeader);
+                    return false;
+                }
+            }
+        }
         return true;
     }
 
@@ -194,9 +340,8 @@ pub extern "C" fn rs_http2_probing_parser_tc(
                 if header.reserved != 0
                     || header.length > HTTP2_DEFAULT_MAX_FRAME_SIZE
                     || header.flags & 0xFE != 0
-                    || header.ftype != 4
+                    || header.ftype != parser::HTTP2FrameType::Http2FrameTypeSETTINGS
                 {
-                    //TODO why unsafe ?
                     return unsafe { ALPROTO_FAILED };
                 }
                 return unsafe { ALPROTO_HTTP2 };
@@ -232,55 +377,80 @@ pub extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_parse_request(
+pub extern "C" fn rs_http2_parse_ts(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
+    _pstate: *mut std::os::raw::c_void,
     input: *const u8,
     input_len: u32,
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    let eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
-            true
-        } else {
-            false
-        }
-    };
+    let state = cast_pointer!(state, HTTP2State);
+    let mut buf = build_slice!(input, input_len as usize);
 
-    if eof {
-        // If needed, handled EOF, or pass it into the parser.
+    if state.progress < HTTP2ConnectionState::Http2StateMagicDone {
+        //skip magic lol
+        if state.request_buffer.len() > 0 {
+            state.request_buffer.extend(buf);
+            if state.request_buffer.len() >= 24 {
+                //skip magic
+                match std::str::from_utf8(&state.request_buffer[..24]) {
+                    Ok("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n") => {}
+                    Ok(&_) => {
+                        state.set_event(HTTP2Event::InvalidClientMagic);
+                    }
+                    Err(_) => {
+                        return -1;
+                    }
+                }
+                buf = &buf[state.request_buffer.len() - buf.len() - 24..];
+                state.request_buffer.clear()
+            } else {
+                //still more buffer
+                return 1;
+            }
+        } else {
+            if buf.len() >= 24 {
+                //skip magic
+                match std::str::from_utf8(&buf[..24]) {
+                    Ok("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n") => {}
+                    Ok(&_) => {
+                        state.set_event(HTTP2Event::InvalidClientMagic);
+                    }
+                    Err(_) => {
+                        return -1;
+                    }
+                }
+                buf = &buf[24..];
+            } else {
+                //need to bufferize content
+                state.request_buffer.extend(buf);
+                return 1;
+            }
+        }
+        state.progress = HTTP2ConnectionState::Http2StateMagicDone;
     }
 
-    let state = cast_pointer!(state, HTTP2State);
-    let buf = build_slice!(input, input_len as usize);
-    if state.parse_request(buf) {
+    if state.parse_ts(buf) {
         return 1;
     }
     return -1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_parse_response(
+pub extern "C" fn rs_http2_parse_tc(
     _flow: *const Flow,
     state: *mut std::os::raw::c_void,
-    pstate: *mut std::os::raw::c_void,
+    _pstate: *mut std::os::raw::c_void,
     input: *const u8,
     input_len: u32,
     _data: *const std::os::raw::c_void,
     _flags: u8,
 ) -> i32 {
-    let _eof = unsafe {
-        if AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) > 0 {
-            true
-        } else {
-            false
-        }
-    };
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
-    if state.parse_response(buf) {
+    if state.parse_tc(buf) {
         return 1;
     }
     return -1;
@@ -357,20 +527,50 @@ pub extern "C" fn rs_http2_state_get_events(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_state_get_event_info(
-    _event_name: *const std::os::raw::c_char,
-    _event_id: *mut std::os::raw::c_int,
-    _event_type: *mut core::AppLayerEventType,
+    event_name: *const std::os::raw::c_char,
+    event_id: *mut std::os::raw::c_int,
+    event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
-    return -1;
+    if event_name == std::ptr::null() {
+        return -1;
+    }
+    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
+    let event = match c_event_name.to_str() {
+        Ok(s) => {
+            match s {
+                "invalid_frame_header" => HTTP2Event::InvalidFrameHeader as i32,
+                "invalid_client_magic" => HTTP2Event::InvalidClientMagic as i32,
+                _ => -1, // unknown event
+            }
+        }
+        Err(_) => -1, // UTF-8 conversion failed
+    };
+    unsafe {
+        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        *event_id = event as std::os::raw::c_int;
+    };
+    0
 }
 
 #[no_mangle]
 pub extern "C" fn rs_http2_state_get_event_info_by_id(
-    _event_id: std::os::raw::c_int,
-    _event_name: *mut *const std::os::raw::c_char,
-    _event_type: *mut core::AppLayerEventType,
+    event_id: std::os::raw::c_int,
+    event_name: *mut *const std::os::raw::c_char,
+    event_type: *mut core::AppLayerEventType,
 ) -> i8 {
-    return -1;
+    if let Some(e) = HTTP2Event::from_i32(event_id as i32) {
+        let estr = match e {
+            HTTP2Event::InvalidFrameHeader => "invalid_frame_header\0",
+            HTTP2Event::InvalidClientMagic => "invalid_client_magic\0",
+        };
+        unsafe {
+            *event_name = estr.as_ptr() as *const std::os::raw::c_char;
+            *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        };
+        0
+    } else {
+        -1
+    }
 }
 #[no_mangle]
 pub extern "C" fn rs_http2_state_get_tx_iterator(
@@ -447,18 +647,18 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
-        probe_ts: None, // big magic string
+        probe_ts: None, // big magic string should be enough
         probe_tc: Some(rs_http2_probing_parser_tc),
-        min_depth: 0,
-        max_depth: 16,
+        min_depth: 9,  // frame header size
+        max_depth: 24, // client magic size
         state_new: rs_http2_state_new,
         state_free: rs_http2_state_free,
         tx_free: rs_http2_state_tx_free,
-        parse_ts: rs_http2_parse_request,
-        parse_tc: rs_http2_parse_response,
+        parse_ts: rs_http2_parse_ts,
+        parse_tc: rs_http2_parse_tc,
         get_tx_count: rs_http2_state_get_tx_count,
         get_tx: rs_http2_state_get_tx,
-        //TODO
+        //TODO progress completion
         tx_get_comp_st: rs_http2_state_progress_completion_status,
         tx_get_progress: rs_http2_tx_get_alstate_progress,
         get_tx_logged: Some(rs_http2_tx_get_logged),
