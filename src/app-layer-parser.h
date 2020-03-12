@@ -53,6 +53,7 @@
 
 #define APP_LAYER_OK (AppLayerResult) { 0, 0, 0 }
 #define APP_LAYER_ERROR (AppLayerResult) { -1, 0, 0 }
+#define APP_LAYER_INCOMPLETE(c,n) (AppLayerResult) { 1, (c), (n) }
 
 int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto);
 
