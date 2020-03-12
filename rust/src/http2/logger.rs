@@ -20,6 +20,7 @@ use crate::json::*;
 use std;
 
 fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
+    //TODO log type
     let js = Json::object();
     if let Some(ref request) = tx.request {
         js.set_string("request", request);
