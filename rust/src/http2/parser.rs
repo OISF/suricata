@@ -16,20 +16,27 @@
  */
 
 use nom::number::streaming::be_u8;
+use std::fmt;
 
 #[repr(u8)]
 #[derive(PartialEq, FromPrimitive, Debug)]
 pub enum HTTP2FrameType {
-    Http2FrameTypeDATA = 0,
-    Http2FrameTypeHEADERS = 1,
-    Http2FrameTypePRIORITY = 2,
-    Http2frameTypeRSTSTREAM = 3,
-    Http2FrameTypeSETTINGS = 4,
-    Http2frameTypePUSHPROMISE = 5,
-    Http2FrameTypePING = 6,
-    Http2FrameTypeGOAWAY = 7,
-    Http2frameTypeWINDOWUPDATE = 8,
-    Http2FrameTypeCONTINUATION = 9,
+    DATA = 0,
+    HEADERS = 1,
+    PRIORITY = 2,
+    RSTSTREAM = 3,
+    SETTINGS = 4,
+    PUSHPROMISE = 5,
+    PING = 6,
+    GOAWAY = 7,
+    WINDOWUPDATE = 8,
+    CONTINUATION = 9,
+}
+
+impl fmt::Display for HTTP2FrameType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(PartialEq)]

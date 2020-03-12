@@ -79,6 +79,7 @@
 #include "output-json-template.h"
 #include "output-json-template-rust.h"
 #include "output-json-rdp.h"
+#include "output-json-http2.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
 #include "output-json-metadata.h"
@@ -1109,6 +1110,7 @@ void OutputRegisterLoggers(void)
     /* http log */
     LogHttpLogRegister();
     JsonHttpLogRegister();
+    JsonHttp2LogRegister();
     /* tls log */
     LogTlsLogRegister();
     JsonTlsLogRegister();
