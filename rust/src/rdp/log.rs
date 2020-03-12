@@ -25,7 +25,7 @@ use std;
 use x509_parser::parse_x509_der;
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_to_json(tx: *mut std::os::raw::c_void) -> *mut JsonT {
+pub unsafe extern "C" fn rs_rdp_to_json(tx: *mut std::os::raw::c_void) -> *mut JsonT {
     let tx = cast_pointer!(tx, RdpTransaction);
     match to_json(tx) {
         Some(js) => js.unwrap(),

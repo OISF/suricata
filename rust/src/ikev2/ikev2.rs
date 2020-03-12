@@ -464,7 +464,7 @@ pub extern "C" fn rs_ikev2_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        _pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -477,7 +477,7 @@ pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
+pub unsafe extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
                                        state: *mut std::os::raw::c_void,
                                        pstate: *mut std::os::raw::c_void,
                                        input: *const u8,
@@ -488,29 +488,27 @@ pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
     let state = cast_pointer!(state,IKEV2State);
     let res = state.parse(buf, STREAM_TOCLIENT);
     if state.connection_state == IKEV2ConnectionState::ParsingDone {
-        unsafe{
-            AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION |
-                                       APP_LAYER_PARSER_NO_REASSEMBLY |
-                                       APP_LAYER_PARSER_BYPASS_READY)
-        };
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION |
+                                   APP_LAYER_PARSER_NO_REASSEMBLY |
+                                   APP_LAYER_PARSER_BYPASS_READY);
     }
     res
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_tx(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_ikev2_state_get_tx(state: *mut std::os::raw::c_void,
                                       tx_id: u64)
                                       -> *mut std::os::raw::c_void
 {
     let state = cast_pointer!(state,IKEV2State);
     match state.get_tx_by_id(tx_id) {
-        Some(tx) => unsafe{std::mem::transmute(tx)},
+        Some(tx) => std::mem::transmute(tx),
         None     => std::ptr::null_mut(),
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_tx_count(state: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_ikev2_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
     let state = cast_pointer!(state,IKEV2State);
@@ -518,7 +516,7 @@ pub extern "C" fn rs_ikev2_state_get_tx_count(state: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_tx_free(state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_ikev2_state_tx_free(state: *mut std::os::raw::c_void,
                                        tx_id: u64)
 {
     let state = cast_pointer!(state,IKEV2State);
@@ -546,7 +544,7 @@ pub extern "C" fn rs_ikev2_tx_get_alstate_progress(_tx: *mut std::os::raw::c_voi
 
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_tx_set_logged(_state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_ikev2_tx_set_logged(_state: *mut std::os::raw::c_void,
                                        tx: *mut std::os::raw::c_void,
                                        logged: u32)
 {
@@ -555,7 +553,7 @@ pub extern "C" fn rs_ikev2_tx_set_logged(_state: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_tx_get_logged(_state: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_ikev2_tx_get_logged(_state: *mut std::os::raw::c_void,
                                        tx: *mut std::os::raw::c_void)
                                        -> u32
 {
@@ -565,7 +563,7 @@ pub extern "C" fn rs_ikev2_tx_get_logged(_state: *mut std::os::raw::c_void,
 
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_set_tx_detect_state(
+pub unsafe extern "C" fn rs_ikev2_state_set_tx_detect_state(
     tx: *mut std::os::raw::c_void,
     de_state: &mut core::DetectEngineState) -> std::os::raw::c_int
 {
@@ -575,7 +573,7 @@ pub extern "C" fn rs_ikev2_state_set_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_tx_detect_state(
+pub unsafe extern "C" fn rs_ikev2_state_get_tx_detect_state(
     tx: *mut std::os::raw::c_void)
     -> *mut core::DetectEngineState
 {
@@ -588,7 +586,7 @@ pub extern "C" fn rs_ikev2_state_get_tx_detect_state(
 
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_ikev2_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut core::AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, IKEV2Transaction);
@@ -661,28 +659,28 @@ pub extern "C" fn rs_ikev2_state_get_event_info(event_name: *const std::os::raw:
 static mut ALPROTO_IKEV2 : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow,
+pub unsafe extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow,
         _direction: u8,
         input:*const u8, input_len: u32,
         _rdir: *mut u8) -> AppProto
 {
     let slice = build_slice!(input,input_len as usize);
-    let alproto = unsafe{ ALPROTO_IKEV2 };
+    let alproto = ALPROTO_IKEV2;
     match parse_ikev2_header(slice) {
         Ok((_, ref hdr)) => {
             if hdr.maj_ver != 2 || hdr.min_ver != 0 {
                 SCLogDebug!("ipsec_probe: could be ipsec, but with unsupported/invalid version {}.{}",
                         hdr.maj_ver, hdr.min_ver);
-                return unsafe{ALPROTO_FAILED};
+                return ALPROTO_FAILED;
             }
             if hdr.exch_type.0 < 34 || hdr.exch_type.0 > 37 {
                 SCLogDebug!("ipsec_probe: could be ipsec, but with unsupported/invalid exchange type {}",
                        hdr.exch_type.0);
-                return unsafe{ALPROTO_FAILED};
+                return ALPROTO_FAILED;
             }
             if hdr.length as usize != slice.len() {
                 SCLogDebug!("ipsec_probe: could be ipsec, but length does not match");
-                return unsafe{ALPROTO_FAILED};
+                return ALPROTO_FAILED;
             }
             return alproto;
         },
@@ -690,7 +688,7 @@ pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow,
             return ALPROTO_UNKNOWN;
         },
         Err(_) => {
-            return unsafe{ALPROTO_FAILED};
+            return ALPROTO_FAILED;
         },
     }
 }

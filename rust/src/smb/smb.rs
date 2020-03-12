@@ -1908,7 +1908,7 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
 // probing parser
 // return 1 if found, 0 is not found
 #[no_mangle]
-pub extern "C" fn rs_smb_probe_tcp(direction: u8,
+pub unsafe extern "C" fn rs_smb_probe_tcp(direction: u8,
         input: *const u8, len: u32,
         rdir: *mut u8)
     -> i8
@@ -1927,12 +1927,12 @@ pub extern "C" fn rs_smb_probe_tcp(direction: u8,
                                 if smb_record.flags & 0x80 != 0 {
                                     SCLogDebug!("RESPONSE {:02x}", smb_record.flags);
                                     if direction & STREAM_TOSERVER != 0 {
-                                        unsafe { *rdir = STREAM_TOCLIENT; }
+                                        *rdir = STREAM_TOCLIENT;
                                     }
                                 } else {
                                     SCLogDebug!("REQUEST {:02x}", smb_record.flags);
                                     if direction & STREAM_TOCLIENT != 0 {
-                                        unsafe { *rdir = STREAM_TOSERVER; }
+                                        *rdir = STREAM_TOSERVER;
                                     }
                                 }
                                 return 1;
@@ -1946,12 +1946,12 @@ pub extern "C" fn rs_smb_probe_tcp(direction: u8,
                                 if direction & STREAM_TOSERVER != 0 {
                                     SCLogDebug!("direction STREAM_TOSERVER smb_record {:?}", smb_record);
                                     if !smb_record.request {
-                                        unsafe { *rdir = STREAM_TOCLIENT; }
+                                        *rdir = STREAM_TOCLIENT;
                                     }
                                 } else {
                                     SCLogDebug!("direction STREAM_TOCLIENT smb_record {:?}", smb_record);
                                     if smb_record.request {
-                                        unsafe { *rdir = STREAM_TOSERVER; }
+                                        *rdir = STREAM_TOSERVER;
                                     }
                                 }
                             },
@@ -2142,7 +2142,7 @@ pub extern "C" fn rs_smb_state_truncate(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
+pub unsafe extern "C" fn rs_smb_state_get_events(tx: *mut std::os::raw::c_void)
                                           -> *mut AppLayerDecoderEvents
 {
     let tx = cast_pointer!(tx, SMBTransaction);
