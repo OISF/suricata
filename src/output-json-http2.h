@@ -15,23 +15,15 @@
  * 02110-1301, USA.
  */
 
-use super::http2::HTTP2Transaction;
-use crate::json::*;
-use std;
+/**
+ * \file
+ *
+ * \author Philippe Antoine <p.antoine@catenacyber.fr>
+ */
 
-fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
-    let js = Json::object();
-    if let Some(ref ftype) = tx.ftype {
-        js.set_string("frame_type", &ftype.to_string());
-    }
-    return Some(js);
-}
+#ifndef __OUTPUT_JSON_HTTP2_H__
+#define __OUTPUT_JSON_HTTP2_H__
 
-#[no_mangle]
-pub extern "C" fn rs_http2_log_json(tx: *mut std::os::raw::c_void) -> *mut JsonT {
-    let tx = cast_pointer!(tx, HTTP2Transaction);
-    match log_http2(tx) {
-        Some(js) => js.unwrap(),
-        None => std::ptr::null_mut(),
-    }
-}
+void JsonHttp2LogRegister(void);
+
+#endif /* __OUTPUT_JSON_HTTP2_H__ */
