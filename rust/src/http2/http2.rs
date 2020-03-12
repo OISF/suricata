@@ -38,8 +38,7 @@ pub enum HTTP2ConnectionState {
 
 pub struct HTTP2Transaction {
     tx_id: u64,
-    pub request: Option<String>,
-    pub response: Option<String>,
+    pub ftype: Option<parser::HTTP2FrameType>,
 
     logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
@@ -50,8 +49,7 @@ impl HTTP2Transaction {
     pub fn new() -> HTTP2Transaction {
         HTTP2Transaction {
             tx_id: 0,
-            request: None,
-            response: None,
+            ftype: None,
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
@@ -158,15 +156,6 @@ impl HTTP2State {
         return tx;
     }
 
-    fn find_request(&mut self) -> Option<&mut HTTP2Transaction> {
-        for tx in &mut self.transactions {
-            if tx.response.is_none() {
-                return Some(tx);
-            }
-        }
-        None
-    }
-
     fn parse_ts(&mut self, input: &[u8]) -> bool {
         let mut toparse = input;
         //first consume frame bytes
@@ -188,12 +177,18 @@ impl HTTP2State {
             match parser::http2_parse_frame_header(&self.request_buffer) {
                 Ok((rem, head)) => {
                     let hl = head.length as usize;
-                    if rem.len() < hl {
-                        let rl = rem.len() as u32;
+                    let rlu = rem.len();
+                    //TODO handle transactions the right way
+                    let mut tx = self.new_tx();
+                    tx.ftype = Some(head.ftype);
+                    self.transactions.push(tx);
+
+                    if rlu < hl {
+                        let rl = rlu as u32;
                         self.request_frame_size = head.length - rl;
                         return true;
                     } else {
-                        toparse = &toparse[toparse.len() - rem.len() - hl..];
+                        toparse = &toparse[toparse.len() - rlu - hl..];
                     }
                 }
                 Err(nom::Err::Incomplete(_)) => {
@@ -209,6 +204,11 @@ impl HTTP2State {
         while toparse.len() > 0 {
             match parser::http2_parse_frame_header(toparse) {
                 Ok((rem, head)) => {
+//TODO debug not logged SCLogNotice!("rs_http2_parse_ts http2_parse_frame_header ok");
+                    let mut tx = self.new_tx();
+                    tx.ftype = Some(head.ftype);
+                    self.transactions.push(tx);
+
                     let hl = head.length as usize;
                     if rem.len() < hl {
                         let rl = rem.len() as u32;
@@ -251,14 +251,20 @@ impl HTTP2State {
             //parse one header locally as we borrow self and self.response_buffer
             match parser::http2_parse_frame_header(&self.response_buffer) {
                 Ok((rem, head)) => {
-                    //TODO parse deeper based on frame type
                     let hl = head.length as usize;
-                    if rem.len() < hl {
-                        let rl = rem.len() as u32;
+                    let rlu = rem.len();
+
+                    let mut tx = self.new_tx();
+                    tx.ftype = Some(head.ftype);
+                    self.transactions.push(tx);
+
+                    //TODO parse deeper based on frame type
+                    if rlu < hl {
+                        let rl = rlu as u32;
                         self.response_frame_size = head.length - rl;
                         return true;
                     } else {
-                        toparse = &toparse[toparse.len() - rem.len() - hl..];
+                        toparse = &toparse[toparse.len() - rlu - hl..];
                     }
                 }
                 Err(nom::Err::Incomplete(_)) => {
@@ -274,6 +280,10 @@ impl HTTP2State {
         while toparse.len() > 0 {
             match parser::http2_parse_frame_header(toparse) {
                 Ok((rem, head)) => {
+                    let mut tx = self.new_tx();
+                    tx.ftype = Some(head.ftype);
+                    self.transactions.push(tx);
+
                     //TODO parse deeper based on frame type
                     let hl = head.length as usize;
                     if rem.len() < hl {
@@ -324,6 +334,7 @@ impl HTTP2State {
 export_tx_get_detect_state!(rs_http2_tx_get_detect_state, HTTP2Transaction);
 export_tx_set_detect_state!(rs_http2_tx_set_detect_state, HTTP2Transaction);
 
+//TODO connection upgrade from HTTP1
 /// C entry point for a probing parser.
 #[no_mangle]
 pub extern "C" fn rs_http2_probing_parser_tc(
@@ -333,6 +344,7 @@ pub extern "C" fn rs_http2_probing_parser_tc(
     input_len: u32,
     _rdir: *mut u8,
 ) -> AppProto {
+//TODO debug not called SCLogNotice!("rs_http2_probing_parser_tc");
     if input != std::ptr::null_mut() {
         let slice = build_slice!(input, input_len as usize);
         match parser::http2_parse_frame_header(slice) {
@@ -340,7 +352,7 @@ pub extern "C" fn rs_http2_probing_parser_tc(
                 if header.reserved != 0
                     || header.length > HTTP2_DEFAULT_MAX_FRAME_SIZE
                     || header.flags & 0xFE != 0
-                    || header.ftype != parser::HTTP2FrameType::Http2FrameTypeSETTINGS
+                    || header.ftype != parser::HTTP2FrameType::SETTINGS
                 {
                     return unsafe { ALPROTO_FAILED };
                 }
@@ -492,7 +504,7 @@ pub extern "C" fn rs_http2_tx_get_alstate_progress(
     let tx = cast_pointer!(tx, HTTP2Transaction);
 
     // Transaction is done if we have a response.
-    if tx.response.is_some() {
+    if tx.ftype.is_some() {
         return 1;
     }
     return 0;
@@ -594,51 +606,8 @@ pub extern "C" fn rs_http2_state_get_tx_iterator(
     }
 }
 
-/// Get the request buffer for a transaction from C.
-///
-/// No required for parsing, but an example function for retrieving a
-/// pointer to the request buffer from C for detection.
-#[no_mangle]
-pub extern "C" fn rs_http2_get_request_buffer(
-    tx: *mut std::os::raw::c_void,
-    buf: *mut *const u8,
-    len: *mut u32,
-) -> u8 {
-    let tx = cast_pointer!(tx, HTTP2Transaction);
-    if let Some(ref request) = tx.request {
-        if request.len() > 0 {
-            unsafe {
-                *len = request.len() as u32;
-                *buf = request.as_ptr();
-            }
-            return 1;
-        }
-    }
-    return 0;
-}
-
-/// Get the response buffer for a transaction from C.
-#[no_mangle]
-pub extern "C" fn rs_http2_get_response_buffer(
-    tx: *mut std::os::raw::c_void,
-    buf: *mut *const u8,
-    len: *mut u32,
-) -> u8 {
-    let tx = cast_pointer!(tx, HTTP2Transaction);
-    if let Some(ref response) = tx.response {
-        if response.len() > 0 {
-            unsafe {
-                *len = response.len() as u32;
-                *buf = response.as_ptr();
-            }
-            return 1;
-        }
-    }
-    return 0;
-}
-
 // Parser name as a C style string.
-const PARSER_NAME: &'static [u8] = b"http2-rust\0";
+const PARSER_NAME: &'static [u8] = b"http2\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {
@@ -649,7 +618,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         ipproto: IPPROTO_TCP,
         probe_ts: None, // big magic string should be enough
         probe_tc: Some(rs_http2_probing_parser_tc),
-        min_depth: 9,  // frame header size
+        min_depth: 0,  // frame header size
         max_depth: 24, // client magic size
         state_new: rs_http2_state_new,
         state_free: rs_http2_state_free,
