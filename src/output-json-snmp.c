@@ -66,7 +66,7 @@ static int JsonSNMPLogger(ThreadVars *tv, void *thread_data,
     LogSNMPLogThread *thread = thread_data;
     json_t *js, *snmpjs;
 
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "snmp");
+    js = CreateJSONHeader(p, LOG_DIR_PACKET, "snmp", NULL);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }

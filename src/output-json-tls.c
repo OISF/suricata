@@ -411,7 +411,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "tls");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "tls", NULL);
     if (unlikely(js == NULL)) {
         return 0;
     }

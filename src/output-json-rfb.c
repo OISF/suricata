@@ -75,7 +75,7 @@ static int JsonRFBLogger(ThreadVars *tv, void *thread_data,
 {
     LogRFBLogThread *thread = thread_data;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "rfb");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "rfb", NULL);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }

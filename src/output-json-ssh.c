@@ -75,7 +75,7 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "ssh");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "ssh", NULL);
     if (unlikely(js == NULL))
         return 0;
 

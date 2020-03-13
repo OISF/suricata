@@ -98,7 +98,7 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             break;
     }
 
-    json_t *js = CreateJSONHeader(p, fdir, "fileinfo");
+    json_t *js = CreateJSONHeader(p, fdir, "fileinfo", NULL);
     if (unlikely(js == NULL))
         return NULL;
 

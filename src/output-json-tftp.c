@@ -66,7 +66,7 @@ static int JsonTFTPLogger(ThreadVars *tv, void *thread_data,
 {
     LogTFTPLogThread *thread = thread_data;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "tftp");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "tftp", NULL);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }

@@ -59,7 +59,7 @@ static int JsonRdpLogger(ThreadVars *tv, void *thread_data,
 {
     LogRdpLogThread *thread = thread_data;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "rdp");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "rdp", NULL);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
