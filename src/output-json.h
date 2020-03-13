@@ -52,6 +52,8 @@ typedef struct JsonAddrInfo_ {
     char proto[JSON_PROTO_LEN];
 } JsonAddrInfo;
 
+extern const JsonAddrInfo json_addr_info_zero;
+
 void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir,
         JsonAddrInfo *addr);
 
