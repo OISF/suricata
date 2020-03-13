@@ -105,7 +105,7 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
 
         MemBufferReset(aft->json_buffer);
 
-        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE);
+        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
@@ -167,7 +167,7 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
             js = CreateJSONHeaderWithTxId(p, LOG_DIR_PACKET,
                                           ANOMALY_EVENT_TYPE, tx_id);
         } else {
-            js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE);
+            js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL);
         }
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
