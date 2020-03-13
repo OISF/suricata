@@ -214,7 +214,7 @@ static void AlertJsonDns(const Flow *f, const uint64_t tx_id, json_t *js)
 }
 
 static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
-                                  json_t *js, json_t* ajs)
+                                  json_t* ajs, JsonAddrInfo *addr)
 {
     json_t *sjs = json_object();
     if (sjs == NULL) {
@@ -228,8 +228,8 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
     }
 
     if (pa->s->flags & SIG_FLAG_DEST_IS_TARGET) {
-        json_object_set(sjs, "ip", json_object_get(js, "src_ip"));
-        json_object_set(tjs, "ip", json_object_get(js, "dest_ip"));
+        json_object_set(sjs, "ip", json_string(addr->src_ip));
+        json_object_set(tjs, "ip", json_string(addr->dst_ip));
         switch (p->proto) {
             case IPPROTO_ICMP:
             case IPPROTO_ICMPV6:
@@ -237,13 +237,13 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
             case IPPROTO_UDP:
             case IPPROTO_TCP:
             case IPPROTO_SCTP:
-                json_object_set(sjs, "port", json_object_get(js, "src_port"));
-                json_object_set(tjs, "port", json_object_get(js, "dest_port"));
+                json_object_set(sjs, "port", json_integer(addr->sp));
+                json_object_set(tjs, "port", json_integer(addr->dp));
                 break;
         }
     } else if (pa->s->flags & SIG_FLAG_SRC_IS_TARGET) {
-        json_object_set(sjs, "ip", json_object_get(js, "dest_ip"));
-        json_object_set(tjs, "ip", json_object_get(js, "src_ip"));
+        json_object_set(sjs, "ip", json_string(addr->dst_ip));
+        json_object_set(tjs, "ip", json_string(addr->src_ip));
         switch (p->proto) {
             case IPPROTO_ICMP:
             case IPPROTO_ICMPV6:
@@ -251,8 +251,8 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
             case IPPROTO_UDP:
             case IPPROTO_TCP:
             case IPPROTO_SCTP:
-                json_object_set(sjs, "port", json_object_get(js, "dest_port"));
-                json_object_set(tjs, "port", json_object_get(js, "src_port"));
+                json_object_set(sjs, "port", json_integer(addr->dp));
+                json_object_set(tjs, "port", json_integer(addr->sp));
                 break;
         }
     }
@@ -293,7 +293,7 @@ static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx, const PacketA
 
 
 void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, json_t *js,
-                     uint16_t flags)
+                     uint16_t flags, JsonAddrInfo *addr)
 {
     AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *)ctx;
     const char *action = "allowed";
@@ -334,8 +334,8 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, json_t *
     if (p->tenant_id > 0)
         json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
 
-    if (pa->s->flags & SIG_FLAG_HAS_TARGET) {
-        AlertJsonSourceTarget(p, pa, js, ajs);
+    if (addr && pa->s->flags & SIG_FLAG_HAS_TARGET) {
+        AlertJsonSourceTarget(p, pa, ajs, addr);
     }
 
     if ((json_output_ctx != NULL) && (flags & LOG_JSON_RULE_METADATA)) {
@@ -452,7 +452,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         MemBufferReset(aft->json_buffer);
 
         /* alert */
-        AlertJsonHeader(json_output_ctx, p, pa, js, json_output_ctx->flags);
+        AlertJsonHeader(json_output_ctx, p, pa, js, json_output_ctx->flags,
+                &addr);
 
         if (IS_TUNNEL_PKT(p)) {
             AlertJsonTunnel(p, js);
