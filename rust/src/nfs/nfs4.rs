@@ -220,7 +220,7 @@ impl NFSState {
     }
 
     /// complete request record
-    pub fn process_request_record_v4<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
+    pub fn process_request_record_v4<'b>(&mut self, r: &RpcPacket<'b>) {
         SCLogDebug!("NFSv4 REQUEST {} procedure {} ({}) blob size {}",
                 r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
@@ -250,13 +250,13 @@ impl NFSState {
                         Err(nom::Err::Incomplete(_n)) => {
                             SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: INCOMPLETE {:?}", _n);
                             self.set_event(NFSEvent::MalformedData);
-                            return 0;
+                            return;
                         },
                         Err(nom::Err::Error(_e)) |
                         Err(nom::Err::Failure(_e)) => {
                             SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}", _e);
                             self.set_event(NFSEvent::MalformedData);
-                            return 0;
+                            return;
                         },
                     }
                 }
@@ -280,7 +280,6 @@ impl NFSState {
         }
 
         self.requestmap.insert(r.hdr.xid, xidmap);
-        return 0;
     }
 
     fn compound_response<'b>(&mut self, r: &RpcReplyPacket<'b>,
@@ -363,7 +362,7 @@ impl NFSState {
     }
 
     pub fn process_reply_record_v4<'b>(&mut self, r: &RpcReplyPacket<'b>,
-            xidmap: &mut NFSRequestXidMap) -> u32 {
+            xidmap: &mut NFSRequestXidMap) {
         if xidmap.procedure == NFSPROC4_COMPOUND {
             let mut data = r.prog_data;
 
@@ -378,13 +377,13 @@ impl NFSState {
                     Err(nom::Err::Incomplete(_n)) => {
                         SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: INCOMPLETE {:?}", _n);
                         self.set_event(NFSEvent::MalformedData);
-                        return 0;
+                        return;
                     },
                     Err(nom::Err::Error(_e)) |
                     Err(nom::Err::Failure(_e)) => {
                         SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}", _e);
                         self.set_event(NFSEvent::MalformedData);
-                        return 0;
+                        return;
                     },
                 }
             }
@@ -403,6 +402,5 @@ impl NFSState {
                 },
             };
         }
-        return 0;
     }
 }

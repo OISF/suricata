@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -163,16 +163,14 @@ static AppLayerResult NFSTCPParseRequest(Flow *f, void *state,
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
     rs_nfs_setfileflags(0, state, file_flags);
 
-    int res;
     if (input == NULL && input_len > 0) {
-        res = rs_nfs_parse_request_tcp_gap(state, input_len);
+        AppLayerResult res = rs_nfs_parse_request_tcp_gap(state, input_len);
+        SCReturnStruct(res);
     } else {
-        res = rs_nfs_parse_request(f, state, pstate, input, input_len, local_data);
+        AppLayerResult res = rs_nfs_parse_request(f, state, pstate,
+                input, input_len, local_data);
+        SCReturnStruct(res);
     }
-    if (res < 0) {
-        SCReturnStruct(APP_LAYER_ERROR);
-    }
-    SCReturnStruct(APP_LAYER_OK);
 }
 
 static AppLayerResult NFSTCPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
@@ -182,16 +180,14 @@ static AppLayerResult NFSTCPParseResponse(Flow *f, void *state, AppLayerParserSt
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
     rs_nfs_setfileflags(1, state, file_flags);
 
-    int res;
     if (input == NULL && input_len > 0) {
-        res = rs_nfs_parse_response_tcp_gap(state, input_len);
+        AppLayerResult res = rs_nfs_parse_response_tcp_gap(state, input_len);
+        SCReturnStruct(res);
     } else {
-        res = rs_nfs_parse_response(f, state, pstate, input, input_len, local_data);
+        AppLayerResult res = rs_nfs_parse_response(f, state, pstate,
+                input, input_len, local_data);
+        SCReturnStruct(res);
     }
-    if (res < 0) {
-        SCReturnStruct(APP_LAYER_ERROR);
-    }
-    SCReturnStruct(APP_LAYER_OK);
 }
 
 static uint64_t NFSTCPGetTxCnt(void *state)

@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -143,11 +143,9 @@ static AppLayerResult NFSParseRequest(Flow *f, void *state,
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
     rs_nfs_setfileflags(0, state, file_flags);
 
-    int res = rs_nfs_parse_request_udp(f, state, pstate, input, input_len, local_data);
-    if (res < 0) {
-        SCReturnStruct(APP_LAYER_ERROR);
-    }
-    SCReturnStruct(APP_LAYER_OK);
+    AppLayerResult res = rs_nfs_parse_request_udp(f, state, pstate,
+            input, input_len, local_data);
+    SCReturnStruct(res);
 }
 
 static AppLayerResult NFSParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
@@ -157,11 +155,9 @@ static AppLayerResult NFSParseResponse(Flow *f, void *state, AppLayerParserState
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
     rs_nfs_setfileflags(1, state, file_flags);
 
-    int res = rs_nfs_parse_response_udp(f, state, pstate, input, input_len, local_data);
-    if (res < 0) {
-        SCReturnStruct(APP_LAYER_ERROR);
-    }
-    SCReturnStruct(APP_LAYER_OK);
+    AppLayerResult res = rs_nfs_parse_response_udp(f, state, pstate,
+            input, input_len, local_data);
+    SCReturnStruct(res);
 }
 
 static uint64_t NFSGetTxCnt(void *state)
