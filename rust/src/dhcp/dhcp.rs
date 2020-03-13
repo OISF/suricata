@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,13 +15,12 @@
  * 02110-1301, USA.
  */
 
-use crate::applayer;
+use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_UDP};
 use crate::core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
 use crate::dhcp::parser::*;
 use crate::log::*;
-use crate::parser::*;
 use std;
 use std::ffi::{CStr,CString};
 use std::mem::transmute;

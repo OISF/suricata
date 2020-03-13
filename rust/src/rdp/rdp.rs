@@ -24,7 +24,7 @@ use crate::core::{
 };
 use crate::conf;
 use nom;
-use crate::parser::*;
+use crate::applayer::*;
 use crate::rdp::parser::*;
 use std;
 use std::mem::transmute;

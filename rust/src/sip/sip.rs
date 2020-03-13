@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,12 +19,11 @@
 
 extern crate nom;
 
-use crate::applayer;
+use crate::applayer::{self, *};
 use crate::conf;
 use crate::core;
 use crate::core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
 use crate::log::*;
-use crate::parser::*;
 use crate::sip::parser::*;
 use std;
 use std::ffi::{CStr, CString};
