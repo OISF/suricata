@@ -182,13 +182,15 @@ impl HTTP2State {
                     let mut tx = self.new_tx();
                     tx.ftype = Some(head.ftype);
                     self.transactions.push(tx);
+                    self.request_buffer.clear();
 
                     if rlu < hl {
                         let rl = rlu as u32;
                         self.request_frame_size = head.length - rl;
                         return true;
                     } else {
-                        toparse = &toparse[toparse.len() - rlu - hl..];
+                        //toparse.len() - rlu == 9
+                        toparse = &toparse[hl - (toparse.len() - rlu)..];
                     }
                 }
                 Err(nom::Err::Incomplete(_)) => {
@@ -214,7 +216,7 @@ impl HTTP2State {
                         self.request_frame_size = head.length - rl;
                         return true;
                     } else {
-                        toparse = &rem[rem.len() - hl..];
+                        toparse = &rem[hl..];
                     }
                 }
                 Err(nom::Err::Incomplete(_)) => {
@@ -256,6 +258,7 @@ impl HTTP2State {
                     let mut tx = self.new_tx();
                     tx.ftype = Some(head.ftype);
                     self.transactions.push(tx);
+                    self.response_buffer.clear();
 
                     //TODO parse deeper based on frame type
                     if rlu < hl {
@@ -263,7 +266,7 @@ impl HTTP2State {
                         self.response_frame_size = head.length - rl;
                         return true;
                     } else {
-                        toparse = &toparse[toparse.len() - rlu - hl..];
+                        toparse = &toparse[hl - (toparse.len() - rlu)..];
                     }
                 }
                 Err(nom::Err::Incomplete(_)) => {
@@ -290,7 +293,7 @@ impl HTTP2State {
                         self.response_frame_size = head.length - rl;
                         return true;
                     } else {
-                        toparse = &rem[rem.len() - hl..];
+                        toparse = &rem[hl..];
                     }
                 }
                 Err(nom::Err::Incomplete(_)) => {
