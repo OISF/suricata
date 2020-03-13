@@ -20,6 +20,17 @@ Examples::
 ``rfb.name`` can be used as ``fast_pattern``.
 
 
+rfb.secresult
+-------------
+
+Match on the value of the RFB security result, e.g. ``ok``, ``fail``, ``toomany`` or ``unknown``.
+
+Examples::
+
+  rfb.secresult: ok;
+  rfb.secresult: unknown;
+
+
 rfb.sectype
 -----------
 
