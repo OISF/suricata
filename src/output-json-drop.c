@@ -87,7 +87,10 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 {
     JsonDropOutputCtx *drop_ctx = aft->drop_ctx;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "drop", NULL);
+    JsonAddrInfo addr = json_addr_info_zero;
+    JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
+
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "drop", &addr);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
@@ -160,14 +163,14 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
                ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
             {
-                AlertJsonHeader(NULL, p, pa, js, 0);
+                AlertJsonHeader(NULL, p, pa, js, 0, &addr);
                 logged = 1;
             }
         }
         if (logged == 0) {
             if (p->alerts.drop.action != 0) {
                 const PacketAlert *pa = &p->alerts.drop;
-                AlertJsonHeader(NULL, p, pa, js, 0);
+                AlertJsonHeader(NULL, p, pa, js, 0, &addr);
             }
         }
     }

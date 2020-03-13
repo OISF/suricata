@@ -44,6 +44,7 @@
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
 #include "alert-syslog.h"
+#include "output-json.h"
 #include "output-json-alert.h"
 #include "output-json-anomaly.h"
 #include "output-json-flow.h"

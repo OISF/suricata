@@ -82,6 +82,8 @@ static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
 static size_t traffic_id_prefix_len = 0;
 static size_t traffic_label_prefix_len = 0;
 
+const JsonAddrInfo json_addr_info_zero;
+
 void OutputJsonRegister (void)
 {
     OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
@@ -881,7 +883,7 @@ json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
     }
 
     /* 5-tuple */
-    JsonAddrInfo addr_info = {0};
+    JsonAddrInfo addr_info = json_addr_info_zero;
     if (addr == NULL) {
         JsonAddrInfoInit(p, dir, &addr_info);
         addr = &addr_info;
