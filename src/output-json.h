@@ -40,6 +40,21 @@ enum OutputJsonLogDirection {
     LOG_DIR_FLOW_TOSERVER,
 };
 
+#define JSON_ADDR_LEN 46
+#define JSON_PROTO_LEN 16
+
+/* A struct to contain address info for rendering to JSON. */
+typedef struct JsonAddrInfo_ {
+    char src_ip[JSON_ADDR_LEN];
+    char dst_ip[JSON_ADDR_LEN];
+    Port sp;
+    Port dp;
+    char proto[JSON_PROTO_LEN];
+} JsonAddrInfo;
+
+void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir,
+        JsonAddrInfo *addr);
+
 /* Suggested output buffer size */
 #define JSON_OUTPUT_BUFFER_SIZE 65535
 
@@ -56,7 +71,8 @@ void JsonTcpFlags(uint8_t flags, json_t *js);
 void JsonPacket(const Packet *p, json_t *js, unsigned long max_length);
 void JsonFiveTuple(const Packet *, enum OutputJsonLogDirection, json_t *);
 json_t *CreateJSONHeader(const Packet *p,
-        enum OutputJsonLogDirection dir, const char *event_type);
+        enum OutputJsonLogDirection dir, const char *event_type,
+        JsonAddrInfo *addr);
 json_t *CreateJSONHeaderWithTxId(const Packet *p,
         enum OutputJsonLogDirection dir, const char *event_type, uint64_t tx_id);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
