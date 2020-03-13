@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -51,8 +51,20 @@
  *  completely inspected */
 #define APP_LAYER_TX_PREFILTER_MASK             ~APP_LAYER_TX_INSPECTED_FLAG
 
+/** parser has successfully processed in the input, and has consumed
+ *  all of it. */
 #define APP_LAYER_OK (AppLayerResult) { 0, 0, 0 }
+
+/** parser has hit an unrecoverable error. Returning this to the API
+ *  leads to no further calls to the parser. */
 #define APP_LAYER_ERROR (AppLayerResult) { -1, 0, 0 }
+
+/** parser needs more data. Through 'c' it will indicate how many
+ *  of the input bytes it has consumed. Through 'n' it will indicate
+ *  how many more bytes it needs before getting called again.
+ *  \note consumed (c) should never be more than the input len
+ *        needed (n) + consumed (c) should be more than the input len
+ */
 #define APP_LAYER_INCOMPLETE(c,n) (AppLayerResult) { 1, (c), (n) }
 
 int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto);

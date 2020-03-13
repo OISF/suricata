@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,6 +34,7 @@ pub struct AppLayerResult {
 }
 
 impl AppLayerResult {
+    /// parser has successfully processed in the input, and has consumed all of it
     pub fn ok() -> AppLayerResult {
         return AppLayerResult {
             status: 0,
@@ -41,6 +42,8 @@ impl AppLayerResult {
             needed: 0,
         };
     }
+    /// parser has hit an unrecoverable error. Returning this to the API
+    /// leads to no further calls to the parser.
     pub fn err() -> AppLayerResult {
         return AppLayerResult {
             status: -1,
@@ -48,6 +51,11 @@ impl AppLayerResult {
             needed: 0,
         };
     }
+    /// parser needs more data. Through 'consumed' it will indicate how many
+    /// of the input bytes it has consumed. Through 'needed' it will indicate
+    /// how many more bytes it needs before getting called again.
+    /// Note: consumed should never be more than the input len
+    ///       needed + consumed should be more than the input len
     pub fn incomplete(consumed: u32, needed: u32) -> AppLayerResult {
         return AppLayerResult {
             status: 1,
