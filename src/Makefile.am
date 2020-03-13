@@ -204,6 +204,7 @@ detect-http-stat-code.c detect-http-stat-code.h \
 detect-http-stat-msg.c detect-http-stat-msg.h \
 detect-http-ua.c detect-http-ua.h \
 detect-http-uri.c detect-http-uri.h \
+detect-http2.c detect-http2.h \
 detect-icmp-id.c detect-icmp-id.h \
 detect-icmp-seq.c detect-icmp-seq.h \
 detect-icmpv6hdr.c detect-icmpv6hdr.h \

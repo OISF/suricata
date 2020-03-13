@@ -37,6 +37,7 @@
 
 static int HTTP2RegisterPatternsForProtocolDetection(void)
 {
+    //TODO is this too restrictive and can be evaded ?
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP2,
                                                "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n",
                                                24, 0, STREAM_TOSERVER) < 0)

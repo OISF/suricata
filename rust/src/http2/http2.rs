@@ -16,7 +16,7 @@
  */
 
 use super::parser;
-use crate::applayer::{self, LoggerFlags};
+use crate::applayer::{self, LoggerFlags, TxDetectFlags};
 use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::log::*;
 use crate::parser::*;
@@ -42,6 +42,7 @@ pub struct HTTP2Transaction {
 
     logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
+    detect_flags: TxDetectFlags,
     events: *mut core::AppLayerDecoderEvents,
 }
 
@@ -52,6 +53,7 @@ impl HTTP2Transaction {
             ftype: None,
             logged: LoggerFlags::new(),
             de_state: None,
+            detect_flags: TxDetectFlags::default(),
             events: std::ptr::null_mut(),
         }
     }
@@ -336,6 +338,9 @@ impl HTTP2State {
 export_tx_get_detect_state!(rs_http2_tx_get_detect_state, HTTP2Transaction);
 export_tx_set_detect_state!(rs_http2_tx_set_detect_state, HTTP2Transaction);
 
+export_tx_detect_flags_set!(rs_http2_set_tx_detect_flags, HTTP2Transaction);
+export_tx_detect_flags_get!(rs_http2_get_tx_detect_flags, HTTP2Transaction);
+
 //TODO connection upgrade from HTTP1
 /// C entry point for a probing parser.
 #[no_mangle]
@@ -619,7 +624,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         ipproto: IPPROTO_TCP,
         probe_ts: None, // big magic string should be enough
         probe_tc: Some(rs_http2_probing_parser_tc),
-        min_depth: 0,  // frame header size
+        min_depth: 9,  // frame header size
         max_depth: 24, // client magic size
         state_new: rs_http2_state_new,
         state_free: rs_http2_state_free,
@@ -644,8 +649,8 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         set_tx_mpm_id: None,
         get_files: None,
         get_tx_iterator: Some(rs_http2_state_get_tx_iterator),
-        get_tx_detect_flags: None,
-        set_tx_detect_flags: None,
+        get_tx_detect_flags: Some(rs_http2_get_tx_detect_flags),
+        set_tx_detect_flags: Some(rs_http2_set_tx_detect_flags),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
