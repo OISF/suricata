@@ -28,6 +28,7 @@ use nom;
 use crate::log::*;
 use crate::applayer;
 use crate::applayer::LoggerFlags;
+use crate::parser::AppLayerResult;
 use crate::core::*;
 use crate::filetracker::*;
 use crate::filecontainer::*;
@@ -589,7 +590,7 @@ impl NFSState {
     }
 
     /// complete request record
-    fn process_request_record<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
+    fn process_request_record<'b>(&mut self, r: &RpcPacket<'b>) {
         SCLogDebug!("REQUEST {} procedure {} ({}) blob size {}",
                 r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
@@ -603,7 +604,7 @@ impl NFSState {
             2 => {
                 self.process_request_record_v2(r)
             },
-            _ => { 0 },
+            _ => { },
         }
     }
 
@@ -747,15 +748,18 @@ impl NFSState {
         match xidmap.progver {
             2 => {
                 SCLogDebug!("NFSv2 reply record");
-                return self.process_reply_record_v2(r, &xidmap);
+                self.process_reply_record_v2(r, &xidmap);
+                return 0;
             },
             3 => {
                 SCLogDebug!("NFSv3 reply record");
-                return self.process_reply_record_v3(r, &mut xidmap);
+                self.process_reply_record_v3(r, &mut xidmap);
+                return 0;
             },
             4 => {
                 SCLogDebug!("NFSv4 reply record");
-                return self.process_reply_record_v4(r, &mut xidmap);
+                self.process_reply_record_v4(r, &mut xidmap);
+                return 0;
             },
             _ => {
                 SCLogDebug!("Invalid NFS version");
@@ -1012,7 +1016,7 @@ impl NFSState {
         xidmap.procedure
     }
 
-    pub fn parse_tcp_data_ts_gap<'b>(&mut self, gap_size: u32) -> u32 {
+    pub fn parse_tcp_data_ts_gap<'b>(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_ts_gap ({})", gap_size);
         if self.tcp_buffer_ts.len() > 0 {
             self.tcp_buffer_ts.clear();
@@ -1021,15 +1025,15 @@ impl NFSState {
         let consumed = self.filetracker_update(STREAM_TOSERVER, &gap, gap_size);
         if consumed > gap_size {
             SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
-            return 0;
+            return AppLayerResult::ok();
         }
         self.ts_ssn_gap = true;
         self.ts_gap = true;
         SCLogDebug!("parse_tcp_data_ts_gap ({}) done", gap_size);
-        return 0
+        return AppLayerResult::ok();
     }
 
-    pub fn parse_tcp_data_tc_gap<'b>(&mut self, gap_size: u32) -> u32 {
+    pub fn parse_tcp_data_tc_gap<'b>(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_tc_gap ({})", gap_size);
         if self.tcp_buffer_tc.len() > 0 {
             self.tcp_buffer_tc.clear();
@@ -1038,18 +1042,17 @@ impl NFSState {
         let consumed = self.filetracker_update(STREAM_TOCLIENT, &gap, gap_size);
         if consumed > gap_size {
             SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
-            return 0;
+            return AppLayerResult::ok();
         }
         self.tc_ssn_gap = true;
         self.tc_gap = true;
         SCLogDebug!("parse_tcp_data_tc_gap ({}) done", gap_size);
-        return 0
+        return AppLayerResult::ok();
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> u32 {
+    pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> AppLayerResult {
         let mut v : Vec<u8>;
-        let mut status = 0;
         SCLogDebug!("parse_tcp_data_ts ({})",i.len());
         //SCLogDebug!("{:?}",i);
         // Check if TCP data is being defragmented
@@ -1061,7 +1064,7 @@ impl NFSState {
                 if self.tcp_buffer_ts.len() + i.len() > 1000000 {
                     SCLogDebug!("parse_tcp_data_ts: TS buffer exploded {} {}",
                             self.tcp_buffer_ts.len(), i.len());
-                    return 1;
+                    return AppLayerResult::err();
                 };
                 v.extend_from_slice(i);
                 v.as_slice()
@@ -1071,12 +1074,15 @@ impl NFSState {
         let mut cur_i = tcp_buffer;
         if cur_i.len() > 1000000 {
             SCLogDebug!("BUG buffer exploded: {}", cur_i.len());
+            return AppLayerResult::err();
         }
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
         let consumed = self.filetracker_update(STREAM_TOSERVER, cur_i, 0);
         if consumed > 0 {
-            if consumed > cur_i.len() as u32 { return 1; }
+            if consumed > cur_i.len() as u32 {
+                return AppLayerResult::err();
+            }
             cur_i = &cur_i[consumed as usize..];
         }
         if self.ts_gap {
@@ -1094,7 +1100,7 @@ impl NFSState {
                     0 => {
                         SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.", cur_i.len(), cnt);
                         self.tcp_buffer_tc.extend_from_slice(cur_i);
-                        return 0;
+                        return AppLayerResult::ok();
                     },
                     -1 => {
                         cur_i = &cur_i[1..];
@@ -1102,7 +1108,9 @@ impl NFSState {
                             SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", cnt);
                         }
                     },
-                    _ => { return 1; },
+                    _ => {
+                        return AppLayerResult::err();
+                    },
                 }
             }
             SCLogDebug!("TS GAP handling done (input {})", cur_i.len());
@@ -1132,7 +1140,7 @@ impl NFSState {
                                         match parse_nfs3_request_write(rpc_record.prog_data) {
                                             Ok((_, ref nfs_request_write)) => {
                                                 // deal with the partial nfs write data
-                                                status |= self.process_partial_write_request_record(rpc_record, nfs_request_write);
+                                                self.process_partial_write_request_record(rpc_record, nfs_request_write);
                                                 cur_i = remaining; // progress input past parsed record
                                             },
                                             _ => {
@@ -1151,7 +1159,7 @@ impl NFSState {
                                     Err(nom::Err::Failure(_e)) => {
                                         self.set_event(NFSEvent::MalformedData);
                                         SCLogDebug!("Parsing failed: {:?}", _e);
-                                        return 1;
+                                        return AppLayerResult::err();
                                     },
                                 }
                             }
@@ -1165,7 +1173,7 @@ impl NFSState {
                     match parse_rpc(&cur_i[..rec_size]) {
                         Ok((_, ref rpc_record)) => {
                             cur_i = &cur_i[rec_size..];
-                            status |= self.process_request_record(rpc_record);
+                            self.process_request_record(rpc_record);
                         },
                         Err(nom::Err::Incomplete(_)) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
@@ -1174,14 +1182,12 @@ impl NFSState {
                             // so if we got incomplete anyway it's the data that is
                             // bad.
                             self.set_event(NFSEvent::MalformedData);
-
-                            status = 0;
                         },
                         Err(nom::Err::Error(_e)) |
                         Err(nom::Err::Failure(_e)) => {
                             self.set_event(NFSEvent::MalformedData);
                             SCLogDebug!("Parsing failed: {:?}", _e);
-                            return 1;
+                            return AppLayerResult::err();
                         },
                     }
                 },
@@ -1194,7 +1200,7 @@ impl NFSState {
                 Err(nom::Err::Failure(_e)) => {
                     self.set_event(NFSEvent::MalformedData);
                     SCLogDebug!("Parsing failed: {:?}", _e);
-                    return 1;
+                    return AppLayerResult::err();
                 },
             }
         };
@@ -1204,13 +1210,12 @@ impl NFSState {
             self.post_gap_housekeeping_for_files();
         }
 
-        status
+        AppLayerResult::ok()
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> u32 {
+    pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> AppLayerResult {
         let mut v : Vec<u8>;
-        let mut status = 0;
         SCLogDebug!("parse_tcp_data_tc ({})",i.len());
         //SCLogDebug!("{:?}",i);
         // Check if TCP data is being defragmented
@@ -1221,7 +1226,7 @@ impl NFSState {
                 // sanity check vector length to avoid memory exhaustion
                 if self.tcp_buffer_tc.len() + i.len() > 100000 {
                     SCLogDebug!("TC buffer exploded");
-                    return 1;
+                    return AppLayerResult::err();
                 };
 
                 v.extend_from_slice(i);
@@ -1239,7 +1244,9 @@ impl NFSState {
         // and skip buffer beyond it
         let consumed = self.filetracker_update(STREAM_TOCLIENT, cur_i, 0);
         if consumed > 0 {
-            if consumed > cur_i.len() as u32 { return 1; }
+            if consumed > cur_i.len() as u32 {
+                return AppLayerResult::err();
+            }
             cur_i = &cur_i[consumed as usize..];
         }
         if self.tc_gap {
@@ -1257,7 +1264,7 @@ impl NFSState {
                     0 => {
                         SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.", cur_i.len(), cnt);
                         self.tcp_buffer_tc.extend_from_slice(cur_i);
-                        return 0;
+                        return AppLayerResult::ok();
                     },
                     -1 => {
                         cur_i = &cur_i[1..];
@@ -1265,7 +1272,9 @@ impl NFSState {
                             SCLogDebug!("all post-GAP data in this chunk was bad. Looped {} times.", cnt);
                         }
                     },
-                    _ => { return 1; },
+                    _ => {
+                        return AppLayerResult::err();
+                    }
                 }
             }
             SCLogDebug!("TC GAP handling done (input {})", cur_i.len());
@@ -1293,7 +1302,7 @@ impl NFSState {
                                         match parse_nfs3_reply_read(rpc_record.prog_data) {
                                             Ok((_, ref nfs_reply_read)) => {
                                                 // deal with the partial nfs read data
-                                                status |= self.process_partial_read_reply_record(rpc_record, nfs_reply_read);
+                                                self.process_partial_read_reply_record(rpc_record, nfs_reply_read);
                                                 cur_i = remaining; // progress input past parsed record
                                             },
                                             Err(nom::Err::Incomplete(_)) => {
@@ -1303,7 +1312,7 @@ impl NFSState {
                                             Err(nom::Err::Failure(_e)) => {
                                                 self.set_event(NFSEvent::MalformedData);
                                                 SCLogDebug!("Parsing failed: {:?}", _e);
-                                                return 1;
+                                                return AppLayerResult::err();
                                             }
                                         }
                                     },
@@ -1316,7 +1325,7 @@ impl NFSState {
                                     Err(nom::Err::Failure(_e)) => {
                                         self.set_event(NFSEvent::MalformedData);
                                         SCLogDebug!("Parsing failed: {:?}", _e);
-                                        return 1;
+                                        return AppLayerResult::err();
                                     }
                                 }
                             }
@@ -1329,7 +1338,7 @@ impl NFSState {
                     match parse_rpc_reply(&cur_i[..rec_size]) {
                         Ok((_, ref rpc_record)) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
-                            status |= self.process_reply_record(rpc_record);
+                            self.process_reply_record(rpc_record);
                         },
                         Err(nom::Err::Incomplete(_)) => {
                             cur_i = &cur_i[rec_size..]; // progress input past parsed record
@@ -1338,14 +1347,12 @@ impl NFSState {
                             // so if we got incomplete anyway it's the data that is
                             // bad.
                             self.set_event(NFSEvent::MalformedData);
-
-                            status = 0;
                         },
                         Err(nom::Err::Error(_e)) |
                         Err(nom::Err::Failure(_e)) => {
                             self.set_event(NFSEvent::MalformedData);
                             SCLogDebug!("Parsing failed: {:?}", _e);
-                            return 1;
+                            return AppLayerResult::err();
                         }
                     }
                 },
@@ -1358,7 +1365,7 @@ impl NFSState {
                 Err(nom::Err::Failure(_e)) => {
                     self.set_event(NFSEvent::MalformedData);
                     SCLogDebug!("Parsing failed: {:?}", _e);
-                    return 1;
+                    return AppLayerResult::err();
                 },
             }
         };
@@ -1366,11 +1373,10 @@ impl NFSState {
         if self.check_post_gap_file_txs {
             self.post_gap_housekeeping_for_files();
         }
-        status
+        AppLayerResult::ok()
     }
     /// Parsing function
-    pub fn parse_udp_ts<'b>(&mut self, input: &'b[u8]) -> u32 {
-        let mut status = 0;
+    pub fn parse_udp_ts<'b>(&mut self, input: &'b[u8]) -> AppLayerResult {
         SCLogDebug!("parse_udp_ts ({})", input.len());
         if input.len() > 0 {
             match parse_rpc_udp_request(input) {
@@ -1378,42 +1384,45 @@ impl NFSState {
                     self.is_udp = true;
                     match rpc_record.progver {
                         3 => {
-                            status |= self.process_request_record(rpc_record);
+                            self.process_request_record(rpc_record);
                         },
                         2 => {
-                            status |= self.process_request_record_v2(rpc_record);
+                            self.process_request_record_v2(rpc_record);
                         },
-                        _ => { status = 0; },
+                        _ => { },
                     }
                 },
                 Err(nom::Err::Incomplete(_)) => {
                 },
                 Err(nom::Err::Error(_e)) |
-                Err(nom::Err::Failure(_e)) => { SCLogDebug!("Parsing failed: {:?}", _e); }
+                Err(nom::Err::Failure(_e)) => {
+                    SCLogDebug!("Parsing failed: {:?}", _e);
+                }
             }
         }
-        SCLogDebug!("status {}", status);
-        status
+        AppLayerResult::ok()
     }
 
     /// Parsing function
-    pub fn parse_udp_tc<'b>(&mut self, input: &'b[u8]) -> u32 {
-        let mut status = 0;
+    pub fn parse_udp_tc<'b>(&mut self, input: &'b[u8]) -> AppLayerResult {
         SCLogDebug!("parse_udp_tc ({})", input.len());
         if input.len() > 0 {
             match parse_rpc_udp_reply(input) {
                 Ok((_, ref rpc_record)) => {
                     self.is_udp = true;
-                    status |= self.process_reply_record(rpc_record);
+                    self.process_reply_record(rpc_record);
                 },
                 Err(nom::Err::Incomplete(_)) => {
                 },
                 Err(nom::Err::Error(_e)) |
-                Err(nom::Err::Failure(_e)) => { SCLogDebug!("Parsing failed: {:?}", _e); }
+                Err(nom::Err::Failure(_e)) => {
+                    SCLogDebug!("Parsing failed: {:?}", _e);
+                }
             }
-        };
-        status
+        }
+        AppLayerResult::ok()
     }
+
     fn getfiles(&mut self, direction: u8) -> * mut FileContainer {
         //SCLogDebug!("direction: {}", direction);
         if direction == STREAM_TOCLIENT {
@@ -1459,29 +1468,22 @@ pub extern "C" fn rs_nfs_parse_request(flow: &mut Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *mut std::os::raw::c_void)
-                                       -> i8
+                                       -> AppLayerResult
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
     state.ts = flow.get_last_time().as_secs();
-    if state.parse_tcp_data_ts(buf) == 0 {
-        0
-    } else {
-        -1
-    }
+    state.parse_tcp_data_ts(buf)
 }
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_request_tcp_gap(
                                         state: &mut NFSState,
                                         input_len: u32)
-                                        -> i8
+                                        -> AppLayerResult
 {
-    if state.parse_tcp_data_ts_gap(input_len as u32) == 0 {
-        return 0;
-    }
-    return -1;
+    state.parse_tcp_data_ts_gap(input_len as u32)
 }
 
 #[no_mangle]
@@ -1491,29 +1493,22 @@ pub extern "C" fn rs_nfs_parse_response(flow: &mut Flow,
                                         input: *const u8,
                                         input_len: u32,
                                         _data: *mut std::os::raw::c_void)
-                                        -> i8
+                                        -> AppLayerResult
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
 
     state.ts = flow.get_last_time().as_secs();
-    if state.parse_tcp_data_tc(buf) == 0 {
-        0
-    } else {
-        -1
-    }
+    state.parse_tcp_data_tc(buf)
 }
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_parse_response_tcp_gap(
                                         state: &mut NFSState,
                                         input_len: u32)
-                                        -> i8
+                                        -> AppLayerResult
 {
-    if state.parse_tcp_data_tc_gap(input_len as u32) == 0 {
-        return 0;
-    }
-    return -1;
+    state.parse_tcp_data_tc_gap(input_len as u32)
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
@@ -1524,16 +1519,11 @@ pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
                                        input: *const u8,
                                        input_len: u32,
                                        _data: *mut std::os::raw::c_void)
-                                       -> i8
+                                       -> AppLayerResult
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
-
-    if state.parse_udp_ts(buf) == 0 {
-        0
-    } else {
-        -1
-    }
+    state.parse_udp_ts(buf)
 }
 
 #[no_mangle]
@@ -1543,16 +1533,11 @@ pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
                                         input: *const u8,
                                         input_len: u32,
                                         _data: *mut std::os::raw::c_void)
-                                        -> i8
+                                        -> AppLayerResult
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
-
-    if state.parse_udp_tc(buf) == 0 {
-        0
-    } else {
-        -1
-    }
+    state.parse_udp_tc(buf)
 }
 
 #[no_mangle]
