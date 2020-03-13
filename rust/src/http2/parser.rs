@@ -19,7 +19,7 @@ use nom::number::streaming::be_u8;
 use std::fmt;
 
 #[repr(u8)]
-#[derive(PartialEq, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
 pub enum HTTP2FrameType {
     DATA = 0,
     HEADERS = 1,
@@ -36,6 +36,28 @@ pub enum HTTP2FrameType {
 impl fmt::Display for HTTP2FrameType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+
+impl std::str::FromStr for HTTP2FrameType {
+    type Err = String;
+
+    //TODO more automatic
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        //TODO let su = s.to_uppercase();
+        match s {
+            "DATA" => Ok(HTTP2FrameType::DATA),
+            "HEADERS" => Ok(HTTP2FrameType::HEADERS),
+            "PRIORITY" => Ok(HTTP2FrameType::PRIORITY),
+            "RSTSTREAM" => Ok(HTTP2FrameType::RSTSTREAM),
+            "SETTINGS" => Ok(HTTP2FrameType::SETTINGS),
+            "PUSHPROMISE" => Ok(HTTP2FrameType::PUSHPROMISE),
+            "PING" => Ok(HTTP2FrameType::PING),
+            "GOAWAY" => Ok(HTTP2FrameType::GOAWAY),
+            "WINDOWUPDATE" => Ok(HTTP2FrameType::WINDOWUPDATE),
+            "CONTINUATION" => Ok(HTTP2FrameType::CONTINUATION),
+            _ => Err(format!("'{}' is not a valid value for HTTP2FrameType", s)),
+        }
     }
 }
 
