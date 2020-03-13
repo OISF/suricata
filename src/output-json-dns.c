@@ -307,7 +307,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     }
 
     for (uint16_t i = 0; i < 0xffff; i++) {
-        js = CreateJSONHeader(p, LOG_DIR_FLOW, "dns");
+        js = CreateJSONHeader(p, LOG_DIR_FLOW, "dns", NULL);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
@@ -339,7 +339,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "dns");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "dns", NULL);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 

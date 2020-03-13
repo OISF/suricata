@@ -71,7 +71,7 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
     SCLogNotice("JsonTemplateLogger");
     LogTemplateLogThread *thread = thread_data;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "template-rust");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "template-rust", NULL);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
