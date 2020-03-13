@@ -37,8 +37,7 @@ use nom;
 use crate::core::*;
 use crate::log::*;
 use crate::applayer;
-use crate::applayer::LoggerFlags;
-use crate::parser::AppLayerResult;
+use crate::applayer::{LoggerFlags, AppLayerResult};
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;

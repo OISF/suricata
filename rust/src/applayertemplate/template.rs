@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,8 +19,7 @@ use std;
 use crate::core::{self, ALPROTO_UNKNOWN, AppProto, Flow, IPPROTO_TCP};
 use crate::log::*;
 use std::mem::transmute;
-use crate::applayer::{self, LoggerFlags};
-use crate::parser::*;
+use crate::applayer::{self, *};
 use std::ffi::CString;
 use nom;
 use super::parser;

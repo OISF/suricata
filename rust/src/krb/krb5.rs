@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,10 +25,9 @@ use nom::number::streaming::be_u32;
 use der_parser::der::der_read_element_header;
 use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
-use crate::applayer;
+use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
-use crate::parser::*;
 
 use crate::log::*;
 
