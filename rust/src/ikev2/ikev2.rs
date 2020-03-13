@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,8 +21,7 @@ use crate::ikev2::ipsec_parser::*;
 use crate::ikev2::state::IKEV2ConnectionState;
 use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED,STREAM_TOSERVER,STREAM_TOCLIENT};
-use crate::applayer;
-use crate::parser::*;
+use crate::applayer::{self, *};
 use std;
 use std::ffi::{CStr,CString};
 

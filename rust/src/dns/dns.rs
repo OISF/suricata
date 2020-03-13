@@ -22,10 +22,9 @@ use std::ffi::CString;
 use std::mem::transmute;
 
 use crate::log::*;
-use crate::applayer::LoggerFlags;
+use crate::applayer::*;
 use crate::core::{self, AppProto, ALPROTO_UNKNOWN, IPPROTO_UDP, IPPROTO_TCP};
 use crate::dns::parser;
-use crate::parser::*;
 
 use nom::IResult;
 use nom::number::streaming::be_u16;

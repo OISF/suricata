@@ -27,8 +27,7 @@ use nom;
 
 use crate::log::*;
 use crate::applayer;
-use crate::applayer::LoggerFlags;
-use crate::parser::AppLayerResult;
+use crate::applayer::{LoggerFlags, AppLayerResult};
 use crate::core::*;
 use crate::filetracker::*;
 use crate::filecontainer::*;
