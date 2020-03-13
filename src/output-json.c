@@ -445,6 +445,132 @@ void JsonTcpFlags(uint8_t flags, json_t *js)
         json_object_set_new(js, "cwr", json_true());
 }
 
+void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddrInfo *addr)
+{
+    char srcip[46] = {0}, dstip[46] = {0};
+    Port sp, dp;
+    char proto[16];
+
+    switch (dir) {
+        case LOG_DIR_PACKET:
+            if (PKT_IS_IPV4(p)) {
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                        srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                        dstip, sizeof(dstip));
+            } else if (PKT_IS_IPV6(p)) {
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                        srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                        dstip, sizeof(dstip));
+            } else {
+                /* Not an IP packet so don't do anything */
+                return;
+            }
+            sp = p->sp;
+            dp = p->dp;
+            break;
+        case LOG_DIR_FLOW:
+        case LOG_DIR_FLOW_TOSERVER:
+            if ((PKT_IS_TOSERVER(p))) {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->sp;
+                dp = p->dp;
+            } else {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->dp;
+                dp = p->sp;
+            }
+            break;
+        case LOG_DIR_FLOW_TOCLIENT:
+            if ((PKT_IS_TOCLIENT(p))) {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->sp;
+                dp = p->dp;
+            } else {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->dp;
+                dp = p->sp;
+            }
+            break;
+        default:
+            DEBUG_VALIDATE_BUG_ON(1);
+            return;
+    }
+
+    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
+        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
+    } else {
+        snprintf(proto, sizeof(proto), "%03" PRIu32, IP_GET_IPPROTO(p));
+    }
+
+    strlcpy(addr->src_ip, srcip, JSON_ADDR_LEN);
+
+    switch(p->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            addr->sp = sp;
+            break;
+    }
+
+    strlcpy(addr->dst_ip, dstip, JSON_ADDR_LEN);
+
+    switch(p->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            addr->dp = dp;
+            break;
+    }
+
+    strlcpy(addr->proto, proto, JSON_PROTO_LEN);
+}
+
 /**
  * \brief Add five tuple from packet to JSON object
  *
@@ -708,7 +834,7 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
 }
 
 json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
-                         const char *event_type)
+                         const char *event_type, JsonAddrInfo *addr)
 {
     char timebuf[64];
     const Flow *f = (const Flow *)p->flow;
@@ -755,7 +881,16 @@ json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
     }
 
     /* 5-tuple */
-    JsonFiveTuple(p, dir, js);
+    JsonAddrInfo addr_info = {0};
+    if (addr == NULL) {
+        JsonAddrInfoInit(p, dir, &addr_info);
+        addr = &addr_info;
+    }
+    json_object_set_new(js, "src_ip", json_string(addr->src_ip));
+    json_object_set_new(js, "src_port", json_integer(addr->sp));
+    json_object_set_new(js, "dest_ip", json_string(addr->dst_ip));
+    json_object_set_new(js, "dest_port", json_integer(addr->dp));
+    json_object_set_new(js, "proto", json_string(addr->proto));
 
     /* icmp */
     switch (p->proto) {
@@ -783,7 +918,7 @@ json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
 json_t *CreateJSONHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
                                  const char *event_type, uint64_t tx_id)
 {
-    json_t *js = CreateJSONHeader(p, dir, event_type);
+    json_t *js = CreateJSONHeader(p, dir, event_type, NULL);
     if (unlikely(js == NULL))
         return NULL;
 
