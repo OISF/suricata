@@ -16,9 +16,9 @@
  */
 
 // written by Victor Julien
-// TCP buffering code written by Pierre Chifflier
 
 use std;
+use std::cmp;
 use std::mem::transmute;
 use std::collections::{HashMap};
 use std::ffi::CStr;
@@ -321,10 +321,6 @@ pub struct NFSState {
     /// transactions list
     pub transactions: Vec<NFSTransaction>,
 
-    /// TCP segments defragmentation buffer
-    pub tcp_buffer_ts: Vec<u8>,
-    pub tcp_buffer_tc: Vec<u8>,
-
     pub files: NFSFiles,
 
     /// partial record tracking
@@ -367,8 +363,6 @@ impl NFSState {
             requestmap:HashMap::new(),
             namemap:HashMap::new(),
             transactions: Vec::new(),
-            tcp_buffer_ts:Vec::with_capacity(8192),
-            tcp_buffer_tc:Vec::with_capacity(8192),
             files:NFSFiles::new(),
             ts_chunk_xid:0,
             tc_chunk_xid:0,
@@ -1012,9 +1006,6 @@ impl NFSState {
 
     pub fn parse_tcp_data_ts_gap<'b>(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_ts_gap ({})", gap_size);
-        if self.tcp_buffer_ts.len() > 0 {
-            self.tcp_buffer_ts.clear();
-        }
         let gap = vec![0; gap_size as usize];
         let consumed = self.filetracker_update(STREAM_TOSERVER, &gap, gap_size);
         if consumed > gap_size {
@@ -1029,9 +1020,6 @@ impl NFSState {
 
     pub fn parse_tcp_data_tc_gap<'b>(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_tc_gap ({})", gap_size);
-        if self.tcp_buffer_tc.len() > 0 {
-            self.tcp_buffer_tc.clear();
-        }
         let gap = vec![0; gap_size as usize];
         let consumed = self.filetracker_update(STREAM_TOCLIENT, &gap, gap_size);
         if consumed > gap_size {
@@ -1046,30 +1034,7 @@ impl NFSState {
 
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> AppLayerResult {
-        let mut v : Vec<u8>;
-        SCLogDebug!("parse_tcp_data_ts ({})",i.len());
-        //SCLogDebug!("{:?}",i);
-        // Check if TCP data is being defragmented
-        let tcp_buffer = match self.tcp_buffer_ts.len() {
-            0 => i,
-            _ => {
-                v = self.tcp_buffer_ts.split_off(0);
-                // sanity check vector length to avoid memory exhaustion
-                if self.tcp_buffer_ts.len() + i.len() > 1000000 {
-                    SCLogDebug!("parse_tcp_data_ts: TS buffer exploded {} {}",
-                            self.tcp_buffer_ts.len(), i.len());
-                    return AppLayerResult::err();
-                };
-                v.extend_from_slice(i);
-                v.as_slice()
-            },
-        };
-        //SCLogDebug!("tcp_buffer ({})",tcp_buffer.len());
-        let mut cur_i = tcp_buffer;
-        if cur_i.len() > 1000000 {
-            SCLogDebug!("BUG buffer exploded: {}", cur_i.len());
-            return AppLayerResult::err();
-        }
+        let mut cur_i = i;
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
         let consumed = self.filetracker_update(STREAM_TOSERVER, cur_i, 0);
@@ -1078,6 +1043,9 @@ impl NFSState {
                 return AppLayerResult::err();
             }
             cur_i = &cur_i[consumed as usize..];
+        }
+        if cur_i.len() == 0 {
+            return AppLayerResult::ok();
         }
         if self.ts_gap {
             SCLogDebug!("TS trying to catch up after GAP (input {})", cur_i.len());
@@ -1092,9 +1060,9 @@ impl NFSState {
                         break;
                     },
                     0 => {
-                        SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.", cur_i.len(), cnt);
-                        self.tcp_buffer_tc.extend_from_slice(cur_i);
-                        return AppLayerResult::ok();
+                        SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.",
+                                cur_i.len(), cnt);
+                        return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, (cur_i.len() + 1) as u32);
                     },
                     -1 => {
                         cur_i = &cur_i[1..];
@@ -1148,6 +1116,7 @@ impl NFSState {
                                         // have Incomplete data. Fall through to the buffer code
                                         // and try again on our next iteration.
                                         SCLogDebug!("TS data incomplete");
+                                        // fall through to the incomplete below
                                     },
                                     Err(nom::Err::Error(_e)) |
                                     Err(nom::Err::Failure(_e)) => {
@@ -1158,8 +1127,11 @@ impl NFSState {
                                 }
                             }
                         }
-                        self.tcp_buffer_ts.extend_from_slice(cur_i);
-                        break;
+                        // make sure we pass a value higher than current input
+                        // but lower than the record size
+                        let n1 = cmp::max(cur_i.len(), 1024);
+                        let n2 = cmp::min(n1, rec_size);
+                        return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, n2 as u32);
                     }
 
                     // we have the full records size worth of data,
@@ -1185,10 +1157,15 @@ impl NFSState {
                         },
                     }
                 },
-                Err(nom::Err::Incomplete(_)) => {
-                    SCLogDebug!("Fragmentation required (TCP level) 2");
-                    self.tcp_buffer_ts.extend_from_slice(cur_i);
-                    break;
+                Err(nom::Err::Incomplete(needed)) => {
+                    if let nom::Needed::Size(n) = needed {
+                        SCLogDebug!("Not enough data for partial RPC header {:?}", needed);
+                        // 28 is the partial RPC header size parse_rpc_request_partial
+                        // looks for.
+                        let need = if n > 28 { n } else { 28 };
+                        return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, need as u32);
+                    }
+                    return AppLayerResult::err();
                 },
                 Err(nom::Err::Error(_e)) |
                 Err(nom::Err::Failure(_e)) => {
@@ -1209,31 +1186,7 @@ impl NFSState {
 
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> AppLayerResult {
-        let mut v : Vec<u8>;
-        SCLogDebug!("parse_tcp_data_tc ({})",i.len());
-        //SCLogDebug!("{:?}",i);
-        // Check if TCP data is being defragmented
-        let tcp_buffer = match self.tcp_buffer_tc.len() {
-            0 => i,
-            _ => {
-                v = self.tcp_buffer_tc.split_off(0);
-                // sanity check vector length to avoid memory exhaustion
-                if self.tcp_buffer_tc.len() + i.len() > 100000 {
-                    SCLogDebug!("TC buffer exploded");
-                    return AppLayerResult::err();
-                };
-
-                v.extend_from_slice(i);
-                v.as_slice()
-            },
-        };
-        SCLogDebug!("TC tcp_buffer ({}), input ({})",tcp_buffer.len(), i.len());
-
-        let mut cur_i = tcp_buffer;
-        if cur_i.len() > 100000 {
-            SCLogDebug!("parse_tcp_data_tc: BUG buffer exploded {}", cur_i.len());
-        }
-
+        let mut cur_i = i;
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
         let consumed = self.filetracker_update(STREAM_TOCLIENT, cur_i, 0);
@@ -1242,6 +1195,9 @@ impl NFSState {
                 return AppLayerResult::err();
             }
             cur_i = &cur_i[consumed as usize..];
+        }
+        if cur_i.len() == 0 {
+            return AppLayerResult::ok();
         }
         if self.tc_gap {
             SCLogDebug!("TC trying to catch up after GAP (input {})", cur_i.len());
@@ -1256,9 +1212,9 @@ impl NFSState {
                         break;
                     },
                     0 => {
-                        SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.", cur_i.len(), cnt);
-                        self.tcp_buffer_tc.extend_from_slice(cur_i);
-                        return AppLayerResult::ok();
+                        SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.",
+                                cur_i.len(), cnt);
+                        return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, (cur_i.len() + 1) as u32);
                     },
                     -1 => {
                         cur_i = &cur_i[1..];
@@ -1300,7 +1256,6 @@ impl NFSState {
                                                 cur_i = remaining; // progress input past parsed record
                                             },
                                             Err(nom::Err::Incomplete(_)) => {
-                                                self.set_event(NFSEvent::MalformedData);
                                             },
                                             Err(nom::Err::Error(_e)) |
                                             Err(nom::Err::Failure(_e)) => {
@@ -1324,8 +1279,11 @@ impl NFSState {
                                 }
                             }
                         }
-                        self.tcp_buffer_tc.extend_from_slice(cur_i);
-                        break;
+                        // make sure we pass a value higher than current input
+                        // but lower than the record size
+                        let n1 = cmp::max(cur_i.len(), 1024);
+                        let n2 = cmp::min(n1, rec_size);
+                        return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, n2 as u32);
                     }
 
                     // we have the full data of the record, lets parse
@@ -1350,10 +1308,15 @@ impl NFSState {
                         }
                     }
                 },
-                Err(nom::Err::Incomplete(_)) => {
-                    SCLogDebug!("REPLY: insufficient data for HDR");
-                    self.tcp_buffer_tc.extend_from_slice(cur_i);
-                    break;
+                Err(nom::Err::Incomplete(needed)) => {
+                    if let nom::Needed::Size(n) = needed {
+                        SCLogDebug!("Not enough data for partial RPC header {:?}", needed);
+                        // 12 is the partial RPC header size parse_rpc_packet_header
+                        // looks for.
+                        let need = if n > 12 { n } else { 12 };
+                        return AppLayerResult::incomplete((i.len() - cur_i.len()) as u32, need as u32);
+                    }
+                    return AppLayerResult::err();
                 },
                 Err(nom::Err::Error(_e)) |
                 Err(nom::Err::Failure(_e)) => {
@@ -1824,14 +1787,13 @@ pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
                             return -1;
                         }
                     },
-                    Err(nom::Err::Incomplete(_)) => { },
+                    Err(nom::Err::Incomplete(_)) => {
+                        return 0;
+                    },
                     Err(_) => {
                         return -1;
                     },
                 }
-
-
-                return 0;
             },
             Err(_) => {
                 return -1;
