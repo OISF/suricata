@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -39,12 +39,9 @@ static AppLayerResult SMBTCPParseRequest(Flow *f, void *state,
     rs_smb_setfileflags(0, state, file_flags|FILE_USE_DETECT);
 
     if (input == NULL && input_len > 0) {
-        int res = rs_smb_parse_request_tcp_gap(state, input_len);
-        SCLogDebug("SMB request GAP of %u bytes, retval %d", input_len, res);
-        if (res != 0) {
-            SCReturnStruct(APP_LAYER_ERROR);
-        }
-        SCReturnStruct(APP_LAYER_OK);
+        AppLayerResult res = rs_smb_parse_request_tcp_gap(state, input_len);
+        SCLogDebug("SMB request GAP of %u bytes, retval %d", input_len, res.status);
+        SCReturnStruct(res);
     } else {
         AppLayerResult res = rs_smb_parse_request_tcp(f, state, pstate,
                 input, input_len, local_data, flags);
@@ -64,13 +61,9 @@ static AppLayerResult SMBTCPParseResponse(Flow *f, void *state,
 
     SCLogDebug("SMBTCPParseResponse %p/%u", input, input_len);
     if (input == NULL && input_len > 0) {
-        int res = rs_smb_parse_response_tcp_gap(state, input_len);
-        if (res != 0) {
-            SCLogDebug("SMB response%s of %u bytes, retval %d",
-                    (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res);
-            SCReturnStruct(APP_LAYER_ERROR);
-        }
-        SCReturnStruct(APP_LAYER_OK);
+        AppLayerResult res = rs_smb_parse_response_tcp_gap(state, input_len);
+        SCLogDebug("SMB response GAP of %u bytes, retval %d", input_len, res.status);
+        SCReturnStruct(res);
     } else {
         AppLayerResult res = rs_smb_parse_response_tcp(f, state, pstate,
                 input, input_len, local_data, flags);
