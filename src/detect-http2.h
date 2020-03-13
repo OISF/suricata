@@ -15,7 +15,15 @@
  * 02110-1301, USA.
  */
 
-pub mod detect;
-pub mod http2;
-pub mod logger;
-mod parser;
+/**
+ * \file
+ *
+ * \author Philippe Antoine <p.antoine@catenacyber.fr>
+ */
+
+#ifndef _DETECT_HTTP2_H
+#define _DETECT_HTTP2_H
+
+void DetectHttp2Register(void);
+
+#endif /* _DETECT_HTTP2_H */
