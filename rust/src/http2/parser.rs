@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
-use nom::number::streaming::be_u8;
+use nom::number::streaming::{be_u32, be_u8};
 use std::fmt;
 
 #[repr(u8)]
-#[derive(PartialEq, FromPrimitive, Debug)]
+#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
 pub enum HTTP2FrameType {
     DATA = 0,
     HEADERS = 1,
@@ -39,8 +39,30 @@ impl fmt::Display for HTTP2FrameType {
     }
 }
 
+impl std::str::FromStr for HTTP2FrameType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        //TODO let su = s.to_uppercase();
+        match s {
+            "DATA" => Ok(HTTP2FrameType::DATA),
+            "HEADERS" => Ok(HTTP2FrameType::HEADERS),
+            "PRIORITY" => Ok(HTTP2FrameType::PRIORITY),
+            "RSTSTREAM" => Ok(HTTP2FrameType::RSTSTREAM),
+            "SETTINGS" => Ok(HTTP2FrameType::SETTINGS),
+            "PUSHPROMISE" => Ok(HTTP2FrameType::PUSHPROMISE),
+            "PING" => Ok(HTTP2FrameType::PING),
+            "GOAWAY" => Ok(HTTP2FrameType::GOAWAY),
+            "WINDOWUPDATE" => Ok(HTTP2FrameType::WINDOWUPDATE),
+            "CONTINUATION" => Ok(HTTP2FrameType::CONTINUATION),
+            _ => Err(format!("'{}' is not a valid value for HTTP2FrameType", s)),
+        }
+    }
+}
+
 #[derive(PartialEq)]
 pub struct HTTP2FrameHeader {
+    //TODO detection on GOAWAY additional data = length
     pub length: u32,
     pub ftype: HTTP2FrameType,
     pub flags: u8,
@@ -61,6 +83,74 @@ named!(pub http2_parse_frame_header<HTTP2FrameHeader>,
                           stream_id:stream_id.1})
     )
 );
+
+#[repr(u32)]
+#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+pub enum HTTP2ErrorCode {
+    NOERROR = 0,
+    PROTOCOLERROR = 1,
+    INTERNALERROR = 2,
+    FLOWCONTROLERROR = 3,
+    SETTINGSTIMEOUT = 4,
+    STREAMCLOSED = 5,
+    FRAMESIZEERROR = 6,
+    REFUSEDSTREAM = 7,
+    CANCEL = 8,
+    COMPRESSIONERROR = 9,
+    CONNECTERROR = 10,
+    ENHANCEYOURCALM = 11,
+    INADEQUATESECURITY = 12,
+    HTTP11REQUIRED = 13,
+}
+
+impl fmt::Display for HTTP2ErrorCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::str::FromStr for HTTP2ErrorCode {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        //TODO let su = s.to_uppercase();
+        match s {
+            "NO_ERROR" => Ok(HTTP2ErrorCode::NOERROR),
+            "PROTOCOL_ERROR" => Ok(HTTP2ErrorCode::PROTOCOLERROR),
+            "FLOW_CONTROL_ERROR" => Ok(HTTP2ErrorCode::FLOWCONTROLERROR),
+            "SETTINGS_TIMEOUT" => Ok(HTTP2ErrorCode::SETTINGSTIMEOUT),
+            "STREAM_CLOSED" => Ok(HTTP2ErrorCode::STREAMCLOSED),
+            "FRAME_SIZE_ERROR" => Ok(HTTP2ErrorCode::FRAMESIZEERROR),
+            "REFUSED_STREAM" => Ok(HTTP2ErrorCode::REFUSEDSTREAM),
+            "CANCEL" => Ok(HTTP2ErrorCode::CANCEL),
+            "COMPRESSION_ERROR" => Ok(HTTP2ErrorCode::COMPRESSIONERROR),
+            "CONNECT_ERROR" => Ok(HTTP2ErrorCode::CONNECTERROR),
+            "ENHANCE_YOUR_CALM" => Ok(HTTP2ErrorCode::ENHANCEYOURCALM),
+            "INADEQUATE_SECURITY" => Ok(HTTP2ErrorCode::INADEQUATESECURITY),
+            "HTTP_1_1_REQUIRED" => Ok(HTTP2ErrorCode::HTTP11REQUIRED),
+            _ => Err(format!("'{}' is not a valid value for HTTP2ErrorCode", s)),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct HTTP2FrameGoAway {
+    pub errorcode: HTTP2ErrorCode,
+}
+
+named!(pub http2_parse_frame_goaway<HTTP2FrameGoAway>,
+    do_parse!(
+        errorcode: map_opt!( be_u32,
+            num::FromPrimitive::from_u32 ) >>
+        (HTTP2FrameGoAway{errorcode})
+    )
+);
+
+//TODO HTTP2FrameSettings
+/*pub struct HTTP2FrameSettings {
+id: u16,
+value: u32,
+}*/
 
 #[cfg(test)]
 mod tests {

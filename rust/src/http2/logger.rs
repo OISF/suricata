@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use super::http2::HTTP2Transaction;
+use super::http2::{HTTP2FrameTypeData, HTTP2Transaction};
 use crate::json::*;
 use std;
 
@@ -23,6 +23,12 @@ fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
     let js = Json::object();
     if let Some(ref ftype) = tx.ftype {
         js.set_string("frame_type", &ftype.to_string());
+    }
+    match &tx.type_data {
+        Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
+            js.set_string("error_code", &goaway.errorcode.to_string());
+        }
+        _ => {}
     }
     return Some(js);
 }

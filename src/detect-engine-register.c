@@ -158,6 +158,7 @@
 #include "detect-http-stat-msg.h"
 #include "detect-http-request-line.h"
 #include "detect-http-response-line.h"
+#include "detect-http2.h"
 #include "detect-byte-extract.h"
 #include "detect-file-data.h"
 #include "detect-pkt-data.h"
@@ -447,6 +448,7 @@ void SigTableSetup(void)
 
     DetectHttpStatMsgRegister();
     DetectHttpStatCodeRegister();
+    DetectHttp2Register();
 
     DetectDnsQueryRegister();
     DetectDnsOpcodeRegister();
