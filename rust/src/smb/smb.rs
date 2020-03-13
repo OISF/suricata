@@ -1752,7 +1752,7 @@ impl SMBState {
 
     /// handle a gap in the TOSERVER direction
     /// returns: 0 ok, 1 unrecoverable error
-    pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> u32 {
+    pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
         let consumed = self.handle_skip(STREAM_TOSERVER, gap_size);
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
@@ -1762,18 +1762,18 @@ impl SMBState {
             if consumed2 > new_gap_size {
                 SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
                 self.set_event(SMBEvent::InternalError);
-                return 1;
+                return AppLayerResult::err();
             }
         }
         SCLogDebug!("GAP of size {} in toserver direction", gap_size);
         self.ts_ssn_gap = true;
         self.ts_gap = true;
-        return 0
+        return AppLayerResult::ok();
     }
 
     /// handle a gap in the TOCLIENT direction
     /// returns: 0 ok, 1 unrecoverable error
-    pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> u32 {
+    pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> AppLayerResult {
         let consumed = self.handle_skip(STREAM_TOCLIENT, gap_size);
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
@@ -1783,13 +1783,13 @@ impl SMBState {
             if consumed2 > new_gap_size {
                 SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
                 self.set_event(SMBEvent::InternalError);
-                return 1;
+                return AppLayerResult::err();
             }
         }
         SCLogDebug!("GAP of size {} in toclient direction", gap_size);
         self.tc_ssn_gap = true;
         self.tc_gap = true;
-        return 0
+        return AppLayerResult::ok();
     }
 
     pub fn trunc_ts(&mut self) {
@@ -1862,12 +1862,9 @@ pub extern "C" fn rs_smb_parse_request_tcp(flow: &mut Flow,
 pub extern "C" fn rs_smb_parse_request_tcp_gap(
                                         state: &mut SMBState,
                                         input_len: u32)
-                                        -> i8
+                                        -> AppLayerResult
 {
-    if state.parse_tcp_data_ts_gap(input_len as u32) == 0 {
-        return 0;
-    }
-    return -1;
+    state.parse_tcp_data_ts_gap(input_len as u32)
 }
 
 
@@ -1897,12 +1894,9 @@ pub extern "C" fn rs_smb_parse_response_tcp(flow: &mut Flow,
 pub extern "C" fn rs_smb_parse_response_tcp_gap(
                                         state: &mut SMBState,
                                         input_len: u32)
-                                        -> i8
+                                        -> AppLayerResult
 {
-    if state.parse_tcp_data_tc_gap(input_len as u32) == 0 {
-        return 0;
-    }
-    return -1;
+    state.parse_tcp_data_tc_gap(input_len as u32)
 }
 
 // probing parser
