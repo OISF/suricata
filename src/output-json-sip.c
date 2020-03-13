@@ -79,7 +79,7 @@ static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
     LogSIPLogThread *thread = thread_data;
     json_t *js, *sipjs;
 
-    js = CreateJSONHeader(p, LOG_DIR_PACKET, "sip");
+    js = CreateJSONHeader(p, LOG_DIR_PACKET, "sip", NULL);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
