@@ -411,7 +411,39 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             continue;
         }
 
-        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "alert");
+        /* First initialize the address info (5-tuple). */
+        JsonAddrInfo addr;
+        JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
+
+        /* Check for XFF, overwriting address info if needed. */
+        HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg != NULL ?
+            json_output_ctx->xff_cfg : json_output_ctx->parent_xff_cfg;;
+        int have_xff_ip = 0;
+        char xff_buffer[XFF_MAXLEN];
+        if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
+            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
+                if (pa->flags & PACKET_ALERT_FLAG_TX) {
+                    have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg,
+                            xff_buffer, XFF_MAXLEN);
+                } else {
+                    have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, xff_buffer,
+                            XFF_MAXLEN);
+                }
+            }
+
+            if (have_xff_ip && xff_cfg->flags & XFF_OVERWRITE) {
+                if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                    strlcpy(addr.dst_ip, xff_buffer, JSON_ADDR_LEN);
+                } else {
+                    strlcpy(addr.src_ip, xff_buffer, JSON_ADDR_LEN);
+                }
+                /* Clear have_xff_ip so the xff field does not get
+                 * logged below. */
+                have_xff_ip = false;
+            }
+        }
+
+        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "alert", &addr);
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
 
@@ -565,34 +597,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             JsonPacket(p, js, 0);
         }
 
-        HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg != NULL ?
-            json_output_ctx->xff_cfg : json_output_ctx->parent_xff_cfg;;
-
-        /* xff header */
-        if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
-            int have_xff_ip = 0;
-            char buffer[XFF_MAXLEN];
-
-            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-                if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
-                } else {
-                    have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, buffer, XFF_MAXLEN);
-                }
-            }
-
-            if (have_xff_ip) {
-                if (xff_cfg->flags & XFF_EXTRADATA) {
-                    json_object_set_new(js, "xff", json_string(buffer));
-                }
-                else if (xff_cfg->flags & XFF_OVERWRITE) {
-                    if (p->flowflags & FLOW_PKT_TOCLIENT) {
-                        json_object_set(js, "dest_ip", json_string(buffer));
-                    } else {
-                        json_object_set(js, "src_ip", json_string(buffer));
-                    }
-                }
-            }
+        if (have_xff_ip && xff_cfg->flags & XFF_EXTRADATA) {
+            json_object_set_new(js, "xff", json_string(xff_buffer));
         }
 
         OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
@@ -602,7 +608,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags &
             LOG_JSON_TAGGED_PACKETS)) {
         MemBufferReset(aft->json_buffer);
-        json_t *packetjs = CreateJSONHeader(p, LOG_DIR_PACKET, "packet");
+        json_t *packetjs = CreateJSONHeader(p, LOG_DIR_PACKET, "packet", NULL);
         if (unlikely(packetjs != NULL)) {
             JsonPacket(p, packetjs, 0);
             OutputJSONBuffer(packetjs, aft->file_ctx, &aft->json_buffer);
