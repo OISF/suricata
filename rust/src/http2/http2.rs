@@ -204,7 +204,6 @@ impl HTTP2State {
         while toparse.len() > 0 {
             match parser::http2_parse_frame_header(toparse) {
                 Ok((rem, head)) => {
-//TODO debug not logged SCLogNotice!("rs_http2_parse_ts http2_parse_frame_header ok");
                     let mut tx = self.new_tx();
                     tx.ftype = Some(head.ftype);
                     self.transactions.push(tx);
@@ -344,7 +343,6 @@ pub extern "C" fn rs_http2_probing_parser_tc(
     input_len: u32,
     _rdir: *mut u8,
 ) -> AppProto {
-//TODO debug not called SCLogNotice!("rs_http2_probing_parser_tc");
     if input != std::ptr::null_mut() {
         let slice = build_slice!(input, input_len as usize);
         match parser::http2_parse_frame_header(slice) {
@@ -402,7 +400,7 @@ pub extern "C" fn rs_http2_parse_ts(
     let mut buf = build_slice!(input, input_len as usize);
 
     if state.progress < HTTP2ConnectionState::Http2StateMagicDone {
-        //skip magic lol
+        //skip magic
         if state.request_buffer.len() > 0 {
             state.request_buffer.extend(buf);
             if state.request_buffer.len() >= 24 {
