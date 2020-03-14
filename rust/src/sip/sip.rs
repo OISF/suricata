@@ -360,10 +360,7 @@ pub extern "C" fn rs_sip_parse_request(
 ) -> AppLayerResult {
     let buf = build_slice!(input, input_len as usize);
     let state = cast_pointer!(state, SIPState);
-    if !state.parse_request(buf) {
-        return AppLayerResult::err();
-    }
-    AppLayerResult::ok()
+    state.parse_request(buf).into()
 }
 
 #[no_mangle]
@@ -378,10 +375,7 @@ pub extern "C" fn rs_sip_parse_response(
 ) -> AppLayerResult {
     let buf = build_slice!(input, input_len as usize);
     let state = cast_pointer!(state, SIPState);
-    if !state.parse_response(buf) {
-        return AppLayerResult::err();
-    }
-    AppLayerResult::ok()
+    state.parse_response(buf).into()
 }
 
 const PARSER_NAME: &'static [u8] = b"sip\0";
