@@ -325,10 +325,7 @@ pub extern "C" fn rs_snmp_parse_request(_flow: *const core::Flow,
                                        _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,SNMPState);
-    if state.parse(buf, STREAM_TOSERVER) < 0 {
-        return AppLayerResult::err();
-    }
-    AppLayerResult::ok()
+    state.parse(buf, STREAM_TOSERVER).into()
 }
 
 #[no_mangle]
@@ -341,10 +338,7 @@ pub extern "C" fn rs_snmp_parse_response(_flow: *const core::Flow,
                                        _flags: u8) -> AppLayerResult {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,SNMPState);
-    if state.parse(buf, STREAM_TOCLIENT) < 0 {
-        return AppLayerResult::err();
-    }
-    AppLayerResult::ok()
+    state.parse(buf, STREAM_TOCLIENT).into()
 }
 
 #[no_mangle]

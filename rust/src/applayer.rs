@@ -63,6 +63,26 @@ impl AppLayerResult {
     }
 }
 
+impl From<bool> for AppLayerResult {
+    fn from(v: bool) -> Self {
+        if v == false {
+            Self::err()
+        } else {
+            Self::ok()
+        }
+    }
+}
+
+impl From<i32> for AppLayerResult {
+    fn from(v: i32) -> Self {
+        if v < 0 {
+            Self::err()
+        } else {
+            Self::ok()
+        }
+    }
+}
+
 /// Rust parser declaration
 #[repr(C)]
 pub struct RustParser {
