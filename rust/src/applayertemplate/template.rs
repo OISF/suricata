@@ -316,10 +316,7 @@ pub extern "C" fn rs_template_parse_request(
 
     let state = cast_pointer!(state, TemplateState);
     let buf = build_slice!(input, input_len as usize);
-    if !state.parse_request(buf) {
-        return AppLayerResult::err();
-    }
-    AppLayerResult::ok()
+    state.parse_request(buf).into()
 }
 
 #[no_mangle]
@@ -341,10 +338,7 @@ pub extern "C" fn rs_template_parse_response(
     };
     let state = cast_pointer!(state, TemplateState);
     let buf = build_slice!(input, input_len as usize);
-    if !state.parse_response(buf) {
-        return AppLayerResult::err();
-    }
-    AppLayerResult::ok()
+    state.parse_response(buf).into()
 }
 
 #[no_mangle]
