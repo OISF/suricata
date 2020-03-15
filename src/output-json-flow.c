@@ -200,6 +200,27 @@ void JsonAddAppProto(Flow *f, json_t *js)
 
 }
 
+void EveAddAppProto(Flow *f, JsonBuilder *js)
+{
+    if (f->alproto) {
+        jb_set_string(js, "app_proto", AppProtoToString(f->alproto));
+    }
+    if (f->alproto_ts && f->alproto_ts != f->alproto) {
+        jb_set_string(js, "app_proto_ts", AppProtoToString(f->alproto_ts));
+    }
+    if (f->alproto_tc && f->alproto_tc != f->alproto) {
+        jb_set_string(js, "app_proto_tc", AppProtoToString(f->alproto_tc));
+    }
+    if (f->alproto_orig != f->alproto && f->alproto_orig != ALPROTO_UNKNOWN) {
+        jb_set_string(js, "app_proto_orig", AppProtoToString(f->alproto_orig));
+    }
+    if (f->alproto_expect != f->alproto && f->alproto_expect != ALPROTO_UNKNOWN) {
+        jb_set_string(js, "app_proto_expected",
+                AppProtoToString(f->alproto_expect));
+    }
+
+}
+
 void JsonAddFlow(Flow *f, json_t *js)
 {
     FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
