@@ -177,7 +177,7 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
     return js;
 }
 
-void JsonAddFlow(Flow *f, json_t *js, json_t *hjs)
+void JsonAddAppProto(Flow *f, json_t *js)
 {
     json_object_set_new(js, "app_proto",
             json_string(AppProtoToString(f->alproto)));
@@ -198,42 +198,46 @@ void JsonAddFlow(Flow *f, json_t *js, json_t *hjs)
                 json_string(AppProtoToString(f->alproto_expect)));
     }
 
+}
+
+void JsonAddFlow(Flow *f, json_t *js)
+{
     FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());
     if (fc) {
-        json_object_set_new(hjs, "pkts_toserver",
+        json_object_set_new(js, "pkts_toserver",
                 json_integer(f->todstpktcnt + fc->todstpktcnt));
-        json_object_set_new(hjs, "pkts_toclient",
+        json_object_set_new(js, "pkts_toclient",
                 json_integer(f->tosrcpktcnt + fc->tosrcpktcnt));
-        json_object_set_new(hjs, "bytes_toserver",
+        json_object_set_new(js, "bytes_toserver",
                 json_integer(f->todstbytecnt + fc->todstbytecnt));
-        json_object_set_new(hjs, "bytes_toclient",
+        json_object_set_new(js, "bytes_toclient",
                 json_integer(f->tosrcbytecnt + fc->tosrcbytecnt));
-        json_t *bhjs = json_object();
-        if (bhjs != NULL) {
-            json_object_set_new(bhjs, "pkts_toserver",
+        json_t *bjs = json_object();
+        if (bjs != NULL) {
+            json_object_set_new(bjs, "pkts_toserver",
                     json_integer(fc->todstpktcnt));
-            json_object_set_new(bhjs, "pkts_toclient",
+            json_object_set_new(bjs, "pkts_toclient",
                     json_integer(fc->tosrcpktcnt));
-            json_object_set_new(bhjs, "bytes_toserver",
+            json_object_set_new(bjs, "bytes_toserver",
                     json_integer(fc->todstbytecnt));
-            json_object_set_new(bhjs, "bytes_toclient",
+            json_object_set_new(bjs, "bytes_toclient",
                     json_integer(fc->tosrcbytecnt));
-            json_object_set_new(hjs, "bypassed", bhjs);
+            json_object_set_new(js, "bypassed", bjs);
         }
     } else {
-        json_object_set_new(hjs, "pkts_toserver",
+        json_object_set_new(js, "pkts_toserver",
                 json_integer(f->todstpktcnt));
-        json_object_set_new(hjs, "pkts_toclient",
+        json_object_set_new(js, "pkts_toclient",
                 json_integer(f->tosrcpktcnt));
-        json_object_set_new(hjs, "bytes_toserver",
+        json_object_set_new(js, "bytes_toserver",
                 json_integer(f->todstbytecnt));
-        json_object_set_new(hjs, "bytes_toclient",
+        json_object_set_new(js, "bytes_toclient",
                 json_integer(f->tosrcbytecnt));
     }
 
     char timebuf1[64];
     CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
-    json_object_set_new(hjs, "start", json_string(timebuf1));
+    json_object_set_new(js, "start", json_string(timebuf1));
 }
 
 /* JSON format logging */
@@ -245,7 +249,8 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
         return;
     }
 
-    JsonAddFlow(f, js, hjs);
+    JsonAddAppProto(f, js);
+    JsonAddFlow(f, hjs);
 
     char timebuf2[64];
     CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
