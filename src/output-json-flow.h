@@ -25,6 +25,7 @@
 #define __OUTPUT_JSON_FLOW_H__
 
 void JsonFlowLogRegister(void);
-void JsonAddFlow(Flow *f, json_t *js, json_t *hjs);
+void JsonAddFlow(Flow *f, json_t *js);
+void JsonAddAppProto(Flow *f, json_t *js);
 
 #endif /* __OUTPUT_JSON_FLOW_H__ */

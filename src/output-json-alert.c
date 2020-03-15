@@ -530,15 +530,13 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         }
 
         if (p->flow) {
+            JsonAddAppProto(p->flow, js);
             if (json_output_ctx->flags & LOG_JSON_FLOW) {
                 hjs = json_object();
                 if (hjs != NULL) {
-                    JsonAddFlow(p->flow, js, hjs);
+                    JsonAddFlow(p->flow, hjs);
                     json_object_set_new(js, "flow", hjs);
                 }
-            } else {
-                json_object_set_new(js, "app_proto",
-                        json_string(AppProtoToString(p->flow->alproto)));
             }
         }
 
