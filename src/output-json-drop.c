@@ -90,67 +90,65 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     JsonAddrInfo addr = json_addr_info_zero;
     JsonAddrInfoInit(p, LOG_DIR_PACKET, &addr);
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "drop", &addr);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "drop", &addr);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    JsonAddCommonOptions(&drop_ctx->cfg, p, p->flow, js);
+    EveAddCommonOptions(&drop_ctx->cfg, p, p->flow, js);
 
-    json_t *djs = json_object();
-    if (unlikely(djs == NULL)) {
-        json_decref(js);
-        return TM_ECODE_OK;
-    }
+    jb_open_object(js, "drop");
 
     /* reset */
     MemBufferReset(aft->buffer);
 
     uint16_t proto = 0;
     if (PKT_IS_IPV4(p)) {
-        json_object_set_new(djs, "len", json_integer(IPV4_GET_IPLEN(p)));
-        json_object_set_new(djs, "tos", json_integer(IPV4_GET_IPTOS(p)));
-        json_object_set_new(djs, "ttl", json_integer(IPV4_GET_IPTTL(p)));
-        json_object_set_new(djs, "ipid", json_integer(IPV4_GET_IPID(p)));
+        jb_set_uint(js, "len", IPV4_GET_IPLEN(p));
+        jb_set_uint(js, "tos", IPV4_GET_IPTOS(p));
+        jb_set_uint(js, "ttl", IPV4_GET_IPTTL(p));
+        jb_set_uint(js, "ipid", IPV4_GET_IPID(p));
         proto = IPV4_GET_IPPROTO(p);
     } else if (PKT_IS_IPV6(p)) {
-        json_object_set_new(djs, "len", json_integer(IPV6_GET_PLEN(p)));
-        json_object_set_new(djs, "tc", json_integer(IPV6_GET_CLASS(p)));
-        json_object_set_new(djs, "hoplimit", json_integer(IPV6_GET_HLIM(p)));
-        json_object_set_new(djs, "flowlbl", json_integer(IPV6_GET_FLOW(p)));
+        jb_set_uint(js, "len", IPV6_GET_PLEN(p));
+        jb_set_uint(js, "tc", IPV6_GET_CLASS(p));
+        jb_set_uint(js, "hoplimit", IPV6_GET_HLIM(p));
+        jb_set_uint(js, "flowlbl", IPV6_GET_FLOW(p));
         proto = IPV6_GET_L4PROTO(p);
     }
     switch (proto) {
         case IPPROTO_TCP:
             if (PKT_IS_TCP(p)) {
-                json_object_set_new(djs, "tcpseq", json_integer(TCP_GET_SEQ(p)));
-                json_object_set_new(djs, "tcpack", json_integer(TCP_GET_ACK(p)));
-                json_object_set_new(djs, "tcpwin", json_integer(TCP_GET_WINDOW(p)));
-                json_object_set_new(djs, "syn", TCP_ISSET_FLAG_SYN(p) ? json_true() : json_false());
-                json_object_set_new(djs, "ack", TCP_ISSET_FLAG_ACK(p) ? json_true() : json_false());
-                json_object_set_new(djs, "psh", TCP_ISSET_FLAG_PUSH(p) ? json_true() : json_false());
-                json_object_set_new(djs, "rst", TCP_ISSET_FLAG_RST(p) ? json_true() : json_false());
-                json_object_set_new(djs, "urg", TCP_ISSET_FLAG_URG(p) ? json_true() : json_false());
-                json_object_set_new(djs, "fin", TCP_ISSET_FLAG_FIN(p) ? json_true() : json_false());
-                json_object_set_new(djs, "tcpres", json_integer(TCP_GET_RAW_X2(p->tcph)));
-                json_object_set_new(djs, "tcpurgp", json_integer(TCP_GET_URG_POINTER(p)));
+                jb_set_uint(js, "tcpseq", TCP_GET_SEQ(p));
+                jb_set_uint(js, "tcpack", TCP_GET_ACK(p));
+                jb_set_uint(js, "tcpwin", TCP_GET_WINDOW(p));
+                jb_set_bool(js, "syn", TCP_ISSET_FLAG_SYN(p) ? true : false);
+                jb_set_bool(js, "ack", TCP_ISSET_FLAG_ACK(p) ? true : false);
+                jb_set_bool(js, "psh", TCP_ISSET_FLAG_PUSH(p) ? true : false);
+                jb_set_bool(js, "rst", TCP_ISSET_FLAG_RST(p) ? true : false);
+                jb_set_bool(js, "urg", TCP_ISSET_FLAG_URG(p) ? true : false);
+                jb_set_bool(js, "fin", TCP_ISSET_FLAG_FIN(p) ? true : false);
+                jb_set_uint(js, "tcpres",  TCP_GET_RAW_X2(p->tcph));
+                jb_set_uint(js, "tcpurgp", TCP_GET_URG_POINTER(p));
             }
             break;
         case IPPROTO_UDP:
             if (PKT_IS_UDP(p)) {
-                json_object_set_new(djs, "udplen", json_integer(UDP_GET_LEN(p)));
+                jb_set_uint(js, "udplen", UDP_GET_LEN(p));
             }
             break;
         case IPPROTO_ICMP:
             if (PKT_IS_ICMPV4(p)) {
-                json_object_set_new(djs, "icmp_id", json_integer(ICMPV4_GET_ID(p)));
-                json_object_set_new(djs, "icmp_seq", json_integer(ICMPV4_GET_SEQ(p)));
+                jb_set_uint(js, "icmp_id", ICMPV4_GET_ID(p));
+                jb_set_uint(js, "icmp_seq", ICMPV4_GET_SEQ(p));
             } else if(PKT_IS_ICMPV6(p)) {
-                json_object_set_new(djs, "icmp_id", json_integer(ICMPV6_GET_ID(p)));
-                json_object_set_new(djs, "icmp_seq", json_integer(ICMPV6_GET_SEQ(p)));
+                jb_set_uint(js, "icmp_id", ICMPV6_GET_ID(p));
+                jb_set_uint(js, "icmp_seq", ICMPV6_GET_SEQ(p));
             }
             break;
     }
-    json_object_set_new(js, "drop", djs);
+
+    /* Close drop. */
+    jb_close(js);
 
     if (aft->drop_ctx->flags & LOG_DROP_ALERTS) {
         int logged = 0;
@@ -175,10 +173,8 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         }
     }
 
-    OutputJSONBuffer(js, aft->drop_ctx->file_ctx, &aft->buffer);
-    json_object_del(js, "drop");
-    json_object_clear(js);
-    json_decref(js);
+    OutputJsonBuilderBuffer(js, aft->drop_ctx->file_ctx, &aft->buffer);
+    jb_free(js);
 
     return TM_ECODE_OK;
 }
