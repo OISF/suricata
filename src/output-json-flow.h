@@ -27,5 +27,6 @@
 void JsonFlowLogRegister(void);
 void JsonAddFlow(Flow *f, json_t *js);
 void JsonAddAppProto(Flow *f, json_t *js);
+void EveAddAppProto(Flow *f, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_FLOW_H__ */
