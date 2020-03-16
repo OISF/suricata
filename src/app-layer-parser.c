@@ -1179,7 +1179,8 @@ void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx,
 /***** General *****/
 
 /** \retval int -1 in case of unrecoverable error. App-layer tracking stops for this flow.
- *  \retval int 0 ok */
+ *  \retval int 0 ok: we did not update app_progress
+ *  \retval int 1 ok: we updated app_progress */
 int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
                         uint8_t flags, const uint8_t *input, uint32_t input_len)
 {
@@ -1327,9 +1328,10 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
 
  end:
     /* update app progress */
-    if (f->proto == IPPROTO_TCP && f->protoctx != NULL) {
+    if (consumed != input_len && f->proto == IPPROTO_TCP && f->protoctx != NULL) {
         TcpSession *ssn = f->protoctx;
         StreamTcpUpdateAppLayerProgress(ssn, direction, consumed);
+        SCReturnInt(1);
     }
 
     SCReturnInt(0);
