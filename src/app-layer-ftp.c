@@ -736,7 +736,12 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
     if (unlikely(input_len == 0)) {
         SCReturnStruct(APP_LAYER_OK);
     }
+    state->input = input;
+    state->input_len = input_len;
+    /* toclient stream */
+    state->direction = 1;
 
+    while (FTPGetLine(state) >= 0) {
     FTPTransaction *tx = FTPGetOldestTx(state);
     if (tx == NULL) {
         tx = FTPTransactionCreate(state);
@@ -751,7 +756,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
 
     state->curr_tx = tx;
     if (state->command == FTP_COMMAND_AUTH_TLS) {
-        if (input_len >= 4 && SCMemcmp("234 ", input, 4) == 0) {
+        if (state->current_line_len >= 4 && SCMemcmp("234 ", state->current_line, 4) == 0) {
             AppLayerRequestProtocolTLSUpgrade(f);
         }
     }
@@ -783,32 +788,33 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
     }
 
     if (state->command == FTP_COMMAND_PASV) {
-        if (input_len >= 4 && SCMemcmp("227 ", input, 4) == 0) {
-            FTPParsePassiveResponse(f, ftp_state, input, input_len);
+        if (state->current_line_len >= 4 && SCMemcmp("227 ", state->current_line, 4) == 0) {
+            FTPParsePassiveResponse(f, ftp_state, state->current_line, state->current_line_len);
         }
     }
 
     if (state->command == FTP_COMMAND_EPSV) {
-        if (input_len >= 4 && SCMemcmp("229 ", input, 4) == 0) {
-            FTPParsePassiveResponseV6(f, ftp_state, input, input_len);
+        if (state->current_line_len >= 4 && SCMemcmp("229 ", state->current_line, 4) == 0) {
+            FTPParsePassiveResponseV6(f, ftp_state, state->current_line, state->current_line_len);
         }
     }
 
-    if (likely(input_len)) {
+    if (likely(state->current_line_len)) {
         FTPString *response = FTPStringAlloc();
         if (likely(response)) {
-            response->len = CopyCommandLine(&response->str, input, input_len);
+            response->len = CopyCommandLine(&response->str, state->current_line, state->current_line_len);
             TAILQ_INSERT_TAIL(&tx->response_list, response, next);
         }
     }
 
     /* Handle preliminary replies -- keep tx open */
-    if (FTPIsPPR(input, input_len)) {
-        SCReturnStruct(APP_LAYER_OK);
+    if (FTPIsPPR(state->current_line, state->current_line_len)) {
+        continue;
     }
-
 tx_complete:
     tx->done = true;
+    }
+
     SCReturnStruct(APP_LAYER_OK);
 }
 
