@@ -997,13 +997,13 @@ static int FTPGetAlstateProgress(void *vtx, uint8_t direction)
     SCLogDebug("tx %p", vtx);
     FTPTransaction *tx = vtx;
 
-    if (direction == STREAM_TOSERVER &&
-        tx->command_descriptor->command == FTP_COMMAND_PORT) {
-        return FTP_STATE_PORT_DONE;
-    }
-
-    if (!tx->done)
+    if (!tx->done) {
+        if (direction == STREAM_TOSERVER &&
+            tx->command_descriptor->command == FTP_COMMAND_PORT) {
+            return FTP_STATE_PORT_DONE;
+        }
         return FTP_STATE_IN_PROGRESS;
+    }
 
     return FTP_STATE_FINISHED;
 }
