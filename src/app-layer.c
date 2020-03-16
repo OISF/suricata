@@ -302,6 +302,7 @@ static int TCPProtoDetect(ThreadVars *tv,
 {
     AppProto *alproto;
     AppProto *alproto_otherdir;
+    int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     if (flags & STREAM_TOSERVER) {
         alproto = &f->alproto_ts;
@@ -367,6 +368,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             } else {
                 *stream = &ssn->client;
             }
+            direction = 1 - direction;
         }
 
         /* account flow if we have both sides */
@@ -446,8 +448,11 @@ static int TCPProtoDetect(ThreadVars *tv,
         int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
         PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-        if (r < 0)
+        if (r < 0) {
             goto failure;
+        } else if (r == 0) {
+            StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
+        }
     } else {
         /* if the ssn is midstream, we may end up with a case where the
          * start of an HTTP request is missing. We won't detect HTTP based
@@ -516,6 +521,9 @@ static int TCPProtoDetect(ThreadVars *tv,
                             f->alproto, flags,
                             data, data_len);
                     PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+                    if (r == 0) {
+                        StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
+                    }
 
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                             APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
@@ -575,6 +583,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         goto end;
     }
 
+    const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+
     if (flags & STREAM_TOSERVER) {
         alproto = f->alproto_ts;
     } else {
@@ -597,6 +607,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 flags, data, data_len);
         PACKET_PROFILING_APP_END(app_tctx, f->alproto);
         /* ignore parser result for gap */
+        StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         goto end;
     }
 
@@ -654,6 +665,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                                     flags, data, data_len);
             PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+            if (r == 0) {
+                StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
+            }
         }
     }
 
