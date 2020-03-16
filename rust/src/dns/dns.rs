@@ -512,8 +512,8 @@ impl DNSState {
     /// Returns the number of messages parsed.
     pub fn parse_request_tcp(&mut self, input: &[u8]) -> i8 {
         if self.gap {
-            let (is_dns, _) = probe_tcp(input);
-            if is_dns {
+            let (is_dns, _, is_incomplete) = probe_tcp(input);
+            if is_dns || is_incomplete{
                 self.gap = false;
             } else {
                 return 0
@@ -553,8 +553,8 @@ impl DNSState {
     /// Returns the number of messages parsed.
     pub fn parse_response_tcp(&mut self, input: &[u8]) -> i8 {
         if self.gap {
-            let (is_dns, _) = probe_tcp(input);
-            if is_dns {
+            let (is_dns, _, is_incomplete) = probe_tcp(input);
+            if is_dns || is_incomplete{
                 self.gap = false;
             } else {
                 return 0
@@ -613,14 +613,18 @@ fn probe(input: &[u8]) -> (bool, bool) {
 }
 
 /// Probe TCP input to see if it looks like DNS.
-pub fn probe_tcp(input: &[u8]) -> (bool, bool) {
+pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
     match be_u16(input) as IResult<&[u8],_> {
         Ok((rem, _)) => {
-            return probe(rem);
+            let r = probe(rem);
+            return (r.0, r.1, false);
         },
+        Err(nom::Err::Incomplete(_)) => {
+            return (false, false, true);
+        }
         _ => {}
     }
-    return (false, false);
+    return (false, false, false);
 }
 
 /// Returns *mut DNSState
@@ -962,7 +966,8 @@ pub extern "C" fn rs_dns_probe_tcp(
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    let (is_dns, is_request) = probe_tcp(slice);
+    //is_incomplete is checked by caller
+    let (is_dns, is_request, _) = probe_tcp(slice);
     if is_dns {
         let dir = if is_request {
             core::STREAM_TOSERVER
