@@ -44,5 +44,7 @@ void FlowBitUnset(Flow *, uint32_t);
 void FlowBitToggle(Flow *, uint32_t);
 int FlowBitIsset(Flow *, uint32_t);
 int FlowBitIsnotset(Flow *, uint32_t);
+int FlowBitIssetFromArray(Flow *, uint32_t *, uint8_t);
+int FlowBitIsnotsetFromArray(Flow *, uint32_t *, uint8_t);
 #endif /* __FLOW_BIT_H__ */
 

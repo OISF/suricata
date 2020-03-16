@@ -24,6 +24,8 @@
 #ifndef __UTIL_VAR_NAME_H__
 #define __UTIL_VAR_NAME_H__
 
+#include "util-bloomfilter.h"
+
 int VarNameStoreSetupStaging(uint32_t de_ctx_version);
 const char *VarNameStoreLookupById(const uint32_t id, const enum VarTypes type);
 uint32_t VarNameStoreLookupByName(const char *name, const enum VarTypes type);
@@ -32,6 +34,8 @@ char *VarNameStoreSetupLookup(uint32_t idx, const enum VarTypes type);
 void VarNameStoreActivateStaging(void);
 void VarNameStoreFreeOld(void);
 void VarNameStoreFree(uint32_t de_ctx_version);
+BloomFilter *VariableStoreGetBloomFilter(void);
+void VariableStoreAddToBloomFilter(const char *);
 
 #endif
 

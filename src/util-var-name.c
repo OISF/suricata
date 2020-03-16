@@ -27,6 +27,7 @@
 #include "detect.h"
 #include "util-hashlist.h"
 #include "util-var-name.h"
+#include "util-bloomfilter.h"
 
 /* the way this can be used w/o locking lookups:
  * - Lookups use only g_varnamestore_current which is read only
@@ -43,6 +44,7 @@ typedef struct VarNameStore_ {
     HashListTable *ids;
     uint32_t max_id;
     uint32_t de_ctx_version;    /**< de_ctx version 'owning' this */
+    BloomFilter *bloomf;
 } VarNameStore;
 
 static int initialized = 0;
@@ -67,6 +69,42 @@ typedef struct VariableName_ {
 
 #define VARNAME_HASHSIZE 0x1000
 #define VARID_HASHSIZE 0x1000
+
+static uint32_t BloomHash(const void *data, u_int16_t datalen, u_int8_t iter, uint32_t hash_size) {
+     uint8_t *d = (uint8_t *)data;
+     uint32_t i;
+     uint32_t hash = 0;
+
+     for (i = 0; i < datalen; i++) {
+         if (i == 0)      hash += (((uint32_t)*d++));
+         else if (i == 1) hash += (((uint32_t)*d++) * datalen);
+         else             hash *= (((uint32_t)*d++) * i);
+     }
+
+     hash *= (iter + datalen);
+     hash %= hash_size;
+     return hash;
+}
+
+BloomFilter *VariableStoreGetBloomFilter(void)
+{
+    VarNameStore *current = SC_ATOMIC_GET(g_varnamestore_current);
+    BUG_ON(current == NULL);
+    return current->bloomf;
+}
+
+void VariableStoreAddToBloomFilter(const char *idx)
+{
+    SCLogInfo("Inside VariableStoreAddToBloomFilter");
+    VarNameStore *current = SC_ATOMIC_GET(g_varnamestore_current);
+    BUG_ON(current == NULL);
+    SCMutexLock(&g_varnamestore_staging_m);
+    if (BloomFilterTest(current->bloomf, idx, strlen(idx)) == 0) {
+        SCLogInfo("Adding to bloomfilter, idx: %s", idx);
+        BloomFilterAdd(current->bloomf, idx, strlen(idx));
+    }
+    SCMutexUnlock(&g_varnamestore_staging_m);
+}
 
 static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen)
 {
@@ -148,6 +186,14 @@ static VarNameStore *VarNameStoreInit(void)
     v->ids = HashListTableInit(VARID_HASHSIZE, VariableIdxHash, VariableIdxCompare, NULL);
     if (v->ids == NULL) {
         HashListTableFree(v->names);
+        SCFree(v);
+        return NULL;
+    }
+
+    v->bloomf = BloomFilterInit(1024, 4, BloomHash);
+    if (v->bloomf == NULL) {
+        HashListTableFree(v->names);
+        HashListTableFree(v->ids);
         SCFree(v);
         return NULL;
     }
@@ -261,6 +307,7 @@ int VarNameStoreSetupStaging(uint32_t de_ctx_version)
 
     VarNameStore *nv = VarNameStoreInit();
     if (nv == NULL) {
+        SCLogInfo("<<< VarNameStoreInit failed");
         SCMutexUnlock(&g_varnamestore_staging_m);
         return -1;
     }
@@ -269,6 +316,7 @@ int VarNameStoreSetupStaging(uint32_t de_ctx_version)
 
     VarNameStore *current = SC_ATOMIC_GET(g_varnamestore_current);
     if (current) {
+        SCLogInfo("Inside current block");
         /* add all entries from the current hash into this new one. */
         HashListTableBucket *b = HashListTableGetListHead(current->names);
         while (b) {

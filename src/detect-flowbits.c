@@ -44,6 +44,7 @@
 #include "util-var-name.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-bloomfilter.h"
 
 #define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
 static DetectParseRegex parse_regex;
@@ -141,14 +142,9 @@ static int DetectFlowbitMatchIsset (Packet *p, const DetectFlowbitsData *fd)
     if (p->flow == NULL)
         return 0;
     if (fd->or_list_size > 0) {
-        for (uint8_t i = 0; i < fd->or_list_size; i++) {
-            if (FlowBitIsset(p->flow, fd->or_list[i]) == 1)
-                return 1;
-        }
-        return 0;
+        return FlowBitIssetFromArray(p->flow, fd->or_list, fd->or_list_size);
     }
-
-    return FlowBitIsset(p->flow,fd->idx);
+    return FlowBitIsset(p->flow, fd->idx);
 }
 
 static int DetectFlowbitMatchIsnotset (Packet *p, const DetectFlowbitsData *fd)
@@ -156,13 +152,9 @@ static int DetectFlowbitMatchIsnotset (Packet *p, const DetectFlowbitsData *fd)
     if (p->flow == NULL)
         return 0;
     if (fd->or_list_size > 0) {
-        for (uint8_t i = 0; i < fd->or_list_size; i++) {
-            if (FlowBitIsnotset(p->flow, fd->or_list[i]) == 1)
-                return 1;
-        }
-        return 0;
+        return FlowBitIsnotsetFromArray(p->flow, fd->or_list, fd->or_list_size);
     }
-    return FlowBitIsnotset(p->flow,fd->idx);
+    return FlowBitIsnotset(p->flow, fd->idx);
 }
 
 /*
