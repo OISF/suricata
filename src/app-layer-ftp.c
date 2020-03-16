@@ -544,24 +544,34 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
 {
     FtpState *state = (FtpState *)ftp_state;
 
-    if (state->command == FTP_COMMAND_AUTH_TLS) {
-        if (input_len >= 4 && SCMemcmp("234 ", input, 4) == 0) {
-            AppLayerRequestProtocolTLSUpgrade(f);
+    state->input = input;
+    state->input_len = input_len;
+    /* toclient stream */
+    state->direction = 1;
+
+    while (FTPGetLine(state) >= 0) {
+        switch (state->command) {
+            case FTP_COMMAND_AUTH_TLS:
+                if (state->current_line_len >= 4 && SCMemcmp("234 ", state->current_line, 4) == 0) {
+                    AppLayerRequestProtocolTLSUpgrade(f);
+                }
+                break;
+
+            case FTP_COMMAND_PASV:
+                if (state->current_line_len >= 4 && SCMemcmp("227 ", state->current_line, 4) == 0) {
+                    FTPParsePassiveResponse(f, ftp_state, state->current_line, state->current_line_len);
+                }
+                break;
+
+            case FTP_COMMAND_EPSV:
+                if (state->current_line_len >= 4 && SCMemcmp("229 ", state->current_line, 4) == 0) {
+                    FTPParsePassiveResponseV6(f, ftp_state, state->current_line, state->current_line_len);
+                }
+                break;
+            default:
+                break;
         }
     }
-
-    if (state->command == FTP_COMMAND_PASV) {
-        if (input_len >= 4 && SCMemcmp("227 ", input, 4) == 0) {
-            FTPParsePassiveResponse(f, ftp_state, input, input_len);
-        }
-    }
-
-    if (state->command == FTP_COMMAND_EPSV) {
-        if (input_len >= 4 && SCMemcmp("229 ", input, 4) == 0) {
-            FTPParsePassiveResponseV6(f, ftp_state, input, input_len);
-        }
-    }
-
     return 1;
 }
 
