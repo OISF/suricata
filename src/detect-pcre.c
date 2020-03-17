@@ -943,7 +943,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
             DETECT_CONTENT, DETECT_PCRE, -1);
     if (s->init_data->list == DETECT_SM_LIST_NOTSET && prev_pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre with /R (relative) needs "
-                "preceeding match in the same buffer");
+                "preceding match in the same buffer");
         goto error_nofree;
     /* null is allowed when we use a sticky buffer */
     } else if (prev_pm == NULL)
@@ -1468,7 +1468,7 @@ static int DetectPcreParseTest19(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert tcp any any -> any any "
-                               "(msg:\"Testing pcre relativie http_client_body\"; "
+                               "(msg:\"Testing pcre relative http_client_body\"; "
                                "content:\"test\"; "
                                "http_client_body; pcre:\"/abc/RP\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
