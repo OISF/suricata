@@ -658,7 +658,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 }
 
 static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
-                                      Packet *p, enum StreamUpdateDir dir)
+                                      Packet *p)
 {
     uint8_t flag = 0;
 
@@ -678,20 +678,11 @@ static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
         flag |= STREAM_EOF;
     }
 
-    if (dir == UPDATE_DIR_OPPOSING) {
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            flag |= STREAM_TOCLIENT;
-        } else {
-            flag |= STREAM_TOSERVER;
-        }
+    if (&ssn->client == stream) {
+        flag |= STREAM_TOSERVER;
     } else {
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            flag |= STREAM_TOSERVER;
-        } else {
-            flag |= STREAM_TOCLIENT;
-        }
+        flag |= STREAM_TOCLIENT;
     }
-
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
         flag |= STREAM_DEPTH;
     }
@@ -1029,7 +1020,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
             int r = AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                     NULL, mydata_len,
-                    StreamGetAppLayerFlags(ssn, *stream, p, dir)|STREAM_GAP);
+                    StreamGetAppLayerFlags(ssn, *stream, p)|STREAM_GAP);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
@@ -1102,7 +1093,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     /* update the app-layer */
     (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
             (uint8_t *)mydata, mydata_len,
-            StreamGetAppLayerFlags(ssn, *stream, p, dir));
+            StreamGetAppLayerFlags(ssn, *stream, p));
     AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
     SCReturnInt(0);
@@ -1149,7 +1140,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             /* send EOF to app layer */
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, &stream,
                                   NULL, 0,
-                                  StreamGetAppLayerFlags(ssn, stream, p, dir));
+                                  StreamGetAppLayerFlags(ssn, stream, p));
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             SCReturnInt(0);
