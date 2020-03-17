@@ -54,15 +54,12 @@ impl NFSState {
         }
 
         let file_handle = fh.to_vec();
-        let file_name = match self.namemap.get(fh) {
-            Some(n) => {
-                SCLogDebug!("WRITE name {:?}", n);
-                n.to_vec()
-            },
-            None => {
-                SCLogDebug!("WRITE object {:?} not found", w.stateid.data);
-                Vec::new()
-            },
+        let file_name = if let Some(name) = self.namemap.get(fh) {
+            SCLogDebug!("WRITE name {:?}", name);
+            name.to_vec()
+        } else {
+            SCLogDebug!("WRITE object {:?} not found", w.stateid.data);
+            Vec::new()
         };
 
         let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
@@ -80,7 +77,7 @@ impl NFSState {
                 }
                 true
             },
-            None => { false },
+            None => false,
         };
         if !found {
             let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, STREAM_TOSERVER);
@@ -109,16 +106,13 @@ impl NFSState {
         SCLogDebug!("COMMIT, closing shop");
 
         let file_handle = fh.to_vec();
-        match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
-            Some((tx, files, flags)) => {
-                if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    tdf.file_tracker.close(files, flags);
-                    tdf.file_last_xid = r.hdr.xid;
-                    tx.is_last = true;
-                    tx.request_done = true;
-                }
+        if let Some((tx, files, flags)) = self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
+            if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                tdf.file_tracker.close(files, flags);
+                tdf.file_last_xid = r.hdr.xid;
+                tx.is_last = true;
+                tx.request_done = true;
             }
-            None => {},
         }
     }
 
@@ -286,7 +280,7 @@ impl NFSState {
         }
 
         self.requestmap.insert(r.hdr.xid, xidmap);
-        0
+        return 0;
     }
 
     fn compound_response<'b>(&mut self, r: &RpcReplyPacket<'b>,
@@ -409,6 +403,6 @@ impl NFSState {
                 },
             };
         }
-        0
+        return 0;
     }
 }

@@ -91,7 +91,7 @@ impl NFSState {
 
         SCLogDebug!("NFSv2: TS creating xidmap {}", r.hdr.xid);
         self.requestmap.insert(r.hdr.xid, xidmap);
-        0
+        return 0;
     }
 
     pub fn process_reply_record_v2<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &NFSRequestXidMap) -> u32 {
@@ -110,11 +110,9 @@ impl NFSState {
                 },
             }
         } else {
-            let stat = match be_u32(&r.prog_data) as IResult<&[u8],_> {
-                Ok((_, stat)) => {
-                    stat as u32
-                }
-                _ => 0 as u32
+            let stat : u32 = match be_u32(&r.prog_data) as IResult<&[u8],_> {
+                Ok((_, stat)) => stat,
+                _ => 0
             };
             nfs_status = stat;
         }
@@ -122,7 +120,6 @@ impl NFSState {
                 r.hdr.xid, xidmap.procedure, r.prog_data.len());
 
         self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status, &resp_handle);
-
-        0
+        return 0;
     }
 }

@@ -657,15 +657,12 @@ impl NFSState {
         }
 
         let file_handle = w.handle.value.to_vec();
-        let file_name = match self.namemap.get(w.handle.value) {
-            Some(n) => {
-                SCLogDebug!("WRITE name {:?}", n);
-                n.to_vec()
-            },
-            None => {
-                SCLogDebug!("WRITE object {:?} not found", w.handle.value);
-                Vec::new()
-            },
+        let file_name = if let Some(name) = self.namemap.get(w.handle.value) {
+            SCLogDebug!("WRITE name {:?}", name);
+            name.to_vec()
+        } else {
+            SCLogDebug!("WRITE object {:?} not found", w.handle.value);
+            Vec::new()
         };
 
         let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
@@ -912,10 +909,8 @@ impl NFSState {
 
         if nfs_version == 2 {
             let size = match parse_nfs2_attribs(reply.attr_blob) {
-                Ok((_, ref attr)) => {
-                    attr.asize
-                },
-                _ => { 0 },
+                Ok((_, ref attr)) => attr.asize,
+                _ => 0,
             };
             SCLogDebug!("NFSv2 READ reply record: File size {}. Offset {} data len {}: total {}",
                     size, chunk_offset, reply.data_len, chunk_offset + reply.data_len as u64);
@@ -1003,13 +998,12 @@ impl NFSState {
     }
 
     fn peek_reply_record(&mut self, r: &RpcPacketHeader) -> u32 {
-        let xidmap;
-        match self.requestmap.get(&r.xid) {
-            Some(p) => { xidmap = p; },
-            _ => { SCLogDebug!("REPLY: xid {} NOT FOUND", r.xid); return 0; },
+        if let Some(xidmap) = self.requestmap.get(&r.xid) {
+            return xidmap.procedure;
+        } else {
+            SCLogDebug!("REPLY: xid {} NOT FOUND", r.xid);
+            return 0;
         }
-
-        xidmap.procedure
     }
 
     pub fn parse_tcp_data_ts_gap<'b>(&mut self, gap_size: u32) -> u32 {
