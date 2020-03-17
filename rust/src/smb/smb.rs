@@ -705,8 +705,8 @@ impl SMBCommonHdr {
 
     // don't include tree id
     pub fn compare(&self, hdr: &SMBCommonHdr) -> bool {
-        (self.rec_type == hdr.rec_type && self.ssn_id == hdr.ssn_id &&
-         self.msg_id == hdr.msg_id)
+        self.rec_type == hdr.rec_type && self.ssn_id == hdr.ssn_id &&
+            self.msg_id == hdr.msg_id
     }
 }
 
