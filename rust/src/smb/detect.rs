@@ -153,16 +153,16 @@ fn match_version(op: u8, them: u16, us: u16) -> bool {
             true
         },
         1 => { // LT
-            (them < us)
+            them < us
         },
         2 => { // GT
-            (them > us)
+            them > us
         },
         3 => { // EQ
-            (them == us)
+            them == us
         },
         4 => { // NE
-            (them != us)
+            them != us
         },
         _ => {
             panic!("called with invalid op {}", op);
