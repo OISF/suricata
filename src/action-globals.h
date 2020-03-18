@@ -32,5 +32,6 @@
 #define ACTION_REJECT_DST   0x08
 #define ACTION_REJECT_BOTH  0x10
 #define ACTION_PASS         0x20
+#define ACTION_CONFIG       0x40
 
 #endif /* __ACTION_GLOBALS_H__ */
