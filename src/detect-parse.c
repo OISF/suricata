@@ -1019,6 +1019,9 @@ static int SigParseAction(Signature *s, const char *action)
             return -1;
         s->action = ACTION_REJECT_BOTH|ACTION_DROP;
         return 0;
+    } else if (strcasecmp(action, "config") == 0) {
+        s->action = ACTION_CONFIG;
+        return 0;
     } else {
         SCLogError(SC_ERR_INVALID_ACTION,"An invalid action \"%s\" was given",action);
         return -1;
