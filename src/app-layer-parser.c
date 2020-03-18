@@ -124,6 +124,7 @@ typedef struct AppLayerParserProtoCtx_
 
     uint64_t (*GetTxDetectFlags)(void *tx, uint8_t dir);
     void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t);
+    AppLayerTxData *(*GetTxData)(void *tx);
 
     void (*SetStreamDepthFlag)(void *tx, uint8_t flags);
 
@@ -597,6 +598,16 @@ void AppLayerParserRegisterDetectFlagsFuncs(uint8_t ipproto, AppProto alproto,
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectFlags = GetTxDetectFlags;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectFlags = SetTxDetectFlags;
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
+        AppLayerTxData *(*GetTxData)(void *tx))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxData = GetTxData;
 
     SCReturn;
 }
@@ -1174,6 +1185,13 @@ void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx,
         alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectFlags(tx, dir, flags);
     }
     SCReturn;
+}
+
+AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx)
+{
+    SCEnter();
+    AppLayerTxData *d = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxData(tx);
+    SCReturnPtr(d, "AppLayerTxData");
 }
 
 /***** General *****/
