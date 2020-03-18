@@ -74,8 +74,6 @@ jobs:
         run: cargo install --force cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
-      - name: Bundling libhtp
-        run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - name: Bundling suricata-update
         run: |
           curl -L \
@@ -250,7 +248,6 @@ jobs:
         run: cargo install --force cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
-      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
       - run: make -j2
@@ -318,7 +315,6 @@ jobs:
         run: cargo install --force cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
-      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
       - run: ./configure --enable-unittests --enable-coccinelle
       - run: make -j2
@@ -444,8 +440,6 @@ jobs:
         run: cargo install --force cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
-      - name: Bundling libhtp
-        run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - name: Bundling suricata-update
         run: |
           curl -L \
@@ -507,8 +501,6 @@ jobs:
       - name: Install cbindgen
         run: cargo install --force cbindgen
       - uses: actions/checkout@v1
-      - name: Bundling libhtp
-        run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - name: Bundling suricata-update
         run: |
           curl -L \
@@ -558,7 +550,6 @@ jobs:
       - run: echo "::add-path::$HOME/.cargo/bin"
       - run: pip install PyYAML
       - uses: actions/checkout@v1
-      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
       - run: make -j2
