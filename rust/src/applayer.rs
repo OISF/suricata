@@ -25,6 +25,46 @@ use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
 
 #[repr(C)]
+#[derive(Debug,PartialEq)]
+pub struct AppLayerTxConfig {
+    /// config: log flags
+    log_flags: u8,
+}
+
+impl AppLayerTxConfig {
+    pub fn new() -> Self {
+        Self {
+            log_flags: 0,
+        }
+    }
+
+    pub fn add_log_flags(&mut self, flags: u8) {
+        self.log_flags |= flags;
+    }
+    pub fn set_log_flags(&mut self, flags: u8) {
+        self.log_flags = flags;
+    }
+    pub fn get_log_flags(&self) -> u8 {
+        self.log_flags
+    }
+}
+
+#[repr(C)]
+#[derive(Debug,PartialEq)]
+pub struct AppLayerTxData {
+    /// config: log flags
+    config: AppLayerTxConfig,
+}
+
+impl AppLayerTxData {
+    pub fn new() -> Self {
+        Self {
+            config: AppLayerTxConfig::new(),
+        }
+    }
+}
+
+#[repr(C)]
 #[derive(Debug,PartialEq,Copy,Clone)]
 pub struct AppLayerResult {
     pub status: i32,
@@ -169,6 +209,8 @@ pub struct RustParser {
 
     // Function to get TX detect flags.
     pub get_tx_detect_flags: Option<GetTxDetectFlagsFn>,
+
+    pub get_tx_data: Option<GetTxDataFn>,
 }
 
 /// Create a slice, given a buffer and a length
@@ -220,6 +262,7 @@ pub type GetTxIteratorFn    = extern "C" fn (ipproto: u8, alproto: AppProto,
                                              -> AppLayerGetTxIterTuple;
 pub type GetTxDetectFlagsFn = unsafe extern "C" fn(*mut c_void, u8) -> u64;
 pub type SetTxDetectFlagsFn = unsafe extern "C" fn(*mut c_void, u8, u64);
+pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerTxData;
 
 // Defined in app-layer-register.h
 extern {

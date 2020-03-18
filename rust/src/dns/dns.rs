@@ -263,6 +263,7 @@ pub struct DNSTransaction {
     pub logged: LoggerFlags,
     pub de_state: Option<*mut core::DetectEngineState>,
     pub events: *mut core::AppLayerDecoderEvents,
+    pub tx_data: AppLayerTxData,
 }
 
 impl DNSTransaction {
@@ -277,6 +278,7 @@ impl DNSTransaction {
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
+            tx_data: AppLayerTxData::new(),
         }
     }
 
@@ -864,6 +866,15 @@ pub extern "C" fn rs_dns_state_get_events(tx: *mut std::os::raw::c_void)
 }
 
 #[no_mangle]
+pub extern "C" fn rs_dns_state_get_tx_data(
+    tx: *mut std::os::raw::c_void)
+    -> *mut AppLayerTxData
+{
+    let tx = cast_pointer!(tx, DNSTransaction);
+    return &mut tx.tx_data;
+}
+
+#[no_mangle]
 pub extern "C" fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
                                        i: u16,
                                        buf: *mut *const u8,
@@ -1021,6 +1032,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         set_tx_detect_flags: Some(rs_dns_tx_set_detect_flags),
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
+        get_tx_data: Some(rs_dns_state_get_tx_data),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
@@ -1066,6 +1078,7 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         set_tx_detect_flags: Some(rs_dns_tx_set_detect_flags),
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
+        get_tx_data: Some(rs_dns_state_get_tx_data),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
