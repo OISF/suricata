@@ -682,6 +682,7 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_tx_iterator    : None,
         get_tx_detect_flags: Some(rs_krb5_tx_detect_flags_get),
         set_tx_detect_flags: Some(rs_krb5_tx_detect_flags_set),
+        get_tx_data        : None,
     };
     // register UDP parser
     let ip_proto_str = CString::new("udp").unwrap();
