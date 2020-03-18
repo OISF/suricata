@@ -210,6 +210,14 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         tx_id = ires.tx_id;
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
 
+        if (txd) {
+            SCLogNotice("tx %p/%"PRIu64" txd %p: log_flags %x", tx, tx_id, txd, txd->config.log_flags);
+            if (txd->config.log_flags & BIT_U8(CONFIG_TYPE_TX)) {
+                SCLogNotice("SKIP tx %p/%"PRIu64, tx, tx_id);
+                goto next_tx;
+            }
+        }
+
         if (list[ALPROTO_UNKNOWN] != 0) {
             OutputTxLogList0(tv, op_thread_data, p, f, tx, tx_id);
             if (list[alproto] == NULL)
