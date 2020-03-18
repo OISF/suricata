@@ -38,6 +38,7 @@
 #include "app-layer-htp-mem.h"
 #include "detect-engine-state.h"
 #include "util-streaming-buffer.h"
+#include "rust.h"
 
 #include <htp/htp.h>
 
@@ -242,6 +243,7 @@ typedef struct HtpTxUserData_ {
     uint8_t request_body_type;
 
     DetectEngineState *de_state;
+    AppLayerTxData tx_data;
 } HtpTxUserData;
 
 typedef struct HtpState_ {
