@@ -3129,6 +3129,16 @@ static void HTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags)
     return;
 }
 
+static AppLayerTxData *HTPGetTxData(void *vtx)
+{
+    htp_tx_t *tx = (htp_tx_t *)vtx;
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    if (tx_ud) {
+        return &tx_ud->tx_data;
+    }
+    return NULL;
+}
+
 static int HTPRegisterPatternsForProtocolDetection(void)
 {
     const char *methods[] = { "GET", "PUT", "POST", "HEAD", "TRACE", "OPTIONS",
@@ -3218,6 +3228,7 @@ void RegisterHTPParsers(void)
                                                HTPGetTxDetectState, HTPSetTxDetectState);
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_HTTP,
                                                HTPGetTxDetectFlags, HTPSetTxDetectFlags);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPGetTxData);
 
         AppLayerParserRegisterSetStreamDepthFlag(IPPROTO_TCP, ALPROTO_HTTP,
                                                  AppLayerHtpSetStreamDepthFlag);
