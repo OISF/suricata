@@ -35,3 +35,8 @@ ipsec-parser = "0.5"
 snmp-parser = "0.5"
 tls-parser = "0.9"
 x509-parser = "0.6"
+
+http-parser = { git = "https://github.com/jasonish/http-parser-rs" }
+
+# Useful if developing against a locally modified http-parser-rs.
+#http-parser = { path = "../../../http-parser-rs" }
