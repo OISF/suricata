@@ -724,6 +724,7 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         get_tx_iterator: Some(rs_rfb_state_get_tx_iterator),
         get_tx_detect_flags: Some(rs_rfb_get_tx_detect_flags),
         set_tx_detect_flags: Some(rs_rfb_set_tx_detect_flags),
+        get_tx_data: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
