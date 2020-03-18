@@ -7,3 +7,4 @@ Suricata Developer Guide
 
    code-submission-process
    code-style
+   app-layer/index.rst
