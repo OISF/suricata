@@ -441,6 +441,7 @@ util-byte.c util-byte.h \
 util-checksum.c util-checksum.h \
 util-cidr.c util-cidr.h \
 util-classification-config.c util-classification-config.h \
+util-config.h \
 util-conf.c util-conf.h \
 util-coredump-config.c util-coredump-config.h \
 util-cpu.c util-cpu.h \
