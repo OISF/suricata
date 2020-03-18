@@ -38,6 +38,7 @@
 #include "app-layer-htp-mem.h"
 #include "detect-engine-state.h"
 #include "util-streaming-buffer.h"
+#include "rust.h"
 
 #include <htp/htp.h>
 
@@ -204,19 +205,12 @@ typedef struct HtpBody_ {
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */
 typedef struct HtpTxUserData_ {
-    /** detection engine flags */
-    uint64_t detect_flags_ts;
-    uint64_t detect_flags_tc;
-
     /* Body of the request (if any) */
     uint8_t request_body_init;
     uint8_t response_body_init;
 
     uint8_t request_has_trailers;
     uint8_t response_has_trailers;
-
-    /* indicates which loggers that have logged */
-    uint32_t logged;
 
     HtpBody request_body;
     HtpBody response_body;
@@ -242,6 +236,7 @@ typedef struct HtpTxUserData_ {
     uint8_t request_body_type;
 
     DetectEngineState *de_state;
+    AppLayerTxData tx_data;
 } HtpTxUserData;
 
 typedef struct HtpState_ {
