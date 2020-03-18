@@ -34,6 +34,8 @@ extern crate kerberos_parser;
 extern crate tls_parser;
 extern crate x509_parser;
 
+pub mod libhtp_stub;
+
 #[macro_use]
 pub mod log;
 
