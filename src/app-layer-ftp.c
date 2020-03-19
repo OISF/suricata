@@ -626,6 +626,16 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
         tx->request_length = CopyCommandLine(&tx->request, state->current_line, state->current_line_len);
         tx->request_truncated = state->current_line_truncated;
 
+        /* change direction (default to server) so expectation will handle
+         * the correct message when expectation will match.
+         * For ftp active mode, data connection direction is opposite to
+         * control direction.
+         */
+        if ((state->active && state->command == FTP_COMMAND_STOR) ||
+                (!state->active && state->command == FTP_COMMAND_RETR)) {
+            direction = STREAM_TOCLIENT;
+        }
+
         switch (state->command) {
             case FTP_COMMAND_EPRT:
                 // fallthrough
@@ -650,10 +660,6 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                 state->port_line_len = state->current_line_len;
                 break;
             case FTP_COMMAND_RETR:
-                /* change direction (default to server) so expectation will handle
-                 * the correct message when expectation will match.
-                 */
-                direction = STREAM_TOCLIENT;
                 // fallthrough
             case FTP_COMMAND_STOR:
                 {
@@ -687,7 +693,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                         SCReturnInt(-1);
                     } else {
                         SCLogDebug("Expectation created [direction: %s, dynamic port %"PRIu16"].",
-                            state->active ? "to server" : "to client",
+                            (direction & STREAM_TOSERVER) ? "to server" : "to client",
                             state->dyn_port);
                     }
 
