@@ -176,13 +176,10 @@ impl RFBState {
                                 self.state = parser::RFBGlobalState::TCSupportedSecurityTypes;
                             }
 
-                            match self.get_current_tx() {
-                                Some(current_transaction) => {
-                                    current_transaction.ts_client_protocol_version = Some(request);
-                                }
-                                _ => {
-                                    return AppLayerResult::err();
-                                }
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.ts_client_protocol_version = Some(request);
+                            } else {
+                                return AppLayerResult::err();
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
@@ -209,14 +206,11 @@ impl RFBState {
                                 _ => return AppLayerResult::err(),
                             }
 
-                            match self.get_current_tx() {
-                                Some(current_transaction) => {
-                                    current_transaction.ts_security_type_selection = Some(request);
-                                    current_transaction.chosen_security_type = Some(chosen_security_type as u32);
-                                }
-                                _ => {
-                                    return AppLayerResult::err();
-                                }
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.ts_security_type_selection = Some(request);
+                                current_transaction.chosen_security_type = Some(chosen_security_type as u32);
+                            } else {
+                                return AppLayerResult::err();
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
@@ -238,13 +232,10 @@ impl RFBState {
 
                             self.state = parser::RFBGlobalState::TCSecurityResult;
 
-                            match self.get_current_tx() {
-                                Some(current_transaction) => {
-                                    current_transaction.ts_vnc_response = Some(request);
-                                }
-                                _ => {
-                                    return AppLayerResult::err();
-                                }
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.ts_vnc_response = Some(request);
+                            } else {
+                                return AppLayerResult::err();
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
@@ -265,13 +256,10 @@ impl RFBState {
                             current = rem;
                             self.state = parser::RFBGlobalState::TCServerInit;
 
-                            match self.get_current_tx() {
-                                Some(current_transaction) => {
-                                    current_transaction.ts_client_init = Some(request);
-                                }
-                                _ => {
-                                    return AppLayerResult::err();
-                                }
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.ts_client_init = Some(request);
+                            } else {
+                                return AppLayerResult::err();
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
@@ -323,13 +311,10 @@ impl RFBState {
                             let tx = self.new_tx();
                             self.transactions.push(tx);
 
-                            match self.get_current_tx() {
-                                Some(current_transaction) => {
-                                    current_transaction.tc_server_protocol_version = Some(request);
-                                }
-                                _ => {
-                                    return AppLayerResult::err();
-                                }
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.tc_server_protocol_version = Some(request);
+                            } else {
+                                return AppLayerResult::err();
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
@@ -358,13 +343,10 @@ impl RFBState {
                                 self.state = parser::RFBGlobalState::TCFailureReason;
                             }
 
-                            match self.get_current_tx() {
-                                Some(current_transaction) => {
-                                    current_transaction.tc_supported_security_types = Some(request);
-                                }
-                                _ => {
-                                    return AppLayerResult::err();
-                                }
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.tc_supported_security_types = Some(request);
+                            } else {
+                                return AppLayerResult::err();
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
@@ -396,14 +378,11 @@ impl RFBState {
                                 }
                             }
 
-                            match self.get_current_tx() {
-                                Some(current_transaction) => {
-                                    current_transaction.tc_server_security_type = Some(request);
-                                    current_transaction.chosen_security_type = Some(chosen_security_type);
-                                }
-                                _ => {
-                                    return AppLayerResult::err();
-                                }
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.tc_server_security_type = Some(request);
+                                current_transaction.chosen_security_type = Some(chosen_security_type);
+                            } else {
+                                return AppLayerResult::err();
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
@@ -425,13 +404,10 @@ impl RFBState {
 
                             self.state = parser::RFBGlobalState::TSVncResponse;
 
-                            match self.get_current_tx() {
-                                Some(current_transaction) => {
-                                    current_transaction.tc_vnc_challenge = Some(request);
-                                }
-                                _ => {
-                                    return AppLayerResult::err();
-                                }
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.tc_vnc_challenge = Some(request);
+                            } else {
+                                return AppLayerResult::err();
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
@@ -454,13 +430,10 @@ impl RFBState {
                             if request.status == 0 {
                                 self.state = parser::RFBGlobalState::TSClientInit;
 
-                                match self.get_current_tx() {
-                                    Some(current_transaction) => {
-                                        current_transaction.tc_security_result = Some(request);
-                                    }
-                                    _ => {
-                                        return AppLayerResult::err();
-                                    }
+                                if let Some(current_transaction) = self.get_current_tx() {
+                                    current_transaction.tc_security_result = Some(request);
+                                } else {
+                                    return AppLayerResult::err();
                                 }
                             } else if request.status == 1 {
                                 self.state = parser::RFBGlobalState::TCFailureReason;
@@ -483,13 +456,10 @@ impl RFBState {
                 parser::RFBGlobalState::TCFailureReason => {
                     match parser::parse_failure_reason(current) {
                         Ok((_rem, request)) => {
-                            match self.get_current_tx() {
-                                Some(current_transaction) => {
-                                    current_transaction.tc_failure_reason = Some(request);
-                                }
-                                _ => {
-                                    return AppLayerResult::err();
-                                }
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.tc_failure_reason = Some(request);
+                            } else {
+                                return AppLayerResult::err();
                             }
                             return AppLayerResult::err();
                         }
@@ -511,15 +481,12 @@ impl RFBState {
                             current = rem;
                             self.state = parser::RFBGlobalState::Message;
 
-                            match self.get_current_tx() {
-                                Some(current_transaction) => {
-                                    current_transaction.tc_server_init = Some(request);
-                                    // connection initialization is complete and parsed
-                                    current_transaction.complete = true;
-                                }
-                                _ => {
-                                    return AppLayerResult::err();
-                                }
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.tc_server_init = Some(request);
+                                // connection initialization is complete and parsed
+                                current_transaction.complete = true;
+                            } else {
+                                return AppLayerResult::err();
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
