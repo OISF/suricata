@@ -246,6 +246,11 @@ jobs:
                 sudo \
                 which \
                 zlib-devel
+      - name: Installing packages to build documentation
+        run: |
+          dnf -y install \
+                python3-sphinx \
+                texlive-scheme-full
       - name: Install cbindgen
         run: cargo install --force cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
@@ -255,6 +260,9 @@ jobs:
       - run: ./configure --enable-unittests
       - run: make -j2
       - run: make check
+      - run: make dist
+      - run: test -e doc/devguide/devguide.pdf
+      - run: test -e doc/userguide/userguide.pdf
       - run: make distcheck
       - name: Fetching suricata-verify
         run: git clone https://github.com/OISF/suricata-verify.git
