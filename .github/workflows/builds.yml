@@ -318,6 +318,15 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
+      - name: Install packages for generating documentation
+        run: |
+          DEBIAN_FRONTEND=noninteractive apt -y install \
+                sphinx-doc \
+                sphinx-common \
+                texlive-latex-base \
+                texlive-fonts-recommended \
+                texlive-fonts-extra \
+                texlive-latex-extra
       - name: Install Coccinelle
         run: |
           add-apt-repository -y ppa:npalix/coccinelle
@@ -333,6 +342,12 @@ jobs:
       - name: Running unit tests and cocci checks
         # Set the concurrency level for cocci.
         run: CONCURRENCY_LEVEL=2 make check
+      - run: make dist
+      - name: Checking that documentation was built
+        run: |
+          test -e doc/devguide/devguide.pdf
+          test -e doc/userguide/userguide.pdf
+          test -e doc/userguide/suricata.1
       - name: Fetching suricata-verify
         run: git clone https://github.com/OISF/suricata-verify.git
       - name: Running suricata-verify
