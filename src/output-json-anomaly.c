@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2019-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -87,14 +87,14 @@ typedef struct JsonAnomalyLogThread_ {
 static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
                                   const Packet *p)
 {
-    bool is_ip_pkt = PKT_IS_IPV4(p) || PKT_IS_IPV6(p);
+    const bool is_ip_pkt = PKT_IS_IPV4(p) || PKT_IS_IPV6(p);
 
     char timebuf[64];
     CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    uint16_t log_type = aft->json_output_ctx->flags;
-    bool log_stream = log_type & LOG_JSON_STREAM_TYPE;
-    bool log_decode = log_type & LOG_JSON_DECODE_TYPE;
+    const uint16_t log_type = aft->json_output_ctx->flags;
+    const bool log_stream = log_type & LOG_JSON_STREAM_TYPE;
+    const bool log_decode = log_type & LOG_JSON_DECODE_TYPE;
     for (int i = 0; i < p->events.cnt; i++) {
         uint8_t event_code = p->events.events[i];
         bool is_decode = EVENT_IS_DECODER_PACKET_ERROR(event_code);
@@ -106,7 +106,6 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
         MemBufferReset(aft->json_buffer);
 
         json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE);
-
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
@@ -249,7 +248,6 @@ static inline bool AnomalyHasPacketAppLayerEvents(const Packet *p)
 
 static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *p)
 {
-
     int rc = TM_ECODE_OK;
 
     /* decode or stream */
