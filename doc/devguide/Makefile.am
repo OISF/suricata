@@ -1,7 +1,15 @@
+EXTRA_DIST = \
+	conf.py \
+	_static \
+	index.rst \
+	code-submission-process.rst \
+	code-style.rst \
+	app-layer
+
 if HAVE_SPHINXBUILD
 
 if HAVE_PDFLATEX
-EXTRA_DIST = devguide.pdf
+EXTRA_DIST += devguide.pdf
 endif
 
 SPHINX_BUILD = sphinx-build -q
