@@ -85,19 +85,13 @@ jobs:
       - name: Configuring
         run: |
           ./autogen.sh
-          ./configure --enable-unittests \
-                --enable-debug \
-                --enable-lua \
-                --enable-geoip \
-                --enable-profiling \
-                --enable-profiling-locks
-      - name: Building
-        run: make -j2
-      - name: Running unittests
-        run: make check
-      - name: Building distribution
+          ./configure
+      - run: make -j2 distcheck
+        env:
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks"
+      - run: test -e doc/userguide/suricata.1
+      - name: Preparing distribution
         run: |
-          make dist
           mkdir dist
           mv suricata-*.tar.gz dist
       - uses: actions/upload-artifact@v1
