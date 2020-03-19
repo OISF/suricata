@@ -7,7 +7,7 @@ noinst_HEADERS = action-globals.h \
     util-validate.h
 bin_PROGRAMS = suricata
 
-suricata_SOURCES = \
+COMMON_SOURCES = \
 alert-debuglog.c alert-debuglog.h \
 alert-fastlog.c alert-fastlog.h \
 alert-prelude.c alert-prelude.h \
@@ -320,7 +320,6 @@ log-stats.c log-stats.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \
 log-tlsstore.c log-tlsstore.h \
-main.c \
 output.c output.h \
 output-file.c output-file.h \
 output-filedata.c output-filedata.h \
@@ -532,6 +531,11 @@ win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h
 
+lib_LTLIBRARIES = libcommon.la
+libcommon_la_SOURCES = $(COMMON_SOURCES)
+
+suricata_SOURCES = main.c
+
 EXTRA_DIST = tests
 
 # set the include path found by configure
@@ -539,8 +543,8 @@ AM_CPPFLAGS = $(all_includes)
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-suricata_LDADD = $(RUST_LDADD)
-suricata_DEPENDENCIES = $(RUST_SURICATA_LIB)
+suricata_LDADD = libcommon.la $(RUST_LDADD)
+suricata_DEPENDENCIES = $(RUST_SURICATA_LIB) libcommon.la
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \
