@@ -200,4 +200,3 @@ before_install:
     rustc --version
 
     cargo install --force cbindgen
-  - ./qa/travis-libhtp.sh
