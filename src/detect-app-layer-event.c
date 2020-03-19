@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -91,18 +91,15 @@ static int DetectEngineAptEventInspect(ThreadVars *tv,
         Flow *f, uint8_t flags, void *alstate,
         void *tx, uint64_t tx_id)
 {
-    AppLayerDecoderEvents *decoder_events = NULL;
     int r = 0;
-    AppProto alproto;
-    DetectAppLayerEventData *aled = NULL;
-
-    alproto = f->alproto;
-    decoder_events = AppLayerParserGetEventsByTx(f->proto, alproto, tx);
+    const AppProto alproto = f->alproto;
+    AppLayerDecoderEvents *decoder_events =
+        AppLayerParserGetEventsByTx(f->proto, alproto, tx);
     if (decoder_events == NULL)
         goto end;
 
     while (1) {
-        aled = (DetectAppLayerEventData *)smd->ctx;
+        DetectAppLayerEventData *aled = (DetectAppLayerEventData *)smd->ctx;
         KEYWORD_PROFILING_START;
 
         if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
@@ -147,12 +144,8 @@ static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
 static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
                                                             AppLayerEventType *event_type)
 {
-    DetectAppLayerEventData *aled;
-
     int event_id = 0;
-    int r = 0;
-
-    r = AppLayerGetPktEventInfo(arg, &event_id);
+    int r = AppLayerGetPktEventInfo(arg, &event_id);
     if (r < 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
                    "supplied with packet based event - \"%s\" that isn't "
@@ -160,27 +153,29 @@ static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
         return NULL;
     }
 
-    aled = SCMalloc(sizeof(DetectAppLayerEventData));
+    DetectAppLayerEventData *aled = SCCalloc(1, sizeof(DetectAppLayerEventData));
     if (unlikely(aled == NULL))
         return NULL;
-    memset(aled,0x00,sizeof(*aled));
     aled->event_id = event_id;
     *event_type = APP_LAYER_EVENT_TYPE_PACKET;
 
     return aled;
 }
 
+/** \retval int 0 ok
+  * \retval int -1 error
+  * \retval int -3 non-fatal error: sig will be rejected w/o raising error
+  */
 static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
                                          uint8_t *ipproto_bitarray,
                                          AppLayerEventType *event_type)
 {
     int event_id = 0;
-    const char *p_idx;
     uint8_t ipproto;
     char alproto_name[MAX_ALPROTO_NAME];
     int r = 0;
 
-    p_idx = strchr(data->arg, '.');
+    const char *p_idx = strchr(data->arg, '.');
     if (strlen(data->arg) > MAX_ALPROTO_NAME) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword is too long or malformed");
         return -1;
@@ -202,7 +197,6 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
     } else {
         r = DetectEngineGetEventInfo(p_idx + 1, &event_id, event_type);
     }
-
     if (r < 0) {
         if (SigMatchStrictEnabled(DETECT_AL_APP_LAYER_EVENT)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
@@ -224,13 +218,10 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
 static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
 {
     /* period index */
-    DetectAppLayerEventData *aled;
-    AppProto alproto;
-    const char *p_idx;
     char alproto_name[MAX_ALPROTO_NAME];
-    int needs_detctx = FALSE;
+    bool needs_detctx = false;
 
-    p_idx = strchr(arg, '.');
+    const char *p_idx = strchr(arg, '.');
     if (strlen(arg) > MAX_ALPROTO_NAME) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword is too long or malformed");
         return NULL;
@@ -238,10 +229,10 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
     /* + 1 for trailing \0 */
     strlcpy(alproto_name, arg, p_idx - arg + 1);
 
-    alproto = AppLayerGetProtoByName(alproto_name);
+    const AppProto alproto = AppLayerGetProtoByName(alproto_name);
     if (alproto == ALPROTO_UNKNOWN) {
         if (!strcmp(alproto_name, "file")) {
-            needs_detctx = TRUE;
+            needs_detctx = true;
         } else {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
                        "supplied with unknown protocol \"%s\"",
@@ -250,17 +241,16 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
         }
     }
 
-    aled = SCMalloc(sizeof(*aled));
+    DetectAppLayerEventData *aled = SCCalloc(1, sizeof(*aled));
     if (unlikely(aled == NULL))
         return NULL;
-    memset(aled, 0x00, sizeof(*aled));
     aled->alproto = alproto;
     aled->arg = SCStrdup(arg);
-    aled->needs_detctx = needs_detctx;
     if (aled->arg == NULL) {
         SCFree(aled);
         return NULL;
     }
+    aled->needs_detctx = needs_detctx;
 
     return aled;
 }
@@ -309,15 +299,13 @@ static int DetectAppLayerEventSetupP2(Signature *s,
 
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectAppLayerEventData *data = NULL;
-    SigMatch *sm = NULL;
     AppLayerEventType event_type;
 
-    data = DetectAppLayerEventParse(arg, &event_type);
+    DetectAppLayerEventData *data = DetectAppLayerEventParse(arg, &event_type);
     if (data == NULL)
-        goto error;
+        SCReturnInt(-1);
 
-    sm = SigMatchAlloc();
+    SigMatch *sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
 
