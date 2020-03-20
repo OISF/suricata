@@ -443,6 +443,8 @@ end:
     return result;
 }
 
+#define MAX_SSH_TEST_SIZE 512
+
 static int SSHParserTest07(void)
 {
     int result = 0;
@@ -452,10 +454,7 @@ static int SSHParserTest07(void)
     Flow *f = NULL;
     Packet *p = NULL;
 
-    uint8_t sshbuf1[] = "SSH-2.";
-    uint32_t sshlen1 = sizeof(sshbuf1) - 1;
-    uint8_t sshbuf2[] = { "0-MySSHClient-0.5.1\r\n"};
-    uint32_t sshlen2 = sizeof(sshbuf2) - 1;
+    char sshbufs[2][MAX_SSH_TEST_SIZE] = {"SSH-2.", "0-MySSHClient-0.5.1\r\n"};
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -476,27 +475,20 @@ static int SSHParserTest07(void)
     FAIL_IF(unlikely(p == NULL));
     p->proto = IPPROTO_TCP;
     p->flow = f;
-    p->flowflags = FLOW_PKT_TOSERVER;
 
     FLOWLOCK_WRLOCK(f);
-    if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, 2, sshbuf1, sshlen1) == -1) {
-        printf("failed to add segment 1: ");
-        goto end;
-    }
-    int r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET);
-    if (r < 0) {
-        printf("StreamTcpReassembleAppLayer failed: ");
-        goto end;
-    }
-
-    if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, sshlen1+2, sshbuf2, sshlen2) == -1) {
-        printf("failed to add segment 1: ");
-        goto end;
-    }
-    r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET);
-    if (r < 0) {
-        printf("StreamTcpReassembleAppLayer failed: ");
-        goto end;
+    uint32_t seq = 2;
+    for (int i=0; i<2; i++) {
+        if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seq, (uint8_t *) sshbufs[i], strlen(sshbufs[i])) == -1) {
+            printf("failed to add segment 1: ");
+            goto end;
+        }
+        seq += strlen(sshbufs[i]);
+        int r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET);
+        if (r < 0) {
+            printf("StreamTcpReassembleAppLayer failed: ");
+            goto end;
+        }
     }
 
     void *ssh_state = f->alstate;
