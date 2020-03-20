@@ -93,6 +93,8 @@ void RegisterSSHParsers(void)
 /* UNITTESTS */
 #ifdef UNITTESTS
 #include "flow-util.h"
+#include "stream-tcp-util.h"
+#include "util-unittest-helper.h"
 
 static int SSHParserTestUtilCheck(const char *protoexp, const char *softexp, void *tx, uint8_t flags) {
     const uint8_t *protocol = NULL;
@@ -444,36 +446,60 @@ end:
 static int SSHParserTest07(void)
 {
     int result = 0;
-    Flow f;
+    TcpReassemblyThreadCtx *ra_ctx = NULL;
+    ThreadVars tv;
+    TcpSession ssn;
+    Flow *f = NULL;
+    Packet *p = NULL;
+
     uint8_t sshbuf1[] = "SSH-2.";
     uint32_t sshlen1 = sizeof(sshbuf1) - 1;
     uint8_t sshbuf2[] = { "0-MySSHClient-0.5.1\r\n"};
     uint32_t sshlen2 = sizeof(sshbuf2) - 1;
-    TcpSession ssn;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.alproto = ALPROTO_SSH;
+    memset(&tv, 0x00, sizeof(tv));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
+    StreamTcpUTSetupSession(&ssn);
+    StreamTcpUTSetupStream(&ssn.server, 1);
+    StreamTcpUTSetupStream(&ssn.client, 1);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOSERVER, sshbuf1, sshlen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+    f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_SSH;
+
+    p = PacketGetFromAlloc();
+    FAIL_IF(unlikely(p == NULL));
+    p->proto = IPPROTO_TCP;
+    p->flow = f;
+    p->flowflags = FLOW_PKT_TOSERVER;
+
+    FLOWLOCK_WRLOCK(f);
+    if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, 2, sshbuf1, sshlen1) == -1) {
+        printf("failed to add segment 1: ");
         goto end;
     }
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
-                            sshbuf2, sshlen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+    int r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET);
+    if (r < 0) {
+        printf("StreamTcpReassembleAppLayer failed: ");
         goto end;
     }
 
-    void *ssh_state = f.alstate;
+    if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, sshlen1+2, sshbuf2, sshlen2) == -1) {
+        printf("failed to add segment 1: ");
+        goto end;
+    }
+    r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET);
+    if (r < 0) {
+        printf("StreamTcpReassembleAppLayer failed: ");
+        goto end;
+    }
+
+    void *ssh_state = f->alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -490,10 +516,11 @@ static int SSHParserTest07(void)
     result = 1;
 
 end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    StreamTcpUTClearSession(&ssn);
+    StreamTcpUTDeinit(ra_ctx);
+    FLOWLOCK_UNLOCK(f);
+    UTHFreeFlow(f);
     return result;
 }
 
