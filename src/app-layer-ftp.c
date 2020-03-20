@@ -730,7 +730,6 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
                             void *local_data, const uint8_t flags)
 {
     FtpState *state = (FtpState *)ftp_state;
-    int retcode = 1;
 
     if (unlikely(input_len == 0)) {
         return 1;
@@ -741,48 +740,40 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
     state->direction = 1;
 
     while (FTPGetLine(state) >= 0) {
-    FTPTransaction *tx = FTPGetOldestTx(state);
-    if (tx == NULL) {
-        tx = FTPTransactionCreate(state);
-    }
-    if (unlikely(tx == NULL)) {
-        return -1;
-    }
-    if (state->command == FTP_COMMAND_UNKNOWN || tx->command_descriptor == NULL) {
-        /* unknown */
-        tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX -1];
-    }
-
-    state->curr_tx = tx;
-    if (state->command == FTP_COMMAND_AUTH_TLS) {
-        if (state->current_line_len >= 4 && SCMemcmp("234 ", state->current_line, 4) == 0) {
-            AppLayerRequestProtocolTLSUpgrade(f);
+        FTPTransaction *tx = FTPGetOldestTx(state);
+        if (tx == NULL) {
+            tx = FTPTransactionCreate(state);
         }
-    }
+        if (unlikely(tx == NULL)) {
+            return -1;
+        }
+        if (state->command == FTP_COMMAND_UNKNOWN || tx->command_descriptor == NULL) {
+            /* unknown */
+            tx->command_descriptor = &FtpCommands[FTP_COMMAND_MAX -1];
+        }
 
         state->curr_tx = tx;
-        uint16_t dyn_port;
-        switch (state->command) {
-            case FTP_COMMAND_AUTH_TLS:
-                if (state->current_line_len >= 4 && SCMemcmp("234 ", state->current_line, 4) == 0) {
-                    AppLayerRequestProtocolTLSUpgrade(f);
-                }
-                break;
+        if (state->command == FTP_COMMAND_AUTH_TLS) {
+            if (state->current_line_len >= 4 && SCMemcmp("234 ", state->current_line, 4) == 0) {
+                AppLayerRequestProtocolTLSUpgrade(f);
+            }
+        }
 
-            case FTP_COMMAND_EPRT:
-                dyn_port = rs_ftp_active_eprt(state->port_line, state->port_line_len);
-                if (dyn_port == 0) {
-                    goto tx_complete;
-                }
-                state->dyn_port = dyn_port;
-                state->active = true;
-                tx->dyn_port = dyn_port;
-                tx->active = true;
-                SCLogDebug("FTP active mode (v6): dynamic port %"PRIu16"", dyn_port);
-                break;
+        if (state->command == FTP_COMMAND_EPRT) {
+            uint16_t dyn_port = rs_ftp_active_eprt(state->port_line, state->port_line_len);
+            if (dyn_port == 0) {
+                goto tx_complete;
+            }
+            state->dyn_port = dyn_port;
+            state->active = true;
+            tx->dyn_port = dyn_port;
+            tx->active = true;
+            SCLogDebug("FTP active mode (v6): dynamic port %"PRIu16"", dyn_port);
+        }
 
-            case FTP_COMMAND_PORT:
-                dyn_port = rs_ftp_active_port(state->port_line, state->port_line_len);
+        if (state->command == FTP_COMMAND_PORT) {
+            if ((flags & STREAM_TOCLIENT)) {
+                uint16_t dyn_port = rs_ftp_active_port(state->port_line, state->port_line_len);
                 if (dyn_port == 0) {
                     goto tx_complete;
                 }
@@ -791,45 +782,38 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
                 tx->dyn_port = state->dyn_port;
                 tx->active = true;
                 SCLogDebug("FTP active mode (v4): dynamic port %"PRIu16"", dyn_port);
-                break;
-
-            case FTP_COMMAND_PASV:
-                if (state->current_line_len >= 4 && SCMemcmp("227 ", state->current_line, 4) == 0) {
-                    FTPParsePassiveResponse(f, ftp_state, state->current_line, state->current_line_len);
-                }
-                break;
-
-            case FTP_COMMAND_EPSV:
-                if (state->current_line_len >= 4 && SCMemcmp("229 ", state->current_line, 4) == 0) {
-                    FTPParsePassiveResponseV6(f, ftp_state, state->current_line, state->current_line_len);
-                }
-                break;
-            default:
-                break;
+            }
         }
-    }
 
-    if (state->command == FTP_COMMAND_EPSV) {
-        if (state->current_line_len >= 4 && SCMemcmp("229 ", state->current_line, 4) == 0) {
-            FTPParsePassiveResponseV6(f, ftp_state, state->current_line, state->current_line_len);
+        if (state->command == FTP_COMMAND_PASV) {
+            if (state->current_line_len >= 4 && SCMemcmp("227 ", state->current_line, 4) == 0) {
+                FTPParsePassiveResponse(f, ftp_state, state->current_line, state->current_line_len);
+            }
         }
-    }
 
-    if (likely(state->current_line_len)) {
-        FTPString *response = FTPStringAlloc();
-        if (likely(response)) {
-            response->len = CopyCommandLine(&response->str, state->current_line, state->current_line_len);
-            TAILQ_INSERT_TAIL(&tx->response_list, response, next);
+        if (state->command == FTP_COMMAND_EPSV) {
+            if (state->current_line_len >= 4 && SCMemcmp("229 ", state->current_line, 4) == 0) {
+                FTPParsePassiveResponseV6(f, ftp_state, state->current_line, state->current_line_len);
+            }
         }
+
+        if (likely(state->current_line_len)) {
+            FTPString *response = FTPStringAlloc();
+            if (likely(response)) {
+                response->len = CopyCommandLine(&response->str, state->current_line, state->current_line_len);
+                TAILQ_INSERT_TAIL(&tx->response_list, response, next);
+            }
+        }
+
+        /* Handle preliminary replies -- keep tx open */
+        if (FTPIsPPR(state->current_line, state->current_line_len)) {
+            continue;
+        }
+    tx_complete:
+        tx->done = true;
     }
 
-    /* Handle preliminary replies -- keep tx open */
-    if (FTPIsPPR(state->current_line, state->current_line_len)) {
-        continue;
-    }
-tx_complete:
-    tx->done = true;
-    return retcode;
+    return 1;
 }
 
 
