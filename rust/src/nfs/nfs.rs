@@ -1093,7 +1093,7 @@ impl NFSState {
                     },
                     0 => {
                         SCLogDebug!("incomplete, queue and retry with the next block (input {}). Looped {} times.", cur_i.len(), cnt);
-                        self.tcp_buffer_tc.extend_from_slice(cur_i);
+                        self.tcp_buffer_ts.extend_from_slice(cur_i);
                         return 0;
                     },
                     -1 => {
