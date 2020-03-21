@@ -49,6 +49,8 @@ typedef struct DetectLuaData {
     uint32_t sid;
     uint32_t rev;
     uint32_t gid;
+
+    DetectEngineCtx *de_ctx;
 } DetectLuaData;
 
 #endif /* HAVE_LUA */
