@@ -2996,6 +2996,26 @@ int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void
     return item->id;
 }
 
+int DetectFreeThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name)
+{
+    BUG_ON(de_ctx == NULL);
+
+    DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
+    DetectEngineThreadKeywordCtxItem *prev_item = NULL;
+    while (item != NULL) {
+        if (strcmp(name, item->name) == 0) {
+            if (prev_item == NULL)
+                de_ctx->keyword_list = item->next;
+            else
+                prev_item = item->next;
+            SCFree(item);
+            return 1;
+        }
+        prev_item = item;
+        item = item->next;
+    }
+    return 0;
+}
 /** \brief Retrieve thread local keyword ctx by id
  *
  *  \param det_ctx detection engine thread ctx to retrieve the ctx from
