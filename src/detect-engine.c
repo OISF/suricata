@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2671,6 +2671,43 @@ int DetectRegisterThreadCtxFuncs(DetectEngineCtx *de_ctx, const char *name, void
     return item->id;
 }
 
+/** \brief Remove Thread keyword context registration
+ *
+ *  \param de_ctx detection engine to deregister from
+ *  \param det_ctx detection engine thread context to deregister from
+ *  \param data keyword init data to pass to Func. Can be NULL.
+ *  \param name keyword name for error printing
+ *
+ *  \retval 1 Item unregistered
+ *  \retval 0 otherwise
+ *
+ *  \note make sure "data" remains valid and it free'd elsewhere. It's
+ *        recommended to store it in the keywords global ctx so that
+ *        it's freed when the de_ctx is freed.
+ */
+int DetectUnregisterThreadCtxFuncs(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, void *data, const char *name)
+{
+    BUG_ON(de_ctx == NULL);
+
+    DetectEngineThreadKeywordCtxItem *item = de_ctx->keyword_list;
+    DetectEngineThreadKeywordCtxItem *prev_item = NULL;
+    while (item != NULL) {
+        if (strcmp(name, item->name) == 0 && (data == item->data)) {
+            if (prev_item == NULL)
+                de_ctx->keyword_list = item->next;
+            else
+                prev_item->next = item->next;
+            if (det_ctx)
+                item->FreeFunc(det_ctx->keyword_ctxs_array[item->id]);
+            SCFree(item);
+            return 1;
+        }
+        prev_item = item;
+        item = item->next;
+    }
+    return 0;
+}
 /** \brief Retrieve thread local keyword ctx by id
  *
  *  \param det_ctx detection engine thread ctx to retrieve the ctx from

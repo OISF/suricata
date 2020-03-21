@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1433,6 +1433,7 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx, cons
 Signature *DetectGetTagSignature(void);
 
 
+int DetectUnregisterThreadCtxFuncs(DetectEngineCtx *, DetectEngineThreadCtx *,void *data, const char *name);
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
 
