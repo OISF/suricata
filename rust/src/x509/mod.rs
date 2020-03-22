@@ -18,9 +18,27 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::common::rust_string_to_c;
+use nom;
 use std;
 use std::os::raw::c_char;
-use x509_parser::{parse_x509_der, X509Certificate};
+use x509_parser::{error::X509Error, parse_x509_der, X509Certificate};
+
+#[repr(u32)]
+pub enum X509DecodeError {
+    Success = 0,
+    /// Generic decoding error
+    InvalidCert,
+    /// Some length does not match, or certificate is incomplete
+    InvalidLength,
+    InvalidVersion,
+    InvalidSerial,
+    InvalidAlgorithmIdentifier,
+    InvalidX509Name,
+    InvalidDate,
+    InvalidExtensions,
+    /// DER structure is invalid
+    InvalidDER,
+}
 
 pub struct X509(X509Certificate<'static>);
 
@@ -30,12 +48,20 @@ pub struct X509(X509Certificate<'static>);
 ///
 /// input must be a valid buffer of at least input_len bytes
 #[no_mangle]
-pub unsafe extern "C" fn rs_x509_decode(input: *const u8, input_len: u32) -> *mut X509 {
+pub unsafe extern "C" fn rs_x509_decode(
+    input: *const u8,
+    input_len: u32,
+    err_code: *mut u32,
+) -> *mut X509 {
     let slice = std::slice::from_raw_parts(input, input_len as usize);
     let res = parse_x509_der(slice);
     match res {
         Ok((_rem, cert)) => Box::into_raw(Box::new(X509(cert))),
-        Err(_) => std::ptr::null_mut(),
+        Err(e) => {
+            let error = x509_parse_error_to_errcode(&e);
+            *err_code = error as u32;
+            std::ptr::null_mut()
+        }
     }
 }
 
@@ -66,10 +92,7 @@ pub extern "C" fn rs_x509_get_serial(ptr: *const X509) -> *mut c_char {
     }
     let x509 = cast_pointer! {ptr, X509};
     let raw_serial = x509.0.tbs_certificate.raw_serial();
-    let v : Vec<_> = raw_serial
-        .iter()
-        .map(|x| format!("{:02X}", x))
-        .collect();
+    let v: Vec<_> = raw_serial.iter().map(|x| format!("{:02X}", x)).collect();
     let serial = v.join(":");
     rust_string_to_c(serial)
 }
@@ -107,4 +130,20 @@ pub unsafe extern "C" fn rs_x509_free(ptr: *mut X509) {
         return;
     }
     drop(Box::from_raw(ptr));
+}
+
+fn x509_parse_error_to_errcode(e: &nom::Err<X509Error>) -> X509DecodeError {
+    match e {
+        nom::Err::Incomplete(_) => X509DecodeError::InvalidLength,
+        nom::Err::Error(e) | nom::Err::Failure(e) => match e {
+            X509Error::InvalidVersion => X509DecodeError::InvalidVersion,
+            X509Error::InvalidSerial => X509DecodeError::InvalidSerial,
+            X509Error::InvalidAlgorithmIdentifier => X509DecodeError::InvalidAlgorithmIdentifier,
+            X509Error::InvalidX509Name => X509DecodeError::InvalidX509Name,
+            X509Error::InvalidDate => X509DecodeError::InvalidDate,
+            X509Error::InvalidExtensions => X509DecodeError::InvalidExtensions,
+            X509Error::Der(_) => X509DecodeError::InvalidDER,
+            _ => X509DecodeError::InvalidCert,
+        },
+    }
 }
