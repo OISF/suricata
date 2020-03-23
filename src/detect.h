@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -318,7 +318,7 @@ typedef struct SigMatchCtx_ {
 
 /** \brief a single match condition for a signature */
 typedef struct SigMatch_ {
-    uint8_t type; /**< match type */
+    uint16_t type; /**< match type */
     uint16_t idx; /**< position in the signature */
     SigMatchCtx *ctx; /**< plugin specific data */
     struct SigMatch_ *next;
@@ -327,7 +327,7 @@ typedef struct SigMatch_ {
 
 /** \brief Data needed for Match() */
 typedef struct SigMatchData_ {
-    uint8_t type; /**< match type */
+    uint16_t type;   /**< match type */
     uint8_t is_last; /**< Last element of the list */
     SigMatchCtx *ctx; /**< plugin specific data */
 } SigMatchData;
@@ -423,6 +423,7 @@ typedef struct DetectBufferType_ {
     int parent_id;
     bool mpm;
     bool packet; /**< compat to packet matches */
+    bool pdu;    /**< is about PDU inspection */
     bool supports_transforms;
     void (*SetupCallback)(const struct DetectEngineCtx_ *, struct Signature_ *);
     bool (*ValidateCallback)(const struct Signature_ *, const char **sigerror);
@@ -459,6 +460,32 @@ typedef struct DetectEnginePktInspectionEngine {
     } v1;
     struct DetectEnginePktInspectionEngine *next;
 } DetectEnginePktInspectionEngine;
+
+struct StreamPDU;
+struct DetectEnginePduInspectionEngine;
+
+/**
+ *  \param alert_flags[out] for setting PACKET_ALERT_FLAG_*
+ */
+typedef int (*InspectionBufferPduInspectFunc)(struct DetectEngineThreadCtx_ *,
+        const struct DetectEnginePduInspectionEngine *engine, const struct Signature_ *s, Packet *p,
+        struct StreamPDU *pdu, const uint32_t idx);
+
+typedef struct DetectEnginePduInspectionEngine {
+    AppProto alproto;
+    uint8_t dir;
+    uint8_t type;
+    bool mpm;
+    uint16_t sm_list;
+    uint16_t sm_list_base;
+    struct {
+        InspectionBufferPduInspectFunc Callback;
+        /** pointer to the transforms in the 'DetectBuffer entry for this list */
+        const DetectEngineTransforms *transforms;
+    } v1;
+    SigMatchData *smd;
+    struct DetectEnginePduInspectionEngine *next;
+} DetectEnginePduInspectionEngine;
 
 #ifdef UNITTESTS
 #define sm_lists init_data->smlists
@@ -565,6 +592,7 @@ typedef struct Signature_ {
 
     DetectEngineAppInspectionEngine *app_inspect;
     DetectEnginePktInspectionEngine *pkt_inspect;
+    DetectEnginePduInspectionEngine *pdu_inspect;
 
     /* Matching structures for the built-ins. The others are in
      * their inspect engines. */
@@ -593,6 +621,7 @@ typedef struct Signature_ {
 enum DetectBufferMpmType {
     DETECT_BUFFER_MPM_TYPE_PKT,
     DETECT_BUFFER_MPM_TYPE_APP,
+    DETECT_BUFFER_MPM_TYPE_PDU,
     /* must be last */
     DETECT_BUFFER_MPM_TYPE_SIZE,
 };
@@ -629,6 +658,12 @@ typedef struct DetectBufferMpmRegistery_ {
                     const struct DetectBufferMpmRegistery_ *mpm_reg, int list_id);
             InspectionBufferGetPktDataPtr GetData;
         } pkt_v1;
+
+        /* pdu matching: use if type == DETECT_BUFFER_MPM_TYPE_PDU */
+        struct {
+            AppProto alproto;
+            uint8_t type;
+        } pdu_v1;
     };
 
     struct DetectBufferMpmRegistery_ *next;
@@ -929,6 +964,9 @@ typedef struct DetectEngineCtx_ {
     DetectEnginePktInspectionEngine *pkt_inspect_engines;
     DetectBufferMpmRegistery *pkt_mpms_list;
     uint32_t pkt_mpms_list_cnt;
+    DetectEnginePduInspectionEngine *pdu_inspect_engines;
+    DetectBufferMpmRegistery *pdu_mpms_list;
+    uint32_t pdu_mpms_list_cnt;
 
     uint32_t prefilter_id;
     HashListTable *prefilter_hash_table;
@@ -1261,6 +1299,9 @@ typedef struct MpmStore_ {
 
 } MpmStore;
 
+typedef void (*PrefilterPduFn)(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        struct StreamPDU *pdu, const uint32_t idx);
+
 typedef struct PrefilterEngineList_ {
     uint16_t id;
 
@@ -1270,6 +1311,8 @@ typedef struct PrefilterEngineList_ {
      *  with Tx Engine */
     uint8_t tx_min_progress;
 
+    uint8_t pdu_type;
+
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
     void *pectx;
@@ -1278,6 +1321,7 @@ typedef struct PrefilterEngineList_ {
     void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
             Packet *p, Flow *f, void *tx,
             const uint64_t idx, const uint8_t flags);
+    PrefilterPduFn PrefilterPdu;
 
     struct PrefilterEngineList_ *next;
 
@@ -1294,9 +1338,13 @@ typedef struct PrefilterEngine_ {
 
     /** App Proto this engine applies to: only used with Tx Engines */
     AppProto alproto;
-    /** Minimal Tx progress we need before running the engine. Only used
-     *  with Tx Engine */
-    uint8_t tx_min_progress;
+
+    union {
+        /** Minimal Tx progress we need before running the engine. Only used
+         *  with Tx Engine */
+        uint8_t tx_min_progress;
+        uint8_t pdu_type;
+    } ctx;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
@@ -1307,6 +1355,7 @@ typedef struct PrefilterEngine_ {
         void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
                 Packet *p, Flow *f, void *tx,
                 const uint64_t idx, const uint8_t flags);
+        PrefilterPduFn PrefilterPdu;
     } cb;
 
     /* global id for this prefilter */
@@ -1327,10 +1376,12 @@ typedef struct SigGroupHeadInitData_ {
 
     MpmCtx **app_mpms;
     MpmCtx **pkt_mpms;
+    MpmCtx **pdu_mpms;
 
     PrefilterEngineList *pkt_engines;
     PrefilterEngineList *payload_engines;
     PrefilterEngineList *tx_engines;
+    PrefilterEngineList *pdu_engines;
 
     /** number of sigs in this group */
     SigIntId sig_cnt;
@@ -1363,6 +1414,7 @@ typedef struct SigGroupHead_ {
     PrefilterEngine *pkt_engines;
     PrefilterEngine *payload_engines;
     PrefilterEngine *tx_engines;
+    PrefilterEngine *pdu_engines;
 
     /* ptr to our init data we only use at... init :) */
     SigGroupHeadInitData *init;

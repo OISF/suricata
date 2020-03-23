@@ -91,6 +91,35 @@ RB_PROTOTYPE(TCPSEG, TcpSegment, rb, TcpSegmentCompare);
 /* return true if we have seen data segments. */
 #define STREAM_HAS_SEEN_DATA(stream)    (!RB_EMPTY(&(stream)->sb.sbb_tree) || (stream)->sb.stream_offset || (stream)->sb.buf_offset)
 
+enum {
+    STREAMPDU_FLAGE_ENDS_AT_EOF,
+#define STREAMPDU_FLAG_ENDS_AT_EOF BIT_U8(STREAMPDU_FLAGE_ENDS_AT_EOF)
+};
+
+typedef struct StreamPDU {
+    // TODO add 'type' or 'id' field? E.g. in SMB we could define: NBSS and SMB, or NBSS.HDR,
+    // NBSS.DATA, SMB.HDR and SMB.DATA
+    uint8_t type;  /**< protocol specific field type. E.g. NBSS.HDR or SMB.DATA */
+    uint8_t flags; /**< pdu flags. */
+    uint8_t event_cnt;
+    uint8_t events[4];  /**< per PDU store for events */
+    int32_t rel_offset; /**< relative offset in the stream on top of Stream::stream_offset (if
+                           negative the start if before the stream data) */
+    int32_t len;
+    uint64_t tx_id; /**< tx_id to match this pdu. UINT64T_MAX if not used. */
+} StreamPDU;
+// size 24
+
+#define STREAM_PDU_STATIC_CNT 3
+
+typedef struct StreamPDUs_ {
+    uint16_t cnt;
+    uint16_t dyn_size;                      /**< size in elements of `dpdus` */
+    StreamPDU spdus[STREAM_PDU_STATIC_CNT]; /**< static pdu's */
+    StreamPDU *dpdus;
+} StreamPDUs;
+// size 112
+
 typedef struct TcpStream_ {
     uint16_t flags:12;              /**< Flag specific to the stream e.g. Timestamp */
     /* coccinelle: TcpStream:flags:STREAMTCP_STREAM_FLAG_ */
@@ -126,6 +155,8 @@ typedef struct TcpStream_ {
     uint32_t sack_size;             /**< combined size of the SACK ranges currently in our tree. Updated
                                      *   at INSERT/REMOVE time. */
     struct TCPSACK sack_tree;       /**< red back tree of TCP SACK records. */
+
+    StreamPDUs pdus;
 } TcpStream;
 
 #define STREAM_BASE_OFFSET(stream)  ((stream)->sb.stream_offset)
@@ -283,5 +314,8 @@ typedef struct TcpSession_ {
         SCLogDebug("setting STREAMTCP_FLAG_APP_LAYER_DISABLED on ssn %p", ssn); \
         ((ssn)->flags |= STREAMTCP_FLAG_APP_LAYER_DISABLED); \
     } while (0);
+
+void StreamPDUsFree(StreamPDUs *pdus);
+int StreamPDUSlide(StreamPDUs *pdus, uint32_t slide);
 
 #endif /* __STREAM_TCP_PRIVATE_H__ */

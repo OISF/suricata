@@ -47,6 +47,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
+#include "detect-engine.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-mpm.h"
 
@@ -107,10 +108,10 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     do {
         if (engine->alproto != alproto)
             goto next;
-        if (engine->tx_min_progress > tx->tx_progress)
+        if (engine->ctx.tx_min_progress > tx->tx_progress)
             break;
-        if (tx->tx_progress > engine->tx_min_progress) {
-            if (tx->prefilter_flags & BIT_U64(engine->tx_min_progress)) {
+        if (tx->tx_progress > engine->ctx.tx_min_progress) {
+            if (tx->prefilter_flags & BIT_U64(engine->ctx.tx_min_progress)) {
                 goto next;
             }
         }
@@ -120,8 +121,8 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
                 p, p->flow, tx->tx_ptr, tx->tx_id, flow_flags);
         PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
-        if (tx->tx_progress > engine->tx_min_progress && engine->is_last_for_progress) {
-            tx->prefilter_flags |= BIT_U64(engine->tx_min_progress);
+        if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
+            tx->prefilter_flags |= BIT_U64(engine->ctx.tx_min_progress);
         }
     next:
         if (engine->is_last)
@@ -138,10 +139,67 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     }
 }
 
+#include "app-layer-records.h"
+#include "util-print.h"
+
+static StreamPDU *GetPDUFromStream(TcpStream *stream, StreamPDUs *pdus, uint32_t idx)
+{
+    assert(stream);
+    assert(pdus);
+
+    SCLogDebug("stream %p idx %u Stream->pdus.cnt %u", stream, idx, stream->pdus.cnt);
+
+    if (idx >= pdus->cnt) {
+        return 0;
+    }
+
+    StreamPDU *pdu = StreamPDUGetByIndex(pdus, idx);
+    return pdu;
+}
+
+static void PrefilterPdu(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
+        const uint8_t flags, const AppProto alproto)
+{
+    assert(p->flow);
+    assert(p->flow->protoctx);
+
+    TcpSession *ssn = p->flow->protoctx;
+    TcpStream *stream;
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+    } else {
+        stream = &ssn->server;
+    }
+
+    for (uint32_t idx = 0; idx < stream->pdus.cnt; idx++) {
+        StreamPDU *pdu = GetPDUFromStream(stream, &stream->pdus, idx);
+        if (pdu != NULL) {
+            PrefilterEngine *engine = sgh->pdu_engines;
+            do {
+                assert(engine->alproto != ALPROTO_UNKNOWN);
+                if (engine->alproto == alproto && engine->ctx.pdu_type == pdu->type) {
+                    PREFILTER_PROFILING_START;
+                    engine->cb.PrefilterPdu(det_ctx, engine->pectx, p, pdu, idx);
+                    PREFILTER_PROFILING_END(det_ctx, engine->gid);
+                }
+                if (engine->is_last)
+                    break;
+                engine++;
+            } while (1);
+        }
+    }
+}
+
 void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         Packet *p, const uint8_t flags)
 {
     SCEnter();
+
+    /* TODO review this check */
+    if (p->proto == IPPROTO_TCP && sgh->pdu_engines && p->flow &&
+            p->flow->alproto != ALPROTO_UNKNOWN) {
+        PrefilterPdu(det_ctx, sgh, p, flags, p->flow->alproto);
+    }
 
     if (sgh->pkt_engines) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
@@ -295,6 +353,41 @@ int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     return 0;
 }
 
+int PrefilterAppendPduEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        PrefilterPduFn PrefilterPduFunc, AppProto alproto, uint8_t pdu_type, void *pectx,
+        void (*FreeFunc)(void *pectx), const char *name)
+{
+    if (sgh == NULL || PrefilterPduFunc == NULL || pectx == NULL)
+        return -1;
+
+    PrefilterEngineList *e = SCMallocAligned(sizeof(*e), CLS);
+    if (e == NULL)
+        return -1;
+    memset(e, 0x00, sizeof(*e));
+
+    e->pdu_type = pdu_type;
+    e->alproto = alproto;
+    e->PrefilterPdu = PrefilterPduFunc;
+    e->pectx = pectx;
+    e->Free = FreeFunc;
+
+    if (sgh->init->pdu_engines == NULL) {
+        sgh->init->pdu_engines = e;
+    } else {
+        PrefilterEngineList *t = sgh->init->pdu_engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = e;
+        e->id = t->id + 1;
+    }
+
+    e->name = name;
+    e->gid = PrefilterStoreGetId(de_ctx, e->name, e->Free);
+    return 0;
+}
+
 static void PrefilterFreeEngineList(PrefilterEngineList *e)
 {
     if (e->Free && e->pectx) {
@@ -345,20 +438,24 @@ void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         PrefilterFreeEngines(de_ctx, sgh->tx_engines);
         sgh->tx_engines = NULL;
     }
+    if (sgh->pdu_engines) {
+        PrefilterFreeEngines(de_ctx, sgh->pdu_engines);
+        sgh->pdu_engines = NULL;
+    }
 }
 
 static int PrefilterSetupRuleGroupSortHelper(const void *a, const void *b)
 {
     const PrefilterEngine *s0 = a;
     const PrefilterEngine *s1 = b;
-    if (s1->tx_min_progress == s0->tx_min_progress) {
+    if (s1->ctx.tx_min_progress == s0->ctx.tx_min_progress) {
         if (s1->alproto == s0->alproto) {
             return s0->local_id > s1->local_id ? 1 : -1;
         } else {
             return s0->alproto > s1->alproto ? 1 : -1;
         }
     } else {
-        return s0->tx_min_progress > s1->tx_min_progress ? 1 : -1;
+        return s0->ctx.tx_min_progress > s1->ctx.tx_min_progress ? 1 : -1;
     }
 }
 
@@ -453,7 +550,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
             e->local_id = local_id++;
             e->alproto = el->alproto;
-            e->tx_min_progress = el->tx_min_progress;
+            e->ctx.tx_min_progress = el->tx_min_progress;
             e->cb.PrefilterTx = el->PrefilterTx;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
@@ -477,9 +574,9 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             PrefilterEngine *prev_engine = NULL;
             engine = sgh->tx_engines;
             do {
-                BUG_ON(engine->tx_min_progress < last_tx_progress);
+                BUG_ON(engine->ctx.tx_min_progress < last_tx_progress);
                 if (engine->alproto == a) {
-                    if (last_tx_progress_set && engine->tx_min_progress > last_tx_progress) {
+                    if (last_tx_progress_set && engine->ctx.tx_min_progress > last_tx_progress) {
                         if (prev_engine) {
                             prev_engine->is_last_for_progress = true;
                         }
@@ -492,7 +589,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                         prev_engine->is_last_for_progress = true;
                     }
                 }
-                last_tx_progress = engine->tx_min_progress;
+                last_tx_progress = engine->ctx.tx_min_progress;
                 if (engine->is_last)
                     break;
                 engine++;
@@ -504,7 +601,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         do {
             SCLogDebug("engine: gid %u alproto %s tx_min_progress %d is_last %s "
                        "is_last_for_progress %s",
-                    engine->gid, AppProtoToString(engine->alproto), engine->tx_min_progress,
+                    engine->gid, AppProtoToString(engine->alproto), engine->ctx.tx_min_progress,
                     engine->is_last ? "true" : "false",
                     engine->is_last_for_progress ? "true" : "false");
             if (engine->is_last)
@@ -512,6 +609,33 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             engine++;
         } while (1);
 #endif
+    }
+    if (sgh->init->pdu_engines != NULL) {
+        uint32_t cnt = 0;
+        for (el = sgh->init->pdu_engines; el != NULL; el = el->next) {
+            cnt++;
+            de_ctx->prefilter_maxid = MAX(de_ctx->prefilter_maxid, el->gid);
+        }
+        sgh->pdu_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
+        if (sgh->pdu_engines == NULL) {
+            return;
+        }
+        memset(sgh->pdu_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
+
+        PrefilterEngine *e = sgh->pdu_engines;
+        for (el = sgh->init->pdu_engines; el != NULL; el = el->next) {
+            e->local_id = el->id;
+            e->ctx.pdu_type = el->pdu_type;
+            e->cb.PrefilterPdu = el->PrefilterPdu;
+            e->alproto = el->alproto;
+            e->pectx = el->pectx;
+            el->pectx = NULL; // e now owns the ctx
+            e->gid = el->gid;
+            if (el->next == NULL) {
+                e->is_last = TRUE;
+            }
+            e++;
+        }
     }
 }
 
@@ -758,6 +882,79 @@ int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx,
 
     int r = PrefilterAppendEngine(de_ctx, sgh, PrefilterMpmPkt,
         pectx, PrefilterMpmPktFree, mpm_reg->pname);
+    if (r != 0) {
+        SCFree(pectx);
+    }
+    return r;
+}
+
+/* generic mpm for pdu engines */
+
+typedef struct PrefilterMpmPduCtx {
+    int list_id;
+    // AppProto alproto;
+    // uint8_t type;
+    const MpmCtx *mpm_ctx;
+    const DetectEngineTransforms *transforms;
+} PrefilterMpmPduCtx;
+
+/** \brief Generic Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param pdu pdu to inspect
+ *  \param pectx inspection context
+ */
+static void PrefilterMpmPdu(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        StreamPDU *pdu, const uint32_t idx)
+{
+    SCEnter();
+
+    const PrefilterMpmPduCtx *ctx = (const PrefilterMpmPduCtx *)pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    SCLogDebug("running on list %d -> pdu field type %u", ctx->list_id, pdu->type);
+    // BUG_ON(pdu->type != ctx->type);
+
+    InspectionBuffer *buffer = DetectStreamPDU2InspectBuffer(
+            det_ctx, ctx->transforms, p, pdu, ctx->list_id, idx, true);
+    if (buffer == NULL)
+        return;
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+
+    SCLogDebug("mpm'ing buffer:");
+    // SCLogNotice("pdu: %p", pdu);
+    // PrintRawDataFp(stdout, data, MIN(64, data_len));
+
+    if (data != NULL && data_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(
+                mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
+        SCLogDebug("det_ctx->pmq.rule_id_array_cnt %u", det_ctx->pmq.rule_id_array_cnt);
+    }
+}
+
+static void PrefilterMpmPduFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
+int PrefilterGenericMpmPduRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+{
+    SCEnter();
+    PrefilterMpmPduCtx *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    BUG_ON(mpm_reg->pdu_v1.alproto == ALPROTO_UNKNOWN);
+    // pectx->alproto = mpm_reg->pdu_v1.alproto;
+    // pectx->type = mpm_reg->pdu_v1.type;
+    // SCLogNotice("pectx type %u", pectx->type);
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->transforms;
+
+    int r = PrefilterAppendPduEngine(de_ctx, sgh, PrefilterMpmPdu, mpm_reg->pdu_v1.alproto,
+            mpm_reg->pdu_v1.type, pectx, PrefilterMpmPduFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }

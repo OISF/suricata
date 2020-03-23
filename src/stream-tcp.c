@@ -202,6 +202,7 @@ uint64_t StreamTcpGetMemcap(void)
 void StreamTcpStreamCleanup(TcpStream *stream)
 {
     if (stream != NULL) {
+        StreamPDUsFree(&stream->pdus);
         StreamTcpSackFreeList(stream);
         StreamTcpReturnStreamSegments(stream);
         StreamingBufferClear(&stream->sb);

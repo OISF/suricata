@@ -22,6 +22,7 @@
 use nom;
 
 use crate::core::*;
+use crate::applayer::*;
 
 use crate::smb::smb::*;
 use crate::smb::dcerpc::*;
@@ -596,7 +597,7 @@ fn smb1_request_record_one<'b>(state: &mut SMBState, r: &SmbRecord<'b>, command:
     return 0;
 }
 
-pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
+pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>, flow: *const Flow, base: &[u8], rec_start: &[u8]) -> u32 {
     SCLogDebug!("record: command {}: record {:?}", r.command, r);
 
     let mut andx_offset = SMB1_HEADER_SIZE;
@@ -605,6 +606,16 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
         if smb1_request_record_one(state, r, command, &mut andx_offset) != 0 {
              break;
         }
+        let _smb_hdr_pdu = applayer_new_record_ts(flow, base, rec_start,
+                std::cmp::min(rec_start.len(),SMB1_HEADER_SIZE) as i32, SMBPduType::SMB1Hdr as u8);
+        SCLogDebug!("SMB1 HDR pdu {:p}", _smb_hdr_pdu);
+
+        let o = if r.data.len() >= andx_offset { andx_offset } else { 0 };
+        SCLogDebug!("o {} o r.data.len() {} andx_offset {}", o, r.data.len(), andx_offset);
+        let _smb_data_pdu = applayer_new_record_ts(flow, base, r.data,
+                (r.data.len() - o) as i32, SMBPduType::SMB1Data as u8);
+        SCLogDebug!("SMB1 DATA pdu {:p}", _smb_data_pdu);
+
         // continue for next andx command if any
         if smb1_command_is_andx(command) {
             if let Ok((_, andx_hdr)) = smb1_parse_andx_header(&r.data[andx_offset-SMB1_HEADER_SIZE..]) {

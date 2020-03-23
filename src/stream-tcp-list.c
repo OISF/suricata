@@ -850,6 +850,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
     if (left_edge && left_edge > STREAM_BASE_OFFSET(stream)) {
         uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
         SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
+        StreamPDUSlide(&stream->pdus, slide);
         StreamingBufferSlideToOffset(&stream->sb, left_edge);
         stream->base_seq += slide;
 

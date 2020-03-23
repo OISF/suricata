@@ -53,6 +53,23 @@ use crate::smb::events::*;
 use crate::smb::files::*;
 use crate::smb::smb2_ioctl::*;
 
+#[repr(C)]
+pub enum SMBPduType {
+    NBSS = 0,
+    NBSSHdr = 1,
+    NBSSData = 2,
+    SMB1 = 3,
+    SMB1Hdr = 4,
+    SMB1Data = 5,
+    SMB2 = 6,
+    SMB2Hdr = 7,
+    SMB2Data = 8,
+    SMB3 = 9,
+    SMB3Hdr = 10,
+    SMB3Data = 11,
+}
+
+
 pub const MIN_REC_SIZE: u16 = 32 + 4; // SMB hdr + nbss hdr
 pub const SMB_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 
@@ -1328,7 +1345,7 @@ impl SMBState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> AppLayerResult
+    pub fn parse_tcp_data_ts<'b>(&mut self, flow: *const Flow, i: &'b[u8]) -> AppLayerResult
     {
         let mut cur_i = i;
         let consumed = self.handle_skip(STREAM_TOSERVER, cur_i.len() as u32);
@@ -1386,19 +1403,32 @@ impl SMBState {
         while cur_i.len() > 0 { // min record size
             match parse_nbss_record(cur_i) {
                 Ok((rem, ref nbss_hdr)) => {
+                    SCLogDebug!("nbss record offset {} len {}", i.len() - cur_i.len(), cur_i.len() - rem.len());
+                    let _nbss_pdu = applayer_new_record_ts(flow, i, cur_i, nbss_hdr.length as i32 + 4, SMBPduType::NBSS as u8);
+                    SCLogDebug!("NBSS PDU {:p}", _nbss_pdu);
+                    let _nbss_hdr_pdu = applayer_new_record_ts(flow, i, cur_i, 4, SMBPduType::NBSSHdr as u8);
+                    SCLogDebug!("NBSS HDR PDU {:p}", _nbss_hdr_pdu);
+                    let _nbss_data_pdu = applayer_new_record_ts(flow, i, &cur_i[4..], nbss_hdr.length as i32, SMBPduType::NBSSData as u8);
+                    SCLogDebug!("NBSS DATA PDU {:p}", _nbss_data_pdu);
+
                     if nbss_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
                         // we have the full records size worth of data,
                         // let's parse it
                         match parse_smb_version(nbss_hdr.data) {
                             Ok((_, ref smb)) => {
+
                                 SCLogDebug!("SMB {:?}", smb);
                                 if smb.version == 0xff_u8 { // SMB1
+                                    let smb_pdu = applayer_new_record_ts(flow, i, nbss_hdr.data, nbss_hdr.length as i32, SMBPduType::SMB1 as u8);
+                                    SCLogDebug!("SMB PDU {:p}", smb_pdu);
+
                                     SCLogDebug!("SMBv1 record");
                                     match parse_smb_record(nbss_hdr.data) {
                                         Ok((_, ref smb_record)) => {
-                                            smb1_request_record(self, smb_record);
+                                            smb1_request_record(self, smb_record, flow, i, nbss_hdr.data);
                                         },
                                         _ => {
+                                            applayer_pdu_add_event(smb_pdu, SMBEvent::MalformedData as u8);
                                             self.set_event(SMBEvent::MalformedData);
                                             return AppLayerResult::err();
                                         },
@@ -1406,15 +1436,18 @@ impl SMBState {
                                 } else if smb.version == 0xfe_u8 { // SMB2
                                     let mut nbss_data = nbss_hdr.data;
                                     while nbss_data.len() > 0 {
+                                        let smb_pdu = applayer_new_record_ts(flow, i, nbss_hdr.data, nbss_hdr.length as i32, SMBPduType::SMB2 as u8);
+                                        SCLogDebug!("SMB PDU {:p}", smb_pdu);
+
                                         SCLogDebug!("SMBv2 record");
                                         match parse_smb2_request_record(nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
                                                 SCLogDebug!("nbss_data_rem {}", nbss_data_rem.len());
-
                                                 smb2_request_record(self, smb_record);
                                                 nbss_data = nbss_data_rem;
                                             },
                                             _ => {
+                                                applayer_pdu_add_event(smb_pdu, SMBEvent::MalformedData as u8);
                                                 self.set_event(SMBEvent::MalformedData);
                                                 return AppLayerResult::err();
                                             },
@@ -1487,7 +1520,7 @@ impl SMBState {
     }
 
     /// return bytes consumed
-    pub fn parse_tcp_data_tc_partial<'b>(&mut self, input: &'b[u8]) -> usize
+    pub fn parse_tcp_data_tc_partial<'b>(&mut self, flow: *const Flow, base: &'b[u8], input: &'b[u8]) -> usize
     {
         SCLogDebug!("incomplete of size {}", input.len());
         if input.len() < 512 {
@@ -1511,6 +1544,14 @@ impl SMBState {
 
         match parse_nbss_record_partial(input) {
             Ok((output, ref nbss_part_hdr)) => {
+
+                let _nbss_pdu = applayer_new_record_tc(flow, base, input, nbss_part_hdr.length as i32 + 4, SMBPduType::NBSS as u8);
+                SCLogDebug!("NBSS PDU {:p}", _nbss_pdu);
+                let _nbss_hdr_pdu = applayer_new_record_tc(flow, base, input, 4, SMBPduType::NBSSHdr as u8);
+                SCLogDebug!("NBSS HDR PDU {:p}", _nbss_hdr_pdu);
+                let _nbss_data_pdu = applayer_new_record_tc(flow, base, &input[4..], nbss_part_hdr.length as i32, SMBPduType::NBSSData as u8);
+                SCLogDebug!("NBSS DATA PDU {:p}", _nbss_data_pdu);
+
                 SCLogDebug!("parse_nbss_record_partial ok, output len {}", output.len());
                 if nbss_part_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
                     match parse_smb_version(nbss_part_hdr.data) {
@@ -1567,7 +1608,7 @@ impl SMBState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> AppLayerResult
+    pub fn parse_tcp_data_tc<'b>(&mut self, flow: *const Flow, i: &'b[u8]) -> AppLayerResult
     {
         let mut cur_i = i;
         let consumed = self.handle_skip(STREAM_TOCLIENT, cur_i.len() as u32);
@@ -1625,6 +1666,14 @@ impl SMBState {
         while cur_i.len() > 0 { // min record size
             match parse_nbss_record(cur_i) {
                 Ok((rem, ref nbss_hdr)) => {
+                    SCLogDebug!("nbss record offset {} len {}", i.len() - cur_i.len(), cur_i.len() - rem.len());
+                    let _nbss_pdu = applayer_new_record_tc(flow, i, cur_i, nbss_hdr.length as i32 + 4, SMBPduType::NBSS as u8);
+                    SCLogDebug!("NBSS PDU {:p}", _nbss_pdu);
+                    let _nbss_hdr_pdu = applayer_new_record_tc(flow, i, cur_i, 4, SMBPduType::NBSSHdr as u8);
+                    SCLogDebug!("NBSS HDR PDU {:p}", _nbss_hdr_pdu);
+                    let _nbss_data_pdu = applayer_new_record_tc(flow, i, &cur_i[4..], nbss_hdr.length as i32, SMBPduType::NBSSData as u8);
+                    SCLogDebug!("NBSS DATA PDU {:p}", _nbss_data_pdu);
+
                     if nbss_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
                         // we have the full records size worth of data,
                         // let's parse it
@@ -1645,6 +1694,9 @@ impl SMBState {
                                 } else if smb.version == 0xfe_u8 { // SMB2
                                     let mut nbss_data = nbss_hdr.data;
                                     while nbss_data.len() > 0 {
+                                        let _smb_pdu = applayer_new_record_tc(flow, i, nbss_hdr.data, nbss_hdr.length as i32, SMBPduType::SMB2 as u8);
+                                        SCLogDebug!("SMB PDU {:p}", _smb_pdu);
+
                                         SCLogDebug!("SMBv2 record");
                                         match parse_smb2_response_record(nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
@@ -1695,7 +1747,7 @@ impl SMBState {
                             let total_consumed = i.len() - cur_i.len();
                             return AppLayerResult::incomplete(total_consumed as u32, 512);
                         }
-                        let consumed = self.parse_tcp_data_tc_partial(cur_i);
+                        let consumed = self.parse_tcp_data_tc_partial(flow, i, cur_i);
                         if consumed == 0 {
                             // if we consumed none we will buffer the entire record
                             let total_consumed = i.len() - cur_i.len();
@@ -1839,7 +1891,7 @@ pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
     }
 
     state.update_ts(flow.get_last_time().as_secs());
-    state.parse_tcp_data_ts(buf)
+    state.parse_tcp_data_ts(flow, buf)
 }
 
 #[no_mangle]
@@ -1879,7 +1931,7 @@ pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
     }
 
     state.update_ts(flow.get_last_time().as_secs());
-    state.parse_tcp_data_tc(buf)
+    state.parse_tcp_data_tc(flow, buf)
 }
 
 #[no_mangle]

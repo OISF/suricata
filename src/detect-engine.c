@@ -102,6 +102,7 @@ static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *
 
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
+static DetectEnginePduInspectionEngine *g_pdu_inspect_engines = NULL;
 
 SCEnumCharMap det_ctx_event_table[] = {
 #ifdef UNITTESTS
@@ -163,6 +164,54 @@ void DetectPktInspectEngineRegister(const char *name,
         g_pkt_inspect_engines = new_engine;
     } else {
         DetectEnginePktInspectionEngine *t = g_pkt_inspect_engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = new_engine;
+    }
+}
+
+/** \brief register inspect engine at start up time
+ *
+ *  \note errors are fatal */
+void DetectPduInspectEngineRegister(const char *name, int dir,
+        InspectionBufferPduInspectFunc Callback, AppProto alproto, uint8_t type)
+{
+    DetectBufferTypeRegister(name);
+    const int sm_list = DetectBufferTypeGetByName(name);
+    if (sm_list == -1) {
+        FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s", name);
+    }
+
+    if ((sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (Callback == NULL)) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
+        BUG_ON(1);
+    }
+
+    int direction;
+    if (dir == SIG_FLAG_TOSERVER) {
+        direction = 0;
+    } else {
+        direction = 1;
+    }
+
+    DetectEnginePduInspectionEngine *new_engine = SCCalloc(1, sizeof(*new_engine));
+    if (unlikely(new_engine == NULL)) {
+        FatalError(SC_ERR_INITIALIZATION, "failed to register inspect engine %s: %s", name,
+                strerror(errno));
+    }
+    new_engine->sm_list = sm_list;
+    new_engine->sm_list_base = sm_list;
+    new_engine->dir = direction;
+    new_engine->v1.Callback = Callback;
+    new_engine->alproto = alproto;
+    new_engine->type = type;
+
+    if (g_pdu_inspect_engines == NULL) {
+        g_pdu_inspect_engines = new_engine;
+    } else {
+        DetectEnginePduInspectionEngine *t = g_pdu_inspect_engines;
         while (t->next != NULL) {
             t = t->next;
         }
@@ -363,6 +412,74 @@ static void DetectPktInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_ctx)
     }
 }
 
+/* copy an inspect engine with transforms to a new list id. */
+static void DetectPduInspectEngineCopy(DetectEngineCtx *de_ctx, int sm_list, int new_list,
+        const DetectEngineTransforms *transforms)
+{
+    const DetectEnginePduInspectionEngine *t = g_pdu_inspect_engines;
+    while (t) {
+        if (t->sm_list == sm_list) {
+            DetectEnginePduInspectionEngine *new_engine =
+                    SCCalloc(1, sizeof(DetectEnginePduInspectionEngine));
+            if (unlikely(new_engine == NULL)) {
+                exit(EXIT_FAILURE);
+            }
+            new_engine->sm_list = new_list; /* use new list id */
+            new_engine->sm_list_base = sm_list;
+            new_engine->dir = t->dir;
+            new_engine->alproto = t->alproto;
+            new_engine->type = t->type;
+            new_engine->v1 = t->v1;
+            new_engine->v1.transforms = transforms; /* assign transforms */
+
+            if (de_ctx->pdu_inspect_engines == NULL) {
+                de_ctx->pdu_inspect_engines = new_engine;
+            } else {
+                DetectEnginePduInspectionEngine *list = de_ctx->pdu_inspect_engines;
+                while (list->next != NULL) {
+                    list = list->next;
+                }
+
+                list->next = new_engine;
+            }
+        }
+        t = t->next;
+    }
+}
+
+/* copy inspect engines from global registrations to de_ctx list */
+static void DetectPduInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_ctx)
+{
+    const DetectEnginePduInspectionEngine *t = g_pdu_inspect_engines;
+    while (t) {
+        SCLogDebug("engine %p", t);
+        DetectEnginePduInspectionEngine *new_engine =
+                SCCalloc(1, sizeof(DetectEnginePduInspectionEngine));
+        if (unlikely(new_engine == NULL)) {
+            exit(EXIT_FAILURE);
+        }
+        new_engine->sm_list = t->sm_list;
+        new_engine->sm_list_base = t->sm_list;
+        new_engine->dir = t->dir;
+        new_engine->alproto = t->alproto;
+        new_engine->type = t->type;
+        new_engine->v1 = t->v1;
+
+        if (de_ctx->pdu_inspect_engines == NULL) {
+            de_ctx->pdu_inspect_engines = new_engine;
+        } else {
+            DetectEnginePduInspectionEngine *list = de_ctx->pdu_inspect_engines;
+            while (list->next != NULL) {
+                list = list->next;
+            }
+
+            list->next = new_engine;
+        }
+
+        t = t->next;
+    }
+}
+
 /** \internal
  *  \brief append the stream inspection
  *
@@ -435,6 +552,62 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
         ptrs[i] = SigMatchList2DataArray(s->init_data->smlists[i]);
         SCLogDebug("ptrs[%d] is set", i);
+    }
+
+    /* set up pdu inspect engines */
+    const DetectEnginePduInspectionEngine *u = de_ctx->pdu_inspect_engines;
+    while (u != NULL) {
+        SCLogDebug("u %p sm_list %u nlists %u ptrs[] %p", u, u->sm_list, nlists,
+                u->sm_list < nlists ? ptrs[u->sm_list] : NULL);
+        if (u->sm_list < nlists && ptrs[u->sm_list] != NULL) {
+            bool prepend = false;
+
+            if (u->alproto == ALPROTO_UNKNOWN) {
+                /* special case, inspect engine applies to all protocols */
+            } else if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, u->alproto))
+                goto next_pdu;
+
+            if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
+                if (u->dir == 1)
+                    goto next_pdu;
+            } else if (s->flags & SIG_FLAG_TOCLIENT && !(s->flags & SIG_FLAG_TOSERVER)) {
+                if (u->dir == 0)
+                    goto next_pdu;
+            }
+            DetectEnginePduInspectionEngine *new_engine =
+                    SCCalloc(1, sizeof(DetectEnginePduInspectionEngine));
+            if (unlikely(new_engine == NULL)) {
+                exit(EXIT_FAILURE);
+            }
+            if (mpm_list == u->sm_list) {
+                SCLogDebug("%s is mpm", DetectBufferTypeGetNameById(de_ctx, u->sm_list));
+                prepend = true;
+                new_engine->mpm = true;
+            }
+
+            new_engine->sm_list = u->sm_list;
+            new_engine->sm_list_base = u->sm_list_base;
+            new_engine->smd = ptrs[new_engine->sm_list];
+            new_engine->v1 = u->v1;
+            SCLogDebug("sm_list %d new_engine->v1 %p/%p", new_engine->sm_list,
+                    new_engine->v1.Callback, new_engine->v1.transforms);
+
+            if (s->pdu_inspect == NULL) {
+                s->pdu_inspect = new_engine;
+            } else if (prepend) {
+                new_engine->next = s->pdu_inspect;
+                s->pdu_inspect = new_engine;
+            } else {
+                DetectEnginePduInspectionEngine *a = s->pdu_inspect;
+                while (a->next != NULL) {
+                    a = a->next;
+                }
+                new_engine->next = a->next;
+                a->next = new_engine;
+            }
+        }
+    next_pdu:
+        u = u->next;
     }
 
     /* set up pkt inspect engines */
@@ -631,8 +804,14 @@ void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *de_ctx, Signa
         nlists = MAX(e->sm_list + 1, nlists);
         e = e->next;
     }
+    DetectEnginePduInspectionEngine *u = s->pdu_inspect;
+    while (u) {
+        nlists = MAX(u->sm_list + 1, nlists);
+        u = u->next;
+    }
     if (nlists == 0) {
         BUG_ON(s->pkt_inspect);
+        BUG_ON(s->pdu_inspect);
         return;
     }
 
@@ -654,6 +833,13 @@ void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *de_ctx, Signa
         ptrs[e->sm_list] = e->smd;
         SCFree(e);
         e = next;
+    }
+    u = s->pdu_inspect;
+    while (u) {
+        DetectEnginePduInspectionEngine *next = u->next;
+        ptrs[u->sm_list] = u->smd;
+        SCFree(u);
+        u = next;
     }
 
     /* free the smds */
@@ -779,7 +965,8 @@ static int DetectBufferTypeAdd(const char *string)
 
 static DetectBufferType *DetectBufferTypeLookupByName(const char *string)
 {
-    DetectBufferType map = { (char *)string, NULL, 0, 0, 0, 0, false, NULL, NULL, no_transforms };
+    DetectBufferType map = { (char *)string, NULL, 0, 0, 0, 0, false, false, NULL, NULL,
+        no_transforms };
 
     DetectBufferType *res = HashListTableLookup(g_buffer_type_hash, &map, 0);
     return res;
@@ -797,6 +984,16 @@ int DetectBufferTypeRegister(const char *name)
     } else {
         return exists->id;
     }
+}
+
+void DetectBufferTypeSupportsPDU(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->pdu = true;
+    SCLogDebug("%p %s -- %d supports PDU inspection", exists, name, exists->id);
 }
 
 void DetectBufferTypeSupportsPacket(const char *name)
@@ -1237,6 +1434,8 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
     PrefilterInit(de_ctx);
     DetectMpmInitializeAppMpms(de_ctx);
     DetectAppLayerInspectEngineCopyListToDetectCtx(de_ctx);
+    DetectMpmInitializePduMpms(de_ctx);
+    DetectPduInspectEngineCopyListToDetectCtx(de_ctx);
     DetectMpmInitializePktMpms(de_ctx);
     DetectPktInspectEngineCopyListToDetectCtx(de_ctx);
 }
@@ -1273,6 +1472,18 @@ static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
             SCFree(pmlist);
             pmlist = next;
         }
+        DetectEnginePduInspectionEngine *pdulist = de_ctx->pdu_inspect_engines;
+        while (pdulist) {
+            DetectEnginePduInspectionEngine *next = pdulist->next;
+            SCFree(pdulist);
+            pdulist = next;
+        }
+        DetectBufferMpmRegistery *pdumlist = de_ctx->pdu_mpms_list;
+        while (pdumlist) {
+            DetectBufferMpmRegistery *next = pdumlist->next;
+            SCFree(pdumlist);
+            pdumlist = next;
+        }
         PrefilterDeinit(de_ctx);
     }
 }
@@ -1306,7 +1517,8 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
     }
     t.cnt = transform_cnt;
 
-    DetectBufferType lookup_map = { (char *)base_map->string, NULL, 0, 0, 0, 0, false, NULL, NULL, t };
+    DetectBufferType lookup_map = { (char *)base_map->string, NULL, 0, 0, 0, 0, false, false, NULL,
+        NULL, t };
     DetectBufferType *res = HashListTableLookup(de_ctx->buffer_type_hash, &lookup_map, 0);
 
     SCLogDebug("res %p", res);
@@ -1324,9 +1536,12 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
     map->transforms = t;
     map->mpm = base_map->mpm;
     map->packet = base_map->packet;
+    map->pdu = base_map->pdu;
     map->SetupCallback = base_map->SetupCallback;
     map->ValidateCallback = base_map->ValidateCallback;
-    if (map->packet) {
+    if (map->pdu) {
+        DetectPduMpmRegisterByParentId(de_ctx, map->id, map->parent_id, &map->transforms);
+    } else if (map->packet) {
         DetectPktMpmRegisterByParentId(de_ctx,
                 map->id, map->parent_id, &map->transforms);
     } else {
@@ -1345,7 +1560,9 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
         de_ctx->buffer_type_map[map->id] = map;
         de_ctx->buffer_type_map_elements = map->id + 1;
 
-        if (map->packet) {
+        if (map->pdu) {
+            DetectPduInspectEngineCopy(de_ctx, map->parent_id, map->id, &map->transforms);
+        } else if (map->packet) {
             DetectPktInspectEngineCopy(de_ctx, map->parent_id, map->id,
                     &map->transforms);
         } else {
@@ -1427,6 +1644,65 @@ static int DetectEngineInspectRulePayloadMatches(
         }
     }
     return true;
+}
+
+#include "app-layer-records.h"
+
+static StreamPDU *GetPDUFromStream(TcpStream *stream, StreamPDUs *pdus, uint32_t idx)
+{
+    assert(stream);
+    assert(pdus);
+
+    SCLogDebug("stream %p idx %u Stream->pdus.cnt %u", stream, idx, stream->pdus.cnt);
+
+    if (idx >= pdus->cnt) {
+        return 0;
+    }
+
+    StreamPDU *pdu = StreamPDUGetByIndex(pdus, idx);
+    return pdu;
+}
+
+bool DetectEnginePduInspectionRun(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, Flow *f, Packet *p, uint8_t *alert_flags)
+{
+    SCEnter();
+
+    if (s->pdu_inspect == NULL)
+        return true;
+
+    TcpSession *ssn = f->protoctx;
+    TcpStream *stream;
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+    } else {
+        stream = &ssn->server;
+    }
+
+    for (uint32_t idx = 0; idx < stream->pdus.cnt; idx++) {
+        StreamPDU *pdu = GetPDUFromStream(stream, &stream->pdus, idx);
+        if (pdu != NULL) {
+            for (DetectEnginePduInspectionEngine *e = s->pdu_inspect; e != NULL; e = e->next) {
+                if (pdu->type == e->type) {
+                    // TODO check alproto, type, direction?
+
+                    // TODO there should be only one inspect engine for this pdu, ever?
+
+                    if (e->v1.Callback(det_ctx, e, s, p, pdu, idx) == true) {
+                        SCLogDebug("sid %u: e %p Callback returned true", s->id, e);
+                        return true;
+                    }
+                    SCLogDebug("sid %u: e %p Callback returned false", s->id, e);
+                } else {
+                    SCLogDebug("sid %u: e %p not for pdu type %u (want %u)", s->id, e, pdu->type,
+                            e->type);
+                }
+            }
+        }
+    }
+
+    SCLogDebug("sid %u: returning true", s->id);
+    return false;
 }
 
 bool DetectEnginePktInspectionRun(ThreadVars *tv,
@@ -1725,6 +2001,129 @@ int DetectEngineInspectPktBufferGeneric(
     }
 }
 
+#include "util-print.h"
+InspectionBuffer *DetectStreamPDU2InspectBuffer(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, StreamPDU *pdu, const int list_id,
+        const uint32_t idx, const bool first)
+{
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
+    if (buffer == NULL)
+        return NULL;
+    if (!first && buffer->inspect != NULL)
+        return buffer;
+
+    assert(p->flow);
+    assert(p->flow->protoctx);
+    TcpSession *ssn = p->flow->protoctx;
+    TcpStream *stream;
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+    } else {
+        stream = &ssn->server;
+    }
+
+    uint32_t data_len = 0;
+    const uint8_t *data = NULL;
+
+    uint64_t offset = STREAM_BASE_OFFSET(stream);
+    if (pdu->rel_offset > 0) {
+        offset += (uint64_t)pdu->rel_offset;
+    }
+
+    if (StreamingBufferGetDataAtOffset(&stream->sb, &data, &data_len, offset) == 0) {
+        return NULL;
+    }
+    if (data == NULL || data_len == 0) {
+        return NULL;
+    }
+    if (pdu->len >= 0) {
+        data_len = MIN(data_len, (uint32_t)pdu->len);
+    }
+
+    // uint64_t pdu_le = STREAM_BASE_OFFSET(stream) + pdu->rel_offset;
+    uint64_t pdu_re = STREAM_BASE_OFFSET(stream) + pdu->rel_offset + pdu->len;
+    uint64_t data_re = offset + data_len;
+    uint8_t ci_flags = pdu->rel_offset >= 0 ? DETECT_CI_FLAGS_START : 0;
+    if (pdu_re <= data_re) {
+        ci_flags |= DETECT_CI_FLAGS_END;
+    }
+
+    SCLogDebug("pdu %p rel_offset %d type %u len %u ci_flags %02x (start:%s, end:%s)", pdu,
+            pdu->rel_offset, pdu->type, pdu->len, ci_flags,
+            (ci_flags & DETECT_CI_FLAGS_START) ? "true" : "false",
+            (ci_flags & DETECT_CI_FLAGS_END) ? "true" : "false");
+    // PrintRawDataFp(stdout, data, MIN(64, data_len));
+
+    InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    buffer->inspect_offset = pdu->rel_offset < 0 ? -1 * pdu->rel_offset : 0;
+    buffer->flags = ci_flags;
+    return buffer;
+}
+
+/**
+ * \brief Do the content inspection & validation for a signature
+ *
+ * \param de_ctx Detection engine context
+ * \param det_ctx Detection engine thread context
+ * \param s Signature to inspect
+ * \param p Packet
+ * \param pdu stream pdu to inspect
+ *
+ * \retval 0 no match.
+ * \retval 1 match.
+ */
+int DetectEngineInspectPduBufferGeneric(DetectEngineThreadCtx *det_ctx,
+        const DetectEnginePduInspectionEngine *engine, const Signature *s, Packet *p,
+        StreamPDU *pdu, const uint32_t idx)
+{
+    const int list_id = engine->sm_list;
+    SCLogDebug("running inspect on %d", list_id);
+
+    SCLogDebug("list %d transforms %p", engine->sm_list, engine->v1.transforms);
+
+    /* if prefilter didn't already run, we need to consider transformations */
+    const DetectEngineTransforms *transforms = NULL;
+    if (!engine->mpm) {
+        transforms = engine->v1.transforms;
+    }
+
+    const InspectionBuffer *buffer =
+            DetectStreamPDU2InspectBuffer(det_ctx, transforms, p, pdu, list_id, idx, false);
+    if (unlikely(buffer == NULL)) {
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+    const uint64_t offset = buffer->inspect_offset;
+
+    det_ctx->discontinue_matching = 0;
+    det_ctx->buffer_offset = 0;
+    det_ctx->inspection_recursion_counter = 0;
+#ifdef DEBUG
+    const uint8_t ci_flags = buffer->flags;
+    SCLogDebug("pdu %p rel_offset %d type %u len %u ci_flags %02x (start:%s, end:%s)", pdu,
+            pdu->rel_offset, pdu->type, pdu->len, ci_flags,
+            (ci_flags & DETECT_CI_FLAGS_START) ? "true" : "false",
+            (ci_flags & DETECT_CI_FLAGS_END) ? "true" : "false");
+    SCLogDebug("buffer %p offset %" PRIu64 " len %u ci_flags %02x (start:%s, end:%s)", buffer,
+            buffer->inspect_offset, buffer->inspect_len, ci_flags,
+            (ci_flags & DETECT_CI_FLAGS_START) ? "true" : "false",
+            (ci_flags & DETECT_CI_FLAGS_END) ? "true" : "false");
+    // PrintRawDataFp(stdout, data, data_len);
+    // PrintRawDataFp(stdout, data, MIN(64, data_len));
+#endif
+    BUG_ON((int32_t)data_len > pdu->len);
+
+    int r = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx, s, engine->smd, p, p->flow,
+            (uint8_t *)data, data_len, offset, buffer->flags,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_PDU);
+    if (r == 1) {
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    } else {
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
+}
 
 /* nudge capture loops to wake up */
 static void BreakCapture(void)

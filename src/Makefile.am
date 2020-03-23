@@ -42,6 +42,7 @@ noinst_HEADERS = \
 	app-layer-parser.h \
 	app-layer-protos.h \
 	app-layer-rdp.h \
+    app-layer-records.h \
 	app-layer-register.h \
 	app-layer-rfb.h \
 	app-layer-sip.h \
@@ -284,6 +285,7 @@ noinst_HEADERS = \
 	detect-sip-stat-msg.h \
 	detect-sip-uri.h \
 	detect-smb-share.h \
+    detect-smb-records.h \
 	detect-snmp-community.h \
 	detect-snmp-pdu_type.h \
 	detect-snmp-version.h \
@@ -322,6 +324,7 @@ noinst_HEADERS = \
 	detect-tls-ja3s-hash.h \
 	detect-tls-ja3s-string.h \
 	detect-tls-ja3-string.h \
+    detect-tls-record.h \
 	detect-tls-sni.h \
 	detect-tls-version.h \
 	detect-tos.h \
@@ -398,6 +401,7 @@ noinst_HEADERS = \
 	output-json-mqtt.h \
 	output-json-netflow.h \
 	output-json-nfs.h \
+    output-json-pdu.h \
 	output-json-rdp.h \
 	output-json-rfb.h \
 	output-json-sip.h \
@@ -621,6 +625,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-parser.c \
 	app-layer-protos.c \
 	app-layer-rdp.c \
+    app-layer-records.c \
 	app-layer-register.c \
 	app-layer-rfb.c \
 	app-layer-sip.c \
@@ -858,6 +863,7 @@ libsuricata_c_a_SOURCES = \
 	detect-sip-stat-msg.c \
 	detect-sip-uri.c \
 	detect-smb-share.c \
+    detect-smb-records.c \
 	detect-snmp-community.c \
 	detect-snmp-pdu_type.c \
 	detect-snmp-version.c \
@@ -897,6 +903,7 @@ libsuricata_c_a_SOURCES = \
 	detect-tls-ja3s-string.c \
 	detect-tls-ja3-string.c \
 	detect-tls-sni.c \
+    detect-tls-record.c \
 	detect-tls-version.c \
 	detect-tos.c \
 	detect-transform-compress-whitespace.c \
@@ -971,6 +978,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-modbus.c \
 	output-json-mqtt.c \
 	output-json-netflow.c \
+    output-json-pdu.c \
 	output-json-nfs.c \
 	output-json-rdp.c \
 	output-json-rfb.c \

@@ -84,6 +84,7 @@
 #include "output-json-dnp3.h"
 #include "output-json-metadata.h"
 #include "output-json-dcerpc.h"
+#include "output-json-pdu.h"
 #include "output-filestore.h"
 
 typedef struct RootLogger_ {
@@ -1118,4 +1119,5 @@ void OutputRegisterLoggers(void)
     JsonRdpLogRegister();
     /* DCERPC JSON logger. */
     JsonDCERPCLogRegister();
+    JsonPduLogRegister();
 }

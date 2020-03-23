@@ -37,6 +37,7 @@
 #include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
+#include "app-layer-records.h"
 #include "app-layer-ssl.h"
 
 #include "decode-events.h"
@@ -2287,6 +2288,10 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_TLS_HEADER);
             return -1;
         }
+        SCLogDebug("%s input %p record_length %u", (direction == 0) ? "toserver" : "toclient",
+                input, ssl_state->curr_connp->record_length);
+        AppLayerRecordNew(ssl_state->f, input, ssl_state->curr_connp->record_length + retval,
+                direction, TLS_RECORD_PDU);
         parsed += retval;
         record_len = MIN(input_len - parsed, ssl_state->curr_connp->record_length);
         SCLogDebug("record_len %u (input_len %u, parsed %u, ssl_state->curr_connp->record_length %u)",

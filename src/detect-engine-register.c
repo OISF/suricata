@@ -74,6 +74,7 @@
 #include "detect-config.h"
 
 #include "detect-smb-share.h"
+#include "detect-smb-records.h"
 
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
@@ -242,6 +243,7 @@
 #include "detect-tls.h"
 #include "detect-tls-cert-validity.h"
 #include "detect-tls-version.h"
+#include "detect-tls-record.h"
 #include "detect-ssh-proto.h"
 #include "detect-ssh-proto-version.h"
 #include "detect-ssh-software.h"
@@ -515,6 +517,8 @@ void SigTableSetup(void)
     DetectTlsJa3SHashRegister();
     DetectTlsJa3SStringRegister();
 
+    DetectTlsRecordRegister();
+
     DetectAppLayerEventRegister();
     /* end of order dependent regs */
 
@@ -572,6 +576,7 @@ void SigTableSetup(void)
     DetectDceStubDataRegister();
     DetectSmbNamedPipeRegister();
     DetectSmbShareRegister();
+    DetectSmbRecordRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();

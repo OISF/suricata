@@ -167,6 +167,53 @@ impl From<i32> for AppLayerResult {
     }
 }
 
+pub enum StreamPDU {}
+
+// Defined in app-layer-register.h
+extern {
+    // StreamPDU *AppLayerRecordNew2(Flow *f, const uint32_t rec_start_rel, const uint32_t len, int dir)
+    pub fn AppLayerRecordNew2(flow: *const Flow, rec_start_rel: u32, len: i32, dir: i32, rec_type: u8) -> *const StreamPDU;
+    // void AppLayerRecordAddEvent(StreamPDU *pdu, uint8_t event);
+    pub fn AppLayerRecordAddEvent(pdu: *const StreamPDU, event: u8);
+    //
+    pub fn AppLayerRecordSetType(pdu: *const StreamPDU, rec_type: u8);
+}
+
+fn applayer_new_record_with_dir(
+        flow: *const Flow, base: &[u8], rec_start: &[u8], rec_len: i32, dir: i32, rec_type: u8) -> *const StreamPDU
+{
+    let offset = base.len() as u64 - rec_start.len() as u64;
+    let pdu = unsafe { AppLayerRecordNew2(flow, offset as u32, rec_len, dir, rec_type) };
+    pdu
+}
+
+pub fn applayer_new_record_ts(
+        flow: *const Flow, base: &[u8], rec_start: &[u8], rec_len: i32, rec_type: u8) -> *const StreamPDU
+{
+    applayer_new_record_with_dir(flow, base, rec_start, rec_len, 0, rec_type)
+}
+
+pub fn applayer_pdu_set_tx(_pdu: *const StreamPDU, _tx_id: u64)
+{
+
+}
+
+pub fn applayer_pdu_set_type(pdu: *const StreamPDU, rec_type: u8)
+{
+    unsafe { AppLayerRecordSetType(pdu, rec_type); };
+}
+
+pub fn applayer_pdu_add_event(pdu: *const StreamPDU, event: u8)
+{
+    unsafe { AppLayerRecordAddEvent(pdu, event); };
+}
+
+pub fn applayer_new_record_tc(
+        flow: *const Flow, base: &[u8], rec_start: &[u8], rec_len: i32, rec_type: u8) -> *const StreamPDU
+{
+    applayer_new_record_with_dir(flow, base, rec_start, rec_len, 1, rec_type)
+}
+
 /// Rust parser declaration
 #[repr(C)]
 pub struct RustParser {

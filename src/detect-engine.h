@@ -49,6 +49,7 @@ int DetectBufferTypeRegister(const char *name);
 int DetectBufferTypeGetByName(const char *name);
 void DetectBufferTypeSupportsMpm(const char *name);
 void DetectBufferTypeSupportsPacket(const char *name);
+void DetectBufferTypeSupportsPDU(const char *name);
 void DetectBufferTypeSupportsTransformations(const char *name);
 int DetectBufferTypeMaxId(void);
 void DetectBufferTypeCloseRegistration(void);
@@ -131,6 +132,13 @@ int DetectEngineInspectPktBufferGeneric(
         const DetectEnginePktInspectionEngine *engine,
         const Signature *s, Packet *p, uint8_t *alert_flags);
 
+InspectionBuffer *DetectStreamPDU2InspectBuffer(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, struct StreamPDU *pdu,
+        const int list_id, const uint32_t idx, const bool first);
+int DetectEngineInspectPduBufferGeneric(DetectEngineThreadCtx *det_ctx,
+        const DetectEnginePduInspectionEngine *engine, const Signature *s, Packet *p,
+        struct StreamPDU *pdu, const uint32_t idx);
+
 /**
  * \brief Registers an app inspection engine.
  *
@@ -150,9 +158,14 @@ void DetectPktInspectEngineRegister(const char *name,
         InspectionBufferGetPktDataPtr GetPktData,
         InspectionBufferPktInspectFunc Callback);
 
+void DetectPduInspectEngineRegister(const char *name, int dir,
+        InspectionBufferPduInspectFunc Callback, AppProto alproto, uint8_t type);
+
 int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s);
 void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *, Signature *s);
 
+bool DetectEnginePduInspectionRun(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, Flow *f, Packet *p, uint8_t *alert_flags);
 bool DetectEnginePktInspectionRun(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx, const Signature *s,
         Flow *f, Packet *p,
