@@ -2326,7 +2326,13 @@ The Teredo decoder can be disabled. It is enabled by default.
       # it will sometimes detect non-teredo as teredo.
       teredo:
         enabled: true
+        # ports to look for Teredo. Max 4 ports. If no ports are given, or
+        # the value is set to 'any', Teredo detection runs on _all_ UDP packets.
+        ports: $TEREDO_PORTS # syntax: '[3544, 1234]'
 
+Using this default configuration, Teredo detection will run on UDP port
+3544. If the `ports` parameter is missing, or set to `any`, all ports will be
+inspected for possible presence of Teredo.
 
 Advanced Options
 ----------------
