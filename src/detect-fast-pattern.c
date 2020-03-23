@@ -174,9 +174,10 @@ void DetectEngineFreeFastPatternList(DetectEngineCtx *de_ctx)
 {
     for (SCFPSupportSMList *tmp = de_ctx->fp_support_smlist_list; tmp != NULL; ) {
         SCFPSupportSMList *next = tmp->next;
-        SCFree(next);
+        SCFree(tmp);
         tmp = next;
     }
+    de_ctx->fp_support_smlist_list = NULL;
 }
 
 /**

@@ -43,6 +43,7 @@ noinst_HEADERS = \
 	app-layer-parser.h \
 	app-layer-protos.h \
 	app-layer-rdp.h \
+    app-layer-records.h \
 	app-layer-register.h \
 	app-layer-rfb.h \
 	app-layer-sip.h \
@@ -143,6 +144,7 @@ noinst_HEADERS = \
 	detect-engine-loader.h \
 	detect-engine-mpm.h \
 	detect-engine-payload.h \
+    detect-engine-record.h \
 	detect-engine-port.h \
 	detect-engine-prefilter-common.h \
 	detect-engine-prefilter.h \
@@ -268,6 +270,7 @@ noinst_HEADERS = \
 	detect-prefilter.h \
 	detect-priority.h \
 	detect-rawbytes.h \
+	detect-record.h \
 	detect-reference.h \
 	detect-replace.h \
 	detect-rev.h \
@@ -399,6 +402,7 @@ noinst_HEADERS = \
 	output-json-mqtt.h \
 	output-json-netflow.h \
 	output-json-nfs.h \
+    output-json-record.h \
 	output-json-rdp.h \
 	output-json-rfb.h \
 	output-json-sip.h \
@@ -624,6 +628,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-parser.c \
 	app-layer-protos.c \
 	app-layer-rdp.c \
+    app-layer-records.c \
 	app-layer-register.c \
 	app-layer-rfb.c \
 	app-layer-sip.c \
@@ -721,6 +726,7 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-loader.c \
 	detect-engine-mpm.c \
 	detect-engine-payload.c \
+    detect-engine-record.c \
 	detect-engine-port.c \
 	detect-engine-prefilter.c \
 	detect-engine-prefilter-common.c \
@@ -844,6 +850,7 @@ libsuricata_c_a_SOURCES = \
 	detect-prefilter.c \
 	detect-priority.c \
 	detect-rawbytes.c \
+    detect-record.c \
 	detect-reference.c \
 	detect-replace.c \
 	detect-rev.c \
@@ -974,6 +981,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-modbus.c \
 	output-json-mqtt.c \
 	output-json-netflow.c \
+    output-json-record.c \
 	output-json-nfs.c \
 	output-json-rdp.c \
 	output-json-rfb.c \

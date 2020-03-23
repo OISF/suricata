@@ -61,6 +61,7 @@
 #include "app-layer.h"
 #include "app-layer-events.h"
 #include "app-layer-parser.h"
+#include "app-layer-records.h"
 
 #include "detect-engine-state.h"
 
@@ -1099,6 +1100,13 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     SCLogDebug("app progress %"PRIu64, app_progress);
     SCLogDebug("last_ack %u, base_seq %u", (*stream)->last_ack, (*stream)->base_seq);
 
+    SCLogDebug("%u pkt %s updatedir %s", (uint32_t)p->pcap_cnt,
+            PKT_IS_TOSERVER(p) ? "toserver" : "toclient",
+            dir == UPDATE_DIR_PACKET ? "packet" : (dir == UPDATE_DIR_BOTH ? "both" : "oppo"));
+
+    // memset(&app_records, 0, sizeof(app_records));
+    // app_record_cnt = 0;
+
     const uint8_t *mydata;
     uint32_t mydata_len;
     bool gap_ahead = false;
@@ -1119,7 +1127,6 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         DEBUG_VALIDATE_BUG_ON(mydata_len > (uint32_t)INT_MAX);
         if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, *stream, p)) {
             SCLogDebug("sending GAP to app-layer (size: %u)", mydata_len);
-
             int r = AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                     NULL, mydata_len,
                     StreamGetAppLayerFlags(ssn, *stream, p)|STREAM_GAP);
@@ -1190,6 +1197,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                 (uint8_t *)mydata, mydata_len, flags);
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
+        AppLayerRecordDump(p->flow);
         uint64_t new_app_progress = STREAM_APP_PROGRESS(*stream);
         if (new_app_progress == app_progress || FlowChangeProto(p->flow))
             break;
@@ -1197,7 +1205,6 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         if (flags & STREAM_DEPTH)
             break;
     }
-
     SCReturnInt(0);
 }
 
@@ -1377,6 +1384,14 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
         stream = &ssn->client;
     } else {
         stream = &ssn->server;
+    }
+
+    /* Record updates */
+    if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
+        if (progress > STREAM_APP_PROGRESS(stream)) {
+            AppLayerRecordsUpdateProgress(p->flow, stream, progress,
+                    PKT_IS_TOSERVER(p) ? STREAM_TOSERVER : STREAM_TOCLIENT);
+        }
     }
 
     if (progress > STREAM_RAW_PROGRESS(stream)) {

@@ -86,7 +86,6 @@ struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];
 };
 
-
 /**
  * \brief App layer protocol parser context.
  */
@@ -121,6 +120,9 @@ typedef struct AppLayerParserProtoCtx_
     bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
 
     void (*SetStreamDepthFlag)(void *tx, uint8_t flags);
+
+    AppLayerParserGetRecordIdByNameFn GetRecordIdByName;
+    AppLayerParserGetRecordNameByIdFn GetRecordNameById;
 
     /* each app-layer has its own value */
     uint32_t stream_depth;
@@ -162,7 +164,39 @@ struct AppLayerParserState_ {
 
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
+
+    RecordsContainer *records;
 };
+
+static void AppLayerRecordsFreeContainer(RecordsContainer *records) {
+    if (records != NULL) {
+        RecordsFree(&records->toserver);
+        RecordsFree(&records->toclient);
+        SCFree(records);
+    }
+}
+
+RecordsContainer *AppLayerRecordsGetContainer(Flow *f) {
+    if (f == NULL || f->alparser == NULL)
+        return NULL;
+    return f->alparser->records;
+}
+
+RecordsContainer *AppLayerRecordsSetupContainer(Flow *f) {
+#ifdef UNITTESTS
+    if (f == NULL || f->alparser == NULL || f->protoctx == NULL)
+        return NULL;
+#endif
+    DEBUG_VALIDATE_BUG_ON(f == NULL || f->alparser == NULL);
+    if (f->alparser->records == NULL) {
+        f->alparser->records = SCCalloc(1, sizeof(RecordsContainer));
+        if (f->alparser->records == NULL) {
+            return NULL;
+        }
+    }
+    return f->alparser->records;
+}
+
 
 #ifdef UNITTESTS
 void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_t *log, uint64_t *min)
@@ -205,6 +239,7 @@ void AppLayerParserStateFree(AppLayerParserState *pstate)
 
     if (pstate->decoder_events != NULL)
         AppLayerDecoderEventsFreeEvents(&pstate->decoder_events);
+    AppLayerRecordsFreeContainer(pstate->records);
     SCFree(pstate);
 
     SCReturn;
@@ -532,6 +567,16 @@ void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
         StateGetEventInfoById = StateGetEventInfoById;
 
+    SCReturn;
+}
+
+void AppLayerParserRegisterGetRecordFuncs(uint8_t ipproto, AppProto alproto,
+        AppLayerParserGetRecordIdByNameFn GetIdByNameFunc,
+        AppLayerParserGetRecordNameByIdFn GetNameByIdFunc)
+{
+    SCEnter();
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordIdByName = GetIdByNameFunc;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordNameById = GetNameByIdFunc;
     SCReturn;
 }
 
@@ -1178,6 +1223,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     uint64_t p_tx_cnt = 0;
     uint32_t consumed = input_len;
     const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    SCLogDebug("%s", direction == 0 ? "toserver" : "toclient");
 
     /* we don't have the parser registered for this protocol */
     if (p->StateAlloc == NULL)
@@ -1431,6 +1477,24 @@ void AppLayerParserSetStreamDepthFlag(uint8_t ipproto, AppProto alproto, void *s
         }
     }
     SCReturn;
+}
+
+int AppLayerParserGetRecordIdByName(uint8_t ipproto, AppProto alproto, const char *name)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordIdByName != NULL) {
+        return alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordIdByName(name);
+    } else {
+        return -1;
+    }
+}
+
+const char *AppLayerParserGetRecordNameById(uint8_t ipproto, AppProto alproto, const uint8_t id)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordNameById != NULL) {
+        return alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetRecordNameById(id);
+    } else {
+        return NULL;
+    }
 }
 
 /***** Cleanup *****/

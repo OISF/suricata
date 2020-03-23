@@ -44,12 +44,13 @@ int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name);
 int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
-            Packet *p, Flow *f, void *tx,
-            const uint64_t idx, const uint8_t flags),
-        const AppProto alproto, const int tx_min_progress,
-        void *pectx, void (*FreeFunc)(void *pectx),
-        const char *name);
+        void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f,
+                void *tx, const uint64_t idx, const uint8_t flags),
+        const AppProto alproto, const int tx_min_progress, void *pectx,
+        void (*FreeFunc)(void *pectx), const char *name);
+int PrefilterAppendRecordEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        PrefilterRecordFn PrefilterRecordFunc, AppProto alproto, uint8_t rec_type, void *pectx,
+        void (*FreeFunc)(void *pectx), const char *name);
 
 void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         const SigGroupHead *sgh,
