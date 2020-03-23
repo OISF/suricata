@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2012-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,10 +38,63 @@
 #include "decode-teredo.h"
 #include "util-debug.h"
 #include "conf.h"
+#include "detect-engine-port.h"
 
-#define TEREDO_ORIG_INDICATION_LENGTH    8
+#define TEREDO_ORIG_INDICATION_LENGTH   8
+#define TEREDO_DEFAULT_PORT             3544
 
 static bool g_teredo_enabled = true;
+static int g_teredo_ports[4] = { TEREDO_DEFAULT_PORT, -1, -1, -1 };
+static int g_teredo_ports_idx = 0;
+static bool g_teredo_ports_any = false;
+
+bool DecodeTeredoEnabledForPort(const uint16_t sp, const uint16_t dp)
+{
+    SCLogDebug("ports %u->%u ports %d %d %d %d", sp, dp,
+            g_teredo_ports[0], g_teredo_ports[1],
+            g_teredo_ports[2], g_teredo_ports[3]);
+
+    if (g_teredo_enabled) {
+        /* no port config means we are enabled for all ports */
+        if (g_teredo_ports_any) {
+            return true;
+        }
+
+        for (int i = 0; i < g_teredo_ports_idx; i++) {
+            if (g_teredo_ports[i] == -1)
+                return false;
+            const int port = g_teredo_ports[i];
+            if (port == (const int)sp ||
+                port == (const int)dp)
+                return true;
+        }
+    }
+    return false;
+}
+
+static void DecodeTeredoConfigPorts(const char *pstr)
+{
+    SCLogDebug("parsing \'%s\'", pstr);
+
+    if (strcmp(pstr, "any") == 0) {
+        g_teredo_ports_any = true;
+        return;
+    }
+
+    DetectPort *head = NULL;
+    DetectPortParse(NULL, &head, pstr);
+
+    g_teredo_ports_idx = 0;
+    for (DetectPort *p = head; p != NULL; p = p->next) {
+        if (g_teredo_ports_idx >= 4) {
+            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                    "more than 4 Teredo ports defined");
+            break;
+        }
+        g_teredo_ports[g_teredo_ports_idx++] = (int)p->port;
+    }
+    DetectPortCleanupList(NULL, head);
+}
 
 void DecodeTeredoConfig(void)
 {
@@ -51,6 +104,14 @@ void DecodeTeredoConfig(void)
             g_teredo_enabled = true;
         } else {
             g_teredo_enabled = false;
+        }
+    }
+    if (g_teredo_enabled) {
+        ConfNode *node = ConfGetNode("decoder.teredo.ports");
+        if (node && node->val) {
+            DecodeTeredoConfigPorts(node->val);
+        } else {
+            g_teredo_ports_any = true;
         }
     }
 }

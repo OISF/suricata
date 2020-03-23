@@ -45,6 +45,7 @@ vars:
     FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
     FTP_PORTS: 21
     VXLAN_PORTS: 4789
+    TEREDO_PORTS: 3544
 
 ##
 ## Step 2: Select outputs to enable
@@ -1328,6 +1329,10 @@ decoder:
   # as it will sometimes detect non-teredo as teredo.
   teredo:
     enabled: true
+    # ports to look for Teredo. Max 4 ports. If no ports are given, or
+    # the value is set to 'any', Teredo detection runs on _all_ UDP packets.
+    ports: $TEREDO_PORTS # syntax: '3544, 1234'
+
   # VXLAN decoder is assigned to up to 4 UDP ports. By default only the
   # IANA assigned port 4789 is enabled.
   vxlan:

@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2012-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,5 +21,6 @@
 int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                  const uint8_t *pkt, uint16_t len);
 void DecodeTeredoConfig(void);
+bool DecodeTeredoEnabledForPort(const uint16_t sp, const uint16_t dp);
 
 #endif
