@@ -70,7 +70,7 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace \
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - name: Bundling suricata-update
@@ -306,7 +306,7 @@ jobs:
         run: |
           add-apt-repository -y ppa:npalix/coccinelle
           apt -y install coccinelle
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - run: ./autogen.sh
       - run: ./configure --enable-unittests --enable-coccinelle
@@ -429,7 +429,7 @@ jobs:
                 sudo \
                 zlib1g \
                 zlib1g-dev
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - name: Bundling suricata-update
