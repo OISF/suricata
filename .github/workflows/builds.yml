@@ -70,7 +70,7 @@ jobs:
                 texlive-upquote \
                 texlive-capt-of \
                 texlive-needspace \
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
       - name: Bundling suricata-update
