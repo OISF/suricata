@@ -304,7 +304,7 @@ The ``byte_test`` keyword extracts ``<num of bytes>`` and performs an operation 
 Format::
   
   byte_test:<num of bytes>, [!]<operator>, <test value>, <offset> [,relative] \
-  [,<endian>][, string, <num type>][, dce][, bitmask <bitmask value>]; 
+  [,<endian>][, string, <num type>][, dce]; 
 
 
 +----------------+------------------------------------------------------------------------------+
@@ -336,8 +336,6 @@ Format::
 |		 | - oct - Converted string represented in octal				|
 +----------------+------------------------------------------------------------------------------+
 | [dce]		 | Allow the DCE module determine the byte order 				|
-+----------------+------------------------------------------------------------------------------+
-| [bitmask]	 | Applies the AND operator on the bytes converted				|
 +----------------+------------------------------------------------------------------------------+
 
 
@@ -376,7 +374,7 @@ Format::
 
   byte_jump:<num of bytes>, <offset> [, relative][, multiplier <mult_value>] \
 	[, <endian>][, string, <num_type>][, align][, from_beginning][, from_end] \ 
-        [, post_offset <value>][, dce][, bitmask <value>];
+        [, post_offset <value>][, dce];
 
 +-----------------------+-----------------------------------------------------------------------+
 | <num of bytes>	| The number of bytes selected from the packet to be converted		|
@@ -407,9 +405,6 @@ Format::
 |			| jump an additional number of bytes specified by <value>		|
 +-----------------------+-----------------------------------------------------------------------+
 | [dce]			| Allow the DCE module determine the byte order				|
-+-----------------------+-----------------------------------------------------------------------+
-| [bitmask] <value>	| The AND operator will be applied by <value> and the			|
-|			| converted bytes, then jump operation is performed			|
 +-----------------------+-----------------------------------------------------------------------+
 
 Example::
