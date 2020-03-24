@@ -89,7 +89,7 @@ RB_PROTOTYPE(TCPSEG, TcpSegment, rb, TcpSegmentCompare);
 #define STREAM_SEQ_RIGHT_EDGE(stream)   (stream)->segs_right_edge
 #define STREAM_RIGHT_EDGE(stream)       (STREAM_BASE_OFFSET((stream)) + (STREAM_SEQ_RIGHT_EDGE((stream)) - (stream)->base_seq))
 /* return true if we have seen data segments. */
-#define STREAM_HAS_SEEN_DATA(stream)    (!RB_EMPTY(&(stream)->sb.sbb_tree) || (stream)->sb.stream_offset)
+#define STREAM_HAS_SEEN_DATA(stream)    (!RB_EMPTY(&(stream)->sb.sbb_tree) || (stream)->sb.stream_offset || (stream)->sb.buf_offset)
 
 typedef struct TcpStream_ {
     uint16_t flags:12;              /**< Flag specific to the stream e.g. Timestamp */
