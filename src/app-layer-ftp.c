@@ -596,6 +596,16 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state,
         tx->request_length = CopyCommandLine(&tx->request,
                 state->current_line, state->current_line_len);
 
+        /* change direction (default to server) so expectation will handle
+         * the correct message when expectation will match.
+         * For ftp active mode, data connection direction is opposite to 
+         * control direction.
+         */
+        if ((state->active && state->command == FTP_COMMAND_STOR) || 
+                (!state->active && state->command == FTP_COMMAND_RETR)) {
+            direction = STREAM_TOCLIENT;
+        }
+
         switch (state->command) {
             case FTP_COMMAND_EPRT:
                 // fallthrough
@@ -622,15 +632,6 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state,
             case FTP_COMMAND_RETR:
                 // fallthrough
             case FTP_COMMAND_STOR: {
-                    /* change direction (default to server) so expectation will handle
-                     * the correct message when expectation will match.
-                     * For ftp active mode, data connection direction is opposite to 
-                     * control direction.
-                     */
-                    if ((state->active && state->command == FTP_COMMAND_STOR) || 
-                            (!state->active && state->command == FTP_COMMAND_RETR)) {
-                        direction = STREAM_TOCLIENT;
-                    }
                     /* Ensure that there is a negotiated dyn port and a file
                      * name -- need more than 5 chars: cmd [4], space, <filename>
                      */
