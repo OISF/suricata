@@ -195,30 +195,30 @@ enum
  */
 
 /** stream is in a gap state */
-#define STREAMTCP_STREAM_FLAG_GAP               0x0001
+#define STREAMTCP_STREAM_FLAG_GAP                           BIT_U16(0)
 /** Flag to avoid stream reassembly/app layer inspection for the stream */
-#define STREAMTCP_STREAM_FLAG_NOREASSEMBLY      0x0002
+#define STREAMTCP_STREAM_FLAG_NOREASSEMBLY                  BIT_U16(1)
 /** we received a keep alive */
-#define STREAMTCP_STREAM_FLAG_KEEPALIVE         0x0004
+#define STREAMTCP_STREAM_FLAG_KEEPALIVE                     BIT_U16(2)
 /** Stream has reached it's reassembly depth, all further packets are ignored */
-#define STREAMTCP_STREAM_FLAG_DEPTH_REACHED     0x0008
+#define STREAMTCP_STREAM_FLAG_DEPTH_REACHED                 BIT_U16(3)
 /** Trigger reassembly next time we need 'raw' */
-#define STREAMTCP_STREAM_FLAG_TRIGGER_RAW       0x0010
+#define STREAMTCP_STREAM_FLAG_TRIGGER_RAW                   BIT_U16(4)
 /** Stream supports TIMESTAMP -- used to set ssn STREAMTCP_FLAG_TIMESTAMP
  *  flag. */
-#define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x0020
+#define STREAMTCP_STREAM_FLAG_TIMESTAMP                     BIT_U16(5)
 /** Flag to indicate the zero value of timestamp */
-#define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP    0x0040
+#define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP                BIT_U16(6)
 /** App proto detection completed */
-#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED 0x0080
+#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED  BIT_U16(7)
 /** App proto detection skipped */
-#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED 0x0100
+#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED    BIT_U16(8)
 /** Raw reassembly disabled for new segments */
-#define STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED 0x0200
+#define STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED              BIT_U16(9)
 /** Raw reassembly disabled completely */
-#define STREAMTCP_STREAM_FLAG_DISABLE_RAW 0x400
+#define STREAMTCP_STREAM_FLAG_DISABLE_RAW                   BIT_U16(10)
 
-#define STREAMTCP_STREAM_FLAG_RST_RECV  0x800
+#define STREAMTCP_STREAM_FLAG_RST_RECV                      BIT_U16(11)
 
 /** NOTE: flags field is 12 bits */
 
