@@ -475,14 +475,17 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
 
+    } else if (f->proto == IPPROTO_TCP) {
+        TcpSession *ssn = (TcpSession *)f->protoctx;
+        if (ssn != NULL && ssn->state >= TCP_ESTABLISHED) {
+            p->flowflags |= FLOW_PKT_ESTABLISHED;
+        }
     } else if ((f->flags & (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) ==
             (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-        if (f->proto != IPPROTO_TCP) {
-            FlowUpdateState(f, FLOW_STATE_ESTABLISHED);
-        }
+        FlowUpdateState(f, FLOW_STATE_ESTABLISHED);
     }
 
     /*set the detection bypass flags*/
