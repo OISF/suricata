@@ -938,12 +938,12 @@ static int DetectFlowTestParse21 (void)
 
 static int DetectFlowSigTest01(void)
 {
-    ThreadVars th_v;
-    DecodeThreadVars dtv;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
     uint8_t *buf = (uint8_t *)"supernovaduper";
     uint16_t buflen = strlen((char *)buf);
+    ThreadVars th_v;
+    DecodeThreadVars dtv;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
 
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
     FAIL_IF_NULL(p);
@@ -951,10 +951,7 @@ static int DetectFlowSigTest01(void)
     const char *sig1 = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"nova\"; flow:no_stream; sid:1;)";
 
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&th_v, 0, sizeof(th_v));
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
@@ -962,22 +959,16 @@ static int DetectFlowSigTest01(void)
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
+    DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF_NULL(det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF(PacketAlertCheck(p, 1) != 1);
 
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    if (p != NULL)
-        UTHFreePacket(p);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreePacket(p);
 
     PASS;
 }
