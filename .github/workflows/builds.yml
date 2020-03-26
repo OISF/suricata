@@ -453,7 +453,7 @@ jobs:
               tar zxvf - --strip-components=1
         working-directory: suricata-update
       - run: ./autogen.sh
-      - run: ./configure --enable-unittests
+      - run: ./configure --enable-unittests --enable-fuzztargets
       - run: make -j2
       - run: make check
       - name: Fetching suricata-verify
