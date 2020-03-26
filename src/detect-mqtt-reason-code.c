@@ -28,6 +28,7 @@
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-mqtt-reason-code.h"
+#include "util-byte.h"
 #include "util-unittest.h"
 
 #include "rust-bindings.h"
@@ -139,7 +140,7 @@ static DetectMQTTReasonCodeData *DetectMQTTReasonCodeParse(const char *rawstr)
     DetectMQTTReasonCodeData *de = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0;
-    uint64_t val;
+    uint8_t val;
     int ov[MAX_SUBSTRINGS];
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
@@ -148,13 +149,9 @@ static DetectMQTTReasonCodeData *DetectMQTTReasonCodeParse(const char *rawstr)
         return NULL;
     }
 
-    ret = sscanf(rawstr, "%ld", &val);
-    if (ret != 1) {
+    ret = ByteExtractStringUint8(&val, 10, 0, rawstr);
+    if (ret < 0) {
         SCLogError(SC_ERR_UNKNOWN_VALUE, "invalid MQTT reason code: %s", rawstr);
-        return NULL;
-    }
-    if (val > 255) {
-        SCLogError(SC_ERR_UNKNOWN_VALUE, "invalid MQTT reason code: %ld (must be <256)", val);
         return NULL;
     }
 

@@ -28,6 +28,7 @@
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-mqtt-qos.h"
+#include "util-byte.h"
 #include "util-unittest.h"
 
 #include "rust-bindings.h"
@@ -143,8 +144,8 @@ static DetectMQTTQosData *DetectMQTTQosParse(const char *rawstr)
         return NULL;
     }
 
-    ret = sscanf(rawstr, "%hhd", &val);
-    if (ret != 1) {
+    ret = ByteExtractStringUint8(&val, 10, 0, rawstr);
+    if (ret < 0) {
         SCLogError(SC_ERR_UNKNOWN_VALUE, "invalid MQTT QOS level: %s", rawstr);
         return NULL;
     }

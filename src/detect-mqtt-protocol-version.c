@@ -21,6 +21,7 @@
  * \author Sascha Steinbiss <sascha@steinbiss.name>
  */
 
+#include <inttypes.h>
 #include "suricata-common.h"
 #include "conf.h"
 #include "detect.h"
@@ -28,6 +29,7 @@
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-mqtt-protocol-version.h"
+#include "util-byte.h"
 #include "util-unittest.h"
 
 #include "rust-bindings.h"
@@ -143,8 +145,8 @@ static DetectMQTTProtocolVersionData *DetectMQTTProtocolVersionParse(const char 
         return NULL;
     }
 
-    ret = sscanf(rawstr, "%hhd", &val);
-    if (ret != 1) {
+    ret = ByteExtractStringUint8(&val, 10, 0, rawstr);
+    if (ret < 0) {
         SCLogError(SC_ERR_UNKNOWN_VALUE, "invalid MQTT protocol version: %s", rawstr);
         return NULL;
     }
@@ -253,7 +255,7 @@ static int MQTTProtocolVersionTestParse01 (void)
 static int MQTTProtocolVersionTestParse02 (void)
 {
     DetectMQTTProtocolVersionData *de = NULL;
-    de = DetectMQTTProtocolVersionParse("6");
+    de = DetectMQTTProtocolVersionParse("2");
     if (de) {
         DetectMQTTProtocolVersionFree(de);
         return 0;
@@ -269,6 +271,24 @@ static int MQTTProtocolVersionTestParse02 (void)
  *  \retval 0 on failure
  */
 static int MQTTProtocolVersionTestParse03 (void)
+{
+    DetectMQTTProtocolVersionData *de = NULL;
+    de = DetectMQTTProtocolVersionParse("6");
+    if (de) {
+        DetectMQTTProtocolVersionFree(de);
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * \test MQTTProtocolVersionTestParse04 is a test for an invalid value
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int MQTTProtocolVersionTestParse04 (void)
 {
     DetectMQTTProtocolVersionData *de = NULL;
     de = DetectMQTTProtocolVersionParse("");
@@ -292,5 +312,6 @@ void MQTTProtocolVersionRegisterTests(void)
     UtRegisterTest("MQTTProtocolVersionTestParse01", MQTTProtocolVersionTestParse01);
     UtRegisterTest("MQTTProtocolVersionTestParse02", MQTTProtocolVersionTestParse02);
     UtRegisterTest("MQTTProtocolVersionTestParse03", MQTTProtocolVersionTestParse03);
+    UtRegisterTest("MQTTProtocolVersionTestParse04", MQTTProtocolVersionTestParse04);
 #endif /* UNITTESTS */
 }
