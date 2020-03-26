@@ -1615,9 +1615,7 @@ void RegisterDNP3Parsers(void)
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_DNP3, 0, sizeof(DNP3LinkHeader),
                     DNP3ProbingParser, DNP3ProbingParser)) {
-#ifndef AFLFUZZ_APPLAYER
                 return;
-#endif
             }
         }
 

@@ -64,7 +64,7 @@ Next to these tests, based on the type of code change further tests can be run m
 
 - traffic replay testing (multi-gigabit)
 - large pcap collection processing (multi-terabytes)
-- AFL based fuzz testing (might take multiple days or even weeks)
+- fuzz testing (might take multiple days or even weeks)
 - pcap based performance testing
 - live performance testing
 - various other manual tests based on evaluation of the proposed changes

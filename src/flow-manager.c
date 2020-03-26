@@ -145,9 +145,6 @@ typedef struct FlowTimeoutCounters_ {
  */
 void FlowDisableFlowManagerThread(void)
 {
-#ifdef AFLFUZZ_DISABLE_MGTTHREADS
-    return;
-#endif
     /* wake up threads */
     uint32_t u;
     for (u = 0; u < flowmgr_number; u++)
@@ -879,9 +876,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 /** \brief spawn the flow manager thread */
 void FlowManagerThreadSpawn()
 {
-#ifdef AFLFUZZ_DISABLE_MGTTHREADS
-    return;
-#endif
     intmax_t setting = 1;
     (void)ConfGetInt("flow.managers", &setting);
 
@@ -1033,9 +1027,6 @@ static int FlowRecyclerReadyToShutdown(void)
 /** \brief spawn the flow recycler thread */
 void FlowRecyclerThreadSpawn()
 {
-#ifdef AFLFUZZ_DISABLE_MGTTHREADS
-    return;
-#endif
     intmax_t setting = 1;
     (void)ConfGetInt("flow.recyclers", &setting);
 
@@ -1077,9 +1068,6 @@ void FlowRecyclerThreadSpawn()
  */
 void FlowDisableFlowRecyclerThread(void)
 {
-#ifdef AFLFUZZ_DISABLE_MGTTHREADS
-    return;
-#endif
     int cnt = 0;
 
     /* move all flows still in the hash to the recycler queue */

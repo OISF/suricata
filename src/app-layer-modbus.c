@@ -1510,9 +1510,7 @@ void RegisterModbusParsers(void)
                                                 proto_name, ALPROTO_MODBUS,
                                                 0, sizeof(ModbusHeader),
                                                 ModbusProbingParser, ModbusProbingParser)) {
-#ifndef AFLFUZZ_APPLAYER
                 return;
-#endif
             }
         }
 
@@ -1539,10 +1537,8 @@ void RegisterModbusParsers(void)
         }
         SCLogConfig("Modbus stream depth: %u", stream_depth);
     } else {
-#ifndef AFLFUZZ_APPLAYER
         SCLogConfig("Protocol detection and parser disabled for %s protocol.", proto_name);
         return;
-#endif
     }
     if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_MODBUS, STREAM_TOSERVER, ModbusParseRequest);

@@ -145,8 +145,6 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
     return TM_ECODE_OK;
 }
 
-#ifndef AFLFUZZ_PCAP_RUNMODE
-
 /** \internal
  *
  *  \brief Process flow timeout packets
@@ -349,122 +347,6 @@ error:
     pthread_exit((void *) -1);
     return NULL;
 }
-
-#endif /* NO  AFLFUZZ_PCAP_RUNMODE */
-
-#ifdef AFLFUZZ_PCAP_RUNMODE
-/** \brief simplified loop to speed up AFL
- *
- *  The loop runs in the caller's thread. No separate thread.
- */
-static void *TmThreadsSlotPktAcqLoopAFL(void *td)
-{
-    SCLogNotice("AFL mode starting");
-
-    ThreadVars *tv = (ThreadVars *)td;
-    TmSlot *s = tv->tm_slots;
-    char run = 1;
-    TmEcode r = TM_ECODE_OK;
-    TmSlot *slot = NULL;
-
-    PacketPoolInit();
-
-    /* check if we are setup properly */
-    if (s == NULL || s->PktAcqLoop == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
-        SCLogError(SC_ERR_FATAL, "TmSlot or ThreadVars badly setup: s=%p,"
-                                 " PktAcqLoop=%p, tmqh_in=%p,"
-                                 " tmqh_out=%p",
-                   s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
-        TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-        return NULL;
-    }
-
-    for (slot = s; slot != NULL; slot = slot->slot_next) {
-        if (slot->SlotThreadInit != NULL) {
-            void *slot_data = NULL;
-            r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot_data);
-            if (r != TM_ECODE_OK) {
-                if (r == TM_ECODE_DONE) {
-                    EngineDone();
-                    TmThreadsSetFlag(tv, THV_CLOSED | THV_INIT_DONE | THV_RUNNING_DONE);
-                    goto error;
-                } else {
-                    TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                    goto error;
-                }
-            }
-            (void)SC_ATOMIC_SET(slot->slot_data, slot_data);
-        }
-
-        /* if the flowworker module is the first, get the threads input queue */
-        if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
-            tv->stream_pq = tv->inq->pq;
-            tv->tm_flowworker = slot;
-            SCLogDebug("pre-stream packetqueue %p (inq)", tv->stream_pq);
-        /* setup a queue */
-        } else if (slot->tm_id == TMM_FLOWWORKER) {
-            tv->stream_pq_local = SCCalloc(1, sizeof(PacketQueue));
-            if (tv->stream_pq_local == NULL)
-                FatalError(SC_ERR_MEM_ALLOC, "failed to alloc PacketQueue");
-            SCMutexInit(&tv->stream_pq_local->mutex_q, NULL);
-            tv->stream_pq = tv->stream_pq_local;
-            tv->tm_flowworker = slot;
-            SCLogDebug("pre-stream packetqueue %p (local)", tv->stream_pq);
-        }
-    }
-
-    StatsSetupPrivate(tv);
-
-    TmThreadsSetFlag(tv, THV_INIT_DONE);
-
-    while(run) {
-        /* run right away */
-
-        r = s->PktAcqLoop(tv, SC_ATOMIC_GET(s->slot_data), s);
-
-        if (r == TM_ECODE_FAILED) {
-            TmThreadsSetFlag(tv, THV_FAILED);
-            run = 0;
-        }
-        if (TmThreadsCheckFlag(tv, THV_KILL_PKTACQ) || suricata_ctl_flags) {
-            run = 0;
-        }
-        if (r == TM_ECODE_DONE) {
-            run = 0;
-        }
-    }
-    StatsSyncCounters(tv);
-
-    TmThreadsSetFlag(tv, THV_FLOW_LOOP);
-
-    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
-
-    PacketPoolDestroy();
-
-    for (slot = s; slot != NULL; slot = slot->slot_next) {
-        if (slot->SlotThreadExitPrintStats != NULL) {
-            slot->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(slot->slot_data));
-        }
-
-        if (slot->SlotThreadDeinit != NULL) {
-            r = slot->SlotThreadDeinit(tv, SC_ATOMIC_GET(slot->slot_data));
-            if (r != TM_ECODE_OK) {
-                TmThreadsSetFlag(tv, THV_CLOSED);
-                goto error;
-            }
-        }
-    }
-
-    tv->stream_pq = NULL;
-    SCLogDebug("%s ending", tv->name);
-    TmThreadsSetFlag(tv, THV_CLOSED);
-    return NULL;
-
-error:
-    tv->stream_pq = NULL;
-    return NULL;
-}
-#endif
 
 static void *TmThreadsSlotVar(void *td)
 {
@@ -688,11 +570,7 @@ static TmEcode TmThreadSetSlots(ThreadVars *tv, const char *name, void *(*fn_p)(
     if (strcmp(name, "varslot") == 0) {
         tv->tm_func = TmThreadsSlotVar;
     } else if (strcmp(name, "pktacqloop") == 0) {
-#ifndef AFLFUZZ_PCAP_RUNMODE
         tv->tm_func = TmThreadsSlotPktAcqLoop;
-#else
-        tv->tm_func = TmThreadsSlotPktAcqLoopAFL;
-#endif
     } else if (strcmp(name, "management") == 0) {
         tv->tm_func = TmThreadsManagement;
     } else if (strcmp(name, "command") == 0) {

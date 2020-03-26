@@ -233,10 +233,6 @@ static ConfNode *GetConfig(void) {
 static void StatsInitCtxPreOutput(void)
 {
     SCEnter();
-#ifdef AFLFUZZ_DISABLE_MGTTHREADS
-    stats_enabled = FALSE;
-    SCReturn;
-#endif
     ConfNode *stats = GetConfig();
     if (stats != NULL) {
         const char *enabled = ConfNodeLookupChildValue(stats, "enabled");

@@ -102,10 +102,6 @@ int DetectParsePcreExecLen(DetectParseRegex *parse_regex, const char *str,
                    int str_len, int start_offset, int options,
                    int *ovector, int ovector_size);
 
-#ifdef AFLFUZZ_RULES
-int RuleParseDataFromFile(char *filename);
-#endif
-
 /* typical size of ovector */
 #define MAX_SUBSTRINGS 30
 

@@ -946,14 +946,6 @@ void AddressDebugPrint(Address *);
 
 typedef int (*DecoderFunc)(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
          const uint8_t *pkt, uint32_t len);
-#ifdef AFLFUZZ_DECODER
-int AFLDecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len);
-int AFLDecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len);
-int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
-int DecoderParseDataFromFileSerie(char *fileprefix, DecoderFunc Decoder);
-#endif
 void DecodeGlobalConfig(void);
 void DecodeUnregisterCounters(void);
 

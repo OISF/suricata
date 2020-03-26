@@ -183,9 +183,6 @@ int BypassedFlowManagerRegisterUpdateFunc(BypassedUpdateFunc UpdateFunc,
 void BypassedFlowManagerThreadSpawn()
 {
 #ifdef CAPTURE_OFFLOAD_MANAGER
-#ifdef AFLFUZZ_DISABLE_MGTTHREADS
-    return;
-#endif
 
     ThreadVars *tv_flowmgr = NULL;
     tv_flowmgr = TmThreadCreateMgmtThreadByName(thread_name_flow_bypass,
