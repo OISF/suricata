@@ -561,9 +561,7 @@ else
     nodist_fuzz_applayerprotodetectgetproto_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
-fuzz_applayerprotodetectgetproto_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
-    $(fuzz_applayerprotodetectgetproto_LDFLAGS) $(LDFLAGS) -o $@
+nodist_EXTRA_fuzz_applayerprotodetectgetproto_SOURCES = force-cxx-linking.cxx
 
 nodist_fuzz_applayerparserparse_SOURCES = tests/fuzz/fuzz_applayerparserparse.c $(COMMON_SOURCES)
 fuzz_applayerparserparse_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
@@ -573,9 +571,8 @@ if HAS_FUZZLDFLAGS
 else
     nodist_fuzz_applayerparserparse_SOURCES += tests/fuzz/onefile.c
 endif
-fuzz_applayerparserparse_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
-    $(fuzz_applayerparserparse_LDFLAGS) $(LDFLAGS) -o $@
+# force usage of CXX for linker
+nodist_EXTRA_fuzz_applayerparserparse_SOURCES = force-cxx-linking.cxx
 
 nodist_fuzz_siginit_SOURCES = tests/fuzz/fuzz_siginit.c $(COMMON_SOURCES)
 fuzz_siginit_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
@@ -586,9 +583,7 @@ else
     nodist_fuzz_siginit_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
-fuzz_siginit_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
-    $(fuzz_siginit_LDFLAGS) $(LDFLAGS) -o $@
+nodist_EXTRA_fuzz_siginit_SOURCES = force-cxx-linking.cxx
 
 nodist_fuzz_confyamlloadstring_SOURCES = tests/fuzz/fuzz_confyamlloadstring.c $(COMMON_SOURCES)
 fuzz_confyamlloadstring_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
@@ -599,9 +594,7 @@ else
     nodist_fuzz_confyamlloadstring_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
-fuzz_confyamlloadstring_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
-    $(fuzz_confyamlloadstring_LDFLAGS) $(LDFLAGS) -o $@
+nodist_EXTRA_fuzz_confyamlloadstring_SOURCES = force-cxx-linking.cxx
 
 nodist_fuzz_decodepcapfile_SOURCES = tests/fuzz/fuzz_decodepcapfile.c $(COMMON_SOURCES)
 fuzz_decodepcapfile_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
@@ -612,9 +605,7 @@ else
     nodist_fuzz_decodepcapfile_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
-fuzz_decodepcapfile_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
-    $(fuzz_decodepcapfile_LDFLAGS) $(LDFLAGS) -o $@
+nodist_EXTRA_fuzz_decodepcapfile_SOURCES = force-cxx-linking.cxx
 
 nodist_fuzz_sigpcap_SOURCES = tests/fuzz/fuzz_sigpcap.c $(COMMON_SOURCES)
 fuzz_sigpcap_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
@@ -625,9 +616,7 @@ else
     nodist_fuzz_sigpcap_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
-fuzz_sigpcap_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
-    $(fuzz_sigpcap_LDFLAGS) $(LDFLAGS) -o $@
+nodist_EXTRA_fuzz_sigpcap_SOURCES = force-cxx-linking.cxx
 
 nodist_fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c $(COMMON_SOURCES)
 fuzz_mimedecparseline_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
@@ -638,9 +627,7 @@ else
     nodist_fuzz_mimedecparseline_SOURCES += tests/fuzz/onefile.c
 endif
 # force usage of CXX for linker
-fuzz_mimedecparseline_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
-    $(fuzz_mimedecparseline_LDFLAGS) $(LDFLAGS) -o $@
+nodist_EXTRA_fuzz_mimedecparseline_SOURCES = force-cxx-linking.cxx
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \
