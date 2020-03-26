@@ -10,7 +10,7 @@ if BUILD_FUZZTARGETS
     bin_PROGRAMS += fuzz_applayerprotodetectgetproto \
     fuzz_applayerparserparse fuzz_siginit \
     fuzz_confyamlloadstring fuzz_decodepcapfile \
-    fuzz_sigpcap fuzz_mimedecparseline fuzz_decodeder
+    fuzz_sigpcap fuzz_mimedecparseline
 endif
 
 COMMON_SOURCES = \
@@ -641,19 +641,6 @@ endif
 fuzz_mimedecparseline_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
     $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
     $(fuzz_mimedecparseline_LDFLAGS) $(LDFLAGS) -o $@
-
-nodist_fuzz_decodeder_SOURCES = tests/fuzz/fuzz_decodeder.c $(COMMON_SOURCES)
-fuzz_decodeder_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-fuzz_decodeder_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
-if HAS_FUZZLDFLAGS
-    fuzz_decodeder_LDFLAGS += $(LIB_FUZZING_ENGINE)
-else
-    nodist_fuzz_decodeder_SOURCES += tests/fuzz/onefile.c
-endif
-# force usage of CXX for linker
-fuzz_decodeder_LINK=$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-    $(LIBTOOLFLAGS) --mode=link $(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) \
-    $(fuzz_decodeder_LDFLAGS) $(LDFLAGS) -o $@
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \
