@@ -465,9 +465,12 @@
     AC_PROG_CXX
     AS_IF([test "x$enable_fuzztargets" = "xyes"], [
         AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
+        CFLAGS_ORIG=$CFLAGS
+        CFLAGS="-Werror"
         AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[while (__AFL_LOOP(1000))]])],
                 [AC_DEFINE([AFLFUZZ_PERSISTANT_MODE], [1], [Enable AFL PERSISTANT_MODE])],
                 [])
+        CFLAGS=$CFLAGS_ORIG
         AC_LANG_PUSH(C++)
         tmp_saved_flags=$[]_AC_LANG_PREFIX[]FLAGS
         AS_IF([test "x$LIB_FUZZING_ENGINE" = "x"], [
