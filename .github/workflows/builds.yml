@@ -330,6 +330,62 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
 
+  # test build with afl and fuzztargets
+  ubuntu-18-04-fuzz:
+    name: Ubuntu 18.04 (Fuzz)
+    runs-on: ubuntu-18.04
+    container: ubuntu:18.04
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                afl \
+                afl-clang \
+                libpcre3 \
+                libpcre3-dev \
+                build-essential \
+                autoconf \
+                automake \
+                git \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libhiredis-dev \
+                libjansson-dev \
+                libjansson-dev \
+                libpython2.7 \
+                make \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev
+      - name: Install cbindgen
+        run: cargo install --force cbindgen
+      - run: echo "::add-path::$HOME/.cargo/bin"
+      - uses: actions/checkout@v1
+      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - run: ./autogen.sh
+      - run: AFL_HARDEN=1 ac_cv_func_realloc_0_nonnull=yes ac_cv_func_malloc_0_nonnull=yes CFLAGS="-fsanitize=address -fno-omit-frame-pointer" CXXFLAGS=$CFLAGS CC=afl-clang-fast CXX=afl-clang-fast++ ./configure --enable-fuzztargets --disable-shared
+      - run: AFL_HARDEN=1 make -j2
+
   # An Ubuntu 16.04 build using the tarball generated in the CentOS 8
   # build above.
   ubuntu-16-04:
