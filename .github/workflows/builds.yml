@@ -323,6 +323,59 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
 
+  ubuntu-18-04-norust:
+    name: Ubuntu 18.04 (no Rust)
+    runs-on: ubuntu-18.04
+    container: ubuntu:18.04
+    steps:
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre3 \
+                libpcre3-dev \
+                build-essential \
+                autoconf \
+                automake \
+                git \
+                jq \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libhiredis-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1.6 \
+                libjansson-dev \
+                libpython2.7 \
+                make \
+                parallel \
+                python3-yaml \
+                python3-distutils \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev
+      - uses: actions/checkout@v2
+      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - run: ./autogen.sh
+      - run: ./configure --enable-unittests --disable-rust
+      - run: make -j2
+      - run: make check
+      - name: Fetching suricata-verify
+        run: git clone https://github.com/OISF/suricata-verify.git
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py
+
   # An Ubuntu 16.04 build using the tarball generated in the CentOS 8
   # build above.
   ubuntu-16-04:
