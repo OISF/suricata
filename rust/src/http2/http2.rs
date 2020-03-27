@@ -35,9 +35,19 @@ pub enum HTTP2ConnectionState {
     Http2StateMagicDone = 1,
 }
 
+const HTTP2_FRAME_HEADER_LEN: usize = 9;
+
+pub enum HTTP2FrameTypeData {
+    //TODO    SETTINGS(parser::HTTP2FrameSettings),
+    GOAWAY(parser::HTTP2FrameGoAway),
+}
+
 pub struct HTTP2Transaction {
     tx_id: u64,
     pub ftype: Option<parser::HTTP2FrameType>,
+
+    /// Command specific data
+    pub type_data: Option<HTTP2FrameTypeData>,
 
     logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
@@ -50,6 +60,7 @@ impl HTTP2Transaction {
         HTTP2Transaction {
             tx_id: 0,
             ftype: None,
+            type_data: None,
             logged: LoggerFlags::new(),
             de_state: None,
             detect_flags: TxDetectFlags::default(),
@@ -78,6 +89,7 @@ impl Drop for HTTP2Transaction {
 pub enum HTTP2Event {
     InvalidFrameHeader = 0,
     InvalidClientMagic,
+    InvalidFrameData,
 }
 
 impl HTTP2Event {
@@ -85,6 +97,7 @@ impl HTTP2Event {
         match value {
             0 => Some(HTTP2Event::InvalidFrameHeader),
             1 => Some(HTTP2Event::InvalidClientMagic),
+            2 => Some(HTTP2Event::InvalidFrameData),
             _ => None,
         }
     }
@@ -92,8 +105,6 @@ impl HTTP2Event {
 
 pub struct HTTP2State {
     tx_id: u64,
-    request_buffer: Vec<u8>,
-    response_buffer: Vec<u8>,
     request_frame_size: u32,
     response_frame_size: u32,
     transactions: Vec<HTTP2Transaction>,
@@ -104,8 +115,6 @@ impl HTTP2State {
     pub fn new() -> Self {
         Self {
             tx_id: 0,
-            request_buffer: Vec::new(),
-            response_buffer: Vec::new(),
             request_frame_size: 0,
             response_frame_size: 0,
             transactions: Vec::new(),
@@ -157,131 +166,98 @@ impl HTTP2State {
         return tx;
     }
 
-    fn parse_ts(&mut self, input: &[u8]) -> bool {
-        let mut toparse = input;
+    fn parse_ts(&mut self, mut input: &[u8]) -> AppLayerResult {
         //first consume frame bytes
+        let il = input.len();
         if self.request_frame_size > 0 {
             let ilen = input.len() as u32;
             if self.request_frame_size >= ilen {
                 self.request_frame_size -= ilen;
-                return true;
+                return AppLayerResult::ok();
             } else {
                 let start = self.request_frame_size as usize;
-                toparse = &toparse[start..];
+                input = &input[start..];
                 self.request_frame_size = 0;
             }
         }
-        //second extend buffer if present
-        if self.request_buffer.len() > 0 {
-            self.request_buffer.extend(toparse);
-            //parse one header locally as we borrow self and self.request_buffer
-            match parser::http2_parse_frame_header(&self.request_buffer) {
+
+        //then parse all we can
+        while input.len() > 0 {
+            match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
-                    let hl = head.length as usize;
-                    let rlu = rem.len();
                     //TODO handle transactions the right way
                     let mut tx = self.new_tx();
                     tx.ftype = Some(head.ftype);
-                    self.transactions.push(tx);
-                    self.request_buffer.clear();
-
-                    if rlu < hl {
-                        let rl = rlu as u32;
-                        self.request_frame_size = head.length - rl;
-                        return true;
-                    } else {
-                        //toparse.len() - rlu == 9
-                        toparse = &toparse[hl - (toparse.len() - rlu)..];
+                    match head.ftype {
+                        parser::HTTP2FrameType::GOAWAY => {
+                            match parser::http2_parse_frame_goaway(rem) {
+                                Ok((_, goaway)) => {
+                                    tx.type_data = Some(HTTP2FrameTypeData::GOAWAY(goaway));
+                                }
+                                Err(nom::Err::Incomplete(_)) => {
+                                    return AppLayerResult::incomplete(
+                                        (il - input.len()) as u32,
+                                        4 as u32,
+                                    );
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
+                                }
+                            }
+                        }
+                        //TODO parse deeper based on other frame type
+                        _ => {}
                     }
-                }
-                Err(nom::Err::Incomplete(_)) => {
-                    return true;
-                }
-                Err(_) => {
-                    self.set_event(HTTP2Event::InvalidFrameHeader);
-                    return false;
-                }
-            }
-        }
-        //then parse all we can
-        while toparse.len() > 0 {
-            match parser::http2_parse_frame_header(toparse) {
-                Ok((rem, head)) => {
-                    let mut tx = self.new_tx();
-                    tx.ftype = Some(head.ftype);
                     self.transactions.push(tx);
 
                     let hl = head.length as usize;
                     if rem.len() < hl {
                         let rl = rem.len() as u32;
                         self.request_frame_size = head.length - rl;
-                        return true;
+                        return AppLayerResult::ok();
                     } else {
-                        toparse = &rem[hl..];
+                        input = &rem[hl..];
                     }
                 }
                 Err(nom::Err::Incomplete(_)) => {
-                    self.request_buffer.extend(toparse);
-                    return true;
+                    //we may have consumed data from previous records
+                    if input.len() < HTTP2_FRAME_HEADER_LEN {
+                        return AppLayerResult::incomplete(
+                            (il - input.len()) as u32,
+                            HTTP2_FRAME_HEADER_LEN as u32,
+                        );
+                    } else {
+                        //TODO BUG_ON ?
+                        SCLogDebug!("HTTP2 invalid length frame header");
+                        return AppLayerResult::err();
+                    }
                 }
                 Err(_) => {
                     self.set_event(HTTP2Event::InvalidFrameHeader);
-                    return false;
+                    return AppLayerResult::err();
                 }
             }
         }
-        return true;
+        return AppLayerResult::ok();
     }
 
-    fn parse_tc(&mut self, input: &[u8]) -> bool {
-        let mut toparse = input;
+    fn parse_tc(&mut self, mut input: &[u8]) -> AppLayerResult {
         //first consume frame bytes
+        let il = input.len();
         if self.response_frame_size > 0 {
             let ilen = input.len() as u32;
             if self.response_frame_size >= ilen {
                 self.response_frame_size -= ilen;
-                return true;
+                return AppLayerResult::ok();
             } else {
                 let start = self.response_frame_size as usize;
-                toparse = &toparse[start..];
+                input = &input[start..];
                 self.response_frame_size = 0;
             }
         }
-        //second extend buffer if present
-        if self.response_buffer.len() > 0 {
-            self.response_buffer.extend(toparse);
-            //parse one header locally as we borrow self and self.response_buffer
-            match parser::http2_parse_frame_header(&self.response_buffer) {
-                Ok((rem, head)) => {
-                    let hl = head.length as usize;
-                    let rlu = rem.len();
-
-                    let mut tx = self.new_tx();
-                    tx.ftype = Some(head.ftype);
-                    self.transactions.push(tx);
-                    self.response_buffer.clear();
-
-                    //TODO parse deeper based on frame type
-                    if rlu < hl {
-                        let rl = rlu as u32;
-                        self.response_frame_size = head.length - rl;
-                        return true;
-                    } else {
-                        toparse = &toparse[hl - (toparse.len() - rlu)..];
-                    }
-                }
-                Err(nom::Err::Incomplete(_)) => {
-                    return true;
-                }
-                Err(_) => {
-                    self.set_event(HTTP2Event::InvalidFrameHeader);
-                    return false;
-                }
-            }
-        }
         //then parse all we can
-        while toparse.len() > 0 {
-            match parser::http2_parse_frame_header(toparse) {
+        while input.len() > 0 {
+            match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
                     let mut tx = self.new_tx();
                     tx.ftype = Some(head.ftype);
@@ -292,22 +268,31 @@ impl HTTP2State {
                     if rem.len() < hl {
                         let rl = rem.len() as u32;
                         self.response_frame_size = head.length - rl;
-                        return true;
+                        return AppLayerResult::ok();
                     } else {
-                        toparse = &rem[hl..];
+                        input = &rem[hl..];
                     }
                 }
                 Err(nom::Err::Incomplete(_)) => {
-                    self.response_buffer.extend(toparse);
-                    return true;
+                    //we may have consumed data from previous records
+                    if input.len() < HTTP2_FRAME_HEADER_LEN {
+                        return AppLayerResult::incomplete(
+                            (il - input.len()) as u32,
+                            HTTP2_FRAME_HEADER_LEN as u32,
+                        );
+                    } else {
+                        //TODO BUG_ON ?
+                        SCLogDebug!("HTTP2 invalid length frame header");
+                        return AppLayerResult::err();
+                    }
                 }
                 Err(_) => {
                     self.set_event(HTTP2Event::InvalidFrameHeader);
-                    return false;
+                    return AppLayerResult::err();
                 }
             }
         }
-        return true;
+        return AppLayerResult::ok();
     }
 
     fn tx_iterator(
@@ -412,7 +397,7 @@ pub extern "C" fn rs_http2_parse_ts(
             //skip magic
             match std::str::from_utf8(&buf[..24]) {
                 Ok("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n") => {
-                    buf = &buf[buf.len() - 24..];
+                    buf = &buf[24..];
                 }
                 Ok(&_) => {
                     state.set_event(HTTP2Event::InvalidClientMagic);
@@ -428,10 +413,7 @@ pub extern "C" fn rs_http2_parse_ts(
         }
     }
 
-    if state.parse_ts(buf) {
-        return AppLayerResult::ok();
-    }
-    return AppLayerResult::err();
+    return state.parse_ts(buf);
 }
 
 #[no_mangle]
@@ -446,10 +428,7 @@ pub extern "C" fn rs_http2_parse_tc(
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
-    if state.parse_tc(buf) {
-        return AppLayerResult::ok();
-    }
-    return AppLayerResult::err();
+    return state.parse_tc(buf);
 }
 
 #[no_mangle]
@@ -536,6 +515,7 @@ pub extern "C" fn rs_http2_state_get_event_info(
             match s {
                 "invalid_frame_header" => HTTP2Event::InvalidFrameHeader as i32,
                 "invalid_client_magic" => HTTP2Event::InvalidClientMagic as i32,
+                "invalid_frame_data" => HTTP2Event::InvalidFrameData as i32,
                 _ => -1, // unknown event
             }
         }
@@ -558,6 +538,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
         let estr = match e {
             HTTP2Event::InvalidFrameHeader => "invalid_frame_header\0",
             HTTP2Event::InvalidClientMagic => "invalid_client_magic\0",
+            HTTP2Event::InvalidFrameData => "invalid_frame_data\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;

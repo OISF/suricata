@@ -69,7 +69,6 @@ void DetectHttp2Register(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].RegisterTests = DetectHTTP2RegisterTests;
 #endif
-    //TODO investigate why this is needed
     DetectAppLayerInspectEngineRegister("http2",
                                         ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0,
                                         DetectEngineInspectHTTP2);
