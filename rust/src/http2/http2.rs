@@ -16,10 +16,9 @@
  */
 
 use super::parser;
-use crate::applayer::{self, LoggerFlags, TxDetectFlags};
+use crate::applayer::{self, *};
 use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::log::*;
-use crate::parser::*;
 use nom;
 use std;
 use std::ffi::{CStr, CString};
@@ -403,57 +402,36 @@ pub extern "C" fn rs_http2_parse_ts(
     input_len: u32,
     _data: *const std::os::raw::c_void,
     _flags: u8,
-) -> i32 {
+) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let mut buf = build_slice!(input, input_len as usize);
 
     if state.progress < HTTP2ConnectionState::Http2StateMagicDone {
         //skip magic
-        if state.request_buffer.len() > 0 {
-            state.request_buffer.extend(buf);
-            if state.request_buffer.len() >= 24 {
-                //skip magic
-                match std::str::from_utf8(&state.request_buffer[..24]) {
-                    Ok("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n") => {}
-                    Ok(&_) => {
-                        state.set_event(HTTP2Event::InvalidClientMagic);
-                    }
-                    Err(_) => {
-                        return -1;
-                    }
+        if buf.len() >= 24 {
+            //skip magic
+            match std::str::from_utf8(&buf[..24]) {
+                Ok("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n") => {
+                    buf = &buf[buf.len() - 24..];
                 }
-                buf = &buf[state.request_buffer.len() - buf.len() - 24..];
-                state.request_buffer.clear()
-            } else {
-                //still more buffer
-                return 1;
+                Ok(&_) => {
+                    state.set_event(HTTP2Event::InvalidClientMagic);
+                }
+                Err(_) => {
+                    return AppLayerResult::err();
+                }
             }
+            state.progress = HTTP2ConnectionState::Http2StateMagicDone;
         } else {
-            if buf.len() >= 24 {
-                //skip magic
-                match std::str::from_utf8(&buf[..24]) {
-                    Ok("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n") => {}
-                    Ok(&_) => {
-                        state.set_event(HTTP2Event::InvalidClientMagic);
-                    }
-                    Err(_) => {
-                        return -1;
-                    }
-                }
-                buf = &buf[24..];
-            } else {
-                //need to bufferize content
-                state.request_buffer.extend(buf);
-                return 1;
-            }
+            //still more buffer
+            return AppLayerResult::incomplete(0 as u32, 24 as u32);
         }
-        state.progress = HTTP2ConnectionState::Http2StateMagicDone;
     }
 
     if state.parse_ts(buf) {
-        return 1;
+        return AppLayerResult::ok();
     }
-    return -1;
+    return AppLayerResult::err();
 }
 
 #[no_mangle]
@@ -465,13 +443,13 @@ pub extern "C" fn rs_http2_parse_tc(
     input_len: u32,
     _data: *const std::os::raw::c_void,
     _flags: u8,
-) -> i32 {
+) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
     if state.parse_tc(buf) {
-        return 1;
+        return AppLayerResult::ok();
     }
-    return -1;
+    return AppLayerResult::err();
 }
 
 #[no_mangle]
