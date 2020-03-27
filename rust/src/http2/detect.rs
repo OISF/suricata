@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use super::http2::HTTP2Transaction;
+use super::http2::{HTTP2Transaction, HTTP2FrameTypeData};
 use super::parser;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use std::ffi::CStr;
@@ -58,6 +58,58 @@ pub extern "C" fn rs_http2_parse_frametype(
     match ft_name.to_str() {
         Ok(s) => {
             let p = parser::HTTP2FrameType::from_str(s);
+            match p {
+                Ok(x) => {
+                    return x as i32;
+                }
+                Err(_) => {
+                    return -1;
+                }
+            }
+        }
+        Err(_) => {
+            return -1;
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_get_errorcode(
+    tx: *mut std::os::raw::c_void,
+    direction: u8,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    match direction {
+        STREAM_TOSERVER => match &tx.type_data {
+            Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
+                return goaway.errorcode as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        STREAM_TOCLIENT => match &tx.type_data {
+            Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
+                return goaway.errorcode as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        _ => {}
+    }
+
+    return 0;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_parse_errorcode(
+    str: *const std::os::raw::c_char,
+) -> std::os::raw::c_int {
+    let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
+    match ft_name.to_str() {
+        Ok(s) => {
+            let p = parser::HTTP2ErrorCode::from_str(s);
             match p {
                 Ok(x) => {
                     return x as i32;
