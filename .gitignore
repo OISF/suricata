@@ -20,6 +20,7 @@ config.log
 config.status
 config.sub
 configure
+.dirstamp
 libhtp/TAGS
 libhtp/aclocal.m4
 libhtp/autom4te.cache/
