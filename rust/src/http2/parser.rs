@@ -62,6 +62,7 @@ impl std::str::FromStr for HTTP2FrameType {
 
 #[derive(PartialEq)]
 pub struct HTTP2FrameHeader {
+    //TODO detection on GOAWAY additional data = length
     pub length: u32,
     pub ftype: HTTP2FrameType,
     pub flags: u8,
@@ -134,7 +135,6 @@ impl std::str::FromStr for HTTP2ErrorCode {
 
 #[derive(Clone, Copy)]
 pub struct HTTP2FrameGoAway {
-    //TODO detection on this field
     pub errorcode: HTTP2ErrorCode,
 }
 

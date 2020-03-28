@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use super::http2::{HTTP2Transaction, HTTP2FrameTypeData};
+use super::http2::{HTTP2FrameTypeData, HTTP2Transaction};
 use super::parser;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use std::ffi::CStr;

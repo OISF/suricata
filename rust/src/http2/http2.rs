@@ -197,7 +197,7 @@ impl HTTP2State {
                                 Err(nom::Err::Incomplete(_)) => {
                                     return AppLayerResult::incomplete(
                                         (il - input.len()) as u32,
-                                        4 as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + 4) as u32,
                                     );
                                 }
                                 Err(_) => {
