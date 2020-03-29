@@ -65,7 +65,7 @@
 #include "util/mpm-ac.h"
 #include "util/hash-string.h"
 #include "output.h"
-#include "output-flow.h"
+#include "outputs/flow.h"
 #include "flow-storage.h"
 
 uint32_t default_packet_size = 0;

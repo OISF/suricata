@@ -53,12 +53,12 @@
 #include "util/print.h"
 
 #include "output.h"
-#include "output-json.h"
-#include "output-json-http.h"
-#include "output-json-tls.h"
-#include "output-json-ssh.h"
-#include "output-json-smtp.h"
-#include "output-json-email-common.h"
+#include "outputs/json.h"
+#include "outputs/json-http.h"
+#include "outputs/json-tls.h"
+#include "outputs/json-ssh.h"
+#include "outputs/json-smtp.h"
+#include "outputs/json-email-common.h"
 
 #include "util/privs.h"
 #include "util-optimize.h"
