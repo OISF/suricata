@@ -49,7 +49,7 @@
 #include "detect/keywords/ssl-state.h"
 
 #include "stream-tcp.h"
-#include "app-layer-ssl.h"
+#include "app-layer/ssl.h"
 
 #define PARSE_REGEX1 "^(!?)([_a-zA-Z0-9]+)(.*)$"
 static DetectParseRegex parse_regex1;

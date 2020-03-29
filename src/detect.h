@@ -51,7 +51,7 @@
 
 #include "util/var-name.h"
 
-#include "app-layer-events.h"
+#include "app-layer/events.h"
 
 #define DETECT_MAX_RULE_SIZE 8192
 

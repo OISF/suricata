@@ -54,7 +54,7 @@
 #include "decoders/teredo.h"
 #include "util/debug.h"
 #include "util-mem.h"
-#include "app-layer-detect-proto.h"
+#include "app-layer/detect-proto.h"
 #include "app-layer.h"
 #include "tm-threads.h"
 #include "util/error.h"

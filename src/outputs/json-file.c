@@ -63,8 +63,8 @@
 #include "outputs/json-nfs.h"
 #include "outputs/json-smb.h"
 
-#include "app-layer-htp.h"
-#include "app-layer-htp-xff.h"
+#include "app-layer/htp.h"
+#include "app-layer/htp-xff.h"
 #include "util/memcmp.h"
 #include "stream-tcp-reassemble.h"
 

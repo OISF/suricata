@@ -39,7 +39,7 @@
 #include "util/debug.h"
 #include "app-layer-parser.h"
 #include "output.h"
-#include "app-layer-ssh.h"
+#include "app-layer/ssh.h"
 #include "app-layer.h"
 #include "util/privs.h"
 #include "util/buffer.h"

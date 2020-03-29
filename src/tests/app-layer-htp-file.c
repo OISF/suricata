@@ -16,7 +16,7 @@
  * 02110-1301, USA.
  */
 
-#include "../app-layer-htp-file.h"
+#include "../app-layer/htp-file.h"
 #include "../util/unittest.h"
 
 /**

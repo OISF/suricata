@@ -38,7 +38,7 @@
 #include "util/debug.h"
 
 #include "output.h"
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util/privs.h"

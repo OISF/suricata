@@ -39,7 +39,7 @@
 #include "outputs/json.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-rdp.h"
+#include "app-layer/rdp.h"
 #include "outputs/json-rdp.h"
 #include "rust.h"
 

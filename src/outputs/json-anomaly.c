@@ -30,7 +30,7 @@
 #include "../flow.h"
 #include "conf.h"
 #include "app-layer.h"
-#include "app-layer-events.h"
+#include "app-layer/events.h"
 #include "app-layer-parser.h"
 
 #include "threads.h"

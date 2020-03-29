@@ -93,7 +93,7 @@ enum PktSrcEnum {
 
 #include "detect/keywords/reference.h"
 
-#include "app-layer-protos.h"
+#include "app-layer/protos.h"
 
 /* forward declarations */
 struct DetectionEngineThreadCtx_;

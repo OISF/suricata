@@ -28,10 +28,10 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "app-layer-expectation.h"
-#include "app-layer-ftp.h"
-#include "app-layer-detect-proto.h"
+#include "app-layer/protos.h"
+#include "app-layer/expectation.h"
+#include "app-layer/ftp.h"
+#include "app-layer/detect-proto.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-inline.h"
@@ -47,7 +47,7 @@
 #include "util-validate.h"
 #include "decoders/events.h"
 
-#include "app-layer-htp-mem.h"
+#include "app-layer/htp-mem.h"
 
 /**
  * \brief This is for the app layer in general and it contains per thread

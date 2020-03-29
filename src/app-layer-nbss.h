@@ -25,7 +25,7 @@
 #define __APP_LAYER_NBSS_H__
 
 #include "suricata-common.h"
-#include "app-layer-protos.h"
+#include "app-layer/protos.h"
 #include "app-layer-parser.h"
 #include "flow.h"
 #include "stream.h"

@@ -44,7 +44,7 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-ssh.h"
+#include "app-layer/ssh.h"
 #include "detect/keywords/ssh-software.h"
 
 #define KEYWORD_NAME "ssh.software"

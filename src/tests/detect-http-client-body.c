@@ -59,8 +59,8 @@
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
 #include "app-layer.h"
-#include "app-layer-htp.h"
-#include "app-layer-protos.h"
+#include "app-layer/htp.h"
+#include "app-layer/protos.h"
 
 #include "conf.h"
 #include "conf-yaml-loader.h"

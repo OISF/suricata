@@ -29,7 +29,7 @@
 #include "util/logopenfile.h"
 #include "output.h"
 
-#include "app-layer-htp-xff.h"
+#include "app-layer/htp-xff.h"
 
 void OutputJsonRegister(void);
 

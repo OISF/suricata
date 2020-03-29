@@ -48,7 +48,7 @@
 #include "detect/keywords/dataset.h"
 #include "detect/keywords/datarep.h"
 
-#include "app-layer-dcerpc.h"
+#include "app-layer/dcerpc.h"
 
 #include "util/spm.h"
 #include "util/debug.h"

@@ -53,8 +53,8 @@
 #include "outputs/log-filestore.h"
 #include "util/logopenfile.h"
 
-#include "app-layer-htp.h"
-#include "app-layer-smtp.h"
+#include "app-layer/htp.h"
+#include "app-layer/smtp.h"
 #include "util/decode-mime.h"
 #include "util/memcmp.h"
 #include "stream-tcp-reassemble.h"

@@ -6,7 +6,7 @@
 
 
 #include "suricata-common.h"
-#include "app-layer-detect-proto.h"
+#include "app-layer/detect-proto.h"
 #include "flow-util.h"
 #include "app-layer-parser.h"
 #include "util/unittest-helper.h"

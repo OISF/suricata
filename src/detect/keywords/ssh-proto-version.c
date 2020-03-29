@@ -49,7 +49,7 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-ssh.h"
+#include "app-layer/ssh.h"
 #include "detect/keywords/ssh-proto-version.h"
 
 #include "stream-tcp.h"

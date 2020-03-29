@@ -34,7 +34,7 @@
 #ifndef __DETECT_MODBUS_H__
 #define __DETECT_MODBUS_H__
 
-#include "app-layer-modbus.h"
+#include "app-layer/modbus.h"
 
 typedef enum {
     DETECT_MODBUS_EQ = 0,   /** < EQual operator */

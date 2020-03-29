@@ -33,8 +33,8 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
+#include "app-layer/dnp3.h"
+#include "app-layer/dnp3-objects.h"
 
 #include "detect/keywords/dnp3.h"
 

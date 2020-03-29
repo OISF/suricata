@@ -44,7 +44,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-snmp.h"
+#include "app-layer/snmp.h"
 #include "outputs/json-snmp.h"
 
 #include "rust.h"

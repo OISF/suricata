@@ -26,7 +26,7 @@
 
 void JsonSshLogRegister(void);
 
-#include "app-layer-ssh.h"
+#include "app-layer/ssh.h"
 
 void JsonSshLogJSON(json_t *js, SshState *tx);
 
