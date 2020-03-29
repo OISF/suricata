@@ -38,7 +38,7 @@
 #include "util/cpu.h"
 #include "util/affinity.h"
 #include "util/runmodes.h"
-#include "source-ipfw.h"
+#include "sources/ipfw.h"
 #include "util/device.h"
 
 const char *RunModeIpsIPFWGetDefaultMode(void)

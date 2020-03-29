@@ -33,7 +33,7 @@
 #include "util/privs.h"
 #include "util/device.h"
 #include "tmqh-packetpool.h"
-#include "source-erf-dag.h"
+#include "sources/erf-dag.h"
 
 #ifndef HAVE_DAG
 

@@ -12,7 +12,7 @@
 #include "defrag.h"
 #include "tm-modules.h"
 #include "tm-threads.h"
-#include "source-pcap-file.h"
+#include "sources/pcap-file.h"
 #include "util/unittest-helper.h"
 #include "conf-yaml-loader.h"
 

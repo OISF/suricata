@@ -37,7 +37,7 @@
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
-#include "source-pfring.h"
+#include "sources/pfring.h"
 #include "util/debug.h"
 #include "util/checksum.h"
 #include "util/privs.h"
