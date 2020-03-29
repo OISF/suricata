@@ -29,10 +29,10 @@
 #include "decode.h"
 
 #include "detect.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-parse.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-engine-prefilter.h"
+#include "detect/keywords/engine-prefilter.h"
 #include "detect-engine-state.h"
 #include "detect-engine-payload.h"
 

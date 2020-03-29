@@ -17,9 +17,9 @@
 
 #include "../suricata-common.h"
 
-#include "../detect-engine.h"
+#include "../detect/keywords/engine.h"
 
-#include "../detect-icmpv6-mtu.h"
+#include "../detect/keywords/icmpv6-mtu.h"
 
 #include "../util-unittest.h"
 

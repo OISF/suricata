@@ -27,7 +27,7 @@
 #include "packet-queue.h"
 #include "decode.h"
 #include "detect.h"
-#include "detect-uricontent.h"
+#include "detect/keywords/uricontent.h"
 #include "threads.h"
 #include "threadvars.h"
 #include "flow.h"

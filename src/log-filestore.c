@@ -35,7 +35,7 @@
 
 #include "app-layer-parser.h"
 
-#include "detect-filemagic.h"
+#include "detect/keywords/filemagic.h"
 
 #include "stream.h"
 

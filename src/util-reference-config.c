@@ -23,7 +23,7 @@
 
 #include "suricata-common.h"
 #include "detect.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "util-hash.h"
 
 #include "util-reference-config.h"

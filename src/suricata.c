@@ -56,14 +56,14 @@
 #include "util-misc.h"
 #include "util-running-modes.h"
 
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-parse.h"
-#include "detect-fast-pattern.h"
+#include "detect/keywords/fast-pattern.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
+#include "detect/keywords/engine-mpm.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"

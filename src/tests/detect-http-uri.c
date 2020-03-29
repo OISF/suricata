@@ -31,7 +31,7 @@
 #include "../flow.h"
 #include "../flow-util.h"
 
-#include "../detect-isdataat.h"
+#include "../detect/keywords/isdataat.h"
 
 /** \test Test a simple uricontent option */
 static int UriTestSig01(void)

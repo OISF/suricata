@@ -26,13 +26,13 @@
  */
 
 #include "suricata-common.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "util-hash.h"
 #include "util-atomic.h"
 #include "util-time.h"
 #include "util-hashlist.h"
 #include "detect-engine-tag.h"
-#include "detect-tag.h"
+#include "detect/keywords/tag.h"
 #include "host.h"
 #include "host-storage.h"
 #include "flow-storage.h"

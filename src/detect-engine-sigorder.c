@@ -25,12 +25,12 @@
 
 #include "suricata-common.h"
 #include "detect.h"
-#include "detect-xbits.h"
-#include "detect-flowbits.h"
-#include "detect-flowint.h"
+#include "detect/keywords/xbits.h"
+#include "detect/keywords/flowbits.h"
+#include "detect/keywords/flowint.h"
 #include "detect-parse.h"
 #include "detect-engine-sigorder.h"
-#include "detect-pcre.h"
+#include "detect/keywords/pcre.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"

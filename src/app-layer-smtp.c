@@ -46,7 +46,7 @@
 #include "util-memcmp.h"
 #include "flow-util.h"
 
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-engine-state.h"
 #include "detect-parse.h"
 

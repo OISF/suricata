@@ -146,9 +146,9 @@ int DetectProtoContainsProto(const DetectProto *dp, int proto)
 /* TESTS */
 
 #ifdef UNITTESTS
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-parse.h"
-#include "detect-engine-mpm.h"
+#include "detect/keywords/engine-mpm.h"
 /**
  * \brief this function is used to initialize the detection engine context and
  *        setup the signature with passed values.

@@ -19,9 +19,9 @@
 
 #include "../detect.h"
 #include "../detect-parse.h"
-#include "../detect-engine-prefilter-common.h"
+#include "../detect/keywords/engine-prefilter-common.h"
 
-#include "../detect-template2.h"
+#include "../detect/keywords/template2.h"
 
 #include "../util-unittest.h"
 

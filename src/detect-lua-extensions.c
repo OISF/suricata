@@ -32,10 +32,10 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-flowvar.h"
+#include "detect/keywords/flowvar.h"
 
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/keywords/engine.h"
+#include "detect/keywords/engine-mpm.h"
 #include "detect-engine-state.h"
 
 #include "flow.h"
@@ -53,7 +53,7 @@
 
 #include "stream-tcp.h"
 
-#include "detect-lua.h"
+#include "detect/keywords/lua.h"
 
 #include "queue.h"
 #include "util-cpu.h"

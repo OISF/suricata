@@ -27,14 +27,14 @@
 #include "decode.h"
 
 #include "detect.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-parse.h"
-#include "detect-pcre.h"
-#include "detect-isdataat.h"
-#include "detect-bytetest.h"
-#include "detect-bytejump.h"
-#include "detect-byte-extract.h"
-#include "detect-content.h"
+#include "detect/keywords/pcre.h"
+#include "detect/keywords/isdataat.h"
+#include "detect/keywords/bytetest.h"
+#include "detect/keywords/bytejump.h"
+#include "detect/keywords/byte-extract.h"
+#include "detect/keywords/content.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-dcepayload.h"
 
@@ -48,7 +48,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-#include "detect-dce-iface.h"
+#include "detect/keywords/dce-iface.h"
 
 static int g_dce_stub_data_buffer_id = 0;
 

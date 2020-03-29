@@ -1580,7 +1580,7 @@ void RegisterModbusParsers(void)
 /* UNITTESTS */
 #ifdef UNITTESTS
 #include "detect.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-parse.h"
 
 #include "flow-util.h"

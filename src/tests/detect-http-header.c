@@ -39,10 +39,10 @@
 #include "../app-layer-parser.h"
 
 #include "../app-layer-htp.h"
-#include "../detect-http-header.h"
+#include "../detect/keywords/http-header.h"
 #include "../detect-http-header-common.h"
 
-#include "../detect-isdataat.h"
+#include "../detect/keywords/isdataat.h"
 
 #include "../stream-tcp.h"
 

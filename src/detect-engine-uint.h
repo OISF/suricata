@@ -24,7 +24,7 @@
 #ifndef __DETECT_ENGINE_UINT_H
 #define __DETECT_ENGINE_UINT_H
 
-#include "detect-engine-prefilter-common.h"
+#include "detect/keywords/engine-prefilter-common.h"
 
 typedef enum {
     DETECT_UINT_LT,

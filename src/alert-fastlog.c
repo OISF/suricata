@@ -42,9 +42,9 @@
 #include "util-unittest-helper.h"
 
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-reference.h"
+#include "detect/keywords/engine.h"
+#include "detect/keywords/engine-mpm.h"
+#include "detect/keywords/reference.h"
 #include "util-classification-config.h"
 
 #include "output.h"

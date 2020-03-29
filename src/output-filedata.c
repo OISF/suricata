@@ -29,7 +29,7 @@
 #include "output-filedata.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "detect-filemagic.h"
+#include "detect/keywords/filemagic.h"
 #include "conf.h"
 #include "util-profiling.h"
 #include "util-validate.h"

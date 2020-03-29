@@ -38,7 +38,7 @@
 #include "app-layer-modbus.h"
 
 #include "detect.h"
-#include "detect-modbus.h"
+#include "detect/keywords/modbus.h"
 
 #include "detect-engine-modbus.h"
 
@@ -276,7 +276,7 @@ int DetectEngineInspectModbus(ThreadVars            *tv,
 
 #include "detect-parse.h"
 
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 
 #include "flow-util.h"
 

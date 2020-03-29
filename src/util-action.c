@@ -28,7 +28,7 @@
 #include "conf-yaml-loader.h"
 
 #include "detect.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-engine-sigorder.h"
 
 #include "util-unittest.h"

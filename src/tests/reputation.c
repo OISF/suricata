@@ -22,7 +22,7 @@
  */
 
 #include "conf-yaml-loader.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"

@@ -22,7 +22,7 @@
 #include "runmode-erf-dag.h"
 #include "output.h"
 
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 
 #include "util-debug.h"
 #include "util-time.h"

@@ -38,7 +38,7 @@
 #include "detect.h"
 #include "stream-tcp.h"
 #include "app-layer.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "output.h"
 #include "app-layer-parser.h"
 

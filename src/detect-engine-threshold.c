@@ -52,14 +52,14 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-iponly.h"
+#include "detect/keywords/engine-mpm.h"
+#include "detect/keywords/engine-iponly.h"
 
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-engine-threshold.h"
 
-#include "detect-content.h"
-#include "detect-uricontent.h"
+#include "detect/keywords/content.h"
+#include "detect/keywords/uricontent.h"
 
 #include "util-hash.h"
 #include "util-time.h"

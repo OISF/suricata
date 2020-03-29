@@ -29,9 +29,9 @@
 #include "flow.h"
 
 #include "detect-engine-proto.h"
-#include "detect-reference.h"
-#include "detect-metadata.h"
-#include "detect-engine-register.h"
+#include "detect/keywords/reference.h"
+#include "detect/keywords/metadata.h"
+#include "detect/keywords/engine-register.h"
 #include "packet-queue.h"
 
 #include "util-prefilter.h"
@@ -45,7 +45,7 @@
 #include "util-file.h"
 #include "reputation.h"
 
-#include "detect-mark.h"
+#include "detect/keywords/mark.h"
 
 #include "stream.h"
 
@@ -700,7 +700,7 @@ typedef struct DetectEngineLookupFlow_ {
     struct SigGroupHead_ *sgh[256];
 } DetectEngineLookupFlow;
 
-#include "detect-threshold.h"
+#include "detect/keywords/threshold.h"
 
 /** \brief threshold ctx */
 typedef struct ThresholdCtx_    {
@@ -1496,8 +1496,8 @@ AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
 int DetectEngineGetEventInfo(const char *event_name, int *event_id,
                              AppLayerEventType *event_type);
 
-#include "detect-engine-build.h"
-#include "detect-engine-register.h"
+#include "detect/keywords/engine-build.h"
+#include "detect/keywords/engine-register.h"
 
 #endif /* __DETECT_H__ */
 

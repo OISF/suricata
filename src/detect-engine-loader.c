@@ -36,8 +36,8 @@
 #include "util-signal.h"
 
 #include "detect-engine-loader.h"
-#include "detect-engine-analyzer.h"
-#include "detect-engine-mpm.h"
+#include "detect/keywords/engine-analyzer.h"
+#include "detect/keywords/engine-mpm.h"
 #include "detect-engine-sigorder.h"
 
 #include "util-detect.h"

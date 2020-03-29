@@ -8,7 +8,7 @@
 #include "suricata-common.h"
 #include "util-reference-config.h"
 #include "util-classification-config.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-parse.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);

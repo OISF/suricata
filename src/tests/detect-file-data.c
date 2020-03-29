@@ -27,7 +27,7 @@
 
 #include "../stream-tcp.h"
 #include "../detect.h"
-#include "../detect-isdataat.h"
+#include "../detect/keywords/isdataat.h"
 
 static int DetectEngineSMTPFiledataTest01(void)
 {

@@ -22,7 +22,7 @@
 #include "runmode-pcap-file.h"
 #include "output.h"
 
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "source-pcap-file.h"
 
 #include "util-debug.h"

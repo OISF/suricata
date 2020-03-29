@@ -32,15 +32,15 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-engine-address.h"
-#include "detect-engine-mpm.h"
+#include "detect/keywords/engine-mpm.h"
 #include "detect-engine-siggroup.h"
-#include "detect-engine-prefilter.h"
+#include "detect/keywords/engine-prefilter.h"
 
-#include "detect-content.h"
-#include "detect-uricontent.h"
-#include "detect-tcp-flags.h"
+#include "detect/keywords/content.h"
+#include "detect/keywords/uricontent.h"
+#include "detect/keywords/tcp-flags.h"
 
 #include "util-hash.h"
 #include "util-hashlist.h"

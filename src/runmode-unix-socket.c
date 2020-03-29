@@ -29,7 +29,7 @@
 #include "util-affinity.h"
 #include "unix-manager.h"
 
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 
 #include "flow-manager.h"
 #include "flow-timeout.h"

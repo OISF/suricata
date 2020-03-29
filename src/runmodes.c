@@ -24,8 +24,8 @@
 
 #include "suricata-common.h"
 #include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/keywords/engine.h"
+#include "detect/keywords/engine-mpm.h"
 #include "app-layer-parser.h"
 #include "tm-threads.h"
 #include "util-debug.h"

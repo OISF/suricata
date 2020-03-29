@@ -29,7 +29,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 
 #include "conf.h"
 #include "util-debug.h"

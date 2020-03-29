@@ -41,7 +41,7 @@
 #include "util-misc.h"
 
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "util-logopenfile.h"
 
 #include "output.h"

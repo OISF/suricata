@@ -26,7 +26,7 @@
 #include "suricata.h"
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-content.h"
+#include "detect/keywords/content.h"
 #include "output-json.h"
 #include "util-buffer.h"
 #include "util-print.h"

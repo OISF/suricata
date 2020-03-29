@@ -24,7 +24,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "unix-manager.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "tm-threads.h"
 #include "runmodes.h"
 #include "conf.h"

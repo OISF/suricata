@@ -9,7 +9,7 @@
 
 #include "suricata-common.h"
 #include "source-pcap-file.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "util-classification-config.h"
 #include "util-reference-config.h"
 #include "app-layer.h"
@@ -22,7 +22,7 @@
 #include "ippair-bit.h"
 #include "app-layer-htp.h"
 #include "util-decode-asn1.h"
-#include "detect-fast-pattern.h"
+#include "detect/keywords/fast-pattern.h"
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
 #include "pkt-var.h"

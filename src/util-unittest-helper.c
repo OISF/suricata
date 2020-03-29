@@ -33,7 +33,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "detect-engine-sigorder.h"
 
 #include "stream-tcp.h"

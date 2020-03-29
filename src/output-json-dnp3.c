@@ -36,7 +36,7 @@
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
 
-#include "detect-dnp3.h"
+#include "detect/keywords/dnp3.h"
 
 #include "output.h"
 #include "output-json.h"

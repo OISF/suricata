@@ -27,7 +27,7 @@
 #include "app-layer.h"
 
 #include "detect.h"
-#include "detect-cipservice.h"
+#include "detect/keywords/cipservice.h"
 #include "detect-engine-enip.h"
 
 #include "flow.h"
@@ -287,7 +287,7 @@ int DetectEngineInspectENIP(ThreadVars *tv,
 #ifdef UNITTESTS /* UNITTESTS */
 #include "app-layer-parser.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/keywords/engine.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
 #include "util-unittest.h"
