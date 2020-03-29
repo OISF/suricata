@@ -35,7 +35,7 @@
 #include "threadvars.h"
 #include "util/debug.h"
 
-#include "decode-ipv4.h"
+#include "decoders/ipv4.h"
 #include "detect-parse.h"
 #include "detect/keywords/engine.h"
 #include "detect/keywords/engine-mpm.h"

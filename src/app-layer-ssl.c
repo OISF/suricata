@@ -39,7 +39,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssl.h"
 
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "conf.h"
 
 #include "util/crypt.h"

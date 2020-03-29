@@ -32,8 +32,8 @@
 
 #include "suricata-common.h"
 #include "decode.h"
-#include "decode-vlan.h"
-#include "decode-events.h"
+#include "decoders/vlan.h"
+#include "decoders/events.h"
 
 #include "flow.h"
 

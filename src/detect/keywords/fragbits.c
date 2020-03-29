@@ -34,7 +34,7 @@
 #include "detect/keywords/engine-prefilter-common.h"
 
 #include "flow-var.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
 

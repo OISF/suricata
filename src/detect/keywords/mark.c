@@ -29,7 +29,7 @@
 #include "decode.h"
 #include "detect.h"
 #include "flow-var.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 
 #include "detect/keywords/mark.h"
 #include "detect-parse.h"

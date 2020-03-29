@@ -43,7 +43,7 @@
 #include "detect-parse.h"
 
 #include "flow-var.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "stream-tcp.h"
 
 #include "detect/keywords/threshold.h"

@@ -30,7 +30,7 @@
 #include "detect/keywords/engine.h"
 #include "detect-parse.h"
 #include "flow-var.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 
 #include "detect/keywords/gid.h"
 #include "util/unittest.h"

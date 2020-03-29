@@ -39,7 +39,7 @@
 #include "detect.h"
 #include "detect-engine-state.h"
 
-#include "decode-icmpv4.h"
+#include "decoders/icmpv4.h"
 
 /** \brief allocate a flow
  *
