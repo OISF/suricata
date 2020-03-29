@@ -25,6 +25,7 @@
 #include "detect-fast-pattern.h"
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
+#include "pkt-var.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -170,6 +171,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             extra_p = PacketDequeueNoLock(&tv.decode_pq);
         }
         r = pcap_next_ex(pkts, &header, &pkt);
+        PACKET_RECYCLE(p);
     }
     //close structure
     pcap_close(pkts);
