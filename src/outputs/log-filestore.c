@@ -50,7 +50,7 @@
 
 #include "output.h"
 
-#include "log-filestore.h"
+#include "outputs/log-filestore.h"
 #include "util/logopenfile.h"
 
 #include "app-layer-htp.h"
