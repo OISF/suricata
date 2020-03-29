@@ -136,8 +136,8 @@
 #endif /* HAVE_SYSLOG_H */
 
 #ifdef OS_WIN32
-#include "win32-misc.h"
-#include "win32-service.h"
+#include "win32/misc.h"
+#include "win32/service.h"
 #endif /* OS_WIN32 */
 
 #if HAVE_SYS_TIME_H
