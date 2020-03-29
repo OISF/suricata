@@ -39,7 +39,7 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
-#include "flow.h"
+#include "../flow.h"
 #include "conf.h"
 
 #include "threads.h"
@@ -65,7 +65,7 @@
 
 #include "stream.h"
 
-#include "alert-prelude.h"
+#include "outputs/alert-prelude.h"
 
 #ifndef PRELUDE
 
