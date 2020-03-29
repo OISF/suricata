@@ -100,6 +100,20 @@ pub struct RFBState {
     state: parser::RFBGlobalState
 }
 
+#[inline]
+fn handle_incomplete(input: &[u8], current: &[u8], nom_needed: nom::Needed) -> AppLayerResult {
+    if let nom::Needed::Size(needed_size) = nom_needed {
+        if let Some(consumed) = input.len().checked_sub(current.len()) {
+            if let Some(needed) = current.len().checked_add(needed_size) {
+                if consumed <= (std::u32::MAX as usize) && needed <= (std::u32::MAX as usize) {
+                    return AppLayerResult::incomplete(consumed as u32, needed as u32);
+                }
+            }
+        }
+    }
+    return AppLayerResult::err();
+}
+
 impl RFBState {
     pub fn new() -> Self {
         Self {
@@ -183,11 +197,7 @@ impl RFBState {
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -214,11 +224,7 @@ impl RFBState {
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -239,11 +245,7 @@ impl RFBState {
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -263,11 +265,7 @@ impl RFBState {
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -318,11 +316,7 @@ impl RFBState {
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -350,11 +344,7 @@ impl RFBState {
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -386,11 +376,7 @@ impl RFBState {
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -411,11 +397,7 @@ impl RFBState {
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -442,11 +424,7 @@ impl RFBState {
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -464,11 +442,7 @@ impl RFBState {
                             return AppLayerResult::err();
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -490,11 +464,7 @@ impl RFBState {
                             }
                         }
                         Err(nom::Err::Incomplete(v)) => {
-                            if let nom::Needed::Size(n) = v {
-                                return AppLayerResult::incomplete((input.len() - current.len()) as u32,
-                                                                  (current.len() + n) as u32);
-                            }
-                            return AppLayerResult::err();
+                            return handle_incomplete(input, current, v);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
