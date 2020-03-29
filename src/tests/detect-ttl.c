@@ -17,7 +17,7 @@
  */
 
 #include "../detect/keywords/engine.h"
-#include "../util-unittest.h"
+#include "../util/unittest.h"
 
 /**
  * \test DetectTtlParseTest01 is a test for setting up an valid ttl value.

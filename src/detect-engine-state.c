@@ -59,9 +59,9 @@
 #include "app-layer-dcerpc-common.h"
 #include "app-layer-dcerpc.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-profiling.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/profiling.h"
 
 #include "flow-util.h"
 

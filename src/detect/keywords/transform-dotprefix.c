@@ -31,9 +31,9 @@
 #include "detect-parse.h"
 #include "detect/keywords/transform-dotprefix.h"
 
-#include "util-unittest.h"
-#include "util-print.h"
-#include "util-memrchr.h"
+#include "util/unittest.h"
+#include "util/print.h"
+#include "util/memrchr.h"
 #include "util-memcpy.h"
 
 static int DetectTransformDotPrefixSetup (DetectEngineCtx *, Signature *, const char *);

@@ -469,12 +469,12 @@ typedef enum {
 #include <htp/htp.h>
 #include "threads.h"
 #include "tm-threads-common.h"
-#include "util-debug.h"
-#include "util-error.h"
+#include "util/debug.h"
+#include "util/error.h"
 #include "util-mem.h"
 #include "detect/keywords/engine-alert.h"
-#include "util-path.h"
-#include "util-conf.h"
+#include "util/path.h"
+#include "util/conf.h"
 
 #ifdef HAVE_LUA
 #include <lua.h>

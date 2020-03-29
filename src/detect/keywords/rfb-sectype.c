@@ -28,7 +28,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect/keywords/rfb-sectype.h"
 #include "app-layer-parser.h"
-#include "util-byte.h"
+#include "util/byte.h"
 
 #include "rust-bindings.h"
 

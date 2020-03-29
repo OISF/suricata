@@ -39,12 +39,12 @@
 #include "app-layer-detect-proto.h"
 
 #include "detect/keywords/fragbits.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 #include "pkt-var.h"
 #include "host.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 
 /**
  *  Regex

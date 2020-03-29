@@ -46,11 +46,11 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-unittest.h"
-#include "util-time.h"
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-print.h"
+#include "util/unittest.h"
+#include "util/time.h"
+#include "util/debug.h"
+#include "util/error.h"
+#include "util/print.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -60,7 +60,7 @@
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
 
-#include "util-privs.h"
+#include "util/privs.h"
 #include "util-optimize.h"
 
 #include "stream.h"

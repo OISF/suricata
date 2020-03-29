@@ -26,7 +26,7 @@
 
 #include "suricata-common.h"
 
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
@@ -66,7 +66,7 @@ void RegisterRFBParsers(void)
 #ifdef UNITTESTS
 
 #include "stream-tcp.h"
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 
 static int RFBParserTest(void)
 {

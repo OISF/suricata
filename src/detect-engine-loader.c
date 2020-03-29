@@ -33,15 +33,15 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 #include "queue.h"
-#include "util-signal.h"
+#include "util/signal.h"
 
 #include "detect-engine-loader.h"
 #include "detect/keywords/engine-analyzer.h"
 #include "detect/keywords/engine-mpm.h"
 #include "detect-engine-sigorder.h"
 
-#include "util-detect.h"
-#include "util-threshold-config.h"
+#include "util/detect.h"
+#include "util/threshold-config.h"
 
 #ifdef HAVE_GLOB_H
 #include <glob.h>

@@ -6,7 +6,7 @@
 
 
 #include "suricata-common.h"
-#include "util-decode-mime.h"
+#include "util/decode-mime.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 

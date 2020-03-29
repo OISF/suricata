@@ -24,10 +24,10 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
+#include "util/unittest.h"
 #include "detect-parse.h"
 #include "detect/keywords/engine.h"
-#include "util-byte.h"
+#include "util/byte.h"
 
 #include "detect/keywords/cipservice.h"
 #include "detect-engine-enip.h"

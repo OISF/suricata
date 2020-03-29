@@ -32,7 +32,7 @@
 #include "detect/keywords/engine-prefilter-common.h"
 
 #include "detect/keywords/ttl.h"
-#include "util-debug.h"
+#include "util/debug.h"
 
 /**
  * \brief Regex for parsing our ttl options

@@ -60,21 +60,21 @@
 
 #include "detect-engine-loader.h"
 
-#include "util-classification-config.h"
-#include "util-reference-config.h"
-#include "util-threshold-config.h"
-#include "util-error.h"
-#include "util-hash.h"
-#include "util-byte.h"
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-action.h"
-#include "util-magic.h"
-#include "util-signal.h"
-#include "util-spm.h"
-#include "util-device.h"
-#include "util-var-name.h"
-#include "util-profiling.h"
+#include "util/classification-config.h"
+#include "util/reference-config.h"
+#include "util/threshold-config.h"
+#include "util/error.h"
+#include "util/hash.h"
+#include "util/byte.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/action.h"
+#include "util/magic.h"
+#include "util/signal.h"
+#include "util/spm.h"
+#include "util/device.h"
+#include "util/var-name.h"
+#include "util/profiling.h"
 
 #include "tm-threads.h"
 #include "runmodes.h"
@@ -724,7 +724,7 @@ void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
 
 /* code for registering buffers */
 
-#include "util-hash-lookup3.h"
+#include "util/hash-lookup3.h"
 
 static HashListTable *g_buffer_type_hash = NULL;
 static int g_buffer_type_id = DETECT_SM_LIST_DYNAMIC_START;

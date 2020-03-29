@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 #include "detect-parse.h"
 #include "detect/keywords/engine.h"

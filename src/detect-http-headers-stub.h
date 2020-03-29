@@ -45,7 +45,7 @@
 #include "detect/keywords/content.h"
 #include "detect/keywords/http-header.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 
 static int g_buffer_id = 0;
 

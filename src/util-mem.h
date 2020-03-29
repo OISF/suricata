@@ -31,7 +31,7 @@
 #ifndef __UTIL_MEM_H__
 #define __UTIL_MEM_H__
 
-#include "util-atomic.h"
+#include "util/atomic.h"
 
 #if CPPCHECK==1 || defined(__clang_analyzer__)
 #define SCMalloc malloc

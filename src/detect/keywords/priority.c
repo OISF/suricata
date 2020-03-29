@@ -30,9 +30,9 @@
 #include "detect/keywords/priority.h"
 #include "detect/keywords/engine.h"
 #include "detect/keywords/engine-mpm.h"
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-unittest.h"
+#include "util/error.h"
+#include "util/debug.h"
+#include "util/unittest.h"
 
 #define PARSE_REGEX "^\\s*(\\d+|\"\\d+\")\\s*$"
 

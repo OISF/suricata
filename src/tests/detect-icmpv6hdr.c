@@ -23,7 +23,7 @@
 
 #include "../detect/keywords/icmpv6hdr.h"
 
-#include "../util-unittest.h"
+#include "../util/unittest.h"
 
 static int DetectICMPv6hdrParseTest01 (void)
 {

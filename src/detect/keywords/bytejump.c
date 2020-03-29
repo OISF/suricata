@@ -36,9 +36,9 @@
 #include "detect/keywords/content.h"
 #include "detect/keywords/uricontent.h"
 
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 #include "detect/keywords/pcre.h"
 
 /**
@@ -637,7 +637,7 @@ static void DetectBytejumpFree(void *ptr)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 static int g_file_data_buffer_id = 0;
 static int g_dce_stub_data_buffer_id = 0;
 

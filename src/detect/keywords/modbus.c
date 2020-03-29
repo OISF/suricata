@@ -50,7 +50,7 @@
 #include "detect/keywords/modbus.h"
 #include "detect-engine-modbus.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 
 #include "app-layer-modbus.h"
 
@@ -529,7 +529,7 @@ void DetectModbusRegister(void)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 /** \test Signature containing a function. */
 static int DetectModbusTest01(void)

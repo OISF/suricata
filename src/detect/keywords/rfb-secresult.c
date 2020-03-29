@@ -28,7 +28,7 @@
 #include "detect/keywords/engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect/keywords/rfb-secresult.h"
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 #include "rust-bindings.h"
 

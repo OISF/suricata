@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#include "../util-unittest.h"
-#include "../util-unittest-helper.h"
+#include "../util/unittest.h"
+#include "../util/unittest-helper.h"
 #include "../app-layer-parser.h"
 #include "../detect/keywords/engine.h"
 #include "../detect-parse.h"

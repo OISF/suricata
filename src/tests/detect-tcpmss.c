@@ -23,7 +23,7 @@
 
 #include "../detect/keywords/tcpmss.h"
 
-#include "../util-unittest.h"
+#include "../util/unittest.h"
 
 /**
  * \test setting up a valid tcpmss value.

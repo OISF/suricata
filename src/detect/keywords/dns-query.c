@@ -46,10 +46,10 @@
 #include "flow-util.h"
 #include "flow-var.h"
 
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-spm.h"
-#include "util-print.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/spm.h"
+#include "util/print.h"
 
 #include "stream-tcp.h"
 
@@ -58,7 +58,7 @@
 #include "detect/keywords/dns-query.h"
 #include "detect-engine-dns.h"
 
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 #include "rust.h"
 
 static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, const char *);

@@ -6,8 +6,8 @@
 
 
 #include "suricata-common.h"
-#include "util-reference-config.h"
-#include "util-classification-config.h"
+#include "util/reference-config.h"
+#include "util/classification-config.h"
 #include "detect/keywords/engine.h"
 #include "detect-parse.h"
 

@@ -57,7 +57,7 @@
 #include "detect/keywords/replace.h"
 
 #include "util-validate.h"
-#include "util-detect.h"
+#include "util/detect.h"
 
 typedef struct DetectRunScratchpad {
     const AppProto alproto;

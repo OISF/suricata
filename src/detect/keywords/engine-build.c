@@ -34,7 +34,7 @@
 #include "detect/keywords/flow.h"
 #include "detect/keywords/flowbits.h"
 
-#include "util-profiling.h"
+#include "util/profiling.h"
 
 void SigCleanSignatures(DetectEngineCtx *de_ctx)
 {
