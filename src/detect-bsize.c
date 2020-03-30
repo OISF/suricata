@@ -43,6 +43,8 @@ static void DetectBsizeFree (void *);
 static void DetectBsizeRegisterTests (void);
 #endif
 
+/* Number of ascii characters required to hold max u64 string */
+#define U64_MAXSTR_SIZE 21
 /**
  * \brief Registration function for bsize: keyword
  */
@@ -174,7 +176,7 @@ static DetectBsizeData *DetectBsizeParse (const char *str)
     while (isspace(*str))
         (str++);
 
-    char str1[11], *p = str1;
+    char str1[U64_MAXSTR_SIZE], *p = str1;
     memset(str1, 0, sizeof(str1));
     while (*str && isdigit(*str)) {
         if (p - str1 >= (int)sizeof(str1))
@@ -220,7 +222,7 @@ static DetectBsizeData *DetectBsizeParse (const char *str)
         while (*str && isspace(*str))
             (str++);
 
-        char str2[11];
+        char str2[U64_MAXSTR_SIZE];
         p = str2;
         memset(str2, 0, sizeof(str2));
         while (*str && isdigit(*str)) {
