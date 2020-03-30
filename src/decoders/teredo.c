@@ -34,8 +34,8 @@
 
 #include "suricata-common.h"
 #include "decode.h"
-#include "decode-ipv6.h"
-#include "decode-teredo.h"
+#include "decoders/ipv6.h"
+#include "decoders/teredo.h"
 #include "util/debug.h"
 #include "conf.h"
 #include "detect/engine/port.h"

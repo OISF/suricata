@@ -16,7 +16,7 @@
  */
 
 /**
- * \file decode-gre.h
+ * \file decoders/gre.h
  *
  * \author Breno Silva <breno.silva@gmail.com>
  *

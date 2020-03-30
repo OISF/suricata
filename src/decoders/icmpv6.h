@@ -24,10 +24,10 @@
 #ifndef __DECODE_ICMPV6_H__
 #define __DECODE_ICMPV6_H__
 
-#include "decode-tcp.h"
-#include "decode-sctp.h"
-#include "decode-udp.h"
-#include "decode-ipv6.h"
+#include "decoders/tcp.h"
+#include "decoders/sctp.h"
+#include "decoders/udp.h"
+#include "decoders/ipv6.h"
 
 #define ICMPV6_HEADER_LEN       8
 #define ICMPV6_HEADER_PKT_OFFSET 8

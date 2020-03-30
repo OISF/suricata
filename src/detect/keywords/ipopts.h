@@ -24,8 +24,8 @@
 #ifndef __DETECT_IPOPTS_H__
 #define __DETECT_IPOPTS_H__
 
-#include "decode-events.h"
-#include "decode-ipv4.h"
+#include "decoders/events.h"
+#include "decoders/ipv4.h"
 
 /**
  * \struct DetectIpOptsData_

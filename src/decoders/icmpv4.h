@@ -25,9 +25,9 @@
 #define __DECODE_ICMPV4_H__
 
 #include "decode.h"
-#include "decode-tcp.h"
-#include "decode-sctp.h"
-#include "decode-udp.h"
+#include "decoders/tcp.h"
+#include "decoders/sctp.h"
+#include "decoders/udp.h"
 
 #define ICMPV4_HEADER_LEN       8
 

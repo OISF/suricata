@@ -74,7 +74,7 @@
 #include "detect/engine/state.h"
 #include "detect-parse.h"
 
-#include "decode-events.h"
+#include "decoders/events.h"
 
 #include "util/memcmp.h"
 #include "util/random.h"

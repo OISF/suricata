@@ -30,7 +30,7 @@
 #include "detect-parse.h"
 
 #include "flow-var.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 
 #include "util/debug.h"
 

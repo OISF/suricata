@@ -25,8 +25,8 @@
 
 #include "suricata-common.h"
 #include "decode.h"
-#include "decode-vxlan.h"
-#include "decode-events.h"
+#include "decoders/vxlan.h"
+#include "decoders/events.h"
 
 #include "detect/engine/port.h"
 

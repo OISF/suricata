@@ -39,7 +39,7 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "util/byte.h"
 #include "util/debug.h"
 #include "util/unittest.h"

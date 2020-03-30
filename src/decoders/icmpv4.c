@@ -33,9 +33,9 @@
 #include "suricata-common.h"
 
 #include "decode.h"
-#include "decode-events.h"
-#include "decode-ipv4.h"
-#include "decode-icmpv4.h"
+#include "decoders/events.h"
+#include "decoders/ipv4.h"
+#include "decoders/icmpv4.h"
 
 #include "flow.h"
 

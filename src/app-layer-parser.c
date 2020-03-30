@@ -74,7 +74,7 @@
 #include "util/spm.h"
 
 #include "util/debug.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 #include "util/unittest-helper.h"
 #include "util-validate.h"
 

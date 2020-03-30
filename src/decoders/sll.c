@@ -32,8 +32,8 @@
 
 #include "suricata-common.h"
 #include "decode.h"
-#include "decode-sll.h"
-#include "decode-events.h"
+#include "decoders/sll.h"
+#include "decoders/events.h"
 #include "util/debug.h"
 
 int DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,

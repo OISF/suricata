@@ -49,7 +49,7 @@
 
 #include "util/unittest.h"
 #include "outputs/log-pcap.h"
-#include "decode-ipv4.h"
+#include "decoders/ipv4.h"
 
 #include "util/error.h"
 #include "util/debug.h"

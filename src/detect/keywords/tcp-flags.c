@@ -33,7 +33,7 @@
 #include "detect/engine/prefilter-common.h"
 
 #include "flow-var.h"
-#include "decode-events.h"
+#include "decoders/events.h"
 
 #include "detect/keywords/tcp-flags.h"
 #include "util/unittest.h"

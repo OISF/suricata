@@ -32,8 +32,8 @@
 
 #include "suricata-common.h"
 #include "decode.h"
-#include "decode-ppp.h"
-#include "decode-events.h"
+#include "decoders/ppp.h"
+#include "decoders/events.h"
 
 #include "flow.h"
 

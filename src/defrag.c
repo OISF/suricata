@@ -38,7 +38,7 @@
 #include "suricata.h"
 #include "threads.h"
 #include "conf.h"
-#include "decode-ipv6.h"
+#include "decoders/ipv6.h"
 #include "util/hashlist.h"
 #include "util/pool.h"
 #include "util/time.h"

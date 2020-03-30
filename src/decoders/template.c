@@ -33,8 +33,8 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "decode.h"
-#include "decode-events.h"
-#include "decode-template.h"
+#include "decoders/events.h"
+#include "decoders/template.h"
 
 /**
  * \brief Function to decode TEMPLATE packets
@@ -57,7 +57,7 @@ int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
      *             the header */
     if (len < sizeof(TemplateHdr)) {
         /* in case of errors, we set events. Events are defined in
-         * decode-events.h, and are then exposed to the detection
+         * decoders/events.h, and are then exposed to the detection
          * engine through detect-engine-events.h */
         //ENGINE_SET_EVENT(p,TEMPLATE_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
