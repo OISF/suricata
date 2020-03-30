@@ -30,7 +30,7 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
-#include "flow.h"
+#include "../flow.h"
 #include "conf.h"
 
 #include "threads.h"
@@ -48,7 +48,7 @@
 #include "util/classification-config.h"
 
 #include "output.h"
-#include "alert-fastlog.h"
+#include "outputs/alert-fastlog.h"
 
 #include "util/privs.h"
 #include "util/print.h"

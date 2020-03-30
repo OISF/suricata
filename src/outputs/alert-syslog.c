@@ -26,7 +26,7 @@
 
 #include "suricata-common.h"
 #include "debug.h"
-#include "flow.h"
+#include "../flow.h"
 #include "conf.h"
 
 #include "threads.h"
@@ -40,7 +40,7 @@
 #include "detect/keywords/reference.h"
 
 #include "output.h"
-#include "alert-syslog.h"
+#include "outputs/alert-syslog.h"
 
 #include "util/classification-config.h"
 #include "util/debug.h"

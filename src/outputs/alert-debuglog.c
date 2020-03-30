@@ -26,7 +26,7 @@
 
 #include "debug.h"
 #include "detect.h"
-#include "flow.h"
+#include "../flow.h"
 #include "conf.h"
 #include "stream.h"
 #include "app-layer-protos.h"
@@ -45,7 +45,7 @@
 #include "util/buffer.h"
 
 #include "output.h"
-#include "alert-debuglog.h"
+#include "outputs/alert-debuglog.h"
 #include "util/privs.h"
 #include "flow-var.h"
 #include "flow-bit.h"
