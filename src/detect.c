@@ -52,9 +52,9 @@
 #include "detect-engine-payload.h"
 #include "detect-engine-event.h"
 
-#include "detect-filestore.h"
-#include "detect-flowvar.h"
-#include "detect-replace.h"
+#include "detect/keywords/filestore.h"
+#include "detect/keywords/flowvar.h"
+#include "detect/keywords/replace.h"
 
 #include "util-validate.h"
 #include "util-detect.h"

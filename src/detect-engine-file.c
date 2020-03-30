@@ -30,7 +30,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 
-#include "detect-filestore.h"
+#include "detect/keywords/filestore.h"
 
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-file.h"

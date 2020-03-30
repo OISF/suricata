@@ -39,7 +39,7 @@
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-modbus.h"
-#include "detect-fast-pattern.h"
+#include "detect/keywords/fast-pattern.h"
 #include "flow.h"
 #include "flow-timeout.h"
 #include "flow-manager.h"

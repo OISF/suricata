@@ -91,7 +91,7 @@ enum PktSrcEnum {
 #include "decode-vxlan.h"
 #include "decode-mpls.h"
 
-#include "detect-reference.h"
+#include "detect/keywords/reference.h"
 
 #include "app-layer-protos.h"
 

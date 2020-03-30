@@ -38,9 +38,9 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-prefilter.h"
 
-#include "detect-content.h"
-#include "detect-uricontent.h"
-#include "detect-tcp-flags.h"
+#include "detect/keywords/content.h"
+#include "detect/keywords/uricontent.h"
+#include "detect/keywords/tcp-flags.h"
 
 #include "util-hash.h"
 #include "util-hashlist.h"

@@ -37,7 +37,7 @@
 
 #include "host-queue.h"
 
-#include "detect-tag.h"
+#include "detect/keywords/tag.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
 

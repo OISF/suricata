@@ -42,8 +42,8 @@
 #include "detect-engine-state.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-content.h"
-#include "detect-http-header.h"
+#include "detect/keywords/content.h"
+#include "detect/keywords/http-header.h"
 
 #include "util-debug.h"
 

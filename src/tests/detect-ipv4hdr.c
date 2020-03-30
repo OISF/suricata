@@ -21,7 +21,7 @@
 #include "../detect-parse.h"
 #include "../detect-engine-prefilter-common.h"
 
-#include "../detect-ipv4hdr.h"
+#include "../detect/keywords/ipv4hdr.h"
 
 #include "../util-unittest.h"
 

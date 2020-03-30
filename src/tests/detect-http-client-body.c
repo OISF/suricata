@@ -43,7 +43,7 @@
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-prefilter.h"
-#include "detect-isdataat.h"
+#include "detect/keywords/isdataat.h"
 #include "stream-tcp-reassemble.h"
 
 

@@ -32,7 +32,7 @@
 #include "util-time.h"
 #include "util-hashlist.h"
 #include "detect-engine-tag.h"
-#include "detect-tag.h"
+#include "detect/keywords/tag.h"
 #include "host.h"
 #include "host-storage.h"
 #include "flow-storage.h"

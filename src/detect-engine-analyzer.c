@@ -32,9 +32,9 @@
 #include "detect-engine-analyzer.h"
 #include "detect-engine-mpm.h"
 #include "conf.h"
-#include "detect-content.h"
-#include "detect-flow.h"
-#include "detect-tcp-flags.h"
+#include "detect/keywords/content.h"
+#include "detect/keywords/flow.h"
+#include "detect/keywords/tcp-flags.h"
 #include "feature.h"
 #include "util-print.h"
 

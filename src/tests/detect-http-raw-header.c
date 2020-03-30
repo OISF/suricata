@@ -37,8 +37,8 @@
 
 #include "../detect.h"
 #include "../detect-engine.h"
-#include "../detect-isdataat.h"
-#include "../detect-pcre.h"
+#include "../detect/keywords/isdataat.h"
+#include "../detect/keywords/pcre.h"
 
 #include "../stream-tcp.h"
 #include "../app-layer.h"

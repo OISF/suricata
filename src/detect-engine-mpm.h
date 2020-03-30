@@ -27,8 +27,8 @@
 #include "tm-threads.h"
 
 #include "detect.h"
-#include "detect-content.h"
-#include "detect-uricontent.h"
+#include "detect/keywords/content.h"
+#include "detect/keywords/uricontent.h"
 
 #include "stream.h"
 

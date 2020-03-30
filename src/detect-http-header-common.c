@@ -32,8 +32,8 @@
 #include "detect-engine-state.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-content.h"
-#include "detect-pcre.h"
+#include "detect/keywords/content.h"
+#include "detect/keywords/pcre.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -49,7 +49,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
-#include "detect-http-header.h"
+#include "detect/keywords/http-header.h"
 #include "stream-tcp.h"
 
 #include "util-print.h"

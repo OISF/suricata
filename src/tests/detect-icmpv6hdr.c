@@ -21,7 +21,7 @@
 #include "../detect-parse.h"
 #include "../detect-engine-prefilter-common.h"
 
-#include "../detect-icmpv6hdr.h"
+#include "../detect/keywords/icmpv6hdr.h"
 
 #include "../util-unittest.h"
 

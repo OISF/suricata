@@ -41,16 +41,16 @@
 #include "util-memcmp.h"
 #include "util-memcpy.h"
 #include "conf.h"
-#include "detect-fast-pattern.h"
+#include "detect/keywords/fast-pattern.h"
 
-#include "detect-tcphdr.h"
-#include "detect-udphdr.h"
+#include "detect/keywords/tcphdr.h"
+#include "detect/keywords/udphdr.h"
 
 #include "flow.h"
 #include "flow-var.h"
-#include "detect-flow.h"
+#include "detect/keywords/flow.h"
 
-#include "detect-content.h"
+#include "detect/keywords/content.h"
 
 #include "detect-engine-payload.h"
 #include "detect-engine-dns.h"

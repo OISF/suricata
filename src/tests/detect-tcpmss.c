@@ -21,7 +21,7 @@
 #include "../detect-parse.h"
 #include "../detect-engine-prefilter-common.h"
 
-#include "../detect-tcpmss.h"
+#include "../detect/keywords/tcpmss.h"
 
 #include "../util-unittest.h"
 

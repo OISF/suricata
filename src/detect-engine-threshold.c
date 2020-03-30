@@ -58,8 +58,8 @@
 #include "detect-engine.h"
 #include "detect-engine-threshold.h"
 
-#include "detect-content.h"
-#include "detect-uricontent.h"
+#include "detect/keywords/content.h"
+#include "detect/keywords/uricontent.h"
 
 #include "util-hash.h"
 #include "util-time.h"

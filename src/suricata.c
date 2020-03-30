@@ -58,7 +58,7 @@
 
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect-fast-pattern.h"
+#include "detect/keywords/fast-pattern.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
 #include "detect-engine-address.h"

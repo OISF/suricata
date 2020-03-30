@@ -29,8 +29,8 @@
 #include "flow.h"
 
 #include "detect-engine-proto.h"
-#include "detect-reference.h"
-#include "detect-metadata.h"
+#include "detect/keywords/reference.h"
+#include "detect/keywords/metadata.h"
 #include "detect-engine-register.h"
 #include "packet-queue.h"
 
@@ -45,7 +45,7 @@
 #include "util-file.h"
 #include "reputation.h"
 
-#include "detect-mark.h"
+#include "detect/keywords/mark.h"
 
 #include "stream.h"
 
@@ -700,7 +700,7 @@ typedef struct DetectEngineLookupFlow_ {
     struct SigGroupHead_ *sgh[256];
 } DetectEngineLookupFlow;
 
-#include "detect-threshold.h"
+#include "detect/keywords/threshold.h"
 
 /** \brief threshold ctx */
 typedef struct ThresholdCtx_    {

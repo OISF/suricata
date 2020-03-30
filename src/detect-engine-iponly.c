@@ -44,7 +44,7 @@
 
 #include "detect-engine-threshold.h"
 #include "detect-engine-iponly.h"
-#include "detect-threshold.h"
+#include "detect/keywords/threshold.h"
 #include "util-classification-config.h"
 #include "util-rule-vars.h"
 

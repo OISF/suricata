@@ -28,7 +28,7 @@
 #include "util-var.h"
 #include "util-atomic.h"
 #include "util-device.h"
-#include "detect-tag.h"
+#include "detect/keywords/tag.h"
 #include "util-optimize.h"
 
 /* Part of the flow structure, so we declare it here.

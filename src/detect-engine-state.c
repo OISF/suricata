@@ -46,7 +46,7 @@
 #include "detect-engine-state.h"
 #include "detect-engine-dcepayload.h"
 
-#include "detect-flowvar.h"
+#include "detect/keywords/flowvar.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"

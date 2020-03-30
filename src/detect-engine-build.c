@@ -29,10 +29,10 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-proto.h"
 
-#include "detect-dsize.h"
-#include "detect-tcp-flags.h"
-#include "detect-flow.h"
-#include "detect-flowbits.h"
+#include "detect/keywords/dsize.h"
+#include "detect/keywords/tcp-flags.h"
+#include "detect/keywords/flow.h"
+#include "detect/keywords/flowbits.h"
 
 #include "util-profiling.h"
 

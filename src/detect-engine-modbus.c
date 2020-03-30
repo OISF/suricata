@@ -38,7 +38,7 @@
 #include "app-layer-modbus.h"
 
 #include "detect.h"
-#include "detect-modbus.h"
+#include "detect/keywords/modbus.h"
 
 #include "detect-engine-modbus.h"
 
