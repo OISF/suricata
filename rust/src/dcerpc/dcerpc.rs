@@ -19,6 +19,7 @@ use std::mem::transmute;
 
 use crate::core;
 use crate::dcerpc::parser;
+use crate::applayer::AppLayerResult;
 use crate::log::*;
 //use core::STREAM_TOSERVER;
 use nom::number::Endianness;
@@ -626,7 +627,7 @@ impl DCERPCState {
         return 0;
     }
 
-    pub fn dcerpc_parse(&mut self, input: &[u8], direction: u8) -> i32 {
+    pub fn dcerpc_parse(&mut self, input: &[u8], direction: u8) -> AppLayerResult {
         let mut parsed = 0;
         let retval;
         let input_len = input.len();
@@ -635,7 +636,7 @@ impl DCERPCState {
             core::STREAM_TOSERVER => {
                 if self.buffer_ts.len() + input_len > 1024 * 1024 {
                     SCLogDebug!("To Server stream: Buffer Overflow");
-                    return -1;
+                    return AppLayerResult::err();
                 }
                 v = self.buffer_ts.split_off(0);
                 v.extend_from_slice(input);
@@ -644,7 +645,7 @@ impl DCERPCState {
             _ => {
                 if self.buffer_tc.len() + input_len > 1024 * 1024 {
                     SCLogDebug!("To Client stream: Buffer Overflow");
-                    return -1;
+                    return AppLayerResult::err();
                 }
                 v = self.buffer_tc.split_off(0);
                 v.extend_from_slice(input);
@@ -657,7 +658,7 @@ impl DCERPCState {
         if self.bytes_consumed < 16 && input_len > 0 {
             parsed = self.parse_dcerpc_header(&buffer);
             if parsed == -1 {
-                return -1;
+                return AppLayerResult::err();
             }
             self.bytes_consumed += parsed as u16;
         }
@@ -668,7 +669,7 @@ impl DCERPCState {
         };
         if buffer.len() as u16 != fraglen {
             println!("Possibly fragmented data, waiting for more..");
-            return 1;
+            return AppLayerResult::ok();
         }
 
         match self.get_hdr_type() {
@@ -676,19 +677,19 @@ impl DCERPCState {
                 DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
                     retval = self.parse_dcerpc_bind(&buffer[parsed as usize..]);
                     if retval == -1 {
-                        return -1;
+                        return AppLayerResult::err();
                     }
                 },
                 DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
                     retval = self.parse_bind_ack(&buffer[parsed as usize..]);
                     if retval == -1 {
-                        return -1;
+                        return AppLayerResult::err();
                     }
                 },
                 DCERPC_TYPE_REQUEST => {
                     retval = self.parse_request(&buffer[parsed as usize..]);
                     if retval == -1 {
-                        return -1;
+                        return AppLayerResult::err();
                     }
                 },
                 DCERPC_TYPE_RESPONSE => {
@@ -696,19 +697,19 @@ impl DCERPCState {
                     self.dcerpcresponse = Some(dcerpcresponse);
                     retval = self.process_common_stub(&buffer[parsed as usize..], 0, core::STREAM_TOCLIENT);
                     if retval == -1 {
-                        return -1;
+                        return AppLayerResult::err();
                     }
                     self.tx_id += 1; // Complete response, maybe to be used in future?
                 },
                 _ => {
                     SCLogDebug!("Unrecognized packet type");
-                    return -1;
+                    return AppLayerResult::err();
                 },
             },
-            None => {return -1;}
+            None => {return AppLayerResult::err();}
         }
         self.bytes_consumed += retval as u16;
-        return 1;
+        return AppLayerResult::ok();
     }
 }
 
@@ -1041,19 +1042,19 @@ pub extern "C" fn rs_dcerpc_udp_get_alstate_progress_completion_status(_directio
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_parse_request_gap(state: &mut DCERPCState, _input_len: u32) -> i8 {
+pub extern "C" fn rs_dcerpc_parse_request_gap(state: &mut DCERPCState, _input_len: u32) -> AppLayerResult {
     if state.handle_gap_ts() == 0 {
-        return 1;
+        return AppLayerResult::ok();
     }
-    -1
+    AppLayerResult::err()
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_parse_response_gap(state: &mut DCERPCState, _input_len: u32) -> i8 {
+pub extern "C" fn rs_dcerpc_parse_response_gap(state: &mut DCERPCState, _input_len: u32) -> AppLayerResult {
     if state.handle_gap_tc() == 0 {
-        return 1;
+        return AppLayerResult::ok();
     }
-    -1
+    AppLayerResult::err()
 }
 
 #[no_mangle]
@@ -1065,12 +1066,12 @@ pub unsafe extern "C" fn rs_dcerpc_parse_request(
     input_len: u32,
     _data: *mut std::os::raw::c_void,
     flags: u8,
-) -> i32 {
+) -> AppLayerResult {
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = std::slice::from_raw_parts(input, input_len as usize);
         return state.dcerpc_parse(buf, flags);
     }
-    0
+    AppLayerResult::err()
 }
 
 #[no_mangle]
@@ -1082,14 +1083,14 @@ pub unsafe extern "C" fn rs_dcerpc_parse_response(
     input_len: u32,
     _data: *mut std::os::raw::c_void,
     flags: u8,
-) -> i32 {
+) -> AppLayerResult {
     if input_len > 0 {
         if input != std::ptr::null_mut() {
             let buf = std::slice::from_raw_parts(input, input_len as usize);
             return state.dcerpc_parse(buf, flags);
         }
     }
-    0
+    AppLayerResult::err()
 }
 
 #[no_mangle]
