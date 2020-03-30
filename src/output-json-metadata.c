@@ -44,7 +44,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
 #include "app-layer-parser.h"
-#include "app-layer/dnp3/app-layer-dnp3.h"
+#include "app-layer/dnp3/parser.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 #include "util-classification-config.h"

@@ -33,15 +33,15 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
+#include "./parser.h"
+#include "./parser-objects.h"
 
-#include "detect-dnp3.h"
+#include "./detect.h"
 
 #include "output.h"
 #include "output-json.h"
-#include "output-json-dnp3.h"
-#include "output-json-dnp3-objects.h"
+#include "./log.h"
+#include "./log-objects.h"
 
 typedef struct LogDNP3FileCtx_ {
     LogFileCtx *file_ctx;

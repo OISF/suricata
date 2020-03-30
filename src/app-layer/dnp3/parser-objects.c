@@ -25,8 +25,8 @@
 
 #include "suricata-common.h"
 
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
+#include "./parser.h"
+#include "./parser-objects.h"
 
 void DNP3FreeObjectPoint(int group, int variation, void *point);
 

@@ -24,8 +24,8 @@
 
 #include "suricata-common.h"
 
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
+#include "./parser.h"
+#include "./parser-objects.h"
 
 #ifdef HAVE_LUA
 
@@ -34,7 +34,7 @@
 #include <lauxlib.h>
 
 #include "util-lua.h"
-#include "util-lua-dnp3-objects.h"
+#include "./lua-objects.h"
 
 /**
  * \brief Push an object point item onto the stack.

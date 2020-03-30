@@ -18,7 +18,7 @@
 #ifndef __OUTPUT_JSON_DNP3_H__
 #define __OUTPUT_JSON_DNP3_H__
 
-#include "app-layer-dnp3.h"
+#include "./parser.h"
 
 json_t *JsonDNP3LogRequest(DNP3Transaction *);
 json_t *JsonDNP3LogResponse(DNP3Transaction *);

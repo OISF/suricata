@@ -227,7 +227,7 @@
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
 #include "detect-cipservice.h"
-#include "app-layer/dnp3/detect-dnp3.h"
+#include "app-layer/dnp3/detect.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"

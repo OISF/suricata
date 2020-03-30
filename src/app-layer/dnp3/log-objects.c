@@ -26,9 +26,9 @@
 
 #include "util-crypt.h"
 
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
-#include "output-json-dnp3-objects.h"
+#include "./parser.h"
+#include "./parser-objects.h"
+#include "./log-objects.h"
 #include "output-json.h"
 
 void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,

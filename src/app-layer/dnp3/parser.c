@@ -27,8 +27,8 @@
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
 
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
+#include "./parser.h"
+#include "./parser-objects.h"
 
 /* For hexdump(). */
 #include "app-layer-dcerpc-common.h"
