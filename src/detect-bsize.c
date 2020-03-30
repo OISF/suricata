@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -177,7 +177,7 @@ static DetectBsizeData *DetectBsizeParse (const char *str)
     char str1[11], *p = str1;
     memset(str1, 0, sizeof(str1));
     while (*str && isdigit(*str)) {
-        if (p - str1 >= (int)sizeof(str1))
+        if (p - str1 >= ((int)sizeof(str1) - 1))
             return NULL;
         *p++ = *str++;
     }
@@ -224,7 +224,7 @@ static DetectBsizeData *DetectBsizeParse (const char *str)
         p = str2;
         memset(str2, 0, sizeof(str2));
         while (*str && isdigit(*str)) {
-            if (p - str2 >= (int)sizeof(str2))
+            if (p - str2 >= ((int)sizeof(str2) - 1))
                 return NULL;
             *p++ = *str++;
         }
