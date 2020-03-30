@@ -34,7 +34,7 @@
 
 #include "conf.h"
 #include "util-mem.h"
-#include "util-misc.h"
+#include "util/misc.h"
 
 #include "app-layer-htp-mem.h"
 

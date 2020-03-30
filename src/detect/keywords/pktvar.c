@@ -33,8 +33,8 @@
 #include "pkt-var.h"
 #include "detect/keywords/pktvar.h"
 #include "detect/keywords/content.h"
-#include "util-spm.h"
-#include "util-debug.h"
+#include "util/spm.h"
+#include "util/debug.h"
 
 #define PARSE_REGEX         "(.*),(.*)"
 static DetectParseRegex parse_regex;

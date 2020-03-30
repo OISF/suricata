@@ -42,13 +42,13 @@
 #include "output.h"
 #include "alert-syslog.h"
 
-#include "util-classification-config.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-proto-name.h"
-#include "util-syslog.h"
+#include "util/classification-config.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/proto-name.h"
+#include "util/syslog.h"
 #include "util-optimize.h"
-#include "util-logopenfile.h"
+#include "util/logopenfile.h"
 
 #ifndef OS_WIN32
 

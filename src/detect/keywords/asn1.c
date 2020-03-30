@@ -33,11 +33,11 @@
 #include "flow.h"
 #include "detect/keywords/asn1.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
-#include "util-debug.h"
-#include "util-decode-asn1.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/byte.h"
+#include "util/debug.h"
+#include "util/decode-asn1.h"
 
 /* delimiters for functions/arguments */
 const char *ASN_DELIM = " \t,\n";

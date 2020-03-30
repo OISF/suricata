@@ -28,8 +28,8 @@
 #include "output-filestore.h"
 #include "output-json-file.h"
 
-#include "util-print.h"
-#include "util-misc.h"
+#include "util/print.h"
+#include "util/misc.h"
 
 #ifdef HAVE_NSS
 

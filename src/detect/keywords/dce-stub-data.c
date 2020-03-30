@@ -47,10 +47,10 @@
 #include "detect/keywords/dce-stub-data.h"
 #include "detect/keywords/dce-iface.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "stream-tcp.h"
 

@@ -25,9 +25,9 @@
 #define __FLOW_H__
 
 #include "decode.h"
-#include "util-var.h"
-#include "util-atomic.h"
-#include "util-device.h"
+#include "util/var.h"
+#include "util/atomic.h"
+#include "util/device.h"
 #include "detect/keywords/tag.h"
 #include "util-optimize.h"
 

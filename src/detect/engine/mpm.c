@@ -37,8 +37,8 @@
 #include "detect/engine/iponly.h"
 #include "detect-parse.h"
 #include "detect/engine/prefilter.h"
-#include "util-mpm.h"
-#include "util-memcmp.h"
+#include "util/mpm.h"
+#include "util/memcmp.h"
 #include "util-memcpy.h"
 #include "conf.h"
 #include "detect/keywords/fast-pattern.h"
@@ -57,10 +57,10 @@
 
 #include "stream.h"
 
-#include "util-misc.h"
-#include "util-enum.h"
-#include "util-debug.h"
-#include "util-print.h"
+#include "util/misc.h"
+#include "util/enum.h"
+#include "util/debug.h"
+#include "util/print.h"
 #include "util-validate.h"
 
 const char *builtin_mpms[] = {

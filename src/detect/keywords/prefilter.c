@@ -30,7 +30,7 @@
 #include "detect-parse.h"
 #include "detect/keywords/content.h"
 #include "detect/keywords/prefilter.h"
-#include "util-debug.h"
+#include "util/debug.h"
 
 static int DetectPrefilterSetup (DetectEngineCtx *, Signature *, const char *);
 

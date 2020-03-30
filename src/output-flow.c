@@ -26,7 +26,7 @@
 #include "suricata-common.h"
 #include "tm-modules.h"
 #include "output-flow.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 #include "util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {

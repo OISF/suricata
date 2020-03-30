@@ -26,7 +26,7 @@
 #include "suricata-common.h"
 #include "feature.h"
 
-#include "util-hash.h"
+#include "util/hash.h"
 
 typedef struct FeatureEntryType {
 	const char *feature;

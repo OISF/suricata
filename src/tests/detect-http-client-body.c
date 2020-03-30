@@ -48,16 +48,16 @@
 
 
 #include "flow-util.h"
-#include "util-debug.h"
-#include "util-print.h"
+#include "util/debug.h"
+#include "util/print.h"
 #include "flow.h"
 
 #include "app-layer-parser.h"
 
 #include "stream-tcp.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"

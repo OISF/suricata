@@ -25,11 +25,11 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-print.h"
-#include "util-unittest.h"
-#include "util-buffer.h"
-#include "util-crypt.h"
-#include "util-debug.h"
+#include "util/print.h"
+#include "util/unittest.h"
+#include "util/buffer.h"
+#include "util/crypt.h"
+#include "util/debug.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"

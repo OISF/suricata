@@ -31,7 +31,7 @@
 #include "app-layer-parser.h"
 #include "detect/keywords/filemagic.h"
 #include "conf.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 #include "util-validate.h"
 
 typedef struct OutputLoggerThreadStore_ {

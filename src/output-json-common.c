@@ -30,10 +30,10 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-unittest.h"
-#include "util-buffer.h"
-#include "util-debug.h"
-#include "util-byte.h"
+#include "util/unittest.h"
+#include "util/buffer.h"
+#include "util/debug.h"
+#include "util/byte.h"
 
 #include "output.h"
 #include "output-json.h"

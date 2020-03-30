@@ -42,12 +42,12 @@
 #include "detect/engine/mpm.h"
 #include "detect/engine/state.h"
 
-#include "util-var-name.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-print.h"
-#include "util-pool.h"
+#include "util/var-name.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/print.h"
+#include "util/pool.h"
 
 #include "conf.h"
 #include "app-layer.h"
@@ -58,7 +58,7 @@
 #include "stream-tcp-reassemble.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "util-pages.h"
+#include "util/pages.h"
 
 /* pcre named substring capture supports only 32byte names, A-z0-9 plus _
  * and needs to start with non-numeric. */

@@ -13,7 +13,7 @@
 #include "tm-modules.h"
 #include "tm-threads.h"
 #include "source-pcap-file.h"
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 #include "conf-yaml-loader.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);

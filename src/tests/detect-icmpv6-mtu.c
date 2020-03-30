@@ -21,7 +21,7 @@
 
 #include "../detect/keywords/icmpv6-mtu.h"
 
-#include "../util-unittest.h"
+#include "../util/unittest.h"
 
 /**
  * \test signature with a valid icmpv6.mtu value.

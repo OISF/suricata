@@ -47,12 +47,12 @@
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
 
-#include "util-mpm.h"
-#include "util-print.h"
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-spm.h"
+#include "util/mpm.h"
+#include "util/print.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/spm.h"
 #include "conf.h"
 
 /* prototypes */

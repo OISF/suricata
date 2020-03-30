@@ -34,8 +34,8 @@
 #include "detect/engine/prefilter.h"
 
 #include "flow-util.h"
-#include "util-debug.h"
-#include "util-print.h"
+#include "util/debug.h"
+#include "util/print.h"
 #include "flow.h"
 
 #include "app-layer.h"
@@ -43,8 +43,8 @@
 #include "app-layer-protos.h"
 #include "detect/engine/dns.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 #include "util-validate.h"
 
 int DetectEngineInspectDnsRequest(ThreadVars *tv,

@@ -33,7 +33,7 @@
 #include "threads.h"
 #include "tm-threads.h"
 #include "threadvars.h"
-#include "util-debug.h"
+#include "util/debug.h"
 
 #include "decode-ipv4.h"
 #include "detect-parse.h"
@@ -46,15 +46,15 @@
 #include "output-json-alert.h"
 #include "output-json-drop.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-classification-config.h"
-#include "util-privs.h"
-#include "util-print.h"
-#include "util-proto-name.h"
-#include "util-logopenfile.h"
-#include "util-time.h"
-#include "util-buffer.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/classification-config.h"
+#include "util/privs.h"
+#include "util/print.h"
+#include "util/proto-name.h"
+#include "util/logopenfile.h"
+#include "util/time.h"
+#include "util/buffer.h"
 
 #define MODULE_NAME "JsonDropLog"
 

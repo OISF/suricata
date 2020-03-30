@@ -32,9 +32,9 @@
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
 #include "tm-modules.h"
-#include "util-privs.h"
+#include "util/privs.h"
 #include "tmqh-packetpool.h"
-#include "util-napatech.h"
+#include "util/napatech.h"
 #include "source-napatech.h"
 
 #ifndef HAVE_NAPATECH

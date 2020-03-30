@@ -36,7 +36,7 @@
 #include "detect/keywords/content.h"
 #include "detect/keywords/pcre.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 
 static int DetectRawbytesSetup (DetectEngineCtx *, Signature *, const char *);
 

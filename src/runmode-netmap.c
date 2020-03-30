@@ -44,13 +44,13 @@
 #include "alert-prelude.h"
 #include "alert-debuglog.h"
 
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-affinity.h"
-#include "util-device.h"
-#include "util-runmodes.h"
-#include "util-ioctl.h"
+#include "util/debug.h"
+#include "util/time.h"
+#include "util/cpu.h"
+#include "util/affinity.h"
+#include "util/device.h"
+#include "util/runmodes.h"
+#include "util/ioctl.h"
 
 #include "source-netmap.h"
 
