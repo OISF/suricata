@@ -35,7 +35,7 @@
 #include "tm-threads.h"
 #include "conf.h"
 #include "runmodes.h"
-#include "runmode-af-packet.h"
+#include "./runmode.h"
 #include "output.h"
 #include "log-httplog.h"
 #include "detect-engine-mpm.h"
@@ -55,7 +55,7 @@
 #include "util-ioctl.h"
 #include "util-ebpf.h"
 
-#include "source-af-packet.h"
+#include "./source.h"
 
 extern int max_pending_packets;
 

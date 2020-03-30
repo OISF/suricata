@@ -104,7 +104,7 @@ int RunModeNeedsBypassManager(void);
 #include "runmode-erf-file.h"
 #include "runmode-erf-dag.h"
 #include "runmode-napatech.h"
-#include "runmode-af-packet.h"
+#include "source/af-packet/runmode.h"
 #include "runmode-nflog.h"
 #include "runmode-unix-socket.h"
 #include "runmode-netmap.h"

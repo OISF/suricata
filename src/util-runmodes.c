@@ -29,7 +29,7 @@
 #include "tm-threads.h"
 #include "conf.h"
 #include "runmodes.h"
-#include "runmode-af-packet.h"
+#include "source/af-packet/runmode.h"
 #include "output.h"
 #include "log-httplog.h"
 

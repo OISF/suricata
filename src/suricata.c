@@ -94,7 +94,7 @@
 #include "source-erf-dag.h"
 #include "source-napatech.h"
 
-#include "source-af-packet.h"
+#include "source/af-packet/source.h"
 #include "source-netmap.h"
 
 #include "source-windivert.h"

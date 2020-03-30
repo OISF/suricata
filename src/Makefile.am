@@ -377,7 +377,6 @@ pkt-var.c pkt-var.h \
 reputation.c reputation.h \
 respond-reject.c respond-reject.h \
 respond-reject-libnet11.h respond-reject-libnet11.c \
-runmode-af-packet.c runmode-af-packet.h \
 runmode-erf-dag.c runmode-erf-dag.h \
 runmode-erf-file.c runmode-erf-file.h \
 runmode-ipfw.c runmode-ipfw.h \
@@ -394,7 +393,8 @@ runmode-windivert.c runmode-windivert.h \
 runmodes.c runmodes.h \
 rust.h \
 rust-context.h \
-source-af-packet.c source-af-packet.h \
+source/af-packet/source.c source/af-packet/source.h \
+source/af-packet/runmode.c source/af-packet/runmode.h \
 source-erf-dag.c source-erf-dag.h \
 source-erf-file.c source-erf-file.h \
 source-ipfw.c source-ipfw.h \
