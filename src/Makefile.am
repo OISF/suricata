@@ -551,6 +551,7 @@ suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
 suricata_LDADD = $(HTP_LDADD) $(RUST_LDADD)
 suricata_DEPENDENCIES = $(RUST_SURICATA_LIB)
 
+if BUILD_FUZZTARGETS
 nodist_fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c $(COMMON_SOURCES)
 fuzz_applayerprotodetectgetproto_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
 fuzz_applayerprotodetectgetproto_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
@@ -627,6 +628,7 @@ else
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_mimedecparseline_SOURCES = force-cxx-linking.cxx
+endif
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \
