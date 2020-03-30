@@ -80,7 +80,7 @@
 #include "output-json-template-rust.h"
 #include "output-json-rdp.h"
 #include "output-lua.h"
-#include "output-json-dnp3.h"
+#include "app-layer/dnp3/output-json-dnp3.h"
 #include "output-json-metadata.h"
 #include "output-filestore.h"
 

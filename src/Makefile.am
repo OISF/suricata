@@ -18,12 +18,17 @@ alert-debuglog.c alert-debuglog.h \
 alert-fastlog.c alert-fastlog.h \
 alert-prelude.c alert-prelude.h \
 alert-syslog.c alert-syslog.h \
+app-layer/dnp3/app-layer-dnp3.c app-layer/dnp3/app-layer-dnp3.h \
+app-layer/dnp3/app-layer-dnp3-objects.c app-layer/dnp3/app-layer-dnp3-objects.h \
+app-layer/dnp3/detect-dnp3.c app-layer/dnp3/detect-dnp3.h \
+app-layer/dnp3/output-json-dnp3.c app-layer/dnp3/output-json-dnp3.h \
+app-layer/dnp3/output-json-dnp3-objects.c app-layer/dnp3/output-json-dnp3-objects.h \
+app-layer/dnp3/util-lua-dnp3.c app-layer/dnp3/util-lua-dnp3.h \
+app-layer/dnp3/util-lua-dnp3-objects.c app-layer/dnp3/util-lua-dnp3-objects.h \
 app-layer.c app-layer.h \
 app-layer-dcerpc.c app-layer-dcerpc.h \
 app-layer-dcerpc-udp.c app-layer-dcerpc-udp.h \
 app-layer-detect-proto.c app-layer-detect-proto.h \
-app-layer-dnp3.c app-layer-dnp3.h \
-app-layer-dnp3-objects.c app-layer-dnp3-objects.h \
 app-layer-enip.c app-layer-enip.h \
 app-layer-enip-common.c app-layer-enip-common.h \
 app-layer-events.c app-layer-events.h \
@@ -111,7 +116,6 @@ detect-dce-stub-data.c detect-dce-stub-data.h \
 detect-depth.c detect-depth.h \
 detect-detection-filter.c detect-detection-filter.h \
 detect-distance.c detect-distance.h \
-detect-dnp3.c detect-dnp3.h \
 detect-dns-opcode.c detect-dns-opcode.h \
 detect-dns-query.c detect-dns-query.h \
 detect-tls-ja3-hash.c detect-tls-ja3-hash.h \
@@ -337,8 +341,6 @@ output-flow.c output-flow.h \
 output-json-alert.c output-json-alert.h \
 output-json-anomaly.c output-json-anomaly.h \
 output-json-dns.c output-json-dns.h \
-output-json-dnp3.c output-json-dnp3.h \
-output-json-dnp3-objects.c output-json-dnp3-objects.h \
 output-json-drop.c output-json-drop.h \
 output-json-email-common.c output-json-email-common.h \
 output-json-file.c output-json-file.h \
@@ -469,8 +471,6 @@ util-log-redis.h util-log-redis.c \
 util-lua.c util-lua.h \
 util-luajit.c util-luajit.h \
 util-lua-common.c util-lua-common.h \
-util-lua-dnp3.c util-lua-dnp3.h \
-util-lua-dnp3-objects.c util-lua-dnp3-objects.h \
 util-lua-dns.c util-lua-dns.h \
 util-lua-http.c util-lua-http.h \
 util-lua-ja3.c util-lua-ja3.h \
