@@ -35,7 +35,7 @@
 #include "flow-timeout.h"
 #include "stream-tcp.h"
 #include "stream-tcp-reassemble.h"
-#include "source-pcap-file-directory-helper.h"
+#include "sources/pcap-file-directory-helper.h"
 #include "host.h"
 #include "defrag.h"
 #include "defrag-hash.h"

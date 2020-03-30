@@ -8,7 +8,7 @@
 #include <pcap/pcap.h>
 
 #include "suricata-common.h"
-#include "source-pcap-file.h"
+#include "sources/pcap-file.h"
 #include "detect/engine/detect-engine.h"
 #include "util/classification-config.h"
 #include "util/reference-config.h"

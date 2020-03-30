@@ -51,7 +51,7 @@
 
 #include "runmodes.h"
 
-#include "source-nfq.h"
+#include "sources/nfq.h"
 
 /* Handle the case where no NFQ support is compiled in. */
 #ifndef NFQ

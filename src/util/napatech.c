@@ -32,7 +32,7 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 #include "util/napatech.h"
-#include "source-napatech.h"
+#include "sources/napatech.h"
 
 #ifdef NAPATECH_ENABLE_BYPASS
 

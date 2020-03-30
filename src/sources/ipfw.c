@@ -32,7 +32,7 @@
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
 #include "tm-threads.h"
-#include "source-ipfw.h"
+#include "sources/ipfw.h"
 #include "util/debug.h"
 #include "conf.h"
 #include "util/byte.h"

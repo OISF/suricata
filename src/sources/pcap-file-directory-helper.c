@@ -23,10 +23,10 @@
  * Helper methods for directory based packet acquisition
  */
 
-#include "source-pcap-file-directory-helper.h"
+#include "sources/pcap-file-directory-helper.h"
 #include "runmode-unix-socket.h"
 #include "util-mem.h"
-#include "source-pcap-file.h"
+#include "sources/pcap-file.h"
 
 static void GetTime(struct timespec *tm);
 static void CopyTime(struct timespec *from, struct timespec *to);

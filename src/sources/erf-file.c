@@ -28,7 +28,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "tm-threads.h"
-#include "source-erf-file.h"
+#include "sources/erf-file.h"
 
 #define DAG_TYPE_ETH 2
 
