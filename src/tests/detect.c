@@ -20,7 +20,7 @@
 #include "../app-layer-htp.h"
 #include "../conf-yaml-loader.h"
 #include "../detect-parse.h"
-#include "../detect-engine-content-inspection.h"
+#include "../detect/engine/content-inspection.h"
 #include "../pkt-var.h"
 #include "../flow-util.h"
 #include "../stream-tcp-reassemble.h"

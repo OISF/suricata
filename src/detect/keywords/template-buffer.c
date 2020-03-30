@@ -34,9 +34,9 @@
 #include "conf.h"
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/prefilter.h"
 #include "app-layer-template.h"
 #include "detect/keywords/template-buffer.h"
 

@@ -38,7 +38,7 @@
 #include "decode-teredo.h"
 #include "util-debug.h"
 #include "conf.h"
-#include "detect-engine-port.h"
+#include "detect/engine/port.h"
 
 #define TEREDO_ORIG_INDICATION_LENGTH   8
 

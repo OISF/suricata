@@ -70,8 +70,8 @@
 #include "util-unittest-helper.h"
 #include "flow-util.h"
 
-#include "detect-engine.h"
-#include "detect-engine-state.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/state.h"
 #include "detect-parse.h"
 
 #include "decode-events.h"

@@ -57,7 +57,7 @@
 
 #include "threads.h"
 #include "detect.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 #include "stream.h"
 
 #include "app-layer-parser.h"

@@ -38,8 +38,8 @@
 #include "host-queue.h"
 
 #include "detect/keywords/tag.h"
-#include "detect-engine-tag.h"
-#include "detect-engine-threshold.h"
+#include "detect/engine/tag.h"
+#include "detect/engine/threshold.h"
 
 #include "util-hash-lookup3.h"
 

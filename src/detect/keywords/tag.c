@@ -29,9 +29,9 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect/keywords/tag.h"
-#include "detect-engine-tag.h"
-#include "detect-engine.h"
-#include "detect-engine-state.h"
+#include "detect/engine/tag.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/state.h"
 #include "app-layer-parser.h"
 
 #include "debug.h"

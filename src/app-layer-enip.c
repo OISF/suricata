@@ -45,7 +45,7 @@
 #include "decode.h"
 
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -573,7 +573,7 @@ void RegisterENIPTCPParsers(void)
 #ifdef UNITTESTS
 #include "app-layer-parser.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
 #include "util-unittest.h"

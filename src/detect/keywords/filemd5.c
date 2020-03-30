@@ -24,7 +24,7 @@
 
 #include "suricata-common.h"
 
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "detect-file-hash-common.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"

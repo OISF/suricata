@@ -472,7 +472,7 @@ typedef enum {
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-mem.h"
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 #include "util-path.h"
 #include "util-conf.h"
 

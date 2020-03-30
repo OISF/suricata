@@ -27,7 +27,7 @@
 #include "debug.h"
 #include "decode.h"
 #include "detect.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "detect-parse.h"
 #include "app-layer.h"
 

@@ -31,8 +31,8 @@
 #include "app-layer-smtp.h"
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-state.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/state.h"
 #include "detect/keywords/app-layer-event.h"
 
 #include "flow.h"

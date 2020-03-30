@@ -27,7 +27,7 @@
 #include "suricata.h"
 #include "decode.h"
 #include "detect.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "detect-parse.h"
 #include "flow-var.h"
 #include "decode-events.h"

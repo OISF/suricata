@@ -35,10 +35,10 @@
 #include "detect.h"
 
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/content-inspection.h"
 #include "detect/keywords/content.h"
 #include "detect/keywords/pcre.h"
 
@@ -56,7 +56,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "detect/keywords/dns-query.h"
-#include "detect-engine-dns.h"
+#include "detect/engine/dns.h"
 
 #include "util-unittest-helper.h"
 #include "rust.h"

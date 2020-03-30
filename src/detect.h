@@ -28,10 +28,10 @@
 
 #include "flow.h"
 
-#include "detect-engine-proto.h"
+#include "detect/engine/proto.h"
 #include "detect/keywords/reference.h"
 #include "detect/keywords/metadata.h"
-#include "detect-engine-register.h"
+#include "detect/engine/register.h"
 #include "packet-queue.h"
 
 #include "util-prefilter.h"
@@ -61,7 +61,7 @@
  *  classtype. */
 #define DETECT_DEFAULT_PRIO 3
 
-/* forward declarations for the structures from detect-engine-sigorder.h */
+/* forward declarations for the structures from detect/engine/sigorder.h */
 struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
 
@@ -1496,8 +1496,8 @@ AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
 int DetectEngineGetEventInfo(const char *event_name, int *event_id,
                              AppLayerEventType *event_type);
 
-#include "detect-engine-build.h"
-#include "detect-engine-register.h"
+#include "detect/engine/build.h"
+#include "detect/engine/register.h"
 
 #endif /* __DETECT_H__ */
 

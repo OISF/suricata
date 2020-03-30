@@ -35,8 +35,8 @@
 #include "flow-util.h"
 #include "flow-private.h"
 
-#include "detect-engine-state.h"
-#include "detect-engine-port.h"
+#include "detect/engine/state.h"
+#include "detect/engine/port.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"

@@ -34,7 +34,7 @@
 #include "util-mpm-hs.h"
 #include "util-hashlist.h"
 
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "util-misc.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"

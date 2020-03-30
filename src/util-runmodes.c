@@ -33,8 +33,8 @@
 #include "output.h"
 #include "log-httplog.h"
 
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/mpm.h"
 
 #include "alert-fastlog.h"
 #include "alert-prelude.h"

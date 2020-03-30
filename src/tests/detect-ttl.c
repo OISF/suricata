@@ -16,7 +16,7 @@
  * 02110-1301, USA.
  */
 
-#include "../detect-engine.h"
+#include "../detect/engine/detect-engine.h"
 #include "../util-unittest.h"
 
 /**

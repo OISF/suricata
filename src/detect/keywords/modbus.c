@@ -45,10 +45,10 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 
 #include "detect/keywords/modbus.h"
-#include "detect-engine-modbus.h"
+#include "detect/engine/modbus.h"
 
 #include "util-debug.h"
 

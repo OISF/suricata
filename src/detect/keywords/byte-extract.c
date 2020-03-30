@@ -27,9 +27,9 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/state.h"
 #include "detect/keywords/content.h"
 #include "detect/keywords/pcre.h"
 #include "detect/keywords/bytejump.h"

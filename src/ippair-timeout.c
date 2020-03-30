@@ -25,7 +25,7 @@
 #include "ippair.h"
 #include "ippair-bit.h"
 #include "ippair-timeout.h"
-#include "detect-engine-threshold.h"
+#include "detect/engine/threshold.h"
 
 uint32_t IPPairGetSpareCount(void)
 {

@@ -27,7 +27,7 @@
 #include "util-unittest.h"
 
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 
 #include "detect/keywords/target.h"
 

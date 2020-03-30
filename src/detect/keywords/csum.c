@@ -893,7 +893,7 @@ static void DetectICMPV6CsumFree(void *ptr)
 /* ---------------------------------- Unit Tests --------------------------- */
 
 #ifdef UNITTESTS
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 
 #define mystr(s) #s
 #define TEST1(kwstr) {\
@@ -989,7 +989,7 @@ static int DetectCsumValidArgsTestParse03(void)
 #undef TEST3
 #undef mystr
 
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "stream-tcp.h"
 
 static int DetectCsumICMPV6Test01(void)

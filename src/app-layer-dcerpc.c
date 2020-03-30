@@ -51,7 +51,7 @@
 
 #include "flow-util.h"
 
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"

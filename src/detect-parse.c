@@ -27,11 +27,11 @@
 #include "debug.h"
 
 #include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-address.h"
-#include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/address.h"
+#include "detect/engine/port.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/state.h"
 
 #include "detect/keywords/content.h"
 #include "detect/keywords/pcre.h"
@@ -66,7 +66,7 @@
 #include "util-debug.h"
 #include "string.h"
 #include "detect-parse.h"
-#include "detect-engine-iponly.h"
+#include "detect/engine/iponly.h"
 #include "app-layer-detect-proto.h"
 
 /* Table with all SigMatch registrations */

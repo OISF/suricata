@@ -36,7 +36,7 @@
 #include "../decode.h"
 
 #include "../detect.h"
-#include "../detect-engine.h"
+#include "../detect/engine/detect-engine.h"
 #include "../detect/keywords/isdataat.h"
 #include "../detect/keywords/pcre.h"
 

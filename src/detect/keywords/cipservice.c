@@ -26,11 +26,11 @@
 #include "suricata-common.h"
 #include "util-unittest.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "util-byte.h"
 
 #include "detect/keywords/cipservice.h"
-#include "detect-engine-enip.h"
+#include "detect/engine/enip.h"
 
 /*
  * CIP SERVICE CODE

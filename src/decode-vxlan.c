@@ -28,7 +28,7 @@
 #include "decode-vxlan.h"
 #include "decode-events.h"
 
-#include "detect-engine-port.h"
+#include "detect/engine/port.h"
 
 #include "flow.h"
 

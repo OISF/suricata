@@ -26,7 +26,7 @@
 #define __APP_LAYER_PARSER_H__
 
 #include "app-layer-events.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 #include "util-file.h"
 #include "stream-tcp-private.h"
 #include "rust.h"

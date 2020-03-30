@@ -35,7 +35,7 @@
 #define __APP_LAYER_MODBUS_H__
 
 #include "decode.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 #include "queue.h"
 
 /* Modbus Application Data Unit (ADU)

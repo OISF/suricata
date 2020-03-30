@@ -61,7 +61,7 @@
 #include "app-layer.h"
 #include "app-layer-events.h"
 
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 
 #include "util-profiling.h"
 #include "util-validate.h"

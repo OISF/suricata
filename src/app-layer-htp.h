@@ -36,7 +36,7 @@
 #include "util-radix-tree.h"
 #include "util-file.h"
 #include "app-layer-htp-mem.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 #include "util-streaming-buffer.h"
 
 #include <htp/htp.h>

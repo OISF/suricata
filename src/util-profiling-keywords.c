@@ -27,7 +27,7 @@
 #include "suricata-common.h"
 #include "decode.h"
 #include "detect.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "conf.h"
 
 #include "tm-threads.h"

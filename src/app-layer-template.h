@@ -24,7 +24,7 @@
 #ifndef __APP_LAYER_TEMPLATE_H__
 #define __APP_LAYER_TEMPLATE_H__
 
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 
 #include "queue.h"
 

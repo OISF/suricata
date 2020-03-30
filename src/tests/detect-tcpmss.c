@@ -19,7 +19,7 @@
 
 #include "../detect.h"
 #include "../detect-parse.h"
-#include "../detect-engine-prefilter-common.h"
+#include "../detect/engine/prefilter-common.h"
 
 #include "../detect/keywords/tcpmss.h"
 

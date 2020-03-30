@@ -28,7 +28,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter-common.h"
+#include "detect/engine/prefilter-common.h"
 
 #include "flow-var.h"
 
@@ -473,7 +473,7 @@ void SigParseApplyDsizeToContent(Signature *s)
  */
 
 #ifdef UNITTESTS
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 
 /**
  * \test this is a test for a valid dsize value 1

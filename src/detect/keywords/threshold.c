@@ -47,8 +47,8 @@
 #include "stream-tcp.h"
 
 #include "detect/keywords/threshold.h"
-#include "detect-engine-threshold.h"
-#include "detect-engine-address.h"
+#include "detect/engine/threshold.h"
+#include "detect/engine/address.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -278,8 +278,8 @@ static void DetectThresholdFree(void *de_ptr)
  * ONLY TESTS BELOW THIS COMMENT
  */
 #ifdef UNITTESTS
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/mpm.h"
 #include "util-time.h"
 #include "util-hashlist.h"
 

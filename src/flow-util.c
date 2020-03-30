@@ -37,7 +37,7 @@
 #include "flow-storage.h"
 
 #include "detect.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 
 #include "decode-icmpv4.h"
 

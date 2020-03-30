@@ -28,8 +28,8 @@
 #include "conf-yaml-loader.h"
 
 #include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-sigorder.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/sigorder.h"
 
 #include "util-unittest.h"
 #include "util-action.h"

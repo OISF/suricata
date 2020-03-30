@@ -29,7 +29,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "detect/keywords/metadata.h"
 #include "util-hash-string.h"
 #include "util-unittest.h"

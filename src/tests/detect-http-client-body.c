@@ -37,12 +37,12 @@
 #include "../decode.h"
 
 #include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/mpm.h"
 #include "detect-parse.h"
-#include "detect-engine-state.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-engine-prefilter.h"
+#include "detect/engine/state.h"
+#include "detect/engine/content-inspection.h"
+#include "detect/engine/prefilter.h"
 #include "detect/keywords/isdataat.h"
 #include "stream-tcp-reassemble.h"
 

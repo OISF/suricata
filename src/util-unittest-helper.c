@@ -33,8 +33,8 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-sigorder.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/sigorder.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"

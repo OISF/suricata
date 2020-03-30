@@ -30,8 +30,8 @@
 #include "util-unittest.h"
 
 #include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/mpm.h"
 #include "detect/keywords/msg.h"
 
 static int DetectMsgSetup (DetectEngineCtx *, Signature *, const char *);

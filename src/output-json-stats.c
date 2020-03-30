@@ -28,7 +28,7 @@
 #include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 
 #include "threads.h"
 #include "threadvars.h"

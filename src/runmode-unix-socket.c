@@ -29,7 +29,7 @@
 #include "util-affinity.h"
 #include "unix-manager.h"
 
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 
 #include "flow-manager.h"
 #include "flow-timeout.h"

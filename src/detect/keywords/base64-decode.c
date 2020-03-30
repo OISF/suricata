@@ -247,7 +247,7 @@ static void DetectBase64DecodeFree(void *ptr)
 
 
 #ifdef UNITTESTS
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "app-layer-parser.h"

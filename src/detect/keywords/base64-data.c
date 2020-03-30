@@ -17,8 +17,8 @@
 
 #include "suricata-common.h"
 #include "detect.h"
-#include "detect-engine.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/detect-engine.h"
+#include "detect/engine/content-inspection.h"
 #include "detect-parse.h"
 #include "detect/keywords/base64-data.h"
 
@@ -73,7 +73,7 @@ int DetectBase64DataDoMatch(DetectEngineCtx *de_ctx,
 
 #ifdef UNITTESTS
 
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 
 static int g_file_data_buffer_id = 0;
 

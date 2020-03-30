@@ -18,7 +18,7 @@
 #include "suricata-common.h"
 
 #include "detect-parse.h"
-#include "detect-engine.h"
+#include "detect/engine/detect-engine.h"
 #include "detect/keywords/dns-opcode.h"
 #include "rust.h"
 
