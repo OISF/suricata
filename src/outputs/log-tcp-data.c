@@ -38,7 +38,7 @@
 
 #include "output.h"
 #include "outputs/log-tcp-data.h"
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util/privs.h"

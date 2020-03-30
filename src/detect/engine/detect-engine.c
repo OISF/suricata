@@ -33,7 +33,7 @@
 #include "conf-yaml-loader.h"
 
 #include "app-layer-parser.h"
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 
 #include "detect-parse.h"
 #include "detect/engine/sigorder.h"

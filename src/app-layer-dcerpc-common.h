@@ -24,7 +24,7 @@
 #ifndef __APP_LAYER_DCERPC_COMMON_H__
 #define __APP_LAYER_DCERPC_COMMON_H__
 
-#include "app-layer-protos.h"
+#include "app-layer/protos.h"
 #include "app-layer-parser.h"
 #include "flow.h"
 #include "queue.h"

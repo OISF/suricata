@@ -53,7 +53,7 @@
 
 #include "app-layer.h"
 
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 #include "detect/keywords/http-uri.h"
 #include "detect/keywords/uricontent.h"
 #include "stream-tcp.h"

@@ -40,11 +40,11 @@
 #include "stream-tcp-reassemble.h"
 
 #include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "app-layer-htp.h"
+#include "app-layer/protos.h"
+#include "app-layer/htp.h"
 #include "app-layer-dcerpc-common.h"
-#include "app-layer-dcerpc.h"
-#include "app-layer-smtp.h"
+#include "app-layer/dcerpc.h"
+#include "app-layer/smtp.h"
 
 #include "util/unittest.h"
 #include "util/unittest-helper.h"

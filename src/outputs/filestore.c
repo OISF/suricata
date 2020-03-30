@@ -18,9 +18,9 @@
 #include "suricata-common.h"
 
 #include "app-layer-parser.h"
-#include "app-layer-htp.h"
-#include "app-layer-htp-xff.h"
-#include "app-layer-smtp.h"
+#include "app-layer/htp.h"
+#include "app-layer/htp-xff.h"
+#include "app-layer/smtp.h"
 
 #include "feature.h"
 

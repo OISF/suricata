@@ -44,7 +44,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-krb5.h"
+#include "app-layer/krb5.h"
 #include "outputs/json-krb5.h"
 
 #include "rust.h"

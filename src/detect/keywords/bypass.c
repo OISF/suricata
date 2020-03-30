@@ -101,7 +101,7 @@ static int DetectBypassMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 }
 
 #ifdef UNITTESTS
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 
 static int callback_var = 0;
 

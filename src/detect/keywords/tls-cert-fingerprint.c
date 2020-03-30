@@ -49,7 +49,7 @@
 #include "stream-tcp.h"
 
 #include "app-layer.h"
-#include "app-layer-ssl.h"
+#include "app-layer/ssl.h"
 
 #include "util/unittest.h"
 #include "util/unittest-helper.h"

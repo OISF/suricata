@@ -52,7 +52,7 @@
 
 #include "util/debug.h"
 
-#include "app-layer-modbus.h"
+#include "app-layer/modbus.h"
 
 #include "stream-tcp.h"
 

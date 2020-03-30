@@ -37,7 +37,7 @@
 #include "detect/keywords/byte-extract.h"
 #include "detect/keywords/isdataat.h"
 
-#include "app-layer-protos.h"
+#include "app-layer/protos.h"
 
 #include "flow.h"
 #include "flow-var.h"

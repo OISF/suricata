@@ -28,7 +28,7 @@
 
 #include "flow-var.h"
 
-#include "app-layer-protos.h"
+#include "app-layer/protos.h"
 
 #include "detect.h"
 #include "detect-parse.h"

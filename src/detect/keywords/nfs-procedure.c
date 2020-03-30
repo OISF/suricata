@@ -43,7 +43,7 @@
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
 
-#include "app-layer-nfs-tcp.h"
+#include "app-layer/nfs-tcp.h"
 #include "rust.h"
 
 /**

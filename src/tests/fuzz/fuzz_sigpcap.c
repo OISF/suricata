@@ -20,7 +20,7 @@
 #include "detect/engine/threshold.h"
 #include "host-bit.h"
 #include "ippair-bit.h"
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 #include "util/decode-asn1.h"
 #include "detect/keywords/fast-pattern.h"
 #include "util/unittest-helper.h"

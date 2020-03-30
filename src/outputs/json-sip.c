@@ -44,7 +44,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-sip.h"
+#include "app-layer/sip.h"
 #include "outputs/json-sip.h"
 
 #include "rust.h"

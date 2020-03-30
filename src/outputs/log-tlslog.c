@@ -43,7 +43,7 @@
 
 #include "output.h"
 #include "outputs/log-tlslog.h"
-#include "app-layer-ssl.h"
+#include "app-layer/ssl.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util/privs.h"

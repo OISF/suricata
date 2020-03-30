@@ -48,7 +48,7 @@
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-rfb.h"
+#include "app-layer/rfb.h"
 #include "rust-bindings.h"
 
 #define KEYWORD_NAME "rfb.name"

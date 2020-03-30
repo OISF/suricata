@@ -29,7 +29,7 @@
 
 #include "detect/keywords/krb5-msgtype.h"
 
-#include "app-layer-krb5.h"
+#include "app-layer/krb5.h"
 #include "rust.h"
 
 /**

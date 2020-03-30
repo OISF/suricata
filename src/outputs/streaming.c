@@ -29,7 +29,7 @@
 #include "outputs/streaming.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 #include "util/print.h"
 #include "conf.h"
 #include "util/profiling.h"

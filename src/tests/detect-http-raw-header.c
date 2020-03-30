@@ -42,8 +42,8 @@
 
 #include "../stream-tcp.h"
 #include "../app-layer.h"
-#include "../app-layer-htp.h"
-#include "../app-layer-protos.h"
+#include "../app-layer/htp.h"
+#include "../app-layer/protos.h"
 #include "../app-layer-parser.h"
 
 #include "../util/unittest.h"

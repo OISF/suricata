@@ -51,7 +51,7 @@
 #include "detect/engine/mpm.h"
 
 #include "app-layer-parser.h"
-#include "app-layer-htp.h"
+#include "app-layer/htp.h"
 
 #include "util/profiling.h"
 

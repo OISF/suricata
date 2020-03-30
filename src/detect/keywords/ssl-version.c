@@ -49,7 +49,7 @@
 #include "detect/keywords/ssl-version.h"
 
 #include "stream-tcp.h"
-#include "app-layer-ssl.h"
+#include "app-layer/ssl.h"
 
 /**
  * \brief Regex for parsing "id" option, matching number or "number"

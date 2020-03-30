@@ -35,7 +35,7 @@
 #include "suricata-common.h"
 
 #include "app-layer.h"
-#include "app-layer-modbus.h"
+#include "app-layer/modbus.h"
 
 #include "detect.h"
 #include "detect/keywords/modbus.h"

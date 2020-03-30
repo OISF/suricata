@@ -45,7 +45,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-tftp.h"
+#include "app-layer/tftp.h"
 #include "outputs/json-tftp.h"
 
 #include "rust.h"
