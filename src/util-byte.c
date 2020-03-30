@@ -360,6 +360,107 @@ int StringParseUint8(uint8_t *res, int base, uint16_t len, const char *str)
 
     return ret;
 }
+
+int StringParseUint64wValidation(uint64_t *res, int base, uint16_t len, const char *str,
+                                 uint64_t min, uint64_t max)
+{
+    int ret;
+
+    ret = ByteExtractString(res, base, len, str, true);
+    if (ret <= 0) {
+        return ret;
+    }
+
+    if ((uint64_t)ret < min || (uint64_t)ret > max) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIu64 ", %" PRIu64 ")", min, max);
+        return -1;
+    }
+
+    return ret;
+}
+
+int StringParseUint32wValidation(uint32_t *res, int base, uint16_t len, const char *str,
+                                 uint32_t min, uint32_t max)
+{
+    uint64_t i64;
+
+    int ret = ByteExtractString(&i64, base, len, str, true);
+    if (ret <= 0) {
+        return ret;
+    }
+
+    if ((uint32_t)ret < min || (uint32_t)ret > max) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIu32 ", %" PRIu32 ")", min, max);
+        return -1;
+    }
+
+    *res = (uint32_t)i64;
+
+    if ((uint64_t)(*res) != i64) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)UINT_MAX);
+        return -1;
+    }
+
+    return ret;
+}
+
+int StringParseUint16wValidation(uint16_t *res, int base, uint16_t len, const char *str,
+                                 uint16_t min, uint16_t max)
+{
+    uint64_t i64;
+
+    int ret = ByteExtractString(&i64, base, len, str, true);
+    if (ret <= 0) {
+        return ret;
+    }
+
+    if ((uint16_t)ret < min || (uint16_t)ret > max) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIu16 ", %" PRIu16 ")", min, max);
+        return -1;
+    }
+
+    *res = (uint16_t)i64;
+
+    if ((uint64_t)(*res) != i64) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)USHRT_MAX);
+        return -1;
+    }
+
+    return ret;
+}
+
+int StringParseUint8wValidation(uint8_t *res, int base, uint16_t len, const char *str,
+                                uint8_t min, uint8_t max)
+{
+    uint64_t i64;
+
+    int ret = ByteExtractString(&i64, base, len, str, true);
+    if (ret <= 0) {
+        return ret;
+    }
+
+    if ((uint8_t)ret < min || (uint8_t)ret > max) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIu8 ", %" PRIu8 ")", min, max);
+        return -1;
+    }
+
+    *res = (uint8_t)i64;
+
+    if ((uint64_t)(*res) != i64) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)UCHAR_MAX);
+        return -1;
+    }
+
+    return ret;
+}
+
 int ByteExtractStringSigned(int64_t *res, int base, uint16_t len, const char *str, bool strict)
 {
     const char *ptr = str;
@@ -541,6 +642,110 @@ int StringParseInt8(int8_t *res, int base, uint16_t len, const char *str)
 
     return ret;
 }
+
+int StringParseInt64wValidation(int64_t *res, int base, uint16_t len, const char *str,
+                                int64_t min, int64_t max)
+{
+    int ret;
+
+    ret = ByteExtractStringSigned(res, base, len, str, true);
+    if (ret <= 0) {
+        return ret;
+    }
+
+    if ((int64_t)ret < min || (int64_t)ret > max) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIi64 ", %" PRIi64 ")", min, max);
+        return -1;
+    }
+
+    return ret;
+}
+
+int StringParseInt32wValidation(int32_t *res, int base, uint16_t len, const char *str,
+                                int32_t min, int32_t max)
+{
+    int64_t i64;
+    int ret;
+
+    ret = ByteExtractStringSigned(&i64, base, len, str, true);
+    if (ret <= 0) {
+        return ret;
+    }
+
+    if ((int32_t)ret < min || (int32_t)ret > max) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIi32 ", %" PRIi32 ")", min, max);
+        return -1;
+    }
+
+    *res = (int32_t)i64;
+
+    if ((int64_t)(*res) != i64) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                   "(%" PRIi64 " > %" PRIiMAX ")\n", i64, (intmax_t)INT_MAX);
+        return -1;
+    }
+
+    return ret;
+}
+
+int StringParseInt16wValidation(int16_t *res, int base, uint16_t len, const char *str,
+                                int16_t min, int16_t max)
+{
+    int64_t i64;
+    int ret;
+
+    ret = ByteExtractStringSigned(&i64, base, len, str, true);
+    if (ret <= 0) {
+        return ret;
+    }
+
+    if ((int16_t)ret < min || (int16_t)ret > max) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIi16 ", %" PRIi16 ")", min, max);
+        return -1;
+    }
+
+    *res = (int16_t)i64;
+
+    if ((int64_t)(*res) != i64) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                   "(%" PRIi64 " > %" PRIiMAX ")\n", i64, (intmax_t)SHRT_MAX);
+        return -1;
+    }
+
+    return ret;
+}
+
+int StringParseInt8wValidation(int8_t *res, int base, uint16_t len, const char *str,
+                               int8_t min, int8_t max)
+{
+    int64_t i64;
+    int ret;
+
+    ret = ByteExtractStringSigned(&i64, base, len, str, true);
+    if (ret <= 0) {
+        return ret;
+    }
+
+    if ((int8_t)ret < min || (int8_t)ret > max) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                "(%" PRIi8 ", %" PRIi8 ")", min, max);
+        return -1;
+    }
+
+    *res = (int8_t)i64;
+
+    if ((int64_t)(*res) != i64) {
+        SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
+                   "(%" PRIi64 " > %" PRIiMAX ")\n", i64, (intmax_t)CHAR_MAX);
+        return -1;
+    }
+
+    return ret;
+}
+
 /* UNITTESTS */
 #ifdef UNITTESTS
 
