@@ -66,7 +66,7 @@
 #include "defrag-timeout.h"
 #include "ippair-timeout.h"
 
-#include "output-flow.h"
+#include "outputs/flow.h"
 
 /* Run mode selected at suricata.c */
 extern int run_mode;

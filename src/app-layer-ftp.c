@@ -59,7 +59,7 @@
 #include "util-mem.h"
 #include "util/misc.h"
 
-#include "output-json.h"
+#include "outputs/json.h"
 #include "rust.h"
 
 typedef struct FTPThreadCtx_ {

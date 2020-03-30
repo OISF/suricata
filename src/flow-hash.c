@@ -45,7 +45,7 @@
 
 #include "conf.h"
 #include "output.h"
-#include "output-flow.h"
+#include "outputs/flow.h"
 
 #define FLOW_DEFAULT_FLOW_PRUNE 5
 

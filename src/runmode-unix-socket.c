@@ -21,7 +21,7 @@
 #include "runmodes.h"
 #include "runmode-pcap-file.h"
 #include "output.h"
-#include "output-json.h"
+#include "outputs/json.h"
 
 #include "util/debug.h"
 #include "util/time.h"

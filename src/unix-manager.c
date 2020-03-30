@@ -29,7 +29,7 @@
 #include "runmodes.h"
 #include "conf.h"
 
-#include "output-json-stats.h"
+#include "outputs/json-stats.h"
 
 #include "util/privs.h"
 #include "util/debug.h"
@@ -44,7 +44,7 @@
 #include <sys/types.h>
 
 #include "output.h"
-#include "output-json.h"
+#include "outputs/json.h"
 
 // MSG_NOSIGNAL does not exists on OS X
 #ifdef OS_DARWIN
