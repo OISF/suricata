@@ -20,7 +20,7 @@ Syntax:
 ::
 
   threshold gen_id <gid>, sig_id <sid>, type <threshold|limit|both>, \
-    track <by_src|by_dst>, count <N>, seconds <T>
+    track <by_src|by_dst|by_rule|by_both>, count <N>, seconds <T>
 
 rate_filter
 ~~~~~~~~~~~
