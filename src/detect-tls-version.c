@@ -164,12 +164,11 @@ static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
     }
 
     if (ret > 1) {
-        const char *str_ptr;
-        char *orig;
+        char ver_ptr[64];
         char *tmp_str;
-        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+        res = pcre_copy_substring((char *)str, ov, MAX_SUBSTRINGS, 1, ver_ptr, sizeof(ver_ptr));
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
 
@@ -178,11 +177,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
         if (unlikely(tls == NULL))
             goto error;
 
-        orig = SCStrdup((char*)str_ptr);
-        if (unlikely(orig == NULL)) {
-            goto error;
-        }
-        tmp_str=orig;
+        tmp_str = ver_ptr;
 
         /* Let's see if we need to scape "'s */
         if (tmp_str[0] == '"')
@@ -204,13 +199,10 @@ static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
             tls->flags |= DETECT_TLS_VERSION_FLAG_RAW;
         } else {
             SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
-            SCFree(orig);
             goto error;
         }
 
         tls->ver = temp;
-
-        SCFree(orig);
 
         SCLogDebug("will look for tls %"PRIu16"", tls->ver);
     }
