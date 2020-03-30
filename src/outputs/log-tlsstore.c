@@ -42,8 +42,8 @@
 #include "util/debug.h"
 
 #include "output.h"
-#include "log-tlslog.h"
-#include "log-tlsstore.h"
+#include "outputs/log-tlslog.h"
+#include "outputs/log-tlsstore.h"
 #include "app-layer-ssl.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"

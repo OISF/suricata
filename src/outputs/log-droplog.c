@@ -28,7 +28,7 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
-#include "flow.h"
+#include "../flow.h"
 #include "conf.h"
 
 #include "threads.h"
@@ -43,7 +43,7 @@
 #include "detect/keywords/reference.h"
 
 #include "output.h"
-#include "log-droplog.h"
+#include "outputs/log-droplog.h"
 
 #include "util/unittest.h"
 #include "util/unittest-helper.h"

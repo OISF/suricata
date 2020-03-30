@@ -40,7 +40,7 @@
 
 #include "debug.h"
 #include "detect.h"
-#include "flow.h"
+#include "../flow.h"
 #include "conf.h"
 
 #include "threads.h"
@@ -48,7 +48,7 @@
 #include "tm-threads.h"
 
 #include "util/unittest.h"
-#include "log-pcap.h"
+#include "outputs/log-pcap.h"
 #include "decode-ipv4.h"
 
 #include "util/error.h"

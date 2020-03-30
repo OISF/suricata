@@ -25,7 +25,7 @@
  * Common custom logging format
  */
 
-#include "log-cf-common.h"
+#include "outputs/log-cf-common.h"
 #include "util/print.h"
 #include "util/unittest.h"
 

@@ -42,7 +42,7 @@
 #include "util/debug.h"
 
 #include "output.h"
-#include "log-tlslog.h"
+#include "outputs/log-tlslog.h"
 #include "app-layer-ssl.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -52,7 +52,7 @@
 #include "util/logopenfile.h"
 #include "util/crypt.h"
 #include "util/time.h"
-#include "log-cf-common.h"
+#include "outputs/log-cf-common.h"
 
 #define DEFAULT_LOG_FILENAME "tls.log"
 
