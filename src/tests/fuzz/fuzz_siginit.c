@@ -29,6 +29,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         SCReferenceConfInit();
         SCClassConfInit();
         de_ctx = DetectEngineCtxInit();
+        BUG_ON(de_ctx == NULL);
+        de_ctx->flags |= DE_QUIET;
+        de_ctx->rule_file = (char *)"fuzzer";
     }
 
     char * buffer = malloc(size+1);
