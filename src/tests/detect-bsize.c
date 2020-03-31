@@ -40,6 +40,8 @@ static int DetectBsizeTest01(void)
     TEST_FAIL("AA");
     TEST_FAIL("5A");
     TEST_FAIL("A5");
+    TEST_FAIL("10000000001");
+    TEST_OK("  1000000001  ", DETECT_BSIZE_EQ, 1000000001, 0);
     PASS;
 }
 
