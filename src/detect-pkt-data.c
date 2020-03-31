@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2012-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -52,9 +52,7 @@ static void DetectPktDataTestRegister(void);
 void DetectPktDataRegister(void)
 {
     sigmatch_table[DETECT_PKT_DATA].name = "pkt_data";
-    sigmatch_table[DETECT_PKT_DATA].Match = NULL;
     sigmatch_table[DETECT_PKT_DATA].Setup = DetectPktDataSetup;
-    sigmatch_table[DETECT_PKT_DATA].Free  = NULL;
     sigmatch_table[DETECT_PKT_DATA].RegisterTests = DetectPktDataTestRegister;
     sigmatch_table[DETECT_PKT_DATA].flags = SIGMATCH_NOOPT;
 }
@@ -64,18 +62,17 @@ void DetectPktDataRegister(void)
  * \brief into the current signature
  *
  * \param de_ctx pointer to the Detection Engine Context
- * \param s pointer to the Current Signature
- * \param str pointer to the user provided "filestore" option
+ * \param s pointer to the current signature
+ * \param unused unused for keyword with SIGMATCH_NOOPT set
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, const char *unused)
 {
     SCEnter();
     s->init_data->list = DETECT_SM_LIST_NOTSET;
-
-    return 0;
+    SCReturnInt(0);
 }
 
 #ifdef UNITTESTS
@@ -85,61 +82,29 @@ static int g_file_data_buffer_id = 0;
 
 static int DetectPktDataTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-    SigMatch *sm = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *sig = SigInit(de_ctx, "alert tcp any any -> any any "
+    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                                "(file_data; content:\"in file data\";"
-                               " pkt_data; content:\"in pkt data\";)");
-    de_ctx->sig_list = sig;
-    if (de_ctx->sig_list == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,"could not load test signature");
-        goto end;
-    }
+                               " pkt_data; content:\"in pkt data\"; sid:1;)");
+    FAIL_IF_NULL(sig);
 
-    /* sm should be in the MATCH list */
-    sm = de_ctx->sig_list->sm_lists[g_file_data_buffer_id];
-    if (sm == NULL) {
-        printf("sm not in g_file_data_buffer_id: ");
-        goto end;
-    }
+    SigMatch *sm = de_ctx->sig_list->sm_lists[g_file_data_buffer_id];
+    FAIL_IF_NULL(sm);
 
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
-    if (sm == NULL) {
-        printf("sm not in DETECT_SM_LIST_PMATCH: ");
-        goto end;
-    }
+    FAIL_IF_NULL(sm);
 
-    if (sm->type != DETECT_CONTENT) {
-        printf("sm type not DETECT_AL_HTTP_SERVER_BODY: ");
-        goto end;
-    }
+    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
+    FAIL_IF_NOT_NULL(sm->next);
 
-    if (sm->next != NULL) {
-        goto end;
-    }
-
-
-    if (sig->init_data->list != DETECT_SM_LIST_NOTSET) {
-        printf("sticky buffer set: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    FAIL_IF_NOT(sig->init_data->list == DETECT_SM_LIST_NOTSET);
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
+
 #endif
 
 static void DetectPktDataTestRegister(void)
