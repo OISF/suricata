@@ -986,13 +986,21 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
 {
     BUG_ON(s->init_data == NULL);
 
-    if (s->init_data->list && s->init_data->transform_cnt) {
+    if (s->init_data->transform_cnt) {
+        if (s->init_data->list == DETECT_SM_LIST_NOTSET ||
+            s->init_data->list < DETECT_SM_LIST_DYNAMIC_START) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "previous transforms not consumed "
+                    "(list: %u, transform_cnt %u)", s->init_data->list,
+                    s->init_data->transform_cnt);
+            SCReturnInt(-1);
+        }
+
         SCLogDebug("buffer %d has transform(s) registered: %d",
                 s->init_data->list, s->init_data->transforms[0]);
         int new_list = DetectBufferTypeGetByIdTransforms(de_ctx, s->init_data->list,
                 s->init_data->transforms, s->init_data->transform_cnt);
         if (new_list == -1) {
-            return -1;
+            SCReturnInt(-1);
         }
         SCLogDebug("new_list %d", new_list);
         s->init_data->list = new_list;
@@ -1001,7 +1009,7 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
         s->init_data->transform_cnt = 0;
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 void InspectionBufferClean(DetectEngineThreadCtx *det_ctx)
