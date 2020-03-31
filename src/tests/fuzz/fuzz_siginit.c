@@ -41,6 +41,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         buffer[size] = 0;
         Signature *s = SigInit(de_ctx, buffer);
         free(buffer);
+        if (s && s->next) {
+            SigFree(s->next);
+            s->next = NULL;
+        }
         SigFree(s);
     }
 
