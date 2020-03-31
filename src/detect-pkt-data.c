@@ -71,6 +71,11 @@ void DetectPktDataRegister(void)
 static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, const char *unused)
 {
     SCEnter();
+    if (s->init_data->transform_cnt) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                "previous transforms not consumed before 'pkt_data'");
+        SCReturnInt(-1);
+    }
     s->init_data->list = DETECT_SM_LIST_NOTSET;
     SCReturnInt(0);
 }
@@ -105,6 +110,19 @@ static int DetectPktDataTest01(void)
     PASS;
 }
 
+static int DetectPktDataTest02(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                               "(file_data; compress_whitespace; "
+                               " pkt_data; content:\"in pkt data\"; sid:1;)");
+    FAIL_IF_NOT_NULL(sig);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
 #endif
 
 static void DetectPktDataTestRegister(void)
@@ -113,6 +131,7 @@ static void DetectPktDataTestRegister(void)
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 
     UtRegisterTest("DetectPktDataTest01", DetectPktDataTest01);
+    UtRegisterTest("DetectPktDataTest02", DetectPktDataTest02);
 #endif
 }
 
