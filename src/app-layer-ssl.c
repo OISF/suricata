@@ -2459,84 +2459,69 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
 
         /* ssl_state->bytes_processed is zero for a fresh record or
            positive to indicate a record currently being parsed */
+
         if (ssl_state->curr_connp->bytes_processed == 0) {
-            /* fresh record */
-            /* only SSLv2, has one of the top 2 bits set */
             if ((input[0] & 0x80) || (input[0] & 0x40)) {
-                SCLogDebug("SSLv2 detected");
+                /* only SSLv2, has one of the top 2 bits set */
                 ssl_state->curr_connp->version = SSL_VERSION_2;
-                int retval = SSLv2Decode(direction, ssl_state, pstate, input,
-                        input_len);
-                if (retval < 0) {
-                    SCLogDebug("Error parsing SSLv2.x. Reseting parser "
-                            "state. Let's get outta here");
-                    SSLParserReset(ssl_state);
-                    SSLSetEvent(ssl_state,
-                            TLS_DECODER_EVENT_INVALID_SSL_RECORD);
-                    return APP_LAYER_ERROR;
-                }
-                input_len -= retval;
-                input += retval;
+                SCLogDebug("SSLv2 detected");
+            } else if (ssl_state->curr_connp->version == SSL_VERSION_2) {
+                ssl_state->curr_connp->version = TLS_VERSION_UNKNOWN;
+                SCLogDebug("SSL/TLS version reset");
+            }
+        }
+        SCLogDebug("record %u: bytes_processed %u, version %02X", counter,
+                ssl_state->curr_connp->bytes_processed, ssl_state->curr_connp->version);
 
+        if (ssl_state->curr_connp->version == SSL_VERSION_2) {
+            if (ssl_state->curr_connp->bytes_processed == 0) {
+                SCLogDebug("New SSLv2 record parsing");
             } else {
-                SCLogDebug("SSLv3.x detected");
-                int retval = SSLv3Decode(direction, ssl_state, pstate, input,
-                        input_len);
-                if (retval < 0) {
-                    SCLogDebug("Error parsing SSLv3.x. Reseting parser "
-                            "state. Let's get outta here");
-                    SSLParserReset(ssl_state);
-                    SSLSetEvent(ssl_state,
-                            TLS_DECODER_EVENT_INVALID_SSL_RECORD);
-                    return APP_LAYER_ERROR;
-                }
+                SCLogDebug("Continuing parsing SSLv2 record");
+            }
+            int retval = SSLv2Decode(direction, ssl_state, pstate, input,
+                    input_len);
+            if (retval < 0) {
+                SCLogDebug("Error parsing SSLv2. Reseting parser "
+                        "state. Let's get outta here");
+                SSLParserReset(ssl_state);
+                SSLSetEvent(ssl_state,
+                        TLS_DECODER_EVENT_INVALID_SSL_RECORD);
+                return APP_LAYER_OK;
+            } else if (retval > input_len) {
+                SCLogDebug("Error parsing SSLv2. Reseting parser "
+                        "state.  Let's get outta here");
+                SSLParserReset(ssl_state);
+            } else {
                 input_len -= retval;
                 input += retval;
-
-                if (ssl_state->curr_connp->bytes_processed == SSLV3_RECORD_HDR_LEN
-                        && ssl_state->curr_connp->record_length == 0) {
-                    /* empty record */
-                    SSLParserReset(ssl_state);
-                }
+                SCLogDebug("SSLv2 decoder consumed %d bytes: %u left", retval, input_len);
             }
         } else {
-            /* we would have established by now if we are dealing with
-             * SSLv2 or above */
-            if (ssl_state->curr_connp->version == SSL_VERSION_2) {
-                SCLogDebug("Continuing parsing SSLv2 record from where we "
-                        "previously left off");
-                int retval = SSLv2Decode(direction, ssl_state, pstate, input,
-                        input_len);
-                if (retval < 0) {
-                    SCLogDebug("Error parsing SSLv2.x.  Reseting parser "
-                            "state.  Let's get outta here");
-                    SSLParserReset(ssl_state);
-                    return APP_LAYER_OK;
-                }
-                input_len -= retval;
-                input += retval;
-
+            if (ssl_state->curr_connp->bytes_processed == 0) {
+                SCLogDebug("New TLS record");
             } else {
-                SCLogDebug("Continuing parsing SSLv3.x record from where we "
-                        "previously left off");
-                int retval = SSLv3Decode(direction, ssl_state, pstate, input,
-                        input_len);
-                if (retval < 0) {
-                    SCLogDebug("Error parsing SSLv3.x.  Reseting parser "
-                            "state.  Let's get outta here");
-                    SSLParserReset(ssl_state);
-                    return APP_LAYER_OK;
-                }
-                if (retval > input_len) {
-                    SCLogDebug("Error parsing SSLv3.x.  Reseting parser "
-                            "state.  Let's get outta here");
-                    SSLParserReset(ssl_state);
-                }
+                SCLogDebug("Continuing parsing TLS record");
+            }
+            int retval = SSLv3Decode(direction, ssl_state, pstate, input,
+                    input_len);
+            if (retval < 0) {
+                SCLogDebug("Error parsing TLS. Reseting parser "
+                        "state.  Let's get outta here");
+                SSLParserReset(ssl_state);
+                return APP_LAYER_ERROR;
+            } else if (retval > input_len) {
+                SCLogDebug("Error parsing TLS. Reseting parser "
+                        "state.  Let's get outta here");
+                SSLParserReset(ssl_state);
+            } else {
                 input_len -= retval;
                 input += retval;
+                SCLogDebug("TLS decoder consumed %d bytes: %u left", retval, input_len);
 
                 if (ssl_state->curr_connp->bytes_processed == SSLV3_RECORD_HDR_LEN
                         && ssl_state->curr_connp->record_length == 0) {
+                    SCLogDebug("TLS empty record");
                     /* empty record */
                     SSLParserReset(ssl_state);
                 }
