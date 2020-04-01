@@ -1060,7 +1060,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     DNSTransaction *tx = txptr;
     DNSQueryEntry *query = NULL;
     TAILQ_FOREACH(query, &tx->query_list, next) {
-        js = CreateJSONHeader(p, LOG_DIR_PACKET, "dns");
+        js = CreateJSONHeader(p, LOG_DIR_FLOW, "dns");
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
 
