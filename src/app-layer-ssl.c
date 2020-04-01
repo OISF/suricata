@@ -196,10 +196,11 @@ static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
     return -1;
 }
 
-static void SSLParserReset(SSLState *ssl_state)
-{
-    ssl_state->curr_connp->bytes_processed = 0;
-}
+#define SSLParserReset(state)                       \
+    do {                                            \
+        SCLogDebug("resetting state");              \
+        (state)->curr_connp->bytes_processed = 0;   \
+    } while(0)
 
 void SSLSetEvent(SSLState *ssl_state, uint8_t event)
 {
@@ -2225,6 +2226,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
     if (ssl_state->curr_connp->bytes_processed < SSLV3_RECORD_HDR_LEN) {
         int retval = SSLv3ParseRecord(direction, ssl_state, input, input_len);
         if (retval < 0) {
+            SCLogDebug("SSLv3ParseRecord returned %d", retval);
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_TLS_HEADER);
             return -1;
         }
@@ -2308,6 +2310,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             if (ssl_state->curr_connp->record_length < 4) {
                 SSLParserReset(ssl_state);
                 SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
+                SCLogDebug("record len < 4 => %u", ssl_state->curr_connp->record_length);
                 return -1;
             }
 
@@ -2318,6 +2321,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                         TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
                 SSLSetEvent(ssl_state,
                         TLS_DECODER_EVENT_INVALID_SSL_RECORD);
+                SCLogDebug("SSLv3ParseHandshakeProtocol returned %d", retval);
                 return -1;
             } else {
                 if ((uint32_t)retval > input_len) {
@@ -2336,6 +2340,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                 if (ssl_state->curr_connp->bytes_processed ==
                         ssl_state->curr_connp->record_length +
                         SSLV3_RECORD_HDR_LEN) {
+                    SCLogDebug("record ready");
                     SSLParserReset(ssl_state);
                 }
 
@@ -2350,15 +2355,17 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
         case SSLV3_HEARTBEAT_PROTOCOL: {
             int retval = SSLv3ParseHeartbeatProtocol(ssl_state, input + parsed,
                                                  input_len, direction);
-            if (retval < 0)
+            if (retval < 0) {
+                SCLogDebug("SSLv3ParseHeartbeatProtocol returned %d", retval);
                 return -1;
-
+            }
             break;
         }
         default:
             /* \todo fix the event from invalid rule to unknown rule */
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_TYPE);
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
+            SCLogDebug("unsupported record type");
             return -1;
     }
 
@@ -2367,6 +2374,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                 ssl_state->curr_connp->bytes_processed) {
             /* defensive checks. Something is wrong. */
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
+            SCLogDebug("defensive checks. Something is wrong.");
             return -1;
         }
 
@@ -2539,12 +2547,16 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
 
     /* mark handshake as done if we have subject and issuer */
     if (ssl_state->server_connp.cert0_subject &&
-            ssl_state->server_connp.cert0_issuerdn)
+            ssl_state->server_connp.cert0_issuerdn) {
+        SCLogDebug("SSL_AL_FLAG_HANDSHAKE_DONE");
         ssl_state->flags |= SSL_AL_FLAG_HANDSHAKE_DONE;
+    }
 
     /* flag session as finished if APP_LAYER_PARSER_EOF is set */
-    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF))
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCLogDebug("SSL_AL_FLAG_STATE_FINISHED");
         ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
+    }
 
     return APP_LAYER_OK;
 }
