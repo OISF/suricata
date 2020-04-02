@@ -5,3 +5,6 @@ lib/
 scripts-*/
 suricata/config/defaults.py
 !suricata/config/defaults.py.in
+MANIFEST
+VERSION
+dist
