@@ -87,7 +87,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Setup = DetectHTTP2frametypeSetup;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Free = DetectHTTP2frametypeFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_HTTP2_FRAMETYPE].RegisterTests = DetectHTTP2RegisterTests;
+    sigmatch_table[DETECT_HTTP2_FRAMETYPE].RegisterTests = DetectHTTP2frameTypeRegisterTests;
 #endif
 
     sigmatch_table[DETECT_HTTP2_ERRORCODE].name = "http2.errorcode";
@@ -98,8 +98,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Setup = DetectHTTP2errorcodeSetup;
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Free = DetectHTTP2errorcodeFree;
 #ifdef UNITTESTS
-    //TODO should we call multiple times DetectHTTP2RegisterTests ?
-    sigmatch_table[DETECT_HTTP2_ERRORCODE].RegisterTests = DetectHTTP2RegisterTests;
+    sigmatch_table[DETECT_HTTP2_ERRORCODE].RegisterTests = DetectHTTP2errorCodeRegisterTests;
 #endif
 
     sigmatch_table[DETECT_HTTP2_PRIORITY].name = "http2.priority";
@@ -110,7 +109,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_PRIORITY].Setup = DetectHTTP2prioritySetup;
     sigmatch_table[DETECT_HTTP2_PRIORITY].Free = DetectHTTP2priorityFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_HTTP2_PRIORITY].RegisterTests = DetectHTTP2RegisterTests;
+    sigmatch_table[DETECT_HTTP2_PRIORITY].RegisterTests = DetectHTTP2priorityRegisterTests;
 #endif
 
     sigmatch_table[DETECT_HTTP2_WINDOW].name = "http2.window";
@@ -121,7 +120,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_WINDOW].Setup = DetectHTTP2windowSetup;
     sigmatch_table[DETECT_HTTP2_WINDOW].Free = DetectHTTP2windowFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_HTTP2_WINDOW].RegisterTests = DetectHTTP2RegisterTests;
+    sigmatch_table[DETECT_HTTP2_WINDOW].RegisterTests = DetectHTTP2windowRegisterTests;
 #endif
 
     DetectAppLayerInspectEngineRegister("http2",

@@ -261,7 +261,6 @@ impl HTTP2State {
                             }
                         }
                         //ignore ping case with opaque u64
-                        //TODO parse deeper based on other frame type
                         _ => {}
                     }
                     self.transactions.push(tx);
@@ -283,9 +282,7 @@ impl HTTP2State {
                             HTTP2_FRAME_HEADER_LEN as u32,
                         );
                     } else {
-                        //TODO BUG_ON ?
-                        SCLogDebug!("HTTP2 invalid length frame header");
-                        return AppLayerResult::err();
+                        panic!("HTTP2 invalid length frame header");
                     }
                 }
                 Err(_) => {
@@ -319,7 +316,7 @@ impl HTTP2State {
                     tx.ftype = Some(head.ftype);
                     self.transactions.push(tx);
 
-                    //TODO parse deeper based on frame type
+                    //TODO parse frame types as in request once transactions are well handled
                     let hl = head.length as usize;
                     if rem.len() < hl {
                         let rl = rem.len() as u32;
@@ -337,9 +334,7 @@ impl HTTP2State {
                             HTTP2_FRAME_HEADER_LEN as u32,
                         );
                     } else {
-                        //TODO BUG_ON ?
-                        SCLogDebug!("HTTP2 invalid length frame header");
-                        return AppLayerResult::err();
+                        panic!("HTTP2 invalid length frame header");
                     }
                 }
                 Err(_) => {
@@ -381,7 +376,7 @@ export_tx_set_detect_state!(rs_http2_tx_set_detect_state, HTTP2Transaction);
 export_tx_detect_flags_set!(rs_http2_set_tx_detect_flags, HTTP2Transaction);
 export_tx_detect_flags_get!(rs_http2_get_tx_detect_flags, HTTP2Transaction);
 
-//TODO connection upgrade from HTTP1
+//TODO connection upgrade from HTTP1 cf SMTP STARTTLS
 /// C entry point for a probing parser.
 #[no_mangle]
 pub extern "C" fn rs_http2_probing_parser_tc(

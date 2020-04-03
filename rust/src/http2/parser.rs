@@ -43,8 +43,9 @@ impl std::str::FromStr for HTTP2FrameType {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        //TODO let su = s.to_uppercase();
-        match s {
+        let su = s.to_uppercase();
+        let su_slice: &str = &*su;
+        match su_slice {
             "DATA" => Ok(HTTP2FrameType::DATA),
             "HEADERS" => Ok(HTTP2FrameType::HEADERS),
             "PRIORITY" => Ok(HTTP2FrameType::PRIORITY),
@@ -113,8 +114,9 @@ impl std::str::FromStr for HTTP2ErrorCode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        //TODO let su = s.to_uppercase();
-        match s {
+        let su = s.to_uppercase();
+        let su_slice: &str = &*su;
+        match su_slice {
             "NO_ERROR" => Ok(HTTP2ErrorCode::NOERROR),
             "PROTOCOL_ERROR" => Ok(HTTP2ErrorCode::PROTOCOLERROR),
             "FLOW_CONTROL_ERROR" => Ok(HTTP2ErrorCode::FLOWCONTROLERROR),
