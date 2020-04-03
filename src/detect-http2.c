@@ -58,6 +58,12 @@ static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectHTTP2windowSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectHTTP2windowFree (void *);
 
+static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
+                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                                     const SigMatchCtx *ctx);
+static int DetectHTTP2settingsSetup (DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2settingsFree (void *);
+
 #ifdef UNITTESTS
 void DetectHTTP2RegisterTests (void);
 #endif
@@ -121,6 +127,17 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_WINDOW].Free = DetectHTTP2windowFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_WINDOW].RegisterTests = DetectHTTP2windowRegisterTests;
+#endif
+
+    sigmatch_table[DETECT_HTTP2_SETTINGS].name = "http2.settings";
+    sigmatch_table[DETECT_HTTP2_SETTINGS].desc = "match on HTTP2 settings identifier and value fields";
+    sigmatch_table[DETECT_HTTP2_SETTINGS].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#settings";
+    sigmatch_table[DETECT_HTTP2_SETTINGS].Match = NULL;
+    sigmatch_table[DETECT_HTTP2_SETTINGS].AppLayerTxMatch = DetectHTTP2settingsMatch;
+    sigmatch_table[DETECT_HTTP2_SETTINGS].Setup = DetectHTTP2settingsSetup;
+    sigmatch_table[DETECT_HTTP2_SETTINGS].Free = DetectHTTP2settingsFree;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_HTTP2_SETTINGS].RegisterTests = DetectHTTP2settingsRegisterTests;
 #endif
 
     DetectAppLayerInspectEngineRegister("http2",
@@ -244,6 +261,7 @@ static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
         //no value, no match
         return 0;
     }
+    //TODO handle negation rules
     return *detect == (uint32_t) value;
 }
 
@@ -442,6 +460,143 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 void DetectHTTP2windowFree(void *ptr)
 {
     SCFree(ptr);
+}
+
+typedef struct DetectHTTP2settingsSigCtx_ {
+    uint16_t id;   /**identifier*/
+    DetectU32Data *value; /** optional value*/
+} DetectHTTP2settingsSigCtx;
+
+/**
+ * \brief This function is used to match HTTP2 error code rule option on a transaction with those passed via http2.settings:
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
+                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                               const SigMatchCtx *ctx)
+
+{
+    int id = rs_http2_tx_get_settingsid(txv, flags);
+    if (id < 0) {
+        //no settings, no match
+        return 0;
+    }
+
+    const DetectHTTP2settingsSigCtx *setctx = (const DetectHTTP2settingsSigCtx *)ctx;
+    if (setctx->id != id) {
+        return 0;
+    } else if (setctx->value == NULL) {
+        //no value to match
+        return 1;
+    } else {
+        int value = rs_http2_tx_get_settingsvalue(txv, flags);
+        if (value < 0) {
+            return 0;
+        }
+        return DetectU32Match(value, setctx->value);
+    }
+}
+
+static int DetectHTTP2FuncParseSettingsId(const char *str, uint16_t *id)
+{
+    // first parse numeric value
+    if (ByteExtractStringUint16(id, 10, strlen(str), str) >= 0) {
+        return 1;
+    }
+
+    // it it failed so far, parse string value from enumeration
+    int r = rs_http2_parse_settingsid(str);
+    if (r >= 0) {
+        *id = r;
+        return 1;
+    }
+
+    return 0;
+}
+
+#define HTTP2_MAX_SETTINGS_ID_LEN 64
+
+/**
+ * \brief this function is used to attach the parsed http2.settings data into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param str pointer to the user provided http2.settings options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectHTTP2settingsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+        return -1;
+
+    const char * space = strchr(str, ' ');
+
+    DetectHTTP2settingsSigCtx *http2set = SCCalloc(1, sizeof(DetectHTTP2settingsSigCtx));
+    if (http2set == NULL)
+        return -1;
+
+    if (space) {
+        // a space separates identifier and value
+
+        // copy and isolate first part of string
+        char str_first[HTTP2_MAX_SETTINGS_ID_LEN];
+        if (HTTP2_MAX_SETTINGS_ID_LEN <= space - str) {
+            SCFree(http2set);
+            return -1;
+        }
+        strncpy(str_first, str, space - str);
+        //TODO better no copy, and pass a length argument next ?
+
+        if (!DetectHTTP2FuncParseSettingsId(str_first, &http2set->id)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                       "Invalid argument \"%s\" supplied to http2.settings keyword.", str);
+            SCFree(http2set);
+            return -1;
+        }
+
+        http2set->value = DetectU32Parse(str+1);
+        if (http2set->value == NULL) {
+            SCFree(http2set);
+            return -1;
+        }
+    } else {
+        // no space means only id with no value
+        if (!DetectHTTP2FuncParseSettingsId(str, &http2set->id)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                       "Invalid argument \"%s\" supplied to http2.settings keyword.", str);
+            SCFree(http2set);
+            return -1;
+        }
+    }
+
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectHTTP2settingsFree(http2set);
+        return -1;
+    }
+
+    sm->type = DETECT_HTTP2_SETTINGS;
+    sm->ctx = (SigMatchCtx *)http2set;
+
+    SigMatchAppendSMToList(s, sm, g_http2_match_buffer_id);
+
+    return 0;
+}
+
+/**
+ * \brief this function will free memory associated with DetectHTTP2settingsSigCtx
+ *
+ * \param ptr pointer to DetectHTTP2settingsSigCtx
+ */
+void DetectHTTP2settingsFree(void *ptr)
+{
+    DetectHTTP2settingsSigCtx *http2set = (DetectHTTP2settingsSigCtx *) ptr;
+    SCFree(http2set->value);
+    SCFree(http2set);
 }
 
 #ifdef UNITTESTS

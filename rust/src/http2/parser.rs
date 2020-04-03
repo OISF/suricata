@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use nom::number::streaming::{be_u32, be_u8};
+use nom::number::streaming::{be_u16, be_u32, be_u8};
 use std::fmt;
 
 #[repr(u8)]
@@ -187,11 +187,55 @@ named!(pub http2_parse_frame_windowupdate<HTTP2FrameWindowUpdate>,
     )
 );
 
-//TODO HTTP2FrameSettings
-/*pub struct HTTP2FrameSettings {
-id: u16,
-value: u32,
-}*/
+#[repr(u16)]
+#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+pub enum HTTP2SettingsId {
+    SETTINGSHEADERTABLESIZE = 1,
+    SETTINGSENABLEPUSH = 2,
+    SETTINGSMAXCONCURRENTSTREAMS = 3,
+    SETTINGSINITIALWINDOWSIZE = 4,
+    SETTINGSMAXFRAMESIZE = 5,
+    SETTINGSMAXHEADERLISTSIZE = 6,
+}
+
+impl fmt::Display for HTTP2SettingsId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::str::FromStr for HTTP2SettingsId {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let su = s.to_uppercase();
+        let su_slice: &str = &*su;
+        match su_slice {
+            "SETTINGS_HEADER_TABLE_SIZE" => Ok(HTTP2SettingsId::SETTINGSHEADERTABLESIZE),
+            "SETTINGS_ENABLE_PUSH" => Ok(HTTP2SettingsId::SETTINGSENABLEPUSH),
+            "SETTINGS_MAX_CONCURRENT_STREAMS" => Ok(HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS),
+            "SETTINGS_INITIAL_WINDOW_SIZE" => Ok(HTTP2SettingsId::SETTINGSINITIALWINDOWSIZE),
+            "SETTINGS_MAX_FRAME_SIZE" => Ok(HTTP2SettingsId::SETTINGSMAXFRAMESIZE),
+            "SETTINGS_MAX_HEADER_LIST_SIZE" => Ok(HTTP2SettingsId::SETTINGSMAXHEADERLISTSIZE),
+            _ => Err(format!("'{}' is not a valid value for HTTP2SettingsId", s)),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct HTTP2FrameSettings {
+    pub id: HTTP2SettingsId,
+    pub value: u32,
+}
+
+named!(pub http2_parse_frame_settings<HTTP2FrameSettings>,
+    do_parse!(
+        id: map_opt!( be_u16,
+                      num::FromPrimitive::from_u16 ) >>
+        value: be_u32 >>
+        (HTTP2FrameSettings{id, value})
+    )
+);
 
 #[cfg(test)]
 mod tests {

@@ -45,7 +45,7 @@ pub enum HTTP2FrameTypeData {
     PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
     RSTSTREAM(parser::HTTP2FrameRstStream),
-    //TODO    SETTINGS(parser::HTTP2FrameSettings),
+    SETTINGS(parser::HTTP2FrameSettings),
     WINDOWUPDATE(parser::HTTP2FrameWindowUpdate),
 }
 
@@ -201,10 +201,26 @@ impl HTTP2State {
                                 Ok((_, goaway)) => {
                                     tx.type_data = Some(HTTP2FrameTypeData::GOAWAY(goaway));
                                 }
-                                Err(nom::Err::Incomplete(_)) => {
+                                Err(nom::Err::Incomplete(nom::Needed::Size(x))) => {
                                     return AppLayerResult::incomplete(
                                         (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + 4) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + x) as u32,
+                                    );
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
+                                }
+                            }
+                        }
+                        parser::HTTP2FrameType::SETTINGS => {
+                            match parser::http2_parse_frame_settings(rem) {
+                                Ok((_, set)) => {
+                                    tx.type_data = Some(HTTP2FrameTypeData::SETTINGS(set));
+                                }
+                                Err(nom::Err::Incomplete(nom::Needed::Size(x))) => {
+                                    return AppLayerResult::incomplete(
+                                        (il - input.len()) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + x) as u32,
                                     );
                                 }
                                 Err(_) => {
@@ -217,10 +233,10 @@ impl HTTP2State {
                                 Ok((_, rst)) => {
                                     tx.type_data = Some(HTTP2FrameTypeData::RSTSTREAM(rst));
                                 }
-                                Err(nom::Err::Incomplete(_)) => {
+                                Err(nom::Err::Incomplete(nom::Needed::Size(x))) => {
                                     return AppLayerResult::incomplete(
                                         (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + 4) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + x) as u32,
                                     );
                                 }
                                 Err(_) => {
@@ -233,10 +249,10 @@ impl HTTP2State {
                                 Ok((_, priority)) => {
                                     tx.type_data = Some(HTTP2FrameTypeData::PRIORITY(priority));
                                 }
-                                Err(nom::Err::Incomplete(_)) => {
+                                Err(nom::Err::Incomplete(nom::Needed::Size(x))) => {
                                     return AppLayerResult::incomplete(
                                         (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + 1) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + x) as u32,
                                     );
                                 }
                                 Err(_) => {
@@ -249,10 +265,10 @@ impl HTTP2State {
                                 Ok((_, wu)) => {
                                     tx.type_data = Some(HTTP2FrameTypeData::WINDOWUPDATE(wu));
                                 }
-                                Err(nom::Err::Incomplete(_)) => {
+                                Err(nom::Err::Incomplete(nom::Needed::Size(x))) => {
                                     return AppLayerResult::incomplete(
                                         (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + 4) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + x) as u32,
                                     );
                                 }
                                 Err(_) => {
