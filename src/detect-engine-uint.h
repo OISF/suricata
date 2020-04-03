@@ -44,6 +44,17 @@ int DetectU32Match(const uint32_t parg, const DetectU32Data *du32);
 DetectU32Data *DetectU32Parse (const char *u32str);
 void PrefilterPacketU32Set(PrefilterPacketHeaderValue *v, void *smctx);
 bool PrefilterPacketU32Compare(PrefilterPacketHeaderValue v, void *smctx);
-void DetectU32Register(void);
+
+void DetectUintRegister(void);
+
+typedef struct DetectU8Data_ {
+    uint8_t arg1;   /**< first arg value in the signature*/
+    uint8_t arg2;   /**< second arg value in the signature, in case of range
+                          operator*/
+    DetectUintMode mode;    /**< operator used in the signature */
+} DetectU8Data;
+
+int DetectU8Match(const uint8_t parg, const DetectU8Data *du8);
+DetectU8Data *DetectU8Parse (const char *u8str);
 
 #endif /* __DETECT_UTIL_UINT_H */
