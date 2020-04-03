@@ -38,9 +38,15 @@
 static int HTTP2RegisterPatternsForProtocolDetection(void)
 {
     //TODO is this too restrictive and can be evaded ?
+    /* TODO investigate why this makes AppLayerTest09 fail/leak
+     * and not leak if we only give a 5-bytes pattern
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP2,
                                                "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n",
                                                24, 0, STREAM_TOSERVER) < 0)
+     */
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP2,
+                                               "PRI *",
+                                               5, 0, STREAM_TOSERVER) < 0)
     {
         return -1;
     }

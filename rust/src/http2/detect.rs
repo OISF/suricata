@@ -47,7 +47,7 @@ pub extern "C" fn rs_http2_tx_get_frametype(
         _ => {}
     }
 
-    return 0;
+    return -1;
 }
 
 #[no_mangle]
@@ -84,6 +84,9 @@ pub extern "C" fn rs_http2_tx_get_errorcode(
             Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
                 return goaway.errorcode as i32;
             }
+            Some(HTTP2FrameTypeData::RSTSTREAM(rst)) => {
+                return rst.errorcode as i32;
+            }
             _ => {
                 return -1;
             }
@@ -92,6 +95,9 @@ pub extern "C" fn rs_http2_tx_get_errorcode(
             Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
                 return goaway.errorcode as i32;
             }
+            Some(HTTP2FrameTypeData::RSTSTREAM(rst)) => {
+                return rst.errorcode as i32;
+            }
             _ => {
                 return -1;
             }
@@ -99,7 +105,7 @@ pub extern "C" fn rs_http2_tx_get_errorcode(
         _ => {}
     }
 
-    return 0;
+    return -1;
 }
 
 #[no_mangle]
@@ -123,4 +129,143 @@ pub extern "C" fn rs_http2_parse_errorcode(
             return -1;
         }
     }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_get_priority(
+    tx: *mut std::os::raw::c_void,
+    direction: u8,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    match direction {
+        STREAM_TOSERVER => match &tx.type_data {
+            Some(HTTP2FrameTypeData::PRIORITY(prio)) => {
+                return prio.weight as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        STREAM_TOCLIENT => match &tx.type_data {
+            Some(HTTP2FrameTypeData::PRIORITY(prio)) => {
+                return prio.weight as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        _ => {}
+    }
+
+    return -1;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_get_window(
+    tx: *mut std::os::raw::c_void,
+    direction: u8,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    match direction {
+        STREAM_TOSERVER => match &tx.type_data {
+            Some(HTTP2FrameTypeData::WINDOWUPDATE(wu)) => {
+                return wu.sizeinc as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        STREAM_TOCLIENT => match &tx.type_data {
+            Some(HTTP2FrameTypeData::WINDOWUPDATE(wu)) => {
+                return wu.sizeinc as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        _ => {}
+    }
+
+    return -1;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_parse_settingsid(
+    str: *const std::os::raw::c_char,
+) -> std::os::raw::c_int {
+    let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
+    match ft_name.to_str() {
+        Ok(s) => {
+            let p = parser::HTTP2SettingsId::from_str(s);
+            match p {
+                Ok(x) => {
+                    return x as i32;
+                }
+                Err(_) => {
+                    return -1;
+                }
+            }
+        }
+        Err(_) => {
+            return -1;
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_get_settingsid(
+    tx: *mut std::os::raw::c_void,
+    direction: u8,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    match direction {
+        STREAM_TOSERVER => match &tx.type_data {
+            Some(HTTP2FrameTypeData::SETTINGS(set)) => {
+                return set.id as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        STREAM_TOCLIENT => match &tx.type_data {
+            Some(HTTP2FrameTypeData::SETTINGS(set)) => {
+                return set.id as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        _ => {}
+    }
+
+    return -1;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_get_settingsvalue(
+    tx: *mut std::os::raw::c_void,
+    direction: u8,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    match direction {
+        STREAM_TOSERVER => match &tx.type_data {
+            Some(HTTP2FrameTypeData::SETTINGS(set)) => {
+                return set.value as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        STREAM_TOCLIENT => match &tx.type_data {
+            Some(HTTP2FrameTypeData::SETTINGS(set)) => {
+                return set.value as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        _ => {}
+    }
+
+    return -1;
 }

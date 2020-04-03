@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use nom::number::streaming::{be_u32, be_u8};
+use nom::number::streaming::{be_u16, be_u32, be_u8};
 use std::fmt;
 
 #[repr(u8)]
@@ -43,8 +43,9 @@ impl std::str::FromStr for HTTP2FrameType {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        //TODO let su = s.to_uppercase();
-        match s {
+        let su = s.to_uppercase();
+        let su_slice: &str = &*su;
+        match su_slice {
             "DATA" => Ok(HTTP2FrameType::DATA),
             "HEADERS" => Ok(HTTP2FrameType::HEADERS),
             "PRIORITY" => Ok(HTTP2FrameType::PRIORITY),
@@ -113,8 +114,9 @@ impl std::str::FromStr for HTTP2ErrorCode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        //TODO let su = s.to_uppercase();
-        match s {
+        let su = s.to_uppercase();
+        let su_slice: &str = &*su;
+        match su_slice {
             "NO_ERROR" => Ok(HTTP2ErrorCode::NOERROR),
             "PROTOCOL_ERROR" => Ok(HTTP2ErrorCode::PROTOCOLERROR),
             "FLOW_CONTROL_ERROR" => Ok(HTTP2ErrorCode::FLOWCONTROLERROR),
@@ -146,11 +148,94 @@ named!(pub http2_parse_frame_goaway<HTTP2FrameGoAway>,
     )
 );
 
-//TODO HTTP2FrameSettings
-/*pub struct HTTP2FrameSettings {
-id: u16,
-value: u32,
-}*/
+#[derive(Clone, Copy)]
+pub struct HTTP2FrameRstStream {
+    pub errorcode: HTTP2ErrorCode,
+}
+
+named!(pub http2_parse_frame_rststream<HTTP2FrameRstStream>,
+    do_parse!(
+        errorcode: map_opt!( be_u32,
+            num::FromPrimitive::from_u32 ) >>
+        (HTTP2FrameRstStream{errorcode})
+    )
+);
+
+#[derive(Clone, Copy)]
+pub struct HTTP2FramePriority {
+    pub weight: u8,
+}
+
+named!(pub http2_parse_frame_priority<HTTP2FramePriority>,
+    do_parse!(
+        weight: be_u8 >>
+        (HTTP2FramePriority{weight})
+    )
+);
+
+#[derive(Clone, Copy)]
+pub struct HTTP2FrameWindowUpdate {
+    pub reserved: u8,
+    pub sizeinc: u32,
+}
+
+named!(pub http2_parse_frame_windowupdate<HTTP2FrameWindowUpdate>,
+    do_parse!(
+        sizeinc: bits!( tuple!( take_bits!(1u8),
+                                take_bits!(31u32) ) ) >>
+        (HTTP2FrameWindowUpdate{reserved:sizeinc.0, sizeinc:sizeinc.1})
+    )
+);
+
+#[repr(u16)]
+#[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
+pub enum HTTP2SettingsId {
+    SETTINGSHEADERTABLESIZE = 1,
+    SETTINGSENABLEPUSH = 2,
+    SETTINGSMAXCONCURRENTSTREAMS = 3,
+    SETTINGSINITIALWINDOWSIZE = 4,
+    SETTINGSMAXFRAMESIZE = 5,
+    SETTINGSMAXHEADERLISTSIZE = 6,
+}
+
+impl fmt::Display for HTTP2SettingsId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::str::FromStr for HTTP2SettingsId {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let su = s.to_uppercase();
+        let su_slice: &str = &*su;
+        match su_slice {
+            "SETTINGS_HEADER_TABLE_SIZE" => Ok(HTTP2SettingsId::SETTINGSHEADERTABLESIZE),
+            "SETTINGS_ENABLE_PUSH" => Ok(HTTP2SettingsId::SETTINGSENABLEPUSH),
+            "SETTINGS_MAX_CONCURRENT_STREAMS" => Ok(HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS),
+            "SETTINGS_INITIAL_WINDOW_SIZE" => Ok(HTTP2SettingsId::SETTINGSINITIALWINDOWSIZE),
+            "SETTINGS_MAX_FRAME_SIZE" => Ok(HTTP2SettingsId::SETTINGSMAXFRAMESIZE),
+            "SETTINGS_MAX_HEADER_LIST_SIZE" => Ok(HTTP2SettingsId::SETTINGSMAXHEADERLISTSIZE),
+            _ => Err(format!("'{}' is not a valid value for HTTP2SettingsId", s)),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct HTTP2FrameSettings {
+    pub id: HTTP2SettingsId,
+    pub value: u32,
+}
+
+named!(pub http2_parse_frame_settings<HTTP2FrameSettings>,
+    do_parse!(
+        id: map_opt!( be_u16,
+                      num::FromPrimitive::from_u16 ) >>
+        value: be_u32 >>
+        (HTTP2FrameSettings{id, value})
+    )
+);
 
 #[cfg(test)]
 mod tests {
@@ -170,7 +255,7 @@ mod tests {
             Ok((remainder, frame)) => {
                 // Check the first message.
                 assert_eq!(frame.length, 6);
-                assert_eq!(frame.ftype, HTTP2FrameType::Http2FrameTypeSETTINGS);
+                assert_eq!(frame.ftype, HTTP2FrameType::SETTINGS);
                 assert_eq!(frame.flags, 0);
                 assert_eq!(frame.reserved, 0);
                 assert_eq!(frame.stream_id, 0);

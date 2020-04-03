@@ -28,6 +28,19 @@ fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
         Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
             js.set_string("error_code", &goaway.errorcode.to_string());
         }
+        Some(HTTP2FrameTypeData::SETTINGS(set)) => {
+            js.set_string("settings_id", &set.id.to_string());
+            js.set_integer("settings_value", set.value as u64);
+        }
+        Some(HTTP2FrameTypeData::RSTSTREAM(rst)) => {
+            js.set_string("error_code", &rst.errorcode.to_string());
+        }
+        Some(HTTP2FrameTypeData::PRIORITY(priority)) => {
+            js.set_integer("priority", priority.weight as u64);
+        }
+        Some(HTTP2FrameTypeData::WINDOWUPDATE(wu)) => {
+            js.set_integer("window", wu.sizeinc as u64);
+        }
         _ => {}
     }
     return Some(js);

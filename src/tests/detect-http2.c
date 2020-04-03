@@ -38,13 +38,101 @@ static int DetectHTTP2frameTypeParseTest01 (void)
 
     DetectEngineCtxFree(de_ctx);
     PASS;
-
 }
 
 /**
- * \brief this function registers unit tests for DetectICMPv6mtu
+ * \brief this function registers unit tests for DetectHTTP2frameType
  */
-void DetectHTTP2RegisterTests(void)
+void DetectHTTP2frameTypeRegisterTests(void)
 {
     UtRegisterTest("DetectHTTP2frameTypeParseTest01", DetectHTTP2frameTypeParseTest01);
+}
+
+/**
+ * \test signature with a valid http2.errorcode value.
+ */
+
+static int DetectHTTP2errorCodeParseTest01 (void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+                                           "alert http2 any any -> any any (http2.errorcode:NO_ERROR; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+void DetectHTTP2errorCodeRegisterTests(void)
+{
+    UtRegisterTest("DetectHTTP2errorCodeParseTest01", DetectHTTP2errorCodeParseTest01);
+}
+
+/**
+ * \test signature with a valid http2.priority value.
+ */
+
+static int DetectHTTP2priorityParseTest01 (void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+                                           "alert http2 any any -> any any (http2.priority:>100; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+void DetectHTTP2priorityRegisterTests(void)
+{
+    UtRegisterTest("DetectHTTP2priorityParseTest01", DetectHTTP2priorityParseTest01);
+}
+
+/**
+ * \test signature with a valid http2.window value.
+ */
+
+static int DetectHTTP2windowParseTest01 (void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+                                           "alert http2 any any -> any any (http2.window:<42; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+void DetectHTTP2windowRegisterTests(void)
+{
+    UtRegisterTest("DetectHTTP2windowParseTest01", DetectHTTP2windowParseTest01);
+}
+
+
+/**
+ * \test signature with a valid http2.settings value.
+ */
+
+static int DetectHTTP2settingsParseTest01 (void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+                                           "alert http2 any any -> any any (http2.settings:SETTINGS_MAX_HEADER_LIST_SIZE >1024; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+void DetectHTTP2settingsRegisterTests(void)
+{
+    UtRegisterTest("DetectHTTP2settingsParseTest01", DetectHTTP2settingsParseTest01);
 }

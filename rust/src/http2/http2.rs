@@ -36,10 +36,23 @@ pub enum HTTP2ConnectionState {
 }
 
 const HTTP2_FRAME_HEADER_LEN: usize = 9;
+const HTTP2_MAGIC_LEN: usize = 24;
+const HTTP2_FRAME_GOAWAY_LEN: usize = 4;
+const HTTP2_FRAME_RSTSTREAM_LEN: usize = 4;
+const HTTP2_FRAME_SETTINGS_LEN: usize = 6;
+const HTTP2_FRAME_PRIORITY_LEN: usize = 1;
+const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 
 pub enum HTTP2FrameTypeData {
-    //TODO    SETTINGS(parser::HTTP2FrameSettings),
+    //TODO PUSH_PROMISE
+    //TODO DATA
+    //TODO HEADERS
+    //TODO CONTINATION
+    PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
+    RSTSTREAM(parser::HTTP2FrameRstStream),
+    SETTINGS(parser::HTTP2FrameSettings),
+    WINDOWUPDATE(parser::HTTP2FrameWindowUpdate),
 }
 
 pub struct HTTP2Transaction {
@@ -122,6 +135,10 @@ impl HTTP2State {
         }
     }
 
+    pub fn free(&mut self) {
+        self.transactions.clear();
+    }
+
     fn set_event(&mut self, event: HTTP2Event) {
         let len = self.transactions.len();
         if len == 0 {
@@ -194,10 +211,11 @@ impl HTTP2State {
                                 Ok((_, goaway)) => {
                                     tx.type_data = Some(HTTP2FrameTypeData::GOAWAY(goaway));
                                 }
+                                // do not trust nom incomplete value
                                 Err(nom::Err::Incomplete(_)) => {
                                     return AppLayerResult::incomplete(
                                         (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + 4) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_GOAWAY_LEN) as u32,
                                     );
                                 }
                                 Err(_) => {
@@ -205,7 +223,71 @@ impl HTTP2State {
                                 }
                             }
                         }
-                        //TODO parse deeper based on other frame type
+                        parser::HTTP2FrameType::SETTINGS => {
+                            match parser::http2_parse_frame_settings(rem) {
+                                Ok((_, set)) => {
+                                    tx.type_data = Some(HTTP2FrameTypeData::SETTINGS(set));
+                                }
+                                Err(nom::Err::Incomplete(_)) => {
+                                    return AppLayerResult::incomplete(
+                                        (il - input.len()) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_SETTINGS_LEN) as u32,
+                                    );
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
+                                }
+                            }
+                        }
+                        parser::HTTP2FrameType::RSTSTREAM => {
+                            match parser::http2_parse_frame_rststream(rem) {
+                                Ok((_, rst)) => {
+                                    tx.type_data = Some(HTTP2FrameTypeData::RSTSTREAM(rst));
+                                }
+                                Err(nom::Err::Incomplete(_)) => {
+                                    return AppLayerResult::incomplete(
+                                        (il - input.len()) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_RSTSTREAM_LEN) as u32,
+                                    );
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
+                                }
+                            }
+                        }
+                        parser::HTTP2FrameType::PRIORITY => {
+                            match parser::http2_parse_frame_priority(rem) {
+                                Ok((_, priority)) => {
+                                    tx.type_data = Some(HTTP2FrameTypeData::PRIORITY(priority));
+                                }
+                                Err(nom::Err::Incomplete(_)) => {
+                                    return AppLayerResult::incomplete(
+                                        (il - input.len()) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_PRIORITY_LEN) as u32,
+                                    );
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
+                                }
+                            }
+                        }
+                        parser::HTTP2FrameType::WINDOWUPDATE => {
+                            match parser::http2_parse_frame_windowupdate(rem) {
+                                Ok((_, wu)) => {
+                                    tx.type_data = Some(HTTP2FrameTypeData::WINDOWUPDATE(wu));
+                                }
+                                Err(nom::Err::Incomplete(_)) => {
+                                    return AppLayerResult::incomplete(
+                                        (il - input.len()) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_WINDOWUPDATE_LEN) as u32,
+                                    );
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
+                                }
+                            }
+                        }
+                        //ignore ping case with opaque u64
                         _ => {}
                     }
                     self.transactions.push(tx);
@@ -227,9 +309,7 @@ impl HTTP2State {
                             HTTP2_FRAME_HEADER_LEN as u32,
                         );
                     } else {
-                        //TODO BUG_ON ?
-                        SCLogDebug!("HTTP2 invalid length frame header");
-                        return AppLayerResult::err();
+                        panic!("HTTP2 invalid length frame header");
                     }
                 }
                 Err(_) => {
@@ -263,7 +343,7 @@ impl HTTP2State {
                     tx.ftype = Some(head.ftype);
                     self.transactions.push(tx);
 
-                    //TODO parse deeper based on frame type
+                    //TODO parse frame types as in request once transactions are well handled
                     let hl = head.length as usize;
                     if rem.len() < hl {
                         let rl = rem.len() as u32;
@@ -281,9 +361,7 @@ impl HTTP2State {
                             HTTP2_FRAME_HEADER_LEN as u32,
                         );
                     } else {
-                        //TODO BUG_ON ?
-                        SCLogDebug!("HTTP2 invalid length frame header");
-                        return AppLayerResult::err();
+                        panic!("HTTP2 invalid length frame header");
                     }
                 }
                 Err(_) => {
@@ -325,7 +403,7 @@ export_tx_set_detect_state!(rs_http2_tx_set_detect_state, HTTP2Transaction);
 export_tx_detect_flags_set!(rs_http2_set_tx_detect_flags, HTTP2Transaction);
 export_tx_detect_flags_get!(rs_http2_get_tx_detect_flags, HTTP2Transaction);
 
-//TODO connection upgrade from HTTP1
+//TODO connection upgrade from HTTP1 cf SMTP STARTTLS
 /// C entry point for a probing parser.
 #[no_mangle]
 pub extern "C" fn rs_http2_probing_parser_tc(
@@ -369,7 +447,8 @@ pub extern "C" fn rs_http2_state_new() -> *mut std::os::raw::c_void {
 #[no_mangle]
 pub extern "C" fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
-    let _drop: Box<HTTP2State> = unsafe { transmute(state) };
+    let mut state: Box<HTTP2State> = unsafe { transmute(state) };
+    state.free();
 }
 
 #[no_mangle]
@@ -393,11 +472,11 @@ pub extern "C" fn rs_http2_parse_ts(
 
     if state.progress < HTTP2ConnectionState::Http2StateMagicDone {
         //skip magic
-        if buf.len() >= 24 {
+        if buf.len() >= HTTP2_MAGIC_LEN {
             //skip magic
-            match std::str::from_utf8(&buf[..24]) {
+            match std::str::from_utf8(&buf[..HTTP2_MAGIC_LEN]) {
                 Ok("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n") => {
-                    buf = &buf[24..];
+                    buf = &buf[HTTP2_MAGIC_LEN..];
                 }
                 Ok(&_) => {
                     state.set_event(HTTP2Event::InvalidClientMagic);
@@ -409,7 +488,7 @@ pub extern "C" fn rs_http2_parse_ts(
             state.progress = HTTP2ConnectionState::Http2StateMagicDone;
         } else {
             //still more buffer
-            return AppLayerResult::incomplete(0 as u32, 24 as u32);
+            return AppLayerResult::incomplete(0 as u32, HTTP2_MAGIC_LEN as u32);
         }
     }
 
@@ -576,6 +655,7 @@ const PARSER_NAME: &'static [u8] = b"http2\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {
+    //TODO default port
     let default_port = CString::new("[3000]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -583,8 +663,8 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         ipproto: IPPROTO_TCP,
         probe_ts: None, // big magic string should be enough
         probe_tc: Some(rs_http2_probing_parser_tc),
-        min_depth: 9,  // frame header size
-        max_depth: 24, // client magic size
+        min_depth: HTTP2_FRAME_HEADER_LEN as u16,
+        max_depth: HTTP2_MAGIC_LEN as u16,
         state_new: rs_http2_state_new,
         state_free: rs_http2_state_free,
         tx_free: rs_http2_state_tx_free,
@@ -620,7 +700,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
-        SCLogNotice!("Rust http2 parser registered.");
+        SCLogDebug!("Rust http2 parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for HTTP2.");
     }
