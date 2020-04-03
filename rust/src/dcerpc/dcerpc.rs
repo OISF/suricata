@@ -876,17 +876,17 @@ impl DCERPCUDPState {
         }
     }
 
-    pub fn parse_dcerpc_udp(&mut self, input: &[u8]) -> i32 {
+    pub fn parse_dcerpc_udp(&mut self, input: &[u8]) -> AppLayerResult {
         // Call header parser first
         let mut parsed = self.parse_dcerpc_udp_header(input);
         if parsed == -1 {
-            return -1;
+            return AppLayerResult::err();
         }
 
         // Input left after successful header parsing should be 80 less
         // than the original length
         if input.len() < 80 {
-            return -1;
+            return AppLayerResult::err();
         }
         let mut input_left = input.len() as i32 - 80;
         let pkt_type = match self.get_hdr_pkt_type() {
@@ -911,7 +911,7 @@ impl DCERPCUDPState {
                 input_left = 0;
             }
         }
-        return 1;
+        return AppLayerResult::ok();
     }
 }
 
@@ -965,12 +965,12 @@ pub unsafe extern "C" fn rs_dcerpc_udp_parse(
     input_len: u32,
     _data: *mut std::os::raw::c_void,
     _flags: u8,
-) -> i32 {
+) -> AppLayerResult {
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = std::slice::from_raw_parts(input, input_len as usize);
         return state.parse_dcerpc_udp(buf);
     }
-    0
+    AppLayerResult::err()
 }
 
 #[no_mangle]

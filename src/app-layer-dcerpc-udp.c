@@ -49,7 +49,7 @@
 #include "app-layer-dcerpc-common.h"
 #include "app-layer-dcerpc-udp.h"
 
-static int RustDCERPCUDPParse(Flow *f, void *dcerpc_state,
+static AppLayerResult RustDCERPCUDPParse(Flow *f, void *dcerpc_state,
     AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
 {
