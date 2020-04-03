@@ -322,6 +322,7 @@ jobs:
       - run: ./autogen.sh
       - run: ./configure --enable-unittests --enable-coccinelle
       - run: make -j2
+      - run: make tags
       - name: Running unit tests and cocci checks
         # Set the concurrency level for cocci.
         run: CONCURRENCY_LEVEL=2 make check
