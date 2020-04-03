@@ -556,12 +556,12 @@ static int DetectHTTP2settingsSetup (DetectEngineCtx *de_ctx, Signature *s, cons
             SCFree(http2set);
             return -1;
         }
-        strncpy(str_first, str, space - str);
+        strlcpy(str_first, str, space - str + 1);
         //TODO better no copy, and pass a length argument next ?
 
         if (!DetectHTTP2FuncParseSettingsId(str_first, &http2set->id)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
-                       "Invalid argument \"%s\" supplied to http2.settings keyword.", str);
+                       "Invalid first argument \"%s\" supplied to http2.settings keyword.", str_first);
             SCFree(http2set);
             return -1;
         }
