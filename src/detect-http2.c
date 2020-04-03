@@ -27,6 +27,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-uint.h"
 
 #include "detect-http2.h"
 #include "util-byte.h"
@@ -44,6 +45,13 @@ static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
                                      const SigMatchCtx *ctx);
 static int DetectHTTP2errorcodeSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectHTTP2errorcodeFree (void *);
+
+static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
+                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                                     const SigMatchCtx *ctx);
+static int DetectHTTP2prioritySetup (DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2priorityFree (void *);
+
 
 #ifdef UNITTESTS
 void DetectHTTP2RegisterTests (void);
@@ -89,6 +97,17 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_ERRORCODE].RegisterTests = DetectHTTP2RegisterTests;
 #endif
 
+    sigmatch_table[DETECT_HTTP2_PRIORITY].name = "http2.priority";
+    sigmatch_table[DETECT_HTTP2_PRIORITY].desc = "match on HTTP2 priority weight field";
+    sigmatch_table[DETECT_HTTP2_PRIORITY].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#priority";
+    sigmatch_table[DETECT_HTTP2_PRIORITY].Match = NULL;
+    sigmatch_table[DETECT_HTTP2_PRIORITY].AppLayerTxMatch = DetectHTTP2priorityMatch;
+    sigmatch_table[DETECT_HTTP2_PRIORITY].Setup = DetectHTTP2prioritySetup;
+    sigmatch_table[DETECT_HTTP2_PRIORITY].Free = DetectHTTP2priorityFree;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_HTTP2_PRIORITY].RegisterTests = DetectHTTP2RegisterTests;
+#endif
+
     DetectAppLayerInspectEngineRegister("http2",
                                         ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0,
                                         DetectEngineInspectHTTP2);
@@ -97,6 +116,7 @@ void DetectHttp2Register(void)
                                         DetectEngineInspectHTTP2);
 
     g_http2_match_buffer_id = DetectBufferTypeRegister("http2");
+    DetectUintRegister();
 
     return;
 }
@@ -277,6 +297,70 @@ static int DetectHTTP2errorcodeSetup (DetectEngineCtx *de_ctx, Signature *s, con
  * \param ptr pointer to uint32_t
  */
 void DetectHTTP2errorcodeFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
+/**
+ * \brief This function is used to match HTTP2 error code rule option on a transaction with those passed via http2.priority:
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
+                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                               const SigMatchCtx *ctx)
+
+{
+    int value = rs_http2_tx_get_priority(txv, flags);
+    if (value < 0) {
+        //no value, no match
+        return 0;
+    }
+
+    const DetectU8Data *du8 = (const DetectU8Data *)ctx;
+    return DetectU8Match(value, du8);
+}
+
+/**
+ * \brief this function is used to attach the parsed http2.priority data into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param str pointer to the user provided http2.priority options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+        return -1;
+
+    DetectU8Data *prio = DetectU8Parse(str);
+    if (prio == NULL)
+        return -1;
+
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        SCFree(prio);
+        return -1;
+    }
+
+    sm->type = DETECT_HTTP2_PRIORITY;
+    sm->ctx = (SigMatchCtx *)prio;
+
+    SigMatchAppendSMToList(s, sm, g_http2_match_buffer_id);
+
+    return 0;
+}
+
+/**
+ * \brief this function will free memory associated with uint32_t
+ *
+ * \param ptr pointer to DetectU8Data
+ */
+void DetectHTTP2priorityFree(void *ptr)
 {
     SCFree(ptr);
 }

@@ -146,6 +146,18 @@ named!(pub http2_parse_frame_goaway<HTTP2FrameGoAway>,
     )
 );
 
+#[derive(Clone, Copy)]
+pub struct HTTP2FramePriority {
+    pub weight: u8,
+}
+
+named!(pub http2_parse_frame_priority<HTTP2FramePriority>,
+    do_parse!(
+        weight: be_u8 >>
+        (HTTP2FramePriority{weight})
+    )
+);
+
 //TODO HTTP2FrameSettings
 /*pub struct HTTP2FrameSettings {
 id: u16,

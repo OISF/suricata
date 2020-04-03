@@ -28,6 +28,9 @@ fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
         Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
             js.set_string("error_code", &goaway.errorcode.to_string());
         }
+        Some(HTTP2FrameTypeData::PRIORITY(priority)) => {
+            js.set_integer("priority", priority.weight as u64);
+        }
         _ => {}
     }
     return Some(js);

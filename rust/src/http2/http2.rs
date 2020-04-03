@@ -39,6 +39,7 @@ const HTTP2_FRAME_HEADER_LEN: usize = 9;
 
 pub enum HTTP2FrameTypeData {
     //TODO    SETTINGS(parser::HTTP2FrameSettings),
+    PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
 }
 
@@ -198,6 +199,22 @@ impl HTTP2State {
                                     return AppLayerResult::incomplete(
                                         (il - input.len()) as u32,
                                         (HTTP2_FRAME_HEADER_LEN + 4) as u32,
+                                    );
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
+                                }
+                            }
+                        }
+                        parser::HTTP2FrameType::PRIORITY => {
+                            match parser::http2_parse_frame_priority(rem) {
+                                Ok((_, priority)) => {
+                                    tx.type_data = Some(HTTP2FrameTypeData::PRIORITY(priority));
+                                }
+                                Err(nom::Err::Incomplete(_)) => {
+                                    return AppLayerResult::incomplete(
+                                        (il - input.len()) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + 1) as u32,
                                     );
                                 }
                                 Err(_) => {
