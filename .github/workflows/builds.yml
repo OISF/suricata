@@ -314,6 +314,9 @@ jobs:
         run: |
           add-apt-repository -y ppa:npalix/coccinelle
           apt -y install coccinelle
+      - name: Install etags
+        run: |
+          apt install -y xemacs21-bin
       - name: Install cbindgen
         run: cargo install --force cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
