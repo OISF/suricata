@@ -975,6 +975,10 @@ int FlowClearMemory(Flow* f, uint8_t proto_map)
 {
     SCEnter();
 
+    if (unlikely(f->flags & FLOW_HAS_EXPECTATION)) {
+        AppLayerExpectationClean(f);
+    }
+
     /* call the protocol specific free function if we have one */
     if (flow_freefuncs[proto_map].Freefunc != NULL) {
         flow_freefuncs[proto_map].Freefunc(f->protoctx);
