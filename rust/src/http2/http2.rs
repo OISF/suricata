@@ -38,9 +38,15 @@ pub enum HTTP2ConnectionState {
 const HTTP2_FRAME_HEADER_LEN: usize = 9;
 
 pub enum HTTP2FrameTypeData {
-    //TODO    SETTINGS(parser::HTTP2FrameSettings),
+    //TODO PUSH_PROMISE
+    //TODO DATA
+    //TODO HEADERS
+    //TODO CONTINATION
     PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
+    RSTSTREAM(parser::HTTP2FrameRstStream),
+    //TODO    SETTINGS(parser::HTTP2FrameSettings),
+    WINDOWUPDATE(parser::HTTP2FrameWindowUpdate),
 }
 
 pub struct HTTP2Transaction {
@@ -206,6 +212,22 @@ impl HTTP2State {
                                 }
                             }
                         }
+                        parser::HTTP2FrameType::RSTSTREAM => {
+                            match parser::http2_parse_frame_rststream(rem) {
+                                Ok((_, rst)) => {
+                                    tx.type_data = Some(HTTP2FrameTypeData::RSTSTREAM(rst));
+                                }
+                                Err(nom::Err::Incomplete(_)) => {
+                                    return AppLayerResult::incomplete(
+                                        (il - input.len()) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + 4) as u32,
+                                    );
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
+                                }
+                            }
+                        }
                         parser::HTTP2FrameType::PRIORITY => {
                             match parser::http2_parse_frame_priority(rem) {
                                 Ok((_, priority)) => {
@@ -222,6 +244,23 @@ impl HTTP2State {
                                 }
                             }
                         }
+                        parser::HTTP2FrameType::WINDOWUPDATE => {
+                            match parser::http2_parse_frame_windowupdate(rem) {
+                                Ok((_, wu)) => {
+                                    tx.type_data = Some(HTTP2FrameTypeData::WINDOWUPDATE(wu));
+                                }
+                                Err(nom::Err::Incomplete(_)) => {
+                                    return AppLayerResult::incomplete(
+                                        (il - input.len()) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + 4) as u32,
+                                    );
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
+                                }
+                            }
+                        }
+                        //ignore ping case with opaque u64
                         //TODO parse deeper based on other frame type
                         _ => {}
                     }

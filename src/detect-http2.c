@@ -52,6 +52,11 @@ static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectHTTP2prioritySetup (DetectEngineCtx *, Signature *, const char *);
 void DetectHTTP2priorityFree (void *);
 
+static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
+                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                                     const SigMatchCtx *ctx);
+static int DetectHTTP2windowSetup (DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2windowFree (void *);
 
 #ifdef UNITTESTS
 void DetectHTTP2RegisterTests (void);
@@ -106,6 +111,17 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_PRIORITY].Free = DetectHTTP2priorityFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_PRIORITY].RegisterTests = DetectHTTP2RegisterTests;
+#endif
+
+    sigmatch_table[DETECT_HTTP2_WINDOW].name = "http2.window";
+    sigmatch_table[DETECT_HTTP2_WINDOW].desc = "match on HTTP2 window update size increment field";
+    sigmatch_table[DETECT_HTTP2_WINDOW].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#window";
+    sigmatch_table[DETECT_HTTP2_WINDOW].Match = NULL;
+    sigmatch_table[DETECT_HTTP2_WINDOW].AppLayerTxMatch = DetectHTTP2windowMatch;
+    sigmatch_table[DETECT_HTTP2_WINDOW].Setup = DetectHTTP2windowSetup;
+    sigmatch_table[DETECT_HTTP2_WINDOW].Free = DetectHTTP2windowFree;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_HTTP2_WINDOW].RegisterTests = DetectHTTP2RegisterTests;
 #endif
 
     DetectAppLayerInspectEngineRegister("http2",
@@ -361,6 +377,70 @@ static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, cons
  * \param ptr pointer to DetectU8Data
  */
 void DetectHTTP2priorityFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
+/**
+ * \brief This function is used to match HTTP2 error code rule option on a transaction with those passed via http2.window:
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
+                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                               const SigMatchCtx *ctx)
+
+{
+    int value = rs_http2_tx_get_window(txv, flags);
+    if (value < 0) {
+        //no value, no match
+        return 0;
+    }
+
+    const DetectU32Data *du32 = (const DetectU32Data *)ctx;
+    return DetectU32Match(value, du32);
+}
+
+/**
+ * \brief this function is used to attach the parsed http2.window data into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param str pointer to the user provided http2.window options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+        return -1;
+
+    DetectU32Data *wu = DetectU32Parse(str);
+    if (wu == NULL)
+        return -1;
+
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        SCFree(wu);
+        return -1;
+    }
+
+    sm->type = DETECT_HTTP2_WINDOW;
+    sm->ctx = (SigMatchCtx *)wu;
+
+    SigMatchAppendSMToList(s, sm, g_http2_match_buffer_id);
+
+    return 0;
+}
+
+/**
+ * \brief this function will free memory associated with uint32_t
+ *
+ * \param ptr pointer to DetectU8Data
+ */
+void DetectHTTP2windowFree(void *ptr)
 {
     SCFree(ptr);
 }

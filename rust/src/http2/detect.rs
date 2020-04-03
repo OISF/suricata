@@ -84,6 +84,9 @@ pub extern "C" fn rs_http2_tx_get_errorcode(
             Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
                 return goaway.errorcode as i32;
             }
+            Some(HTTP2FrameTypeData::RSTSTREAM(rst)) => {
+                return rst.errorcode as i32;
+            }
             _ => {
                 return -1;
             }
@@ -91,6 +94,9 @@ pub extern "C" fn rs_http2_tx_get_errorcode(
         STREAM_TOCLIENT => match &tx.type_data {
             Some(HTTP2FrameTypeData::GOAWAY(goaway)) => {
                 return goaway.errorcode as i32;
+            }
+            Some(HTTP2FrameTypeData::RSTSTREAM(rst)) => {
+                return rst.errorcode as i32;
             }
             _ => {
                 return -1;
@@ -143,6 +149,35 @@ pub extern "C" fn rs_http2_tx_get_priority(
         STREAM_TOCLIENT => match &tx.type_data {
             Some(HTTP2FrameTypeData::PRIORITY(prio)) => {
                 return prio.weight as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        _ => {}
+    }
+
+    return -1;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_get_window(
+    tx: *mut std::os::raw::c_void,
+    direction: u8,
+) -> std::os::raw::c_int {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    match direction {
+        STREAM_TOSERVER => match &tx.type_data {
+            Some(HTTP2FrameTypeData::WINDOWUPDATE(wu)) => {
+                return wu.sizeinc as i32;
+            }
+            _ => {
+                return -1;
+            }
+        },
+        STREAM_TOCLIENT => match &tx.type_data {
+            Some(HTTP2FrameTypeData::WINDOWUPDATE(wu)) => {
+                return wu.sizeinc as i32;
             }
             _ => {
                 return -1;

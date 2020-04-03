@@ -147,6 +147,19 @@ named!(pub http2_parse_frame_goaway<HTTP2FrameGoAway>,
 );
 
 #[derive(Clone, Copy)]
+pub struct HTTP2FrameRstStream {
+    pub errorcode: HTTP2ErrorCode,
+}
+
+named!(pub http2_parse_frame_rststream<HTTP2FrameRstStream>,
+    do_parse!(
+        errorcode: map_opt!( be_u32,
+            num::FromPrimitive::from_u32 ) >>
+        (HTTP2FrameRstStream{errorcode})
+    )
+);
+
+#[derive(Clone, Copy)]
 pub struct HTTP2FramePriority {
     pub weight: u8,
 }
@@ -155,6 +168,20 @@ named!(pub http2_parse_frame_priority<HTTP2FramePriority>,
     do_parse!(
         weight: be_u8 >>
         (HTTP2FramePriority{weight})
+    )
+);
+
+#[derive(Clone, Copy)]
+pub struct HTTP2FrameWindowUpdate {
+    pub reserved: u8,
+    pub sizeinc: u32,
+}
+
+named!(pub http2_parse_frame_windowupdate<HTTP2FrameWindowUpdate>,
+    do_parse!(
+        sizeinc: bits!( tuple!( take_bits!(1u8),
+                                take_bits!(31u32) ) ) >>
+        (HTTP2FrameWindowUpdate{reserved:sizeinc.0, sizeinc:sizeinc.1})
     )
 );
 
