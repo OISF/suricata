@@ -309,7 +309,8 @@ jobs:
                 rustc \
                 software-properties-common \
                 zlib1g \
-                zlib1g-dev
+                zlib1g-dev \
+                exuberant-ctags
       - name: Install Coccinelle
         run: |
           add-apt-repository -y ppa:npalix/coccinelle
@@ -322,6 +323,7 @@ jobs:
       - run: ./autogen.sh
       - run: ./configure --enable-unittests --enable-coccinelle
       - run: make -j2
+      - run: make tags
       - name: Running unit tests and cocci checks
         # Set the concurrency level for cocci.
         run: CONCURRENCY_LEVEL=2 make check
