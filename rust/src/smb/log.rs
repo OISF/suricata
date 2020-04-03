@@ -22,6 +22,7 @@ use crate::smb::smb::*;
 use crate::smb::smb1::*;
 use crate::smb::smb2::*;
 use crate::smb::dcerpc::*;
+use crate::dcerpc::dcerpc::*;
 use crate::smb::funcs::*;
 
 #[cfg(not(feature = "debug"))]
