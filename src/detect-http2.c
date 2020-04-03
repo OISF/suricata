@@ -27,10 +27,19 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-uint.h"
 
 #include "detect-http2.h"
 #include "util-byte.h"
 #include "rust.h"
+
+#ifdef UNITTESTS
+void DetectHTTP2frameTypeRegisterTests (void);
+void DetectHTTP2errorCodeRegisterTests (void);
+void DetectHTTP2priorityRegisterTests (void);
+void DetectHTTP2windowRegisterTests (void);
+void DetectHTTP2settingsRegisterTests (void);
+#endif
 
 /* prototypes */
 static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx,
@@ -44,6 +53,24 @@ static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
                                      const SigMatchCtx *ctx);
 static int DetectHTTP2errorcodeSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectHTTP2errorcodeFree (void *);
+
+static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
+                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                                     const SigMatchCtx *ctx);
+static int DetectHTTP2prioritySetup (DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2priorityFree (void *);
+
+static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
+                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                                     const SigMatchCtx *ctx);
+static int DetectHTTP2windowSetup (DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2windowFree (void *);
+
+static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
+                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                                     const SigMatchCtx *ctx);
+static int DetectHTTP2settingsSetup (DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2settingsFree (void *);
 
 #ifdef UNITTESTS
 void DetectHTTP2RegisterTests (void);
@@ -74,7 +101,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Setup = DetectHTTP2frametypeSetup;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Free = DetectHTTP2frametypeFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_HTTP2_FRAMETYPE].RegisterTests = DetectHTTP2RegisterTests;
+    sigmatch_table[DETECT_HTTP2_FRAMETYPE].RegisterTests = DetectHTTP2frameTypeRegisterTests;
 #endif
 
     sigmatch_table[DETECT_HTTP2_ERRORCODE].name = "http2.errorcode";
@@ -85,8 +112,40 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Setup = DetectHTTP2errorcodeSetup;
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Free = DetectHTTP2errorcodeFree;
 #ifdef UNITTESTS
-    //TODO should we call multiple times DetectHTTP2RegisterTests ?
-    sigmatch_table[DETECT_HTTP2_ERRORCODE].RegisterTests = DetectHTTP2RegisterTests;
+    sigmatch_table[DETECT_HTTP2_ERRORCODE].RegisterTests = DetectHTTP2errorCodeRegisterTests;
+#endif
+
+    sigmatch_table[DETECT_HTTP2_PRIORITY].name = "http2.priority";
+    sigmatch_table[DETECT_HTTP2_PRIORITY].desc = "match on HTTP2 priority weight field";
+    sigmatch_table[DETECT_HTTP2_PRIORITY].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#priority";
+    sigmatch_table[DETECT_HTTP2_PRIORITY].Match = NULL;
+    sigmatch_table[DETECT_HTTP2_PRIORITY].AppLayerTxMatch = DetectHTTP2priorityMatch;
+    sigmatch_table[DETECT_HTTP2_PRIORITY].Setup = DetectHTTP2prioritySetup;
+    sigmatch_table[DETECT_HTTP2_PRIORITY].Free = DetectHTTP2priorityFree;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_HTTP2_PRIORITY].RegisterTests = DetectHTTP2priorityRegisterTests;
+#endif
+
+    sigmatch_table[DETECT_HTTP2_WINDOW].name = "http2.window";
+    sigmatch_table[DETECT_HTTP2_WINDOW].desc = "match on HTTP2 window update size increment field";
+    sigmatch_table[DETECT_HTTP2_WINDOW].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#window";
+    sigmatch_table[DETECT_HTTP2_WINDOW].Match = NULL;
+    sigmatch_table[DETECT_HTTP2_WINDOW].AppLayerTxMatch = DetectHTTP2windowMatch;
+    sigmatch_table[DETECT_HTTP2_WINDOW].Setup = DetectHTTP2windowSetup;
+    sigmatch_table[DETECT_HTTP2_WINDOW].Free = DetectHTTP2windowFree;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_HTTP2_WINDOW].RegisterTests = DetectHTTP2windowRegisterTests;
+#endif
+
+    sigmatch_table[DETECT_HTTP2_SETTINGS].name = "http2.settings";
+    sigmatch_table[DETECT_HTTP2_SETTINGS].desc = "match on HTTP2 settings identifier and value fields";
+    sigmatch_table[DETECT_HTTP2_SETTINGS].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#settings";
+    sigmatch_table[DETECT_HTTP2_SETTINGS].Match = NULL;
+    sigmatch_table[DETECT_HTTP2_SETTINGS].AppLayerTxMatch = DetectHTTP2settingsMatch;
+    sigmatch_table[DETECT_HTTP2_SETTINGS].Setup = DetectHTTP2settingsSetup;
+    sigmatch_table[DETECT_HTTP2_SETTINGS].Free = DetectHTTP2settingsFree;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_HTTP2_SETTINGS].RegisterTests = DetectHTTP2settingsRegisterTests;
 #endif
 
     DetectAppLayerInspectEngineRegister("http2",
@@ -97,6 +156,7 @@ void DetectHttp2Register(void)
                                         DetectEngineInspectHTTP2);
 
     g_http2_match_buffer_id = DetectBufferTypeRegister("http2");
+    DetectUintRegister();
 
     return;
 }
@@ -209,6 +269,7 @@ static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
         //no value, no match
         return 0;
     }
+    //TODO handle negation rules
     return *detect == (uint32_t) value;
 }
 
@@ -279,6 +340,271 @@ static int DetectHTTP2errorcodeSetup (DetectEngineCtx *de_ctx, Signature *s, con
 void DetectHTTP2errorcodeFree(void *ptr)
 {
     SCFree(ptr);
+}
+
+/**
+ * \brief This function is used to match HTTP2 error code rule option on a transaction with those passed via http2.priority:
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
+                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                               const SigMatchCtx *ctx)
+
+{
+    int value = rs_http2_tx_get_priority(txv, flags);
+    if (value < 0) {
+        //no value, no match
+        return 0;
+    }
+
+    const DetectU8Data *du8 = (const DetectU8Data *)ctx;
+    return DetectU8Match(value, du8);
+}
+
+/**
+ * \brief this function is used to attach the parsed http2.priority data into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param str pointer to the user provided http2.priority options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+        return -1;
+
+    DetectU8Data *prio = DetectU8Parse(str);
+    if (prio == NULL)
+        return -1;
+
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        SCFree(prio);
+        return -1;
+    }
+
+    sm->type = DETECT_HTTP2_PRIORITY;
+    sm->ctx = (SigMatchCtx *)prio;
+
+    SigMatchAppendSMToList(s, sm, g_http2_match_buffer_id);
+
+    return 0;
+}
+
+/**
+ * \brief this function will free memory associated with uint32_t
+ *
+ * \param ptr pointer to DetectU8Data
+ */
+void DetectHTTP2priorityFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
+/**
+ * \brief This function is used to match HTTP2 error code rule option on a transaction with those passed via http2.window:
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
+                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                               const SigMatchCtx *ctx)
+
+{
+    int value = rs_http2_tx_get_window(txv, flags);
+    if (value < 0) {
+        //no value, no match
+        return 0;
+    }
+
+    const DetectU32Data *du32 = (const DetectU32Data *)ctx;
+    return DetectU32Match(value, du32);
+}
+
+/**
+ * \brief this function is used to attach the parsed http2.window data into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param str pointer to the user provided http2.window options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+        return -1;
+
+    DetectU32Data *wu = DetectU32Parse(str);
+    if (wu == NULL)
+        return -1;
+
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        SCFree(wu);
+        return -1;
+    }
+
+    sm->type = DETECT_HTTP2_WINDOW;
+    sm->ctx = (SigMatchCtx *)wu;
+
+    SigMatchAppendSMToList(s, sm, g_http2_match_buffer_id);
+
+    return 0;
+}
+
+/**
+ * \brief this function will free memory associated with uint32_t
+ *
+ * \param ptr pointer to DetectU8Data
+ */
+void DetectHTTP2windowFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
+typedef struct DetectHTTP2settingsSigCtx_ {
+    uint16_t id;   /**identifier*/
+    DetectU32Data *value; /** optional value*/
+} DetectHTTP2settingsSigCtx;
+
+/**
+ * \brief This function is used to match HTTP2 error code rule option on a transaction with those passed via http2.settings:
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
+                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                               const SigMatchCtx *ctx)
+
+{
+    int id = rs_http2_tx_get_settingsid(txv, flags);
+    if (id < 0) {
+        //no settings, no match
+        return 0;
+    }
+
+    const DetectHTTP2settingsSigCtx *setctx = (const DetectHTTP2settingsSigCtx *)ctx;
+    if (setctx->id != id) {
+        return 0;
+    } else if (setctx->value == NULL) {
+        //no value to match
+        return 1;
+    } else {
+        int value = rs_http2_tx_get_settingsvalue(txv, flags);
+        if (value < 0) {
+            return 0;
+        }
+        return DetectU32Match(value, setctx->value);
+    }
+}
+
+static int DetectHTTP2FuncParseSettingsId(const char *str, uint16_t *id)
+{
+    // first parse numeric value
+    if (ByteExtractStringUint16(id, 10, strlen(str), str) >= 0) {
+        return 1;
+    }
+
+    // it it failed so far, parse string value from enumeration
+    int r = rs_http2_parse_settingsid(str);
+    if (r >= 0) {
+        *id = r;
+        return 1;
+    }
+
+    return 0;
+}
+
+#define HTTP2_MAX_SETTINGS_ID_LEN 64
+
+/**
+ * \brief this function is used to attach the parsed http2.settings data into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param str pointer to the user provided http2.settings options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectHTTP2settingsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+        return -1;
+
+    const char * space = strchr(str, ' ');
+
+    DetectHTTP2settingsSigCtx *http2set = SCCalloc(1, sizeof(DetectHTTP2settingsSigCtx));
+    if (http2set == NULL)
+        return -1;
+
+    if (space) {
+        // a space separates identifier and value
+
+        // copy and isolate first part of string
+        char str_first[HTTP2_MAX_SETTINGS_ID_LEN];
+        if (HTTP2_MAX_SETTINGS_ID_LEN <= space - str) {
+            SCFree(http2set);
+            return -1;
+        }
+        strlcpy(str_first, str, space - str + 1);
+        //TODO better no copy, and pass a length argument next ?
+
+        if (!DetectHTTP2FuncParseSettingsId(str_first, &http2set->id)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                       "Invalid first argument \"%s\" supplied to http2.settings keyword.", str_first);
+            SCFree(http2set);
+            return -1;
+        }
+
+        http2set->value = DetectU32Parse(space+1);
+        if (http2set->value == NULL) {
+            SCFree(http2set);
+            return -1;
+        }
+    } else {
+        // no space means only id with no value
+        if (!DetectHTTP2FuncParseSettingsId(str, &http2set->id)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                       "Invalid argument \"%s\" supplied to http2.settings keyword.", str);
+            SCFree(http2set);
+            return -1;
+        }
+    }
+
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectHTTP2settingsFree(http2set);
+        return -1;
+    }
+
+    sm->type = DETECT_HTTP2_SETTINGS;
+    sm->ctx = (SigMatchCtx *)http2set;
+
+    SigMatchAppendSMToList(s, sm, g_http2_match_buffer_id);
+
+    return 0;
+}
+
+/**
+ * \brief this function will free memory associated with DetectHTTP2settingsSigCtx
+ *
+ * \param ptr pointer to DetectHTTP2settingsSigCtx
+ */
+void DetectHTTP2settingsFree(void *ptr)
+{
+    DetectHTTP2settingsSigCtx *http2set = (DetectHTTP2settingsSigCtx *) ptr;
+    SCFree(http2set->value);
+    SCFree(http2set);
 }
 
 #ifdef UNITTESTS
