@@ -899,8 +899,14 @@ static inline int TLSDecodeHSHelloExtensionSni(SSLState *ssl_state,
     uint16_t sni_len = *input << 8 | *(input + 1);
     input += 2;
 
-    if (!(HAS_SPACE(sni_len)))
-        goto invalid_length;
+    /* host_name contains the fully qualified domain name,
+       and should therefore be limited by the maximum domain
+       name length. */
+    if (!(HAS_SPACE(sni_len)) || sni_len > 255 || sni_len == 0) {
+        SSLSetEvent(ssl_state,
+                TLS_DECODER_EVENT_INVALID_SNI_LENGTH);
+        return -1;
+    }
 
     /* There must not be more than one extension of the same
        type (RFC5246 section 7.4.1.4). */
@@ -912,17 +918,7 @@ static inline int TLSDecodeHSHelloExtensionSni(SSLState *ssl_state,
         return (input - initial_input);
     }
 
-    /* host_name contains the fully qualified domain name,
-       and should therefore be limited by the maximum domain
-       name length. */
-    if (sni_len > 255) {
-        SCLogDebug("SNI length >255");
-        SSLSetEvent(ssl_state,
-                TLS_DECODER_EVENT_INVALID_SNI_LENGTH);
-        return -1;
-    }
-
-    size_t sni_strlen = sni_len + 1;
+    const size_t sni_strlen = sni_len + 1;
     ssl_state->curr_connp->sni = SCMalloc(sni_strlen);
     if (unlikely(ssl_state->curr_connp->sni == NULL))
         return -1;
