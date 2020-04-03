@@ -255,7 +255,7 @@ mod tests {
             Ok((remainder, frame)) => {
                 // Check the first message.
                 assert_eq!(frame.length, 6);
-                assert_eq!(frame.ftype, HTTP2FrameType::Http2FrameTypeSETTINGS);
+                assert_eq!(frame.ftype, HTTP2FrameType::SETTINGS);
                 assert_eq!(frame.flags, 0);
                 assert_eq!(frame.reserved, 0);
                 assert_eq!(frame.stream_id, 0);

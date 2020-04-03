@@ -129,6 +129,10 @@ impl HTTP2State {
         }
     }
 
+    pub fn free(&mut self) {
+        self.transactions.clear();
+    }
+
     fn set_event(&mut self, event: HTTP2Event) {
         let len = self.transactions.len();
         if len == 0 {
@@ -436,7 +440,8 @@ pub extern "C" fn rs_http2_state_new() -> *mut std::os::raw::c_void {
 #[no_mangle]
 pub extern "C" fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
-    let _drop: Box<HTTP2State> = unsafe { transmute(state) };
+    let mut state: Box<HTTP2State> = unsafe { transmute(state) };
+    state.free();
 }
 
 #[no_mangle]
@@ -643,6 +648,7 @@ const PARSER_NAME: &'static [u8] = b"http2\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {
+//TODO default port
     let default_port = CString::new("[3000]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -687,7 +693,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
-        SCLogNotice!("Rust http2 parser registered.");
+        SCLogDebug!("Rust http2 parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for HTTP2.");
     }

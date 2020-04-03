@@ -33,6 +33,14 @@
 #include "util-byte.h"
 #include "rust.h"
 
+#ifdef UNITTESTS
+void DetectHTTP2frameTypeRegisterTests (void);
+void DetectHTTP2errorCodeRegisterTests (void);
+void DetectHTTP2priorityRegisterTests (void);
+void DetectHTTP2windowRegisterTests (void);
+void DetectHTTP2settingsRegisterTests (void);
+#endif
+
 /* prototypes */
 static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
@@ -558,7 +566,7 @@ static int DetectHTTP2settingsSetup (DetectEngineCtx *de_ctx, Signature *s, cons
             return -1;
         }
 
-        http2set->value = DetectU32Parse(str+1);
+        http2set->value = DetectU32Parse(space+1);
         if (http2set->value == NULL) {
             SCFree(http2set);
             return -1;
