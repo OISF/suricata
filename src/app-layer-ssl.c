@@ -1408,7 +1408,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
             if (ssl_state->curr_connp->trec_pos + input_len >=
                     ssl_state->curr_connp->trec_len) {
                 ssl_state->curr_connp->trec_len =
-                        ssl_state->curr_connp->trec_len + 2 * input_len + 1;
+                        ssl_state->curr_connp->trec_pos + 2 * input_len + 1;
                 ptmp = SCRealloc(ssl_state->curr_connp->trec,
                         ssl_state->curr_connp->trec_len);
 
