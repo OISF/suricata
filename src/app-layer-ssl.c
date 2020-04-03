@@ -54,6 +54,7 @@
 #include "util-ja3.h"
 #include "flow-util.h"
 #include "flow-private.h"
+#include "util-validate.h"
 
 SCEnumCharMap tls_decoder_event_table[ ] = {
     /* TLS protocol messages */
@@ -150,6 +151,26 @@ SslConfig ssl_config;
 #define SHA1_STRING_LENGTH             60
 
 #define HAS_SPACE(n) ((uint64_t)(input - initial_input) + (uint64_t)(n) <= (uint64_t)(input_len))
+
+static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
+        const void *src, size_t src_offset, size_t src_size, size_t src_tocopy) WARN_UNUSED;
+
+static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
+        const void *src, size_t src_offset, size_t src_size, size_t src_tocopy)
+{
+    DEBUG_VALIDATE_BUG_ON(dst_offset >= dst_size);
+    DEBUG_VALIDATE_BUG_ON(src_offset >= src_size);
+    DEBUG_VALIDATE_BUG_ON(src_tocopy > (src_size - src_offset));
+    DEBUG_VALIDATE_BUG_ON(src_tocopy > (dst_size - dst_offset));
+
+    if (dst_offset < dst_size && src_offset < src_size &&
+        src_tocopy <= (src_size - src_offset) &&
+        src_tocopy <= (dst_size - dst_offset)) {
+        memcpy(dst + dst_offset, src + src_offset, src_tocopy);
+        return 0;
+    }
+    return -1;
+}
 
 static void SSLParserReset(SSLState *ssl_state)
 {
@@ -729,7 +750,10 @@ static inline int TLSDecodeHSHelloSessionID(SSLState *ssl_state,
             return -1;
         }
 
-        memcpy(ssl_state->curr_connp->session_id, input, session_id_length);
+        if (SafeMemcpy(ssl_state->curr_connp->session_id, 0, session_id_length,
+                    input, 0, input_len, session_id_length) != 0) {
+            return -1;
+        }
         ssl_state->curr_connp->session_id_length = session_id_length;
 
         if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
@@ -926,7 +950,13 @@ static inline int TLSDecodeHSHelloExtensionSni(SSLState *ssl_state,
     if (unlikely(ssl_state->curr_connp->sni == NULL))
         return -1;
 
-    memcpy(ssl_state->curr_connp->sni, input, sni_strlen - 1);
+    const size_t consumed = input - initial_input;
+    if (SafeMemcpy(ssl_state->curr_connp->sni, 0, sni_strlen,
+                initial_input, consumed, input_len, sni_len) != 0) {
+        SCFree(ssl_state->curr_connp->sni);
+        ssl_state->curr_connp->sni = NULL;
+        return -1;
+    }
     ssl_state->curr_connp->sni[sni_strlen-1] = 0;
 
     input += sni_len;
@@ -1474,8 +1504,12 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
                 write_len = input_len;
             }
 
-            memcpy(ssl_state->curr_connp->trec +
-                    ssl_state->curr_connp->trec_pos, initial_input, write_len);
+            if (SafeMemcpy(ssl_state->curr_connp->trec,
+                        ssl_state->curr_connp->trec_pos,
+                        ssl_state->curr_connp->trec_len,
+                        initial_input, 0, input_len, write_len) != 0) {
+                return -1;
+            }
             ssl_state->curr_connp->trec_pos += write_len;
 
             rc = TlsDecodeHSCertificate(ssl_state, ssl_state->curr_connp->trec,
