@@ -663,12 +663,17 @@ impl DCERPCState {
             self.bytes_consumed += parsed as u16;
         }
 
+        if self.data_needed_for_dir != direction && buffer.len() != 0 {
+            return AppLayerResult::err();
+        }
+
         let fraglen = match self.get_hdr_fraglen() {
             Some(x) => x,
             None => 0,
         };
         if buffer.len() as u16 != fraglen {
             println!("Possibly fragmented data, waiting for more..");
+            self.data_needed_for_dir = direction;
             return AppLayerResult::ok();
         }
 
