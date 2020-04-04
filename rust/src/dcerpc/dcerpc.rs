@@ -285,7 +285,7 @@ impl DCERPCState {
             padleft: 0,
             bytes_consumed: 0,
             tx_id: 0,
-            data_needed_for_dir: 0,
+            data_needed_for_dir: core::STREAM_TOSERVER,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             de_state: None,
@@ -671,6 +671,8 @@ impl DCERPCState {
             Some(x) => x,
             None => 0,
         };
+
+        println!("Buffer len: {:?}", buffer.len());
         if buffer.len() as u16 != fraglen {
             println!("Possibly fragmented data, waiting for more..");
             self.data_needed_for_dir = direction;
@@ -1210,6 +1212,7 @@ pub unsafe extern "C" fn rs_dcerpc_set_buffer(
 mod tests {
     use crate::dcerpc::dcerpc::{DCERPCState, DCERPCUDPState};
     use crate::core;
+    use crate::applayer::AppLayerResult;
 
     #[test]
     fn test_parse_dcerpchdr_udp_incomplete_hdr() {
@@ -1365,7 +1368,7 @@ mod tests {
             0x90, 0x90,
         ];
         let mut state = DCERPCUDPState::new();
-        assert_eq!(1, state.parse_dcerpc_udp(dcerpcrequest));
+        assert_eq!(AppLayerResult::ok(), state.parse_dcerpc_udp(dcerpcrequest));
         assert_eq!(0, state.fraglenleft);
         if let Some(req) = state.dcerpcrequest {
             assert_eq!(1392, req.stub_data_buffer_len);
@@ -1783,7 +1786,7 @@ mod tests {
             0x69, 0x00,
         ];
         let mut state = DCERPCState::new();
-        assert_eq!(1, state.dcerpc_parse(&dcerpcrequest, core::STREAM_TOSERVER));
+        assert_eq!(AppLayerResult::ok(), state.dcerpc_parse(&dcerpcrequest, core::STREAM_TOSERVER));
         if let Some(hdr) = state.dcerpchdr {
             assert_eq!(0, hdr.hdrtype);
             assert_eq!(5, hdr.rpc_vers);
@@ -1796,5 +1799,34 @@ mod tests {
             assert_eq!(1004, req.stub_data_buffer_len);
             assert_eq!(true, req.stub_data_buffer_reset);
         }
+    }
+
+    #[test]
+    pub fn test_parse_bind_fragmented() {
+        let bind1: &[u8] = &[
+            0x05, 0x00, 0x0b, 0x01, 0x10, 0x00, 0x00, 0x00,
+            0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+            0xb8, 0x4a, 0x9f, 0x4d, 0x1c, 0x7d, 0xcf, 0x11,
+            0x86, 0x1e, 0x00, 0x20, 0xaf, 0x6e, 0x7c, 0x57,
+            0x00, 0x00, 0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+            0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
+            0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
+        ];
+        let bind2: &[u8] = &[
+            0x05, 0x00, 0x0b, 0x02, 0x10, 0x00, 0x00, 0x00,
+            0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+            0xb8, 0x4a, 0x9f, 0x4d, 0x1c, 0x7d, 0xcf, 0x11,
+            0x86, 0x1e, 0x00, 0x20, 0xaf, 0x6e, 0x7c, 0x67,
+            0x00, 0x00, 0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+            0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
+            0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
+        ];
+        let mut state = DCERPCState::new();
+        assert_eq!(AppLayerResult::ok(), state.dcerpc_parse(&bind1, core::STREAM_TOSERVER));
+        assert_eq!(AppLayerResult::ok(), state.dcerpc_parse(&bind2, core::STREAM_TOSERVER));
     }
 }
