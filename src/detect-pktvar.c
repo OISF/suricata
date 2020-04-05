@@ -42,13 +42,14 @@ static DetectParseRegex parse_regex;
 static int DetectPktvarMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectPktvarSetup (DetectEngineCtx *, Signature *, const char *);
+static void DetectPktvarFree(void *data);
 
 void DetectPktvarRegister (void)
 {
     sigmatch_table[DETECT_PKTVAR].name = "pktvar";
     sigmatch_table[DETECT_PKTVAR].Match = DetectPktvarMatch;
     sigmatch_table[DETECT_PKTVAR].Setup = DetectPktvarSetup;
-    sigmatch_table[DETECT_PKTVAR].Free  = NULL;
+    sigmatch_table[DETECT_PKTVAR].Free  = DetectPktvarFree;
     sigmatch_table[DETECT_PKTVAR].RegisterTests  = NULL;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
@@ -76,6 +77,15 @@ static int DetectPktvarMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     return ret;
 }
 
+static void DetectPktvarFree(void *ptr)
+{
+    DetectPktvarData *data = ptr;
+    if (data != NULL) {
+        SCFree(data->content);
+        SCFree(data);
+    }
+}
+
 static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char *varname = NULL, *varcontent = NULL;
@@ -100,6 +110,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
     if (res < 0) {
+        pcre_free(varname);
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         return -1;
     }
@@ -123,11 +134,11 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         pcre_free(varcontent);
         return -1;
     }
+    pcre_free(varcontent);
 
     DetectPktvarData *cd = SCCalloc(1, sizeof(DetectPktvarData));
     if (unlikely(cd == NULL)) {
         pcre_free(varname);
-        pcre_free(varcontent);
         SCFree(content);
         return -1;
     }
@@ -136,14 +147,12 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     cd->content_len = len;
     cd->id = VarNameStoreSetupAdd(varname, VAR_TYPE_PKT_VAR);
     pcre_free(varname);
-    pcre_free(varcontent);
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     SigMatch *sm = SigMatchAlloc();
     if (unlikely(sm == NULL)) {
-        SCFree(cd->content);
-        SCFree(cd);
+        DetectPktvarFree(cd);
         return -1;
     }
     sm->type = DETECT_PKTVAR;
@@ -152,5 +161,3 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     return 0;
 }
-
-
