@@ -201,7 +201,6 @@ static int DetectFileInspect(DetectEngineThreadCtx *det_ctx, Flow *f, const Sign
 /**
  *  \brief Inspect the file inspecting keywords against the state
  *
- *  \param tv thread vars
  *  \param det_ctx detection engine thread ctx
  *  \param f flow
  *  \param s signature to inspect
@@ -215,8 +214,8 @@ static int DetectFileInspect(DetectEngineThreadCtx *det_ctx, Flow *f, const Sign
  *
  *  \note flow is not locked at this time
  */
-int DetectFileInspectGeneric(ThreadVars *_tv, DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd, Flow *f,
+int DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *_alstate, void *tx, uint64_t tx_id)
 {
     SCEnter();
@@ -229,7 +228,7 @@ int DetectFileInspectGeneric(ThreadVars *_tv, DetectEngineCtx *de_ctx,
     }
 
     int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    int match = DetectFileInspect(det_ctx, f, s, smd, flags, ffc);
+    int match = DetectFileInspect(det_ctx, f, s, engine->smd, flags, ffc);
     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
         r = DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {

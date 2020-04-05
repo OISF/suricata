@@ -97,45 +97,34 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
     sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
-            DetectFileInspectGeneric);
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
-            DetectFileInspectGeneric);
+    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
+            DetectFileInspectGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_BODY, DetectFileInspectGeneric, NULL);
 
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
-            DetectFileInspectGeneric);
+    DetectAppLayerInspectEngineRegister2(
+            "files", ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
 
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_NFS, SIG_FLAG_TOSERVER, 0,
-            DetectFileInspectGeneric);
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_NFS, SIG_FLAG_TOCLIENT, 0,
-            DetectFileInspectGeneric);
+    DetectAppLayerInspectEngineRegister2(
+            "files", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "files", ALPROTO_NFS, SIG_FLAG_TOCLIENT, 0, DetectFileInspectGeneric, NULL);
 
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0,
-            DetectFileInspectGeneric);
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0,
-            DetectFileInspectGeneric);
+    DetectAppLayerInspectEngineRegister2(
+            "files", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "files", ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0, DetectFileInspectGeneric, NULL);
 
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
-            DetectFileInspectGeneric);
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
-            DetectFileInspectGeneric);
+    DetectAppLayerInspectEngineRegister2(
+            "files", ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "files", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, DetectFileInspectGeneric, NULL);
 
     //this is used by filestore
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_HTTP2, SIG_FLAG_TOSERVER, HTTP2StateDataClient,
-            DetectFileInspectGeneric);
-    DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateDataServer,
-            DetectFileInspectGeneric);
+    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectFileInspectGeneric, NULL);
+    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateDataServer, DetectFileInspectGeneric, NULL);
 
     g_file_match_list_id = DetectBufferTypeGetByName("files");
 
