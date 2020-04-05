@@ -584,7 +584,7 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
     /* do the actual decoding */
     int ret = DecodeIPV6Packet (tv, dtv, p, pkt, len);
     if (unlikely(ret < 0)) {
-        p->ip6h = NULL;
+        CLEAR_IPV6_PACKET(p);
         return TM_ECODE_FAILED;
     }
 

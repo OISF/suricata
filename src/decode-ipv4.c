@@ -524,7 +524,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     /* do the actual decoding */
     if (unlikely(DecodeIPV4Packet (p, pkt, len) < 0)) {
         SCLogDebug("decoding IPv4 packet failed");
-        p->ip4h = NULL;
+        CLEAR_IPV4_PACKET((p));
         return TM_ECODE_FAILED;
     }
     p->proto = IPV4_GET_IPPROTO(p);

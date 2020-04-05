@@ -77,7 +77,7 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     StatsIncr(tv, dtv->counter_udp);
 
     if (unlikely(DecodeUDPPacket(tv, p, pkt,len) < 0)) {
-        p->udph = NULL;
+        CLEAR_UDP_PACKET(p);
         return TM_ECODE_FAILED;
     }
 
