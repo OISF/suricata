@@ -65,7 +65,7 @@ int DecodeSCTP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     StatsIncr(tv, dtv->counter_sctp);
 
     if (unlikely(DecodeSCTPPacket(tv, p,pkt,len) < 0)) {
-        p->sctph = NULL;
+        CLEAR_SCTP_PACKET(p);
         return TM_ECODE_FAILED;
     }
 

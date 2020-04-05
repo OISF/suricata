@@ -238,7 +238,7 @@ int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     if (unlikely(DecodeTCPPacket(tv, p, pkt,len) < 0)) {
         SCLogDebug("invalid TCP packet");
-        p->tcph = NULL;
+        CLEAR_TCP_PACKET(p);
         return TM_ECODE_FAILED;
     }
 
