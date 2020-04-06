@@ -393,8 +393,27 @@ static uint16_t ENIPProbingParser(Flow *f, uint8_t direction,
         SCLogDebug("length too small to be a ENIP header");
         return ALPROTO_UNKNOWN;
     }
-
-    return ALPROTO_ENIP;
+    uint16_t cmd;
+    int ret = ByteExtractUint16(&cmd, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
+                                (const uint8_t *) (input));
+    if(ret < 0) {
+        return ALPROTO_FAILED;
+    }
+    //ok for all the known commands
+    switch(cmd) {
+        case NOP:
+        case LIST_SERVICES:
+        case LIST_IDENTITY:
+        case LIST_INTERFACES:
+        case REGISTER_SESSION:
+        case UNREGISTER_SESSION:
+        case SEND_RR_DATA:
+        case SEND_UNIT_DATA:
+        case INDICATE_STATUS:
+        case CANCEL:
+            return ALPROTO_ENIP;
+    }
+    return ALPROTO_FAILED;
 }
 
 /**
