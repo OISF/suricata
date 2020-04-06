@@ -14,6 +14,8 @@
 
 #define HEADER_LEN 6
 
+//rule of thumb constant, so as not to timeout target
+#define PROTO_DETECT_MAX_LEN 1024
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -59,7 +61,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
          * we find the same protocol or ALPROTO_UNKNOWN.
          * Otherwise, we have evasion with TCP splitting
          */
-        for (size_t i = 0; i < size-HEADER_LEN; i++) {
+        for (size_t i = 0; i < size-HEADER_LEN && i < PROTO_DETECT_MAX_LEN; i++) {
             alproto2 = AppLayerProtoDetectGetProto(alpd_tctx, f, data+HEADER_LEN, i, f->proto, data[0], &reverse);
             if (alproto2 != ALPROTO_UNKNOWN && alproto2 != alproto) {
                 printf("Assertion failure : With input length %"PRIuMAX", found %s instead of %s\n", (uintmax_t) i, AppProtoToString(alproto2), AppProtoToString(alproto));
