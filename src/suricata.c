@@ -281,6 +281,7 @@ int RunmodeGetCurrent(void)
  *  construction, etc.
  */
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 static void SignalHandlerSigint(/*@unused@*/ int sig)
 {
     sigint_count = 1;
@@ -289,6 +290,8 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig)
 {
     sigterm_count = 1;
 }
+#endif
+
 #ifndef OS_WIN32
 /**
  * SIGUSR2 handler.  Just set sigusr2_count.  The main loop will act on

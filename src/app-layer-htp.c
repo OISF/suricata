@@ -6482,6 +6482,8 @@ static int HTPParserTest16(void)
         goto end;
     }
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+//these events are disabled during fuzzing as they are too noisy and consume much resource
     FLOWLOCK_WRLOCK(f);
     void *txtmp = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
     AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, txtmp);
@@ -6501,6 +6503,7 @@ static int HTPParserTest16(void)
         printf("HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT not set: ");
         goto end;
     }
+#endif
 
     result = 1;
 end:
