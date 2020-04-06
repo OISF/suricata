@@ -645,12 +645,10 @@ static uint32_t AppLayerProtoDetectProbingParserGetMask(AppProto alproto)
     SCEnter();
 
     if (!(alproto > ALPROTO_UNKNOWN && alproto < ALPROTO_FAILED)) {
-        SCLogError(SC_ERR_ALPARSER, "Unknown protocol detected - %"PRIu16,
-                   alproto);
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_ALPARSER, "Unknown protocol detected - %u", alproto);
     }
 
-    SCReturnUInt(1 << alproto);
+    SCReturnUInt(1UL << (uint32_t)alproto);
 }
 
 static AppLayerProtoDetectProbingParserElement *AppLayerProtoDetectProbingParserElementAlloc(void)
