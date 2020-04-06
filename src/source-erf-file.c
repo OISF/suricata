@@ -165,8 +165,13 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
         }
         SCReturnInt(TM_ECODE_FAILED);
     }
-    int rlen = SCNtohs(dr.rlen);
-    int wlen = SCNtohs(dr.wlen);
+    uint16_t rlen = SCNtohs(dr.rlen);
+    uint16_t wlen = SCNtohs(dr.wlen);
+    if (rlen < sizeof(DagRecord)) {
+        SCLogError(SC_ERR_ERF_BAD_RLEN, "Bad ERF record, "
+            "record length less than size of header");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
     r = fread(GET_PKT_DATA(p), rlen - sizeof(DagRecord), 1, etv->erf);
     if (r < 1) {
         if (feof(etv->erf)) {
