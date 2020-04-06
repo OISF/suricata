@@ -208,8 +208,6 @@ static DetectSslVersionData *DetectSslVersionParse(const char *str)
     }
 
     if (ret > 1) {
-        const char *str_ptr;
-        char *orig;
         uint8_t found = 0, neg = 0;
         char *tmp_str;
 
@@ -220,7 +218,8 @@ static DetectSslVersionData *DetectSslVersionParse(const char *str)
 
         int i;
         for (i = 1; i < ret; i++) {
-            res = pcre_get_substring((char *) str, ov, MAX_SUBSTRINGS, i, &str_ptr);
+            char ver_ptr[64];
+            res = pcre_copy_substring((char *) str, ov, MAX_SUBSTRINGS, i, ver_ptr, sizeof(ver_ptr));
             if (res < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 if (found == 0)
@@ -228,11 +227,7 @@ static DetectSslVersionData *DetectSslVersionParse(const char *str)
                 break;
             }
 
-            orig = SCStrdup((char*) str_ptr);
-            if (unlikely(orig == NULL)) {
-                goto error;
-            }
-            tmp_str = orig;
+            tmp_str = ver_ptr;
 
             /* Let's see if we need to scape "'s */
             if (tmp_str[0] == '"') {
@@ -271,20 +266,16 @@ static DetectSslVersionData *DetectSslVersionParse(const char *str)
                 if (neg == 1)
                     ssl->data[TLS13].flags |= DETECT_SSL_VERSION_NEGATED;
             }  else if (strcmp(tmp_str, "") == 0) {
-                SCFree(orig);
                 if (found == 0)
                     goto error;
                 break;
             } else {
                 SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
-                SCFree(orig);
                 goto error;
             }
 
             found = 1;
             neg = 0;
-            SCFree(orig);
-            pcre_free_substring(str_ptr);
         }
     }
 
