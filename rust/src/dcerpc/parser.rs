@@ -251,6 +251,7 @@ named_args!(pub dcerpc_parse_request(endianness: Endianness) <DCERPCRequest>,
     do_parse!(
         ctxid: u16!(endianness) >>
         opnum: u16!(endianness) >>
+        _pad: take!(4) >>
         (
             DCERPCRequest {
                 ctxid: ctxid,
