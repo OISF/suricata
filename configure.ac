@@ -441,6 +441,7 @@
     AM_CONDITIONAL([BUILD_FUZZTARGETS], [test "x$enable_fuzztargets" = "xyes"])
     AC_PROG_CXX
     AS_IF([test "x$enable_fuzztargets" = "xyes"], [
+        AC_DEFINE([FUZZ], [1], [Fuzz targets are enabled])
         AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
         CFLAGS_ORIG=$CFLAGS
         CFLAGS="-Werror"
@@ -478,9 +479,6 @@ return 0;
   # enable the running of unit tests
     AC_ARG_ENABLE(unittests,
            AS_HELP_STRING([--enable-unittests], [Enable compilation of the unit tests]),[enable_unittests=$enableval],[enable_unittests=no])
-    AS_IF([test "x$enable_fuzztargets" = "xyes"], [
-        export enable_unittests="yes"
-    ])
     AS_IF([test "x$enable_unittests" = "xyes"], [
         AC_DEFINE([UNITTESTS],[1],[Enable built-in unittests])
     ])
