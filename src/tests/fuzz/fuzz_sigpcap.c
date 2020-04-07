@@ -92,6 +92,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         tmm_modules[TMM_FLOWWORKER].ThreadInit(&tv, NULL, &fwd);
         StatsSetupPrivate(&tv);
 
+        PacketPoolInitEmpty();
         initialized = 1;
     }
 
