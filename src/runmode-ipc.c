@@ -143,7 +143,7 @@ int RunModeIpcAutoFp(void)
     SCLogDebug("server %s", server);
 
     RunModeInitialize();
-    TimeModeSetOffline();
+//    TimeModeSetOffline();
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();

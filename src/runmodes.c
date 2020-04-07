@@ -526,7 +526,7 @@ bool IsRunModeOffline(enum RunModes run_mode_to_check)
         case RUNMODE_ERF_FILE:
         case RUNMODE_ENGINE_ANALYSIS:
         case RUNMODE_UNIX_SOCKET:
-        case RUNMODE_IPC:
+//        case RUNMODE_IPC:
             return true;
             break;
         default:
