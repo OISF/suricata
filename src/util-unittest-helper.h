@@ -24,6 +24,10 @@
 #ifndef __UTIL_UNITTEST_HELPER__
 #define __UTIL_UNITTEST_HELPER__
 
+#if defined(UNITTESTS) || defined(FUZZ)
+Flow *TestHelperBuildFlow(int family, const char *src, const char *dst, Port sp, Port dp);
+int TestHelperBufferToFile(const char *name, const uint8_t *data, size_t size);
+#endif
 #ifdef UNITTESTS
 uint32_t UTHSetIPv4Address(const char *);
 
@@ -63,7 +67,6 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *, uint16_t , uint8_t ipproto, const char
 
 void * UTHmemsearch(const void *big, size_t big_len, const void *little, size_t little_len);
 int UTHParseSignature(const char *str, bool expect);
-int UTHbufferToFile(const char * name, const uint8_t *data, size_t size);
 #endif
 
 void UTHRegisterTests(void);

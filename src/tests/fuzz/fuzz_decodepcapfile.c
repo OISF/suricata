@@ -83,7 +83,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
 
     //rewrite buffer to a file as libpcap does not have buffer inputs
-    if (UTHbufferToFile("/tmp/fuzz.pcap", data, size) < 0) {
+    if (TestHelperBufferToFile("/tmp/fuzz.pcap", data, size) < 0) {
         return 0;
     }
 

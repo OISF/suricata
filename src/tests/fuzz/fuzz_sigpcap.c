@@ -119,11 +119,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     if (pos > 0 && pos < size) {
         // dump signatures to a file so as to reuse SigLoadSignatures
-        if (UTHbufferToFile(suricata.sig_file, data, pos-1) < 0) {
+        if (TestHelperBufferToFile(suricata.sig_file, data, pos-1) < 0) {
             return 0;
         }
     } else {
-        if (UTHbufferToFile(suricata.sig_file, data, pos) < 0) {
+        if (TestHelperBufferToFile(suricata.sig_file, data, pos) < 0) {
             return 0;
         }
     }
@@ -139,7 +139,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     size -= pos;
 
     //rewrite buffer to a file as libpcap does not have buffer inputs
-    if (UTHbufferToFile("/tmp/fuzz.pcap", data, size) < 0) {
+    if (TestHelperBufferToFile("/tmp/fuzz.pcap", data, size) < 0) {
         return 0;
     }
 
