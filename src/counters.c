@@ -147,7 +147,7 @@ static void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
 void StatsAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 {
     StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
-#ifdef UNITTESTS
+#if defined (UNITTESTS) || defined (FUZZ)
     if (pca->initialized == 0)
         return;
 #endif
@@ -168,7 +168,7 @@ void StatsAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 void StatsIncr(ThreadVars *tv, uint16_t id)
 {
     StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
-#ifdef UNITTESTS
+#if defined (UNITTESTS) || defined (FUZZ)
     if (pca->initialized == 0)
         return;
 #endif
@@ -190,7 +190,7 @@ void StatsIncr(ThreadVars *tv, uint16_t id)
 void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 {
     StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
-#ifdef UNITTESTS
+#if defined (UNITTESTS) || defined (FUZZ)
     if (pca->initialized == 0)
         return;
 #endif
@@ -996,7 +996,7 @@ uint16_t StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *tv)
  */
 uint16_t StatsRegisterGlobalCounter(const char *name, uint64_t (*Func)(void))
 {
-#ifdef UNITTESTS
+#if defined (UNITTESTS) || defined (FUZZ)
     if (stats_ctx == NULL)
         return 0;
 #else
