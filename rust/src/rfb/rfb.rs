@@ -106,7 +106,7 @@ fn handle_incomplete(input: &[u8], current: &[u8], nom_needed: nom::Needed) -> A
         if let Some(consumed) = input.len().checked_sub(current.len()) {
             if let Some(needed) = current.len().checked_add(needed_size) {
                 if consumed <= (std::u32::MAX as usize) && needed <= (std::u32::MAX as usize) {
-                    return AppLayerResult::incomplete(consumed as u32, needed as u32);
+                    return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                 }
             }
         }
