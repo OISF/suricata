@@ -929,9 +929,9 @@ static int DetectAsn1Test05(void)
         buf[0] = '\x09';
         /* length, definite form, 2 octets */
         buf[1] = '\x82';
-        /* length is the sum of the following octets (257): */
-        buf[2] = '\xFE';
-        buf[3] = '\x03';
+        /* length is the representation of the following octets (257): */
+        buf[2] = '\x01';
+        buf[3] = '\x01';
 
         /* Fill the content of the number */
         uint16_t i = 4;
@@ -999,9 +999,9 @@ static int DetectAsn1Test06(void)
         buf[0] = '\x09';
         /* length, definite form, 2 octets */
         buf[1] = '\x82';
-        /* length is the sum of the following octets (256): */
-        buf[2] = '\xFE';
-        buf[3] = '\x02';
+        /* length is the representation of the following octets (256): */
+        buf[2] = '\x01';
+        buf[3] = '\x00';
 
         /* Fill the content of the number */
         uint16_t i = 4;
@@ -1217,9 +1217,9 @@ static int DetectAsn1TestReal03(void)
     buf[0] = '\x09';
     /* length, definite form, 2 octets */
     buf[1] = '\x82';
-    /* length is the sum of the following octets (257): */
-    buf[2] = '\xFE';
-    buf[3] = '\x03';
+    /* length is the representation of the following octets (257): */
+    buf[2] = '\x01';
+    buf[3] = '\x01';
 
     /* Fill the content of the number */
     uint16_t i = 4;
