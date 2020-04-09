@@ -53,7 +53,7 @@ void RegisterTemplateRustParsers(void)
         return;
     }
     /* TEMPLATE_END_REMOVE */
-    SCLogNotice("Registring Rust template parser.");
+    SCLogNotice("Registering Rust template parser.");
     rs_template_register_parser();
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_TEMPLATE_RUST,
