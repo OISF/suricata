@@ -34,6 +34,10 @@
 #define YAML_VERSION_MAJOR 1
 #define YAML_VERSION_MINOR 1
 
+/* The maximum level of recursion allowed while parsing the YAML
+ * file. */
+#define RECURSION_LIMIT 128
+
 /* Sometimes we'll have to create a node name on the fly (integer
  * conversion, etc), so this is a default length to allocate that will
  * work most of the time. */
@@ -44,7 +48,7 @@ static int mangle_errors = 0;
 
 static char *conf_dirname = NULL;
 
-static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq);
+static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel);
 
 /* Configuration processing states. */
 enum conf_state {
@@ -144,7 +148,7 @@ ConfYamlHandleInclude(ConfNode *parent, const char *filename)
 
     yaml_parser_set_input_file(&parser, file);
 
-    if (ConfYamlParse(&parser, parent, 0) != 0) {
+    if (ConfYamlParse(&parser, parent, 0, 0) != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR,
             "Failed to include configuration file %s", filename);
         goto done;
@@ -170,7 +174,7 @@ done:
  * \retval 0 on success, -1 on failure.
  */
 static int
-ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
+ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
 {
     ConfNode *node = parent;
     yaml_event_t event;
@@ -178,13 +182,19 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
     int done = 0;
     int state = 0;
     int seq_idx = 0;
+    int retval = 0;
+
+    if (rlevel++ > RECURSION_LIMIT) {
+        FatalError(SC_ERR_FATAL, "Recusion limit hit while parsing configuration file, aborting.");
+    }
 
     while (!done) {
         if (!yaml_parser_parse(parser, &event)) {
             SCLogError(SC_ERR_CONF_YAML_ERROR,
                 "Failed to parse configuration file at line %" PRIuMAX ": %s\n",
                 (uintmax_t)parser->problem_mark.line, parser->problem);
-            return -1;
+            retval = -1;
+            break;
         }
 
         if (event.type == YAML_DOCUMENT_START_EVENT) {
@@ -235,17 +245,17 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 else {
                     seq_node = ConfNodeNew();
                     if (unlikely(seq_node == NULL)) {
-                        return -1;
+                        goto fail;
                     }
                     seq_node->name = SCStrdup(sequence_node_name);
                     if (unlikely(seq_node->name == NULL)) {
                         SCFree(seq_node);
-                        return -1;
+                        goto fail;
                     }
                     seq_node->val = SCStrdup(value);
                     if (unlikely(seq_node->val == NULL)) {
                         SCFree(seq_node->name);
-                        return -1;
+                        goto fail;
                     }
                 }
                 TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
@@ -322,14 +332,14 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
         }
         else if (event.type == YAML_SEQUENCE_START_EVENT) {
             SCLogDebug("event.type=YAML_SEQUENCE_START_EVENT; state=%d", state);
-            if (ConfYamlParse(parser, node, 1) != 0)
+            if (ConfYamlParse(parser, node, 1, rlevel) != 0)
                 goto fail;
             node->is_seq = 1;
             state = CONF_KEY;
         }
         else if (event.type == YAML_SEQUENCE_END_EVENT) {
             SCLogDebug("event.type=YAML_SEQUENCE_END_EVENT; state=%d", state);
-            return 0;
+            done = 1;
         }
         else if (event.type == YAML_MAPPING_START_EVENT) {
             SCLogDebug("event.type=YAML_MAPPING_START_EVENT; state=%d", state);
@@ -348,21 +358,21 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 else {
                     seq_node = ConfNodeNew();
                     if (unlikely(seq_node == NULL)) {
-                        return -1;
+                        goto fail;
                     }
                     seq_node->name = SCStrdup(sequence_node_name);
                     if (unlikely(seq_node->name == NULL)) {
                         SCFree(seq_node);
-                        return -1;
+                        goto fail;
                     }
                 }
                 seq_node->is_seq = 1;
                 TAILQ_INSERT_TAIL(&node->head, seq_node, next);
-                if (ConfYamlParse(parser, seq_node, 0) != 0)
+                if (ConfYamlParse(parser, seq_node, 0, rlevel) != 0)
                     goto fail;
             }
             else {
-                if (ConfYamlParse(parser, node, inseq) != 0)
+                if (ConfYamlParse(parser, node, inseq, rlevel) != 0)
                     goto fail;
             }
             state = CONF_KEY;
@@ -382,10 +392,12 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
 
     fail:
         yaml_event_delete(&event);
-        return -1;
+        retval = -1;
+        break;
     }
 
-    return 0;
+    rlevel--;
+    return retval;
 }
 
 /**
@@ -437,7 +449,7 @@ ConfYamlLoadFile(const char *filename)
     }
 
     yaml_parser_set_input_file(&parser, infile);
-    ret = ConfYamlParse(&parser, root, 0);
+    ret = ConfYamlParse(&parser, root, 0, 0);
     yaml_parser_delete(&parser);
     fclose(infile);
 
@@ -459,7 +471,7 @@ ConfYamlLoadString(const char *string, size_t len)
         exit(EXIT_FAILURE);
     }
     yaml_parser_set_input_string(&parser, (const unsigned char *)string, len);
-    ret = ConfYamlParse(&parser, root, 0);
+    ret = ConfYamlParse(&parser, root, 0, 0);
     yaml_parser_delete(&parser);
 
     return ret;
@@ -525,7 +537,7 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
         }
     }
     yaml_parser_set_input_file(&parser, infile);
-    ret = ConfYamlParse(&parser, root, 0);
+    ret = ConfYamlParse(&parser, root, 0, 0);
     yaml_parser_delete(&parser);
     fclose(infile);
 
