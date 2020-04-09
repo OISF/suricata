@@ -67,7 +67,7 @@ install them without installing Suricata.
 """
 
 setup(
-    name="suricata",
+    name="suricatactl",
     description="Suricata control tools",
     long_description=long_description,
     version=version,
