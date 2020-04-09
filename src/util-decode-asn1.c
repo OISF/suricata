@@ -146,15 +146,15 @@ static uint32_t SCAsn1GetLengthLongForm(Asn1Ctx *ac)
             return ASN1_PARSER_ERR;
         }
 
-        if ((uint64_t) ((uint64_t)content_len +
-            (uint64_t) ASN1_BER_GET_HIGH_TAG_NUM(raw_len)) > UINT32_MAX)
+        uint64_t tmp_len = ((uint64_t)content_len << 8) + (uint64_t) raw_len;
+        if (tmp_len > UINT32_MAX)
         {
             node->flags |= ASN1_BER_EVENT_LEN_TOO_LONG;
             ac->parser_status = ASN1_STATUS_INVALID;
             return ASN1_PARSER_ERR;
         }
 
-        content_len += raw_len;
+        content_len = tmp_len;
     }
 
     ac->iter++;
@@ -674,9 +674,9 @@ static int DecodeAsn1Test05(void)
 
     SCAsn1Decode(ac, ac->cur_frame);
     Asn1Node *node = ASN1CTX_GET_NODE(ac, 0);
-    if (node->len.len!= 32) {
+    if (node->len.len!= 4112) {
         ret = 0;
-        printf("Error, expected length 10, got %"PRIu32": ", node->len.len);
+        printf("Error, expected length 4112, got %"PRIu32": ", node->len.len);
         goto end;
     }
 
@@ -705,7 +705,7 @@ static int DecodeAsn1Test06(void)
     Asn1Node *node = ASN1CTX_GET_NODE(ac, 0);
     if (node->len.len != 38) {
         ret = 0;
-        printf("Error, expected length 10, got %"PRIu32": ", node->len.len);
+        printf("Error, expected length 38, got %"PRIu32": ", node->len.len);
         goto end;
     }
 
