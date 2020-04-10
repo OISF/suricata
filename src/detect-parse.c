@@ -1275,7 +1275,7 @@ Signature *SigAlloc (void)
 
     sig->init_data->smlists_tail = SCCalloc(sig->init_data->smlists_array_size, sizeof(SigMatch *));
     if (sig->init_data->smlists_tail == NULL) {
-        SCFree(sig->init_data->smlists_tail);
+        SCFree(sig->init_data->smlists);
         SCFree(sig->init_data);
         SCFree(sig);
         return NULL;
