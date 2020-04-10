@@ -127,18 +127,19 @@ To use it::
 Debian
 ^^^^^^
 
-In Debian 9 (Stretch) do::
+In Debian 9 (stretch) and later do::
 
-    apt-get install suricata
+    sudo apt-get install suricata
 
-In Debian Jessie Suricata is out of date, but an updated version is in Debian Backports.
+In Debian stable Suricata is usually not the latest version, but an updated version is available from Debian backports.
+To use backports, the backports repository for the current stable distribution needs to be added to the system-wide sources list.
 
-As root do::
+For Debian 10 (buster), for instance, run the following as root::
 
-    echo "deb http://http.debian.net/debian jessie-backports main" > \
+    echo "deb http://http.debian.net/debian buster-backports main" > \
         /etc/apt/sources.list.d/backports.list
     apt-get update
-    apt-get install suricata -t jessie-backports
+    apt-get install suricata -t buster-backports
 
 Fedora
 ^^^^^^
