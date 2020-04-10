@@ -2354,8 +2354,14 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, const char *sigstr)
     return (dup_sig == 0 || dup_sig == 2) ? sig : NULL;
 
 error:
-    if (sig != NULL)
+    /* free the 2nd sig bidir may have set up */
+    if (sig != NULL && sig->next != NULL) {
+        SigFree(sig->next);
+        sig->next = NULL;
+    }
+    if (sig != NULL) {
         SigFree(sig);
+    }
     return NULL;
 }
 
