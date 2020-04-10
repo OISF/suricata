@@ -14,30 +14,33 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
-use crate::dcerpc::dcerpc::{DCERPCHdrUdp, DCERPCHdr, DCERPCRequest, DCERPCBind, BindCtxItem, DCERPCBindAck, DCERPCBindAckResult, Uuid};
+use crate::dcerpc::dcerpc::{
+    BindCtxItem, DCERPCBind, DCERPCBindAck, DCERPCBindAckResult, DCERPCHdr, DCERPCHdrUdp,
+    DCERPCRequest, Uuid,
+};
+use nom::number::complete::{be_u8, le_u16, le_u32, le_u8};
 use nom::number::Endianness;
-use nom::number::complete::{be_u8, le_u8, le_u16, le_u32};
 
 named!(pub parse_uuid<Uuid>,
-    do_parse!(
-        time_low: take!(4) >>
-        time_mid: take!(2) >>
-        time_hi_and_version: take!(2) >>
-        clock_seq_hi_and_reserved: be_u8 >>
-        clock_seq_low: be_u8 >>
-        node: take!(6) >>
-        (
-            Uuid {
-                time_low: time_low.to_vec(),
-                time_mid: time_mid.to_vec(),
-                time_hi_and_version: time_hi_and_version.to_vec(),
-                clock_seq_hi_and_reserved: clock_seq_hi_and_reserved,
-                clock_seq_low: clock_seq_low,
-                node: node.to_vec(),
-            }
-            )
+do_parse!(
+    time_low: take!(4) >>
+    time_mid: take!(2) >>
+    time_hi_and_version: take!(2) >>
+    clock_seq_hi_and_reserved: be_u8 >>
+    clock_seq_low: be_u8 >>
+    node: take!(6) >>
+    (
+        Uuid {
+            time_low: time_low.to_vec(),
+            time_mid: time_mid.to_vec(),
+            time_hi_and_version: time_hi_and_version.to_vec(),
+            clock_seq_hi_and_reserved: clock_seq_hi_and_reserved,
+            clock_seq_low: clock_seq_low,
+            node: node.to_vec(),
+        }
         )
-    );
+    )
+);
 
 fn uuid_to_vec(uuid: Uuid) -> Vec<u8> {
     let mut uuidtmp = uuid;
@@ -68,70 +71,70 @@ fn assemble_uuid(uuid: Uuid) -> Vec<u8> {
 }
 
 named!(pub dcerpc_parse_udp_header<DCERPCHdrUdp>,
-       do_parse!(
-           rpc_vers: be_u8 >>
-           pkt_type: be_u8 >>
-           flags1: be_u8 >>
-           flags2: be_u8 >>
-           drep: take!(3) >>
-           endianness: value!(if drep[0] == 0 { Endianness::Big } else { Endianness::Little }) >>
-           serial_hi: be_u8 >>
-           objectuuid: take!(16) >>
-           interfaceuuid: take!(16) >>
-           activityuuid: take!(16) >>
-           server_boot: u32!(endianness) >>
-           if_vers: u32!(endianness) >>
-           seqnum: u32!(endianness) >>
-           opnum: u16!(endianness) >>
-           ihint: u16!(endianness) >>
-           ahint: u16!(endianness) >>
-           fraglen: u16!(endianness) >>
-           fragnum: u16!(endianness) >>
-           auth_proto: be_u8 >>
-           serial_lo: be_u8 >>
-           (
-               DCERPCHdrUdp {
-                   rpc_vers: rpc_vers,
-                   pkt_type: pkt_type,
-                   flags1: flags1,
-                   flags2: flags2,
-                   drep: drep.to_vec(),
-                   serial_hi: serial_hi,
-                   objectuuid: match parse_uuid(objectuuid) {
-                       Ok((_, vect)) => assemble_uuid(vect),
-                       Err(e) => {
-                           println!("{}", e);
-                           vec![0]
-                       },
-                   },
-                   interfaceuuid: match parse_uuid(interfaceuuid) {
-                       Ok((_, vect)) => assemble_uuid(vect),
-                       Err(e) => {
-                           println!("{}", e);
-                           vec![0]
-                       },
-                   },
-                   activityuuid: match parse_uuid(activityuuid){
-                       Ok((_, vect)) => assemble_uuid(vect),
-                       Err(e) => {
-                           println!("{}", e);
-                           vec![0]
-                       },
-                   },
-                   server_boot: server_boot,
-                   if_vers: if_vers,
-                   seqnum: seqnum,
-                   opnum: opnum,
-                   ihint: ihint,
-                   ahint: ahint,
-                   fraglen: fraglen,
-                   fragnum: fragnum,
-                   auth_proto: auth_proto,
-                   serial_lo: serial_lo,
-               }
-               )
-           )
-   );
+    do_parse!(
+        rpc_vers: be_u8 >>
+        pkt_type: be_u8 >>
+        flags1: be_u8 >>
+        flags2: be_u8 >>
+        drep: take!(3) >>
+        endianness: value!(if drep[0] == 0 { Endianness::Big } else { Endianness::Little }) >>
+        serial_hi: be_u8 >>
+        objectuuid: take!(16) >>
+        interfaceuuid: take!(16) >>
+        activityuuid: take!(16) >>
+        server_boot: u32!(endianness) >>
+        if_vers: u32!(endianness) >>
+        seqnum: u32!(endianness) >>
+        opnum: u16!(endianness) >>
+        ihint: u16!(endianness) >>
+        ahint: u16!(endianness) >>
+        fraglen: u16!(endianness) >>
+        fragnum: u16!(endianness) >>
+        auth_proto: be_u8 >>
+        serial_lo: be_u8 >>
+        (
+            DCERPCHdrUdp {
+                rpc_vers: rpc_vers,
+                pkt_type: pkt_type,
+                flags1: flags1,
+                flags2: flags2,
+                drep: drep.to_vec(),
+                serial_hi: serial_hi,
+                objectuuid: match parse_uuid(objectuuid) {
+                    Ok((_, vect)) => assemble_uuid(vect),
+                    Err(e) => {
+                        println!("{}", e);
+                        vec![0]
+                    },
+                },
+                interfaceuuid: match parse_uuid(interfaceuuid) {
+                    Ok((_, vect)) => assemble_uuid(vect),
+                    Err(e) => {
+                        println!("{}", e);
+                        vec![0]
+                    },
+                },
+                activityuuid: match parse_uuid(activityuuid){
+                    Ok((_, vect)) => assemble_uuid(vect),
+                    Err(e) => {
+                        println!("{}", e);
+                        vec![0]
+                    },
+                },
+                server_boot: server_boot,
+                if_vers: if_vers,
+                seqnum: seqnum,
+                opnum: opnum,
+                ihint: ihint,
+                ahint: ahint,
+                fraglen: fraglen,
+                fragnum: fragnum,
+                auth_proto: auth_proto,
+                serial_lo: serial_lo,
+            }
+            )
+        )
+);
 
 //#[derive(Debug,PartialEq)]
 //pub struct DceRpcBindAckResult<'a> {
@@ -156,114 +159,114 @@ named!(pub parse_dcerpc_bindack_result<DCERPCBindAckResult>,
 ));
 
 named!(pub parse_dcerpc_bindack<DCERPCBindAck>,
-    do_parse!(
-            _max_xmit_frag: le_u16 >>
-            _max_recv_frag: le_u16 >>
-            _assoc_group: take!(4) >>
-            sec_addr_len: le_u16 >>
-            take!(sec_addr_len) >>
-            cond!((sec_addr_len + 2) % 4 != 0, take!(4 - (sec_addr_len + 2) % 4)) >>
-            numctxitems: le_u8 >>
-            take!(3) >> //padding
-            ctxitems: count!(parse_dcerpc_bindack_result, numctxitems as usize) >>
-            (
-                 DCERPCBindAck {
-                    accepted_uuid_list: Vec::new(),
-                    sec_addr_len: sec_addr_len,
-                    numctxitems: numctxitems,
-                    ctxitems: ctxitems,
-                 }
-            )
-        )
-    );
-
-named_args!(pub parse_bindctx_item(endianness: Endianness) <BindCtxItem>,
-    do_parse!(
-        ctxid: u16!(endianness) >>
-        take!(2) >>  // Not sure what this is for
-        uuid: take!(16) >>
-        version: u16!(endianness) >>
-        versionminor: u16!(endianness) >>
-        take!(20) >>
-        (
-            BindCtxItem {
-                ctxid: ctxid,
-                // UUID parsing for TCP seems to change as per endianness
-                uuid: match parse_uuid(uuid) {
-                    Ok((_, vect)) => match endianness {
-                        Endianness::Little => assemble_uuid(vect),
-                        _ => uuid_to_vec(vect),
-                    },
-                    // Shouldn't happen
-                    Err(_e) => {vec![0]},
-                },
-                version: version,
-                versionminor: versionminor,
-                }
-            )
-        )
-    );
-
-named!(pub dcerpc_parse_bind<DCERPCBind>,
-    do_parse!(
+do_parse!(
         _max_xmit_frag: le_u16 >>
         _max_recv_frag: le_u16 >>
-        _assoc_group_id: le_u32 >>
+        _assoc_group: take!(4) >>
+        sec_addr_len: le_u16 >>
+        take!(sec_addr_len) >>
+        cond!((sec_addr_len + 2) % 4 != 0, take!(4 - (sec_addr_len + 2) % 4)) >>
         numctxitems: le_u8 >>
-        take!(3) >>
+        take!(3) >> //padding
+        ctxitems: count!(parse_dcerpc_bindack_result, numctxitems as usize) >>
         (
-            DCERPCBind {
+             DCERPCBindAck {
+                accepted_uuid_list: Vec::new(),
+                sec_addr_len: sec_addr_len,
                 numctxitems: numctxitems,
-                uuid_list: Vec::new(),
-                // TODO count(ctxitems) as per numctxitems just like bindack
-                }
-            )
+                ctxitems: ctxitems,
+             }
         )
-    );
+    )
+);
+
+named_args!(pub parse_bindctx_item(endianness: Endianness) <BindCtxItem>,
+do_parse!(
+    ctxid: u16!(endianness) >>
+    take!(2) >>  // Not sure what this is for
+    uuid: take!(16) >>
+    version: u16!(endianness) >>
+    versionminor: u16!(endianness) >>
+    take!(20) >>
+    (
+        BindCtxItem {
+            ctxid: ctxid,
+            // UUID parsing for TCP seems to change as per endianness
+            uuid: match parse_uuid(uuid) {
+                Ok((_, vect)) => match endianness {
+                    Endianness::Little => assemble_uuid(vect),
+                    _ => uuid_to_vec(vect),
+                },
+                // Shouldn't happen
+                Err(_e) => {vec![0]},
+            },
+            version: version,
+            versionminor: versionminor,
+            }
+        )
+    )
+);
+
+named!(pub dcerpc_parse_bind<DCERPCBind>,
+do_parse!(
+    _max_xmit_frag: le_u16 >>
+    _max_recv_frag: le_u16 >>
+    _assoc_group_id: le_u32 >>
+    numctxitems: le_u8 >>
+    take!(3) >>
+    (
+        DCERPCBind {
+            numctxitems: numctxitems,
+            uuid_list: Vec::new(),
+            // TODO count(ctxitems) as per numctxitems just like bindack
+            }
+        )
+    )
+);
 
 named!(pub dcerpc_parse_header<DCERPCHdr>,
-    do_parse!(
-        rpc_vers: be_u8 >>
-        rpc_vers_minor: be_u8 >>
-        hdrtype: be_u8 >>
-        pfc_flags: be_u8 >>
-        packed_drep: take!(4) >>
-        endianness: value!(if packed_drep[0] & 0x10 == 0 { Endianness::Big } else { Endianness::Little }) >>
-        frag_length: u16!(endianness) >>
-        auth_length: u16!(endianness) >>
-        call_id: u32!(endianness) >>
-        (
-            DCERPCHdr {
-                rpc_vers: rpc_vers,
-                rpc_vers_minor: rpc_vers_minor,
-                hdrtype: hdrtype,
-                pfc_flags: pfc_flags,
-                packed_drep: packed_drep.to_vec(),
-                frag_length: frag_length,
-                auth_length: auth_length,
-                call_id: call_id,
-                }
-            )
+do_parse!(
+    rpc_vers: be_u8 >>
+    rpc_vers_minor: be_u8 >>
+    hdrtype: be_u8 >>
+    pfc_flags: be_u8 >>
+    packed_drep: take!(4) >>
+    endianness: value!(if packed_drep[0] & 0x10 == 0 { Endianness::Big } else { Endianness::Little }) >>
+    frag_length: u16!(endianness) >>
+    auth_length: u16!(endianness) >>
+    call_id: u32!(endianness) >>
+    (
+        DCERPCHdr {
+            rpc_vers: rpc_vers,
+            rpc_vers_minor: rpc_vers_minor,
+            hdrtype: hdrtype,
+            pfc_flags: pfc_flags,
+            packed_drep: packed_drep.to_vec(),
+            frag_length: frag_length,
+            auth_length: auth_length,
+            call_id: call_id,
+            }
         )
-    );
+    )
+);
 
 named_args!(pub dcerpc_parse_request(endianness: Endianness) <DCERPCRequest>,
-    do_parse!(
-        ctxid: u16!(endianness) >>
-        opnum: u16!(endianness) >>
-        _pad: take!(4) >>
-        (
-            DCERPCRequest {
-                ctxid: ctxid,
-                opnum: opnum,
-                first_request_seen: 1,
-                stub_data_buffer: Vec::new(),
-                stub_data_buffer_len: 0,
-                stub_data_buffer_reset: false,
-                }
-            )
+do_parse!(
+    ctxid: u16!(endianness) >>
+    opnum: u16!(endianness) >>
+    _pad: take!(4) >>
+    (
+        DCERPCRequest {
+            ctxid: ctxid,
+            opnum: opnum,
+            first_request_seen: 1,
+            stub_data_buffer: Vec::new(),
+            stub_data_buffer_len: 0,
+            stub_data_buffer_reset: false,
+            }
         )
-    );
+    )
+);
 
 #[cfg(test)]
 mod tests {
@@ -336,9 +339,8 @@ mod tests {
     #[test]
     fn test_dcerpc_parse_header() {
         let dcerpcheader: &[u8] = &[
-            0x05, 0x00, 0x00, 0x00, 0x10,
-         0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00,
-         0x00, 0x00, 0x00,
+            0x05, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
         ];
         let (_remainder, header) = dcerpc_parse_header(dcerpcheader).unwrap();
         assert_eq!(5, header.rpc_vers);
@@ -359,12 +361,10 @@ mod tests {
     #[test]
     fn test_parse_bindctx_item() {
         let dcerpcbind: &[u8] = &[
-            0x00, 0x00, 0x01, 0x00, 0x2c, 0xd0,
-         0x28, 0xda, 0x76, 0x91, 0xf6, 0x6e, 0xcb, 0x0f,
-         0xbf, 0x85, 0xcd, 0x9b, 0xf6, 0x39, 0x01, 0x00,
-         0x03, 0x00, 0x04, 0x5d, 0x88, 0x8a, 0xeb, 0x1c,
-         0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00, 0x2b, 0x10,
-         0x48, 0x60, 0x02, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x01, 0x00, 0x2c, 0xd0, 0x28, 0xda, 0x76, 0x91, 0xf6, 0x6e, 0xcb, 0x0f,
+            0xbf, 0x85, 0xcd, 0x9b, 0xf6, 0x39, 0x01, 0x00, 0x03, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+            0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00, 0x2b, 0x10, 0x48, 0x60, 0x02, 0x00,
+            0x00, 0x00,
         ];
         let (_remainder, ctxitem) = parse_bindctx_item(dcerpcbind, Endianness::Little).unwrap();
         assert_eq!(0, ctxitem.ctxid);
