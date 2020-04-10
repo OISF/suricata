@@ -358,7 +358,7 @@ static int DetectDnsQueryTest02(void)
                         0x00, 0x01, 0x00, 0x01, };
 
     uint8_t buf2[] = {  0x10, 0x32,                             /* tx id */
-                        0x81, 0x80,                             /* flags: resp, recursion desired, recusion available */
+                        0x81, 0x80,                             /* flags: resp, recursion desired, recursion available */
                         0x00, 0x01,                             /* 1 query */
                         0x00, 0x01,                             /* 1 answer */
                         0x00, 0x00, 0x00, 0x00,                 /* no auth rr, additional rr */
@@ -741,7 +741,7 @@ static int DetectDnsQueryTest05(void)
 
     uint8_t buf3[] = {  0x00, 44,                               /* len 44 */
                         0x10, 0x32,                             /* tx id */
-                        0x81, 0x80,                             /* flags: resp, recursion desired, recusion available */
+                        0x81, 0x80,                             /* flags: resp, recursion desired, recursion available */
                         0x00, 0x01,                             /* 1 query */
                         0x00, 0x01,                             /* 1 answer */
                         0x00, 0x00, 0x00, 0x00,                 /* no auth rr, additional rr */
@@ -1044,7 +1044,7 @@ static int DetectDnsQueryTest07(void)
                         0x00, 0x01, 0x00, 0x01, };
 
     uint8_t buf2[] = {  0x10, 0x32,                             /* tx id */
-                        0x81, 0x80|0x40,                        /* flags: resp, recursion desired, recusion available */
+                        0x81, 0x80|0x40,                        /* flags: resp, recursion desired, recursion available */
                         0x00, 0x01,                             /* 1 query */
                         0x00, 0x01,                             /* 1 answer */
                         0x00, 0x00, 0x00, 0x00,                 /* no auth rr, additional rr */
