@@ -177,12 +177,14 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, const char *str)
 
                 netmask = in.s_addr;
 
-                /* Extract cidr netmask */
-                while ((0x01 & netmask) == 0) {
-                    dd->netmask++;
-                    netmask = netmask >> 1;
+                if (netmask != 0) {
+                    /* Extract cidr netmask */
+                    while ((0x01 & netmask) == 0) {
+                        dd->netmask++;
+                        netmask = netmask >> 1;
+                    }
+                    dd->netmask = 32 - dd->netmask;
                 }
-                dd->netmask = 32 - dd->netmask;
             }
 
             r = inet_pton(AF_INET, ip, &in);
