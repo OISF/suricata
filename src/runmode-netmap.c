@@ -85,6 +85,12 @@ static void NetmapDerefConfig(void *conf)
     NetmapIfaceConfig *pfp = (NetmapIfaceConfig *)conf;
     /* config is used only once but cost of this low. */
     if (SC_ATOMIC_SUB(pfp->ref, 1) == 0) {
+        if (pfp->in.bpf_filter) {
+            SCFree(pfp->in.bpf_filter);
+        }
+        if (pfp->out.bpf_filter) {
+            SCFree(pfp->out.bpf_filter);
+        }
         SCFree(pfp);
     }
 }
@@ -118,15 +124,6 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         ns->real = true;
     }
 
-    const char *bpf_filter = NULL;
-    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
-        if (strlen(bpf_filter) > 0) {
-            ns->bpf_filter = bpf_filter;
-            SCLogInfo("Going to use command-line provided bpf filter '%s'",
-                    ns->bpf_filter);
-        }
-    }
-
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find netmap config for "
                 "interface \"%s\" or \"default\", using default values",
@@ -152,15 +149,12 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         }
     }
 
+    const char *bpf_filter = NULL;
+
     /* load netmap bpf filter */
-    /* command line value has precedence */
-    if (ns->bpf_filter == NULL) {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
-            if (strlen(bpf_filter) > 0) {
-                ns->bpf_filter = bpf_filter;
-                SCLogInfo("Going to use bpf filter %s", ns->bpf_filter);
-            }
-        }
+    if (ParseBpfConfig(if_root, &bpf_filter) == 1) {
+        ns->bpf_filter = bpf_filter;
+        SCLogConfig("Going to use bpf filter %s", ns->bpf_filter);
     }
 
     int boolval = 0;

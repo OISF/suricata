@@ -100,7 +100,7 @@ typedef struct AFPIfaceConfig_
     unsigned int flags;
     int copy_mode;
     ChecksumValidationMode checksum_mode;
-    const char *bpf_filter;
+    char *bpf_filter;
     const char *ebpf_lb_file;
     int ebpf_lb_fd;
     const char *ebpf_filter_file;

@@ -290,7 +290,7 @@ int SetBpfStringFromFile(const char *filename)
  * \retval 1 will be returned if the BPF is parsed, otherwise
  *   0 will be returned.
  */
-int ParseBpfConfig(ConfNode *if_root, const char **vptr)
+int ParseBpfConfig(ConfNode *if_root, char **vptr)
 {
     ConfNode *if_default = NULL;
     const char *bpf_filter = NULL;
