@@ -2760,7 +2760,7 @@ int SuricataMain(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_INIT, SURICATA_RUNTIME);
+    SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
     PacketPoolPostRunmodes();
 
     /* Un-pause all the paused threads */
@@ -2772,7 +2772,7 @@ int SuricataMain(int argc, char **argv)
     SuricataMainLoop(&suricata);
 
     /* Update the engine stage/status flag */
-    (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
+    SC_ATOMIC_SET(engine_stage, SURICATA_DEINIT);
 
     UnixSocketKillSocketThread();
     PostRunDeinit(suricata.run_mode, &suricata.start_time);
