@@ -56,7 +56,7 @@ typedef struct SCProfilePrefilterDetectCtx_ {
 
 static int profiling_prefilter_output_to_file = 0;
 int profiling_prefilter_enabled = 0;
-__thread int profiling_prefilter_entered = 0;
+thread_local int profiling_prefilter_entered = 0;
 static char profiling_file_name[PATH_MAX];
 static const char *profiling_file_mode = "a";
 

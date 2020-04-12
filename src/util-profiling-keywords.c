@@ -62,7 +62,7 @@ typedef struct SCProfileKeywordDetectCtx_ {
 
 static int profiling_keywords_output_to_file = 0;
 int profiling_keyword_enabled = 0;
-__thread int profiling_keyword_entered = 0;
+thread_local int profiling_keyword_entered = 0;
 static char profiling_file_name[PATH_MAX];
 static const char *profiling_file_mode = "a";
 

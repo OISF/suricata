@@ -33,7 +33,7 @@
 extern int profiling_rules_enabled;
 extern int profiling_packets_enabled;
 extern int profiling_sghs_enabled;
-extern __thread int profiling_rules_entered;
+extern thread_local int profiling_rules_entered;
 
 void SCProfilingPrintPacketProfile(Packet *);
 void SCProfilingAddPacket(Packet *);
@@ -60,7 +60,7 @@ int SCProfileRuleStart(Packet *p);
     }
 
 extern int profiling_keyword_enabled;
-extern __thread int profiling_keyword_entered;
+extern thread_local int profiling_keyword_entered;
 
 #define KEYWORD_PROFILING_SET_LIST(ctx, list) { \
     (ctx)->keyword_perf_list = (list); \
@@ -275,7 +275,7 @@ PktProfiling *SCProfilePacketStart(void);
     }
 
 extern int profiling_prefilter_enabled;
-extern __thread int profiling_prefilter_entered;
+extern thread_local int profiling_prefilter_entered;
 
 #define PREFILTER_PROFILING_START \
     uint64_t profile_prefilter_start_ = 0; \

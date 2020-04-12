@@ -114,7 +114,7 @@ static SC_ATOMIC_DECLARE(uint64_t, samples);
 /**
  * Used as a check so we don't double enter a profiling run.
  */
-__thread int profiling_rules_entered = 0;
+thread_local int profiling_rules_entered = 0;
 
 void SCProfilingDumpPacketStats(void);
 const char * PacketProfileDetectIdToString(PacketProfileDetectId id);
