@@ -364,9 +364,6 @@ int LiveDeviceListClean()
 
         if (pd->dev)
             SCFree(pd->dev);
-        SC_ATOMIC_DESTROY(pd->pkts);
-        SC_ATOMIC_DESTROY(pd->drop);
-        SC_ATOMIC_DESTROY(pd->invalid_checksums);
         LiveDevFreeStorage(pd);
         SCFree(pd);
     }

@@ -156,7 +156,6 @@ void DefragTrackerRelease(DefragTracker *t)
 void DefragTrackerClearMemory(DefragTracker *dt)
 {
     DefragTrackerFreeFrags(dt);
-    SC_ATOMIC_DESTROY(dt->use_cnt);
 }
 
 #define DEFRAG_DEFAULT_HASHSIZE 4096
@@ -329,12 +328,6 @@ void DefragHashShutdown(void)
     }
     (void) SC_ATOMIC_SUB(defrag_memuse, defrag_config.hash_size * sizeof(DefragTrackerHashRow));
     DefragTrackerQueueDestroy(&defragtracker_spare_q);
-
-    SC_ATOMIC_DESTROY(defragtracker_prune_idx);
-    SC_ATOMIC_DESTROY(defrag_memuse);
-    SC_ATOMIC_DESTROY(defragtracker_counter);
-    SC_ATOMIC_DESTROY(defrag_config.memcap);
-    //SC_ATOMIC_DESTROY(flow_flags);
     return;
 }
 
