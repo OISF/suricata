@@ -54,6 +54,7 @@
 #include "util-ioctl.h"
 #include "util-device.h"
 #include "util-misc.h"
+#include "util-bpf.h"
 #include "util-running-modes.h"
 
 #include "detect-engine.h"
@@ -425,145 +426,6 @@ void EngineStop(void)
 void EngineDone(void)
 {
     suricata_ctl_flags |= SURICATA_DONE;
-}
-
-static int SetBpfString(int argc, char *argv[])
-{
-    char *bpf_filter = NULL;
-    uint32_t bpf_len = 0;
-    int tmpindex = 0;
-
-    /* attempt to parse remaining args as bpf filter */
-    tmpindex = argc;
-    while(argv[tmpindex] != NULL) {
-        bpf_len+=strlen(argv[tmpindex]) + 1;
-        tmpindex++;
-    }
-
-    if (bpf_len == 0)
-        return TM_ECODE_OK;
-
-    if (EngineModeIsIPS()) {
-        SCLogError(SC_ERR_NOT_SUPPORTED,
-                   "BPF filter not available in IPS mode."
-                   " Use firewall filtering if possible.");
-        return TM_ECODE_FAILED;
-    }
-
-    bpf_filter = SCMalloc(bpf_len);
-    if (unlikely(bpf_filter == NULL))
-        return TM_ECODE_OK;
-    memset(bpf_filter, 0x00, bpf_len);
-
-    tmpindex = optind;
-    while(argv[tmpindex] != NULL) {
-        strlcat(bpf_filter, argv[tmpindex],bpf_len);
-        if(argv[tmpindex + 1] != NULL) {
-            strlcat(bpf_filter," ", bpf_len);
-        }
-        tmpindex++;
-    }
-
-    if(strlen(bpf_filter) > 0) {
-        if (ConfSetFinal("bpf-filter", bpf_filter) != 1) {
-            SCLogError(SC_ERR_FATAL, "Failed to set bpf filter.");
-            SCFree(bpf_filter);
-            return TM_ECODE_FAILED;
-        }
-    }
-    SCFree(bpf_filter);
-
-    return TM_ECODE_OK;
-}
-
-static void SetBpfStringFromFile(char *filename)
-{
-    char *bpf_filter = NULL;
-    char *bpf_comment_tmp = NULL;
-    char *bpf_comment_start =  NULL;
-    uint32_t bpf_len = 0;
-#ifdef OS_WIN32
-    struct _stat st;
-#else
-    struct stat st;
-#endif /* OS_WIN32 */
-    FILE *fp = NULL;
-    size_t nm = 0;
-
-    if (EngineModeIsIPS()) {
-        SCLogError(SC_ERR_NOT_SUPPORTED,
-                   "BPF filter not available in IPS mode."
-                   " Use firewall filtering if possible.");
-        exit(EXIT_FAILURE);
-    }
-
-#ifdef OS_WIN32
-    if(_stat(filename, &st) != 0) {
-#else
-    if(stat(filename, &st) != 0) {
-#endif /* OS_WIN32 */
-        SCLogError(SC_ERR_FOPEN, "Failed to stat file %s", filename);
-        exit(EXIT_FAILURE);
-    }
-    bpf_len = st.st_size + 1;
-
-    // coverity[toctou : FALSE]
-    fp = fopen(filename,"r");
-    if (fp == NULL) {
-        SCLogError(SC_ERR_FOPEN, "Failed to open file %s", filename);
-        exit(EXIT_FAILURE);
-    }
-
-    bpf_filter = SCMalloc(bpf_len * sizeof(char));
-    if (unlikely(bpf_filter == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate buffer for bpf filter in file %s", filename);
-        exit(EXIT_FAILURE);
-    }
-    memset(bpf_filter, 0x00, bpf_len);
-
-    nm = fread(bpf_filter, 1, bpf_len - 1, fp);
-    if ((ferror(fp) != 0) || (nm != (bpf_len - 1))) {
-        SCLogError(SC_ERR_BPF, "Failed to read complete BPF file %s", filename);
-        SCFree(bpf_filter);
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-    fclose(fp);
-    bpf_filter[nm] = '\0';
-
-    if(strlen(bpf_filter) > 0) {
-        /*replace comments with space*/
-        bpf_comment_start = bpf_filter;
-        while((bpf_comment_tmp = strchr(bpf_comment_start, '#')) != NULL) {
-            while((*bpf_comment_tmp !='\0') &&
-                (*bpf_comment_tmp != '\r') && (*bpf_comment_tmp != '\n'))
-            {
-                *bpf_comment_tmp++ = ' ';
-            }
-            bpf_comment_start = bpf_comment_tmp;
-        }
-        /*remove remaining '\r' and '\n' */
-        while((bpf_comment_tmp = strchr(bpf_filter, '\r')) != NULL) {
-            *bpf_comment_tmp = ' ';
-        }
-        while((bpf_comment_tmp = strchr(bpf_filter, '\n')) != NULL) {
-            *bpf_comment_tmp = ' ';
-        }
-        /* cut trailing spaces */
-        while (strlen(bpf_filter) > 0 &&
-                bpf_filter[strlen(bpf_filter)-1] == ' ')
-        {
-            bpf_filter[strlen(bpf_filter)-1] = '\0';
-        }
-        if (strlen(bpf_filter) > 0) {
-            if(ConfSetFinal("bpf-filter", bpf_filter) != 1) {
-                SCLogError(SC_ERR_FOPEN, "ERROR: Failed to set bpf filter!");
-                SCFree(bpf_filter);
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
-    SCFree(bpf_filter);
 }
 
 static void PrintUsage(const char *progname)
@@ -1179,7 +1041,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int build_info = 0;
     int conf_test = 0;
     int engine_analysis = 0;
-    int ret = TM_ECODE_OK;
 
 #ifdef UNITTESTS
     coverage_unittests = 0;
@@ -1786,8 +1647,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 SCLogError(SC_ERR_INITIALIZATION, "no option argument (optarg) for -F");
                 return TM_ECODE_FAILED;
             }
-
-            SetBpfStringFromFile(optarg);
+            if (SetBpfStringFromFile(optarg) != TM_ECODE_OK) {
+                SCLogError(SC_ERR_INITIALIZATION, "failed to parse the provide BPF filter file");
+                return TM_ECODE_FAILED;
+            }
             break;
         case 'v':
             suri->verbose++;
@@ -1844,9 +1707,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     suri->offline = IsRunModeOffline(suri->run_mode);
     g_system = suri->system = IsRunModeSystem(suri->run_mode);
 
-    ret = SetBpfString(optind, argv);
-    if (ret != TM_ECODE_OK)
-        return ret;
+    if (SetBpfString(optind, argv) != TM_ECODE_OK) {
+        SCLogError(SC_ERR_INITIALIZATION, "failed to parse the provide BPF filter");
+        return TM_ECODE_FAILED;
+    }
 
     return TM_ECODE_OK;
 }

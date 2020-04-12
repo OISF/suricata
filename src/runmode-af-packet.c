@@ -53,6 +53,7 @@
 #include "util-device.h"
 #include "util-runmodes.h"
 #include "util-ioctl.h"
+#include "util-bpf.h"
 #include "util-ebpf.h"
 
 #include "source-af-packet.h"
@@ -155,14 +156,6 @@ static void *ParseAFPConfig(const char *iface)
 #ifdef HAVE_PACKET_EBPF
     aconf->ebpf_t_config.cpus_count = UtilCpuGetNumProcessorsConfigured();
 #endif
-
-    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
-        if (strlen(bpf_filter) > 0) {
-            aconf->bpf_filter = bpf_filter;
-            SCLogConfig("Going to use command-line provided bpf filter '%s'",
-                       aconf->bpf_filter);
-        }
-    }
 
     /* Find initial node */
     af_packet_node = ConfGetNode("af-packet");
@@ -361,14 +354,9 @@ static void *ParseAFPConfig(const char *iface)
     }
 
     /*load af_packet bpf filter*/
-    /* command line value has precedence */
-    if (ConfGet("bpf-filter", &bpf_filter) != 1) {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
-            if (strlen(bpf_filter) > 0) {
-                aconf->bpf_filter = bpf_filter;
-                SCLogConfig("Going to use bpf filter %s", aconf->bpf_filter);
-            }
-        }
+    if (ParseBpfConfig(if_root, &bpf_filter) == 1) {
+        aconf->bpf_filter = bpf_filter;
+        SCLogConfig("Going to use bpf filter %s", aconf->bpf_filter);
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "ebpf-lb-file", &ebpf_file) != 1) {
