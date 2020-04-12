@@ -21,7 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  *
- * API for atomic operations. Uses atomic instructions (GCC only at this time).
+ * API for atomic operations. Uses C11 atomic instructions
+ * where available, GCC/clang specific (gnu99) operations otherwise.
  *
  * To prevent developers from accidentally working with the atomic variables
  * directly instead of through the proper macro's, a marco trick is performed
@@ -32,6 +33,119 @@
 
 #ifndef __UTIL_ATOMIC_H__
 #define __UTIL_ATOMIC_H__
+
+#if HAVE_STDATOMIC_H==1
+
+#include <stdatomic.h>
+
+/**
+ *  \brief wrapper for declaring atomic variables.
+ *
+ *  \param type Type of the variable (char, short, int, long, long long)
+ *  \param name Name of the variable.
+ *
+ *  We just declare the variable here as we rely on atomic operations
+ *  to modify it, so no need for locks.
+ *
+ *  \warning variable is not initialized
+ */
+#define SC_ATOMIC_DECLARE(type, name) \
+    _Atomic(type) name ## _sc_atomic__
+
+/**
+ *  \brief wrapper for referencing an atomic variable declared on another file.
+ *
+ *  \param type Type of the variable (char, short, int, long, long long)
+ *  \param name Name of the variable.
+ *
+ *  We just declare the variable here as we rely on atomic operations
+ *  to modify it, so no need for locks.
+ *
+ */
+#define SC_ATOMIC_EXTERN(type, name) \
+    extern _Atomic(type) (name ## _sc_atomic__)
+
+/**
+ *  \brief wrapper for declaring an atomic variable and initializing it.
+ **/
+#define SC_ATOMIC_DECL_AND_INIT(type, name) \
+    _Atomic(type) (name ## _sc_atomic__) = 0
+
+/**
+ *  \brief wrapper for initializing an atomic variable.
+ **/
+#define SC_ATOMIC_INIT(name) \
+    (name ## _sc_atomic__) = 0
+#define SC_ATOMIC_INITPTR(name) \
+    (name ## _sc_atomic__) = NULL
+
+/**
+ *  \brief wrapper for reinitializing an atomic variable.
+ **/
+#define SC_ATOMIC_RESET(name) \
+    SC_ATOMIC_INIT(name)
+
+/**
+ *  \brief add a value to our atomic variable
+ *
+ *  \param name the atomic variable
+ *  \param val the value to add to the variable
+ */
+#define SC_ATOMIC_ADD(name, val) \
+    atomic_fetch_add(&(name ## _sc_atomic__), (val))
+
+/**
+ *  \brief sub a value from our atomic variable
+ *
+ *  \param name the atomic variable
+ *  \param val the value to sub from the variable
+ */
+#define SC_ATOMIC_SUB(name, val) \
+    atomic_fetch_sub(&(name ## _sc_atomic__), (val))
+
+/**
+ *  \brief Bitwise OR a value to our atomic variable
+ *
+ *  \param name the atomic variable
+ *  \param val the value to OR to the variable
+ */
+#define SC_ATOMIC_OR(name, val) \
+    atomic_fetch_or(&(name ## _sc_atomic__), (val))
+
+/**
+ *  \brief Bitwise AND a value to our atomic variable
+ *
+ *  \param name the atomic variable
+ *  \param val the value to AND to the variable
+ */
+#define SC_ATOMIC_AND(name, val) \
+    atomic_fetch_and(&(name ## _sc_atomic__), (val))
+
+/**
+ *  \brief atomic Compare and Switch
+ *
+ *  \warning "name" is passed to us as "&var"
+ */
+#define SC_ATOMIC_CAS(name, cmpval, newval) \
+    atomic_compare_exchange_strong((name ## _sc_atomic__), &(cmpval), (newval))
+
+/**
+ *  \brief Get the value from the atomic variable.
+ *
+ *  \retval var value
+ */
+#define SC_ATOMIC_GET(name) \
+    atomic_load(&(name ## _sc_atomic__))
+
+/**
+ *  \brief Set the value for the atomic variable.
+ *
+ *  \retval var value
+ */
+#define SC_ATOMIC_SET(name, val)    \
+    atomic_store(&(name ## _sc_atomic__), (val))
+
+#else
 
 /**
  *  \brief wrapper for OS/compiler specific atomic compare and swap (CAS)
@@ -242,6 +356,8 @@
     while (SC_ATOMIC_CAS(&name, SC_ATOMIC_GET(name), val) == 0) \
         ;                                                       \
         })
+
+#endif /* no c11 atomics */
 
 void SCAtomicRegisterTests(void);
 
