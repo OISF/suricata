@@ -550,7 +550,7 @@ static TmEcode DetectLoaderThreadInit(ThreadVars *t, const void *initdata, void 
     if (ftd == NULL)
         return TM_ECODE_FAILED;
 
-    ftd->instance = SC_ATOMIC_ADD(detect_loader_cnt, 1) - 1; /* id's start at 0 */
+    ftd->instance = SC_ATOMIC_ADD(detect_loader_cnt, 1); /* id's start at 0 */
     SCLogDebug("detect loader instance %u", ftd->instance);
 
     /* pass thread data back to caller */

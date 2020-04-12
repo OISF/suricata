@@ -209,6 +209,7 @@ void PcapLogRegister(void)
         PcapLogDataDeinit, NULL);
     PcapLogProfileSetup();
     SC_ATOMIC_INIT(thread_cnt);
+    SC_ATOMIC_SET(thread_cnt, 1); /* first id is 1 */
     return;
 }
 

@@ -258,7 +258,7 @@ static void LogFiledataLogLoadWaldo(const char *path)
     if (fgets(line, (int)sizeof(line), fp) != NULL) {
         if (sscanf(line, "%10u", &id) == 1) {
             SCLogInfo("id %u", id);
-            (void) SC_ATOMIC_CAS(&g_file_store_id, 0, id);
+            SC_ATOMIC_SET(g_file_store_id, id);
         }
     }
     fclose(fp);
@@ -275,7 +275,7 @@ static void LogFiledataLogStoreWaldo(const char *path)
 {
     char line[16] = "";
 
-    if (SC_ATOMIC_GET(g_file_store_id) == 0) {
+    if (SC_ATOMIC_GET(g_file_store_id) == 1) {
         SCReturn;
     }
 
@@ -448,6 +448,7 @@ void OutputFiledataLoggerRegister(void)
         OutputFiledataLogThreadDeinit, OutputFiledataLogExitPrintStats,
         OutputFiledataLog, OutputFiledataLoggerGetActiveCount);
     SC_ATOMIC_INIT(g_file_store_id);
+    SC_ATOMIC_SET(g_file_store_id, 1);
 }
 
 void OutputFiledataShutdown(void)

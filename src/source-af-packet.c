@@ -507,7 +507,7 @@ static void AFPPeersListReachedInc(void)
     if (peerslist.turn == 0)
         return;
 
-    if (SC_ATOMIC_ADD(peerslist.reached, 1) == peerslist.turn) {
+    if ((SC_ATOMIC_ADD(peerslist.reached, 1) + 1) == peerslist.turn) {
         SCLogInfo("All AFP capture threads are running.");
         (void)SC_ATOMIC_SET(peerslist.reached, 0);
         /* Set turn to 0 to skip syncrhonization when ReceiveAFPLoop is
@@ -1228,7 +1228,7 @@ static int AFPDerefSocket(AFPPeer* peer)
     if (peer == NULL)
         return 1;
 
-    if (SC_ATOMIC_SUB(peer->sock_usage, 1) == 0) {
+    if (SC_ATOMIC_SUB(peer->sock_usage, 1) == 1) {
         if (SC_ATOMIC_GET(peer->state) == AFP_STATE_DOWN) {
             SCLogInfo("Cleaning socket connected to '%s'", peer->iface);
             close(SC_ATOMIC_GET(peer->socket));
@@ -1265,7 +1265,7 @@ static void AFPSwitchState(AFPThreadVars *ptv, int state)
 #endif
         if (ptv->socket != -1) {
             /* we need to wait for all packets to return data */
-            if (SC_ATOMIC_SUB(ptv->mpeer->sock_usage, 1) == 0) {
+            if (SC_ATOMIC_SUB(ptv->mpeer->sock_usage, 1) == 1) {
                 SCLogDebug("Cleaning socket connected to '%s'", ptv->iface);
                 munmap(ptv->ring_buf, ptv->ring_buflen);
                 close(ptv->socket);
