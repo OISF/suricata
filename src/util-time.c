@@ -242,7 +242,7 @@ struct tm *SCUtcTime(time_t timep, struct tm *result)
  */
 
 #ifndef TLS
-/* OpenBSD does not support __thread, so don't use time caching on BSD
+/* OpenBSD does not support thread_local, so don't use time caching on BSD
  */
 struct tm *SCLocalTime(time_t timep, struct tm *result)
 {
@@ -266,7 +266,7 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
 
 #else
 
-/* On systems supporting __thread, use Per-thread values for caching
+/* On systems supporting thread_local, use Per-thread values for caching
  * in CreateTimeString */
 
 /* The maximum possible length of the time string.
@@ -274,16 +274,16 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
  * Or "01/01/2013-15:42:21.123456", which is 26, so round up to 32. */
 #define MAX_LOCAL_TIME_STRING 32
 
-static __thread int mru_time_slot; /* Most recently used cached value */
-static __thread time_t last_local_time[2];
-static __thread short int cached_local_time_len[2];
-static __thread char cached_local_time[2][MAX_LOCAL_TIME_STRING];
+static thread_local int mru_time_slot; /* Most recently used cached value */
+static thread_local time_t last_local_time[2];
+static thread_local short int cached_local_time_len[2];
+static thread_local char cached_local_time[2][MAX_LOCAL_TIME_STRING];
 
 /* Per-thread values for caching SCLocalTime() These cached values are
  * independent from the CreateTimeString cached values. */
-static __thread int mru_tm_slot; /* Most recently used local tm */
-static __thread time_t cached_minute_start[2];
-static __thread struct tm cached_local_tm[2];
+static thread_local int mru_tm_slot; /* Most recently used local tm */
+static thread_local time_t cached_minute_start[2];
+static thread_local struct tm cached_local_tm[2];
 
 /** \brief Convert time_t into Year, month, day, hour and minutes.
  * \param timep Time in seconds since defined date.

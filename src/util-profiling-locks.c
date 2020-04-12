@@ -31,9 +31,9 @@
 #ifdef PROFILING
 #ifdef PROFILE_LOCKING
 
-__thread ProfilingLock locks[PROFILING_MAX_LOCKS];
-__thread int locks_idx = 0;
-__thread int record_locks = 0;
+thread_local ProfilingLock locks[PROFILING_MAX_LOCKS];
+thread_local int locks_idx = 0;
+thread_local int record_locks = 0;
 
 int profiling_locks_enabled = 0;
 int profiling_locks_output_to_file = 0;

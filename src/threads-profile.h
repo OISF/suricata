@@ -37,13 +37,13 @@ typedef struct ProfilingLock_ {
     uint64_t ticks;
 } ProfilingLock;
 
-extern __thread ProfilingLock locks[PROFILING_MAX_LOCKS];
-extern __thread int locks_idx;
-extern __thread int record_locks;
+extern thread_local ProfilingLock locks[PROFILING_MAX_LOCKS];
+extern thread_local int locks_idx;
+extern thread_local int record_locks;
 
-extern __thread uint64_t mutex_lock_contention;
-extern __thread uint64_t mutex_lock_wait_ticks;
-extern __thread uint64_t mutex_lock_cnt;
+extern thread_local uint64_t mutex_lock_contention;
+extern thread_local uint64_t mutex_lock_wait_ticks;
+extern thread_local uint64_t mutex_lock_cnt;
 
 /* mutex */
 
@@ -92,9 +92,9 @@ extern __thread uint64_t mutex_lock_cnt;
 
 /* spinlocks */
 
-extern __thread uint64_t spin_lock_contention;
-extern __thread uint64_t spin_lock_wait_ticks;
-extern __thread uint64_t spin_lock_cnt;
+extern thread_local uint64_t spin_lock_contention;
+extern thread_local uint64_t spin_lock_wait_ticks;
+extern thread_local uint64_t spin_lock_cnt;
 
 //printf("%16s(%s:%d): (thread:%"PRIuMAX") locked mutex %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, retl);
 #define SCSpinLock_profile(spin) ({ \
@@ -131,9 +131,9 @@ extern __thread uint64_t spin_lock_cnt;
 
 /* rwlocks */
 
-extern __thread uint64_t rww_lock_contention;
-extern __thread uint64_t rww_lock_wait_ticks;
-extern __thread uint64_t rww_lock_cnt;
+extern thread_local uint64_t rww_lock_contention;
+extern thread_local uint64_t rww_lock_wait_ticks;
+extern thread_local uint64_t rww_lock_cnt;
 
 #define SCRWLockWRLock_profile(mut) ({ \
     rww_lock_cnt++; \
@@ -160,9 +160,9 @@ extern __thread uint64_t rww_lock_cnt;
     retl; \
 })
 
-extern __thread uint64_t rwr_lock_contention;
-extern __thread uint64_t rwr_lock_wait_ticks;
-extern __thread uint64_t rwr_lock_cnt;
+extern thread_local uint64_t rwr_lock_contention;
+extern thread_local uint64_t rwr_lock_wait_ticks;
+extern thread_local uint64_t rwr_lock_cnt;
 
 #define SCRWLockRDLock_profile(mut) ({ \
     rwr_lock_cnt++; \
