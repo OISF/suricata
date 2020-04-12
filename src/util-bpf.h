@@ -33,4 +33,11 @@ int SCBPFCompile(int snaplen_arg, int linktype_arg, struct bpf_program *program,
 void SCBPFFree(struct bpf_program *program);
 
 #endif /* Not __OpenBSD__ */
+
+int SetBpfString(int argc, char *argv[]);
+
+int SetBpfStringFromFile(const char *filename);
+
+int ParseBpfConfig(ConfNode *if_root, const char **bpf_filter);
+
 #endif /* __UTIL_BPF_H__ */
