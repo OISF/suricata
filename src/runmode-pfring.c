@@ -70,7 +70,7 @@ void RunModeIdsPfringRegister(void)
 static void PfringDerefConfig(void *conf)
 {
     PfringIfaceConfig *pfp = (PfringIfaceConfig *)conf;
-    if (SC_ATOMIC_SUB(pfp->ref, 1) == 0) {
+    if (SC_ATOMIC_SUB(pfp->ref, 1) == 1) {
         if (pfp->bpf_filter) {
             SCFree(pfp->bpf_filter);
         }

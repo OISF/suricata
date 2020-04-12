@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -185,7 +185,7 @@
  *  \param val the value to add to the variable
  */
 #define SC_ATOMIC_ADD(name, val) \
-    SCAtomicAddAndFetch(&(name ## _sc_atomic__), (val))
+    SCAtomicFetchAndAdd(&(name ## _sc_atomic__), (val))
 
 /**
  *  \brief sub a value from our atomic variable
@@ -194,7 +194,7 @@
  *  \param val the value to sub from the variable
  */
 #define SC_ATOMIC_SUB(name, val) \
-    SCAtomicSubAndFetch(&(name ## _sc_atomic__), (val))
+    SCAtomicFetchAndSub(&(name ## _sc_atomic__), (val))
 
 /**
  *  \brief Bitwise OR a value to our atomic variable
