@@ -38,6 +38,6 @@ int SetBpfString(int argc, char *argv[]);
 
 int SetBpfStringFromFile(const char *filename);
 
-int ParseBpfConfig(ConfNode *if_root, const char **bpf_filter);
+int ParseBpfConfig(ConfNode *if_root, char **bpf_filter);
 
 #endif /* __UTIL_BPF_H__ */

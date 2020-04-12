@@ -31,6 +31,7 @@
 #include "util-runmodes.h"
 #include "util-atomic.h"
 #include "util-misc.h"
+#include "util-bpf.h"
 
 const char *RunModeIdsGetDefaultMode(void)
 {
@@ -64,6 +65,9 @@ static void PcapDerefConfig(void *conf)
     PcapIfaceConfig *pfp = (PcapIfaceConfig *)conf;
     /* Pcap config is used only once but cost of this low. */
     if (SC_ATOMIC_SUB(pfp->ref, 1) == 1) {
+        if (pfp->bpf_filter) {
+            SCFree(pfp->bpf_filter);
+        }
         SCFree(pfp);
     }
 }
@@ -75,7 +79,7 @@ static void *ParsePcapConfig(const char *iface)
     ConfNode *if_default = NULL;
     ConfNode *pcap_node;
     PcapIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
-    const char *tmpbpf;
+    char *tmpbpf;
     const char *tmpctype;
     intmax_t value;
     int promisc = 0;
@@ -108,9 +112,6 @@ static void *ParsePcapConfig(const char *iface)
 
     aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
     aconf->bpf_filter = NULL;
-    if ((ConfGet("bpf-filter", &tmpbpf)) == 1) {
-        aconf->bpf_filter = tmpbpf;
-    }
 
     SC_ATOMIC_INIT(aconf->ref);
     aconf->DerefFunc = PcapDerefConfig;
@@ -179,15 +180,9 @@ static void *ParsePcapConfig(const char *iface)
         }
     }
 
-    if (aconf->bpf_filter == NULL) {
-        /* set bpf filter if we have one */
-        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &tmpbpf) != 1) {
-            SCLogDebug("could not get bpf or none specified");
-        } else {
-            aconf->bpf_filter = tmpbpf;
-        }
-    } else {
-        SCLogInfo("BPF filter set from command line or via old 'bpf-filter' option.");
+    if (ParseBpfConfig(if_root, &tmpbpf) == 1) {
+        aconf->bpf_filter = tmpbpf;
+        SCLogConfig("Going to use bpf filter %s", aconf->bpf_filter);
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {

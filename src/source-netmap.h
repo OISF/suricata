@@ -51,7 +51,7 @@ typedef struct NetmapIfaceSettings_
     int threads;
     int copy_mode;
     ChecksumValidationMode checksum_mode;
-    const char *bpf_filter;
+    char *bpf_filter;
 } NetmapIfaceSettings;
 
 typedef struct NetmapIfaceConfig_
