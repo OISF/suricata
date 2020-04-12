@@ -75,7 +75,6 @@ void TagDestroyCtx(void)
 #ifdef DEBUG
     BUG_ON(SC_ATOMIC_GET(num_tags) != 0);
 #endif
-    SC_ATOMIC_DESTROY(num_tags);
 }
 
 /** \brief Reset the tagging engine context

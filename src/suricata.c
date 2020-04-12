@@ -371,8 +371,6 @@ static void GlobalsDestroy(SCInstance *suri)
     NFQContextsClean();
 #endif
 
-    SC_ATOMIC_DESTROY(engine_stage);
-
 #ifdef BUILD_HYPERSCAN
     MpmHSGlobalCleanup();
 #endif

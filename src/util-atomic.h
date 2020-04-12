@@ -179,11 +179,6 @@
     (name ## _sc_atomic__) = 0
 
 /**
- *  \brief No-op.
- */
-#define SC_ATOMIC_DESTROY(name)
-
-/**
  *  \brief add a value to our atomic variable
  *
  *  \param name the atomic variable

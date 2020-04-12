@@ -170,7 +170,6 @@ static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
     /* free pq */
     BUG_ON(fw->pq.len);
 
-    SC_ATOMIC_DESTROY(fw->detect_thread);
     SCFree(fw);
     return TM_ECODE_OK;
 }

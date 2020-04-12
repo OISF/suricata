@@ -2083,7 +2083,6 @@ void HTPFreeConfig(void)
         htp_config_destroy(htprec->cfg);
         SCFree(htprec);
     }
-    HTPDestroyMemcap();
     SCReturn;
 }
 

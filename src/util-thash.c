@@ -189,8 +189,6 @@ static void THashDataFree(THashTableContext *ctx, THashData *h)
         if (h->data != NULL) {
             ctx->config.DataFree(h->data);
         }
-
-        SC_ATOMIC_DESTROY(h->use_cnt);
         SCMutexDestroy(&h->m);
         SCFree(h);
         (void) SC_ATOMIC_SUB(ctx->memuse, THASH_DATA_SIZE(ctx));
@@ -352,11 +350,6 @@ void THashShutdown(THashTableContext *ctx)
     }
     (void) SC_ATOMIC_SUB(ctx->memuse, ctx->config.hash_size * sizeof(THashHashRow));
     THashDataQueueDestroy(&ctx->spare_q);
-
-    SC_ATOMIC_DESTROY(ctx->prune_idx);
-    SC_ATOMIC_DESTROY(ctx->memuse);
-    SC_ATOMIC_DESTROY(ctx->counter);
-
     SCFree(ctx);
     return;
 }

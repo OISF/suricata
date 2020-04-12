@@ -714,7 +714,6 @@ void FlowShutdown(void)
             }
 
             FBLOCK_DESTROY(&flow_hash[u]);
-            SC_ATOMIC_DESTROY(flow_hash[u].next_ts);
         }
         SCFreeAligned(flow_hash);
         flow_hash = NULL;
@@ -722,11 +721,6 @@ void FlowShutdown(void)
     (void) SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
     FlowQueueDestroy(&flow_spare_q);
     FlowQueueDestroy(&flow_recycle_q);
-
-    SC_ATOMIC_DESTROY(flow_config.memcap);
-    SC_ATOMIC_DESTROY(flow_prune_idx);
-    SC_ATOMIC_DESTROY(flow_memuse);
-    SC_ATOMIC_DESTROY(flow_flags);
     return;
 }
 
