@@ -433,8 +433,6 @@ void PacketPoolDestroy(void)
         PacketFree(p);
     }
 
-    SC_ATOMIC_DESTROY(my_pool->return_stack.sync_now);
-
 #ifdef DEBUG_VALIDATION
     my_pool->initialized = 0;
     my_pool->destroyed = 1;

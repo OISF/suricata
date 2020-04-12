@@ -120,8 +120,6 @@
 
 #define FLOW_DESTROY(f) do { \
         FlowCleanupAppLayer((f)); \
-        SC_ATOMIC_DESTROY((f)->flow_state); \
-        SC_ATOMIC_DESTROY((f)->use_cnt); \
         \
         FLOWLOCK_DESTROY((f)); \
         GenericVarFree((f)->flowvar); \

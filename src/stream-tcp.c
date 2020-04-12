@@ -668,9 +668,6 @@ void StreamTcpInitConfig(char quiet)
 
 void StreamTcpFreeConfig(char quiet)
 {
-    SC_ATOMIC_DESTROY(stream_config.memcap);
-    SC_ATOMIC_DESTROY(stream_config.reassembly_memcap);
-
     StreamTcpReassembleFree(quiet);
 
     SCMutexLock(&ssn_pool_mutex);

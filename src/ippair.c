@@ -131,8 +131,6 @@ void IPPairFree(IPPair *h)
 {
     if (h != NULL) {
         IPPairClearMemory(h);
-
-        SC_ATOMIC_DESTROY(h->use_cnt);
         SCMutexDestroy(&h->m);
         SCFree(h);
         (void) SC_ATOMIC_SUB(ippair_memuse, g_ippair_size);
@@ -329,12 +327,6 @@ void IPPairShutdown(void)
     }
     (void) SC_ATOMIC_SUB(ippair_memuse, ippair_config.hash_size * sizeof(IPPairHashRow));
     IPPairQueueDestroy(&ippair_spare_q);
-
-    SC_ATOMIC_DESTROY(ippair_prune_idx);
-    SC_ATOMIC_DESTROY(ippair_memuse);
-    SC_ATOMIC_DESTROY(ippair_counter);
-    SC_ATOMIC_DESTROY(ippair_config.memcap);
-    //SC_ATOMIC_DESTROY(flow_flags);
     return;
 }
 

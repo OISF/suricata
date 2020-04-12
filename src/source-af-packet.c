@@ -384,9 +384,6 @@ static void AFPPeerClean(AFPPeer *peer)
 {
     if (peer->flags & AFP_SOCK_PROTECT)
         SCMutexDestroy(&peer->sock_protect);
-    SC_ATOMIC_DESTROY(peer->socket);
-    SC_ATOMIC_DESTROY(peer->if_idx);
-    SC_ATOMIC_DESTROY(peer->state);
     SCFree(peer);
 }
 
