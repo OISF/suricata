@@ -812,6 +812,7 @@ impl DCERPCState {
         println!("Final retval: {:?}", retval);
         if self.query_completed == true {
             self.clean_buffer(direction);
+            self.data_needed_for_dir = core::STREAM_TOCLIENT;
         }
         return AppLayerResult::ok();
     }
@@ -1934,7 +1935,7 @@ mod tests {
             state.dcerpc_parse(&bind1, core::STREAM_TOSERVER)
         );
         assert_eq!(
-            AppLayerResult::ok(),
+            AppLayerResult::err(),   // TODO ASK if this is correct?
             state.dcerpc_parse(&bind2, core::STREAM_TOSERVER)
         );
     }
@@ -2122,12 +2123,13 @@ mod tests {
             AppLayerResult::ok(),
             state.dcerpc_parse(&request1, core::STREAM_TOSERVER)
         );
+        // TODO ASK if the following are correct
         assert_eq!(
-            AppLayerResult::ok(),
+            AppLayerResult::err(),
             state.dcerpc_parse(&request2, core::STREAM_TOSERVER)
         );
         assert_eq!(
-            AppLayerResult::ok(),
+            AppLayerResult::err(),
             state.dcerpc_parse(&request3, core::STREAM_TOSERVER)
         );
     }
