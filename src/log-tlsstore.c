@@ -418,6 +418,7 @@ void LogTlsStoreRegister (void)
         LogTlsStoreLogThreadDeinit, LogTlsStoreLogExitPrintStats);
 
     SC_ATOMIC_INIT(cert_id);
+    SC_ATOMIC_SET(cert_id, 1);
 
     SCLogDebug("registered");
 }

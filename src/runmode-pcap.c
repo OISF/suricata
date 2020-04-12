@@ -63,7 +63,7 @@ static void PcapDerefConfig(void *conf)
 {
     PcapIfaceConfig *pfp = (PcapIfaceConfig *)conf;
     /* Pcap config is used only once but cost of this low. */
-    if (SC_ATOMIC_SUB(pfp->ref, 1) == 0) {
+    if (SC_ATOMIC_SUB(pfp->ref, 1) == 1) {
         SCFree(pfp);
     }
 }
