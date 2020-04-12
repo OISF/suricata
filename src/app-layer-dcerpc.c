@@ -51,7 +51,7 @@ static AppLayerResult DCERPCParseRequest(Flow *f, void *dcerpc_state,
                               void *local_data, const uint8_t flags)
 {
     return rs_dcerpc_parse_request(f, dcerpc_state, pstate, input, input_len,
-                                   local_data, 0);
+                                   local_data, 0x04);
 }
 
 static AppLayerResult DCERPCParseResponse(Flow *f, void *dcerpc_state,
@@ -60,7 +60,7 @@ static AppLayerResult DCERPCParseResponse(Flow *f, void *dcerpc_state,
                                void *local_data, const uint8_t flags)
 {
     return rs_dcerpc_parse_response(f, dcerpc_state, pstate, input, input_len,
-                                    local_data, 1);
+                                    local_data, 0x08);
 }
 
 static void *RustDCERPCStateNew(void)

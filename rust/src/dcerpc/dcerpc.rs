@@ -287,7 +287,7 @@ impl DCERPCState {
             bytes_consumed: 0,
             tx_id: 0,
             query_completed: false,
-            data_needed_for_dir: 0,
+            data_needed_for_dir: core::STREAM_TOSERVER,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             de_state: None,
@@ -401,13 +401,13 @@ impl DCERPCState {
         match parser::dcerpc_parse_bind(input) {
             Ok((leftover_bytes, header)) => {
                 let numctxitems = header.numctxitems;
-                println!("parse_dcerpc_bind: numctxitems: {:?}\n", numctxitems);
+                println!("parse_dcerpc_bind: numctxitems: {:?}", numctxitems);
                 self.dcerpcbind = Some(header);
                 for i in 0..numctxitems {
                     println!("idx before parsing loop {:?}: {:?}", i, idx);
                     retval = self.parse_bindctxitem(&input[idx as usize..], i as u16);
                     if retval == -1 {
-                        println!("Returning {:?}\n", i);
+                        println!("Returning {:?}", i);
                         return -1;
                     }
                     idx = retval + idx;
@@ -449,7 +449,7 @@ impl DCERPCState {
                     uuidentry.flags |= DCERPC_UUID_ENTRY_FLAG_FF;
                 }
                 if let Some(ref mut bind) = self.dcerpcbind {
-                    println!("parse_bindctxitem: Pushing uuid: {:?}\n", uuidentry);
+                    println!("parse_bindctxitem: Pushing uuid: {:?}", uuidentry);
                     bind.uuid_list.push(uuidentry);
                 }
                 44
@@ -475,7 +475,7 @@ impl DCERPCState {
                     for r in back.ctxitems.iter() {
                         for mut uuid in bind.uuid_list.iter_mut() {
                             //                            println!(
-                            //                                "parse_bind_ack: uuid.iid: {:?}, back.iid: {:?}\n",
+                            //                                "parse_bind_ack: uuid.iid: {:?}, back.iid: {:?}",
                             //                                uuid.internal_id, uuid_internal_id
                             //                            );
                             if uuid.internal_id == uuid_internal_id {
@@ -489,7 +489,7 @@ impl DCERPCState {
                         uuid_internal_id += 1;
                     }
                     println!(
-                        "parse_bind_ack: accepted uuid: {:?}\nuuid_internal_id: {:?}",
+                        "parse_bind_ack: accepted uuid: {:?}uuid_internal_id: {:?}",
                         back.accepted_uuid_list, uuid_internal_id
                     );
                     //println!("parse_bind_ack: uuid list: {:?}", bind.uuid_list);
@@ -522,7 +522,7 @@ impl DCERPCState {
             None => 0,
         };
         let padleft = self.padleft;
-        println!("parse_stub_data: padleft: {:?}\n", padleft);
+        println!("parse_stub_data: padleft: {:?}", padleft);
         // Update the stub params based on the packaet type
         match self.get_hdr_type() {
             Some(x) => match x {
@@ -539,7 +539,7 @@ impl DCERPCState {
                             rpc_vers,
                         );
                     }
-                    println!("parse_stub_data: REQUEST retval: {:?}\n", retval)
+                    println!("parse_stub_data: REQUEST retval: {:?}", retval)
                 }
                 DCERPC_TYPE_RESPONSE => {
                     if let Some(ref mut resp) = self.dcerpcresponse {
@@ -554,7 +554,7 @@ impl DCERPCState {
                             rpc_vers,
                         );
                     }
-                    println!("parse_stub_data: RESPONSE retval: {:?}\n", retval)
+                    println!("parse_stub_data: RESPONSE retval: {:?}", retval)
                 }
                 _ => {
                     SCLogDebug!("Unrecognized packet type");
@@ -567,7 +567,7 @@ impl DCERPCState {
         }
         // Update the remaining fragment length
         self.padleft -= retval;
-        println!("parse_stub_data: remaining padleft: {:?}\n", self.padleft);
+        println!("parse_stub_data: remaining padleft: {:?}", self.padleft);
 
         retval
     }
@@ -580,14 +580,14 @@ impl DCERPCState {
             }
         };
         println!(
-            "parse_request: hdr fraglen: {:?}, bytes_consumed: {:?}\n",
+            "parse_request: hdr fraglen: {:?}, bytes_consumed: {:?}",
             fraglen, bytes_consumed
         );
         self.padleft = fraglen - 16 - bytes_consumed as u16; // bytes processed so far = header length
         let mut input_left = input.len() as i32 - bytes_consumed;
         let mut parsed: i32 = bytes_consumed; // parsed bytes
         println!(
-            "parse_request: padleft: {:?}, input_left: {:?}\n",
+            "parse_request: padleft: {:?}, input_left: {:?}",
             self.padleft, input_left
         );
         while input_left > 0 && parsed < fraglen as i32 {
@@ -617,7 +617,7 @@ impl DCERPCState {
             Ok((leftover_input, request)) => {
                 self.dcerpcrequest = Some(request);
                 println!(
-                    "input len: {:?}, leftover_input: {:?}\n",
+                    "input len: {:?}, leftover_input: {:?}",
                     input.len(),
                     leftover_input.len()
                 );
@@ -706,7 +706,9 @@ impl DCERPCState {
                 v.as_slice()
             }
         };
+        println!("data_needed_for_dir: {:?}, direction: {:?}, buffer len: {:?}", self.data_needed_for_dir, direction, buffer.len());
         if self.data_needed_for_dir != direction && buffer.len() != 0 {
+            println!("FAILED  check data_needed_for_dir");
             return AppLayerResult::err();
         }
 
@@ -1032,7 +1034,7 @@ pub fn evaluate_stub_params(
     let stub_len: u16;
     let fragtype = hdrflags & (PFC_FIRST_FRAG | PFC_LAST_FRAG);
     println!(
-        "evaluate_stub_params: lenleft: {:?}, input_len: {:?}\n",
+        "evaluate_stub_params: lenleft: {:?}, input_len: {:?}",
         lenleft, input_len
     );
     stub_len = cmp::min(lenleft, input_len);
@@ -1485,7 +1487,6 @@ mod tests {
             0x00, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(16, state.parse_dcerpc_header(dcerpcrequest));
     }
 
@@ -1571,7 +1572,6 @@ mod tests {
             0x02, 0x00, 0x00, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(1068, state.parse_dcerpc_bind(dcerpcbind));
     }
 
@@ -1584,7 +1584,6 @@ mod tests {
             0x00, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(44, state.parse_bindctxitem(dcerpcbind, 0));
     }
 
@@ -1717,7 +1716,6 @@ mod tests {
             0x00, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(16, state.parse_dcerpc_header(dcerpcbind));
         assert_eq!(1068, state.parse_dcerpc_bind(&dcerpcbind[16..]));
         assert_eq!(604, state.parse_bind_ack(dcerpcbindack));
@@ -1810,7 +1808,6 @@ mod tests {
             0x69, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(16, state.parse_dcerpc_header(&dcerpcrequest));
         assert_eq!(1008, state.parse_request(&dcerpcrequest[16..]));
     }
@@ -1894,7 +1891,6 @@ mod tests {
             0x69, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&dcerpcrequest, core::STREAM_TOSERVER)
@@ -1933,7 +1929,6 @@ mod tests {
             0x00, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind1, core::STREAM_TOSERVER)
@@ -2005,7 +2000,6 @@ mod tests {
             0x02, 0x00, 0x00, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind1, core::STREAM_TOSERVER)
@@ -2031,7 +2025,6 @@ mod tests {
         let request2: &[u8] = &[0x0D, 0x0E];
         let request3: &[u8] = &[0x0F, 0x10, 0x11, 0x12, 0x13, 0x14];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&request1, core::STREAM_TOSERVER)
@@ -2058,7 +2051,6 @@ mod tests {
             0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&request1, core::STREAM_TOSERVER)
@@ -2074,7 +2066,6 @@ mod tests {
             0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&request1, core::STREAM_TOSERVER)
@@ -2095,7 +2086,6 @@ mod tests {
             0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::err(),
             state.dcerpc_parse(&fault, core::STREAM_TOSERVER)
@@ -2128,7 +2118,6 @@ mod tests {
             0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&request1, core::STREAM_TOSERVER)
@@ -2157,14 +2146,14 @@ mod tests {
             0x00, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
+        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            state.dcerpc_parse(&bind_ack1, core::STREAM_TOSERVER)
+            state.dcerpc_parse(&bind_ack1, core::STREAM_TOCLIENT)
         );
         assert_eq!(
             AppLayerResult::ok(),
-            state.dcerpc_parse(&bind_ack2, core::STREAM_TOSERVER)
+            state.dcerpc_parse(&bind_ack2, core::STREAM_TOCLIENT)
         );
     }
 
@@ -2181,7 +2170,6 @@ mod tests {
             0x00, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         let expected_uuid: &[u8] = &[
             0x00, 0x00, 0x01, 0xa0, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x46,
@@ -2220,7 +2208,6 @@ mod tests {
             0x01, 0x02, 0x03, 0x04, 0xFF, /* ka boom - endless loop */
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&bindbuf, core::STREAM_TOSERVER)
@@ -2240,10 +2227,10 @@ mod tests {
             0xFF,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
+        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            state.dcerpc_parse(&bind_ack, core::STREAM_TOSERVER)
+            state.dcerpc_parse(&bind_ack, core::STREAM_TOCLIENT)
         );
     }
 
@@ -2480,7 +2467,6 @@ mod tests {
             0x08, 0x00, 0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         let expected_uuid1 = vec![
             0x4b, 0x32, 0x4f, 0xc8, 0x16, 0x70, 0x01, 0xd3, 0x12, 0x78, 0x5a, 0x47, 0xbf, 0x6e,
             0xe1, 0x88,
@@ -2497,38 +2483,44 @@ mod tests {
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind1, core::STREAM_TOSERVER)
         );
+        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            state.dcerpc_parse(&bind_ack1, core::STREAM_TOSERVER)
+            state.dcerpc_parse(&bind_ack1, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = state.dcerpcback {
             assert_eq!(1, back.accepted_uuid_list.len());
             assert_eq!(12, back.accepted_uuid_list[0].ctxid);
             assert_eq!(expected_uuid1, back.accepted_uuid_list[0].uuid);
         }
+        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind2, core::STREAM_TOSERVER)
         );
+        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            state.dcerpc_parse(&bind_ack2, core::STREAM_TOSERVER)
+            state.dcerpc_parse(&bind_ack2, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = state.dcerpcback {
             assert_eq!(1, back.accepted_uuid_list.len());
             assert_eq!(15, back.accepted_uuid_list[0].ctxid);
             assert_eq!(expected_uuid2, back.accepted_uuid_list[0].uuid);
         }
+        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind3, core::STREAM_TOSERVER)
         );
+        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            state.dcerpc_parse(&bind_ack3, core::STREAM_TOSERVER)
+            state.dcerpc_parse(&bind_ack3, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = state.dcerpcback {
             assert_eq!(1, back.accepted_uuid_list.len());
+        state.data_needed_for_dir = core::STREAM_TOSERVER;
             assert_eq!(11, back.accepted_uuid_list[0].ctxid);
             assert_eq!(expected_uuid3, back.accepted_uuid_list[0].uuid);
         }
@@ -2567,7 +2559,6 @@ mod tests {
         ];
 
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         let expected_uuid1 = vec![
             0x34, 0x2c, 0xfd, 0x40, 0x3c, 0x6c, 0x11, 0xce, 0xa8, 0x93, 0x08, 0x00, 0x2b, 0x2e,
             0x9c, 0x6d,
@@ -2580,22 +2571,25 @@ mod tests {
             AppLayerResult::ok(),
             state.dcerpc_parse(bind, core::STREAM_TOSERVER)
         );
+        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            state.dcerpc_parse(bindack, core::STREAM_TOSERVER)
+            state.dcerpc_parse(bindack, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = state.dcerpcback {
             assert_eq!(1, back.accepted_uuid_list.len());
             assert_eq!(0, back.accepted_uuid_list[0].ctxid);
             assert_eq!(expected_uuid1, back.accepted_uuid_list[0].uuid);
         }
+        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(alter_context, core::STREAM_TOSERVER)
         );
+        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            state.dcerpc_parse(alter_context_resp, core::STREAM_TOSERVER)
+            state.dcerpc_parse(alter_context_resp, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = state.dcerpcback {
             assert_eq!(1, back.accepted_uuid_list.len());
@@ -2615,7 +2609,6 @@ mod tests {
             0x09, 0x0A, 0x0B, 0x0C, 0xFF, 0xFF,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(request1, core::STREAM_TOSERVER)
@@ -2750,14 +2743,14 @@ mod tests {
             0x00, 0x00, 0x00, 0x00,
         ];
         let mut state = DCERPCState::new();
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(bind, core::STREAM_TOSERVER)
         );
+        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
-            state.dcerpc_parse(bindack, core::STREAM_TOSERVER)
+            state.dcerpc_parse(bindack, core::STREAM_TOCLIENT)
         );
     }
 }
