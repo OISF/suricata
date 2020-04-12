@@ -218,24 +218,6 @@
     SCAtomicFetchAndAnd(&(name ## _sc_atomic__), (val))
 
 /**
- *  \brief Bitwise NAND a value to our atomic variable
- *
- *  \param name the atomic variable
- *  \param val the value to NAND to the variable
- */
-#define SC_ATOMIC_NAND(name, val) \
-    SCAtomicFetchAndNand(&(name ## _sc_atomic__), (val))
-
-/**
- *  \brief Bitwise XOR a value to our atomic variable
- *
- *  \param name the atomic variable
- *  \param val the value to XOR to the variable
- */
-#define SC_ATOMIC_XOR(name, val) \
-    SCAtomicFetchAndXor(&(name ## _sc_atomic__), (val))
-
-/**
  *  \brief atomic Compare and Switch
  *
  *  \warning "name" is passed to us as "&var"
