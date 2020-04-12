@@ -249,7 +249,7 @@ int VarNameStoreSetupStaging(uint32_t de_ctx_version)
     SCMutexLock(&g_varnamestore_staging_m);
 
     if (!initialized) {
-        SC_ATOMIC_INIT(g_varnamestore_current);
+        SC_ATOMIC_INITPTR(g_varnamestore_current);
         initialized = 1;
     }
 

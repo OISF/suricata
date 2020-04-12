@@ -35,7 +35,8 @@ static int SCAtomicTest01(void)
     int b = 20;
     int *temp_int = NULL;
 
-    SC_ATOMIC_DECL_AND_INIT(void *, temp);
+    SC_ATOMIC_DECLARE(void *, temp);
+    SC_ATOMIC_INITPTR(temp);
 
     temp_int = SC_ATOMIC_GET(temp);
     if (temp_int != NULL)

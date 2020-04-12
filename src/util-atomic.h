@@ -172,6 +172,9 @@
 #define SC_ATOMIC_INIT(name) \
     (name ## _sc_atomic__) = 0
 
+#define SC_ATOMIC_INITPTR(name) \
+    (name ## _sc_atomic__) = NULL
+
 /**
  *  \brief wrapper for reinitializing an atomic variable.
  **/
