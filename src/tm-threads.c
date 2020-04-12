@@ -626,7 +626,7 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
     if (unlikely(slot == NULL))
         return;
     memset(slot, 0, sizeof(TmSlot));
-    SC_ATOMIC_INIT(slot->slot_data);
+    SC_ATOMIC_INITPTR(slot->slot_data);
     slot->SlotThreadInit = tm->ThreadInit;
     slot->slot_initdata = data;
     if (tm->Func) {

@@ -1138,7 +1138,7 @@ void TmModuleFlowManagerRegister (void)
     SCLogDebug("%s registered", tmm_modules[TMM_FLOWMANAGER].name);
 
     SC_ATOMIC_INIT(flowmgr_cnt);
-    SC_ATOMIC_INIT(flow_timeouts);
+    SC_ATOMIC_INITPTR(flow_timeouts);
 }
 
 void TmModuleFlowRecyclerRegister (void)
