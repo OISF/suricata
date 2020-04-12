@@ -44,21 +44,21 @@
 #include "queue.h"
 
 #ifdef PROFILE_LOCKING
-__thread uint64_t mutex_lock_contention;
-__thread uint64_t mutex_lock_wait_ticks;
-__thread uint64_t mutex_lock_cnt;
+thread_local uint64_t mutex_lock_contention;
+thread_local uint64_t mutex_lock_wait_ticks;
+thread_local uint64_t mutex_lock_cnt;
 
-__thread uint64_t spin_lock_contention;
-__thread uint64_t spin_lock_wait_ticks;
-__thread uint64_t spin_lock_cnt;
+thread_local uint64_t spin_lock_contention;
+thread_local uint64_t spin_lock_wait_ticks;
+thread_local uint64_t spin_lock_cnt;
 
-__thread uint64_t rww_lock_contention;
-__thread uint64_t rww_lock_wait_ticks;
-__thread uint64_t rww_lock_cnt;
+thread_local uint64_t rww_lock_contention;
+thread_local uint64_t rww_lock_wait_ticks;
+thread_local uint64_t rww_lock_cnt;
 
-__thread uint64_t rwr_lock_contention;
-__thread uint64_t rwr_lock_wait_ticks;
-__thread uint64_t rwr_lock_cnt;
+thread_local uint64_t rwr_lock_contention;
+thread_local uint64_t rwr_lock_wait_ticks;
+thread_local uint64_t rwr_lock_cnt;
 #endif
 
 #ifdef OS_FREEBSD

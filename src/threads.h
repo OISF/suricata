@@ -31,6 +31,14 @@
 #include <config.h>
 #endif
 
+#if defined(TLS_C11)
+#define thread_local _Thread_local
+#elif defined(TLS_GNU)
+#define thread_local __thread
+#else
+#error "No supported thread local type found"
+#endif
+
 /* need this for the _POSIX_SPIN_LOCKS define */
 #if HAVE_UNISTD_H
 #include <unistd.h>
