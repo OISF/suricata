@@ -9,6 +9,51 @@ AC_DEFUN([AC_TYPE_UINT16_T], [_AC_TYPE_UNSIGNED_INT(16)])
 AC_DEFUN([AC_TYPE_UINT32_T], [_AC_TYPE_UNSIGNED_INT(32)])
 AC_DEFUN([AC_TYPE_UINT64_T], [_AC_TYPE_UNSIGNED_INT(64)])
 
+AC_DEFUN([AC_TYPE_UINT], [_AC_TYPE_UTYPE(u_int)])
+AC_DEFUN([AC_TYPE_ULONG], [_AC_TYPE_UTYPE(u_long)])
+AC_DEFUN([AC_TYPE_UCHAR], [_AC_TYPE_UTYPE(u_char)])
+AC_DEFUN([AC_TYPE_USHORT], [_AC_TYPE_UTYPE(u_short)])
+
+# _AC_TYPE_UTYPE(BASE)
+# -------------------
+AC_DEFUN([_AC_TYPE_UTYPE],
+[
+  AC_CACHE_CHECK([for $1], [ac_cv_c_$1],
+   [ac_cv_c_$1=no
+    case $1 in
+        "u_long")
+            ac_cv_c_$1_type="U_LONG"
+            ;;
+        "u_int")
+            ac_cv_c_$1_type="U_INT"
+            ;;
+        "u_short")
+            ac_cv_c_$1_type="U_SHORT"
+            ;;
+        "u_char")
+            ac_cv_c_$1_type="U_CHAR"
+            ;;
+        *)
+            ;;
+    esac
+
+    AC_COMPILE_IFELSE(
+	    [AC_LANG_BOOL_COMPILE_TRY(
+	        [AC_INCLUDES_DEFAULT],
+	        [[($1) -1 >> ((sizeof($1) * 8) - 1) == 1]])],
+	    [AS_CASE([$1], [$1],
+	    [ac_cv_c_$1=yes],
+	    [ac_cv_c_$1=no])])
+     ])
+  case $ac_cv_c_$1 in #(
+  no)
+    AC_DEFINE_UNQUOTED([HAVE_TYPE_$ac_cv_c_$1_type_NOT_DEFINED], [1], [$1 is undefined])
+        ;;
+  *)
+        ;;
+  esac
+])# _AC_TYPE_UTYPE
+
 # _AC_TYPE_INT(NBITS)
 # -------------------
 AC_DEFUN([_AC_TYPE_INT],

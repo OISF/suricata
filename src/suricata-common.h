@@ -125,6 +125,19 @@
 #include <sched.h>     /* for sched_setaffinity(2) */
 #endif
 
+#ifdef HAVE_TYPE_U_LONG_NOT_DEFINED
+typedef unsigned long int u_long
+#endif
+#ifdef HAVE_TYPE_U_INT_NOT_DEFINED
+typedef unsigned int u_int
+#endif
+#ifdef HAVE_TYPE_U_SHORT_NOT_DEFINED
+typedef unsigned short u_short
+#endif
+#ifdef HAVE_TYPE_U_CHAR_NOT_DEFINED
+typedef unsigned char u_char
+#endif
+
 #include <pcre.h>
 
 #ifdef HAVE_SYSLOG_H
