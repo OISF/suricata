@@ -156,10 +156,6 @@
 #include <signal.h>
 #endif
 
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
