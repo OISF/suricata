@@ -6,7 +6,6 @@
     AM_INIT_AUTOMAKE([tar-ustar subdir-objects])
 
     AC_LANG([C])
-    AC_PROG_CC_C99
     LT_INIT
     PKG_PROG_PKG_CONFIG
 
