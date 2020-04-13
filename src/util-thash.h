@@ -211,5 +211,6 @@ THashData *THashLookupFromHash (THashTableContext *ctx, void *data);
 THashDataQueue *THashDataQueueNew(void);
 void THashCleanup(THashTableContext *ctx);
 int THashWalk(THashTableContext *, THashFormatFunc, THashOutputFunc, void *);
+int THashRemoveFromHash (THashTableContext *ctx, void *data);
 
 #endif /* __THASH_H__ */
