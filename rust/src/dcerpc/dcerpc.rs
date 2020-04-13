@@ -267,6 +267,7 @@ pub struct DCERPCState {
     pub tx_id: u16,
     pub query_completed: bool,
     pub data_needed_for_dir: u8,
+    pub prev_dir: u8,
     pub detect_flags_ts: u64,
     pub detect_flags_tc: u64,
     pub de_state: Option<*mut core::DetectEngineState>,
@@ -288,6 +289,7 @@ impl DCERPCState {
             tx_id: 0,
             query_completed: false,
             data_needed_for_dir: core::STREAM_TOSERVER,
+            prev_dir: core::STREAM_TOSERVER,
             detect_flags_ts: 0,
             detect_flags_tc: 0,
             de_state: None,
@@ -371,25 +373,25 @@ impl DCERPCState {
                 if header.rpc_vers != 5
                     || (header.rpc_vers_minor != 0 && header.rpc_vers_minor != 1)
                 {
-                    println!(
+                    SCLogDebug!(
                         "DCERPC Header did not validate. majv: {:?} minv: {:?}",
                         header.rpc_vers, header.rpc_vers_minor
                     );
                     return -1;
                 }
-                println!("fraglen: {:?}", header.frag_length);
-                println!("authlen: {:?}", header.auth_length);
+                SCLogDebug!("fraglen: {:?}", header.frag_length);
+                SCLogDebug!("authlen: {:?}", header.auth_length);
                 self.dcerpchdr = Some(header);
                 (input.len() - leftover_bytes.len()) as i32
             }
             Err(nom::Err::Incomplete(_)) => {
                 // Insufficient data.
-                println!("Insufficient data while parsing DCERPC header");
+                SCLogDebug!("Insufficient data while parsing DCERPC header");
                 -1
             }
             Err(_) => {
                 // Error, probably malformed data.
-                println!("An error occurred while parsing DCERPC header");
+                SCLogDebug!("An error occurred while parsing DCERPC header");
                 -1
             }
         }
@@ -401,19 +403,19 @@ impl DCERPCState {
         match parser::dcerpc_parse_bind(input) {
             Ok((leftover_bytes, header)) => {
                 let numctxitems = header.numctxitems;
-                println!("parse_dcerpc_bind: numctxitems: {:?}", numctxitems);
+                SCLogDebug!("parse_dcerpc_bind: numctxitems: {:?}", numctxitems);
                 self.dcerpcbind = Some(header);
                 for i in 0..numctxitems {
-                    println!("idx before parsing loop {:?}: {:?}", i, idx);
+                    SCLogDebug!("idx before parsing loop {:?}: {:?}", i, idx);
                     retval = self.parse_bindctxitem(&input[idx as usize..], i as u16);
                     if retval == -1 {
-                        println!("Returning {:?}", i);
+                        SCLogDebug!("Returning {:?}", i);
                         return -1;
                     }
                     idx = retval + idx;
                 }
                 let ret = (input.len() - leftover_bytes.len()) as i32 + retval * numctxitems as i32;
-                println!("ret: {:?}", ret);
+                SCLogDebug!("ret: {:?}", ret);
                 ret
             }
             Err(nom::Err::Incomplete(_)) => {
@@ -449,19 +451,19 @@ impl DCERPCState {
                     uuidentry.flags |= DCERPC_UUID_ENTRY_FLAG_FF;
                 }
                 if let Some(ref mut bind) = self.dcerpcbind {
-                    println!("parse_bindctxitem: Pushing uuid: {:?}", uuidentry);
+                    SCLogDebug!("parse_bindctxitem: Pushing uuid: {:?}", uuidentry);
                     bind.uuid_list.push(uuidentry);
                 }
                 44
             }
             Err(nom::Err::Incomplete(_)) => {
                 // Insufficient data.
-                println!("Insufficient data while parsing DCERPC BIND CTXItem");
+                SCLogDebug!("Insufficient data while parsing DCERPC BIND CTXItem");
                 -1
             }
             Err(_) => {
                 // Error, probably malformed data.
-                println!("An error occurred while parsing DCERPC BIND CTXItem");
+                SCLogDebug!("An error occurred while parsing DCERPC BIND CTXItem");
                 -1
             }
         }
@@ -474,7 +476,7 @@ impl DCERPCState {
                     let mut uuid_internal_id = 0;
                     for r in back.ctxitems.iter() {
                         for mut uuid in bind.uuid_list.iter_mut() {
-                            //                            println!(
+                            //                            SCLogDebug!(
                             //                                "parse_bind_ack: uuid.iid: {:?}, back.iid: {:?}",
                             //                                uuid.internal_id, uuid_internal_id
                             //                            );
@@ -488,11 +490,11 @@ impl DCERPCState {
                         }
                         uuid_internal_id += 1;
                     }
-                    println!(
+                    SCLogDebug!(
                         "parse_bind_ack: accepted uuid: {:?}uuid_internal_id: {:?}",
                         back.accepted_uuid_list, uuid_internal_id
                     );
-                    //println!("parse_bind_ack: uuid list: {:?}", bind.uuid_list);
+                    //SCLogDebug!("parse_bind_ack: uuid list: {:?}", bind.uuid_list);
                     self.dcerpcback = Some(back);
                 }
                 // Total number of bytes parsed is unknown
@@ -500,12 +502,12 @@ impl DCERPCState {
             }
             Err(nom::Err::Incomplete(_)) => {
                 // Insufficient data.
-                println!("Insufficient data while parsing DCERPC BINDACK");
+                SCLogDebug!("Insufficient data while parsing DCERPC BINDACK");
                 -1
             }
             Err(_) => {
                 // Error, probably malformed data.
-                println!("An error occurred while parsing DCERPC BINDACK");
+                SCLogDebug!("An error occurred while parsing DCERPC BINDACK");
                 -1
             }
         }
@@ -522,7 +524,7 @@ impl DCERPCState {
             None => 0,
         };
         let padleft = self.padleft;
-        println!("parse_stub_data: padleft: {:?}", padleft);
+        SCLogDebug!("parse_stub_data: padleft: {:?}", padleft);
         // Update the stub params based on the packaet type
         match self.get_hdr_type() {
             Some(x) => match x {
@@ -539,7 +541,7 @@ impl DCERPCState {
                             rpc_vers,
                         );
                     }
-                    println!("parse_stub_data: REQUEST retval: {:?}", retval)
+                    SCLogDebug!("parse_stub_data: REQUEST retval: {:?}", retval);
                 }
                 DCERPC_TYPE_RESPONSE => {
                     if let Some(ref mut resp) = self.dcerpcresponse {
@@ -554,7 +556,7 @@ impl DCERPCState {
                             rpc_vers,
                         );
                     }
-                    println!("parse_stub_data: RESPONSE retval: {:?}", retval)
+                    SCLogDebug!("parse_stub_data: RESPONSE retval: {:?}", retval);
                 }
                 _ => {
                     SCLogDebug!("Unrecognized packet type");
@@ -567,7 +569,7 @@ impl DCERPCState {
         }
         // Update the remaining fragment length
         self.padleft -= retval;
-        println!("parse_stub_data: remaining padleft: {:?}", self.padleft);
+        SCLogDebug!("parse_stub_data: remaining padleft: {:?}", self.padleft);
 
         retval
     }
@@ -579,14 +581,14 @@ impl DCERPCState {
                 return -1;
             }
         };
-        println!(
+        SCLogDebug!(
             "parse_request: hdr fraglen: {:?}, bytes_consumed: {:?}",
             fraglen, bytes_consumed
         );
         self.padleft = fraglen - 16 - bytes_consumed as u16; // bytes processed so far = header length
         let mut input_left = input.len() as i32 - bytes_consumed;
         let mut parsed: i32 = bytes_consumed; // parsed bytes
-        println!(
+        SCLogDebug!(
             "parse_request: padleft: {:?}, input_left: {:?}",
             self.padleft, input_left
         );
@@ -616,7 +618,7 @@ impl DCERPCState {
         match parser::dcerpc_parse_request(input, endianness) {
             Ok((leftover_input, request)) => {
                 self.dcerpcrequest = Some(request);
-                println!(
+                SCLogDebug!(
                     "input len: {:?}, leftover_input: {:?}",
                     input.len(),
                     leftover_input.len()
@@ -664,7 +666,7 @@ impl DCERPCState {
                 self.buffer_tc.clear();
             }
         }
-        self.dcerpchdr = None;
+//        self.dcerpchdr = None;
         self.bytes_consumed = 0;
     }
 
@@ -680,18 +682,36 @@ impl DCERPCState {
         self.data_needed_for_dir = direction;
     }
 
+    pub fn reset_direction(&mut self, direction: u8) {
+        if direction == core::STREAM_TOSERVER {
+            self.data_needed_for_dir = core::STREAM_TOCLIENT;
+        }
+        else {
+            self.data_needed_for_dir = core::STREAM_TOSERVER;
+        }
+    }
+
     pub fn dcerpc_parse(&mut self, input: &[u8], direction: u8) -> AppLayerResult {
         let mut parsed = 0;
         let retval;
         let input_len = input.len();
         let mut v: Vec<u8>;
+
+        // Overwrite the state data in case of multiple complete queries in the
+        // same direction
+        if self.prev_dir == direction && self.query_completed == true {
+            SCLogDebug!("Overwriting the query");
+            self.data_needed_for_dir = direction;
+            self.query_completed = false;
+        }
+
         let buffer = match direction {
             core::STREAM_TOSERVER => {
                 if self.buffer_ts.len() + input_len > 1024 * 1024 {
                     SCLogDebug!("To Server stream: Buffer Overflow");
                     return AppLayerResult::err();
                 }
-                println!("buffer_ts: {:?}", self.buffer_ts.len());
+                SCLogDebug!("buffer_ts: {:?}", self.buffer_ts.len());
                 v = self.buffer_ts.split_off(0);
                 v.extend_from_slice(input);
                 v.as_slice()
@@ -706,9 +726,10 @@ impl DCERPCState {
                 v.as_slice()
             }
         };
-        println!("data_needed_for_dir: {:?}, direction: {:?}, buffer len: {:?}", self.data_needed_for_dir, direction, buffer.len());
+
+        SCLogDebug!("data_needed_for_dir: {:?}, direction: {:?}, buffer len: {:?}", self.data_needed_for_dir, direction, buffer.len());
         if self.data_needed_for_dir != direction && buffer.len() != 0 {
-            println!("FAILED  check data_needed_for_dir");
+            SCLogDebug!("FAILED  check data_needed_for_dir");
             return AppLayerResult::err();
         }
 
@@ -716,7 +737,7 @@ impl DCERPCState {
         // else return -1 and the buffer stays empty
         // Reason: header has the most important of data required for further proccessing
         if self.bytes_consumed < 16 && input_len > 0 {
-            println!("parsing header");
+            SCLogDebug!("parsing header");
             parsed = self.parse_dcerpc_header(&buffer);
             if parsed == -1 {
                 self.extend_buffer(buffer, direction);
@@ -725,7 +746,7 @@ impl DCERPCState {
                 // ok would probably be incorrect
             }
             self.bytes_consumed += parsed as u16;
-            println!("bytes_consumed: {:?}", self.bytes_consumed);
+            SCLogDebug!("bytes_consumed: {:?}", self.bytes_consumed);
         }
 
         let fraglen = match self.get_hdr_fraglen() {
@@ -733,14 +754,14 @@ impl DCERPCState {
             None => 0,
         };
 
-        println!("Buffer len: {:?}", buffer.len());
+        SCLogDebug!("Buffer len: {:?}", buffer.len());
         if (buffer.len() as u16) < fraglen {
-            println!("Possibly fragmented data, waiting for more..");
+            SCLogDebug!("Possibly fragmented data, waiting for more..");
             self.extend_buffer(buffer, direction);
             return AppLayerResult::ok();
         }
         if (buffer.len() as u16) == fraglen {
-            println!("Query completed");
+            SCLogDebug!("Query completed");
             self.query_completed = true;
         }
         parsed = self.bytes_consumed as i32;
@@ -748,40 +769,43 @@ impl DCERPCState {
         match self.get_hdr_type() {
             Some(x) => match x {
                 DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                    println!(
+                    SCLogDebug!(
                         "buffer len before bind parsing: {:?}, parsed: {:?}",
                         buffer.len(),
                         parsed
                     );
                     retval = self.parse_dcerpc_bind(&buffer[parsed as usize..]);
                     if retval == -1 {
+                        self.data_needed_for_dir = direction;
                         return AppLayerResult::err();
                     }
                 }
                 DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    println!(
+                    SCLogDebug!(
                         "buffer len befor bindack parsing: {:?}, parsed: {:?}",
                         buffer.len(),
                         parsed
                     );
                     retval = self.parse_bind_ack(&buffer[parsed as usize..]);
                     if retval == -1 {
+                        self.data_needed_for_dir = direction;
                         return AppLayerResult::err();
                     }
                 }
                 DCERPC_TYPE_REQUEST => {
-                    println!(
+                    SCLogDebug!(
                         "buffer len befor request parsing: {:?}, parsed: {:?}",
                         buffer.len(),
                         parsed
                     );
                     retval = self.parse_request(&buffer[parsed as usize..]);
                     if retval == -1 {
+                        self.data_needed_for_dir = direction;
                         return AppLayerResult::err();
                     }
                 }
                 DCERPC_TYPE_RESPONSE => {
-                    println!(
+                    SCLogDebug!(
                         "buffer len befor response parsing: {:?}, parsed: {:?}",
                         buffer.len(),
                         parsed
@@ -794,12 +818,13 @@ impl DCERPCState {
                         core::STREAM_TOCLIENT,
                     );
                     if retval == -1 {
+                        self.data_needed_for_dir = direction;
                         return AppLayerResult::err();
                     }
                     self.tx_id += 1; // Complete response, maybe to be used in future?
                 }
                 _ => {
-                    println!("Unrecognized packet type");
+                    SCLogDebug!("Unrecognized packet type");
                     self.clean_buffer(direction);
                     return AppLayerResult::err();
                 }
@@ -809,11 +834,12 @@ impl DCERPCState {
             }
         }
         self.bytes_consumed += retval as u16;
-        println!("Final retval: {:?}", retval);
+        SCLogDebug!("Final retval: {:?}", retval);
         if self.query_completed == true {
             self.clean_buffer(direction);
-            self.data_needed_for_dir = core::STREAM_TOCLIENT;
+            self.reset_direction(direction);
         }
+        self.prev_dir = direction;
         return AppLayerResult::ok();
     }
 }
@@ -1034,7 +1060,7 @@ pub fn evaluate_stub_params(
 ) -> u16 {
     let stub_len: u16;
     let fragtype = hdrflags & (PFC_FIRST_FRAG | PFC_LAST_FRAG);
-    println!(
+    SCLogDebug!(
         "evaluate_stub_params: lenleft: {:?}, input_len: {:?}",
         lenleft, input_len
     );
@@ -1298,18 +1324,30 @@ pub unsafe extern "C" fn rs_dcerpc_set_buffer(
     state: &mut DCERPCState,
     buf: *mut *const u8,
     len: *mut u32,
+    dir: u8,
 ) -> u8 {
-    if let &Some(ref req) = &state.dcerpcrequest {
-        *len = req.stub_data_buffer_len as u32;
-        *buf = req.stub_data_buffer.as_ptr();
-    }
-    if let &Some(ref resp) = &state.dcerpcresponse {
-        *len = resp.stub_data_buffer_len as u32;
-        *buf = resp.stub_data_buffer.as_ptr();
-    }
+    match dir {
+        core::STREAM_TOSERVER => {
+            SCLogDebug!("Inside TOSERVER");
+            if let Some(ref req) = state.dcerpcrequest {
+                *len = req.stub_data_buffer_len as u32;
+                *buf = req.stub_data_buffer.as_ptr();
+                SCLogDebug!("setting len to {:?}, buf to: {:?}", *len, *buf);
+            }
+        },
+        _ => {
+            SCLogDebug!("Inside TOCLIENT");
+            if let Some(ref resp) = state.dcerpcresponse {
+                *len = resp.stub_data_buffer_len as u32;
+                *buf = resp.stub_data_buffer.as_ptr();
+                SCLogDebug!("setting len to {:?}, buf to: {:?}", *len, *buf);
+            }
 
+        },
+    }
     // TODO good thing to do? Returning endianness from the function whihch is not meant to do that
     // ASK about this as two func calls may be costly
+    SCLogDebug!("retval: {:?}", state.get_hdr_drep_0() & 0x10);
     return state.get_hdr_drep_0() & 0x10;
 }
 
@@ -1902,8 +1940,8 @@ mod tests {
             assert_eq!(1024, hdr.frag_length);
         }
         if let Some(req) = state.dcerpcrequest {
-            assert_eq!(1000, req.ctxid);
-            assert_eq!(0, req.opnum);
+            assert_eq!(11, req.ctxid);
+            assert_eq!(9, req.opnum);
             assert_eq!(1, req.first_request_seen);
             assert_eq!(1000, req.stub_data_buffer_len);
             assert_eq!(true, req.stub_data_buffer_reset);
@@ -1935,7 +1973,7 @@ mod tests {
             state.dcerpc_parse(&bind1, core::STREAM_TOSERVER)
         );
         assert_eq!(
-            AppLayerResult::err(),   // TODO ASK if this is correct?
+            AppLayerResult::ok(),   // TODO ASK if this is correct?
             state.dcerpc_parse(&bind2, core::STREAM_TOSERVER)
         );
     }
@@ -2125,11 +2163,11 @@ mod tests {
         );
         // TODO ASK if the following are correct
         assert_eq!(
-            AppLayerResult::err(),
+            AppLayerResult::ok(),
             state.dcerpc_parse(&request2, core::STREAM_TOSERVER)
         );
         assert_eq!(
-            AppLayerResult::err(),
+            AppLayerResult::ok(),
             state.dcerpc_parse(&request3, core::STREAM_TOSERVER)
         );
     }
@@ -2620,8 +2658,8 @@ mod tests {
             state.dcerpc_parse(request2, core::STREAM_TOSERVER)
         );
         if let Some(ref req) = state.dcerpcrequest {
-            assert_eq!(0, req.opnum);
-            assert_eq!(12, req.ctxid);
+            assert_eq!(2, req.opnum);
+            assert_eq!(0, req.ctxid);
             assert_eq!(14, req.stub_data_buffer_len);
         }
     }

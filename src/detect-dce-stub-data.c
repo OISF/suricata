@@ -93,11 +93,7 @@ static InspectionBuffer *GetDCEData(DetectEngineThreadCtx *det_ctx,
         uint32_t data_len = 0;
         const uint8_t *data = NULL;
 
-        DCERPCState *dcerpc_state = txv;
-        if (dcerpc_state == NULL)
-            return NULL;
-
-        if (rs_dcerpc_set_buffer(txv, &data, &data_len)) {
+        if (rs_dcerpc_set_buffer(txv, &data, &data_len, flow_flags)) {
             buffer->flags = DETECT_CI_FLAGS_DCE_LE;
         } else {
             buffer->flags |= DETECT_CI_FLAGS_DCE_BE;
@@ -1482,6 +1478,7 @@ static int DetectDceStubDataTestParse04(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (!PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
+        SCLogInfo("1 alerted, 2 and 3 didnt");
         goto end;
 
     /* response1 */
@@ -1502,6 +1499,7 @@ static int DetectDceStubDataTestParse04(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
+        SCLogDebug("1 alerted, 2 and 3 didnt");
         goto end;
 
     /* request2 */
@@ -1522,6 +1520,7 @@ static int DetectDceStubDataTestParse04(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1) || !PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
+        SCLogDebug("1 alerted, 2 and 3 didnt");
         goto end;
 
     /* response2 */
@@ -1542,6 +1541,7 @@ static int DetectDceStubDataTestParse04(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
+        SCLogDebug("1 alerted, 2 and 3 didnt");
         goto end;
 
     /* request3 */
@@ -1562,6 +1562,7 @@ static int DetectDceStubDataTestParse04(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || !PacketAlertCheck(p, 3))
+        SCLogDebug("1 alerted, 2 and 3 didnt");
         goto end;
 
     /* response3 */
@@ -1582,6 +1583,7 @@ static int DetectDceStubDataTestParse04(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
+        SCLogDebug("1 alerted, 2 and 3 didnt");
         goto end;
 
     result = 1;

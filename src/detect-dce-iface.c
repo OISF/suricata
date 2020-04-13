@@ -300,7 +300,7 @@ static int DetectDceIfaceTestParse12(void)
     FAIL_IF(PacketAlertCheck(p, 1));
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOCLIENT, dcerpc_request,
+                            STREAM_TOSERVER, dcerpc_request,
                             dcerpc_request_len);
     FAIL_IF(r != 0);
 
@@ -503,7 +503,7 @@ static int DetectDceIfaceTestParse13(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 didn't match after bind request: ");
+        SCLogDebug("sig 1 didn't match after bind request: ");
         goto end;
     }
 
@@ -522,7 +522,7 @@ static int DetectDceIfaceTestParse13(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched again after bind ack: ");
+        SCLogDebug("sig 1 matched again after bind ack: ");
         goto end;
     }
 
@@ -542,7 +542,7 @@ static int DetectDceIfaceTestParse13(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't match after request1: ");
+        SCLogDebug("sig 1 didn't match after request1: ");
         goto end;
     }
 
@@ -562,7 +562,7 @@ static int DetectDceIfaceTestParse13(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched after response1, but shouldn't: ");
+        SCLogDebug("sig 1 matched after response1, but shouldn't: ");
         goto end;
     }
 
@@ -582,7 +582,7 @@ static int DetectDceIfaceTestParse13(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't match after request2: ");
+        SCLogDebug("sig 1 didn't match after request2: ");
         goto end;
     }
 
@@ -600,7 +600,7 @@ static int DetectDceIfaceTestParse13(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched after response2, but shouldn't have: ");
+        SCLogDebug("sig 1 matched after response2, but shouldn't have: ");
         goto end;
     }
 
@@ -618,7 +618,7 @@ static int DetectDceIfaceTestParse13(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't match after request3: ");
+        SCLogDebug("sig 1 didn't match after request3: ");
         goto end;
     }
 
@@ -636,7 +636,7 @@ static int DetectDceIfaceTestParse13(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched after response3, but shouldn't have: ");
+        SCLogDebug("sig 1 matched after response3, but shouldn't have: ");
         goto end;
     }
 
@@ -783,13 +783,13 @@ static int DetectDceIfaceTestParse14(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 1 matched but shouldn't have: ");
         goto end;
     }
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOCLIENT, dcerpc_request,
+                            STREAM_TOSERVER, dcerpc_request,
                             dcerpc_request_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -802,7 +802,7 @@ static int DetectDceIfaceTestParse14(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (!PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 1 matched but shouldn't have: ");
         goto end;
     }
 
@@ -998,11 +998,11 @@ static int DetectDceIfaceTestParse15(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 1 matched but shouldn't have: ");
         goto end;
     }
     if (PacketAlertCheck(p, 2)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 2 matched but shouldn't have: ");
         goto end;
     }
 
@@ -1021,11 +1021,11 @@ static int DetectDceIfaceTestParse15(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 1 matched but shouldn't have: ");
         goto end;
     }
     if (PacketAlertCheck(p, 2)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 2 matched but shouldn't have: ");
         goto end;
     }
 
@@ -1044,11 +1044,11 @@ static int DetectDceIfaceTestParse15(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 1 matched but shouldn't have: ");
         goto end;
     }
     if (PacketAlertCheck(p, 2)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 2 matched but shouldn't have: ");
         goto end;
     }
 
@@ -1067,11 +1067,11 @@ static int DetectDceIfaceTestParse15(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (!PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 1 matched but shouldn't have: ");
         goto end;
     }
     if (PacketAlertCheck(p, 2)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 2 matched but shouldn't have: ");
         goto end;
     }
 
@@ -1090,11 +1090,11 @@ static int DetectDceIfaceTestParse15(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 1 matched but shouldn't have: ");
         goto end;
     }
     if (PacketAlertCheck(p, 2)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 2 matched but shouldn't have: ");
         goto end;
     }
 
@@ -1113,11 +1113,11 @@ static int DetectDceIfaceTestParse15(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 1 matched but shouldn't have: ");
         goto end;
     }
     if (!PacketAlertCheck(p, 2)) {
-        printf("sig 1 matched but shouldn't have: ");
+        SCLogDebug("sig 2 didn't match but should have: ");
         goto end;
     }
 
