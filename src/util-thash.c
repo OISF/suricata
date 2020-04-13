@@ -757,15 +757,8 @@ int THashRemoveFromHash (THashTableContext *ctx, void *data)
     THashHashRow *hb = &ctx->array[key];
 
     HRLOCK_LOCK(hb);
-    if (hb->head == NULL) {
-        HRLOCK_UNLOCK(hb);
-        SCLogDebug("empty hash row");
-        return -1;
-    }
-
-    /* ok, we have data in the bucket. Let's find out if it is our data */
     THashData *h = hb->head;
-    do {
+    while (h != NULL) {
         /* see if this is the data we are looking for */
         if (THashCompare(&ctx->config, h->data, data) == 0) {
             h = h->next;
@@ -796,8 +789,7 @@ int THashRemoveFromHash (THashTableContext *ctx, void *data)
         THashDataFree(ctx, h);
         SCLogDebug("found and removed");
         return 1;
-
-    } while (h != NULL);
+    }
 
     HRLOCK_UNLOCK(hb);
     SCLogDebug("data not found");
