@@ -188,7 +188,7 @@
     AC_CHECK_HEADERS([sys/time.h time.h unistd.h sys/param.h])
     AC_CHECK_HEADERS([sys/ioctl.h linux/if_ether.h linux/if_packet.h linux/filter.h])
     AC_CHECK_HEADERS([linux/ethtool.h linux/sockios.h])
-    AC_CHECK_HEADERS([glob.h locale.h])
+    AC_CHECK_HEADERS([glob.h locale.h grp.h pwd.h])
     AC_CHECK_HEADERS([dirent.h fnmatch.h])
     AC_CHECK_HEADERS([sys/resource.h sys/types.h sys/un.h])
     AC_CHECK_HEADERS([sys/random.h])

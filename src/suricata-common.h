@@ -206,6 +206,14 @@
 #include <libgen.h>
 #endif
 
+#ifdef HAVE_GRP_H
+#include <grp.h>
+#endif
+
+#ifdef HAVE_PWD_H
+#include <pwd.h>
+#endif
+
 #if __CYGWIN__
 #if !defined _X86_ && !defined __x86_64
 #define _X86_

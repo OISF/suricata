@@ -26,8 +26,6 @@
 
 #ifndef OS_WIN32
 
-#include <grp.h>
-#include <pwd.h>
 #include "suricata-common.h"
 #include "util-debug.h"
 #include "suricata.h"
