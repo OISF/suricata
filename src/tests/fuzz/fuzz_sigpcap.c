@@ -47,6 +47,55 @@ pcap-file:\n\
 stream:\n\
 \n\
   checksum-validation: no\n\
+outputs:\n\
+  - eve-log:\n\
+      enabled: yes\n\
+      filetype: regular\n\
+      filename: /dev/null\n\
+      types:\n\
+        - alert:\n\
+            payload: yes\n\
+            payload-printable: yes\n\
+            packet: yes\n\
+            metadata: yes\n\
+            http-body: yes\n\
+            http-body-printable: yes\n\
+            tagged-packets: yes\n\
+        - anomaly:\n\
+            enabled: yes\n\
+            types:\n\
+              decode: yes\n\
+              stream: yes\n\
+              applayer: yes\n\
+            packethdr: no\n\
+        - http:\n\
+            extended: yes\n\
+            dump-all-headers: both\n\
+        - dns\n\
+        - tls:\n\
+            extended: yes\n\
+            session-resumption: yes\n\
+        - files\n\
+        - smtp:\n\
+            extended: yes\n\
+        - dnp3\n\
+        - ftp\n\
+        - rdp\n\
+        - nfs\n\
+        - smb\n\
+        - tftp\n\
+        - ikev2\n\
+        - krb5\n\
+        - snmp\n\
+        - rfb\n\
+        - sip\n\
+        - dhcp:\n\
+            enabled: yes\n\
+            extended: yes\n\
+        - ssh\n\
+        - flow\n\
+        - netflow\n\
+        - metadata\n\
 ";
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
@@ -80,6 +129,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
         SupportFastPatternForSigMatchTypes();
         PostConfLoadedSetup(&suricata);
+        PreRunPostPrivsDropInit(run_mode);
 
         //dummy init before DetectEngineReload
         DetectEngineCtx * de_ctx = DetectEngineCtxInit();
