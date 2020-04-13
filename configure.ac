@@ -323,14 +323,23 @@
     esac
     AC_MSG_RESULT(ok)
 
-    # check if our target supports thread local storage
-    AC_MSG_CHECKING(for thread local storage c11 thread_local support)
+    # check if our target supports c11
+    AC_MSG_CHECKING(for c11 support)
+    OCFLAGS=$CFLAGS
+    CFLAGS="-std=c11"
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>]],
                 [[ static _Thread_local int i; i = 1; i++; ]])],
-            [AC_DEFINE([TLS_C11], [1], [Thread local storage])
-            AC_MSG_RESULT([yes])],
+            AC_MSG_RESULT([yes])
+            [AC_DEFINE([TLS_C11], [1], [C11 Thread local storage])
+             CFLAGS="$OCFLAGS -std=c11"],
             [AC_MSG_RESULT([no])
+             CFLAGS="$OCFLAGS"
+             have_c11=no
              have_c11_tls=no])
+    if [ test "x$have_c11" = "xno" ]; then
+        CFLAGS="$CFLAGS -std=gnu99"
+    fi
+
     # check if our target supports thread local storage
     AC_MSG_CHECKING(for thread local storage gnu __thread support)
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>]],
@@ -1324,12 +1333,24 @@ return 0;
         CPPFLAGS="${CPPFLAGS} -I${with_libpcap_includes}"
     fi
 
-    AC_CHECK_HEADER(pcap.h,,[AC_MSG_ERROR(pcap.h not found ...)])
+    AC_CHECK_HEADERS([pcap.h],[],[AC_MSG_ERROR(pcap.h not found ...)],
+            [[
+                #ifdef HAVE_WINSOCK2_H
+                #include <winsock2.h>
+                #endif
+                #define _DEFAULT_SOURCE 1
+            ]])
 
     if test "$with_libpcap_libraries" != "no"; then
         LDFLAGS="${LDFLAGS}  -L${with_libpcap_libraries}"
     fi
-    AC_CHECK_HEADERS([pcap.h pcap/pcap.h pcap/bpf.h])
+    AC_CHECK_HEADERS([pcap.h pcap/pcap.h pcap/bpf.h],[],[],
+            [[
+                #ifdef HAVE_WINSOCK2_H
+                #include <winsock2.h>
+                #endif
+                #define _DEFAULT_SOURCE 1
+            ]])
 
     LIBPCAP=""
     PKG_CHECK_MODULES([PCAP],libpcap,[CPPFLAGS="${CPPFLAGS} ${PCAP_CFLAGS}" LIBS="${LIBS} ${PCAP_LIBS}"],[:])
