@@ -667,6 +667,10 @@ TmEcode UnixSocketDatasetAdd(json_t *cmd, json_t* answer, void *data)
     SCLogDebug("dataset-add: %s type %s value %s", set_name, type, value);
 
     enum DatasetTypes t = DatasetGetTypeFromString(type);
+    if (t == DATASET_TYPE_NOTSET) {
+        json_object_set_new(answer, "message", json_string("unknown settype"));
+        return TM_ECODE_FAILED;
+    }
 
     Dataset *set = DatasetFind(set_name, t);
     if (set == NULL) {
