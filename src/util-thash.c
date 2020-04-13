@@ -744,3 +744,62 @@ static THashData *THashGetUsed(THashTableContext *ctx)
 
     return NULL;
 }
+
+/**
+ * \retval int -1 not found
+ * \retval int 0 found, but it was busy (ref cnt)
+ * \retval int 1 found and removed */
+int THashRemoveFromHash (THashTableContext *ctx, void *data)
+{
+    /* get the key to our bucket */
+    uint32_t key = THashGetKey(&ctx->config, data);
+    /* get our hash bucket and lock it */
+    THashHashRow *hb = &ctx->array[key];
+
+    HRLOCK_LOCK(hb);
+    if (hb->head == NULL) {
+        HRLOCK_UNLOCK(hb);
+        SCLogDebug("empty hash row");
+        return -1;
+    }
+
+    /* ok, we have data in the bucket. Let's find out if it is our data */
+    THashData *h = hb->head;
+    do {
+        /* see if this is the data we are looking for */
+        if (THashCompare(&ctx->config, h->data, data) == 0) {
+            h = h->next;
+            continue;
+        }
+
+        SCMutexLock(&h->m);
+        if (SC_ATOMIC_GET(h->use_cnt) > 0) {
+            SCMutexUnlock(&h->m);
+            HRLOCK_UNLOCK(hb);
+            return 0;
+        }
+
+        /* remove from the hash */
+        if (h->prev != NULL)
+            h->prev->next = h->next;
+        if (h->next != NULL)
+            h->next->prev = h->prev;
+        if (hb->head == h)
+            hb->head = h->next;
+        if (hb->tail == h)
+            hb->tail = h->prev;
+
+        h->next = NULL;
+        h->prev = NULL;
+        SCMutexUnlock(&h->m);
+        HRLOCK_UNLOCK(hb);
+        THashDataFree(ctx, h);
+        SCLogDebug("found and removed");
+        return 1;
+
+    } while (h != NULL);
+
+    HRLOCK_UNLOCK(hb);
+    SCLogDebug("data not found");
+    return -1;
+}
