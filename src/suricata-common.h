@@ -197,32 +197,6 @@ typedef unsigned char u_char
 #include <netdb.h>
 #endif
 
-#ifndef SC_PCAP_DONT_INCLUDE_PCAP_H
-#ifdef HAVE_PCAP_H
-#include <pcap.h>
-#endif
-
-#ifdef HAVE_PCAP_PCAP_H
-#include <pcap/pcap.h>
-#endif
-#endif
-
-#ifdef HAVE_UTIME_H
-#include <utime.h>
-#endif
-
-#ifdef HAVE_LIBGEN_H
-#include <libgen.h>
-#endif
-
-#ifdef HAVE_GRP_H
-#include <grp.h>
-#endif
-
-#ifdef HAVE_PWD_H
-#include <pwd.h>
-#endif
-
 #if __CYGWIN__
 #if !defined _X86_ && !defined __x86_64
 #define _X86_
@@ -251,6 +225,32 @@ typedef unsigned char u_char
 
 #ifdef HAVE_W32API_WTYPES_H
 #include <w32api/wtypes.h>
+#endif
+
+#ifndef SC_PCAP_DONT_INCLUDE_PCAP_H
+#ifdef HAVE_PCAP_H
+#include <pcap.h>
+#endif
+
+#ifdef HAVE_PCAP_PCAP_H
+#include <pcap/pcap.h>
+#endif
+#endif
+
+#ifdef HAVE_UTIME_H
+#include <utime.h>
+#endif
+
+#ifdef HAVE_LIBGEN_H
+#include <libgen.h>
+#endif
+
+#ifdef HAVE_GRP_H
+#include <grp.h>
+#endif
+
+#ifdef HAVE_PWD_H
+#include <pwd.h>
 #endif
 
 #include <jansson.h>
