@@ -101,7 +101,9 @@ fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
     let mut ret = 1;
     SCLogDebug!("Inside match backuuid");
     if let Some(ref dcerpcback) = state.dcerpcback {
+        SCLogDebug!("Length of accpeted list: {:?}", dcerpcback.accepted_uuid_list.len());
         for uuidentry in dcerpcback.accepted_uuid_list.iter() {
+            ret = 1;
             // if any_frag is not enabled, we need to match only against the first fragment
             if if_data.any_frag == 0 && (uuidentry.flags & DCERPC_UUID_ENTRY_FLAG_FF == 0) {
                 SCLogDebug!("any frag not enabled");
@@ -143,6 +145,8 @@ fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
             }
         }
     }
+
+    SCLogDebug!("Returning {:?}", ret);
     return ret;
 }
 
@@ -196,7 +200,7 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
         }
     }
 
-    SCLogDebug!("All OK. Returning the DCEIfaceData struct");
+    SCLogDebug!("All OK. Returning the DCEIfaceData struct if_uuid: {:?}", if_uuid);
 
     Ok(DCEIfaceData {
         if_uuid: if_uuid,
@@ -253,6 +257,7 @@ fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_iface_match(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
+    SCLogDebug!("Inside iface match");
     let first_req_seen = match state.get_first_req_seen() {
         Some(x) => x,
         None => 0,   // TODO check if its OK
@@ -265,9 +270,13 @@ pub extern "C" fn rs_dcerpc_iface_match(state: &mut DCERPCState, if_data: &mut D
     match state.get_hdr_type() {
         Some(x) => match x {
             DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE => {SCLogDebug!("Inside request/resp check");},
-            _ => {return 0;}
+            _ => {
+                SCLogDebug!("Some other header type");
+                return 0;}
         },
-        None => {return 0;},
+        None => {
+            SCLogDebug!("Weird header type");
+            return 0;},
     };
 
     SCLogDebug!("Going to match_backuuid. hdr type: {:?}", state.get_hdr_type());
