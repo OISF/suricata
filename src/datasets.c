@@ -864,6 +864,7 @@ static int DatasetAddString(Dataset *set, const uint8_t *data, const uint32_t da
         .rep.value = 0 };
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
+        (void) THashDecrUsecnt(res.data);
         THashDataUnlock(res.data);
         return res.is_new ? 1 : 0;
     }
@@ -885,6 +886,7 @@ static int DatasetAddStringwRep(Dataset *set, const uint8_t *data, const uint32_
         .rep = *rep };
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
+        (void) THashDecrUsecnt(res.data);
         THashDataUnlock(res.data);
         return res.is_new ? 1 : 0;
     }
@@ -903,6 +905,7 @@ static int DatasetAddMd5(Dataset *set, const uint8_t *data, const uint32_t data_
     memcpy(lookup.md5, data, 16);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
+        (void) THashDecrUsecnt(res.data);
         THashDataUnlock(res.data);
         return res.is_new ? 1 : 0;
     }
@@ -922,6 +925,7 @@ static int DatasetAddMd5wRep(Dataset *set, const uint8_t *data, const uint32_t d
     memcpy(lookup.md5, data, 16);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
+        (void) THashDecrUsecnt(res.data);
         THashDataUnlock(res.data);
         return res.is_new ? 1 : 0;
     }
@@ -941,6 +945,7 @@ static int DatasetAddSha256wRep(Dataset *set, const uint8_t *data, const uint32_
     memcpy(lookup.sha256, data, 32);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
+        (void) THashDecrUsecnt(res.data);
         THashDataUnlock(res.data);
         return res.is_new ? 1 : 0;
     }
@@ -959,6 +964,7 @@ static int DatasetAddSha256(Dataset *set, const uint8_t *data, const uint32_t da
     memcpy(lookup.sha256, data, 32);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
+        (void) THashDecrUsecnt(res.data);
         THashDataUnlock(res.data);
         return res.is_new ? 1 : 0;
     }
