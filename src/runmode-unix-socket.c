@@ -664,7 +664,7 @@ TmEcode UnixSocketDatasetAdd(json_t *cmd, json_t* answer, void *data)
     }
     const char *value = json_string_value(varg);
 
-    SCLogNotice("dataset-add: %s type %s value %s", set_name, type, value);
+    SCLogDebug("dataset-add: %s type %s value %s", set_name, type, value);
 
     enum DatasetTypes t = DatasetGetTypeFromString(type);
 
