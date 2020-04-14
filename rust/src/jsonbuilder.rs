@@ -352,6 +352,13 @@ impl JsonBuilder {
         }
     }
 
+    pub fn append_string_from_bytes(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
+        match std::str::from_utf8(val) {
+            Ok(s) => self.add_string(s),
+            Err(_) => self.add_string("<failed to convert bytes to string>"),
+        }
+    }
+
     /// Set a key and an unsigned integer type on an object.
     pub fn set_uint(&mut self, key: &str, val: u64) -> Result<&mut Self, JsonError> {
         match self.current_state() {
