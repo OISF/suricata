@@ -180,4 +180,18 @@ argsd = {
             "required": 1,
         },
     ],
+    "dataset-remove": [
+        {
+            "name": "setname",
+            "required": 1,
+        },
+        {
+            "name": "settype",
+            "required": 1,
+        },
+        {
+            "name": "datavalue",
+            "required": 1,
+        },
+    ],
     }
