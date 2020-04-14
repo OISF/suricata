@@ -841,7 +841,7 @@ static int LuaCallbackFileState(lua_State *luastate)
  */
 static int LuaCallbackThreadInfoPushToStackFromThreadVars(lua_State *luastate, const ThreadVars *tv)
 {
-    u_long tid = SCGetThreadIdLong();
+    unsigned long tid = SCGetThreadIdLong();
     lua_pushinteger (luastate, (lua_Integer)tid);
     lua_pushstring (luastate, tv->name);
     lua_pushstring (luastate, tv->thread_group_name);

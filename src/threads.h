@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -222,38 +222,38 @@ enum {
 #define SCGetThreadIdLong(...) ({ \
     long tmpthid; \
     thr_self(&tmpthid); \
-    u_long _scgetthread_tid = (u_long)tmpthid; \
+    unsigned long _scgetthread_tid = (unsigned long)tmpthid; \
     _scgetthread_tid; \
 })
 #elif __OpenBSD__
 #define SCGetThreadIdLong(...) ({ \
     pid_t tpid; \
     tpid = getpid(); \
-    u_long _scgetthread_tid = (u_long)tpid; \
+    unsigned long _scgetthread_tid = (unsigned long)tpid; \
     _scgetthread_tid; \
 })
 #elif __CYGWIN__
 #define SCGetThreadIdLong(...) ({ \
-    u_long _scgetthread_tid = (u_long)GetCurrentThreadId(); \
+    unsigned long _scgetthread_tid = (unsigned long)GetCurrentThreadId(); \
 	_scgetthread_tid; \
 })
 #elif OS_WIN32
 #define SCGetThreadIdLong(...) ({ \
-    u_long _scgetthread_tid = (u_long)GetCurrentThreadId(); \
+    unsigned long _scgetthread_tid = (unsigned long)GetCurrentThreadId(); \
 	_scgetthread_tid; \
 })
 #elif OS_DARWIN
 #define SCGetThreadIdLong(...) ({ \
     thread_port_t tpid; \
     tpid = mach_thread_self(); \
-    u_long _scgetthread_tid = (u_long)tpid; \
+    unsigned long _scgetthread_tid = (unsigned long)tpid; \
     _scgetthread_tid; \
 })
 #elif defined(sun)
 #include <thread.h>
 #define SCGetThreadIdLong(...) ({ \
     thread_t tmpthid = thr_self(); \
-    u_long _scgetthread_tid = (u_long)tmpthid; \
+    unsigned long _scgetthread_tid = (unsigned long)tmpthid; \
     _scgetthread_tid; \
 })
 
@@ -261,7 +261,7 @@ enum {
 #define SCGetThreadIdLong(...) ({ \
    pid_t tmpthid; \
    tmpthid = syscall(SYS_gettid); \
-   u_long _scgetthread_tid = (u_long)tmpthid; \
+   unsigned long _scgetthread_tid = (unsigned long)tmpthid; \
    _scgetthread_tid; \
 })
 #endif /* OS FREEBSD */
