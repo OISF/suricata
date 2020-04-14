@@ -4,9 +4,6 @@
  * fuzz target for AppLayerProtoDetectGetProto
  */
 
-
-#include <pcap/pcap.h>
-
 #include "suricata-common.h"
 #include "source-pcap-file.h"
 #include "detect-engine.h"
