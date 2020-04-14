@@ -28,6 +28,7 @@ pub enum SMBEvent {
     MalformedNtlmsspResponse = 4,
     DuplicateNegotiate = 5,
     NegotiateMalformedDialects = 6,
+    FileOverlap = 7,
 }
 
 impl SMBEvent {
@@ -40,6 +41,7 @@ impl SMBEvent {
             4 => Some(SMBEvent::MalformedNtlmsspResponse),
             5 => Some(SMBEvent::DuplicateNegotiate),
             6 => Some(SMBEvent::NegotiateMalformedDialects),
+            7 => Some(SMBEvent::FileOverlap),
             _ => None,
         }
     }
@@ -55,6 +57,7 @@ pub fn smb_str_to_event(instr: &str) -> i32 {
         "malformed_ntlmssp_response"    => SMBEvent::MalformedNtlmsspResponse as i32,
         "duplicate_negotiate"           => SMBEvent::DuplicateNegotiate as i32,
         "negotiate_malformed_dialects"  => SMBEvent::NegotiateMalformedDialects as i32,
+        "file_overlap"                  => SMBEvent::FileOverlap as i32,
         _ => -1,
     }
 }
