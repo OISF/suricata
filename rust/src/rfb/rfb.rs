@@ -100,20 +100,6 @@ pub struct RFBState {
     state: parser::RFBGlobalState
 }
 
-#[inline]
-fn handle_incomplete(input: &[u8], current: &[u8], nom_needed: nom::Needed) -> AppLayerResult {
-    if let nom::Needed::Size(needed_size) = nom_needed {
-        if let Some(consumed) = input.len().checked_sub(current.len()) {
-            if let Some(needed) = current.len().checked_add(needed_size) {
-                if consumed <= (std::u32::MAX as usize) && needed <= (std::u32::MAX as usize) {
-                    return AppLayerResult::incomplete(consumed as u32, needed as u32);
-                }
-            }
-        }
-    }
-    return AppLayerResult::err();
-}
-
 impl RFBState {
     pub fn new() -> Self {
         Self {
@@ -173,6 +159,7 @@ impl RFBState {
         }
 
         let mut current = input;
+        let mut consumed = 0;
         SCLogDebug!("request_state {}, input_len {}", self.state, input.len());
         loop {
             if current.len() == 0 {
@@ -182,7 +169,9 @@ impl RFBState {
                 parser::RFBGlobalState::TSClientProtocolVersion => {
                     match parser::parse_protocol_version(current) {
                         Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
                             current = rem;
+
                             if request.major == "003" && request.minor == "003" {
                                 // in version 3.3 the server decided security type
                                 self.state = parser::RFBGlobalState::TCServerSecurityType;
@@ -196,8 +185,8 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -207,6 +196,7 @@ impl RFBState {
                 parser::RFBGlobalState::TSSecurityTypeSelection => {
                     match parser::parse_security_type_selection(current) {
                         Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
                             current = rem;
 
                             let chosen_security_type = request.security_type;
@@ -223,8 +213,8 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -234,6 +224,7 @@ impl RFBState {
                 parser::RFBGlobalState::TSVncResponse => {
                     match parser::parse_vnc_auth(current) {
                         Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
                             current = rem;
 
                             self.state = parser::RFBGlobalState::TCSecurityResult;
@@ -244,8 +235,8 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -255,7 +246,9 @@ impl RFBState {
                 parser::RFBGlobalState::TSClientInit => {
                     match parser::parse_client_init(current) {
                         Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
                             current = rem;
+
                             self.state = parser::RFBGlobalState::TCServerInit;
 
                             if let Some(current_transaction) = self.get_current_tx() {
@@ -264,8 +257,8 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -295,6 +288,7 @@ impl RFBState {
         }
 
         let mut current = input;
+        let mut consumed = 0;
         SCLogDebug!("response_state {}, response_len {}", self.state, input.len());
         loop {
             if current.len() == 0 {
@@ -304,7 +298,9 @@ impl RFBState {
                 parser::RFBGlobalState::TCServerProtocolVersion => {
                     match parser::parse_protocol_version(current) {
                         Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
                             current = rem;
+
                             self.state = parser::RFBGlobalState::TSClientProtocolVersion;
                             let tx = self.new_tx();
                             self.transactions.push(tx);
@@ -315,8 +311,8 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -326,7 +322,9 @@ impl RFBState {
                 parser::RFBGlobalState::TCSupportedSecurityTypes => {
                     match parser::parse_supported_security_types(current) {
                         Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
                             current = rem;
+
                             SCLogDebug!(
                                 "supported_security_types: {}, types: {}", request.number_of_types,
                                 request.types.iter().map(ToString::to_string).map(|v| v + " ").collect::<String>()
@@ -343,8 +341,8 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -355,7 +353,9 @@ impl RFBState {
                     // In RFB 3.3, the server decides the authentication type
                     match parser::parse_server_security_type(current) {
                         Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
                             current = rem;
+
                             let chosen_security_type = request.security_type;
                             SCLogDebug!("chosen_security_type: {}", chosen_security_type);
                             match chosen_security_type {
@@ -375,8 +375,8 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -386,6 +386,7 @@ impl RFBState {
                 parser::RFBGlobalState::TCVncChallenge => {
                     match parser::parse_vnc_auth(current) {
                         Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
                             current = rem;
 
                             self.state = parser::RFBGlobalState::TSVncResponse;
@@ -396,8 +397,8 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -407,6 +408,7 @@ impl RFBState {
                 parser::RFBGlobalState::TCSecurityResult => {
                     match parser::parse_security_result(current) {
                         Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
                             current = rem;
 
                             if request.status == 0 {
@@ -423,8 +425,8 @@ impl RFBState {
                                 // TODO: Event: unknown security result value
                             }
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -441,8 +443,8 @@ impl RFBState {
                             }
                             return AppLayerResult::err();
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
@@ -452,7 +454,9 @@ impl RFBState {
                 parser::RFBGlobalState::TCServerInit => {
                     match parser::parse_server_init(current) {
                         Ok((rem, request)) => {
+                            consumed += current.len() - rem.len();
                             current = rem;
+
                             self.state = parser::RFBGlobalState::Message;
 
                             if let Some(current_transaction) = self.get_current_tx() {
@@ -463,8 +467,8 @@ impl RFBState {
                                 return AppLayerResult::err();
                             }
                         }
-                        Err(nom::Err::Incomplete(v)) => {
-                            return handle_incomplete(input, current, v);
+                        Err(nom::Err::Incomplete(_)) => {
+                            return AppLayerResult::incomplete(consumed as u32, (current.len() + 1) as u32);
                         }
                         Err(_) => {
                             return AppLayerResult::err();
