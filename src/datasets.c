@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2019 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -40,6 +40,12 @@ static bool experimental_warning = false;
 
 static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
         DataRepType *rep);
+
+static inline void DatasetUnlockData(THashData *d)
+{
+    (void) THashDecrUsecnt(d);
+    THashDataUnlock(d);
+}
 
 enum DatasetTypes DatasetGetTypeFromString(const char *s)
 {
@@ -717,7 +723,7 @@ static DataRepResultType DatasetLookupStringwRep(Dataset *set,
         StringType *found = rdata->data;
         rrep.found = true;
         rrep.rep = found->rep;
-        THashDataUnlock(rdata);
+        DatasetUnlockData(rdata);
         return rrep;
     }
     return rrep;
@@ -735,7 +741,7 @@ static int DatasetLookupMd5(Dataset *set, const uint8_t *data, const uint32_t da
     memcpy(lookup.md5, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
-        THashDataUnlock(rdata);
+        DatasetUnlockData(rdata);
         return 1;
     }
     return 0;
@@ -759,7 +765,7 @@ static DataRepResultType DatasetLookupMd5wRep(Dataset *set,
         Md5Type *found = rdata->data;
         rrep.found = true;
         rrep.rep = found->rep;
-        THashDataUnlock(rdata);
+        DatasetUnlockData(rdata);
         return rrep;
     }
     return rrep;
@@ -777,7 +783,7 @@ static int DatasetLookupSha256(Dataset *set, const uint8_t *data, const uint32_t
     memcpy(lookup.sha256, data, data_len);
     THashData *rdata = THashLookupFromHash(set->hash, &lookup);
     if (rdata) {
-        THashDataUnlock(rdata);
+        DatasetUnlockData(rdata);
         return 1;
     }
     return 0;
@@ -801,7 +807,7 @@ static DataRepResultType DatasetLookupSha256wRep(Dataset *set,
         Sha256Type *found = rdata->data;
         rrep.found = true;
         rrep.rep = found->rep;
-        THashDataUnlock(rdata);
+        DatasetUnlockData(rdata);
         return rrep;
     }
     return rrep;
@@ -864,7 +870,7 @@ static int DatasetAddString(Dataset *set, const uint8_t *data, const uint32_t da
         .rep.value = 0 };
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
-        THashDataUnlock(res.data);
+        DatasetUnlockData(res.data);
         return res.is_new ? 1 : 0;
     }
     return -1;
@@ -885,7 +891,7 @@ static int DatasetAddStringwRep(Dataset *set, const uint8_t *data, const uint32_
         .rep = *rep };
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
-        THashDataUnlock(res.data);
+        DatasetUnlockData(res.data);
         return res.is_new ? 1 : 0;
     }
     return -1;
@@ -903,7 +909,7 @@ static int DatasetAddMd5(Dataset *set, const uint8_t *data, const uint32_t data_
     memcpy(lookup.md5, data, 16);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
-        THashDataUnlock(res.data);
+        DatasetUnlockData(res.data);
         return res.is_new ? 1 : 0;
     }
     return -1;
@@ -922,7 +928,7 @@ static int DatasetAddMd5wRep(Dataset *set, const uint8_t *data, const uint32_t d
     memcpy(lookup.md5, data, 16);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
-        THashDataUnlock(res.data);
+        DatasetUnlockData(res.data);
         return res.is_new ? 1 : 0;
     }
     return -1;
@@ -941,7 +947,7 @@ static int DatasetAddSha256wRep(Dataset *set, const uint8_t *data, const uint32_
     memcpy(lookup.sha256, data, 32);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
-        THashDataUnlock(res.data);
+        DatasetUnlockData(res.data);
         return res.is_new ? 1 : 0;
     }
     return -1;
@@ -959,7 +965,7 @@ static int DatasetAddSha256(Dataset *set, const uint8_t *data, const uint32_t da
     memcpy(lookup.sha256, data, 32);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
-        THashDataUnlock(res.data);
+        DatasetUnlockData(res.data);
         return res.is_new ? 1 : 0;
     }
     return -1;
