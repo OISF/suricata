@@ -903,7 +903,7 @@ static int DatasetAddMd5(Dataset *set, const uint8_t *data, const uint32_t data_
         return -1;
 
     if (data_len != 16)
-        return -1;
+        return -2;
 
     Md5Type lookup = { .rep.value = 0 };
     memcpy(lookup.md5, data, 16);
@@ -922,7 +922,7 @@ static int DatasetAddMd5wRep(Dataset *set, const uint8_t *data, const uint32_t d
         return -1;
 
     if (data_len != 16)
-        return -1;
+        return -2;
 
     Md5Type lookup = { .rep = *rep };
     memcpy(lookup.md5, data, 16);
@@ -941,7 +941,7 @@ static int DatasetAddSha256wRep(Dataset *set, const uint8_t *data, const uint32_
         return -1;
 
     if (data_len != 32)
-        return 0;
+        return -2;
 
     Sha256Type lookup = { .rep = *rep };
     memcpy(lookup.sha256, data, 32);
@@ -959,7 +959,7 @@ static int DatasetAddSha256(Dataset *set, const uint8_t *data, const uint32_t da
         return -1;
 
     if (data_len != 32)
-        return 0;
+        return -2;
 
     Sha256Type lookup = { .rep.value = 0 };
     memcpy(lookup.sha256, data, 32);
@@ -1004,7 +1004,12 @@ static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data
     return -1;
 }
 
-/** \brief add serialized data to set */
+/** \brief add serialized data to set
+ *  \retval int 1 added
+ *  \retval int 0 already in hash
+ *  \retval int -1 API error (not added)
+ *  \retval int -2 DATA error
+ */
 int DatasetAddSerialized(Dataset *set, const char *string)
 {
     if (set == NULL)
@@ -1015,25 +1020,25 @@ int DatasetAddSerialized(Dataset *set, const char *string)
             uint8_t decoded[strlen(string)];
             uint32_t len = DecodeBase64(decoded, (const uint8_t *)string, strlen(string), 1);
             if (len == 0) {
-                return -1;
+                return -2;
             }
 
             return DatasetAddString(set, decoded, len);
         }
         case DATASET_TYPE_MD5: {
             if (strlen(string) != 32)
-                return -1;
+                return -2;
             uint8_t hash[16];
             if (HexToRaw((const uint8_t *)string, 32, hash, sizeof(hash)) < 0)
-                return -1;
+                return -2;
             return DatasetAddMd5(set, hash, 16);
         }
         case DATASET_TYPE_SHA256: {
             if (strlen(string) != 64)
-                return -1;
+                return -2;
             uint8_t hash[32];
             if (HexToRaw((const uint8_t *)string, 64, hash, sizeof(hash)) < 0)
-                return -1;
+                return -2;
             return DatasetAddSha256(set, hash, 32);
         }
     }
