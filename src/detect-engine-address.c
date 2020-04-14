@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,9 +21,6 @@
  * \author Victor Julien <victor@inliniac.net>
  *
  * Address part of the detection engine.
- *
- * \todo Move this out of the detection plugin structure
- *       rename to detect-engine-address.c
  */
 
 #include "suricata-common.h"
@@ -84,7 +81,6 @@ void DetectAddressFree(DetectAddress *ag)
         return;
 
     SCFree(ag);
-
     return;
 }
 
@@ -474,12 +470,11 @@ static int DetectAddressParseString(DetectAddress *dd, const char *str)
             mask++;
             uint32_t ip4addr = 0;
             uint32_t netmask = 0;
-            size_t u = 0;
 
             if ((strchr (mask, '.')) == NULL) {
                 /* 1.2.3.4/24 format */
 
-                for (u = 0; u < strlen(mask); u++) {
+                for (size_t u = 0; u < strlen(mask); u++) {
                     if(!isdigit((unsigned char)mask[u]))
                         goto error;
                 }
