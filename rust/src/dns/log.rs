@@ -19,7 +19,7 @@ use std;
 use std::string::String;
 use std::collections::HashMap;
 
-use crate::json::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::dns::dns::*;
 
 pub const LOG_QUERIES    : u64 = BIT_U64!(0);
@@ -396,89 +396,90 @@ pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
 }
 
 ///  Log the SSHPF in an DNSAnswerEntry.
-fn dns_log_sshfp(answer: &DNSAnswerEntry) -> Option<Json>
+fn dns_log_sshfp(answer: &DNSAnswerEntry) -> Result<Option<JsonBuilder>, JsonError>
 {
     // Need at least 3 bytes - TODO: log something if we don't?
     if answer.data.len() < 3 {
-        return None
+        return Ok(None)
     }
 
-    let sshfp = Json::object();
+    let mut sshfp = JsonBuilder::new_object();
 
     let mut hex = Vec::new();
     for byte in &answer.data[2..] {
         hex.push(format!("{:02x}", byte));
     }
-    sshfp.set_string("fingerprint", &hex.join(":"));
-    sshfp.set_integer("algo", answer.data[0] as u64);
-    sshfp.set_integer("type", answer.data[1] as u64);
+    sshfp.set_string("fingerprint", &hex.join(":"))?;
+    sshfp.set_uint("algo", answer.data[0] as u64)?;
+    sshfp.set_uint("type", answer.data[1] as u64)?;
 
-    return Some(sshfp);
+    return Ok(Some(sshfp));
 }
 
-fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Json
+fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, JsonError>
 {
-    let jsa = Json::object();
+    let mut jsa = JsonBuilder::new_object();
 
-    jsa.set_string_from_bytes("rrname", &answer.name);
-    jsa.set_string("rrtype", &dns_rrtype_string(answer.rrtype));
-    jsa.set_integer("ttl", answer.ttl as u64);
+    jsa.set_string_from_bytes("rrname", &answer.name)?;
+    jsa.set_string("rrtype", &dns_rrtype_string(answer.rrtype))?;
+    jsa.set_uint("ttl", answer.ttl as u64)?;
 
     match answer.rrtype {
         DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
-            jsa.set_string("rdata", &dns_print_addr(&answer.data));
+            jsa.set_string("rdata", &dns_print_addr(&answer.data))?;
         }
         DNS_RECORD_TYPE_CNAME |
         DNS_RECORD_TYPE_MX |
         DNS_RECORD_TYPE_TXT |
         DNS_RECORD_TYPE_PTR => {
-            jsa.set_string_from_bytes("rdata", &answer.data);
+            jsa.set_string_from_bytes("rdata", &answer.data)?;
         },
         DNS_RECORD_TYPE_SSHFP => {
-            for sshfp in dns_log_sshfp(&answer) {
-                jsa.set("sshfp", sshfp);
+            if let Some(sshfp) = dns_log_sshfp(answer)? {
+                jsa.set_object("sshfp", &sshfp)?;
             }
         },
         _ => {}
     }
 
-    return jsa;
+    jsa.close()?;
+    return Ok(jsa);
 }
 
-fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
+fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64) 
+                       -> Result<(), JsonError>
 {
     let header = &response.header;
-    let js = Json::object();
 
-    js.set_integer("version", 2);
-    js.set_string("type", "answer");
-    js.set_integer("id", header.tx_id as u64);
-    js.set_string("flags", format!("{:x}", header.flags).as_str());
+    js.set_uint("version", 2)?;
+    js.set_string("type", "answer")?;
+    js.set_uint("id", header.tx_id as u64)?;
+    js.set_string("flags", format!("{:x}", header.flags).as_str())?;
     if header.flags & 0x8000 != 0 {
-        js.set_boolean("qr", true);
+        js.set_bool("qr", true)?;
     }
     if header.flags & 0x0400 != 0 {
-        js.set_boolean("aa", true);
+        js.set_bool("aa", true)?;
     }
     if header.flags & 0x0200 != 0 {
-        js.set_boolean("tc", true);
+        js.set_bool("tc", true)?;
     }
     if header.flags & 0x0100 != 0 {
-        js.set_boolean("rd", true);
+        js.set_bool("rd", true)?;
     }
     if header.flags & 0x0080 != 0 {
-        js.set_boolean("ra", true);
+        js.set_bool("ra", true)?;
     }
 
     for query in &response.queries {
-        js.set_string_from_bytes("rrname", &query.name);
-        js.set_string("rrtype", &dns_rrtype_string(query.rrtype));
+        js.set_string_from_bytes("rrname", &query.name)?;
+        js.set_string("rrtype", &dns_rrtype_string(query.rrtype))?;
         break;
     }
-    js.set_string("rcode", &dns_rcode_string(header.flags));
+    js.set_string("rcode", &dns_rcode_string(header.flags))?;
 
     if response.answers.len() > 0 {
-        let js_answers = Json::array();
+        let mut js_answers = JsonBuilder::new_array();
 
         // For grouped answers we use a HashMap keyed by the rrtype.
         let mut answer_types = HashMap::new();
@@ -491,11 +492,10 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
                     DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),
-                                                Json::array());
+                                                JsonBuilder::new_array());
                         }
-                        for a in &answer_types.get(&type_string) {
-                            a.array_append(
-                                Json::string(&dns_print_addr(&answer.data)));
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            a.add_string(&dns_print_addr(&answer.data))?;
                         }
                     }
                     DNS_RECORD_TYPE_CNAME |
@@ -504,21 +504,20 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
                     DNS_RECORD_TYPE_PTR => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),
-                                                Json::array());
+                                                JsonBuilder::new_array());
                         }
-                        for a in &answer_types.get(&type_string) {
-                            a.array_append(
-                                Json::string_from_bytes(&answer.data));
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            a.append_string_from_bytes(&answer.data)?;
                         }
                     },
                     DNS_RECORD_TYPE_SSHFP => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),
-                                                Json::array());
+                                                JsonBuilder::new_array());
                         }
-                        for a in &answer_types.get(&type_string) {
-                            for sshfp in dns_log_sshfp(&answer) {
-                                a.array_append(sshfp);
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            if let Some(sshfp) = dns_log_sshfp(&answer)? {
+                                a.append_object(&sshfp)?;
                             }
                         }
                     },
@@ -527,155 +526,191 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
             }
 
             if flags & LOG_FORMAT_DETAILED != 0 {
-                js_answers.array_append(dns_log_json_answer_detail(answer));
+                js_answers.append_object(&dns_log_json_answer_detail(answer)?)?;
             }
         }
 
+        js_answers.close()?;
+
         if flags & LOG_FORMAT_DETAILED != 0 {
-            js.set("answers", js_answers);
+            js.set_object("answers", &js_answers)?;
         }
 
         if flags & LOG_FORMAT_GROUPED != 0 {
-            let grouped = Json::object();
-            for (k, v) in answer_types.drain() {
-                grouped.set(&k, v);
+            js.open_object("grouped")?;
+            for (k, mut v) in answer_types.drain() {
+                v.close()?;
+                js.set_object(&k, &v)?;
             }
-            js.set("grouped", grouped);
+            js.close()?;
         }
 
     }
 
     if response.authorities.len() > 0 {
-        let js_auth = Json::array();
+        js.open_array("authorities")?;
         for auth in &response.authorities {
-            js_auth.array_append(dns_log_json_answer_detail(auth));
+            let auth_detail = dns_log_json_answer_detail(auth)?;
+            js.append_object(&auth_detail)?;
         }
-        js.set("authorities", js_auth);
+        js.close()?;
     }
 
-    return js;
+    Ok(())
 }
 
-#[no_mangle]
-pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
-                                        i: u16,
-                                        flags: u64)
-                                        -> *mut JsonT
+fn dns_log_query(tx: &mut DNSTransaction,
+                 i: u16,
+                 flags: u64,
+                 jb: &mut JsonBuilder)
+                 -> Result<bool, JsonError>
 {
     let index = i as usize;
     if let &Some(ref request) = &tx.request {
         if index < request.queries.len() {
             let query = &request.queries[index];
             if dns_log_rrtype_enabled(query.rrtype, flags) {
-                let js = Json::object();
-                js.set_string("type", "query");
-                js.set_integer("id", request.header.tx_id as u64);
-                js.set_string_from_bytes("rrname", &query.name);
-                js.set_string("rrtype", &dns_rrtype_string(query.rrtype));
-                js.set_integer("tx_id", tx.id - 1);
-                return js.unwrap();
+                jb.set_string("type", "query")?;
+                jb.set_uint("id", request.header.tx_id as u64)?;
+                jb.set_string_from_bytes("rrname", &query.name)?;
+                jb.set_string("rrtype", &dns_rrtype_string(query.rrtype))?;
+                jb.set_uint("tx_id", tx.id - 1)?;
+                return Ok(true);
             }
         }
     }
 
-    return std::ptr::null_mut();
+    return Ok(false);
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
+                                        i: u16,
+                                        flags: u64,
+                                        jb: &mut JsonBuilder)
+                                        -> bool
+{
+    match dns_log_query(tx, i, flags, jb) {
+        Ok(false) | Err(_) => {
+            return false;
+        }
+        Ok(true) => {
+            return true;
+        }
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dns_log_json_answer(tx: &mut DNSTransaction,
-                                         flags: u64)
-                                         -> *mut JsonT
+                                         flags: u64, mut js: &mut JsonBuilder)
+                                         -> bool
 {
     if let &Some(ref response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
-                let js = dns_log_json_answer(response, flags as u64);
-                return js.unwrap();
+                return dns_log_json_answer(&mut js, response, flags as u64).is_ok();
             }
         }
     }
+    return false;
+}
 
-    return std::ptr::null_mut();
+#[no_mangle]
+pub extern "C" fn rs_dns_do_log_answer(tx: &mut DNSTransaction,
+                                       flags: u64) -> bool
+{
+    if let &Some(ref response) = &tx.response {
+        for query in &response.queries {
+            if dns_log_rrtype_enabled(query.rrtype, flags) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 // Version 1 logging support.
 
 fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
-                       -> Json
+                          -> Result<JsonBuilder, JsonError>
 {
-    let js = Json::object();
+    let mut js = JsonBuilder::new_object();
 
-    js.set_string("type", "answer");
-    js.set_integer("id", header.tx_id as u64);
-    js.set_string("flags", format!("{:x}", header.flags).as_str());
+    js.set_string("type", "answer")?;
+    js.set_uint("id", header.tx_id as u64)?;
+    js.set_string("flags", format!("{:x}", header.flags).as_str())?;
     if header.flags & 0x8000 != 0 {
-        js.set_boolean("qr", true);
+        js.set_bool("qr", true)?;
     }
     if header.flags & 0x0400 != 0 {
-        js.set_boolean("aa", true);
+        js.set_bool("aa", true)?;
     }
     if header.flags & 0x0200 != 0 {
-        js.set_boolean("tc", true);
+        js.set_bool("tc", true)?;
     }
     if header.flags & 0x0100 != 0 {
-        js.set_boolean("rd", true);
+        js.set_bool("rd", true)?;
     }
     if header.flags & 0x0080 != 0 {
-        js.set_boolean("ra", true);
+        js.set_bool("ra", true)?;
     }
-    js.set_string("rcode", &dns_rcode_string(header.flags));
-    js.set_string_from_bytes("rrname", &answer.name);
-    js.set_string("rrtype", &dns_rrtype_string(answer.rrtype));
-    js.set_integer("ttl", answer.ttl as u64);
+    js.set_string("rcode", &dns_rcode_string(header.flags))?;
+    js.set_string_from_bytes("rrname", &answer.name)?;
+    js.set_string("rrtype", &dns_rrtype_string(answer.rrtype))?;
+    js.set_uint("ttl", answer.ttl as u64)?;
 
     match answer.rrtype {
         DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
-            js.set_string("rdata", &dns_print_addr(&answer.data));
+            js.set_string("rdata", &dns_print_addr(&answer.data))?;
         }
         DNS_RECORD_TYPE_CNAME |
         DNS_RECORD_TYPE_MX |
         DNS_RECORD_TYPE_TXT |
         DNS_RECORD_TYPE_PTR => {
-            js.set_string_from_bytes("rdata", &answer.data);
+            js.set_string_from_bytes("rdata", &answer.data)?;
         },
         DNS_RECORD_TYPE_SSHFP => {
-            if let Some(sshfp) = dns_log_sshfp(&answer) {
-                js.set("sshfp", sshfp);
+            if let Some(sshfp) = dns_log_sshfp(&answer)? {
+                js.set_object("sshfp", &sshfp)?;
             }
         },
         _ => {}
     }
 
-    return js;
+    js.close()?;
+
+    return Ok(js);
 }
 
 fn dns_log_json_failure_v1(r: &DNSResponse, index: usize, flags: u64)
-                        -> * mut JsonT {
+                                 -> Result<Option<JsonBuilder>, JsonError> {
     if index >= r.queries.len() {
-        return std::ptr::null_mut();
+        return Ok(None);
     }
 
     let ref query = r.queries[index];
 
     if !dns_log_rrtype_enabled(query.rrtype, flags) {
-        return std::ptr::null_mut();
+        return Ok(None);
     }
 
-    let js = Json::object();
+    let mut js = JsonBuilder::new_object();
 
-    js.set_string("type", "answer");
-    js.set_integer("id", r.header.tx_id as u64);
-    js.set_string("rcode", &dns_rcode_string(r.header.flags));
-    js.set_string_from_bytes("rrname", &query.name);
+    js.set_string("type", "answer")?;
+    js.set_uint("id", r.header.tx_id as u64)?;
+    js.set_string("rcode", &dns_rcode_string(r.header.flags))?;
+    js.set_string_from_bytes("rrname", &query.name)?;
 
-    return js.unwrap();
+    js.close()?;
+
+    return Ok(Some(js));
 }
 
 #[no_mangle]
 pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
                                          i: u16,
                                          flags: u64)
-                                         -> *mut JsonT
+                                         -> *mut JsonBuilder
 {
     let index = i as usize;
     // Note for loop over Option for easier break out to default
@@ -683,7 +718,9 @@ pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
     for response in &tx.response {
         if response.header.flags & 0x000f > 0 {
             if index == 0 {
-                return dns_log_json_failure_v1(response, index, flags);
+                if let Ok(Some(js)) = dns_log_json_failure_v1(response, index, flags) {
+                    return Box::into_raw(Box::new(js));
+                }
             }
             break;
         }
@@ -692,8 +729,10 @@ pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
         }
         let answer = &response.answers[index];
         if dns_log_rrtype_enabled(answer.rrtype, flags) {
-            let js = dns_log_json_answer_v1(&response.header, answer);
-            return js.unwrap();
+            if let Ok(js) = dns_log_json_answer_v1(&response.header, answer) {
+                return Box::into_raw(Box::new(js));
+            }
+            break;
         }
     }
     return std::ptr::null_mut();
@@ -703,15 +742,16 @@ pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
 pub extern "C" fn rs_dns_log_json_authority_v1(tx: &mut DNSTransaction,
                                             i: u16,
                                             flags: u64)
-                                            -> *mut JsonT
+                                            -> *mut JsonBuilder
 {
     let index = i as usize;
     if let &Some(ref response) = &tx.response {
         if index < response.authorities.len() {
             let answer = &response.authorities[index];
             if dns_log_rrtype_enabled(answer.rrtype, flags) {
-                let js = dns_log_json_answer_v1(&response.header, answer);
-                return js.unwrap();
+                if let Ok(js) = dns_log_json_answer_v1(&response.header, answer) {
+                    return Box::into_raw(Box::new(js));
+                }
             }
         }
     }
