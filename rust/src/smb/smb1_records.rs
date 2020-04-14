@@ -81,8 +81,9 @@ named!(pub parse_smb1_write_andx_request_record<Smb1WriteRequestRecord>,
         >>  data_offset: le_u16
         >>  high_offset: cond!(wct==14,le_u32)
         >>  bcc: le_u16
-        //>>  padding: cond!(data_offset > 32, take!(data_offset - 32))
+        //spec [MS-CIFS].pdf says always take one byte padding
         >>  padding: cond!(bcc > data_len_low, take!(bcc - data_len_low)) // TODO figure out how this works with data_len_high
+        >>  _padding_evasion: cond!(data_offset > 36+2*(wct as u16), take!(data_offset - (36+2*(wct as u16))))
         >>  file_data: rest
         >> (Smb1WriteRequestRecord {
                 offset: if high_offset != None { ((high_offset.unwrap() as u64) << 32)|(offset as u64) } else { 0 },
@@ -391,6 +392,7 @@ named!(pub parse_smb_trans_response_regular_record<SmbRecordTransResponse>,
        >> take!(1) // reserved
        >> bcc: le_u16
        >> take!(1) // padding
+       >> _padding_evasion: cond!(data_offset > 36+2*(wct as u16), take!(data_offset - (36+2*(wct as u16))))
        >> data: take!(data_cnt)
        >> (SmbRecordTransResponse {
                 data_cnt:data_cnt,
@@ -509,6 +511,7 @@ named!(pub parse_smb_read_andx_response_record<SmbResponseReadAndXRecord>,
         >>  take!(6)    // reserved
         >>  bcc: le_u16
         >>  padding: cond!(bcc > data_len_low, take!(bcc - data_len_low)) // TODO figure out how this works with data_len_high
+        >>  _padding_evasion: cond!(data_offset > 36+2*(wct as u16), take!(data_offset - (36+2*(wct as u16))))
         >>  file_data: rest
 
         >> (SmbResponseReadAndXRecord {
@@ -678,6 +681,7 @@ named!(pub parse_smb_trans2_request_record<SmbRequestTrans2Record>,
         >>  subcmd: le_u16
         >>  bcc: le_u16
         >>  _padding: take!(3)
+        //TODO test and use _param_offset and _data_offset
         >>  setup_blob: take!(param_cnt)
         >>  data_blob: take!(data_cnt)
 
