@@ -22,7 +22,7 @@ AC_DEFUN([_AC_TYPE_UTYPE],
    [ac_cv_c_$1=no
     case $1 in
         "u_long")
-            ac_cv_c_$1_type="uint32_t"
+            ac_cv_c_$1_type="size_t"
             ;;
         "u_int")
             ac_cv_c_$1_type="uint32_t"
