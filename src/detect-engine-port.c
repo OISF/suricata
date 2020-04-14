@@ -955,7 +955,7 @@ error:
 static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                              DetectPort **head, DetectPort **nhead,
                              const char *s, int negate,
-                             ResolvedVariablesList *var_list)
+                             ResolvedVariablesList *var_list, int recur)
 {
     size_t u = 0;
     size_t x = 0;
@@ -966,6 +966,12 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
     char address[1024] = "";
     const char *rule_var_port = NULL;
     int r = 0;
+
+    if (recur++ > 64) {
+        SCLogError(SC_ERR_PORT_ENGINE_GENERIC, "port block recursion "
+                "limit reached (max 64)");
+        goto error;
+    }
 
     SCLogDebug("head %p, *head %p, negate %d", head, *head, negate);
 
@@ -995,7 +1001,8 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
                 x = 0;
 
-                r = DetectPortParseDo(de_ctx, head, nhead, address, negate? negate: n_set, var_list);
+                r = DetectPortParseDo(de_ctx, head, nhead, address,
+                        negate? negate: n_set, var_list, recur);
                 if (r == -1)
                     goto error;
 
@@ -1036,7 +1043,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 }
                 temp_rule_var_port = alloc_rule_var_port;
                 r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port,
-                                  (negate + n_set) % 2, var_list);//negate? negate: n_set);
+                                  (negate + n_set) % 2, var_list, recur);
                 if (r == -1) {
                     SCFree(alloc_rule_var_port);
                     goto error;
@@ -1106,7 +1113,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 }
                 temp_rule_var_port = alloc_rule_var_port;
                 r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port,
-                                  (negate + n_set) % 2, var_list);
+                                  (negate + n_set) % 2, var_list, recur);
                 SCFree(alloc_rule_var_port);
                 if (r == -1)
                     goto error;
@@ -1308,7 +1315,8 @@ int DetectPortTestConfVars(void)
             goto error;
         }
 
-        int r = DetectPortParseDo(NULL, &gh, &ghn, seq_node->val, /* start with negate no */0, &var_list);
+        int r = DetectPortParseDo(NULL, &gh, &ghn, seq_node->val,
+                /* start with negate no */0, &var_list, 0);
 
         CleanVariableResolveList(&var_list);
 
@@ -1362,7 +1370,8 @@ int DetectPortParse(const DetectEngineCtx *de_ctx,
     /* negate port list */
     DetectPort *nhead = NULL;
 
-    r = DetectPortParseDo(de_ctx, head, &nhead, str,/* start with negate no */0, NULL);
+    r = DetectPortParseDo(de_ctx, head, &nhead, str,
+            /* start with negate no */ 0, NULL, 0);
     if (r < 0)
         goto error;
 
@@ -2067,6 +2076,26 @@ end:
     return result;
 }
 
+static int PortTestParse17(void)
+{
+    DetectPort *dd = NULL;
+    int r = DetectPortParse(NULL,&dd,"\
+[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\
+1:65535\
+]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\
+");
+    FAIL_IF_NOT(r == 0);
+    DetectPortFree(NULL, dd);
+    dd = NULL;
+    r = DetectPortParse(NULL,&dd,"\
+[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\
+1:65535\
+]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\
+");
+    FAIL_IF(r == 0);
+    PASS;
+}
+
 /**
  * \test Test general functions
  */
@@ -2754,7 +2783,7 @@ static int PortTestMatchDoubleNegation(void)
     int result = 0;
     DetectPort *head = NULL, *nhead = NULL;
 
-    if (DetectPortParseDo(NULL, &head, &nhead, "![!80]", 0, NULL) == -1)
+    if (DetectPortParseDo(NULL, &head, &nhead, "![!80]", 0, NULL, 0) == -1)
         return result;
 
     result = (head != NULL);
@@ -2784,6 +2813,7 @@ void DetectPortTests(void)
     UtRegisterTest("PortTestParse14", PortTestParse14);
     UtRegisterTest("PortTestParse15", PortTestParse15);
     UtRegisterTest("PortTestParse16", PortTestParse16);
+    UtRegisterTest("PortTestParse17", PortTestParse17);
     UtRegisterTest("PortTestFunctions01", PortTestFunctions01);
     UtRegisterTest("PortTestFunctions02", PortTestFunctions02);
     UtRegisterTest("PortTestFunctions03", PortTestFunctions03);
