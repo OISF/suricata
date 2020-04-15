@@ -713,6 +713,7 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
             HTPSetEvent(s, htud, dir, id);
         }
     }
+    BUG_ON(msg >= 0x10000);
     s->htp_messages_offset = (uint16_t)msg;
     SCLogDebug("s->htp_messages_offset %u", s->htp_messages_offset);
 }
