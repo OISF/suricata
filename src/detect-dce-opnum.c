@@ -166,7 +166,7 @@ static void DetectDceOpnumFree(void *ptr)
 /**
  * \test Test a valid dce_opnum entry with a bind, bind_ack and a request.
  */
-static int DetectDceOpnumTestParse08(void)
+static int DetectDceOpnumTestParse01(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -734,7 +734,7 @@ static int DetectDceOpnumTestParse08(void)
 /**
  * \test Test a valid dce_opnum entry with only a request frag.
  */
-static int DetectDceOpnumTestParse09(void)
+static int DetectDceOpnumTestParse02(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -2408,8 +2408,8 @@ static int DetectDceOpnumTestParse13(void)
 static void DetectDceOpnumRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDceOpnumTestParse08", DetectDceOpnumTestParse08);
-    UtRegisterTest("DetectDceOpnumTestParse09", DetectDceOpnumTestParse09);
+    UtRegisterTest("DetectDceOpnumTestParse01", DetectDceOpnumTestParse01);
+    UtRegisterTest("DetectDceOpnumTestParse02", DetectDceOpnumTestParse02);
     /* Disabled because of bug_753.  Would be enabled, once we rewrite
      * dce parser */
 #if 0

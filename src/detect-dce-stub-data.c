@@ -98,7 +98,6 @@ static InspectionBuffer *GetDCEData(DetectEngineThreadCtx *det_ctx,
         } else {
             buffer->flags |= DETECT_CI_FLAGS_DCE_BE;
         }
-        SCLogDebug("After Rust, data_len: %d, data: %p", data_len, data);
         InspectionBufferSetup(buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
@@ -1449,7 +1448,6 @@ static int DetectDceStubDataTestParse04(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    SCLogDebug("<<<< Going to bindack parser");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
                             STREAM_TOCLIENT, dcerpc_bindack,
                             dcerpc_bindack_len);
@@ -1465,7 +1463,6 @@ static int DetectDceStubDataTestParse04(void)
 
     /* request1 */
     FLOWLOCK_WRLOCK(&f);
-    SCLogDebug("<<<< Going to request1 parser");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
                             STREAM_TOSERVER, dcerpc_request1,
                             dcerpc_request1_len);
@@ -1481,14 +1478,11 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3)){
-        SCLogDebug("1 alerted, 2 and 3 didnt");
+    if (!PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
-    }
 
     /* response1 */
     FLOWLOCK_WRLOCK(&f);
-    SCLogDebug("<<<< Going to response1 parser");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
                             STREAM_TOCLIENT, dcerpc_response1,
                             dcerpc_response1_len);
@@ -1504,14 +1498,11 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3)) {
-        SCLogDebug("1 alerted, 2 and 3 didnt");
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
-    }
 
     /* request2 */
     FLOWLOCK_WRLOCK(&f);
-    SCLogDebug("<<<< Going to request2 parser");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
                             STREAM_TOSERVER, dcerpc_request2,
                             dcerpc_request2_len);
@@ -1527,14 +1518,11 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1) || !PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3)) {
-        SCLogDebug("1 alerted, 2 and 3 didnt");
+    if (PacketAlertCheck(p, 1) || !PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
-    }
 
     /* response2 */
     FLOWLOCK_WRLOCK(&f);
-    SCLogDebug("<<<< Going to response2 parser");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
                             STREAM_TOCLIENT, dcerpc_response2,
                             dcerpc_response2_len);
@@ -1550,13 +1538,10 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3)) {
-        SCLogDebug("1 alerted, 2 and 3 didnt");
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
-    }
     /* request3 */
     FLOWLOCK_WRLOCK(&f);
-    SCLogDebug("<<<< Going to request3 parser");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
                             STREAM_TOSERVER, dcerpc_request3,
                             dcerpc_request3_len);
@@ -1572,14 +1557,11 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || !PacketAlertCheck(p, 3)) {
-        SCLogDebug("1 alerted, 2 and 3 didnt");
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || !PacketAlertCheck(p, 3))
         goto end;
-    }
 
     /* response3 */
     FLOWLOCK_WRLOCK(&f);
-    SCLogDebug("<<<< Going to response3 parser");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
                             STREAM_TOCLIENT | STREAM_EOF, dcerpc_response3,
                             dcerpc_response3_len);
@@ -1595,10 +1577,8 @@ static int DetectDceStubDataTestParse04(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3)) {
-        SCLogDebug("1 alerted, 2 and 3 didnt");
+    if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
-    }
 
     result = 1;
 

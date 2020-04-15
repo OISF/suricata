@@ -22,9 +22,9 @@ fn log_dcerpc_header(state: &DCERPCUDPState) -> Json
 {
     let js = Json::object();
 
-    match state.dcerpcrequest {
+    match state.request {
         Some(ref req) => {
-            match state.dcerpchdrudp {
+            match state.header {
                 Some(ref hdr) => {
                     js.set_string("request", &dcerpc_type_string(hdr.pkt_type));
                     let reqd = Json::object();
@@ -41,9 +41,9 @@ fn log_dcerpc_header(state: &DCERPCUDPState) -> Json
         }
     }
 
-    match state.dcerpcresponse {
+    match state.response {
         Some(ref resp) => {
-            match state.dcerpchdrudp {
+            match state.header {
                 Some(ref hdr) => {
                     js.set_string("response", &dcerpc_type_string(hdr.pkt_type));
                     let respd = Json::object();

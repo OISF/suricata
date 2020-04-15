@@ -99,8 +99,8 @@ fn match_iface_version(version: u16, if_data: &DCEIfaceData) -> bool {
 
 fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
     let mut ret = 1;
-    if let Some(ref dcerpcback) = state.dcerpcback {
-        for uuidentry in dcerpcback.accepted_uuid_list.iter() {
+    if let Some(ref bindack) = state.bindack {
+        for uuidentry in bindack.accepted_uuid_list.iter() {
             ret = 1;
             // if any_frag is not enabled, we need to match only against the first fragment
             if if_data.any_frag == 0 && (uuidentry.flags & DCERPC_UUID_ENTRY_FLAG_FF == 0) {

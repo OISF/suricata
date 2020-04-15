@@ -50,8 +50,17 @@ static AppLayerResult DCERPCParseRequest(Flow *f, void *dcerpc_state,
                               const uint8_t *input, uint32_t input_len,
                               void *local_data, const uint8_t flags)
 {
-    return rs_dcerpc_parse_request(f, dcerpc_state, pstate, input, input_len,
-                                   local_data, 0x04);
+    if (input == NULL && input_len > 0) {
+        AppLayerResult res = rs_parse_dcerpc_request_gap(dcerpc_state, input_len);
+        SCLogDebug("DCERPC request GAP of %u bytes, retval %d", input_len, res.status);
+        SCReturnStruct(res);
+    } else {
+        AppLayerResult res = rs_dcerpc_parse_request(f, dcerpc_state, pstate, input, input_len,
+                                                     local_data, 0x04);
+        SCLogDebug("DCERPC request%s of %u bytes, retval %d",
+                (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res.status);
+        SCReturnStruct(res);
+    }
 }
 
 static AppLayerResult DCERPCParseResponse(Flow *f, void *dcerpc_state,
@@ -59,8 +68,17 @@ static AppLayerResult DCERPCParseResponse(Flow *f, void *dcerpc_state,
                                const uint8_t *input, uint32_t input_len,
                                void *local_data, const uint8_t flags)
 {
-    return rs_dcerpc_parse_response(f, dcerpc_state, pstate, input, input_len,
-                                    local_data, 0x08);
+    if (input == NULL && input_len > 0) {
+        AppLayerResult res = rs_parse_dcerpc_response_gap(dcerpc_state, input_len);
+        SCLogDebug("DCERPC response GAP of %u bytes, retval %d", input_len, res.status);
+        SCReturnStruct(res);
+    } else {
+        AppLayerResult res = rs_dcerpc_parse_response(f, dcerpc_state, pstate, input, input_len,
+                                                      local_data, 0x08);
+        SCLogDebug("DCERPC response%s of %u bytes, retval %d",
+                (input == NULL && input_len > 0) ? " is GAP" : "", input_len, res.status);
+        SCReturnStruct(res);
+    }
 }
 
 static void *RustDCERPCStateNew(void)

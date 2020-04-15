@@ -70,7 +70,7 @@ fn assemble_uuid(uuid: Uuid) -> Vec<u8> {
     vect
 }
 
-named!(pub dcerpc_parse_udp_header<DCERPCHdrUdp>,
+named!(pub parse_dcerpc_udp_header<DCERPCHdrUdp>,
     do_parse!(
         rpc_vers: be_u8 >>
         pkt_type: be_u8 >>
@@ -136,14 +136,6 @@ named!(pub dcerpc_parse_udp_header<DCERPCHdrUdp>,
         )
 );
 
-//#[derive(Debug,PartialEq)]
-//pub struct DceRpcBindAckResult<'a> {
-//    pub ack_result: u16,
-//    pub ack_reason: u16,
-//    pub transfer_syntax: &'a[u8],
-//    pub syntax_version: u32,
-//}
-
 named!(pub parse_dcerpc_bindack_result<DCERPCBindAckResult>,
     do_parse!(
             ack_result: le_u16
@@ -167,7 +159,7 @@ do_parse!(
         take!(sec_addr_len) >>
         cond!((sec_addr_len + 2) % 4 != 0, take!(4 - (sec_addr_len + 2) % 4)) >>
         numctxitems: le_u8 >>
-        take!(3) >> //padding
+        take!(3) >> // padding
         ctxitems: count!(parse_dcerpc_bindack_result, numctxitems as usize) >>
         (
              DCERPCBindAck {
@@ -207,7 +199,7 @@ do_parse!(
     )
 );
 
-named!(pub dcerpc_parse_bind<DCERPCBind>,
+named!(pub parse_dcerpc_bind<DCERPCBind>,
 do_parse!(
     _max_xmit_frag: le_u16 >>
     _max_recv_frag: le_u16 >>
@@ -218,13 +210,12 @@ do_parse!(
         DCERPCBind {
             numctxitems: numctxitems,
             uuid_list: Vec::new(),
-            // TODO count(ctxitems) as per numctxitems just like bindack
             }
         )
     )
 );
 
-named!(pub dcerpc_parse_header<DCERPCHdr>,
+named!(pub parse_dcerpc_header<DCERPCHdr>,
 do_parse!(
     rpc_vers: be_u8 >>
     rpc_vers_minor: be_u8 >>
@@ -250,7 +241,7 @@ do_parse!(
     )
 );
 
-named_args!(pub dcerpc_parse_request(endianness: Endianness) <DCERPCRequest>,
+named_args!(pub parse_dcerpc_request(endianness: Endianness) <DCERPCRequest>,
 do_parse!(
     _pad: take!(4) >>
     ctxid: u16!(endianness) >>
@@ -308,7 +299,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dcerpc_parse_udp_header() {
+    fn test_parse_dcerpc_udp_header() {
         let dcerpcheader: &[u8] = &[
             0x04, 0x00, 0x08, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb8, 0x4a, 0x9f, 0x4d,
@@ -317,7 +308,7 @@ mod tests {
             0x79, 0xbe, 0x01, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0xff, 0x68, 0x00, 0x00, 0x00, 0x0a, 0x00,
         ];
-        let (_remainder, header) = dcerpc_parse_udp_header(dcerpcheader).unwrap();
+        let (_remainder, header) = parse_dcerpc_udp_header(dcerpcheader).unwrap();
         let expected_activityuuid = vec![
             0x67, 0x37, 0xc2, 0x86, 0x1e, 0xf7, 0x11, 0xd1, 0xbc, 0xd9, 0x00, 0x60, 0x97, 0x92,
             0xd2, 0x6c,
@@ -337,12 +328,12 @@ mod tests {
     }
 
     #[test]
-    fn test_dcerpc_parse_header() {
+    fn test_parse_dcerpc_header() {
         let dcerpcheader: &[u8] = &[
             0x05, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00,
         ];
-        let (_remainder, header) = dcerpc_parse_header(dcerpcheader).unwrap();
+        let (_remainder, header) = parse_dcerpc_header(dcerpcheader).unwrap();
         assert_eq!(5, header.rpc_vers);
         assert_eq!(0, header.rpc_vers_minor);
         assert_eq!(0, header.hdrtype);
@@ -350,11 +341,11 @@ mod tests {
     }
 
     #[test]
-    fn test_dcerpc_parse_bind() {
+    fn test_parse_dcerpc_bind() {
         let dcerpcbind: &[u8] = &[
             0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00,
         ];
-        let (_remainder, bind) = dcerpc_parse_bind(dcerpcbind).unwrap();
+        let (_remainder, bind) = parse_dcerpc_bind(dcerpcbind).unwrap();
         assert_eq!(24, bind.numctxitems);
     }
 
