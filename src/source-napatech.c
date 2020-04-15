@@ -958,7 +958,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         while (rel_pkt != NULL) {
 #ifdef NAPATECH_ENABLE_BYPASS
             if (rel_pkt->ntpv.bypass == 1) {
-                if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+                if (PACKET_TEST_ACTION(rel_pkt, ACTION_DROP)) {
                     if (is_inline) {
                         rel_pkt->ntpv.dyn3->wireLength = 0;
                     }
