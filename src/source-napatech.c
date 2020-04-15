@@ -655,7 +655,6 @@ static PacketQueue packets_to_release[MAX_STREAMS];
  */
 static void NapatechReleasePacket(struct Packet_ *p)
 {
-    PacketFreeOrRelease(p);
     PacketEnqueue(&packets_to_release[p->ntpv.stream_id], p);
 }
 
@@ -966,6 +965,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
                 ProgramFlow(rel_pkt, is_inline);
             }
 #endif
+            PacketFreeOrRelease(rel_pkt);
             NT_NetRxRelease(ntv->rx_stream, rel_pkt->ntpv.nt_packet_buf);
             rel_pkt = PacketDequeue(&packets_to_release[ntv->stream_id]);
         }
