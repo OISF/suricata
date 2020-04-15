@@ -257,6 +257,30 @@ pub fn dns_parse_query<'a>(input: &'a [u8],
     )
 }
 
+pub fn dns_parse_rdata_soa<'a>(input: &'a [u8], message: &'a [u8])
+    -> IResult<&'a [u8], DNSRData>
+{
+    do_parse!(
+        input,
+        mname: call!(dns_parse_name, message) >>
+        rname: call!(dns_parse_name, message) >>
+        serial: be_u32 >>
+        refresh: be_u32 >>
+        retry: be_u32 >>
+        expire: be_u32 >>
+        minimum: be_u32 >>
+            (DNSRData::SOA(DNSRDataSOA{
+                mname,
+                rname,
+                serial,
+                refresh,
+                retry,
+                expire,
+                minimum,
+            }))
+    )
+}
+
 pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
     -> IResult<&'a [u8], DNSRData>
 {
@@ -273,10 +297,7 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
             dns_parse_name(input, message).map(|(input, name)|
                     (input, DNSRData::Str(name)))
         },
-        DNS_RECORD_TYPE_SOA => {
-            dns_parse_name(input, message).map(|(input, name)|
-                    (input, DNSRData::SOA(DNSRDataSOA{data: name})))
-        },
+        DNS_RECORD_TYPE_SOA => dns_parse_rdata_soa(input, message),
         DNS_RECORD_TYPE_MX => {
             // For MX we we skip over the preference field before
             // parsing out the name.
@@ -550,4 +571,68 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_dns_parse_response_nxdomain_soa() {
+        // DNS response with an SOA authority record from
+        // dns-udp-nxdomain-soa.pcap.
+        let pkt: &[u8] = &[
+                        0x82, 0x95, 0x81, 0x83, 0x00, 0x01, /* j....... */
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x03, 0x64, /* .......d */
+            0x6e, 0x65, 0x04, 0x6f, 0x69, 0x73, 0x66, 0x03, /* ne.oisf. */
+            0x6e, 0x65, 0x74, 0x00, 0x00, 0x01, 0x00, 0x01, /* net..... */
+            0xc0, 0x10, 0x00, 0x06, 0x00, 0x01, 0x00, 0x00, /* ........ */
+            0x03, 0x83, 0x00, 0x45, 0x06, 0x6e, 0x73, 0x2d, /* ...E.ns- */
+            0x31, 0x31, 0x30, 0x09, 0x61, 0x77, 0x73, 0x64, /* 110.awsd */
+            0x6e, 0x73, 0x2d, 0x31, 0x33, 0x03, 0x63, 0x6f, /* ns-13.co */
+            0x6d, 0x00, 0x11, 0x61, 0x77, 0x73, 0x64, 0x6e, /* m..awsdn */
+            0x73, 0x2d, 0x68, 0x6f, 0x73, 0x74, 0x6d, 0x61, /* s-hostma */
+            0x73, 0x74, 0x65, 0x72, 0x06, 0x61, 0x6d, 0x61, /* ster.ama */
+            0x7a, 0x6f, 0x6e, 0xc0, 0x3b, 0x00, 0x00, 0x00, /* zon.;... */
+            0x01, 0x00, 0x00, 0x1c, 0x20, 0x00, 0x00, 0x03, /* .... ... */
+            0x84, 0x00, 0x12, 0x75, 0x00, 0x00, 0x01, 0x51, /* ...u...Q */
+            0x80, 0x00, 0x00, 0x29, 0x02, 0x00, 0x00, 0x00, /* ...).... */
+            0x00, 0x00, 0x00, 0x00                          /* .... */
+        ];
+
+        let res = dns_parse_response(pkt);
+        match res {
+            Ok((rem, response)) => {
+
+                // For now we have some remainder data as there is an
+                // additional record type we don't parse yet.
+                assert!(rem.len() > 0);
+
+                assert_eq!(response.header, DNSHeader{
+                    tx_id: 0x8295,
+                    flags: 0x8183,
+                    questions: 1,
+                    answer_rr: 0,
+                    authority_rr: 1,
+                    additional_rr: 1,
+                });
+
+                assert_eq!(response.authorities.len(), 1);
+
+                let authority = &response.authorities[0];
+                assert_eq!(authority.name,
+                           "oisf.net".as_bytes().to_vec());
+                assert_eq!(authority.rrtype, 6);
+                assert_eq!(authority.rrclass, 1);
+                assert_eq!(authority.ttl, 899);
+                assert_eq!(authority.data,
+                           DNSRData::SOA(DNSRDataSOA{
+                               mname: "ns-110.awsdns-13.com".as_bytes().to_vec(),
+                               rname: "awsdns-hostmaster.amazon.com".as_bytes().to_vec(),
+                               serial: 1,
+                               refresh: 7200,
+                               retry: 900,
+                               expire: 1209600,
+                               minimum: 86400,
+                           }));
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+    }
 }

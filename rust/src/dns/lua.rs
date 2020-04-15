@@ -182,9 +182,9 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
                     }
                 },
                 DNSRData::SOA(ref soa) => {
-                    if soa.data.len() > 0 {
+                    if soa.mname.len() > 0 {
                         lua.pushstring("addr");
-                        lua.pushstring(&String::from_utf8_lossy(&soa.data));
+                        lua.pushstring(&String::from_utf8_lossy(&soa.mname));
                         lua.settable(-3);
                     }
                 },
