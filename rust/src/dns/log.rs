@@ -396,24 +396,21 @@ pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
 }
 
 ///  Log the SSHPF in an DNSAnswerEntry.
-fn dns_log_sshfp(answer: &DNSAnswerEntry) -> Result<Option<JsonBuilder>, JsonError>
+fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError>
 {
-    // Need at least 3 bytes - TODO: log something if we don't?
-    if answer.data.len() < 3 {
-        return Ok(None)
-    }
-
-    let mut sshfp = JsonBuilder::new_object();
+    let mut js = JsonBuilder::new_object();
 
     let mut hex = Vec::new();
-    for byte in &answer.data[2..] {
+    for byte in &sshfp.fingerprint {
         hex.push(format!("{:02x}", byte));
     }
-    sshfp.set_string("fingerprint", &hex.join(":"))?;
-    sshfp.set_uint("algo", answer.data[0] as u64)?;
-    sshfp.set_uint("type", answer.data[1] as u64)?;
 
-    return Ok(Some(sshfp));
+    js.set_string("fingerprint", &hex.join(":"))?;
+    js.set_uint("algo", sshfp.algo as u64)?;
+    js.set_uint("type", sshfp.fp_type as u64)?;
+
+    js.close()?;
+    return Ok(js);
 }
 
 fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, JsonError>
@@ -424,21 +421,19 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
     jsa.set_string("rrtype", &dns_rrtype_string(answer.rrtype))?;
     jsa.set_uint("ttl", answer.ttl as u64)?;
 
-    match answer.rrtype {
-        DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
-            jsa.set_string("rdata", &dns_print_addr(&answer.data))?;
+    match &answer.data {
+        DNSRData::A(addr) | DNSRData::AAAA(addr) => {
+            jsa.set_string("rdata", &dns_print_addr(&addr))?;
         }
-        DNS_RECORD_TYPE_CNAME |
-        DNS_RECORD_TYPE_MX |
-        DNS_RECORD_TYPE_TXT |
-        DNS_RECORD_TYPE_PTR => {
-            jsa.set_string_from_bytes("rdata", &answer.data)?;
-        },
-        DNS_RECORD_TYPE_SSHFP => {
-            if let Some(sshfp) = dns_log_sshfp(answer)? {
-                jsa.set_object("sshfp", &sshfp)?;
-            }
-        },
+        DNSRData::CNAME(bytes) |
+        DNSRData::MX(bytes) |
+        DNSRData::TXT(bytes) |
+        DNSRData::PTR(bytes) => {
+            jsa.set_string_from_bytes("rdata", &bytes)?;
+        }
+        DNSRData::SSHFP(sshfp) => {
+            jsa.set_object("sshfp", &dns_log_sshfp(&sshfp)?)?;
+        }
         _ => {}
     }
 
@@ -488,37 +483,35 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
 
             if flags & LOG_FORMAT_GROUPED != 0 {
                 let type_string = dns_rrtype_string(answer.rrtype);
-                match answer.rrtype {
-                    DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
+                match &answer.data {
+                    DNSRData::A(addr) | DNSRData::AAAA(addr) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),
                                                 JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_string(&dns_print_addr(&answer.data))?;
+                            a.append_string(&dns_print_addr(&addr))?;
                         }
                     }
-                    DNS_RECORD_TYPE_CNAME |
-                    DNS_RECORD_TYPE_MX |
-                    DNS_RECORD_TYPE_TXT |
-                    DNS_RECORD_TYPE_PTR => {
+                    DNSRData::CNAME(bytes) |
+                    DNSRData::MX(bytes) |
+                    DNSRData::TXT(bytes) |
+                    DNSRData::PTR(bytes) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),
                                                 JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
-                            a.append_string_from_bytes(&answer.data)?;
+                            a.append_string_from_bytes(&bytes)?;
                         }
                     },
-                    DNS_RECORD_TYPE_SSHFP => {
+                    DNSRData::SSHFP(sshfp) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),
                                                 JsonBuilder::new_array());
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
-                            if let Some(sshfp) = dns_log_sshfp(&answer)? {
-                                a.append_object(&sshfp)?;
-                            }
+                            a.append_object(&dns_log_sshfp(&sshfp)?)?;
                         }
                     },
                     _ => {}
@@ -659,21 +652,19 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
     js.set_string("rrtype", &dns_rrtype_string(answer.rrtype))?;
     js.set_uint("ttl", answer.ttl as u64)?;
 
-    match answer.rrtype {
-        DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
-            js.set_string("rdata", &dns_print_addr(&answer.data))?;
+    match &answer.data {
+        DNSRData::A(addr) | DNSRData::AAAA(addr) => {
+            js.set_string("rdata", &dns_print_addr(&addr))?;
         }
-        DNS_RECORD_TYPE_CNAME |
-        DNS_RECORD_TYPE_MX |
-        DNS_RECORD_TYPE_TXT |
-        DNS_RECORD_TYPE_PTR => {
-            js.set_string_from_bytes("rdata", &answer.data)?;
-        },
-        DNS_RECORD_TYPE_SSHFP => {
-            if let Some(sshfp) = dns_log_sshfp(&answer)? {
-                js.set_object("sshfp", &sshfp)?;
-            }
-        },
+        DNSRData::CNAME(bytes) |
+        DNSRData::MX(bytes) |
+        DNSRData::TXT(bytes) |
+        DNSRData::PTR(bytes) => {
+            js.set_string_from_bytes("rdata", &bytes)?;
+        }
+        DNSRData::SSHFP(sshfp) => {
+            js.set_object("sshfp", &dns_log_sshfp(&sshfp)?)?;
+        }
         _ => {}
     }
 
