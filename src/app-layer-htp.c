@@ -87,6 +87,9 @@ static SCRadixTree *cfgtree;
 /** List of HTP configurations. */
 static HTPCfgRec cfglist;
 
+/** Limit to the number of libhtp messages that can be handled */
+#define HTP_MAX_MESSAGES 512
+
 SC_ATOMIC_DECLARE(uint32_t, htp_config_flags);
 
 #ifdef DEBUG
@@ -689,6 +692,11 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
 
     size_t size = htp_list_size(s->conn->messages);
     size_t msg;
+    if(size >= HTP_MAX_MESSAGES) {
+        DEBUG_VALIDATE_BUG_ON("Too many libhtp messages");
+        // ignore further messages
+        return;
+    }
 
     for (msg = s->htp_messages_offset; msg < size; msg++) {
         htp_log_t *log = htp_list_get(s->conn->messages, msg);
