@@ -21,7 +21,6 @@ use crate::applayer::AppLayerResult;
 use crate::core;
 use crate::dcerpc::parser;
 use crate::log::*;
-//use core::STREAM_TOSERVER;
 use nom::number::Endianness;
 
 use std::cmp;
@@ -367,6 +366,54 @@ impl DCERPCState {
         None
     }
 
+    pub fn handle_gap_ts(&mut self) -> u8 {
+        if self.buffer_ts.len() > 0 {
+            self.buffer_ts.clear();
+        }
+        return 0;
+    }
+
+    pub fn handle_gap_tc(&mut self) -> u8 {
+        if self.buffer_tc.len() > 0 {
+            self.buffer_tc.clear();
+        }
+        return 0;
+    }
+
+    pub fn clean_buffer(&mut self, direction: u8) {
+        match direction {
+            core::STREAM_TOSERVER => {
+                self.buffer_ts.clear();
+            }
+            _ => {
+                self.buffer_tc.clear();
+            }
+        }
+        self.bytes_consumed = 0;
+    }
+
+    pub fn extend_buffer(&mut self, buffer: &[u8], direction: u8) {
+        match direction {
+            core::STREAM_TOSERVER => {
+                self.buffer_ts.extend_from_slice(buffer);
+            }
+            _ => {
+                self.buffer_tc.extend_from_slice(buffer);
+            }
+        }
+        self.data_needed_for_dir = direction;
+    }
+
+    pub fn reset_direction(&mut self, direction: u8) {
+        if direction == core::STREAM_TOSERVER {
+            println!("resetting dir to client");
+            self.data_needed_for_dir = core::STREAM_TOCLIENT;
+        } else {
+            println!("resetting dir to server");
+            self.data_needed_for_dir = core::STREAM_TOSERVER;
+        }
+    }
+
     pub fn parse_dcerpc_header(&mut self, input: &[u8]) -> i32 {
         match parser::dcerpc_parse_header(input) {
             Ok((leftover_bytes, header)) => {
@@ -374,13 +421,12 @@ impl DCERPCState {
                     || (header.rpc_vers_minor != 0 && header.rpc_vers_minor != 1)
                 {
                     SCLogDebug!(
-                        "DCERPC Header did not validate. majv: {:?} minv: {:?}",
-                        header.rpc_vers, header.rpc_vers_minor
+                        "DCERPC Header did not validate. Major version: {:?} Minor version: {:?}",
+                        header.rpc_vers,
+                        header.rpc_vers_minor
                     );
                     return -1;
                 }
-                SCLogDebug!("fraglen: {:?}", header.frag_length);
-                SCLogDebug!("authlen: {:?}", header.auth_length);
                 self.dcerpchdr = Some(header);
                 (input.len() - leftover_bytes.len()) as i32
             }
@@ -403,20 +449,15 @@ impl DCERPCState {
         match parser::dcerpc_parse_bind(input) {
             Ok((leftover_bytes, header)) => {
                 let numctxitems = header.numctxitems;
-                SCLogDebug!("parse_dcerpc_bind: numctxitems: {:?}", numctxitems);
                 self.dcerpcbind = Some(header);
                 for i in 0..numctxitems {
-                    SCLogDebug!("idx before parsing loop {:?}: {:?}", i, idx);
                     retval = self.parse_bindctxitem(&input[idx as usize..], i as u16);
                     if retval == -1 {
-                        SCLogDebug!("Returning {:?}", i);
                         return -1;
                     }
                     idx = retval + idx;
                 }
-                let ret = (input.len() - leftover_bytes.len()) as i32 + retval * numctxitems as i32;
-                SCLogDebug!("ret: {:?}", ret);
-                ret
+                (input.len() - leftover_bytes.len()) as i32 + retval * numctxitems as i32
             }
             Err(nom::Err::Incomplete(_)) => {
                 // Insufficient data.
@@ -434,27 +475,27 @@ impl DCERPCState {
     pub fn parse_bindctxitem(&mut self, input: &[u8], uuid_internal_id: u16) -> i32 {
         let endianness = self.get_endianness();
         match parser::parse_bindctx_item(input, endianness) {
-            Ok((_leftover_bytes, ctxitem)) => {
+            Ok((leftover_bytes, ctxitem)) => {
                 let mut uuidentry = DCERPCUuidEntry::new();
                 uuidentry.uuid = ctxitem.uuid;
                 uuidentry.internal_id = uuid_internal_id;
                 uuidentry.ctxid = ctxitem.ctxid;
                 uuidentry.version = ctxitem.version;
                 uuidentry.versionminor = ctxitem.versionminor;
-                // Store the first frag flag in the uuid as pfc_flags will
-                // be overwritten by new packets
                 let pfcflags = match self.get_hdr_pfcflags() {
                     Some(x) => x,
                     None => 0,
                 };
+                // Store the first frag flag in the uuid as pfc_flags will
+                // be overwritten by new packets
                 if pfcflags & PFC_FIRST_FRAG > 0 {
                     uuidentry.flags |= DCERPC_UUID_ENTRY_FLAG_FF;
                 }
                 if let Some(ref mut bind) = self.dcerpcbind {
-                    SCLogDebug!("parse_bindctxitem: Pushing uuid: {:?}", uuidentry);
+                    SCLogDebug!("DCERPC BIND CtxItem: Pushing uuid: {:?}", uuidentry);
                     bind.uuid_list.push(uuidentry);
                 }
-                44
+                (input.len() - leftover_bytes.len()) as i32
             }
             Err(nom::Err::Incomplete(_)) => {
                 // Insufficient data.
@@ -476,10 +517,6 @@ impl DCERPCState {
                     let mut uuid_internal_id = 0;
                     for r in back.ctxitems.iter() {
                         for mut uuid in bind.uuid_list.iter_mut() {
-                            //                            SCLogDebug!(
-                            //                                "parse_bind_ack: uuid.iid: {:?}, back.iid: {:?}",
-                            //                                uuid.internal_id, uuid_internal_id
-                            //                            );
                             if uuid.internal_id == uuid_internal_id {
                                 uuid.result = r.ack_result;
                                 if uuid.result != 0 {
@@ -490,14 +527,8 @@ impl DCERPCState {
                         }
                         uuid_internal_id += 1;
                     }
-                    SCLogDebug!(
-                        "parse_bind_ack: accepted uuid: {:?}uuid_internal_id: {:?}",
-                        back.accepted_uuid_list, uuid_internal_id
-                    );
-                    //SCLogDebug!("parse_bind_ack: uuid list: {:?}", bind.uuid_list);
                     self.dcerpcback = Some(back);
                 }
-                // Total number of bytes parsed is unknown
                 (input.len() - leftover_bytes.len()) as i32
             }
             Err(nom::Err::Incomplete(_)) => {
@@ -524,7 +555,6 @@ impl DCERPCState {
             None => 0,
         };
         let padleft = self.padleft;
-        SCLogDebug!("parse_stub_data: padleft: {:?}", padleft);
         // Update the stub params based on the packaet type
         match self.get_hdr_type() {
             Some(x) => match x {
@@ -541,7 +571,6 @@ impl DCERPCState {
                             rpc_vers,
                         );
                     }
-                    SCLogDebug!("parse_stub_data: REQUEST retval: {:?}", retval);
                 }
                 DCERPC_TYPE_RESPONSE => {
                     if let Some(ref mut resp) = self.dcerpcresponse {
@@ -556,7 +585,6 @@ impl DCERPCState {
                             rpc_vers,
                         );
                     }
-                    SCLogDebug!("parse_stub_data: RESPONSE retval: {:?}", retval);
                 }
                 _ => {
                     SCLogDebug!("Unrecognized packet type");
@@ -569,7 +597,6 @@ impl DCERPCState {
         }
         // Update the remaining fragment length
         self.padleft -= retval;
-        SCLogDebug!("parse_stub_data: remaining padleft: {:?}", self.padleft);
 
         retval
     }
@@ -581,17 +608,9 @@ impl DCERPCState {
                 return -1;
             }
         };
-        SCLogDebug!(
-            "parse_request: hdr fraglen: {:?}, bytes_consumed: {:?}",
-            fraglen, bytes_consumed
-        );
         self.padleft = fraglen - 16 - bytes_consumed as u16; // bytes processed so far = header length
         let mut input_left = input.len() as i32 - bytes_consumed;
         let mut parsed: i32 = bytes_consumed; // parsed bytes
-        SCLogDebug!(
-            "parse_request: padleft: {:?}, input_left: {:?}",
-            self.padleft, input_left
-        );
         while input_left > 0 && parsed < fraglen as i32 {
             let retval = self.parse_stub_data(&input[parsed as usize..], input_left as u16);
             if retval > 0 || retval > input_left as u16 {
@@ -618,11 +637,6 @@ impl DCERPCState {
         match parser::dcerpc_parse_request(input, endianness) {
             Ok((leftover_input, request)) => {
                 self.dcerpcrequest = Some(request);
-                SCLogDebug!(
-                    "input len: {:?}, leftover_input: {:?}",
-                    input.len(),
-                    leftover_input.len()
-                );
                 let parsed = self.process_common_stub(
                     &input,
                     (input.len() - leftover_input.len()) as i32,
@@ -643,82 +657,34 @@ impl DCERPCState {
         }
     }
 
-    pub fn handle_gap_ts(&mut self) -> u8 {
-        if self.buffer_ts.len() > 0 {
-            self.buffer_ts.clear();
-        }
-        return 0;
-    }
-
-    pub fn handle_gap_tc(&mut self) -> u8 {
-        if self.buffer_tc.len() > 0 {
-            self.buffer_tc.clear();
-        }
-        return 0;
-    }
-
-    pub fn clean_buffer(&mut self, direction: u8) -> () {
-        match direction {
-            STREAM_TOSERVER => {
-                self.buffer_ts.clear();
-            }
-            STREAM_TOCLIENT => {
-                self.buffer_tc.clear();
-            }
-        }
-//        self.dcerpchdr = None;
-        self.bytes_consumed = 0;
-    }
-
-    pub fn extend_buffer(&mut self, buffer: &[u8], direction: u8) {
-        match direction {
-            STREAM_TOSERVER => {
-                self.buffer_ts.extend_from_slice(buffer);
-            }
-            _ => {
-                self.buffer_tc.extend_from_slice(buffer);
-            }
-        }
-        self.data_needed_for_dir = direction;
-    }
-
-    pub fn reset_direction(&mut self, direction: u8) {
-        if direction == core::STREAM_TOSERVER {
-            self.data_needed_for_dir = core::STREAM_TOCLIENT;
-        }
-        else {
-            self.data_needed_for_dir = core::STREAM_TOSERVER;
-        }
-    }
-
     pub fn dcerpc_parse(&mut self, input: &[u8], direction: u8) -> AppLayerResult {
-        let mut parsed = 0;
+        let mut parsed;
         let retval;
         let input_len = input.len();
         let mut v: Vec<u8>;
 
+        // Set any query's completion status to false in the beginning
+        self.query_completed = false;
         // Overwrite the state data in case of multiple complete queries in the
         // same direction
-        if self.prev_dir == direction && self.query_completed == true {
-            SCLogDebug!("Overwriting the query");
+        if self.prev_dir == direction {
+            println!("directions were same, dir: {:?}", direction);
             self.data_needed_for_dir = direction;
-            self.query_completed = false;
         }
 
         let buffer = match direction {
             core::STREAM_TOSERVER => {
                 if self.buffer_ts.len() + input_len > 1024 * 1024 {
-                    SCLogDebug!("To Server stream: Buffer Overflow");
+                    SCLogDebug!("DCERPC TOSERVER stream: Buffer Overflow");
                     return AppLayerResult::err();
                 }
-                SCLogDebug!("buffer_ts: {:?}", self.buffer_ts.len());
                 v = self.buffer_ts.split_off(0);
                 v.extend_from_slice(input);
                 v.as_slice()
             }
             _ => {
                 if self.buffer_tc.len() + input_len > 1024 * 1024 {
-                    SCLogDebug!("To Client stream: Buffer Overflow");
+                    SCLogDebug!("DCERPC TOCLIENT stream: Buffer Overflow");
                     return AppLayerResult::err();
                 }
                 v = self.buffer_tc.split_off(0);
@@ -727,26 +693,26 @@ impl DCERPCState {
             }
         };
 
-        SCLogDebug!("data_needed_for_dir: {:?}, direction: {:?}, buffer len: {:?}", self.data_needed_for_dir, direction, buffer.len());
         if self.data_needed_for_dir != direction && buffer.len() != 0 {
-            SCLogDebug!("FAILED  check data_needed_for_dir");
+            println!("returning error for dir: {:?}, data_needed_for_dir: {:?}", direction, self.data_needed_for_dir);
             return AppLayerResult::err();
         }
+
+        // Set data_needed_for_dir in the same direction in case there is an issue with parsing
+        self.data_needed_for_dir = direction;
 
         // Making it a hard requirement for a data stream to at least have the header in place
         // else return -1 and the buffer stays empty
         // Reason: header has the most important of data required for further proccessing
         if self.bytes_consumed < 16 && input_len > 0 {
-            SCLogDebug!("parsing header");
             parsed = self.parse_dcerpc_header(&buffer);
             if parsed == -1 {
                 self.extend_buffer(buffer, direction);
                 return AppLayerResult::ok();
-                // TODO ASK the case when header is incomplete and that's all the data, returning
+                // ASK the case when header is incomplete and that's all the data, returning
                 // ok would probably be incorrect
             }
             self.bytes_consumed += parsed as u16;
-            SCLogDebug!("bytes_consumed: {:?}", self.bytes_consumed);
         }
 
         let fraglen = match self.get_hdr_fraglen() {
@@ -754,62 +720,41 @@ impl DCERPCState {
             None => 0,
         };
 
-        SCLogDebug!("Buffer len: {:?}", buffer.len());
+        println!("buffer len: {:?}, fraglen: {:?}", buffer.len(), fraglen);
+
         if (buffer.len() as u16) < fraglen {
-            SCLogDebug!("Possibly fragmented data, waiting for more..");
+            println!("Possibly fragmented data, waiting for more..");
             self.extend_buffer(buffer, direction);
             return AppLayerResult::ok();
         }
         if (buffer.len() as u16) == fraglen {
-            SCLogDebug!("Query completed");
+            println!("query completed for dir: {:?}", direction);
             self.query_completed = true;
         }
+        // ASK What if the input length is more than fraglen?
         parsed = self.bytes_consumed as i32;
 
         match self.get_hdr_type() {
             Some(x) => match x {
                 DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                    SCLogDebug!(
-                        "buffer len before bind parsing: {:?}, parsed: {:?}",
-                        buffer.len(),
-                        parsed
-                    );
                     retval = self.parse_dcerpc_bind(&buffer[parsed as usize..]);
                     if retval == -1 {
-                        self.data_needed_for_dir = direction;
                         return AppLayerResult::err();
                     }
                 }
                 DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    SCLogDebug!(
-                        "buffer len befor bindack parsing: {:?}, parsed: {:?}",
-                        buffer.len(),
-                        parsed
-                    );
                     retval = self.parse_bind_ack(&buffer[parsed as usize..]);
                     if retval == -1 {
-                        self.data_needed_for_dir = direction;
                         return AppLayerResult::err();
                     }
                 }
                 DCERPC_TYPE_REQUEST => {
-                    SCLogDebug!(
-                        "buffer len befor request parsing: {:?}, parsed: {:?}",
-                        buffer.len(),
-                        parsed
-                    );
                     retval = self.parse_request(&buffer[parsed as usize..]);
                     if retval == -1 {
-                        self.data_needed_for_dir = direction;
                         return AppLayerResult::err();
                     }
                 }
                 DCERPC_TYPE_RESPONSE => {
-                    SCLogDebug!(
-                        "buffer len befor response parsing: {:?}, parsed: {:?}",
-                        buffer.len(),
-                        parsed
-                    );
                     let dcerpcresponse = DCERPCResponse::new();
                     self.dcerpcresponse = Some(dcerpcresponse);
                     retval = self.process_common_stub(
@@ -818,7 +763,6 @@ impl DCERPCState {
                         core::STREAM_TOCLIENT,
                     );
                     if retval == -1 {
-                        self.data_needed_for_dir = direction;
                         return AppLayerResult::err();
                     }
                     self.tx_id += 1; // Complete response, maybe to be used in future?
@@ -834,7 +778,8 @@ impl DCERPCState {
             }
         }
         self.bytes_consumed += retval as u16;
-        SCLogDebug!("Final retval: {:?}", retval);
+
+        // If the query has been completed, clean the buffer and reset the direction
         if self.query_completed == true {
             self.clean_buffer(direction);
             self.reset_direction(direction);
@@ -878,7 +823,7 @@ impl DCERPCUDPState {
         self.dcerpcresponse = Some(response);
     }
 
-    fn create_new_tx(&mut self, pkt_type: u8) {
+    fn create_new_query(&mut self, pkt_type: u8) {
         match pkt_type {
             DCERPC_TYPE_REQUEST => {
                 self.new_request();
@@ -1031,7 +976,7 @@ impl DCERPCUDPState {
             None => 0,
         };
         self.fraglenleft = fraglen;
-        self.create_new_tx(pkt_type);
+        self.create_new_query(pkt_type);
         // Parse rest of the body
         while parsed >= DCERPC_UDP_HDR_LEN && parsed < fraglen as i32 && input_left > 0 {
             let retval = self.parse_fragment_data(&input[parsed as usize..], input_left as u16);
@@ -1060,10 +1005,6 @@ pub fn evaluate_stub_params(
 ) -> u16 {
     let stub_len: u16;
     let fragtype = hdrflags & (PFC_FIRST_FRAG | PFC_LAST_FRAG);
-    SCLogDebug!(
-        "evaluate_stub_params: lenleft: {:?}, input_len: {:?}",
-        lenleft, input_len
-    );
     stub_len = cmp::min(lenleft, input_len);
     if stub_len == 0 {
         return 0;
@@ -1328,26 +1269,22 @@ pub unsafe extern "C" fn rs_dcerpc_set_buffer(
 ) -> u8 {
     match dir {
         core::STREAM_TOSERVER => {
-            SCLogDebug!("Inside TOSERVER");
             if let Some(ref req) = state.dcerpcrequest {
                 *len = req.stub_data_buffer_len as u32;
                 *buf = req.stub_data_buffer.as_ptr();
-                SCLogDebug!("setting len to {:?}, buf to: {:?}", *len, *buf);
+                SCLogDebug!("DCERPC Request stub buffer: Setting buffer to: {:?}", *buf);
             }
-        },
+        }
         _ => {
-            SCLogDebug!("Inside TOCLIENT");
             if let Some(ref resp) = state.dcerpcresponse {
                 *len = resp.stub_data_buffer_len as u32;
                 *buf = resp.stub_data_buffer.as_ptr();
-                SCLogDebug!("setting len to {:?}, buf to: {:?}", *len, *buf);
+                SCLogDebug!("DCERPC Response stub buffer: Setting buffer to: {:?}", *buf);
             }
-
-        },
+        }
     }
     // TODO good thing to do? Returning endianness from the function whihch is not meant to do that
     // ASK about this as two func calls may be costly
-    SCLogDebug!("retval: {:?}", state.get_hdr_drep_0() & 0x10);
     return state.get_hdr_drep_0() & 0x10;
 }
 
@@ -1973,7 +1910,7 @@ mod tests {
             state.dcerpc_parse(&bind1, core::STREAM_TOSERVER)
         );
         assert_eq!(
-            AppLayerResult::ok(),   // TODO ASK if this is correct?
+            AppLayerResult::ok(), // TODO ASK if this is correct?
             state.dcerpc_parse(&bind2, core::STREAM_TOSERVER)
         );
     }
@@ -2523,7 +2460,6 @@ mod tests {
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind1, core::STREAM_TOSERVER)
         );
-        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind_ack1, core::STREAM_TOCLIENT)
@@ -2533,12 +2469,10 @@ mod tests {
             assert_eq!(12, back.accepted_uuid_list[0].ctxid);
             assert_eq!(expected_uuid1, back.accepted_uuid_list[0].uuid);
         }
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind2, core::STREAM_TOSERVER)
         );
-        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind_ack2, core::STREAM_TOCLIENT)
@@ -2548,19 +2482,17 @@ mod tests {
             assert_eq!(15, back.accepted_uuid_list[0].ctxid);
             assert_eq!(expected_uuid2, back.accepted_uuid_list[0].uuid);
         }
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind3, core::STREAM_TOSERVER)
         );
-        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(&bind_ack3, core::STREAM_TOCLIENT)
         );
         if let Some(ref back) = state.dcerpcback {
             assert_eq!(1, back.accepted_uuid_list.len());
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
+            state.data_needed_for_dir = core::STREAM_TOSERVER;
             assert_eq!(11, back.accepted_uuid_list[0].ctxid);
             assert_eq!(expected_uuid3, back.accepted_uuid_list[0].uuid);
         }
@@ -2611,7 +2543,6 @@ mod tests {
             AppLayerResult::ok(),
             state.dcerpc_parse(bind, core::STREAM_TOSERVER)
         );
-        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(bindack, core::STREAM_TOCLIENT)
@@ -2621,12 +2552,10 @@ mod tests {
             assert_eq!(0, back.accepted_uuid_list[0].ctxid);
             assert_eq!(expected_uuid1, back.accepted_uuid_list[0].uuid);
         }
-        state.data_needed_for_dir = core::STREAM_TOSERVER;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(alter_context, core::STREAM_TOSERVER)
         );
-        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(alter_context_resp, core::STREAM_TOCLIENT)
@@ -2787,7 +2716,6 @@ mod tests {
             AppLayerResult::ok(),
             state.dcerpc_parse(bind, core::STREAM_TOSERVER)
         );
-        state.data_needed_for_dir = core::STREAM_TOCLIENT;
         assert_eq!(
             AppLayerResult::ok(),
             state.dcerpc_parse(bindack, core::STREAM_TOCLIENT)

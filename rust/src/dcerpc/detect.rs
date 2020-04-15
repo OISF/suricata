@@ -18,10 +18,10 @@
 use super::dcerpc::{
     DCERPCState, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, DCERPC_UUID_ENTRY_FLAG_FF,
 };
+use crate::log::*;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use uuid::Uuid;
-use crate::log::*;
 
 pub const DETECT_DCE_IFACE_OP_NONE: u8 = 0;
 pub const DETECT_DCE_IFACE_OP_LT: u8 = 1;
@@ -99,9 +99,7 @@ fn match_iface_version(version: u16, if_data: &DCEIfaceData) -> bool {
 
 fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
     let mut ret = 1;
-    SCLogDebug!("Inside match backuuid");
     if let Some(ref dcerpcback) = state.dcerpcback {
-        SCLogDebug!("Length of accpeted list: {:?}", dcerpcback.accepted_uuid_list.len());
         for uuidentry in dcerpcback.accepted_uuid_list.iter() {
             ret = 1;
             // if any_frag is not enabled, we need to match only against the first fragment
@@ -116,7 +114,6 @@ fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
 
             for i in 0..16 {
                 if if_data.if_uuid[i] != uuidentry.uuid[i] {
-                    SCLogDebug!("if_data.ifuuid: {:?}, uuidentry: {:?}", if_data.if_uuid, uuidentry);
                     ret = 0;
                     break;
                 }
@@ -125,28 +122,23 @@ fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
                 Some(x) => x,
                 None => 0,
             };
-            SCLogDebug!("req ctxid: {:?}, uuidentry ctxid: {:?}", ctxid, uuidentry.ctxid);
             ret = ret & ((uuidentry.ctxid == ctxid) as u8);
             if ret == 0 {
-                SCLogDebug!("continuing again");
                 continue;
             }
 
             if if_data.op != DETECT_DCE_IFACE_OP_NONE
                 && !match_iface_version(uuidentry.version, if_data)
             {
-                SCLogDebug!("Didn't match");
                 ret &= 0;
             }
 
             if ret == 1 {
-                SCLogDebug!("returning 1");
                 return 1;
             }
         }
     }
 
-    SCLogDebug!("Returning {:?}", ret);
     return ret;
 }
 
@@ -154,11 +146,9 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
     let split_args: Vec<&str> = arg.split(',').collect();
     let mut op_version = (0, 0);
     let mut any_frag: u8 = 0;
-    SCLogDebug!("Inside parse_iface-data arg: {:?}", arg);
     let if_uuid = match Uuid::parse_str(split_args[0]) {
         Ok(res) => res.as_bytes().to_vec(),
         _ => {
-            SCLogDebug!("iffuuid errored");
             return Err(());
         }
     };
@@ -173,7 +163,6 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
                 op_version = match extract_op_version(split_args[1]) {
                     Ok((op, ver)) => (op, ver),
                     _ => {
-                        SCLogDebug!("2 errored");
                         return Err(());
                     }
                 };
@@ -184,23 +173,18 @@ fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
                 // ASK if its guaranteed to be on 1st index
                 Ok((op, ver)) => (op, ver),
                 _ => {
-                    SCLogDebug!("3 errored");
                     return Err(());
                 }
             };
             if split_args[2] != "any_frag" {
-                SCLogDebug!("4 errored");
                 return Err(());
             }
             any_frag = 1;
         }
         _ => {
-            SCLogDebug!("5 errored");
             return Err(());
         }
     }
-
-    SCLogDebug!("All OK. Returning the DCEIfaceData struct if_uuid: {:?}", if_uuid);
 
     Ok(DCEIfaceData {
         if_uuid: if_uuid,
@@ -257,29 +241,27 @@ fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_iface_match(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
-    SCLogDebug!("Inside iface match");
     let first_req_seen = match state.get_first_req_seen() {
         Some(x) => x,
-        None => 0,   // TODO check if its OK
+        None => 0, // TODO check if its OK
     };
     if first_req_seen == 0 {
-        SCLogDebug!("first_req_seen is 0");
         return 0;
     }
 
     match state.get_hdr_type() {
         Some(x) => match x {
-            DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE => {SCLogDebug!("Inside request/resp check");},
+            DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE => {
+            }
             _ => {
-                SCLogDebug!("Some other header type");
-                return 0;}
+                return 0;
+            }
         },
         None => {
-            SCLogDebug!("Weird header type");
-            return 0;},
+            return 0;
+        }
     };
 
-    SCLogDebug!("Going to match_backuuid. hdr type: {:?}", state.get_hdr_type());
     return match_backuuid(state, if_data);
 }
 
@@ -315,7 +297,7 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_match(
 ) -> u8 {
     let opnum = match state.get_req_opnum() {
         Some(x) => x,
-        None => 0,   // TODO check if this is OK
+        None => 0, // TODO check if this is OK
     };
     for range in opnum_data.data.iter() {
         if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
