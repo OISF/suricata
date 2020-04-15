@@ -874,15 +874,15 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         }
 
         Packet *p = PacketGetFromQueueOrAlloc();
-#ifdef NAPATECH_ENABLE_BYPASS
-        p->ntpv.bypass = 0;
-#endif
 
         if (unlikely(p == NULL)) {
             NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
+#ifdef NAPATECH_ENABLE_BYPASS
+        p->ntpv.bypass = 0;
+#endif
         pkt_ts = NT_NET_GET_PKT_TIMESTAMP(packet_buffer);
 
         /*
