@@ -689,6 +689,11 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
 
     size_t size = htp_list_size(s->conn->messages);
     size_t msg;
+    if(size >= 0x10000) {
+        DEBUG_VALIDATE_BUG_ON("Overflowing htp_messages_offset");
+        // ignore further messages
+        return;
+    }
 
     for (msg = s->htp_messages_offset; msg < size; msg++) {
         htp_log_t *log = htp_list_get(s->conn->messages, msg);
