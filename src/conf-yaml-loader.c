@@ -185,8 +185,9 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int rlevel)
     int retval = 0;
 
     if (rlevel++ > RECURSION_LIMIT) {
-        FatalError(SC_ERR_FATAL, "Recursion limit reached while parsing "
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "Recursion limit reached while parsing "
                 "configuration file, aborting.");
+        return -1;
     }
 
     while (!done) {
