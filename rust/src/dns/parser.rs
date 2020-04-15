@@ -180,7 +180,7 @@ fn dns_parse_answer<'a>(slice: &'a [u8], message: &'a [u8], count: usize)
                         1
                     }
                 };
-                let result: IResult<&'a [u8], Vec<Vec<u8>>> =
+                let result: IResult<&'a [u8], Vec<DNSRData>> =
                     do_parse!(
                         data,
                         rdata: many_m_n!(1, n,
@@ -258,13 +258,24 @@ pub fn dns_parse_query<'a>(input: &'a [u8],
 }
 
 pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
-    -> IResult<&'a [u8], Vec<u8>>
+    -> IResult<&'a [u8], DNSRData>
 {
     match rrtype {
+        DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
+            do_parse!(
+                input,
+                data: take!(input.len()) >>
+                    (DNSRData::Addr(data.to_vec()))
+            )
+        },
         DNS_RECORD_TYPE_CNAME |
-        DNS_RECORD_TYPE_PTR |
+        DNS_RECORD_TYPE_PTR => {
+            dns_parse_name(input, message).map(|(input, name)|
+                    (input, DNSRData::Str(name)))
+        },
         DNS_RECORD_TYPE_SOA => {
-            dns_parse_name(input, message)
+            dns_parse_name(input, message).map(|(input, name)|
+                    (input, DNSRData::SOA(DNSRDataSOA{data: name})))
         },
         DNS_RECORD_TYPE_MX => {
             // For MX we we skip over the preference field before
@@ -273,7 +284,7 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
                 input,
                 be_u16 >>
                 name: call!(dns_parse_name, message) >>
-                    (name)
+                    (DNSRData::Str(name))
             )
         },
         DNS_RECORD_TYPE_TXT => {
@@ -281,14 +292,14 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
                 input,
                 len: be_u8 >>
                 txt: take!(len) >>
-                    (txt.to_vec())
+                    (DNSRData::Str(txt.to_vec()))
             )
         },
         _ => {
             do_parse!(
                 input,
                 data: take!(input.len()) >>
-                    (data.to_vec())
+                    (DNSRData::Unknown(data.to_vec()))
             )
         }
     }
@@ -512,7 +523,7 @@ mod tests {
                 assert_eq!(answer1.rrclass, 1);
                 assert_eq!(answer1.ttl, 3544);
                 assert_eq!(answer1.data,
-                           "suricata-ids.org".as_bytes().to_vec());
+                           DNSRData::Str("suricata-ids.org".as_bytes().to_vec()));
 
                 let answer2 = &response.answers[1];
                 assert_eq!(answer2, &DNSAnswerEntry{
@@ -520,7 +531,7 @@ mod tests {
                     rrtype: 1,
                     rrclass: 1,
                     ttl: 244,
-                    data: [192, 0, 78, 24].to_vec(),
+                    data: DNSRData::Addr([192, 0, 78, 24].to_vec()),
                 });
 
                 let answer3 = &response.answers[2];
@@ -529,7 +540,7 @@ mod tests {
                     rrtype: 1,
                     rrclass: 1,
                     ttl: 244,
-                    data: [192, 0, 78, 25].to_vec(),
+                    data: DNSRData::Addr([192, 0, 78, 25].to_vec()),
                 })
 
             },

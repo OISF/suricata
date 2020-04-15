@@ -165,17 +165,36 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
             lua.pushstring(&String::from_utf8_lossy(&answer.name));
             lua.settable(-3);
 
-            if answer.data.len() > 0 {
-                lua.pushstring("addr");
-                match answer.rrtype {
-                    DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
-                        lua.pushstring(&dns_print_addr(&answer.data));
+            match answer.data {
+                DNSRData::Addr(ref bytes) => {
+                    if bytes.len() > 0 {
+                        lua.pushstring("addr");
+                        lua.pushstring(&dns_print_addr(&bytes));
+                        lua.settable(-3);
                     }
-                    _ => {
-                        lua.pushstring(&String::from_utf8_lossy(&answer.data));
+                },
+                DNSRData::Str(ref bytes)
+                | DNSRData::Unknown(ref bytes) => {
+                    if bytes.len() > 0 {
+                        lua.pushstring("addr");
+                        lua.pushstring(&String::from_utf8_lossy(&bytes));
+                        lua.settable(-3);
                     }
-                }
-                lua.settable(-3);
+                },
+                DNSRData::SOA(ref soa) => {
+                    if soa.data.len() > 0 {
+                        lua.pushstring("addr");
+                        lua.pushstring(&String::from_utf8_lossy(&soa.data));
+                        lua.settable(-3);
+                    }
+                },
+                DNSRData::SSHFP(ref sshfp) => {
+                    if sshfp.data.len() > 0 {
+                        lua.pushstring("addr");
+                        lua.pushstring(&String::from_utf8_lossy(&sshfp.data));
+                        lua.settable(-3);
+                    }
+                },
             }
             lua.settable(-3);
         }
