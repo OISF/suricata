@@ -165,17 +165,38 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
             lua.pushstring(&String::from_utf8_lossy(&answer.name));
             lua.settable(-3);
 
-            if answer.data.len() > 0 {
-                lua.pushstring("addr");
-                match answer.rrtype {
-                    DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
-                        lua.pushstring(&dns_print_addr(&answer.data));
+            // All rdata types are pushed to "addr" for backwards compatibility
+            match answer.data {
+                DNSRData::A(ref bytes) | DNSRData::AAAA(ref bytes) => {
+                    if bytes.len() > 0 {
+                        lua.pushstring("addr");
+                        lua.pushstring(&dns_print_addr(&bytes));
+                        lua.settable(-3);
                     }
-                    _ => {
-                        lua.pushstring(&String::from_utf8_lossy(&answer.data));
+                },
+                DNSRData::CNAME(ref bytes) |
+                DNSRData::MX(ref bytes) |
+                DNSRData::TXT(ref bytes) |
+                DNSRData::PTR(ref bytes) |
+                DNSRData::Unknown(ref bytes) => {
+                    if bytes.len() > 0 {
+                        lua.pushstring("addr");
+                        lua.pushstring(&String::from_utf8_lossy(&bytes));
+                        lua.settable(-3);
                     }
-                }
-                lua.settable(-3);
+                },
+                DNSRData::SOA(ref soa) => {
+                    if soa.data.len() > 0 {
+                        lua.pushstring("addr");
+                        lua.pushstring(&String::from_utf8_lossy(&soa.data));
+                        lua.settable(-3);
+                    }
+                },
+                DNSRData::SSHFP(ref sshfp) => {
+                    lua.pushstring("addr");
+                    lua.pushstring(&String::from_utf8_lossy(&sshfp.fingerprint));
+                    lua.settable(-3);
+                },
             }
             lua.settable(-3);
         }

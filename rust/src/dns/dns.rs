@@ -231,12 +231,46 @@ pub struct DNSQueryEntry {
 }
 
 #[derive(Debug,PartialEq)]
+pub struct DNSRDataSOA {
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug,PartialEq)]
+pub struct DNSRDataSSHFP {
+    /// Algorithm number
+    pub algo: u8,
+    /// Fingerprint type
+    pub fp_type: u8,
+    /// Fingerprint
+    pub fingerprint: Vec<u8>,
+}
+
+/// Represents RData of various formats
+#[derive(Debug,PartialEq)]
+pub enum DNSRData {
+    // RData is an address
+    A(Vec<u8>),
+    AAAA(Vec<u8>),
+    // RData is a domain name
+    CNAME(Vec<u8>),
+    PTR(Vec<u8>),
+    MX(Vec<u8>),
+    // RData is text
+    TXT(Vec<u8>),
+    // RData has several fields
+    SOA(DNSRDataSOA),
+    SSHFP(DNSRDataSSHFP),
+    // RData for remaining types is sometimes ignored
+    Unknown(Vec<u8>),
+}
+
+#[derive(Debug,PartialEq)]
 pub struct DNSAnswerEntry {
     pub name: Vec<u8>,
     pub rrtype: u16,
     pub rrclass: u16,
     pub ttl: u32,
-    pub data: Vec<u8>,
+    pub data: DNSRData,
 }
 
 #[derive(Debug)]

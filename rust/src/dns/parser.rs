@@ -18,6 +18,7 @@
 //! Nom parsers for DNS.
 
 use nom::IResult;
+use nom::combinator::rest;
 use nom::error::ErrorKind;
 use nom::multi::length_data;
 use nom::number::streaming::{be_u8, be_u16, be_u32};
@@ -180,7 +181,7 @@ fn dns_parse_answer<'a>(slice: &'a [u8], message: &'a [u8], count: usize)
                         1
                     }
                 };
-                let result: IResult<&'a [u8], Vec<Vec<u8>>> =
+                let result: IResult<&'a [u8], Vec<DNSRData>> =
                     do_parse!(
                         data,
                         rdata: many_m_n!(1, n,
@@ -257,40 +258,99 @@ pub fn dns_parse_query<'a>(input: &'a [u8],
     )
 }
 
+fn dns_parse_rdata_a<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+    do_parse!(
+        input,
+        data: take!(input.len()) >>
+            (DNSRData::A(data.to_vec()))
+    )
+}
+
+fn dns_parse_rdata_aaaa<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
+    do_parse!(
+        input,
+        data: take!(input.len()) >>
+            (DNSRData::AAAA(data.to_vec()))
+    )
+}
+
+fn dns_parse_rdata_cname<'a>(input: &'a [u8], message: &'a [u8])
+                             -> IResult<&'a [u8], DNSRData> {
+    dns_parse_name(input, message).map(|(input, name)|
+            (input, DNSRData::CNAME(name)))
+}
+
+fn dns_parse_rdata_ptr<'a>(input: &'a [u8], message: &'a [u8])
+                           -> IResult<&'a [u8], DNSRData> {
+    dns_parse_name(input, message).map(|(input, name)|
+            (input, DNSRData::PTR(name)))
+}
+
+fn dns_parse_rdata_soa<'a>(input: &'a [u8], message: &'a [u8])
+                           -> IResult<&'a [u8], DNSRData> {
+    dns_parse_name(input, message).map(|(input, name)|
+            (input, DNSRData::SOA(DNSRDataSOA{data: name})))
+}
+
+fn dns_parse_rdata_mx<'a>(input: &'a [u8], message: &'a [u8])
+                          -> IResult<&'a [u8], DNSRData> {
+    // For MX we skip over the preference field before
+    // parsing out the name.
+    do_parse!(
+        input,
+        be_u16 >>
+        name: call!(dns_parse_name, message) >>
+            (DNSRData::MX(name))
+    )
+}
+
+fn dns_parse_rdata_txt<'a>(input: &'a [u8])
+                           -> IResult<&'a [u8], DNSRData> {
+    do_parse!(
+        input,
+        len: be_u8 >>
+        txt: take!(len) >>
+            (DNSRData::TXT(txt.to_vec()))
+    )
+}
+
+fn dns_parse_rdata_sshfp<'a>(input: &'a [u8])
+                             -> IResult<&'a [u8], DNSRData> {
+    do_parse!(
+        input,
+        algo: be_u8 >>
+        fp_type: be_u8 >>
+        fingerprint: call!(rest) >>
+            (DNSRData::SSHFP(DNSRDataSSHFP{
+                algo,
+                fp_type,
+                fingerprint: fingerprint.to_vec()
+            }))
+    )
+}
+
+fn dns_parse_rdata_unknown<'a>(input: &'a [u8])
+                               -> IResult<&'a [u8], DNSRData> {
+    do_parse!(
+        input,
+        data: take!(input.len()) >>
+            (DNSRData::Unknown(data.to_vec()))
+    )
+}
+
 pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
-    -> IResult<&'a [u8], Vec<u8>>
+    -> IResult<&'a [u8], DNSRData>
 {
     match rrtype {
-        DNS_RECORD_TYPE_CNAME |
-        DNS_RECORD_TYPE_PTR |
-        DNS_RECORD_TYPE_SOA => {
-            dns_parse_name(input, message)
-        },
-        DNS_RECORD_TYPE_MX => {
-            // For MX we we skip over the preference field before
-            // parsing out the name.
-            do_parse!(
-                input,
-                be_u16 >>
-                name: call!(dns_parse_name, message) >>
-                    (name)
-            )
-        },
-        DNS_RECORD_TYPE_TXT => {
-            do_parse!(
-                input,
-                len: be_u8 >>
-                txt: take!(len) >>
-                    (txt.to_vec())
-            )
-        },
-        _ => {
-            do_parse!(
-                input,
-                data: take!(input.len()) >>
-                    (data.to_vec())
-            )
-        }
+        DNS_RECORD_TYPE_A => dns_parse_rdata_a(input),
+        DNS_RECORD_TYPE_AAAA => dns_parse_rdata_aaaa(input),
+        DNS_RECORD_TYPE_CNAME => dns_parse_rdata_cname(input, message),
+        DNS_RECORD_TYPE_PTR => dns_parse_rdata_ptr(input, message),
+        DNS_RECORD_TYPE_SOA => dns_parse_rdata_soa(input, message),
+        DNS_RECORD_TYPE_MX => dns_parse_rdata_mx(input, message),
+        DNS_RECORD_TYPE_TXT => dns_parse_rdata_txt(input),
+        DNS_RECORD_TYPE_SSHFP => dns_parse_rdata_sshfp(input),
+        _ => dns_parse_rdata_unknown(input),
     }
 }
 
@@ -512,7 +572,7 @@ mod tests {
                 assert_eq!(answer1.rrclass, 1);
                 assert_eq!(answer1.ttl, 3544);
                 assert_eq!(answer1.data,
-                           "suricata-ids.org".as_bytes().to_vec());
+                           DNSRData::CNAME("suricata-ids.org".as_bytes().to_vec()));
 
                 let answer2 = &response.answers[1];
                 assert_eq!(answer2, &DNSAnswerEntry{
@@ -520,7 +580,7 @@ mod tests {
                     rrtype: 1,
                     rrclass: 1,
                     ttl: 244,
-                    data: [192, 0, 78, 24].to_vec(),
+                    data: DNSRData::A([192, 0, 78, 24].to_vec()),
                 });
 
                 let answer3 = &response.answers[2];
@@ -529,9 +589,46 @@ mod tests {
                     rrtype: 1,
                     rrclass: 1,
                     ttl: 244,
-                    data: [192, 0, 78, 25].to_vec(),
+                    data: DNSRData::A([192, 0, 78, 25].to_vec()),
                 })
 
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn test_dns_parse_rdata_sshfp() {
+        // Dummy data since we don't have a pcap sample.
+        let data: &[u8] = &[
+            // algo: DSS
+            0x02,
+            // fp_type: SHA-1
+            0x01,
+            // fingerprint: 123456789abcdef67890123456789abcdef67890
+            0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf6, 0x78, 0x90,
+            0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf6, 0x78, 0x90
+        ];
+
+        let res = dns_parse_rdata_sshfp(data);
+        match res {
+            Ok((rem, rdata)) => {
+
+                // The data should be fully parsed.
+                assert_eq!(rem.len(), 0);
+
+                match rdata {
+                    DNSRData::SSHFP(sshfp) => {
+                        assert_eq!(sshfp.algo, 2);
+                        assert_eq!(sshfp.fp_type, 1);
+                        assert_eq!(sshfp.fingerprint, &data[2..]);
+                    },
+                    _ => {
+                        assert!(false);
+                    }
+                }
             },
             _ => {
                 assert!(false);

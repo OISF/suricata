@@ -395,25 +395,19 @@ pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
     }
 }
 
-///  Log the SSHPF in an DNSAnswerEntry.
-fn dns_log_sshfp(answer: &DNSAnswerEntry) -> Option<Json>
-{
-    // Need at least 3 bytes - TODO: log something if we don't?
-    if answer.data.len() < 3 {
-        return None
-    }
-
-    let sshfp = Json::object();
+/// Log SSHFP section fields.
+fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Json {
+    let js = Json::object();
 
     let mut hex = Vec::new();
-    for byte in &answer.data[2..] {
+    for byte in &sshfp.fingerprint {
         hex.push(format!("{:02x}", byte));
     }
-    sshfp.set_string("fingerprint", &hex.join(":"));
-    sshfp.set_integer("algo", answer.data[0] as u64);
-    sshfp.set_integer("type", answer.data[1] as u64);
+    js.set_string("fingerprint", &hex.join(":"));
+    js.set_integer("algo", sshfp.algo as u64);
+    js.set_integer("type", sshfp.fp_type as u64);
 
-    return Some(sshfp);
+    return js;
 }
 
 fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Json
@@ -424,21 +418,19 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Json
     jsa.set_string("rrtype", &dns_rrtype_string(answer.rrtype));
     jsa.set_integer("ttl", answer.ttl as u64);
 
-    match answer.rrtype {
-        DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
-            jsa.set_string("rdata", &dns_print_addr(&answer.data));
+    match &answer.data {
+        DNSRData::A(addr) | DNSRData::AAAA(addr) => {
+            jsa.set_string("rdata", &dns_print_addr(&addr));
         }
-        DNS_RECORD_TYPE_CNAME |
-        DNS_RECORD_TYPE_MX |
-        DNS_RECORD_TYPE_TXT |
-        DNS_RECORD_TYPE_PTR => {
-            jsa.set_string_from_bytes("rdata", &answer.data);
-        },
-        DNS_RECORD_TYPE_SSHFP => {
-            for sshfp in dns_log_sshfp(&answer) {
-                jsa.set("sshfp", sshfp);
-            }
-        },
+        DNSRData::CNAME(bytes) |
+        DNSRData::MX(bytes) |
+        DNSRData::TXT(bytes) |
+        DNSRData::PTR(bytes) => {
+            jsa.set_string_from_bytes("rdata", &bytes);
+        }
+        DNSRData::SSHFP(sshfp) => {
+            jsa.set("sshfp", dns_log_sshfp(&sshfp));
+        }
         _ => {}
     }
 
@@ -487,39 +479,38 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
 
             if flags & LOG_FORMAT_GROUPED != 0 {
                 let type_string = dns_rrtype_string(answer.rrtype);
-                match answer.rrtype {
-                    DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
+                match &answer.data {
+                    DNSRData::A(addr) | DNSRData::AAAA(addr) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),
                                                 Json::array());
                         }
                         for a in &answer_types.get(&type_string) {
                             a.array_append(
-                                Json::string(&dns_print_addr(&answer.data)));
+                                Json::string(&dns_print_addr(&addr)));
                         }
                     }
-                    DNS_RECORD_TYPE_CNAME |
-                    DNS_RECORD_TYPE_MX |
-                    DNS_RECORD_TYPE_TXT |
-                    DNS_RECORD_TYPE_PTR => {
+                    DNSRData::CNAME(bytes) |
+                    DNSRData::MX(bytes) |
+                    DNSRData::TXT(bytes) |
+                    DNSRData::PTR(bytes) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),
                                                 Json::array());
                         }
                         for a in &answer_types.get(&type_string) {
                             a.array_append(
-                                Json::string_from_bytes(&answer.data));
+                                Json::string_from_bytes(&bytes));
                         }
                     },
-                    DNS_RECORD_TYPE_SSHFP => {
+                    DNSRData::SSHFP(sshfp) => {
                         if !answer_types.contains_key(&type_string) {
                             answer_types.insert(type_string.to_string(),
                                                 Json::array());
                         }
                         for a in &answer_types.get(&type_string) {
-                            for sshfp in dns_log_sshfp(&answer) {
-                                a.array_append(sshfp);
-                            }
+                            a.array_append(
+                                dns_log_sshfp(&sshfp));
                         }
                     },
                     _ => {}
@@ -628,21 +619,19 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
     js.set_string("rrtype", &dns_rrtype_string(answer.rrtype));
     js.set_integer("ttl", answer.ttl as u64);
 
-    match answer.rrtype {
-        DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
-            js.set_string("rdata", &dns_print_addr(&answer.data));
+    match &answer.data {
+        DNSRData::A(addr) | DNSRData::AAAA(addr) => {
+            js.set_string("rdata", &dns_print_addr(&addr));
         }
-        DNS_RECORD_TYPE_CNAME |
-        DNS_RECORD_TYPE_MX |
-        DNS_RECORD_TYPE_TXT |
-        DNS_RECORD_TYPE_PTR => {
-            js.set_string_from_bytes("rdata", &answer.data);
-        },
-        DNS_RECORD_TYPE_SSHFP => {
-            if let Some(sshfp) = dns_log_sshfp(&answer) {
-                js.set("sshfp", sshfp);
-            }
-        },
+        DNSRData::CNAME(bytes) |
+        DNSRData::MX(bytes) |
+        DNSRData::TXT(bytes) |
+        DNSRData::PTR(bytes) => {
+            js.set_string_from_bytes("rdata", &bytes);
+        }
+        DNSRData::SSHFP(sshfp) => {
+            js.set("sshfp", dns_log_sshfp(&sshfp));
+        }
         _ => {}
     }
 
