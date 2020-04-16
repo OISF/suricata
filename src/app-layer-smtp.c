@@ -101,6 +101,7 @@
 #define SMTP_COMMAND_DATA_MODE 4
 /* All other commands are represented by this var */
 #define SMTP_COMMAND_OTHER_CMD 5
+#define SMTP_COMMAND_RSET      6
 
 /* Different EHLO extensions.  Not used now. */
 #define SMTP_EHLO_EXTENSION_PIPELINING
@@ -880,6 +881,13 @@ static void SetMimeEvents(SMTPState *state)
     }
 }
 
+static inline void SMTPTransactionComplete(SMTPState *state)
+{
+    DEBUG_VALIDATE_BUG_ON(state->curr_tx == NULL);
+    if (state->curr_tx)
+        state->curr_tx->done = 1;
+}
+
 /**
  *  \retval 0 ok
  *  \retval -1 error
@@ -916,7 +924,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
             /* Generate decoder events */
             SetMimeEvents(state);
         }
-        state->curr_tx->done = 1;
+        SMTPTransactionComplete(state);
         SCLogDebug("marked tx as done");
     } else if (smtp_config.raw_extraction) {
         // message not over, store the line. This is a substitution of
@@ -1031,7 +1039,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             /* we are entering STARRTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
             AppLayerRequestProtocolTLSUpgrade(f);
-            state->curr_tx->done = 1;
+            SMTPTransactionComplete(state);
         } else {
             /* decoder event */
             SMTPSetEvent(state, SMTP_DECODER_EVENT_TLS_REJECTED);
@@ -1060,6 +1068,12 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
         if (reply_code == SMTP_REPLY_250 && state->current_line_len == 14 &&
             SCMemcmpLowercase("pipelining", state->current_line+4, 10) == 0) {
             state->parser_state |= SMTP_PARSER_STATE_PIPELINING_SERVER;
+        }
+    }
+
+    if (state->cmds_idx < state->cmds_buffer_len && state->cmds[state->cmds_idx] == SMTP_COMMAND_RSET) {
+        if (reply_code == SMTP_REPLY_250) {
+            SMTPTransactionComplete(state);
         }
     }
 
@@ -1321,7 +1335,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                    SCMemcmpLowercase("rset", state->current_line, 4) == 0) {
             // Resets chunk index in case of connection reuse
             state->bdat_chunk_idx = 0;
-            state->curr_tx->done = 1;
+            state->current_command = SMTP_COMMAND_RSET;
         } else {
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         }
