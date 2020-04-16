@@ -28,8 +28,4 @@ void RegisterDCERPCParsers(void);
 void DCERPCParserTests(void);
 void DCERPCParserRegisterTests(void);
 
-/** Opaque Rust types. */
-typedef struct DCERPCUDPState DCERPCUDPState;
-typedef struct DCERPCState DCERPCState;
-
 #endif /* __APP_LAYER_DCERPC_COMMON_H__ */
