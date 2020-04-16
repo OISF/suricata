@@ -1637,7 +1637,8 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
     }
 
     int retval = SSLv3ParseHandshakeType(ssl_state, input, input_len, direction);
-    if (retval < 0 || (uint32_t)retval > input_len) {
+    if (retval < 0 || retval > (int)input_len) {
+        DEBUG_VALIDATE_BUG_ON(retval > (int)input_len);
         return retval;
     }
     input += retval;
@@ -1956,7 +1957,8 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
     if (ssl_state->curr_connp->bytes_processed <
             (ssl_state->curr_connp->record_lengths_length + 1)) {
         retval = SSLv2ParseRecord(direction, ssl_state, input, input_len);
-        if (retval < 0 || (uint32_t)retval > input_len) {
+        if (retval < 0 || retval > (int)input_len) {
+            DEBUG_VALIDATE_BUG_ON(retval > (int)input_len);
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSLV2_HEADER);
             return -1;
         }
@@ -2218,7 +2220,8 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
 
     if (ssl_state->curr_connp->bytes_processed < SSLV3_RECORD_HDR_LEN) {
         int retval = SSLv3ParseRecord(direction, ssl_state, input, input_len);
-        if (retval < 0 || (uint32_t)retval > input_len) {
+        if (retval < 0 || retval > (int)input_len) {
+            DEBUG_VALIDATE_BUG_ON(retval > (int)input_len);
             SCLogDebug("SSLv3ParseRecord returned %d", retval);
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_TLS_HEADER);
             return -1;
@@ -2309,7 +2312,8 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
 
             int retval = SSLv3ParseHandshakeProtocol(ssl_state, input + parsed,
                                                      input_len, direction);
-            if (retval < 0 || (uint32_t)retval > input_len) {
+            if (retval < 0 || retval > (int)input_len) {
+                DEBUG_VALIDATE_BUG_ON(retval > (int)input_len);
                 SSLSetEvent(ssl_state,
                         TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
                 SSLSetEvent(ssl_state,
@@ -2464,6 +2468,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
             int retval = SSLv2Decode(direction, ssl_state, pstate, input,
                     input_len);
             if (retval < 0 || retval > input_len) {
+                DEBUG_VALIDATE_BUG_ON(retval > input_len);
                 SCLogDebug("Error parsing SSLv2. Reseting parser "
                         "state. Let's get outta here");
                 SSLParserReset(ssl_state);
@@ -2483,6 +2488,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
             int retval = SSLv3Decode(direction, ssl_state, pstate, input,
                     input_len);
             if (retval < 0 || retval > input_len) {
+                DEBUG_VALIDATE_BUG_ON(retval > input_len);
                 SCLogDebug("Error parsing TLS. Reseting parser "
                         "state.  Let's get outta here");
                 SSLParserReset(ssl_state);
