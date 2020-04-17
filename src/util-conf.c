@@ -74,7 +74,7 @@ TmEcode ConfigSetDataDirectory(char *name)
     size_t size = strlen(name) + 1;
     char tmp[size];
     strlcpy(tmp, name, size);
-    if (tmp[size - 2] == '/')
+    if (size > 2 && tmp[size - 2] == '/') // > 2 to allow just /
         tmp[size - 2] = '\0';
 
     return ConfSetFinal("default-data-dir", tmp) ? TM_ECODE_OK : TM_ECODE_FAILED;
