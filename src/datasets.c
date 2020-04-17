@@ -368,7 +368,6 @@ static void DatasetGetPath(const char *in_path,
 {
     char path[PATH_MAX];
     struct stat st;
-    int ret;
 
     if (PathIsAbsolute(in_path)) {
         strlcpy(path, in_path, sizeof(path));
@@ -377,7 +376,7 @@ static void DatasetGetPath(const char *in_path,
     }
 
     const char *data_dir = ConfigGetDataDirectory();
-    if ((ret = stat(data_dir, &st)) != 0) {
+    if (stat(data_dir, &st) != 0) {
         SCLogDebug("data-dir '%s': %s", data_dir, strerror(errno));
         return;
     }
@@ -385,7 +384,7 @@ static void DatasetGetPath(const char *in_path,
     snprintf(path, sizeof(path), "%s/%s", data_dir, in_path); // TODO WINDOWS
 
     if (type == TYPE_LOAD) {
-        if ((ret = stat(path, &st)) != 0) {
+        if (stat(path, &st) != 0) {
             SCLogDebug("path %s: %s", path, strerror(errno));
             if (!g_system) {
                 snprintf(path, sizeof(path), "%s", in_path);
