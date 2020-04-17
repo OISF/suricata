@@ -964,6 +964,12 @@ static int SMTPProcessCommandSTARTTLS(SMTPState *state, Flow *f,
     return 0;
 }
 
+static inline bool IsReplyToCommand(const SMTPState *state, const uint8_t cmd)
+{
+    return (state->cmds_idx < state->cmds_buffer_len &&
+            state->cmds[state->cmds_idx] == cmd);
+}
+
 static int SMTPProcessReply(SMTPState *state, Flow *f,
                             AppLayerParserState *pstate,
                             SMTPThreadCtx *td)
@@ -1034,7 +1040,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
 
     if (state->cmds_cnt == 0) {
         /* reply but not a command we have stored, fall through */
-    } else if (state->cmds[state->cmds_idx] == SMTP_COMMAND_STARTTLS) {
+    } else if (IsReplyToCommand(state, SMTP_COMMAND_STARTTLS)) {
         if (reply_code == SMTP_REPLY_220) {
             /* we are entering STARRTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
@@ -1044,7 +1050,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             /* decoder event */
             SMTPSetEvent(state, SMTP_DECODER_EVENT_TLS_REJECTED);
         }
-    } else if (state->cmds[state->cmds_idx] == SMTP_COMMAND_DATA) {
+    } else if (IsReplyToCommand(state, SMTP_COMMAND_DATA)) {
         if (reply_code == SMTP_REPLY_354) {
             /* Next comes the mail for the DATA command in toserver direction */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
@@ -1052,10 +1058,12 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             /* decoder event */
             SMTPSetEvent(state, SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED);
         }
+    } else if (IsReplyToCommand(state, SMTP_COMMAND_RSET)) {
+        if (reply_code == SMTP_REPLY_250) {
+            SMTPTransactionComplete(state);
+        }
     } else {
         /* we don't care for any other command for now */
-        /* check if reply falls in the valid list of replies for SMTP.  If not
-         * decoder event */
     }
 
     /* if it is a multi-line reply, we need to move the index only once for all
@@ -1068,12 +1076,6 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
         if (reply_code == SMTP_REPLY_250 && state->current_line_len == 14 &&
             SCMemcmpLowercase("pipelining", state->current_line+4, 10) == 0) {
             state->parser_state |= SMTP_PARSER_STATE_PIPELINING_SERVER;
-        }
-    }
-
-    if (state->cmds_idx < state->cmds_buffer_len && state->cmds[state->cmds_idx] == SMTP_COMMAND_RSET) {
-        if (reply_code == SMTP_REPLY_250) {
-            SMTPTransactionComplete(state);
         }
     }
 
