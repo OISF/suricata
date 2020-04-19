@@ -40,6 +40,7 @@
 
 #include "util-mpm.h"
 #include "util-debug.h"
+#include "util-decode-mime.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -237,7 +238,7 @@ SCEnumCharMap smtp_reply_map[ ] = {
 };
 
 /* Create SMTP config structure */
-SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0, 0, STREAMING_BUFFER_CONFIG_INITIALIZER};
+SMTPConfig smtp_config = { 0, { 0, 0, 0, NULL, 0, 0, 0 }, 0, 0, 0, 0, STREAMING_BUFFER_CONFIG_INITIALIZER};
 
 static SMTPString *SMTPStringAlloc(void);
 
@@ -258,6 +259,7 @@ static void SMTPConfigure(void) {
 
     ConfNode *config = ConfGetNode("app-layer.protocols.smtp.mime");
     if (config != NULL) {
+        ConfNode *extract_urls_schemes = NULL;
 
         ret = ConfGetChildValueBool(config, "decode-mime", &val);
         if (ret) {
@@ -282,6 +284,68 @@ static void SMTPConfigure(void) {
         ret = ConfGetChildValueBool(config, "extract-urls", &val);
         if (ret) {
             smtp_config.mime_config.extract_urls = val;
+        }
+
+        extract_urls_schemes = ConfNodeLookupChild(config,
+                "extract-urls-schemes");
+        if (extract_urls_schemes) {
+            ConfNode *next_tmp = NULL;
+            ConfNode *scheme = TAILQ_FIRST(&extract_urls_schemes->head);
+            while(scheme != TAILQ_END(&extract_urls_schemes->head)) {
+                /* Ensure scheme names in config are within scheme name
+                 * length limit */
+                if (strlen(scheme->val) > URL_SCHEME_SIZE) {
+                    SCLogError(SC_ERR_CONF_YAML_ERROR,
+                        "MIME extract-urls-schemes \"%s\" ignored: length > %d",
+                        scheme->val, URL_SCHEME_SIZE);
+                    next_tmp = TAILQ_NEXT(scheme, next);
+                    /* Remove bad scheme name so util-decode-mime doesn't
+                     * truncate it when searching for schemes in MIME body */
+                    TAILQ_REMOVE(&extract_urls_schemes->head, scheme, next);
+                    ConfNodeFree(scheme);
+                    scheme = next_tmp;
+                } else {
+                    scheme = TAILQ_NEXT(scheme, next);
+                }
+            }
+
+            smtp_config.mime_config.extract_urls_schemes = extract_urls_schemes;
+        } else {
+            /* Add default extract url scheme 'http' since 
+             * extract-urls-schemes wasn't found in the config */
+            ConfNode *seq_node;
+            ConfNode *scheme;
+            
+            seq_node = ConfNodeNew();
+            if (unlikely(seq_node == NULL)) {
+                exit(EXIT_FAILURE);
+            }
+
+            scheme = ConfNodeNew();
+            if (unlikely(scheme == NULL)) {
+                exit(EXIT_FAILURE);
+            }
+
+            seq_node->name = SCStrdup("extract-urls-schemes");
+            if (unlikely(seq_node->name == NULL)) {
+                exit(EXIT_FAILURE);
+            }
+            
+            scheme->val = SCStrdup("http");
+            if (unlikely(scheme->val == NULL)) {
+                exit(EXIT_FAILURE);
+            }
+            
+            seq_node->is_seq = 1;
+            TAILQ_INSERT_TAIL(&seq_node->head, scheme, next);
+            TAILQ_INSERT_TAIL(&config->head, seq_node, next);
+
+            smtp_config.mime_config.extract_urls_schemes = seq_node;
+        }
+
+        ret = ConfGetChildValueBool(config, "log-url-scheme", &val);
+        if (ret) {
+            smtp_config.mime_config.log_url_scheme = val;
         }
 
         ret = ConfGetChildValueBool(config, "body-md5", &val);
