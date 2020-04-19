@@ -498,7 +498,11 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
         int rc = 0;
 
         /* only store fields from the first certificate in the chain */
-        if (processed_len == 0) {
+        if (processed_len == 0 &&
+                ssl_state->server_connp.cert0_subject == NULL &&
+                ssl_state->server_connp.cert0_issuerdn == NULL &&
+                ssl_state->server_connp.cert0_serial == NULL)
+        {
             char * str;
             int64_t not_before, not_after;
 
