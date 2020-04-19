@@ -778,6 +778,12 @@ app-layer:
 
         # Extract URLs and save in state data structure
         extract-urls: yes
+        # Scheme of URLs to extract
+        # (default is [http])
+        #extract-urls-schemes: [http, https, ftp, mailto]
+        # Log the scheme of URLs that are extracted
+        # (default is no)
+        #log-url-scheme: yes
         # Set to yes to compute the md5 of the mail body. You will then
         # be able to journalize it.
         body-md5: no

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -237,7 +237,8 @@ SCEnumCharMap smtp_reply_map[ ] = {
 };
 
 /* Create SMTP config structure */
-SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0, 0, STREAMING_BUFFER_CONFIG_INITIALIZER};
+SMTPConfig smtp_config = { 0, { 0, 0, 0, NULL, false, 0, 0 }, 0, 0, 0, 0,
+    STREAMING_BUFFER_CONFIG_INITIALIZER };
 
 static SMTPString *SMTPStringAlloc(void);
 
@@ -258,6 +259,7 @@ static void SMTPConfigure(void) {
 
     ConfNode *config = ConfGetNode("app-layer.protocols.smtp.mime");
     if (config != NULL) {
+        ConfNode *extract_urls_schemes = NULL;
 
         ret = ConfGetChildValueBool(config, "decode-mime", &val);
         if (ret) {
@@ -282,6 +284,66 @@ static void SMTPConfigure(void) {
         ret = ConfGetChildValueBool(config, "extract-urls", &val);
         if (ret) {
             smtp_config.mime_config.extract_urls = val;
+        }
+
+        /* Parse extract-urls-schemes from mime config, add '://' suffix to found schemes,
+         * and provide a default value of 'http' for the schemes to be extracted
+         * if no schemes are found in the config */
+        extract_urls_schemes = ConfNodeLookupChild(config, "extract-urls-schemes");
+        if (extract_urls_schemes) {
+            ConfNode *scheme = NULL;
+
+            TAILQ_FOREACH (scheme, &extract_urls_schemes->head, next) {
+                /* new_val_len: scheme value from config e.g. 'http' + '://' + null terminator */
+                size_t new_val_len = strlen(scheme->val) + 3 + 1;
+                char *new_val = SCMalloc(new_val_len);
+                if (unlikely(new_val == NULL)) {
+                    FatalError(SC_ERR_FATAL, "SCMalloc failure.");
+                }
+
+                int r = snprintf(new_val, new_val_len, "%s://", scheme->val);
+                if (r < 0 || r >= (int)new_val_len) {
+                    FatalError(SC_ERR_FATAL, "snprintf failure.");
+                }
+
+                /* replace existing scheme value stored on the linked list with new value including
+                 * '://' suffix */
+                SCFree(scheme->val);
+                scheme->val = new_val;
+            }
+
+            smtp_config.mime_config.extract_urls_schemes = extract_urls_schemes;
+        } else {
+            /* Add default extract url scheme 'http' since
+             * extract-urls-schemes wasn't found in the config */
+            ConfNode *seq_node = ConfNodeNew();
+            if (unlikely(seq_node == NULL)) {
+                FatalError(SC_ERR_FATAL, "ConfNodeNew failure.");
+            }
+            ConfNode *scheme = ConfNodeNew();
+            if (unlikely(scheme == NULL)) {
+                FatalError(SC_ERR_FATAL, "ConfNodeNew failure.");
+            }
+
+            seq_node->name = SCStrdup("extract-urls-schemes");
+            if (unlikely(seq_node->name == NULL)) {
+                FatalError(SC_ERR_FATAL, "SCStrdup failure.");
+            }
+            scheme->val = SCStrdup("http");
+            if (unlikely(scheme->val == NULL)) {
+                FatalError(SC_ERR_FATAL, "SCStrdup failure.");
+            }
+
+            seq_node->is_seq = 1;
+            TAILQ_INSERT_TAIL(&seq_node->head, scheme, next);
+            TAILQ_INSERT_TAIL(&config->head, seq_node, next);
+
+            smtp_config.mime_config.extract_urls_schemes = seq_node;
+        }
+
+        ret = ConfGetChildValueBool(config, "log-url-scheme", &val);
+        if (ret) {
+            smtp_config.mime_config.log_url_scheme = val;
         }
 
         ret = ConfGetChildValueBool(config, "body-md5", &val);
