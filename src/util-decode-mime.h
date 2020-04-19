@@ -65,6 +65,7 @@
 /* Publicly exposed size constants */
 #define DATA_CHUNK_SIZE  3072  /* Should be divisible by 3 */
 #define LINEREM_SIZE      256
+#define URL_SCHEME_SIZE    60  /* Max URL scheme size from config */
 
 /* Mime Parser Constants */
 #define HEADER_READY    0x01
@@ -96,6 +97,9 @@ typedef struct MimeDecConfig {
     int decode_base64;  /**< Decode base64 bodies */
     int decode_quoted_printable;  /**< Decode quoted-printable bodies */
     int extract_urls;  /**< Extract and store URLs in data structure */
+    ConfNode *extract_urls_schemes; /**< List of schemes of which to
+                                         extract urls  */
+    int log_url_scheme; /**< Log the scheme of extracted URLs */
     int body_md5;  /**< Compute md5 sum of body */
     uint32_t header_value_depth;  /**< Depth of which to store header values
                                        (Default is 2000) */
