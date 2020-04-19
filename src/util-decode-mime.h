@@ -1,4 +1,5 @@
 /* Copyright (C) 2012 BAE Systems
+ * Copyright (C) 2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -96,6 +97,9 @@ typedef struct MimeDecConfig {
     int decode_base64;  /**< Decode base64 bodies */
     int decode_quoted_printable;  /**< Decode quoted-printable bodies */
     int extract_urls;  /**< Extract and store URLs in data structure */
+    ConfNode *extract_urls_schemes; /**< List of schemes of which to
+                                         extract urls  */
+    bool log_url_scheme;            /**< Log the scheme of extracted URLs */
     int body_md5;  /**< Compute md5 sum of body */
     uint32_t header_value_depth;  /**< Depth of which to store header values
                                        (Default is 2000) */
