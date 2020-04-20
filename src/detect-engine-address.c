@@ -1390,6 +1390,7 @@ static const DetectAddressMap *DetectAddressMapLookup(DetectEngineCtx *de_ctx,
  *        DetectAddressHead sent as the argument with the relevant address
  *        ranges from the parsed string.
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param gh  Pointer to the DetectAddressHead.
  * \param str Pointer to the character string containing the address group
  *            that has to be parsed.

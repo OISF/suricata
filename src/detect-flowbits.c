@@ -51,7 +51,7 @@ static DetectParseRegex parse_regex;
 int DetectFlowbitMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectFlowbitFree (void *);
+void DetectFlowbitFree (DetectEngineCtx *, void *);
 void FlowBitsRegisterTests(void);
 
 void DetectFlowbitsRegister (void)
@@ -292,7 +292,7 @@ error:
     return -1;
 }
 
-void DetectFlowbitFree (void *ptr)
+void DetectFlowbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectFlowbitsData *fd = (DetectFlowbitsData *)ptr;
 

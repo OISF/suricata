@@ -58,7 +58,7 @@ static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, void *txv,
         const Signature *s, const SigMatchCtx *m);
 static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectDceOpnumFree(void *);
+static void DetectDceOpnumFree(DetectEngineCtx *, void *);
 static void DetectDceOpnumRegisterTests(void);
 static int g_dce_generic_list_id = 0;
 
@@ -98,13 +98,13 @@ static DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
 /**
  * \internal
  * \brief Parses the argument sent along with the "dce_opnum" keyword.
- *
+ *DetectEngineCtx *de_ctx, 
  * \param arg Pointer to the string containing the argument to be parsed.
  *
  * \retval did Pointer to a DetectDceIfaceData instance that holds the data
  *             from the parsed arg.
  */
-static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
+static DetectDceOpnumData *DetectDceOpnumArgParse(DetectEngineCtx *de_ctx, const char *arg)
 {
     DetectDceOpnumData *dod = NULL;
 
@@ -220,7 +220,7 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
  error:
     if (dup_str_head != NULL)
         SCFree(dup_str_head);
-    DetectDceOpnumFree(dod);
+    DetectDceOpnumFree(de_ctx, dod);
     return NULL;
 }
 
@@ -324,7 +324,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
-    DetectDceOpnumData *dod = DetectDceOpnumArgParse(arg);
+    DetectDceOpnumData *dod = DetectDceOpnumArgParse(de_ctx, arg);
     if (dod == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
                    "signature");
@@ -333,7 +333,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectDceOpnumFree(dod);
+        DetectDceOpnumFree(de_ctx, dod);
         return -1;
     }
 
@@ -344,7 +344,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     return 0;
 }
 
-static void DetectDceOpnumFree(void *ptr)
+static void DetectDceOpnumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectDceOpnumData *dod = ptr;
     DetectDceOpnumRange *dor = NULL;
@@ -381,7 +381,7 @@ static int DetectDceOpnumTestParse01(void)
     result &= (DetectDceOpnumSetup(NULL, s, "12-14,12,121,62-8") == -1);
 
     if (s->sm_lists[g_dce_generic_list_id] != NULL) {
-        SigFree(s);
+        SigFree(NULL, s);
         result &= 1;
     }
 
@@ -411,7 +411,7 @@ static int DetectDceOpnumTestParse02(void)
     }
 
  end:
-    SigFree(s);
+    SigFree(NULL, s);
     return result;
 }
 
@@ -438,7 +438,7 @@ static int DetectDceOpnumTestParse03(void)
     }
 
  end:
-    SigFree(s);
+    SigFree(NULL, s);
     return result;
 }
 
@@ -502,7 +502,7 @@ static int DetectDceOpnumTestParse04(void)
     }
 
  end:
-    SigFree(s);
+    SigFree(NULL, s);
     return result;
 }
 
@@ -566,7 +566,7 @@ static int DetectDceOpnumTestParse05(void)
     }
 
  end:
-    SigFree(s);
+    SigFree(NULL, s);
     return result;
 }
 
@@ -612,7 +612,7 @@ static int DetectDceOpnumTestParse06(void)
     }
 
  end:
-    SigFree(s);
+    SigFree(NULL, s);
     return result;
 }
 
@@ -663,7 +663,7 @@ static int DetectDceOpnumTestParse07(void)
     }
 
  end:
-    SigFree(s);
+    SigFree(NULL, s);
     return result;
 }
 

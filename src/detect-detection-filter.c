@@ -54,7 +54,7 @@ static int DetectDetectionFilterMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectDetectionFilterSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDetectionFilterRegisterTests(void);
-static void DetectDetectionFilterFree(void *);
+static void DetectDetectionFilterFree(DetectEngineCtx *, void *);
 
 /**
  * \brief Registration function for detection_filter: keyword
@@ -254,7 +254,7 @@ error:
  *
  * \param df_ptr pointer to DetectDetectionFilterData
  */
-static void DetectDetectionFilterFree(void *df_ptr)
+static void DetectDetectionFilterFree(DetectEngineCtx *de_ctx, void *df_ptr)
 {
     DetectThresholdData *df = (DetectThresholdData *)df_ptr;
     if (df)
@@ -282,7 +282,7 @@ static int DetectDetectionFilterTestParse01 (void)
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("track by_dst,count 10,seconds 60");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
-        DetectDetectionFilterFree(df);
+        DetectDetectionFilterFree(NULL, df);
         return 1;
     }
 
@@ -300,7 +300,7 @@ static int DetectDetectionFilterTestParse02 (void)
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("track both,count 10,seconds 60");
     if (df && (df->track == TRACK_DST || df->track == TRACK_SRC) && (df->count == 10) && (df->seconds == 60)) {
-        DetectDetectionFilterFree(df);
+        DetectDetectionFilterFree(NULL, df);
         return 0;
     }
 
@@ -318,7 +318,7 @@ static int DetectDetectionFilterTestParse03 (void)
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("track by_dst, seconds 60, count 10");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
-        DetectDetectionFilterFree(df);
+        DetectDetectionFilterFree(NULL, df);
         return 1;
     }
 
@@ -337,7 +337,7 @@ static int DetectDetectionFilterTestParse04 (void)
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("count 10, track by_dst, seconds 60, count 10");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
-        DetectDetectionFilterFree(df);
+        DetectDetectionFilterFree(NULL, df);
         return 0;
     }
 
@@ -355,7 +355,7 @@ static int DetectDetectionFilterTestParse05 (void)
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("count 10, track by_dst, seconds 60");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
-        DetectDetectionFilterFree(df);
+        DetectDetectionFilterFree(NULL, df);
         return 1;
     }
 
@@ -373,7 +373,7 @@ static int DetectDetectionFilterTestParse06 (void)
     DetectThresholdData *df = NULL;
     df = DetectDetectionFilterParse("count 10, track by_dst, seconds 0");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 0)) {
-        DetectDetectionFilterFree(df);
+        DetectDetectionFilterFree(NULL, df);
         return 0;
     }
 

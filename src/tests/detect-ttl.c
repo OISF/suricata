@@ -29,7 +29,7 @@ static int DetectTtlParseTest01 (void)
     FAIL_IF_NULL(ttld);
     FAIL_IF_NOT(ttld->ttl1 == 10);
     FAIL_IF_NOT(ttld->mode == DETECT_TTL_EQ);
-    DetectTtlFree(ttld);
+    DetectTtlFree(NULL, ttld);
     PASS;
 }
 
@@ -44,7 +44,7 @@ static int DetectTtlParseTest02 (void)
     FAIL_IF_NULL(ttld);
     FAIL_IF_NOT(ttld->ttl1 == 10);
     FAIL_IF_NOT(ttld->mode == DETECT_TTL_LT);
-    DetectTtlFree(ttld);
+    DetectTtlFree(NULL, ttld);
     PASS;
 }
 
@@ -60,7 +60,7 @@ static int DetectTtlParseTest03 (void)
     FAIL_IF_NOT(ttld->ttl1 == 1);
     FAIL_IF_NOT(ttld->ttl2 == 2);
     FAIL_IF_NOT(ttld->mode == DETECT_TTL_RA);
-    DetectTtlFree(ttld);
+    DetectTtlFree(NULL, ttld);
     PASS;
 }
 
@@ -75,7 +75,7 @@ static int DetectTtlParseTest04 (void)
     FAIL_IF_NULL(ttld);
     FAIL_IF_NOT(ttld->ttl1 == 10);
     FAIL_IF_NOT(ttld->mode == DETECT_TTL_GT);
-    DetectTtlFree(ttld);
+    DetectTtlFree(NULL, ttld);
     PASS;
 }
 
@@ -91,7 +91,7 @@ static int DetectTtlParseTest05 (void)
     FAIL_IF_NOT(ttld->ttl1 == 1);
     FAIL_IF_NOT(ttld->ttl2 == 2);
     FAIL_IF_NOT(ttld->mode == DETECT_TTL_RA);
-    DetectTtlFree(ttld);
+    DetectTtlFree(NULL, ttld);
     PASS;
 }
 

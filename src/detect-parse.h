@@ -50,7 +50,7 @@ typedef struct DetectParseRegex_ {
 
 /* prototypes */
 Signature *SigAlloc(void);
-void SigFree(Signature *s);
+void SigFree(DetectEngineCtx *de_ctx, Signature *s);
 Signature *SigInit(DetectEngineCtx *, const char *sigstr);
 Signature *SigInitReal(DetectEngineCtx *, const char *);
 SigMatchData* SigMatchList2DataArray(SigMatch *head);

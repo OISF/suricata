@@ -66,7 +66,7 @@ static DetectParseRegex parse_regex;
 static int DetectThresholdMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectThresholdSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectThresholdFree(void *);
+static void DetectThresholdFree(DetectEngineCtx *, void *);
 
 /**
  * \brief Registration function for threshold: keyword
@@ -272,7 +272,7 @@ error:
  *
  * \param de pointer to DetectThresholdData
  */
-static void DetectThresholdFree(void *de_ptr)
+static void DetectThresholdFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
     DetectThresholdData *de = (DetectThresholdData *)de_ptr;
     if (de) {
@@ -301,7 +301,7 @@ static int ThresholdTestParse01(void)
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("type limit,track by_dst,count 10,seconds 60");
     if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
-        DetectThresholdFree(de);
+        DetectThresholdFree(NULL, de);
         return 1;
     }
 
@@ -319,7 +319,7 @@ static int ThresholdTestParse02(void)
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("type any,track by_dst,count 10,seconds 60");
     if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
-        DetectThresholdFree(de);
+        DetectThresholdFree(NULL, de);
         return 0;
     }
 
@@ -337,7 +337,7 @@ static int ThresholdTestParse03(void)
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("track by_dst, type limit, seconds 60, count 10");
     if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
-        DetectThresholdFree(de);
+        DetectThresholdFree(NULL, de);
         return 1;
     }
 
@@ -356,7 +356,7 @@ static int ThresholdTestParse04(void)
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("count 10, track by_dst, seconds 60, type both, count 10");
     if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
-        DetectThresholdFree(de);
+        DetectThresholdFree(NULL, de);
         return 0;
     }
 
@@ -374,7 +374,7 @@ static int ThresholdTestParse05(void)
     DetectThresholdData *de = NULL;
     de = DetectThresholdParse("count 10, track by_dst, seconds 60, type both");
     if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
-        DetectThresholdFree(de);
+        DetectThresholdFree(NULL, de);
         return 1;
     }
 
@@ -396,7 +396,7 @@ static int ThresholdTestParse06(void)
     FAIL_IF_NOT(de->track == TRACK_BOTH);
     FAIL_IF_NOT(de->count == 10);
     FAIL_IF_NOT(de->seconds == 60);
-    DetectThresholdFree(de);
+    DetectThresholdFree(NULL, de);
     PASS;
 }
 
@@ -415,7 +415,7 @@ static int ThresholdTestParse07(void)
     FAIL_IF_NOT(de->track == TRACK_RULE);
     FAIL_IF_NOT(de->count == 10);
     FAIL_IF_NOT(de->seconds == 60);
-    DetectThresholdFree(de);
+    DetectThresholdFree(NULL, de);
     PASS;
 }
 

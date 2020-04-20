@@ -45,7 +45,7 @@ static DetectParseRegex parse_regex;
 static int DetectTtlMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectTtlSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectTtlFree (void *);
+void DetectTtlFree (DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 void DetectTtlRegisterTests (void);
 #endif
@@ -267,7 +267,7 @@ static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, const char *tt
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectTtlFree(ttld);
+        DetectTtlFree(de_ctx, ttld);
         return -1;
     }
 
@@ -284,7 +284,7 @@ static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, const char *tt
  *
  * \param ptr pointer to DetectTtlData
  */
-void DetectTtlFree(void *ptr)
+void DetectTtlFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectTtlData *ttld = (DetectTtlData *)ptr;
     SCFree(ttld);

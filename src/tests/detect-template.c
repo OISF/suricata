@@ -32,7 +32,7 @@ static int DetectTemplateParseTest01 (void)
     DetectTemplateData *templated = DetectTemplateParse("1,10");
     FAIL_IF_NULL(templated);
     FAIL_IF(!(templated->arg1 == 1 && templated->arg2 == 10));
-    DetectTemplateFree(templated);
+    DetectTemplateFree(NULL, templated);
     PASS;
 }
 

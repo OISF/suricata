@@ -107,7 +107,7 @@ static int DetectPcreExec(DetectEngineThreadCtx *det_ctx, DetectParseRegex *rege
 }
 
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectPcreFree(void *);
+static void DetectPcreFree(DetectEngineCtx *, void *);
 static void DetectPcreRegisterTests(void);
 
 void DetectPcreRegister (void)
@@ -689,7 +689,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     return pd;
 
 error:
-    DetectPcreFree(pd);
+    DetectPcreFree(de_ctx, pd);
     return NULL;
 }
 
@@ -923,7 +923,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
 
     uint8_t x;
     for (x = 0; x < pd->idx; x++) {
-        if (DetectFlowvarPostMatchSetup(s, pd->capids[x]) < 0)
+        if (DetectFlowvarPostMatchSetup(de_ctx, s, pd->capids[x]) < 0)
             goto error_nofree;
     }
 
@@ -953,12 +953,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     ret = 0;
     SCReturnInt(ret);
  error:
-    DetectPcreFree(pd);
+    DetectPcreFree(de_ctx, pd);
  error_nofree:
     SCReturnInt(ret);
 }
 
-static void DetectPcreFree(void *ptr)
+static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr == NULL)
         return;
@@ -1053,7 +1053,7 @@ static int DetectPcreParseTest04 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(pd);
+    DetectPcreFree(NULL, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1075,7 +1075,7 @@ static int DetectPcreParseTest05 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(pd);
+    DetectPcreFree(NULL, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1097,7 +1097,7 @@ static int DetectPcreParseTest06 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(pd);
+    DetectPcreFree(NULL, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1119,7 +1119,7 @@ static int DetectPcreParseTest07 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_HTTP);
 
-    DetectPcreFree(pd);
+    DetectPcreFree(NULL, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1141,7 +1141,7 @@ static int DetectPcreParseTest08 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(pd);
+    DetectPcreFree(NULL, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1162,7 +1162,7 @@ static int DetectPcreParseTest09 (void)
     pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false, &alproto);
     FAIL_IF_NULL(pd);
 
-    DetectPcreFree(pd);
+    DetectPcreFree(NULL, pd);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -1181,7 +1181,7 @@ static int DetectPcreParseTest10(void)
     FAIL_IF_NOT(DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
     FAIL_IF_NOT(s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     s = SigAlloc();
     FAIL_IF_NULL(s);
@@ -1190,7 +1190,7 @@ static int DetectPcreParseTest10(void)
     FAIL_IF_NOT(DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
     FAIL_IF_NOT(s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
-    SigFree(s);
+    SigFree(de_ctx, s);
     DetectEngineCtxFree(de_ctx);
 
     PASS;
@@ -3509,7 +3509,7 @@ static int DetectPcreParseHttpHost(void)
 
     DetectPcreData *pd = DetectPcreParse(de_ctx, "/domain\\.com/W", &list, NULL, 0, false, &alproto);
     FAIL_IF(pd == NULL);
-    DetectPcreFree(pd);
+    DetectPcreFree(NULL, pd);
 
     list = DETECT_SM_LIST_NOTSET;
     pd = DetectPcreParse(de_ctx, "/dOmain\\.com/W", &list, NULL, 0, false, &alproto);
@@ -3519,7 +3519,7 @@ static int DetectPcreParseHttpHost(void)
     list = DETECT_SM_LIST_NOTSET;
     pd = DetectPcreParse(de_ctx, "/domain\\D+\\.com/W", &list, NULL, 0, false, &alproto);
     FAIL_IF(pd == NULL);
-    DetectPcreFree(pd);
+    DetectPcreFree(NULL, pd);
 
     /* This should not parse as the first \ escapes the second \, then
      * we have a D. */

@@ -51,7 +51,7 @@ static int DetectTosSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectTosMatch(DetectEngineThreadCtx *, Packet *,
                           const Signature *, const SigMatchCtx *);
 static void DetectTosRegisterTests(void);
-static void DetectTosFree(void *);
+static void DetectTosFree(DetectEngineCtx *, void *);
 
 #define DETECT_IPTOS_MIN 0
 #define DETECT_IPTOS_MAX 255
@@ -177,7 +177,7 @@ static int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectTosFree(tosd);
+        DetectTosFree(de_ctx, tosd);
         return -1;
     }
 
@@ -194,7 +194,7 @@ static int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg
  *
  * \param tosd Data to be freed.
  */
-static void DetectTosFree(void *tosd)
+static void DetectTosFree(DetectEngineCtx *de_ctx, void *tosd)
 {
     SCFree(tosd);
 }
@@ -208,7 +208,7 @@ static int DetectTosTest01(void)
     DetectTosData *tosd = NULL;
     tosd = DetectTosParse("12", false);
     if (tosd != NULL && tosd->tos == 12 && !tosd->negated) {
-        DetectTosFree(tosd);
+        DetectTosFree(NULL, tosd);
         return 1;
     }
 
@@ -220,7 +220,7 @@ static int DetectTosTest02(void)
     DetectTosData *tosd = NULL;
     tosd = DetectTosParse("123", false);
     if (tosd != NULL && tosd->tos == 123 && !tosd->negated) {
-        DetectTosFree(tosd);
+        DetectTosFree(NULL, tosd);
         return 1;
     }
 
@@ -232,7 +232,7 @@ static int DetectTosTest04(void)
     DetectTosData *tosd = NULL;
     tosd = DetectTosParse("256", false);
     if (tosd != NULL) {
-        DetectTosFree(tosd);
+        DetectTosFree(NULL, tosd);
         return 0;
     }
 
@@ -244,7 +244,7 @@ static int DetectTosTest05(void)
     DetectTosData *tosd = NULL;
     tosd = DetectTosParse("boom", false);
     if (tosd != NULL) {
-        DetectTosFree(tosd);
+        DetectTosFree(NULL, tosd);
         return 0;
     }
 
@@ -256,7 +256,7 @@ static int DetectTosTest06(void)
     DetectTosData *tosd = NULL;
     tosd = DetectTosParse("x12", false);
     if (tosd != NULL && tosd->tos == 0x12 && !tosd->negated) {
-        DetectTosFree(tosd);
+        DetectTosFree(NULL, tosd);
         return 1;
     }
 
@@ -268,7 +268,7 @@ static int DetectTosTest07(void)
     DetectTosData *tosd = NULL;
     tosd = DetectTosParse("X12", false);
     if (tosd != NULL && tosd->tos == 0x12 && !tosd->negated) {
-        DetectTosFree(tosd);
+        DetectTosFree(NULL, tosd);
         return 1;
     }
 
@@ -280,7 +280,7 @@ static int DetectTosTest08(void)
     DetectTosData *tosd = NULL;
     tosd = DetectTosParse("x121", false);
     if (tosd != NULL) {
-        DetectTosFree(tosd);
+        DetectTosFree(NULL, tosd);
         return 0;
     }
 
@@ -292,7 +292,7 @@ static int DetectTosTest09(void)
     DetectTosData *tosd = NULL;
     tosd = DetectTosParse("12", true);
     if (tosd != NULL && tosd->tos == 12 && tosd->negated) {
-        DetectTosFree(tosd);
+        DetectTosFree(NULL, tosd);
         return 1;
     }
 
@@ -304,7 +304,7 @@ static int DetectTosTest10(void)
     DetectTosData *tosd = NULL;
     tosd = DetectTosParse("x12", true);
     if (tosd != NULL && tosd->tos == 0x12 && tosd->negated) {
-        DetectTosFree(tosd);
+        DetectTosFree(NULL, tosd);
         return 1;
     }
 

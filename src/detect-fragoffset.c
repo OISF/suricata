@@ -47,7 +47,7 @@ static int DetectFragOffsetMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectFragOffsetRegisterTests(void);
-void DetectFragOffsetFree(void *);
+void DetectFragOffsetFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupFragOffset(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterFragOffsetIsPrefilterable(const Signature *s);
@@ -130,12 +130,13 @@ static int DetectFragOffsetMatch (DetectEngineThreadCtx *det_ctx,
 /**
  * \brief This function is used to parse fragoffset option passed via fragoffset: keyword
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param fragoffsetstr Pointer to the user provided fragoffset options
  *
  * \retval fragoff pointer to DetectFragOffsetData on success
  * \retval NULL on failure
  */
-static DetectFragOffsetData *DetectFragOffsetParse (const char *fragoffsetstr)
+static DetectFragOffsetData *DetectFragOffsetParse (DetectEngineCtx *de_ctx, const char *fragoffsetstr)
 {
     DetectFragOffsetData *fragoff = NULL;
     char *substr[3] = {NULL, NULL, NULL};
@@ -200,7 +201,7 @@ error:
     for (i = 0; i < 3; i++) {
         if (substr[i] != NULL) SCFree(substr[i]);
     }
-    if (fragoff != NULL) DetectFragOffsetFree(fragoff);
+    if (fragoff != NULL) DetectFragOffsetFree(de_ctx, fragoff);
     return NULL;
 
 }
@@ -220,7 +221,7 @@ static int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     DetectFragOffsetData *fragoff = NULL;
     SigMatch *sm = NULL;
 
-    fragoff = DetectFragOffsetParse(fragoffsetstr);
+    fragoff = DetectFragOffsetParse(de_ctx, fragoffsetstr);
     if (fragoff == NULL) goto error;
 
     sm = SigMatchAlloc();
@@ -235,7 +236,7 @@ static int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     return 0;
 
 error:
-    if (fragoff != NULL) DetectFragOffsetFree(fragoff);
+    if (fragoff != NULL) DetectFragOffsetFree(de_ctx, fragoff);
     if (sm != NULL) SCFree(sm);
     return -1;
 
@@ -246,7 +247,7 @@ error:
  *
  * \param ptr pointer to DetectFragOffsetData
  */
-void DetectFragOffsetFree (void *ptr)
+void DetectFragOffsetFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectFragOffsetData *fragoff = (DetectFragOffsetData *)ptr;
     SCFree(fragoff);
@@ -330,9 +331,9 @@ static bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
 static int DetectFragOffsetParseTest01 (void)
 {
     DetectFragOffsetData *fragoff = NULL;
-    fragoff = DetectFragOffsetParse("300");
+    fragoff = DetectFragOffsetParse(NULL, "300");
     if (fragoff != NULL && fragoff->frag_off == 300) {
-        DetectFragOffsetFree(fragoff);
+        DetectFragOffsetFree(NULL, fragoff);
         return 1;
     }
     return 0;
@@ -345,9 +346,9 @@ static int DetectFragOffsetParseTest01 (void)
 static int DetectFragOffsetParseTest02 (void)
 {
     DetectFragOffsetData *fragoff = NULL;
-    fragoff = DetectFragOffsetParse(">300");
+    fragoff = DetectFragOffsetParse(NULL, ">300");
     if (fragoff != NULL && fragoff->frag_off == 300 && fragoff->mode == FRAG_MORE) {
-        DetectFragOffsetFree(fragoff);
+        DetectFragOffsetFree(NULL, fragoff);
         return 1;
     }
     return 0;
@@ -359,9 +360,9 @@ static int DetectFragOffsetParseTest02 (void)
 static int DetectFragOffsetParseTest03 (void)
 {
     DetectFragOffsetData *fragoff = NULL;
-    fragoff = DetectFragOffsetParse("badc");
+    fragoff = DetectFragOffsetParse(NULL, "badc");
     if (fragoff != NULL) {
-        DetectFragOffsetFree(fragoff);
+        DetectFragOffsetFree(NULL, fragoff);
         return 0;
     }
     return 1;

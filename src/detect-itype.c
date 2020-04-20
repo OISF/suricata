@@ -49,7 +49,7 @@ static int DetectITypeMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectITypeSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectITypeRegisterTests(void);
-void DetectITypeFree(void *);
+void DetectITypeFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupIType(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterITypeIsPrefilterable(const Signature *s);
@@ -138,12 +138,13 @@ static int DetectITypeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 /**
  * \brief This function is used to parse itype options passed via itype: keyword
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param itypestr Pointer to the user provided itype options
  *
  * \retval itd pointer to DetectITypeData on success
  * \retval NULL on failure
  */
-static DetectITypeData *DetectITypeParse(const char *itypestr)
+static DetectITypeData *DetectITypeParse(DetectEngineCtx *de_ctx, const char *itypestr)
 {
     DetectITypeData *itd = NULL;
     char *args[3] = {NULL, NULL, NULL};
@@ -232,7 +233,7 @@ error:
             SCFree(args[i]);
     }
     if (itd != NULL)
-        DetectITypeFree(itd);
+        DetectITypeFree(de_ctx, itd);
     return NULL;
 }
 
@@ -252,7 +253,7 @@ static int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     DetectITypeData *itd = NULL;
     SigMatch *sm = NULL;
 
-    itd = DetectITypeParse(itypestr);
+    itd = DetectITypeParse(de_ctx, itypestr);
     if (itd == NULL) goto error;
 
     sm = SigMatchAlloc();
@@ -267,7 +268,7 @@ static int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     return 0;
 
 error:
-    if (itd != NULL) DetectITypeFree(itd);
+    if (itd != NULL) DetectITypeFree(de_ctx, itd);
     if (sm != NULL) SCFree(sm);
     return -1;
 }
@@ -277,7 +278,7 @@ error:
  *
  * \param ptr pointer to DetectITypeData
  */
-void DetectITypeFree(void *ptr)
+void DetectITypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectITypeData *itd = (DetectITypeData *)ptr;
     SCFree(itd);
@@ -365,11 +366,11 @@ static int DetectITypeParseTest01(void)
 {
     DetectITypeData *itd = NULL;
     int result = 0;
-    itd = DetectITypeParse("8");
+    itd = DetectITypeParse(NULL, "8");
     if (itd != NULL) {
         if (itd->type1 == 8 && itd->mode == DETECT_ITYPE_EQ)
             result = 1;
-        DetectITypeFree(itd);
+        DetectITypeFree(NULL, itd);
     }
     return result;
 }
@@ -382,11 +383,11 @@ static int DetectITypeParseTest02(void)
 {
 DetectITypeData *itd = NULL;
     int result = 0;
-    itd = DetectITypeParse(">8");
+    itd = DetectITypeParse(NULL, ">8");
     if (itd != NULL) {
         if (itd->type1 == 8 && itd->mode == DETECT_ITYPE_GT)
             result = 1;
-        DetectITypeFree(itd);
+        DetectITypeFree(NULL, itd);
     }
     return result;
 }
@@ -399,11 +400,11 @@ static int DetectITypeParseTest03(void)
 {
     DetectITypeData *itd = NULL;
     int result = 0;
-    itd = DetectITypeParse("<8");
+    itd = DetectITypeParse(NULL, "<8");
     if (itd != NULL) {
         if (itd->type1 == 8 && itd->mode == DETECT_ITYPE_LT)
             result = 1;
-        DetectITypeFree(itd);
+        DetectITypeFree(NULL, itd);
     }
     return result;
 }
@@ -416,11 +417,11 @@ static int DetectITypeParseTest04(void)
 {
 DetectITypeData *itd = NULL;
     int result = 0;
-    itd = DetectITypeParse("8<>20");
+    itd = DetectITypeParse(NULL, "8<>20");
     if (itd != NULL) {
         if (itd->type1 == 8 && itd->type2 == 20 && itd->mode == DETECT_ITYPE_RN)
             result = 1;
-        DetectITypeFree(itd);
+        DetectITypeFree(NULL, itd);
     }
     return result;
 }
@@ -433,11 +434,11 @@ static int DetectITypeParseTest05(void)
 {
 DetectITypeData *itd = NULL;
     int result = 0;
-    itd = DetectITypeParse("   8 ");
+    itd = DetectITypeParse(NULL, "   8 ");
     if (itd != NULL) {
         if (itd->type1 == 8 && itd->mode == DETECT_ITYPE_EQ)
             result = 1;
-        DetectITypeFree(itd);
+        DetectITypeFree(NULL, itd);
     }
     return result;
 }
@@ -450,11 +451,11 @@ static int DetectITypeParseTest06(void)
 {
 DetectITypeData *itd = NULL;
     int result = 0;
-    itd = DetectITypeParse("  >  8  ");
+    itd = DetectITypeParse(NULL, "  >  8  ");
     if (itd != NULL) {
         if (itd->type1 == 8 && itd->mode == DETECT_ITYPE_GT)
             result = 1;
-        DetectITypeFree(itd);
+        DetectITypeFree(NULL, itd);
     }
     return result;
 }
@@ -467,11 +468,11 @@ static int DetectITypeParseTest07(void)
 {
 DetectITypeData *itd = NULL;
     int result = 0;
-    itd = DetectITypeParse("  8  <> 20  ");
+    itd = DetectITypeParse(NULL, "  8  <> 20  ");
     if (itd != NULL) {
         if (itd->type1 == 8 && itd->type2 == 20 && itd->mode == DETECT_ITYPE_RN)
             result = 1;
-        DetectITypeFree(itd);
+        DetectITypeFree(NULL, itd);
     }
     return result;
 }
@@ -482,10 +483,10 @@ DetectITypeData *itd = NULL;
 static int DetectITypeParseTest08(void)
 {
     DetectITypeData *itd = NULL;
-    itd = DetectITypeParse("> 8 <> 20");
+    itd = DetectITypeParse(NULL, "> 8 <> 20");
     if (itd == NULL)
         return 1;
-    DetectITypeFree(itd);
+    DetectITypeFree(NULL, itd);
     return 0;
 }
 

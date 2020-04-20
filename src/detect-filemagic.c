@@ -82,7 +82,7 @@ static int DetectFilemagicMatch (DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFilemagicSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFilemagicRegisterTests(void);
-static void DetectFilemagicFree(void *);
+static void DetectFilemagicFree(DetectEngineCtx *, void *);
 static int g_file_match_list_id = 0;
 
 static int DetectFilemagicSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
@@ -283,12 +283,13 @@ static int DetectFilemagicMatch (DetectEngineThreadCtx *det_ctx,
 /**
  * \brief Parse the filemagic keyword
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param idstr Pointer to the user provided option
  *
  * \retval filemagic pointer to DetectFilemagicData on success
  * \retval NULL on failure
  */
-static DetectFilemagicData *DetectFilemagicParse (const char *str, bool negate)
+static DetectFilemagicData *DetectFilemagicParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
 {
     DetectFilemagicData *filemagic = NULL;
 
@@ -333,7 +334,7 @@ static DetectFilemagicData *DetectFilemagicParse (const char *str, bool negate)
 
 error:
     if (filemagic != NULL)
-        DetectFilemagicFree(filemagic);
+        DetectFilemagicFree(de_ctx, filemagic);
     return NULL;
 }
 
@@ -411,7 +412,7 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
 {
     SigMatch *sm = NULL;
 
-    DetectFilemagicData *filemagic = DetectFilemagicParse(str, s->init_data->negated);
+    DetectFilemagicData *filemagic = DetectFilemagicParse(de_ctx, str, s->init_data->negated);
     if (filemagic == NULL)
         return -1;
 
@@ -438,7 +439,7 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     return 0;
 
 error:
-    DetectFilemagicFree(filemagic);
+    DetectFilemagicFree(de_ctx, filemagic);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -449,7 +450,7 @@ error:
  *
  * \param filemagic pointer to DetectFilemagicData
  */
-static void DetectFilemagicFree(void *ptr)
+static void DetectFilemagicFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr != NULL) {
         DetectFilemagicData *filemagic = (DetectFilemagicData *)ptr;
@@ -644,9 +645,9 @@ static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx,
  */
 static int DetectFilemagicTestParse01 (void)
 {
-    DetectFilemagicData *dnd = DetectFilemagicParse("secret.pdf", false);
+    DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "secret.pdf", false);
     if (dnd != NULL) {
-        DetectFilemagicFree(dnd);
+        DetectFilemagicFree(NULL, dnd);
         return 1;
     }
     return 0;
@@ -659,13 +660,13 @@ static int DetectFilemagicTestParse02 (void)
 {
     int result = 0;
 
-    DetectFilemagicData *dnd = DetectFilemagicParse("backup.tar.gz", false);
+    DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "backup.tar.gz", false);
     if (dnd != NULL) {
         if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
             result = 1;
         }
 
-        DetectFilemagicFree(dnd);
+        DetectFilemagicFree(NULL, dnd);
         return result;
     }
     return 0;
@@ -678,13 +679,13 @@ static int DetectFilemagicTestParse03 (void)
 {
     int result = 0;
 
-    DetectFilemagicData *dnd = DetectFilemagicParse("cmd.exe", false);
+    DetectFilemagicData *dnd = DetectFilemagicParse(NULL, "cmd.exe", false);
     if (dnd != NULL) {
         if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
             result = 1;
         }
 
-        DetectFilemagicFree(dnd);
+        DetectFilemagicFree(NULL, dnd);
         return result;
     }
     return 0;

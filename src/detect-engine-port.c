@@ -1222,6 +1222,7 @@ int DetectPortTestConfVars(void)
 /**
  * \brief Function for parsing port strings
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param head Pointer to the head of the DetectPort group list
  * \param str Pointer to the port string
  *

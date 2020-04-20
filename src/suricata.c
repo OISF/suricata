@@ -336,6 +336,7 @@ static void GlobalsDestroy(SCInstance *suri)
     }
     DetectEnginePruneFreeList();
 
+    // XXX Prefer to have de_ctx available here
     AppLayerDeSetup();
     DatasetsSave();
     DatasetsDestroy();

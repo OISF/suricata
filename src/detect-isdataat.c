@@ -56,7 +56,7 @@ static DetectParseRegex parse_regex;
 
 int DetectIsdataatSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectIsdataatRegisterTests(void);
-void DetectIsdataatFree(void *);
+void DetectIsdataatFree(DetectEngineCtx *, void *);
 
 static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr);
 
@@ -86,12 +86,13 @@ void DetectIsdataatRegister(void)
 /**
  * \brief This function is used to parse isdataat options passed via isdataat: keyword
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param isdataatstr Pointer to the user provided isdataat options
  *
  * \retval idad pointer to DetectIsdataatData on success
  * \retval NULL on failure
  */
-static DetectIsdataatData *DetectIsdataatParse (const char *isdataatstr, char **offset)
+static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const char *isdataatstr, char **offset)
 {
     DetectIsdataatData *idad = NULL;
     char *args[3] = {NULL,NULL,NULL};
@@ -186,7 +187,7 @@ error:
     }
 
     if (idad != NULL)
-        DetectIsdataatFree(idad);
+        DetectIsdataatFree(de_ctx, idad);
     return NULL;
 
 }
@@ -209,7 +210,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
     char *offset = NULL;
     int ret = -1;
 
-    idad = DetectIsdataatParse(isdataatstr, &offset);
+    idad = DetectIsdataatParse(de_ctx, isdataatstr, &offset);
     if (idad == NULL)
         return -1;
 
@@ -257,7 +258,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         idad->dataat == 1 &&
         (idad->flags & (ISDATAAT_RELATIVE|ISDATAAT_NEGATED)) == (ISDATAAT_RELATIVE|ISDATAAT_NEGATED))
     {
-        DetectIsdataatFree(idad);
+        DetectIsdataatFree(de_ctx, idad);
         DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
         cd->flags |= DETECT_CONTENT_ENDS_WITH;
         ret = 0;
@@ -295,7 +296,7 @@ end:
     if (offset)
         SCFree(offset);
     if (ret != 0)
-        DetectIsdataatFree(idad);
+        DetectIsdataatFree(de_ctx, idad);
     return ret;
 }
 
@@ -304,7 +305,7 @@ end:
  *
  * \param idad pointer to DetectIsdataatData
  */
-void DetectIsdataatFree(void *ptr)
+void DetectIsdataatFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectIsdataatData *idad = (DetectIsdataatData *)ptr;
     SCFree(idad);
@@ -344,9 +345,9 @@ static int DetectIsdataatTestParse01 (void)
 {
     int result = 0;
     DetectIsdataatData *idad = NULL;
-    idad = DetectIsdataatParse("30 ", NULL);
+    idad = DetectIsdataatParse(NULL, "30 ", NULL);
     if (idad != NULL) {
-        DetectIsdataatFree(idad);
+        DetectIsdataatFree(NULL, idad);
         result = 1;
     }
 
@@ -361,9 +362,9 @@ static int DetectIsdataatTestParse02 (void)
 {
     int result = 0;
     DetectIsdataatData *idad = NULL;
-    idad = DetectIsdataatParse("30 , relative", NULL);
+    idad = DetectIsdataatParse(NULL, "30 , relative", NULL);
     if (idad != NULL && idad->flags & ISDATAAT_RELATIVE && !(idad->flags & ISDATAAT_RAWBYTES)) {
-        DetectIsdataatFree(idad);
+        DetectIsdataatFree(NULL, idad);
         result = 1;
     }
 
@@ -378,9 +379,9 @@ static int DetectIsdataatTestParse03 (void)
 {
     int result = 0;
     DetectIsdataatData *idad = NULL;
-    idad = DetectIsdataatParse("30,relative, rawbytes ", NULL);
+    idad = DetectIsdataatParse(NULL, "30,relative, rawbytes ", NULL);
     if (idad != NULL && idad->flags & ISDATAAT_RELATIVE && idad->flags & ISDATAAT_RAWBYTES) {
-        DetectIsdataatFree(idad);
+        DetectIsdataatFree(NULL, idad);
         result = 1;
     }
 
@@ -396,24 +397,24 @@ static int DetectIsdataatTestParse04(void)
     int result = 1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0) {
-        SigFree(s);
+        SigFree(NULL, s);
         return 0;
     }
 
     result &= (DetectIsdataatSetup(NULL, s, "30") == 0);
     result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
-    SigFree(s);
+    SigFree(NULL, s);
 
     s = SigAlloc();
     if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0) {
-        SigFree(s);
+        SigFree(NULL, s);
         return 0;
     }
     /* failure since we have no preceding content/pcre/bytejump */
     result &= (DetectIsdataatSetup(NULL, s, "30,relative") == 0);
     result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
-    SigFree(s);
+    SigFree(NULL, s);
 
     return result;
 }

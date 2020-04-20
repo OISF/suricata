@@ -292,7 +292,7 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
 
 error:
     if (filehash != NULL)
-        DetectFileHashFree(filehash);
+        DetectFileHashFree((DetectEngineCtx *) de_ctx, filehash);
     if (fp != NULL)
         fclose(fp);
     if (filename != NULL)
@@ -349,7 +349,7 @@ int DetectFileHashSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str,
 
 error:
     if (filehash != NULL)
-        DetectFileHashFree(filehash);
+        DetectFileHashFree(de_ctx, filehash);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -360,7 +360,7 @@ error:
  *
  * \param filehash pointer to DetectFileHashData
  */
-void DetectFileHashFree(void *ptr)
+void DetectFileHashFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr != NULL) {
         DetectFileHashData *filehash = (DetectFileHashData *)ptr;

@@ -76,20 +76,20 @@ static int DetectTlsSubjectMatch (DetectEngineThreadCtx *,
         const Signature *, const SigMatchCtx *);
 static int DetectTlsSubjectSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSubjectRegisterTests(void);
-static void DetectTlsSubjectFree(void *);
+static void DetectTlsSubjectFree(DetectEngineCtx *, void *);
 
 static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectTlsIssuerDNSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsIssuerDNRegisterTests(void);
-static void DetectTlsIssuerDNFree(void *);
+static void DetectTlsIssuerDNFree(DetectEngineCtx *, void *);
 
 static int DetectTlsFingerprintMatch (DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectTlsFingerprintSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectTlsFingerprintFree(void *);
+static void DetectTlsFingerprintFree(DetectEngineCtx *, void *);
 
 static int DetectTlsStoreSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectTlsStorePostMatch (DetectEngineThreadCtx *det_ctx,
@@ -223,12 +223,13 @@ static int DetectTlsSubjectMatch (DetectEngineThreadCtx *det_ctx,
 /**
  * \brief This function is used to parse IPV4 ip_id passed via keyword: "id"
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param idstr Pointer to the user provided id option
  *
  * \retval id_d pointer to DetectTlsData on success
  * \retval NULL on failure
  */
-static DetectTlsData *DetectTlsSubjectParse (const char *str, bool negate)
+static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
     int ret = 0, res = 0;
@@ -289,7 +290,7 @@ error:
     if (orig != NULL)
         SCFree(orig);
     if (tls != NULL)
-        DetectTlsSubjectFree(tls);
+        DetectTlsSubjectFree(de_ctx, tls);
     return NULL;
 
 }
@@ -313,7 +314,7 @@ static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    tls = DetectTlsSubjectParse(str, s->init_data->negated);
+    tls = DetectTlsSubjectParse(de_ctx, str, s->init_data->negated);
     if (tls == NULL)
         goto error;
 
@@ -331,7 +332,7 @@ static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 
 error:
     if (tls != NULL)
-        DetectTlsSubjectFree(tls);
+        DetectTlsSubjectFree(de_ctx, tls);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -343,7 +344,7 @@ error:
  *
  * \param id_d pointer to DetectTlsData
  */
-static void DetectTlsSubjectFree(void *ptr)
+static void DetectTlsSubjectFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectTlsData *id_d = (DetectTlsData *)ptr;
     if (ptr == NULL)
@@ -425,7 +426,7 @@ static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *det_ctx,
  * \retval id_d pointer to DetectTlsData on success
  * \retval NULL on failure
  */
-static DetectTlsData *DetectTlsIssuerDNParse(const char *str, bool negate)
+static DetectTlsData *DetectTlsIssuerDNParse(DetectEngineCtx *de_ctx, const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
     int ret = 0, res = 0;
@@ -487,7 +488,7 @@ error:
     if (orig != NULL)
         SCFree(orig);
     if (tls != NULL)
-        DetectTlsIssuerDNFree(tls);
+        DetectTlsIssuerDNFree(de_ctx, tls);
     return NULL;
 
 }
@@ -511,7 +512,7 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    tls = DetectTlsIssuerDNParse(str, s->init_data->negated);
+    tls = DetectTlsIssuerDNParse(de_ctx, str, s->init_data->negated);
     if (tls == NULL)
         goto error;
 
@@ -529,7 +530,7 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 
 error:
     if (tls != NULL)
-        DetectTlsIssuerDNFree(tls);
+        DetectTlsIssuerDNFree(de_ctx, tls);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -541,7 +542,7 @@ error:
  *
  * \param id_d pointer to DetectTlsData
  */
-static void DetectTlsIssuerDNFree(void *ptr)
+static void DetectTlsIssuerDNFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectTlsData *id_d = (DetectTlsData *)ptr;
     SCFree(id_d->issuerdn);
@@ -556,7 +557,7 @@ static void DetectTlsIssuerDNFree(void *ptr)
  * \retval pointer to DetectTlsData on success
  * \retval NULL on failure
  */
-static DetectTlsData *DetectTlsFingerprintParse (const char *str, bool negate)
+static DetectTlsData *DetectTlsFingerprintParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
     int ret = 0, res = 0;
@@ -616,7 +617,7 @@ static DetectTlsData *DetectTlsFingerprintParse (const char *str, bool negate)
 
 error:
     if (tls != NULL)
-        DetectTlsFingerprintFree(tls);
+        DetectTlsFingerprintFree(de_ctx, tls);
     return NULL;
 
 }
@@ -699,7 +700,7 @@ static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, con
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    tls = DetectTlsFingerprintParse(str, s->init_data->negated);
+    tls = DetectTlsFingerprintParse(de_ctx, str, s->init_data->negated);
     if (tls == NULL)
         goto error;
 
@@ -717,7 +718,7 @@ static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, con
 
 error:
     if (tls != NULL)
-        DetectTlsFingerprintFree(tls);
+        DetectTlsFingerprintFree(de_ctx, tls);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -729,7 +730,7 @@ error:
  *
  * \param pointer to DetectTlsData
  */
-static void DetectTlsFingerprintFree(void *ptr)
+static void DetectTlsFingerprintFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectTlsData *id_d = (DetectTlsData *)ptr;
     if (id_d->fingerprint)

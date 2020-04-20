@@ -30,7 +30,7 @@ static int SNMPValidityTestParse01 (void)
     dd = DetectSNMPVersionParse("2");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->version == 2 && dd->mode == PROCEDURE_EQ);
-    DetectSNMPVersionFree(dd);
+    DetectSNMPVersionFree(NULL, dd);
     PASS;
 }
 
@@ -46,7 +46,7 @@ static int SNMPValidityTestParse02 (void)
     dd = DetectSNMPVersionParse(">2");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->version == 2 && dd->mode == PROCEDURE_GT);
-    DetectSNMPVersionFree(dd);
+    DetectSNMPVersionFree(NULL, dd);
     PASS;
 }
 

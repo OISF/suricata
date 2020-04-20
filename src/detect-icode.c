@@ -49,7 +49,7 @@ static int DetectICodeMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectICodeSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectICodeRegisterTests(void);
-void DetectICodeFree(void *);
+void DetectICodeFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupICode(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterICodeIsPrefilterable(const Signature *s);
@@ -138,12 +138,13 @@ static int DetectICodeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 /**
  * \brief This function is used to parse icode options passed via icode: keyword
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param icodestr Pointer to the user provided icode options
  *
  * \retval icd pointer to DetectICodeData on success
  * \retval NULL on failure
  */
-static DetectICodeData *DetectICodeParse(const char *icodestr)
+static DetectICodeData *DetectICodeParse(DetectEngineCtx *de_ctx, const char *icodestr)
 {
     DetectICodeData *icd = NULL;
     char *args[3] = {NULL, NULL, NULL};
@@ -232,7 +233,7 @@ error:
             SCFree(args[i]);
     }
     if (icd != NULL)
-        DetectICodeFree(icd);
+        DetectICodeFree(de_ctx, icd);
     return NULL;
 }
 
@@ -252,7 +253,7 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     DetectICodeData *icd = NULL;
     SigMatch *sm = NULL;
 
-    icd = DetectICodeParse(icodestr);
+    icd = DetectICodeParse(NULL, icodestr);
     if (icd == NULL) goto error;
 
     sm = SigMatchAlloc();
@@ -267,7 +268,7 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     return 0;
 
 error:
-    if (icd != NULL) DetectICodeFree(icd);
+    if (icd != NULL) DetectICodeFree(de_ctx, icd);
     if (sm != NULL) SCFree(sm);
     return -1;
 }
@@ -277,7 +278,7 @@ error:
  *
  * \param ptr pointer to DetectICodeData
  */
-void DetectICodeFree(void *ptr)
+void DetectICodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectICodeData *icd = (DetectICodeData *)ptr;
     SCFree(icd);
@@ -360,11 +361,11 @@ static int DetectICodeParseTest01(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
-    icd = DetectICodeParse("8");
+    icd = DetectICodeParse(NULL, "8");
     if (icd != NULL) {
         if (icd->code1 == 8 && icd->mode == DETECT_ICODE_EQ)
             result = 1;
-        DetectICodeFree(icd);
+        DetectICodeFree(NULL, icd);
     }
     return result;
 }
@@ -377,11 +378,11 @@ static int DetectICodeParseTest02(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
-    icd = DetectICodeParse(">8");
+    icd = DetectICodeParse(NULL, ">8");
     if (icd != NULL) {
         if (icd->code1 == 8 && icd->mode == DETECT_ICODE_GT)
             result = 1;
-        DetectICodeFree(icd);
+        DetectICodeFree(NULL, icd);
     }
     return result;
 }
@@ -394,11 +395,11 @@ static int DetectICodeParseTest03(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
-    icd = DetectICodeParse("<8");
+    icd = DetectICodeParse(NULL, "<8");
     if (icd != NULL) {
         if (icd->code1 == 8 && icd->mode == DETECT_ICODE_LT)
             result = 1;
-        DetectICodeFree(icd);
+        DetectICodeFree(NULL, icd);
     }
     return result;
 }
@@ -411,11 +412,11 @@ static int DetectICodeParseTest04(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
-    icd = DetectICodeParse("8<>20");
+    icd = DetectICodeParse(NULL, "8<>20");
     if (icd != NULL) {
         if (icd->code1 == 8 && icd->code2 == 20 && icd->mode == DETECT_ICODE_RN)
             result = 1;
-        DetectICodeFree(icd);
+        DetectICodeFree(NULL, icd);
     }
     return result;
 }
@@ -428,11 +429,11 @@ static int DetectICodeParseTest05(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
-    icd = DetectICodeParse("  8 ");
+    icd = DetectICodeParse(NULL, "  8 ");
     if (icd != NULL) {
         if (icd->code1 == 8 && icd->mode == DETECT_ICODE_EQ)
             result = 1;
-        DetectICodeFree(icd);
+        DetectICodeFree(NULL, icd);
     }
     return result;
 }
@@ -445,11 +446,11 @@ static int DetectICodeParseTest06(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
-    icd = DetectICodeParse("  >  8 ");
+    icd = DetectICodeParse(NULL, "  >  8 ");
     if (icd != NULL) {
         if (icd->code1 == 8 && icd->mode == DETECT_ICODE_GT)
             result = 1;
-        DetectICodeFree(icd);
+        DetectICodeFree(NULL, icd);
     }
     return result;
 }
@@ -462,11 +463,11 @@ static int DetectICodeParseTest07(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
-    icd = DetectICodeParse("  8  <>  20 ");
+    icd = DetectICodeParse(NULL, "  8  <>  20 ");
     if (icd != NULL) {
         if (icd->code1 == 8 && icd->code2 == 20 && icd->mode == DETECT_ICODE_RN)
             result = 1;
-        DetectICodeFree(icd);
+        DetectICodeFree(NULL, icd);
     }
     return result;
 }
@@ -477,10 +478,10 @@ static int DetectICodeParseTest07(void)
 static int DetectICodeParseTest08(void)
 {
     DetectICodeData *icd = NULL;
-    icd = DetectICodeParse("> 8 <> 20");
+    icd = DetectICodeParse(NULL, "> 8 <> 20");
     if (icd == NULL)
         return 1;
-    DetectICodeFree(icd);
+    DetectICodeFree(NULL, icd);
     return 0;
 }
 

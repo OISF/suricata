@@ -247,7 +247,7 @@ SigMatch *SigMatchAlloc(void)
 /** \brief free a SigMatch
  *  \param sm SigMatch to free.
  */
-void SigMatchFree(SigMatch *sm)
+void SigMatchFree(DetectEngineCtx *de_ctx, SigMatch *sm)
 {
     if (sm == NULL)
         return;
@@ -255,7 +255,7 @@ void SigMatchFree(SigMatch *sm)
     /** free the ctx, for that we call the Free func */
     if (sm->ctx != NULL) {
         if (sigmatch_table[sm->type].Free != NULL) {
-            sigmatch_table[sm->type].Free(sm->ctx);
+            sigmatch_table[sm->type].Free(de_ctx, sm->ctx);
         }
     }
     SCFree(sm);
@@ -1246,7 +1246,7 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
         } while (ret == 1);
     }
 
-    DetectIPProtoRemoveAllSMs(s);
+    DetectIPProtoRemoveAllSMs(de_ctx, s);
 
     SCReturnInt(ret);
 }
@@ -1350,7 +1350,7 @@ static void SigRefFree (Signature *s)
     SCReturn;
 }
 
-static void SigMatchFreeArrays(Signature *s, int ctxs)
+static void SigMatchFreeArrays(DetectEngineCtx *de_ctx, Signature *s, int ctxs)
 {
     if (s != NULL) {
         int type;
@@ -1360,7 +1360,7 @@ static void SigMatchFreeArrays(Signature *s, int ctxs)
                     SigMatchData *smd = s->sm_arrays[type];
                     while(1) {
                         if (sigmatch_table[smd->type].Free != NULL) {
-                            sigmatch_table[smd->type].Free(smd->ctx);
+                            sigmatch_table[smd->type].Free(de_ctx, smd->ctx);
                         }
                         if (smd->is_last)
                             break;
@@ -1374,7 +1374,7 @@ static void SigMatchFreeArrays(Signature *s, int ctxs)
     }
 }
 
-void SigFree(Signature *s)
+void SigFree(DetectEngineCtx *de_ctx, Signature *s)
 {
     if (s == NULL)
         return;
@@ -1392,12 +1392,12 @@ void SigFree(Signature *s)
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;
-                SigMatchFree(sm);
+                SigMatchFree(de_ctx, sm);
                 sm = nsm;
             }
         }
     }
-    SigMatchFreeArrays(s, (s->init_data == NULL));
+    SigMatchFreeArrays(de_ctx, s, (s->init_data == NULL));
     if (s->init_data) {
         SCFree(s->init_data->smlists);
         SCFree(s->init_data->smlists_tail);
@@ -1434,7 +1434,7 @@ void SigFree(Signature *s)
     SigRefFree(s);
     SigMetadataFree(s);
 
-    DetectEngineAppInspectionEngineSignatureFree(s);
+    DetectEngineAppInspectionEngineSignatureFree(de_ctx, s);
 
     SCFree(s);
 }
@@ -1906,7 +1906,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
             AppLayerProtoDetectSupportedIpprotos(sig->alproto, sig->proto.proto);
     }
 
-    ret = DetectAppLayerEventPrepare(sig);
+    ret = DetectAppLayerEventPrepare(de_ctx, sig);
     if (ret == -3) {
         de_ctx->sigerror_silent = true;
         de_ctx->sigerror_ok = true;
@@ -1973,7 +1973,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
 
 error:
     if (sig != NULL) {
-        SigFree(sig);
+        SigFree(de_ctx, sig);
     }
     return NULL;
 }
@@ -2051,7 +2051,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
 
 error:
     if (sig != NULL) {
-        SigFree(sig);
+        SigFree(de_ctx, sig);
     }
     /* if something failed, restore the old signum count
      * since we didn't install it */
@@ -2236,7 +2236,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         if (sw_dup->s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
             sw_temp.s = sw_dup->s->next->next;
             de_ctx->sig_list = sw_dup->s->next->next;
-            SigFree(sw_dup->s->next);
+            SigFree(de_ctx, sw_dup->s->next);
         } else {
             sw_temp.s = sw_dup->s->next;
             de_ctx->sig_list = sw_dup->s->next;
@@ -2247,14 +2247,14 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
                                           (void *)&sw_temp, 0);
             sw_next->s_prev = sw_dup->s_prev;
         }
-        SigFree(sw_dup->s);
+        SigFree(de_ctx, sw_dup->s);
     } else {
         SigDuplWrapper sw_temp;
         memset(&sw_temp, 0, sizeof(SigDuplWrapper));
         if (sw_dup->s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
             sw_temp.s = sw_dup->s->next->next;
             sw_dup->s_prev->next = sw_dup->s->next->next;
-            SigFree(sw_dup->s->next);
+            SigFree(de_ctx, sw_dup->s->next);
         } else {
             sw_temp.s = sw_dup->s->next;
             sw_dup->s_prev->next = sw_dup->s->next;
@@ -2265,7 +2265,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
                                           (void *)&sw_temp, 0);
             sw_next->s_prev = sw_dup->s_prev;;
         }
-        SigFree(sw_dup->s);
+        SigFree(de_ctx, sw_dup->s);
     }
 
     /* make changes to the entry to reflect the presence of the new sig */
@@ -2356,11 +2356,11 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, const char *sigstr)
 error:
     /* free the 2nd sig bidir may have set up */
     if (sig != NULL && sig->next != NULL) {
-        SigFree(sig->next);
+        SigFree(de_ctx, sig->next);
         sig->next = NULL;
     }
     if (sig != NULL) {
-        SigFree(sig);
+        SigFree(de_ctx, sig);
     }
     return NULL;
 }
@@ -2469,7 +2469,7 @@ static int SigParseTest01 (void)
         result = 0;
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2507,7 +2507,7 @@ end:
     if (port != NULL)
         DetectPortCleanupList(de_ctx, port);
     if (sig != NULL)
-        SigFree(sig);
+        SigFree(de_ctx, sig);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -2532,7 +2532,7 @@ static int SigParseTest03 (void)
     }
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2551,7 +2551,7 @@ static int SigParseTest04 (void)
         result = 0;
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2574,7 +2574,7 @@ static int SigParseTest05 (void)
     }
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2598,7 +2598,7 @@ static int SigParseTest06 (void)
 
 end:
     if (sig != NULL)
-        SigFree(sig);
+        SigFree(de_ctx, sig);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -3102,7 +3102,7 @@ static int SigParseBidirecTest06 (void)
         result = 1;
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -3122,7 +3122,7 @@ static int SigParseBidirecTest07 (void)
         result = 1;
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -3142,7 +3142,7 @@ static int SigParseBidirecTest08 (void)
         result = 1;
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -3162,7 +3162,7 @@ static int SigParseBidirecTest09 (void)
         result = 1;
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -3182,7 +3182,7 @@ static int SigParseBidirecTest10 (void)
         result = 1;
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -3202,7 +3202,7 @@ static int SigParseBidirecTest11 (void)
         result = 1;
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -3222,7 +3222,7 @@ static int SigParseBidirecTest12 (void)
         result = 1;
 
 end:
-    if (sig != NULL) SigFree(sig);
+    if (sig != NULL) SigFree(de_ctx, sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -3626,7 +3626,7 @@ static int SigParseTestNegation01 (void)
 
     s = SigInit(de_ctx,"alert tcp !any any -> any any (msg:\"SigTest41-01 src address is !any \"; classtype:misc-activity; sid:410001; rev:1;)");
     if (s != NULL) {
-        SigFree(s);
+        SigFree(de_ctx, s);
         goto end;
     }
 
@@ -3652,7 +3652,7 @@ static int SigParseTestNegation02 (void)
 
     s = SigInit(de_ctx,"alert tcp any !any -> any any (msg:\"SigTest41-02 src ip is !any \"; classtype:misc-activity; sid:410002; rev:1;)");
     if (s != NULL) {
-        SigFree(s);
+        SigFree(de_ctx, s);
         goto end;
     }
 
@@ -3678,7 +3678,7 @@ static int SigParseTestNegation03 (void)
 
     s = SigInit(de_ctx,"alert tcp any any -> any [80:!80] (msg:\"SigTest41-03 dst port [80:!80] \"; classtype:misc-activity; sid:410003; rev:1;)");
     if (s != NULL) {
-        SigFree(s);
+        SigFree(de_ctx, s);
         goto end;
     }
 
@@ -3704,7 +3704,7 @@ static int SigParseTestNegation04 (void)
 
     s = SigInit(de_ctx,"alert tcp any any -> any [80,!80] (msg:\"SigTest41-03 dst port [80:!80] \"; classtype:misc-activity; sid:410003; rev:1;)");
     if (s != NULL) {
-        SigFree(s);
+        SigFree(de_ctx, s);
         goto end;
     }
 
@@ -3730,7 +3730,7 @@ static int SigParseTestNegation05 (void)
 
     s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.2,!192.168.0.2] any (msg:\"SigTest41-04 dst ip [192.168.0.2,!192.168.0.2] \"; classtype:misc-activity; sid:410004; rev:1;)");
     if (s != NULL) {
-        SigFree(s);
+        SigFree(de_ctx, s);
         goto end;
     }
 
@@ -3756,7 +3756,7 @@ static int SigParseTestNegation06 (void)
 
     s = SigInit(de_ctx,"alert tcp any any -> any [100:1000,!1:20000] (msg:\"SigTest41-05 dst port [100:1000,!1:20000] \"; classtype:misc-activity; sid:410005; rev:1;)");
     if (s != NULL) {
-        SigFree(s);
+        SigFree(de_ctx, s);
         goto end;
     }
 
@@ -3783,7 +3783,7 @@ static int SigParseTestNegation07 (void)
 
     s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.2,!192.168.0.0/24] any (msg:\"SigTest41-06 dst ip [192.168.0.2,!192.168.0.0/24] \"; classtype:misc-activity; sid:410006; rev:1;)");
     if (s != NULL) {
-        SigFree(s);
+        SigFree(de_ctx, s);
         goto end;
     }
 
@@ -3846,7 +3846,7 @@ static int SigParseTestMpm01 (void)
     result = 1;
 end:
     if (sig != NULL)
-        SigFree(sig);
+        SigFree(de_ctx, sig);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -3877,7 +3877,7 @@ static int SigParseTestMpm02 (void)
     result = 1;
 end:
     if (sig != NULL)
-        SigFree(sig);
+        SigFree(de_ctx, sig);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -3910,7 +3910,7 @@ static int SigParseTestAppLayerTLS01(void)
     result = 1;
 end:
     if (s != NULL)
-        SigFree(s);
+        SigFree(de_ctx, s);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -3945,7 +3945,7 @@ static int SigParseTestAppLayerTLS02(void)
     result = 1;
 end:
     if (s != NULL)
-        SigFree(s);
+        SigFree(de_ctx, s);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -3967,7 +3967,7 @@ static int SigParseTestAppLayerTLS03(void)
 
     s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS03 \"; tls.version:2.5; sid:410006; rev:1;)");
     if (s != NULL) {
-        SigFree(s);
+        SigFree(de_ctx, s);
         goto end;
     }
 
@@ -4035,7 +4035,7 @@ static int SigParseBidirWithSameSrcAndDest01(void)
     FAIL_IF_NOT_NULL(s->next);
     FAIL_IF(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     s = SigInit(de_ctx,
             "alert tcp any [80, 81] <> any [81, 80] (sid:1; rev:1;)");
@@ -4043,7 +4043,7 @@ static int SigParseBidirWithSameSrcAndDest01(void)
     FAIL_IF_NOT_NULL(s->next);
     FAIL_IF(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     s = SigInit(de_ctx,
             "alert tcp [1.2.3.4, 5.6.7.8] [80, 81] <> [5.6.7.8, 1.2.3.4] [81, 80] (sid:1; rev:1;)");
@@ -4051,7 +4051,7 @@ static int SigParseBidirWithSameSrcAndDest01(void)
     FAIL_IF_NOT_NULL(s->next);
     FAIL_IF(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     PASS;
 }
@@ -4069,7 +4069,7 @@ static int SigParseBidirWithSameSrcAndDest02(void)
     FAIL_IF_NULL(s->next);
     FAIL_IF_NOT(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     // Source is a subset of destinationn
     s = SigInit(de_ctx,
@@ -4078,7 +4078,7 @@ static int SigParseBidirWithSameSrcAndDest02(void)
     FAIL_IF_NULL(s->next);
     FAIL_IF_NOT(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     // Source intersects with destination
     s = SigInit(de_ctx,
@@ -4087,7 +4087,7 @@ static int SigParseBidirWithSameSrcAndDest02(void)
     FAIL_IF_NULL(s->next);
     FAIL_IF_NOT(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
 
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     PASS;
 }

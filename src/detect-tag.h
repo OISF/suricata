@@ -97,8 +97,9 @@ typedef struct DetectTagDataEntry_ {
 #define TAG_ENTRY_FLAG_SKIPPED_FIRST    0x04
 
 /* prototypes */
+typedef struct DetectEngineCtx_ DetectEngineCtx;
 void DetectTagRegister(void);
-void DetectTagDataFree(void *ptr);
+void DetectTagDataFree(DetectEngineCtx *, void *ptr);
 void DetectTagDataListFree(void *ptr);
 
 #endif /* __DETECT_TAG_H__ */

@@ -1189,7 +1189,7 @@ typedef struct SigTableElmt_ {
     bool (*SupportsPrefilter)(const Signature *s);
     int (*SetupPrefilter)(DetectEngineCtx *de_ctx, struct SigGroupHead_ *sgh);
 
-    void (*Free)(void *);
+    void (*Free)(DetectEngineCtx *, void *);
     void (*RegisterTests)(void);
 
     uint16_t flags;
@@ -1458,7 +1458,7 @@ Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);
 void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *,
                                        Packet *, SignatureMask,
                                        uint16_t);
-void SigMatchFree(SigMatch *sm);
+void SigMatchFree(DetectEngineCtx *, SigMatch *sm);
 
 void SigRegisterTests(void);
 void TmModuleDetectRegister (void);

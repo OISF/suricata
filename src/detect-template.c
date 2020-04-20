@@ -41,7 +41,7 @@ static DetectParseRegex parse_regex;
 static int DetectTemplateMatch (DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTemplateSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectTemplateFree (void *);
+static void DetectTemplateFree (DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectTemplateRegisterTests (void);
 #endif
@@ -179,7 +179,7 @@ static int DetectTemplateSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectTemplateFree(templated);
+        DetectTemplateFree(de_ctx, templated);
         return -1;
     }
 
@@ -197,7 +197,7 @@ static int DetectTemplateSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
  *
  * \param ptr pointer to DetectTemplateData
  */
-static void DetectTemplateFree(void *ptr)
+static void DetectTemplateFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectTemplateData *templated = (DetectTemplateData *)ptr;
 

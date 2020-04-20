@@ -70,7 +70,7 @@ static DetectParseRegex parse_regex;
 static int DetectFragBitsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectFragBitsFree(void *);
+static void DetectFragBitsFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupFragBits(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterFragBitsIsPrefilterable(const Signature *s);
@@ -308,7 +308,7 @@ error:
  *
  * \param de pointer to DetectFragBitsData
  */
-static void DetectFragBitsFree(void *de_ptr)
+static void DetectFragBitsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
     DetectFragBitsData *de = (DetectFragBitsData *)de_ptr;
     if(de) SCFree(de);
@@ -392,7 +392,7 @@ static int FragBitsTestParse01 (void)
     DetectFragBitsData *de = NULL;
     de = DetectFragBitsParse("M");
     if (de && (de->fragbits == FRAGBITS_HAVE_MF) ) {
-        DetectFragBitsFree(de);
+        DetectFragBitsFree(NULL, de);
         return 1;
     }
 
@@ -410,7 +410,7 @@ static int FragBitsTestParse02 (void)
     DetectFragBitsData *de = NULL;
     de = DetectFragBitsParse("G");
     if (de) {
-        DetectFragBitsFree(de);
+        DetectFragBitsFree(NULL, de);
         return 0;
     }
 

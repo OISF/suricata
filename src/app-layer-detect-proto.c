@@ -1395,13 +1395,13 @@ static int AppLayerProtoDetectPMPrepareMpm(AppLayerProtoDetectPMCtx *ctx)
     SCReturnInt(ret);
 }
 
-static void AppLayerProtoDetectPMFreeSignature(AppLayerProtoDetectPMSignature *sig)
+static void AppLayerProtoDetectPMFreeSignature(DetectEngineCtx *de_ctx, AppLayerProtoDetectPMSignature *sig)
 {
     SCEnter();
     if (sig == NULL)
         SCReturn;
     if (sig->cd)
-        DetectContentFree(sig->cd);
+        DetectContentFree(de_ctx, sig->cd);
     SCFree(sig);
     SCReturn;
 }
@@ -1480,7 +1480,7 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
 
     goto end;
  error:
-    DetectContentFree(cd);
+    DetectContentFree(NULL, cd);
     ret = -1;
  end:
     SCReturnInt(ret);
@@ -1619,7 +1619,7 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
     SCEnter();
 
     DetectPort *head = NULL;
-    DetectPortParse(NULL,&head, portstr);
+    DetectPortParse(NULL, &head, portstr);
     DetectPort *temp_dp = head;
     while (temp_dp != NULL) {
         uint32_t port = temp_dp->port;
@@ -1809,7 +1809,7 @@ int AppLayerProtoDetectDeSetup(void)
             mpm_table[pm_ctx->mpm_ctx.mpm_type].DestroyCtx(&pm_ctx->mpm_ctx);
             for (id = 0; id < pm_ctx->max_sig_id; id++) {
                 sig = pm_ctx->map[id];
-                AppLayerProtoDetectPMFreeSignature(sig);
+                AppLayerProtoDetectPMFreeSignature(NULL, sig);
             }
             SCFree(pm_ctx->map);
             pm_ctx->map = NULL;
