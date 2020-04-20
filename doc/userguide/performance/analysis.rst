@@ -1,10 +1,10 @@
 Performance Analysis
-=====================
+====================
 
-There are many possibilities that could be the reason for performance issues.
-In this section we will guide you through some options. The first part will
-cover basic steps and introduce some helpful tools. The second part will cover
-more in-depth explanations and corner cases.
+There are many potential causes for for performance issues. In this section we
+will guide you through some options. The first part will cover basic steps and
+introduce some helpful tools. The second part will cover more in-depth
+explanations and corner cases.
 
 System Load
 -----------
@@ -19,9 +19,9 @@ peaks due to one big elephant flow.
 .. image:: analysis/htopelephantflow.png
 
 If all cores are at peak load the system might be too slow for the traffic load
-or misconfigured. Also keep an eye on memory usage, if the actual memory usage
-is too high and the system needs to swap it will also result in low
-performance.
+or it might be misconfigured. Also keep an eye on memory usage, if the actual
+memory usage is too high and the system needs to swap it will result in very
+poor performance.
 
 The load will give you a first indication where to start with the debugging at
 specific parts we describe in more detail in the second part.
@@ -92,8 +92,8 @@ Some of the basic checks are:
 
 - Use tools like **iftop** to spot elephant flows. Flows that have a rate of
   over 1Gbit/s for a long time can result in one cpu core peak at 100% all the
-  time and increasing the droprate while it doesn't make sense to dig deep into
-  this traffic.
+  time and increasing the droprate while it might not make sense to dig deep
+  into this traffic.
 
 - Another approach to narrow down issues is the usage of **bpf filter**. For
   example filter all HTTPS traffic with **not port 443** to exclude traffic
@@ -147,7 +147,7 @@ Elephant Flows
 The so called Elephant Flows or traffic spikes are quite difficult to deal
 with. In most cases those are big file transfers or backup traffic and it's not
 feasible to decode the whole traffic. From a network security monitoring
-perspective it's enough to log the metadata of that flow and do a packet
+perspective it's often enough to log the metadata of that flow and do a packet
 inspection at the beginning but not the whole flow.
 
 If you can spot specific flows as described above then try to filter those. The
@@ -167,11 +167,11 @@ impact of enabled rules as well.
 If you run into performance issues and struggle to narrow it down start with
 running Suricata without any rules enabled and use the tools again that have
 been explained at the first part. Keep in mind that even without signatures
-enabled Suricata still does all the decoding and traffic analysis, so a fair
-amount of load should still be seen. If the load is still very high and drops
-are seen and the hardware should be capable to deal with such traffic loads you
-should deep dive if there is any specific traffic issue (see above) or report
-the performance issue so it can be investigated (see
+enabled Suricata still does most of the decoding and traffic analysis, so a
+fair amount of load should still be seen. If the load is still very high and
+drops are seen and the hardware should be capable to deal with such traffic
+loads you should deep dive if there is any specific traffic issue (see above)
+or report the performance issue so it can be investigated (see
 https://suricata-ids.org/support/).
 
 Suricata also provides several specific traffic related signatures in the rules
