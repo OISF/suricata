@@ -98,7 +98,11 @@ void SupportFastPatternForSigMatchList(int list_id, int priority)
             return;
         }
 
-        if (priority <= tmp->priority)
+        /* We need a strict check to be sure that the current list
+         * was not already registered
+         * and other lists with the same priority hide it.
+         */
+        if (priority < tmp->priority)
             break;
 
         ip = tmp;
