@@ -109,11 +109,13 @@ fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
             }
             // if the uuid has been rejected(uuidentry->result == 1), we skip to the next uuid
             if uuidentry.result != 0 {
+                SCLogDebug!("Skipping to next UUID");
                 continue;
             }
 
             for i in 0..16 {
                 if if_data.if_uuid[i] != uuidentry.uuid[i] {
+                    SCLogDebug!("Iface UUID and BINDACK Accepted UUID does not match");
                     ret = 0;
                     break;
                 }
@@ -124,12 +126,14 @@ fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
             };
             ret = ret & ((uuidentry.ctxid == ctxid) as u8);
             if ret == 0 {
+                SCLogDebug!("CTX IDs/UUIDs do not match");
                 continue;
             }
 
             if if_data.op != DETECT_DCE_IFACE_OP_NONE
                 && !match_iface_version(uuidentry.version, if_data)
             {
+                SCLogDebug!("Interface version did not match");
                 ret &= 0;
             }
 

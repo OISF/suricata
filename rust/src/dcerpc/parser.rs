@@ -254,6 +254,7 @@ do_parse!(
             stub_data_buffer: Vec::new(),
             stub_data_buffer_len: 0,
             stub_data_buffer_reset: false,
+            cmd: 0,
             }
         )
     )

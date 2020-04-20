@@ -18,23 +18,18 @@
 use crate::json::*;
 use crate::dcerpc::dcerpc::*;
 
-fn log_dcerpc_header(state: &DCERPCUDPState) -> Json
+fn log_dcerpc_header(state: &DCERPCState) -> Json
 {
     let js = Json::object();
 
     match state.request {
         Some(ref req) => {
-            match state.header {
-                Some(ref hdr) => {
-                    js.set_string("request", &dcerpc_type_string(hdr.pkt_type));
-                    let reqd = Json::object();
-                    js.set_integer("opnum", hdr.opnum as u64);
-                    reqd.set_integer("frag_cnt", hdr.fragnum as u64);
-                    reqd.set_integer("stub_data_size", req.stub_data_buffer_len as u64);
-                    js.set("req", reqd);
-                },
-                None => {}
-            }
+            js.set_string("request", &dcerpc_type_string(req.cmd));
+            let reqd = Json::object();
+            js.set_integer("opnum", req.opnum as u64);
+            reqd.set_integer("frag_cnt", 1); // TODO add frag count with transaction
+            reqd.set_integer("stub_data_size", req.stub_data_buffer_len as u64);
+            js.set("req", reqd);
         },
         None => {
             js.set_string("request", "REQUEST_LOST");
@@ -43,16 +38,11 @@ fn log_dcerpc_header(state: &DCERPCUDPState) -> Json
 
     match state.response {
         Some(ref resp) => {
-            match state.header {
-                Some(ref hdr) => {
-                    js.set_string("response", &dcerpc_type_string(hdr.pkt_type));
-                    let respd = Json::object();
-                    respd.set_integer("frag_cnt", hdr.fragnum as u64);
-                    respd.set_integer("stub_data_size", resp.stub_data_buffer_len as u64);
-                    js.set("res", respd);
-                },
-                None => {}
-            }
+            js.set_string("response", &dcerpc_type_string(resp.cmd));
+            let respd = Json::object();
+            respd.set_integer("frag_cnt", 1); // TODO add frag count with transaction
+            respd.set_integer("stub_data_size", resp.stub_data_buffer_len as u64);
+            js.set("res", respd);
         },
         None => {
             js.set_string("response", "UNREPLIED");
@@ -64,14 +54,14 @@ fn log_dcerpc_header(state: &DCERPCUDPState) -> Json
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_log_json_request(state: &mut DCERPCUDPState) -> *mut JsonT
+pub extern "C" fn rs_dcerpc_log_json_request(state: &mut DCERPCState) -> *mut JsonT
 {
     let js = log_dcerpc_header(state);
     return js.unwrap();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_log_json_response(state: &mut DCERPCUDPState) -> *mut JsonT
+pub extern "C" fn rs_dcerpc_log_json_response(state: &mut DCERPCState) -> *mut JsonT
 {
     let js = log_dcerpc_header(state);
     return js.unwrap();

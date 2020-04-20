@@ -119,6 +119,7 @@ pub struct DCERPCRequest {
     pub stub_data_buffer: Vec<u8>,
     pub stub_data_buffer_len: u16,
     pub stub_data_buffer_reset: bool,
+    pub cmd: u8,
 }
 
 impl DCERPCRequest {
@@ -130,6 +131,7 @@ impl DCERPCRequest {
             stub_data_buffer: Vec::new(),
             stub_data_buffer_len: 0,
             stub_data_buffer_reset: false,
+            cmd: DCERPC_TYPE_REQUEST,
         };
     }
 }
@@ -139,6 +141,7 @@ pub struct DCERPCResponse {
     pub stub_data_buffer: Vec<u8>,
     pub stub_data_buffer_len: u16,
     pub stub_data_buffer_reset: bool,
+    pub cmd: u8,
 }
 
 impl DCERPCResponse {
@@ -147,6 +150,7 @@ impl DCERPCResponse {
             stub_data_buffer: Vec::new(),
             stub_data_buffer_len: 0,
             stub_data_buffer_reset: false,
+            cmd: DCERPC_TYPE_RESPONSE,
         };
     }
 }
@@ -521,6 +525,7 @@ impl DCERPCState {
                                     break;
                                 }
                                 back.accepted_uuid_list.push(uuid.clone());
+                                SCLogDebug!("DCERPC BINDACK accepted UUID: {:?}", uuid);
                             }
                         }
                         uuid_internal_id += 1;
@@ -633,7 +638,11 @@ impl DCERPCState {
     pub fn process_request_pdu(&mut self, input: &[u8]) -> i32 {
         let endianness = self.get_endianness();
         match parser::parse_dcerpc_request(input, endianness) {
-            Ok((leftover_input, request)) => {
+            Ok((leftover_input, mut request)) => {
+                request.cmd = match self.get_hdr_type() {
+                    Some(x) => x,
+                    None => 0,
+                };
                 self.request = Some(request);
                 let parsed = self.handle_common_stub(
                     &input,
@@ -660,7 +669,6 @@ impl DCERPCState {
         let retval;
         let input_len = input.len();
         let mut v: Vec<u8>;
-
         // Set any query's completion status to false in the beginning
         self.query_completed = false;
         // Overwrite the dcerpc_state data in case of multiple complete queries in the
@@ -691,7 +699,7 @@ impl DCERPCState {
         };
 
         if self.data_needed_for_dir != direction && buffer.len() != 0 {
-            SCLogDebug!("FAILED  check data_needed_for_dir");
+            SCLogDebug!("DCERPC FAILED check data_needed_for_dir");
             return AppLayerResult::err();
         }
 
@@ -748,7 +756,11 @@ impl DCERPCState {
                     }
                 }
                 DCERPC_TYPE_RESPONSE => {
-                    let response = DCERPCResponse::new();
+                    let mut response = DCERPCResponse::new();
+                    response.cmd = match self.get_hdr_type() {
+                        Some(x) => x,
+                        None => 2,
+                    };
                     self.response = Some(response);
                     retval = self.handle_common_stub(
                         &buffer[parsed as usize..],
