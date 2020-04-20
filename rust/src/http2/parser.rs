@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+use nom::character::complete::digit1;
+use nom::combinator::rest;
 use nom::number::streaming::{be_u16, be_u32, be_u8};
 use std::fmt;
 use std::str::FromStr;
@@ -223,17 +225,36 @@ impl std::str::FromStr for HTTP2SettingsId {
     }
 }
 
-pub struct DetectHTTP2settingsSigCtx {
-    pub id: HTTP2SettingsId, //identifier
-                             //TODO value: Option<DetectU32Data>, //optional value
+pub struct DetectU32Data {
+    pub val1: u32,
 }
+
+pub struct DetectHTTP2settingsSigCtx {
+    pub id: HTTP2SettingsId,          //identifier
+    pub value: Option<DetectU32Data>, //optional value
+}
+
+named!(pub detect_parse_u32<&str,DetectU32Data>,
+    do_parse!(
+/* TODO modes
+        alt! (
+            tag!(">") >> map_opt!(digit1, |s: &str| s.parse::<u32>().ok())) |
+            tag!("<") >> map_opt!(digit1, |s: &str| s.parse::<u32>().ok())) |
+            map_opt!(digit1, |s: &str| s.parse::<u32>().ok())) >> tag!("-")
+        )
+*/
+        val1: map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
+        (DetectU32Data{val1})
+    )
+);
 
 named!(pub http2_parse_settingsctx<&str,DetectHTTP2settingsSigCtx>,
     do_parse!(
-        id: map_opt!( is_not!( " =<>" ),
+        id: map_opt!( alt! ( complete!( is_not!( " <>=" ) ) | rest ),
             |s: &str| HTTP2SettingsId::from_str(s).ok() ) >>
-//TODO optional value
-        (DetectHTTP2settingsSigCtx{id})
+        opt!( complete!( is_a!( " " ) ) ) >>
+        value: opt!( complete!( detect_parse_u32 ) ) >>
+        (DetectHTTP2settingsSigCtx{id, value})
     )
 );
 
@@ -259,6 +280,66 @@ mod tests {
     use nom::*;
 
     /// Simple test of some valid data.
+    #[test]
+    fn test_http2_parse_settingsctx() {
+        let s = "SETTINGS_ENABLE_PUSH";
+        let r = http2_parse_settingsctx(s);
+        match r {
+            Ok((rem, ctx)) => {
+                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSENABLEPUSH);
+                match ctx.value {
+                    Some(_) => {
+                        panic!("Unexpected value");
+                    }
+                    None => {}
+                }
+                assert_eq!(rem.len(), 0);
+            }
+            Err(e) => {
+                panic!("Result should not be an error {:?}.", e);
+            }
+        }
+
+        //spaces in the end
+        let s1 = "SETTINGS_ENABLE_PUSH ";
+        let r1 = http2_parse_settingsctx(s1);
+        match r1 {
+            Ok((rem, ctx)) => {
+                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSENABLEPUSH);
+                match ctx.value {
+                    Some(_) => {
+                        panic!("Unexpected value");
+                    }
+                    None => {}
+                }
+                assert_eq!(rem.len(), 1);
+            }
+            Err(e) => {
+                panic!("Result should not be an error {:?}.", e);
+            }
+        }
+
+        let s2 = "SETTINGS_MAX_CONCURRENT_STREAMS  42";
+        let r2 = http2_parse_settingsctx(s2);
+        match r2 {
+            Ok((rem, ctx)) => {
+                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                match ctx.value {
+                    Some(ctxval) => {
+                        assert_eq!(ctxval.val1, 42);
+                    }
+                    None => {
+                        panic!("No value");
+                    }
+                }
+                assert_eq!(rem.len(), 0);
+            }
+            Err(e) => {
+                panic!("Result should not be an error {:?}.", e);
+            }
+        }
+    }
+
     #[test]
     fn test_http2_parse_frame_header() {
         let buf: &[u8] = &[
