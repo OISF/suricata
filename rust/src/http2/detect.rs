@@ -19,6 +19,7 @@ use super::http2::{HTTP2FrameTypeData, HTTP2Transaction};
 use super::parser;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use std::ffi::CStr;
+use std::mem::transmute;
 use std::str::FromStr;
 
 #[no_mangle]
@@ -213,59 +214,59 @@ pub extern "C" fn rs_http2_parse_settingsid(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_settingsid(
-    tx: *mut std::os::raw::c_void,
-    direction: u8,
-) -> std::os::raw::c_int {
-    let tx = cast_pointer!(tx, HTTP2Transaction);
-    match direction {
-        STREAM_TOSERVER => match &tx.type_data {
-            Some(HTTP2FrameTypeData::SETTINGS(set)) => {
-                return set.id as i32;
+pub extern "C" fn rs_http2_detect_settingsctx_parse(
+    str: *const std::os::raw::c_char,
+) -> *mut std::os::raw::c_void {
+    let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
+    match ft_name.to_str() {
+        Ok(s) => match parser::http2_parse_settingsctx(s) {
+            Ok((_, ctx)) => {
+                let boxed = Box::new(ctx);
+                return unsafe { transmute(boxed) };
             }
-            _ => {
-                return -1;
-            }
-        },
-        STREAM_TOCLIENT => match &tx.type_data {
-            Some(HTTP2FrameTypeData::SETTINGS(set)) => {
-                return set.id as i32;
-            }
-            _ => {
-                return -1;
+            Err(_) => {
+                return std::ptr::null_mut();
             }
         },
-        _ => {}
+        Err(_) => {
+            return std::ptr::null_mut();
+        }
     }
-
-    return -1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_settingsvalue(
+pub extern "C" fn rs_http2_detect_settingsctx_free(ctx: *mut std::os::raw::c_void) {
+    // Just unbox...
+    let _ctx: Box<parser::DetectHTTP2settingsSigCtx> = unsafe { transmute(ctx) };
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_detect_settingsctx_match(
+    ctx: *const std::os::raw::c_void,
     tx: *mut std::os::raw::c_void,
     direction: u8,
 ) -> std::os::raw::c_int {
+    let ctx = cast_pointer!(ctx, parser::DetectHTTP2settingsSigCtx);
     let tx = cast_pointer!(tx, HTTP2Transaction);
     match direction {
         STREAM_TOSERVER => match &tx.type_data {
             Some(HTTP2FrameTypeData::SETTINGS(set)) => {
-                return set.value as i32;
+                if set.id == ctx.id {
+                    return 1;
+                }
             }
-            _ => {
-                return -1;
-            }
+            _ => {}
         },
         STREAM_TOCLIENT => match &tx.type_data {
             Some(HTTP2FrameTypeData::SETTINGS(set)) => {
-                return set.value as i32;
+                if set.id == ctx.id {
+                    return 1;
+                }
             }
-            _ => {
-                return -1;
-            }
+            _ => {}
         },
         _ => {}
     }
 
-    return -1;
+    return 0;
 }

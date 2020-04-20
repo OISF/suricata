@@ -17,6 +17,7 @@
 
 use nom::number::streaming::{be_u16, be_u32, be_u8};
 use std::fmt;
+use std::str::FromStr;
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
@@ -221,6 +222,20 @@ impl std::str::FromStr for HTTP2SettingsId {
         }
     }
 }
+
+pub struct DetectHTTP2settingsSigCtx {
+    pub id: HTTP2SettingsId, //identifier
+                             //TODO value: Option<DetectU32Data>, //optional value
+}
+
+named!(pub http2_parse_settingsctx<&str,DetectHTTP2settingsSigCtx>,
+    do_parse!(
+        id: map_opt!( is_not!( " =<>" ),
+            |s: &str| HTTP2SettingsId::from_str(s).ok() ) >>
+//TODO optional value
+        (DetectHTTP2settingsSigCtx{id})
+    )
+);
 
 #[derive(Clone, Copy)]
 pub struct HTTP2FrameSettings {
