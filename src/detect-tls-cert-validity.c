@@ -72,7 +72,7 @@ static void TlsNotAfterRegisterTests(void);
 static void TlsExpiredRegisterTests(void);
 static void TlsValidRegisterTests(void);
 #endif /* UNITTESTS */
-static void DetectTlsValidityFree(void *);
+static void DetectTlsValidityFree(DetectEngineCtx *, void *);
 static int g_tls_validity_buffer_id = 0;
 
 static int DetectEngineInspectTlsValidity(ThreadVars *tv,
@@ -465,7 +465,7 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 
 error:
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(de_ctx, dd);
     if (sm)
         SCFree(sm);
     return -1;
@@ -516,7 +516,7 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 
 error:
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(de_ctx, dd);
     if (sm)
         SCFree(sm);
     return -1;
@@ -612,7 +612,7 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 
 error:
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(de_ctx, dd);
     if (sm)
         SCFree(sm);
     return -1;
@@ -624,7 +624,7 @@ error:
  *
  * \param de_ptr Pointer to DetectTlsValidityData.
  */
-void DetectTlsValidityFree(void *de_ptr)
+void DetectTlsValidityFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
     DetectTlsValidityData *dd = (DetectTlsValidityData *)de_ptr;
     if (dd)

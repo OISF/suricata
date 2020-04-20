@@ -21,7 +21,7 @@
     DetectBsizeData *bsz = DetectBsizeParse((str));     \
     FAIL_IF_NULL(bsz);                                  \
     FAIL_IF_NOT(bsz->mode == (m));                      \
-    DetectBsizeFree(bsz);                               \
+    DetectBsizeFree(NULL, bsz);                         \
     SCLogDebug("str %s OK", (str));                     \
 }
 #define TEST_FAIL(str) {                                \

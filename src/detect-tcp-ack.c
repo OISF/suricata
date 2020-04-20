@@ -47,7 +47,7 @@ static int DetectAckSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectAckMatch(DetectEngineThreadCtx *,
                           Packet *, const Signature *, const SigMatchCtx *);
 static void DetectAckRegisterTests(void);
-static void DetectAckFree(void *);
+static void DetectAckFree(DetectEngineCtx *, void *);
 static int PrefilterSetupTcpAck(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterTcpAckIsPrefilterable(const Signature *s);
 
@@ -133,7 +133,7 @@ error:
     if (data)
         SCFree(data);
     if (sm)
-        SigMatchFree(sm);
+        SigMatchFree(de_ctx, sm);
     return -1;
 
 }
@@ -144,7 +144,7 @@ error:
  *
  * \param data pointer to ack configuration data
  */
-static void DetectAckFree(void *ptr)
+static void DetectAckFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectAckData *data = (DetectAckData *)ptr;
     SCFree(data);

@@ -152,7 +152,7 @@ void DetectPktInspectEngineRegister(const char *name,
         InspectionBufferPktInspectFunc Callback);
 
 int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s);
-void DetectEngineAppInspectionEngineSignatureFree(Signature *s);
+void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *, Signature *s);
 
 bool DetectEnginePktInspectionRun(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx, const Signature *s,

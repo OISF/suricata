@@ -46,7 +46,7 @@ static int DetectIpOptsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIpOptsSetup (DetectEngineCtx *, Signature *, const char *);
 void IpOptsRegisterTests(void);
-void DetectIpOptsFree(void *);
+void DetectIpOptsFree(DetectEngineCtx *, void *);
 
 /**
  * \brief Registration function for ipopts: keyword
@@ -202,7 +202,7 @@ error:
  *
  * \param de pointer to DetectIpOptsData
  */
-void DetectIpOptsFree(void *de_ptr)
+void DetectIpOptsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
     DetectIpOptsData *de = (DetectIpOptsData *)de_ptr;
     if(de) SCFree(de);
@@ -224,7 +224,7 @@ static int IpOptsTestParse01 (void)
     DetectIpOptsData *de = NULL;
     de = DetectIpOptsParse("lsrr");
     if (de) {
-        DetectIpOptsFree(de);
+        DetectIpOptsFree(NULL, de);
         return 1;
     }
 
@@ -242,7 +242,7 @@ static int IpOptsTestParse02 (void)
     DetectIpOptsData *de = NULL;
     de = DetectIpOptsParse("invalidopt");
     if (de) {
-        DetectIpOptsFree(de);
+        DetectIpOptsFree(NULL, de);
         return 0;
     }
 

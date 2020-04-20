@@ -38,7 +38,7 @@
 
 /*prototypes*/
 static int DetectBsizeSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectBsizeFree (void *);
+static void DetectBsizeFree (DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectBsizeRegisterTests (void);
 #endif
@@ -302,7 +302,7 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     SCReturnInt(0);
 
 error:
-    DetectBsizeFree(bsz);
+    DetectBsizeFree(de_ctx, bsz);
     SCReturnInt(-1);
 }
 
@@ -311,7 +311,7 @@ error:
  *
  * \param ptr pointer to DetectBsizeData
  */
-void DetectBsizeFree(void *ptr)
+void DetectBsizeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr == NULL)
         return;

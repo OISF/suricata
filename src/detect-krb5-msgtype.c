@@ -43,7 +43,7 @@ static int DetectKrb5MsgTypeMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
                                    const SigMatchCtx *);
 static int DetectKrb5MsgTypeSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectKrb5MsgTypeFree (void *);
+static void DetectKrb5MsgTypeFree (DetectEngineCtx *, void *);
 static void DetectKrb5MsgTypeRegisterTests (void);
 
 static int DetectEngineInspectKRB5Generic(ThreadVars *tv,
@@ -199,7 +199,7 @@ static int DetectKrb5MsgTypeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 
 error:
     if (krb5d != NULL)
-        DetectKrb5MsgTypeFree(krb5d);
+        DetectKrb5MsgTypeFree(de_ctx, krb5d);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -210,7 +210,7 @@ error:
  *
  * \param ptr pointer to DetectKrb5Data
  */
-static void DetectKrb5MsgTypeFree(void *ptr) {
+static void DetectKrb5MsgTypeFree(DetectEngineCtx *de_ctx, void *ptr) {
     DetectKrb5MsgTypeData *krb5d = (DetectKrb5MsgTypeData *)ptr;
 
     SCFree(krb5d);
@@ -227,7 +227,7 @@ static int DetectKrb5MsgTypeParseTest01 (void)
     DetectKrb5MsgTypeData *krb5d = DetectKrb5MsgTypeParse("10");
     FAIL_IF_NULL(krb5d);
     FAIL_IF(!(krb5d->msg_type == 10));
-    DetectKrb5MsgTypeFree(krb5d);
+    DetectKrb5MsgTypeFree(NULL, krb5d);
     PASS;
 }
 

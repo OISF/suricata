@@ -85,7 +85,7 @@ void DetectModbusRegisterTests(void);
  *
  * \param ptr pointer to DetectModbus
  */
-static void DetectModbusFree(void *ptr) {
+static void DetectModbusFree(DetectEngineCtx *de_ctx, void *ptr) {
     SCEnter();
     DetectModbus *modbus = (DetectModbus *) ptr;
 
@@ -110,11 +110,12 @@ static void DetectModbusFree(void *ptr) {
  *
  * \brief This function is used to parse Modbus parameters in access mode
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param str Pointer to the user provided id option
  *
  * \retval Pointer to DetectModbusData on success or NULL on failure
  */
-static DetectModbus *DetectModbusAccessParse(const char *str)
+static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char *str)
 {
     SCEnter();
     DetectModbus *modbus = NULL;
@@ -267,7 +268,7 @@ static DetectModbus *DetectModbusAccessParse(const char *str)
 
 error:
     if (modbus != NULL)
-        DetectModbusFree(modbus);
+        DetectModbusFree(de_ctx, modbus);
 
     SCReturnPtr(NULL, "DetectModbus");
 }
@@ -281,7 +282,7 @@ error:
  * \retval id_d pointer to DetectModbusData on success
  * \retval NULL on failure
  */
-static DetectModbus *DetectModbusFunctionParse(const char *str)
+static DetectModbus *DetectModbusFunctionParse(DetectEngineCtx *de_ctx, const char *str)
 {
     SCEnter();
     DetectModbus *modbus = NULL;
@@ -361,7 +362,7 @@ static DetectModbus *DetectModbusFunctionParse(const char *str)
 
 error:
     if (modbus != NULL)
-        DetectModbusFree(modbus);
+        DetectModbusFree(de_ctx, modbus);
 
     SCReturnPtr(NULL, "DetectModbus");
 }
@@ -374,7 +375,7 @@ error:
  *
  * \retval Pointer to DetectModbusUnit on success or NULL on failure
  */
-static DetectModbus *DetectModbusUnitIdParse(const char *str)
+static DetectModbus *DetectModbusUnitIdParse(DetectEngineCtx *de_ctx, const char *str)
 {
     SCEnter();
     DetectModbus *modbus = NULL;
@@ -402,8 +403,8 @@ static DetectModbus *DetectModbusUnitIdParse(const char *str)
             goto error;
         }
 
-        if ((modbus = DetectModbusFunctionParse(str_ptr)) == NULL) {
-            if ((modbus = DetectModbusAccessParse(str_ptr)) == NULL) {
+        if ((modbus = DetectModbusFunctionParse(de_ctx, str_ptr)) == NULL) {
+            if ((modbus = DetectModbusAccessParse(de_ctx, str_ptr)) == NULL) {
                 SCLogError(SC_ERR_PCRE_MATCH, "invalid modbus option");
                 goto error;
             }
@@ -449,7 +450,7 @@ static DetectModbus *DetectModbusUnitIdParse(const char *str)
 
 error:
     if (modbus != NULL)
-        DetectModbusFree(modbus);
+        DetectModbusFree(de_ctx, modbus);
 
     SCReturnPtr(NULL, "DetectModbus");
 }
@@ -474,9 +475,9 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     if (DetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0)
         return -1;
 
-    if ((modbus = DetectModbusUnitIdParse(str)) == NULL) {
-        if ((modbus = DetectModbusFunctionParse(str)) == NULL) {
-            if ((modbus = DetectModbusAccessParse(str)) == NULL) {
+    if ((modbus = DetectModbusUnitIdParse(de_ctx, str)) == NULL) {
+        if ((modbus = DetectModbusFunctionParse(de_ctx, str)) == NULL) {
+            if ((modbus = DetectModbusAccessParse(de_ctx, str)) == NULL) {
                 SCLogError(SC_ERR_PCRE_MATCH, "invalid modbus option");
                 goto error;
             }
@@ -497,7 +498,7 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 
 error:
     if (modbus != NULL)
-        DetectModbusFree(modbus);
+        DetectModbusFree(de_ctx, modbus);
     if (sm != NULL)
         SCFree(sm);
     SCReturnInt(-1);

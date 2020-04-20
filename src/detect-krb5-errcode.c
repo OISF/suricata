@@ -43,7 +43,7 @@ static int DetectKrb5ErrCodeMatch (DetectEngineThreadCtx *, Flow *,
                                    uint8_t, void *, void *, const Signature *,
                                    const SigMatchCtx *);
 static int DetectKrb5ErrCodeSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectKrb5ErrCodeFree (void *);
+static void DetectKrb5ErrCodeFree (DetectEngineCtx *, void *);
 static void DetectKrb5ErrCodeRegisterTests (void);
 
 static int DetectEngineInspectKRB5Generic(ThreadVars *tv,
@@ -202,7 +202,7 @@ static int DetectKrb5ErrCodeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 
 error:
     if (krb5d != NULL)
-        DetectKrb5ErrCodeFree(krb5d);
+        DetectKrb5ErrCodeFree(de_ctx, krb5d);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -213,7 +213,7 @@ error:
  *
  * \param ptr pointer to DetectKrb5Data
  */
-static void DetectKrb5ErrCodeFree(void *ptr) {
+static void DetectKrb5ErrCodeFree(DetectEngineCtx *de_ctx, void *ptr) {
     DetectKrb5ErrCodeData *krb5d = (DetectKrb5ErrCodeData *)ptr;
 
     SCFree(krb5d);
@@ -230,7 +230,7 @@ static int DetectKrb5ErrCodeParseTest01 (void)
     DetectKrb5ErrCodeData *krb5d = DetectKrb5ErrCodeParse("10");
     FAIL_IF_NULL(krb5d);
     FAIL_IF(!(krb5d->err_code == 10));
-    DetectKrb5ErrCodeFree(krb5d);
+    DetectKrb5ErrCodeFree(NULL, krb5d);
     PASS;
 }
 

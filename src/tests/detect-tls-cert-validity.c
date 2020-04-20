@@ -34,7 +34,7 @@ static int ValidityTestParse01 (void)
     dd = DetectTlsValidityParse("1430000000");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1430000000 && dd->mode == DETECT_TLS_VALIDITY_EQ);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -50,7 +50,7 @@ static int ValidityTestParse02 (void)
     dd = DetectTlsValidityParse(">1430000000");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1430000000 && dd->mode == DETECT_TLS_VALIDITY_GT);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -66,7 +66,7 @@ static int ValidityTestParse03 (void)
     dd = DetectTlsValidityParse("<1430000000");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1430000000 && dd->mode == DETECT_TLS_VALIDITY_LT);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -83,7 +83,7 @@ static int ValidityTestParse04 (void)
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1430000000 && dd->epoch2 == 1470000000 &&
                 dd->mode == DETECT_TLS_VALIDITY_RA);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -198,7 +198,7 @@ static int ValidityTestParse12 (void)
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1430000000 && dd->epoch2 == 1490000000 &&
                 dd->mode == DETECT_TLS_VALIDITY_RA);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -214,7 +214,7 @@ static int ValidityTestParse13 (void)
     dd = DetectTlsValidityParse("> 1430000000 ");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1430000000 && dd->mode == DETECT_TLS_VALIDITY_GT);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -230,7 +230,7 @@ static int ValidityTestParse14 (void)
     dd = DetectTlsValidityParse("<   1490000000 ");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1490000000 && dd->mode == DETECT_TLS_VALIDITY_LT);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -246,7 +246,7 @@ static int ValidityTestParse15 (void)
     dd = DetectTlsValidityParse("   1490000000 ");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1490000000 && dd->mode == DETECT_TLS_VALIDITY_EQ);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -262,7 +262,7 @@ static int ValidityTestParse16 (void)
     dd = DetectTlsValidityParse("2015-10");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1443657600 && dd->mode == DETECT_TLS_VALIDITY_EQ);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -278,7 +278,7 @@ static int ValidityTestParse17 (void)
     dd = DetectTlsValidityParse(">2015-10-22");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1445472000 && dd->mode == DETECT_TLS_VALIDITY_GT);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -294,7 +294,7 @@ static int ValidityTestParse18 (void)
     dd = DetectTlsValidityParse("<2015-10-22 23");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1445554800 && dd->mode == DETECT_TLS_VALIDITY_LT);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -310,7 +310,7 @@ static int ValidityTestParse19 (void)
     dd = DetectTlsValidityParse("2015-10-22 23:59");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1445558340 && dd->mode == DETECT_TLS_VALIDITY_EQ);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -326,7 +326,7 @@ static int ValidityTestParse20 (void)
     dd = DetectTlsValidityParse("2015-10-22 23:59:59");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1445558399 && dd->mode == DETECT_TLS_VALIDITY_EQ);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -342,7 +342,7 @@ static int ValidityTestParse21 (void)
     dd = DetectTlsValidityParse("2015-10-22T23");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1445554800 && dd->mode == DETECT_TLS_VALIDITY_EQ);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -358,7 +358,7 @@ static int ValidityTestParse22 (void)
     dd = DetectTlsValidityParse("2015-10-22T23:59");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1445558340 && dd->mode == DETECT_TLS_VALIDITY_EQ);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 
@@ -374,7 +374,7 @@ static int ValidityTestParse23 (void)
     dd = DetectTlsValidityParse("2015-10-22T23:59:59");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->epoch == 1445558399 && dd->mode == DETECT_TLS_VALIDITY_EQ);
-    DetectTlsValidityFree(dd);
+    DetectTlsValidityFree(NULL, dd);
     PASS;
 }
 

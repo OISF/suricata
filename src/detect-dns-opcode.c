@@ -24,7 +24,7 @@
 
 static int dns_opcode_list_id = 0;
 
-static void DetectDnsOpcodeFree(void *ptr);
+static void DetectDnsOpcodeFree(DetectEngineCtx *, void *ptr);
 
 static int DetectDnsOpcodeSetup(DetectEngineCtx *de_ctx, Signature *s,
    const char *str)
@@ -54,11 +54,11 @@ static int DetectDnsOpcodeSetup(DetectEngineCtx *de_ctx, Signature *s,
     SCReturnInt(0);
 
 error:
-    DetectDnsOpcodeFree(detect);
+    DetectDnsOpcodeFree(de_ctx, detect);
     SCReturnInt(-1);
 }
 
-static void DetectDnsOpcodeFree(void *ptr)
+static void DetectDnsOpcodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
     if (ptr != NULL) {

@@ -51,7 +51,7 @@ static int DetectRpcMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectRpcSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectRpcRegisterTests(void);
-void DetectRpcFree(void *);
+void DetectRpcFree(DetectEngineCtx *, void *);
 
 /**
  * \brief Registration function for rpc keyword
@@ -136,12 +136,13 @@ static int DetectRpcMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 /**
  * \brief This function is used to parse rpc options passed via rpc keyword
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param rpcstr Pointer to the user provided rpc options
  *
  * \retval rd pointer to DetectRpcData on success
  * \retval NULL on failure
  */
-static DetectRpcData *DetectRpcParse (const char *rpcstr)
+static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcstr)
 {
     DetectRpcData *rd = NULL;
     char *args[3] = {NULL,NULL,NULL};
@@ -236,7 +237,7 @@ error:
             SCFree(args[i]);
     }
     if (rd != NULL)
-        DetectRpcFree(rd);
+        DetectRpcFree(de_ctx, rd);
     return NULL;
 
 }
@@ -257,7 +258,7 @@ int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rpcstr)
     DetectRpcData *rd = NULL;
     SigMatch *sm = NULL;
 
-    rd = DetectRpcParse(rpcstr);
+    rd = DetectRpcParse(de_ctx, rpcstr);
     if (rd == NULL) goto error;
 
     sm = SigMatchAlloc();
@@ -273,7 +274,7 @@ int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rpcstr)
     return 0;
 
 error:
-    if (rd != NULL) DetectRpcFree(rd);
+    if (rd != NULL) DetectRpcFree(de_ctx, rd);
     if (sm != NULL) SCFree(sm);
     return -1;
 
@@ -284,7 +285,7 @@ error:
  *
  * \param rd pointer to DetectRpcData
  */
-void DetectRpcFree(void *ptr)
+void DetectRpcFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
 
@@ -307,9 +308,9 @@ static int DetectRpcTestParse01 (void)
 {
     int result = 0;
     DetectRpcData *rd = NULL;
-    rd = DetectRpcParse("123,444,555");
+    rd = DetectRpcParse(NULL, "123,444,555");
     if (rd != NULL) {
-        DetectRpcFree(rd);
+        DetectRpcFree(NULL, rd);
         result = 1;
     }
 
@@ -323,7 +324,7 @@ static int DetectRpcTestParse02 (void)
 {
     int result = 0;
     DetectRpcData *rd = NULL;
-    rd = DetectRpcParse("111,222,333");
+    rd = DetectRpcParse(NULL, "111,222,333");
     if (rd != NULL) {
         if (rd->flags & DETECT_RPC_CHECK_PROGRAM &&
             rd->flags & DETECT_RPC_CHECK_VERSION &&
@@ -334,7 +335,7 @@ static int DetectRpcTestParse02 (void)
         } else {
             SCLogDebug("Error: Flags: %d; program: %u, version: %u, procedure: %u", rd->flags, rd->program, rd->program_version, rd->procedure);
         }
-        DetectRpcFree(rd);
+        DetectRpcFree(NULL, rd);
     }
 
     return result;
@@ -348,7 +349,7 @@ static int DetectRpcTestParse03 (void)
 {
     int result = 1;
     DetectRpcData *rd = NULL;
-    rd = DetectRpcParse("111,*,333");
+    rd = DetectRpcParse(NULL, "111,*,333");
     if (rd == NULL)
         return 0;
 
@@ -360,9 +361,9 @@ static int DetectRpcTestParse03 (void)
             result = 0;
     SCLogDebug("rd1 Flags: %d; program: %u, version: %u, procedure: %u", rd->flags, rd->program, rd->program_version, rd->procedure);
 
-    DetectRpcFree(rd);
+    DetectRpcFree(NULL, rd);
 
-    rd = DetectRpcParse("111,222,*");
+    rd = DetectRpcParse(NULL, "111,222,*");
     if (rd == NULL)
         return 0;
 
@@ -374,9 +375,9 @@ static int DetectRpcTestParse03 (void)
             result = 0;
     SCLogDebug("rd2 Flags: %d; program: %u, version: %u, procedure: %u", rd->flags, rd->program, rd->program_version, rd->procedure);
 
-    DetectRpcFree(rd);
+    DetectRpcFree(NULL, rd);
 
-    rd = DetectRpcParse("111,*,*");
+    rd = DetectRpcParse(NULL, "111,*,*");
     if (rd == NULL)
         return 0;
 
@@ -388,9 +389,9 @@ static int DetectRpcTestParse03 (void)
             result = 0;
     SCLogDebug("rd2 Flags: %d; program: %u, version: %u, procedure: %u", rd->flags, rd->program, rd->program_version, rd->procedure);
 
-    DetectRpcFree(rd);
+    DetectRpcFree(NULL, rd);
 
-    rd = DetectRpcParse("111,222");
+    rd = DetectRpcParse(NULL, "111,222");
     if (rd == NULL)
         return 0;
 
@@ -402,9 +403,9 @@ static int DetectRpcTestParse03 (void)
             result = 0;
     SCLogDebug("rd2 Flags: %d; program: %u, version: %u, procedure: %u", rd->flags, rd->program, rd->program_version, rd->procedure);
 
-    DetectRpcFree(rd);
+    DetectRpcFree(NULL, rd);
 
-    rd = DetectRpcParse("111");
+    rd = DetectRpcParse(NULL, "111");
     if (rd == NULL)
         return 0;
 
@@ -416,7 +417,7 @@ static int DetectRpcTestParse03 (void)
             result = 0;
     SCLogDebug("rd2 Flags: %d; program: %u, version: %u, procedure: %u", rd->flags, rd->program, rd->program_version, rd->procedure);
 
-    DetectRpcFree(rd);
+    DetectRpcFree(NULL, rd);
     return result;
 }
 
@@ -427,12 +428,12 @@ static int DetectRpcTestParse04 (void)
 {
     int result = 0;
     DetectRpcData *rd = NULL;
-    rd = DetectRpcParse("");
+    rd = DetectRpcParse(NULL, "");
     if (rd == NULL) {
         result = 1;
     } else {
         SCLogDebug("Error: Flags: %d; program: %u, version: %u, procedure: %u", rd->flags, rd->program, rd->program_version, rd->procedure);
-        DetectRpcFree(rd);
+        DetectRpcFree(NULL, rd);
     }
 
     return result;
@@ -445,12 +446,12 @@ static int DetectRpcTestParse05 (void)
 {
     int result = 0;
     DetectRpcData *rd = NULL;
-    rd = DetectRpcParse("111,aaa,*");
+    rd = DetectRpcParse(NULL, "111,aaa,*");
     if (rd == NULL) {
         result = 1;
     } else {
         SCLogDebug("Error: Flags: %d; program: %u, version: %u, procedure: %u", rd->flags, rd->program, rd->program_version, rd->procedure);
-        DetectRpcFree(rd);
+        DetectRpcFree(NULL, rd);
     }
 
     return result;

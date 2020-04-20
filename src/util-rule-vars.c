@@ -379,7 +379,7 @@ static int SCRuleVarsPositiveTest03(void)
     s = SigInit(de_ctx, "alert tcp [$HTTP_SERVERS,$HOME_NET,192.168.2.5] $HTTP_PORTS -> $EXTERNAL_NET [80,[!$HTTP_PORTS,$ORACLE_PORTS]] (msg:\"Rule Vars Test\"; sid:1;)");
     if (s == NULL)
         goto end;
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     result = 1;
 
@@ -417,17 +417,17 @@ static int SCRuleVarsNegativeTest04(void)
     s = SigInit(de_ctx, "alert tcp $http_servers any -> any any (msg:\"Rule Vars Test\"; sid:1;)");
     if (s != NULL)
         goto end;
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     s = SigInit(de_ctx, "alert tcp $http_servers any -> any $HTTP_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
     if (s != NULL)
         goto end;
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     s = SigInit(de_ctx, "alert tcp !$TELNET_SERVERS !80 -> any !$SSH_PORTS (msg:\"Rule Vars Test\"; sid:1;)");
     if (s != NULL)
         goto end;
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     result = 1;
 

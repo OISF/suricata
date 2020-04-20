@@ -29,10 +29,10 @@
 static int DetectTlsVersionTestParse01 (void)
 {
     DetectTlsVersionData *tls = NULL;
-    tls = DetectTlsVersionParse("1.0");
+    tls = DetectTlsVersionParse(NULL, "1.0");
     FAIL_IF_NULL(tls);
     FAIL_IF_NOT(tls->ver == TLS_VERSION_10);
-    DetectTlsVersionFree(tls);
+    DetectTlsVersionFree(NULL, tls);
     PASS;
 }
 
@@ -44,9 +44,9 @@ static int DetectTlsVersionTestParse01 (void)
 static int DetectTlsVersionTestParse02 (void)
 {
     DetectTlsVersionData *tls = NULL;
-    tls = DetectTlsVersionParse("2.5");
+    tls = DetectTlsVersionParse(NULL, "2.5");
     FAIL_IF_NOT_NULL(tls);
-    DetectTlsVersionFree(tls);
+    DetectTlsVersionFree(NULL, tls);
     PASS;
 }
 

@@ -34,7 +34,7 @@ typedef struct DetectAppLayerEventData_ {
     char *arg;
 } DetectAppLayerEventData;
 
-int DetectAppLayerEventPrepare(Signature *s);
+int DetectAppLayerEventPrepare(DetectEngineCtx *de_ctx, Signature *s);
 void DetectAppLayerEventRegister(void);
 
 #endif /* __DETECT_APP_LAYER_EVENT_H__ */

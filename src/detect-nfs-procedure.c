@@ -69,7 +69,7 @@ typedef struct DetectNfsProcedureData_ {
 
 static DetectNfsProcedureData *DetectNfsProcedureParse (const char *);
 static int DetectNfsProcedureSetup (DetectEngineCtx *, Signature *s, const char *str);
-static void DetectNfsProcedureFree(void *);
+static void DetectNfsProcedureFree(DetectEngineCtx *, void *);
 static void DetectNfsProcedureRegisterTests(void);
 static int g_nfs_request_buffer_id = 0;
 
@@ -358,7 +358,7 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 
 error:
-    DetectNfsProcedureFree(dd);
+    DetectNfsProcedureFree(de_ctx, dd);
     return -1;
 }
 
@@ -368,7 +368,7 @@ error:
  *
  * \param de_ptr Pointer to DetectNfsProcedureData.
  */
-void DetectNfsProcedureFree(void *ptr)
+void DetectNfsProcedureFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCFree(ptr);
 }
@@ -387,7 +387,7 @@ static int ValidityTestParse01 (void)
     dd = DetectNfsProcedureParse("1430000000");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_EQ);
-    DetectNfsProcedureFree(dd);
+    DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
 
@@ -403,7 +403,7 @@ static int ValidityTestParse02 (void)
     dd = DetectNfsProcedureParse(">1430000000");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_GT);
-    DetectNfsProcedureFree(dd);
+    DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
 
@@ -419,7 +419,7 @@ static int ValidityTestParse03 (void)
     dd = DetectNfsProcedureParse("<1430000000");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_LT);
-    DetectNfsProcedureFree(dd);
+    DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
 
@@ -436,7 +436,7 @@ static int ValidityTestParse04 (void)
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->hi == 1470000000 &&
                 dd->mode == PROCEDURE_RA);
-    DetectNfsProcedureFree(dd);
+    DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
 
@@ -551,7 +551,7 @@ static int ValidityTestParse12 (void)
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->hi == 1490000000 &&
                 dd->mode == PROCEDURE_RA);
-    DetectNfsProcedureFree(dd);
+    DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
 
@@ -567,7 +567,7 @@ static int ValidityTestParse13 (void)
     dd = DetectNfsProcedureParse("> 1430000000 ");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_GT);
-    DetectNfsProcedureFree(dd);
+    DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
 
@@ -583,7 +583,7 @@ static int ValidityTestParse14 (void)
     dd = DetectNfsProcedureParse("<   1490000000 ");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1490000000 && dd->mode == PROCEDURE_LT);
-    DetectNfsProcedureFree(dd);
+    DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
 
@@ -599,7 +599,7 @@ static int ValidityTestParse15 (void)
     dd = DetectNfsProcedureParse("   1490000000 ");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1490000000 && dd->mode == PROCEDURE_EQ);
-    DetectNfsProcedureFree(dd);
+    DetectNfsProcedureFree(NULL, dd);
     PASS;
 }
 

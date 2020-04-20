@@ -46,7 +46,7 @@ static int DetectAsn1Match(DetectEngineThreadCtx *, Packet *,
                      const Signature *, const SigMatchCtx *);
 static int DetectAsn1Setup (DetectEngineCtx *, Signature *, const char *);
 static void DetectAsn1RegisterTests(void);
-static void DetectAsn1Free(void *);
+static void DetectAsn1Free(DetectEngineCtx *, void *);
 
 /**
  * \brief Registration function for asn1
@@ -321,7 +321,7 @@ static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *as
 
 error:
     if (ad != NULL)
-        DetectAsn1Free(ad);
+        DetectAsn1Free(de_ctx, ad);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -333,7 +333,7 @@ error:
  *
  * \param ad pointer to DetectAsn1Data
  */
-static void DetectAsn1Free(void *ptr)
+static void DetectAsn1Free(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectAsn1Data *ad = (DetectAsn1Data *)ptr;
     SCFree(ad);
@@ -355,7 +355,7 @@ static int DetectAsn1TestParse01(void)
         if (ad->oversize_length == 1024 && (ad->flags & ASN1_OVERSIZE_LEN)) {
             result = 1;
         }
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
     }
 
     return result;
@@ -373,7 +373,7 @@ static int DetectAsn1TestParse02(void)
     ad = DetectAsn1Parse(str);
     if (ad != NULL && ad->absolute_offset == 1024
         && (ad->flags & ASN1_ABSOLUTE_OFFSET)) {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 1;
     }
 
@@ -392,7 +392,7 @@ static int DetectAsn1TestParse03(void)
     ad = DetectAsn1Parse(str);
     if (ad != NULL && ad->relative_offset == 1024
         && (ad->flags & ASN1_RELATIVE_OFFSET)) {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 1;
     }
 
@@ -410,7 +410,7 @@ static int DetectAsn1TestParse04(void)
 
     ad = DetectAsn1Parse(str);
     if (ad != NULL && (ad->flags & ASN1_BITSTRING_OVF)) {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 1;
     }
 
@@ -428,7 +428,7 @@ static int DetectAsn1TestParse05(void)
 
     ad = DetectAsn1Parse(str);
     if (ad != NULL && (ad->flags & ASN1_DOUBLE_OVF)) {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 1;
     }
 
@@ -446,7 +446,7 @@ static int DetectAsn1TestParse06(void)
 
     ad = DetectAsn1Parse(str);
     if (ad != NULL) {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 0;
     }
 
@@ -464,7 +464,7 @@ static int DetectAsn1TestParse07(void)
 
     ad = DetectAsn1Parse(str);
     if (ad != NULL) {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 0;
     }
 
@@ -482,7 +482,7 @@ static int DetectAsn1TestParse08(void)
 
     ad = DetectAsn1Parse(str);
     if (ad != NULL) {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 0;
     }
 
@@ -503,7 +503,7 @@ static int DetectAsn1TestParse09(void)
     fd = DetectAsn1Parse(str);
     if (fd != NULL) {
         result = 0;
-        DetectAsn1Free(fd);
+        DetectAsn1Free(NULL, fd);
     }
 
     return result;
@@ -521,7 +521,7 @@ static int DetectAsn1TestParse10(void)
     fd = DetectAsn1Parse(str);
     if (fd != NULL) {
         result = 0;
-        DetectAsn1Free(fd);
+        DetectAsn1Free(NULL, fd);
     }
 
     return result;
@@ -542,7 +542,7 @@ static int DetectAsn1TestParse11(void)
         && ad->relative_offset == 10
         && (ad->flags & ASN1_RELATIVE_OFFSET))
     {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 1;
     }
 
@@ -564,7 +564,7 @@ static int DetectAsn1TestParse12(void)
         && ad->absolute_offset == 10
         && (ad->flags & ASN1_ABSOLUTE_OFFSET))
     {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 1;
     }
 
@@ -587,7 +587,7 @@ static int DetectAsn1TestParse13(void)
         && ad->absolute_offset == 10
         && (ad->flags & ASN1_ABSOLUTE_OFFSET))
     {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 1;
     }
 
@@ -612,7 +612,7 @@ static int DetectAsn1TestParse14(void)
         && ad->absolute_offset == 10
         && (ad->flags & ASN1_ABSOLUTE_OFFSET))
     {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 1;
     }
 
@@ -637,7 +637,7 @@ static int DetectAsn1TestParse15(void)
         && ad->relative_offset == 10
         && (ad->flags & ASN1_RELATIVE_OFFSET))
     {
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
         result = 1;
     }
 
@@ -697,7 +697,7 @@ static int DetectAsn1Test01(void)
     FAIL_IF(result != 1);
 
     SCAsn1CtxDestroy(ac);
-    DetectAsn1Free(ad);
+    DetectAsn1Free(NULL, ad);
 
     PASS;
 }
@@ -763,7 +763,7 @@ static int DetectAsn1Test02(void)
         }
 
         SCAsn1CtxDestroy(ac);
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
 
     }
 
@@ -818,7 +818,7 @@ static int DetectAsn1Test03(void)
         }
 
         SCAsn1CtxDestroy(ac);
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
 
     }
 
@@ -877,7 +877,7 @@ static int DetectAsn1Test04(void)
         }
 
         SCAsn1CtxDestroy(ac);
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
 
     }
 
@@ -950,7 +950,7 @@ static int DetectAsn1Test05(void)
         }
 
         SCAsn1CtxDestroy(ac);
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
 
     }
 
@@ -1020,7 +1020,7 @@ static int DetectAsn1Test06(void)
         }
 
         SCAsn1CtxDestroy(ac);
-        DetectAsn1Free(ad);
+        DetectAsn1Free(NULL, ad);
 
     }
 

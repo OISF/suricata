@@ -60,7 +60,7 @@ static int DetectTagMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectTagSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectTagRegisterTests(void);
-void DetectTagDataFree(void *);
+void DetectTagDataFree(DetectEngineCtx *, void *);
 
 /**
  * \brief Registration function for keyword tag
@@ -287,7 +287,7 @@ int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, const char *tagstr)
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectTagDataFree(td);
+        DetectTagDataFree(de_ctx, td);
         return -1;
     }
 
@@ -339,7 +339,7 @@ void DetectTagDataListFree(void *ptr)
  *
  * \param td pointer to DetectTagData
  */
-void DetectTagDataFree(void *ptr)
+void DetectTagDataFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectTagData *td = (DetectTagData *)ptr;
     SCFree(td);
@@ -359,7 +359,7 @@ static int DetectTagTestParse01(void)
     if (td != NULL && td->type == DETECT_TAG_TYPE_SESSION
         && td->count == 123
         && td->metric == DETECT_TAG_METRIC_PACKET) {
-        DetectTagDataFree(td);
+        DetectTagDataFree(NULL, td);
         result = 1;
     }
 
@@ -379,7 +379,7 @@ static int DetectTagTestParse02(void)
         && td->metric == DETECT_TAG_METRIC_BYTES
         && td->direction == DETECT_TAG_DIR_SRC) {
             result = 1;
-        DetectTagDataFree(td);
+        DetectTagDataFree(NULL, td);
     }
 
     return result;
@@ -398,7 +398,7 @@ static int DetectTagTestParse03(void)
         && td->metric == DETECT_TAG_METRIC_BYTES
         && td->direction == DETECT_TAG_DIR_DST) {
             result = 1;
-        DetectTagDataFree(td);
+        DetectTagDataFree(NULL, td);
     }
 
     return result;
@@ -416,7 +416,7 @@ static int DetectTagTestParse04(void)
         && td->count == DETECT_TAG_MAX_PKTS
         && td->metric == DETECT_TAG_METRIC_PACKET) {
             result = 1;
-        DetectTagDataFree(td);
+        DetectTagDataFree(NULL, td);
     }
 
     return result;
@@ -435,7 +435,7 @@ static int DetectTagTestParse05(void)
         && td->metric == DETECT_TAG_METRIC_PACKET
         && td->direction == DETECT_TAG_DIR_DST) {
             result = 1;
-        DetectTagDataFree(td);
+        DetectTagDataFree(NULL, td);
     }
 
     return result;

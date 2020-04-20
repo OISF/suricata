@@ -70,7 +70,7 @@ static int DetectSshSoftwareVersionMatch (DetectEngineThreadCtx *,
         const Signature *, const SigMatchCtx *);
 static int DetectSshSoftwareVersionSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectSshSoftwareVersionRegisterTests(void);
-static void DetectSshSoftwareVersionFree(void *);
+static void DetectSshSoftwareVersionFree(DetectEngineCtx *de_ctx, void *);
 static int g_ssh_banner_list_id = 0;
 
 static int InspectSshBanner(ThreadVars *tv,
@@ -148,12 +148,13 @@ static int DetectSshSoftwareVersionMatch (DetectEngineThreadCtx *det_ctx,
 /**
  * \brief This function is used to parse IPV4 ip_id passed via keyword: "id"
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param idstr Pointer to the user provided id option
  *
  * \retval id_d pointer to DetectSshSoftwareVersionData on success
  * \retval NULL on failure
  */
-static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (const char *str)
+static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngineCtx *de_ctx, const char *str)
 {
     DetectSshSoftwareVersionData *ssh = NULL;
     int ret = 0, res = 0;
@@ -194,7 +195,7 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (const char *
 
 error:
     if (ssh != NULL)
-        DetectSshSoftwareVersionFree(ssh);
+        DetectSshSoftwareVersionFree(de_ctx, ssh);
     return NULL;
 
 }
@@ -218,7 +219,7 @@ static int DetectSshSoftwareVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     if (DetectSignatureSetAppProto(s, ALPROTO_SSH) != 0)
         return -1;
 
-    ssh = DetectSshSoftwareVersionParse(str);
+    ssh = DetectSshSoftwareVersionParse(NULL, str);
     if (ssh == NULL)
         goto error;
 
@@ -236,7 +237,7 @@ static int DetectSshSoftwareVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
 
 error:
     if (ssh != NULL)
-        DetectSshSoftwareVersionFree(ssh);
+        DetectSshSoftwareVersionFree(de_ctx, ssh);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -248,7 +249,7 @@ error:
  *
  * \param id_d pointer to DetectSshSoftwareVersionData
  */
-static void DetectSshSoftwareVersionFree(void *ptr)
+static void DetectSshSoftwareVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr == NULL)
         return;
@@ -268,9 +269,9 @@ static void DetectSshSoftwareVersionFree(void *ptr)
 static int DetectSshSoftwareVersionTestParse01 (void)
 {
     DetectSshSoftwareVersionData *ssh = NULL;
-    ssh = DetectSshSoftwareVersionParse("PuTTY_1.0");
+    ssh = DetectSshSoftwareVersionParse(NULL, "PuTTY_1.0");
     if (ssh != NULL && strncmp((char *) ssh->software_ver, "PuTTY_1.0", 9) == 0) {
-        DetectSshSoftwareVersionFree(ssh);
+        DetectSshSoftwareVersionFree(NULL, ssh);
         return 1;
     }
 
@@ -284,9 +285,9 @@ static int DetectSshSoftwareVersionTestParse01 (void)
 static int DetectSshSoftwareVersionTestParse02 (void)
 {
     DetectSshSoftwareVersionData *ssh = NULL;
-    ssh = DetectSshSoftwareVersionParse("\"SecureCRT-4.0\"");
+    ssh = DetectSshSoftwareVersionParse(NULL, "\"SecureCRT-4.0\"");
     if (ssh != NULL && strncmp((char *) ssh->software_ver, "SecureCRT-4.0", 13) == 0) {
-        DetectSshSoftwareVersionFree(ssh);
+        DetectSshSoftwareVersionFree(NULL, ssh);
         return 1;
     }
 
@@ -300,9 +301,9 @@ static int DetectSshSoftwareVersionTestParse02 (void)
 static int DetectSshSoftwareVersionTestParse03 (void)
 {
     DetectSshSoftwareVersionData *ssh = NULL;
-    ssh = DetectSshSoftwareVersionParse("");
+    ssh = DetectSshSoftwareVersionParse(NULL, "");
     if (ssh != NULL) {
-        DetectSshSoftwareVersionFree(ssh);
+        DetectSshSoftwareVersionFree(NULL, ssh);
         return 0;
     }
 

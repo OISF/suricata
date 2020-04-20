@@ -46,7 +46,7 @@ static int DetectIcmpSeqMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIcmpSeqSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectIcmpSeqRegisterTests(void);
-void DetectIcmpSeqFree(void *);
+void DetectIcmpSeqFree(DetectEngineCtx *, void *);
 static int PrefilterSetupIcmpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s);
 
@@ -149,12 +149,13 @@ static int DetectIcmpSeqMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 /**
  * \brief This function is used to parse icmp_seq option passed via icmp_seq: keyword
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param icmpseqstr Pointer to the user provided icmp_seq options
  *
  * \retval iseq pointer to DetectIcmpSeqData on success
  * \retval NULL on failure
  */
-static DetectIcmpSeqData *DetectIcmpSeqParse (const char *icmpseqstr)
+static DetectIcmpSeqData *DetectIcmpSeqParse (DetectEngineCtx *de_ctx, const char *icmpseqstr)
 {
     DetectIcmpSeqData *iseq = NULL;
     char *substr[3] = {NULL, NULL, NULL};
@@ -214,7 +215,7 @@ error:
     for (i = 0; i < 3; i++) {
         if (substr[i] != NULL) SCFree(substr[i]);
     }
-    if (iseq != NULL) DetectIcmpSeqFree(iseq);
+    if (iseq != NULL) DetectIcmpSeqFree(de_ctx, iseq);
     return NULL;
 
 }
@@ -234,7 +235,7 @@ static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     DetectIcmpSeqData *iseq = NULL;
     SigMatch *sm = NULL;
 
-    iseq = DetectIcmpSeqParse(icmpseqstr);
+    iseq = DetectIcmpSeqParse(de_ctx, icmpseqstr);
     if (iseq == NULL) goto error;
 
     sm = SigMatchAlloc();
@@ -248,7 +249,7 @@ static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     return 0;
 
 error:
-    if (iseq != NULL) DetectIcmpSeqFree(iseq);
+    if (iseq != NULL) DetectIcmpSeqFree(de_ctx, iseq);
     if (sm != NULL) SCFree(sm);
     return -1;
 
@@ -259,7 +260,7 @@ error:
  *
  * \param ptr pointer to DetectIcmpSeqData
  */
-void DetectIcmpSeqFree (void *ptr)
+void DetectIcmpSeqFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectIcmpSeqData *iseq = (DetectIcmpSeqData *)ptr;
     SCFree(iseq);
@@ -330,9 +331,9 @@ static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)
 static int DetectIcmpSeqParseTest01 (void)
 {
     DetectIcmpSeqData *iseq = NULL;
-    iseq = DetectIcmpSeqParse("300");
+    iseq = DetectIcmpSeqParse(NULL, "300");
     if (iseq != NULL && htons(iseq->seq) == 300) {
-        DetectIcmpSeqFree(iseq);
+        DetectIcmpSeqFree(NULL, iseq);
         return 1;
     }
     return 0;
@@ -345,9 +346,9 @@ static int DetectIcmpSeqParseTest01 (void)
 static int DetectIcmpSeqParseTest02 (void)
 {
     DetectIcmpSeqData *iseq = NULL;
-    iseq = DetectIcmpSeqParse("  300  ");
+    iseq = DetectIcmpSeqParse(NULL, "  300  ");
     if (iseq != NULL && htons(iseq->seq) == 300) {
-        DetectIcmpSeqFree(iseq);
+        DetectIcmpSeqFree(NULL, iseq);
         return 1;
     }
     return 0;
@@ -359,9 +360,9 @@ static int DetectIcmpSeqParseTest02 (void)
 static int DetectIcmpSeqParseTest03 (void)
 {
     DetectIcmpSeqData *iseq = NULL;
-    iseq = DetectIcmpSeqParse("badc");
+    iseq = DetectIcmpSeqParse(NULL, "badc");
     if (iseq != NULL) {
-        DetectIcmpSeqFree(iseq);
+        DetectIcmpSeqFree(NULL, iseq);
         return 0;
     }
     return 1;
