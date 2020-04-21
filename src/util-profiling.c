@@ -1320,6 +1320,7 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_JSON_RFB);
         CASE_CODE (LOGGER_JSON_TEMPLATE);
         CASE_CODE (LOGGER_JSON_RDP);
+        CASE_CODE (LOGGER_JSON_DCERPC);
         CASE_CODE (LOGGER_TLS_STORE);
         CASE_CODE (LOGGER_TLS);
         CASE_CODE (LOGGER_FILE_STORE);
