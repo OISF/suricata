@@ -367,7 +367,7 @@ static void FtpTransferCmdFree(void *data)
     if (cmd == NULL)
         return;
     if (cmd->file_name) {
-        SCFree(cmd->file_name);
+        FTPFree(cmd->file_name, cmd->file_len + 1);
     }
     FTPFree(cmd, sizeof(struct FtpTransferCmd));
 }
@@ -853,12 +853,12 @@ static void FTPDataStateFree(void *s)
         DetectEngineStateFree(fstate->de_state);
     }
     if (fstate->file_name != NULL) {
-        FTPFree(fstate->file_name, fstate->file_len);
+        FTPFree(fstate->file_name, fstate->file_len + 1);
     }
 
     FileContainerFree(fstate->files);
 
-    SCFree(s);
+    FTPFree(s, sizeof(FtpDataState));
 #ifdef DEBUG
     SCMutexLock(&ftpdata_state_mem_lock);
     ftpdata_state_memcnt--;
