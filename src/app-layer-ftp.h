@@ -206,6 +206,7 @@ typedef struct FtpDataState_ {
     DetectEngineState *de_state;
     int32_t input_len;
     int16_t file_len;
+    int16_t file_mem_len;
     FtpRequestCommand command;
     uint8_t state;
     uint8_t direction;
