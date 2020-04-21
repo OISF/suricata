@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,7 +15,9 @@
  * 02110-1301, USA.
  */
 
-pub mod dcerpc;
-pub mod parser;
-pub mod detect;
-pub mod log;
+#ifndef __OUTPUT_JSON_DCERPC_H__
+#define __OUTPUT_JSON_DCERPC_H__
+
+void JsonDCERPCLogRegister(void);
+
+#endif /* __OUTPUT_JSON_DCERPC_H__ */
