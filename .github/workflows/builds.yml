@@ -14,6 +14,11 @@ jobs:
       - run: env
       - run: echo ${GITHUB_REF}
       - run: echo ${GITHUB_REF#refs/*/}
+      - run: |
+          echo "Building commits from ${GITHUB_BASE_REF}."
+          for rev in $(git rev-list --reverse ${GITHUB_BASE_REF}...); do
+              echo $rev
+          done
 
   centos-8:
     name: CentOS 8
