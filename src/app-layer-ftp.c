@@ -344,7 +344,7 @@ static void FTPTransactionFree(FTPTransaction *tx)
         FTPStringFree(str);
     }
 
-    SCFree(tx);
+    FTPFree(tx, sizeof(*tx));
 }
 
 static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
@@ -513,7 +513,7 @@ static void FtpTransferCmdFree(void *data)
     if (cmd == NULL)
         return;
     if (cmd->file_name) {
-        FTPFree(cmd->file_name, cmd->file_len);
+        FTPFree(cmd->file_name, cmd->file_len + 1);
     }
     FTPFree(cmd, sizeof(struct FtpTransferCmd));
 }
@@ -536,7 +536,7 @@ static uint32_t CopyCommandLine(uint8_t **dest, const uint8_t *src, uint32_t len
         *dest = where;
     }
     /* either 0 or actual */
-    return length;
+    return length ? length + 1 : 0;
 }
 
 
@@ -1195,12 +1195,12 @@ static void FTPDataStateFree(void *s)
         DetectEngineStateFree(fstate->de_state);
     }
     if (fstate->file_name != NULL) {
-        FTPFree(fstate->file_name, fstate->file_len);
+        FTPFree(fstate->file_name, fstate->file_len + 1);
     }
 
     FileContainerFree(fstate->files);
 
-    SCFree(s);
+    FTPFree(s, sizeof(FtpDataState));
 #ifdef DEBUG
     SCMutexLock(&ftpdata_state_mem_lock);
     ftpdata_state_memcnt--;
