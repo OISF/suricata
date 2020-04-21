@@ -25,6 +25,7 @@ use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
 
 #[repr(C)]
+#[derive(Debug,PartialEq)]
 pub struct AppLayerResult {
     pub status: i32,
     pub consumed: u32,
