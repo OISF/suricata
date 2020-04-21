@@ -1,0 +1,84 @@
+name: commit-check
+
+on:
+  - pull_request
+
+jobs:
+
+  check-commits:
+    name: Commit Check
+    runs-on: ubuntu-latest
+    container: ubuntu:18.04
+    steps:
+      - name: Caching ~/.cargo
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo
+          key: cargo
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre3 \
+                libpcre3-dev \
+                build-essential \
+                autoconf \
+                automake \
+                ccache \
+                git \
+                jq \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libhiredis-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1.6 \
+                libjansson-dev \
+                libpython2.7 \
+                libssl-dev \
+                make \
+                parallel \
+                pkg-config \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev
+      - run: echo "::add-path::$HOME/.cargo/bin:/usr/lib/ccache"
+      - name: Install cbindgen
+        run: cargo install cbindgen
+      - run: echo $PATH
+      - uses: actions/checkout@v1
+      - run: git fetch
+      - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - name: Building all commits
+        run: |
+          echo "Building commits from ${GITHUB_BASE_REF}."
+          for rev in $(git rev-list --reverse origin/${GITHUB_BASE_REF}...); do
+              git checkout $rev
+              echo "Building rev ${rev}" | tee -a build_log.txt
+              ./autogen.sh >> build_log.txt 2>&1
+              ./configure --enable-unittests >> build_log.txt 2>&1
+              if ! make -j2 >> build_log.txt 2>&1; then
+                  echo "::error ::Failed to build rev ${rev}"
+                  tail -n 50 build_log.txt
+                  exit 1
+              fi
+              make -ik distclean > /dev/null
+          done
+      - uses: actions/upload-artifact@v2-preview
+        name: Uploading build log
+        if: always()
+        with:
+          name: build_log
+          path: build_log.txt
