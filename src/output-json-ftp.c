@@ -99,7 +99,7 @@ static json_t *JsonFTPLogCommand(Flow *f, FTPTransaction *tx)
         TAILQ_FOREACH(response, &tx->response_list, next) {
             /* handle multiple lines within the response, \r\n delimited */
             uint8_t *where = response->str;
-            uint16_t length = response->len;
+            uint16_t length = response->len ? response->len -1 : 0;
             uint16_t pos;
             while ((pos = JsonGetNextLineFromBuffer((const char *)where, length)) != UINT16_MAX) {
                 uint16_t offset = 0;
