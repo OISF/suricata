@@ -199,6 +199,11 @@ static void DisableAppLayer(ThreadVars *tv, Flow *f, Packet *p)
 static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
         Flow *f, TcpSession *ssn, Packet *p)
 {
+    if (ssn->state < TCP_ESTABLISHED) {
+        SCLogDebug("skip as long as TCP is not ESTABLISHED (TCP fast open)");
+        return;
+    }
+
     uint32_t size_ts = ssn->client.last_ack - ssn->client.isn - 1;
     uint32_t size_tc = ssn->server.last_ack - ssn->server.isn - 1;
     SCLogDebug("size_ts %u, size_tc %u", size_ts, size_tc);
