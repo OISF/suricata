@@ -6,6 +6,14 @@ on:
 
 jobs:
 
+  check-commits:
+    name: Commit Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: echo ${GITHUB_REF}
+      - run: echo ${GITHUB_REF#refs/*/}
+
   centos-8:
     name: CentOS 8
     runs-on: ubuntu-latest
