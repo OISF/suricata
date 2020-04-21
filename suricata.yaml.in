@@ -262,6 +262,7 @@ outputs:
         - smb
         - tftp
         - ikev2
+        - dcerpc
         - krb5
         - snmp
         - rfb
