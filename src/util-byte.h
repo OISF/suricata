@@ -360,6 +360,111 @@ int StringParseInt16(int16_t *res, int base, uint16_t len, const char *str);
  */
 int StringParseInt8(int8_t *res, int base, uint16_t len, const char *str);
 
+/**
+ * Extract unsigned integer value from a string as uint64_t strictly within the range.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param len Number of bytes to extract (23 max)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int StringParseU64RangeCheck(uint64_t *res, int base, uint16_t len, const char *str, uint64_t min, uint64_t max);
+
+/**
+ * Extract unsigned integer value from a string as uint32_t strictly within the range.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int StringParseU32RangeCheck(uint32_t *res, int base, uint16_t len, const char *str, uint32_t min, uint32_t max);
+
+/**
+ * Extract unsigned integer value from a string as uint16_t strictly within the range.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int StringParseU16RangeCheck(uint16_t *res, int base, uint16_t len, const char *str, uint16_t min, uint16_t max);
+
+/**
+ * Extract unsigned integer value from a string as uint8_t strictly within the range.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int StringParseU8RangeCheck(uint8_t *res, int base, uint16_t len, const char *str, uint8_t min, uint8_t max);
+
+/**
+ * Extract signed integer value from a string as int64_t strictly within the range.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int StringParseI64RangeCheck(int64_t *res, int base, uint16_t len, const char *str, int64_t min, int64_t max);
+
+/**
+ * Extract signed integer value from a string as int32_t strictly within the range.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int StringParseI32RangeCheck(int32_t *res, int base, uint16_t len, const char *str, int32_t min, int32_t max);
+
+/**
+ * Extract signed integer value from a string as int16_t strictly within the range.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int StringParseI16RangeCheck(int16_t *res, int base, uint16_t len, const char *str, int16_t min, int16_t max);
+
+/**
+ * Extract signed integer value from a string as int8_t strictly within the range.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract
+ * \param len Number of bytes to extract (23 max or 0 for unbounded)
+ * \param str String to extract from
+ *
+ * \return n Number of bytes extracted on success
+ * \return -1 On error
+ */
+int StringParseI8RangeCheck(int8_t *res, int base, uint16_t len, const char *str, int8_t min, int8_t max);
+
 #ifdef UNITTESTS
 void ByteRegisterTests(void);
 #endif /* UNITTESTS */
