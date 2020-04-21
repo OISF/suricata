@@ -961,7 +961,7 @@ pub unsafe extern "C" fn rs_dcerpc_get_stub_data(
     len: *mut u32,
     endianness: *mut u8,
     dir: u8,
-) {
+) -> u8 {
     match dir {
         core::STREAM_TOSERVER => {
             if let Some(ref req) = state.request {
@@ -979,6 +979,7 @@ pub unsafe extern "C" fn rs_dcerpc_get_stub_data(
         }
     }
     *endianness = state.get_hdr_drep_0() & 0x10;
+    1
 }
 
 #[cfg(test)]

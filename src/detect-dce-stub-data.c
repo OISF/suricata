@@ -91,20 +91,14 @@ static InspectionBuffer *GetDCEData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         uint32_t data_len = 0;
-        uint8_t *data = NULL;
+        const uint8_t *data = NULL;
+        uint8_t endianness;
 
-        DCERPCState *dcerpc_state = txv;
-        if (dcerpc_state == NULL)
+        if (rs_dcerpc_get_stub_data(txv, &data, &data_len, &endianness, flow_flags) != 1 ||
+                data == NULL || data_len == 0)
             return NULL;
 
-        if (flow_flags & STREAM_TOSERVER) {
-            data_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
-            data = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
-        } else if (flow_flags & STREAM_TOCLIENT) {
-            data_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
-            data = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
-        }
-        if (dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) {
+        if (endianness > 0) {
             buffer->flags = DETECT_CI_FLAGS_DCE_LE;
         } else {
             buffer->flags |= DETECT_CI_FLAGS_DCE_BE;
@@ -1550,7 +1544,6 @@ static int DetectDceStubDataTestParse04(void)
 
     if (PacketAlertCheck(p, 1) || PacketAlertCheck(p, 2) || PacketAlertCheck(p, 3))
         goto end;
-
     /* request3 */
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
