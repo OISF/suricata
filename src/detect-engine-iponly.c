@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -22,7 +22,7 @@
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  *
  * Signatures that only inspect IP addresses are processed here
- * We use radix trees for src dst ipv4 and ipv6 adresses
+ * We use radix trees for src dst ipv4 and ipv6 addresses
  * This radix trees hold information for subnets and hosts in a
  * hierarchical distribution
  */
@@ -199,41 +199,53 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, const char *str)
             ip[ip2 - ip] = '\0';
             ip2++;
 
-            uint32_t tmp_ip[4];
-            uint32_t tmp_ip2[4];
             uint32_t first, last;
 
             r = inet_pton(AF_INET, ip, &in);
             if (r <= 0)
                 goto error;
-            tmp_ip[0] = in.s_addr;
+            first = SCNtohl(in.s_addr);
 
             r = inet_pton(AF_INET, ip2, &in);
             if (r <= 0)
                 goto error;
-            tmp_ip2[0] = in.s_addr;
+            last = SCNtohl(in.s_addr);
 
             /* a > b is illegal, a = b is ok */
-            if (SCNtohl(tmp_ip[0]) > SCNtohl(tmp_ip2[0]))
+            if (first > last)
                 goto error;
-
-            first = SCNtohl(tmp_ip[0]);
-            last = SCNtohl(tmp_ip2[0]);
 
             dd->netmask = 32;
             dd->ip[0] =htonl(first);
 
             if (first < last) {
-                for (first++; first <= last; first++) {
+                SCLogDebug("Creating CIDR range for [%s - %s]", ip, ip2);
+                first++;
+                while ( first <= last) {
                     IPOnlyCIDRItem *new = IPOnlyCIDRItemNew();
                     if (new == NULL)
                         goto error;
                     dd->next = new;
                     new->negated = dd->negated;
                     new->family= dd->family;
-                    new->netmask = dd->netmask;
+                    new->netmask = 32;
+                    /* Find the maximum netmask starting from current address first
+                     * and not crossing last.
+                     * To extend the mask, we need to start from a power of 2.
+                     * And we need to pay attention to unsigned overflow back to 0.0.0.0
+                     */
+                    while (new->netmask > 0 &&
+                           (first & (1UL << (32-new->netmask))) == 0 &&
+                           first + (1UL << (32-(new->netmask-1))) - 1 <= last) {
+                        new->netmask--;
+                    }
                     new->ip[0] = htonl(first);
                     dd = dd->next;
+                    if (new->netmask == 0) {
+                        //case 0.0.0.0-255.255.255.255 as 0.0.0.0/0
+                        break;
+                    }
+                    first += 1UL << (32-new->netmask);
                 }
             }
 
@@ -1514,7 +1526,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
         SCFree(tmpaux);
     }
 
-    /* print all the trees: for debuggin it might print too much info
+    /* print all the trees: for debugging it might print too much info
     SCLogDebug("Radix tree src ipv4:");
     SCRadixPrintTree((de_ctx->io_ctx).tree_ipv4src);
     SCLogDebug("Radix tree src ipv6:");
@@ -1530,7 +1542,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 }
 
 /**
- * \brief Add a signature to the lists of Adrresses in CIDR format (sorted)
+ * \brief Add a signature to the lists of Addresses in CIDR format (sorted)
  *        this step is necesary to build the radix tree with a hierarchical
  *        relation between nodes
  * \param de_ctx Pointer to the current detection engine context
@@ -2258,6 +2270,39 @@ static int IPOnlyTestSig17(void)
     return result;
 }
 
+/**
+ * \brief Unittest to show #3568 -- IP address range handling
+ */
+static int IPOnlyTestSig18(void)
+{
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 1;
+    uint8_t numsigs = 2;
+
+    Packet *p[1];
+
+    p[0] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "10.10.10.1", "50.0.0.1");
+
+    const char *sigs[numsigs];
+    // really many IP addresses
+    sigs[0]= "alert ip 1.2.3.4-219.6.7.8 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
+    sigs[1]= "alert ip 51.2.3.4-253.1.2.3 any -> any any (msg:\"Testing src ip (sid 2)\"; sid:2;)";
+
+    uint32_t sid[2] = { 1, 2};
+    uint32_t results[2] = { 1, 0}; /* first should match; second shouldn't */
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    FAIL_IF(result != 1);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void IPOnlyRegisterTests(void)
@@ -2293,6 +2338,7 @@ void IPOnlyRegisterTests(void)
     UtRegisterTest("IPOnlyTestSig16", IPOnlyTestSig16);
 
     UtRegisterTest("IPOnlyTestSig17", IPOnlyTestSig17);
+    UtRegisterTest("IPOnlyTestSig18", IPOnlyTestSig18);
 #endif
 
     return;
