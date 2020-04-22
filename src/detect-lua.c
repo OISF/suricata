@@ -1120,6 +1120,8 @@ static void DetectLuaFree(DetectEngineCtx *de_ctx, void *ptr)
         if (lua->filename)
             SCFree(lua->filename);
 
+        DetectUnregisterThreadCtxFuncs(de_ctx, NULL, lua, "lua");
+
         SCFree(lua);
     }
 }
