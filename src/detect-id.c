@@ -52,7 +52,7 @@ static int DetectIdMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIdSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectIdRegisterTests(void);
-void DetectIdFree(void *);
+void DetectIdFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterIdIsPrefilterable(const Signature *s);
@@ -194,7 +194,7 @@ int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
      * and put it in the Signature. */
     sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectIdFree(id_d);
+        DetectIdFree(de_ctx, id_d);
         return -1;
     }
 
@@ -211,7 +211,7 @@ int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
  *
  * \param id_d pointer to DetectIdData
  */
-void DetectIdFree(void *ptr)
+void DetectIdFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectIdData *id_d = (DetectIdData *)ptr;
     SCFree(id_d);
@@ -285,7 +285,7 @@ static int DetectIdTestParse01 (void)
     DetectIdData *id_d = NULL;
     id_d = DetectIdParse(" 35402 ");
     if (id_d != NULL &&id_d->id==35402) {
-        DetectIdFree(id_d);
+        DetectIdFree(NULL, id_d);
         return 1;
     }
 
@@ -302,7 +302,7 @@ static int DetectIdTestParse02 (void)
     DetectIdData *id_d = NULL;
     id_d = DetectIdParse("65537");
     if (id_d == NULL) {
-        DetectIdFree(id_d);
+        DetectIdFree(NULL, id_d);
         return 1;
     }
 
@@ -319,7 +319,7 @@ static int DetectIdTestParse03 (void)
     DetectIdData *id_d = NULL;
     id_d = DetectIdParse("12what?");
     if (id_d == NULL) {
-        DetectIdFree(id_d);
+        DetectIdFree(NULL, id_d);
         return 1;
     }
 
@@ -336,7 +336,7 @@ static int DetectIdTestParse04 (void)
     /* yep, look if we trim blank spaces correctly and ignore "'s */
     id_d = DetectIdParse(" \"35402\" ");
     if (id_d != NULL &&id_d->id==35402) {
-        DetectIdFree(id_d);
+        DetectIdFree(NULL, id_d);
         return 1;
     }
 

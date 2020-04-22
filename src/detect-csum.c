@@ -43,43 +43,43 @@
 static int DetectIPV4CsumMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectIPV4CsumSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectIPV4CsumFree(void *);
+static void DetectIPV4CsumFree(DetectEngineCtx *, void *);
 
 /* prototypes for the "tcpv4-csum" rule keyword */
 static int DetectTCPV4CsumMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTCPV4CsumSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectTCPV4CsumFree(void *);
+static void DetectTCPV4CsumFree(DetectEngineCtx *, void *);
 
 /* prototypes for the "tcpv6-csum" rule keyword */
 static int DetectTCPV6CsumMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTCPV6CsumSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectTCPV6CsumFree(void *);
+static void DetectTCPV6CsumFree(DetectEngineCtx *, void *);
 
 /* prototypes for the "udpv4-csum" rule keyword */
 static int DetectUDPV4CsumMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectUDPV4CsumSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectUDPV4CsumFree(void *);
+static void DetectUDPV4CsumFree(DetectEngineCtx *, void *);
 
 /* prototypes for the "udpv6-csum" rule keyword */
 static int DetectUDPV6CsumMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectUDPV6CsumSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectUDPV6CsumFree(void *);
+static void DetectUDPV6CsumFree(DetectEngineCtx *de_ctx, void *);
 
 /* prototypes for the "icmpv4-csum" rule keyword */
 static int DetectICMPV4CsumMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectICMPV4CsumSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectICMPV4CsumFree(void *);
+static void DetectICMPV4CsumFree(DetectEngineCtx *, void *);
 
 /* prototypes for the "icmpv6-csum" rule keyword */
 static int DetectICMPV6CsumMatch(DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectICMPV6CsumSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectICMPV6CsumFree(void *);
+static void DetectICMPV6CsumFree(DetectEngineCtx *, void *);
 
 static void DetectCsumRegisterTests(void);
 
@@ -293,13 +293,13 @@ static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     return 0;
 
 error:
-    if (cd != NULL) DetectIPV4CsumFree(cd);
+    if (cd != NULL) DetectIPV4CsumFree(de_ctx, cd);
     if (sm != NULL) SCFree(sm);
 
     return -1;
 }
 
-static void DetectIPV4CsumFree(void *ptr)
+static void DetectIPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -390,13 +390,13 @@ static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 
 error:
-    if (cd != NULL) DetectTCPV4CsumFree(cd);
+    if (cd != NULL) DetectTCPV4CsumFree(de_ctx, cd);
     if (sm != NULL) SCFree(sm);
 
     return -1;
 }
 
-static void DetectTCPV4CsumFree(void *ptr)
+static void DetectTCPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -487,13 +487,13 @@ static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 
 error:
-    if (cd != NULL) DetectTCPV6CsumFree(cd);
+    if (cd != NULL) DetectTCPV6CsumFree(de_ctx, cd);
     if (sm != NULL) SCFree(sm);
 
     return -1;
 }
 
-static void DetectTCPV6CsumFree(void *ptr)
+static void DetectTCPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -584,13 +584,13 @@ static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 
 error:
-    if (cd != NULL) DetectUDPV4CsumFree(cd);
+    if (cd != NULL) DetectUDPV4CsumFree(de_ctx, cd);
     if (sm != NULL) SCFree(sm);
 
     return -1;
 }
 
-static void DetectUDPV4CsumFree(void *ptr)
+static void DetectUDPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -681,13 +681,13 @@ static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 
 error:
-    if (cd != NULL) DetectUDPV6CsumFree(cd);
+    if (cd != NULL) DetectUDPV6CsumFree(de_ctx, cd);
     if (sm != NULL) SCFree(sm);
 
     return -1;
 }
 
-static void DetectUDPV6CsumFree(void *ptr)
+static void DetectUDPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -776,13 +776,13 @@ static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     return 0;
 
 error:
-    if (cd != NULL) DetectICMPV4CsumFree(cd);
+    if (cd != NULL) DetectICMPV4CsumFree(de_ctx, cd);
     if (sm != NULL) SCFree(sm);
 
     return -1;
 }
 
-static void DetectICMPV4CsumFree(void *ptr)
+static void DetectICMPV4CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -874,13 +874,13 @@ static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     return 0;
 
 error:
-    if (cd != NULL) DetectICMPV6CsumFree(cd);
+    if (cd != NULL) DetectICMPV6CsumFree(de_ctx, cd);
     if (sm != NULL) SCFree(sm);
 
     return -1;
 }
 
-static void DetectICMPV6CsumFree(void *ptr)
+static void DetectICMPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 

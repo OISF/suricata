@@ -44,7 +44,7 @@ static DetectParseRegex parse_regex;
 int DetectDatasetMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectDatasetSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectDatasetFree (void *);
+void DetectDatasetFree (DetectEngineCtx *, void *);
 
 void DetectDatasetRegister (void)
 {
@@ -407,7 +407,7 @@ error:
     return -1;
 }
 
-void DetectDatasetFree (void *ptr)
+void DetectDatasetFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectDatasetData *fd = (DetectDatasetData *)ptr;
     if (fd == NULL)

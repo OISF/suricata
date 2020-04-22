@@ -414,7 +414,7 @@ fail:
     SCReturnInt(0);
 }
 
-static void DetectDNP3Free(void *ptr)
+static void DetectDNP3Free(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
     if (ptr != NULL) {

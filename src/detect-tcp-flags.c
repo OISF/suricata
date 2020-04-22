@@ -60,7 +60,7 @@ static DetectParseRegex parse_regex;
 static int DetectFlagsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFlagsSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectFlagsFree(void *);
+static void DetectFlagsFree(DetectEngineCtx *, void *);
 
 static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s);
 static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
@@ -498,7 +498,7 @@ error:
  *
  * \param de pointer to DetectFlagsData
  */
-static void DetectFlagsFree(void *de_ptr)
+static void DetectFlagsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
     DetectFlagsData *de = (DetectFlagsData *)de_ptr;
     if(de) SCFree(de);
@@ -619,7 +619,7 @@ static int FlagsTestParse01 (void)
     DetectFlagsData *de = DetectFlagsParse("S");
     FAIL_IF_NULL(de);
     FAIL_IF_NOT(de->flags == TH_SYN);
-    DetectFlagsFree(de);
+    DetectFlagsFree(NULL, de);
     PASS;
 }
 
@@ -634,7 +634,7 @@ static int FlagsTestParse02 (void)
     DetectFlagsData *de = NULL;
     de = DetectFlagsParse("G");
     if (de) {
-        DetectFlagsFree(de);
+        DetectFlagsFree(NULL, de);
         return 0;
     }
 
@@ -1209,7 +1209,7 @@ static int FlagsTestParse13 (void)
     DetectFlagsData *de = NULL;
     de = DetectFlagsParse("+S*");
     if (de != NULL) {
-        DetectFlagsFree(de);
+        DetectFlagsFree(NULL, de);
         return 0;
     }
 
@@ -1226,7 +1226,7 @@ static int FlagsTestParse14(void)
 {
     DetectFlagsData *de = DetectFlagsParse("CE");
     if (de != NULL && (de->flags == (TH_CWR | TH_ECN)) ) {
-        DetectFlagsFree(de);
+        DetectFlagsFree(NULL, de);
         return 1;
     }
 

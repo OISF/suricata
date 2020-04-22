@@ -819,7 +819,7 @@ void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *de_ctx)
 
 DetectEngineCtx *DetectEngineCtxInit(void);
 Signature *SigInit(DetectEngineCtx *, const char *);
-void SigFree(Signature *);
+void SigFree(DetectEngineCtx *, Signature *);
 void DetectEngineCtxFree(DetectEngineCtx *);
 
 #ifdef UNITTESTS

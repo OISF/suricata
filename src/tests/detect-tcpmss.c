@@ -37,7 +37,7 @@ static int DetectTcpmssParseTest01 (void)
     FAIL_IF_NOT(tcpmssd->arg1 == 10);
     FAIL_IF_NOT(tcpmssd->mode == DETECT_TCPMSS_EQ);
 
-    DetectTcpmssFree(tcpmssd);
+    DetectTcpmssFree(NULL, tcpmssd);
 
     PASS;
 }
@@ -54,7 +54,7 @@ static int DetectTcpmssParseTest02 (void)
     FAIL_IF_NOT(tcpmssd->arg1 == 10);
     FAIL_IF_NOT(tcpmssd->mode == DETECT_TCPMSS_LT);
 
-    DetectTcpmssFree(tcpmssd);
+    DetectTcpmssFree(NULL, tcpmssd);
 
     PASS;
 }
@@ -71,7 +71,7 @@ static int DetectTcpmssParseTest03 (void)
     FAIL_IF_NOT(tcpmssd->arg1 == 1);
     FAIL_IF_NOT(tcpmssd->mode == DETECT_TCPMSS_RA);
 
-    DetectTcpmssFree(tcpmssd);
+    DetectTcpmssFree(NULL, tcpmssd);
 
     PASS;
 }
@@ -89,7 +89,7 @@ static int DetectTcpmssParseTest04 (void)
     FAIL_IF_NOT(tcpmssd->arg1 == 10);
     FAIL_IF_NOT(tcpmssd->mode == DETECT_TCPMSS_GT);
 
-    DetectTcpmssFree(tcpmssd);
+    DetectTcpmssFree(NULL, tcpmssd);
 
     PASS;
 }
@@ -108,7 +108,7 @@ static int DetectTcpmssParseTest05 (void)
     FAIL_IF_NOT(tcpmssd->arg2 == 2);
     FAIL_IF_NOT(tcpmssd->mode == DETECT_TCPMSS_RA);
 
-    DetectTcpmssFree(tcpmssd);
+    DetectTcpmssFree(NULL, tcpmssd);
 
     PASS;
 }

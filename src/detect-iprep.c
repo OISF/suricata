@@ -54,7 +54,7 @@ static DetectParseRegex parse_regex;
 static int DetectIPRepMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIPRepSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectIPRepFree (void *);
+void DetectIPRepFree (DetectEngineCtx *, void *);
 void IPRepRegisterTests(void);
 
 void DetectIPRepRegister (void)
@@ -375,7 +375,7 @@ error:
     return -1;
 }
 
-void DetectIPRepFree (void *ptr)
+void DetectIPRepFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectIPRepData *fd = (DetectIPRepData *)ptr;
 

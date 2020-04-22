@@ -54,7 +54,7 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, const char *);
 static int FlowbitOrAddData(DetectEngineCtx *, DetectFlowbitsData *, char *);
-void DetectFlowbitFree (void *);
+void DetectFlowbitFree (DetectEngineCtx *, void *);
 void FlowBitsRegisterTests(void);
 
 void DetectFlowbitsRegister (void)
@@ -355,13 +355,13 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
 
 error:
     if (cd != NULL)
-        DetectFlowbitFree(cd);
+        DetectFlowbitFree(de_ctx, cd);
     if (sm != NULL)
         SCFree(sm);
     return -1;
 }
 
-void DetectFlowbitFree (void *ptr)
+void DetectFlowbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectFlowbitsData *fd = (DetectFlowbitsData *)ptr;
     if (fd == NULL)

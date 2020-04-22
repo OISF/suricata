@@ -70,7 +70,7 @@ static DetectParseRegex parse_regex;
 static int DetectBytetestMatch(DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
-static void DetectBytetestFree(void *ptr);
+static void DetectBytetestFree(DetectEngineCtx *, void *ptr);
 static void DetectBytetestRegisterTests(void);
 
 void DetectBytetestRegister (void)
@@ -642,7 +642,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         SCFree(offset);
     if (value)
         SCFree(value);
-    DetectBytetestFree(data);
+    DetectBytetestFree(de_ctx, data);
     return ret;
 }
 
@@ -651,7 +651,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
  *
  * \param data pointer to DetectBytetestData
  */
-static void DetectBytetestFree(void *ptr)
+static void DetectBytetestFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr == NULL)
         return;
@@ -679,7 +679,7 @@ static int DetectBytetestTestParse01(void)
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, =, 1 , 0", NULL, NULL);
     if (data != NULL) {
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
         result = 1;
     }
 
@@ -704,7 +704,7 @@ static int DetectBytetestTestParse02(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -729,7 +729,7 @@ static int DetectBytetestTestParse03(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -754,7 +754,7 @@ static int DetectBytetestTestParse04(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -778,7 +778,7 @@ static int DetectBytetestTestParse05(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -802,7 +802,7 @@ static int DetectBytetestTestParse06(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -826,7 +826,7 @@ static int DetectBytetestTestParse07(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -850,7 +850,7 @@ static int DetectBytetestTestParse08(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -874,7 +874,7 @@ static int DetectBytetestTestParse09(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -899,7 +899,7 @@ static int DetectBytetestTestParse10(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -926,7 +926,7 @@ static int DetectBytetestTestParse11(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -980,7 +980,7 @@ static int DetectBytetestTestParse14(void)
         {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -1032,7 +1032,7 @@ static int DetectBytetestTestParse17(void)
              (data->flags & DETECT_BYTETEST_DCE) ) {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -1054,7 +1054,7 @@ static int DetectBytetestTestParse18(void)
              !(data->flags & DETECT_BYTETEST_DCE) ) {
             result = 1;
         }
-        DetectBytetestFree(data);
+        DetectBytetestFree(NULL, data);
     }
 
     return result;
@@ -1072,7 +1072,7 @@ static int DetectBytetestTestParse19(void)
     int result = 1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0) {
-        SigFree(s);
+        SigFree(NULL, s);
         return 0;
     }
 
@@ -1084,7 +1084,7 @@ static int DetectBytetestTestParse19(void)
     result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,oct,dce") == -1);
     result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,dec,dce") == -1);
 
-    SigFree(s);
+    SigFree(NULL, s);
     return result;
 }
 
@@ -1383,7 +1383,7 @@ static int DetectBytetestTestParse23(void)
     FAIL_IF_NOT(data->bitmask == 0xf8);
     FAIL_IF_NOT(data->bitmask_shift_count == 3);
 
-    DetectBytetestFree(data);
+    DetectBytetestFree(NULL, data);
 
     PASS;
 }
@@ -1408,7 +1408,7 @@ static int DetectBytetestTestParse24(void)
     FAIL_IF_NOT(data->bitmask == 0xf8);
     FAIL_IF_NOT(data->bitmask_shift_count == 3);
 
-    DetectBytetestFree(data);
+    DetectBytetestFree(NULL, data);
 
     PASS;
 }

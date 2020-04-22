@@ -664,7 +664,7 @@ next:
  *  double freeing, so it takes an approach to first fill an array
  *  of the to-free pointers before freeing them.
  */
-void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
+void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *de_ctx, Signature *s)
 {
     int nlists = 0;
 
@@ -712,7 +712,7 @@ void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
         SigMatchData *smd = ptrs[i];
         while(1) {
             if (sigmatch_table[smd->type].Free != NULL) {
-                sigmatch_table[smd->type].Free(smd->ctx);
+                sigmatch_table[smd->type].Free(de_ctx, smd->ctx);
             }
             if (smd->is_last)
                 break;

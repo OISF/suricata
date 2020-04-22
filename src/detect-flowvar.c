@@ -49,7 +49,7 @@ int DetectFlowvarMatch (DetectEngineThreadCtx *, Packet *,
 static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectFlowvarPostMatch(DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx);
-static void DetectFlowvarDataFree(void *ptr);
+static void DetectFlowvarDataFree(DetectEngineCtx *, void *ptr);
 
 void DetectFlowvarRegister (void)
 {
@@ -74,7 +74,7 @@ void DetectFlowvarRegister (void)
  *
  * \param cd pointer to DetectCotentData
  */
-static void DetectFlowvarDataFree(void *ptr)
+static void DetectFlowvarDataFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr == NULL)
         SCReturn;
@@ -190,7 +190,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
 
 error:
     if (fd != NULL)
-        DetectFlowvarDataFree(fd);
+        DetectFlowvarDataFree(de_ctx, fd);
     if (sm != NULL)
         SCFree(sm);
     if (content != NULL)
@@ -255,7 +255,7 @@ int DetectVarStoreMatch(DetectEngineThreadCtx *det_ctx,
 /** \brief Setup a post-match for flowvar storage
  *  We're piggyback riding the DetectFlowvarData struct
  */
-int DetectFlowvarPostMatchSetup(Signature *s, uint32_t idx)
+int DetectFlowvarPostMatchSetup(DetectEngineCtx *de_ctx, Signature *s, uint32_t idx)
 {
     SigMatch *sm = NULL;
     DetectFlowvarData *fv = NULL;
@@ -279,7 +279,7 @@ int DetectFlowvarPostMatchSetup(Signature *s, uint32_t idx)
     return 0;
 error:
     if (fv != NULL)
-        DetectFlowvarDataFree(fv);
+        DetectFlowvarDataFree(de_ctx, fv);
     return -1;
 }
 

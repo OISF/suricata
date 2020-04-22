@@ -52,7 +52,7 @@ int DetectFlowMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectFlowSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectFlowRegisterTests(void);
-void DetectFlowFree(void *);
+void DetectFlowFree(DetectEngineCtx *, void *);
 
 static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterFlowIsPrefilterable(const Signature *s);
@@ -160,12 +160,13 @@ int DetectFlowMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 /**
  * \brief This function is used to parse flow options passed via flow: keyword
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param flowstr Pointer to the user provided flow options
  *
  * \retval fd pointer to DetectFlowData on success
  * \retval NULL on failure
  */
-static DetectFlowData *DetectFlowParse (const char *flowstr)
+static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flowstr)
 {
     DetectFlowData *fd = NULL;
     char *args[3] = {NULL,NULL,NULL};
@@ -309,7 +310,7 @@ static DetectFlowData *DetectFlowParse (const char *flowstr)
 
 error:
     if (fd != NULL)
-        DetectFlowFree(fd);
+        DetectFlowFree(de_ctx, fd);
     return NULL;
 
 }
@@ -363,7 +364,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
         return -1;
     }
 
-    DetectFlowData *fd = DetectFlowParse(flowstr);
+    DetectFlowData *fd = DetectFlowParse(de_ctx, flowstr);
     if (fd == NULL)
         return -1;
 
@@ -393,7 +394,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
     {
         /* no direct flow is needed for just direction,
          * no sigmatch is needed either. */
-        SigMatchFree(sm);
+        SigMatchFree(de_ctx, sm);
         sm = NULL;
     } else {
         s->init_data->init_flags |= SIG_FLAG_INIT_FLOW;
@@ -406,7 +407,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
 
 error:
     if (fd != NULL)
-        DetectFlowFree(fd);
+        DetectFlowFree(de_ctx, fd);
     return -1;
 
 }
@@ -416,7 +417,7 @@ error:
  *
  * \param fd pointer to DetectFlowData
  */
-void DetectFlowFree(void *ptr)
+void DetectFlowFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectFlowData *fd = (DetectFlowData *)ptr;
     SCFree(fd);
@@ -485,9 +486,9 @@ static bool PrefilterFlowIsPrefilterable(const Signature *s)
 static int DetectFlowTestParse01 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("established");
+    fd = DetectFlowParse(NULL, "established");
     FAIL_IF_NULL(fd);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -497,7 +498,7 @@ static int DetectFlowTestParse01 (void)
 static int DetectFlowTestParse02 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("established");
+    fd = DetectFlowParse(NULL, "established");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_ESTABLISHED &&
         fd->match_cnt == 1);
@@ -510,10 +511,10 @@ static int DetectFlowTestParse02 (void)
 static int DetectFlowTestParse03 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("stateless");
+    fd = DetectFlowParse(NULL, "stateless");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_STATELESS && fd->match_cnt == 1);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -523,10 +524,10 @@ static int DetectFlowTestParse03 (void)
 static int DetectFlowTestParse04 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("to_client");
+    fd = DetectFlowParse(NULL, "to_client");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_TOCLIENT && fd->match_cnt == 1);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -536,10 +537,10 @@ static int DetectFlowTestParse04 (void)
 static int DetectFlowTestParse05 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("to_server");
+    fd = DetectFlowParse(NULL, "to_server");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_TOSERVER && fd->match_cnt == 1);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -549,10 +550,10 @@ static int DetectFlowTestParse05 (void)
 static int DetectFlowTestParse06 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("from_server");
+    fd = DetectFlowParse(NULL, "from_server");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_TOCLIENT && fd->match_cnt == 1);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -562,10 +563,10 @@ static int DetectFlowTestParse06 (void)
 static int DetectFlowTestParse07 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("from_client");
+    fd = DetectFlowParse(NULL, "from_client");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_TOSERVER && fd->match_cnt == 1);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -575,10 +576,10 @@ static int DetectFlowTestParse07 (void)
 static int DetectFlowTestParse08 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("established,to_client");
+    fd = DetectFlowParse(NULL, "established,to_client");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ESTABLISHED && fd->flags & DETECT_FLOW_FLAG_TOCLIENT && fd->match_cnt == 2);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -588,12 +589,12 @@ static int DetectFlowTestParse08 (void)
 static int DetectFlowTestParse09 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("to_client,stateless");
+    fd = DetectFlowParse(NULL, "to_client,stateless");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_STATELESS &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->match_cnt == 2);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -603,12 +604,12 @@ static int DetectFlowTestParse09 (void)
 static int DetectFlowTestParse10 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("from_server,stateless");
+    fd = DetectFlowParse(NULL, "from_server,stateless");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_STATELESS &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->match_cnt == 2);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -618,12 +619,12 @@ static int DetectFlowTestParse10 (void)
 static int DetectFlowTestParse11 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse(" from_server , stateless ");
+    fd = DetectFlowParse(NULL, " from_server , stateless ");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_STATELESS &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->match_cnt == 2);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -634,9 +635,9 @@ static int DetectFlowTestParse11 (void)
 static int DetectFlowTestParseNocase01 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("ESTABLISHED");
+    fd = DetectFlowParse(NULL, "ESTABLISHED");
     FAIL_IF_NULL(fd);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -646,11 +647,11 @@ static int DetectFlowTestParseNocase01 (void)
 static int DetectFlowTestParseNocase02 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("ESTABLISHED");
+    fd = DetectFlowParse(NULL, "ESTABLISHED");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_ESTABLISHED &&
         fd->match_cnt == 1);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -660,9 +661,9 @@ static int DetectFlowTestParseNocase02 (void)
 static int DetectFlowTestParseNocase03 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("STATELESS");
+    fd = DetectFlowParse(NULL, "STATELESS");
     FAIL_IF_NULL(fd);
-    FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_STATELESS && fd->match_cnt == 1);         DetectFlowFree(fd);
+    FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_STATELESS && fd->match_cnt == 1);         DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -672,10 +673,10 @@ static int DetectFlowTestParseNocase03 (void)
 static int DetectFlowTestParseNocase04 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("TO_CLIENT");
+    fd = DetectFlowParse(NULL, "TO_CLIENT");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_TOCLIENT && fd->match_cnt == 1);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -685,10 +686,10 @@ static int DetectFlowTestParseNocase04 (void)
 static int DetectFlowTestParseNocase05 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("TO_SERVER");
+    fd = DetectFlowParse(NULL, "TO_SERVER");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_TOSERVER && fd->match_cnt == 1);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -698,10 +699,10 @@ static int DetectFlowTestParseNocase05 (void)
 static int DetectFlowTestParseNocase06 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("FROM_SERVER");
+    fd = DetectFlowParse(NULL, "FROM_SERVER");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_TOCLIENT && fd->match_cnt == 1);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -711,10 +712,10 @@ static int DetectFlowTestParseNocase06 (void)
 static int DetectFlowTestParseNocase07 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("FROM_CLIENT");
+    fd = DetectFlowParse(NULL, "FROM_CLIENT");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags == DETECT_FLOW_FLAG_TOSERVER && fd->match_cnt == 1);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -724,12 +725,12 @@ static int DetectFlowTestParseNocase07 (void)
 static int DetectFlowTestParseNocase08 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("ESTABLISHED,TO_CLIENT");
+    fd = DetectFlowParse(NULL, "ESTABLISHED,TO_CLIENT");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ESTABLISHED &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->match_cnt == 2);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -739,12 +740,12 @@ static int DetectFlowTestParseNocase08 (void)
 static int DetectFlowTestParseNocase09 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("TO_CLIENT,STATELESS");
+    fd = DetectFlowParse(NULL, "TO_CLIENT,STATELESS");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_STATELESS &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->match_cnt == 2);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -754,12 +755,12 @@ static int DetectFlowTestParseNocase09 (void)
 static int DetectFlowTestParseNocase10 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("FROM_SERVER,STATELESS");
+    fd = DetectFlowParse(NULL, "FROM_SERVER,STATELESS");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_STATELESS &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->match_cnt == 2);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -769,12 +770,12 @@ static int DetectFlowTestParseNocase10 (void)
 static int DetectFlowTestParseNocase11 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse(" FROM_SERVER , STATELESS ");
+    fd = DetectFlowParse(NULL, " FROM_SERVER , STATELESS ");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_STATELESS &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->match_cnt == 2);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -784,7 +785,7 @@ static int DetectFlowTestParseNocase11 (void)
 static int DetectFlowTestParse12 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("from_server:stateless");
+    fd = DetectFlowParse(NULL, "from_server:stateless");
     FAIL_IF_NOT_NULL(fd);
     PASS;
 }
@@ -795,7 +796,7 @@ static int DetectFlowTestParse12 (void)
 static int DetectFlowTestParse13 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("invalidoptiontest");
+    fd = DetectFlowParse(NULL, "invalidoptiontest");
     FAIL_IF_NOT_NULL(fd);
     PASS;
 }
@@ -806,7 +807,7 @@ static int DetectFlowTestParse13 (void)
 static int DetectFlowTestParse14 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("");
+    fd = DetectFlowParse(NULL, "");
     FAIL_IF_NOT_NULL(fd);
     PASS;
 }
@@ -817,7 +818,7 @@ static int DetectFlowTestParse14 (void)
 static int DetectFlowTestParse15 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("established,stateless");
+    fd = DetectFlowParse(NULL, "established,stateless");
     FAIL_IF_NOT_NULL(fd);
     PASS;
 }
@@ -828,7 +829,7 @@ static int DetectFlowTestParse15 (void)
 static int DetectFlowTestParse16 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("to_client,to_server");
+    fd = DetectFlowParse(NULL, "to_client,to_server");
     FAIL_IF_NOT_NULL(fd);
     PASS;
 }
@@ -840,7 +841,7 @@ static int DetectFlowTestParse16 (void)
 static int DetectFlowTestParse17 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("to_client,from_server");
+    fd = DetectFlowParse(NULL, "to_client,from_server");
     FAIL_IF_NOT_NULL(fd);
     PASS;
 }
@@ -851,13 +852,13 @@ static int DetectFlowTestParse17 (void)
 static int DetectFlowTestParse18 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("from_server,established,only_stream");
+    fd = DetectFlowParse(NULL, "from_server,established,only_stream");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ESTABLISHED &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->flags & DETECT_FLOW_FLAG_ONLYSTREAM &&
         fd->match_cnt == 3);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -867,13 +868,13 @@ static int DetectFlowTestParse18 (void)
 static int DetectFlowTestParseNocase18 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("FROM_SERVER,ESTABLISHED,ONLY_STREAM");
+    fd = DetectFlowParse(NULL, "FROM_SERVER,ESTABLISHED,ONLY_STREAM");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ESTABLISHED &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->flags & DETECT_FLOW_FLAG_ONLYSTREAM &&
         fd->match_cnt == 3);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -884,7 +885,7 @@ static int DetectFlowTestParseNocase18 (void)
 static int DetectFlowTestParse19 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("from_server,established,only_stream,a");
+    fd = DetectFlowParse(NULL, "from_server,established,only_stream,a");
     FAIL_IF_NOT_NULL(fd);
     PASS;
 }
@@ -895,13 +896,13 @@ static int DetectFlowTestParse19 (void)
 static int DetectFlowTestParse20 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("from_server,established,no_stream");
+    fd = DetectFlowParse(NULL, "from_server,established,no_stream");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ESTABLISHED &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->flags & DETECT_FLOW_FLAG_NOSTREAM &&
         fd->match_cnt == 3);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -911,13 +912,13 @@ static int DetectFlowTestParse20 (void)
 static int DetectFlowTestParseNocase20 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("FROM_SERVER,ESTABLISHED,NO_STREAM");
+    fd = DetectFlowParse(NULL, "FROM_SERVER,ESTABLISHED,NO_STREAM");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ESTABLISHED &&
         fd->flags & DETECT_FLOW_FLAG_TOCLIENT &&
         fd->flags & DETECT_FLOW_FLAG_NOSTREAM &&
         fd->match_cnt == 3);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -927,7 +928,7 @@ static int DetectFlowTestParseNocase20 (void)
 static int DetectFlowTestParse21 (void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("from_server,a,no_stream");
+    fd = DetectFlowParse(NULL, "from_server,a,no_stream");
     FAIL_IF_NOT_NULL(fd);
     PASS;
 }
@@ -984,10 +985,10 @@ static int DetectFlowSigTest01(void)
 static int DetectFlowTestParseNotEstablished(void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("not_established");
+    fd = DetectFlowParse(NULL, "not_established");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_NOT_ESTABLISHED);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -997,10 +998,10 @@ static int DetectFlowTestParseNotEstablished(void)
 static int DetectFlowTestParseNoFrag(void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("no_frag");
+    fd = DetectFlowParse(NULL, "no_frag");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_NO_FRAG);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -1010,10 +1011,10 @@ static int DetectFlowTestParseNoFrag(void)
 static int DetectFlowTestParseOnlyFrag(void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("only_frag");
+    fd = DetectFlowParse(NULL, "only_frag");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ONLY_FRAG);
-    DetectFlowFree(fd);
+    DetectFlowFree(NULL, fd);
     PASS;
 }
 
@@ -1023,7 +1024,7 @@ static int DetectFlowTestParseOnlyFrag(void)
 static int DetectFlowTestParseNoFragOnlyFrag(void)
 {
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("no_frag,only_frag");
+    fd = DetectFlowParse(NULL, "no_frag,only_frag");
     FAIL_IF_NOT_NULL(fd);
     PASS;
 }
@@ -1034,7 +1035,7 @@ static int DetectFlowTestParseNoFragOnlyFrag(void)
 static int DetectFlowTestNoFragMatch(void)
 {
     uint32_t pflags = 0;
-    DetectFlowData *fd = DetectFlowParse("no_frag");
+    DetectFlowData *fd = DetectFlowParse(NULL, "no_frag");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_NO_FRAG);
     FAIL_IF_NOT(fd->match_cnt == 1);
@@ -1050,7 +1051,7 @@ static int DetectFlowTestNoFragMatch(void)
 static int DetectFlowTestOnlyFragMatch(void)
 {
     uint32_t pflags = 0;
-    DetectFlowData *fd = DetectFlowParse("only_frag");
+    DetectFlowData *fd = DetectFlowParse(NULL, "only_frag");
     FAIL_IF_NULL(fd);
     FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ONLY_FRAG);
     FAIL_IF_NOT(fd->match_cnt == 1);

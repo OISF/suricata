@@ -42,7 +42,7 @@ static DetectParseRegex parse_regex;
 static int DetectPktvarMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectPktvarSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectPktvarFree(void *data);
+static void DetectPktvarFree(DetectEngineCtx *, void *data);
 
 void DetectPktvarRegister (void)
 {
@@ -77,7 +77,7 @@ static int DetectPktvarMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     return ret;
 }
 
-static void DetectPktvarFree(void *ptr)
+static void DetectPktvarFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectPktvarData *data = ptr;
     if (data != NULL) {
@@ -152,7 +152,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
      * and put it in the Signature. */
     SigMatch *sm = SigMatchAlloc();
     if (unlikely(sm == NULL)) {
-        DetectPktvarFree(cd);
+        DetectPktvarFree(de_ctx, cd);
         return -1;
     }
     sm->type = DETECT_PKTVAR;

@@ -52,7 +52,7 @@ static DetectParseRegex parse_regex;
 static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
         uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m);
 static int DetectFilesizeSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectFilesizeFree (void *);
+static void DetectFilesizeFree (DetectEngineCtx *, void *);
 static void DetectFilesizeRegisterTests (void);
 static int g_file_match_list_id = 0;
 
@@ -293,7 +293,7 @@ static int DetectFilesizeSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
 error:
     if (fsd != NULL)
-        DetectFilesizeFree(fsd);
+        DetectFilesizeFree(de_ctx, fsd);
     if (sm != NULL)
         SCFree(sm);
     SCReturnInt(-1);
@@ -304,7 +304,7 @@ error:
  *
  * \param ptr pointer to DetectFilesizeData
  */
-static void DetectFilesizeFree(void *ptr)
+static void DetectFilesizeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectFilesizeData *fsd = (DetectFilesizeData *)ptr;
     SCFree(fsd);
@@ -329,7 +329,7 @@ static int DetectFilesizeParseTest01(void)
         if (fsd->size1 == 10 && fsd->mode == DETECT_FILESIZE_EQ)
             ret = 1;
 
-        DetectFilesizeFree(fsd);
+        DetectFilesizeFree(NULL, fsd);
     }
     return ret;
 }
@@ -345,7 +345,7 @@ static int DetectFilesizeParseTest02(void)
         if (fsd->size1 == 10 && fsd->mode == DETECT_FILESIZE_LT)
             ret = 1;
 
-        DetectFilesizeFree(fsd);
+        DetectFilesizeFree(NULL, fsd);
     }
     return ret;
 }
@@ -361,7 +361,7 @@ static int DetectFilesizeParseTest03(void)
         if (fsd->size1 == 10 && fsd->mode == DETECT_FILESIZE_GT)
             ret = 1;
 
-        DetectFilesizeFree(fsd);
+        DetectFilesizeFree(NULL, fsd);
     }
     return ret;
 }
@@ -378,7 +378,7 @@ static int DetectFilesizeParseTest04(void)
             fsd->mode == DETECT_FILESIZE_RA)
             ret = 1;
 
-        DetectFilesizeFree(fsd);
+        DetectFilesizeFree(NULL, fsd);
     }
     return ret;
 }
@@ -395,7 +395,7 @@ static int DetectFilesizeParseTest05(void)
             fsd->mode == DETECT_FILESIZE_RA)
             ret = 1;
 
-        DetectFilesizeFree(fsd);
+        DetectFilesizeFree(NULL, fsd);
     }
     return ret;
 }

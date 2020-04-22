@@ -52,7 +52,7 @@ static int DetectAppLayerEventPktMatch(DetectEngineThreadCtx *det_ctx,
                                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, const char *);
 static void DetectAppLayerEventRegisterTests(void);
-static void DetectAppLayerEventFree(void *);
+static void DetectAppLayerEventFree(DetectEngineCtx *, void *);
 static int DetectEngineAptEventInspect(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
@@ -276,7 +276,8 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg,
     }
 }
 
-static int DetectAppLayerEventSetupP2(Signature *s,
+static int DetectAppLayerEventSetupP2(DetectEngineCtx *de_ctx,
+                                      Signature *s,
                                       SigMatch *sm)
 {
     AppLayerEventType event_type = 0;
@@ -287,7 +288,7 @@ static int DetectAppLayerEventSetupP2(Signature *s,
         /* DetectAppLayerEventParseAppP2 prints errors */
 
         /* sm has been removed from lists by DetectAppLayerEventPrepare */
-        SigMatchFree(sm);
+        SigMatchFree(de_ctx, sm);
         return ret;
     }
     SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
@@ -325,16 +326,16 @@ static int DetectAppLayerEventSetupP1(DetectEngineCtx *de_ctx, Signature *s, con
 
 error:
     if (data) {
-        DetectAppLayerEventFree(data);
+        DetectAppLayerEventFree(de_ctx, data);
     }
     if (sm) {
         sm->ctx = NULL;
-        SigMatchFree(sm);
+        SigMatchFree(de_ctx, sm);
     }
     return -1;
 }
 
-static void DetectAppLayerEventFree(void *ptr)
+static void DetectAppLayerEventFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectAppLayerEventData *data = (DetectAppLayerEventData *)ptr;
     if (data->arg != NULL)
@@ -345,7 +346,7 @@ static void DetectAppLayerEventFree(void *ptr)
     return;
 }
 
-int DetectAppLayerEventPrepare(Signature *s)
+int DetectAppLayerEventPrepare(DetectEngineCtx *de_ctx, Signature *s)
 {
     SigMatch *sm = s->init_data->smlists[g_applayer_events_list_id];
     SigMatch *smn;
@@ -359,13 +360,13 @@ int DetectAppLayerEventPrepare(Signature *s)
          * called by DetectAppLayerEventSetupP2
          */
         sm->next = sm->prev = NULL;
-        int ret = DetectAppLayerEventSetupP2(s, sm);
+        int ret = DetectAppLayerEventSetupP2(de_ctx, s, sm);
         if (ret < 0) {
             // current one was freed, let's free the next ones
             sm = smn;
             while(sm) {
                 smn = sm->next;
-                SigMatchFree(sm);
+                SigMatchFree(de_ctx, sm);
                 sm = smn;
             }
             return ret;
@@ -448,7 +449,7 @@ static int DetectAppLayerEventTest01(void)
  end:
     AppLayerParserRestoreParserTable();
     if (aled != NULL)
-        DetectAppLayerEventFree(aled);
+        DetectAppLayerEventFree(NULL, aled);
     return result;
 }
 
@@ -506,7 +507,7 @@ static int DetectAppLayerEventTest02(void)
     FAIL_IF(aled->event_id != APP_LAYER_EVENT_TEST_MAP_EVENT5);
 
     AppLayerParserRestoreParserTable();
-    DetectAppLayerEventFree(aled);
+    DetectAppLayerEventFree(NULL, aled);
     PASS;
 }
 
@@ -802,7 +803,7 @@ static int DetectAppLayerEventTest06(void)
     FAIL_IF(aled->alproto != ALPROTO_UNKNOWN);
     FAIL_IF(aled->event_id != DET_CTX_EVENT_TEST);
 
-    DetectAppLayerEventFree(aled);
+    DetectAppLayerEventFree(NULL, aled);
     PASS;
 }
 #endif /* UNITTESTS */

@@ -58,7 +58,7 @@
 /* prototypes */
 static int DetectUricontentSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectUricontentRegisterTests(void);
-static void DetectUricontentFree(void *);
+static void DetectUricontentFree(DetectEngineCtx *de_ctx, void *);
 
 static int g_http_uri_buffer_id = 0;
 
@@ -85,7 +85,7 @@ void DetectUricontentRegister (void)
  *
  * \param cd pointer to DetectUricotentData
  */
-void DetectUricontentFree(void *ptr)
+void DetectUricontentFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
     DetectContentData *cd = (DetectContentData *)ptr;

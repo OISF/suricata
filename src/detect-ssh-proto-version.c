@@ -66,7 +66,7 @@ static int DetectSshVersionMatch (DetectEngineThreadCtx *,
         const Signature *, const SigMatchCtx *);
 static int DetectSshVersionSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectSshVersionRegisterTests(void);
-static void DetectSshVersionFree(void *);
+static void DetectSshVersionFree(DetectEngineCtx *, void *);
 static int g_ssh_banner_list_id = 0;
 
 /**
@@ -145,12 +145,13 @@ static int DetectSshVersionMatch (DetectEngineThreadCtx *det_ctx,
 /**
  * \brief This function is used to parse IPV4 ip_id passed via keyword: "id"
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param idstr Pointer to the user provided id option
  *
  * \retval id_d pointer to DetectSshVersionData on success
  * \retval NULL on failure
  */
-static DetectSshVersionData *DetectSshVersionParse (const char *str)
+static DetectSshVersionData *DetectSshVersionParse (DetectEngineCtx *de_ctx, const char *str)
 {
     DetectSshVersionData *ssh = NULL;
     int ret = 0, res = 0;
@@ -202,7 +203,7 @@ static DetectSshVersionData *DetectSshVersionParse (const char *str)
 
 error:
     if (ssh != NULL)
-        DetectSshVersionFree(ssh);
+        DetectSshVersionFree(de_ctx, ssh);
     return NULL;
 
 }
@@ -226,7 +227,7 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     if (DetectSignatureSetAppProto(s, ALPROTO_SSH) != 0)
         return -1;
 
-    ssh = DetectSshVersionParse(str);
+    ssh = DetectSshVersionParse(de_ctx, str);
     if (ssh == NULL)
         goto error;
 
@@ -244,7 +245,7 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 
 error:
     if (ssh != NULL)
-        DetectSshVersionFree(ssh);
+        DetectSshVersionFree(de_ctx, ssh);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -256,7 +257,7 @@ error:
  *
  * \param id_d pointer to DetectSshVersionData
  */
-void DetectSshVersionFree(void *ptr)
+void DetectSshVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectSshVersionData *sshd = (DetectSshVersionData *)ptr;
     SCFree(sshd->ver);
@@ -272,9 +273,9 @@ void DetectSshVersionFree(void *ptr)
 static int DetectSshVersionTestParse01 (void)
 {
     DetectSshVersionData *ssh = NULL;
-    ssh = DetectSshVersionParse("1.0");
+    ssh = DetectSshVersionParse(NULL, "1.0");
     if (ssh != NULL && strncmp((char *) ssh->ver, "1.0", 3) == 0) {
-        DetectSshVersionFree(ssh);
+        DetectSshVersionFree(NULL, ssh);
         return 1;
     }
 
@@ -288,9 +289,9 @@ static int DetectSshVersionTestParse01 (void)
 static int DetectSshVersionTestParse02 (void)
 {
     DetectSshVersionData *ssh = NULL;
-    ssh = DetectSshVersionParse("2_compat");
+    ssh = DetectSshVersionParse(NULL, "2_compat");
     if (ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT) {
-        DetectSshVersionFree(ssh);
+        DetectSshVersionFree(NULL, ssh);
         return 1;
     }
 
@@ -304,24 +305,24 @@ static int DetectSshVersionTestParse02 (void)
 static int DetectSshVersionTestParse03 (void)
 {
     DetectSshVersionData *ssh = NULL;
-    ssh = DetectSshVersionParse("2_com");
+    ssh = DetectSshVersionParse(NULL, "2_com");
     if (ssh != NULL) {
-        DetectSshVersionFree(ssh);
+        DetectSshVersionFree(NULL, ssh);
         return 0;
     }
-    ssh = DetectSshVersionParse("");
+    ssh = DetectSshVersionParse(NULL, "");
     if (ssh != NULL) {
-        DetectSshVersionFree(ssh);
+        DetectSshVersionFree(NULL, ssh);
         return 0;
     }
-    ssh = DetectSshVersionParse(".1");
+    ssh = DetectSshVersionParse(NULL, ".1");
     if (ssh != NULL) {
-        DetectSshVersionFree(ssh);
+        DetectSshVersionFree(NULL, ssh);
         return 0;
     }
-    ssh = DetectSshVersionParse("lalala");
+    ssh = DetectSshVersionParse(NULL, "lalala");
     if (ssh != NULL) {
-        DetectSshVersionFree(ssh);
+        DetectSshVersionFree(NULL, ssh);
         return 0;
     }
 

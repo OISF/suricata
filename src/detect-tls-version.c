@@ -65,7 +65,7 @@ static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTlsVersionRegisterTests(void);
 #endif
-static void DetectTlsVersionFree(void *);
+static void DetectTlsVersionFree(DetectEngineCtx *, void *);
 static int g_tls_generic_list_id = 0;
 
 /**
@@ -141,12 +141,13 @@ static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
 /**
  * \brief This function is used to parse IPV4 ip_id passed via keyword: "id"
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param idstr Pointer to the user provided id option
  *
  * \retval id_d pointer to DetectTlsVersionData on success
  * \retval NULL on failure
  */
-static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
+static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, const char *str)
 {
     uint16_t temp;
     DetectTlsVersionData *tls = NULL;
@@ -207,7 +208,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
 
 error:
     if (tls != NULL)
-        DetectTlsVersionFree(tls);
+        DetectTlsVersionFree(de_ctx, tls);
     return NULL;
 
 }
@@ -231,7 +232,7 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    tls = DetectTlsVersionParse(str);
+    tls = DetectTlsVersionParse(de_ctx, str);
     if (tls == NULL)
         goto error;
 
@@ -250,7 +251,7 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 
 error:
     if (tls != NULL)
-        DetectTlsVersionFree(tls);
+        DetectTlsVersionFree(de_ctx, tls);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -262,7 +263,7 @@ error:
  *
  * \param id_d pointer to DetectTlsVersionData
  */
-static void DetectTlsVersionFree(void *ptr)
+static void DetectTlsVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectTlsVersionData *id_d = (DetectTlsVersionData *)ptr;
     SCFree(id_d);

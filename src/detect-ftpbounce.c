@@ -269,7 +269,7 @@ static int DetectFtpbounceTestSetup01(void)
     FAIL_IF(s->sm_lists[g_ftp_request_list_id] == NULL);
     FAIL_IF_NOT(s->sm_lists[g_ftp_request_list_id]->type & DETECT_FTPBOUNCE);
 
-    SigFree(s);
+    SigFree(de_ctx, s);
     PASS;
 }
 

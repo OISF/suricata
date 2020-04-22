@@ -69,7 +69,7 @@ typedef struct DetectNfsVersionData_ {
 
 static DetectNfsVersionData *DetectNfsVersionParse (const char *);
 static int DetectNfsVersionSetup (DetectEngineCtx *, Signature *s, const char *str);
-static void DetectNfsVersionFree(void *);
+static void DetectNfsVersionFree(DetectEngineCtx *de_ctx, void *);
 static void DetectNfsVersionRegisterTests(void);
 static int g_nfs_request_buffer_id = 0;
 
@@ -346,7 +346,7 @@ static int DetectNfsVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     return 0;
 
 error:
-    DetectNfsVersionFree(dd);
+    DetectNfsVersionFree(de_ctx, dd);
     return -1;
 }
 
@@ -356,7 +356,7 @@ error:
  *
  * \param de_ptr Pointer to DetectNfsVersionData.
  */
-void DetectNfsVersionFree(void *ptr)
+void DetectNfsVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCFree(ptr);
 }
@@ -375,7 +375,7 @@ static int ValidityTestParse01 (void)
     dd = DetectNfsVersionParse("1430000000");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_EQ);
-    DetectNfsVersionFree(dd);
+    DetectNfsVersionFree(NULL, dd);
     PASS;
 }
 
@@ -391,7 +391,7 @@ static int ValidityTestParse02 (void)
     dd = DetectNfsVersionParse(">1430000000");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_GT);
-    DetectNfsVersionFree(dd);
+    DetectNfsVersionFree(NULL, dd);
     PASS;
 }
 
@@ -407,7 +407,7 @@ static int ValidityTestParse03 (void)
     dd = DetectNfsVersionParse("<1430000000");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_LT);
-    DetectNfsVersionFree(dd);
+    DetectNfsVersionFree(NULL, dd);
     PASS;
 }
 
@@ -424,7 +424,7 @@ static int ValidityTestParse04 (void)
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->hi == 1470000000 &&
                 dd->mode == PROCEDURE_RA);
-    DetectNfsVersionFree(dd);
+    DetectNfsVersionFree(NULL, dd);
     PASS;
 }
 
@@ -539,7 +539,7 @@ static int ValidityTestParse12 (void)
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->hi == 1490000000 &&
                 dd->mode == PROCEDURE_RA);
-    DetectNfsVersionFree(dd);
+    DetectNfsVersionFree(NULL, dd);
     PASS;
 }
 
@@ -555,7 +555,7 @@ static int ValidityTestParse13 (void)
     dd = DetectNfsVersionParse("> 1430000000 ");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1430000000 && dd->mode == PROCEDURE_GT);
-    DetectNfsVersionFree(dd);
+    DetectNfsVersionFree(NULL, dd);
     PASS;
 }
 
@@ -571,7 +571,7 @@ static int ValidityTestParse14 (void)
     dd = DetectNfsVersionParse("<   1490000000 ");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1490000000 && dd->mode == PROCEDURE_LT);
-    DetectNfsVersionFree(dd);
+    DetectNfsVersionFree(NULL, dd);
     PASS;
 }
 
@@ -587,7 +587,7 @@ static int ValidityTestParse15 (void)
     dd = DetectNfsVersionParse("   1490000000 ");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->lo == 1490000000 && dd->mode == PROCEDURE_EQ);
-    DetectNfsVersionFree(dd);
+    DetectNfsVersionFree(NULL, dd);
     PASS;
 }
 

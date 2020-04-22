@@ -51,7 +51,7 @@ static int DetectEngineEventMatch (DetectEngineThreadCtx *,
 static int DetectEngineEventSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectDecodeEventSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectStreamEventSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectEngineEventFree (void *);
+static void DetectEngineEventFree (DetectEngineCtx *, void *);
 void EngineEventRegisterTests(void);
 
 
@@ -211,7 +211,7 @@ static int DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, const 
  *
  * \param de pointer to DetectEngineEventData
  */
-static void DetectEngineEventFree(void *ptr)
+static void DetectEngineEventFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectEngineEventData *de = (DetectEngineEventData *)ptr;
     if (de)
@@ -265,7 +265,7 @@ static int EngineEventTestParse01 (void)
     DetectEngineEventData *de = NULL;
     de = DetectEngineEventParse("decoder.ipv4.pkt_too_small");
     if (de) {
-        DetectEngineEventFree(de);
+        DetectEngineEventFree(NULL, de);
         return 1;
     }
 
@@ -281,7 +281,7 @@ static int EngineEventTestParse02 (void)
     DetectEngineEventData *de = NULL;
     de = DetectEngineEventParse("decoder.PPP.pkt_too_small");
     if (de) {
-        DetectEngineEventFree(de);
+        DetectEngineEventFree(NULL, de);
         return 1;
     }
 
@@ -296,7 +296,7 @@ static int EngineEventTestParse03 (void)
     DetectEngineEventData *de = NULL;
     de = DetectEngineEventParse("decoder.IPV6.PKT_TOO_SMALL");
     if (de) {
-        DetectEngineEventFree(de);
+        DetectEngineEventFree(NULL, de);
         return 1;
     }
 
@@ -311,7 +311,7 @@ static int EngineEventTestParse04 (void)
     DetectEngineEventData *de = NULL;
     de = DetectEngineEventParse("decoder.IPV6.INVALID_EVENT");
     if (de) {
-        DetectEngineEventFree(de);
+        DetectEngineEventFree(NULL, de);
         return 0;
     }
 
@@ -326,7 +326,7 @@ static int EngineEventTestParse05 (void)
     DetectEngineEventData *de = NULL;
     de = DetectEngineEventParse("decoder.IPV-6,INVALID_CHAR");
     if (de) {
-        DetectEngineEventFree(de);
+        DetectEngineEventFree(NULL, de);
         return 0;
     }
 
