@@ -271,6 +271,7 @@ pub enum DNSRData {
     MX(Vec<u8>),
     // RData is text
     TXT(Vec<u8>),
+    NULL(Vec<u8>),
     // RData has several fields
     SOA(DNSRDataSOA),
     SSHFP(DNSRDataSSHFP),

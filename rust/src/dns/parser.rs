@@ -323,6 +323,15 @@ fn dns_parse_rdata_txt<'a>(input: &'a [u8])
     )
 }
 
+fn dns_parse_rdata_null<'a>(input: &'a [u8])
+                            -> IResult<&'a [u8], DNSRData> {
+    do_parse!(
+        input,
+        data: take!(input.len()) >>
+            (DNSRData::NULL(data.to_vec()))
+    )
+}
+
 fn dns_parse_rdata_sshfp<'a>(input: &'a [u8])
                              -> IResult<&'a [u8], DNSRData> {
     do_parse!(
@@ -354,6 +363,7 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
         DNS_RECORD_TYPE_SOA => dns_parse_rdata_soa(input, message),
         DNS_RECORD_TYPE_MX => dns_parse_rdata_mx(input, message),
         DNS_RECORD_TYPE_TXT => dns_parse_rdata_txt(input),
+        DNS_RECORD_TYPE_NULL => dns_parse_rdata_null(input),
         DNS_RECORD_TYPE_SSHFP => dns_parse_rdata_sshfp(input),
         _ => dns_parse_rdata_unknown(input),
     }
@@ -668,6 +678,65 @@ mod tests {
             }
         }
     }
+
+
+    #[test]
+    fn test_dns_parse_response_null() {
+        // DNS response with a NULL record from
+        // https://redmine.openinfosecfoundation.org/attachments/2062
+
+        let pkt: &[u8] = &[
+            0x12, 0xb0, 0x84, 0x00, 0x00, 0x01, 0x00, 0x01, /* ........ */
+            0x00, 0x00, 0x00, 0x00, 0x0b, 0x76, 0x61, 0x61, /* .....vaa */
+            0x61, 0x61, 0x6b, 0x61, 0x72, 0x64, 0x6c, 0x69, /* aakardli */
+            0x06, 0x70, 0x69, 0x72, 0x61, 0x74, 0x65, 0x03, /* .pirate. */
+            0x73, 0x65, 0x61, 0x00, 0x00, 0x0a, 0x00, 0x01, /* sea..... */
+            0xc0, 0x0c, 0x00, 0x0a, 0x00, 0x01, 0x00, 0x00, /* ........ */
+            0x00, 0x00, 0x00, 0x09, 0x56, 0x41, 0x43, 0x4b, /* ....VACK */
+            0x44, 0x03, 0xc5, 0xe9, 0x01,                   /* D.... */
+        ];
+
+        let res = dns_parse_response(pkt);
+        match res {
+            Ok((rem, response)) => {
+                // The response should be fully parsed.
+                assert_eq!(rem.len(), 0);
+
+                assert_eq!(response.header, DNSHeader {
+                    tx_id: 0x12b0,
+                    flags: 0x8400,
+                    questions: 1,
+                    answer_rr: 1,
+                    authority_rr: 0,
+                    additional_rr: 0,
+                });
+
+                assert_eq!(response.queries.len(), 1);
+                let query = &response.queries[0];
+                assert_eq!(query.name,
+                           "vaaaakardli.pirate.sea".as_bytes().to_vec());
+                assert_eq!(query.rrtype, DNS_RECORD_TYPE_NULL);
+                assert_eq!(query.rrclass, 1);
+
+                assert_eq!(response.answers.len(), 1);
+
+                let answer = &response.answers[0];
+                assert_eq!(answer.name,
+                           "vaaaakardli.pirate.sea".as_bytes().to_vec());
+                assert_eq!(answer.rrtype, DNS_RECORD_TYPE_NULL);
+                assert_eq!(answer.rrclass, 1);
+                assert_eq!(answer.ttl, 0);
+                assert_eq!(answer.data, DNSRData::NULL(vec![
+                        0x56, 0x41, 0x43, 0x4b,       /* VACK */
+                        0x44, 0x03, 0xc5, 0xe9, 0x01, /* D.... */
+                        ]));
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+
 
     #[test]
     fn test_dns_parse_rdata_sshfp() {
