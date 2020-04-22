@@ -224,16 +224,27 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, const char *str)
             dd->ip[0] =htonl(first);
 
             if (first < last) {
-                for (first++; first <= last; first++) {
+                first++;
+                while ( first <= last) {
                     IPOnlyCIDRItem *new = IPOnlyCIDRItemNew();
                     if (new == NULL)
                         goto error;
                     dd->next = new;
                     new->negated = dd->negated;
                     new->family= dd->family;
-                    new->netmask = dd->netmask;
+                    new->netmask = 32;
+                    /* Find the maximum netmask starting from current address first
+                     * and not crossing last.
+                     * To extend the mask, we need to start from a power of 2.
+                     */
+                    while (new->netmask > 0 &&
+                           (first & (1<<(32-new->netmask))) == 0 &&
+                           first + (1<<(32-(new->netmask-1))) <= last) {
+                        new->netmask--;
+                    }
                     new->ip[0] = htonl(first);
                     dd = dd->next;
+                    first+=1<<(32-new->netmask);
                 }
             }
 
