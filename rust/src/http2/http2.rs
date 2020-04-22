@@ -44,15 +44,17 @@ const HTTP2_FRAME_PRIORITY_LEN: usize = 1;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 
 pub enum HTTP2FrameTypeData {
-    //TODO PUSH_PROMISE
-    //TODO DATA
-    //TODO HEADERS
-    //TODO CONTINATION
+    //TODO3 PUSH_PROMISE
+    //TODO4 DATA
+    //TODO1 HEADERS
+    //TODO2 CONTINATION
+    //Left undone PING
     PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
     RSTSTREAM(parser::HTTP2FrameRstStream),
-    SETTINGS(parser::HTTP2FrameSettings),
+    SETTINGS(Vec<parser::HTTP2FrameSettings>),
     WINDOWUPDATE(parser::HTTP2FrameWindowUpdate),
+    HEADERS(parser::HTTP2FrameHeaders),
 }
 
 pub struct HTTP2Transaction {
@@ -281,6 +283,22 @@ impl HTTP2State {
                                         (il - input.len()) as u32,
                                         (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_WINDOWUPDATE_LEN)
                                             as u32,
+                                    );
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
+                                }
+                            }
+                        }
+                        parser::HTTP2FrameType::HEADERS => {
+                            match parser::http2_parse_frame_headers(rem, head.flags) {
+                                Ok((_, hs)) => {
+                                    tx.type_data = Some(HTTP2FrameTypeData::HEADERS(hs));
+                                }
+                                Err(nom::Err::Incomplete(_)) => {
+                                    return AppLayerResult::incomplete(
+                                        (il - input.len()) as u32,
+                                        (HTTP2_FRAME_HEADER_LEN + 1) as u32,
                                     );
                                 }
                                 Err(_) => {

@@ -29,8 +29,14 @@ fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
             js.set_string("error_code", &goaway.errorcode.to_string());
         }
         Some(HTTP2FrameTypeData::SETTINGS(set)) => {
-            js.set_string("settings_id", &set.id.to_string());
-            js.set_integer("settings_value", set.value as u64);
+            let jsettings = Json::array();
+            for i in 0..set.len() {
+                let jss = Json::object();
+                jss.set_string("settings_id", &set[i].id.to_string());
+                jss.set_integer("settings_value", set[i].value as u64);
+                jsettings.array_append(jss)
+            }
+            js.set("settings", jsettings);
         }
         Some(HTTP2FrameTypeData::RSTSTREAM(rst)) => {
             js.set_string("error_code", &rst.errorcode.to_string());

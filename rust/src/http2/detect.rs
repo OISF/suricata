@@ -241,36 +241,38 @@ pub extern "C" fn rs_http2_detect_settingsctx_free(ctx: *mut std::os::raw::c_voi
 }
 
 fn http2_detect_settings_match(
-    set: &parser::HTTP2FrameSettings,
+    set: &Vec<parser::HTTP2FrameSettings>,
     ctx: &parser::DetectHTTP2settingsSigCtx,
 ) -> std::os::raw::c_int {
-    if set.id == ctx.id {
-        match &ctx.value {
-            None => {
-                return 1;
+    for i in 0..set.len() {
+        if set[i].id == ctx.id {
+            match &ctx.value {
+                None => {
+                    return 1;
+                }
+                Some(x) => match x.mode {
+                    parser::DetectUintMode::DetectUintModeEqual => {
+                        if set[i].value == x.value {
+                            return 1;
+                        }
+                    }
+                    parser::DetectUintMode::DetectUintModeLt => {
+                        if set[i].value <= x.value {
+                            return 1;
+                        }
+                    }
+                    parser::DetectUintMode::DetectUintModeGt => {
+                        if set[i].value >= x.value {
+                            return 1;
+                        }
+                    }
+                    parser::DetectUintMode::DetectUintModeRange => {
+                        if set[i].value <= x.value && set[i].value >= x.valrange {
+                            return 1;
+                        }
+                    }
+                },
             }
-            Some(x) => match x.mode {
-                parser::DetectUintMode::DetectUintModeEqual => {
-                    if set.value == x.value {
-                        return 1;
-                    }
-                }
-                parser::DetectUintMode::DetectUintModeLt => {
-                    if set.value <= x.value {
-                        return 1;
-                    }
-                }
-                parser::DetectUintMode::DetectUintModeGt => {
-                    if set.value >= x.value {
-                        return 1;
-                    }
-                }
-                parser::DetectUintMode::DetectUintModeRange => {
-                    if set.value <= x.value && set.value >= x.valrange {
-                        return 1;
-                    }
-                }
-            },
         }
     }
     return 0;

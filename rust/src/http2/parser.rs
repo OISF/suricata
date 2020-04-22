@@ -18,6 +18,7 @@
 use nom::character::complete::digit1;
 use nom::combinator::rest;
 use nom::number::streaming::{be_u16, be_u32, be_u8};
+use nom::{IResult, Needed};
 use std::fmt;
 use std::str::FromStr;
 
@@ -190,6 +191,50 @@ named!(pub http2_parse_frame_windowupdate<HTTP2FrameWindowUpdate>,
     )
 );
 
+#[derive(Clone, Copy)]
+pub struct HTTP2FrameHeadersPriority {
+    pub exclusive: bool,
+    pub dependency: u32,
+    pub weight: u8,
+}
+
+#[derive(Clone, Copy)]
+pub struct HTTP2FrameHeaders {
+    pub padlength: Option<u8>,
+    pub priority: Option<HTTP2FrameHeadersPriority>,
+    //TODO complete struct Vec<HTTP2FrameHeaderBlock>
+}
+
+const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
+
+pub fn http2_parse_frame_headers(input: &[u8], flags: u8) -> IResult<&[u8], HTTP2FrameHeaders> {
+    //TODO
+    if flags & HTTP2_FLAG_HEADER_PADDED != 0 {
+        if input.len() < 1 {
+            return Err(nom::Err::Incomplete(Needed::Size(1)));
+        } else {
+            return Ok((
+                &input[1..],
+                HTTP2FrameHeaders {
+                    padlength: Some(input[0]),
+                    priority: None,
+                },
+            ));
+        }
+    }
+    if input.len() < 4 {
+        return Err(nom::Err::Incomplete(Needed::Size(4)));
+    } else {
+        return Ok((
+            &input[4..],
+            HTTP2FrameHeaders {
+                padlength: None,
+                priority: None,
+            },
+        ));
+    }
+}
+
 #[repr(u16)]
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
 pub enum HTTP2SettingsId {
@@ -314,13 +359,17 @@ pub struct HTTP2FrameSettings {
     pub value: u32,
 }
 
-named!(pub http2_parse_frame_settings<HTTP2FrameSettings>,
+named!(
+    http2_parse_frame_setting<HTTP2FrameSettings>,
     do_parse!(
-        id: map_opt!( be_u16,
-                      num::FromPrimitive::from_u16 ) >>
-        value: be_u32 >>
-        (HTTP2FrameSettings{id, value})
+        id: map_opt!(be_u16, num::FromPrimitive::from_u16)
+            >> value: be_u32
+            >> (HTTP2FrameSettings { id, value })
     )
+);
+
+named!(pub http2_parse_frame_settings<Vec<HTTP2FrameSettings>>,
+    many0!(http2_parse_frame_setting)
 );
 
 #[cfg(test)]
