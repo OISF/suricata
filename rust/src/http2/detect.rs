@@ -240,6 +240,42 @@ pub extern "C" fn rs_http2_detect_settingsctx_free(ctx: *mut std::os::raw::c_voi
     let _ctx: Box<parser::DetectHTTP2settingsSigCtx> = unsafe { transmute(ctx) };
 }
 
+fn http2_detect_settings_match(
+    set: &parser::HTTP2FrameSettings,
+    ctx: &parser::DetectHTTP2settingsSigCtx,
+) -> std::os::raw::c_int {
+    if set.id == ctx.id {
+        match &ctx.value {
+            None => {
+                return 1;
+            }
+            Some(x) => match x.mode {
+                parser::DetectUintMode::DetectUintModeEqual => {
+                    if set.value == x.value {
+                        return 1;
+                    }
+                }
+                parser::DetectUintMode::DetectUintModeLt => {
+                    if set.value <= x.value {
+                        return 1;
+                    }
+                }
+                parser::DetectUintMode::DetectUintModeGt => {
+                    if set.value >= x.value {
+                        return 1;
+                    }
+                }
+                parser::DetectUintMode::DetectUintModeRange => {
+                    if set.value <= x.value && set.value >= x.valrange {
+                        return 1;
+                    }
+                }
+            },
+        }
+    }
+    return 0;
+}
+
 #[no_mangle]
 pub extern "C" fn rs_http2_detect_settingsctx_match(
     ctx: *const std::os::raw::c_void,
@@ -251,17 +287,13 @@ pub extern "C" fn rs_http2_detect_settingsctx_match(
     match direction {
         STREAM_TOSERVER => match &tx.type_data {
             Some(HTTP2FrameTypeData::SETTINGS(set)) => {
-                if set.id == ctx.id {
-                    return 1;
-                }
+                return http2_detect_settings_match(set, ctx)
             }
             _ => {}
         },
         STREAM_TOCLIENT => match &tx.type_data {
             Some(HTTP2FrameTypeData::SETTINGS(set)) => {
-                if set.id == ctx.id {
-                    return 1;
-                }
+                return http2_detect_settings_match(set, ctx)
             }
             _ => {}
         },

@@ -225,8 +225,18 @@ impl std::str::FromStr for HTTP2SettingsId {
     }
 }
 
+#[derive(PartialEq, Debug)]
+pub enum DetectUintMode {
+    DetectUintModeEqual,
+    DetectUintModeLt,
+    DetectUintModeGt,
+    DetectUintModeRange,
+}
+
 pub struct DetectU32Data {
-    pub val1: u32,
+    pub value: u32,
+    pub valrange: u32,
+    pub mode: DetectUintMode,
 }
 
 pub struct DetectHTTP2settingsSigCtx {
@@ -234,25 +244,65 @@ pub struct DetectHTTP2settingsSigCtx {
     pub value: Option<DetectU32Data>, //optional value
 }
 
-named!(pub detect_parse_u32<&str,DetectU32Data>,
+named!(detect_parse_u32_start_equal<&str,DetectU32Data>,
     do_parse!(
-/* TODO modes
-        alt! (
-            tag!(">") >> map_opt!(digit1, |s: &str| s.parse::<u32>().ok())) |
-            tag!("<") >> map_opt!(digit1, |s: &str| s.parse::<u32>().ok())) |
-            map_opt!(digit1, |s: &str| s.parse::<u32>().ok())) >> tag!("-")
-        )
-*/
-        val1: map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
-        (DetectU32Data{val1})
+        opt!( is_a!( " " ) ) >>
+        opt! (tag!("=") ) >>
+        opt!( is_a!( " " ) ) >>
+        value : map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
+        (DetectU32Data{value, valrange:0, mode:DetectUintMode::DetectUintModeEqual})
+    )
+);
+
+named!(detect_parse_u32_start_interval<&str,DetectU32Data>,
+    do_parse!(
+        opt!( is_a!( " " ) ) >>
+        value : map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
+        opt!( is_a!( " " ) ) >>
+        tag!("-") >>
+        opt!( is_a!( " " ) ) >>
+        valrange : map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
+        (DetectU32Data{value, valrange, mode:DetectUintMode::DetectUintModeRange})
+    )
+);
+
+named!(detect_parse_u32_start_lesser<&str,DetectU32Data>,
+    do_parse!(
+        opt!( is_a!( " " ) ) >>
+        tag!("<") >>
+        opt!( is_a!( " " ) ) >>
+        value : map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
+        (DetectU32Data{value, valrange:0, mode:DetectUintMode::DetectUintModeLt})
+    )
+);
+
+named!(detect_parse_u32_start_greater<&str,DetectU32Data>,
+    do_parse!(
+        opt!( is_a!( " " ) ) >>
+        tag!(">") >>
+        opt!( is_a!( " " ) ) >>
+        value : map_opt!(digit1, |s: &str| s.parse::<u32>().ok()) >>
+        (DetectU32Data{value, valrange:0, mode:DetectUintMode::DetectUintModeGt})
+    )
+);
+
+named!(detect_parse_u32<&str,DetectU32Data>,
+    do_parse!(
+        u32 : alt! (
+            detect_parse_u32_start_lesser |
+            detect_parse_u32_start_greater |
+            complete!( detect_parse_u32_start_interval ) |
+            detect_parse_u32_start_equal
+        ) >>
+        (u32)
     )
 );
 
 named!(pub http2_parse_settingsctx<&str,DetectHTTP2settingsSigCtx>,
     do_parse!(
+        opt!( is_a!( " " ) ) >>
         id: map_opt!( alt! ( complete!( is_not!( " <>=" ) ) | rest ),
             |s: &str| HTTP2SettingsId::from_str(s).ok() ) >>
-        opt!( complete!( is_a!( " " ) ) ) >>
         value: opt!( complete!( detect_parse_u32 ) ) >>
         (DetectHTTP2settingsSigCtx{id, value})
     )
@@ -326,7 +376,71 @@ mod tests {
                 assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
                 match ctx.value {
                     Some(ctxval) => {
-                        assert_eq!(ctxval.val1, 42);
+                        assert_eq!(ctxval.value, 42);
+                    }
+                    None => {
+                        panic!("No value");
+                    }
+                }
+                assert_eq!(rem.len(), 0);
+            }
+            Err(e) => {
+                panic!("Result should not be an error {:?}.", e);
+            }
+        }
+
+        let s3 = "SETTINGS_MAX_CONCURRENT_STREAMS 42-68";
+        let r3 = http2_parse_settingsctx(s3);
+        match r3 {
+            Ok((rem, ctx)) => {
+                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                match ctx.value {
+                    Some(ctxval) => {
+                        assert_eq!(ctxval.value, 42);
+                        assert_eq!(ctxval.mode, DetectUintMode::DetectUintModeRange);
+                        assert_eq!(ctxval.valrange, 68);
+                    }
+                    None => {
+                        panic!("No value");
+                    }
+                }
+                assert_eq!(rem.len(), 0);
+            }
+            Err(e) => {
+                panic!("Result should not be an error {:?}.", e);
+            }
+        }
+
+        let s4 = "SETTINGS_MAX_CONCURRENT_STREAMS<54";
+        let r4 = http2_parse_settingsctx(s4);
+        match r4 {
+            Ok((rem, ctx)) => {
+                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                match ctx.value {
+                    Some(ctxval) => {
+                        assert_eq!(ctxval.value, 54);
+                        assert_eq!(ctxval.mode, DetectUintMode::DetectUintModeLt);
+                    }
+                    None => {
+                        panic!("No value");
+                    }
+                }
+                assert_eq!(rem.len(), 0);
+            }
+            Err(e) => {
+                panic!("Result should not be an error {:?}.", e);
+            }
+        }
+
+        let s5 = "SETTINGS_MAX_CONCURRENT_STREAMS > 76";
+        let r5 = http2_parse_settingsctx(s5);
+        match r5 {
+            Ok((rem, ctx)) => {
+                assert_eq!(ctx.id, HTTP2SettingsId::SETTINGSMAXCONCURRENTSTREAMS);
+                match ctx.value {
+                    Some(ctxval) => {
+                        assert_eq!(ctxval.value, 76);
+                        assert_eq!(ctxval.mode, DetectUintMode::DetectUintModeGt);
                     }
                     None => {
                         panic!("No value");
