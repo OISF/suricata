@@ -44,7 +44,7 @@ static DetectParseRegex parse_regex;
 static int DetectMarkSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx);
-void DetectMarkDataFree(void *ptr);
+void DetectMarkDataFree(DetectEngineCtx *, void *ptr);
 
 /**
  * \brief Registration function for nfq_set_mark: keyword
@@ -191,7 +191,7 @@ static int DetectMarkSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     }
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectMarkDataFree(data);
+        DetectMarkDataFree(de_ctx, data);
         return -1;
     }
 
@@ -205,7 +205,7 @@ static int DetectMarkSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
 #endif
 }
 
-void DetectMarkDataFree(void *ptr)
+void DetectMarkDataFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectMarkData *data = (DetectMarkData *)ptr;
     SCFree(data);
@@ -262,7 +262,7 @@ static int MarkTestParse01 (void)
         return 0;
     }
 
-    DetectMarkDataFree(data);
+    DetectMarkDataFree(NULL, data);
     return 1;
 }
 
@@ -282,7 +282,7 @@ static int MarkTestParse02 (void)
         return 1;
     }
 
-    DetectMarkDataFree(data);
+    DetectMarkDataFree(NULL, data);
     return 0;
 }
 
@@ -302,7 +302,7 @@ static int MarkTestParse03 (void)
         return 0;
     }
 
-    DetectMarkDataFree(data);
+    DetectMarkDataFree(NULL, data);
     return 1;
 }
 
@@ -322,7 +322,7 @@ static int MarkTestParse04 (void)
         return 1;
     }
 
-    DetectMarkDataFree(data);
+    DetectMarkDataFree(NULL, data);
     return 0;
 }
 

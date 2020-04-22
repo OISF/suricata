@@ -51,7 +51,7 @@ static DetectParseRegex parse_regex;
 
 /*prototypes*/
 static int DetectUrilenSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectUrilenFree (void *);
+void DetectUrilenFree (DetectEngineCtx *, void *);
 void DetectUrilenRegisterTests (void);
 
 static int g_http_uri_buffer_id = 0;
@@ -265,7 +265,7 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     SCReturnInt(0);
 
 error:
-    DetectUrilenFree(urilend);
+    DetectUrilenFree(de_ctx, urilend);
     SCReturnInt(-1);
 }
 
@@ -274,7 +274,7 @@ error:
  *
  * \param ptr pointer to DetectUrilenData
  */
-void DetectUrilenFree(void *ptr)
+void DetectUrilenFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr == NULL)
         return;
@@ -382,7 +382,7 @@ static int DetectUrilenParseTest01(void)
             !urilend->raw_buffer)
             ret = 1;
 
-        DetectUrilenFree(urilend);
+        DetectUrilenFree(NULL, urilend);
     }
     return ret;
 }
@@ -399,7 +399,7 @@ static int DetectUrilenParseTest02(void)
             !urilend->raw_buffer)
             ret = 1;
 
-        DetectUrilenFree(urilend);
+        DetectUrilenFree(NULL, urilend);
     }
     return ret;
 }
@@ -416,7 +416,7 @@ static int DetectUrilenParseTest03(void)
             !urilend->raw_buffer)
             ret = 1;
 
-        DetectUrilenFree(urilend);
+        DetectUrilenFree(NULL, urilend);
     }
     return ret;
 }
@@ -434,7 +434,7 @@ static int DetectUrilenParseTest04(void)
             !urilend->raw_buffer)
             ret = 1;
 
-        DetectUrilenFree(urilend);
+        DetectUrilenFree(NULL, urilend);
     }
     return ret;
 }
@@ -452,7 +452,7 @@ static int DetectUrilenParseTest05(void)
             !urilend->raw_buffer)
             ret = 1;
 
-        DetectUrilenFree(urilend);
+        DetectUrilenFree(NULL, urilend);
     }
     return ret;
 }
@@ -470,7 +470,7 @@ static int DetectUrilenParseTest06(void)
             urilend->raw_buffer)
             ret = 1;
 
-        DetectUrilenFree(urilend);
+        DetectUrilenFree(NULL, urilend);
     }
     return ret;
 }
@@ -487,7 +487,7 @@ static int DetectUrilenParseTest07(void)
             !urilend->raw_buffer)
             ret = 1;
 
-        DetectUrilenFree(urilend);
+        DetectUrilenFree(NULL, urilend);
     }
     return ret;
 }
@@ -504,7 +504,7 @@ static int DetectUrilenParseTest08(void)
             !urilend->raw_buffer)
             ret = 1;
 
-        DetectUrilenFree(urilend);
+        DetectUrilenFree(NULL, urilend);
     }
     return ret;
 }
@@ -521,7 +521,7 @@ static int DetectUrilenParseTest09(void)
             urilend->raw_buffer)
             ret = 1;
 
-        DetectUrilenFree(urilend);
+        DetectUrilenFree(NULL, urilend);
     }
     return ret;
 }
@@ -538,7 +538,7 @@ static int DetectUrilenParseTest10(void)
             urilend->raw_buffer)
             ret = 1;
 
-        DetectUrilenFree(urilend);
+        DetectUrilenFree(NULL, urilend);
     }
     return ret;
 }

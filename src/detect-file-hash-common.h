@@ -40,6 +40,6 @@ int LoadHashTable(ROHashTable *, const char *, const char *, int, uint32_t);
 int DetectFileHashMatch(DetectEngineThreadCtx *, Flow *, uint8_t,
         File *, const Signature *, const SigMatchCtx *);
 int DetectFileHashSetup(DetectEngineCtx *, Signature *, const char *, uint32_t, int);
-void DetectFileHashFree(void *);
+void DetectFileHashFree(DetectEngineCtx *, void *);
 
 #endif /* __UTIL_DETECT_FILE_HASH_H__ */

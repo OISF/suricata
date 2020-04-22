@@ -43,7 +43,7 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
 
     for (Signature *s = de_ctx->sig_list; s != NULL;) {
         Signature *ns = s->next;
-        SigFree(s);
+        SigFree(de_ctx, s);
         s = ns;
     }
     de_ctx->sig_list = NULL;
@@ -1850,7 +1850,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;
-                SigMatchFree(sm);
+                SigMatchFree(de_ctx, sm);
                 sm = nsm;
             }
         }

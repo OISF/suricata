@@ -58,7 +58,7 @@ static DetectParseRegex parse_regex;
 
 static int DetectXbitMatch (DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectXbitSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectXbitFree (void *);
+void DetectXbitFree (DetectEngineCtx *, void *);
 void XBitsRegisterTests(void);
 
 void DetectXbitsRegister (void)
@@ -363,7 +363,7 @@ error:
     return -1;
 }
 
-void DetectXbitFree (void *ptr)
+void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectXbitsData *fd = (DetectXbitsData *)ptr;
 
@@ -421,7 +421,7 @@ static int XBitsTestParse01(void)
     FAIL_IF_NOT(cd->tracker == (trk));                      \
     FAIL_IF_NOT(cd->type == (typ));                         \
     FAIL_IF_NOT(cd->expire == (exp));                       \
-    DetectXbitFree(cd);                                     \
+    DetectXbitFree(NULL, cd);                               \
     cd = NULL;
 
     GOOD_INPUT("set,abc,track ip_pair",

@@ -1401,7 +1401,7 @@ static void AppLayerProtoDetectPMFreeSignature(AppLayerProtoDetectPMSignature *s
     if (sig == NULL)
         SCReturn;
     if (sig->cd)
-        DetectContentFree(sig->cd);
+        DetectContentFree(NULL, sig->cd);
     SCFree(sig);
     SCReturn;
 }
@@ -1480,7 +1480,7 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
 
     goto end;
  error:
-    DetectContentFree(cd);
+    DetectContentFree(NULL, cd);
     ret = -1;
  end:
     SCReturnInt(ret);

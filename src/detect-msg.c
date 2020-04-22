@@ -143,7 +143,7 @@ static int DetectMsgParseTest01(void)
     result = 1;
 end:
     if (sig != NULL)
-        SigFree(sig);
+        SigFree(de_ctx, sig);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -170,7 +170,7 @@ static int DetectMsgParseTest02(void)
     result = 1;
 end:
     if (sig != NULL)
-        SigFree(sig);
+        SigFree(de_ctx, sig);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -200,7 +200,7 @@ static int DetectMsgParseTest03(void)
     result = 1;
 end:
     if (sig != NULL)
-        SigFree(sig);
+        SigFree(de_ctx, sig);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;

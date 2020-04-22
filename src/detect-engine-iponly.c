@@ -1582,7 +1582,7 @@ static int IPOnlyTestSig01(void)
     FAIL_IF(s == NULL);
 
     FAIL_IF(SignatureIsIPOnly(de_ctx, s) == 0);
-    SigFree(s);
+    SigFree(de_ctx, s);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -1602,7 +1602,7 @@ static int IPOnlyTestSig02 (void)
     FAIL_IF(s == NULL);
 
     FAIL_IF(SignatureIsIPOnly(de_ctx, s) == 0);
-    SigFree(s);
+    SigFree(de_ctx, s);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -1633,7 +1633,7 @@ static int IPOnlyTestSig03 (void)
         printf("got a IPOnly signature (content): ");
         result=0;
     }
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     /* content */
     s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (content) \"; content:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
@@ -1645,7 +1645,7 @@ static int IPOnlyTestSig03 (void)
         printf("got a IPOnly signature (content): ");
         result=0;
     }
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     /* uricontent */
     s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (uricontent) \"; uricontent:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
@@ -1657,7 +1657,7 @@ static int IPOnlyTestSig03 (void)
         printf("got a IPOnly signature (uricontent): ");
         result=0;
     }
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     /* pcre */
     s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre) \"; pcre:\"/e?idps rule[sz]/i\"; classtype:misc-activity; sid:400001; rev:1;)");
@@ -1669,7 +1669,7 @@ static int IPOnlyTestSig03 (void)
         printf("got a IPOnly signature (pcre): ");
         result=0;
     }
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     /* flow */
     s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flow) \"; flow:to_server; classtype:misc-activity; sid:400001; rev:1;)");
@@ -1681,7 +1681,7 @@ static int IPOnlyTestSig03 (void)
         printf("got a IPOnly signature (flow): ");
         result=0;
     }
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     /* dsize */
     s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (dsize) \"; dsize:100; classtype:misc-activity; sid:400001; rev:1;)");
@@ -1693,7 +1693,7 @@ static int IPOnlyTestSig03 (void)
         printf("got a IPOnly signature (dsize): ");
         result=0;
     }
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     /* flowbits */
     s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowbits) \"; flowbits:unset; classtype:misc-activity; sid:400001; rev:1;)");
@@ -1705,7 +1705,7 @@ static int IPOnlyTestSig03 (void)
         printf("got a IPOnly signature (flowbits): ");
         result=0;
     }
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     /* flowvar */
     s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowvar) \"; pcre:\"/(?<flow_var>.*)/i\"; flowvar:var,\"str\"; classtype:misc-activity; sid:400001; rev:1;)");
@@ -1717,7 +1717,7 @@ static int IPOnlyTestSig03 (void)
         printf("got a IPOnly signature (flowvar): ");
         result=0;
     }
-    SigFree(s);
+    SigFree(de_ctx, s);
 
     /* pktvar */
     s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pktvar) \"; pcre:\"/(?<pkt_var>.*)/i\"; pktvar:var,\"str\"; classtype:misc-activity; sid:400001; rev:1;)");
@@ -1729,7 +1729,7 @@ static int IPOnlyTestSig03 (void)
         printf("got a IPOnly signature (pktvar): ");
         result=0;
     }
-    SigFree(s);
+    SigFree(de_ctx, s);
 
 end:
     if (de_ctx != NULL)
@@ -2124,7 +2124,7 @@ static int IPOnlyTestSig13(void)
     FAIL_IF(s == NULL);
 
     FAIL_IF(SignatureIsIPOnly(de_ctx, s) == 0);
-    SigFree(s);
+    SigFree(de_ctx, s);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -2141,7 +2141,7 @@ static int IPOnlyTestSig14(void)
     FAIL_IF(s == NULL);
 
     FAIL_IF(SignatureIsIPOnly(de_ctx, s) == 1);
-    SigFree(s);
+    SigFree(de_ctx, s);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }

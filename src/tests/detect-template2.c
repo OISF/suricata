@@ -37,7 +37,7 @@ static int DetectTemplate2ParseTest01 (void)
     FAIL_IF_NOT(template2d->arg1 == 10);
     FAIL_IF_NOT(template2d->mode == DETECT_TEMPLATE2_EQ);
 
-    DetectTemplate2Free(template2d);
+    DetectTemplate2Free(NULL, template2d);
 
     PASS;
 }
@@ -55,7 +55,7 @@ static int DetectTemplate2ParseTest02 (void)
     FAIL_IF_NOT(template2d->arg1 == 10);
     FAIL_IF_NOT(template2d->mode == DETECT_TEMPLATE2_LT);
 
-    DetectTemplate2Free(template2d);
+    DetectTemplate2Free(NULL, template2d);
 
     PASS;
 }
@@ -73,7 +73,7 @@ static int DetectTemplate2ParseTest03 (void)
     FAIL_IF_NOT(template2d->arg1 == 1);
     FAIL_IF_NOT(template2d->mode == DETECT_TEMPLATE2_RA);
 
-    DetectTemplate2Free(template2d);
+    DetectTemplate2Free(NULL, template2d);
 
     PASS;
 }
@@ -91,7 +91,7 @@ static int DetectTemplate2ParseTest04 (void)
     FAIL_IF_NOT(template2d->arg1 == 10);
     FAIL_IF_NOT(template2d->mode == DETECT_TEMPLATE2_GT);
 
-    DetectTemplate2Free(template2d);
+    DetectTemplate2Free(NULL, template2d);
 
     PASS;
 }
@@ -110,7 +110,7 @@ static int DetectTemplate2ParseTest05 (void)
     FAIL_IF_NOT(template2d->arg2 == 2);
     FAIL_IF_NOT(template2d->mode == DETECT_TEMPLATE2_RA);
 
-    DetectTemplate2Free(template2d);
+    DetectTemplate2Free(NULL, template2d);
 
     PASS;
 }

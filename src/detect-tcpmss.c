@@ -41,7 +41,7 @@ static DetectParseRegex parse_regex;
 static int DetectTcpmssMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectTcpmssSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectTcpmssFree (void *);
+void DetectTcpmssFree (DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 void DetectTcpmssRegisterTests (void);
 #endif
@@ -269,7 +269,7 @@ static int DetectTcpmssSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectTcpmssFree(tcpmssd);
+        DetectTcpmssFree(de_ctx, tcpmssd);
         return -1;
     }
 
@@ -287,7 +287,7 @@ static int DetectTcpmssSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
  *
  * \param ptr pointer to DetectTcpmssData
  */
-void DetectTcpmssFree(void *ptr)
+void DetectTcpmssFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectTcpmssData *tcpmssd = (DetectTcpmssData *)ptr;
     SCFree(tcpmssd);

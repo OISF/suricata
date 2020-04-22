@@ -119,7 +119,7 @@ DetectContentData *DetectContentParseEncloseQuotes(SpmGlobalThreadCtx *spm_globa
 int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *contentstr);
 void DetectContentPrint(DetectContentData *);
 
-void DetectContentFree(void *);
+void DetectContentFree(DetectEngineCtx *, void *);
 bool DetectContentPMATCHValidateCallback(const Signature *s);
 void DetectContentPropagateLimits(Signature *s);
 

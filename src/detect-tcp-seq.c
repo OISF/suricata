@@ -44,7 +44,7 @@ static int DetectSeqSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectSeqMatch(DetectEngineThreadCtx *,
                           Packet *, const Signature *, const SigMatchCtx *);
 static void DetectSeqRegisterTests(void);
-static void DetectSeqFree(void *);
+static void DetectSeqFree(DetectEngineCtx *, void *);
 static int PrefilterSetupTcpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterTcpSeqIsPrefilterable(const Signature *s);
 
@@ -128,7 +128,7 @@ error:
     if (data)
         SCFree(data);
     if (sm)
-        SigMatchFree(sm);
+        SigMatchFree(de_ctx, sm);
     return -1;
 
 }
@@ -139,7 +139,7 @@ error:
  *
  * \param data pointer to seq configuration data
  */
-static void DetectSeqFree(void *ptr)
+static void DetectSeqFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectSeqData *data = (DetectSeqData *)ptr;
     SCFree(data);

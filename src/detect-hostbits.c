@@ -70,7 +70,7 @@ static DetectParseRegex parse_regex;
 static int DetectHostbitMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectHostbitSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHostbitFree (void *);
+void DetectHostbitFree (DetectEngineCtx *, void *);
 void HostBitsRegisterTests(void);
 
 void DetectHostbitsRegister (void)
@@ -433,7 +433,7 @@ error:
     return -1;
 }
 
-void DetectHostbitFree (void *ptr)
+void DetectHostbitFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectXbitsData *fd = (DetectXbitsData *)ptr;
 

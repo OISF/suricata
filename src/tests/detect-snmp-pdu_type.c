@@ -30,7 +30,7 @@ static int SNMPValidityTestParse01 (void)
     dd = DetectSNMPPduTypeParse("2");
     FAIL_IF_NULL(dd);
     FAIL_IF_NOT(dd->pdu_type == 2);
-    DetectSNMPPduTypeFree(dd);
+    DetectSNMPPduTypeFree(NULL, dd);
     PASS;
 }
 

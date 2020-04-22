@@ -59,7 +59,7 @@ static int DetectFilenameMatch (DetectEngineThreadCtx *, Flow *,
 static int DetectFilenameSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 static void DetectFilenameRegisterTests(void);
-static void DetectFilenameFree(void *);
+static void DetectFilenameFree(DetectEngineCtx *, void *);
 static int g_file_match_list_id = 0;
 static int g_file_name_buffer_id = 0;
 
@@ -215,12 +215,13 @@ static int DetectFilenameMatch (DetectEngineThreadCtx *det_ctx,
 /**
  * \brief Parse the filename keyword
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param idstr Pointer to the user provided option
  *
  * \retval filename pointer to DetectFilenameData on success
  * \retval NULL on failure
  */
-static DetectFilenameData *DetectFilenameParse (const char *str, bool negate)
+static DetectFilenameData *DetectFilenameParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
 {
     DetectFilenameData *filename = NULL;
 
@@ -265,7 +266,7 @@ static DetectFilenameData *DetectFilenameParse (const char *str, bool negate)
 
 error:
     if (filename != NULL)
-        DetectFilenameFree(filename);
+        DetectFilenameFree(de_ctx, filename);
     return NULL;
 }
 
@@ -285,7 +286,7 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     DetectFilenameData *filename = NULL;
     SigMatch *sm = NULL;
 
-    filename = DetectFilenameParse(str, s->init_data->negated);
+    filename = DetectFilenameParse(de_ctx, str, s->init_data->negated);
     if (filename == NULL)
         goto error;
 
@@ -305,7 +306,7 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
 error:
     if (filename != NULL)
-        DetectFilenameFree(filename);
+        DetectFilenameFree(de_ctx, filename);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -316,7 +317,7 @@ error:
  *
  * \param filename pointer to DetectFilenameData
  */
-static void DetectFilenameFree(void *ptr)
+static void DetectFilenameFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr != NULL) {
         DetectFilenameData *filename = (DetectFilenameData *)ptr;
@@ -508,9 +509,9 @@ static int DetectFilenameSignatureParseTest01(void)
  */
 static int DetectFilenameTestParse01 (void)
 {
-    DetectFilenameData *dnd = DetectFilenameParse("secret.pdf", false);
+    DetectFilenameData *dnd = DetectFilenameParse(NULL, "secret.pdf", false);
     if (dnd != NULL) {
-        DetectFilenameFree(dnd);
+        DetectFilenameFree(NULL, dnd);
         return 1;
     }
     return 0;
@@ -523,13 +524,13 @@ static int DetectFilenameTestParse02 (void)
 {
     int result = 0;
 
-    DetectFilenameData *dnd = DetectFilenameParse("backup.tar.gz", false);
+    DetectFilenameData *dnd = DetectFilenameParse(NULL, "backup.tar.gz", false);
     if (dnd != NULL) {
         if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
             result = 1;
         }
 
-        DetectFilenameFree(dnd);
+        DetectFilenameFree(NULL, dnd);
         return result;
     }
     return 0;
@@ -542,13 +543,13 @@ static int DetectFilenameTestParse03 (void)
 {
     int result = 0;
 
-    DetectFilenameData *dnd = DetectFilenameParse("cmd.exe", false);
+    DetectFilenameData *dnd = DetectFilenameParse(NULL, "cmd.exe", false);
     if (dnd != NULL) {
         if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
             result = 1;
         }
 
-        DetectFilenameFree(dnd);
+        DetectFilenameFree(NULL, dnd);
         return result;
     }
     return 0;

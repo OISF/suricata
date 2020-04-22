@@ -46,7 +46,7 @@ static int DetectIcmpIdMatch(DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectIcmpIdRegisterTests(void);
-void DetectIcmpIdFree(void *);
+void DetectIcmpIdFree(DetectEngineCtx *, void *);
 static int PrefilterSetupIcmpId(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterIcmpIdIsPrefilterable(const Signature *s);
 
@@ -147,12 +147,13 @@ static int DetectIcmpIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 /**
  * \brief This function is used to parse icmp_id option passed via icmp_id: keyword
  *
+ * \param de_ctx Pointer to the detection engine context
  * \param icmpidstr Pointer to the user provided icmp_id options
  *
  * \retval iid pointer to DetectIcmpIdData on success
  * \retval NULL on failure
  */
-static DetectIcmpIdData *DetectIcmpIdParse (const char *icmpidstr)
+static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char *icmpidstr)
 {
     DetectIcmpIdData *iid = NULL;
     char *substr[3] = {NULL, NULL, NULL};
@@ -210,7 +211,7 @@ error:
     for (i = 0; i < 3; i++) {
         if (substr[i] != NULL) SCFree(substr[i]);
     }
-    if (iid != NULL) DetectIcmpIdFree(iid);
+    if (iid != NULL) DetectIcmpIdFree(de_ctx, iid);
     return NULL;
 
 }
@@ -230,7 +231,7 @@ static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     DetectIcmpIdData *iid = NULL;
     SigMatch *sm = NULL;
 
-    iid = DetectIcmpIdParse(icmpidstr);
+    iid = DetectIcmpIdParse(de_ctx, icmpidstr);
     if (iid == NULL) goto error;
 
     sm = SigMatchAlloc();
@@ -245,7 +246,7 @@ static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     return 0;
 
 error:
-    if (iid != NULL) DetectIcmpIdFree(iid);
+    if (iid != NULL) DetectIcmpIdFree(de_ctx, iid);
     if (sm != NULL) SCFree(sm);
     return -1;
 
@@ -256,7 +257,7 @@ error:
  *
  * \param ptr pointer to DetectIcmpIdData
  */
-void DetectIcmpIdFree (void *ptr)
+void DetectIcmpIdFree (DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectIcmpIdData *iid = (DetectIcmpIdData *)ptr;
     SCFree(iid);
@@ -326,9 +327,9 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 static int DetectIcmpIdParseTest01 (void)
 {
     DetectIcmpIdData *iid = NULL;
-    iid = DetectIcmpIdParse("300");
+    iid = DetectIcmpIdParse(NULL, "300");
     if (iid != NULL && iid->id == htons(300)) {
-        DetectIcmpIdFree(iid);
+        DetectIcmpIdFree(NULL, iid);
         return 1;
     }
     return 0;
@@ -341,9 +342,9 @@ static int DetectIcmpIdParseTest01 (void)
 static int DetectIcmpIdParseTest02 (void)
 {
     DetectIcmpIdData *iid = NULL;
-    iid = DetectIcmpIdParse("  300  ");
+    iid = DetectIcmpIdParse(NULL, "  300  ");
     if (iid != NULL && iid->id == htons(300)) {
-        DetectIcmpIdFree(iid);
+        DetectIcmpIdFree(NULL, iid);
         return 1;
     }
     return 0;
@@ -356,9 +357,9 @@ static int DetectIcmpIdParseTest02 (void)
 static int DetectIcmpIdParseTest03 (void)
 {
     DetectIcmpIdData *iid = NULL;
-    iid = DetectIcmpIdParse("\"300\"");
+    iid = DetectIcmpIdParse(NULL, "\"300\"");
     if (iid != NULL && iid->id == htons(300)) {
-        DetectIcmpIdFree(iid);
+        DetectIcmpIdFree(NULL, iid);
         return 1;
     }
     return 0;
@@ -371,9 +372,9 @@ static int DetectIcmpIdParseTest03 (void)
 static int DetectIcmpIdParseTest04 (void)
 {
     DetectIcmpIdData *iid = NULL;
-    iid = DetectIcmpIdParse("   \"   300 \"");
+    iid = DetectIcmpIdParse(NULL, "   \"   300 \"");
     if (iid != NULL && iid->id == htons(300)) {
-        DetectIcmpIdFree(iid);
+        DetectIcmpIdFree(NULL, iid);
         return 1;
     }
     return 0;
@@ -386,9 +387,9 @@ static int DetectIcmpIdParseTest04 (void)
 static int DetectIcmpIdParseTest05 (void)
 {
     DetectIcmpIdData *iid = NULL;
-    iid = DetectIcmpIdParse("\"300");
+    iid = DetectIcmpIdParse(NULL, "\"300");
     if (iid == NULL) {
-        DetectIcmpIdFree(iid);
+        DetectIcmpIdFree(NULL, iid);
         return 1;
     }
     return 0;
