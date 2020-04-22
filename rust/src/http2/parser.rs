@@ -314,13 +314,17 @@ pub struct HTTP2FrameSettings {
     pub value: u32,
 }
 
-named!(pub http2_parse_frame_settings<HTTP2FrameSettings>,
+named!(
+    http2_parse_frame_setting<HTTP2FrameSettings>,
     do_parse!(
-        id: map_opt!( be_u16,
-                      num::FromPrimitive::from_u16 ) >>
-        value: be_u32 >>
-        (HTTP2FrameSettings{id, value})
+        id: map_opt!(be_u16, num::FromPrimitive::from_u16)
+            >> value: be_u32
+            >> (HTTP2FrameSettings { id, value })
     )
+);
+
+named!(pub http2_parse_frame_settings<Vec<HTTP2FrameSettings>>,
+    many0!(http2_parse_frame_setting)
 );
 
 #[cfg(test)]

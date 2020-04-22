@@ -44,14 +44,15 @@ const HTTP2_FRAME_PRIORITY_LEN: usize = 1;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 
 pub enum HTTP2FrameTypeData {
-    //TODO PUSH_PROMISE
-    //TODO DATA
-    //TODO HEADERS
-    //TODO CONTINATION
+    //TODO3 PUSH_PROMISE
+    //TODO4 DATA
+    //TODO1 HEADERS
+    //TODO2 CONTINATION
+    //Left undone PING
     PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
     RSTSTREAM(parser::HTTP2FrameRstStream),
-    SETTINGS(parser::HTTP2FrameSettings),
+    SETTINGS(Vec<parser::HTTP2FrameSettings>),
     WINDOWUPDATE(parser::HTTP2FrameWindowUpdate),
 }
 
