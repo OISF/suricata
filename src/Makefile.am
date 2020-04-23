@@ -3,7 +3,7 @@ noinst_HEADERS = action-globals.h \
     debug.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
 	source-windivert-prototypes.h \
-	suricata-common.h threadvars.h tree.h \
+	suricata-common.h suricata-plugin.h threadvars.h tree.h \
     util-validate.h
 bin_PROGRAMS = suricata
 if BUILD_FUZZTARGETS
@@ -495,6 +495,7 @@ util-optimize.h \
 util-pages.c util-pages.h \
 util-path.c util-path.h \
 util-pidfile.c util-pidfile.h \
+util-plugin.c util-plugin.h \
 util-pool.c util-pool.h \
 util-pool-thread.c util-pool-thread.h \
 util-prefilter.c util-prefilter.h \
