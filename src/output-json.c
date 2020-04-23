@@ -66,6 +66,8 @@
 
 #include "source-pcap-file.h"
 
+#include "suricata-plugin.h"
+
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
 #define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
@@ -82,10 +84,18 @@ static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
 static size_t traffic_id_prefix_len = 0;
 static size_t traffic_label_prefix_len = 0;
 
+static TAILQ_HEAD(, PluginFileType_) output_types =
+    TAILQ_HEAD_INITIALIZER(output_types);
+
+void RegisterPluginFileType(PluginFileType *plugin)
+{
+    SCLogNotice("Registering JSON file type plugin %s", plugin->name);
+    TAILQ_INSERT_TAIL(&output_types, plugin, entries);
+}
+
 void OutputJsonRegister (void)
 {
     OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
-
     traffic_id_prefix_len = strlen(TRAFFIC_ID_PREFIX);
     traffic_label_prefix_len = strlen(TRAFFIC_LABEL_PREFIX);
 }
@@ -898,7 +908,9 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             output_s = ConfNodeLookupChildValue(conf, "type");
         }
 
-        if (output_s != NULL) {
+        if (output_s == NULL) {
+            json_ctx->json_out = LOGFILE_TYPE_FILE;
+        } else {
             if (strcmp(output_s, "file") == 0 ||
                 strcmp(output_s, "regular") == 0) {
                 json_ctx->json_out = LOGFILE_TYPE_FILE;
@@ -918,10 +930,21 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                 exit(EXIT_FAILURE);
 #endif
             } else {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                           "Invalid JSON output option: %s", output_s);
-                exit(EXIT_FAILURE);
+                PluginFileType *plugin = NULL;
+                TAILQ_FOREACH(plugin, &output_types, entries) {
+                    if (strcmp(output_s, plugin->name) == 0) {
+                        json_ctx->json_out = LOGFILE_TYPE_PLUGIN;
+                        json_ctx->plugin = plugin;
+                        break;
+                    }
+                }
             }
+        }
+
+        if (json_ctx->json_out == LOGFILE_TYPE_NONE) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
+                "Invalid JSON output option: %s", output_s);
+            exit(EXIT_FAILURE);
         }
 
         const char *prefix = ConfNodeLookupChildValue(conf, "prefix");
@@ -1003,6 +1026,15 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             }
         }
 #endif
+        else if (json_ctx->json_out == LOGFILE_TYPE_PLUGIN) {
+            ConfNode *plugin = ConfNodeLookupChild(conf,
+                json_ctx->plugin->name);
+            if (json_ctx->plugin->Open(json_ctx->file_ctx, plugin) < 0) {
+                LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
+                SCFree(output_ctx);
+            }
+        }
 
         const char *sensor_id_s = ConfNodeLookupChildValue(conf, "sensor-id");
         if (sensor_id_s != NULL) {

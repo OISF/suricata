@@ -37,11 +37,13 @@ typedef struct {
     uint16_t fileno;
 } PcieFile;
 
-enum LogFileType { LOGFILE_TYPE_FILE,
+enum LogFileType { LOGFILE_TYPE_NONE,
+                   LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_SYSLOG,
                    LOGFILE_TYPE_UNIX_DGRAM,
                    LOGFILE_TYPE_UNIX_STREAM,
-                   LOGFILE_TYPE_REDIS };
+                   LOGFILE_TYPE_REDIS,
+                   LOGFILE_TYPE_PLUGIN };
 
 typedef struct SyslogSetup_ {
     int alert_syslog_level;
@@ -53,6 +55,7 @@ typedef struct LogFileCtx_ {
     union {
         FILE *fp;
         PcieFile *pcie_fp;
+        void *plugin;
 #ifdef HAVE_LIBHIREDIS
         void *redis;
 #endif

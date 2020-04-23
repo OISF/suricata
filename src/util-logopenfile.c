@@ -590,6 +590,10 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #endif
+    else if (file_ctx->type == LOGFILE_TYPE_PLUGIN) {
+        file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
+                        MEMBUFFER_OFFSET(buffer), file_ctx);
+    }
 
     return 0;
 }
