@@ -369,6 +369,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_ALERT_CONFIG);
         CASE_CODE (SC_WARN_REGISTRATION_FAILED);
         CASE_CODE (SC_ERR_ERF_BAD_RLEN);
+        CASE_CODE (SC_WARN_ERSPAN_CONFIG);
 
         CASE_CODE (SC_ERR_MAX);
     }
