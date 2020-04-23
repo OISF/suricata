@@ -410,6 +410,29 @@
         AC_SUBST(SECLDFLAGS)
     ])
 
+    #check for plugin support
+    AC_CHECK_HEADERS([dlfcn.h])
+    AC_MSG_CHECKING([for plugin support])
+    TMPLDFLAGS="${LDFLAGS}"
+    LDFLAGS="${LDFLAGS} -rdynamic"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <dlfcn.h>]], [[]])],
+        [
+            AC_MSG_RESULT(yes)
+            has_rdynamic=yes
+        ],
+        [
+            AC_MSG_RESULT(no)
+            has_rdynamic=no
+        ])
+
+    if test "x$has_rdynamic" = "xyes"; then
+        plugin_support=yes
+        AC_DEFINE([HAVE_PLUGINS], [1], [Plugin support])
+    else
+        plugin_support=no
+        LDFLAGS="${TMPLDFLAGS}"
+    fi
+
     #enable profile generation
     AC_ARG_ENABLE(gccprofile,
            AS_HELP_STRING([--enable-gccprofile], [Enable gcc profile info i.e -pg flag is set]),[enable_gccprofile=$enableval],[enable_gccprofile=no])
@@ -2774,6 +2797,8 @@ SURICATA_BUILD_CONF="Suricata Configuration:
 
   Profiling enabled:                       ${enable_profiling}
   Profiling locks enabled:                 ${enable_profiling_locks}
+
+  Plugin support:                          ${plugin_support}
 
 Development settings:
   Coccinelle / spatch:                     ${enable_coccinelle}
