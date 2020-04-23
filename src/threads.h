@@ -27,10 +27,6 @@
 #ifndef __THREADS_H__
 #define __THREADS_H__
 
-#if HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #if defined(TLS_C11)
 #define thread_local _Thread_local
 #elif defined(TLS_GNU)

@@ -21,7 +21,6 @@
  */
 
 #include "suricata-common.h"
-#include "config.h"
 #include "util-unittest.h"
 #include "runmode-unittests.h"
 

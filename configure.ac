@@ -1,6 +1,6 @@
     AC_INIT([suricata],[6.0.0-dev])
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
-    AC_CONFIG_HEADERS([config.h])
+    AC_CONFIG_HEADERS([src/autoconf.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
     AC_CONFIG_MACRO_DIR(m4)
     AM_INIT_AUTOMAKE([tar-ustar subdir-objects])

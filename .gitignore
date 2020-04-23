@@ -15,6 +15,7 @@ Makefile
 m4/
 TAGS
 aclocal.m4
+autoconf.h
 autom4te.cache/
 build/*
 compile
