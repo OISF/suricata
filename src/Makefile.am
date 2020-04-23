@@ -541,7 +541,7 @@ win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h
 
-EXTRA_DIST = tests
+EXTRA_DIST = tests pluginsyms.txt
 
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
@@ -549,7 +549,7 @@ AM_CPPFLAGS = $(all_includes)
 suricata_SOURCES = main.c $(COMMON_SOURCES)
 
 # the library search path.
-suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS} -Wl,--dynamic-list=$(srcdir)/pluginsyms.txt
 suricata_LDADD = $(HTP_LDADD) $(RUST_LDADD)
 suricata_DEPENDENCIES = $(RUST_SURICATA_LIB)
 
