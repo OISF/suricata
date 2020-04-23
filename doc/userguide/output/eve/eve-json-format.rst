@@ -401,11 +401,30 @@ Outline of fields seen in the different kinds of DNS events:
 * "rcode": (ex: NOERROR)
 * "rrname": Resource Record Name (ex: a domain name)
 * "rrtype": Resource Record Type (ex: A, AAAA, NS, PTR)
-* "rdata": Resource Data (ex. IP that domain name resolves to)
+* "rdata": Resource Data (ex: IP that domain name resolves to)
 * "ttl": Time-To-Live for this resource record
 
+More complex DNS record types may log additional fields for resource data:
 
-One can also control which RR types are logged explicitly from additional custom field enabled in the suricata.yaml file. If custom field is not specified, all RR types are logged. More than 50 values can be specified with the custom field and can be used as following:
+* "soa": Section containing fields for the SOA (start of authority) record type
+
+  * "mname": Primary name server for this zone
+  * "rname": Authority's mailbox
+  * "serial": Serial version number
+  * "refresh": Refresh interval (seconds)
+  * "retry": Retry interval (seconds)
+  * "expire": Upper time limit until zone is no longer authoritative (seconds)
+  * "minimum": Minimum ttl for records in this zone (seconds)
+
+* "sshfp": section containing fields for the SSHFP (ssh fingerprint) record type
+
+  * "fingerprint": Hex format of the fingerprint (ex: ``12:34:56:78:9a:bc:de:...``)
+  * "algo": Algorithm number (ex: 1 for RSA, 2 for DSS)
+  * "type": Fingerprint type (ex: 1 for SHA-1)
+
+One can control which RR types are logged by using the "types" field in the
+suricata.yaml file. If this field is not specified, all RR types are logged.
+More than 50 values can be specified with this field as shown below:
 
 
 ::
@@ -423,14 +442,16 @@ One can also control which RR types are logged explicitly from additional custom
         types:
           - alert
           - dns:
-            # control logging of queries and answers
-            # default yes, no to disable
-            query: yes     # enable logging of DNS queries
-            answer: yes    # enable logging of DNS answers
-            # control which RR types are logged
-            # all enabled if custom not specified
-            #custom: [a, aaaa, cname, mx, ns, ptr, txt]
-            custom: [a, ns, md, mf, cname, soa, mb, mg, mr, null,
+            # Control logging of requests and responses:
+            # - requests: enable logging of DNS queries
+            # - responses: enable logging of DNS answers
+            # By default both requests and responses are logged.
+            requests: yes
+            responses: yes
+            # DNS record types to log, based on the query type.
+            # Default: all.
+            #types: [a, aaaa, cname, mx, ns, ptr, txt]
+            types: [a, ns, md, mf, cname, soa, mb, mg, mr, null,
             wks, ptr, hinfo, minfo, mx, txt, rp, afsdb, x25, isdn,
             rt, nsap, nsapptr, sig, key, px, gpos, aaaa, loc, nxt,
             srv, atma, naptr, kx, cert, a6, dname, opt, apl, ds,
