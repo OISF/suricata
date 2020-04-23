@@ -489,7 +489,9 @@ typedef enum {
 } LoggerId;
 
 #include "util-optimize.h"
+#ifndef SURICATA_PLUGIN
 #include <htp/htp.h>
+#endif
 #include "threads.h"
 #include "tm-threads-common.h"
 #include "util-debug.h"
