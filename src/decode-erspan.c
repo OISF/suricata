@@ -43,6 +43,21 @@
  * \brief Functions to decode ERSPAN Type I and II packets
  */
 
+/*
+ * \brief ERSPAN Type I was configurable in 5.0.x but is no longer configurable.
+ *
+ * Issue a warning if a configuration setting is found.
+ */
+void DecodeERSPANConfig(void)
+{
+    int enabled = 0;
+    if (ConfGetBool("decoder.erspan.typeI.enabled", &enabled) == 1) {
+        SCLogWarning(SC_WARN_ERSPAN_CONFIG,
+                     "ERSPAN Type I is no longer configurable and it is always"
+                     " enabled; ignoring configuration setting.");
+    }
+}
+
 /**
  * \brief ERSPAN Type I
  */
