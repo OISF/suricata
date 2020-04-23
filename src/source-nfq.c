@@ -37,7 +37,6 @@
 #include "tmqh-packetpool.h"
 
 #include "conf.h"
-#include "config.h"
 #include "conf-yaml-loader.h"
 #include "source-nfq-prototypes.h"
 #include "action-globals.h"

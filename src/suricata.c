@@ -22,7 +22,6 @@
  */
 
 #include "suricata-common.h"
-#include "config.h"
 
 #if HAVE_GETOPT_H
 #include <getopt.h>

@@ -25,7 +25,6 @@
  */
 
 #include "suricata-common.h"
-#include "config.h"
 #include "util-host-info.h"
 #include "util-byte.h"
 
