@@ -101,6 +101,7 @@ impl DCERPCUDPState {
     }
 
     fn get_hdr_pkt_type(&self) -> Option<u8> {
+        debug_validate_bug_on!(self.header.is_none());
         if let Some(ref hdr) = &self.header {
             return Some(hdr.pkt_type);
         }
@@ -109,6 +110,7 @@ impl DCERPCUDPState {
     }
 
     fn get_hdr_flags1(&self) -> Option<u8> {
+        debug_validate_bug_on!(self.header.is_none());
         if let Some(ref hdr) = &self.header {
             return Some(hdr.flags1);
         }
@@ -117,6 +119,7 @@ impl DCERPCUDPState {
     }
 
     pub fn get_hdr_fraglen(&self) -> Option<u16> {
+        debug_validate_bug_on!(self.header.is_none());
         if let Some(ref hdr) = &self.header {
             return Some(hdr.fraglen);
         }
