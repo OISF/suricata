@@ -250,6 +250,7 @@ struct tcp_hdr
 
 #define COLOR_IS_SPAN                       0x00001000
 
+static int is_inline = 0;
 static int inline_port_map[MAX_PORTS] = { -1 };
 
 /**
@@ -642,21 +643,40 @@ TmEcode NapatechStreamThreadInit(ThreadVars *tv, const void *initdata, void **da
     SCReturnInt(TM_ECODE_OK);
 }
 
-static PacketQueue packets_to_release[MAX_STREAMS];
-
 /**
  * \brief Callback to indicate that the packet buffer can be returned to the hardware.
  *
- *  Called when Suricata is done processing the packet.  The packet is placed into
- *  a queue so that it can be retrieved and released by the packet processing thread.
+ *  Called when Suricata is done processing the packet.  Before the packet is released
+ *  this also checks the action to see if the packet should be dropped and programs the
+ *  flow hardware if the flow is to be bypassed and the Napatech packet buffer is released.
+ *
  *
  * \param p Packet to return to the system.
  *
  */
 static void NapatechReleasePacket(struct Packet_ *p)
 {
+    /*
+     * If the packet is to be dropped we need to set the wirelength
+     * before releasing the Napatech buffer back to NTService.
+     */
+    if (is_inline && PACKET_TEST_ACTION(p, ACTION_DROP)) {
+        p->ntpv.dyn3->wireLength = 0;
+    }
+
+#ifdef NAPATECH_ENABLE_BYPASS
+    /*
+     *  If this flow is to be programmed for hardware bypass we do it now.  This is done
+     *  here because the action is not available in the packet structure at the time of the
+     *  bypass callback and it needs to be done before we release the packet structure.
+     */
+    if (p->ntpv.bypass == 1) {
+        ProgramFlow(p, is_inline);
+    }
+#endif
+
+    NT_NetRxRelease(p->ntpv.rx_stream, p->ntpv.nt_packet_buf);
     PacketFreeOrRelease(p);
-    PacketEnqueue(&packets_to_release[p->ntpv.stream_id], p);
 }
 
 /**
@@ -756,15 +776,11 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     int numa_node = -1;
     int set_cpu_affinity = 0;
     int closer = 0;
-    int is_inline = 0;
     int is_autoconfig = 0;
 
     /* This just keeps the startup output more orderly. */
     usleep(200000 * ntv->stream_id);
 
-    if (ConfGetBool("napatech.inline", &is_inline) == 0) {
-        is_inline = 0;
-    }
     if (ConfGetBool("napatech.auto-config", &is_autoconfig) == 0) {
         is_autoconfig = 0;
     }
@@ -800,7 +816,11 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         SC_ATOMIC_ADD(stream_count, 1);
         if (SC_ATOMIC_GET(stream_count) == NapatechGetNumConfiguredStreams()) {
 
-#ifdef NAPATECH_ENABLE_BYPASS
+            if (ConfGetBool("napatech.inline", &is_inline) == 0) {
+                is_inline = 0;
+            }
+
+            #ifdef NAPATECH_ENABLE_BYPASS
             /* Initialize the port map before we setup traffic filters */
             for (int i = 0; i < MAX_PORTS; ++i) {
                 inline_port_map[i] = -1;
@@ -878,6 +898,8 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         p->ntpv.bypass = 0;
 #endif
 
+        p->ntpv.rx_stream = ntv->rx_stream;
+
         if (unlikely(p == NULL)) {
             NT_NetRxRelease(ntv->rx_stream, packet_buffer);
             SCReturnInt(TM_ECODE_FAILED);
@@ -953,22 +975,11 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         }
 
-        /* Release any packets that were returned by the callback function */
-        Packet *rel_pkt = PacketDequeue(&packets_to_release[ntv->stream_id]);
-        while (rel_pkt != NULL) {
-#ifdef NAPATECH_ENABLE_BYPASS
-            if (rel_pkt->ntpv.bypass == 1) {
-                if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
-                    if (is_inline) {
-                        rel_pkt->ntpv.dyn3->wireLength = 0;
-                    }
-                }
-                ProgramFlow(rel_pkt, is_inline);
-            }
-#endif
-            NT_NetRxRelease(ntv->rx_stream, rel_pkt->ntpv.nt_packet_buf);
-            rel_pkt = PacketDequeue(&packets_to_release[ntv->stream_id]);
-        }
+        /*
+         * At this point the packet and the Napatech Packet Buffer have been returned
+         * to the system in the NapatechReleasePacket() Callback.
+         */
+
         StatsSyncCountersIfSignalled(tv);
     } // while
 

@@ -30,6 +30,7 @@ typedef struct NapatechPacketVars_
 {
     uint64_t stream_id;
     NtNetBuf_t nt_packet_buf;
+    NtNetStreamRx_t rx_stream;
     ThreadVars *tv;
 #ifdef NAPATECH_ENABLE_BYPASS
     NtDyn3Descr_t *dyn3;
