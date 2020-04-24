@@ -232,7 +232,20 @@ pub struct DNSQueryEntry {
 
 #[derive(Debug,PartialEq)]
 pub struct DNSRDataSOA {
-    pub data: Vec<u8>,
+    /// Primary name server for this zone
+    pub mname: Vec<u8>,
+    /// Authority's mailbox
+    pub rname: Vec<u8>,
+    /// Serial version number
+    pub serial: u32,
+    /// Refresh interval (seconds)
+    pub refresh: u32,
+    /// Retry interval (seconds)
+    pub retry: u32,
+    /// Upper time limit until zone is no longer authoritative (seconds)
+    pub expire: u32,
+    /// Minimum ttl for records in this zone (seconds)
+    pub minimum: u32,
 }
 
 #[derive(Debug,PartialEq)]

@@ -395,6 +395,21 @@ pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
     }
 }
 
+/// Log SOA section fields.
+fn dns_log_soa(soa: &DNSRDataSOA) -> Json {
+    let js = Json::object();
+
+    js.set_string_from_bytes("mname", &soa.mname);
+    js.set_string_from_bytes("rname", &soa.rname);
+    js.set_integer("serial", soa.serial as u64);
+    js.set_integer("refresh", soa.refresh as u64);
+    js.set_integer("retry", soa.retry as u64);
+    js.set_integer("expire", soa.expire as u64);
+    js.set_integer("minimum", soa.minimum as u64);
+
+    return js;
+}
+
 /// Log SSHFP section fields.
 fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Json {
     let js = Json::object();
@@ -427,6 +442,9 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Json
         DNSRData::TXT(bytes) |
         DNSRData::PTR(bytes) => {
             jsa.set_string_from_bytes("rdata", &bytes);
+        }
+        DNSRData::SOA(soa) => {
+            jsa.set("soa", dns_log_soa(&soa));
         }
         DNSRData::SSHFP(sshfp) => {
             jsa.set("sshfp", dns_log_sshfp(&sshfp));
@@ -501,6 +519,15 @@ fn dns_log_json_answer(response: &DNSResponse, flags: u64) -> Json
                         for a in &answer_types.get(&type_string) {
                             a.array_append(
                                 Json::string_from_bytes(&bytes));
+                        }
+                    },
+                    DNSRData::SOA(soa) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types.insert(type_string.to_string(),
+                                                Json::array());
+                        }
+                        for a in &answer_types.get(&type_string) {
+                            a.array_append(dns_log_soa(&soa));
                         }
                     },
                     DNSRData::SSHFP(sshfp) => {
@@ -628,6 +655,9 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
         DNSRData::TXT(bytes) |
         DNSRData::PTR(bytes) => {
             js.set_string_from_bytes("rdata", &bytes);
+        }
+        DNSRData::SOA(soa) => {
+            js.set("soa", dns_log_soa(&soa));
         }
         DNSRData::SSHFP(sshfp) => {
             js.set("sshfp", dns_log_sshfp(&sshfp));
