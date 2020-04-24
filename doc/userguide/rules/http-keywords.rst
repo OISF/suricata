@@ -59,7 +59,7 @@ http.response_line             Sticky Buffer            Response
 http.header                    Sticky Buffer            Both
 http.header.raw                Sticky Buffer            Both
 http.cookie                    Sticky Buffer            Both
-http.server_body               Sticky Buffer            Response
+http.response_body             Sticky Buffer            Response
 http.server                    Sticky Buffer            Response
 http.location                  Sticky Buffer            Response
 file_data                      Sticky Buffer            Response
