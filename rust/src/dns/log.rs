@@ -395,7 +395,23 @@ pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
     }
 }
 
-///  Log the SSHPF in an DNSAnswerEntry.
+/// Log SOA section fields.
+fn dns_log_soa(soa: &DNSRDataSOA) -> Result<JsonBuilder, JsonError> {
+    let mut js = JsonBuilder::new_object();
+
+    js.set_string_from_bytes("mname", &soa.mname)?;
+    js.set_string_from_bytes("rname", &soa.rname)?;
+    js.set_uint("serial", soa.serial as u64)?;
+    js.set_uint("refresh", soa.refresh as u64)?;
+    js.set_uint("retry", soa.retry as u64)?;
+    js.set_uint("expire", soa.expire as u64)?;
+    js.set_uint("minimum", soa.minimum as u64)?;
+
+    js.close()?;
+    return Ok(js);
+}
+
+/// Log SSHFP section fields.
 fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError>
 {
     let mut js = JsonBuilder::new_object();
@@ -430,6 +446,9 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
         DNSRData::TXT(bytes) |
         DNSRData::PTR(bytes) => {
             jsa.set_string_from_bytes("rdata", &bytes)?;
+        }
+        DNSRData::SOA(soa) => {
+            jsa.set_object("soa", &dns_log_soa(&soa)?)?;
         }
         DNSRData::SSHFP(sshfp) => {
             jsa.set_object("sshfp", &dns_log_sshfp(&sshfp)?)?;
@@ -503,6 +522,15 @@ fn dns_log_json_answer(js: &mut JsonBuilder, response: &DNSResponse, flags: u64)
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_string_from_bytes(&bytes)?;
+                        }
+                    },
+                    DNSRData::SOA(soa) => {
+                        if !answer_types.contains_key(&type_string) {
+                            answer_types.insert(type_string.to_string(),
+                                                JsonBuilder::new_array());
+                        }
+                        if let Some(a) = answer_types.get_mut(&type_string) {
+                            a.append_object(&dns_log_soa(&soa)?)?;
                         }
                     },
                     DNSRData::SSHFP(sshfp) => {
@@ -661,6 +689,9 @@ fn dns_log_json_answer_v1(header: &DNSHeader, answer: &DNSAnswerEntry)
         DNSRData::TXT(bytes) |
         DNSRData::PTR(bytes) => {
             js.set_string_from_bytes("rdata", &bytes)?;
+        }
+        DNSRData::SOA(soa) => {
+            js.set_object("soa", &dns_log_soa(&soa)?)?;
         }
         DNSRData::SSHFP(sshfp) => {
             js.set_object("sshfp", &dns_log_sshfp(&sshfp)?)?;
