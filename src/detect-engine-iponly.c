@@ -2279,20 +2279,26 @@ static int IPOnlyTestSig18(void)
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint16_t buflen = strlen((char *)buf);
 
-    uint8_t numpkts = 1;
-    uint8_t numsigs = 2;
+    uint8_t numpkts = 4;
+    uint8_t numsigs = 4;
 
-    Packet *p[1];
+    Packet *p[4];
 
     p[0] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "10.10.10.1", "50.0.0.1");
+    p[1] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "220.10.10.1", "5.0.0.1");
+    p[2] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "0.0.0.1", "50.0.0.1");
+    p[3] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "255.255.255.254", "5.0.0.1");
 
     const char *sigs[numsigs];
     // really many IP addresses
-    sigs[0]= "alert ip 1.2.3.4-219.6.7.8 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
-    sigs[1]= "alert ip 51.2.3.4-253.1.2.3 any -> any any (msg:\"Testing src ip (sid 2)\"; sid:2;)";
+    sigs[0]= "alert ip 1.2.3.4-219.6.7.8 any -> any any (sid:1;)";
+    sigs[1]= "alert ip 51.2.3.4-253.1.2.3 any -> any any (sid:2;)";
+    sigs[2]= "alert ip 0.0.0.0-50.0.0.2 any -> any any (sid:3;)";
+    sigs[3]= "alert ip 50.0.0.0-255.255.255.255 any -> any any (sid:4;)";
 
-    uint32_t sid[2] = { 1, 2};
-    uint32_t results[2] = { 1, 0}; /* first should match; second shouldn't */
+    uint32_t sid[4] = { 1, 2, 3, 4, };
+    uint32_t results[4][4] = {
+        { 1, 0, 1, 0, }, { 0, 1, 0, 1}, { 0, 0, 1, 0 }, { 0, 0, 0, 1}};
 
     result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
 
