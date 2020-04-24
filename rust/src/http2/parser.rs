@@ -18,7 +18,7 @@
 use nom::character::complete::digit1;
 use nom::combinator::rest;
 use nom::number::streaming::{be_u16, be_u32, be_u8};
-use nom::{IResult, Needed};
+use nom::IResult;
 use std::fmt;
 use std::str::FromStr;
 
@@ -193,46 +193,37 @@ named!(pub http2_parse_frame_windowupdate<HTTP2FrameWindowUpdate>,
 
 #[derive(Clone, Copy)]
 pub struct HTTP2FrameHeadersPriority {
-    pub exclusive: bool,
+    pub exclusive: u8,
     pub dependency: u32,
+//TODO0.1 detect on this
     pub weight: u8,
 }
+
+named!(pub http2_parse_headers_priority<HTTP2FrameHeadersPriority>,
+    do_parse!(
+        sid: bits!( tuple!( take_bits!(1u8),
+                                take_bits!(31u32) ) ) >>
+        weight: be_u8 >>
+        (HTTP2FrameHeadersPriority{exclusive:sid.0, dependency:sid.1, weight})
+    )
+);
 
 #[derive(Clone, Copy)]
 pub struct HTTP2FrameHeaders {
     pub padlength: Option<u8>,
     pub priority: Option<HTTP2FrameHeadersPriority>,
-    //TODO complete struct Vec<HTTP2FrameHeaderBlock>
+    //TODO0.2 complete struct Vec<HTTP2FrameHeaderBlock>
 }
 
 const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
+const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
 
 pub fn http2_parse_frame_headers(input: &[u8], flags: u8) -> IResult<&[u8], HTTP2FrameHeaders> {
-    //TODO
-    if flags & HTTP2_FLAG_HEADER_PADDED != 0 {
-        if input.len() < 1 {
-            return Err(nom::Err::Incomplete(Needed::Size(1)));
-        } else {
-            return Ok((
-                &input[1..],
-                HTTP2FrameHeaders {
-                    padlength: Some(input[0]),
-                    priority: None,
-                },
-            ));
-        }
-    }
-    if input.len() < 4 {
-        return Err(nom::Err::Incomplete(Needed::Size(4)));
-    } else {
-        return Ok((
-            &input[4..],
-            HTTP2FrameHeaders {
-                padlength: None,
-                priority: None,
-            },
-        ));
-    }
+    do_parse!(input,
+        padlength: cond!( flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8 ) >>
+        priority: cond!( flags & HTTP2_FLAG_HEADER_PRIORITY != 0, http2_parse_headers_priority ) >>
+        (HTTP2FrameHeaders{padlength, priority: priority})
+    )
 }
 
 #[repr(u16)]
