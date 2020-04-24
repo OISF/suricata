@@ -687,6 +687,7 @@ static DetectLuaData *DetectLuaParse (const DetectEngineCtx *de_ctx, const char 
         goto error;
     }
 
+    lua->de_ctx = de_ctx;
     return lua;
 
 error:
@@ -1118,6 +1119,10 @@ static void DetectLuaFree(void *ptr)
             SCFree(lua->buffername);
         if (lua->filename)
             SCFree(lua->filename);
+
+        if (lua->de_ctx) {
+            DetectUnregisterThreadCtxFuncs((DetectEngineCtx *)lua->de_ctx, NULL, lua, "lua");
+        }
 
         SCFree(lua);
     }
