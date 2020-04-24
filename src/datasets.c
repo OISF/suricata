@@ -312,6 +312,7 @@ static int DatasetLoadString(Dataset *set)
             line[strlen(line) - 1] = '\0';
             SCLogDebug("line: '%s'", line);
 
+            // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
             uint32_t len = DecodeBase64(decoded, (const uint8_t *)line, strlen(line), 1);
             if (len == 0)
@@ -328,6 +329,7 @@ static int DatasetLoadString(Dataset *set)
 
             *r = '\0';
 
+            // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(line)];
             uint32_t len = DecodeBase64(decoded, (const uint8_t *)line, strlen(line), 1);
             if (len == 0)
@@ -1016,6 +1018,7 @@ int DatasetAddSerialized(Dataset *set, const char *string)
 
     switch (set->type) {
         case DATASET_TYPE_STRING: {
+            // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(string)];
             uint32_t len = DecodeBase64(decoded, (const uint8_t *)string, strlen(string), 1);
             if (len == 0) {
@@ -1097,6 +1100,7 @@ int DatasetRemoveSerialized(Dataset *set, const char *string)
 
     switch (set->type) {
         case DATASET_TYPE_STRING: {
+            // coverity[alloc_strlen : FALSE]
             uint8_t decoded[strlen(string)];
             uint32_t len = DecodeBase64(decoded, (const uint8_t *)string, strlen(string), 1);
             if (len == 0) {
