@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2014 Open Information Security Foundation
+/* Copyright (C) 2010-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -349,6 +349,7 @@ ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
         if (top == NULL) {
             if (errno == EAGAIN) {
                 if (dtv->dagstream & 0x1) {
+                    TmThreadsCaptureHandleTimeout(tv, dtv->slot, NULL);
                     usleep(10 * 1000);
                     dtv->btm = dtv->top;
                 }
