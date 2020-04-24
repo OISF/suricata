@@ -292,6 +292,7 @@ impl DCERPCState {
     }
 
     fn get_hdr_fraglen(&self) -> Option<u16> {
+        debug_validate_bug_on!(self.header.is_none());
         if let Some(ref hdr) = self.header {
             return Some(hdr.frag_length);
         }
@@ -300,6 +301,7 @@ impl DCERPCState {
     }
 
     fn get_hdr_pfcflags(&self) -> Option<u8> {
+        debug_validate_bug_on!(self.header.is_none());
         if let Some(ref hdr) = self.header {
             return Some(hdr.pfc_flags);
         }
@@ -308,6 +310,7 @@ impl DCERPCState {
     }
 
     pub fn get_hdr_type(&self) -> Option<u8> {
+        debug_validate_bug_on!(self.header.is_none());
         if let Some(ref hdr) = self.header {
             return Some(hdr.hdrtype);
         }
@@ -316,6 +319,7 @@ impl DCERPCState {
     }
 
     pub fn get_hdr_rpc_vers(&self) -> Option<u8> {
+        debug_validate_bug_on!(self.header.is_none());
         if let Some(ref hdr) = self.header {
             return Some(hdr.rpc_vers);
         }
@@ -324,6 +328,7 @@ impl DCERPCState {
     }
 
     pub fn get_req_ctxid(&self) -> Option<u16> {
+        debug_validate_bug_on!(self.request.is_none());
         if let Some(ref req) = self.request {
             return Some(req.ctxid);
         }
@@ -332,6 +337,7 @@ impl DCERPCState {
     }
 
     pub fn get_first_req_seen(&self) -> Option<u8> {
+        debug_validate_bug_on!(self.request.is_none());
         if let Some(ref req) = self.request {
             return Some(req.first_request_seen);
         }
@@ -340,6 +346,7 @@ impl DCERPCState {
     }
 
     pub fn get_req_opnum(&self) -> Option<u16> {
+        debug_validate_bug_on!(self.request.is_none());
         if let Some(ref req) = self.request {
             return Some(req.opnum);
         }
@@ -782,7 +789,7 @@ impl DCERPCState {
     }
 }
 
-fn evaluate_stub_params(
+pub fn evaluate_stub_params(
     input: &[u8],
     input_len: u16,
     hdrflags: u8,

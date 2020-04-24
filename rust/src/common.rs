@@ -14,6 +14,24 @@ macro_rules! take_until_and_consume (
   );
 );
 
+
+#[cfg(not(feature = "debug-validate"))]
+#[macro_export]
+macro_rules! debug_validate_bug_on (
+  ($item:expr) => {};
+);
+
+
+#[cfg(feature = "debug-validate")]
+#[macro_export]
+macro_rules! debug_validate_bug_on (
+  ($item:expr) => {
+    if $item {
+        panic!("Value should not be NULL!");
+    }
+  };
+);
+
 /// Convert a String to C-compatible string
 ///
 /// This function will consume the provided data and use the underlying bytes to construct a new
