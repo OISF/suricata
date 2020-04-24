@@ -238,8 +238,11 @@ OutputInitResult AlertFastLogInitCtx(ConfNode *conf)
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL))
+    if (unlikely(output_ctx == NULL)) {
+        LogFileFreeCtx(logfile_ctx);
         return result;
+    }
+
     output_ctx->data = logfile_ctx;
     output_ctx->DeInit = AlertFastLogDeInitCtx;
 
