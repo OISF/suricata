@@ -590,6 +590,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
                 HRLOCK_UNLOCK(hb);
                 res.data = h;
                 res.is_new = false;
+                /* coverity[missing_unlock : FALSE] */
                 return res;
             }
         }
@@ -601,6 +602,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
     HRLOCK_UNLOCK(hb);
     res.data = h;
     res.is_new = false;
+    /* coverity[missing_unlock : FALSE] */
     return res;
 }
 
