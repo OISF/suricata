@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2017 Open Information Security Foundation
+/* Copyright (C) 2012-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -369,7 +369,11 @@ TmEcode NapatechPacketLoopZC(ThreadVars *tv, void *data, void *slot)
 
         /* Napatech returns packets 1 at a time */
         status = NT_NetRxGet(ntv->rx_stream, &packet_buffer, 1000);
-        if (unlikely(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN)) {
+        if (unlikely(
+                status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN)) {
+            if (status == NT_STATUS_TIMEOUT) {
+                TmThreadsCaptureHandleTimeout(tv, ntv->slot, NULL);
+            }
             continue;
         } else if (unlikely(status != NT_SUCCESS)) {
             NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
