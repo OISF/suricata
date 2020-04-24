@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -22,9 +22,6 @@
  *
  * Logs alerts in a line based text format compatible to Snort's
  * alert_fast format.
- *
- * \todo Support classifications
- * \todo Support more than just IPv4/IPv6 TCP/UDP.
  */
 
 #include "suricata-common.h"
