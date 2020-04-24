@@ -259,19 +259,11 @@ pub fn dns_parse_query<'a>(input: &'a [u8],
 }
 
 fn dns_parse_rdata_a<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
-    do_parse!(
-        input,
-        data: take!(input.len()) >>
-            (DNSRData::A(data.to_vec()))
-    )
+    rest(input).map(|(input, data)| (input, DNSRData::A(data.to_vec())))
 }
 
 fn dns_parse_rdata_aaaa<'a>(input: &'a [u8]) -> IResult<&'a [u8], DNSRData> {
-    do_parse!(
-        input,
-        data: take!(input.len()) >>
-            (DNSRData::AAAA(data.to_vec()))
-    )
+    rest(input).map(|(input, data)| (input, DNSRData::AAAA(data.to_vec())))
 }
 
 fn dns_parse_rdata_cname<'a>(input: &'a [u8], message: &'a [u8])
@@ -331,11 +323,7 @@ fn dns_parse_rdata_sshfp<'a>(input: &'a [u8])
 
 fn dns_parse_rdata_unknown<'a>(input: &'a [u8])
                                -> IResult<&'a [u8], DNSRData> {
-    do_parse!(
-        input,
-        data: take!(input.len()) >>
-            (DNSRData::Unknown(data.to_vec()))
-    )
+    rest(input).map(|(input, data)| (input, DNSRData::Unknown(data.to_vec())))
 }
 
 pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
