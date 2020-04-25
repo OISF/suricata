@@ -701,7 +701,8 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
             //only once per HtpState
             HTPSetEvent(s, NULL, dir, HTTP_DECODER_EVENT_TOO_MANY_WARNINGS);
             s->htp_messages_offset = HTP_MAX_MESSAGES;
-            DEBUG_VALIDATE_BUG_ON("Too many libhtp messages");
+            //too noisy in fuzzing
+            //DEBUG_VALIDATE_BUG_ON("Too many libhtp messages");
         }
         // ignore further messages
         return;
