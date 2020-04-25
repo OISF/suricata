@@ -84,7 +84,7 @@ static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, cha
         while(isspace((unsigned char)*token))
             token++;
         if (*token == 0)
-            continue;
+            goto next;
         char *end = token + strlen(token) - 1;
         while(end > token && isspace((unsigned char)*end))
             *(end--) = '\0';
@@ -100,9 +100,9 @@ static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, cha
                        "maximum allowed: %d.", MAX_TOKENS);
             return -1;
         }
-        strarr[i] = token;
+        strarr[i++] = token;
+    next:
         arrptr = NULL;
-        i++;
     }
 
     cd->or_list_size = i;
