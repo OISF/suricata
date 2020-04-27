@@ -18,7 +18,6 @@
 #include "host-bit.h"
 #include "ippair-bit.h"
 #include "app-layer-htp.h"
-#include "util-decode-asn1.h"
 #include "detect-fast-pattern.h"
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
