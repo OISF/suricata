@@ -1,3 +1,51 @@
+5.0.3 -- 2020-04-28
+
+Feature #3481: GRE ERSPAN Type 1 Support
+Feature #3613: Teredo port configuration
+Feature #3673: datasets: add 'dataset-remove' unix command
+Bug #3240: Dataset hash-size or prealloc invalid value logging
+Bug #3241: Dataset reputation invalid value logging
+Bug #3342: Suricata 5.0 crashes while parsing SMB data
+Bug #3450: signature with sticky buffer with subsequent pcre check in a different buffer loads but will never match
+Bug #3491: Backport 5 BUG_ON(strcasecmp(str, "any") in DetectAddressParseString
+Bug #3507: rule parsing: memory leaks
+Bug #3526: 5.0.x Kerberos vulnerable to TCP splitting evasion
+Bug #3534: Skip over ERF_TYPE_META records
+Bug #3552: file logging: complete files sometimes marked 'TRUNCATED'
+Bug #3571: rust: smb compile warnings
+Bug #3573: TCP Fast Open - Bypass of stateless alerts
+Bug #3574: Behavior for tcp fastopen
+Bug #3576: Segfault when facing malformed SNMP rules
+Bug #3577: SIP: Input not parsed when header values contain trailing spaces
+Bug #3580: Faulty signature with two threshold keywords does not generate an error and never match
+Bug #3582: random failures on sip and http-evader suricata-verify tests
+Bug #3585: htp: asan issue
+Bug #3592: Segfault on SMTP TLS
+Bug #3598: rules: memory leaks in pktvar keyword
+Bug #3600: rules: bad address block leads to stack exhaustion
+Bug #3602: rules: crash on 'internal'-only keywords
+Bug #3604: rules: missing 'consumption' of transforms before pkt_data would lead to crash
+Bug #3606: rules: minor memory leak involving pcre_get_substring
+Bug #3609: ssl/tls: ASAN issue in SSLv3ParseHandshakeType
+Bug #3610: defrag: asan issue
+Bug #3612: rules/bsize: memory issue during parsing
+Bug #3614: build-info and configure wrongly display libnss status
+Bug #3644: Invalid memory read on malformed rule with Lua script
+Bug #3646: rules: memory leaks on failed rules
+Bug #3649: CIDR Parsing Issue
+Bug #3651: FTP response buffering against TCP stream
+Bug #3653: Recursion stack-overflow in parsing YAML configuration
+Bug #3660: Multiple DetectEngineReload and bad insertion into linked list lead to buffer overflow
+Bug #3665: FTP: Incorrect ftp_memuse calculation.
+Bug #3667: Signature with an IP range creates one IPOnlyCIDRItem by signe IP address
+Bug #3669: Rules reload with Napatech can hang Suricata UNIX manager process
+Bug #3672: coverity: data directory handling issues
+Bug #3674: Protocol detection evasion by packet splitting
+Optimization #3406: filestore rules are loaded without warning when filestore is not enabled
+Task #3478: libhtp 0.5.33
+Task #3514: SMTP should place restraints on variable length items (e.g., filenames)
+Documentation #3543: doc: add ipv4.hdr and ipv6.hdr
+
 5.0.2 -- 2020-02-13
 
 Bug #2993: Suricata 5.0.0beta1 memory allocation of 4294966034 bytes failed
