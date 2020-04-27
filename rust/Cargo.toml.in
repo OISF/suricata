@@ -37,3 +37,7 @@ ipsec-parser = "0.5"
 snmp-parser = { version = "0.5", git = "https://github.com/sharksforarms/snmp-parser", branch = "upgrade-der-parser" }
 tls-parser = "0.9"
 x509-parser = "0.6.5"
+
+[dev-dependencies]
+hex-literal = "0.2"
+test-case = "1.0"
