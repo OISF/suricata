@@ -23,6 +23,7 @@ use nom;
 use nom::IResult;
 use nom::number::streaming::be_u32;
 use der_parser::der::der_read_element_header;
+use der_parser::ber::BerClass;
 use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
 use crate::applayer::{self, *};
@@ -120,7 +121,7 @@ impl KRB5State {
         match der_read_element_header(i) {
             Ok((_rem,hdr)) => {
                 // Kerberos messages start with an APPLICATION header
-                if hdr.class != 0b01 { return 0; }
+                if hdr.class != BerClass::Application { return 0; }
                 match hdr.tag.0 {
                     10 => {
                         self.req_id = 10;
@@ -443,7 +444,7 @@ pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
     match der_read_element_header(slice) {
         Ok((rem, ref hdr)) => {
             // Kerberos messages start with an APPLICATION header
-            if hdr.class != 0b01 { return unsafe{ALPROTO_FAILED}; }
+            if hdr.class != BerClass::Application { return unsafe{ALPROTO_FAILED}; }
             // Tag number should be <= 30
             if hdr.tag.0 >= 30 { return unsafe{ALPROTO_FAILED}; }
             // Kerberos messages contain sequences
