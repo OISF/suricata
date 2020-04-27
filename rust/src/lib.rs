@@ -79,4 +79,5 @@ pub mod rfb;
 pub mod applayertemplate;
 pub mod rdp;
 pub mod x509;
+pub mod asn1;
 pub mod ssh;
