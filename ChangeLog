@@ -1,3 +1,36 @@
+4.1.8 -- 2020-04-28
+
+Bug #3492: Backport 4 BUG_ON(strcasecmp(str, "any") in DetectAddressParseString
+Bug #3508: rule parsing: memory leaks
+Bug #3527: 4.1.x Kerberos vulnerable to TCP splitting evasion
+Bug #3533: Skip over ERF_TYPE_META records
+Bug #3551: file logging: complete files sometimes marked 'TRUNCATED'
+Bug #3572: rust: smb compile warnings
+Bug #3579: Faulty signature with two threshold keywords does not generate an error and never match
+Bug #3581: random failures on sip and http-evader suricata-verify tests
+Bug #3596: ftp: asan detects leaks of expectations
+Bug #3599: rules: memory leaks in pktvar keyword
+Bug #3601: rules: bad address block leads to stack exhaustion
+Bug #3603: rules: crash on 'internal'-only keywords
+Bug #3605: rules: missing 'consumption' of transforms before pkt_data would lead to crash
+Bug #3607: rules: minor memory leak involving pcre_get_substring
+Bug #3608: ssl/tls: ASAN issue in SSLv3ParseHandshakeType
+Bug #3611: defrag: asan issue
+Bug #3633: file-store.stream-depth not working as expected when configured to a specfic value (4.1.x)
+Bug #3645: Invalid memory read on malformed rule with Lua script
+Bug #3647: rules: memory leaks on failed rules
+Bug #3648: CIDR Parsing Issue
+Bug #3650: FTP response buffering against TCP stream
+Bug #3652: Recursion stack-overflow in parsing YAML configuration
+Bug #3659: Multiple DetectEngineReload and bad insertion into linked list lead to buffer overflow
+Bug #3666: FTP: Incorrect ftp_memuse calculation.
+Bug #3668: Signature with an IP range creates one IPOnlyCIDRItem by signe IP address
+Bug #3671: Protocol detection evasion by packet splitting
+Bug #3676: Segfault on SMTP TLS
+Feature #3482: GRE ERSPAN Type 1 Support
+Task #3479: libhtp 0.5.33 (4.1.x)
+Task #3513: SMTP should place restraints on variable length items (e.g., filenames)
+
 4.1.7 -- 2020-02-13
 
 Bug #3417: --disable-geoip does not work (4.1.x)
