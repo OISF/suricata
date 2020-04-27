@@ -154,7 +154,6 @@
 #include "runmodes.h"
 #include "runmode-unittests.h"
 
-#include "util-decode-asn1.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-daemon.h"
@@ -2587,7 +2586,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     }
 
     HostInitConfig(HOST_VERBOSE);
-    SCAsn1LoadConfig();
 
     CoredumpLoadConfig();
 
