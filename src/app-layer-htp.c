@@ -3533,12 +3533,17 @@ static int HTPParserTest02(void)
     }
 
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
+    FAIL_IF_NULL(tx);
     htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if ((tx->request_method) != NULL || h != NULL)
-    {
-        printf("expected method NULL, got %s \n", bstr_util_strdup_to_c(tx->request_method));
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(h);
+
+    FAIL_IF_NULL(tx->request_method);
+    char *method = bstr_util_strdup_to_c(tx->request_method);
+    FAIL_IF_NULL(method);
+
+    FAIL_IF(strcmp(method, "POST") != 0);
+    SCFree(method);
+
     result = 1;
 end:
     if (alp_tctx != NULL)
