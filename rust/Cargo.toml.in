@@ -29,12 +29,16 @@ num-derive = "0.2"
 num-traits = "0.2"
 widestring = "0.4"
 
-der-parser = "4.0.0-alpha3"
-kerberos-parser = { version = "0.4", git = "https://github.com/sharksforarms/kerberos-parser", branch = "upgrade-der-parser" }
+der-parser = "4.0"
+kerberos-parser = "0.5"
 
 ntp-parser = "0.4"
 ipsec-parser = "0.5"
-snmp-parser = { version = "0.5", git = "https://github.com/sharksforarms/snmp-parser", branch = "upgrade-der-parser" }
+snmp-parser = "0.6"
 tls-parser = "0.9"
 x509-parser = "0.6.5"
 libc = "0.2.67"
+
+[dev-dependencies]
+hex-literal = "0.2"
+test-case = "1.0"
