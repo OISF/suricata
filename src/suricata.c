@@ -154,7 +154,6 @@
 #include "runmodes.h"
 #include "runmode-unittests.h"
 
-#include "util-decode-asn1.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-daemon.h"
@@ -2570,8 +2569,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     if (MagicInit() != 0)
         SCReturnInt(TM_ECODE_FAILED);
 #endif
-    SCAsn1LoadConfig();
-
     CoredumpLoadConfig();
 
     DecodeGlobalConfig();

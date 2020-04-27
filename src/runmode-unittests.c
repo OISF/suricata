@@ -97,8 +97,6 @@
 #include "util-mpm-ac.h"
 #include "util-mpm-hs.h"
 
-#include "util-decode-asn1.h"
-
 #include "conf.h"
 #include "conf-yaml-loader.h"
 #include "tmqh-flow.h"
@@ -159,7 +157,6 @@ static void RegisterUnittests(void)
     DecodeTCPRegisterTests();
     DecodeUDPV4RegisterTests();
     DecodeGRERegisterTests();
-    DecodeAsn1RegisterTests();
     DecodeMPLSRegisterTests();
     AppLayerProtoDetectUnittestsRegister();
     ConfRegisterTests();
