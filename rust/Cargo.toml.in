@@ -38,3 +38,7 @@ snmp-parser = "0.6"
 tls-parser = "0.9"
 x509-parser = "0.6.5"
 libc = "0.2.67"
+
+[dev-dependencies]
+hex-literal = "0.2"
+test-case = "1.0"
