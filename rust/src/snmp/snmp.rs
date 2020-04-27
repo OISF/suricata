@@ -51,33 +51,33 @@ impl SNMPEvent {
     }
 }
 
-pub struct SNMPState {
+pub struct SNMPState<'a> {
     /// SNMP protocol version
     pub version: u32,
 
     /// List of transactions for this session
-    transactions: Vec<SNMPTransaction>,
+    transactions: Vec<SNMPTransaction<'a>>,
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 }
 
-pub struct SNMPPduInfo {
+pub struct SNMPPduInfo<'a> {
     pub pdu_type: PduType,
 
     pub err: ErrorStatus,
 
-    pub trap_type: Option<(TrapType,Oid,NetworkAddress)>,
+    pub trap_type: Option<(TrapType,Oid<'a>,NetworkAddress)>,
 
-    pub vars: Vec<Oid>,
+    pub vars: Vec<Oid<'a>>,
 }
 
-pub struct SNMPTransaction {
+pub struct SNMPTransaction<'a> {
     /// PDU version
     pub version: u32,
 
     /// PDU info, if present (and cleartext)
-    pub info: Option<SNMPPduInfo>,
+    pub info: Option<SNMPPduInfo<'a>>,
 
     /// Community, if present (SNMPv2)
     pub community: Option<String>,
@@ -103,8 +103,8 @@ pub struct SNMPTransaction {
 
 
 
-impl SNMPState {
-    pub fn new() -> SNMPState {
+impl<'a> SNMPState<'a> {
+    pub fn new() -> SNMPState<'a> {
         SNMPState{
             version: 0,
             transactions: Vec::new(),
@@ -113,8 +113,8 @@ impl SNMPState {
     }
 }
 
-impl Default for SNMPPduInfo {
-    fn default() -> SNMPPduInfo {
+impl<'a> Default for SNMPPduInfo<'a> {
+    fn default() -> SNMPPduInfo<'a> {
         SNMPPduInfo{
             pdu_type: PduType(0),
             err: ErrorStatus::NoError,
@@ -124,8 +124,8 @@ impl Default for SNMPPduInfo {
     }
 }
 
-impl SNMPState {
-    fn add_pdu_info(&mut self, pdu: &SnmpPdu, tx: &mut SNMPTransaction) {
+impl<'a> SNMPState<'a> {
+    fn add_pdu_info(&mut self, pdu: &SnmpPdu<'a>, tx: &mut SNMPTransaction<'a>) {
         let mut pdu_info = SNMPPduInfo::default();
         pdu_info.pdu_type = pdu.pdu_type();
         match *pdu {
@@ -138,13 +138,14 @@ impl SNMPState {
                 pdu_info.trap_type = Some((t.generic_trap,t.enterprise.clone(),t.agent_addr.clone()));
             }
         }
-        for ref var in pdu.vars_iter() {
-            pdu_info.vars.push(var.oid.clone());
+
+        for var in pdu.vars_iter() {
+            pdu_info.vars.push(var.oid.to_owned());
         }
         tx.info = Some(pdu_info);
     }
 
-    fn handle_snmp_v12(&mut self, msg:SnmpMessage, _direction: u8) -> i32 {
+    fn handle_snmp_v12(&mut self, msg: SnmpMessage<'a>, _direction: u8) -> i32 {
         let mut tx = self.new_tx();
         // in the message, version is encoded as 0 (version 1) or 1 (version 2)
         if self.version != msg.version + 1 {
@@ -157,7 +158,7 @@ impl SNMPState {
         0
     }
 
-    fn handle_snmp_v3(&mut self, msg: SnmpV3Message, _direction: u8) -> i32 {
+    fn handle_snmp_v3(&mut self, msg: SnmpV3Message<'a>, _direction: u8) -> i32 {
         let mut tx = self.new_tx();
         if self.version != msg.version {
             SCLogDebug!("SNMP version mismatch: expected {}, received {}", self.version, msg.version);
@@ -186,7 +187,7 @@ impl SNMPState {
     /// Parse an SNMP request message
     ///
     /// Returns 0 if successful, or -1 on error
-    fn parse(&mut self, i: &[u8], direction: u8) -> i32 {
+    fn parse(&mut self, i: &'a [u8], direction: u8) -> i32 {
         if self.version == 0 {
             match parse_pdu_enveloppe_version(i) {
                 Ok((_,x)) => self.version = x,
@@ -211,7 +212,7 @@ impl SNMPState {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self) -> SNMPTransaction {
+    fn new_tx(&mut self) -> SNMPTransaction<'a> {
         self.tx_id += 1;
         SNMPTransaction::new(self.version, self.tx_id)
     }
@@ -264,8 +265,8 @@ impl SNMPState {
     }
 }
 
-impl SNMPTransaction {
-    pub fn new(version: u32, id: u64) -> SNMPTransaction {
+impl<'a> SNMPTransaction<'a> {
+    pub fn new(version: u32, id: u64) -> SNMPTransaction<'a> {
         SNMPTransaction {
             version,
             info: None,
@@ -287,7 +288,7 @@ impl SNMPTransaction {
     }
 }
 
-impl Drop for SNMPTransaction {
+impl<'a> Drop for SNMPTransaction<'a> {
     fn drop(&mut self) {
         self.free();
     }
