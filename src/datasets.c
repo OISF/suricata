@@ -32,6 +32,7 @@
 #include "util-print.h"
 #include "util-crypt.h"     // encode base64
 #include "util-base64.h"    // decode base64
+#include "util-byte.h"
 
 SCMutex sets_lock = SCMUTEX_INITIALIZER;
 static Dataset *sets = NULL;
@@ -138,14 +139,16 @@ static int ParseRepLine(const char *in, size_t ins, DataRepType *rep_out)
         return -1;
     }
 
-    int v = atoi(ptrs[0]);
-    if (v < 0 || v > USHRT_MAX) {
-        SCLogDebug("v %d", v);
+    uint64_t v = 0;
+    size_t r = ByteExtractString(&v, 10, strlen(ptrs[0]), ptrs[0]);
+    if (r != strlen(ptrs[0]) || v > (uint64_t)USHRT_MAX) {
+        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE,
+                "'%s' is not a valid reputation value (0-65535)", ptrs[0]);
         return -1;
     }
-    SCLogDebug("v %d raw %s", v, ptrs[0]);
+    SCLogDebug("v %"PRIu64" raw %s", v, ptrs[0]);
 
-    rep_out->value = v;
+    rep_out->value = (uint16_t)v;
     return 0;
 }
 
