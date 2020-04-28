@@ -36,7 +36,7 @@
 typedef struct DetectAsn1Data_ {
     uint8_t flags;     /* flags indicating the checks loaded */
     uint32_t oversize_length;   /* Length argument if needed */
-    int32_t absolute_offset;   /* Length argument if needed */
+    uint16_t absolute_offset;   /* Length argument if needed */
     int32_t relative_offset;   /* Length argument if needed */
 } DetectAsn1Data;
 
@@ -44,4 +44,3 @@ typedef struct DetectAsn1Data_ {
 void DetectAsn1Register (void);
 
 #endif /* __DETECT_ASN1_H__ */
-
