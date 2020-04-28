@@ -276,7 +276,7 @@ pub unsafe extern "C" fn rs_asn1_free(ptr: *mut Asn1) {
 ///
 /// Returns 1 if any of the options match, 0 if not
 #[no_mangle]
-pub(crate) unsafe extern "C" fn rs_asn1_checks(
+pub unsafe extern "C" fn rs_asn1_checks(
     ptr: *const Asn1,
     ad_ptr: *const DetectAsn1Data,
 ) -> u8 {
