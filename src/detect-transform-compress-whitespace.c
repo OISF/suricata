@@ -46,7 +46,7 @@ void DetectTransformCompressWhitespaceRegister(void)
         "modify buffer to compress consecutive whitespace characters "
         "into a single one before inspection";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].url =
-        DOC_URL DOC_VERSION "/rules/transforms.html#compress-whitespace";
+        "/rules/transforms.html#compress-whitespace";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Transform =
         TransformCompressWhitespace;
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Setup =

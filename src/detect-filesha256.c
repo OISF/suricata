@@ -69,7 +69,7 @@ void DetectFileSha256Register(void)
 {
     sigmatch_table[DETECT_FILESHA256].name = "filesha256";
     sigmatch_table[DETECT_FILESHA256].desc = "match file SHA-256 against list of SHA-256 checksums";
-    sigmatch_table[DETECT_FILESHA256].url = DOC_URL DOC_VERSION "/rules/file-keywords.html#filesha256";
+    sigmatch_table[DETECT_FILESHA256].url = "/rules/file-keywords.html#filesha256";
     sigmatch_table[DETECT_FILESHA256].FileMatch = DetectFileHashMatch;
     sigmatch_table[DETECT_FILESHA256].Setup = DetectFileSha256Setup;
     sigmatch_table[DETECT_FILESHA256].Free  = DetectFileHashFree;

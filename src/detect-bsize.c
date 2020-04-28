@@ -51,7 +51,7 @@ void DetectBsizeRegister(void)
 {
     sigmatch_table[DETECT_BSIZE].name = "bsize";
     sigmatch_table[DETECT_BSIZE].desc = "match on the length of a buffer";
-    sigmatch_table[DETECT_BSIZE].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#bsize";
+    sigmatch_table[DETECT_BSIZE].url = "/rules/payload-keywords.html#bsize";
     sigmatch_table[DETECT_BSIZE].Match = NULL;
     sigmatch_table[DETECT_BSIZE].Setup = DetectBsizeSetup;
     sigmatch_table[DETECT_BSIZE].Free = DetectBsizeFree;

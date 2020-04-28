@@ -98,7 +98,7 @@ void DetectSipResponseLineRegister(void)
     /* sip.response_line sticky buffer */
     sigmatch_table[DETECT_AL_SIP_RESPONSE_LINE].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SIP_RESPONSE_LINE].desc = "sticky buffer to match on the SIP response line";
-    sigmatch_table[DETECT_AL_SIP_RESPONSE_LINE].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_SIP_RESPONSE_LINE].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SIP_RESPONSE_LINE].Setup = DetectSipResponseLineSetup;
     sigmatch_table[DETECT_AL_SIP_RESPONSE_LINE].flags |= SIGMATCH_NOOPT;
 

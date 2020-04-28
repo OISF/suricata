@@ -51,7 +51,7 @@ void DetectTcphdrRegister(void)
 {
     sigmatch_table[DETECT_TCPHDR].name = "tcp.hdr";
     sigmatch_table[DETECT_TCPHDR].desc = "sticky buffer to match on the TCP header";
-    sigmatch_table[DETECT_TCPHDR].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#tcphdr";
+    sigmatch_table[DETECT_TCPHDR].url = "/rules/header-keywords.html#tcphdr";
     sigmatch_table[DETECT_TCPHDR].Setup = DetectTcphdrSetup;
     sigmatch_table[DETECT_TCPHDR].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS

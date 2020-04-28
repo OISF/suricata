@@ -58,7 +58,7 @@ void DetectIcmpSeqRegister (void)
 {
     sigmatch_table[DETECT_ICMP_SEQ].name = "icmp_seq";
     sigmatch_table[DETECT_ICMP_SEQ].desc = "check for a ICMP sequence number";
-    sigmatch_table[DETECT_ICMP_SEQ].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#icmp-seq";
+    sigmatch_table[DETECT_ICMP_SEQ].url = "/rules/header-keywords.html#icmp-seq";
     sigmatch_table[DETECT_ICMP_SEQ].Match = DetectIcmpSeqMatch;
     sigmatch_table[DETECT_ICMP_SEQ].Setup = DetectIcmpSeqSetup;
     sigmatch_table[DETECT_ICMP_SEQ].Free = DetectIcmpSeqFree;

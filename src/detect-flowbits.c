@@ -59,7 +59,7 @@ void DetectFlowbitsRegister (void)
 {
     sigmatch_table[DETECT_FLOWBITS].name = "flowbits";
     sigmatch_table[DETECT_FLOWBITS].desc = "operate on flow flag";
-    sigmatch_table[DETECT_FLOWBITS].url = DOC_URL DOC_VERSION "/rules/flow-keywords.html#flowbits";
+    sigmatch_table[DETECT_FLOWBITS].url = "/rules/flow-keywords.html#flowbits";
     sigmatch_table[DETECT_FLOWBITS].Match = DetectFlowbitMatch;
     sigmatch_table[DETECT_FLOWBITS].Setup = DetectFlowbitSetup;
     sigmatch_table[DETECT_FLOWBITS].Free  = DetectFlowbitFree;

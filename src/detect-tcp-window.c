@@ -61,7 +61,7 @@ void DetectWindowRegister (void)
     sigmatch_table[DETECT_WINDOW].name = "tcp.window";
     sigmatch_table[DETECT_WINDOW].alias = "window";
     sigmatch_table[DETECT_WINDOW].desc = "check for a specific TCP window size";
-    sigmatch_table[DETECT_WINDOW].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#window";
+    sigmatch_table[DETECT_WINDOW].url = "/rules/header-keywords.html#window";
     sigmatch_table[DETECT_WINDOW].Match = DetectWindowMatch;
     sigmatch_table[DETECT_WINDOW].Setup = DetectWindowSetup;
     sigmatch_table[DETECT_WINDOW].Free  = DetectWindowFree;

@@ -1046,6 +1046,15 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
 #endif
 }
 
+const char *GetDocURL(void)
+{
+    const char *prog_ver = GetProgramVersion();
+    if (strstr(prog_ver, "RELEASE") != NULL) {
+        return DOC_URL "suricata-" PROG_VER;
+    }
+    return DOC_URL "latest";
+}
+
 /** \brief get string with program version
  *
  *  Get the program version as passed to us from AC_INIT

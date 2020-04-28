@@ -57,7 +57,7 @@ void DetectTemplate2Register(void)
 {
     sigmatch_table[DETECT_TEMPLATE2].name = "template2";
     sigmatch_table[DETECT_TEMPLATE2].desc = "TODO describe the keyword";
-    sigmatch_table[DETECT_TEMPLATE2].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#template2";
+    sigmatch_table[DETECT_TEMPLATE2].url = "/rules/header-keywords.html#template2";
     sigmatch_table[DETECT_TEMPLATE2].Match = DetectTemplate2Match;
     sigmatch_table[DETECT_TEMPLATE2].Setup = DetectTemplate2Setup;
     sigmatch_table[DETECT_TEMPLATE2].Free = DetectTemplate2Free;

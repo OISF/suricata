@@ -259,7 +259,7 @@ void DetectAppLayerProtocolRegister(void)
 {
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].name = "app-layer-protocol";
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].desc = "match on the detected app-layer protocol";
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].url = DOC_URL DOC_VERSION "/rules/app-layer.html#app-layer-protocol";
+    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].url = "/rules/app-layer.html#app-layer-protocol";
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].Match =
         DetectAppLayerProtocolPacketMatch;
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].Setup =
