@@ -886,7 +886,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         if (unlikely(
                 status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN)) {
             if (status == NT_STATUS_TIMEOUT) {
-                TmThreadsCaptureHandleTimeout(tv, ntv->slot, NULL);
+                TmThreadsCaptureHandleTimeout(tv, NULL);
             }
             continue;
         } else if (unlikely(status != NT_SUCCESS)) {
