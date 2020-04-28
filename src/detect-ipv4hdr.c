@@ -51,7 +51,7 @@ void DetectIpv4hdrRegister(void)
 {
     sigmatch_table[DETECT_IPV4HDR].name = "ipv4.hdr";
     sigmatch_table[DETECT_IPV4HDR].desc = "sticky buffer to match on the IPV4 header";
-    sigmatch_table[DETECT_IPV4HDR].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#ipv4hdr";
+    sigmatch_table[DETECT_IPV4HDR].url = "/rules/header-keywords.html#ipv4hdr";
     sigmatch_table[DETECT_IPV4HDR].Setup = DetectIpv4hdrSetup;
     sigmatch_table[DETECT_IPV4HDR].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS

@@ -76,7 +76,7 @@ void DetectHttpRequestLineRegister(void)
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].name = "http.request_line";
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].alias = "http_request_line";
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].desc = "sticky buffer to match on the HTTP request line";
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-request-line";
+    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].url = "/rules/http-keywords.html#http-request-line";
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].Setup = DetectHttpRequestLineSetup;
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].RegisterTests = DetectHttpRequestLineRegisterTests;

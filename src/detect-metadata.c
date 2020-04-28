@@ -41,7 +41,7 @@ void DetectMetadataRegister (void)
 {
     sigmatch_table[DETECT_METADATA].name = "metadata";
     sigmatch_table[DETECT_METADATA].desc = "used for logging";
-    sigmatch_table[DETECT_METADATA].url = DOC_URL DOC_VERSION "/rules/meta.html#metadata";
+    sigmatch_table[DETECT_METADATA].url = "/rules/meta.html#metadata";
     sigmatch_table[DETECT_METADATA].Match = NULL;
     sigmatch_table[DETECT_METADATA].Setup = DetectMetadataSetup;
     sigmatch_table[DETECT_METADATA].Free  = NULL;

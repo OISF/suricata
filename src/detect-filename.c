@@ -79,7 +79,7 @@ void DetectFilenameRegister(void)
 {
     sigmatch_table[DETECT_FILENAME].name = "filename";
     sigmatch_table[DETECT_FILENAME].desc = "match on the file name";
-    sigmatch_table[DETECT_FILENAME].url = DOC_URL DOC_VERSION "/rules/file-keywords.html#filename";
+    sigmatch_table[DETECT_FILENAME].url = "/rules/file-keywords.html#filename";
     sigmatch_table[DETECT_FILENAME].FileMatch = DetectFilenameMatch;
     sigmatch_table[DETECT_FILENAME].Setup = DetectFilenameSetup;
     sigmatch_table[DETECT_FILENAME].Free  = DetectFilenameFree;
@@ -89,7 +89,7 @@ void DetectFilenameRegister(void)
 
     sigmatch_table[DETECT_FILE_NAME].name = "file.name";
     sigmatch_table[DETECT_FILE_NAME].desc = "sticky buffer to match on the file name";
-    sigmatch_table[DETECT_FILE_NAME].url = DOC_URL DOC_VERSION "/rules/file-keywords.html#filename";
+    sigmatch_table[DETECT_FILE_NAME].url = "/rules/file-keywords.html#filename";
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
     sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 

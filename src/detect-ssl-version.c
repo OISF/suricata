@@ -76,7 +76,7 @@ void DetectSslVersionRegister(void)
 {
     sigmatch_table[DETECT_AL_SSL_VERSION].name = "ssl_version";
     sigmatch_table[DETECT_AL_SSL_VERSION].desc = "match version of SSL/TLS record";
-    sigmatch_table[DETECT_AL_SSL_VERSION].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#ssl-version";
+    sigmatch_table[DETECT_AL_SSL_VERSION].url = "/rules/tls-keywords.html#ssl-version";
     sigmatch_table[DETECT_AL_SSL_VERSION].AppLayerTxMatch = DetectSslVersionMatch;
     sigmatch_table[DETECT_AL_SSL_VERSION].Setup = DetectSslVersionSetup;
     sigmatch_table[DETECT_AL_SSL_VERSION].Free  = DetectSslVersionFree;

@@ -51,7 +51,7 @@ void DetectIpv6hdrRegister(void)
 {
     sigmatch_table[DETECT_IPV6HDR].name = "ipv6.hdr";
     sigmatch_table[DETECT_IPV6HDR].desc = "sticky buffer to match on the IPV6 header";
-    sigmatch_table[DETECT_IPV6HDR].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#ipv6hdr";
+    sigmatch_table[DETECT_IPV6HDR].url = "/rules/header-keywords.html#ipv6hdr";
     sigmatch_table[DETECT_IPV6HDR].Setup = DetectIpv6hdrSetup;
     sigmatch_table[DETECT_IPV6HDR].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS

@@ -59,7 +59,7 @@ void DetectReferenceRegister(void)
 {
     sigmatch_table[DETECT_REFERENCE].name = "reference";
     sigmatch_table[DETECT_REFERENCE].desc = "direct to places where information about the rule can be found";
-    sigmatch_table[DETECT_REFERENCE].url = DOC_URL DOC_VERSION "/rules/meta.html#reference";
+    sigmatch_table[DETECT_REFERENCE].url = "/rules/meta.html#reference";
     sigmatch_table[DETECT_REFERENCE].Setup = DetectReferenceSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_REFERENCE].RegisterTests = ReferenceRegisterTests;

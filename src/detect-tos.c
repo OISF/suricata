@@ -70,7 +70,7 @@ void DetectTosRegister(void)
     sigmatch_table[DETECT_TOS].flags =
         (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
     sigmatch_table[DETECT_TOS].url =
-        DOC_URL DOC_VERSION "/rules/header-keywords.html#tos";
+        "/rules/header-keywords.html#tos";
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }

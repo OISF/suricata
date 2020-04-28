@@ -67,7 +67,7 @@ void DetectIsdataatRegister(void)
 {
     sigmatch_table[DETECT_ISDATAAT].name = "isdataat";
     sigmatch_table[DETECT_ISDATAAT].desc = "check if there is still data at a specific part of the payload";
-    sigmatch_table[DETECT_ISDATAAT].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#isdataat";
+    sigmatch_table[DETECT_ISDATAAT].url = "/rules/payload-keywords.html#isdataat";
     /* match is handled in DetectEngineContentInspection() */
     sigmatch_table[DETECT_ISDATAAT].Match = NULL;
     sigmatch_table[DETECT_ISDATAAT].Setup = DetectIsdataatSetup;
@@ -76,7 +76,7 @@ void DetectIsdataatRegister(void)
 
     sigmatch_table[DETECT_ENDS_WITH].name = "endswith";
     sigmatch_table[DETECT_ENDS_WITH].desc = "make sure the previous content matches exactly at the end of the buffer";
-    sigmatch_table[DETECT_ENDS_WITH].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#endswith";
+    sigmatch_table[DETECT_ENDS_WITH].url = "/rules/payload-keywords.html#endswith";
     sigmatch_table[DETECT_ENDS_WITH].Setup = DetectEndsWithSetup;
     sigmatch_table[DETECT_ENDS_WITH].flags = SIGMATCH_NOOPT;
 

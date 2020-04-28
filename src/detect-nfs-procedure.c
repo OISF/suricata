@@ -90,7 +90,7 @@ void DetectNfsProcedureRegister (void)
 {
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].name = "nfs_procedure";
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].desc = "match NFS procedure";
-    sigmatch_table[DETECT_AL_NFS_PROCEDURE].url = DOC_URL DOC_VERSION "/rules/nfs-keywords.html#procedure";
+    sigmatch_table[DETECT_AL_NFS_PROCEDURE].url = "/rules/nfs-keywords.html#procedure";
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].Match = NULL;
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].AppLayerTxMatch = DetectNfsProcedureMatch;
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].Setup = DetectNfsProcedureSetup;

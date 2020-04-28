@@ -142,7 +142,7 @@ static void DetectHttpHeadersRegisterStub(void)
     sigmatch_table[KEYWORD_ID].alias = KEYWORD_NAME_LEGACY;
 #endif
     sigmatch_table[KEYWORD_ID].desc = KEYWORD_NAME " sticky buffer for the " BUFFER_DESC;
-    sigmatch_table[KEYWORD_ID].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
+    sigmatch_table[KEYWORD_ID].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[KEYWORD_ID].Setup = DetectHttpHeadersSetupSticky;
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 

@@ -77,7 +77,7 @@ void DetectHostbitsRegister (void)
 {
     sigmatch_table[DETECT_HOSTBITS].name = "hostbits";
     sigmatch_table[DETECT_HOSTBITS].desc = "operate on host flag";
-//    sigmatch_table[DETECT_HOSTBITS].url = DOC_URL DOC_VERSION "/rules/flow-keywords.html#flowbits";
+//    sigmatch_table[DETECT_HOSTBITS].url = "/rules/flow-keywords.html#flowbits";
     sigmatch_table[DETECT_HOSTBITS].Match = DetectHostbitMatch;
     sigmatch_table[DETECT_HOSTBITS].Setup = DetectHostbitSetup;
     sigmatch_table[DETECT_HOSTBITS].Free  = DetectHostbitFree;

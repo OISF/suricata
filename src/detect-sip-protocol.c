@@ -97,7 +97,7 @@ void DetectSipProtocolRegister(void)
     /* sip.protocol sticky buffer */
     sigmatch_table[DETECT_AL_SIP_PROTOCOL].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SIP_PROTOCOL].desc = "sticky buffer to match on the SIP protocol";
-    sigmatch_table[DETECT_AL_SIP_PROTOCOL].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_SIP_PROTOCOL].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SIP_PROTOCOL].Setup = DetectSipProtocolSetup;
     sigmatch_table[DETECT_AL_SIP_PROTOCOL].flags |= SIGMATCH_NOOPT;
 

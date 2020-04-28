@@ -49,7 +49,7 @@ void DetectICMPv6mtuRegister(void)
 {
     sigmatch_table[DETECT_ICMPV6MTU].name = "icmpv6.mtu";
     sigmatch_table[DETECT_ICMPV6MTU].desc = "match on ICMPv6 MTU field";
-    sigmatch_table[DETECT_ICMPV6MTU].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#icmpv6mtu";
+    sigmatch_table[DETECT_ICMPV6MTU].url = "/rules/header-keywords.html#icmpv6mtu";
     sigmatch_table[DETECT_ICMPV6MTU].Match = DetectICMPv6mtuMatch;
     sigmatch_table[DETECT_ICMPV6MTU].Setup = DetectICMPv6mtuSetup;
     sigmatch_table[DETECT_ICMPV6MTU].Free = DetectICMPv6mtuFree;
