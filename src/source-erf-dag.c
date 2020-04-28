@@ -349,7 +349,7 @@ ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
         if (top == NULL) {
             if (errno == EAGAIN) {
                 if (dtv->dagstream & 0x1) {
-                    TmThreadsCaptureHandleTimeout(tv, dtv->slot, NULL);
+                    TmThreadsCaptureHandleTimeout(tv, NULL);
                     usleep(10 * 1000);
                     dtv->btm = dtv->top;
                 }
