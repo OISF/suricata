@@ -148,15 +148,28 @@ static int DetectAsn1Match(DetectEngineThreadCtx *det_ctx, Packet *p,
     }
 
     const DetectAsn1Data *ad = (const DetectAsn1Data *)ctx;
-    int32_t offset;
+    uint16_t offset;
     if (ad->flags & ASN1_ABSOLUTE_OFFSET) {
         offset = ad->absolute_offset;
     } else if (ad->flags & ASN1_RELATIVE_OFFSET) {
-        offset = ad->relative_offset;
+        // relative offset in regards to the last content match
+
+        // This range check is done when relative_offset
+        BUG_ON(ad->relative_offset > UINT16_MAX || ad->relative_offset < -UINT16_MAX);
+
+        int64_t tmp_offset = det_ctx->buffer_offset + ad->relative_offset;
+
+        // check for under/overflow before downcasting
+        if (tmp_offset < 0 || tmp_offset > UINT16_MAX) {
+            return 0;
+        }
+
+        offset = (uint16_t)tmp_offset;
     } else {
         offset = 0;
     }
-    if (offset >= (int32_t)p->payload_len) {
+
+    if (offset >= p->payload_len) {
         return 0;
     }
 
@@ -204,7 +217,7 @@ static DetectAsn1Data *DetectAsn1Parse(const char *instr)
     DetectAsn1Data *fd = NULL;
     char *tok = NULL;
     uint32_t ov_len = 0;
-    uint32_t abs_off = 0;
+    uint16_t abs_off = 0;
     int32_t rel_off = 0;
     uint8_t flags = 0;
     char *saveptr = NULL;
@@ -244,7 +257,7 @@ static DetectAsn1Data *DetectAsn1Parse(const char *instr)
             /* get the param */
             tok = strtok_r(NULL, ASN_DELIM, &saveptr);
             if (tok == NULL ||
-                StringParseUint32(&abs_off, 10, 0, tok) <= 0)
+                StringParseUint16(&abs_off, 10, 0, tok) <= 0)
             {
                 SCLogError(SC_ERR_INVALID_VALUE, "Malformed value for "
                            "absolute_offset: %s", tok);
@@ -254,8 +267,11 @@ static DetectAsn1Data *DetectAsn1Parse(const char *instr)
             flags |= ASN1_RELATIVE_OFFSET;
             /* get the param */
             tok = strtok_r(NULL, ASN_DELIM, &saveptr);
+
+            // Range check on uint16_t max as uint16_t is the type of the buffer
+            // the offset is relative to
             if (tok == NULL ||
-                StringParseInt32(&rel_off, 10, 0, tok) <= 0)
+                StringParseI32RangeCheck(&rel_off, 10, 0, tok, -UINT16_MAX, UINT16_MAX) <= 0)
             {
                 SCLogError(SC_ERR_INVALID_VALUE, "Malformed value for "
                            "relative_offset: %s", tok);
@@ -1092,7 +1108,7 @@ static int DetectAsn1TestReal01(void)
              "content:\"Pablo\"; asn1:absolute_offset 0, "
              "oversize_length 130; sid:1;)";
     sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
-             "content:\"AA\"; asn1:relative_offset 2, "
+             "content:\"AA\"; asn1:relative_offset 0, "
              "oversize_length 130; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
              "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
@@ -1171,7 +1187,7 @@ static int DetectAsn1TestReal02(void)
              "content:\"Pablo\"; asn1:absolute_offset 0, "
              "oversize_length 140; sid:1;)";
     sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
-             "content:\"AA\"; asn1:relative_offset 2, "
+             "content:\"AA\"; asn1:relative_offset 0, "
              "oversize_length 140; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
              "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
@@ -1252,7 +1268,7 @@ end:
 /**
  * \test DetectAsn1TestReal04 like the real test 02, but modified the
  *       relative offset to check negative offset values, in this case
- *       start decoding from -7 bytes respect the content match "John"
+ *       start decoding from -11 bytes respect the content match "John"
  */
 static int DetectAsn1TestReal04(void)
 {
@@ -1309,7 +1325,7 @@ static int DetectAsn1TestReal04(void)
              "content:\"Pablo\"; asn1:absolute_offset 0, "
              "oversize_length 140; sid:1;)";
     sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
-             "content:\"John\"; asn1:relative_offset -7, "
+             "content:\"John\"; asn1:relative_offset -11, "
              "oversize_length 140; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
              "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
@@ -1324,6 +1340,64 @@ static int DetectAsn1TestReal04(void)
     result = UTHGenericTest(p, 2, sigs, sid, (uint32_t *) results, 3);
 
     UTHFreePackets(p, 2);
+end:
+    return result;
+}
+
+/**
+ * \test DetectAsn1TestReal05 like the real test 04, but modified the
+ *       relative offset to check offset values which could read past the bounds
+ *       of the buffer
+ */
+static int DetectAsn1TestReal05(void)
+{
+    int result = 0;
+    /* Check the start with AA (this is to test the relative_offset keyword) */
+    uint8_t *buf = (uint8_t *) "AA\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
+                   "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
+                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
+                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
+                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
+                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
+                   "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
+                   "Jones""\xA0\x0A\x43\x08""19590717"
+                   "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01""P"
+                   "\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
+                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
+                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
+                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
+                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111""\x31\x1F"
+                   "\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05""Jones"
+                   "\xA0\x0A\x43\x08""19590717";
+
+    uint16_t buflen = strlen((char *)buf) - 1;
+
+    Packet *p[1];
+
+    p[0] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p[0] == NULL)
+        goto end;
+
+    const char *sigs[3];
+    sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
+             "content:\"John\"; asn1:relative_offset -100, "
+             "oversize_length 132; sid:1;)";
+    sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
+             "content:\"John\"; asn1:relative_offset -11, "
+             "oversize_length 132; sid:2;)";
+    sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
+             "content:\"John\"; asn1:  relative_offset 5000, "
+             "oversize_length 132; sid:3;)";
+
+    uint32_t sid[3] = {1, 2, 3};
+
+    // The second signature should match
+    uint32_t results[1][3] = {{0, 1, 0}};
+
+    result = UTHGenericTest(p, 1, sigs, sid, (uint32_t *) results, 3);
+
+    UTHFreePackets(p, 1);
 end:
     return result;
 }
@@ -1364,6 +1438,7 @@ static void DetectAsn1RegisterTests(void)
     UtRegisterTest("DetectAsn1TestReal02", DetectAsn1TestReal02);
     UtRegisterTest("DetectAsn1TestReal03", DetectAsn1TestReal03);
     UtRegisterTest("DetectAsn1TestReal04", DetectAsn1TestReal04);
+    UtRegisterTest("DetectAsn1TestReal05", DetectAsn1TestReal05);
 
 #endif /* UNITTESTS */
 }
