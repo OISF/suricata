@@ -51,7 +51,7 @@ void DetectICMPv6hdrRegister(void)
 {
     sigmatch_table[DETECT_ICMPV6HDR].name = "icmpv6.hdr";
     sigmatch_table[DETECT_ICMPV6HDR].desc = "sticky buffer to match on the ICMP V6 header";
-    sigmatch_table[DETECT_ICMPV6HDR].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#icmpv6hdr";
+    sigmatch_table[DETECT_ICMPV6HDR].url = "/rules/header-keywords.html#icmpv6hdr";
     sigmatch_table[DETECT_ICMPV6HDR].Setup = DetectICMPv6hdrSetup;
     sigmatch_table[DETECT_ICMPV6HDR].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS

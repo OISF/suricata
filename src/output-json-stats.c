@@ -385,7 +385,7 @@ static OutputInitResult OutputStatsLogInit(ConfNode *conf)
     if (!StatsEnabled()) {
         SCLogError(SC_ERR_STATS_LOG_GENERIC,
                 "stats.json: stats are disabled globally: set stats.enabled to true. "
-                "See %s%s/configuration/suricata-yaml.html#stats", DOC_URL, DOC_VERSION);
+                "See %s/configuration/suricata-yaml.html#stats", GetDocURL());
         return result;
     }
 
@@ -464,7 +464,7 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
     if (!StatsEnabled()) {
         SCLogError(SC_ERR_STATS_LOG_GENERIC,
                 "eve.stats: stats are disabled globally: set stats.enabled to true. "
-                "See %s%s/configuration/suricata-yaml.html#stats", DOC_URL, DOC_VERSION);
+                "See %s/configuration/suricata-yaml.html#stats", GetDocURL());
         return result;
     }
 

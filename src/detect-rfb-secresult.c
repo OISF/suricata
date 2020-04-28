@@ -62,7 +62,7 @@ void DetectRfbSecresultRegister (void)
 {
     sigmatch_table[DETECT_AL_RFB_SECRESULT].name = "rfb.secresult";
     sigmatch_table[DETECT_AL_RFB_SECRESULT].desc = "match RFB security result";
-    sigmatch_table[DETECT_AL_RFB_SECRESULT].url = DOC_URL DOC_VERSION "/rules/rfb-keywords.html#rfb-secresult";
+    sigmatch_table[DETECT_AL_RFB_SECRESULT].url = "/rules/rfb-keywords.html#rfb-secresult";
     sigmatch_table[DETECT_AL_RFB_SECRESULT].AppLayerTxMatch = DetectRfbSecresultMatch;
     sigmatch_table[DETECT_AL_RFB_SECRESULT].Setup = DetectRfbSecresultSetup;
     sigmatch_table[DETECT_AL_RFB_SECRESULT].Free  = DetectRfbSecresultFree;

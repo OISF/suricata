@@ -58,7 +58,7 @@ void DetectIPProtoRegister(void)
 {
     sigmatch_table[DETECT_IPPROTO].name = "ip_proto";
     sigmatch_table[DETECT_IPPROTO].desc = "match on the IP protocol in the packet-header";
-    sigmatch_table[DETECT_IPPROTO].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#ip-proto";
+    sigmatch_table[DETECT_IPPROTO].url = "/rules/header-keywords.html#ip-proto";
     sigmatch_table[DETECT_IPPROTO].Match = NULL;
     sigmatch_table[DETECT_IPPROTO].Setup = DetectIPProtoSetup;
     sigmatch_table[DETECT_IPPROTO].Free  = DetectIPProtoFree;

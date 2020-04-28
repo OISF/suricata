@@ -92,7 +92,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 void DetectRfbNameRegister(void)
 {
     sigmatch_table[DETECT_AL_RFB_NAME].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_RFB_NAME].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC
+    sigmatch_table[DETECT_AL_RFB_NAME].url = "/rules/" KEYWORD_DOC
     sigmatch_table[DETECT_AL_RFB_NAME].desc = "sticky buffer to match on the RFB desktop name";
     sigmatch_table[DETECT_AL_RFB_NAME].Setup = DetectRfbNameSetup;
     sigmatch_table[DETECT_AL_RFB_NAME].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;

@@ -83,7 +83,7 @@ void DetectFiledataRegister(void)
     sigmatch_table[DETECT_FILE_DATA].name = "file.data";
     sigmatch_table[DETECT_FILE_DATA].alias = "file_data";
     sigmatch_table[DETECT_FILE_DATA].desc = "make content keywords match on file data";
-    sigmatch_table[DETECT_FILE_DATA].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#file-data";
+    sigmatch_table[DETECT_FILE_DATA].url = "/rules/http-keywords.html#file-data";
     sigmatch_table[DETECT_FILE_DATA].Setup = DetectFiledataSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FILE_DATA].RegisterTests = DetectFiledataRegisterTests;

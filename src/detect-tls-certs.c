@@ -88,7 +88,7 @@ void DetectTlsCertsRegister(void)
 {
     sigmatch_table[DETECT_AL_TLS_CERTS].name = "tls.certs";
     sigmatch_table[DETECT_AL_TLS_CERTS].desc = "content modifier to match the TLS certificate sticky buffer";
-    sigmatch_table[DETECT_AL_TLS_CERTS].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-certs";
+    sigmatch_table[DETECT_AL_TLS_CERTS].url = "/rules/tls-keywords.html#tls-certs";
     sigmatch_table[DETECT_AL_TLS_CERTS].Setup = DetectTlsCertsSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_TLS_CERTS].RegisterTests = DetectTlsCertsRegisterTests;

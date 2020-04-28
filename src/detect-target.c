@@ -52,7 +52,7 @@ void DetectTargetRegister(void) {
     /* description: listed in "suricata --list-keywords=all" */
     sigmatch_table[DETECT_TARGET].desc = "indicate to output module which side is the target of the attack";
     /* link to further documentation of the keyword. Normally on the Suricata redmine/wiki */
-    sigmatch_table[DETECT_TARGET].url =  DOC_URL DOC_VERSION "/rules/meta.html#target";
+    sigmatch_table[DETECT_TARGET].url =  "/rules/meta.html#target";
     /* match function is called when the signature is inspected on a packet */
     sigmatch_table[DETECT_TARGET].Match = NULL;
     /* setup function is called during signature parsing, when the target

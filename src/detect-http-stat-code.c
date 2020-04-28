@@ -81,7 +81,7 @@ void DetectHttpStatCodeRegister (void)
     /* http_stat_code content modifier */
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].name = "http_stat_code";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].desc = "content modifier to match only on HTTP stat-code-buffer";
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-stat-code";
+    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = "/rules/http-keywords.html#http-stat-code";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].RegisterTests = DetectHttpStatCodeRegisterTests;
@@ -92,7 +92,7 @@ void DetectHttpStatCodeRegister (void)
     /* http.stat_code content modifier */
     sigmatch_table[DETECT_HTTP_STAT_CODE].name = "http.stat_code";
     sigmatch_table[DETECT_HTTP_STAT_CODE].desc = "sticky buffer to match only on HTTP stat-code-buffer";
-    sigmatch_table[DETECT_HTTP_STAT_CODE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-stat-code";
+    sigmatch_table[DETECT_HTTP_STAT_CODE].url = "/rules/http-keywords.html#http-stat-code";
     sigmatch_table[DETECT_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetupSticky;
     sigmatch_table[DETECT_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 

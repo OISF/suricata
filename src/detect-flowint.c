@@ -62,7 +62,7 @@ void DetectFlowintRegister(void)
 {
     sigmatch_table[DETECT_FLOWINT].name = "flowint";
     sigmatch_table[DETECT_FLOWINT].desc = "operate on a per-flow integer";
-    sigmatch_table[DETECT_FLOWINT].url = DOC_URL DOC_VERSION "/rules/flow-keywords.html#flowint";
+    sigmatch_table[DETECT_FLOWINT].url = "/rules/flow-keywords.html#flowint";
     sigmatch_table[DETECT_FLOWINT].Match = DetectFlowintMatch;
     sigmatch_table[DETECT_FLOWINT].Setup = DetectFlowintSetup;
     sigmatch_table[DETECT_FLOWINT].Free = DetectFlowintFree;

@@ -100,7 +100,7 @@ void DetectSipStatMsgRegister (void)
     /* sip.stat_msg sticky buffer */
     sigmatch_table[DETECT_AL_SIP_STAT_MSG].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SIP_STAT_MSG].desc = "sticky buffer to match on the SIP status message";
-    sigmatch_table[DETECT_AL_SIP_STAT_MSG].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_SIP_STAT_MSG].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SIP_STAT_MSG].Setup = DetectSipStatMsgSetup;
     sigmatch_table[DETECT_AL_SIP_STAT_MSG].flags |= SIGMATCH_NOOPT;
 

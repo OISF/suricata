@@ -61,7 +61,7 @@ void DetectIPRepRegister (void)
 {
     sigmatch_table[DETECT_IPREP].name = "iprep";
     sigmatch_table[DETECT_IPREP].desc = "match on the IP reputation information for a host";
-    sigmatch_table[DETECT_IPREP].url = DOC_URL DOC_VERSION "/rules/ip-reputation-rules.html#iprep";
+    sigmatch_table[DETECT_IPREP].url = "/rules/ip-reputation-rules.html#iprep";
     sigmatch_table[DETECT_IPREP].Match = DetectIPRepMatch;
     sigmatch_table[DETECT_IPREP].Setup = DetectIPRepSetup;
     sigmatch_table[DETECT_IPREP].Free  = DetectIPRepFree;

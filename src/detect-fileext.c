@@ -65,7 +65,7 @@ void DetectFileextRegister(void)
 {
     sigmatch_table[DETECT_FILEEXT].name = "fileext";
     sigmatch_table[DETECT_FILEEXT].desc = "match on the extension of a file name";
-    sigmatch_table[DETECT_FILEEXT].url = DOC_URL DOC_VERSION "/rules/file-keywords.html#fileext";
+    sigmatch_table[DETECT_FILEEXT].url = "/rules/file-keywords.html#fileext";
     sigmatch_table[DETECT_FILEEXT].FileMatch = DetectFileextMatch;
     sigmatch_table[DETECT_FILEEXT].Setup = DetectFileextSetup;
     sigmatch_table[DETECT_FILEEXT].Free  = DetectFileextFree;

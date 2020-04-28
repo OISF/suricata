@@ -377,7 +377,7 @@ void DetectHttpStartRegister(void)
     sigmatch_table[DETECT_AL_HTTP_START].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_HTTP_START].alias = KEYWORD_NAME_LEGACY;
     sigmatch_table[DETECT_AL_HTTP_START].desc = BUFFER_NAME " sticky buffer";
-    sigmatch_table[DETECT_AL_HTTP_START].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_HTTP_START].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_HTTP_START].Setup = DetectHttpStartSetup;
     sigmatch_table[DETECT_AL_HTTP_START].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 

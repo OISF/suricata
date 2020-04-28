@@ -47,7 +47,7 @@ void DetectTransformDotPrefixRegister(void)
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].desc =
         "modify buffer to extract the dotprefix";
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].url =
-        DOC_URL DOC_VERSION "/rules/transforms.html#dotprefix";
+        "/rules/transforms.html#dotprefix";
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].Transform = TransformDotPrefix;
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].Setup = DetectTransformDotPrefixSetup;
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].RegisterTests =
