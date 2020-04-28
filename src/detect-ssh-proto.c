@@ -106,7 +106,7 @@ void DetectSshProtocolRegister(void)
     sigmatch_table[DETECT_AL_SSH_PROTOCOL].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SSH_PROTOCOL].alias = KEYWORD_NAME_LEGACY;
     sigmatch_table[DETECT_AL_SSH_PROTOCOL].desc = BUFFER_NAME " sticky buffer";
-    sigmatch_table[DETECT_AL_SSH_PROTOCOL].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_SSH_PROTOCOL].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SSH_PROTOCOL].Setup = DetectSshProtocolSetup;
     sigmatch_table[DETECT_AL_SSH_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 

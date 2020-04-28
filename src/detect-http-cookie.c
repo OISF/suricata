@@ -85,7 +85,7 @@ void DetectHttpCookieRegister(void)
     /* http_cookie content modifier */
     sigmatch_table[DETECT_AL_HTTP_COOKIE].name = "http_cookie";
     sigmatch_table[DETECT_AL_HTTP_COOKIE].desc = "content modifier to match only on the HTTP cookie-buffer";
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-cookie";
+    sigmatch_table[DETECT_AL_HTTP_COOKIE].url = "/rules/http-keywords.html#http-cookie";
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Setup = DetectHttpCookieSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_COOKIE].RegisterTests = DetectHttpCookieRegisterTests;
@@ -97,7 +97,7 @@ void DetectHttpCookieRegister(void)
     /* http.cookie sticky buffer */
     sigmatch_table[DETECT_HTTP_COOKIE].name = "http.cookie";
     sigmatch_table[DETECT_HTTP_COOKIE].desc = "sticky buffer to match on the HTTP Cookie/Set-Cookie buffers";
-    sigmatch_table[DETECT_HTTP_COOKIE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-cookie";
+    sigmatch_table[DETECT_HTTP_COOKIE].url = "/rules/http-keywords.html#http-cookie";
     sigmatch_table[DETECT_HTTP_COOKIE].Setup = DetectHttpCookieSetupSticky;
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_INFO_STICKY_BUFFER;

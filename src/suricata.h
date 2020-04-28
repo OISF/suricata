@@ -84,12 +84,7 @@
 #define DEFAULT_PID_FILENAME DEFAULT_PID_DIR DEFAULT_PID_BASENAME
 
 #define DOC_URL "https://suricata.readthedocs.io/en/"
-
-#if defined RELEASE
-#define DOC_VERSION "suricata-" PROG_VER
-#else
-#define DOC_VERSION "latest"
-#endif
+const char *GetDocURL(void);
 
 /* runtime engine control flags */
 #define SURICATA_STOP    (1 << 0)   /**< gracefully stop the engine: process all

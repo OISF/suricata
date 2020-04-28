@@ -250,7 +250,7 @@ static void StatsInitCtxPreOutput(void)
         if (gstats == NULL) {
             SCLogWarning(SC_ERR_STATS_LOG_GENERIC, "global stats config is missing. "
                     "Stats enabled through legacy stats.log. "
-                    "See %s%s/configuration/suricata-yaml.html#stats", DOC_URL, DOC_VERSION);
+                    "See %s/configuration/suricata-yaml.html#stats", GetDocURL());
         }
 
         const char *interval = ConfNodeLookupChildValue(stats, "interval");

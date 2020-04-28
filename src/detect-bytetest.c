@@ -72,7 +72,7 @@ void DetectBytetestRegister (void)
 {
     sigmatch_table[DETECT_BYTETEST].name = "byte_test";
     sigmatch_table[DETECT_BYTETEST].desc = "extract <num of bytes> and perform an operation selected with <operator> against the value in <test value> at a particular <offset>";
-    sigmatch_table[DETECT_BYTETEST].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#byte-test";
+    sigmatch_table[DETECT_BYTETEST].url = "/rules/payload-keywords.html#byte-test";
     sigmatch_table[DETECT_BYTETEST].Match = DetectBytetestMatch;
     sigmatch_table[DETECT_BYTETEST].Setup = DetectBytetestSetup;
     sigmatch_table[DETECT_BYTETEST].Free  = DetectBytetestFree;

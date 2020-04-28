@@ -51,7 +51,7 @@ void DetectDatasetRegister (void)
 {
     sigmatch_table[DETECT_DATASET].name = "dataset";
     sigmatch_table[DETECT_DATASET].desc = "match sticky buffer against datasets (experimental)";
-    sigmatch_table[DETECT_DATASET].url = DOC_URL DOC_VERSION "/rules/dataset-keywords.html#dataset";
+    sigmatch_table[DETECT_DATASET].url = "/rules/dataset-keywords.html#dataset";
     sigmatch_table[DETECT_DATASET].Setup = DetectDatasetSetup;
     sigmatch_table[DETECT_DATASET].Free  = DetectDatasetFree;
 

@@ -93,7 +93,7 @@ void DetectNfsVersionRegister (void)
     sigmatch_table[DETECT_AL_NFS_VERSION].name = "nfs.version";
     sigmatch_table[DETECT_AL_NFS_VERSION].alias = "nfs_version";
     sigmatch_table[DETECT_AL_NFS_VERSION].desc = "match NFS version";
-    sigmatch_table[DETECT_AL_NFS_VERSION].url = DOC_URL DOC_VERSION "/rules/nfs-keywords.html#version";
+    sigmatch_table[DETECT_AL_NFS_VERSION].url = "/rules/nfs-keywords.html#version";
     sigmatch_table[DETECT_AL_NFS_VERSION].AppLayerTxMatch = DetectNfsVersionMatch;
     sigmatch_table[DETECT_AL_NFS_VERSION].Setup = DetectNfsVersionSetup;
     sigmatch_table[DETECT_AL_NFS_VERSION].Free = DetectNfsVersionFree;

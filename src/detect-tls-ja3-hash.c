@@ -80,7 +80,7 @@ void DetectTlsJa3HashRegister(void)
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].name = "ja3.hash";
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].alias = "ja3_hash";
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].desc = "content modifier to match the JA3 hash buffer";
-    sigmatch_table[DETECT_AL_TLS_JA3_HASH].url = DOC_URL DOC_VERSION "/rules/ja3-keywords.html#ja3-hash";
+    sigmatch_table[DETECT_AL_TLS_JA3_HASH].url = "/rules/ja3-keywords.html#ja3-hash";
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].Setup = DetectTlsJa3HashSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_TLS_JA3_HASH].RegisterTests = DetectTlsJa3HashRegisterTests;

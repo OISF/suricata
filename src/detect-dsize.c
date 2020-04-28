@@ -66,7 +66,7 @@ void DetectDsizeRegister (void)
 {
     sigmatch_table[DETECT_DSIZE].name = "dsize";
     sigmatch_table[DETECT_DSIZE].desc = "match on the size of the packet payload";
-    sigmatch_table[DETECT_DSIZE].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#dsize";
+    sigmatch_table[DETECT_DSIZE].url = "/rules/payload-keywords.html#dsize";
     sigmatch_table[DETECT_DSIZE].Match = DetectDsizeMatch;
     sigmatch_table[DETECT_DSIZE].Setup = DetectDsizeSetup;
     sigmatch_table[DETECT_DSIZE].Free  = DetectDsizeFree;

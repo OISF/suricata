@@ -124,7 +124,7 @@ void DetectHttpProtocolRegister(void)
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].alias = KEYWORD_NAME_LEGACY;
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].desc = BUFFER_NAME " sticky buffer";
-    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].Setup = DetectHttpProtocolSetup;
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 

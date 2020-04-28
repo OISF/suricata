@@ -310,7 +310,7 @@ static void SigMultilinePrint(int i, const char *prefix)
     printf("%sFeatures: ", prefix);
     PrintFeatureList(&sigmatch_table[i], ',');
     if (sigmatch_table[i].url) {
-        printf("\n%sDocumentation: %s", prefix, sigmatch_table[i].url);
+        printf("\n%sDocumentation: %s%s", prefix, GetDocURL(), sigmatch_table[i].url);
     }
     if (sigmatch_table[i].alternative) {
         printf("\n%sReplaced by: %s", prefix, sigmatch_table[sigmatch_table[i].alternative].name);
@@ -358,7 +358,7 @@ void SigTableList(const char *keyword)
                 PrintFeatureList(&sigmatch_table[i], ':');
                 printf(";");
                 if (sigmatch_table[i].url) {
-                    printf("%s", sigmatch_table[i].url);
+                    printf("%s%s", GetDocURL(), sigmatch_table[i].url);
                 }
                 printf(";");
                 printf("\n");

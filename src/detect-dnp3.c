@@ -493,7 +493,7 @@ static void DetectDNP3FuncRegister(void)
     sigmatch_table[DETECT_AL_DNP3FUNC].name          = "dnp3_func";
     sigmatch_table[DETECT_AL_DNP3FUNC].alias         = "dnp3.func";
     sigmatch_table[DETECT_AL_DNP3FUNC].desc          = "match on the application function code found in DNP3 request and responses";
-    sigmatch_table[DETECT_AL_DNP3FUNC].url           = DOC_URL DOC_VERSION "/rules/dnp3-keywords.html#dnp3-func";
+    sigmatch_table[DETECT_AL_DNP3FUNC].url           = "/rules/dnp3-keywords.html#dnp3-func";
     sigmatch_table[DETECT_AL_DNP3FUNC].Match         = NULL;
     sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerTxMatch = DetectDNP3FuncMatch;
     sigmatch_table[DETECT_AL_DNP3FUNC].Setup         = DetectDNP3FuncSetup;
@@ -511,7 +511,7 @@ static void DetectDNP3IndRegister(void)
     sigmatch_table[DETECT_AL_DNP3IND].name          = "dnp3_ind";
     sigmatch_table[DETECT_AL_DNP3IND].alias         = "dnp3.ind";
     sigmatch_table[DETECT_AL_DNP3IND].desc          = "match on the DNP3 internal indicator flags in the response application header";
-    sigmatch_table[DETECT_AL_DNP3IND].url           = DOC_URL DOC_VERSION "/rules/dnp3-keywords.html#dnp3-ind";
+    sigmatch_table[DETECT_AL_DNP3IND].url           = "/rules/dnp3-keywords.html#dnp3-ind";
     sigmatch_table[DETECT_AL_DNP3IND].Match         = NULL;
     sigmatch_table[DETECT_AL_DNP3IND].AppLayerTxMatch = DetectDNP3IndMatch;
     sigmatch_table[DETECT_AL_DNP3IND].Setup         = DetectDNP3IndSetup;
@@ -529,7 +529,7 @@ static void DetectDNP3ObjRegister(void)
     sigmatch_table[DETECT_AL_DNP3OBJ].name          = "dnp3_obj";
     sigmatch_table[DETECT_AL_DNP3OBJ].alias         = "dnp3.obj";
     sigmatch_table[DETECT_AL_DNP3OBJ].desc          = "match on the DNP3 application data objects";
-    sigmatch_table[DETECT_AL_DNP3OBJ].url           = DOC_URL DOC_VERSION "/rules/dnp3-keywords.html#dnp3-obj";
+    sigmatch_table[DETECT_AL_DNP3OBJ].url           = "/rules/dnp3-keywords.html#dnp3-obj";
     sigmatch_table[DETECT_AL_DNP3OBJ].Match         = NULL;
     sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerTxMatch = DetectDNP3ObjMatch;
     sigmatch_table[DETECT_AL_DNP3OBJ].Setup         = DetectDNP3ObjSetup;
@@ -559,7 +559,7 @@ static void DetectDNP3DataRegister(void)
     sigmatch_table[DETECT_AL_DNP3DATA].name          = "dnp3.data";
     sigmatch_table[DETECT_AL_DNP3DATA].alias         = "dnp3_data";
     sigmatch_table[DETECT_AL_DNP3DATA].desc          = "make the following content options to match on the re-assembled application buffer";
-    sigmatch_table[DETECT_AL_DNP3DATA].url           = DOC_URL DOC_VERSION "/rules/dnp3-keywords.html#dnp3-data";
+    sigmatch_table[DETECT_AL_DNP3DATA].url           = "/rules/dnp3-keywords.html#dnp3-data";
     sigmatch_table[DETECT_AL_DNP3DATA].Setup         = DetectDNP3DataSetup;
     sigmatch_table[DETECT_AL_DNP3DATA].RegisterTests =
         DetectDNP3DataRegisterTests;
