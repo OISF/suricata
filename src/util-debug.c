@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -933,6 +933,15 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     return;
 }
 
+static inline const char *SCLogGetDefaultLogFormat(void)
+{
+    const char *prog_ver = GetProgramVersion();
+    if (strstr(prog_ver, "RELEASE") != NULL) {
+        return SC_LOG_DEF_LOG_FORMAT_REL;
+    }
+    return SC_LOG_DEF_LOG_FORMAT_DEV;
+}
+
 /**
  * \brief Internal function used to set the logging module global_log_format
  *        during the initialization phase
@@ -954,7 +963,7 @@ static inline void SCLogSetLogFormat(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 
     /* deal with the global log format to be used */
     if (format == NULL || strlen(format) > SC_LOG_MAX_LOG_FORMAT_LEN) {
-        format = SC_LOG_DEF_LOG_FORMAT;
+        format = SCLogGetDefaultLogFormat();
 #ifndef UNITTESTS
         if (sc_lid != NULL) {
             printf("Warning: Invalid/No global_log_format supplied by user or format "
@@ -1326,7 +1335,7 @@ void SCLogLoadConfig(int daemon, int verbose)
     }
 
     if (ConfGet("logging.default-log-format", &sc_lid->global_log_format) != 1)
-        sc_lid->global_log_format = SC_LOG_DEF_LOG_FORMAT;
+        sc_lid->global_log_format = SCLogGetDefaultLogFormat();
 
     (void)ConfGet("logging.default-output-filter", &sc_lid->op_filter);
 
@@ -1514,7 +1523,7 @@ static int SCLogTestInit01(void)
     FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                SC_LOG_DEF_LOG_OP_IFACE == sc_log_config->op_ifaces->iface);
     FAIL_IF_NOT(sc_log_config->log_format != NULL &&
-               strcmp(SC_LOG_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
+               strcmp(SCLogGetDefaultLogFormat(), sc_log_config->log_format) == 0);
 
     SCLogDeInitLogModule();
 
@@ -1568,7 +1577,7 @@ static int SCLogTestInit02(void)
                sc_log_config->op_ifaces->next != NULL &&
                SC_LOG_OP_IFACE_CONSOLE == sc_log_config->op_ifaces->next->iface);
     FAIL_IF_NOT(sc_log_config->log_format != NULL &&
-               strcmp(SC_LOG_DEF_LOG_FORMAT, sc_log_config->log_format) == 0);
+               strcmp(SCLogGetDefaultLogFormat(), sc_log_config->log_format) == 0);
     FAIL_IF_NOT(sc_log_config->op_ifaces != NULL &&
                sc_log_config->op_ifaces->log_format != NULL &&
                strcmp("%m - %d", sc_log_config->op_ifaces->log_format) == 0);
