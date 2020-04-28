@@ -34,7 +34,7 @@ const ASN1_DEFAULT_MAX_FRAMES: u16 = 256;
 ///
 /// pointer must be free'd using `rs_detect_asn1_free`
 #[no_mangle]
-pub(crate) unsafe extern "C" fn rs_detect_asn1_parse(input: *const c_char) -> *mut DetectAsn1Data {
+pub unsafe extern "C" fn rs_detect_asn1_parse(input: *const c_char) -> *mut DetectAsn1Data {
     if input.is_null() {
         return std::ptr::null_mut();
     }
@@ -71,7 +71,7 @@ pub(crate) unsafe extern "C" fn rs_detect_asn1_parse(input: *const c_char) -> *m
 ///
 /// ptr must be a valid object obtained using `rs_detect_asn1_parse`
 #[no_mangle]
-pub(crate) unsafe extern "C" fn rs_detect_asn1_free(ptr: *mut DetectAsn1Data) {
+pub unsafe extern "C" fn rs_detect_asn1_free(ptr: *mut DetectAsn1Data) {
     if ptr.is_null() {
         return;
     }
@@ -80,7 +80,7 @@ pub(crate) unsafe extern "C" fn rs_detect_asn1_free(ptr: *mut DetectAsn1Data) {
 
 /// Struct to hold parsed asn1 keyword options
 #[derive(Debug, PartialEq)]
-pub(crate) struct DetectAsn1Data {
+pub struct DetectAsn1Data {
     pub bitstring_overflow: bool,
     pub double_overflow: bool,
     pub oversize_length: Option<u32>,
