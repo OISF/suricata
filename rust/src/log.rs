@@ -113,6 +113,13 @@ macro_rules!SCLogConfig {
     }
 }
 
+#[macro_export]
+macro_rules!SCLogError {
+    ($($arg:tt)*) => {
+        do_log!(Level::Error, file!(), line!(), function!(), 0, $($arg)*);
+    }
+}
+
 // Debug mode: call C SCLogDebug
 #[cfg(feature = "debug")]
 #[macro_export]
