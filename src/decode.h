@@ -59,6 +59,7 @@ enum PktSrcEnum {
     PKT_SRC_DECODER_VXLAN,
     PKT_SRC_DETECT_RELOAD_FLUSH,
     PKT_SRC_CAPTURE_TIMEOUT,
+    PKT_SRC_DECODER_GENEVE,
 };
 
 #include "source-nflog.h"
@@ -78,6 +79,7 @@ enum PktSrcEnum {
 #include "decode-ethernet.h"
 #include "decode-chdlc.h"
 #include "decode-gre.h"
+#include "decode-geneve.h"
 #include "decode-ppp.h"
 #include "decode-pppoe.h"
 #include "decode-sll.h"
@@ -654,6 +656,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_null;
     uint16_t counter_sctp;
     uint16_t counter_ppp;
+    uint16_t counter_geneve;
     uint16_t counter_gre;
     uint16_t counter_vlan;
     uint16_t counter_vlan_qinq;
@@ -905,6 +908,7 @@ enum DecodeTunnelProto {
     DECODE_TUNNEL_IPV6,
     DECODE_TUNNEL_IPV6_TEREDO,  /**< separate protocol for stricter error handling */
     DECODE_TUNNEL_PPP,
+    DECODE_TUNNEL_UNSET
 };
 
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
@@ -951,6 +955,7 @@ int DecodeSCTP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint
 int DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeIEEE8021ah(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeGeneve(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVXLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeMPLS(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
