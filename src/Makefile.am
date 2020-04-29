@@ -69,6 +69,7 @@ decode-chdlc.c decode-chdlc.h \
 decode-erspan.c decode-erspan.h \
 decode-ethernet.c decode-ethernet.h \
 decode-events.c decode-events.h \
+decode-geneve.c decode-geneve.h \
 decode-gre.c decode-gre.h \
 decode-icmpv4.c decode-icmpv4.h \
 decode-icmpv6.c decode-icmpv6.h \
