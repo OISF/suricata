@@ -32,6 +32,7 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+#include "decode-geneve.h"
 #include "decode-udp.h"
 #include "decode-teredo.h"
 #include "decode-vxlan.h"
@@ -87,6 +88,15 @@ int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (DecodeTeredoEnabledForPort(p->sp, p->dp) &&
             likely(DecodeTeredo(tv, dtv, p, p->payload, p->payload_len, pq) == TM_ECODE_OK)) {
         /* Here we have a Teredo packet and don't need to handle app
+         * layer */
+        FlowSetupPacket(p);
+        return TM_ECODE_OK;
+    }
+
+    /* Handle Geneve if configured */
+    if (DecodeGeneveEnabledForPort(p->sp, p->dp) &&
+            unlikely(DecodeGeneve(tv, dtv, p, p->payload, p->payload_len, pq) == TM_ECODE_OK)) {
+        /* Here we have a Geneve packet and don't need to handle app
          * layer */
         FlowSetupPacket(p);
         return TM_ECODE_OK;
