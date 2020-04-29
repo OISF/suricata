@@ -557,12 +557,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         if (p->flow) {
             EveAddAppProto(p->flow, jb);
             if (json_output_ctx->flags & LOG_JSON_FLOW) {
-                hjs = json_object();
-                if (hjs != NULL) {
-                    JsonAddFlow(p->flow, hjs);
-                    jb_set_jsont(jb, "flow", hjs);
-                    json_decref(hjs);
-                }
+                jb_open_object(jb, "flow");
+                EveAddFlow(p->flow, jb);
+                jb_close(jb);
             }
         }
 
