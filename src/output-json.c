@@ -694,6 +694,29 @@ void JsonTcpFlags(uint8_t flags, json_t *js)
         json_object_set_new(js, "cwr", json_true());
 }
 
+/** \brief jsonify tcp flags field
+ *  Only add 'true' fields in an attempt to keep things reasonably compact.
+ */
+void EveTcpFlags(uint8_t flags, JsonBuilder *js)
+{
+    if (flags & TH_SYN)
+        jb_set_bool(js, "syn", true);
+    if (flags & TH_FIN)
+        jb_set_bool(js, "fin", true);
+    if (flags & TH_RST)
+        jb_set_bool(js, "rst", true);
+    if (flags & TH_PUSH)
+        jb_set_bool(js, "psh", true);
+    if (flags & TH_ACK)
+        jb_set_bool(js, "ack", true);
+    if (flags & TH_URG)
+        jb_set_bool(js, "urg", true);
+    if (flags & TH_ECN)
+        jb_set_bool(js, "ecn", true);
+    if (flags & TH_CWR)
+        jb_set_bool(js, "cwr", true);
+}
+
 void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddrInfo *addr)
 {
     char srcip[46] = {0}, dstip[46] = {0};
