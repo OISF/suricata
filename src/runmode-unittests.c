@@ -147,6 +147,7 @@ static void RegisterUnittests(void)
     DecodeCHDLCRegisterTests();
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
+    DecodeGeneveRegisterTests();
     DecodeVXLANRegisterTests();
     DecodeRawRegisterTests();
     DecodePPPOERegisterTests();

@@ -497,6 +497,12 @@ const struct DecodeEvents_ DEvents[] = {
             MPLS_UNKNOWN_PAYLOAD_TYPE,
     },
 
+    /* Geneve events */
+    {
+            "decoder.geneve.unknown_payload_type",
+            GENEVE_UNKNOWN_PAYLOAD_TYPE,
+    },
+
     /* ERSPAN events */
     {
             "decoder.erspan.header_too_small",
