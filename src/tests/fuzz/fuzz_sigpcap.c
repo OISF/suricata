@@ -45,10 +45,18 @@ stream:\n\
 \n\
   checksum-validation: no\n\
 outputs:\n\
+  - fast:\n\
+      enabled: yes\n\
+      filename: /dev/null\n\
   - eve-log:\n\
       enabled: yes\n\
       filetype: regular\n\
       filename: /dev/null\n\
+      xff:\n\
+        enabled: yes\n\
+        mode: extra-data\n\
+        deployment: reverse\n\
+        header: X-Forwarded-For\n\
       types:\n\
         - alert:\n\
             payload: yes\n\
@@ -64,7 +72,7 @@ outputs:\n\
               decode: yes\n\
               stream: yes\n\
               applayer: yes\n\
-            packethdr: no\n\
+            packethdr: yes\n\
         - http:\n\
             extended: yes\n\
             dump-all-headers: both\n\
@@ -93,6 +101,33 @@ outputs:\n\
         - flow\n\
         - netflow\n\
         - metadata\n\
+  - http-log:\n\
+      enabled: yes\n\
+      filename: /dev/null\n\
+      extended: yes\n\
+  - tls-log:\n\
+      enabled: yes\n\
+      filename: /dev/null\n\
+      extended: yes\n\
+app-layer:\n\
+  protocols:\n\
+    rdp:\n\
+      enabled: yes\n\
+    modbus:\n\
+      enabled: yes\n\
+      detection-ports:\n\
+        dp: 502\n\
+    dnp3:\n\
+      enabled: yes\n\
+      detection-ports:\n\
+        dp: 20000\n\
+    enip:\n\
+      enabled: yes\n\
+      detection-ports:\n\
+        dp: 44818\n\
+        sp: 44818\n\
+    sip:\n\
+      enabled: yes\n\
 ";
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
