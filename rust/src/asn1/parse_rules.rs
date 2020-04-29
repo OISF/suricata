@@ -56,13 +56,17 @@ pub unsafe extern "C" fn rs_detect_asn1_parse(input: *const c_char) -> *mut Dete
                 if let Ok(v) = max_frames.parse::<u16>() {
                     data.max_frames = v as usize;
                 } else {
-                    SCLogDebug!("Could not parse asn1-max-frames: {}", max_frames);
+                    SCLogError!("Could not parse asn1-max-frames: {}", max_frames);
+                    return std::ptr::null_mut();
                 };
             }
 
             Box::into_raw(Box::new(data))
         }
-        Err(_) => std::ptr::null_mut(),
+        Err(e) => {
+            SCLogError!("Malformed asn1 argument: {}", e.to_string());
+            std::ptr::null_mut()
+        }
     }
 }
 

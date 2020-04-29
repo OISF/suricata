@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use crate::log::*;
 use der_parser::ber::{parse_ber_recursive, BerObject, BerObjectContent, BerTag};
 use der_parser::error::BerError;
 use nom;
@@ -29,9 +30,7 @@ pub struct Asn1(Vec<BerObject<'static>>);
 
 /// Errors possible during decoding of Asn1
 #[derive(Debug)]
-#[repr(u32)]
-pub enum Asn1DecodeError {
-    Success = 0,
+enum Asn1DecodeError {
     InvalidKeywordParameter,
     MaxFrames,
     InvalidStructure,
@@ -60,10 +59,16 @@ enum Asn1Check {
 
 /// Errors possible during Asn1 checks
 #[derive(Debug)]
-#[repr(u32)]
-pub enum Asn1CheckError {
-    Success = 0,
+enum Asn1CheckError {
     MaxDepth,
+}
+
+impl std::fmt::Display for Asn1CheckError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Asn1CheckError::MaxDepth => write!(f, "MaxDepth"),
+        }
+    }
 }
 
 impl Asn1 {
@@ -294,11 +299,21 @@ pub unsafe extern "C" fn rs_asn1_checks(ptr: *const Asn1, ad_ptr: *const DetectA
     let asn1 = &*ptr;
     let ad = &*ad_ptr;
 
-    if let Ok(Some(_)) = asn1.check(ad) {
-        return 1;
+    match asn1.check(ad) {
+        Ok(Some(_check)) => {
+            // match
+            1
+        }
+        Ok(None) => {
+            // no match
+            0
+        }
+        Err(e) => {
+            // error
+            SCLogError!("error during asn1 checks: {}", e.to_string());
+            0
+        }
     }
-
-    0
 }
 
 impl From<std::num::TryFromIntError> for Asn1DecodeError {
