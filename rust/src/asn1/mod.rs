@@ -26,7 +26,7 @@ use parse_rules::DetectAsn1Data;
 
 /// Container for parsed Asn1 objects
 #[derive(Debug)]
-pub struct Asn1(Vec<BerObject<'static>>);
+pub struct Asn1<'a>(Vec<BerObject<'a>>);
 
 /// Errors possible during decoding of Asn1
 #[derive(Debug)]
@@ -71,7 +71,7 @@ impl std::fmt::Display for Asn1CheckError {
     }
 }
 
-impl Asn1 {
+impl<'a> Asn1<'a> {
     /// Checks each BerObject contained in self with the provided detection
     /// data, returns the first successful match if one occurs
     fn check(&self, ad: &DetectAsn1Data) -> Result<Option<Asn1Check>, Asn1CheckError> {
@@ -162,7 +162,7 @@ impl Asn1 {
         None
     }
 
-    fn from_slice(input: &'static [u8], ad: &DetectAsn1Data) -> Result<Asn1, Asn1DecodeError> {
+    fn from_slice(input: &'a [u8], ad: &DetectAsn1Data) -> Result<Asn1<'a>, Asn1DecodeError> {
         let mut results = Vec::new();
         let mut rest = input;
 
@@ -256,7 +256,7 @@ pub unsafe extern "C" fn rs_asn1_decode(
     input_len: u16,
     buffer_offset: u32,
     ad_ptr: *const DetectAsn1Data,
-) -> *mut Asn1 {
+) -> *mut Asn1<'static> {
     if input.is_null() || input_len == 0 || ad_ptr.is_null() {
         return std::ptr::null_mut();
     }
