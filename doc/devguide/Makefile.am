@@ -2,9 +2,24 @@ EXTRA_DIST = \
 	conf.py \
 	_static \
 	index.rst \
-	code-submission-process.rst \
-	code-style.rst \
-	app-layer
+	extending/detect/index.rst \
+	extending/decoder/index.rst \
+	extending/index.rst \
+	extending/app-layer/index.rst \
+	extending/app-layer/parser.rst \
+	extending/capture/index.rst \
+	extending/output/index.rst \
+	internals/engines/index.rst \
+	internals/threading/index.rst \
+	internals/index.rst \
+	internals/pipeline/index.rst \
+	internals/datastructs/index.rst \
+	codebase/unittests.rst \
+	codebase/index.rst \
+	codebase/code-style.rst \
+	codebase/contributing/code-submission-process.rst \
+	codebase/contributing/index.rst \
+	codebase/fuzz-testing.rst
 
 if HAVE_SPHINXBUILD
 

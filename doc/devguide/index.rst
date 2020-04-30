@@ -5,6 +5,6 @@ Suricata Developer Guide
    :numbered:
    :maxdepth: 2
 
-   code-submission-process
-   code-style
-   app-layer/index.rst
+   codebase/index.rst
+   internals/index.rst
+   extending/index.rst
