@@ -415,7 +415,8 @@ impl JsonBuilder {
         offset += 1;
         for c in val.chars() {
             if offset + 5 > out.capacity() {
-                out.reserve(out.capacity());
+                let mut extend = vec![0; out.capacity()];
+                out.append(&mut extend);
             }
             match c {
                 '"' | '\\' | '/' => {
@@ -798,6 +799,19 @@ mod test {
         let s = &[0x41, 0x41, 0x41, 0x00];
         jb.append_string_from_bytes(s)?;
         assert_eq!(jb.buf, r#"["AAA\\x00""#);
+
+        let s = &[0x00, 0x01, 0x02, 0x03];
+        let mut jb = JsonBuilder::new_array();
+        jb.append_string_from_bytes(s)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_encode_string_from_bytes_grow() -> Result<(), JsonError> {
+        let s = &[0x00, 0x01, 0x02, 0x03];
+        let mut jb = JsonBuilder::new_array();
+        jb.append_string_from_bytes(s)?;
         Ok(())
     }
 }
