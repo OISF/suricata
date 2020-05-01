@@ -1845,7 +1845,8 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     }
 #endif
 
-    if ((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0) {
+    if ((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0 ||
+        (s->init_data->init_flags & SIG_FLAG_INIT_FILEDATA)) {
         if (s->alproto != ALPROTO_UNKNOWN &&
                 !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto))
         {
