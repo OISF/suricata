@@ -268,6 +268,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_HAS_TRANSFORM         (1<<5)
 #define SIG_FLAG_INIT_STATE_MATCH           (1<<6)  /**< signature has matches that require stateful inspection */
 #define SIG_FLAG_INIT_NEED_FLUSH            (1<<7)
+#define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
