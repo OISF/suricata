@@ -189,6 +189,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     if (DetectBufferSetActiveList(s, DetectBufferTypeGetByName("file_data")) < 0)
         return -1;
 
+    s->file_flags |= FILE_SIG_NEED_FILE;
     SetupDetectEngineConfig(de_ctx);
     return 0;
 }
