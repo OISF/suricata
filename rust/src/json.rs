@@ -34,6 +34,7 @@ extern {
     fn json_array_append_new(array: *mut JsonT, value: *mut JsonT);
 
     fn json_string(value: *const c_char) -> *mut JsonT;
+    fn json_stringn(value: *const c_char, len: usize) -> *mut JsonT;
     fn json_integer(val: u64) -> *mut JsonT;
     fn SCJsonDecref(value: *mut JsonT);
     fn SCJsonBool(val: bool) -> *mut JsonT;
@@ -89,7 +90,7 @@ impl Json {
         unsafe {
             json_object_set_new(self.js,
                                 CString::new(key).unwrap().as_ptr(),
-                                json_string(to_cstring(val).as_ptr()));
+                                json_stringn(to_cstring(val).as_ptr(), val.len()));
         }
     }
 
