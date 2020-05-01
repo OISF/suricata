@@ -71,7 +71,7 @@ jobs:
                 texlive-capt-of \
                 texlive-needspace \
       - name: Install cbindgen
-        run: cargo install --force cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
       - name: Bundling libhtp
@@ -246,7 +246,7 @@ jobs:
                 python3-sphinx \
                 texlive-scheme-full
       - name: Install cbindgen
-        run: cargo install --force cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
@@ -327,7 +327,7 @@ jobs:
           add-apt-repository -y ppa:npalix/coccinelle
           apt -y install coccinelle
       - name: Install cbindgen
-        run: cargo install --force cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
@@ -397,7 +397,7 @@ jobs:
                 zlib1g \
                 zlib1g-dev
       - name: Install cbindgen
-        run: cargo install --force cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
@@ -516,7 +516,7 @@ jobs:
                 zlib1g \
                 zlib1g-dev
       - name: Install cbindgen
-        run: cargo install --force cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
       - uses: actions/checkout@v1
       - name: Bundling libhtp
@@ -580,7 +580,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.34.2 -y
       - run: echo "::add-path::$HOME/.cargo/bin"
       - name: Install cbindgen
-        run: cargo install --force cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
       - uses: actions/checkout@v1
       - name: Bundling libhtp
         run: git clone https://github.com/OISF/libhtp -b 0.5.x
@@ -629,7 +629,7 @@ jobs:
           rust \
           xz
       - name: Install cbindgen
-        run: cargo install --force cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
       - run: echo "::add-path::$HOME/.cargo/bin"
       - run: pip install PyYAML
       - uses: actions/checkout@v1
