@@ -414,7 +414,7 @@ impl JsonBuilder {
         out[offset] = b'"';
         offset += 1;
         for c in val.chars() {
-            if offset + 5 > out.capacity() {
+            if offset + 5 >= out.capacity() {
                 let mut extend = vec![0; out.capacity()];
                 out.append(&mut extend);
             }
@@ -812,6 +812,17 @@ mod test {
         let s = &[0x00, 0x01, 0x02, 0x03];
         let mut jb = JsonBuilder::new_array();
         jb.append_string_from_bytes(s)?;
+        //Ok(())
+
+        for i in 1..1000 {
+            let mut s = Vec::new();
+            for _ in 0..i {
+                s.push(0x00);
+            }
+            let mut jb = JsonBuilder::new_array();
+            jb.append_string_from_bytes(&s)?;
+        }
+
         Ok(())
     }
 }
