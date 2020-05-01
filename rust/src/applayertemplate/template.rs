@@ -305,6 +305,7 @@ pub extern "C" fn rs_template_state_tx_free(
     state.free_tx(tx_id);
 }
 
+// sphinx::request_parser::start
 #[no_mangle]
 pub extern "C" fn rs_template_parse_request(
     _flow: *const Flow,
@@ -340,6 +341,7 @@ pub extern "C" fn rs_template_parse_request(
         state.parse_request(buf)
     }
 }
+// sphinx::request_parser::end
 
 #[no_mangle]
 pub extern "C" fn rs_template_parse_response(

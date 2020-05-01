@@ -237,6 +237,7 @@ static AppProto TemplateProbingParserTc(Flow *f, uint8_t direction,
     return ALPROTO_UNKNOWN;
 }
 
+// sphinx::TemplateParseRequest::start
 static AppLayerResult TemplateParseRequest(Flow *f, void *statev,
     AppLayerParserState *pstate, const uint8_t *input, uint32_t input_len,
     void *local_data, const uint8_t flags)
@@ -310,6 +311,7 @@ static AppLayerResult TemplateParseRequest(Flow *f, void *statev,
 end:
     SCReturnStruct(APP_LAYER_OK);
 }
+// sphinx::TemplateParseRequest::end
 
 static AppLayerResult TemplateParseResponse(Flow *f, void *statev, AppLayerParserState *pstate,
     const uint8_t *input, uint32_t input_len, void *local_data,

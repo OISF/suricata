@@ -23,6 +23,7 @@ use crate::filecontainer::FileContainer;
 use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
 
+// sphinx::AppLayerResult::start
 #[repr(C)]
 #[derive(Debug,PartialEq)]
 pub struct AppLayerTxConfig {
@@ -93,6 +94,7 @@ pub struct AppLayerResult {
     pub consumed: u32,
     pub needed: u32,
 }
+// sphinx::AppLayerResult::end
 
 impl AppLayerResult {
     /// parser has successfully processed in the input, and has consumed all of it
