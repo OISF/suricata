@@ -2263,11 +2263,23 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         memset(&sw_temp, 0, sizeof(SigDuplWrapper));
         if (sw_dup->s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
             sw_temp.s = sw_dup->s->next->next;
-            sw_dup->s_prev->next = sw_dup->s->next->next;
+            /* If previous signature is bidirectional,
+             * it has 2 items in the linked list.
+             * So we need to change next->next instead of next
+             */
+            if (sw_dup->s_prev->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
+                sw_dup->s_prev->next->next = sw_dup->s->next->next;
+            } else {
+                sw_dup->s_prev->next = sw_dup->s->next->next;
+            }
             SigFree(de_ctx, sw_dup->s->next);
         } else {
             sw_temp.s = sw_dup->s->next;
-            sw_dup->s_prev->next = sw_dup->s->next;
+            if (sw_dup->s_prev->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
+                sw_dup->s_prev->next->next = sw_dup->s->next;
+            } else {
+                sw_dup->s_prev->next = sw_dup->s->next;
+            }
         }
         SigDuplWrapper *sw_next = NULL;
         if (sw_temp.s != NULL) {
