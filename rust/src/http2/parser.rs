@@ -195,7 +195,6 @@ named!(pub http2_parse_frame_windowupdate<HTTP2FrameWindowUpdate>,
 pub struct HTTP2FrameHeadersPriority {
     pub exclusive: u8,
     pub dependency: u32,
-//TODO0.1 detect on this
     pub weight: u8,
 }
 
@@ -208,21 +207,85 @@ named!(pub http2_parse_headers_priority<HTTP2FrameHeadersPriority>,
     )
 );
 
+#[derive(Clone)]
+pub struct HTTP2FrameHeaderBlock {
+    pub name: u8,
+//    pub value: Vec<u8>,
+}
+
+named!(http2_parse_headers_block_indexed<HTTP2FrameHeaderBlock>,
+    do_parse!(
+        index: bits!(take_bits!(7u8)) >>
+//TODO map with static list
+//TODO2 map with dynamic list
+        (HTTP2FrameHeaderBlock { name:index})
+    )
+);
+
 #[derive(Clone, Copy)]
+pub struct HTTP2HeaderString <'a> {
+    pub huff: u8,
+//TODO remove this dummy parameter
+    pub dummy: u8,
+    pub data: &'a [u8],
+}
+
+named!(pub http2_parse_headers_block_string<HTTP2HeaderString>,
+    do_parse!(
+        huffslen: bits!( tuple!( take_bits!(1u8),
+                    take_bits!(7u8) ) ) >>
+//TODO decompress if huffslen.0 is set
+        data: take!(huffslen.1 as usize) >>
+        (HTTP2HeaderString{huff:huffslen.0, dummy:huffslen.1, data:data})
+    )
+);
+
+
+named!(http2_parse_headers_block_literal<HTTP2FrameHeaderBlock>,
+    do_parse!(
+        index: bits!(take_bits!(6u8)) >>
+        name: cond!(index == 0, http2_parse_headers_block_string) >>
+        value : call!(http2_parse_headers_block_string) >>
+        (HTTP2FrameHeaderBlock { name:index})
+    )
+);
+
+named!(http2_parse_headers_block<HTTP2FrameHeaderBlock>,
+//TODO use peek and cond instead or alt
+    switch!(bits!(take_bits!(1u8)),
+        1 => call!(http2_parse_headers_block_indexed) |
+        _ => switch!(bits!(take_bits!(1u8)),
+            1 => call!(http2_parse_headers_block_literal) |
+//TODO0.1 http2_parse_headers_block
+            _ => value!(HTTP2FrameHeaderBlock { name:0})
+        )
+    )
+);
+
+#[derive(Clone)]
 pub struct HTTP2FrameHeaders {
     pub padlength: Option<u8>,
     pub priority: Option<HTTP2FrameHeadersPriority>,
-    //TODO0.2 complete struct Vec<HTTP2FrameHeaderBlock>
+    pub blocks: Vec<HTTP2FrameHeaderBlock>,
 }
 
 const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
 const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
 
 pub fn http2_parse_frame_headers(input: &[u8], flags: u8) -> IResult<&[u8], HTTP2FrameHeaders> {
-    do_parse!(input,
-        padlength: cond!( flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8 ) >>
-        priority: cond!( flags & HTTP2_FLAG_HEADER_PRIORITY != 0, http2_parse_headers_priority ) >>
-        (HTTP2FrameHeaders{padlength, priority: priority})
+    do_parse!(
+        input,
+        padlength: cond!(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8) >>
+        priority: cond!(
+                    flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
+                    http2_parse_headers_priority
+                ) >>
+        blocks: many0!(http2_parse_headers_block) >>
+        (HTTP2FrameHeaders {
+            padlength,
+            priority: priority,
+            blocks: Vec::new()
+        })
     )
 }
 
@@ -261,6 +324,7 @@ impl std::str::FromStr for HTTP2SettingsId {
     }
 }
 
+//TODO move elsewhere generic
 #[derive(PartialEq, Debug)]
 pub enum DetectUintMode {
     DetectUintModeEqual,

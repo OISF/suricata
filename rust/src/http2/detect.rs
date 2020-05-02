@@ -28,6 +28,7 @@ pub extern "C" fn rs_http2_tx_get_frametype(
     direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
+    //TODO check use of direction
     match direction {
         STREAM_TOSERVER => match &tx.ftype {
             None => {
@@ -143,6 +144,11 @@ pub extern "C" fn rs_http2_tx_get_priority(
             Some(HTTP2FrameTypeData::PRIORITY(prio)) => {
                 return prio.weight as i32;
             }
+            Some(HTTP2FrameTypeData::HEADERS(hd)) => {
+                if let Some(prio) = hd.priority {
+                    return prio.weight as i32;
+                }
+            }
             _ => {
                 return -1;
             }
@@ -150,6 +156,11 @@ pub extern "C" fn rs_http2_tx_get_priority(
         STREAM_TOCLIENT => match &tx.type_data {
             Some(HTTP2FrameTypeData::PRIORITY(prio)) => {
                 return prio.weight as i32;
+            }
+            Some(HTTP2FrameTypeData::HEADERS(hd)) => {
+                if let Some(prio) = hd.priority {
+                    return prio.weight as i32;
+                }
             }
             _ => {
                 return -1;
