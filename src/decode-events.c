@@ -497,6 +497,12 @@ const struct DecodeEvents_ DEvents[] = {
             MPLS_UNKNOWN_PAYLOAD_TYPE,
     },
 
+    /* VXLAN events */
+    {
+            "decoder.vxlan.unknown_payload_type",
+            VXLAN_UNKNOWN_PAYLOAD_TYPE,
+    },
+
     /* Geneve events */
     {
             "decoder.geneve.unknown_payload_type",
