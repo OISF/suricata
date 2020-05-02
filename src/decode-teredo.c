@@ -41,16 +41,18 @@
 #include "detect-engine-port.h"
 
 #define TEREDO_ORIG_INDICATION_LENGTH   8
+#define TEREDO_MAX_PORTS                4
+#define TEREDO_UNSET_PORT               -1
 
 static bool g_teredo_enabled = true;
-static int g_teredo_ports[4] = { -1, -1, -1, -1 };
-static int g_teredo_ports_cnt = 0;
 static bool g_teredo_ports_any = true;
+static int g_teredo_ports_cnt = 0;
+static int g_teredo_ports[TEREDO_MAX_PORTS] = { TEREDO_UNSET_PORT, TEREDO_UNSET_PORT,
+    TEREDO_UNSET_PORT, TEREDO_UNSET_PORT };
 
 bool DecodeTeredoEnabledForPort(const uint16_t sp, const uint16_t dp)
 {
-    SCLogDebug("ports %u->%u ports %d %d %d %d", sp, dp,
-            g_teredo_ports[0], g_teredo_ports[1],
+    SCLogDebug("ports %u->%u ports %d %d %d %d", sp, dp, g_teredo_ports[0], g_teredo_ports[1],
             g_teredo_ports[2], g_teredo_ports[3]);
 
     if (g_teredo_enabled) {
@@ -60,11 +62,10 @@ bool DecodeTeredoEnabledForPort(const uint16_t sp, const uint16_t dp)
         }
 
         for (int i = 0; i < g_teredo_ports_cnt; i++) {
-            if (g_teredo_ports[i] == -1)
+            if (g_teredo_ports[i] == TEREDO_UNSET_PORT)
                 return false;
             const int port = g_teredo_ports[i];
-            if (port == (const int)sp ||
-                port == (const int)dp)
+            if (port == (const int)sp || port == (const int)dp)
                 return true;
         }
     }
@@ -86,13 +87,14 @@ static void DecodeTeredoConfigPorts(const char *pstr)
     g_teredo_ports_any = false;
     g_teredo_ports_cnt = 0;
     for (DetectPort *p = head; p != NULL; p = p->next) {
-        if (g_teredo_ports_cnt >= 4) {
-            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                    "only 4 Teredo ports can be defined");
+        if (g_teredo_ports_cnt >= TEREDO_MAX_PORTS) {
+            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "only %d Teredo ports can be defined",
+                    TEREDO_MAX_PORTS);
             break;
         }
         g_teredo_ports[g_teredo_ports_cnt++] = (int)p->port;
     }
+
     DetectPortCleanupList(NULL, head);
 }
 
@@ -135,21 +137,17 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
      * part before the IPv6 packet. In our case, we just want to get
      * over an ORIGIN indication. So we just make one offset if needed. */
     if (start[0] == 0x0) {
-        switch (start[1]) {
-            /* origin indication: compatible with tunnel */
-            case 0x0:
-                /* offset is coherent with len and presence of an IPv6 header */
-                if (len >= TEREDO_ORIG_INDICATION_LENGTH + IPV6_HEADER_LEN)
-                    start += TEREDO_ORIG_INDICATION_LENGTH;
-                else
-                    return TM_ECODE_FAILED;
-                break;
-            /* authentication: negotiation not real tunnel */
-            case 0x1:
+        /* origin indication: compatible with tunnel */
+        if (start[1] == 0x0) {
+            /* offset is not coherent with len and presence of an IPv6 header */
+            if (len < TEREDO_ORIG_INDICATION_LENGTH + IPV6_HEADER_LEN)
                 return TM_ECODE_FAILED;
-            /* this case is not possible in Teredo: not that protocol */
-            default:
-                return TM_ECODE_FAILED;
+
+            start += TEREDO_ORIG_INDICATION_LENGTH;
+
+            /* either authentication negotiation not real tunnel or invalid second byte */
+        } else {
+            return TM_ECODE_FAILED;
         }
     }
 
