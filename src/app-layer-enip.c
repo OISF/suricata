@@ -380,6 +380,7 @@ static uint16_t ENIPProbingParser(Flow *f, uint8_t direction,
         return ALPROTO_UNKNOWN;
     }
     uint16_t cmd;
+    uint32_t status;
     int ret = ByteExtractUint16(&cmd, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
                                 (const uint8_t *) (input));
     if(ret < 0) {
@@ -397,7 +398,23 @@ static uint16_t ENIPProbingParser(Flow *f, uint8_t direction,
         case SEND_UNIT_DATA:
         case INDICATE_STATUS:
         case CANCEL:
-            return ALPROTO_ENIP;
+            ret = ByteExtractUint32(&status, BYTE_LITTLE_ENDIAN,
+                                    sizeof(uint32_t),
+                                    (const uint8_t *) (input + 8));
+            if(ret < 0) {
+                return ALPROTO_FAILED;
+            }
+            switch(status) {
+                case SUCCESS:
+                case INVALID_CMD:
+                case NO_RESOURCES:
+                case INCORRECT_DATA:
+                case INVALID_SESSION:
+                case INVALID_LENGTH:
+                case UNSUPPORTED_PROT_REV:
+                case ENCAP_HEADER_ERROR:
+                    return ALPROTO_ENIP;
+            }
     }
     return ALPROTO_FAILED;
 }
