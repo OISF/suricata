@@ -183,6 +183,9 @@ enum {
     MPLS_BAD_LABEL_RESERVED,
     MPLS_UNKNOWN_PAYLOAD_TYPE,
 
+    /* VXLAN events */
+    VXLAN_UNKNOWN_PAYLOAD_TYPE,
+
     /* Geneve events */
     GENEVE_UNKNOWN_PAYLOAD_TYPE,
 

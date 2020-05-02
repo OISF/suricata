@@ -20,7 +20,10 @@
  *
  * \author Henrik Kramshoej <hlk@kramse.org>
  *
- * VXLAN decoder.
+ * VXLAN tunneling scheme decoder.
+ *
+ * This implementation is based on the following specification doc:
+ * https://tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
  */
 
 #include "suricata-common.h"
@@ -39,27 +42,37 @@
 #include "util-profiling.h"
 #include "host.h"
 
-#define VXLAN_HEADER_LEN        8
+#define VXLAN_HEADER_LEN        sizeof(VXLANHeader)
+
+#define VXLAN_MAX_PORTS         4
+#define VXLAN_UNSET_PORT        -1
 #define VXLAN_DEFAULT_PORT      4789
 #define VXLAN_DEFAULT_PORT_S    "4789"
 
 static bool g_vxlan_enabled = true;
-static int g_vxlan_ports[4] = { VXLAN_DEFAULT_PORT, -1, -1, -1 };
 static int g_vxlan_ports_idx = 0;
+static int g_vxlan_ports[VXLAN_MAX_PORTS] = { VXLAN_DEFAULT_PORT,
+        VXLAN_UNSET_PORT, VXLAN_UNSET_PORT, VXLAN_UNSET_PORT };
+
+typedef struct VXLANHeader_ {
+    uint8_t flags[2];
+    uint16_t gdp;
+    uint8_t vni[3];
+    uint8_t res;
+} VXLANHeader;
+
 
 bool DecodeVXLANEnabledForPort(const uint16_t sp, const uint16_t dp)
 {
     SCLogDebug("ports %u->%u ports %d %d %d %d", sp, dp,
-            g_vxlan_ports[0], g_vxlan_ports[1],
-            g_vxlan_ports[2], g_vxlan_ports[3]);
+            g_vxlan_ports[0], g_vxlan_ports[1], g_vxlan_ports[2], g_vxlan_ports[3]);
 
     if (g_vxlan_enabled) {
         for (int i = 0; i < g_vxlan_ports_idx; i++) {
-            if (g_vxlan_ports[i] == -1)
+            if (g_vxlan_ports[i] == VXLAN_UNSET_PORT)
                 return false;
             const int port = g_vxlan_ports[i];
-            if (port == (const int)sp ||
-                port == (const int)dp)
+            if (port == (const int)sp || port == (const int)dp)
                 return true;
         }
     }
@@ -75,13 +88,14 @@ static void DecodeVXLANConfigPorts(const char *pstr)
 
     g_vxlan_ports_idx = 0;
     for (DetectPort *p = head; p != NULL; p = p->next) {
-        if (g_vxlan_ports_idx >= 4) {
+        if (g_vxlan_ports_idx >= VXLAN_MAX_PORTS) {
             SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                    "more than 4 VXLAN ports defined");
+                    "more than %d VXLAN ports defined", VXLAN_MAX_PORTS);
             break;
         }
         g_vxlan_ports[g_vxlan_ports_idx++] = (int)p->port;
     }
+
     DetectPortCleanupList(NULL, head);
 }
 
@@ -106,73 +120,71 @@ void DecodeVXLANConfig(void)
     }
 }
 
-typedef struct VXLANHeader_ {
-    uint8_t flags[2];
-    uint16_t gdp;
-    uint8_t vni[3];
-    uint8_t res;
-} VXLANHeader;
-
 /** \param pkt payload data directly above UDP header
  *  \param len length in bytes of pkt
  */
 int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
+    EthernetHdr *ethh = (EthernetHdr *)(pkt + VXLAN_HEADER_LEN);
+
+    uint16_t eth_type;
+    int decode_tunnel_proto = DECODE_TUNNEL_UNSET;
+
+    /* Initial packet validation */
     if (unlikely(!g_vxlan_enabled))
         return TM_ECODE_FAILED;
 
-    if (len < (sizeof(VXLANHeader) + sizeof(EthernetHdr)))
+    if (len < (VXLAN_HEADER_LEN + sizeof(EthernetHdr)))
         return TM_ECODE_FAILED;
 
     const VXLANHeader *vxlanh = (const VXLANHeader *)pkt;
-    if ((vxlanh->flags[0] & 0x08) == 0 || vxlanh->res != 0) {
+    if ((vxlanh->flags[0] & 0x08) == 0 || vxlanh->res != 0)
         return TM_ECODE_FAILED;
-    }
 
 #if DEBUG
     uint32_t vni = (vxlanh->vni[0] << 16) + (vxlanh->vni[1] << 8) + (vxlanh->vni[2]);
     SCLogDebug("VXLAN vni %u", vni);
 #endif
 
+    /* Increment stats counter for VXLAN packets */
     StatsIncr(tv, dtv->counter_vxlan);
 
-    /* VXLAN encapsulate Layer 2 in UDP, most likely IPv4 and IPv6  */
+    /* Look at encapsulated Ethernet frame to get next protocol  */
+    eth_type = SCNtohs(ethh->eth_type);
+    SCLogDebug("VXLAN ethertype 0x%04x", eth_type);
 
-    EthernetHdr *ethh = (EthernetHdr *)(pkt + VXLAN_HEADER_LEN);
-    SCLogDebug("VXLAN ethertype 0x%04x", SCNtohs(ethh->eth_type));
-
-    /* Best guess at inner packet. */
-    switch (SCNtohs(ethh->eth_type)) {
+    switch (eth_type) {
         case ETHERNET_TYPE_ARP:
             SCLogDebug("VXLAN found ARP");
             break;
         case ETHERNET_TYPE_IP:
             SCLogDebug("VXLAN found IPv4");
-            if (pq != NULL) {
-                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
-                        len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), DECODE_TUNNEL_IPV4, pq);
-                if (tp != NULL) {
-                    PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
-                    PacketEnqueue(pq, tp);
-                }
-            }
+            decode_tunnel_proto = DECODE_TUNNEL_IPV4;
             break;
         case ETHERNET_TYPE_IPV6:
             SCLogDebug("VXLAN found IPv6");
-            if (pq != NULL) {
-                Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
-                        len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), DECODE_TUNNEL_IPV6, pq);
-                if (tp != NULL) {
-                    PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
-                    PacketEnqueue(pq, tp);
-                }
-            }
+            decode_tunnel_proto = DECODE_TUNNEL_IPV6;
+            break;
+        case ETHERNET_TYPE_VLAN:
+        case ETHERNET_TYPE_8021AD:
+        case ETHERNET_TYPE_8021QINQ:
+            SCLogDebug("VXLAN found VLAN");
+            decode_tunnel_proto = DECODE_TUNNEL_VLAN;
             break;
         default:
-            SCLogDebug("VXLAN found no known Ethertype - only checks for IPv4, IPv6, ARP");
-            /* ENGINE_SET_INVALID_EVENT(p, VXLAN_UNKNOWN_PAYLOAD_TYPE);*/
-            break;
+            SCLogDebug("VXLAN found unsupported Ethertype - expected IPv4, IPv6, VLAN, or ARP");
+            ENGINE_SET_INVALID_EVENT(p, VXLAN_UNKNOWN_PAYLOAD_TYPE);
+    }
+
+    /* Set-up and process inner packet if it is a supported ethertype */
+    if (decode_tunnel_proto != DECODE_TUNNEL_UNSET) {
+        Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN,
+                len - (VXLAN_HEADER_LEN + ETHERNET_HEADER_LEN), decode_tunnel_proto, pq);
+        if (tp != NULL) {
+            PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
+            PacketEnqueue(pq, tp);
+        }
     }
 
     return TM_ECODE_OK;
@@ -182,7 +194,7 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
 /**
  * \test DecodeVXLANTest01 test a good vxlan header.
- * Contains a DNS request packet
+ * Contains a DNS request packet.
  */
 static int DecodeVXLANtest01 (void)
 {
@@ -202,7 +214,7 @@ static int DecodeVXLANtest01 (void)
     DecodeThreadVars dtv;
     PacketQueue pq;
 
-    DecodeVXLANConfigPorts("4789");
+    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
 
     memset(&pq, 0, sizeof(PacketQueue));
     memset(&tv, 0, sizeof(ThreadVars));
@@ -225,7 +237,7 @@ static int DecodeVXLANtest01 (void)
 }
 
 /**
- * \test test port disabled in config
+ * \test DecodeVXLANtest02 tests default port disabled by the config.
  */
 static int DecodeVXLANtest02 (void)
 {
@@ -258,7 +270,7 @@ static int DecodeVXLANtest02 (void)
     FAIL_IF(p->udph == NULL);
     FAIL_IF(pq.top != NULL);
 
-    DecodeVXLANConfigPorts("4789"); /* reset */
+    DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S); /* reset */
     FlowShutdown();
     PacketFree(p);
     PASS;
