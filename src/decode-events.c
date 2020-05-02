@@ -176,6 +176,9 @@ const struct DecodeEvents_ DEvents[] = {
     { "decoder.mpls.bad_label_reserved", MPLS_BAD_LABEL_RESERVED, },
     { "decoder.mpls.unknown_payload_type", MPLS_UNKNOWN_PAYLOAD_TYPE, },
 
+    /* VXLAN events */
+    { "decoder.vxlan.unknown_payload_type", VXLAN_UNKNOWN_PAYLOAD_TYPE, },
+
     /* Geneve events */
     { "decoder.geneve.unknown_payload_type", GENEVE_UNKNOWN_PAYLOAD_TYPE, },
 
