@@ -56,6 +56,8 @@
 #define INVALID_SESSION       0x0064
 #define INVALID_LENGTH        0x0065
 #define UNSUPPORTED_PROT_REV  0x0069
+//Found in wireshark
+#define ENCAP_HEADER_ERROR    0x006A
 
 #define MAX_CIP_SERVICE     127
 #define MAX_CIP_CLASS       65535
