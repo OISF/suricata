@@ -218,6 +218,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
      * pseudo packet created by the flow manager. */
     } else if (p->flags & PKT_HAS_FLOW) {
         FLOWLOCK_WRLOCK(p->flow);
+        DEBUG_VALIDATE_BUG_ON(p->pkt_src != PKT_SRC_FFR);
     }
 
     SCLogDebug("packet %"PRIu64" has flow? %s", p->pcap_cnt, p->flow ? "yes" : "no");
