@@ -33,6 +33,7 @@
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-byte.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
@@ -241,7 +242,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
 
     /* A successful match depends on negation */
     if ((!neg && match) || (neg && !match)) {
-        SCLogDebug("MATCH");
+        SCLogDebug("MATCH [bt] extracted value is %"PRIu64, val);
         SCReturnInt(1);
     }
 
@@ -543,7 +544,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             prev_pm = DetectGetLastSMFromLists(s,
                 DETECT_CONTENT, DETECT_PCRE,
                 DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                DETECT_ISDATAAT, -1);
+                DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
             if (prev_pm == NULL) {
                 sm_list = DETECT_SM_LIST_PMATCH;
             } else {
@@ -562,7 +563,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         prev_pm = DetectGetLastSMFromLists(s,
                 DETECT_CONTENT, DETECT_PCRE,
                 DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                DETECT_ISDATAAT, -1);
+                DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
         if (prev_pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
         } else {
@@ -589,27 +590,27 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     if (value != NULL) {
-        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(value, s);
-        if (bed_sm == NULL) {
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(value, s, &index)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
                        "seen in byte_test - %s\n", value);
             goto error;
         }
-        data->value = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        data->flags |= DETECT_BYTETEST_VALUE_BE;
+        data->value = index;
+        data->flags |= DETECT_BYTETEST_VALUE_VAR;
         SCFree(value);
         value = NULL;
     }
 
     if (offset != NULL) {
-        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(offset, s);
-        if (bed_sm == NULL) {
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(offset, s, &index)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
                        "seen in byte_test - %s\n", offset);
             goto error;
         }
-        data->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        data->flags |= DETECT_BYTETEST_OFFSET_BE;
+        data->offset = index;
+        data->flags |= DETECT_BYTETEST_OFFSET_VAR;
         SCFree(offset);
         offset = NULL;
     }
