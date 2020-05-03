@@ -101,8 +101,6 @@ uint8_t FlowGetProtoMapping(uint8_t proto)
             return FLOW_PROTO_UDP;
         case IPPROTO_ICMP:
             return FLOW_PROTO_ICMP;
-        case IPPROTO_SCTP:
-            return FLOW_PROTO_SCTP;
         default:
             return FLOW_PROTO_DEFAULT;
     }
@@ -117,8 +115,6 @@ uint8_t FlowGetReverseProtoMapping(uint8_t rproto)
             return IPPROTO_UDP;
         case FLOW_PROTO_ICMP:
             return IPPROTO_ICMP;
-        case FLOW_PROTO_SCTP:
-            return IPPROTO_SCTP;
         default:
             exit(EXIT_FAILURE);
     }
