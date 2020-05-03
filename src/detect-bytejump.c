@@ -31,8 +31,9 @@
 #include "detect-engine.h"
 #include "app-layer.h"
 
-#include "detect-bytejump.h"
+#include "detect-byte.h"
 #include "detect-byte-extract.h"
+#include "detect-bytejump.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
@@ -539,7 +540,7 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             prev_pm = DetectGetLastSMFromLists(s,
                     DETECT_CONTENT, DETECT_PCRE,
                     DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                    DETECT_ISDATAAT, -1);
+                    DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
             if (prev_pm == NULL) {
                 sm_list = DETECT_SM_LIST_PMATCH;
             } else {
@@ -558,7 +559,7 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         prev_pm = DetectGetLastSMFromLists(s,
                 DETECT_CONTENT, DETECT_PCRE,
                 DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                DETECT_ISDATAAT, -1);
+                DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
         if (prev_pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
         } else {
@@ -587,14 +588,14 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     if (offset != NULL) {
-        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(offset, s);
-        if (bed_sm == NULL) {
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(offset, s, &index)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
                        "seen in byte_jump - %s", offset);
             goto error;
         }
-        data->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        data->flags |= DETECT_BYTEJUMP_OFFSET_BE;
+        data->offset = index;
+        data->flags |= DETECT_CONTENT_OFFSET_VAR;
         SCFree(offset);
         offset = NULL;
     }

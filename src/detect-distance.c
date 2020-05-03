@@ -36,6 +36,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
+#include "detect-byte.h"
 #include "detect-byte-extract.h"
 #include "detect-distance.h"
 
@@ -104,14 +105,14 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
-        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(str, s);
-        if (bed_sm == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(str, s, &index)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_ keyword var "
                        "seen in distance - %s\n", str);
             goto end;
         }
-        cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        cd->flags |= DETECT_CONTENT_DISTANCE_BE;
+        cd->distance = index;
+        cd->flags |= DETECT_CONTENT_DISTANCE_VAR;
     } else {
         if (StringParseInt32(&cd->distance, 0, 0, str) < 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,

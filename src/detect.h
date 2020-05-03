@@ -1116,8 +1116,8 @@ typedef struct DetectEngineThreadCtx_ {
     /** ip only rules ctx */
     DetectEngineIPOnlyThreadCtx io_ctx;
 
-    /* byte jump values */
-    uint64_t *bj_values;
+    /* byte_* values */
+    uint64_t *byte_values;
 
     /* string to replace */
     DetectReplaceList *replist;
