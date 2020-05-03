@@ -44,8 +44,7 @@
 #include "util-debug.h"
 #include "util-byte.h"
 #include "detect-pcre.h"
-#include "detect-bytejump.h"
-#include "detect-byte-extract.h"
+#include "detect-byte.h"
 
 /**
  * \brief Regex for parsing our isdataat options
@@ -227,7 +226,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         prev_pm = DetectGetLastSMFromLists(s,
             DETECT_CONTENT, DETECT_PCRE,
             DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-            DETECT_ISDATAAT, -1);
+            DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
         if (prev_pm == NULL)
             sm_list = DETECT_SM_LIST_PMATCH;
         else {
@@ -240,14 +239,14 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
     }
 
     if (offset != NULL) {
-        SigMatch *bed_sm = DetectByteExtractRetrieveSMVar(offset, s);
-        if (bed_sm == NULL) {
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(offset, s, &index)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
                        "seen in isdataat - %s\n", offset);
             goto end;
         }
-        idad->dataat = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        idad->flags |= ISDATAAT_OFFSET_BE;
+        idad->dataat = index;
+        idad->flags |= ISDATAAT_OFFSET_VAR;
         SCLogDebug("isdataat uses byte_extract with local id %u", idad->dataat);
         SCFree(offset);
         offset = NULL;
