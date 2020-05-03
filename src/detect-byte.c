@@ -24,6 +24,7 @@
 #include "suricata-common.h"
 #include "detect-byte.h"
 #include "detect-byte-extract.h"
+#include "detect-bytemath.h"
 
 /**
  * \brief Used to retrieve args from BM.
@@ -43,5 +44,10 @@ bool DetectByteRetrieveSMVar(const char *arg, const Signature *s, DetectByteInde
         return true;
     }
 
+    SigMatch *bmd_sm = DetectByteMathRetrieveSMVar(arg, s);
+    if (bmd_sm != NULL) {
+        *index = ((DetectByteMathData *)bmd_sm->ctx)->local_id;
+        return true;
+    }
     return false;
 }
