@@ -745,7 +745,7 @@ static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx,
     /* We have to effectively "wild card" values that will be coming from
      * byte_extract variables
      */
-    if (cd->flags & (DETECT_CONTENT_DEPTH_BE | DETECT_CONTENT_OFFSET_BE)) {
+    if (cd->flags & (DETECT_CONTENT_DEPTH_VAR | DETECT_CONTENT_OFFSET_VAR)) {
         pat_depth = pat_offset = 0;
     }
 

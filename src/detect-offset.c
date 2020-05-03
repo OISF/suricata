@@ -32,6 +32,7 @@
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-byte.h"
 #include "detect-byte-extract.h"
 #include "detect-offset.h"
 
@@ -96,15 +97,14 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {
-        SigMatch *bed_sm =
-            DetectByteExtractRetrieveSMVar(str, s);
-        if (bed_sm == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(str, s, &index)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_ keyword var "
                        "seen in offset - %s.", str);
             goto end;
         }
-        cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-        cd->flags |= DETECT_CONTENT_OFFSET_BE;
+        cd->offset = index;
+        cd->flags |= DETECT_CONTENT_OFFSET_VAR;
     } else {
         if (StringParseUint16(&cd->offset, 0, 0, str) < 0)
         {
