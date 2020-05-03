@@ -371,6 +371,76 @@ Example::
  	 content:"foobar"; byte_test:4,=,1337,1,relative,string,dec;)
 
 
+byte_math
+---------
+
+The ``byte_math`` keyword adds the capability to perform mathematical operations on extracted values with
+an existing variable or a specified value.
+
+When ``relative`` is included, there must be a previous ``content`` or ``pcre`` match.
+
+The result can be stored in a result variable and referenced by
+other rule options later in the rule.
+
+==============	==================================
+ Keyword	Modifier
+============== 	==================================
+ content	offset,depth,distance,within
+ byte_test	offset,value
+ byte_jump	offset
+ isdataat	offset
+==============	==================================
+
+Format::
+
+  byte_math:bytes <num of bytes>, offset <offset>, oper <operator>, rvalue <rvalue>, \
+	result <result_var> [, relative] [, endian <endian>] [, string <number-type>] \
+	[, dce] [, bitmask <value>];
+
++-----------------------+-----------------------------------------------------------------------+
+| <num of bytes>	| The number of bytes selected from the packet 				|
++-----------------------+-----------------------------------------------------------------------+
+| <offset>		| Number of bytes into the payload					|
++-----------------------+-----------------------------------------------------------------------+
+| oper <operator>	| Mathematical operation to perform: +, -, \*, /, <<, >> 		|
++-----------------------+-----------------------------------------------------------------------+
+| rvalue <rvalue>	| Value to perform the math operation with 				|
++-----------------------+-----------------------------------------------------------------------+
+| result <result-var>	| Where to store the computed value 					|
++-----------------------+-----------------------------------------------------------------------+
+| [relative]		| Offset relative to last content match					|
++-----------------------+-----------------------------------------------------------------------+
+| [endian <type>]	| - big (Most significant byte at lowest address)			|
+|		       	| - little (Most significant byte at the highest address)		|
++-----------------------+-----------------------------------------------------------------------+
+| [string <num_type>]  	| 									|
+|		       	| - hex Converted data is represented in hex				|
+|		       	| - dec Converted data is represented in decimal			|
+|		       	| - oct Converted data is represented as octal				|
++-----------------------+-----------------------------------------------------------------------+
+| [dce]			| Allow the DCE module determine the byte order				|
++-----------------------+-----------------------------------------------------------------------+
+| [bitmask] <value>	| The AND operator will be applied to the extracted value		|
+|			| The result will be right shifted by the number of bits equal to the	|
+|			| number of trailing zeros in the mask					|
++-----------------------+-----------------------------------------------------------------------+
+
+Example::
+
+  alert tcp any any -> any any \
+    (msg:"Testing bytemath_body"; \
+    content:"|00 04 93 F3|"; \
+    content:"|00 00 00 07|"; distance:4; within:4; \
+    byte_math:bytes 4, offset 0, oper +, rvalue \
+    248, result var, relative;)
+
+  alert udp any any -> any any \
+    (byte_extract: 1, 0, extracted_val, relative; \
+    byte_math: bytes 1, offset 1, oper +, rvalue extracted_val, result var; \
+    byte_test: 2, =, var, 13; \
+    msg:"Byte extract and byte math with byte test verification";)
+
+
 byte_jump
 ---------
 
@@ -476,6 +546,7 @@ Format::
 ============== 	==================================
  content	offset,depth,distance,within	
  byte_test	offset,value		     	
+ byte_math	rvalue
  byte_jump	offset			     	
  isdataat	offset				
 ==============	==================================
