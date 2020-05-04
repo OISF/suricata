@@ -1313,6 +1313,19 @@ json_t *CreateJSONHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection di
     return js;
 }
 
+JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
+                                 const char *event_type, JsonAddrInfo *addr, uint64_t tx_id)
+{
+    JsonBuilder *js = CreateEveHeader(p, dir, event_type, addr);
+    if (unlikely(js == NULL))
+        return NULL;
+
+    /* tx id for correlation with other events */
+    jb_set_uint(js, "tx_id", tx_id);
+
+    return js;
+}
+
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data)
 {
     OutputJSONMemBufferWrapper *wrapper = data;
