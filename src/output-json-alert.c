@@ -478,17 +478,17 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             const AppProto proto = FlowGetAppProtocol(p->flow);
             switch (proto) {
                 case ALPROTO_HTTP:
-                    hjs = JsonHttpAddMetadata(p->flow, pa->tx_id);
-                    if (hjs) {
+                    // TODO: Could result in an empty http object being logged.
+                    jb_open_object(jb, "http");
+                    if (EveHttpAddMetadata(p->flow, pa->tx_id, jb)) {
                         if (json_output_ctx->flags & LOG_JSON_HTTP_BODY) {
-                            JsonHttpLogJSONBodyPrintable(hjs, p->flow, pa->tx_id);
+                            EveHttpLogJSONBodyPrintable(jb, p->flow, pa->tx_id);
                         }
                         if (json_output_ctx->flags & LOG_JSON_HTTP_BODY_BASE64) {
-                            JsonHttpLogJSONBodyBase64(hjs, p->flow, pa->tx_id);
+                            EveHttpLogJSONBodyBase64(jb, p->flow, pa->tx_id);
                         }
-                        jb_set_jsont(jb, "http", hjs);
-                        json_decref(hjs);
                     }
+                    jb_close(jb);
                     break;
                 case ALPROTO_TLS:
                     AlertJsonTls(p->flow, jb);
