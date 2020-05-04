@@ -2739,7 +2739,12 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
     det_ctx->tv = tv;
+#if defined(FUZZ)
+    det_ctx->de_ctx = (DetectEngineCtx *)initdata;
+    det_ctx->de_ctx->ref_cnt++;
+#else
     det_ctx->de_ctx = DetectEngineGetCurrent();
+#endif
     if (det_ctx->de_ctx == NULL) {
 #ifdef UNITTESTS
         if (RunmodeIsUnittests()) {

@@ -10,7 +10,8 @@ if BUILD_FUZZTARGETS
     bin_PROGRAMS += fuzz_applayerprotodetectgetproto \
     fuzz_applayerparserparse fuzz_siginit \
     fuzz_confyamlloadstring fuzz_decodepcapfile \
-    fuzz_sigpcap fuzz_mimedecparseline
+    fuzz_sigpcap fuzz_mimedecparseline \
+    fuzz_tcpsplit
 endif
 
 COMMON_SOURCES = \
@@ -630,6 +631,17 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_mimedecparseline_SOURCES = force-cxx-linking.cxx
 endif
+
+nodist_fuzz_tcpsplit_SOURCES = tests/fuzz/fuzz_tcpsplit.c $(COMMON_SOURCES)
+fuzz_tcpsplit_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
+fuzz_tcpsplit_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+if HAS_FUZZLDFLAGS
+    fuzz_tcpsplit_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    nodist_fuzz_tcpsplit_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+nodist_EXTRA_fuzz_tcpsplit_SOURCES = force-cxx-linking.cxx
 
 # default CFLAGS
 AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS}            \

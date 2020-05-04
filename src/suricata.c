@@ -2159,11 +2159,13 @@ static void SetupDelayedDetect(SCInstance *suri)
 
 static int LoadSignatures(DetectEngineCtx *de_ctx, SCInstance *suri)
 {
+#ifndef FUZZ
     if (SigLoadSignatures(de_ctx, suri->sig_file, suri->sig_file_exclusive) < 0) {
         SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
         if (de_ctx->failure_fatal)
             return TM_ECODE_FAILED;
     }
+#endif
 
     return TM_ECODE_OK;
 }
@@ -2282,7 +2284,7 @@ static void PostRunStartedDetectSetup(const SCInstance *suri)
     }
 }
 
-static void PostConfLoadedDetectSetup(SCInstance *suri)
+void PostConfLoadedDetectSetup(SCInstance *suri)
 {
     DetectEngineCtx *de_ctx = NULL;
     if (!suri->disabled_detect) {

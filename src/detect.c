@@ -1658,7 +1658,7 @@ void DisableDetectFlowFileFlags(Flow *f)
     DetectPostInspectFileFlagsUpdate(f, NULL /* no sgh */, STREAM_TOCLIENT);
 }
 
-#ifdef UNITTESTS
+#if defined (UNITTESTS) || defined (FUZZ)
 /**
  *  \brief wrapper for old tests
  */
