@@ -2151,6 +2151,25 @@ unlimited.
         # Stream reassembly size for modbus, default is 0
         stream-depth: 0
 
+
+MQTT
+~~~~
+
+MQTT messages could theoretically be up to 256MB in size, potentially
+containing a lot of payload data (such as properties, topics, or
+published payloads) that would end up parsed and logged. To acknowledge
+the fact that most MQTT messages, however, will be quite small and to
+reduce the potential for denial of service issues, it is possible to limit
+the maximum length of a message that we are willing to parse. Any message
+larger than the limit will just be logged with reduced metadata, and rules
+will only be evaluated against a subset of fields.
+The default is 1 MB.
+
+::
+
+      mqtt:
+        max-msg-length: 1mb
+
 SMTP
 ~~~~~~
 
