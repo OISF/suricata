@@ -1870,9 +1870,13 @@ static int HTPCallbackRequestHeaderData(const htp_connp_t *connp, htp_tx_data_t 
             htp_tx_data_len(tx_data));
     tx_ud->request_headers_raw_len += htp_tx_data_len(tx_data);
 
+    HtpState *hstate = htp_connp_user_data(connp);
     if (tx && htp_tx_flags(tx)) {
-        HtpState *hstate = htp_connp_user_data(connp);
         HTPErrorCheckTxRequestFlags(hstate, tx);
+    }
+    /* Attach the hostname to the flow for inclusion in flow JSON log records */
+    if (hstate->f->http_hostname == NULL && htp_tx_request_hostname(tx) != NULL) {
+        hstate->f->http_hostname = bstr_util_strdup_to_c(htp_tx_request_hostname(tx));
     }
     return HTP_STATUS_OK;
 }

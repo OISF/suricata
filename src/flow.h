@@ -488,6 +488,9 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
+    
+    /* Hostname of the first HTTP request issued on the flow */
+    char *http_hostname;
 
     Storage storage[];
 } Flow;
