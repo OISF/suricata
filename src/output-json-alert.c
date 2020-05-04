@@ -69,6 +69,7 @@
 #include "output-json-flow.h"
 #include "output-json-sip.h"
 #include "output-json-rfb.h"
+#include "output-json-mqtt.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -497,6 +498,12 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             break;
         case ALPROTO_DNS:
             AlertJsonDns(p->flow, tx_id, jb);
+            break;
+        case ALPROTO_MQTT:
+            jb_get_mark(jb, &mark);
+            if (!JsonMQTTAddMetadata(p->flow, tx_id, jb)) {
+                jb_restore_mark(jb, &mark);
+            }
             break;
         default:
             break;

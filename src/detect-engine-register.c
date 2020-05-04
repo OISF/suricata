@@ -199,6 +199,23 @@
 #include "detect-snmp-version.h"
 #include "detect-snmp-community.h"
 #include "detect-snmp-pdu_type.h"
+#include "detect-mqtt-type.h"
+#include "detect-mqtt-flags.h"
+#include "detect-mqtt-qos.h"
+#include "detect-mqtt-protocol-version.h"
+#include "detect-mqtt-reason-code.h"
+#include "detect-mqtt-connect-flags.h"
+#include "detect-mqtt-connect-clientid.h"
+#include "detect-mqtt-connect-username.h"
+#include "detect-mqtt-connect-password.h"
+#include "detect-mqtt-connect-willtopic.h"
+#include "detect-mqtt-connect-willmessage.h"
+#include "detect-mqtt-connack-sessionpresent.h"
+#include "detect-mqtt-publish-topic.h"
+#include "detect-mqtt-publish-message.h"
+#include "detect-mqtt-subscribe-topic.h"
+#include "detect-mqtt-unsubscribe-topic.h"
+
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -586,6 +603,23 @@ void SigTableSetup(void)
     DetectSNMPVersionRegister();
     DetectSNMPCommunityRegister();
     DetectSNMPPduTypeRegister();
+    DetectMQTTTypeRegister();
+    DetectMQTTFlagsRegister();
+    DetectMQTTQosRegister();
+    DetectMQTTProtocolVersionRegister();
+    DetectMQTTReasonCodeRegister();
+    DetectMQTTConnectFlagsRegister();
+    DetectMQTTConnectClientIDRegister();
+    DetectMQTTConnectUsernameRegister();
+    DetectMQTTConnectPasswordRegister();
+    DetectMQTTConnectWillTopicRegister();
+    DetectMQTTConnectWillMessageRegister();
+    DetectMQTTConnackSessionPresentRegister();
+    DetectMQTTPublishTopicRegister();
+    DetectMQTTPublishMessageRegister();
+    DetectMQTTSubscribeTopicRegister();
+    DetectMQTTUnsubscribeTopicRegister();
+
     DetectTemplateBufferRegister();
     DetectBypassRegister();
     DetectConfigRegister();
