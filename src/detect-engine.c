@@ -4182,6 +4182,9 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_BASE64_DATA:
             return "base64_data";
 
+        case DETECT_SM_LIST_XOR_DATA:
+            return "xor_data";
+
         case DETECT_SM_LIST_POSTMATCH:
             return "post-match";
 

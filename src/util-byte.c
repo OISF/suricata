@@ -119,6 +119,45 @@ void BytesToStringBuffer(const uint8_t *bytes, size_t nbytes, char *outstr, size
     strlcpy(outstr, string, outlen);
 }
 
+uint8_t *BytesFromHexString(const char *str, size_t *outlen)
+{
+    size_t in_len = strlen(str);
+    size_t len = in_len / 2;
+    uint8_t *dest = NULL;
+
+    /* Always initialize the outlen */
+    *outlen = 0;
+
+    /* Input must be a multiple of two */
+    if (in_len < 2 || (in_len % 2) != 0)
+    {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Hex string must have even length");
+        return NULL;
+    }
+
+    dest = SCMalloc(len);
+
+    if (unlikely(dest == NULL))
+    {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < in_len; i += 2) {
+        if (2 != ByteExtractStringUint8(&dest[i/2], 16, 2, &str[i])) {
+            goto error;
+        }
+    }
+
+    *outlen = len;
+    return dest;
+
+error:
+    SCLogError(SC_ERR_INVALID_NUMERIC_VALUE,
+            "Hex string contains invalid character");
+    SCFree(dest);
+    return NULL;
+}
+
 int ByteExtractUint64(uint64_t *res, int e, uint16_t len, const uint8_t *bytes)
 {
     uint64_t i64;
@@ -737,6 +776,8 @@ int StringParseI8RangeCheck(int8_t *res, int base, uint16_t len, const char *str
 /* UNITTESTS */
 #ifdef UNITTESTS
 
+#include "util-unittest.h"
+
 static int ByteTest01 (void)
 {
     uint16_t val = 0x0102;
@@ -962,6 +1003,72 @@ static int ByteTest16 (void)
     return 0;
 }
 
+/* Test and assert failure for BytesFromHexString */
+#define TEST_RUN(input)                         \
+    {                                           \
+        const char *str = input;                \
+        uint8_t *res = NULL;                    \
+        size_t outlen = SIZE_MAX;               \
+                                                \
+        res = BytesFromHexString(str, &outlen); \
+                                                \
+        FAIL_IF(res);                           \
+        FAIL_IF(outlen != 0);                   \
+    }
+
+/** \test test hex conversion failures */
+static int BytesFromHexStringFailure (void)
+{
+    /* empty */
+    TEST_RUN("");
+
+    /* too short */
+    TEST_RUN("f");
+
+    /* odd */
+    TEST_RUN("fff");
+
+    /* non-hex char */
+    TEST_RUN("fff!");
+
+    PASS;
+}
+
+#undef TEST_RUN
+
+/* Test and assert success for BytesFromHexString */
+#define TEST_RUN(input, expected_init...)                           \
+    {                                                               \
+        uint8_t expected[] = { expected_init };                     \
+        size_t expected_len = sizeof(expected) / sizeof(*expected); \
+        const char *str = input;                                    \
+        uint8_t *res = NULL;                                        \
+        size_t outlen = SIZE_MAX;                                   \
+                                                                    \
+        res = BytesFromHexString(str, &outlen);                     \
+                                                                    \
+        FAIL_IF(!res);                                              \
+        FAIL_IF(outlen != expected_len);                            \
+        FAIL_IF(0 != memcmp(res, expected, outlen));                \
+                                                                    \
+        SCFree(res);                                                \
+    }
+
+/** \test test hex conversion range valid */
+static int BytesFromHexStringSuccess (void)
+{
+    /* shorted valid */
+    TEST_RUN("0f", 0x0f);
+
+    /* hex range */
+    TEST_RUN("0123456789abcdefABCDEF", 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd,
+            0xef, 0xAB, 0xCD, 0xEF);
+
+    PASS;
+}
+
+#undef TEST_RUN
+
 void ByteRegisterTests(void)
 {
     UtRegisterTest("ByteTest01", ByteTest01);
@@ -980,6 +1087,8 @@ void ByteRegisterTests(void)
     UtRegisterTest("ByteTest14", ByteTest14);
     UtRegisterTest("ByteTest15", ByteTest15);
     UtRegisterTest("ByteTest16", ByteTest16);
+    UtRegisterTest("BytesFromHexStringFailure", BytesFromHexStringFailure);
+    UtRegisterTest("BytesFromHexStringSuccess", BytesFromHexStringSuccess);
 }
 #endif /* UNITTESTS */
 

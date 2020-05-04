@@ -93,6 +93,7 @@ enum DetectSigmatchListEnum {
      * built-in
      * TODO convert to inspect engine */
     DETECT_SM_LIST_BASE64_DATA,
+    DETECT_SM_LIST_XOR_DATA,
 
     /* list for post match actions: flowbit set, flowint increment, etc */
     DETECT_SM_LIST_POSTMATCH,

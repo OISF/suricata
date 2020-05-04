@@ -81,6 +81,7 @@
 #include "util-memcmp.h"
 #include "util-misc.h"
 #include "util-signal.h"
+#include "util-xor.h"
 
 #include "reputation.h"
 #include "util-atomic.h"
@@ -145,6 +146,7 @@ static void RegisterUnittests(void)
     HostBitRegisterTests();
     IPPairBitRegisterTests();
     StatsRegisterTests();
+    XorRegisterTests();
     DecodeEthernetRegisterTests();
     DecodeCHDLCRegisterTests();
     DecodePPPRegisterTests();

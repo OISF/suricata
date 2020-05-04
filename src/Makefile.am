@@ -297,6 +297,8 @@ detect-urilen.c detect-urilen.h \
 detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
+detect-xor.c detect-xor.h \
+detect-xor-data.c detect-xor-data.h \
 detect-cipservice.c detect-cipservice.h \
 device-storage.c device-storage.h \
 feature.c feature.h \
@@ -533,6 +535,7 @@ util-validate.h util-affinity.h util-affinity.c \
 util-var.c util-var.h \
 util-var-name.c util-var-name.h \
 util-vector.h \
+util-xor.c util-xor.h \
 win32-syscall.c win32-syscall.h \
 win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \

@@ -83,6 +83,15 @@
 char *BytesToString(const uint8_t *bytes, size_t nbytes);
 void BytesToStringBuffer(const uint8_t *bytes, size_t nbytes, char *outstr, size_t outlen);
 
+/** \brief Converts an ascii-encoded hex string to an array of bytes.
+ *
+ *  \param str ascii-encoded hex string, must not be NULL.
+ *  \param outlen where to store the size of the output array, must not be NULL.
+ *
+ *  \return Newly allocated array or NULL on error. Must be freed with SCFree().
+ */
+uint8_t *BytesFromHexString(const char *str, size_t *outlen);
+
 /**
  * Extract bytes from a byte string and convert to a unint64_t.
  *

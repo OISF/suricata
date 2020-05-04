@@ -29,6 +29,21 @@ Flow *TestHelperBuildFlow(int family, const char *src, const char *dst, Port sp,
 int TestHelperBufferToFile(const char *name, const uint8_t *data, size_t size);
 #endif
 #ifdef UNITTESTS
+
+/**
+ * \brief Helper to declare a byte array for testing.
+ *
+ *  Declares a byte array and a corresponding length variable for testing.
+ *
+ * \param name Name of variable to declare. Length variable will be suffixed
+ *             with '_len'.
+ * \param bytes Variadic arguments to go in byte array declaration.
+ *
+ */
+#define UTH_DECL_BUF(name, bytes...)                        \
+    uint8_t name[] = { bytes };                             \
+    size_t name ## _len = sizeof(name) / sizeof(*name);
+
 uint32_t UTHSetIPv4Address(const char *);
 
 Packet *UTHBuildPacketReal(uint8_t *, uint16_t, uint8_t ipproto, const char *, const char *, uint16_t, uint16_t);

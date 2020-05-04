@@ -75,6 +75,9 @@
 
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
+#include "detect-xor.h"
+#include "detect-xor-data.h"
+
 #include "detect-ipopts.h"
 #include "detect-tcp-flags.h"
 #include "detect-fragbits.h"
@@ -545,6 +548,8 @@ void SigTableSetup(void)
     DetectAppLayerProtocolRegister();
     DetectBase64DecodeRegister();
     DetectBase64DataRegister();
+    DetectXorRegister();
+    DetectXorDataRegister();
     DetectTemplateRegister();
     DetectTemplate2Register();
     DetectTcphdrRegister();

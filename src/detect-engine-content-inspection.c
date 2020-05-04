@@ -45,6 +45,8 @@
 #include "detect-lua.h"
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
+#include "detect-xor.h"
+#include "detect-xor-data.h"
 #include "detect-dataset.h"
 #include "detect-datarep.h"
 
@@ -625,6 +627,16 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
                 if (DetectBase64DataDoMatch(de_ctx, det_ctx, s, f)) {
                     /* Base64 is a terminal list. */
+                    goto final_match;
+                }
+            }
+        }
+    } else if (smd->type == DETECT_XOR) {
+        if (DetectXorDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len)) {
+            if (s->sm_arrays[DETECT_SM_LIST_XOR_DATA] != NULL) {
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                if (DetectXorDataDoMatch(de_ctx, det_ctx, s, f)) {
+                    /* XOR is a terminal list. */
                     goto final_match;
                 }
             }
