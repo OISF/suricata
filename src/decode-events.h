@@ -157,6 +157,9 @@ enum {
     /* SCTP EVENTS */
     SCTP_PKT_TOO_SMALL, /**< sctp packet smaller than minimum size */
 
+    /* ESP EVENTS */
+    ESP_PKT_TOO_SMALL, /**< esp packet smaller than minimum size */
+
     /* Fragmentation reasembly events. */
     IPV4_FRAG_PKT_TOO_LARGE,
     IPV6_FRAG_PKT_TOO_LARGE,
