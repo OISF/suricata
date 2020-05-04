@@ -131,15 +131,12 @@ static void AlertJsonTls(const Flow *f, JsonBuilder *js)
 {
     SSLState *ssl_state = (SSLState *)FlowGetAppState(f);
     if (ssl_state) {
-        json_t *tjs = json_object();
-        if (unlikely(tjs == NULL))
-            return;
+        jb_open_object(js, "tls");
 
-        JsonTlsLogJSONBasic(tjs, ssl_state);
-        JsonTlsLogJSONExtended(tjs, ssl_state);
+        JsonTlsLogJSONBasic(js, ssl_state);
+        JsonTlsLogJSONExtended(js, ssl_state);
 
-        jb_set_jsont(js, "tls", tjs);
-        json_decref(tjs);
+        jb_close(js);
     }
 
     return;
