@@ -49,6 +49,7 @@ app-layer-tftp.c app-layer-tftp.h \
 app-layer-ikev2.c app-layer-ikev2.h \
 app-layer-krb5.c app-layer-krb5.h \
 app-layer-rfb.c app-layer-rfb.h \
+app-layer-mqtt.c app-layer-mqtt.h \
 app-layer-template.c app-layer-template.h \
 app-layer-template-rust.c app-layer-template-rust.h \
 app-layer-rdp.c app-layer-rdp.h \
@@ -286,6 +287,21 @@ detect-template.c detect-template.h \
 detect-template2.c detect-template2.h \
 detect-ftpdata.c detect-ftpdata.h \
 detect-template-rust-buffer.c detect-template-rust-buffer.h \
+detect-mqtt-type.c detect-mqtt-type.h \
+detect-mqtt-flags.c detect-mqtt-flags.h \
+detect-mqtt-qos.c detect-mqtt-qos.h \
+detect-mqtt-protocol-version.c detect-mqtt-protocol-version.h \
+detect-mqtt-reason-code.c detect-mqtt-reason-code.h \
+detect-mqtt-connect-flags.c detect-mqtt-connect-flags.h \
+detect-mqtt-connect-clientid.c detect-mqtt-connect-clientid.h \
+detect-mqtt-connect-username.c detect-mqtt-connect-username.h \
+detect-mqtt-connect-password.c detect-mqtt-connect-password.h \
+detect-mqtt-connect-willtopic.c detect-mqtt-connect-willtopic.h \
+detect-mqtt-connect-willmessage.c detect-mqtt-connect-willmessage.h \
+detect-mqtt-connack-sessionpresent.c detect-mqtt-connack-sessionpresent.h \
+detect-mqtt-publish-message.c detect-mqtt-publish-message.h \
+detect-mqtt-publish-topic.c detect-mqtt-publish-topic.h \
+detect-mqtt-subscribe-topic.c detect-mqtt-subscribe-topic.h \
 detect-template-buffer.c detect-template-buffer.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \
@@ -366,6 +382,7 @@ output-json-krb5.c output-json-krb5.h \
 output-json-dhcp.c output-json-dhcp.h \
 output-json-snmp.c output-json-snmp.h \
 output-json-rfb.c output-json-rfb.h \
+output-json-mqtt.c output-json-mqtt.h \
 output-json-template.c output-json-template.h \
 output-json-template-rust.c output-json-template-rust.h \
 output-json-rdp.c output-json-rdp.h \
