@@ -180,6 +180,12 @@ void EveAddAppProto(Flow *f, JsonBuilder *js)
     if (f->alproto) {
         jb_set_string(js, "app_proto", AppProtoToString(f->alproto));
     }
+
+    /* Log the hostname for HTTP flows */
+    if (f->alproto == ALPROTO_HTTP && f->http_hostname != NULL) {
+        jb_set_string(js, "hostname", f->http_hostname);
+    }
+
     if (f->alproto_ts && f->alproto_ts != f->alproto) {
         jb_set_string(js, "app_proto_ts", AppProtoToString(f->alproto_ts));
     }

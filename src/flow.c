@@ -1080,6 +1080,12 @@ int FlowClearMemory(Flow* f, uint8_t proto_map)
         flow_freefuncs[proto_map].Freefunc(f->protoctx);
     }
 
+    /* Free HTTP hostname if one was stored */
+    if (f->http_hostname != NULL) {
+        free(f->http_hostname);
+        f->http_hostname = NULL;
+    }
+
     FlowFreeStorage(f);
 
     FLOW_RECYCLE(f);

@@ -2320,9 +2320,14 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
            tx_data->data, tx_data->len);
     tx_ud->request_headers_raw_len += tx_data->len;
 
+    HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
     if (tx_data->tx && tx_data->tx->flags) {
-        HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
         HTPErrorCheckTxRequestFlags(hstate, tx_data->tx);
+    }
+
+    /* Attach the hostname to the flow for inclusion in flow JSON log records */
+    if (hstate->f->http_hostname == NULL && tx_data->tx->request_hostname != NULL) {
+        hstate->f->http_hostname = bstr_util_strdup_to_c(tx_data->tx->request_hostname);
     }
     return HTP_OK;
 }
