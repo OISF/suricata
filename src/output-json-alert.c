@@ -68,6 +68,7 @@
 #include "output-json-flow.h"
 #include "output-json-sip.h"
 #include "output-json-rfb.h"
+#include "output-json-mqtt.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -487,6 +488,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     break;
                 case ALPROTO_DNS:
                     AlertJsonDns(p->flow, pa->tx_id, js);
+                    break;
+                case ALPROTO_MQTT:
+                    hjs = JsonMQTTAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "mqtt", hjs);
                     break;
                 default:
                     break;
