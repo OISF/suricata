@@ -169,11 +169,16 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
             WARN_ONCE(SC_ERR_SPRINTF,
                 "Failed to write file info record. Output filename truncated.");
         } else {
-            json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, dir,
+            JsonBuilder *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, dir,
                     ctx->xff_cfg);
             if (likely(js_fileinfo != NULL)) {
-                json_dump_file(js_fileinfo, js_metadata_filename, 0);
-                json_decref(js_fileinfo);
+                jb_close(js_fileinfo);
+                FILE *out = fopen(js_metadata_filename, "w");
+                if (out != NULL) {
+                    size_t js_len = jb_len(js_fileinfo);
+                    fwrite(jb_ptr(js_fileinfo), js_len, 1, out);
+                }
+                jb_free(js_fileinfo);
             }
         }
     }
