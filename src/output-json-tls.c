@@ -110,23 +110,23 @@ typedef struct JsonTlsLogThread_ {
     MemBuffer *buffer;
 } JsonTlsLogThread;
 
-static void JsonTlsLogSubject(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogSubject(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_subject) {
-        json_object_set_new(js, "subject",
-                            SCJsonString(ssl_state->server_connp.cert0_subject));
+        jb_set_string(js, "subject",
+                            ssl_state->server_connp.cert0_subject);
     }
 }
 
-static void JsonTlsLogIssuer(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogIssuer(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_issuerdn) {
-        json_object_set_new(js, "issuerdn",
-                            SCJsonString(ssl_state->server_connp.cert0_issuerdn));
+        jb_set_string(js, "issuerdn",
+                            ssl_state->server_connp.cert0_issuerdn);
     }
 }
 
-static void JsonTlsLogSessionResumed(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogSessionResumed(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
         /* Only log a session as 'resumed' if a certificate has not
@@ -135,43 +135,43 @@ static void JsonTlsLogSessionResumed(json_t *js, SSLState *ssl_state)
                ssl_state->server_connp.cert0_subject == NULL) &&
                (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
                ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
-            json_object_set_new(js, "session_resumed", json_boolean(true));
+            jb_set_bool(js, "session_resumed", true);
         }
     }
 }
 
-static void JsonTlsLogFingerprint(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogFingerprint(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_fingerprint) {
-        json_object_set_new(js, "fingerprint",
-                SCJsonString(ssl_state->server_connp.cert0_fingerprint));
+        jb_set_string(js, "fingerprint",
+                ssl_state->server_connp.cert0_fingerprint);
     }
 }
 
-static void JsonTlsLogSni(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogSni(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->client_connp.sni) {
-        json_object_set_new(js, "sni",
-                            SCJsonString(ssl_state->client_connp.sni));
+        jb_set_string(js, "sni",
+                            ssl_state->client_connp.sni);
     }
 }
 
-static void JsonTlsLogSerial(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogSerial(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_serial) {
-        json_object_set_new(js, "serial",
-                            SCJsonString(ssl_state->server_connp.cert0_serial));
+        jb_set_string(js, "serial",
+                            ssl_state->server_connp.cert0_serial);
     }
 }
 
-static void JsonTlsLogVersion(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogVersion(JsonBuilder *js, SSLState *ssl_state)
 {
     char ssl_version[SSL_VERSION_MAX_STRLEN];
     SSLVersionToString(ssl_state->server_connp.version, ssl_version);
-    json_object_set_new(js, "version", json_string(ssl_version));
+    jb_set_string(js, "version", ssl_version);
 }
 
-static void JsonTlsLogNotBefore(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogNotBefore(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_not_before != 0) {
         char timebuf[64];
@@ -179,11 +179,11 @@ static void JsonTlsLogNotBefore(json_t *js, SSLState *ssl_state)
         tv.tv_sec = ssl_state->server_connp.cert0_not_before;
         tv.tv_usec = 0;
         CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
-        json_object_set_new(js, "notbefore", json_string(timebuf));
+        jb_set_string(js, "notbefore", timebuf);
     }
 }
 
-static void JsonTlsLogNotAfter(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogNotAfter(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_not_after != 0) {
         char timebuf[64];
@@ -191,68 +191,65 @@ static void JsonTlsLogNotAfter(json_t *js, SSLState *ssl_state)
         tv.tv_sec = ssl_state->server_connp.cert0_not_after;
         tv.tv_usec = 0;
         CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
-       json_object_set_new(js, "notafter", json_string(timebuf));
+       jb_set_string(js, "notafter", timebuf);
     }
 }
 
-static void JsonTlsLogJa3Hash(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogJa3Hash(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->client_connp.ja3_hash != NULL) {
-        json_object_set_new(js, "hash",
-                            json_string(ssl_state->client_connp.ja3_hash));
+        jb_set_string(js, "hash",
+                            ssl_state->client_connp.ja3_hash);
     }
 }
 
-static void JsonTlsLogJa3String(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogJa3String(JsonBuilder *js, SSLState *ssl_state)
 {
     if ((ssl_state->client_connp.ja3_str != NULL) &&
             ssl_state->client_connp.ja3_str->data != NULL) {
-        json_object_set_new(js, "string",
-                            json_string(ssl_state->client_connp.ja3_str->data));
+        jb_set_string(js, "string",
+                            ssl_state->client_connp.ja3_str->data);
     }
 }
 
-static void JsonTlsLogJa3(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogJa3(JsonBuilder *js, SSLState *ssl_state)
 {
-    json_t *tjs = json_object();
-    if (unlikely(tjs == NULL))
-        return;
+    jb_open_object(js, "ja3");
 
-    JsonTlsLogJa3Hash(tjs, ssl_state);
-    JsonTlsLogJa3String(tjs, ssl_state);
+    JsonTlsLogJa3Hash(js, ssl_state);
+    JsonTlsLogJa3String(js, ssl_state);
 
-    json_object_set_new(js, "ja3", tjs);
+    jb_close(js);
 }
 
-static void JsonTlsLogJa3SHash(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogJa3SHash(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.ja3_hash != NULL) {
-        json_object_set_new(js, "hash",
-                            json_string(ssl_state->server_connp.ja3_hash));
+        jb_set_string(js, "hash",
+                            ssl_state->server_connp.ja3_hash);
     }
 }
 
-static void JsonTlsLogJa3SString(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogJa3SString(JsonBuilder *js, SSLState *ssl_state)
 {
     if ((ssl_state->server_connp.ja3_str != NULL) &&
             ssl_state->server_connp.ja3_str->data != NULL) {
-        json_object_set_new(js, "string",
-                            json_string(ssl_state->server_connp.ja3_str->data));
+        jb_set_string(js, "string",
+                            ssl_state->server_connp.ja3_str->data);
     }
 }
 
-static void JsonTlsLogJa3S(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogJa3S(JsonBuilder *js, SSLState *ssl_state)
 {
-    json_t *tjs = json_object();
-    if (unlikely(tjs == NULL))
-        return;
+    jb_open_object(js, "ja3s");
 
-    JsonTlsLogJa3SHash(tjs, ssl_state);
-    JsonTlsLogJa3SString(tjs, ssl_state);
+    JsonTlsLogJa3SHash(js, ssl_state);
+    JsonTlsLogJa3SString(js, ssl_state);
 
-    json_object_set_new(js, "ja3s", tjs);
+    jb_close(js);
 }
-static void JsonTlsLogCertificate(json_t *js, SSLState *ssl_state)
+
+static void JsonTlsLogCertificate(JsonBuilder *js, SSLState *ssl_state)
 {
     if (TAILQ_EMPTY(&ssl_state->server_connp.certs)) {
         return;
@@ -267,20 +264,17 @@ static void JsonTlsLogCertificate(json_t *js, SSLState *ssl_state)
     uint8_t encoded[len];
     if (Base64Encode(cert->cert_data, cert->cert_len, encoded, &len) ==
                      SC_BASE64_OK) {
-        json_object_set_new(js, "certificate", json_string((char *)encoded));
+        jb_set_string(js, "certificate", (char *)encoded);
     }
 }
 
-static void JsonTlsLogChain(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogChain(JsonBuilder *js, SSLState *ssl_state)
 {
     if (TAILQ_EMPTY(&ssl_state->server_connp.certs)) {
         return;
     }
 
-    json_t *chain = json_array();
-    if (chain == NULL) {
-        return;
-    }
+    jb_open_array(js, "chain");
 
     SSLCertsChain *cert;
     TAILQ_FOREACH(cert, &ssl_state->server_connp.certs, next) {
@@ -288,14 +282,14 @@ static void JsonTlsLogChain(json_t *js, SSLState *ssl_state)
         uint8_t encoded[len];
         if (Base64Encode(cert->cert_data, cert->cert_len, encoded, &len) ==
                          SC_BASE64_OK) {
-            json_array_append_new(chain, json_string((char *)encoded));
+            jb_add_string(js, (char *)encoded);
         }
     }
 
-    json_object_set_new(js, "chain", chain);
+    jb_close(js);
 }
 
-void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
+void JsonTlsLogJSONBasic(JsonBuilder *js, SSLState *ssl_state)
 {
     /* tls subject */
     JsonTlsLogSubject(js, ssl_state);
@@ -307,7 +301,7 @@ void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
     JsonTlsLogSessionResumed(js, ssl_state);
 }
 
-static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
+static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js,
                                  SSLState *ssl_state)
 {
     /* tls subject */
@@ -363,7 +357,7 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
         JsonTlsLogJa3S(js, ssl_state);
 }
 
-void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
+void JsonTlsLogJSONExtended(JsonBuilder *tjs, SSLState * state)
 {
     JsonTlsLogJSONBasic(tjs, state);
 
@@ -411,47 +405,43 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "tls", NULL);
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "tls", NULL);
     if (unlikely(js == NULL)) {
         return 0;
     }
 
-    JsonAddCommonOptions(&tls_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&tls_ctx->cfg, p, f, js);
 
-    json_t *tjs = json_object();
-    if (tjs == NULL) {
-        free(js);
-        return 0;
-    }
+    jb_open_object(js, "tls");
 
     /* reset */
     MemBufferReset(aft->buffer);
 
     /* log custom fields */
     if (tls_ctx->flags & LOG_TLS_CUSTOM) {
-        JsonTlsLogJSONCustom(tls_ctx, tjs, ssl_state);
+        JsonTlsLogJSONCustom(tls_ctx, js, ssl_state);
     }
     /* log extended */
     else if (tls_ctx->flags & LOG_TLS_EXTENDED) {
-        JsonTlsLogJSONExtended(tjs, ssl_state);
+        JsonTlsLogJSONExtended(js, ssl_state);
     }
     /* log basic */
     else {
-        JsonTlsLogJSONBasic(tjs, ssl_state);
+        JsonTlsLogJSONBasic(js, ssl_state);
     }
 
     /* print original application level protocol when it have been changed
        because of STARTTLS, HTTP CONNECT, or similar. */
     if (f->alproto_orig != ALPROTO_UNKNOWN) {
-        json_object_set_new(tjs, "from_proto",
-                json_string(AppLayerGetProtoName(f->alproto_orig)));
+        jb_set_string(js, "from_proto",
+                AppLayerGetProtoName(f->alproto_orig));
     }
 
-    json_object_set_new(js, "tls", tjs);
+    /* Close the tls object. */
+    jb_close(js);
 
-    OutputJSONBuffer(js, tls_ctx->file_ctx, &aft->buffer);
-    json_object_clear(js);
-    json_decref(js);
+    OutputJsonBuilderBuffer(js, tls_ctx->file_ctx, &aft->buffer);
+    jb_free(js);
 
     return 0;
 }
