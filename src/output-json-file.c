@@ -98,7 +98,27 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             break;
     }
 
-    json_t *js = CreateJSONHeader(p, fdir, "fileinfo", NULL);
+    JsonAddrInfo addr = json_addr_info_zero;
+    JsonAddrInfoInit(p, fdir, &addr);
+
+    /* Overwrite address info with XFF if needed. */
+    int have_xff_ip = 0;
+    char xff_buffer[XFF_MAXLEN];
+    if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED)) {
+        if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
+            have_xff_ip = HttpXFFGetIPFromTx(p->flow, ff->txid, xff_cfg, xff_buffer, XFF_MAXLEN);
+        }
+        if (have_xff_ip && xff_cfg->flags & XFF_OVERWRITE) {
+            if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                strlcpy(addr.dst_ip, xff_buffer, JSON_ADDR_LEN);
+            } else {
+                strlcpy(addr.src_ip, xff_buffer, JSON_ADDR_LEN);
+            }
+            have_xff_ip = 0;
+        }
+    }
+
+    json_t *js = CreateJSONHeader(p, fdir, "fileinfo", &addr);
     if (unlikely(js == NULL))
         return NULL;
 
@@ -220,26 +240,8 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     json_object_set_new(fjs, "tx_id", json_integer(ff->txid));
 
     /* xff header */
-    if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED)) {
-        int have_xff_ip = 0;
-        char buffer[XFF_MAXLEN];
-
-        if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-            have_xff_ip = HttpXFFGetIPFromTx(p->flow, ff->txid, xff_cfg, buffer, XFF_MAXLEN);
-        }
-
-        if (have_xff_ip) {
-            if (xff_cfg->flags & XFF_EXTRADATA) {
-                json_object_set_new(js, "xff", json_string(buffer));
-            }
-            else if (xff_cfg->flags & XFF_OVERWRITE) {
-                if (p->flowflags & FLOW_PKT_TOCLIENT) {
-                    json_object_set(js, "dest_ip", json_string(buffer));
-                } else {
-                    json_object_set(js, "src_ip", json_string(buffer));
-                }
-            }
-        }
+    if (have_xff_ip && xff_cfg->flags & XFF_EXTRADATA) {
+        json_object_set_new(js, "xff", json_string(xff_buffer));
     }
 
     /* originally just 'file', but due to bug 1127 naming it fileinfo */
