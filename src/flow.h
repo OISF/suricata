@@ -354,6 +354,10 @@ typedef struct Flow_
             uint8_t type;   /**< icmp type */
             uint8_t code;   /**< icmp code */
         } icmp_s;
+
+        struct {
+            uint32_t spi; /**< esp spi */
+        } esp;
     };
     union {
         Port dp;        /**< tcp/udp destination port */
