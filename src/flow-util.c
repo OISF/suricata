@@ -187,6 +187,8 @@ void FlowInit(Flow *f, const Packet *p)
     } else if (p->sctph != NULL) { /* XXX MACRO */
         SET_SCTP_SRC_PORT(p,&f->sp);
         SET_SCTP_DST_PORT(p,&f->dp);
+    } else if (p->esph != NULL) {
+        f->esp.spi = ESP_GET_SPI(p);
     } /* XXX handle default */
 #ifdef DEBUG
     else {

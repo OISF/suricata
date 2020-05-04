@@ -79,6 +79,7 @@ decode-ppp.c decode-ppp.h \
 decode-pppoe.c decode-pppoe.h \
 decode-raw.c decode-raw.h \
 decode-sctp.c decode-sctp.h \
+decode-esp.c decode-esp.h \
 decode-sll.c decode-sll.h \
 decode-tcp.c decode-tcp.h \
 decode-teredo.c decode-teredo.h \

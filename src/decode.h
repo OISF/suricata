@@ -88,6 +88,7 @@ enum PktSrcEnum {
 #include "decode-tcp.h"
 #include "decode-udp.h"
 #include "decode-sctp.h"
+#include "decode-esp.h"
 #include "decode-raw.h"
 #include "decode-null.h"
 #include "decode-vlan.h"
@@ -210,7 +211,6 @@ typedef struct Address_ {
 #define SET_SCTP_DST_PORT(pkt, prt) do {            \
         SET_PORT(SCTP_GET_DST_PORT((pkt)), *(prt)); \
     } while (0)
-
 
 
 #define GET_IPV4_SRC_ADDR_U32(p) ((p)->src.addr_data32[0])
@@ -532,6 +532,8 @@ typedef struct Packet_
 
     SCTPHdr *sctph;
 
+    ESPHdr *esph;
+
     ICMPV4Hdr *icmpv4h;
 
     ICMPV6Hdr *icmpv6h;
@@ -653,6 +655,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_raw;
     uint16_t counter_null;
     uint16_t counter_sctp;
+    uint16_t counter_esp;
     uint16_t counter_ppp;
     uint16_t counter_gre;
     uint16_t counter_vlan;
@@ -790,6 +793,9 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         }                                       \
         if ((p)->sctph != NULL) {               \
             CLEAR_SCTP_PACKET((p));             \
+        }                                       \
+        if ((p)->esph != NULL) {                \
+            CLEAR_ESP_PACKET((p));              \
         }                                       \
         if ((p)->icmpv4h != NULL) {             \
             CLEAR_ICMPV4_PACKET((p));           \
@@ -948,6 +954,7 @@ int DecodeICMPV6(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, ui
 int DecodeTCP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint16_t);
 int DecodeUDP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint16_t);
 int DecodeSCTP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint16_t);
+int DecodeESP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint16_t);
 int DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeIEEE8021ah(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
