@@ -124,11 +124,9 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
 
     switch (p->flow->alproto) {
         case ALPROTO_HTTP:
-            hjs = JsonHttpAddMetadata(p->flow, ff->txid);
-            if (hjs) {
-                jb_set_jsont(js, "http", hjs);
-                json_decref(hjs);
-            }
+            jb_open_object(js, "http");
+            EveHttpAddMetadata(p->flow, ff->txid, js);
+            jb_close(js);
             break;
         case ALPROTO_SMTP:
             hjs = JsonSMTPAddMetadata(p->flow, ff->txid);
