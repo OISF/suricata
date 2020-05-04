@@ -144,6 +144,8 @@ outputs:
         header: X-Forwarded-For
 
       types:
+        - mqtt:
+            # passwords: yes           # enable output of passwords
         - alert:
             # payload: yes             # enable dumping payload in Base64
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
@@ -717,6 +719,9 @@ app-layer:
       enabled: yes
       detection-ports:
         dp: 5900, 5901, 5902, 5903, 5904, 5905, 5906, 5907, 5908, 5909
+    # MQTT, disabled by default.
+    mqtt:
+      # enabled: no
     krb5:
       enabled: yes
     snmp:
@@ -753,7 +758,7 @@ app-layer:
       # memcap: 64mb
     # RDP, disabled by default.
     rdp:
-      #enabled: no
+      # enabled: no
     ssh:
       enabled: yes
     smtp:
