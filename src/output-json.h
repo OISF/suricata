@@ -84,6 +84,9 @@ JsonBuilder *CreateEveHeader(const Packet *p,
         JsonAddrInfo *addr);
 json_t *CreateJSONHeaderWithTxId(const Packet *p,
         enum OutputJsonLogDirection dir, const char *event_type, uint64_t tx_id);
+JsonBuilder *CreateEveHeaderWithTxId(const Packet *p,
+        enum OutputJsonLogDirection dir, const char *event_type, JsonAddrInfo *addr,
+        uint64_t tx_id);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 int OutputJsonBuilderBuffer(JsonBuilder *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputInitResult OutputJsonInitCtx(ConfNode *);
