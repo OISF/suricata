@@ -26,7 +26,6 @@
 
 void JsonHttpLogRegister(void);
 
-json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id);
 bool EveHttpAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
 void EveHttpLogJSONBodyPrintable(JsonBuilder *js, Flow *f, uint64_t tx_id);
 void EveHttpLogJSONBodyBase64(JsonBuilder *js, Flow *f, uint64_t tx_id);
