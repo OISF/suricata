@@ -70,6 +70,7 @@ enum {
     FLOW_PROTO_TCP = 0,
     FLOW_PROTO_UDP,
     FLOW_PROTO_ICMP,
+    FLOW_PROTO_ESP,
     FLOW_PROTO_DEFAULT,
 
     /* should be last */
