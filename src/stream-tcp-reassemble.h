@@ -102,7 +102,7 @@ void StreamTcpSetOSPolicy(TcpStream *, Packet *);
 
 int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpSession *ssn, TcpStream *stream, Packet *p);
-int StreamTcpReassembleInsertSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *, TcpSegment *, Packet *, uint32_t pkt_seq, uint8_t *pkt_data, uint16_t pkt_datalen);
+int StreamTcpReassembleInsertSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *, TcpSegment *, Packet *, uint32_t pkt_seq, const uint8_t *pkt_data, uint16_t pkt_datalen);
 TcpSegment *StreamTcpGetSegment(ThreadVars *, TcpReassemblyThreadCtx *);
 
 void StreamTcpReturnStreamSegments(TcpStream *);

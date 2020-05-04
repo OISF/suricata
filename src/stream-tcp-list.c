@@ -68,7 +68,7 @@ int TcpSegmentCompare(struct TcpSegment *a, struct TcpSegment *b)
  *  \param data segment data after overlap handling (if any)
  *  \param data_len data length
  */
-static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, uint8_t *data, uint16_t data_len)
+static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, const uint8_t *data, uint16_t data_len)
 {
     uint64_t stream_offset;
     uint16_t data_offset;
@@ -556,7 +556,7 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
  */
 int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpStream *stream, TcpSegment *seg, Packet *p,
-        uint32_t pkt_seq, uint8_t *pkt_data, uint16_t pkt_datalen)
+        uint32_t pkt_seq, const uint8_t *pkt_data, uint16_t pkt_datalen)
 {
     SCEnter();
 
