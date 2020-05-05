@@ -1482,6 +1482,28 @@ return 0;
         fi
     ])
 
+
+  # Testimony support
+    AC_ARG_ENABLE(testimony,
+           AS_HELP_STRING([--enable-testimony], [Enable Testimony (unix socket) support [default=yes]]),
+                        [enable_testimony=$enableval],[enable_testimony=yes])
+    AS_IF([test "x$enable_testimony" = "xyes"], [
+        AC_CHECK_HEADER(testimony.h,,[AC_MSG_ERROR(testimony.h not found ...)],)
+        AC_CHECK_LIB(testimony, testimony_connect,, TESTIMONY="no")
+
+        if test "$TESTIMONY" = "no"; then
+            echo
+            echo "   ERROR! libtestimony library not found"
+            echo
+            exit 1
+        fi
+
+        AC_DEFINE([HAVE_TESTIMONY],[1],[Testimony support is available])
+
+        LIBS="${LIBS} -ltestimony"
+    ])
+
+
   # AF_PACKET support
     AC_ARG_ENABLE(af-packet,
            AS_HELP_STRING([--enable-af-packet], [Enable AF_PACKET support [default=yes]]),

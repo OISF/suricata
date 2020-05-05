@@ -88,6 +88,8 @@
 #include "source-pcap.h"
 #include "source-pcap-file.h"
 
+#include "source-testimony.h"
+
 #include "source-pfring.h"
 
 #include "source-erf-file.h"
