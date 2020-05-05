@@ -271,26 +271,38 @@ typedef struct LogDnsLogThread_ {
     MemBuffer *buffer;
 } LogDnsLogThread;
 
-json_t *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
+JsonBuilder *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
 {
-    json_t *queryjs = json_array();
-    if (queryjs == NULL)
+    JsonBuilder *queryjb = jb_new_array();
+    if (queryjb == NULL) {
         return NULL;
-
-    for (uint16_t i = 0; i < UINT16_MAX; i++) {
-        json_t *dns = rs_dns_log_json_query((void *)txptr, i, LOG_ALL_RRTYPES);
-        if (unlikely(dns == NULL)) {
-            break;
-        }
-        json_array_append_new(queryjs, dns);
     }
 
-    return queryjs;
+    for (uint16_t i = 0; i < UINT16_MAX; i++) {
+        JsonBuilder *js = jb_new_object();
+        if (!rs_dns_log_json_query((void *)txptr, i, LOG_ALL_RRTYPES, js)) {
+            jb_free(js);
+            break;
+        }
+        jb_close(js);
+        jb_append_object(queryjb, js);
+        jb_free(js);
+    }
+
+    jb_close(queryjb);
+    return queryjb;
 }
 
-json_t *JsonDNSLogAnswer(void *txptr, uint64_t tx_id)
+JsonBuilder *JsonDNSLogAnswer(void *txptr, uint64_t tx_id)
 {
-    return rs_dns_log_json_answer(txptr, LOG_ALL_RRTYPES);
+    if (!rs_dns_do_log_answer(txptr, LOG_ALL_RRTYPES)) {
+        return NULL;
+    } else {
+        JsonBuilder *js = jb_new_object();
+        rs_dns_log_json_answer(txptr, LOG_ALL_RRTYPES, js);
+        jb_close(js);
+        return js;
+    }
 }
 
 static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
@@ -300,28 +312,28 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    json_t *js;
 
     if (unlikely(dnslog_ctx->flags & LOG_QUERIES) == 0) {
         return TM_ECODE_OK;
     }
 
     for (uint16_t i = 0; i < 0xffff; i++) {
-        js = CreateJSONHeader(p, LOG_DIR_FLOW, "dns", NULL);
-        if (unlikely(js == NULL)) {
+        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+        if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
-        JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
+        EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
 
-        json_t *dns = rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags);
-        if (unlikely(dns == NULL)) {
-            json_decref(js);
+        jb_open_object(jb, "dns");
+        if (!rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags, jb)) {
+            jb_free(jb);
             break;
         }
-        json_object_set_new(js, "dns", dns);
+        jb_close(jb);
+
         MemBufferReset(td->buffer);
-        OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
-        json_decref(js);
+        OutputJsonBuilderBuffer(jb, td->dnslog_ctx->file_ctx, &td->buffer);
+        jb_free(jb);
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -339,48 +351,63 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "dns", NULL);
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-
-    JsonAddCommonOptions(&dnslog_ctx->cfg, p, f, js);
-
     if (td->dnslog_ctx->version == DNS_VERSION_2) {
-        json_t *answer = rs_dns_log_json_answer(txptr,
-                td->dnslog_ctx->flags);
-        if (answer != NULL) {
-            json_object_set_new(js, "dns", answer);
+        if (rs_dns_do_log_answer(txptr, td->dnslog_ctx->flags)) {
+            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+            if (unlikely(jb == NULL)) {
+                return TM_ECODE_OK;
+            }
+            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
+
+            jb_open_object(jb, "dns");
+            rs_dns_log_json_answer(txptr, td->dnslog_ctx->flags, jb);
+            jb_close(jb);
             MemBufferReset(td->buffer);
-            OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+            OutputJsonBuilderBuffer(jb, td->dnslog_ctx->file_ctx, &td->buffer);
+            jb_free(jb);
         }
     } else {
         /* Log answers. */
         for (uint16_t i = 0; i < UINT16_MAX; i++) {
-            json_t *answer = rs_dns_log_json_answer_v1(txptr, i,
+            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+            if (unlikely(jb == NULL)) {
+                return TM_ECODE_OK;
+            }
+            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
+
+            JsonBuilder *answer = rs_dns_log_json_answer_v1(txptr, i,
                     td->dnslog_ctx->flags);
             if (answer == NULL) {
+                jb_free(jb);
                 break;
             }
-            json_object_set_new(js, "dns", answer);
+            jb_set_object(jb, "dns", answer);
+
             MemBufferReset(td->buffer);
-            OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
-            json_object_del(js, "dns");
+            OutputJsonBuilderBuffer(jb, td->dnslog_ctx->file_ctx, &td->buffer);
+            jb_free(jb);
         }
         /* Log authorities. */
         for (uint16_t i = 0; i < UINT16_MAX; i++) {
-            json_t *answer = rs_dns_log_json_authority_v1(txptr, i,
+            JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL);
+            if (unlikely(jb == NULL)) {
+                return TM_ECODE_OK;
+            }
+            EveAddCommonOptions(&dnslog_ctx->cfg, p, f, jb);
+
+            JsonBuilder *answer = rs_dns_log_json_authority_v1(txptr, i,
                     td->dnslog_ctx->flags);
             if (answer == NULL) {
+                jb_free(jb);
                 break;
             }
-            json_object_set_new(js, "dns", answer);
+            jb_set_object(jb, "dns", answer);
+
             MemBufferReset(td->buffer);
-            OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
-            json_object_del(js, "dns");
+            OutputJsonBuilderBuffer(jb, td->dnslog_ctx->file_ctx, &td->buffer);
+            jb_free(jb);
         }
     }
-
-    json_decref(js);
 
     SCReturnInt(TM_ECODE_OK);
 }
