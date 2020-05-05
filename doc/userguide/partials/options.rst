@@ -73,6 +73,12 @@
    supplied, the list of devices from the af-packet section in the
    yaml is used.
 
+.. option:: --testimony[=<socket>]
+
+   Enable capture of packet using Testimony Unix socket. If no socket path
+   is supplied, one from testimony section in the yaml is used. Fanout size 
+   should be configured using configuration file.
+
 .. option:: -q <queue id>
 
    Run inline of the NFQUEUE queue ID provided. May be provided
