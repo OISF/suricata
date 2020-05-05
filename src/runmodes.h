@@ -29,6 +29,7 @@ enum RunModes {
     RUNMODE_PCAP_DEV,
     RUNMODE_PCAP_FILE,
     RUNMODE_PFRING,
+    RUNMODE_TESTIMONY,
     RUNMODE_NFQ,
     RUNMODE_NFLOG,
     RUNMODE_IPFW,
@@ -99,6 +100,7 @@ int RunModeNeedsBypassManager(void);
 #include "runmode-pcap.h"
 #include "runmode-pcap-file.h"
 #include "runmode-pfring.h"
+#include "runmode-testimony.h"
 #include "runmode-nfq.h"
 #include "runmode-ipfw.h"
 #include "runmode-erf-file.h"
