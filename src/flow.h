@@ -374,6 +374,10 @@ typedef struct Flow_
 
     uint8_t vlan_idx;
 
+    struct {
+        uint32_t spi; /**< esp spi */
+    } esp;
+
     /* track toserver/toclient flow timeout needs */
     union {
         struct {

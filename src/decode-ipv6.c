@@ -151,7 +151,6 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     char exthdr_fh_done = 0;
     int hh = 0;
     int rh = 0;
-    int eh = 0;
     int ah = 0;
 
     while(1)
@@ -460,26 +459,10 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 SCReturn;
             }
             case IPPROTO_ESP:
-            {
                 IPV6_SET_L4PROTO(p,nh);
-                hdrextlen = sizeof(IPV6EspHdr);
-                if (hdrextlen > plen) {
-                    ENGINE_SET_INVALID_EVENT(p, IPV6_TRUNC_EXTHDR);
-                    SCReturn;
-                }
+                DecodeESP(tv, dtv, p, pkt, plen);
+                SCReturn;
 
-                if (eh) {
-                    ENGINE_SET_EVENT(p, IPV6_EXTHDR_DUPL_EH);
-                    SCReturn;
-                }
-
-                eh = 1;
-
-                nh = IPPROTO_NONE;
-                pkt += hdrextlen;
-                plen -= hdrextlen;
-                break;
-            }
             case IPPROTO_AH:
             {
                 IPV6_SET_L4PROTO(p,nh);

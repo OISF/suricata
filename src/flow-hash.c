@@ -407,6 +407,24 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
     return 0;
 }
 
+/**
+ *  \brief See if a ESP packet belongs to a flow by comparing the SPI
+ *
+ *  \param f flow
+ *  \param p ESP packet
+ *
+ *  \retval 1 match
+ *  \retval 0 no match
+ */
+static inline int FlowCompareESP(Flow *f, const Packet *p)
+{
+    if (CmpFlowPacket(f, p) && f->esp.spi == ESP_GET_SPI(p)) {
+        return 1;
+    }
+
+    return 0;
+}
+
 void FlowSetupPacket(Packet *p)
 {
     p->flags |= PKT_WANTS_FLOW;
@@ -417,6 +435,8 @@ static inline int FlowCompare(Flow *f, const Packet *p)
 {
     if (p->proto == IPPROTO_ICMP) {
         return FlowCompareICMPv4(f, p);
+    } else if (p->proto == IPPROTO_ESP) {
+        return FlowCompareESP(f, p);
     } else {
         return CmpFlowPacket(f, p);
     }
