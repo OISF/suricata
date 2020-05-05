@@ -198,20 +198,18 @@ static void AlertJsonDns(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
         void *txptr = AppLayerParserGetTx(f->proto, ALPROTO_DNS,
                                           dns_state, tx_id);
         if (txptr) {
-            json_t *dnsjs = json_object();
-            if (unlikely(dnsjs == NULL)) {
-                return;
-            }
-            json_t *qjs = JsonDNSLogQuery(txptr, tx_id);
+            jb_open_object(js, "dns");
+            JsonBuilder *qjs = JsonDNSLogQuery(txptr, tx_id);
             if (qjs != NULL) {
-                json_object_set_new(dnsjs, "query", qjs);
+                jb_set_object(js, "query", qjs);
+                jb_free(qjs);
             }
-            json_t *ajs = JsonDNSLogAnswer(txptr, tx_id);
+            JsonBuilder *ajs = JsonDNSLogAnswer(txptr, tx_id);
             if (ajs != NULL) {
-                json_object_set_new(dnsjs, "answer", ajs);
+                jb_set_object(js, "answer", ajs);
+                jb_free(ajs);
             }
-            jb_set_jsont(js, "dns", dnsjs);
-            json_decref(dnsjs);
+            jb_close(js);
         }
     }
     return;
