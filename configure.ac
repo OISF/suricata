@@ -1489,7 +1489,7 @@ return 0;
                         [enable_testimony=$enableval],[enable_testimony=no])
      AS_IF([test "x$enable_testimony" = "xyes"], [
         AC_ARG_WITH(testimony_includes,
-                    [ --with-testimony--includes=DIR testimony include directory ],
+                    [ --with-testimony-includes=DIR testimony include directory ],
                     [ with_testimony_includes="$withval" ],[with_testimony_includes=no])
         AC_ARG_WITH(testimony_libraries,
                 [  --with-testimony-libraries=DIR testimony library directory],
