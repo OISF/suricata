@@ -577,8 +577,10 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
 
         case IPPROTO_ESP:
-            FlowSetupPacket(p);
+            DecodeESP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
+                      IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p));
             break;
+
         case IPPROTO_IPV6:
             {
                 /* spawn off tunnel packet */

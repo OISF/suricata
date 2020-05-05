@@ -155,7 +155,10 @@ enum {
     LTNULL_UNSUPPORTED_TYPE,        /**< pkt has a type that the decoder doesn't support */
 
     /* SCTP EVENTS */
-    SCTP_PKT_TOO_SMALL, /**< sctp packet smaller than minimum size */
+    SCTP_PKT_TOO_SMALL,             /**< sctp packet smaller than minimum size */
+
+    /* ESP EVENTS */
+    ESP_PKT_TOO_SMALL,              /**< esp packet smaller than minimum size */
 
     /* Fragmentation reasembly events. */
     IPV4_FRAG_PKT_TOO_LARGE,
