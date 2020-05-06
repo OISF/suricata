@@ -15,6 +15,7 @@ lua = []
 lua_int8 = ["lua"]
 strict = []
 debug = []
+debug-validate = []
 
 [dependencies]
 nom = "5.0"
