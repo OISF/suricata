@@ -19,6 +19,23 @@ use nom::combinator::rest;
 use nom::number::streaming::{be_u32, be_u8};
 use std::fmt;
 
+#[repr(u8)]
+#[derive(PartialEq, Eq, FromPrimitive, Debug)]
+pub enum MessageCode {
+	SshMsgDisconnect = 1,
+	SshMsgIgnore = 2,
+	SshMsgUnimplemented = 3,
+	SshMsgDebug = 4,
+	SshMsgServiceRequest = 5,
+	SshMsgServiceAccept = 6,
+	SshMsgKexinit = 20,
+	SshMsgNewKeys = 21,
+	SshMsgKexdhInit = 30,
+	SshMsgKexdhReply = 31,
+	
+	SshMsgUndefined,
+}
+
 #[inline]
 fn is_not_lineend(b: u8) -> bool {
     if b == 10 || b == 13 {
@@ -63,7 +80,7 @@ named!(pub ssh_parse_banner<SshBanner>,
 pub struct SshRecordHeader {
     pub pkt_len: u32,
     padding_len: u8,
-    pub msg_code: u8,
+    pub msg_code: MessageCode,
 }
 
 impl fmt::Display for SshRecordHeader {
@@ -81,7 +98,10 @@ named!(pub ssh_parse_record_header<SshRecordHeader>,
         pkt_len: verify!(be_u32, |&val| val > 1) >>
         padding_len: be_u8 >>
         msg_code: be_u8 >>
-        (SshRecordHeader{pkt_len, padding_len, msg_code})
+        (SshRecordHeader{pkt_len: pkt_len,
+            padding_len: padding_len,
+            msg_code: num::FromPrimitive::from_u8(msg_code).unwrap_or(MessageCode::SshMsgUndefined)})
+
     )
 );
 
@@ -92,9 +112,90 @@ named!(pub ssh_parse_record<SshRecordHeader>,
         padding_len: be_u8 >>
         msg_code: be_u8 >>
         take!((pkt_len-2) as usize) >>
-        (SshRecordHeader{pkt_len, padding_len, msg_code})
+        (SshRecordHeader{pkt_len: pkt_len,
+            padding_len: padding_len,
+            msg_code: num::FromPrimitive::from_u8(msg_code).unwrap_or(MessageCode::SshMsgUndefined)})
+
     )
 );
+
+#[derive(Debug,PartialEq)]
+pub struct SshPacketKeyExchange<'a> {
+    pub cookie: &'a[u8],
+    pub kex_algs: &'a [u8],
+    pub server_host_key_algs: &'a [u8],
+    pub encr_algs_client_to_server: &'a [u8],
+    pub encr_algs_server_to_client: &'a [u8],
+    pub mac_algs_client_to_server: &'a [u8],
+    pub mac_algs_server_to_client: &'a [u8],
+    pub comp_algs_client_to_server: &'a [u8],
+    pub comp_algs_server_to_client: &'a [u8],
+    pub langs_client_to_server: &'a [u8],
+    pub langs_server_to_client: &'a [u8],
+    pub first_kex_packet_follows: u8,
+}
+
+use md5::compute;
+
+const SSH_HASSH_STRING_DELIMITER_SLICE: [u8; 1] = [b';'];
+
+impl<'a> SshPacketKeyExchange<'a> {
+    pub fn generate_hassh(&self, hassh_string: &mut Vec<u8>, hassh: &mut Vec<u8>, to_server: &bool) {
+        let slices = if *to_server { 
+            [self.kex_algs, &SSH_HASSH_STRING_DELIMITER_SLICE,
+             self.encr_algs_server_to_client, &SSH_HASSH_STRING_DELIMITER_SLICE,
+             self.mac_algs_server_to_client, &SSH_HASSH_STRING_DELIMITER_SLICE,
+             self.comp_algs_server_to_client]}
+        else {
+            [self.kex_algs, &SSH_HASSH_STRING_DELIMITER_SLICE,
+             self.encr_algs_client_to_server, &SSH_HASSH_STRING_DELIMITER_SLICE,
+             self.mac_algs_client_to_server, &SSH_HASSH_STRING_DELIMITER_SLICE,
+             self.comp_algs_client_to_server]
+        };
+        // reserving memory
+        hassh_string.reserve_exact(slices.iter().fold(0, |acc, x| acc + x.len()));
+        // copying slices to hassh string
+        slices.iter().for_each(|&x| hassh_string.extend_from_slice(x)); 
+        // hdr.hassh.extend_from_slice(compute(&hdr.hassh_string).0);
+        hassh.extend(format!("{:x?}", compute(&hassh_string)).as_bytes());
+    }
+}
+
+named!(parse_string<&[u8]>, do_parse!(
+    len: be_u32 >>
+    string: take!(len) >>
+    ( string )
+));
+
+named!(pub parse_packet_key_exchange<SshPacketKeyExchange>, do_parse!(
+    cookie: take!(16) >>
+    kex_algs: parse_string >>
+    server_host_key_algs: parse_string >>
+    encr_algs_client_to_server: parse_string >>
+    encr_algs_server_to_client: parse_string >>
+    mac_algs_client_to_server: parse_string >>
+    mac_algs_server_to_client: parse_string >>
+    comp_algs_client_to_server: parse_string >>
+    comp_algs_server_to_client: parse_string >>
+    langs_client_to_server: parse_string >>
+    langs_server_to_client: parse_string >>
+    first_kex_packet_follows: be_u8 >>
+    be_u32 >>
+    ( SshPacketKeyExchange {
+        cookie: cookie,
+        kex_algs: kex_algs,
+        server_host_key_algs: server_host_key_algs,
+        encr_algs_client_to_server: encr_algs_client_to_server,
+        encr_algs_server_to_client: encr_algs_server_to_client,
+        mac_algs_client_to_server: mac_algs_client_to_server,
+        mac_algs_server_to_client: mac_algs_server_to_client,
+        comp_algs_client_to_server: comp_algs_client_to_server,
+        comp_algs_server_to_client: comp_algs_server_to_client,
+        langs_client_to_server: langs_client_to_server,
+        langs_server_to_client: langs_server_to_client,
+        first_kex_packet_follows: first_kex_packet_follows,
+    } )
+));
 
 #[cfg(test)]
 mod tests {
