@@ -213,6 +213,7 @@ void RunModeRegisterRunModes(void)
     RunModeIdsPcapRegister();
     RunModeFilePcapRegister();
     RunModeIdsPfringRegister();
+    RunModeIdsTestimonyRegister();
     RunModeIpsNFQRegister();
     RunModeIpsIPFWRegister();
     RunModeErfFileRegister();
@@ -301,6 +302,9 @@ void RunModeDispatch(int runmode, const char *custom_mode)
                 custom_mode = RunModeIdsPfringGetDefaultMode();
                 break;
 #endif
+            case RUNMODE_TESTIMONY:
+                custom_mode = RunModeTestimonyGetDefaultMode();;
+                break;
             case RUNMODE_NFQ:
                 custom_mode = RunModeIpsNFQGetDefaultMode();
                 break;

@@ -864,6 +864,9 @@ void RegisterAllModules(void)
     /* af-packet */
     TmModuleReceiveAFPRegister();
     TmModuleDecodeAFPRegister();
+    /* testimony */
+    TmModuleReceiveTestimonyRegister();
+    TmModuleDecodeTestimonyRegister();
     /* netmap */
     TmModuleReceiveNetmapRegister();
     TmModuleDecodeNetmapRegister();
