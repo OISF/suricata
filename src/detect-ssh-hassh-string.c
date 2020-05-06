@@ -51,7 +51,7 @@
 
 #define KEYWORD_NAME "hassh.string"
 #define KEYWORD_ALIAS "hassh_string"
-#define KEYWORD_DOC "ssh-keywords.html#hassh"
+#define KEYWORD_DOC "hassh-keywords.html#hassh.string"
 #define BUFFER_NAME "hassh.string"
 #define BUFFER_DESC "Ssh Client Key Exchange methods For ssh Clients "
 static int g_ssh_hassh_string_buffer_id = 0;
@@ -133,7 +133,7 @@ void DetectSshHasshStringRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SSH_HASSH_STRING].RegisterTests = DetectSshHasshStringRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_SSH_HASSH_STRING].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_SSH_HASSH_STRING].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SSH_HASSH_STRING].Setup = DetectSshHasshStringSetup;
     sigmatch_table[DETECT_AL_SSH_HASSH_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 

@@ -51,7 +51,7 @@
 
 #define KEYWORD_NAME "hasshServer"
 #define KEYWORD_NAME_LEGACY "hasshServer"
-#define KEYWORD_DOC "ssh-keywords.html#hasshServer"
+#define KEYWORD_DOC "hassh-keywords.html#hasshServer"
 #define BUFFER_NAME "hasshServer"
 #define BUFFER_DESC "Ssh Client Fingerprinting For Ssh Servers"
 static int g_ssh_hassh_buffer_id = 0;
@@ -190,7 +190,7 @@ void DetectSshHasshServerRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].RegisterTests = DetectSshHasshServerRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].url = DOC_URL DOC_VERSION "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].Setup = DetectSshHasshServerSetup;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
