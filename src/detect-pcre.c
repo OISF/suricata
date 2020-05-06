@@ -82,26 +82,26 @@ static int pcre_use_jit = 1;
 #define PCRE_JIT_MIN_STACK 32*1024
 #define PCRE_JIT_MAX_STACK 512*1024
 
-static int g_jitstack_thread_ctx_id = -1;
-
 #endif
 
 /* \brief Helper function for using pcre_exec with/without JIT
  */
-static int DetectPcreExec(DetectEngineThreadCtx *det_ctx, DetectParseRegex *regex, const char *str, const size_t strlen,
-                            int start_offset, int options,  int *ovector, int ovector_size)
+static inline int DetectPcreExec(DetectEngineThreadCtx *det_ctx, DetectPcreData *pd, DetectParseRegex *regex,
+        const char *str, const size_t strlen, int start_offset, int options,  int *ovector, int ovector_size)
 {
 #ifdef PCRE_HAVE_JIT_EXEC
-    if (det_ctx && g_jitstack_thread_ctx_id != -1) {
+    if (pd->thread_ctx_jit_stack_id != -1) {
         pcre_jit_stack *jit_stack = (pcre_jit_stack *)
-            DetectThreadCtxGetKeywordThreadCtx(det_ctx, g_jitstack_thread_ctx_id);
+            DetectThreadCtxGetKeywordThreadCtx(det_ctx, pd->thread_ctx_jit_stack_id);
         if (jit_stack) {
+            SCLogDebug("Using jit_stack %p", jit_stack);
             return pcre_jit_exec(regex->regex, regex->study, str, strlen,
                                 start_offset, options, ovector, ovector_size,
                                 jit_stack);
         }
     }
 #endif
+    /* Fallback if registration during setup failed */
     return pcre_exec(regex->regex, regex->study, str, strlen,
                      start_offset, options, ovector, ovector_size);
 }
@@ -208,7 +208,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     }
 
     /* run the actual pcre detection */
-    ret = DetectPcreExec(det_ctx, &pe->parse_regex, (char *) ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS);
+    ret = DetectPcreExec(det_ctx, pe, &pe->parse_regex, (char *) ptr, len, start_offset, 0, ov, MAX_SUBSTRINGS);
     SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
@@ -392,8 +392,8 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
 
     char re[slen];
-    ret = DetectPcreExec(NULL, &parse_regex, regexstr, slen,
-                         0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(parse_regex.regex, parse_regex.study, regexstr,
+            slen, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret <= 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre parse error: %s", regexstr);
         goto error;
@@ -777,7 +777,8 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
     while (1) {
         SCLogDebug("\'%s\'", regexstr);
 
-        ret = DetectPcreExec(NULL, &parse_capture_regex, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
+        ret = pcre_exec(parse_capture_regex.regex, parse_capture_regex.study, regexstr,
+                strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
         if (ret < 3) {
             return 0;
         }
@@ -836,12 +837,14 @@ static void *DetectPcreThreadInit(void *data /*@unused@*/)
     if (jit_stack == NULL) {
         SCLogWarning(SC_WARN_PCRE_JITSTACK, "Unable to allocate PCRE JIT stack; will continue without JIT stack");
     }
+    SCLogDebug("Using jit_stack %p", jit_stack);
 
     return (void *)jit_stack;
 }
 
 static void DetectPcreThreadFree(void *ctx)
 {
+    SCLogDebug("freeing jit_stack %p", ctx);
     if (ctx != NULL)
         pcre_jit_stack_free((pcre_jit_stack *)ctx);
 }
@@ -866,15 +869,13 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
         goto error;
 
 #ifdef PCRE_HAVE_JIT_EXEC
-    if (g_jitstack_thread_ctx_id == -1) {
-        g_jitstack_thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "jitstack",
-                DetectPcreThreadInit, (void *) &g_jitstack_thread_ctx_id /* unused */,
-                DetectPcreThreadFree, 1);
-        if (g_jitstack_thread_ctx_id == -1) {
-            SCLogWarning(SC_WARN_REGISTRATION_FAILED,
-                    "Unable to register JIT stack functions. PCRE JIT stack disabled.");
-        }
-    }
+    /*
+     * Deliberately silent on failures. Not having a context id means
+     * JIT will be bypassed
+     */
+    pd->thread_ctx_jit_stack_id = DetectRegisterThreadCtxFuncs(de_ctx, "pcre",
+            DetectPcreThreadInit, (void *)pd,
+            DetectPcreThreadFree, 1);
 #endif
 
     int sm_list = -1;
