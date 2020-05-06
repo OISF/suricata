@@ -160,16 +160,13 @@ impl SSHState {
             match parser::ssh_parse_record(input) {
                 Ok((rem, head)) => {
                     SCLogDebug!("SSH valid record {}", head);
-                    input = rem;
                     match head.msg_code {
-                        parser::MessageCode::SshMsgKexinit if unsafe {SSHHasshIsEnabled()} => {
-                            match parser::parse_packet_key_exchange(&input[SSH_RECORD_HEADER_LEN..]) {
+                        parser::MessageCode::SshMsgKexinit if unsafe {SSHHasshIsEnabled()} && !input.is_empty() => {
+                        	match parser::parse_packet_key_exchange(&input[SSH_RECORD_HEADER_LEN..]) {
                                 Ok((_, key_exchange)) => { 
                                     key_exchange.generate_hassh(&mut hdr.hassh_string, &mut hdr.hassh, &resp);
                                 }
-                                Err(_) => {
-                                	// return AppLayerResult::err();
-                                }
+                                Err(_) => { }
                             }
                         }
                         parser::MessageCode::SshMsgNewKeys => {
@@ -201,14 +198,12 @@ impl SSHState {
                                 parser::MessageCode::SshMsgNewKeys => {
                                     hdr.flags = SSHConnectionState::SshStateFinished;
                                 }
-                                parser::MessageCode::SshMsgKexinit if unsafe {SSHHasshIsEnabled()} => {
+                                parser::MessageCode::SshMsgKexinit if unsafe {SSHHasshIsEnabled()} && !input.is_empty() => {
                                     match parser::parse_packet_key_exchange(&input[SSH_RECORD_HEADER_LEN..]) {
                                         Ok((_, key_exchange)) => { 
                                             key_exchange.generate_hassh(&mut hdr.hassh_string, &mut hdr.hassh, &resp);
                                         }
-                                        Err(_) => { 
-                                        	// return AppLayerResult::err();
-                                        }
+                                        Err(_) => { }
                                     }
                                 }
                                 _ => {}

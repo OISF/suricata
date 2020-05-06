@@ -201,5 +201,5 @@ static int DetectSshHasshTest01(void) {
 
 static void DetectSshHasshRegisterTests(void)
 {
-   UtRegisterTest("DetectSshHasshTest01", DetectSshHasshTest01);
+    UtRegisterTest("DetectSshHasshTest01", DetectSshHasshTest01);
 }
