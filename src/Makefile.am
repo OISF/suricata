@@ -406,6 +406,7 @@ source-pcap-file.c source-pcap-file.h \
 source-pcap-file-directory-helper.c source-pcap-file-directory-helper.h \
 source-pcap-file-helper.c source-pcap-file-helper.h \
 source-pfring.c source-pfring.h \
+source-testimony.c source-testimony.h \
 source-windivert.c source-windivert.h \
 stream.c stream.h \
 stream-tcp.c stream-tcp.h stream-tcp-private.h \
