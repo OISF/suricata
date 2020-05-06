@@ -1090,6 +1090,36 @@ static void SCPrintElapsedTime(struct timeval *start_time)
     SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 }
 
+#ifdef HAVE_TESTIMONY
+static int ParseCommandLineTestimony(SCInstance *suri, const char *in_arg)
+{
+    if (suri->run_mode == RUNMODE_UNKNOWN) {
+        suri->run_mode = RUNMODE_TESTIMONY;
+        if (in_arg) {
+            LiveRegisterDeviceName(in_arg);
+            memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+            strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
+            if (ConfSetFinal("testimony.socket-path", optarg) == 0) {
+            	fprintf(stderr, "ERROR: Failed to set testimony socket path.\n");
+            	return TM_ECODE_FAILED;
+            }
+        }
+    } else if (suri->run_mode == RUNMODE_TESTIMONY) {
+        if (in_arg) {
+            LiveRegisterDeviceName(in_arg);
+        } else {
+            SCLogInfo("Multiple af-packet option without interface on each is useless");
+        }
+    } else {
+        SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                "has been specified");
+        PrintUsage(suri->progname);
+        return TM_ECODE_FAILED;
+    }
+    return TM_ECODE_OK;
+}
+#endif
+
 static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
 {
 #ifdef HAVE_AF_PACKET
@@ -1199,6 +1229,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"pfring-cluster-type", required_argument, 0, 0},
         {"af-packet", optional_argument, 0, 0},
         {"netmap", optional_argument, 0, 0},
+        {"testimony", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
         {"pcap-file-continuous", 0, 0, 0},
         {"pcap-file-delete", 0, 0, 0},
@@ -1349,6 +1380,18 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
                     return TM_ECODE_FAILED;
                 }
+
+            } else if(strcmp((long_opts[option_index]).name, "testimony") == 0) {
+#ifdef HAVE_TESTIMONY
+                if (ParseCommandLineTestimony(suri, optarg) != TM_ECODE_OK) {
+                    return TM_ECODE_FAILED;
+                }
+#else
+                SCLogError(SC_ERR_NO_TESTIMONY,"Testimony not enabled. On Linux "
+                           "host, make sure to pass --enable-testimony to "
+                           "configure when building.");
+                return TM_ECODE_FAILED;
+#endif
 #ifdef BUILD_UNIX_SOCKET
             } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
