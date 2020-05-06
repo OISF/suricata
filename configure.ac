@@ -1482,6 +1482,47 @@ return 0;
         fi
     ])
 
+# Testimony support
+     AC_ARG_ENABLE(testimony,
+           AS_HELP_STRING([--enable-testimony], [Enable Testimony (unix socket) support [default=no]]),
+                        [enable_testimony=$enableval],[enable_testimony=no])
+     AS_IF([test "x$enable_testimony" = "xyes"], [
+        AC_ARG_WITH(testimony_includes,
+                    [ --with-testimony--includes=DIR testimony include directory ],
+                    [ with_testimony_includes="$withval" ],[with_testimony_includes=no])
+        AC_ARG_WITH(testimony_libraries,
+                [  --with-testimony-libraries=DIR testimony library directory],
+                [with_testimony_libraries="$withval"],[with_testimony_libraries=no])
+
+        if test "$with_testimony_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_testimony_includes}"
+        fi
+
+        if test "$with_testimony_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS} -L${with_testimony_libraries}"
+        fi
+
+        AC_CHECK_HEADER(testimony.h,,[AC_MSG_ERROR(testimony.h not found ...)],)
+        AC_CHECK_LIB(testimony, testimony_connect,, TESTIMONY="no")
+
+        if test "$TESTIMONY" = "no"; then
+            echo
+            echo "  ERROR: libtestimony is not bundled. Get libtestimony by doing:"
+            echo "     git clone https://github.com/google/testimony.git"
+            echo "  Then run 'cd testimony && sudo make -C c/ install'."
+            echo "  Or, if libtestimony is installed in a different location,"
+            echo "  add --with-testimony-includes=<dir> and --with-testimony-libraries=<dir>"
+            echo "  if libtestimony is not installed in the include and library paths."
+            echo
+            exit 1
+        fi
+
+        AC_DEFINE([HAVE_TESTIMONY],[1],[Testimony support is available])
+
+        LIBS="${LIBS} -ltestimony"
+    ])
+
+
   # AF_PACKET support
     AC_ARG_ENABLE(af-packet,
            AS_HELP_STRING([--enable-af-packet], [Enable AF_PACKET support [default=yes]]),
