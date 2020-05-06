@@ -403,7 +403,8 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
 
     intmax_t version = 0;
     if (!ConfGetChildValueInt(conf, "version", &version) || version < 2) {
-        result.ok = true;
+        SCLogWarning(SC_WARN_DEPRECATED,
+            "File-store v1 been removed. Please update to file-store v2.");
         return result;
     }
 

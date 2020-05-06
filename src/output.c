@@ -62,7 +62,6 @@
 #include "output-json-file.h"
 #include "output-json-smtp.h"
 #include "output-json-stats.h"
-#include "log-filestore.h"
 #include "log-tcp-data.h"
 #include "log-stats.h"
 #include "output-json.h"
@@ -1119,7 +1118,6 @@ void OutputRegisterLoggers(void)
     PcapLogRegister();
     /* file log */
     JsonFileLogRegister();
-    LogFilestoreRegister();
     OutputFilestoreRegister();
     /* dns */
     JsonDnsLogRegister();
