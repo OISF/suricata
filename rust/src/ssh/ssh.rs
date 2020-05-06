@@ -54,14 +54,15 @@ pub enum SSHConnectionState {
 
 const SSH_MAX_BANNER_LEN: usize = 256;
 const SSH_RECORD_HEADER_LEN: usize = 6;
-//TODO complete enum and parse messages contents
-const SSH_MSG_NEWKEYS: u8 = 21;
 
 pub struct SshHeader {
     record_left: u32,
     flags: SSHConnectionState,
     pub protover: Vec<u8>,
     pub swver: Vec<u8>,
+
+    pub hassh: Vec<u8>,
+    pub hassh_string: Vec<u8>,
 }
 
 impl SshHeader {
@@ -71,6 +72,9 @@ impl SshHeader {
             flags: SSHConnectionState::SshStateInProgress,
             protover: Vec::new(),
             swver: Vec::new(),
+
+            hassh: Vec::new(),
+            hassh_string: Vec::new(),
         }
     }
 }
@@ -157,19 +161,33 @@ impl SSHState {
                 Ok((rem, head)) => {
                     SCLogDebug!("SSH valid record {}", head);
                     input = rem;
-                    if head.msg_code == SSH_MSG_NEWKEYS {
-                        hdr.flags = SSHConnectionState::SshStateFinished;
-                        if ohdr.flags >= SSHConnectionState::SshStateFinished {
-                            unsafe {
-                                AppLayerParserStateSetFlag(
-                                    pstate,
-                                    APP_LAYER_PARSER_NO_INSPECTION
-                                        | APP_LAYER_PARSER_NO_REASSEMBLY
-                                        | APP_LAYER_PARSER_BYPASS_READY,
-                                );
+                    match head.msg_code {
+                        parser::MessageCode::SshMsgKexinit if unsafe {SSHHasshIsEnabled()} => {
+                            match parser::parse_packet_key_exchange(&input[SSH_RECORD_HEADER_LEN..]) {
+                                Ok((_, key_exchange)) => { 
+                                    key_exchange.generate_hassh(&mut hdr.hassh_string, &mut hdr.hassh, &resp);
+                                }
+                                Err(_) => {
+                                	// return AppLayerResult::err();
+                                }
                             }
                         }
+                        parser::MessageCode::SshMsgNewKeys => {
+                            hdr.flags = SSHConnectionState::SshStateFinished;
+                            if ohdr.flags >= SSHConnectionState::SshStateFinished {
+                                unsafe {
+                                    AppLayerParserStateSetFlag(
+                                        pstate,
+                                        APP_LAYER_PARSER_NO_INSPECTION
+                                        | APP_LAYER_PARSER_NO_REASSEMBLY
+                                        | APP_LAYER_PARSER_BYPASS_READY,
+                                    );
+                                }
+                            }
+                        }
+                        _ => {}
                     }
+                    input = rem;
                     //header and complete data (not returned)
                 }
                 Err(nom::Err::Incomplete(_)) => {
@@ -179,8 +197,21 @@ impl SSHState {
                             let remlen = rem.len() as u32;
                             hdr.record_left = head.pkt_len - 2 - remlen;
                             //header with rem as incomplete data
-                            if head.msg_code == SSH_MSG_NEWKEYS {
-                                hdr.flags = SSHConnectionState::SshStateFinished;
+                            match head.msg_code {
+                                parser::MessageCode::SshMsgNewKeys => {
+                                    hdr.flags = SSHConnectionState::SshStateFinished;
+                                }
+                                parser::MessageCode::SshMsgKexinit if unsafe {SSHHasshIsEnabled()} => {
+                                    match parser::parse_packet_key_exchange(&input[SSH_RECORD_HEADER_LEN..]) {
+                                        Ok((_, key_exchange)) => { 
+                                            key_exchange.generate_hassh(&mut hdr.hassh_string, &mut hdr.hassh, &resp);
+                                        }
+                                        Err(_) => { 
+                                        	// return AppLayerResult::err();
+                                        }
+                                    }
+                                }
+                                _ => {}
                             }
                             return AppLayerResult::ok();
                         }
