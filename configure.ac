@@ -536,6 +536,7 @@ return 0;
             AC_DEFINE([DEBUG_VALIDATION],[1],[Enable (debug) validation code output])
         fi
     ])
+    AM_CONDITIONAL([DEBUG_VALIDATION], [test "x$enable_debug_validation" = "xyes"])
 
   # profiling support
     AC_ARG_ENABLE(profiling,
