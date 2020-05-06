@@ -42,7 +42,7 @@ fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
             );
         }
         if tx.cli_hdr.hassh_string.len() > 0 {
-            cjs.setset_string_from_bytes_string(
+            cjs.set_string_from_bytes(
                 "hassh_string",
                 &tx.cli_hdr.hassh_string,
             );
