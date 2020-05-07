@@ -248,7 +248,7 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
 
     HtpBodyChunk *cur = body->first;
     if (cur == NULL) {
-        SCLogDebug("No http chunks to inspect for this transacation");
+        SCLogDebug("No http chunks to inspect for this transaction");
         return NULL;
     }
 
