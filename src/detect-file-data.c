@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2018 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -319,6 +319,8 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
                                        htp_state->cfg->swf_compress_depth);
         }
     }
+
+    InspectionBufferApplyTransforms(buffer, transforms);
 
     /* move inspected tracker to end of the data. HtpBodyPrune will consider
      * the window sizes when freeing data */
