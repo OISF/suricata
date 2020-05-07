@@ -17,10 +17,10 @@
 
 use nom::character::complete::digit1;
 use nom::combinator::rest;
-use nom::number::streaming::{be_u16, be_u32, be_u8};
-use nom::IResult;
 use nom::error::ErrorKind;
+use nom::number::streaming::{be_u16, be_u32, be_u8};
 use nom::Err;
+use nom::IResult;
 use std::fmt;
 use std::str::FromStr;
 
@@ -211,67 +211,250 @@ named!(pub http2_parse_headers_priority<HTTP2FrameHeadersPriority>,
 
 fn http2_frame_header_static(n: u8) -> Option<HTTP2FrameHeaderBlock> {
     match n {
-1 => Some(HTTP2FrameHeaderBlock {name:":authority".to_string(), value: "".to_string(),}),
-2 => Some(HTTP2FrameHeaderBlock {name:":method".to_string(), value: "GET".to_string(),}),
-3 => Some(HTTP2FrameHeaderBlock {name:":method".to_string(), value: "POST".to_string(),}),
-4 => Some(HTTP2FrameHeaderBlock {name:":path".to_string(), value: "/".to_string(),}),
-5 => Some(HTTP2FrameHeaderBlock {name:":path".to_string(), value: "/index.html".to_string(),}),
-6 => Some(HTTP2FrameHeaderBlock {name:":scheme".to_string(), value: "http".to_string(),}),
-7 => Some(HTTP2FrameHeaderBlock {name:":scheme".to_string(), value: "https".to_string(),}),
-8 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "200".to_string(),}),
-9 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "204".to_string(),}),
-10 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "206".to_string(),}),
-11 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "304".to_string(),}),
-12 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "400".to_string(),}),
-13 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "404".to_string(),}),
-14 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "500".to_string(),}),
-15 => Some(HTTP2FrameHeaderBlock {name:"accept-charset".to_string(), value: "".to_string(),}),
-16 => Some(HTTP2FrameHeaderBlock {name:"accept-encoding".to_string(), value: "gzip, deflate".to_string(),}),
-17 => Some(HTTP2FrameHeaderBlock {name:"accept-language".to_string(), value: "".to_string(),}),
-18 => Some(HTTP2FrameHeaderBlock {name:"accept-ranges".to_string(), value: "".to_string(),}),
-19 => Some(HTTP2FrameHeaderBlock {name:"accept".to_string(), value: "".to_string(),}),
-20 => Some(HTTP2FrameHeaderBlock {name:"access-control-allow-origin".to_string(), value: "".to_string(),}),
-21 => Some(HTTP2FrameHeaderBlock {name:"age".to_string(), value: "".to_string(),}),
-22 => Some(HTTP2FrameHeaderBlock {name:"allow".to_string(), value: "".to_string(),}),
-23 => Some(HTTP2FrameHeaderBlock {name:"authorization".to_string(), value: "".to_string(),}),
-24 => Some(HTTP2FrameHeaderBlock {name:"cache-control".to_string(), value: "".to_string(),}),
-25 => Some(HTTP2FrameHeaderBlock {name:"content-disposition".to_string(), value: "".to_string(),}),
-26 => Some(HTTP2FrameHeaderBlock {name:"content-encoding".to_string(), value: "".to_string(),}),
-27 => Some(HTTP2FrameHeaderBlock {name:"content-language".to_string(), value: "".to_string(),}),
-28 => Some(HTTP2FrameHeaderBlock {name:"content-length".to_string(), value: "".to_string(),}),
-29 => Some(HTTP2FrameHeaderBlock {name:"content-location".to_string(), value: "".to_string(),}),
-30 => Some(HTTP2FrameHeaderBlock {name:"content-range".to_string(), value: "".to_string(),}),
-31 => Some(HTTP2FrameHeaderBlock {name:"content-type".to_string(), value: "".to_string(),}),
-32 => Some(HTTP2FrameHeaderBlock {name:"cookie".to_string(), value: "".to_string(),}),
-33 => Some(HTTP2FrameHeaderBlock {name:"date".to_string(), value: "".to_string(),}),
-34 => Some(HTTP2FrameHeaderBlock {name:"etag".to_string(), value: "".to_string(),}),
-35 => Some(HTTP2FrameHeaderBlock {name:"expect".to_string(), value: "".to_string(),}),
-36 => Some(HTTP2FrameHeaderBlock {name:"expires".to_string(), value: "".to_string(),}),
-37 => Some(HTTP2FrameHeaderBlock {name:"from".to_string(), value: "".to_string(),}),
-38 => Some(HTTP2FrameHeaderBlock {name:"host".to_string(), value: "".to_string(),}),
-39 => Some(HTTP2FrameHeaderBlock {name:"if-match".to_string(), value: "".to_string(),}),
-40 => Some(HTTP2FrameHeaderBlock {name:"if-modified-since".to_string(), value: "".to_string(),}),
-41 => Some(HTTP2FrameHeaderBlock {name:"if-none-match".to_string(), value: "".to_string(),}),
-42 => Some(HTTP2FrameHeaderBlock {name:"if-range".to_string(), value: "".to_string(),}),
-43 => Some(HTTP2FrameHeaderBlock {name:"if-unmodified-since".to_string(), value: "".to_string(),}),
-44 => Some(HTTP2FrameHeaderBlock {name:"last-modified".to_string(), value: "".to_string(),}),
-45 => Some(HTTP2FrameHeaderBlock {name:"link".to_string(), value: "".to_string(),}),
-46 => Some(HTTP2FrameHeaderBlock {name:"location".to_string(), value: "".to_string(),}),
-47 => Some(HTTP2FrameHeaderBlock {name:"max-forwards".to_string(), value: "".to_string(),}),
-48 => Some(HTTP2FrameHeaderBlock {name:"proxy-authenticate".to_string(), value: "".to_string(),}),
-49 => Some(HTTP2FrameHeaderBlock {name:"proxy-authorization".to_string(), value: "".to_string(),}),
-50 => Some(HTTP2FrameHeaderBlock {name:"range".to_string(), value: "".to_string(),}),
-51 => Some(HTTP2FrameHeaderBlock {name:"referer".to_string(), value: "".to_string(),}),
-52 => Some(HTTP2FrameHeaderBlock {name:"refresh".to_string(), value: "".to_string(),}),
-53 => Some(HTTP2FrameHeaderBlock {name:"retry-after".to_string(), value: "".to_string(),}),
-54 => Some(HTTP2FrameHeaderBlock {name:"server".to_string(), value: "".to_string(),}),
-55 => Some(HTTP2FrameHeaderBlock {name:"set-cookie".to_string(), value: "".to_string(),}),
-56 => Some(HTTP2FrameHeaderBlock {name:"strict-transport-security".to_string(), value: "".to_string(),}),
-57 => Some(HTTP2FrameHeaderBlock {name:"transfer-encoding".to_string(), value: "".to_string(),}),
-58 => Some(HTTP2FrameHeaderBlock {name:"user-agent".to_string(), value: "".to_string(),}),
-59 => Some(HTTP2FrameHeaderBlock {name:"vary".to_string(), value: "".to_string(),}),
-60 => Some(HTTP2FrameHeaderBlock {name:"via".to_string(), value: "".to_string(),}),
-61 => Some(HTTP2FrameHeaderBlock {name:"www-authenticate".to_string(), value: "".to_string(),}),
+        1 => Some(HTTP2FrameHeaderBlock {
+            name: ":authority".to_string(),
+            value: "".to_string(),
+        }),
+        2 => Some(HTTP2FrameHeaderBlock {
+            name: ":method".to_string(),
+            value: "GET".to_string(),
+        }),
+        3 => Some(HTTP2FrameHeaderBlock {
+            name: ":method".to_string(),
+            value: "POST".to_string(),
+        }),
+        4 => Some(HTTP2FrameHeaderBlock {
+            name: ":path".to_string(),
+            value: "/".to_string(),
+        }),
+        5 => Some(HTTP2FrameHeaderBlock {
+            name: ":path".to_string(),
+            value: "/index.html".to_string(),
+        }),
+        6 => Some(HTTP2FrameHeaderBlock {
+            name: ":scheme".to_string(),
+            value: "http".to_string(),
+        }),
+        7 => Some(HTTP2FrameHeaderBlock {
+            name: ":scheme".to_string(),
+            value: "https".to_string(),
+        }),
+        8 => Some(HTTP2FrameHeaderBlock {
+            name: ":status".to_string(),
+            value: "200".to_string(),
+        }),
+        9 => Some(HTTP2FrameHeaderBlock {
+            name: ":status".to_string(),
+            value: "204".to_string(),
+        }),
+        10 => Some(HTTP2FrameHeaderBlock {
+            name: ":status".to_string(),
+            value: "206".to_string(),
+        }),
+        11 => Some(HTTP2FrameHeaderBlock {
+            name: ":status".to_string(),
+            value: "304".to_string(),
+        }),
+        12 => Some(HTTP2FrameHeaderBlock {
+            name: ":status".to_string(),
+            value: "400".to_string(),
+        }),
+        13 => Some(HTTP2FrameHeaderBlock {
+            name: ":status".to_string(),
+            value: "404".to_string(),
+        }),
+        14 => Some(HTTP2FrameHeaderBlock {
+            name: ":status".to_string(),
+            value: "500".to_string(),
+        }),
+        15 => Some(HTTP2FrameHeaderBlock {
+            name: "accept-charset".to_string(),
+            value: "".to_string(),
+        }),
+        16 => Some(HTTP2FrameHeaderBlock {
+            name: "accept-encoding".to_string(),
+            value: "gzip, deflate".to_string(),
+        }),
+        17 => Some(HTTP2FrameHeaderBlock {
+            name: "accept-language".to_string(),
+            value: "".to_string(),
+        }),
+        18 => Some(HTTP2FrameHeaderBlock {
+            name: "accept-ranges".to_string(),
+            value: "".to_string(),
+        }),
+        19 => Some(HTTP2FrameHeaderBlock {
+            name: "accept".to_string(),
+            value: "".to_string(),
+        }),
+        20 => Some(HTTP2FrameHeaderBlock {
+            name: "access-control-allow-origin".to_string(),
+            value: "".to_string(),
+        }),
+        21 => Some(HTTP2FrameHeaderBlock {
+            name: "age".to_string(),
+            value: "".to_string(),
+        }),
+        22 => Some(HTTP2FrameHeaderBlock {
+            name: "allow".to_string(),
+            value: "".to_string(),
+        }),
+        23 => Some(HTTP2FrameHeaderBlock {
+            name: "authorization".to_string(),
+            value: "".to_string(),
+        }),
+        24 => Some(HTTP2FrameHeaderBlock {
+            name: "cache-control".to_string(),
+            value: "".to_string(),
+        }),
+        25 => Some(HTTP2FrameHeaderBlock {
+            name: "content-disposition".to_string(),
+            value: "".to_string(),
+        }),
+        26 => Some(HTTP2FrameHeaderBlock {
+            name: "content-encoding".to_string(),
+            value: "".to_string(),
+        }),
+        27 => Some(HTTP2FrameHeaderBlock {
+            name: "content-language".to_string(),
+            value: "".to_string(),
+        }),
+        28 => Some(HTTP2FrameHeaderBlock {
+            name: "content-length".to_string(),
+            value: "".to_string(),
+        }),
+        29 => Some(HTTP2FrameHeaderBlock {
+            name: "content-location".to_string(),
+            value: "".to_string(),
+        }),
+        30 => Some(HTTP2FrameHeaderBlock {
+            name: "content-range".to_string(),
+            value: "".to_string(),
+        }),
+        31 => Some(HTTP2FrameHeaderBlock {
+            name: "content-type".to_string(),
+            value: "".to_string(),
+        }),
+        32 => Some(HTTP2FrameHeaderBlock {
+            name: "cookie".to_string(),
+            value: "".to_string(),
+        }),
+        33 => Some(HTTP2FrameHeaderBlock {
+            name: "date".to_string(),
+            value: "".to_string(),
+        }),
+        34 => Some(HTTP2FrameHeaderBlock {
+            name: "etag".to_string(),
+            value: "".to_string(),
+        }),
+        35 => Some(HTTP2FrameHeaderBlock {
+            name: "expect".to_string(),
+            value: "".to_string(),
+        }),
+        36 => Some(HTTP2FrameHeaderBlock {
+            name: "expires".to_string(),
+            value: "".to_string(),
+        }),
+        37 => Some(HTTP2FrameHeaderBlock {
+            name: "from".to_string(),
+            value: "".to_string(),
+        }),
+        38 => Some(HTTP2FrameHeaderBlock {
+            name: "host".to_string(),
+            value: "".to_string(),
+        }),
+        39 => Some(HTTP2FrameHeaderBlock {
+            name: "if-match".to_string(),
+            value: "".to_string(),
+        }),
+        40 => Some(HTTP2FrameHeaderBlock {
+            name: "if-modified-since".to_string(),
+            value: "".to_string(),
+        }),
+        41 => Some(HTTP2FrameHeaderBlock {
+            name: "if-none-match".to_string(),
+            value: "".to_string(),
+        }),
+        42 => Some(HTTP2FrameHeaderBlock {
+            name: "if-range".to_string(),
+            value: "".to_string(),
+        }),
+        43 => Some(HTTP2FrameHeaderBlock {
+            name: "if-unmodified-since".to_string(),
+            value: "".to_string(),
+        }),
+        44 => Some(HTTP2FrameHeaderBlock {
+            name: "last-modified".to_string(),
+            value: "".to_string(),
+        }),
+        45 => Some(HTTP2FrameHeaderBlock {
+            name: "link".to_string(),
+            value: "".to_string(),
+        }),
+        46 => Some(HTTP2FrameHeaderBlock {
+            name: "location".to_string(),
+            value: "".to_string(),
+        }),
+        47 => Some(HTTP2FrameHeaderBlock {
+            name: "max-forwards".to_string(),
+            value: "".to_string(),
+        }),
+        48 => Some(HTTP2FrameHeaderBlock {
+            name: "proxy-authenticate".to_string(),
+            value: "".to_string(),
+        }),
+        49 => Some(HTTP2FrameHeaderBlock {
+            name: "proxy-authorization".to_string(),
+            value: "".to_string(),
+        }),
+        50 => Some(HTTP2FrameHeaderBlock {
+            name: "range".to_string(),
+            value: "".to_string(),
+        }),
+        51 => Some(HTTP2FrameHeaderBlock {
+            name: "referer".to_string(),
+            value: "".to_string(),
+        }),
+        52 => Some(HTTP2FrameHeaderBlock {
+            name: "refresh".to_string(),
+            value: "".to_string(),
+        }),
+        53 => Some(HTTP2FrameHeaderBlock {
+            name: "retry-after".to_string(),
+            value: "".to_string(),
+        }),
+        54 => Some(HTTP2FrameHeaderBlock {
+            name: "server".to_string(),
+            value: "".to_string(),
+        }),
+        55 => Some(HTTP2FrameHeaderBlock {
+            name: "set-cookie".to_string(),
+            value: "".to_string(),
+        }),
+        56 => Some(HTTP2FrameHeaderBlock {
+            name: "strict-transport-security".to_string(),
+            value: "".to_string(),
+        }),
+        57 => Some(HTTP2FrameHeaderBlock {
+            name: "transfer-encoding".to_string(),
+            value: "".to_string(),
+        }),
+        58 => Some(HTTP2FrameHeaderBlock {
+            name: "user-agent".to_string(),
+            value: "".to_string(),
+        }),
+        59 => Some(HTTP2FrameHeaderBlock {
+            name: "vary".to_string(),
+            value: "".to_string(),
+        }),
+        60 => Some(HTTP2FrameHeaderBlock {
+            name: "via".to_string(),
+            value: "".to_string(),
+        }),
+        61 => Some(HTTP2FrameHeaderBlock {
+            name: "www-authenticate".to_string(),
+            value: "".to_string(),
+        }),
         _ => None,
     }
 }
@@ -298,23 +481,22 @@ fn http2_parse_headers_block_indexed(input: &[u8]) -> IResult<&[u8], HTTP2FrameH
     return Ok((i2, indexed.1));
 }
 
-#[derive(Clone, Copy)]
-pub struct HTTP2HeaderString<'a> {
-    pub huff: u8,
-    //TODO remove this dummy parameter
-    pub dummy: u8,
-    pub data: &'a [u8],
+fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], String> {
+    fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
+        bits!(
+            input,
+            tuple!(verify!(take_bits!(1u8), |&x| x == 1), take_bits!(7u8))
+        )
+    }
+    let (i2, huffslen) = parser(input)?;
+    let (i3, data) = take_str!(i2, huffslen.1 as usize)?;
+    if huffslen.0 == 0 {
+        return Ok((i3, data.to_string()));
+    } else {
+        //TODO0.6 decompress if huffslen.0 is set
+        return Err(Err::Error((i2, ErrorKind::MapOpt)));
+    }
 }
-
-named!(pub http2_parse_headers_block_string<HTTP2HeaderString>,
-    do_parse!(
-        huffslen: bits!( tuple!( take_bits!(1u8),
-                    take_bits!(7u8) ) ) >>
-//TODO decompress if huffslen.0 is set
-        data: take!(huffslen.1 as usize) >>
-        (HTTP2HeaderString{huff:huffslen.0, dummy:huffslen.1, data:data})
-    )
-);
 
 fn http2_parse_headers_block_literal(input: &[u8]) -> IResult<&[u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
@@ -324,28 +506,21 @@ fn http2_parse_headers_block_literal(input: &[u8]) -> IResult<&[u8], HTTP2FrameH
         )
     }
     let (i2, indexed) = parser(input)?;
-    if indexed.1 == 0 {
-        //TODO0.2 name http2_parse_headers_block_string
+    let (i3, name) = if indexed.1 == 0 {
+        http2_parse_headers_block_string(i2)
     } else {
-        //TODO0.4 name from indexed.1
-    }
-    //TODO0.3 value call!(http2_parse_headers_block_string)
-    let idx = http2_frame_header_static(indexed.1);
-    match idx {
-        Some(ok) => {
-            return Ok((i2, ok));
+        match http2_frame_header_static(indexed.1) {
+            Some(x) => Ok((i2, x.name)),
+            None => Err(Err::Error((i2, ErrorKind::MapOpt))),
         }
-        None => {
-            return Err(Err::Error((i2, ErrorKind::MapOpt)));
-        }
-    }
+    }?;
+    let (i4, value) = http2_parse_headers_block_string(i3)?;
+    return Ok((i4, HTTP2FrameHeaderBlock { name, value }));
 }
 
 named!(
     http2_parse_headers_block<HTTP2FrameHeaderBlock>,
-    alt!(
-        http2_parse_headers_block_indexed | http2_parse_headers_block_literal //TODO0.7 http2_parse_headers_block more possibilities
-    )
+    alt!(http2_parse_headers_block_indexed | http2_parse_headers_block_literal) //TODO0.7 http2_parse_headers_block more possibilities
 );
 
 #[derive(Clone)]
