@@ -19,6 +19,8 @@ use nom::character::complete::digit1;
 use nom::combinator::rest;
 use nom::number::streaming::{be_u16, be_u32, be_u8};
 use nom::IResult;
+use nom::error::ErrorKind;
+use nom::Err;
 use std::fmt;
 use std::str::FromStr;
 
@@ -207,25 +209,99 @@ named!(pub http2_parse_headers_priority<HTTP2FrameHeadersPriority>,
     )
 );
 
-#[derive(Clone)]
-pub struct HTTP2FrameHeaderBlock {
-    pub name: u8,
-//    pub value: Vec<u8>,
+fn http2_frame_header_static(n: u8) -> Option<HTTP2FrameHeaderBlock> {
+    match n {
+1 => Some(HTTP2FrameHeaderBlock {name:":authority".to_string(), value: "".to_string(),}),
+2 => Some(HTTP2FrameHeaderBlock {name:":method".to_string(), value: "GET".to_string(),}),
+3 => Some(HTTP2FrameHeaderBlock {name:":method".to_string(), value: "POST".to_string(),}),
+4 => Some(HTTP2FrameHeaderBlock {name:":path".to_string(), value: "/".to_string(),}),
+5 => Some(HTTP2FrameHeaderBlock {name:":path".to_string(), value: "/index.html".to_string(),}),
+6 => Some(HTTP2FrameHeaderBlock {name:":scheme".to_string(), value: "http".to_string(),}),
+7 => Some(HTTP2FrameHeaderBlock {name:":scheme".to_string(), value: "https".to_string(),}),
+8 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "200".to_string(),}),
+9 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "204".to_string(),}),
+10 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "206".to_string(),}),
+11 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "304".to_string(),}),
+12 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "400".to_string(),}),
+13 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "404".to_string(),}),
+14 => Some(HTTP2FrameHeaderBlock {name:":status".to_string(), value: "500".to_string(),}),
+15 => Some(HTTP2FrameHeaderBlock {name:"accept-charset".to_string(), value: "".to_string(),}),
+16 => Some(HTTP2FrameHeaderBlock {name:"accept-encoding".to_string(), value: "gzip, deflate".to_string(),}),
+17 => Some(HTTP2FrameHeaderBlock {name:"accept-language".to_string(), value: "".to_string(),}),
+18 => Some(HTTP2FrameHeaderBlock {name:"accept-ranges".to_string(), value: "".to_string(),}),
+19 => Some(HTTP2FrameHeaderBlock {name:"accept".to_string(), value: "".to_string(),}),
+20 => Some(HTTP2FrameHeaderBlock {name:"access-control-allow-origin".to_string(), value: "".to_string(),}),
+21 => Some(HTTP2FrameHeaderBlock {name:"age".to_string(), value: "".to_string(),}),
+22 => Some(HTTP2FrameHeaderBlock {name:"allow".to_string(), value: "".to_string(),}),
+23 => Some(HTTP2FrameHeaderBlock {name:"authorization".to_string(), value: "".to_string(),}),
+24 => Some(HTTP2FrameHeaderBlock {name:"cache-control".to_string(), value: "".to_string(),}),
+25 => Some(HTTP2FrameHeaderBlock {name:"content-disposition".to_string(), value: "".to_string(),}),
+26 => Some(HTTP2FrameHeaderBlock {name:"content-encoding".to_string(), value: "".to_string(),}),
+27 => Some(HTTP2FrameHeaderBlock {name:"content-language".to_string(), value: "".to_string(),}),
+28 => Some(HTTP2FrameHeaderBlock {name:"content-length".to_string(), value: "".to_string(),}),
+29 => Some(HTTP2FrameHeaderBlock {name:"content-location".to_string(), value: "".to_string(),}),
+30 => Some(HTTP2FrameHeaderBlock {name:"content-range".to_string(), value: "".to_string(),}),
+31 => Some(HTTP2FrameHeaderBlock {name:"content-type".to_string(), value: "".to_string(),}),
+32 => Some(HTTP2FrameHeaderBlock {name:"cookie".to_string(), value: "".to_string(),}),
+33 => Some(HTTP2FrameHeaderBlock {name:"date".to_string(), value: "".to_string(),}),
+34 => Some(HTTP2FrameHeaderBlock {name:"etag".to_string(), value: "".to_string(),}),
+35 => Some(HTTP2FrameHeaderBlock {name:"expect".to_string(), value: "".to_string(),}),
+36 => Some(HTTP2FrameHeaderBlock {name:"expires".to_string(), value: "".to_string(),}),
+37 => Some(HTTP2FrameHeaderBlock {name:"from".to_string(), value: "".to_string(),}),
+38 => Some(HTTP2FrameHeaderBlock {name:"host".to_string(), value: "".to_string(),}),
+39 => Some(HTTP2FrameHeaderBlock {name:"if-match".to_string(), value: "".to_string(),}),
+40 => Some(HTTP2FrameHeaderBlock {name:"if-modified-since".to_string(), value: "".to_string(),}),
+41 => Some(HTTP2FrameHeaderBlock {name:"if-none-match".to_string(), value: "".to_string(),}),
+42 => Some(HTTP2FrameHeaderBlock {name:"if-range".to_string(), value: "".to_string(),}),
+43 => Some(HTTP2FrameHeaderBlock {name:"if-unmodified-since".to_string(), value: "".to_string(),}),
+44 => Some(HTTP2FrameHeaderBlock {name:"last-modified".to_string(), value: "".to_string(),}),
+45 => Some(HTTP2FrameHeaderBlock {name:"link".to_string(), value: "".to_string(),}),
+46 => Some(HTTP2FrameHeaderBlock {name:"location".to_string(), value: "".to_string(),}),
+47 => Some(HTTP2FrameHeaderBlock {name:"max-forwards".to_string(), value: "".to_string(),}),
+48 => Some(HTTP2FrameHeaderBlock {name:"proxy-authenticate".to_string(), value: "".to_string(),}),
+49 => Some(HTTP2FrameHeaderBlock {name:"proxy-authorization".to_string(), value: "".to_string(),}),
+50 => Some(HTTP2FrameHeaderBlock {name:"range".to_string(), value: "".to_string(),}),
+51 => Some(HTTP2FrameHeaderBlock {name:"referer".to_string(), value: "".to_string(),}),
+52 => Some(HTTP2FrameHeaderBlock {name:"refresh".to_string(), value: "".to_string(),}),
+53 => Some(HTTP2FrameHeaderBlock {name:"retry-after".to_string(), value: "".to_string(),}),
+54 => Some(HTTP2FrameHeaderBlock {name:"server".to_string(), value: "".to_string(),}),
+55 => Some(HTTP2FrameHeaderBlock {name:"set-cookie".to_string(), value: "".to_string(),}),
+56 => Some(HTTP2FrameHeaderBlock {name:"strict-transport-security".to_string(), value: "".to_string(),}),
+57 => Some(HTTP2FrameHeaderBlock {name:"transfer-encoding".to_string(), value: "".to_string(),}),
+58 => Some(HTTP2FrameHeaderBlock {name:"user-agent".to_string(), value: "".to_string(),}),
+59 => Some(HTTP2FrameHeaderBlock {name:"vary".to_string(), value: "".to_string(),}),
+60 => Some(HTTP2FrameHeaderBlock {name:"via".to_string(), value: "".to_string(),}),
+61 => Some(HTTP2FrameHeaderBlock {name:"www-authenticate".to_string(), value: "".to_string(),}),
+        _ => None,
+    }
 }
 
-named!(http2_parse_headers_block_indexed<HTTP2FrameHeaderBlock>,
-    do_parse!(
-        index: bits!(take_bits!(7u8)) >>
-//TODO map with static list
-//TODO2 map with dynamic list
-        (HTTP2FrameHeaderBlock { name:index})
-    )
-);
+#[derive(Clone)]
+pub struct HTTP2FrameHeaderBlock {
+    pub name: String,
+    pub value: String,
+}
+
+fn http2_parse_headers_block_indexed(input: &[u8]) -> IResult<&[u8], HTTP2FrameHeaderBlock> {
+    //TODO ask why we need this over error[E0282]: type annotations needed for `((&[u8], usize), O1)`
+    fn parser(input: &[u8]) -> IResult<&[u8], (u8, HTTP2FrameHeaderBlock)> {
+        bits!(
+            input,
+            tuple!(
+                verify!(take_bits!(1u8), |&x| x == 1),
+                map_opt!(take_bits!(7u8), http2_frame_header_static)
+            )
+        )
+    }
+    //TODO0.9 map with dynamic list
+    let (i2, indexed) = parser(input)?;
+    return Ok((i2, indexed.1));
+}
 
 #[derive(Clone, Copy)]
-pub struct HTTP2HeaderString <'a> {
+pub struct HTTP2HeaderString<'a> {
     pub huff: u8,
-//TODO remove this dummy parameter
+    //TODO remove this dummy parameter
     pub dummy: u8,
     pub data: &'a [u8],
 }
@@ -240,25 +316,35 @@ named!(pub http2_parse_headers_block_string<HTTP2HeaderString>,
     )
 );
 
-
-named!(http2_parse_headers_block_literal<HTTP2FrameHeaderBlock>,
-    do_parse!(
-        index: bits!(take_bits!(6u8)) >>
-        name: cond!(index == 0, http2_parse_headers_block_string) >>
-        value : call!(http2_parse_headers_block_string) >>
-        (HTTP2FrameHeaderBlock { name:index})
-    )
-);
-
-named!(http2_parse_headers_block<HTTP2FrameHeaderBlock>,
-//TODO use peek and cond instead or alt
-    switch!(bits!(take_bits!(1u8)),
-        1 => call!(http2_parse_headers_block_indexed) |
-        _ => switch!(bits!(take_bits!(1u8)),
-            1 => call!(http2_parse_headers_block_literal) |
-//TODO0.1 http2_parse_headers_block
-            _ => value!(HTTP2FrameHeaderBlock { name:0})
+fn http2_parse_headers_block_literal(input: &[u8]) -> IResult<&[u8], HTTP2FrameHeaderBlock> {
+    fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
+        bits!(
+            input,
+            tuple!(verify!(take_bits!(2u8), |&x| x == 1), take_bits!(6u8))
         )
+    }
+    let (i2, indexed) = parser(input)?;
+    if indexed.1 == 0 {
+        //TODO0.2 name http2_parse_headers_block_string
+    } else {
+        //TODO0.4 name from indexed.1
+    }
+    //TODO0.3 value call!(http2_parse_headers_block_string)
+    let idx = http2_frame_header_static(indexed.1);
+    match idx {
+        Some(ok) => {
+            return Ok((i2, ok));
+        }
+        None => {
+            return Err(Err::Error((i2, ErrorKind::MapOpt)));
+        }
+    }
+}
+
+named!(
+    http2_parse_headers_block<HTTP2FrameHeaderBlock>,
+    alt!(
+        http2_parse_headers_block_indexed | http2_parse_headers_block_literal //TODO0.7 http2_parse_headers_block more possibilities
     )
 );
 
@@ -275,17 +361,18 @@ const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
 pub fn http2_parse_frame_headers(input: &[u8], flags: u8) -> IResult<&[u8], HTTP2FrameHeaders> {
     do_parse!(
         input,
-        padlength: cond!(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8) >>
-        priority: cond!(
+        padlength: cond!(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)
+            >> priority:
+                cond!(
                     flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
                     http2_parse_headers_priority
-                ) >>
-        blocks: many0!(http2_parse_headers_block) >>
-        (HTTP2FrameHeaders {
-            padlength,
-            priority: priority,
-            blocks: Vec::new()
-        })
+                )
+            >> blocks: many0!(http2_parse_headers_block)
+            >> (HTTP2FrameHeaders {
+                padlength,
+                priority: priority,
+                blocks: Vec::new()
+            })
     )
 }
 
