@@ -948,35 +948,22 @@ named!(http2_decode_huffman_len30<(&[u8], usize), u8>,
     complete!( map_opt!(take_bits!(30u32), http2_huffman_table_len30))
 );
 
-//TODO profile and optimize perf
-fn http2_decode_huffman(input: (&[u8], usize)) -> IResult<(&[u8], usize), u8> {
-println!("lolf {} {}", input.0.len(), input.1);
-    match take_bits!(input, 5u32) {
-Ok((i2, val)) => {
-println!("lold {}", val);
-match http2_huffman_table_len5(val) {
-Some(x) => {
-println!("lolc {}", x);
-return Ok((i2, x));
+//hack to end many0 even if some bits are remaining
+fn http2_decode_huffman_end(input: (&[u8], usize)) -> IResult<(&[u8], usize), u8> {
+    return Err(Err::Error((input, ErrorKind::Eof)));
 }
-            _ => return Err(Err::Error((i2, ErrorKind::MapOpt))),
-        }
-}
-        Err(e) => {
-println!("lolrr {}", e);
-return Err(Err::Error((input, ErrorKind::MapOpt)));
-}
-    }
 
-    /*    alt!(http2_decode_huffman_len5 | http2_decode_huffman_len6 | http2_decode_huffman_len7 |
+//TODO profile and optimize perf
+named!(http2_decode_huffman<(&[u8], usize), u8>,
+    alt!(http2_decode_huffman_len5 | http2_decode_huffman_len6 | http2_decode_huffman_len7 |
     http2_decode_huffman_len8 | http2_decode_huffman_len10 | http2_decode_huffman_len11 |
     http2_decode_huffman_len12 | http2_decode_huffman_len13 | http2_decode_huffman_len14 |
     http2_decode_huffman_len15 | http2_decode_huffman_len19 | http2_decode_huffman_len20 |
     http2_decode_huffman_len21 | http2_decode_huffman_len22 | http2_decode_huffman_len23 |
     http2_decode_huffman_len24 | http2_decode_huffman_len25 | http2_decode_huffman_len26 |
     http2_decode_huffman_len27 | http2_decode_huffman_len28 | http2_decode_huffman_len30 |
-    value!(0))*/
-}
+    http2_decode_huffman_end)
+);
 
 fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], String> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
@@ -988,9 +975,7 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], String> {
         return Ok((i3, data.to_string()));
     } else {
         let (i3, data) = take!(i2, huffslen.1 as usize)?;
-        println!("lolb {}", data.len());
         let (_, val) = bits!(data, many0!(http2_decode_huffman))?;
-        println!("lolc {}", val.len());
         let res = std::string::String::from_utf8(val);
         match res {
             Ok(x) => return Ok((i3, x)),
@@ -1233,8 +1218,7 @@ mod tests {
             }
         }
         let buf: &[u8] = &[
-            0x41, 0x82, 0x00,
-            0x00, //            0x41, 0x8a, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x09, 0xb8, 0xc8, 0x00, 0x0f
+            0x41, 0x8a, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x09, 0xb8, 0xc8, 0x00, 0x0f
         ];
         let result = http2_parse_headers_block(buf);
         match result {
