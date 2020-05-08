@@ -453,6 +453,9 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
     if (cfg->include_community_id && f != NULL) {
         CreateEveCommunityFlowId(js, f, cfg->community_id_seed);
     }
+    if (f != NULL && f->tenant_id > 0) {
+        jb_set_uint(js, "tenant_id", f->tenant_id);
+    }
 }
 
 /**
