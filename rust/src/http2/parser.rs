@@ -984,7 +984,9 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], String> {
     }
 }
 
-fn http2_parse_headers_block_literal(input: &[u8]) -> IResult<&[u8], HTTP2FrameHeaderBlock> {
+fn http2_parse_headers_block_literal_incindex(
+    input: &[u8],
+) -> IResult<&[u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
             input,
@@ -1004,10 +1006,60 @@ fn http2_parse_headers_block_literal(input: &[u8]) -> IResult<&[u8], HTTP2FrameH
     return Ok((i4, HTTP2FrameHeaderBlock { name, value }));
 }
 
+fn http2_parse_headers_block_literal_noindex(
+    input: &[u8],
+) -> IResult<&[u8], HTTP2FrameHeaderBlock> {
+    fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
+        bits!(
+            input,
+            tuple!(verify!(take_bits!(4u8), |&x| x == 0), take_bits!(4u8))
+        )
+    }
+    let (i2, indexed) = parser(input)?;
+    let (i3, name) = if indexed.1 == 0 {
+        http2_parse_headers_block_string(i2)
+    } else {
+        match http2_frame_header_static(indexed.1) {
+            Some(x) => Ok((i2, x.name)),
+            None => Err(Err::Error((i2, ErrorKind::MapOpt))),
+        }
+    }?;
+    let (i4, value) = http2_parse_headers_block_string(i3)?;
+    return Ok((i4, HTTP2FrameHeaderBlock { name, value }));
+}
+
+fn http2_parse_headers_block_literal_neverindex(
+    input: &[u8],
+) -> IResult<&[u8], HTTP2FrameHeaderBlock> {
+    fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
+        bits!(
+            input,
+            tuple!(verify!(take_bits!(4u8), |&x| x == 1), take_bits!(4u8))
+        )
+    }
+    let (i2, indexed) = parser(input)?;
+    let (i3, name) = if indexed.1 == 0 {
+        http2_parse_headers_block_string(i2)
+    } else {
+        match http2_frame_header_static(indexed.1) {
+            Some(x) => Ok((i2, x.name)),
+            None => Err(Err::Error((i2, ErrorKind::MapOpt))),
+        }
+    }?;
+    let (i4, value) = http2_parse_headers_block_string(i3)?;
+    return Ok((i4, HTTP2FrameHeaderBlock { name, value }));
+}
+
 named!(
     http2_parse_headers_block<HTTP2FrameHeaderBlock>,
-    alt!(http2_parse_headers_block_indexed | http2_parse_headers_block_literal) //TODO0.7 http2_parse_headers_block more possibilities
+    alt!(
+        http2_parse_headers_block_indexed
+            | http2_parse_headers_block_literal_incindex
+            | http2_parse_headers_block_literal_noindex
+            | http2_parse_headers_block_literal_neverindex
+    )
 );
+//TODO 6.3 Dynamic Table Size Update
 
 #[derive(Clone)]
 pub struct HTTP2FrameHeaders {
@@ -1036,6 +1088,7 @@ pub fn http2_parse_frame_headers(input: &[u8], flags: u8) -> IResult<&[u8], HTTP
             })
     )
 }
+//TODO keep reading headers even if one has issues
 
 #[repr(u16)]
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
@@ -1218,7 +1271,7 @@ mod tests {
             }
         }
         let buf: &[u8] = &[
-            0x41, 0x8a, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x09, 0xb8, 0xc8, 0x00, 0x0f
+            0x41, 0x8a, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x09, 0xb8, 0xc8, 0x00, 0x0f,
         ];
         let result = http2_parse_headers_block(buf);
         match result {
@@ -1244,7 +1297,7 @@ mod tests {
         match r2 {
             Ok((remainder, hd)) => {
                 // Check the first message.
-                assert_eq!(hd.name, "path");
+                assert_eq!(hd.name, ":path");
                 assert_eq!(hd.value, "/doc/manual/html/index.html");
                 // And we should have no bytes left.
                 assert_eq!(remainder.len(), 0);
