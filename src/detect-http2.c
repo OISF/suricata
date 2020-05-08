@@ -46,31 +46,31 @@ static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
 static int DetectHTTP2frametypeSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2frametypeFree (void *);
+void DetectHTTP2frametypeFree (DetectEngineCtx *, void *);
 
 static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
 static int DetectHTTP2errorcodeSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2errorcodeFree (void *);
+void DetectHTTP2errorcodeFree (DetectEngineCtx *, void *);
 
 static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
 static int DetectHTTP2prioritySetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2priorityFree (void *);
+void DetectHTTP2priorityFree (DetectEngineCtx *, void *);
 
 static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
 static int DetectHTTP2windowSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2windowFree (void *);
+void DetectHTTP2windowFree (DetectEngineCtx *, void *);
 
 static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
                                      const SigMatchCtx *ctx);
 static int DetectHTTP2settingsSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2settingsFree (void *);
+void DetectHTTP2settingsFree (DetectEngineCtx *, void *);
 
 #ifdef UNITTESTS
 void DetectHTTP2RegisterTests (void);
@@ -95,7 +95,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].name = "http2.frametype";
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].desc = "match on HTTP2 frame type field";
     //TODO create a new doc file for HTTP2 keywords
-    sigmatch_table[DETECT_HTTP2_FRAMETYPE].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#frametype";
+    sigmatch_table[DETECT_HTTP2_FRAMETYPE].url = "/rules/http2-keywords.html#frametype";
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Match = NULL;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].AppLayerTxMatch = DetectHTTP2frametypeMatch;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Setup = DetectHTTP2frametypeSetup;
@@ -106,7 +106,7 @@ void DetectHttp2Register(void)
 
     sigmatch_table[DETECT_HTTP2_ERRORCODE].name = "http2.errorcode";
     sigmatch_table[DETECT_HTTP2_ERRORCODE].desc = "match on HTTP2 error code field";
-    sigmatch_table[DETECT_HTTP2_ERRORCODE].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#errorcode";
+    sigmatch_table[DETECT_HTTP2_ERRORCODE].url = "/rules/http2-keywords.html#errorcode";
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Match = NULL;
     sigmatch_table[DETECT_HTTP2_ERRORCODE].AppLayerTxMatch = DetectHTTP2errorcodeMatch;
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Setup = DetectHTTP2errorcodeSetup;
@@ -117,7 +117,7 @@ void DetectHttp2Register(void)
 
     sigmatch_table[DETECT_HTTP2_PRIORITY].name = "http2.priority";
     sigmatch_table[DETECT_HTTP2_PRIORITY].desc = "match on HTTP2 priority weight field";
-    sigmatch_table[DETECT_HTTP2_PRIORITY].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#priority";
+    sigmatch_table[DETECT_HTTP2_PRIORITY].url = "/rules/http2-keywords.html#priority";
     sigmatch_table[DETECT_HTTP2_PRIORITY].Match = NULL;
     sigmatch_table[DETECT_HTTP2_PRIORITY].AppLayerTxMatch = DetectHTTP2priorityMatch;
     sigmatch_table[DETECT_HTTP2_PRIORITY].Setup = DetectHTTP2prioritySetup;
@@ -128,7 +128,7 @@ void DetectHttp2Register(void)
 
     sigmatch_table[DETECT_HTTP2_WINDOW].name = "http2.window";
     sigmatch_table[DETECT_HTTP2_WINDOW].desc = "match on HTTP2 window update size increment field";
-    sigmatch_table[DETECT_HTTP2_WINDOW].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#window";
+    sigmatch_table[DETECT_HTTP2_WINDOW].url = "/rules/http2-keywords.html#window";
     sigmatch_table[DETECT_HTTP2_WINDOW].Match = NULL;
     sigmatch_table[DETECT_HTTP2_WINDOW].AppLayerTxMatch = DetectHTTP2windowMatch;
     sigmatch_table[DETECT_HTTP2_WINDOW].Setup = DetectHTTP2windowSetup;
@@ -139,7 +139,7 @@ void DetectHttp2Register(void)
 
     sigmatch_table[DETECT_HTTP2_SETTINGS].name = "http2.settings";
     sigmatch_table[DETECT_HTTP2_SETTINGS].desc = "match on HTTP2 settings identifier and value fields";
-    sigmatch_table[DETECT_HTTP2_SETTINGS].url = DOC_URL DOC_VERSION "/rules/http2-keywords.html#settings";
+    sigmatch_table[DETECT_HTTP2_SETTINGS].url = "/rules/http2-keywords.html#settings";
     sigmatch_table[DETECT_HTTP2_SETTINGS].Match = NULL;
     sigmatch_table[DETECT_HTTP2_SETTINGS].AppLayerTxMatch = DetectHTTP2settingsMatch;
     sigmatch_table[DETECT_HTTP2_SETTINGS].Setup = DetectHTTP2settingsSetup;
@@ -229,7 +229,7 @@ static int DetectHTTP2frametypeSetup (DetectEngineCtx *de_ctx, Signature *s, con
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectHTTP2frametypeFree(http2ft);
+        DetectHTTP2frametypeFree(NULL, http2ft);
         return -1;
     }
 
@@ -246,7 +246,7 @@ static int DetectHTTP2frametypeSetup (DetectEngineCtx *de_ctx, Signature *s, con
  *
  * \param ptr pointer to uint8_t
  */
-void DetectHTTP2frametypeFree(void *ptr)
+void DetectHTTP2frametypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCFree(ptr);
 }
@@ -320,7 +320,7 @@ static int DetectHTTP2errorcodeSetup (DetectEngineCtx *de_ctx, Signature *s, con
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectHTTP2errorcodeFree(http2ec);
+        DetectHTTP2errorcodeFree(NULL, http2ec);
         return -1;
     }
 
@@ -337,7 +337,7 @@ static int DetectHTTP2errorcodeSetup (DetectEngineCtx *de_ctx, Signature *s, con
  *
  * \param ptr pointer to uint32_t
  */
-void DetectHTTP2errorcodeFree(void *ptr)
+void DetectHTTP2errorcodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCFree(ptr);
 }
@@ -401,7 +401,7 @@ static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, cons
  *
  * \param ptr pointer to DetectU8Data
  */
-void DetectHTTP2priorityFree(void *ptr)
+void DetectHTTP2priorityFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCFree(ptr);
 }
@@ -465,7 +465,7 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
  *
  * \param ptr pointer to DetectU8Data
  */
-void DetectHTTP2windowFree(void *ptr)
+void DetectHTTP2windowFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCFree(ptr);
 }
@@ -505,7 +505,7 @@ static int DetectHTTP2settingsSetup (DetectEngineCtx *de_ctx, Signature *s, cons
 
     SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
-        DetectHTTP2settingsFree(http2set);
+        DetectHTTP2settingsFree(NULL, http2set);
         return -1;
     }
 
@@ -522,7 +522,7 @@ static int DetectHTTP2settingsSetup (DetectEngineCtx *de_ctx, Signature *s, cons
  *
  * \param ptr pointer to rust signature context
  */
-void DetectHTTP2settingsFree(void *ptr)
+void DetectHTTP2settingsFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     rs_http2_detect_settingsctx_free(ptr);
 }
