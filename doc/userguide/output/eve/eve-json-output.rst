@@ -501,5 +501,12 @@ YAML::
       # Seed value for the ID output. Valid values are 0-65535.
       community-id-seed: 0
 
+Multi Tenancy
+-------------
+
+Suricata can be configured to support multiple tenants with different detection
+engine configurations. When these tenants are configured and the detection
+engine is running then all EVE logging will also report the ``tenant_id`` field
+for traffic matching a specific tenant.
 
 .. _deprecation policy: https://suricata-ids.org/about/deprecation-policy/
