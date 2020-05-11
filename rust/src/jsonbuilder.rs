@@ -356,7 +356,10 @@ impl JsonBuilder {
     pub fn set_string_from_bytes(&mut self, key: &str, val: &[u8]) -> Result<&mut Self, JsonError> {
         match std::str::from_utf8(val) {
             Ok(s) => self.set_string(key, s),
-            Err(_) => self.set_string(key, "<failed to convert bytes to string>"),
+            Err(_) => self.set_string(
+                key,
+                &format!("UTF8-ERROR: what=[string from bytes] input={:02x?}", val),
+            ),
         }
     }
 
@@ -413,43 +416,56 @@ impl JsonBuilder {
     /// than building onto the buffer.
     #[inline(always)]
     fn encode_string(&mut self, val: &str) -> Result<(), JsonError> {
-        let mut out = vec![0; (val.len() * 2) + 2];
+        let mut buf = vec![0; val.len() * 2 + 2];
         let mut offset = 0;
-        out[offset] = b'"';
+        buf[offset] = b'"';
         offset += 1;
         for c in val.chars() {
             let x = c as u8;
-            if offset + 7 >= out.capacity() {
-                let mut extend = vec![0; out.capacity()];
-                out.append(&mut extend);
+            if offset + 7 >= buf.capacity() {
+                let mut extend = vec![0; buf.capacity()];
+                buf.append(&mut extend);
             }
             let escape = ESCAPED[x as usize];
             if escape == 0 {
-                out[offset] = x;
+                buf[offset] = x;
                 offset += 1;
             } else if escape == b'u' {
-                out[offset] = b'\\';
+                buf[offset] = b'\\';
                 offset += 1;
-                out[offset] = b'u';
+                buf[offset] = b'u';
                 offset += 1;
-                out[offset] = b'0';
+                buf[offset] = b'0';
                 offset += 1;
-                out[offset] = b'0';
+                buf[offset] = b'0';
                 offset += 1;
-                out[offset] = HEX[(x >> 4 & 0xf) as usize];
+                buf[offset] = HEX[(x >> 4 & 0xf) as usize];
                 offset += 1;
-                out[offset] = HEX[(x & 0xf) as usize];
+                buf[offset] = HEX[(x & 0xf) as usize];
                 offset += 1;
             } else {
-                out[offset] = b'\\';
+                buf[offset] = b'\\';
                 offset += 1;
-                out[offset] = escape;
+                buf[offset] = escape;
                 offset += 1;
             }
         }
-        out[offset] = b'"';
+        buf[offset] = b'"';
         offset += 1;
-        self.buf.push_str(std::str::from_utf8(&out[0..offset])?);
+        match std::str::from_utf8(&buf[0..offset]) {
+            Ok(s) => {
+                self.buf.push_str(s);
+            }
+            Err(err) => {
+                let error = format!(
+                    "\"UTF8-ERROR: what=[escaped string] error={} output={:02x?} input={:02x?}\"",
+                    err,
+                    &buf[0..offset],
+                    val.as_bytes(),
+                );
+                self.buf.push_str(&error);
+            }
+        }
         Ok(())
     }
 }
@@ -796,7 +812,7 @@ mod test {
         for i in 1..1000 {
             let mut s = Vec::new();
             for _ in 0..i {
-                s.push(0x00);
+                s.push(0x41);
             }
             let mut jb = JsonBuilder::new_array();
             jb.append_string_from_bytes(&s)?;
