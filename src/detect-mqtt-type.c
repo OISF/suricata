@@ -251,12 +251,10 @@ static int MQTTTypeTestParse01 (void)
 {
     uint32_t *de = NULL;
     de = DetectMQTTTypeParse("CONNECT");
-    if (de) {
-        DetectMQTTTypeFree(NULL, de);
-        PASS;
-    }
+    FAIL_IF_NULL(de);
+    DetectMQTTTypeFree(NULL, de);
 
-    FAIL;
+    PASS;
 }
 
 /**
@@ -269,12 +267,10 @@ static int MQTTTypeTestParse02 (void)
 {
     uint32_t *de = NULL;
     de = DetectMQTTTypeParse("auth");
-    if (de) {
-        DetectMQTTTypeFree(NULL, de);
-        PASS;
-    }
+    FAIL_IF_NULL(de);
+    DetectMQTTTypeFree(NULL, de);
 
-    FAIL;
+    PASS;
 }
 
 /**

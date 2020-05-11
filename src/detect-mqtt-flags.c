@@ -306,12 +306,10 @@ static int MQTTFlagsTestParse02 (void)
 {
     DetectMQTTFlagsData *de = NULL;
     de = DetectMQTTFlagsParse("retain,!dup");
-    if (de) {
-        DetectMQTTFlagsFree(NULL, de);
-        PASS;
-    }
+    FAIL_IF_NULL(de);
+    DetectMQTTFlagsFree(NULL, de);
 
-    FAIL;
+    PASS;
 }
 
 /**
