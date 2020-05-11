@@ -56,6 +56,7 @@
 
 #include "util-debug.h"
 #include "util-privs.h"
+#include "util-validate.h"
 
 #include "detect.h"
 #include "detect-engine-state.h"
@@ -703,9 +704,7 @@ void FlowShutdown(void)
         for (u = 0; u < flow_config.hash_size; u++) {
             f = flow_hash[u].head;
             while (f) {
-#ifdef DEBUG_VALIDATION
-                BUG_ON(SC_ATOMIC_GET(f->use_cnt) != 0);
-#endif
+                DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(f->use_cnt) != 0);
                 Flow *n = f->hnext;
                 uint8_t proto_map = FlowGetProtoMapping(f->proto);
                 FlowClearMemory(f, proto_map);
