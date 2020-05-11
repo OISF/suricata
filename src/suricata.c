@@ -2282,7 +2282,7 @@ static void PostRunStartedDetectSetup(const SCInstance *suri)
     }
 }
 
-static void PostConfLoadedDetectSetup(SCInstance *suri)
+void PostConfLoadedDetectSetup(SCInstance *suri)
 {
     DetectEngineCtx *de_ctx = NULL;
     if (!suri->disabled_detect) {

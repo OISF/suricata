@@ -186,6 +186,7 @@ extern int run_mode;
 int SuricataMain(int argc, char **argv);
 int InitGlobal(void);
 int PostConfLoadedSetup(SCInstance *suri);
+void PostConfLoadedDetectSetup(SCInstance *suri);
 
 void PreRunInit(const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);
