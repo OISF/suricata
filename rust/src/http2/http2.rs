@@ -46,7 +46,7 @@ const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 pub enum HTTP2FrameTypeData {
     //TODO3 PUSH_PROMISE
     //TODO4 DATA
-    //TODO2 CONTINATION
+    //TODO2 CONTINUATION
     //Left undone PING
     PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
@@ -98,7 +98,7 @@ impl Drop for HTTP2Transaction {
     }
 }
 
-//TODO rules file
+//TODOnext rules file
 #[repr(u32)]
 pub enum HTTP2Event {
     InvalidFrameHeader = 0,
@@ -203,12 +203,13 @@ impl HTTP2State {
         while input.len() > 0 {
             match parser::http2_parse_frame_header(input) {
                 Ok((rem, head)) => {
-                    //TODO handle transactions the right way
+                    //TODO6tx handle transactions the right way
                     let mut tx = self.new_tx();
                     tx.ftype = Some(head.ftype);
                     let hl = head.length as usize;
                     match head.ftype {
                         parser::HTTP2FrameType::GOAWAY => {
+                            //TODO0.2 check hl
                             match parser::http2_parse_frame_goaway(rem) {
                                 Ok((_, goaway)) => {
                                     tx.type_data = Some(HTTP2FrameTypeData::GOAWAY(goaway));
@@ -298,8 +299,9 @@ impl HTTP2State {
                                     (HTTP2_FRAME_HEADER_LEN + hl) as u32,
                                 );
                             }
-                            match parser::http2_parse_frame_headers(rem, head.flags) {
+                            match parser::http2_parse_frame_headers(&rem[..hl], head.flags) {
                                 Ok((_, hs)) => {
+                                    //TODO0.3 check completeness of parsing
                                     tx.type_data = Some(HTTP2FrameTypeData::HEADERS(hs));
                                 }
                                 Err(_) => {
@@ -362,7 +364,7 @@ impl HTTP2State {
                     tx.ftype = Some(head.ftype);
                     self.transactions.push(tx);
 
-                    //TODO parse frame types as in request once transactions are well handled
+                    //TODO6tx parse frame types as in request once transactions are well handled
                     let hl = head.length as usize;
                     if rem.len() < hl {
                         let rl = rem.len() as u32;
@@ -422,7 +424,7 @@ export_tx_set_detect_state!(rs_http2_tx_set_detect_state, HTTP2Transaction);
 export_tx_detect_flags_set!(rs_http2_set_tx_detect_flags, HTTP2Transaction);
 export_tx_detect_flags_get!(rs_http2_get_tx_detect_flags, HTTP2Transaction);
 
-//TODO connection upgrade from HTTP1 cf SMTP STARTTLS
+//TODOnext connection upgrade from HTTP1 cf SMTP STARTTLS
 /// C entry point for a probing parser.
 #[no_mangle]
 pub extern "C" fn rs_http2_probing_parser_tc(
@@ -674,7 +676,7 @@ const PARSER_NAME: &'static [u8] = b"http2\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {
-    //TODO default port
+    //TODOend default port
     let default_port = CString::new("[3000]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -691,7 +693,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         parse_tc: rs_http2_parse_tc,
         get_tx_count: rs_http2_state_get_tx_count,
         get_tx: rs_http2_state_get_tx,
-        //TODO progress completion
+        //TODO6tx progress completion
         tx_get_comp_st: rs_http2_state_progress_completion_status,
         tx_get_progress: rs_http2_tx_get_alstate_progress,
         get_tx_logged: Some(rs_http2_tx_get_logged),

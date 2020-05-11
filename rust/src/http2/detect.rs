@@ -28,7 +28,7 @@ pub extern "C" fn rs_http2_tx_get_frametype(
     direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    //TODO check use of direction
+    //TODO6tx check use of direction
     match direction {
         STREAM_TOSERVER => match &tx.ftype {
             None => {

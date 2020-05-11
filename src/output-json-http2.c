@@ -53,7 +53,7 @@
 
 #define MODULE_NAME "LogHttp2Log"
 
-//TODO Cannot this be generic ? and most of the file as well
+//TODOnext Cannot this be generic ? and most of the file as well
 typedef struct OutputHttp2Ctx_ {
     LogFileCtx *file_ctx;
     OutputJsonCommonSettings cfg;
@@ -231,7 +231,7 @@ void JsonHttp2LogRegister (void)
     OutputRegisterTxModuleWithProgress(LOGGER_JSON_HTTP2,
         MODULE_NAME, "http2-json-log",
         OutputHttp2LogInit, ALPROTO_HTTP2, JsonHttp2Logger,
-        1, 1, //TODO progress
+        1, 1, //TODO6tx progress
         JsonHttp2LogThreadInit, JsonHttp2LogThreadDeinit, NULL);
 
     /* also register as child of eve-log */

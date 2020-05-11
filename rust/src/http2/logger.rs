@@ -52,6 +52,7 @@ fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
                 js.set_integer("priority", priority.weight as u64);
             }
             let headers = Json::array();
+            //TODOask filter based on configuration ?
             for i in 0..hd.blocks.len() {
                 let jss = Json::object();
                 jss.set_string("name", &hd.blocks[i].name);

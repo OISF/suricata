@@ -94,7 +94,7 @@ void DetectHttp2Register(void)
 {
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].name = "http2.frametype";
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].desc = "match on HTTP2 frame type field";
-    //TODO create a new doc file for HTTP2 keywords
+    //TODOnext create a new doc file for HTTP2 keywords
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].url = "/rules/http2-keywords.html#frametype";
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Match = NULL;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].AppLayerTxMatch = DetectHTTP2frametypeMatch;
@@ -269,7 +269,7 @@ static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
         //no value, no match
         return 0;
     }
-    //TODO handle negation rules
+    //TODOask handle negation rules
     return *detect == (uint32_t) value;
 }
 

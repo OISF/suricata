@@ -69,7 +69,7 @@ impl std::str::FromStr for HTTP2FrameType {
 
 #[derive(PartialEq)]
 pub struct HTTP2FrameHeader {
-    //TODO detection on GOAWAY additional data = length
+    //TODO5 detection on (GOAWAY) additional data = length
     pub length: u32,
     pub ftype: HTTP2FrameType,
     pub flags: u8,
@@ -466,7 +466,7 @@ pub struct HTTP2FrameHeaderBlock {
 }
 
 fn http2_parse_headers_block_indexed(input: &[u8]) -> IResult<&[u8], HTTP2FrameHeaderBlock> {
-    //TODO ask why we need this over error[E0282]: type annotations needed for `((&[u8], usize), O1)`
+    //TODOask why we need this over error[E0282]: type annotations needed for `((&[u8], usize), O1)`
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, HTTP2FrameHeaderBlock)> {
         bits!(
             input,
@@ -476,7 +476,7 @@ fn http2_parse_headers_block_indexed(input: &[u8]) -> IResult<&[u8], HTTP2FrameH
             ))
         )
     }
-    //TODO0.9 map with dynamic list
+    //TODO1 map with dynamic list and robust to error
     let (i2, indexed) = parser(input)?;
     return Ok((i2, indexed.1));
 }
@@ -953,7 +953,7 @@ fn http2_decode_huffman_end(input: (&[u8], usize)) -> IResult<(&[u8], usize), u8
     return Err(Err::Error((input, ErrorKind::Eof)));
 }
 
-//TODO profile and optimize perf
+//TODOend profile and optimize perf
 named!(http2_decode_huffman<(&[u8], usize), u8>,
     alt!(http2_decode_huffman_len5 | http2_decode_huffman_len6 | http2_decode_huffman_len7 |
     http2_decode_huffman_len8 | http2_decode_huffman_len10 | http2_decode_huffman_len11 |
@@ -969,6 +969,7 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], String> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(input, tuple!(take_bits!(1u8), take_bits!(7u8)))
     }
+    //TODO0.1 check always return ok
     let (i2, huffslen) = parser(input)?;
     if huffslen.0 == 0 {
         let (i3, data) = take_str!(i2, huffslen.1 as usize)?;
@@ -1002,7 +1003,8 @@ fn http2_parse_headers_block_literal_incindex(
     } else {
         match http2_frame_header_static(indexed.1) {
             Some(x) => Ok((i2, x.name)),
-            None => Err(Err::Error((i2, ErrorKind::MapOpt))),
+            //TODO0 transmit error in HTTP2FrameHeaderBlock
+            None => Ok((i2, "error".to_string())),
         }
     }?;
     let (i4, value) = http2_parse_headers_block_string(i3)?;
@@ -1068,7 +1070,7 @@ named!(
             | http2_parse_headers_block_literal_neverindex
     )
 );
-//TODO 6.3 Dynamic Table Size Update
+//TODO1.1 Dynamic Table Size Update RFC6.3
 
 #[derive(Clone)]
 pub struct HTTP2FrameHeaders {
@@ -1097,7 +1099,6 @@ pub fn http2_parse_frame_headers(input: &[u8], flags: u8) -> IResult<&[u8], HTTP
             })
     )
 }
-//TODO keep reading headers even if one has issues
 
 #[repr(u16)]
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
@@ -1134,7 +1135,7 @@ impl std::str::FromStr for HTTP2SettingsId {
     }
 }
 
-//TODO move elsewhere generic
+//TODOask move elsewhere generic
 #[derive(PartialEq, Debug)]
 pub enum DetectUintMode {
     DetectUintModeEqual,
