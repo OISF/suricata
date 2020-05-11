@@ -1350,7 +1350,7 @@ ProfilingGenericTicksTest01(void)
     uint64_t ticks_start = 0;
     uint64_t ticks_end = 0;
     void *ptr[TEST_RUNS];
-    int i;
+    unsigned int i;
 
     ticks_start = UtilCpuGetTicks();
     for (i = 0; i < TEST_RUNS; i++) {
