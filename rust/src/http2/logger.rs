@@ -47,6 +47,19 @@ fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
         Some(HTTP2FrameTypeData::WINDOWUPDATE(wu)) => {
             js.set_integer("window", wu.sizeinc as u64);
         }
+        Some(HTTP2FrameTypeData::HEADERS(hd)) => {
+            if let Some(ref priority) = hd.priority {
+                js.set_integer("priority", priority.weight as u64);
+            }
+            let headers = Json::array();
+            for i in 0..hd.blocks.len() {
+                let jss = Json::object();
+                jss.set_string("name", &hd.blocks[i].name);
+                jss.set_string("value", &hd.blocks[i].value);
+                headers.array_append(jss)
+            }
+            js.set("headers", headers);
+        }
         _ => {}
     }
     return Some(js);

@@ -470,10 +470,10 @@ fn http2_parse_headers_block_indexed(input: &[u8]) -> IResult<&[u8], HTTP2FrameH
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, HTTP2FrameHeaderBlock)> {
         bits!(
             input,
-            tuple!(
+            complete!(tuple!(
                 verify!(take_bits!(1u8), |&x| x == 1),
                 map_opt!(take_bits!(7u8), http2_frame_header_static)
-            )
+            ))
         )
     }
     //TODO0.9 map with dynamic list
@@ -990,7 +990,10 @@ fn http2_parse_headers_block_literal_incindex(
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
             input,
-            tuple!(verify!(take_bits!(2u8), |&x| x == 1), take_bits!(6u8))
+            complete!(tuple!(
+                verify!(take_bits!(2u8), |&x| x == 1),
+                take_bits!(6u8)
+            ))
         )
     }
     let (i2, indexed) = parser(input)?;
@@ -1012,7 +1015,10 @@ fn http2_parse_headers_block_literal_noindex(
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
             input,
-            tuple!(verify!(take_bits!(4u8), |&x| x == 0), take_bits!(4u8))
+            complete!(tuple!(
+                verify!(take_bits!(4u8), |&x| x == 0),
+                take_bits!(4u8)
+            ))
         )
     }
     let (i2, indexed) = parser(input)?;
@@ -1034,7 +1040,10 @@ fn http2_parse_headers_block_literal_neverindex(
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
             input,
-            tuple!(verify!(take_bits!(4u8), |&x| x == 1), take_bits!(4u8))
+            complete!(tuple!(
+                verify!(take_bits!(4u8), |&x| x == 1),
+                take_bits!(4u8)
+            ))
         )
     }
     let (i2, indexed) = parser(input)?;

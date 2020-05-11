@@ -46,7 +46,6 @@ const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 pub enum HTTP2FrameTypeData {
     //TODO3 PUSH_PROMISE
     //TODO4 DATA
-    //TODO1 HEADERS
     //TODO2 CONTINATION
     //Left undone PING
     PRIORITY(parser::HTTP2FramePriority),
@@ -207,6 +206,7 @@ impl HTTP2State {
                     //TODO handle transactions the right way
                     let mut tx = self.new_tx();
                     tx.ftype = Some(head.ftype);
+                    let hl = head.length as usize;
                     match head.ftype {
                         parser::HTTP2FrameType::GOAWAY => {
                             match parser::http2_parse_frame_goaway(rem) {
@@ -291,15 +291,16 @@ impl HTTP2State {
                             }
                         }
                         parser::HTTP2FrameType::HEADERS => {
+                            //we need to check for completeness first
+                            if rem.len() < hl {
+                                return AppLayerResult::incomplete(
+                                    (il - input.len()) as u32,
+                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                );
+                            }
                             match parser::http2_parse_frame_headers(rem, head.flags) {
                                 Ok((_, hs)) => {
                                     tx.type_data = Some(HTTP2FrameTypeData::HEADERS(hs));
-                                }
-                                Err(nom::Err::Incomplete(_)) => {
-                                    return AppLayerResult::incomplete(
-                                        (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + 1) as u32,
-                                    );
                                 }
                                 Err(_) => {
                                     self.set_event(HTTP2Event::InvalidFrameData);
@@ -311,7 +312,6 @@ impl HTTP2State {
                     }
                     self.transactions.push(tx);
 
-                    let hl = head.length as usize;
                     if rem.len() < hl {
                         let rl = rem.len() as u32;
                         self.request_frame_size = head.length - rl;
