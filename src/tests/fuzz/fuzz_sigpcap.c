@@ -147,6 +147,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
         InitGlobal();
 
+        GlobalsInitPreConfig();
         run_mode = RUNMODE_PCAP_FILE;
         //redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
@@ -159,14 +160,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         //loads rules after init
         suricata.delayed_detect = 1;
 
-        SupportFastPatternForSigMatchTypes();
         PostConfLoadedSetup(&suricata);
         PreRunPostPrivsDropInit(run_mode);
-
-        //dummy init before DetectEngineReload
-        DetectEngineCtx * de_ctx = DetectEngineCtxInit();
-        de_ctx->flags |= DE_QUIET;
-        DetectEngineAddToMaster(de_ctx);
+        PostConfLoadedDetectSetup(&suricata);
 
         memset(&tv, 0, sizeof(tv));
         dtv = DecodeThreadVarsAlloc(&tv);
