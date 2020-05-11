@@ -331,9 +331,6 @@ pub struct DNSState {
 
     pub events: u16,
 
-    pub request_buffer: Vec<u8>,
-    pub response_buffer: Vec<u8>,
-
     gap: bool,
 }
 
@@ -344,21 +341,15 @@ impl DNSState {
             tx_id: 0,
             transactions: Vec::new(),
             events: 0,
-            request_buffer: Vec::new(),
-            response_buffer: Vec::new(),
             gap: false,
         };
     }
 
-    /// Allocate a new state with capacites in the buffers for
-    /// potentially buffering as might be needed in TCP.
     pub fn new_tcp() -> DNSState {
         return DNSState{
             tx_id: 0,
             transactions: Vec::new(),
             events: 0,
-            request_buffer: Vec::with_capacity(0xffff),
-            response_buffer: Vec::with_capacity(0xffff),
             gap: false,
         };
     }
@@ -503,98 +494,100 @@ impl DNSState {
     }
 
     /// TCP variation of response request parser to handle the length
-    /// prefix as well as buffering.
-    ///
-    /// Always buffer and read from the buffer. Should optimize to skip
-    /// the buffer if not needed.
+    /// prefix.
     ///
     /// Returns the number of messages parsed.
-    pub fn parse_request_tcp(&mut self, input: &[u8]) -> i8 {
+    pub fn parse_request_tcp(&mut self, input: &[u8]) -> AppLayerResult {
         if self.gap {
             let (is_dns, _, is_incomplete) = probe_tcp(input);
             if is_dns || is_incomplete{
                 self.gap = false;
             } else {
-                return 0
+                AppLayerResult::ok();
             }
         }
 
-        self.request_buffer.extend_from_slice(input);
-
-        let mut count = 0;
-        while self.request_buffer.len() > 0 {
-            let size = match be_u16(&self.request_buffer) as IResult<&[u8],_> {
+        let mut cur_i = input;
+        let mut consumed = 0;
+        while cur_i.len() > 0 {
+            let size = match be_u16(&cur_i) as IResult<&[u8],_> {
                 Ok((_, len)) => i32::from(len),
                 _ => 0
             } as usize;
             SCLogDebug!("Have {} bytes, need {} to parse",
-                        self.request_buffer.len(), size);
-            if size > 0 && self.request_buffer.len() >= size + 2 {
-                let msg: Vec<u8> = self.request_buffer.drain(0..(size + 2))
-                    .collect();
+                        cur_i.len(), size + 2);
+            if size > 0 && cur_i.len() >= size + 2 {
+                let msg = &cur_i[0..(size+2)];
                 if self.parse_request(&msg[2..]) {
-                    count += 1
+                    cur_i = &cur_i[(size+2)..];
+                    consumed += size+2;
+                } else {
+                    return AppLayerResult::err();
                 }
             } else {
-                SCLogDebug!("Not enough DNS traffic to parse.");
-                break;
+                SCLogDebug!("[request]Not enough DNS traffic to parse. Returning {}/{}",
+                            consumed as u32,
+                            size as u32 +2 - cur_i.len() as u32);
+                return AppLayerResult::incomplete(consumed as u32,
+                        size as u32 +2 - cur_i.len() as u32);
             }
         }
-        return count;
+        AppLayerResult::ok()
     }
 
     /// TCP variation of the response parser to handle the length
-    /// prefix as well as buffering.
-    ///
-    /// Always buffer and read from the buffer. Should optimize to skip
-    /// the buffer if not needed.
+    /// prefix.
     ///
     /// Returns the number of messages parsed.
-    pub fn parse_response_tcp(&mut self, input: &[u8]) -> i8 {
+    pub fn parse_response_tcp(&mut self, input: &[u8]) -> AppLayerResult {
         if self.gap {
             let (is_dns, _, is_incomplete) = probe_tcp(input);
             if is_dns || is_incomplete{
                 self.gap = false;
             } else {
-                return 0
+                return AppLayerResult::ok();
             }
         }
 
-        self.response_buffer.extend_from_slice(input);
-
-        let mut count = 0;
-        while self.response_buffer.len() > 0 {
-            let size = match be_u16(&self.response_buffer) as IResult<&[u8],_> {
+        let mut cur_i = input;
+        let mut consumed = 0;
+        while cur_i.len() > 0 {
+            let size = match be_u16(&cur_i) as IResult<&[u8],_> {
                 Ok((_, len)) => i32::from(len),
                 _ => 0
             } as usize;
-            if size > 0 && self.response_buffer.len() >= size + 2 {
-                let msg: Vec<u8> = self.response_buffer.drain(0..(size + 2))
-                    .collect();
+            SCLogDebug!("Have {} bytes, need {} to parse",
+                        cur_i.len(), size+2);
+            if size > 0 && cur_i.len() >= size + 2 {
+                let msg = &cur_i[0..(size+2)];
                 if self.parse_response(&msg[2..]) {
-                    count += 1;
+                    cur_i = &cur_i[(size+2)..];
+                    consumed += size+2;
+                } else {
+                    return AppLayerResult::err();
                 }
-            } else {
-                break;
+            } else  {
+                SCLogDebug!("[response]Not enough DNS traffic to parse. Returning {}/{}",
+                    consumed as u32,
+                    size as u32 +2 - cur_i.len() as u32);
+                return AppLayerResult::incomplete(consumed as u32,
+                    size as u32 +2 - cur_i.len() as u32);
             }
         }
-        return count;
+        AppLayerResult::ok()
     }
 
-    /// A gap has been seen in the request direction. Set the gap flag
-    /// to clear any buffered data.
+    /// A gap has been seen in the request direction. Set the gap flag.
     pub fn request_gap(&mut self, gap: u32) {
         if gap > 0 {
-            self.request_buffer.clear();
             self.gap = true;
         }
     }
 
     /// A gap has been seen in the response direction. Set the gap
-    /// flag to clear any buffered data.
+    /// flag.
     pub fn response_gap(&mut self, gap: u32) {
         if gap > 0 {
-            self.response_buffer.clear();
             self.gap = true;
         }
     }
@@ -710,8 +703,7 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *const core::Flow,
         if input != std::ptr::null_mut() {
             let buf = unsafe{
                 std::slice::from_raw_parts(input, input_len as usize)};
-            let _ = state.parse_request_tcp(buf);
-            return AppLayerResult::ok();
+            state.parse_request_tcp(buf);
         }
         state.request_gap(input_len);
     }
@@ -732,8 +724,7 @@ pub extern "C" fn rs_dns_parse_response_tcp(_flow: *const core::Flow,
         if input != std::ptr::null_mut() {
             let buf = unsafe{
                 std::slice::from_raw_parts(input, input_len as usize)};
-            let _ = state.parse_response_tcp(buf);
-            return AppLayerResult::ok();
+            return state.parse_response_tcp(buf);
         }
         state.response_gap(input_len);
     }
@@ -1118,7 +1109,10 @@ mod tests {
         request.extend(dns_payload);
 
         let mut state = DNSState::new();
-        assert_eq!(1, state.parse_request_tcp(&request));
+        assert_eq!(
+            AppLayerResult::ok(),
+            state.parse_request_tcp(&request)
+        );
     }
 
     #[test]
@@ -1151,7 +1145,10 @@ mod tests {
         request.extend(dns_payload);
 
         let mut state = DNSState::new();
-        assert_eq!(0, state.parse_request_tcp(&request));
+        assert_eq!(
+            AppLayerResult::incomplete(0, 1),
+            state.parse_request_tcp(&request)
+        );
     }
 
     #[test]
@@ -1189,7 +1186,10 @@ mod tests {
         request.extend(dns_payload);
 
         let mut state = DNSState::new();
-        assert_eq!(1, state.parse_response_tcp(&request));
+        assert_eq!(
+            AppLayerResult::ok(),
+            state.parse_response_tcp(&request)
+        );
     }
 
     // Test that a TCP DNS payload won't be parsed if there is not
@@ -1230,7 +1230,10 @@ mod tests {
         request.extend(dns_payload);
 
         let mut state = DNSState::new();
-        assert_eq!(0, state.parse_response_tcp(&request));
+        assert_eq!(
+            AppLayerResult::incomplete(0, 1),
+            state.parse_response_tcp(&request)
+        );
     }
 
     // Port of the C RustDNSUDPParserTest02 unit test.
@@ -1429,6 +1432,34 @@ mod tests {
             0x00, 0x01
         ];
         let mut state = DNSState::new();
-        assert_eq!(state.parse_request_tcp(buf), 20);
+        assert_eq!(
+            AppLayerResult::ok(),
+            state.parse_request_tcp(buf)
+        );
+    }
+
+    #[test]
+    fn test_dns_tcp_parser_split_payload() {
+        /* incomplete payload */
+        let buf1: &[u8] = &[
+            0x00, 0x1c, 0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ];
+        /* complete payload */
+        let buf2: &[u8] = &[
+            0x00, 0x1c, 0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C, 0x65, 0x03,
+            0x63, 0x6F, 0x6D, 0x00, 0x00, 0x10, 0x00, 0x01
+        ];
+        let mut state = DNSState::new();
+        assert_eq!(
+            AppLayerResult::incomplete(0, 16),
+            state.parse_request_tcp(buf1)
+        );
+        assert_eq!(
+            AppLayerResult::ok(),
+            state.parse_request_tcp(buf2)
+        );
     }
 }
