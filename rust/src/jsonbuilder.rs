@@ -418,10 +418,10 @@ impl JsonBuilder {
     fn encode_string(&mut self, val: &str) -> Result<(), JsonError> {
         let mut buf = vec![0; val.len() * 2 + 2];
         let mut offset = 0;
+        let bytes = val.as_bytes();
         buf[offset] = b'"';
         offset += 1;
-        for c in val.chars() {
-            let x = c as u8;
+        for &x in bytes.iter() {
             if offset + 7 >= buf.capacity() {
                 let mut extend = vec![0; buf.capacity()];
                 buf.append(&mut extend);
@@ -790,7 +790,7 @@ mod test {
     }
 
     #[test]
-    fn test_encode_string_from_bytes() -> Result<(), JsonError> {
+    fn test_append_string_from_bytes() -> Result<(), JsonError> {
         let mut jb = JsonBuilder::new_array();
         let s = &[0x41, 0x41, 0x41, 0x00];
         jb.append_string_from_bytes(s)?;
@@ -799,12 +799,22 @@ mod test {
         let s = &[0x00, 0x01, 0x02, 0x03];
         let mut jb = JsonBuilder::new_array();
         jb.append_string_from_bytes(s)?;
+        assert_eq!(jb.buf, r#"["\u0000\u0001\u0002\u0003""#);
 
         Ok(())
     }
 
     #[test]
-    fn test_encode_string_from_bytes_grow() -> Result<(), JsonError> {
+    fn test_set_string_from_bytes() {
+        let mut jb = JsonBuilder::new_object();
+        jb.set_string_from_bytes("first", &[]).unwrap();
+        assert_eq!(jb.buf, r#"{"first":"""#);
+        jb.set_string_from_bytes("second", &[]).unwrap();
+        assert_eq!(jb.buf, r#"{"first":"","second":"""#);
+    }
+
+    #[test]
+    fn test_append_string_from_bytes_grow() -> Result<(), JsonError> {
         let s = &[0x00, 0x01, 0x02, 0x03];
         let mut jb = JsonBuilder::new_array();
         jb.append_string_from_bytes(s)?;
