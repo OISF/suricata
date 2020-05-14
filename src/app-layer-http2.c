@@ -45,8 +45,8 @@ static int HTTP2RegisterPatternsForProtocolDetection(void)
                                                24, 0, STREAM_TOSERVER) < 0)
      */
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP2,
-                                               "PRI *",
-                                               5, 0, STREAM_TOSERVER) < 0)
+                                               "PRI * HTTP/2.0\r\n",
+                                               16, 0, STREAM_TOSERVER) < 0)
     {
         return -1;
     }

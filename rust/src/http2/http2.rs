@@ -39,7 +39,6 @@ const HTTP2_FRAME_HEADER_LEN: usize = 9;
 const HTTP2_MAGIC_LEN: usize = 24;
 const HTTP2_FRAME_GOAWAY_LEN: usize = 4;
 const HTTP2_FRAME_RSTSTREAM_LEN: usize = 4;
-const HTTP2_FRAME_SETTINGS_LEN: usize = 6;
 const HTTP2_FRAME_PRIORITY_LEN: usize = 1;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 
@@ -104,6 +103,8 @@ pub enum HTTP2Event {
     InvalidFrameHeader = 0,
     InvalidClientMagic,
     InvalidFrameData,
+    InvalidHeader,
+    InvalidFrameLength,
 }
 
 impl HTTP2Event {
@@ -112,6 +113,8 @@ impl HTTP2Event {
             0 => Some(HTTP2Event::InvalidFrameHeader),
             1 => Some(HTTP2Event::InvalidClientMagic),
             2 => Some(HTTP2Event::InvalidFrameData),
+            3 => Some(HTTP2Event::InvalidHeader),
+            4 => Some(HTTP2Event::InvalidFrameLength),
             _ => None,
         }
     }
@@ -209,33 +212,38 @@ impl HTTP2State {
                     let hl = head.length as usize;
                     match head.ftype {
                         parser::HTTP2FrameType::GOAWAY => {
-                            //TODO0.2 check hl
-                            match parser::http2_parse_frame_goaway(rem) {
-                                Ok((_, goaway)) => {
-                                    tx.type_data = Some(HTTP2FrameTypeData::GOAWAY(goaway));
-                                }
-                                // do not trust nom incomplete value
-                                Err(nom::Err::Incomplete(_)) => {
-                                    return AppLayerResult::incomplete(
-                                        (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_GOAWAY_LEN) as u32,
-                                    );
-                                }
-                                Err(_) => {
-                                    self.set_event(HTTP2Event::InvalidFrameData);
+                            if hl < HTTP2_FRAME_GOAWAY_LEN {
+                                self.set_event(HTTP2Event::InvalidFrameLength);
+                            } else {
+                                match parser::http2_parse_frame_goaway(rem) {
+                                    Ok((_, goaway)) => {
+                                        tx.type_data = Some(HTTP2FrameTypeData::GOAWAY(goaway));
+                                    }
+                                    // do not trust nom incomplete value
+                                    Err(nom::Err::Incomplete(_)) => {
+                                        return AppLayerResult::incomplete(
+                                            (il - input.len()) as u32,
+                                            (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_GOAWAY_LEN)
+                                                as u32,
+                                        );
+                                    }
+                                    Err(_) => {
+                                        self.set_event(HTTP2Event::InvalidFrameData);
+                                    }
                                 }
                             }
                         }
                         parser::HTTP2FrameType::SETTINGS => {
-                            match parser::http2_parse_frame_settings(rem) {
+                            //we need to check for completeness first
+                            if rem.len() < hl {
+                                return AppLayerResult::incomplete(
+                                    (il - input.len()) as u32,
+                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                );
+                            }
+                            match parser::http2_parse_frame_settings(&rem[..hl]) {
                                 Ok((_, set)) => {
                                     tx.type_data = Some(HTTP2FrameTypeData::SETTINGS(set));
-                                }
-                                Err(nom::Err::Incomplete(_)) => {
-                                    return AppLayerResult::incomplete(
-                                        (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_SETTINGS_LEN) as u32,
-                                    );
                                 }
                                 Err(_) => {
                                     self.set_event(HTTP2Event::InvalidFrameData);
@@ -243,51 +251,65 @@ impl HTTP2State {
                             }
                         }
                         parser::HTTP2FrameType::RSTSTREAM => {
-                            match parser::http2_parse_frame_rststream(rem) {
-                                Ok((_, rst)) => {
-                                    tx.type_data = Some(HTTP2FrameTypeData::RSTSTREAM(rst));
-                                }
-                                Err(nom::Err::Incomplete(_)) => {
-                                    return AppLayerResult::incomplete(
-                                        (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_RSTSTREAM_LEN) as u32,
-                                    );
-                                }
-                                Err(_) => {
-                                    self.set_event(HTTP2Event::InvalidFrameData);
+                            if hl != HTTP2_FRAME_RSTSTREAM_LEN {
+                                self.set_event(HTTP2Event::InvalidFrameLength);
+                            } else {
+                                match parser::http2_parse_frame_rststream(rem) {
+                                    Ok((_, rst)) => {
+                                        tx.type_data = Some(HTTP2FrameTypeData::RSTSTREAM(rst));
+                                    }
+                                    Err(nom::Err::Incomplete(_)) => {
+                                        return AppLayerResult::incomplete(
+                                            (il - input.len()) as u32,
+                                            (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_RSTSTREAM_LEN)
+                                                as u32,
+                                        );
+                                    }
+                                    Err(_) => {
+                                        self.set_event(HTTP2Event::InvalidFrameData);
+                                    }
                                 }
                             }
                         }
                         parser::HTTP2FrameType::PRIORITY => {
-                            match parser::http2_parse_frame_priority(rem) {
-                                Ok((_, priority)) => {
-                                    tx.type_data = Some(HTTP2FrameTypeData::PRIORITY(priority));
-                                }
-                                Err(nom::Err::Incomplete(_)) => {
-                                    return AppLayerResult::incomplete(
-                                        (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_PRIORITY_LEN) as u32,
-                                    );
-                                }
-                                Err(_) => {
-                                    self.set_event(HTTP2Event::InvalidFrameData);
+                            if hl != HTTP2_FRAME_PRIORITY_LEN {
+                                self.set_event(HTTP2Event::InvalidFrameLength);
+                            } else {
+                                match parser::http2_parse_frame_priority(rem) {
+                                    Ok((_, priority)) => {
+                                        tx.type_data = Some(HTTP2FrameTypeData::PRIORITY(priority));
+                                    }
+                                    Err(nom::Err::Incomplete(_)) => {
+                                        return AppLayerResult::incomplete(
+                                            (il - input.len()) as u32,
+                                            (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_PRIORITY_LEN)
+                                                as u32,
+                                        );
+                                    }
+                                    Err(_) => {
+                                        self.set_event(HTTP2Event::InvalidFrameData);
+                                    }
                                 }
                             }
                         }
                         parser::HTTP2FrameType::WINDOWUPDATE => {
-                            match parser::http2_parse_frame_windowupdate(rem) {
-                                Ok((_, wu)) => {
-                                    tx.type_data = Some(HTTP2FrameTypeData::WINDOWUPDATE(wu));
-                                }
-                                Err(nom::Err::Incomplete(_)) => {
-                                    return AppLayerResult::incomplete(
-                                        (il - input.len()) as u32,
-                                        (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_WINDOWUPDATE_LEN)
-                                            as u32,
-                                    );
-                                }
-                                Err(_) => {
-                                    self.set_event(HTTP2Event::InvalidFrameData);
+                            if hl != HTTP2_FRAME_WINDOWUPDATE_LEN {
+                                self.set_event(HTTP2Event::InvalidFrameLength);
+                            } else {
+                                match parser::http2_parse_frame_windowupdate(rem) {
+                                    Ok((_, wu)) => {
+                                        tx.type_data = Some(HTTP2FrameTypeData::WINDOWUPDATE(wu));
+                                    }
+                                    Err(nom::Err::Incomplete(_)) => {
+                                        return AppLayerResult::incomplete(
+                                            (il - input.len()) as u32,
+                                            (HTTP2_FRAME_HEADER_LEN + HTTP2_FRAME_WINDOWUPDATE_LEN)
+                                                as u32,
+                                        );
+                                    }
+                                    Err(_) => {
+                                        self.set_event(HTTP2Event::InvalidFrameData);
+                                    }
                                 }
                             }
                         }
@@ -300,8 +322,16 @@ impl HTTP2State {
                                 );
                             }
                             match parser::http2_parse_frame_headers(&rem[..hl], head.flags) {
-                                Ok((_, hs)) => {
-                                    //TODO0.3 check completeness of parsing
+                                Ok((hrem, hs)) => {
+                                    for i in 0..hs.blocks.len() {
+                                        if hs.blocks[i].error != parser::HTTP2HeaderDecodeError::HTTP2HeaderDecodeSuccess{
+self.set_event(HTTP2Event::InvalidHeader);
+}
+                                    }
+                                    if hrem.len() > 0 {
+                                        SCLogNotice!("Remaining data for HTTP2 headers");
+                                        //TODOnext panic when fuzzing
+                                    }
                                     tx.type_data = Some(HTTP2FrameTypeData::HEADERS(hs));
                                 }
                                 Err(_) => {
@@ -616,6 +646,8 @@ pub extern "C" fn rs_http2_state_get_event_info(
                 "invalid_frame_header" => HTTP2Event::InvalidFrameHeader as i32,
                 "invalid_client_magic" => HTTP2Event::InvalidClientMagic as i32,
                 "invalid_frame_data" => HTTP2Event::InvalidFrameData as i32,
+                "invalid_header" => HTTP2Event::InvalidHeader as i32,
+                "invalid_frame_length" => HTTP2Event::InvalidFrameLength as i32,
                 _ => -1, // unknown event
             }
         }
@@ -639,6 +671,8 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::InvalidFrameHeader => "invalid_frame_header\0",
             HTTP2Event::InvalidClientMagic => "invalid_client_magic\0",
             HTTP2Event::InvalidFrameData => "invalid_frame_data\0",
+            HTTP2Event::InvalidHeader => "invalid_header\0",
+            HTTP2Event::InvalidFrameLength => "invalid_frame_length\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;

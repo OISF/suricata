@@ -55,8 +55,8 @@ fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
             //TODOask filter based on configuration ?
             for i in 0..hd.blocks.len() {
                 let jss = Json::object();
-                jss.set_string("name", &hd.blocks[i].name);
-                jss.set_string("value", &hd.blocks[i].value);
+                jss.set_string_from_bytes("name", &hd.blocks[i].name);
+                jss.set_string_from_bytes("value", &hd.blocks[i].value);
                 headers.array_append(jss)
             }
             js.set("headers", headers);
