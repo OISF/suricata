@@ -124,6 +124,7 @@ pub struct HTTP2State {
     tx_id: u64,
     request_frame_size: u32,
     response_frame_size: u32,
+    dynamic_headers: Vec<parser::HTTP2FrameHeaderBlock>,
     transactions: Vec<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
 }
@@ -134,6 +135,7 @@ impl HTTP2State {
             tx_id: 0,
             request_frame_size: 0,
             response_frame_size: 0,
+            dynamic_headers: Vec::with_capacity(255 - parser::HTTP2_STATIC_HEADERS_NUMBER),
             transactions: Vec::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
         }
@@ -321,12 +323,16 @@ impl HTTP2State {
                                     (HTTP2_FRAME_HEADER_LEN + hl) as u32,
                                 );
                             }
-                            match parser::http2_parse_frame_headers(&rem[..hl], head.flags) {
+                            match parser::http2_parse_frame_headers(
+                                &rem[..hl],
+                                head.flags,
+                                &mut self.dynamic_headers,
+                            ) {
                                 Ok((hrem, hs)) => {
                                     for i in 0..hs.blocks.len() {
-                                        if hs.blocks[i].error != parser::HTTP2HeaderDecodeError::HTTP2HeaderDecodeSuccess{
-self.set_event(HTTP2Event::InvalidHeader);
-}
+                                        if hs.blocks[i].error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
+                                            self.set_event(HTTP2Event::InvalidHeader);
+                                        }
                                     }
                                     if hrem.len() > 0 {
                                         SCLogNotice!("Remaining data for HTTP2 headers");

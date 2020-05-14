@@ -315,3 +315,5 @@ pub extern "C" fn rs_http2_detect_settingsctx_match(
 
     return 0;
 }
+
+//TODO1 detection for headers

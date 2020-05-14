@@ -16,6 +16,7 @@
  */
 
 use super::http2::{HTTP2FrameTypeData, HTTP2Transaction};
+use super::parser;
 use crate::json::*;
 use std;
 
@@ -55,8 +56,11 @@ fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
             //TODOask filter based on configuration ?
             for i in 0..hd.blocks.len() {
                 let jss = Json::object();
-                jss.set_string_from_bytes("name", &hd.blocks[i].name);
-                jss.set_string_from_bytes("value", &hd.blocks[i].value);
+                if hd.blocks[i].error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess {
+                    jss.set_string_from_bytes("name", &hd.blocks[i].name);
+                    jss.set_string_from_bytes("value", &hd.blocks[i].value);
+                }
+                //TODOnext else ?
                 headers.array_append(jss)
             }
             js.set("headers", headers);
