@@ -485,12 +485,6 @@ outputs:
         # one taken into consideration.
         header: X-Forwarded-For
 
-  # deprecated - file-store v1
-  - file-store:
-      enabled: no
-      # further options documented at:
-      # https://suricata.readthedocs.io/en/suricata-5.0.0/file-extraction/file-extraction.html#file-store-version-1
-
   # Log TCP data after stream normalization
   # Two types: file or dir:
   #     - file logs into a single logfile.
