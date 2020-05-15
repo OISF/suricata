@@ -30,6 +30,12 @@ by the ones Suricata supplies.
 Major updates include new features, new default settings and often also
 remove features.
 
+Upgrading 5.0 to 6.0
+--------------------
+
+Removals
+~~~~~~~~
+- File-store v1 has been removed. If using file extraction, the file-store configuration will need to be updated to version 2. See :ref:`filestore-update-v1-to-v2`.
 
 Upgrading 4.1 to 5.0
 --------------------
