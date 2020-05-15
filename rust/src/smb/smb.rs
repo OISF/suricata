@@ -1160,11 +1160,13 @@ impl SMBState {
     {
         let mut post_gap_txs = false;
         for tx in &mut self.transactions {
-            if let Some(SMBTransactionTypeData::FILE(ref f)) = tx.type_data {
+            if let Some(SMBTransactionTypeData::FILE(ref mut f)) = tx.type_data {
                 if f.post_gap_ts > 0 {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
                         tx.response_done = true;
+                        let (files, flags) = self.files.get(f.direction);
+                        f.file_tracker.trunc(files, flags);
                     } else {
                         post_gap_txs = true;
                     }
