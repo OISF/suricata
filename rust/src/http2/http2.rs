@@ -43,9 +43,9 @@ const HTTP2_FRAME_PRIORITY_LEN: usize = 1;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 
 pub enum HTTP2FrameTypeData {
-    //TODO3 PUSH_PROMISE
+    //TODO2.0 PUSH_PROMISE
     //TODO4 DATA
-    //TODO2 CONTINUATION
+    //TODO2.1 CONTINUATION
     //Left undone PING
     PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
