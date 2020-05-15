@@ -1,3 +1,5 @@
+.. _filestore-update-v1-to-v2:
+
 Update File-store v1 Configuration to V2
 ========================================
 
