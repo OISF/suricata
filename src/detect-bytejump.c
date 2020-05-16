@@ -720,7 +720,7 @@ static int DetectBytejumpTestParse03(void)
  * \test DetectBytejumpTestParse04 is a test for setting the optional flags
  *       with parameters
  *
- * \todo This fails becuase we can only have 9 captures and there are 10.
+ * \todo This fails because we can only have 9 captures and there are 10.
  */
 static int DetectBytejumpTestParse04(void)
 {
