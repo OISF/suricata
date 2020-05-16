@@ -32,7 +32,7 @@ ThreadVars tv;
 DecodeThreadVars *dtv;
 //FlowWorkerThreadData
 void *fwd;
-SCInstance suricata;
+SCInstance surifuzz;
 
 const char configNoChecksum[] = "\
 %YAML 1.1\n\
@@ -154,13 +154,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
             abort();
         }
-        suricata.sig_file = strdup("/tmp/fuzz.rules");
-        suricata.sig_file_exclusive = 1;
+        surifuzz.sig_file = strdup("/tmp/fuzz.rules");
+        surifuzz.sig_file_exclusive = 1;
         //loads rules after init
-        suricata.delayed_detect = 1;
+        surifuzz.delayed_detect = 1;
 
         SupportFastPatternForSigMatchTypes();
-        PostConfLoadedSetup(&suricata);
+        PostConfLoadedSetup(&surifuzz);
         PreRunPostPrivsDropInit(run_mode);
 
         //dummy init before DetectEngineReload
@@ -201,16 +201,16 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     if (pos > 0 && pos < size) {
         // dump signatures to a file so as to reuse SigLoadSignatures
-        if (TestHelperBufferToFile(suricata.sig_file, data, pos-1) < 0) {
+        if (TestHelperBufferToFile(surifuzz.sig_file, data, pos-1) < 0) {
             return 0;
         }
     } else {
-        if (TestHelperBufferToFile(suricata.sig_file, data, pos) < 0) {
+        if (TestHelperBufferToFile(surifuzz.sig_file, data, pos) < 0) {
             return 0;
         }
     }
 
-    if (DetectEngineReload(&suricata) < 0) {
+    if (DetectEngineReload(&surifuzz) < 0) {
         return 0;
     }
     if (pos < size) {
