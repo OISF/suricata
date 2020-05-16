@@ -29,7 +29,7 @@ AppLayerParserThreadCtx *alp_tctx = NULL;
  * destination port (uint16_t) */
 
 const uint8_t separator[] = {0x01, 0xD5, 0xCA, 0x7A};
-SCInstance suricata;
+SCInstance surifuzz;
 uint64_t forceLayer = 0;
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
@@ -59,7 +59,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         //redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
 
-        PostConfLoadedSetup(&suricata);
+        PostConfLoadedSetup(&surifuzz);
         alp_tctx = AppLayerParserThreadCtxAlloc();
         const char* forceLayerStr = getenv("FUZZ_APPLAYER");
         if (forceLayerStr) {
