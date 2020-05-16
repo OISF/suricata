@@ -168,8 +168,10 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     if (flags & DETECT_BYTEJUMP_BEGIN) {
         jumpptr = payload + val;
         //printf("NEWVAL: payload %p + %ld = %p\n", p->payload, val, jumpptr);
-    }
-    else {
+    } else if (flags & DETECT_BYTEJUMP_END) {
+        jumpptr = payload + payload_len + val;
+        //printf("NEWVAL: payload %p + %ld = %p\n", p->payload, val, jumpptr);
+    } else {
         val += extbytes;
         jumpptr = ptr + val;
         //printf("NEWVAL: ptr %p + %ld = %p\n", ptr, val, jumpptr);
@@ -435,6 +437,8 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
             data->flags |= DETECT_BYTEJUMP_LITTLE;
         } else if (strcasecmp("from_beginning", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_BEGIN;
+        } else if (strcasecmp("from_end", args[i]) == 0) {
+            data->flags |= DETECT_BYTEJUMP_END;
         } else if (strcasecmp("align", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_ALIGN;
         } else if (strncasecmp("multiplier ", args[i], 11) == 0) {
@@ -566,6 +570,7 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             (data->flags & DETECT_BYTEJUMP_LITTLE) ||
             (data->flags & DETECT_BYTEJUMP_BIG) ||
             (data->flags & DETECT_BYTEJUMP_BEGIN) ||
+            (data->flags & DETECT_BYTEJUMP_END) ||
             (data->base == DETECT_BYTEJUMP_BASE_DEC) ||
             (data->base == DETECT_BYTEJUMP_BASE_HEX) ||
             (data->base == DETECT_BYTEJUMP_BASE_OCT) ) {
@@ -1094,6 +1099,19 @@ static int DetectBytejumpTestParse12(void)
     return result;
 }
 
+static int DetectBytejumpTestParse13(void)
+{
+    DetectBytejumpData *data = NULL;
+    data=DetectBytejumpParse(NULL, " 4,0 , relative , little, string, dec, "
+                               "align, from_end", NULL);
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->flags & DETECT_BYTEJUMP_END);
+
+    DetectBytejumpFree(NULL, data);
+
+    PASS;
+}
+
 /**
  * \test DetectByteJumpTestPacket01 is a test to check matches of
  * byte_jump and byte_jump relative works if the previous keyword is pcre
@@ -1283,6 +1301,26 @@ end:
     return result;
 }
 
+/**
+ * \test check matches of with from_end
+ */
+static int DetectByteJumpTestPacket08 (void)
+{
+    uint8_t *buf = (uint8_t *)"XX04abcdABCD";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    FAIL_IF_NULL(p);
+
+    char sig[] = "alert tcp any any -> any any (content:\"XX\"; byte_jump:2,0,relative,string,dec,from_end, post_offset -8; content:\"ABCD\";  sid:1; rev:1;)";
+
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
+
+    UTHFreePacket(p);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 
@@ -1307,6 +1345,7 @@ static void DetectBytejumpRegisterTests(void)
     UtRegisterTest("DetectBytejumpTestParse10", DetectBytejumpTestParse10);
     UtRegisterTest("DetectBytejumpTestParse11", DetectBytejumpTestParse11);
     UtRegisterTest("DetectBytejumpTestParse12", DetectBytejumpTestParse12);
+    UtRegisterTest("DetectBytejumpTestParse13", DetectBytejumpTestParse13);
 
     UtRegisterTest("DetectByteJumpTestPacket01", DetectByteJumpTestPacket01);
     UtRegisterTest("DetectByteJumpTestPacket02", DetectByteJumpTestPacket02);
@@ -1315,6 +1354,7 @@ static void DetectBytejumpRegisterTests(void)
     UtRegisterTest("DetectByteJumpTestPacket05", DetectByteJumpTestPacket05);
     UtRegisterTest("DetectByteJumpTestPacket06", DetectByteJumpTestPacket06);
     UtRegisterTest("DetectByteJumpTestPacket07", DetectByteJumpTestPacket07);
+    UtRegisterTest("DetectByteJumpTestPacket08", DetectByteJumpTestPacket08);
 #endif /* UNITTESTS */
 }
 

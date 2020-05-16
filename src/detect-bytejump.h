@@ -39,11 +39,12 @@
 #define DETECT_BYTEJUMP_ALIGN    0x20 /**< "align" offset */
 #define DETECT_BYTEJUMP_DCE      0x40 /**< "dce" enabled */
 #define DETECT_BYTEJUMP_OFFSET_BE 0x80 /**< "byte extract" enabled */
+#define DETECT_BYTEJUMP_END      0x100 /**< "from_end" jump */
 
 typedef struct DetectBytejumpData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */
     uint8_t base;                     /**< String value base (oct|dec|hex) */
-    uint8_t flags;                    /**< Flags (big|little|relative|string) */
+    uint16_t flags;                    /**< Flags (big|little|relative|string) */
     uint32_t multiplier;              /**< Multiplier for nbytes (multiplier n)*/
     int32_t offset;                   /**< Offset in payload to extract value */
     int32_t post_offset;              /**< Offset to adjust post-jump */
