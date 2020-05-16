@@ -120,5 +120,16 @@ int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx,
          const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
 
+typedef struct PrefilterMpmListId {
+    int list_id;
+    const MpmCtx *mpm_ctx;
+    const DetectEngineTransforms *transforms;
+} PrefilterMpmListId;
+
+struct MpmListIdDataArgs {
+    int local_id;  /**< used as index into thread inspect array */
+    void *txv;
+};
+
 #endif /* __DETECT_ENGINE_MPM_H__ */
 
