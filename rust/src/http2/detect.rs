@@ -362,4 +362,79 @@ pub extern "C" fn rs_http2_tx_get_header_name(
     return 0;
 }
 
-//TODO1 detection for headers values
+#[no_mangle]
+pub extern "C" fn rs_http2_tx_get_header(
+    tx: *mut std::os::raw::c_void,
+    direction: u8,
+    i: u32,
+    buffer: *mut *const u8,
+    buffer_len: *mut u32,
+) -> u8 {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    match direction {
+        STREAM_TOSERVER => match &tx.type_data {
+            Some(HTTP2FrameTypeData::HEADERS(hd)) => {
+                if (i as usize) < hd.blocks.len() {
+                    let mut vec = Vec::new();
+                    for j in 0..hd.blocks[i as usize].name.len() {
+                        vec.push(hd.blocks[i as usize].name[j]);
+                        if hd.blocks[i as usize].name[j] == ':' as u8 {
+                            vec.push(':' as u8);
+                        }
+                    }
+                    vec.push(':' as u8);
+                    for j in 0..hd.blocks[i as usize].value.len() {
+                        vec.push(hd.blocks[i as usize].value[j]);
+                        if hd.blocks[i as usize].value[j] == ':' as u8 {
+                            vec.push(':' as u8);
+                        }
+                    }
+                    let value = &vec;
+                    unsafe {
+                        *buffer = value.as_ptr();
+                        *buffer_len = value.len() as u32;
+                    }
+                    return 1;
+                }
+            }
+            _ => {
+                return 0;
+            }
+        },
+        STREAM_TOCLIENT => match &tx.type_data {
+            Some(HTTP2FrameTypeData::HEADERS(hd)) => {
+                if (i as usize) < hd.blocks.len() {
+                    let mut vec = Vec::new();
+                    for j in 0..hd.blocks[i as usize].name.len() {
+                        vec.push(hd.blocks[i as usize].name[j]);
+                        /* this escaping is needed
+                         * to avoid amibguity with separator between name and value
+                         */
+                        if hd.blocks[i as usize].name[j] == ':' as u8 {
+                            vec.push(':' as u8);
+                        }
+                    }
+                    vec.push(':' as u8);
+                    for j in 0..hd.blocks[i as usize].value.len() {
+                        vec.push(hd.blocks[i as usize].value[j]);
+                        if hd.blocks[i as usize].value[j] == ':' as u8 {
+                            vec.push(':' as u8);
+                        }
+                    }
+                    let value = &vec;
+                    unsafe {
+                        *buffer = value.as_ptr();
+                        *buffer_len = value.len() as u32;
+                    }
+                    return 1;
+                }
+            }
+            _ => {
+                return 0;
+            }
+        },
+        _ => {}
+    }
+
+    return 0;
+}
