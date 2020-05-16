@@ -562,7 +562,6 @@ fn http2_parse_headers_block_indexed<'a>(
     input: &'a [u8],
     dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
-    //TODOask why we need this over error[E0282]: type annotations needed for `((&[u8], usize), O1)`
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
             input,
