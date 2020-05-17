@@ -786,6 +786,7 @@ pub struct SMBState<> {
     /// true as long as we have file txs that are in a post-gap
     /// state. It means we'll do extra house keeping for those.
     check_post_gap_file_txs: bool,
+    post_gap_files_checked: bool,
 
     /// transactions list
     pub transactions: Vec<SMBTransaction>,
@@ -832,6 +833,7 @@ impl SMBState {
             ts_trunc: false,
             tc_trunc: false,
             check_post_gap_file_txs: false,
+            post_gap_files_checked: false,
             transactions: Vec::new(),
             tx_id:0,
             dialect:0,
@@ -932,6 +934,7 @@ impl SMBState {
     fn update_ts(&mut self, ts: u64) {
         if ts != self.ts {
             self.ts = ts;
+            self.post_gap_files_checked = false;
         }
     }
 
@@ -1504,8 +1507,9 @@ impl SMBState {
         };
 
         self.post_gap_housekeeping(STREAM_TOSERVER);
-        if self.check_post_gap_file_txs {
+        if self.check_post_gap_file_txs && !self.post_gap_files_checked {
             self.post_gap_housekeeping_for_files();
+            self.post_gap_files_checked = true;
         }
         0
     }
@@ -1734,8 +1738,9 @@ impl SMBState {
             }
         };
         self.post_gap_housekeeping(STREAM_TOCLIENT);
-        if self.check_post_gap_file_txs {
+        if self.check_post_gap_file_txs && !self.post_gap_files_checked {
             self.post_gap_housekeeping_for_files();
+            self.post_gap_files_checked = true;
         }
         self._debug_tx_stats();
         0
