@@ -885,16 +885,41 @@ static StreamingBufferBlock *GetBlock(StreamingBuffer *sb, const uint64_t offset
     return NULL;
 }
 
+static inline uint64_t GetAbsLastAck(const TcpStream *stream)
+{
+    if (STREAM_LASTACK_GT_BASESEQ(stream)) {
+        return STREAM_BASE_OFFSET(stream) +
+            (stream->last_ack - stream->base_seq);
+    } else {
+        return STREAM_BASE_OFFSET(stream);
+    }
+}
+
+static inline bool GapAhead(TcpStream *stream, StreamingBufferBlock *cur_blk)
+{
+    StreamingBufferBlock *nblk = SBB_RB_NEXT(cur_blk);
+    if (nblk && (cur_blk->offset + cur_blk->len < nblk->offset) &&
+            GetAbsLastAck(stream) >= (cur_blk->offset + cur_blk->len)) {
+        return true;
+    }
+    return false;
+}
+
 /** \internal
  *
  *  Get buffer, or first part of the buffer if data gaps exist.
  *
  *  \brief get stream data from offset
- *  \param offset stream offset */
-static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_len, uint64_t offset)
+ *  \param offset stream offset
+ *  \param check_for_gap check if there is a gap ahead. Optional as it is only
+ *                       needed for app-layer incomplete support.
+ *  \retval bool pkt loss ahead */
+static bool GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_len,
+        uint64_t offset, const bool check_for_gap)
 {
     const uint8_t *mydata;
     uint32_t mydata_len;
+    bool gap_ahead = false;
 
     if (RB_EMPTY(&stream->sb.sbb_tree)) {
         SCLogDebug("getting one blob");
@@ -908,13 +933,15 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
         if (blk == NULL) {
             *data = NULL;
             *data_len = 0;
-            return;
+            return false;
         }
 
         /* block at expected offset */
         if (blk->offset == offset) {
 
             StreamingBufferSBBGetData(&stream->sb, blk, data, data_len);
+
+            gap_ahead = check_for_gap && GapAhead(stream, blk);
 
         /* block past out offset */
         } else if (blk->offset > offset) {
@@ -930,11 +957,15 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
                     offset, blk->offset, blk->len);
             StreamingBufferSBBGetDataAtOffset(&stream->sb, blk, data, data_len, offset);
             SCLogDebug("data %p, data_len %u", *data, *data_len);
+
+            gap_ahead = check_for_gap && GapAhead(stream, blk);
+
         } else {
             *data = NULL;
             *data_len = 0;
         }
     }
+    return gap_ahead;
 }
 
 /** \internal
@@ -1047,9 +1078,12 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
     const uint8_t *mydata;
     uint32_t mydata_len;
+    bool gap_ahead = false;
 
     while (1) {
-        GetAppBuffer(*stream, &mydata, &mydata_len, app_progress);
+        bool check_for_gap_ahead = ((*stream)->data_required > 0);
+        gap_ahead = GetAppBuffer(*stream, &mydata, &mydata_len,
+                app_progress, check_for_gap_ahead);
         DEBUG_VALIDATE_BUG_ON(mydata_len > (uint32_t)INT_MAX);
         if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, *stream, p)) {
             SCLogDebug("sending GAP to app-layer (size: %u)", mydata_len);
@@ -1067,12 +1101,13 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
             /* a GAP also consumes 'data required'. TODO perhaps we can use
              * this to skip post GAP data until the start of a next record. */
-            if ((*stream)->data_required > mydata_len) {
-                (*stream)->data_required -= mydata_len;
-            } else {
-                (*stream)->data_required = 0;
+            if ((*stream)->data_required > 0) {
+                if ((*stream)->data_required > mydata_len) {
+                    (*stream)->data_required -= mydata_len;
+                } else {
+                    (*stream)->data_required = 0;
+                }
             }
-
             if (r < 0)
                 return 0;
 
@@ -1099,7 +1134,12 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
     if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED) {
         if (mydata_len < (*stream)->data_required) {
-            SCLogDebug("mydata_len %u data_required %u", mydata_len, (*stream)->data_required);
+            if (gap_ahead) {
+                (*stream)->app_progress_rel += mydata_len;
+                (*stream)->data_required -= mydata_len;
+                // TODO send incomplete data to app-layer with special flag
+                // indicating its all there is for this rec?
+            }
             SCReturnInt(0);
         }
     }
