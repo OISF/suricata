@@ -924,6 +924,12 @@ impl SMBState {
         return None;
     }
 
+    fn update_ts(&mut self, ts: u64) {
+        if ts != self.ts {
+            self.ts = ts;
+        }
+    }
+
     /* generic TX has no type_data and is only used to
      * track a single cmd request/reply pair. */
 
@@ -1853,7 +1859,7 @@ pub extern "C" fn rs_smb_parse_request_tcp(flow: &mut Flow,
         state.ts_gap = true;
     }
 
-    state.ts = flow.get_last_time().as_secs();
+    state.update_ts(flow.get_last_time().as_secs());
     state.parse_tcp_data_ts(buf)
 }
 
@@ -1885,7 +1891,7 @@ pub extern "C" fn rs_smb_parse_response_tcp(flow: &mut Flow,
         state.tc_gap = true;
     }
 
-    state.ts = flow.get_last_time().as_secs();
+    state.update_ts(flow.get_last_time().as_secs());
     state.parse_tcp_data_tc(buf)
 }
 
