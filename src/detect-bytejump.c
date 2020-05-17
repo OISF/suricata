@@ -90,7 +90,7 @@ void DetectBytejumpRegister (void)
  */
 int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                           const SigMatchCtx *ctx, const uint8_t *payload, uint32_t payload_len,
-                          uint8_t flags, int32_t offset)
+                          uint16_t flags, int32_t offset)
 {
     SCEnter();
 
