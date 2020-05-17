@@ -77,7 +77,7 @@ void DetectBytejumpRegister (void);
  *       error as a match.
  */
 int DetectBytejumpDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchCtx *,
-                          const uint8_t *, uint32_t, uint8_t, int32_t);
+                          const uint8_t *, uint32_t, uint16_t, int32_t);
 
 #endif /* __DETECT_BYTEJUMP_H__ */
 

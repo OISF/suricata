@@ -486,7 +486,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
     } else if (smd->type == DETECT_BYTEJUMP) {
         DetectBytejumpData *bjd = (DetectBytejumpData *)smd->ctx;
-        uint8_t bjflags = bjd->flags;
+        uint16_t bjflags = bjd->flags;
         int32_t offset = bjd->offset;
 
         if (bjflags & DETECT_BYTEJUMP_OFFSET_BE) {
