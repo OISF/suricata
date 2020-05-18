@@ -153,7 +153,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         }
     }
 
-    //printf("VAL: (%" PRIu64 " x %" PRIu32 ") + %d + %" PRId32 "\n", val, data->multiplier, extbytes, data->post_offset);
+    SCLogDebug("VAL: (%" PRIu64 " x %" PRIu32 ") + %d + %" PRId32 "\n", val, data->multiplier, extbytes, data->post_offset);
 
     /* Adjust the jump value based on flags */
     val *= data->multiplier;
@@ -167,14 +167,14 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     /* Calculate the jump location */
     if (flags & DETECT_BYTEJUMP_BEGIN) {
         jumpptr = payload + val;
-        //printf("NEWVAL: payload %p + %ld = %p\n", p->payload, val, jumpptr);
+        SCLogDebug("NEWVAL: payload %p + %" PRIu64 "= %p\n", payload, val, jumpptr);
     } else if (flags & DETECT_BYTEJUMP_END) {
         jumpptr = payload + payload_len + val;
-        //printf("NEWVAL: payload %p + %ld = %p\n", p->payload, val, jumpptr);
+        SCLogDebug("NEWVAL: payload %p + %" PRIu32 " - %" PRIu64 " = %p\n", payload, payload_len, val, jumpptr);
     } else {
         val += extbytes;
         jumpptr = ptr + val;
-        //printf("NEWVAL: ptr %p + %ld = %p\n", ptr, val, jumpptr);
+        SCLogDebug("NEWVAL: ptr %p + %" PRIu64 " = %p\n", ptr, val, jumpptr);
     }
 
 
