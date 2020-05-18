@@ -273,13 +273,26 @@ You can also use the negation (!) before isdataat.
 bsize
 -----
 
-With the bsize keyword, you can match on the length of a buffer. This adds precision to the content match, previously this could have been done with isdataat.
+With the ``bsize`` keyword, you can match on the length of the buffer. This adds
+precision to the content match, previously this could have been done with ``isdataat``.
+
+An optional operator can be specified; if no operator is present, the operator will
+default to '='. When a relational operator is used, e.g., '<', '>' or '<>' (range),
+the bsize value will be compared using the relational operator. Ranges are inclusive.
+
+If one or more ``content`` keywords precedes ``bsize``, each occurrence of ``content``
+will be inspected and an error will be raised if the content length and the bsize
+value prevent a match.
 
 Format::
 
   bsize:<number>;
+  bsize:=<number>;
+  bsize:<<number>;
+  bsize:><number>;
+  bsize:<lo-number><><hi-number>;
 
-Examples of bsize values:
+Examples of ``bsize`` in a rule:
 
 .. container:: example-rule
 
@@ -295,6 +308,18 @@ Examples of bsize values:
 
    alert dns any any -> any any (msg:"bsize buffer range value"; dns.query; content:"google.com"; bsize:8<>20; sid:6; rev:1;)
 
+
+.. container:: example-rule
+
+   alert dns any any -> any any (msg:"test bsize rule"; dns.query; content:"short"; bsize:<10; sid:124; rev:1;)
+
+.. container:: example-rule
+
+   alert dns any any -> any any (msg:"test bsize rule"; dns.query; content:"longer string"; bsize:>10; sid:125; rev:1;)
+
+.. container:: example-rule
+
+   alert dns any any -> any any (msg:"test bsize rule"; dns.query; content:"middle"; bsize:6<>15; sid:126; rev:1;)
 
 dsize
 -----
