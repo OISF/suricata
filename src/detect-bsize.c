@@ -65,6 +65,8 @@ void DetectBsizeRegister(void)
 #define DETECT_BSIZE_RA 2
 #define DETECT_BSIZE_EQ 3
 
+const char *bsize_mode_strings[] = { "<", ">", "<>", "="};
+
 typedef struct DetectBsizeData {
     uint8_t mode;
     uint64_t lo;
@@ -291,6 +293,38 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     DetectBsizeData *bsz = DetectBsizeParse(sizestr);
     if (bsz == NULL)
         goto error;
+
+    SigMatch *pm = NULL;
+    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    if (pm != NULL) {
+        DetectContentData *cd = (DetectContentData *) pm->ctx;
+        SCLogDebug("Content %.*s, content length %d", cd->content_len, cd->content, cd->content_len);
+        /* Check if match with content is possible */
+        bool possible = false;
+        switch (bsz->mode) {
+            case DETECT_BSIZE_EQ:
+                possible = bsz->lo == cd->content_len;
+                break;
+            case DETECT_BSIZE_GT:
+                possible = bsz->lo < cd->content_len;
+                break;
+            case DETECT_BSIZE_LT:
+                possible = cd->content_len < bsz->lo;
+                break;
+            case DETECT_BSIZE_RA:
+                possible = bsz->lo < cd->content_len && cd->content_len < bsz->hi;
+                break;
+        }
+        if (!possible) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "bsize match impossible: content len %d and bsize op '%s' "
+                    "values lo=%ld; hi=%ld",
+                    cd->content_len,
+                    bsize_mode_strings[bsz->mode], bsz->lo,bsz->hi);
+            goto error;
+        }
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
