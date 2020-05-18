@@ -65,6 +65,8 @@ void DetectBsizeRegister(void)
 #define DETECT_BSIZE_RA 2
 #define DETECT_BSIZE_EQ 3
 
+const char *bsize_mode_strings[] = { "<", ">", "<>", "="};
+
 typedef struct DetectBsizeData {
     uint8_t mode;
     uint64_t lo;
@@ -266,6 +268,57 @@ static DetectBsizeData *DetectBsizeParse (const char *str)
     return bsz;
 }
 
+static bool DetectBsizeCheckContent(const Signature *s, const int list, const DetectBsizeData *bsz)
+{
+    uint16_t bytes_required;
+    SigMatch *sm = s->init_data->smlists[list];
+
+    /* Check bsize value against all preceding content keywords */
+    bool possible = true;
+    for (; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        DetectContentData *cd = (DetectContentData *) sm->ctx;
+        if (cd == NULL)
+            continue;
+
+        SCLogDebug("Content %.*s, content-len %"PRIu16" depth: %"PRIu16,
+                cd->content_len, cd->content, cd->content_len, cd->depth);
+
+        if (cd->flags & DETECT_CONTENT_DEPTH) {
+            bytes_required = cd->depth;
+        } else {
+            bytes_required = cd->content_len;
+        }
+
+        switch (bsz->mode) {
+            case DETECT_BSIZE_EQ:
+                possible = bytes_required <= bsz->lo;
+                break;
+
+            case DETECT_BSIZE_RA:
+            case DETECT_BSIZE_LT:
+                possible = bytes_required < bsz->lo;
+                break;
+        }
+
+        if (possible) {
+            SCLogDebug("[possible] Content %.*s, bsize value %"PRIu64" buffer length %"PRIu16,
+                    cd->content_len, cd->content, bsz->lo, cd->content_len);
+            break;
+        }
+    }
+
+
+    if (!possible) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                "bsize match impossible: bsize value %"PRIu64", buffer length: %d",
+                bsz->lo,
+                bytes_required);
+    }
+    return possible;
+}
 /**
  * \brief this function is used to parse bsize data into the current signature
  *
@@ -291,6 +344,13 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     DetectBsizeData *bsz = DetectBsizeParse(sizestr);
     if (bsz == NULL)
         goto error;
+
+    if (s->init_data->smlists[list] != NULL) {
+        if (!DetectBsizeCheckContent(s, list, bsz)) {
+            goto error;
+        }
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
