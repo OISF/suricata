@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -119,6 +119,12 @@ static int DetectBsizeSigTest01(void)
     TEST_FAIL("alert tcp any any -> any any (content:\"abc\"; bsize:10; sid:3;)");
     TEST_FAIL("alert http any any -> any any (content:\"GET\"; http_method; bsize:10; sid:4;)");
     TEST_FAIL("alert http any any -> any any (http_request_line; content:\"GET\"; bsize:<10>; sid:5;)");
+    TEST_FAIL("alert http any any -> any any (http.uri; content:\"abcdefgh123456\";"
+            "bsize:2; sid:1; rev:1;)");
+    TEST_OK("alert http any any -> any any (http.uri; content:\"abcdefgh123456\"; bsize:>2; sid:2; rev:1;)");
+    TEST_FAIL("alert http any any -> any any (http.uri; content:\"abcdefgh123456\"; bsize:<13; sid:3; rev:1;)");
+    TEST_FAIL("alert http any any -> any any (http.uri; content:\"abcdefgh123456\"; bsize:>15; sid:4; rev:1;)");
+    TEST_OK("alert http any any -> any any (http.uri; content:\"abcdefgh123456\"; bsize:10<>15; sid:5; rev:1;)");
     PASS;
 }
 
