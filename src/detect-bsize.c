@@ -65,6 +65,8 @@ void DetectBsizeRegister(void)
 #define DETECT_BSIZE_RA 2
 #define DETECT_BSIZE_EQ 3
 
+const char *bsize_mode_strings[] = { "<", ">", "<>", "="};
+
 typedef struct DetectBsizeData {
     uint8_t mode;
     uint64_t lo;
@@ -266,6 +268,43 @@ static DetectBsizeData *DetectBsizeParse (const char *str)
     return bsz;
 }
 
+static bool DetectBsizeCheckContent(Signature *s, int list, DetectBsizeData *bsz)
+{
+    SigMatch *sm = s->init_data->smlists[list];
+    for (; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        DetectContentData *cd = (DetectContentData *) sm->ctx;
+        SCLogNotice("Content %.*s, content length %"PRIu16, cd->content_len, cd->content, cd->content_len);
+        bool possible;
+
+        switch (bsz->mode) {
+            case DETECT_BSIZE_EQ:
+                possible = bsz->lo == cd->content_len;
+                break;
+            case DETECT_BSIZE_GT:
+                possible = bsz->lo < cd->content_len;
+                break;
+            case DETECT_BSIZE_LT:
+                possible = cd->content_len < bsz->lo;
+                break;
+            case DETECT_BSIZE_RA:
+                possible = bsz->lo < cd->content_len && cd->content_len < bsz->hi;
+                break;
+        }
+        if (!possible) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "bsize match impossible: content len %d and bsize op '%s' "
+                    "values lo=%"PRIu64"; hi=%"PRIu64,
+                    cd->content_len,
+                    bsize_mode_strings[bsz->mode], bsz->lo,bsz->hi);
+            return false;
+        }
+    }
+
+    return true;
+}
 /**
  * \brief this function is used to parse bsize data into the current signature
  *
@@ -291,6 +330,13 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     DetectBsizeData *bsz = DetectBsizeParse(sizestr);
     if (bsz == NULL)
         goto error;
+
+    if (s->init_data->smlists[list] != NULL) {
+        if (!DetectBsizeCheckContent(s, list, bsz)) {
+            goto error;
+        }
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
