@@ -38,7 +38,7 @@
 
 /*prototypes*/
 static int DetectBsizeSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectBsizeFree (DetectEngineCtx *, void *);
+static void DetectBsizeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectBsizeRegisterTests (void);
 #endif
@@ -266,6 +266,86 @@ static DetectBsizeData *DetectBsizeParse (const char *str)
     return bsz;
 }
 
+static inline bool DetectCheckValue(const DetectBsizeData *bsz, uint64_t value)
+{
+    bool possible = false;
+    switch (bsz->mode) {
+        case DETECT_BSIZE_GT:
+            possible = true;
+            break;
+
+        case DETECT_BSIZE_RA:
+            possible = bsz->lo <= value && value <= bsz->hi;
+            break;
+
+        case DETECT_BSIZE_EQ:
+        case DETECT_BSIZE_LT:
+            possible = value <= bsz->lo;
+            break;
+    }
+    return possible;
+}
+
+static bool DetectBsizeCheckContent(const SigMatch *sm, const DetectBsizeData *bsz)
+{
+    bool possible = true;
+    int64_t bytes_required = -1;
+
+    /* Check bsize value against all preceding content keywords */
+    for (; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT || sm->ctx == NULL)
+            continue;
+
+        const DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        SCLogDebug("Content %.*s, content-len %" PRIu16 " offset: %" PRIu16 " depth: %" PRIu16,
+                cd->content_len, cd->content, cd->content_len, cd->offset, cd->depth);
+
+        bytes_required = cd->content_len;
+        if (cd->flags & DETECT_CONTENT_OFFSET) {
+            bytes_required += cd->offset;
+        }
+
+        if (bytes_required > UINT16_MAX) {
+            possible = false;
+            break;
+        }
+
+        /* Validate bsize value against content length (and offset, if avail) */
+        if (DetectCheckValue(bsz, bytes_required)) {
+            /* match possible, continue checking */
+            possible = true;
+            continue;
+        }
+        /* Validate bsize value against depth */
+        if (cd->flags & DETECT_CONTENT_DEPTH) {
+            bytes_required = cd->depth;
+            if (DetectCheckValue(bsz, bytes_required)) {
+                possible = true;
+                continue;
+            }
+        }
+        possible = false;
+    }
+
+    if (!possible) {
+        BUG_ON(bytes_required == -1);
+        if (bsz->mode == DETECT_BSIZE_RA) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "bsize match impossible: required buffer size range: %" PRIu64 "-%" PRIu64
+                    ", bytes available: %" PRIu64,
+                    bsz->lo, bsz->hi, bytes_required);
+        } else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "bsize match impossible: required buffer size: %" PRIu64
+                    ", bytes available: %" PRIu64,
+                    bsz->lo, bytes_required);
+        }
+    }
+
+    return possible;
+}
+
 /**
  * \brief this function is used to parse bsize data into the current signature
  *
@@ -291,6 +371,15 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     DetectBsizeData *bsz = DetectBsizeParse(sizestr);
     if (bsz == NULL)
         goto error;
+
+    SigMatch *prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    if (prev_pm != NULL) {
+        list = SigMatchListSMBelongsTo(s, prev_pm);
+        if (list < 0 || !DetectBsizeCheckContent(s->init_data->smlists[list], bsz)) {
+            goto error;
+        }
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
