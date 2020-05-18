@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -119,6 +119,20 @@ static int DetectBsizeSigTest01(void)
     TEST_FAIL("alert tcp any any -> any any (content:\"abc\"; bsize:10; sid:3;)");
     TEST_FAIL("alert http any any -> any any (content:\"GET\"; http_method; bsize:10; sid:4;)");
     TEST_FAIL("alert http any any -> any any (http_request_line; content:\"GET\"; bsize:<10>; sid:5;)");
+
+    /* bsize validation with buffer */
+    TEST_OK  ("alert http any any -> any any (http.uri; content:\"/index.php\"; bsize:>1024; sid:6;)");
+    TEST_OK  ("alert http any any -> any any (http.uri; content:\"abdcef\"; content: \"g\"; bsize:1; sid:7;)");
+    TEST_OK  ("alert http any any -> any any (http.uri; content:\"abdcef\"; content: \"g\"; bsize:4; sid:8;)");
+    TEST_OK  ("alert http any any -> any any (http.uri; content:\"abcdefgh123456\"; bsize:<20; sid:9;)");
+    TEST_OK  ("alert http any any -> any any (http.uri; content:\"abcdefgh123456\"; bsize:15<>25; sid:10;)");
+    TEST_FAIL("alert http any any -> any any (http.uri; content:\"abcdefgh123456\"; bsize:2; sid:11;)");
+    TEST_FAIL("alert http any any -> any any (http.uri; content:\"abcdefgh123456\"; bsize:<13; sid:12;)");
+    TEST_FAIL("alert http any any -> any any (http.uri; content:\"abcdefgh123456\"; bsize:10<>15; sid:13;)");
+    TEST_FAIL("alert http any any -> any any (http.uri; content:\"abcdefghi123456\"; offset:12;  bsize:3; sid:14;)");
+    TEST_FAIL("alert http any any -> any any (http.uri; content:\"abc\"; offset:3; depth:3; bsize:3; sid:15;)");
+    TEST_FAIL("alert http any any -> any any (http.uri; content:\"abdcef\"; content: \"gh\"; bsize:1; sid:16;)");
+
     PASS;
 }
 
