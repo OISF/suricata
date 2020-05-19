@@ -1632,19 +1632,6 @@ end:
     return 0;
 }
 
-/** \brief setup things for put request
- *  \todo really needed? */
-static int HtpRequestBodySetupPUT(htp_tx_data_t *d, HtpTxUserData *htud)
-{
-//    if (d->tx->parsed_uri == NULL || d->tx->parsed_uri->path == NULL) {
-//        return -1;
-//    }
-
-    /* filename is d->tx->parsed_uri->path */
-
-    return 0;
-}
-
 /** \internal
  *  \brief Handle POST, no multipart body data
  */
@@ -1878,9 +1865,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 SCLogDebug("not multipart");
             }
         } else if (d->tx->request_method_number == HTP_M_PUT) {
-            if (HtpRequestBodySetupPUT(d, tx_ud) == 0) {
-                tx_ud->request_body_type = HTP_BODY_REQUEST_PUT;
-            }
+            tx_ud->request_body_type = HTP_BODY_REQUEST_PUT;
         }
     }
 
