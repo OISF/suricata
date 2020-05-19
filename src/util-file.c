@@ -626,6 +626,17 @@ static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
 }
 
 /** \internal
+ *  \brief Flags a file as having gaps
+ *
+ *  \param ff the file
+ */
+static void FileFlagGap(File *ff) {
+    ff->flags |= FILE_HAS_GAPS;
+    ff->flags |= (FILE_NOMD5|FILE_NOSHA1|FILE_NOSHA256);
+    ff->flags &= ~(FILE_MD5|FILE_SHA1|FILE_SHA256);
+}
+
+/** \internal
  *  \brief Store/handle a chunk of file data in the File structure
  *
  *  \param ff the file
@@ -644,6 +655,10 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
 #endif
 
     ff->size += data_len;
+    if (data == NULL) {
+        FileFlagGap(ff);
+        SCReturnInt(0);
+    }
 
     if (ff->state != FILE_STATE_OPENED) {
         if (ff->flags & FILE_NOSTORE) {
@@ -708,7 +723,7 @@ int FileAppendData(FileContainer *ffc, const uint8_t *data, uint32_t data_len)
 {
     SCEnter();
 
-    if (ffc == NULL || ffc->tail == NULL || data == NULL || data_len == 0) {
+    if (ffc == NULL || ffc->tail == NULL || data_len == 0) {
         SCReturnInt(-1);
     }
     int r = FileAppendDataDo(ffc->tail, data, data_len);
@@ -770,9 +785,7 @@ int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
     File *ff = ffc->head;
     for ( ; ff != NULL; ff = ff->next) {
         if (track_id == ff->file_track_id) {
-            ff->flags |= FILE_HAS_GAPS;
-            ff->flags |= (FILE_NOMD5|FILE_NOSHA1|FILE_NOSHA256);
-            ff->flags &= ~(FILE_MD5|FILE_SHA1|FILE_SHA256);
+            FileFlagGap(ff);
             SCLogDebug("FILE_HAS_GAPS set");
 
             int r = FileAppendDataDo(ff, data, data_len);
@@ -907,6 +920,8 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
             SCReturnPtr(NULL, "File");
         }
         SCLogDebug("file size is now %"PRIu64, FileTrackedSize(ff));
+    } else if (data_len > 0) {
+        FileFlagGap(ff);
     }
 
     SCReturnPtr(ff, "File");
