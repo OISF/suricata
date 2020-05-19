@@ -1155,9 +1155,9 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
  *  If the request contains a multipart message, this function will
  *  set the HTP_BOUNDARY_SET in the transaction.
  */
-static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud)
+static int HtpRequestBodySetupMultipart(htp_tx_t *tx, HtpTxUserData *htud)
 {
-    htp_header_t *h = (htp_header_t *)htp_table_get_c(d->tx->request_headers,
+    htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
             "Content-Type");
     if (h != NULL && bstr_len(h->value) > 0) {
         uint8_t *boundary = NULL;
@@ -1861,7 +1861,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
         if (d->tx->request_method_number == HTP_M_POST) {
             SCLogDebug("POST");
-            int r = HtpRequestBodySetupMultipart(d, tx_ud);
+            int r = HtpRequestBodySetupMultipart(d->tx, tx_ud);
             if (r == 1) {
                 tx_ud->request_body_type = HTP_BODY_REQUEST_MULTIPART;
             } else if (r == 0) {
