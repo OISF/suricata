@@ -1841,7 +1841,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_REQUEST_BODY))
         SCReturnInt(HTP_OK);
 
-    if (d->data == NULL || d->len == 0)
+    if (d->len == 0)
         SCReturnInt(HTP_OK);
 
 #ifdef PRINT
@@ -3227,6 +3227,9 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOCLIENT,
                                      HTPHandleResponseData);
         SC_ATOMIC_INIT(htp_config_flags);
+        /* This parser accepts gaps. */
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_HTTP,
+                                          APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
                 ALPROTO_HTTP, STREAM_TOSERVER|STREAM_TOCLIENT);
         HTPConfigure();
