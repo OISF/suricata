@@ -1630,63 +1630,9 @@ end:
 }
 
 /** \internal
- *  \brief Handle POST, no multipart body data
+ *  \brief Handle POST or PUT, no multipart body data
  */
-static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
-        htp_tx_t *tx, uint8_t *data, uint32_t data_len)
-{
-    int result = 0;
-
-    /* see if we need to open the file */
-    if (!(htud->tsflags & HTP_FILENAME_SET))
-    {
-        uint8_t *filename = NULL;
-        size_t filename_len = 0;
-
-        /* get the name */
-        if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
-            filename = (uint8_t *)bstr_ptr(tx->parsed_uri->path);
-            filename_len = bstr_len(tx->parsed_uri->path);
-        }
-
-        if (filename != NULL) {
-            result = HTPFileOpen(hstate, filename, (uint32_t)filename_len, data, data_len,
-                    HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
-            if (result == -1) {
-                goto end;
-            } else if (result == -2) {
-                htud->tsflags |= HTP_DONTSTORE;
-            } else {
-                FlagDetectStateNewFile(htud, STREAM_TOSERVER);
-                htud->tsflags |= HTP_FILENAME_SET;
-                htud->tsflags &= ~HTP_DONTSTORE;
-            }
-        }
-    }
-    else
-    {
-        /* otherwise, just store the data */
-
-        if (!(htud->tsflags & HTP_DONTSTORE)) {
-            result = HTPFileStoreChunk(hstate, data, data_len, STREAM_TOSERVER);
-            if (result == -1) {
-                goto end;
-            } else if (result == -2) {
-                /* we know for sure we're not storing the file */
-                htud->tsflags |= HTP_DONTSTORE;
-            }
-        }
-    }
-
-    return 0;
-end:
-    return -1;
-}
-
-/** \internal
- *  \brief Handle PUT body data
- */
-static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
+static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
         htp_tx_t *tx, uint8_t *data, uint32_t data_len)
 {
     int result = 0;
@@ -1905,10 +1851,9 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
             HtpRequestBodyHandleMultipart(hstate, tx_ud, d->tx, chunks_buffer, chunks_buffer_len);
 
-        } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST) {
-            HtpRequestBodyHandlePOST(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
-        } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_PUT) {
-            HtpRequestBodyHandlePUT(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
+        } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST ||
+                   tx_ud->request_body_type == HTP_BODY_REQUEST_PUT) {
+            HtpRequestBodyHandlePOSTorPUT(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
         }
 
     } else {
