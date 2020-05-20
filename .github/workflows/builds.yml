@@ -146,6 +146,8 @@ jobs:
       - run: make install
       - run: make install-conf
       - run: make distcheck
+        env:
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-debug-validation"
       - run: make clean
       - run: make -j2
 
