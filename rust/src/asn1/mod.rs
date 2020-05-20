@@ -192,36 +192,40 @@ impl Asn1 {
 /// Decodes Asn1 objects from an input + length while applying the offset
 /// defined in the asn1 keyword options
 fn asn1_decode(
-    input: *const u8,
-    input_len: u32,
+    buffer: &'static [u8],
+    buffer_offset: u32,
     ad: &DetectAsn1Data,
 ) -> Result<Asn1, Asn1DecodeError> {
     // Get offset
     let offset = if let Some(absolute_offset) = ad.absolute_offset {
-        absolute_offset as isize
+        absolute_offset
     } else if let Some(relative_offset) = ad.relative_offset {
-        relative_offset as isize
+        // relative offset in regards to the last content match
+
+        // buffer_offset (u32) + relative_offset (i32) => offset (u16)
+        u16::try_from({
+            if relative_offset > 0 {
+                buffer_offset
+                    .checked_add(u32::try_from(relative_offset)?)
+                    .ok_or(Asn1DecodeError::InvalidKeywordParameter)?
+            } else {
+                buffer_offset
+                    .checked_sub(u32::try_from(-relative_offset)?)
+                    .ok_or(Asn1DecodeError::InvalidKeywordParameter)?
+            }
+        })
+        .or(Err(Asn1DecodeError::InvalidKeywordParameter))?
     } else {
         0
     };
 
-    // Make sure we won't read past the end of the buffer
-    if offset >= input_len as isize {
+    // Make sure we won't read past the end or front of the buffer
+    if offset as usize >= buffer.len() {
         return Err(Asn1DecodeError::InvalidKeywordParameter);
     }
 
-    // Apply offset to input pointer
-    let input = unsafe { input.offset(offset) };
-
-    // Adjust the length
-    let input_len = (input_len as isize)
-        .checked_sub(offset)
-        .ok_or(Asn1DecodeError::InvalidKeywordParameter)?;
-    let input_len =
-        usize::try_from(input_len).map_err(|_| Asn1DecodeError::InvalidKeywordParameter)?;
-
-    // Get the slice from memory
-    let slice = build_slice!(input, input_len);
+    // Get slice from buffer at offset
+    let slice = &buffer[offset as usize..];
 
     Asn1::from_slice(slice, ad)
 }
@@ -236,16 +240,19 @@ fn asn1_decode(
 #[no_mangle]
 pub unsafe extern "C" fn rs_asn1_decode(
     input: *const u8,
-    input_len: u32,
+    input_len: u16,
+    buffer_offset: u32,
     ad_ptr: *const DetectAsn1Data,
 ) -> *mut Asn1 {
     if input.is_null() || input_len == 0 || ad_ptr.is_null() {
         return std::ptr::null_mut();
     }
 
+    let slice = build_slice!(input, input_len as usize);
+
     let ad = &*ad_ptr;
 
-    let res = asn1_decode(input, input_len, ad);
+    let res = asn1_decode(slice, buffer_offset, ad);
 
     match res {
         Ok(asn1) => Box::into_raw(Box::new(asn1)),
@@ -294,6 +301,12 @@ pub unsafe extern "C" fn rs_asn1_checks(
     }
 
     0
+}
+
+impl From<std::num::TryFromIntError> for Asn1DecodeError {
+    fn from(_e: std::num::TryFromIntError) -> Asn1DecodeError {
+        Asn1DecodeError::InvalidKeywordParameter
+    }
 }
 
 impl From<nom::Err<der_parser::error::BerError>> for Asn1DecodeError {

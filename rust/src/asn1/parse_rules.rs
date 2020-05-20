@@ -19,7 +19,7 @@ use crate::log::*;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::{digit1, multispace0, multispace1};
-use nom::combinator::{map_res, opt};
+use nom::combinator::{map_res, opt, verify};
 use nom::sequence::{separated_pair, tuple};
 use nom::IResult;
 use std::ffi::CStr;
@@ -84,7 +84,7 @@ pub struct DetectAsn1Data {
     pub bitstring_overflow: bool,
     pub double_overflow: bool,
     pub oversize_length: Option<u32>,
-    pub absolute_offset: Option<u32>,
+    pub absolute_offset: Option<u16>,
     pub relative_offset: Option<i32>,
     pub max_frames: u16,
 }
@@ -105,6 +105,11 @@ impl Default for DetectAsn1Data {
 fn parse_u32_number(input: &str) -> IResult<&str, u32> {
     map_res(digit1, |digits: &str| digits.parse::<u32>())(input)
 }
+
+fn parse_u16_number(input: &str) -> IResult<&str, u16> {
+    map_res(digit1, |digits: &str| digits.parse::<u16>())(input)
+}
+
 fn parse_i32_number(input: &str) -> IResult<&str, i32> {
     let (rest, negate) = opt(tag("-"))(input)?;
     let (rest, d) = map_res(digit1, |s: &str| s.parse::<i32>())(rest)?;
@@ -135,12 +140,18 @@ pub(super) fn asn1_parse_rule(input: &str) -> IResult<&str, DetectAsn1Data> {
         separated_pair(tag("oversize_length"), multispace1, parse_u32_number)(i)
     }
 
-    fn absolute_offset(i: &str) -> IResult<&str, (&str, u32)> {
-        separated_pair(tag("absolute_offset"), multispace1, parse_u32_number)(i)
+    fn absolute_offset(i: &str) -> IResult<&str, (&str, u16)> {
+        separated_pair(tag("absolute_offset"), multispace1, parse_u16_number)(i)
     }
 
     fn relative_offset(i: &str) -> IResult<&str, (&str, i32)> {
-        separated_pair(tag("relative_offset"), multispace1, parse_i32_number)(i)
+        separated_pair(
+            tag("relative_offset"),
+            multispace1,
+            verify(parse_i32_number, |v| {
+                *v >= -i32::from(std::u16::MAX) && *v <= i32::from(std::u16::MAX)
+            }),
+        )(i)
     }
 
     let mut data = DetectAsn1Data::default();
@@ -202,6 +213,18 @@ mod tests {
     #[test_case("oversize_length 1024",
         DetectAsn1Data { oversize_length: Some(1024), ..Default::default()};
         "check that we parse oversize_length correctly")]
+    #[test_case("oversize_length 0",
+        DetectAsn1Data { oversize_length: Some(0), ..Default::default()};
+        "check lower bound on oversize_length")]
+    #[test_case("oversize_length -1",
+        DetectAsn1Data::default() => panics "Error((\"oversize_length -1\", Verify))";
+        "check under lower bound on oversize_length")]
+    #[test_case("oversize_length 4294967295",
+        DetectAsn1Data { oversize_length: Some(4294967295), ..Default::default()};
+        "check upper bound on oversize_length")]
+    #[test_case("oversize_length 4294967296",
+        DetectAsn1Data::default() => panics "Error((\"oversize_length 4294967296\", Verify))";
+        "check over upper bound on oversize_length")]
     #[test_case("oversize_length",
         DetectAsn1Data::default() => panics "Error((\"oversize_length\", Verify))";
         "check that we fail if the needed arg oversize_length is not given")]
@@ -209,6 +232,18 @@ mod tests {
     #[test_case("absolute_offset 1024",
         DetectAsn1Data { absolute_offset: Some(1024), ..Default::default()};
         "check that we parse absolute_offset correctly")]
+    #[test_case("absolute_offset 0",
+        DetectAsn1Data { absolute_offset: Some(0), ..Default::default()};
+        "check lower bound on absolute_offset")]
+    #[test_case("absolute_offset -1",
+        DetectAsn1Data::default() => panics "Error((\"absolute_offset -1\", Verify))";
+        "check under lower bound on absolute_offset")]
+    #[test_case("absolute_offset 65535",
+        DetectAsn1Data { absolute_offset: Some(65535), ..Default::default()};
+        "check upper bound on absolute_offset")]
+    #[test_case("absolute_offset 65536",
+        DetectAsn1Data::default() => panics "Error((\"absolute_offset 65536\", Verify))";
+        "check over upper bound on absolute_offset")]
     #[test_case("absolute_offset",
         DetectAsn1Data::default() => panics "Error((\"absolute_offset\", Verify))";
         "check that we fail if the needed arg absolute_offset is not given")]
@@ -216,6 +251,18 @@ mod tests {
     #[test_case("relative_offset 1024",
         DetectAsn1Data { relative_offset: Some(1024), ..Default::default()};
         "check that we parse relative_offset correctly")]
+    #[test_case("relative_offset -65535",
+        DetectAsn1Data { relative_offset: Some(-65535), ..Default::default()};
+        "check lower bound on relative_offset")]
+    #[test_case("relative_offset -65536",
+        DetectAsn1Data::default() => panics "Error((\"relative_offset -65536\", Verify))";
+        "check under lower bound on relative_offset")]
+    #[test_case("relative_offset 65535",
+        DetectAsn1Data { relative_offset: Some(65535), ..Default::default()};
+        "check upper bound on relative_offset")]
+    #[test_case("relative_offset 65536",
+        DetectAsn1Data::default() => panics "Error((\"relative_offset 65536\", Verify))";
+        "check over upper bound on relative_offset")]
     #[test_case("relative_offset",
         DetectAsn1Data::default() => panics "Error((\"relative_offset\", Verify))";
         "check that we fail if the needed arg relative_offset is not given")]
