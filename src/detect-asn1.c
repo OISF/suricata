@@ -81,7 +81,7 @@ static int DetectAsn1Match(DetectEngineThreadCtx *det_ctx, Packet *p,
 
     const DetectAsn1Data *ad = (const DetectAsn1Data *)ctx;
 
-    Asn1 *asn1 = rs_asn1_decode(p->payload, p->payload_len, ad);
+    Asn1 *asn1 = rs_asn1_decode(p->payload, p->payload_len, det_ctx->buffer_offset, ad);
 
     ret = rs_asn1_checks(asn1, ad);
 
@@ -223,7 +223,7 @@ static int DetectAsn1TestReal01(void)
              "content:\"Pablo\"; asn1:absolute_offset 0, "
              "oversize_length 130; sid:1;)";
     sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
-             "content:\"AA\"; asn1:relative_offset 2, "
+             "content:\"AA\"; asn1:relative_offset 0, "
              "oversize_length 130; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
              "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
@@ -302,7 +302,7 @@ static int DetectAsn1TestReal02(void)
              "content:\"Pablo\"; asn1:absolute_offset 0, "
              "oversize_length 140; sid:1;)";
     sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
-             "content:\"AA\"; asn1:relative_offset 2, "
+             "content:\"AA\"; asn1:relative_offset 0, "
              "oversize_length 140; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
              "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
@@ -440,7 +440,7 @@ static int DetectAsn1TestReal04(void)
              "content:\"Pablo\"; asn1:absolute_offset 0, "
              "oversize_length 140; sid:1;)";
     sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
-             "content:\"John\"; asn1:relative_offset -7, "
+             "content:\"John\"; asn1:relative_offset -11, "
              "oversize_length 140; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
              "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
