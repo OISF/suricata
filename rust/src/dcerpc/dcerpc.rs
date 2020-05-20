@@ -337,20 +337,16 @@ impl DCERPCState {
     }
 
     pub fn get_first_req_seen(&self) -> Option<u8> {
-        debug_validate_bug_on!(self.request.is_none());
         if let Some(ref req) = self.request {
             return Some(req.first_request_seen);
         }
-        // Shouldn't happen
         None
     }
 
     pub fn get_req_opnum(&self) -> Option<u16> {
-        debug_validate_bug_on!(self.request.is_none());
         if let Some(ref req) = self.request {
             return Some(req.opnum);
         }
-        // Shouldn't happen
         None
     }
 
