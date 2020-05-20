@@ -24,6 +24,7 @@ Suricata Rules
    kerberos-keywords
    snmp-keywords
    base64-keywords
+   xor-keywords
    sip-keywords
    rfb-keywords
    app-layer
