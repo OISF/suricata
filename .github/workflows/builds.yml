@@ -348,6 +348,8 @@ jobs:
       - run: test -e doc/devguide/devguide.pdf
       - run: test -e doc/userguide/userguide.pdf
       - run: make distcheck
+        env:
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-debug-validation"
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
