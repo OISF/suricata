@@ -359,6 +359,75 @@ jobs:
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py
 
+  ubuntu-18-04-debug-validation:
+    name: Ubuntu 18.04 (Debug Validation)
+    runs-on: ubuntu-18.04
+    container: ubuntu:18.04
+    needs: prep
+    steps:
+
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt -y install \
+                libpcre3 \
+                libpcre3-dev \
+                build-essential \
+                autoconf \
+                automake \
+                git \
+                jq \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libhiredis-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1.6 \
+                libjansson-dev \
+                libpython2.7 \
+                make \
+                parallel \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev \
+                exuberant-ctags
+      - name: Install cbindgen
+        run: cargo install --force --debug --version 0.14.1 cbindgen
+      - run: echo "::add-path::$HOME/.cargo/bin"
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: ./autogen.sh
+      - run: ./configure --enable-debug-validation
+      - run: make -j2
+      - run: make check
+      - name: Extracting suricata-verify
+        run: tar xf prep/suricata-verify.tar.gz
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py
+
   ubuntu-18-04:
     name: Ubuntu 18.04 (Cocci)
     runs-on: ubuntu-18.04
