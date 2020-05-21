@@ -63,10 +63,18 @@ enum State {
 }
 
 #[derive(Debug, Clone)]
+struct Mark {
+    position: usize,
+    state_index: usize,
+    state: State,
+}
+
+#[derive(Debug, Clone)]
 pub struct JsonBuilder {
     buf: String,
     state: Vec<State>,
     init_type: Type,
+    mark: Option<Mark>,
 }
 
 impl JsonBuilder {
@@ -82,6 +90,7 @@ impl JsonBuilder {
             buf: buf,
             state: vec![State::None, State::ObjectFirst],
             init_type: Type::Object,
+            mark: None,
         }
     }
 
@@ -97,6 +106,7 @@ impl JsonBuilder {
             buf: buf,
             state: vec![State::None, State::ArrayFirst],
             init_type: Type::Array,
+            mark: None,
         }
     }
 
@@ -156,6 +166,24 @@ impl JsonBuilder {
     fn set_state(&mut self, state: State) {
         let n = self.state.len() - 1;
         self.state[n] = state;
+    }
+
+    pub fn mark(&mut self) {
+        let mark = Mark {
+            position: self.buf.len(),
+            state: self.current_state(),
+            state_index: self.state.len() - 1,
+        };
+        self.mark = Some(mark);
+    }
+
+    pub fn reset_to_mark(&mut self) {
+        if let Some(mark) = &self.mark {
+            self.buf.truncate(mark.position);
+            self.state.truncate(mark.state_index);
+            self.state[mark.state_index - 1] = mark.state;
+            self.mark = None;
+        }
     }
 
     /// Open an object under the given key.
@@ -632,6 +660,16 @@ pub unsafe extern "C" fn jb_ptr(js: &mut JsonBuilder) -> *const u8 {
     js.buf.as_ptr()
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn jb_mark(js: &mut JsonBuilder) {
+    js.mark();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn jb_reset_to_mark(js: &mut JsonBuilder) {
+    js.reset_to_mark();
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -869,6 +907,19 @@ mod test {
         let mut jb = JsonBuilder::new_array();
         jb.append_string_from_bytes(&[0xf0, 0xf1, 0xf2]).unwrap();
         assert_eq!(jb.buf, r#"["\\xf0\\xf1\\xf2""#);
+    }
+
+    #[test]
+    fn test_reset_to_mark() {
+        let mut jb = JsonBuilder::new_object();
+        jb.set_string("field", "value").unwrap();
+        jb.open_array("array").unwrap();
+        assert_eq!(jb.buf, r#"{"field":"value","array":["#);
+        jb.mark();
+        jb.append_string("foo").unwrap();
+        assert_eq!(jb.buf, r#"{"field":"value","array":["foo""#);
+        jb.reset_to_mark();
+        assert_eq!(jb.buf, r#"{"field":"value","array":["#);
     }
 }
 
