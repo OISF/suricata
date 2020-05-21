@@ -122,6 +122,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     if (unlikely(js == NULL))
         return NULL;
 
+    JsonBuilderMark mark = { 0 };
     switch (p->flow->alproto) {
         case ALPROTO_HTTP:
             jb_open_object(js, "http");
@@ -129,15 +130,19 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             jb_close(js);
             break;
         case ALPROTO_SMTP:
-            hjs = JsonSMTPAddMetadata(p->flow, ff->txid);
-            if (hjs) {
-                jb_set_jsont(js, "smtp", hjs);
-                json_decref(hjs);
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "smtp");
+            if (EveSMTPAddMetadata(p->flow, ff->txid, js)) {
+                jb_close(js);
+            } else {
+                jb_restore_mark(js, &mark);
             }
-            hjs = JsonEmailAddMetadata(p->flow, ff->txid);
-            if (hjs) {
-                jb_set_jsont(js, "email", hjs);
-                json_decref(hjs);
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "email");
+            if (EveEmailAddMetadata(p->flow, ff->txid, js)) {
+                jb_close(js);
+            } else {
+                jb_restore_mark(js, &mark);
             }
             break;
         case ALPROTO_NFS:

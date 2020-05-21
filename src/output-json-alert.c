@@ -473,6 +473,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         if (json_output_ctx->flags & LOG_JSON_APP_LAYER && p->flow != NULL) {
             const AppProto proto = FlowGetAppProtocol(p->flow);
+            JsonBuilderMark mark = { 0 };
             switch (proto) {
                 case ALPROTO_HTTP:
                     // TODO: Could result in an empty http object being logged.
@@ -494,16 +495,19 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     AlertJsonSsh(p->flow, jb);
                     break;
                 case ALPROTO_SMTP:
-                    hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
-                    if (hjs) {
-                        jb_set_jsont(jb, "smtp", hjs);
-                        json_decref(hjs);
+                    jb_get_mark(jb, &mark);
+                    jb_open_object(jb, "smtp");
+                    if (EveSMTPAddMetadata(p->flow, pa->tx_id, jb)) {
+                        jb_close(jb);
+                    } else {
+                        jb_restore_mark(jb, &mark);
                     }
-
-                    hjs = JsonEmailAddMetadata(p->flow, pa->tx_id);
-                    if (hjs) {
-                        jb_set_jsont(jb, "email", hjs);
-                        json_decref(hjs);
+                    jb_get_mark(jb, &mark);
+                    jb_open_object(jb, "email");
+                    if (EveEmailAddMetadata(p->flow, pa->tx_id, jb)) {
+                        jb_close(jb);
+                    } else {
+                        jb_restore_mark(jb, &mark);
                     }
                     break;
                 case ALPROTO_NFS:
