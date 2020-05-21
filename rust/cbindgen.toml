@@ -74,6 +74,7 @@ documentation_style = "doxy"
 include = [
     "AppLayerGetTxIterTuple",
     "SIPState",
+    "CMark",
 ]
 
 # A list of items to not include in the generated bindings
