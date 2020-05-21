@@ -128,18 +128,21 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             EveHttpAddMetadata(p->flow, ff->txid, js);
             jb_close(js);
             break;
-        case ALPROTO_SMTP:
-            hjs = JsonSMTPAddMetadata(p->flow, ff->txid);
-            if (hjs) {
-                jb_set_jsont(js, "smtp", hjs);
-                json_decref(hjs);
+        case ALPROTO_SMTP: {
+            jb_mark(js);
+            jb_open_object(js, "smtp");
+            if (EveSMTPAddMetadata(p->flow, ff->txid, js)) {
+                jb_close(js);
+            } else {
+                jb_reset_to_mark(js);
             }
-            hjs = JsonEmailAddMetadata(p->flow, ff->txid);
-            if (hjs) {
-                jb_set_jsont(js, "email", hjs);
-                json_decref(hjs);
+            JsonBuilder *emailjs = EveEmailAddMetadata(p->flow, ff->txid);
+            if (emailjs) {
+                jb_set_object(js, "email", emailjs);
+                jb_free(emailjs);
             }
             break;
+        }
         case ALPROTO_NFS:
             hjs = JsonNFSAddMetadataRPC(p->flow, ff->txid);
             if (hjs) {

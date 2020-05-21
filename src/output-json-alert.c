@@ -493,19 +493,22 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 case ALPROTO_SSH:
                     AlertJsonSsh(p->flow, jb);
                     break;
-                case ALPROTO_SMTP:
-                    hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
-                    if (hjs) {
-                        jb_set_jsont(jb, "smtp", hjs);
-                        json_decref(hjs);
+                case ALPROTO_SMTP: {
+                    jb_mark(jb);
+                    jb_open_object(jb, "smtp");
+                    if (EveSMTPAddMetadata(p->flow, pa->tx_id, jb)) {
+                        jb_close(jb);
+                    } else {
+                        printf("RESETTING TO MARK\n");
+                        jb_reset_to_mark(jb);
                     }
-
-                    hjs = JsonEmailAddMetadata(p->flow, pa->tx_id);
-                    if (hjs) {
-                        jb_set_jsont(jb, "email", hjs);
-                        json_decref(hjs);
+                    JsonBuilder *emailjs = EveEmailAddMetadata(p->flow, pa->tx_id);
+                    if (emailjs) {
+                        jb_set_object(jb, "email", emailjs);
+                        jb_free(emailjs);
                     }
                     break;
+                }
                 case ALPROTO_NFS:
                     hjs = JsonNFSAddMetadataRPC(p->flow, pa->tx_id);
                     if (hjs) {
