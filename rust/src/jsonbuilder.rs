@@ -54,12 +54,47 @@ enum Type {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(C)]
 enum State {
-    None,
+    None = 0,
     ObjectFirst,
     ObjectNth,
     ArrayFirst,
     ArrayNth,
+}
+
+impl State {
+    fn from_u64(v: u64) -> Result<State, JsonError> {
+        let s = match v {
+            0 => State::None,
+            1 => State::ObjectFirst,
+            2 => State::ObjectNth,
+            3 => State::ArrayFirst,
+            4 => State::ArrayNth,
+            _ => {
+                return Err(JsonError::InvalidState);
+            }
+        };
+        Ok(s)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Mark {
+    position: usize,
+    state_index: usize,
+    state: State,
+}
+
+/// A "mark" or saved state for a JsonBuilder object.
+///
+/// The name is full, and the types are u64 as this object is used
+/// directly in C as well.
+#[repr(C)]
+pub struct JsonBuilderMark {
+    position: u64,
+    state_index: u64,
+    state: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -156,6 +191,24 @@ impl JsonBuilder {
     fn set_state(&mut self, state: State) {
         let n = self.state.len() - 1;
         self.state[n] = state;
+    }
+
+    pub fn get_mark(&self) -> JsonBuilderMark {
+        JsonBuilderMark {
+            position: self.buf.len() as u64,
+            state: self.current_state() as u64,
+            state_index: self.state.len() as u64,
+        }
+    }
+
+    pub fn restore_mark(&mut self, mark: &JsonBuilderMark) -> Result<(), JsonError> {
+        let state = State::from_u64(mark.state)?;
+        if mark.position < (self.buf.len() as u64) && mark.state_index < (self.state.len() as u64) {
+            self.buf.truncate(mark.position as usize);
+            self.state.truncate(mark.state_index as usize);
+            self.state[(mark.state_index as usize) - 1] = state;
+        }
+        Ok(())
     }
 
     /// Open an object under the given key.
@@ -307,9 +360,7 @@ impl JsonBuilder {
     }
 
     pub fn set_jsont(
-        &mut self,
-        key: &str,
-        jsont: &mut json::JsonT,
+        &mut self, key: &str, jsont: &mut json::JsonT,
     ) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => self.buf.push(','),
@@ -541,9 +592,7 @@ pub unsafe extern "C" fn jb_open_array(js: &mut JsonBuilder, key: *const c_char)
 
 #[no_mangle]
 pub unsafe extern "C" fn jb_set_string(
-    js: &mut JsonBuilder,
-    key: *const c_char,
-    val: *const c_char,
+    js: &mut JsonBuilder, key: *const c_char, val: *const c_char,
 ) -> bool {
     if val == std::ptr::null() {
         return false;
@@ -558,9 +607,7 @@ pub unsafe extern "C" fn jb_set_string(
 
 #[no_mangle]
 pub unsafe extern "C" fn jb_set_jsont(
-    jb: &mut JsonBuilder,
-    key: *const c_char,
-    jsont: &mut json::JsonT,
+    jb: &mut JsonBuilder, key: *const c_char, jsont: &mut json::JsonT,
 ) -> bool {
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return jb.set_jsont(key, jsont).is_ok();
@@ -575,9 +622,7 @@ pub unsafe extern "C" fn jb_append_object(jb: &mut JsonBuilder, obj: &JsonBuilde
 
 #[no_mangle]
 pub unsafe extern "C" fn jb_set_object(
-    js: &mut JsonBuilder,
-    key: *const c_char,
-    val: &mut JsonBuilder,
+    js: &mut JsonBuilder, key: *const c_char, val: &mut JsonBuilder,
 ) -> bool {
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return js.set_object(key, val).is_ok();
@@ -630,6 +675,19 @@ pub unsafe extern "C" fn jb_len(js: &JsonBuilder) -> usize {
 #[no_mangle]
 pub unsafe extern "C" fn jb_ptr(js: &mut JsonBuilder) -> *const u8 {
     js.buf.as_ptr()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn jb_get_mark(js: &mut JsonBuilder, mark: &mut JsonBuilderMark) {
+    let m = js.get_mark();
+    mark.position = m.position;
+    mark.state_index = m.state_index;
+    mark.state = m.state;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn jb_restore_mark(js: &mut JsonBuilder, mark: &mut JsonBuilderMark) -> bool {
+    js.restore_mark(mark).is_ok()
 }
 
 #[cfg(test)]
@@ -869,6 +927,29 @@ mod test {
         let mut jb = JsonBuilder::new_array();
         jb.append_string_from_bytes(&[0xf0, 0xf1, 0xf2]).unwrap();
         assert_eq!(jb.buf, r#"["\\xf0\\xf1\\xf2""#);
+    }
+
+    #[test]
+    fn test_marks() {
+        let mut jb = JsonBuilder::new_object();
+        jb.set_string("foo", "bar").unwrap();
+        assert_eq!(jb.buf, r#"{"foo":"bar""#);
+        assert_eq!(jb.current_state(), State::ObjectNth);
+        assert_eq!(jb.state.len(), 2);
+        let mark = jb.get_mark();
+
+        // Mutate such that states are transitioned.
+        jb.open_array("bar").unwrap();
+        jb.start_object().unwrap();
+        assert_eq!(jb.buf, r#"{"foo":"bar","bar":[{"#);
+        assert_eq!(jb.current_state(), State::ObjectFirst);
+        assert_eq!(jb.state.len(), 4);
+
+        // Restore to mark.
+        jb.restore_mark(&mark).unwrap();
+        assert_eq!(jb.buf, r#"{"foo":"bar""#);
+        assert_eq!(jb.current_state(), State::ObjectNth);
+        assert_eq!(jb.state.len(), 2);
     }
 }
 
