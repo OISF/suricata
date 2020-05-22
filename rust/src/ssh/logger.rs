@@ -35,6 +35,18 @@ fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
                 &tx.cli_hdr.swver,
             );
         }
+        if tx.cli_hdr.hassh.len() > 0 {
+            cjs.set_string_from_bytes(
+                "hassh",
+                &tx.cli_hdr.hassh,
+            );
+        }
+        if tx.cli_hdr.hassh_string.len() > 0 {
+            cjs.setset_string_from_bytes_string(
+                "hassh_string",
+                &tx.cli_hdr.hassh_string,
+            );
+        }
         js.set("client", cjs);
     }
     if tx.srv_hdr.protover.len() > 0 {
@@ -47,6 +59,18 @@ fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
             sjs.set_string_from_bytes(
                 "software_version",
                 &tx.srv_hdr.swver,
+            );
+        }
+        if tx.srv_hdr.hassh.len() > 0 {
+            sjs.set_string_from_bytes(
+                "hasshServer",
+                &tx.srv_hdr.hassh,
+            );
+        }
+        if tx.srv_hdr.hassh_string.len() > 0 {
+            sjs.set_string_from_bytes(
+                "hasshServer_string",
+                &tx.srv_hdr.hassh_string,
             );
         }
         js.set("server", sjs);
