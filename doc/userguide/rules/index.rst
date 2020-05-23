@@ -16,6 +16,7 @@ Suricata Rules
    dns-keywords
    tls-keywords
    ssh-keywords
+   hassh-keywords
    ja3-keywords
    modbus-keyword
    dnp3-keywords
