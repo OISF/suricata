@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -191,17 +191,40 @@ void TimeSetIncrementTime(uint32_t tv_sec)
 }
 #endif
 
+#ifdef OS_WIN32
+/** \internal
+ *  \brief wrapper around strftime on Windows to provide output
+ *         compatible with posix %z
+ */
+static inline void WinStrftime(const struct timeval *ts, const struct tm *t, char *str, size_t size)
+{
+    char time_fmt[64] = { 0 };
+    char tz[6] = { 0 };
+    const long int tzdiff = -_timezone;
+    const int h = abs(_timezone) / 3600 + _daylight;
+    const int m = (abs(_timezone) % 3600) / 60;
+    snprintf(tz, sizeof(tz), "%c%02d%02d", tzdiff < 0 ? '-' : '+', h, m);
+    strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S.%%06u", t);
+    snprintf(str, size, time_fmt, ts->tv_usec);
+    strlcat(str, tz, size); // append our timezone
+}
+#endif
+
 void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
 {
     time_t time = ts->tv_sec;
     struct tm local_tm;
     memset(&local_tm, 0, sizeof(local_tm));
     struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
-    char time_fmt[64] = { 0 };
 
     if (likely(t != NULL)) {
+#ifdef OS_WIN32
+        WinStrftime(ts, t, str, size);
+#else
+        char time_fmt[64] = { 0 };
         strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S.%%06u%z", t);
         snprintf(str, size, time_fmt, ts->tv_usec);
+#endif
     } else {
         snprintf(str, size, "ts-error");
     }
