@@ -2017,6 +2017,46 @@
         enable_geoip="yes"
     fi
 
+  # libhwloc
+    AC_ARG_ENABLE(hwloc,
+	        AS_HELP_STRING([--enable-hwloc],[Enable Hardware Locality support]),
+	        [ enable_hwloc="$enableval"],
+	        [ enable_hwloc="no"])
+    AC_ARG_WITH(libhwloc_includes,
+            [  --with-libhwloc-includes=DIR  libhwloc include directory],
+            [with_libhwloc_includes="$withval"],[with_libhwloc_includes="no"])
+    AC_ARG_WITH(libhwloc_libraries,
+            [  --with-libhwloc-libraries=DIR    libhwloc library directory],
+            [with_libhwloc_libraries="$withval"],[with_libhwloc_libraries="no"])
+
+    if test "$enable_hwloc" = "yes"; then
+        if test "$with_libhwloc_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libhwloc_includes}"
+        fi
+
+        AC_CHECK_HEADER(hwloc.h,HWLOC="yes",HWLOC="no")
+        if test "$HWLOC" = "yes"; then
+            if test "$with_libhwloc_libraries" != "no"; then
+                LDFLAGS="${LDFLAGS} -L${with_libhwloc_libraries}"
+            fi
+            AC_CHECK_LIB(hwloc, hwloc_topology_init,, HWLOC="no")
+        fi
+        if test "$HWLOC" = "no"; then
+            echo
+            echo "   ERROR!  hwloc library not found, go get it"
+            echo "   from https://www.open-mpi.org/projects/hwloc or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libhwloc-dev"
+            echo "   Fedora: dnf install libhwloc"
+            echo "   CentOS/RHEL: yum install libhwloc"
+            echo
+            exit 1
+        fi
+
+        AC_DEFINE([HAVE_HWLOC],[1],[libhwloc available])
+        enable_hwloc="yes"
+    fi
+
   # Position Independent Executable
     AC_ARG_ENABLE(pie,
                 AS_HELP_STRING([--enable-pie],[Enable compiling as a position independent executable]),
@@ -2565,6 +2605,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   LUA support:                             ${enable_lua}
   libluajit:                               ${enable_luajit}
   GeoIP2 support:                          ${enable_geoip}
+  Hwloc support:                           ${enable_hwloc}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
