@@ -48,6 +48,7 @@
 #include "util-ioctl.h"
 #include "util-device.h"
 #include "util-misc.h"
+#include "util-hwloc.h"
 #include "util-running-modes.h"
 
 #include "detect-engine.h"
@@ -2768,6 +2769,9 @@ int SuricataMain(int argc, char **argv)
 
     LogVersion(&suricata);
     UtilCpuPrintSummary();
+#ifdef HAVE_HWLOC
+    PrintNUMAnodes();
+#endif /* HAVE_HWLOC */
 
     if (ParseInterfacesList(suricata.aux_run_mode, suricata.pcap_dev) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
