@@ -34,6 +34,7 @@
 #include "decode.h"
 #include "decode-vlan.h"
 #include "decode-events.h"
+#include "decode-store.h"
 
 #include "flow.h"
 
@@ -86,6 +87,7 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             GET_VLAN_ID(vlan_hdr), len);
 
     p->vlan_id[p->vlan_idx++] = (uint16_t)GET_VLAN_ID(vlan_hdr);
+    DecodeStoreAddVLAN(p, (uint16_t)GET_VLAN_ID(vlan_hdr));
 
     if (DecodeNetworkLayer(tv, dtv, proto, p,
                 pkt + VLAN_HEADER_LEN, len - VLAN_HEADER_LEN) == false) {

@@ -34,6 +34,7 @@
 #include "decode.h"
 #include "decode-ethernet.h"
 #include "decode-events.h"
+#include "decode-store.h"
 
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -51,6 +52,9 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     p->ethh = (EthernetHdr *)pkt;
     if (unlikely(p->ethh == NULL))
         return TM_ECODE_FAILED;
+
+    DecodeStoreAddTLV(p, DECODE_STORE_TLV_TYPE_MAC, p->ethh->eth_src, 6);
+    DecodeStoreAddTLV(p, DECODE_STORE_TLV_TYPE_MAC, p->ethh->eth_dst, 6);
 
     SCLogDebug("p %p pkt %p ether type %04x", p, pkt, SCNtohs(p->ethh->eth_type));
 

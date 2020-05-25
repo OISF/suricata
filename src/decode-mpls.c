@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+#include "decode-store.h"
 #include "util-unittest.h"
 
 #define MPLS_HEADER_LEN         4
@@ -61,6 +62,8 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         memcpy(&shim, pkt, sizeof(shim));
         pkt += MPLS_HEADER_LEN;
         len -= MPLS_HEADER_LEN;
+
+        DecodeStoreAddMPLS(p, MPLS_LABEL(shim));
     } while (MPLS_BOTTOM(shim) == 0);
 
     label = MPLS_LABEL(shim);

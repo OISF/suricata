@@ -26,6 +26,7 @@
 
 #include "suricata-common.h"
 #include "debug.h"
+#include "decode-store.h"
 #include "detect.h"
 #include "flow.h"
 #include "conf.h"
@@ -707,6 +708,58 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
     }
 }
 
+static void Callback(void *cb_data, const uint8_t type, const uint8_t etype, const uint8_t size, const uint8_t *data)
+{
+    json_t *js = cb_data;
+
+    SCLogDebug("cb_data %p type %u size %u data %p", cb_data, type, size, data);
+    //PrintRawDataFp(stdout, data, size);
+
+    switch (type) {
+        case DECODE_STORE_TYPE_VLAN: {
+            assert(size == 2);
+            uint16_t vlan_id = data[0] << 8 | data[1];
+            SCLogDebug("VLAN vlan_id %u added to %p", ntohs(vlan_id), js);
+            json_t *jo = json_object();
+            json_object_set_new(jo, "vlan", json_integer(ntohs(vlan_id)));
+            json_array_append_new(js, jo);
+            break;
+        }
+        case DECODE_STORE_TYPE_MPLS: {
+            assert(size == 4);
+            uint32_t label = data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
+            SCLogDebug("MPLS label %u", ntohl(label));
+            json_t *jo = json_object();
+            json_object_set_new(jo, "mpls", json_integer(ntohl(label)));
+            json_array_append_new(js, jo);
+            break;
+        }
+        case DECODE_STORE_TYPE_TLV: {
+            assert(etype != DECODE_STORE_TLV_TYPE_NOTSET);
+            switch (etype) {
+                case DECODE_STORE_TLV_TYPE_MAC: {
+                    assert(size == 6);
+                    const uint8_t *val = data;
+                    char eth_addr[19];
+                    (void) snprintf(eth_addr, 19, "%02x:%02x:%02x:%02x:%02x:%02x",
+                            val[0], val[1], val[2], val[3], val[4], val[5]);
+                    SCLogDebug("MAC %s", eth_addr);
+                    json_t *jo = json_object();
+                    json_object_set_new(jo, "mac", json_string(eth_addr));
+                    json_array_append_new(js, jo);
+
+                    break;
+                }
+                default:
+                    BUG_ON(1);
+                    break;
+            }
+            break;
+        }
+    }
+}
+
+
 json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
                          const char *event_type)
 {
@@ -775,6 +828,12 @@ json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
                                     json_integer(p->icmpv6h->code));
             }
             break;
+    }
+
+    json_t *js_dstore = json_array();
+    if (js_dstore) {
+        DecodeStoreIterate(p, Callback, js_dstore);
+        json_object_set_new(js, "decoder_store", js_dstore);
     }
 
     return js;
