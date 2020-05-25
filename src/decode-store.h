@@ -39,4 +39,7 @@ int DecodeStoreGetMPLS(const Packet *p, int n, uint32_t *label);
 int DecodeStoreGetTLV(const Packet *p, int n, const uint8_t etype,
         uint8_t **data, uint8_t *data_len, const uint8_t data_size);
 
+void DecodeStoreIterate(const Packet *p, void (*Callback)(void *cb_data,
+            const uint8_t type, const uint8_t etype, const uint8_t size, const uint8_t *data), void *cb_data);
+
 #endif /* __DECODE_STORE_H__ */

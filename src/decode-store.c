@@ -255,6 +255,64 @@ void DecodeStoreCleanup(Packet *p)
     s->next = NULL;
 }
 
+void DecodeStoreIterate(const Packet *p,
+        void (*Callback)(void *cb_data, const uint8_t type, const uint8_t etype, const uint8_t size, const uint8_t *data),
+        void *cb_data)
+{
+    for (const struct DecodeStore *s = &p->decode_store; s != NULL; s = s->next) {
+        uint8_t offset = 0;
+        while (offset < s->data_offset) {
+            uint8_t type, size;
+            if (GetTypeAndSize(&s->data[offset], s->data_offset - offset, &type, &size) != 1)
+                break;
+
+            switch (type) {
+                case DECODE_STORE_TYPE_MPLS: {
+                    SCLogDebug("MPLS type %d size %u", type, size);
+                    DecodeStoreBuiltinMPLS v;
+                    memcpy(&v, &s->data[offset], sizeof(v));
+                    union {
+                        uint32_t label;
+                        uint8_t data[4];
+                    } u;
+                    u.label = v.value;
+                    Callback(cb_data, type, 0, 4, u.data);
+                    break;
+                }
+                case DECODE_STORE_TYPE_VLAN: {
+                    SCLogDebug("VLAN type %d size %u", type, size);
+                    DecodeStoreBuiltinVLAN v;
+                    memcpy(&v, &s->data[offset], sizeof(v));
+                    union {
+                        uint16_t vlan_id;
+                        uint8_t data[2];
+                    } u;
+                    u.vlan_id = v.value;
+                    Callback(cb_data, type, 0, 2, u.data);
+                    break;
+                }
+                case DECODE_STORE_TYPE_TLV: {
+                    const uint8_t *data = &s->data[offset];
+                    DecodeStoreBuiltinTLV v;
+                    memcpy(&v, &s->data[offset], sizeof(v));
+                    SCLogDebug("TLV type %d size %u", type, size);
+                    Callback(cb_data, type, v.etype, v.len - 3, data + 3);
+                    break;
+                }
+                case DECODE_STORE_TYPE_NEXT:
+                    SCLogNotice("NEXT type %d size %u", type, size);
+                    break;
+                default:
+                    SCLogNotice("type %d size %u", type, size);
+                    break;
+            }
+
+            offset += size;
+        }
+    }
+}
+
+
 // TODO dumper/iterator for building EVE obj
 
 // TODO for TLV have global registery for id's.
