@@ -258,9 +258,6 @@ pub struct DNSTransaction {
     pub id: u64,
     pub request: Option<DNSRequest>,
     pub response: Option<DNSResponse>,
-    detect_flags_ts: u64,
-    detect_flags_tc: u64,
-    pub logged: LoggerFlags,
     pub de_state: Option<*mut core::DetectEngineState>,
     pub events: *mut core::AppLayerDecoderEvents,
     pub tx_data: AppLayerTxData,
@@ -273,9 +270,6 @@ impl DNSTransaction {
             id: 0,
             request: None,
             response: None,
-            detect_flags_ts: 0,
-            detect_flags_tc: 0,
-            logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -763,50 +757,6 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_set_detect_flags(tx: *mut std::os::raw::c_void,
-                                             dir: u8,
-                                             flags: u64)
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    if dir & core::STREAM_TOSERVER != 0 {
-        tx.detect_flags_ts = flags as u64;
-    } else {
-        tx.detect_flags_tc = flags as u64;
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dns_tx_get_detect_flags(tx: *mut std::os::raw::c_void,
-                                             dir: u8)
-                                       -> u64
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    if dir & core::STREAM_TOSERVER != 0 {
-        return tx.detect_flags_ts as u64;
-    } else {
-        return tx.detect_flags_tc as u64;
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dns_tx_set_logged(_state: *mut std::os::raw::c_void,
-                                       tx: *mut std::os::raw::c_void,
-                                       logged: u32)
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    tx.logged.set(logged);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dns_tx_get_logged(_state: *mut std::os::raw::c_void,
-                                       tx: *mut std::os::raw::c_void)
-                                       -> u32
-{
-    let tx = cast_pointer!(tx, DNSTransaction);
-    return tx.logged.get();
-}
-
-#[no_mangle]
 pub extern "C" fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_void)
                                             -> u64
 {
@@ -1019,8 +969,8 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         get_tx: rs_dns_state_get_tx,
         tx_get_comp_st: rs_dns_state_progress_completion_status,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
-        get_tx_logged: Some(rs_dns_tx_get_logged),
-        set_tx_logged: Some(rs_dns_tx_set_logged),
+        get_tx_logged: None,
+        set_tx_logged: None,
         get_events: Some(rs_dns_state_get_events),
         get_eventinfo: Some(rs_dns_state_get_event_info),
         get_eventinfo_byid: Some(rs_dns_state_get_event_info_by_id),
@@ -1028,8 +978,8 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         localstorage_free: None,
         get_files: None,
         get_tx_iterator: None,
-        get_tx_detect_flags: Some(rs_dns_tx_get_detect_flags),
-        set_tx_detect_flags: Some(rs_dns_tx_set_detect_flags),
+        get_tx_detect_flags: None,
+        set_tx_detect_flags: None,
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: Some(rs_dns_state_get_tx_data),
@@ -1066,8 +1016,8 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         get_tx: rs_dns_state_get_tx,
         tx_get_comp_st: rs_dns_state_progress_completion_status,
         tx_get_progress: rs_dns_tx_get_alstate_progress,
-        get_tx_logged: Some(rs_dns_tx_get_logged),
-        set_tx_logged: Some(rs_dns_tx_set_logged),
+        get_tx_logged: None,
+        set_tx_logged: None,
         get_events: Some(rs_dns_state_get_events),
         get_eventinfo: Some(rs_dns_state_get_event_info),
         get_eventinfo_byid: Some(rs_dns_state_get_event_info_by_id),
@@ -1075,8 +1025,8 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         localstorage_free: None,
         get_files: None,
         get_tx_iterator: None,
-        get_tx_detect_flags: Some(rs_dns_tx_get_detect_flags),
-        set_tx_detect_flags: Some(rs_dns_tx_set_detect_flags),
+        get_tx_detect_flags: None,
+        set_tx_detect_flags: None,
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: Some(rs_dns_state_get_tx_data),
