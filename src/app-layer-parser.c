@@ -887,6 +887,18 @@ FileContainer *AppLayerParserGetFiles(const Flow *f, const uint8_t direction)
     SCReturnPtr(ptr, "FileContainer *");
 }
 
+static inline uint64_t GetTxDetectFlags(const uint8_t ipproto, const AppProto alproto, void *tx, const uint8_t dir)
+{
+    uint64_t detect_flags;
+    AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+    if (txd != NULL) {
+        detect_flags = (dir & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
+    } else {
+        detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, dir);
+    }
+    return detect_flags;
+}
+
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
@@ -899,7 +911,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     if (unlikely(p->StateTransactionFree == NULL))
         SCReturn;
 
-    const bool has_tx_detect_flags = (p->GetTxDetectFlags != NULL);
+    const bool has_tx_detect_flags = (p->GetTxDetectFlags != NULL || p->GetTxData != NULL);
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
     void * const alstate = f->alstate;
@@ -946,7 +958,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
         }
         if (has_tx_detect_flags) {
             if (f->sgh_toserver != NULL) {
-                uint64_t detect_flags_ts = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, STREAM_TOSERVER);
+                uint64_t detect_flags_ts = GetTxDetectFlags(ipproto, alproto, tx, STREAM_TOSERVER);
                 if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
                             tx, i, detect_flags_ts);
@@ -955,7 +967,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
                 }
             }
             if (f->sgh_toclient != NULL) {
-                uint64_t detect_flags_tc = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, STREAM_TOCLIENT);
+                uint64_t detect_flags_tc = GetTxDetectFlags(ipproto, alproto, tx, STREAM_TOCLIENT);
                 if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
                     SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
                             tx, i, detect_flags_tc);
@@ -1149,6 +1161,9 @@ bool AppLayerParserSupportsTxDetectFlags(AppProto alproto)
     SCEnter();
     for (uint8_t p = 0; p < FLOW_PROTO_APPLAYER_MAX; p++) {
         if (alp_ctx.ctxs[p][alproto].GetTxDetectFlags != NULL) {
+            SCReturnBool(true);
+        }
+        if (alp_ctx.ctxs[p][alproto].GetTxData != NULL) {
             SCReturnBool(true);
         }
     }
