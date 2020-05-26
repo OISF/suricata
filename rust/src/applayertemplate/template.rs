@@ -533,8 +533,6 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         get_eventinfo_byid : Some(rs_template_state_get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_tx_mpm_id: None,
-        set_tx_mpm_id: None,
         get_files: None,
         get_tx_iterator: Some(rs_template_state_get_tx_iterator),
         get_tx_detect_flags: None,
