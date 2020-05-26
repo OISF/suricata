@@ -207,6 +207,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             break;
         void * const tx = ires.tx_ptr;
         tx_id = ires.tx_id;
+        AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
 
         if (list[ALPROTO_UNKNOWN] != 0) {
             OutputTxLogList0(tv, op_thread_data, p, f, tx, tx_id);
@@ -214,7 +215,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 goto next_tx;
         }
 
-        LoggerId tx_logged = AppLayerParserGetTxLogged(f, alstate, tx);
+        LoggerId tx_logged = txd ? txd->logged.flags : AppLayerParserGetTxLogged(f, alstate, tx);
         const LoggerId tx_logged_old = tx_logged;
         SCLogDebug("logger: expect %08x, have %08x", logger_expectation, tx_logged);
         if (tx_logged == logger_expectation) {
@@ -286,8 +287,12 @@ next_logger:
         if (tx_logged != tx_logged_old) {
             SCLogDebug("logger: storing %08x (was %08x)",
                 tx_logged, tx_logged_old);
-            AppLayerParserSetTxLogged(p->proto, alproto, alstate, tx,
-                    tx_logged);
+            if (txd != NULL) {
+                txd->logged.flags |= tx_logged;
+            } else {
+                AppLayerParserSetTxLogged(p->proto, alproto, alstate, tx,
+                        tx_logged);
+            }
         }
 
         /* If all loggers logged set a flag and update the last tx_id
