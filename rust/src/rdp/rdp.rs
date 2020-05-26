@@ -528,8 +528,6 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         get_eventinfo_byid: None,
         localstorage_new: None,
         localstorage_free: None,
-        get_tx_mpm_id: None,
-        set_tx_mpm_id: None,
         get_files: None,
         get_tx_iterator: None,
         get_tx_detect_flags: None,

@@ -598,16 +598,6 @@ void AppLayerParserRegisterDetectFlagsFuncs(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterMpmIDsFuncs(uint8_t ipproto, AppProto alproto,
-        uint64_t(*GetTxMpmIDs)(void *tx),
-        int (*SetTxMpmIDs)(void *tx, uint64_t))
-{
-    SCEnter();
-    SCLogWarning(SC_WARN_DEPRECATED, "%u/%s: GetTxMpmIDs/SetTxMpmIDs is no longer used",
-            ipproto, AppProtoToString(alproto));
-    SCReturn;
-}
-
 void AppLayerParserRegisterSetStreamDepthFlag(uint8_t ipproto, AppProto alproto,
         void (*SetStreamDepthFlag)(void *tx, uint8_t flags))
 {

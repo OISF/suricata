@@ -158,11 +158,6 @@ pub struct RustParser {
     /// Function to free local storage
     pub localstorage_free:  Option<LocalStorageFreeFn>,
 
-    /// Function to get transaction MPM ID
-    pub get_tx_mpm_id:      Option<GetTxMpmIDFn>,
-    /// Function to set transaction MPM ID
-    pub set_tx_mpm_id:      Option<SetTxMpmIDFn>,
-
     /// Function to get files
     pub get_files:          Option<GetFilesFn>,
 
@@ -216,8 +211,6 @@ pub type GetTxLoggedFn      = extern "C" fn (*mut c_void, *mut c_void) -> u32;
 pub type SetTxLoggedFn      = extern "C" fn (*mut c_void, *mut c_void, u32);
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
-pub type GetTxMpmIDFn       = extern "C" fn (*mut c_void) -> u64;
-pub type SetTxMpmIDFn       = extern "C" fn (*mut c_void, u64) -> c_int;
 pub type GetFilesFn         = extern "C" fn (*mut c_void, u8) -> *mut FileContainer;
 pub type GetTxIteratorFn    = extern "C" fn (ipproto: u8, alproto: AppProto,
                                              state: *mut c_void,

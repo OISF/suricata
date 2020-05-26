@@ -181,9 +181,6 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterGetStreamDepth(uint8_t ipproto,
                                           AppProto alproto,
                                           uint32_t (*GetStreamDepth)(void));
-void AppLayerParserRegisterMpmIDsFuncs(uint8_t ipproto, AppProto alproto,
-        uint64_t (*GetTxMpmIDs)(void *tx),
-        int (*SetTxMpmIDs)(void *tx, uint64_t));
 void AppLayerParserRegisterDetectFlagsFuncs(uint8_t ipproto, AppProto alproto,
         uint64_t(*GetTxDetectFlags)(void *tx, uint8_t dir),
         void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t));

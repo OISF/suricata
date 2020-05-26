@@ -677,8 +677,6 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_eventinfo_byid : Some(rs_krb5_state_get_event_info_by_id),
         localstorage_new   : None,
         localstorage_free  : None,
-        get_tx_mpm_id      : None,
-        set_tx_mpm_id      : None,
         get_files          : None,
         get_tx_iterator    : None,
         get_tx_detect_flags: Some(rs_krb5_tx_detect_flags_get),
