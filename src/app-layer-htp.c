@@ -3011,24 +3011,6 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
         return NULL;
 }
 
-static void HTPStateSetTxLogged(void *alstate, void *vtx, LoggerId bits)
-{
-    htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud)
-        tx_ud->logged = bits;
-}
-
-static LoggerId HTPStateGetTxLogged(void *alstate, void *vtx)
-{
-    htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud != NULL)
-        return tx_ud->logged;
-
-    return 0;
-}
-
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
 {
     return (direction & STREAM_TOSERVER) ? HTP_REQUEST_COMPLETE : HTP_RESPONSE_COMPLETE;
@@ -3094,39 +3076,6 @@ static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
     }
     tx_ud->de_state = s;
     return 0;
-}
-
-static uint64_t HTPGetTxDetectFlags(void *vtx, uint8_t dir)
-{
-    htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud) {
-        if (dir & STREAM_TOSERVER) {
-            return tx_ud->detect_flags_ts;
-        } else {
-            return tx_ud->detect_flags_tc;
-        }
-    }
-    return 0;
-}
-
-static void HTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags)
-{
-    htp_tx_t *tx = (htp_tx_t *)vtx;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud == NULL) {
-        tx_ud = HTPMalloc(sizeof(*tx_ud));
-        if (unlikely(tx_ud == NULL))
-            return;
-        memset(tx_ud, 0, sizeof(*tx_ud));
-        htp_tx_set_user_data(tx, tx_ud);
-    }
-    if (dir & STREAM_TOSERVER) {
-        tx_ud->detect_flags_ts = detect_flags;
-    } else {
-        tx_ud->detect_flags_tc = detect_flags;
-    }
-    return;
 }
 
 static AppLayerTxData *HTPGetTxData(void *vtx)
@@ -3215,8 +3164,6 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTx);
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTxLogged,
-                                          HTPStateSetTxLogged);
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_HTTP,
                                                                HTPStateGetAlstateProgressCompletionStatus);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPGetEvents);
@@ -3226,8 +3173,6 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateTruncate);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_HTTP,
                                                HTPGetTxDetectState, HTPSetTxDetectState);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_HTTP,
-                                               HTPGetTxDetectFlags, HTPSetTxDetectFlags);
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPGetTxData);
 
         AppLayerParserRegisterSetStreamDepthFlag(IPPROTO_TCP, ALPROTO_HTTP,
