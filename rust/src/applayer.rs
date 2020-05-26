@@ -54,12 +54,16 @@ impl AppLayerTxConfig {
 pub struct AppLayerTxData {
     /// config: log flags
     pub config: AppLayerTxConfig,
+
+    /// logger flags for tx logging api
+    logged: LoggerFlags,
 }
 
 impl AppLayerTxData {
     pub fn new() -> Self {
         Self {
             config: AppLayerTxConfig::new(),
+            logged: LoggerFlags::new(),
         }
     }
 }
@@ -339,7 +343,8 @@ impl AppLayerGetTxIterTuple {
 }
 
 /// LoggerFlags tracks which loggers have already been executed.
-#[derive(Debug)]
+#[repr(C)]
+#[derive(Debug,PartialEq)]
 pub struct LoggerFlags {
     flags: u32,
 }
