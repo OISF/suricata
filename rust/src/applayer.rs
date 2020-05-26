@@ -57,6 +57,10 @@ pub struct AppLayerTxData {
 
     /// logger flags for tx logging api
     logged: LoggerFlags,
+
+    /// detection engine flags for use by detection engine
+    detect_flags_ts: u64,
+    detect_flags_tc: u64,
 }
 
 impl AppLayerTxData {
@@ -64,6 +68,8 @@ impl AppLayerTxData {
         Self {
             config: AppLayerTxConfig::new(),
             logged: LoggerFlags::new(),
+            detect_flags_ts: 0,
+            detect_flags_tc: 0,
         }
     }
 }
