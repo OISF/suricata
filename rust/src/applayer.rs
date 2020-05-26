@@ -27,12 +27,18 @@ use std::os::raw::{c_void,c_char,c_int};
 #[repr(C)]
 #[derive(Debug)]
 pub struct AppLayerTxData {
+    /// config: log flags
     log_flags: u8,
+
+    logged: LoggerFlags,
 }
 
 impl AppLayerTxData {
     pub fn new() -> Self {
-        Self { log_flags: 0 }
+        Self {
+            log_flags: 0,
+            logged: LoggerFlags::new(),
+        }
     }
     pub fn add_log_flags(&mut self, flags: u8) {
         self.log_flags |= flags;
@@ -297,6 +303,7 @@ impl AppLayerGetTxIterTuple {
 }
 
 /// LoggerFlags tracks which loggers have already been executed.
+#[repr(C)]
 #[derive(Debug)]
 pub struct LoggerFlags {
     flags: u32,
