@@ -361,13 +361,10 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     if (filemagic == NULL)
         return -1;
 
-    if (g_magic_thread_ctx_id == -1) {
-        g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "filemagic",
-                DetectFilemagicThreadInit, (void *)filemagic,
-                DetectFilemagicThreadFree, 1);
-        if (g_magic_thread_ctx_id == -1)
-            goto error;
-    }
+    g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "filemagic",
+            DetectFilemagicThreadInit, (void *)filemagic, DetectFilemagicThreadFree, 1);
+    if (g_magic_thread_ctx_id == -1)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
