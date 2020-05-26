@@ -31,6 +31,7 @@ typedef struct NapatechPacketVars_
     uint64_t stream_id;
     NtNetBuf_t nt_packet_buf;
     NtNetStreamRx_t rx_stream;
+    NtFlowStream_t flow_stream;
     ThreadVars *tv;
 #ifdef NAPATECH_ENABLE_BYPASS
     NtDyn3Descr_t *dyn3;
@@ -112,9 +113,11 @@ uint32_t NapatechDeleteFilters(void);
 #define NAPATECH_FLOWTYPE_DROP 7
 #define NAPATECH_FLOWTYPE_PASS 8
 
-int NapatechInitFlowStreams(void);
+int NapatechVerifyBypassSupport(void);
 NtFlowStream_t *NapatechGetFlowStreamPtr(int device);
 int NapatechCloseFlowStreams(void);
+int NapatechGetNumAdapters(void);
+
 
 int NapatechIsBypassSupported(void);
 
