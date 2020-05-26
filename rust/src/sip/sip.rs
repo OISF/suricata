@@ -408,8 +408,6 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         get_eventinfo_byid: Some(rs_sip_state_get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_tx_mpm_id: None,
-        set_tx_mpm_id: None,
         get_files: None,
         get_tx_iterator: None,
         get_tx_detect_flags: None,

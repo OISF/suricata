@@ -161,10 +161,6 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
         AppLayerParserRegisterLocalStorageFunc(p->ip_proto, alproto,
                 p->LocalStorageAlloc, p->LocalStorageFree);
     }
-    if (p->GetTxMpmIDs && p->SetTxMpmIDs) {
-        AppLayerParserRegisterMpmIDsFuncs(p->ip_proto, alproto,
-                p->GetTxMpmIDs, p->SetTxMpmIDs);
-    }
     if (p->StateGetFiles) {
         AppLayerParserRegisterGetFilesFunc(p->ip_proto, alproto,
                 p->StateGetFiles);

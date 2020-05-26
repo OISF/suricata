@@ -447,8 +447,6 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         get_eventinfo_byid : None,
         localstorage_new   : None,
         localstorage_free  : None,
-        get_tx_mpm_id      : None,
-        set_tx_mpm_id      : None,
         get_files          : None,
         get_tx_iterator    : Some(rs_dhcp_state_get_tx_iterator),
         set_tx_detect_flags: None,
