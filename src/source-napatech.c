@@ -455,7 +455,7 @@ static int ProgramFlow(Packet *p, int is_inline)
                 v4Tuple.sa = pIPv4_hdr->src_addr;
                 v4Tuple.da = pIPv4_hdr->dst_addr;
             } else {
-                do_swap = (pIPv4_hdr->src_addr > pIPv4_hdr->dst_addr);
+                do_swap = (htonl(pIPv4_hdr->src_addr) > htonl(pIPv4_hdr->dst_addr));
                 if (!do_swap) {
                     /* already in order */
                     v4Tuple.sa = pIPv4_hdr->src_addr;
