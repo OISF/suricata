@@ -28,6 +28,7 @@
 #include "decode.h"
 #include "threads.h"
 #include "threadvars.h"
+#include "tm-threads.h"
 
 #include "tm-queuehandlers.h"
 #include "tmqh-simple.h"
@@ -50,6 +51,8 @@ Packet *TmqhInputSimple(ThreadVars *t)
 
     StatsSyncCountersIfSignalled(t);
 
+    TmThreadsSetFlag(t, THV_RUNNING);
+    
     SCMutexLock(&q->mutex_q);
 
     if (q->len == 0) {

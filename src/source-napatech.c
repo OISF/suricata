@@ -890,6 +890,8 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     TmSlot *s = (TmSlot *) slot;
     ntv->slot = s->slot_next;
 
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     while (!(suricata_ctl_flags & SURICATA_STOP)) {
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */

@@ -389,6 +389,8 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             pkt_buffer = GET_PKT_DIRECT_DATA(p);
         }
 
+        // Indicate that the thread is actually running its application level code (i.e., it can poll packets)
+        TmThreadsSetFlag(tv, THV_RUNNING);
         int r = pfring_recv(ptv->pd, &pkt_buffer,
                 buffer_size,
                 &hdr,

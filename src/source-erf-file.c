@@ -115,6 +115,8 @@ TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
 
     etv->slot = ((TmSlot *)slot)->slot_next;
 
+    TmThreadsSetFlag(tv, THV_RUNNING);
+    
     while (1) {
         if (suricata_ctl_flags & SURICATA_STOP) {
             SCReturnInt(TM_ECODE_OK);

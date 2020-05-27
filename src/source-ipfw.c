@@ -237,6 +237,8 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     SCLogInfo("Thread '%s' will run on port %d (item %d)",
               tv->name, nq->port_num, ptv->ipfw_index);
     while (1) {

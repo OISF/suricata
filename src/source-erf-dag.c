@@ -335,6 +335,8 @@ ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
 
     dtv->slot = s->slot_next;
 
+    TmThreadsSetFlag(tv, THV_RUNNING);
+    
     while (1) {
         if (suricata_ctl_flags & SURICATA_STOP) {
             SCReturnInt(TM_ECODE_OK);

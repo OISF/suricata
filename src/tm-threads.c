@@ -1885,6 +1885,64 @@ void TmThreadContinueThreads(void)
     return;
 }
 
+void TmThreadEnsureUnpaused()
+{
+    ThreadVars *tv = NULL;
+    int i = 0;
+    int pausedThreads = 0;
+
+    SCMutexLock(&tv_root_lock);
+
+    do {
+        pausedThreads = 0;
+        for (i = 0; i < TVT_MAX; i++) {
+            tv = tv_root[i];
+            while (tv != NULL) {
+                if(TmThreadsCheckFlag(tv, THV_PAUSED)) {
+                    pausedThreads++;
+                }
+                tv = tv->next;
+            }
+        }
+        if (pausedThreads) {
+            SCLogDebug("%u threads paused; waiting 100us for them to unpause", pausedThreads);
+            SleepUsec(100);
+        }
+    } while(pausedThreads != 0);
+
+    SCMutexUnlock(&tv_root_lock);
+
+    return;
+}
+
+void TmThreadEnsureRunning()
+{
+    ThreadVars *tv = NULL;
+    int i = 0;
+    int nonRunningThreads = 0;
+
+    SCMutexLock(&tv_root_lock);
+
+    do {
+        nonRunningThreads = 0;
+        tv = tv_root[TVT_PPT];
+        while (tv != NULL) {
+            if(!TmThreadsCheckFlag(tv, THV_RUNNING)) {
+                nonRunningThreads++;
+            }
+            tv = tv->next;
+        }
+        if (nonRunningThreads) {
+            SCLogDebug("%u threads not running; waiting 100us for them to run", nonRunningThreads);
+            SleepUsec(100);
+        }
+    } while(nonRunningThreads != 0);
+
+    SCMutexUnlock(&tv_root_lock);
+
+    return;
+}
+
 /**
  * \brief Pauses a thread
  *

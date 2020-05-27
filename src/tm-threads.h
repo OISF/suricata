@@ -113,6 +113,8 @@ void TmThreadInitMC(ThreadVars *);
 void TmThreadTestThreadUnPaused(ThreadVars *);
 void TmThreadContinue(ThreadVars *);
 void TmThreadContinueThreads(void);
+void TmThreadEnsureUnpaused(void);
+void TmThreadEnsureRunning(void);
 void TmThreadPause(ThreadVars *);
 void TmThreadPauseThreads(void);
 void TmThreadCheckThreadState(void);

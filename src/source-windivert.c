@@ -414,6 +414,8 @@ TmEcode ReceiveWinDivertLoop(ThreadVars *tv, void *data, void *slot)
     WinDivertThreadVars *wd_tv = (WinDivertThreadVars *)data;
     wd_tv->slot = ((TmSlot *)slot)->slot_next;
 
+    TmThreadsSetFlag(tv, THV_RUNNING);
+    
     while (true) {
         if (suricata_ctl_flags & SURICATA_STOP) {
             SCReturnInt(TM_ECODE_OK);

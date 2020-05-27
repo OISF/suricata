@@ -907,6 +907,8 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
             "thread %s - RX polling using fd %d for ring %d", tv->name, fds.fd, ntv->ifsrc->ring);
 
     /* loop waiting for packets to arrive on the netmap source RX ring */
+    TmThreadsSetFlag(tv, THV_RUNNING);
+
     for(;;) {
 
         /* exit the read poll() loop if Suricata is shutting down */

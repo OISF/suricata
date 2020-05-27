@@ -2731,6 +2731,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 
 static void SuricataMainLoop(SCInstance *suri)
 {
+    SCLogNotice("Suricata Main Loop Started");
     while(1) {
         if (sigterm_count || sigint_count) {
             suricata_ctl_flags |= SURICATA_STOP;
@@ -2920,8 +2921,10 @@ int SuricataMain(int argc, char **argv)
     SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
     PacketPoolPostRunmodes();
 
-    /* Un-pause all the paused threads */
+    /* Un-pause all the paused threads, and wait for them to start */
     TmThreadContinueThreads();
+    TmThreadEnsureUnpaused();
+    TmThreadEnsureRunning();
 
     PostRunStartedDetectSetup(&suricata);
 
