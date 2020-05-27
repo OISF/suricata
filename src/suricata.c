@@ -232,6 +232,10 @@ uint16_t g_vlan_mask = 0xffff;
  * support */
 bool g_disable_hashing = false;
 
+/* What for worker threads to indicate they're running before indicating that
+ * Suricata has started */
+bool g_sync_workers = false;
+
 /** Suricata instance */
 SCInstance suricata;
 
@@ -631,6 +635,8 @@ static void PrintUsage(const char *progname)
     printf("\t--reject-dev <dev>                   : send reject packets from this interface\n");
 #endif
     printf("\t--set name=value                     : set a configuration value\n");
+    printf("\t--sync-workers                       : wait for all workers to start before logging "
+           "that Suricata has started\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -1240,6 +1246,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
 #endif
+	{"sync-workers", optional_argument, 0, 0},
         {NULL, 0, NULL, 0}
     };
     // clang-format on
@@ -1606,6 +1613,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->strict_rule_parsing_string == NULL) {
                     FatalError(SC_ERR_MEM_ALLOC, "failed to duplicate 'strict' string");
                 }
+            } else if (strcmp((long_opts[option_index]).name, "sync-workers") == 0) {
+                g_sync_workers = true;
             }
             break;
         case 'c':
@@ -2613,8 +2622,20 @@ int PostConfLoadedSetup(SCInstance *suri)
     SCReturnInt(TM_ECODE_OK);
 }
 
+/**
+ * Ensure all the worker threads have started and are in the running state
+ * (i.e., all threads are ready to process packets)
+ */
+static void SynchronizeWorkerThreads(void)
+{
+    TmThreadEnsureUnpaused();
+    TmThreadEnsureRunning();
+    SCLogNotice("All worker threads in running state");
+}
+
 static void SuricataMainLoop(SCInstance *suri)
 {
+    SCLogNotice("Suricata Main Loop Started");
     while(1) {
         if (sigterm_count || sigint_count) {
             suricata_ctl_flags |= SURICATA_STOP;
@@ -2800,8 +2821,11 @@ int SuricataMain(int argc, char **argv)
     SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
     PacketPoolPostRunmodes();
 
-    /* Un-pause all the paused threads */
+    /* Un-pause all the paused threads, and wait for them to start */
     TmThreadContinueThreads();
+    if (g_sync_workers) {
+        SynchronizeWorkerThreads();
+    }
 
     PostRunStartedDetectSetup(&suricata);
 

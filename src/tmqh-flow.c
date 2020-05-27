@@ -32,6 +32,7 @@
 #include "decode.h"
 #include "threads.h"
 #include "threadvars.h"
+#include "tm-threads.h"
 #include "tmqh-flow.h"
 
 #include "tm-queuehandlers.h"
