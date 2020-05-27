@@ -437,6 +437,7 @@ static void *TmThreadsSlotVar(void *td)
 
     s = (TmSlot *)tv->tm_slots;
 
+    TmThreadsSetFlag(tv, THV_RUNNING);
     while (run) {
         if (TmThreadsCheckFlag(tv, THV_PAUSE)) {
             TmThreadsSetFlag(tv, THV_PAUSED);
@@ -1839,6 +1840,64 @@ void TmThreadContinueThreads()
         }
     }
     SCMutexUnlock(&tv_root_lock);
+    return;
+}
+
+void TmThreadEnsureUnpaused()
+{
+    ThreadVars *tv = NULL;
+    int i = 0;
+    int paused_threads = 0;
+
+    SCMutexLock(&tv_root_lock);
+
+    do {
+        paused_threads = 0;
+        for (i = 0; i < TVT_MAX; i++) {
+            tv = tv_root[i];
+            while (tv != NULL) {
+                if (TmThreadsCheckFlag(tv, THV_PAUSED)) {
+                    paused_threads++;
+                }
+                tv = tv->next;
+            }
+        }
+        if (paused_threads) {
+            SCLogDebug("%u threads paused; waiting 100us for them to unpause", paused_threads);
+            SleepUsec(100);
+        }
+    } while (paused_threads != 0);
+
+    SCMutexUnlock(&tv_root_lock);
+
+    return;
+}
+
+void TmThreadEnsureRunning()
+{
+    ThreadVars *tv = NULL;
+    int non_running_threads = 0;
+
+    SCMutexLock(&tv_root_lock);
+
+    do {
+        non_running_threads = 0;
+        tv = tv_root[TVT_PPT];
+        while (tv != NULL) {
+            if (!TmThreadsCheckFlag(tv, THV_RUNNING)) {
+                non_running_threads++;
+            }
+            tv = tv->next;
+        }
+        if (non_running_threads) {
+            SCLogDebug(
+                    "%u threads not running; waiting 100us for them to run", non_running_threads);
+            SleepUsec(100);
+        }
+    } while (non_running_threads != 0);
+
+    SCMutexUnlock(&tv_root_lock);
+
     return;
 }
 
