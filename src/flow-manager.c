@@ -769,7 +769,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         SCLogDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
 
         /* see if we still have enough spare flows */
-        if (ftd->instance == 1)
+        if (ftd->instance == 0)
             FlowUpdateSpareFlows();
 
         /* try to time out flows */
@@ -777,7 +777,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         FlowTimeoutHash(&ts, 0 /* check all */, ftd->min, ftd->max, &counters);
 
 
-        if (ftd->instance == 1) {
+        if (ftd->instance == 0) {
             DefragTimeoutHash(&ts);
             //uint32_t hosts_pruned =
             HostTimeoutHash(&ts);
