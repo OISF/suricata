@@ -57,22 +57,12 @@ pub extern "C" fn rs_http2_parse_frametype(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
     let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
-    match ft_name.to_str() {
-        Ok(s) => {
-            let p = parser::HTTP2FrameType::from_str(s);
-            match p {
-                Ok(x) => {
-                    return x as i32;
-                }
-                Err(_) => {
-                    return -1;
-                }
-            }
-        }
-        Err(_) => {
-            return -1;
+    if let Ok(s) = ft_name.to_str() {
+        if let Ok(x) = parser::HTTP2FrameType::from_str(s) {
+            return x as i32;
         }
     }
+    return -1;
 }
 
 #[no_mangle]
@@ -115,22 +105,12 @@ pub extern "C" fn rs_http2_parse_errorcode(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
     let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
-    match ft_name.to_str() {
-        Ok(s) => {
-            let p = parser::HTTP2ErrorCode::from_str(s);
-            match p {
-                Ok(x) => {
-                    return x as i32;
-                }
-                Err(_) => {
-                    return -1;
-                }
-            }
-        }
-        Err(_) => {
-            return -1;
+    if let Ok(s) = ft_name.to_str() {
+        if let Ok(x) = parser::HTTP2ErrorCode::from_str(s) {
+            return x as i32;
         }
     }
+    return -1;
 }
 
 #[no_mangle]
@@ -206,22 +186,12 @@ pub extern "C" fn rs_http2_parse_settingsid(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
     let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
-    match ft_name.to_str() {
-        Ok(s) => {
-            let p = parser::HTTP2SettingsId::from_str(s);
-            match p {
-                Ok(x) => {
-                    return x as i32;
-                }
-                Err(_) => {
-                    return -1;
-                }
-            }
-        }
-        Err(_) => {
-            return -1;
+    if let Ok(s) = ft_name.to_str() {
+        if let Ok(x) = parser::HTTP2SettingsId::from_str(s) {
+            return x as i32;
         }
     }
+    return -1;
 }
 
 #[no_mangle]
@@ -229,20 +199,13 @@ pub extern "C" fn rs_http2_detect_settingsctx_parse(
     str: *const std::os::raw::c_char,
 ) -> *mut std::os::raw::c_void {
     let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
-    match ft_name.to_str() {
-        Ok(s) => match parser::http2_parse_settingsctx(s) {
-            Ok((_, ctx)) => {
-                let boxed = Box::new(ctx);
-                return unsafe { transmute(boxed) };
-            }
-            Err(_) => {
-                return std::ptr::null_mut();
-            }
-        },
-        Err(_) => {
-            return std::ptr::null_mut();
+    if let Ok(s) = ft_name.to_str() {
+        if let Ok((_, ctx)) = parser::http2_parse_settingsctx(s) {
+            let boxed = Box::new(ctx);
+            return unsafe { transmute(boxed) };
         }
     }
+    return std::ptr::null_mut();
 }
 
 #[no_mangle]
