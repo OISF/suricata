@@ -19,3 +19,4 @@ pub mod detect;
 pub mod http2;
 pub mod logger;
 mod parser;
+mod huffman;
