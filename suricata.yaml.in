@@ -1587,6 +1587,20 @@ nfq:
 #  batchcount: 20
 #  fail-open: yes
 
+# Testimony support 
+# Get libtestimony: https://github.com/google/testimony.git"
+# Testimony is a single-machine, multi-process architecture for sharing AF_PACKET data across processes.
+# This allows packets to be copied from NICs into memory a single time. 
+# Then, multiple processes can process this packet data in parallel without the need for additional copies.
+# Testimony allows users to configure multiple different AF_PACKET sockets with different filters, blocks, etc.
+# Administrators can specify BPF filters for these sockets, as well as which user should have access to which socket.
+# This allows admins to easily set up access to a restricted set of packets for specific users.
+testimony:
+  - socket: /tmp/testimony.sock
+  #  fanout-size: 4
+
+
+
 #nflog support
 nflog:
     # netlink multicast group
