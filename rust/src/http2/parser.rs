@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use super::huffman;
 use nom::character::complete::digit1;
 use nom::combinator::rest;
 use nom::error::ErrorKind;
@@ -23,8 +24,6 @@ use nom::Err;
 use nom::IResult;
 use std::fmt;
 use std::str::FromStr;
-use super::huffman;
-
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
@@ -217,329 +216,92 @@ fn http2_frame_header_static(
     n: u8,
     dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
 ) -> Option<HTTP2FrameHeaderBlock> {
-    match n {
-        1 => Some(HTTP2FrameHeaderBlock {
-            name: ":authority".as_bytes().to_vec(),
-            value: Vec::new(),
+    let (name, value) = match n {
+        1 => (":authority", ""),
+        2 => (":method", "GET"),
+        3 => (":method", "POST"),
+        4 => (":path", "/"),
+        5 => (":path", "/index.html"),
+        6 => (":scheme", "http"),
+        7 => (":scheme", "https"),
+        8 => (":status", "200"),
+        9 => (":status", "204"),
+        10 => (":status", "206"),
+        11 => (":status", "304"),
+        12 => (":status", "400"),
+        13 => (":status", "404"),
+        14 => (":status", "500"),
+        15 => ("accept-charset", ""),
+        16 => ("accept-encoding", "gzip, deflate"),
+        17 => ("accept-language", ""),
+        18 => ("accept-ranges", ""),
+        19 => ("accept", ""),
+        20 => ("access-control-allow-origin", ""),
+        21 => ("age", ""),
+        22 => ("allow", ""),
+        23 => ("authorization", ""),
+        24 => ("cache-control", ""),
+        25 => ("content-disposition", ""),
+        26 => ("content-encoding", ""),
+        27 => ("content-language", ""),
+        28 => ("content-length", ""),
+        29 => ("content-location", ""),
+        30 => ("content-range", ""),
+        31 => ("content-type", ""),
+        32 => ("cookie", ""),
+        33 => ("date", ""),
+        34 => ("etag", ""),
+        35 => ("expect", ""),
+        36 => ("expires", ""),
+        37 => ("from", ""),
+        38 => ("host", ""),
+        39 => ("if-match", ""),
+        40 => ("if-modified-since", ""),
+        41 => ("if-none-match", ""),
+        42 => ("if-range", ""),
+        43 => ("if-unmodified-since", ""),
+        44 => ("last-modified", ""),
+        45 => ("link", ""),
+        46 => ("location", ""),
+        47 => ("max-forwards", ""),
+        48 => ("proxy-authenticate", ""),
+        49 => ("proxy-authorization", ""),
+        50 => ("range", ""),
+        51 => ("referer", ""),
+        52 => ("refresh", ""),
+        53 => ("retry-after", ""),
+        54 => ("server", ""),
+        55 => ("set-cookie", ""),
+        56 => ("strict-transport-security", ""),
+        57 => ("transfer-encoding", ""),
+        58 => ("user-agent", ""),
+        59 => ("vary", ""),
+        60 => ("via", ""),
+        61 => ("www-authenticate", ""),
+        _ => ("", ""),
+    };
+    if name.len() > 0 {
+        return Some(HTTP2FrameHeaderBlock {
+            name: name.as_bytes().to_vec(),
+            value: value.as_bytes().to_vec(),
             error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        2 => Some(HTTP2FrameHeaderBlock {
-            name: ":method".as_bytes().to_vec(),
-            value: "GET".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        3 => Some(HTTP2FrameHeaderBlock {
-            name: ":method".as_bytes().to_vec(),
-            value: "POST".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        4 => Some(HTTP2FrameHeaderBlock {
-            name: ":path".as_bytes().to_vec(),
-            value: "/".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        5 => Some(HTTP2FrameHeaderBlock {
-            name: ":path".as_bytes().to_vec(),
-            value: "/index.html".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        6 => Some(HTTP2FrameHeaderBlock {
-            name: ":scheme".as_bytes().to_vec(),
-            value: "http".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        7 => Some(HTTP2FrameHeaderBlock {
-            name: ":scheme".as_bytes().to_vec(),
-            value: "https".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        8 => Some(HTTP2FrameHeaderBlock {
-            name: ":status".as_bytes().to_vec(),
-            value: "200".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        9 => Some(HTTP2FrameHeaderBlock {
-            name: ":status".as_bytes().to_vec(),
-            value: "204".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        10 => Some(HTTP2FrameHeaderBlock {
-            name: ":status".as_bytes().to_vec(),
-            value: "206".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        11 => Some(HTTP2FrameHeaderBlock {
-            name: ":status".as_bytes().to_vec(),
-            value: "304".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        12 => Some(HTTP2FrameHeaderBlock {
-            name: ":status".as_bytes().to_vec(),
-            value: "400".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        13 => Some(HTTP2FrameHeaderBlock {
-            name: ":status".as_bytes().to_vec(),
-            value: "404".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        14 => Some(HTTP2FrameHeaderBlock {
-            name: ":status".as_bytes().to_vec(),
-            value: "500".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        15 => Some(HTTP2FrameHeaderBlock {
-            name: "accept-charset".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        16 => Some(HTTP2FrameHeaderBlock {
-            name: "accept-encoding".as_bytes().to_vec(),
-            value: "gzip, deflate".as_bytes().to_vec(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        17 => Some(HTTP2FrameHeaderBlock {
-            name: "accept-language".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        18 => Some(HTTP2FrameHeaderBlock {
-            name: "accept-ranges".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        19 => Some(HTTP2FrameHeaderBlock {
-            name: "accept".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        20 => Some(HTTP2FrameHeaderBlock {
-            name: "access-control-allow-origin".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        21 => Some(HTTP2FrameHeaderBlock {
-            name: "age".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        22 => Some(HTTP2FrameHeaderBlock {
-            name: "allow".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        23 => Some(HTTP2FrameHeaderBlock {
-            name: "authorization".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        24 => Some(HTTP2FrameHeaderBlock {
-            name: "cache-control".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        25 => Some(HTTP2FrameHeaderBlock {
-            name: "content-disposition".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        26 => Some(HTTP2FrameHeaderBlock {
-            name: "content-encoding".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        27 => Some(HTTP2FrameHeaderBlock {
-            name: "content-language".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        28 => Some(HTTP2FrameHeaderBlock {
-            name: "content-length".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        29 => Some(HTTP2FrameHeaderBlock {
-            name: "content-location".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        30 => Some(HTTP2FrameHeaderBlock {
-            name: "content-range".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        31 => Some(HTTP2FrameHeaderBlock {
-            name: "content-type".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        32 => Some(HTTP2FrameHeaderBlock {
-            name: "cookie".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        33 => Some(HTTP2FrameHeaderBlock {
-            name: "date".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        34 => Some(HTTP2FrameHeaderBlock {
-            name: "etag".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        35 => Some(HTTP2FrameHeaderBlock {
-            name: "expect".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        36 => Some(HTTP2FrameHeaderBlock {
-            name: "expires".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        37 => Some(HTTP2FrameHeaderBlock {
-            name: "from".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        38 => Some(HTTP2FrameHeaderBlock {
-            name: "host".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        39 => Some(HTTP2FrameHeaderBlock {
-            name: "if-match".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        40 => Some(HTTP2FrameHeaderBlock {
-            name: "if-modified-since".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        41 => Some(HTTP2FrameHeaderBlock {
-            name: "if-none-match".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        42 => Some(HTTP2FrameHeaderBlock {
-            name: "if-range".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        43 => Some(HTTP2FrameHeaderBlock {
-            name: "if-unmodified-since".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        44 => Some(HTTP2FrameHeaderBlock {
-            name: "last-modified".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        45 => Some(HTTP2FrameHeaderBlock {
-            name: "link".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        46 => Some(HTTP2FrameHeaderBlock {
-            name: "location".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        47 => Some(HTTP2FrameHeaderBlock {
-            name: "max-forwards".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        48 => Some(HTTP2FrameHeaderBlock {
-            name: "proxy-authenticate".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        49 => Some(HTTP2FrameHeaderBlock {
-            name: "proxy-authorization".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        50 => Some(HTTP2FrameHeaderBlock {
-            name: "range".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        51 => Some(HTTP2FrameHeaderBlock {
-            name: "referer".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        52 => Some(HTTP2FrameHeaderBlock {
-            name: "refresh".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        53 => Some(HTTP2FrameHeaderBlock {
-            name: "retry-after".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        54 => Some(HTTP2FrameHeaderBlock {
-            name: "server".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        55 => Some(HTTP2FrameHeaderBlock {
-            name: "set-cookie".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        56 => Some(HTTP2FrameHeaderBlock {
-            name: "strict-transport-security".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        57 => Some(HTTP2FrameHeaderBlock {
-            name: "transfer-encoding".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        58 => Some(HTTP2FrameHeaderBlock {
-            name: "user-agent".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        59 => Some(HTTP2FrameHeaderBlock {
-            name: "vary".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        60 => Some(HTTP2FrameHeaderBlock {
-            name: "via".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        61 => Some(HTTP2FrameHeaderBlock {
-            name: "www-authenticate".as_bytes().to_vec(),
-            value: Vec::new(),
-            error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-        }),
-        _ => {
-            //use dynamic table
-            if dyn_headers.len() + HTTP2_STATIC_HEADERS_NUMBER < n as usize {
-                Some(HTTP2FrameHeaderBlock {
-                    name: Vec::new(),
-                    value: Vec::new(),
-                    error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeNotIndexed,
-                })
-            } else {
-                let indyn = dyn_headers.len() - (n as usize - HTTP2_STATIC_HEADERS_NUMBER);
-                let headcopy = HTTP2FrameHeaderBlock {
-                    name: dyn_headers[indyn].name.to_vec(),
-                    value: dyn_headers[indyn].value.to_vec(),
-                    error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
-                };
-                Some(headcopy)
-            }
+        });
+    } else {
+        //use dynamic table
+        if dyn_headers.len() + HTTP2_STATIC_HEADERS_NUMBER < n as usize {
+            return Some(HTTP2FrameHeaderBlock {
+                name: Vec::new(),
+                value: Vec::new(),
+                error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeNotIndexed,
+            });
+        } else {
+            let indyn = dyn_headers.len() - (n as usize - HTTP2_STATIC_HEADERS_NUMBER);
+            let headcopy = HTTP2FrameHeaderBlock {
+                name: dyn_headers[indyn].name.to_vec(),
+                value: dyn_headers[indyn].value.to_vec(),
+                error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+            };
+            return Some(headcopy);
         }
     }
 }
@@ -589,7 +351,7 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
     if huffslen.0 == 0 {
         return Ok((i3, data.to_vec()));
     } else {
-let (_, val) = bits!(data, many0!(huffman::http2_decode_huffman))?;
+        let (_, val) = bits!(data, many0!(huffman::http2_decode_huffman))?;
         return Ok((i3, val));
     }
 }
