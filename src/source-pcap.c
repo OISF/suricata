@@ -40,12 +40,30 @@
 #include "util-optimize.h"
 #include "util-checksum.h"
 #include "util-ioctl.h"
+#include "util-unittest.h"
 #include "tmqh-packetpool.h"
 
 #define PCAP_STATE_DOWN 0
 #define PCAP_STATE_UP 1
 
 #define PCAP_RECONNECT_TIMEOUT 500000
+
+/**
+ * \brief 64bit pcap stats counters.
+ *
+ * libpcap only supports 32bit counters. They will eventually wrap around.
+ *
+ * Keep track of libpcap counters as 64bit counters to keep on counting even
+ * if libpcap's 32bit counters wrap around.
+ * Requires pcap_stats() to be called before 32bit stats wrap around twice,
+ * which we do.
+ */
+typedef struct PcapStats64_
+{
+    uint64_t ps_recv;
+    uint64_t ps_drop;
+    uint64_t ps_ifdrop;
+} PcapStats64;
 
 /**
  * \brief Structure to hold thread specific variables.
@@ -62,6 +80,7 @@ typedef struct PcapThreadVars_
     const char *bpf_filter;
 
     time_t last_stats_dump;
+    PcapStats64 last_stats64;
 
     /* data link type for the thread */
     int datalink;
@@ -99,12 +118,14 @@ static TmEcode DecodePcapThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
 static TmEcode DecodePcap(ThreadVars *, Packet *, void *);
 
+void SourcePcapRegisterTests(void);
+
 /** protect pcap_compile and pcap_setfilter, as they are not thread safe:
  *  http://seclists.org/tcpdump/2009/q1/62 */
 static SCMutex pcap_bpf_compile_lock = SCMUTEX_INITIALIZER;
 
 /**
- * \brief Registration Function for RecievePcap.
+ * \brief Registration Function for ReceivePcap.
  */
 void TmModuleReceivePcapRegister (void)
 {
@@ -115,6 +136,7 @@ void TmModuleReceivePcapRegister (void)
     tmm_modules[TMM_RECEIVEPCAP].ThreadExitPrintStats = ReceivePcapThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAP].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVEPCAP].flags = TM_FLAG_RECEIVE_TM;
+    tmm_modules[TMM_RECEIVEPCAP].RegisterTests = SourcePcapRegisterTests;
 }
 
 /**
@@ -129,14 +151,50 @@ void TmModuleDecodePcapRegister (void)
     tmm_modules[TMM_DECODEPCAP].flags = TM_FLAG_DECODE_TM;
 }
 
+/**
+ * \brief Update 64 bit |last| value from |current32| value taking one
+ * wrap-around into account.
+ */
+static inline void UpdatePcapStatsValue64(uint64_t *last, uint32_t current32)
+{
+    uint32_t last32 = *last; /* slice lower 32bits */
+
+    /* Branchless code as wrap-around is defined for unsigned */
+    *last += (uint32_t)(current32 - last32);
+
+    /* Same calculation as:
+    if (likely(current32 >= last32)) {
+        *last += current32 - last32;
+    } else {
+        *last += (1ull << 32) + current32 - last32;
+    }
+    */
+}
+
+/**
+ * \brief Update 64 bit |last| stat values with values from |current|
+ * 32 bit pcap_stat.
+ */
+static inline void UpdatePcapStats64(
+        PcapStats64 *last, const struct pcap_stat *current)
+{
+    UpdatePcapStatsValue64(&last->ps_recv, current->ps_recv);
+    UpdatePcapStatsValue64(&last->ps_drop, current->ps_drop);
+    UpdatePcapStatsValue64(&last->ps_ifdrop, current->ps_ifdrop);
+}
+
 static inline void PcapDumpCounters(PcapThreadVars *ptv)
 {
     struct pcap_stat pcap_s;
     if (likely((pcap_stats(ptv->pcap_handle, &pcap_s) >= 0))) {
-        StatsSetUI64(ptv->tv, ptv->capture_kernel_packets, pcap_s.ps_recv);
-        StatsSetUI64(ptv->tv, ptv->capture_kernel_drops, pcap_s.ps_drop);
-        (void) SC_ATOMIC_SET(ptv->livedev->drop, pcap_s.ps_drop);
-        StatsSetUI64(ptv->tv, ptv->capture_kernel_ifdrops, pcap_s.ps_ifdrop);
+        UpdatePcapStats64(&ptv->last_stats64, &pcap_s);
+        StatsSetUI64(ptv->tv, ptv->capture_kernel_packets,
+                ptv->last_stats64.ps_recv);
+        StatsSetUI64(
+                ptv->tv, ptv->capture_kernel_drops, ptv->last_stats64.ps_drop);
+        (void)SC_ATOMIC_SET(ptv->livedev->drop, ptv->last_stats64.ps_drop);
+        StatsSetUI64(ptv->tv, ptv->capture_kernel_ifdrops,
+                ptv->last_stats64.ps_ifdrop);
     }
 }
 
@@ -522,11 +580,17 @@ static void ReceivePcapThreadExitStats(ThreadVars *tv, void *data)
          * Note: ps_recv includes dropped packets and should be considered total.
          * Unless we start to look at ps_ifdrop which isn't supported everywhere.
          */
-        SCLogInfo("(%s) Pcap Total:%" PRIu64 " Recv:%" PRIu64 " Drop:%" PRIu64 " (%02.1f%%).",
-                tv->name, (uint64_t)pcap_s.ps_recv,
-                (uint64_t)pcap_s.ps_recv - (uint64_t)pcap_s.ps_drop,
-                (uint64_t)pcap_s.ps_drop,
-                (((float)(uint64_t)pcap_s.ps_drop)/(float)(uint64_t)pcap_s.ps_recv)*100);
+        UpdatePcapStats64(&ptv->last_stats64, &pcap_s);
+        float drop_percent = likely(ptv->last_stats64.ps_recv > 0)
+                ? (((float)ptv->last_stats64.ps_drop) /
+                          (float)ptv->last_stats64.ps_recv) *
+                        100
+                : 0;
+        SCLogInfo("(%s) Pcap Total:%" PRIu64 " Recv:%" PRIu64 " Drop:%" PRIu64
+                  " (%02.1f%%).",
+                tv->name, ptv->last_stats64.ps_recv,
+                ptv->last_stats64.ps_recv - ptv->last_stats64.ps_drop,
+                ptv->last_stats64.ps_drop, drop_percent);
     }
 }
 
@@ -640,4 +704,224 @@ void PcapTranslateIPToDevice(char *pcap_dev, size_t len)
     freeaddrinfo(ai_list);
 
     pcap_freealldevs(alldevsp);
+}
+
+#ifdef UNITTESTS
+
+static uint32_t Upper32(uint64_t value)
+{
+    return value >> 32;
+}
+static uint32_t Lower32(uint64_t value)
+{
+    return value; /* slice lower 32bits */
+}
+
+static int UpdatePcapStatsValue64NoChange01(void)
+{
+    /*
+     * No change in counter values.
+     * Last count is within first 32bit range, i.e. same as pcap_stat range.
+     */
+    uint64_t last[] = { 0, 12345, (uint64_t)UINT32_MAX };
+    u_int current[] = { 0, 12345, UINT_MAX };
+    FAIL_IF_NOT(ARRAY_SIZE(last) == ARRAY_SIZE(current));
+
+    for (size_t i = 0; i < ARRAY_SIZE(last); ++i) {
+        FAIL_IF_NOT(last[i] == current[i]);
+
+        UpdatePcapStatsValue64(&last[i], current[i]);
+        FAIL_IF_NOT(last[i] == current[i]);
+    }
+
+    PASS;
+}
+
+static int UpdatePcapStatsValue64NoChange02(void)
+{
+    /*
+     * No change in counter values.
+     * Last count is outside 32bits range.
+     */
+    uint64_t last[] = { (2ull << 32) + 0, (3ull << 32) + 12345,
+        (3ull << 32) + (uint64_t)UINT32_MAX,
+        ((uint64_t)UINT32_MAX << 32) + (uint64_t)UINT32_MAX };
+    u_int current[] = { 0, 12345, UINT_MAX, UINT_MAX };
+    FAIL_IF_NOT(ARRAY_SIZE(last) == ARRAY_SIZE(current));
+
+    for (size_t i = 0; i < ARRAY_SIZE(last); ++i) {
+        uint32_t upper = Upper32(last[i]);
+        FAIL_IF_NOT(Lower32(last[i]) == current[i]);
+
+        UpdatePcapStatsValue64(&last[i], current[i]);
+        FAIL_IF_NOT(Lower32(last[i]) == current[i]);
+        FAIL_IF_NOT(Upper32(last[i]) == upper);
+    }
+
+    PASS;
+}
+
+static int UpdatePcapStatsValue64NoOverflow01(void)
+{
+    /*
+     * Non-overflowing counter value is simply taken over in lower 32bits.
+     * Last count is within first 32bit range, i.e. same as pcap_stat range.
+     * Also test edges and simple +1.
+     */
+    uint64_t last[] = { 0, 12345, (uint64_t)(UINT32_MAX - 1) };
+    u_int current[] = { 1, 34567, UINT_MAX };
+    FAIL_IF_NOT(ARRAY_SIZE(last) == ARRAY_SIZE(current));
+
+    for (size_t i = 0; i < ARRAY_SIZE(last); ++i) {
+        FAIL_IF_NOT(last[i] < current[i]);
+
+        UpdatePcapStatsValue64(&last[i], current[i]);
+        FAIL_IF_NOT(last[i] == current[i]);
+    }
+
+    PASS;
+}
+
+static int UpdatePcapStatsValue64NoOverflow02(void)
+{
+    /*
+     * Non-overflowing counter value is simply taken over in lower 32bits.
+     * Last count is outside 32bits range.
+     */
+    uint64_t last[] = { (2ull << 32) + 0, (3ull << 32) + 12345,
+        ((uint64_t)UINT32_MAX << 32) + (uint64_t)(UINT32_MAX - 1) };
+    u_int current[] = { 1, 34567, UINT_MAX };
+    FAIL_IF_NOT(ARRAY_SIZE(last) == ARRAY_SIZE(current));
+
+    for (size_t i = 0; i < ARRAY_SIZE(last); ++i) {
+        uint32_t upper = Upper32(last[i]);
+        FAIL_IF_NOT(Lower32(last[i]) < current[i]);
+
+        UpdatePcapStatsValue64(&last[i], current[i]);
+        FAIL_IF_NOT(Lower32(last[i]) == current[i]);
+        FAIL_IF_NOT(Upper32(last[i]) == upper);
+    }
+
+    PASS;
+}
+
+static int UpdatePcapStatsValue64Overflow01(void)
+{
+    /*
+     * Overflowing counter value is simply taken over in lower 32bits.
+     * Last count is within first 32bit range, i.e. same as pcap_stat range.
+     */
+    uint64_t last[] = { 1, 12345, 12345, (uint64_t)UINT32_MAX };
+    u_int current[] = { 0, 22, 12344, UINT_MAX - 1 };
+    FAIL_IF_NOT(ARRAY_SIZE(last) == ARRAY_SIZE(current));
+
+    for (size_t i = 0; i < ARRAY_SIZE(last); ++i) {
+        FAIL_IF_NOT(last[i] > current[i]);
+
+        UpdatePcapStatsValue64(&last[i], current[i]);
+        FAIL_IF_NOT(Lower32(last[i]) == current[i]);
+        FAIL_IF_NOT(Upper32(last[i]) == 1); /* wrap around */
+    }
+
+    PASS;
+}
+
+static int UpdatePcapStatsValue64Overflow02(void)
+{
+    /*
+     * Overflowing counter value is simply taken over in lower 32bits.
+     * Last count is outside 32bits range.
+     */
+    uint64_t last[] = { (2ull << 32) + 1, (3ull << 32) + 12345,
+        (3ull << 32) + 12345,
+        ((uint64_t)UINT32_MAX << 32) + (uint64_t)UINT32_MAX };
+    u_int current[] = { 0, 22, 12344, UINT_MAX - 1 };
+    FAIL_IF_NOT(ARRAY_SIZE(last) == ARRAY_SIZE(current));
+
+    for (size_t i = 0; i < ARRAY_SIZE(last); ++i) {
+        uint32_t upper = Upper32(last[i]);
+        FAIL_IF_NOT(Lower32(last[i]) > current[i]);
+
+        UpdatePcapStatsValue64(&last[i], current[i]);
+        FAIL_IF_NOT(Lower32(last[i]) == current[i]);
+        FAIL_IF_NOT(Upper32(last[i]) == upper + 1); /* wrap around */
+    }
+
+    PASS;
+}
+
+static int UpdatePcapStatsValue64Overflow03(void)
+{
+    /*
+     * Overflowing counter value is simply taken over in lower 32bits.
+     * Edge cases where upper32 bit wrap around to 0.
+     */
+    uint64_t last[] = { ((uint64_t)UINT32_MAX << 32) + (uint64_t)UINT32_MAX,
+        ((uint64_t)UINT32_MAX << 32) + (uint64_t)UINT32_MAX };
+    u_int current[] = { 0, 3333 };
+    FAIL_IF_NOT(ARRAY_SIZE(last) == ARRAY_SIZE(current));
+
+    for (size_t i = 0; i < ARRAY_SIZE(last); ++i) {
+        FAIL_IF_NOT(Lower32(last[i]) > current[i]);
+
+        UpdatePcapStatsValue64(&last[i], current[i]);
+        FAIL_IF_NOT(Lower32(last[i]) == current[i]);
+        FAIL_IF_NOT(Upper32(last[i]) == 0); /* wrap around */
+    }
+
+    PASS;
+}
+
+static int UpdatePcapStats64Assorted01(void)
+{
+    /*
+     * Test that all fields of the struct are correctly updated.
+     *
+     * Full testing of value behaviour is done in UpdatePcapStatsValue64...()
+     * tests.
+     */
+    PcapStats64 last = { .ps_recv = 0, .ps_drop = 1234, .ps_ifdrop = 8765 };
+    struct pcap_stat current = {
+        .ps_recv = 12, .ps_drop = 2345, .ps_ifdrop = 9876
+    };
+
+    // test setup sanity check
+    FAIL_IF_NOT(last.ps_recv < current.ps_recv);
+    FAIL_IF_NOT(last.ps_drop < current.ps_drop);
+    FAIL_IF_NOT(last.ps_ifdrop < current.ps_ifdrop);
+
+    UpdatePcapStats64(&last, &current);
+
+    FAIL_IF_NOT(last.ps_recv == current.ps_recv);
+    FAIL_IF_NOT(last.ps_drop == current.ps_drop);
+    FAIL_IF_NOT(last.ps_ifdrop == current.ps_ifdrop);
+
+    PASS;
+}
+
+#endif /* UNITTESTS */
+
+/**
+ *  \brief  Register the Unit tests for pcap source
+ */
+void SourcePcapRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("UpdatePcapStatsValue64NoChange01",
+            UpdatePcapStatsValue64NoChange01);
+    UtRegisterTest("UpdatePcapStatsValue64NoChange02",
+            UpdatePcapStatsValue64NoChange02);
+    UtRegisterTest("UpdatePcapStatsValue64NoOverflow01",
+            UpdatePcapStatsValue64NoOverflow01);
+    UtRegisterTest("UpdatePcapStatsValue64NoOverflow02",
+            UpdatePcapStatsValue64NoOverflow02);
+    UtRegisterTest("UpdatePcapStatsValue64Overflow01",
+            UpdatePcapStatsValue64Overflow01);
+    UtRegisterTest("UpdatePcapStatsValue64Overflow02",
+            UpdatePcapStatsValue64Overflow02);
+    UtRegisterTest("UpdatePcapStatsValue64Overflow03",
+            UpdatePcapStatsValue64Overflow03);
+
+    UtRegisterTest("UpdatePcapStats64Assorted01", UpdatePcapStats64Assorted01);
+#endif /* UNITTESTS */
 }
