@@ -20,7 +20,7 @@ use super::parser;
 use crate::json::*;
 use std;
 
-fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
+fn log_http2(tx: &HTTP2Transaction) -> Json {
     let js = Json::object();
     if let Some(ref ftype) = tx.ftype {
         js.set_string("frame_type", &ftype.to_string());
@@ -67,14 +67,11 @@ fn log_http2(tx: &HTTP2Transaction) -> Option<Json> {
         }
         _ => {}
     }
-    return Some(js);
+    return js;
 }
 
 #[no_mangle]
 pub extern "C" fn rs_http2_log_json(tx: *mut std::os::raw::c_void) -> *mut JsonT {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    match log_http2(tx) {
-        Some(js) => js.unwrap(),
-        None => std::ptr::null_mut(),
-    }
+    return log_http2(tx).unwrap();
 }
