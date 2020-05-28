@@ -2488,7 +2488,11 @@ fi
     if test "x$cross_compiling" = "xyes"; then
       RUST_SURICATA_LIB_XC_DIR="${host_alias}/"
     else
-      RUST_SURICATA_LIB_XC_DIR=
+      if test "x$CARGO_BUILD_TARGET" = "x"; then
+        RUST_SURICATA_LIB_XC_DIR=
+      else
+        RUST_SURICATA_LIB_XC_DIR="${CARGO_BUILD_TARGET}/"
+      fi
     fi
 
     if test "x$enable_debug" = "xyes"; then
