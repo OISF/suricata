@@ -24,8 +24,7 @@ use std::str::FromStr;
 
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_get_frametype(
-    tx: *mut std::os::raw::c_void,
-    direction: u8,
+    tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     //TODO6tx check use of direction
@@ -67,8 +66,7 @@ pub extern "C" fn rs_http2_parse_frametype(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_get_errorcode(
-    tx: *mut std::os::raw::c_void,
-    direction: u8,
+    tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     match direction {
@@ -115,8 +113,7 @@ pub extern "C" fn rs_http2_parse_errorcode(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_get_priority(
-    tx: *mut std::os::raw::c_void,
-    direction: u8,
+    tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     match direction {
@@ -154,8 +151,7 @@ pub extern "C" fn rs_http2_tx_get_priority(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_get_window(
-    tx: *mut std::os::raw::c_void,
-    direction: u8,
+    tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     match direction {
@@ -215,8 +211,7 @@ pub extern "C" fn rs_http2_detect_settingsctx_free(ctx: *mut std::os::raw::c_voi
 }
 
 fn http2_detect_settings_match(
-    set: &Vec<parser::HTTP2FrameSettings>,
-    ctx: &parser::DetectHTTP2settingsSigCtx,
+    set: &Vec<parser::HTTP2FrameSettings>, ctx: &parser::DetectHTTP2settingsSigCtx,
 ) -> std::os::raw::c_int {
     for i in 0..set.len() {
         if set[i].id == ctx.id {
@@ -254,9 +249,7 @@ fn http2_detect_settings_match(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_detect_settingsctx_match(
-    ctx: *const std::os::raw::c_void,
-    tx: *mut std::os::raw::c_void,
-    direction: u8,
+    ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let ctx = cast_pointer!(ctx, parser::DetectHTTP2settingsSigCtx);
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -281,10 +274,7 @@ pub extern "C" fn rs_http2_detect_settingsctx_match(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_get_header_name(
-    tx: *mut std::os::raw::c_void,
-    direction: u8,
-    i: u32,
-    buffer: *mut *const u8,
+    tx: *mut std::os::raw::c_void, direction: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> u8 {
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -325,12 +315,30 @@ pub extern "C" fn rs_http2_tx_get_header_name(
     return 0;
 }
 
+fn http2_escape_header(hd: &parser::HTTP2FrameHeaders, i: u32) -> Vec<u8> {
+    //minimum size + 2 for escapes
+    let normalsize = hd.blocks[i as usize].value.len() + 2 + hd.blocks[i as usize].name.len() + 2;
+    let mut vec = Vec::with_capacity(normalsize);
+    for j in 0..hd.blocks[i as usize].name.len() {
+        vec.push(hd.blocks[i as usize].name[j]);
+        if hd.blocks[i as usize].name[j] == ':' as u8 {
+            vec.push(':' as u8);
+        }
+    }
+    vec.push(':' as u8);
+    vec.push(' ' as u8);
+    for j in 0..hd.blocks[i as usize].value.len() {
+        vec.push(hd.blocks[i as usize].value[j]);
+        if hd.blocks[i as usize].value[j] == ':' as u8 {
+            vec.push(':' as u8);
+        }
+    }
+    return vec;
+}
+
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_get_header(
-    tx: *mut std::os::raw::c_void,
-    direction: u8,
-    i: u32,
-    buffer: *mut *const u8,
+    tx: *mut std::os::raw::c_void, direction: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> u8 {
     let tx = cast_pointer!(tx, HTTP2Transaction);
@@ -338,21 +346,7 @@ pub extern "C" fn rs_http2_tx_get_header(
         STREAM_TOSERVER => match &tx.type_data {
             Some(HTTP2FrameTypeData::HEADERS(hd)) => {
                 if (i as usize) < hd.blocks.len() {
-                    let mut vec = Vec::new();
-                    for j in 0..hd.blocks[i as usize].name.len() {
-                        vec.push(hd.blocks[i as usize].name[j]);
-                        if hd.blocks[i as usize].name[j] == ':' as u8 {
-                            vec.push(':' as u8);
-                        }
-                    }
-                    vec.push(':' as u8);
-                    vec.push(' ' as u8);
-                    for j in 0..hd.blocks[i as usize].value.len() {
-                        vec.push(hd.blocks[i as usize].value[j]);
-                        if hd.blocks[i as usize].value[j] == ':' as u8 {
-                            vec.push(':' as u8);
-                        }
-                    }
+                    let vec = http2_escape_header(hd, i);
                     let value = &vec;
                     unsafe {
                         *buffer = value.as_ptr();

@@ -213,8 +213,7 @@ named!(pub http2_parse_headers_priority<HTTP2FrameHeadersPriority>,
 pub const HTTP2_STATIC_HEADERS_NUMBER: usize = 61;
 
 fn http2_frame_header_static(
-    n: u8,
-    dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    n: u8, dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
 ) -> Option<HTTP2FrameHeaderBlock> {
     let (name, value) = match n {
         1 => (":authority", ""),
@@ -323,8 +322,7 @@ pub struct HTTP2FrameHeaderBlock {
 }
 
 fn http2_parse_headers_block_indexed<'a>(
-    input: &'a [u8],
-    dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
@@ -357,9 +355,7 @@ fn http2_parse_headers_block_string(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
 }
 
 fn http2_parse_headers_block_literal_common<'a>(
-    input: &'a [u8],
-    index: u8,
-    dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], index: u8, dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     let (i3, name, error) = if index == 0 {
         match http2_parse_headers_block_string(input) {
@@ -385,8 +381,7 @@ fn http2_parse_headers_block_literal_common<'a>(
 }
 
 fn http2_parse_headers_block_literal_incindex<'a>(
-    input: &'a [u8],
-    dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
@@ -420,8 +415,7 @@ fn http2_parse_headers_block_literal_incindex<'a>(
 }
 
 fn http2_parse_headers_block_literal_noindex<'a>(
-    input: &'a [u8],
-    dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
@@ -438,8 +432,7 @@ fn http2_parse_headers_block_literal_noindex<'a>(
 }
 
 fn http2_parse_headers_block_literal_neverindex<'a>(
-    input: &'a [u8],
-    dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &Vec<HTTP2FrameHeaderBlock>,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     fn parser(input: &[u8]) -> IResult<&[u8], (u8, u8)> {
         bits!(
@@ -490,8 +483,7 @@ fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2F
 }
 
 fn http2_parse_headers_block<'a>(
-    input: &'a [u8],
-    dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
 ) -> IResult<&'a [u8], HTTP2FrameHeaderBlock> {
     //caller garantees o have at least one byte
     if input[0] & 0x80 != 0 {
@@ -518,9 +510,7 @@ const HTTP2_FLAG_HEADER_PADDED: u8 = 0x8;
 const HTTP2_FLAG_HEADER_PRIORITY: u8 = 0x20;
 
 pub fn http2_parse_frame_headers<'a>(
-    input: &'a [u8],
-    flags: u8,
-    dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
+    input: &'a [u8], flags: u8, dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
 ) -> IResult<&'a [u8], HTTP2FrameHeaders> {
     let (i2, padlength) = cond!(input, flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)?;
     let (mut i3, priority) = cond!(

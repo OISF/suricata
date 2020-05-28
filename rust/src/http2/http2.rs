@@ -431,9 +431,7 @@ impl HTTP2State {
     }
 
     fn tx_iterator(
-        &mut self,
-        min_tx_id: u64,
-        state: &mut u64,
+        &mut self, min_tx_id: u64, state: &mut u64,
     ) -> Option<(&HTTP2Transaction, u64, bool)> {
         let mut index = *state as usize;
         let len = self.transactions.len();
@@ -464,11 +462,7 @@ export_tx_detect_flags_get!(rs_http2_get_tx_detect_flags, HTTP2Transaction);
 /// C entry point for a probing parser.
 #[no_mangle]
 pub extern "C" fn rs_http2_probing_parser_tc(
-    _flow: *const Flow,
-    _direction: u8,
-    input: *const u8,
-    input_len: u32,
-    _rdir: *mut u8,
+    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input != std::ptr::null_mut() {
         let slice = build_slice!(input, input_len as usize);
@@ -516,13 +510,8 @@ pub extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 
 #[no_mangle]
 pub extern "C" fn rs_http2_parse_ts(
-    _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let mut buf = build_slice!(input, input_len as usize);
@@ -554,13 +543,8 @@ pub extern "C" fn rs_http2_parse_ts(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_parse_tc(
-    _flow: *const Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *const std::os::raw::c_void,
-    _flags: u8,
+    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = build_slice!(input, input_len as usize);
@@ -569,8 +553,7 @@ pub extern "C" fn rs_http2_parse_tc(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_state_get_tx(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
+    state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, HTTP2State);
     match state.get_tx(tx_id) {
@@ -597,8 +580,7 @@ pub extern "C" fn rs_http2_state_progress_completion_status(_direction: u8) -> s
 
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_get_alstate_progress(
-    tx: *mut std::os::raw::c_void,
-    _direction: u8,
+    tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
 
@@ -611,8 +593,7 @@ pub extern "C" fn rs_http2_tx_get_alstate_progress(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_get_logged(
-    _state: *mut std::os::raw::c_void,
-    tx: *mut std::os::raw::c_void,
+    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
 ) -> u32 {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return tx.logged.get();
@@ -620,9 +601,7 @@ pub extern "C" fn rs_http2_tx_get_logged(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_tx_set_logged(
-    _state: *mut std::os::raw::c_void,
-    tx: *mut std::os::raw::c_void,
-    logged: u32,
+    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, logged: u32,
 ) {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     tx.logged.set(logged);
@@ -638,8 +617,7 @@ pub extern "C" fn rs_http2_state_get_events(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_state_get_event_info(
-    event_name: *const std::os::raw::c_char,
-    event_id: *mut std::os::raw::c_int,
+    event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
     event_type: *mut core::AppLayerEventType,
 ) -> std::os::raw::c_int {
     if event_name == std::ptr::null() {
@@ -668,8 +646,7 @@ pub extern "C" fn rs_http2_state_get_event_info(
 
 #[no_mangle]
 pub extern "C" fn rs_http2_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int,
-    event_name: *mut *const std::os::raw::c_char,
+    event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
     event_type: *mut core::AppLayerEventType,
 ) -> i8 {
     if let Some(e) = HTTP2Event::from_i32(event_id as i32) {
@@ -691,12 +668,8 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
 }
 #[no_mangle]
 pub extern "C" fn rs_http2_state_get_tx_iterator(
-    _ipproto: u8,
-    _alproto: AppProto,
-    state: *mut std::os::raw::c_void,
-    min_tx_id: u64,
-    _max_tx_id: u64,
-    istate: &mut u64,
+    _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
+    _max_tx_id: u64, istate: &mut u64,
 ) -> applayer::AppLayerGetTxIterTuple {
     let state = cast_pointer!(state, HTTP2State);
     match state.tx_iterator(min_tx_id, istate) {
