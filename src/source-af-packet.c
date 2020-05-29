@@ -181,6 +181,10 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #define TP_STATUS_VLAN_VALID (1 << 4)
 #endif
 
+#ifndef TP_STATUS_CSUM_VALID
+#define TP_STATUS_CSUM_VALID    BIT_U32(7)
+#endif
+
 enum {
     AFP_READ_OK,
     AFP_READ_FAILURE,
@@ -599,7 +603,6 @@ static int AFPRead(AFPThreadVars *ptv)
         struct cmsghdr cmsg;
         char buf[CMSG_SPACE(sizeof(struct tpacket_auxdata))];
     } cmsg_buf;
-    unsigned char aux_checksum = 0;
 
     msg.msg_name = &from;
     msg.msg_namelen = sizeof(from);
@@ -684,24 +687,19 @@ static int AFPRead(AFPThreadVars *ptv)
             p->flags |= PKT_IGNORE_CHECKSUM;
         }
     } else {
-        aux_checksum = 1;
-    }
+        /* List is NULL if we don't have activated auxiliary data */
+        for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+            if (cmsg->cmsg_len < CMSG_LEN(sizeof(struct tpacket_auxdata)) ||
+                    cmsg->cmsg_level != SOL_PACKET ||
+                    cmsg->cmsg_type != PACKET_AUXDATA)
+                continue;
 
-    /* List is NULL if we don't have activated auxiliary data */
-    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-        struct tpacket_auxdata *aux;
-
-        if (cmsg->cmsg_len < CMSG_LEN(sizeof(struct tpacket_auxdata)) ||
-                cmsg->cmsg_level != SOL_PACKET ||
-                cmsg->cmsg_type != PACKET_AUXDATA)
-            continue;
-
-        aux = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
-
-        if (aux_checksum && (aux->tp_status & TP_STATUS_CSUMNOTREADY)) {
-            p->flags |= PKT_IGNORE_CHECKSUM;
+            struct tpacket_auxdata *aux = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
+            if (aux->tp_status & (TP_STATUS_CSUMNOTREADY|TP_STATUS_CSUM_VALID)) {
+                p->flags |= PKT_IGNORE_CHECKSUM;
+            }
+            break;
         }
-        break;
     }
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
@@ -988,18 +986,16 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
                 GET_PKT_LEN(p), p, GET_PKT_DATA(p));
 
+        if (h.h2->tp_status & (TP_STATUS_CSUM_VALID|TP_STATUS_CSUMNOTREADY)) {
+            p->flags |= PKT_IGNORE_CHECKSUM;
         /* We only check for checksum disable */
-        if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
+        } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
             p->flags |= PKT_IGNORE_CHECKSUM;
         } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
             if (ChecksumAutoModeCheck(ptv->pkts,
                         SC_ATOMIC_GET(ptv->livedev->pkts),
                         SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
                 ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
-                p->flags |= PKT_IGNORE_CHECKSUM;
-            }
-        } else {
-            if (h.h2->tp_status & TP_STATUS_CSUMNOTREADY) {
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }
         }
@@ -1099,18 +1095,16 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
             GET_PKT_LEN(p), p, GET_PKT_DATA(p));
 
+    if (ppd->tp_status & (TP_STATUS_CSUM_VALID|TP_STATUS_CSUMNOTREADY)) {
+        p->flags |= PKT_IGNORE_CHECKSUM;
     /* We only check for checksum disable */
-    if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
+    } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         p->flags |= PKT_IGNORE_CHECKSUM;
     } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
         if (ChecksumAutoModeCheck(ptv->pkts,
                     SC_ATOMIC_GET(ptv->livedev->pkts),
                     SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
             ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
-            p->flags |= PKT_IGNORE_CHECKSUM;
-        }
-    } else {
-        if (ppd->tp_status & TP_STATUS_CSUMNOTREADY) {
             p->flags |= PKT_IGNORE_CHECKSUM;
         }
     }
