@@ -677,12 +677,10 @@ static int AFPRead(AFPThreadVars *ptv)
     if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         p->flags |= PKT_IGNORE_CHECKSUM;
     } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
-        if (ptv->livedev->ignore_checksum) {
-            p->flags |= PKT_IGNORE_CHECKSUM;
-        } else if (ChecksumAutoModeCheck(ptv->pkts,
+        if (ChecksumAutoModeCheck(ptv->pkts,
                                           SC_ATOMIC_GET(ptv->livedev->pkts),
                                           SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
-            ptv->livedev->ignore_checksum = 1;
+            ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
             p->flags |= PKT_IGNORE_CHECKSUM;
         }
     } else {
@@ -994,12 +992,10 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
             p->flags |= PKT_IGNORE_CHECKSUM;
         } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
-            if (ptv->livedev->ignore_checksum) {
-                p->flags |= PKT_IGNORE_CHECKSUM;
-            } else if (ChecksumAutoModeCheck(ptv->pkts,
+            if (ChecksumAutoModeCheck(ptv->pkts,
                         SC_ATOMIC_GET(ptv->livedev->pkts),
                         SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
-                ptv->livedev->ignore_checksum = 1;
+                ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }
         } else {
@@ -1107,12 +1103,10 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         p->flags |= PKT_IGNORE_CHECKSUM;
     } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
-        if (ptv->livedev->ignore_checksum) {
-            p->flags |= PKT_IGNORE_CHECKSUM;
-        } else if (ChecksumAutoModeCheck(ptv->pkts,
+        if (ChecksumAutoModeCheck(ptv->pkts,
                     SC_ATOMIC_GET(ptv->livedev->pkts),
                     SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
-            ptv->livedev->ignore_checksum = 1;
+            ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
             p->flags |= PKT_IGNORE_CHECKSUM;
         }
     } else {
