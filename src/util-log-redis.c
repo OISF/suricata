@@ -203,7 +203,11 @@ static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx)
         return -1;
     }
 
-    ctx->async = redisAsyncConnect(redis_server, redis_port);
+    if (strchr(redis_server, '/') == NULL) {
+        ctx->async = redisAsyncConnect(redis_server, redis_port);
+    } else {
+        ctx->async = redisAsyncConnectUnix(redis_server);
+    }
 
     if (ctx->ev_base != NULL) {
         event_base_free(ctx->ev_base);
@@ -297,7 +301,12 @@ static int SCConfLogReopenSyncRedis(LogFileCtx *log_ctx)
     if (ctx->sync != NULL)  {
         redisFree(ctx->sync);
     }
-    ctx->sync = redisConnect(redis_server, redis_port);
+
+    if (strchr(redis_server, '/') == NULL) {
+        ctx->sync = redisConnect(redis_server, redis_port);
+    } else {
+        ctx->sync = redisConnectUnix(redis_server);
+    }
     if (ctx->sync == NULL) {
         SCLogError(SC_ERR_SOCKET, "Error connecting to redis server.");
         ctx->tried = time(NULL);
