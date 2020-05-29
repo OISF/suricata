@@ -97,18 +97,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
     char qname[TM_QUEUE_NAME_MAX];
 
     /* Available cpus */
-    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
     int nlive = LiveGetDeviceCount();
-    int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);
-    /* always create at least one thread */
-    if (thread_max == 0)
-        thread_max = ncpus * threading_detect_ratio;
-    if (thread_max < 1)
-        thread_max = 1;
-    if (thread_max > 1024) {
-        SCLogWarning(SC_ERR_RUNMODE, "limited number of 'worker' threads to 1024. Wanted %d", thread_max);
-        thread_max = 1024;
-    }
+    uint16_t thread_max = TmThreadsGetWorkerThreadMax();
 
     char *queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
@@ -129,7 +119,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                   threads_count, recv_mod_name);
 
         /* create the threads */
-        for (int thread = 0; thread < MIN(thread_max, threads_count); thread++) {
+        for (int thread = 0; thread < threads_count; thread++) {
             snprintf(tname, sizeof(tname), "%s#%02d", thread_name, thread+1);
             ThreadVars *tv_receive =
                 TmThreadCreatePacketHandler(tname,
@@ -266,11 +256,12 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
                               unsigned char single_mode)
 {
     int threads_count;
+    uint16_t thread_max = TmThreadsGetWorkerThreadMax();
 
     if (single_mode) {
         threads_count = 1;
     } else {
-        threads_count = ModThreadsCount(aconf);
+        threads_count = MIN(ModThreadsCount(aconf), thread_max);
         SCLogInfo("Going to use %" PRId32 " thread(s)", threads_count);
     }
 
@@ -418,19 +409,9 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
     TmModule *tm_module ;
 
     /* Available cpus */
-    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
     const int nqueue = LiveGetDeviceCount();
 
-    int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);
-    /* always create at least one thread */
-    if (thread_max == 0)
-        thread_max = ncpus * threading_detect_ratio;
-    if (thread_max < 1)
-        thread_max = 1;
-    if (thread_max > 1024) {
-        SCLogWarning(SC_ERR_RUNMODE, "limited number of 'worker' threads to 1024. Wanted %d", thread_max);
-        thread_max = 1024;
-    }
+    uint16_t thread_max = TmThreadsGetWorkerThreadMax();
 
     char *queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
