@@ -46,7 +46,6 @@ typedef struct FlowStatsCounters_
     uint16_t total_bypass_flows;
 } FlowStatsCounters;
 
-static NtFlowStream_t hFlowStream[MAX_ADAPTERS];
 
 static int bypass_supported;
 int NapatechIsBypassSupported(void)
@@ -59,45 +58,48 @@ int NapatechIsBypassSupported(void)
  *
  * \return count of the Napatech adapters present in the system.
  */
-static int GetNumAdapters(void)
+int NapatechGetNumAdapters(void)
 {
     NtInfoStream_t hInfo;
     NtInfo_t hInfoSys;
     int status;
+    static int num_adapters = -1;
 
-    if ((status = NT_InfoOpen(&hInfo, "InfoStream")) != NT_SUCCESS) {
-        NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
-        exit(EXIT_FAILURE);
+    if (num_adapters == -1) {
+        if ((status = NT_InfoOpen(&hInfo, "InfoStream")) != NT_SUCCESS) {
+            NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
+            exit(EXIT_FAILURE);
+        }
+
+        hInfoSys.cmd = NT_INFO_CMD_READ_SYSTEM;
+        if ((status = NT_InfoRead(hInfo, &hInfoSys)) != NT_SUCCESS) {
+            NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
+            exit(EXIT_FAILURE);
+        }
+
+        num_adapters = hInfoSys.u.system.data.numAdapters;
+
+        NT_InfoClose(hInfo);
     }
 
-    hInfoSys.cmd = NT_INFO_CMD_READ_SYSTEM;
-    if ((status = NT_InfoRead(hInfo, &hInfoSys)) != NT_SUCCESS) {
-        NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
-        exit(EXIT_FAILURE);
-    }
-
-    int num_adapters = hInfoSys.u.system.data.numAdapters;
-
-    NT_InfoClose(hInfo);
     return num_adapters;
 }
 
 /**
- * \brief  Initializes the FlowStreams used to program flow data.
+ * \brief  Verifies that the Napatech adapters support bypass.
  *
- * Opens a FlowStream on each adapter present in the system.  This
- * FlowStream is subsequently used to program the adapter with
- * flows to bypass.
+ * Attempts to opens a FlowStream on each adapter present in the system.
+ * If successful then bypass is supported
  *
  * \return 1 if Bypass functionality is supported; zero otherwise.
  */
-int NapatechInitFlowStreams(void)
+int NapatechVerifyBypassSupport(void)
 {
     int status;
     int adapter = 0;
-    int num_adapters = GetNumAdapters();
+    int num_adapters = NapatechGetNumAdapters();
     SCLogInfo("Found %d Napatech adapters.\n", num_adapters);
-    memset(&hFlowStream, 0, sizeof(hFlowStream));
+    NtFlowStream_t hFlowStream;
 
     if (!NapatechUseHWBypass()) {
         /* HW Bypass is disabled in the conf file */
@@ -113,48 +115,16 @@ int NapatechInitFlowStreams(void)
 
         snprintf(flow_name, sizeof(flow_name), "Flow stream %d", adapter );
         SCLogInfo("Opening flow programming stream:  %s\n", flow_name);
-        if ((status = NT_FlowOpen_Attr(&hFlowStream[adapter], flow_name, &attr)) != NT_SUCCESS) {
+        if ((status = NT_FlowOpen_Attr(&hFlowStream, flow_name, &attr)) != NT_SUCCESS) {
             SCLogWarning(SC_WARN_COMPATIBILITY, "Napatech bypass functionality not supported by the FPGA version on adapter %d - disabling support.", adapter);
             bypass_supported = 0;
             return 0;
         }
+        NT_FlowClose(hFlowStream);
     }
 
     bypass_supported = 1;
     return bypass_supported;
-}
-
-/**
- * \brief  Returns a pointer to the FlowStream associated with this adapter.
- *
- * \return count of the Napatech adapters present in the system.
- */
-NtFlowStream_t *NapatechGetFlowStreamPtr(int device)
-{
-    return &hFlowStream[device];
-}
-
-/**
- * \brief Closes all open FlowStreams
- *
- * \return Success of the operation.
- */
-int NapatechCloseFlowStreams(void)
-{
-    int status = 0;
-    int adapter = 0;
-    int num_adapters = GetNumAdapters();
-
-    for (adapter = 0; adapter < num_adapters; ++adapter) {
-        if (hFlowStream[adapter]) {
-            SCLogInfo("Closing Napatech Flow Stream on adapter %d.", adapter);
-            if ((status = NT_FlowClose(hFlowStream[adapter])) != NT_SUCCESS) {
-                NAPATECH_ERROR(SC_ERR_SHUTDOWN, status);
-            }
-            hFlowStream[adapter] = NULL;
-        }
-    }
-    return (status == NT_SUCCESS);
 }
 
 
@@ -183,7 +153,7 @@ static void UpdateFlowStats(
     uint64_t removed = 0;
     int adapter = 0;
 
-    for (adapter = 0; adapter < GetNumAdapters(); ++adapter) {
+    for (adapter = 0; adapter < NapatechGetNumAdapters(); ++adapter) {
         hStat.cmd = NT_STATISTICS_READ_CMD_FLOW_V0;
         hStat.u.flowData_v0.clear = clear_stats;
         hStat.u.flowData_v0.adapterNo = adapter;
@@ -309,8 +279,7 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
         int is_inline,
         int enable_stream_stats,
         PacketCounters stream_counters[]
-        )
-{
+        ) {
     static uint64_t rxPktsStart[MAX_STREAMS] = {0};
     static uint64_t rxByteStart[MAX_STREAMS] = {0};
     static uint64_t dropPktStart[MAX_STREAMS] = {0};
@@ -383,7 +352,7 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
             current_stats[stream_id].current_bytes = rx_byte_total - rxByteStart[stream_id];
             current_stats[stream_id].current_drop_packets = drop_pkts_total - dropPktStart[stream_id];
             current_stats[stream_id].current_drop_bytes = drop_byte_total - dropByteStart[stream_id];
-       }
+        }
 
         if (enable_stream_stats) {
             StatsSetUI64(tv, stream_counters[inst_id].pkts, current_stats[stream_id].current_packets);
@@ -420,7 +389,6 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
     total_stats.current_drop_packets = 0;
     total_stats.current_drop_bytes = 0;
 
-
     /* Read usage data for the chosen stream ID */
     memset(&hStat, 0, sizeof (NtStatistics_t));
 
@@ -453,7 +421,7 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
     uint64_t total_dispatch_fwd_pkts = 0;
     uint64_t total_dispatch_fwd_byte = 0;
 
-    for (adapter = 0; adapter < GetNumAdapters();  ++adapter) {
+    for (adapter = 0; adapter < NapatechGetNumAdapters();  ++adapter) {
         total_dispatch_host_pkts += hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[0].pkts;
         total_dispatch_host_byte += hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[0].octets;
 
@@ -468,9 +436,9 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
                                    + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[4].octets;
 
         total_stats.current_packets += hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[0].pkts
-                                    + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[1].pkts
-                                    + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[2].pkts
-                                    + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[3].pkts;
+                                     + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[1].pkts
+                                     + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[2].pkts
+                                     + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[3].pkts;
 
         total_stats.current_bytes = hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[0].octets
                                   + hStat.u.query_v3.data.adapter.aAdapters[adapter].color.aColor[1].octets
