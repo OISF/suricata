@@ -350,9 +350,6 @@ static void GlobalsDestroy(SCInstance *suri)
         SCReferenceConfDeinit();
         SCClassConfDeinit();
     }
-#ifdef HAVE_MAGIC
-    MagicDeinit();
-#endif
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
@@ -2566,10 +2563,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     }
 
     HostInitConfig(HOST_VERBOSE);
-#ifdef HAVE_MAGIC
-    if (MagicInit() != 0)
-        SCReturnInt(TM_ECODE_FAILED);
-#endif
     SCAsn1LoadConfig();
 
     CoredumpLoadConfig();
