@@ -39,7 +39,7 @@ typedef struct DetectFilemagicData {
 } DetectFilemagicData;
 
 /* prototypes */
-int FilemagicGlobalLookup(File *file);
+int FilemagicThreadLookup(magic_t *ctx, File *file);
 #endif
 void DetectFilemagicRegister (void);
 

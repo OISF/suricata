@@ -25,11 +25,11 @@
 #define __UTIL_MAGIC_H__
 
 #ifdef HAVE_MAGIC
-int MagicInit(void);
-void MagicDeinit(void);
-char *MagicGlobalLookup(const uint8_t *, uint32_t);
+magic_t MagicInitContext(void);
+void MagicDeinitContext(magic_t ctx);
+
 char *MagicThreadLookup(magic_t *, const uint8_t *, uint32_t);
 #endif
 void MagicRegisterTests(void);
 
-#endif /* __UTIL_MAGIC_H__ */
+#endif /* _ */
