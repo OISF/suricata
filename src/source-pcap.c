@@ -202,12 +202,10 @@ static void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 
     switch (ptv->checksum_mode) {
         case CHECKSUM_VALIDATION_AUTO:
-            if (ptv->livedev->ignore_checksum) {
-                p->flags |= PKT_IGNORE_CHECKSUM;
-            } else if (ChecksumAutoModeCheck(ptv->pkts,
+            if (ChecksumAutoModeCheck(ptv->pkts,
                         SC_ATOMIC_GET(ptv->livedev->pkts),
                         SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
-                ptv->livedev->ignore_checksum = 1;
+                ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }
             break;
