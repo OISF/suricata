@@ -102,13 +102,6 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f, const char *event_typ
         dp = f->sp;
     }
 
-    char proto[16];
-    if (SCProtoNameValid(f->proto) == TRUE) {
-        strlcpy(proto, known_proto[f->proto], sizeof(proto));
-    } else {
-        snprintf(proto, sizeof(proto), "%03" PRIu32, f->proto);
-    }
-
     /* time */
     jb_set_string(jb, "timestamp", timebuf);
 
@@ -160,7 +153,15 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f, const char *event_typ
             jb_set_uint(jb, "dest_port", dp);
             break;
     }
-    jb_set_string(jb, "proto", proto);
+
+    if (SCProtoNameValid(f->proto)) {
+        jb_set_string(jb, "proto", known_proto[f->proto]);
+    } else {
+        char proto[4];
+        snprintf(proto, sizeof(proto), "%"PRIu8"", f->proto);
+        jb_set_string(jb, "proto", proto);
+    }
+
     switch (f->proto) {
         case IPPROTO_ICMP:
         case IPPROTO_ICMPV6:
