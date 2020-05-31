@@ -781,7 +781,6 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
 {
     char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
-    char proto[16];
 
     switch (dir) {
         case LOG_DIR_PACKET:
@@ -870,11 +869,6 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
             return;
     }
 
-    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
-        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
-    } else {
-        snprintf(proto, sizeof(proto), "%03" PRIu32, IP_GET_IPPROTO(p));
-    }
 
     strlcpy(addr->src_ip, srcip, JSON_ADDR_LEN);
 
@@ -900,7 +894,11 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
             break;
     }
 
-    strlcpy(addr->proto, proto, JSON_PROTO_LEN);
+    if (SCProtoNameValid(IP_GET_IPPROTO(p))) {
+        strlcpy(addr->proto, known_proto[IP_GET_IPPROTO(p)], sizeof(addr->proto));
+    } else {
+        snprintf(addr->proto, sizeof(addr->proto), "%" PRIu32, IP_GET_IPPROTO(p));
+    }
 }
 
 /**
@@ -914,7 +912,6 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
 {
     char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
-    char proto[16];
 
     switch (dir) {
         case LOG_DIR_PACKET:
@@ -1003,11 +1000,6 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
             return;
     }
 
-    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
-        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
-    } else {
-        snprintf(proto, sizeof(proto), "%03" PRIu32, IP_GET_IPPROTO(p));
-    }
 
     json_object_set_new(js, "src_ip", json_string(srcip));
 
@@ -1033,7 +1025,13 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
             break;
     }
 
-    json_object_set_new(js, "proto", json_string(proto));
+    if (SCProtoNameValid(IP_GET_IPPROTO(p))) {
+        json_object_set_new(js, "proto", json_string(known_proto[IP_GET_IPPROTO(p)]));
+    } else {
+        char proto[4];
+        snprintf(proto, sizeof(proto), "%"PRIu8"", IP_GET_IPPROTO(p));
+        json_object_set_new(js, "proto", json_string(proto));
+    }
 }
 
 #define COMMUNITY_ID_BUF_SIZE 64
