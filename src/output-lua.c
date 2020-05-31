@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -196,13 +196,6 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
         goto not_supported;
     }
 
-    char proto[16] = "";
-    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
-        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
-    } else {
-        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
-    }
-
     /* loop through alerts stored in the packet */
     SCMutexLock(&td->lua_ctx->m);
     uint16_t cnt;
@@ -266,13 +259,6 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     }
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-
-    char proto[16] = "";
-    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
-        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
-    } else {
-        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
-    }
 
     /* loop through alerts stored in the packet */
     SCMutexLock(&td->lua_ctx->m);
