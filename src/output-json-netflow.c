@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -107,13 +107,6 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, i
         dp = f->sp;
     }
 
-    char proto[16];
-    if (SCProtoNameValid(f->proto) == TRUE) {
-        strlcpy(proto, known_proto[f->proto], sizeof(proto));
-    } else {
-        snprintf(proto, sizeof(proto), "%03" PRIu32, f->proto);
-    }
-
     /* time */
     json_object_set_new(js, "timestamp", json_string(timebuf));
 
@@ -165,7 +158,14 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, i
             json_object_set_new(js, "dest_port", json_integer(dp));
             break;
     }
-    json_object_set_new(js, "proto", json_string(proto));
+    if (SCProtoNameValid(f->proto)) {
+        json_object_set_new(js, "proto", json_string(known_proto[f->proto]));
+    } else {
+        char proto[4];
+        snprintf(proto, sizeof(proto), "%"PRIu8"", f->proto);
+        json_object_set_new(js, "proto", json_string(proto));
+    }
+
     switch (f->proto) {
         case IPPROTO_ICMP:
         case IPPROTO_ICMPV6: {
