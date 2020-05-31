@@ -456,7 +456,6 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
 {
     char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
-    char proto[16];
 
     switch (dir) {
         case LOG_DIR_PACKET:
@@ -545,11 +544,6 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
             return;
     }
 
-    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
-        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
-    } else {
-        snprintf(proto, sizeof(proto), "%03" PRIu32, IP_GET_IPPROTO(p));
-    }
 
     json_object_set_new(js, "src_ip", json_string(srcip));
 
@@ -575,7 +569,11 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
             break;
     }
 
-    json_object_set_new(js, "proto", json_string(proto));
+    if (SCProtoNameValid(IP_GET_IPPROTO(p))) {
+        json_object_set_new(js, "proto", json_string(known_proto[IP_GET_IPPROTO(p)]));
+    } else {
+        json_object_set_new(js, "proto", json_integer(IP_GET_IPPROTO(p)));
+    }
 }
 
 static void CreateJSONCommunityFlowIdv4(json_t *js, const Flow *f,
