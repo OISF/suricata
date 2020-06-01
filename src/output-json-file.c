@@ -134,116 +134,11 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     json_object_set_new(js, "app_proto",
             json_string(AppProtoToString(p->flow->alproto)));
 
-    json_t *fjs = json_object();
-    if (unlikely(fjs == NULL)) {
-        json_decref(js);
-        return NULL;
+    json_t *fjs = JsonFileInfo(ff, stored);
+    if (fjs) {
+        /* originally just 'file', but due to bug 1127 naming it fileinfo */
+        json_object_set_new(js, "fileinfo", fjs);
     }
-
-    size_t filename_size = ff->name_len * 2 + 1;
-    char filename_string[filename_size];
-    BytesToStringBuffer(ff->name, ff->name_len, filename_string, filename_size);
-    json_object_set_new(fjs, "filename", SCJsonString(filename_string));
-
-    json_t *sig_ids = json_array();
-    if (unlikely(sig_ids == NULL)) {
-        json_decref(js);
-        return NULL;
-    }
-
-    for (uint32_t i = 0; ff->sid != NULL && i < ff->sid_cnt; i++) {
-        json_array_append_new(sig_ids, json_integer(ff->sid[i]));
-    }
-    json_object_set_new(fjs, "sid", sig_ids);
-
-#ifdef HAVE_MAGIC
-    if (ff->magic)
-        json_object_set_new(fjs, "magic", json_string((char *)ff->magic));
-#endif
-    json_object_set_new(fjs, "gaps", json_boolean((ff->flags & FILE_HAS_GAPS)));
-    switch (ff->state) {
-        case FILE_STATE_CLOSED:
-            json_object_set_new(fjs, "state", json_string("CLOSED"));
-#ifdef HAVE_NSS
-            if (ff->flags & FILE_MD5) {
-                size_t x;
-                int i;
-                char str[256];
-                for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
-                    i += snprintf(&str[i], 255-i, "%02x", ff->md5[x]);
-                }
-                json_object_set_new(fjs, "md5", json_string(str));
-            }
-            if (ff->flags & FILE_SHA1) {
-                size_t x;
-                int i;
-                char str[256];
-                for (i = 0, x = 0; x < sizeof(ff->sha1); x++) {
-                    i += snprintf(&str[i], 255-i, "%02x", ff->sha1[x]);
-                }
-                json_object_set_new(fjs, "sha1", json_string(str));
-            }
-#endif
-            break;
-        case FILE_STATE_TRUNCATED:
-            json_object_set_new(fjs, "state", json_string("TRUNCATED"));
-            break;
-        case FILE_STATE_ERROR:
-            json_object_set_new(fjs, "state", json_string("ERROR"));
-            break;
-        default:
-            json_object_set_new(fjs, "state", json_string("UNKNOWN"));
-            break;
-    }
-
-#ifdef HAVE_NSS
-    if (ff->flags & FILE_SHA256) {
-        size_t x;
-        int i;
-        char str[256];
-        for (i = 0, x = 0; x < sizeof(ff->sha256); x++) {
-            i += snprintf(&str[i], 255-i, "%02x", ff->sha256[x]);
-        }
-        json_object_set_new(fjs, "sha256", json_string(str));
-    }
-#endif
-
-    json_object_set_new(fjs, "stored", stored ? json_true() : json_false());
-    if (ff->flags & FILE_STORED) {
-        json_object_set_new(fjs, "file_id", json_integer(ff->file_store_id));
-    }
-    json_object_set_new(fjs, "size", json_integer(FileTrackedSize(ff)));
-    if (ff->end > 0) {
-        json_object_set_new(fjs, "start", json_integer(ff->start));
-        json_object_set_new(fjs, "end", json_integer(ff->end));
-    }
-    json_object_set_new(fjs, "tx_id", json_integer(ff->txid));
-
-    /* xff header */
-    if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED)) {
-        int have_xff_ip = 0;
-        char buffer[XFF_MAXLEN];
-
-        if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-            have_xff_ip = HttpXFFGetIPFromTx(p->flow, ff->txid, xff_cfg, buffer, XFF_MAXLEN);
-        }
-
-        if (have_xff_ip) {
-            if (xff_cfg->flags & XFF_EXTRADATA) {
-                json_object_set_new(js, "xff", json_string(buffer));
-            }
-            else if (xff_cfg->flags & XFF_OVERWRITE) {
-                if (p->flowflags & FLOW_PKT_TOCLIENT) {
-                    json_object_set(js, "dest_ip", json_string(buffer));
-                } else {
-                    json_object_set(js, "src_ip", json_string(buffer));
-                }
-            }
-        }
-    }
-
-    /* originally just 'file', but due to bug 1127 naming it fileinfo */
-    json_object_set_new(js, "fileinfo", fjs);
 
     return js;
 }
@@ -257,8 +152,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p,
 {
     HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ?
         aft->filelog_ctx->xff_cfg : aft->filelog_ctx->parent_xff_cfg;;
-    json_t *js = JsonBuildFileInfoRecord(p, ff,
-            ff->flags & FILE_STORED ? true : false, dir, xff_cfg);
+    json_t *js = JsonBuildFileInfoRecord(p, ff, ff->flags & FILE_STORED, dir, xff_cfg);
     if (unlikely(js == NULL)) {
         return;
     }
