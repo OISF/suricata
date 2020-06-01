@@ -229,6 +229,11 @@ extern {
     pub fn AppLayerProtoDetectConfProtoDetectionEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
 }
 
+// Defined in app-layer-ssh.h
+extern {
+    pub fn SSHHasshIsEnabled() -> bool;
+}
+
 // Defined in app-layer-parser.h
 pub const APP_LAYER_PARSER_EOF : u8 = 0b0;
 pub const APP_LAYER_PARSER_NO_INSPECTION : u8 = 0b1;
