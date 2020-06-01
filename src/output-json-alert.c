@@ -415,6 +415,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         MemBufferReset(aft->json_buffer);
 
+
         /* alert */
         AlertJsonHeader(json_output_ctx, p, pa, js, json_output_ctx->flags);
 
@@ -493,6 +494,26 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
         }
 
+        if (pa->s->file_flags & FILE_SIG_NEED_FILE) {
+            FileContainer *ffc = AppLayerParserGetFiles(p->flow,
+                    p->flowflags & FLOW_PKT_TOSERVER ? STREAM_TOSERVER:STREAM_TOCLIENT);
+            if (ffc != NULL) {
+                json_t *js_fileinfo_list = json_array();
+                if (likely(js_fileinfo_list)) {
+                    File *file = ffc->head;
+                    while (file) {
+                        if (pa->tx_id == file->txid) {
+                            hjs = JsonFileInfo(file, file->flags & FILE_STORED);
+                            if (hjs)
+                                json_array_append_new(js_fileinfo_list, hjs);
+                        }
+                        file = file->next;
+                    }
+                    if (js_fileinfo_list)
+                        json_object_set_new(js, "fileinfo", js_fileinfo_list);
+                }
+            }
+        }
         if (p->flow) {
             if (json_output_ctx->flags & LOG_JSON_FLOW) {
                 hjs = json_object();
