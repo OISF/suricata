@@ -218,6 +218,96 @@ static bool SCStringHasPrefix(const char *s, const char *prefix)
     return false;
 }
 
+json_t *JsonFileInfo(const File *ff, const bool stored)
+{
+    json_t *fjs = json_object();
+    if (unlikely(fjs == NULL)) {
+        return NULL;
+    }
+
+    json_t *sig_ids = json_array();
+    if (unlikely(sig_ids == NULL)) {
+        json_decref(fjs);
+        return NULL;
+    }
+
+    size_t filename_size = ff->name_len * 2 + 1;
+    char filename_string[filename_size];
+    BytesToStringBuffer(ff->name, ff->name_len, filename_string, filename_size);
+    json_object_set_new(fjs, "filename", SCJsonString(filename_string));
+
+    for (uint32_t i = 0; ff->sid != NULL && i < ff->sid_cnt; i++) {
+        json_array_append_new(sig_ids, json_integer(ff->sid[i]));
+    }
+    json_object_set_new(fjs, "sid", sig_ids);
+
+#ifdef HAVE_MAGIC
+    if (ff->magic)
+        json_object_set_new(fjs, "magic", json_string((char *)ff->magic));
+#endif
+    json_object_set_new(fjs, "gaps", json_boolean((ff->flags & FILE_HAS_GAPS)));
+    switch (ff->state) {
+        case FILE_STATE_CLOSED:
+            json_object_set_new(fjs, "state", json_string("CLOSED"));
+#ifdef HAVE_NSS
+            if (ff->flags & FILE_MD5) {
+                size_t x;
+                int i;
+                char str[256];
+                for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
+                    i += snprintf(&str[i], 255-i, "%02x", ff->md5[x]);
+                }
+                json_object_set_new(fjs, "md5", json_string(str));
+            }
+            if (ff->flags & FILE_SHA1) {
+                size_t x;
+                int i;
+                char str[256];
+                for (i = 0, x = 0; x < sizeof(ff->sha1); x++) {
+                    i += snprintf(&str[i], 255-i, "%02x", ff->sha1[x]);
+                }
+                json_object_set_new(fjs, "sha1", json_string(str));
+            }
+#endif
+            break;
+        case FILE_STATE_TRUNCATED:
+            json_object_set_new(fjs, "state", json_string("TRUNCATED"));
+            break;
+        case FILE_STATE_ERROR:
+            json_object_set_new(fjs, "state", json_string("ERROR"));
+            break;
+        default:
+            json_object_set_new(fjs, "state", json_string("UNKNOWN"));
+            break;
+    }
+
+#ifdef HAVE_NSS
+    if (ff->flags & FILE_SHA256) {
+        size_t x;
+        int i;
+        char str[256];
+        for (i = 0, x = 0; x < sizeof(ff->sha256); x++) {
+            i += snprintf(&str[i], 255-i, "%02x", ff->sha256[x]);
+        }
+        json_object_set_new(fjs, "sha256", json_string(str));
+    }
+#endif
+
+    if (stored) {
+        json_object_set_new(fjs, "stored", json_true());
+        json_object_set_new(fjs, "file_id", json_integer(ff->file_store_id));
+    } else {
+        json_object_set_new(fjs, "stored", json_false());
+    }
+    json_object_set_new(fjs, "size", json_integer(FileTrackedSize(ff)));
+    if (ff->end > 0) {
+        json_object_set_new(fjs, "start", json_integer(ff->start));
+        json_object_set_new(fjs, "end", json_integer(ff->end));
+    }
+    json_object_set_new(fjs, "tx_id", json_integer(ff->txid));
+
+    return fjs;
+}
 /**
  * \brief Add flow variables to a json object.
  *
