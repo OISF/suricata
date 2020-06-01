@@ -902,7 +902,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
                             alproto != s->alproto) {
                         goto error;
                     }
-                    s->alproto = alproto;
+                    if (DetectSignatureSetAppProto(s, alproto) < 0)
+                        goto error;
                 }
                 sm_list = parsed_sm_list;
                 break;
