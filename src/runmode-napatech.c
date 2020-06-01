@@ -252,7 +252,7 @@ static int NapatechInit(int runmode)
 
     if (use_hw_bypass) {
 #ifdef NAPATECH_ENABLE_BYPASS
-        if (NapatechInitFlowStreams()) {
+        if (NapatechVerifyBypassSupport()) {
             SCLogInfo("Napatech Hardware Bypass is supported and enabled.");
         } else {
             SCLogError(SC_ERR_NAPATECH_PARSE_CONFIG,
