@@ -1012,6 +1012,8 @@ typedef struct DetectEngineThreadCtx_ {
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 
+    /** Array of non-prefiltered sigs that need to be evaluated. Updated
+     *  per packet based on the rule group and traffic properties. */
     SigIntId *non_pf_id_array;
     uint32_t non_pf_id_cnt; // size is cnt * sizeof(uint32_t)
 
