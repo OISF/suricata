@@ -7,10 +7,15 @@ on:
 env:
   DEFAULT_LIBHTP_REPO: https://github.com/OISF/libhtp
   DEFAULT_LIBHTP_BRANCH: 0.5.x
+  DEFAULT_LIBHTP_PR:
+
   DEFAULT_SU_REPO: https://github.com/OISF/suricata-update
   DEFAULT_SU_BRANCH: master
+  DEFAULT_SU_PR:
+
   DEFAULT_SV_REPO: https://github.com/OISF/suricata-verify
   DEFAULT_SV_BRANCH: master
+  DEFAULT_SV_PR:
 
 jobs:
 
@@ -30,47 +35,57 @@ jobs:
               body=$(curl -s "${PR_HREF}" | jq -r .body)
               libhtp_repo=$(echo "${body}" | awk '/^libhtp-repo/ { print $2 }')
               libhtp_branch=$(echo "${body}" | awk '/^libhtp-branch/ { print $2 }')
+              libhtp_pr=$(echo "${body}" | awk '/^libhtp-pr/ { print $2 }')
+
               su_repo=$(echo "${body}" | awk '/^suricata-update-repo/ { print $2 }')
               su_branch=$(echo "${body}" | awk '/^suricata-update-branch/ { print $2 }')
+              su_pr=$(echo "${body}" | awk '/^suricata-update-pr/ { print $2 }')
+
               sv_repo=$(echo "${body}" | awk '/^suricata-verify-repo/ { print $2 }')
               sv_branch=$(echo "${body}" | awk '/^suricata-verify-branch/ { print $2 }')
+              sv_pr=$(echo "${body}" | awk '/^suricata-verify-pr/ { print $2 }')
           fi
           echo "::set-env name=libhtp_repo::${libhtp_repo:-${DEFAULT_LIBHTP_REPO}}"
           echo "::set-env name=libhtp_branch::${libhtp_branch:-${DEFAULT_LIBHTP_BRANCH}}"
+          echo "::set-env name=libhtp_pr::${libhtp_branch:-${DEFAULT_LIBHTP_PR}}"
+
           echo "::set-env name=su_repo::${su_repo:-${DEFAULT_SU_REPO}}"
           echo "::set-env name=su_branch::${su_branch:-${DEFAULT_SU_BRANCH}}"
+          echo "::set-env name=su_pr::${su_branch:-${DEFAULT_SU_PR}}"
+
           echo "::set-env name=sv_repo::${sv_repo:-${DEFAULT_SV_REPO}}"
           echo "::set-env name=sv_branch::${sv_branch:-${DEFAULT_SV_BRANCH}}"
+          echo "::set-env name=sv_pr::${sv_pr:-${DEFAULT_SV_PR}}"
       - name: Fetching libhtp
         run: |
-          echo "Downloading ${libhtp_repo}/archive/${libhtp_branch}.tar.gz"
-          mkdir libhtp
-          cd libhtp
-          curl -Ls ${libhtp_repo}/archive/${libhtp_branch}.tar.gz | \
-              tar zxf - --strip-components=1
-          cd ..
+          git clone --depth 1 ${libhtp_repo} -b ${libhtp_branch} libhtp
+          if [[ "${libhtp_pr}" != "" ]]; then
+              cd libhtp
+              git fetch origin pull/${su_pr}/head:prep
+              git checkout prep
+              cd ..
+          fi
           tar zcf libhtp.tar.gz libhtp
-          rm -rf libhtp
       - name: Fetching suricata-update
         run: |
-          echo "Downloading ${su_repo}/archive/${su_branch}.tar.gz"
-          mkdir suricata-update
-          cd suricata-update
-          curl -Ls ${su_repo}/archive/${su_branch}.tar.gz | \
-              tar zxf - --strip-components=1
-          cd ..
+          git clone --depth 1 ${su_repo} -b ${su_branch} suricata-update
+          if [[ "${su_pr}" != "" ]]; then
+              cd suricata-update
+              git fetch origin pull/${su_pr}/head:prep
+              git checkout prep
+              cd ..
+          fi
           tar zcf suricata-update.tar.gz suricata-update
-          rm -rf suricata-update
       - name: Fetching suricata-verify
         run: |
-          echo "Downloading ${sv_repo}/archive/${sv_branch}.tar.gz"
-          mkdir suricata-verify
-          cd suricata-verify
-          curl -Ls ${sv_repo}/archive/${sv_branch}.tar.gz | \
-              tar zxf - --strip-components=1
-          cd ..
+          git clone --depth 1 ${sv_repo} -b ${sv_branch} suricata-verify
+          if [[ "${sv_pr}" != "" ]]; then
+              cd suricata-verify
+              git fetch origin pull/${sv_pr}/head:prep
+              git checkout prep
+              cd ..
+          fi
           tar zcf suricata-verify.tar.gz suricata-verify
-          rm -rf suricata-verify
       - uses: actions/upload-artifact@v2
         name: Uploading prep archive
         with:
