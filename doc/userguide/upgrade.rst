@@ -32,6 +32,7 @@ remove features.
 
 Upgrading 5.0 to 6.0
 --------------------
+- SIP now enabled by default
 
 Removals
 ~~~~~~~~
