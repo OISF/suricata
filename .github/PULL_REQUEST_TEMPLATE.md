@@ -13,3 +13,12 @@ Describe changes:
 
 [PRScript](https://redmine.openinfosecfoundation.org/projects/suricata/wiki/PRscript) output (if applicable):
 
+#suricata-verify-pr:
+#suricata-verify-repo:
+#suricata-verify-branch:
+#suricata-update-pr:
+#suricata-update-repo:
+#suricata-update-branch:
+#libhtp-pr:
+#libhtp-repo:
+#libhtp-branch:
