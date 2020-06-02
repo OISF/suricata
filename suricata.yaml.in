@@ -257,7 +257,7 @@ outputs:
 
         #- dnp3
         - ftp
-        #- rdp
+        - rdp
         - nfs
         - smb
         - tftp
@@ -745,9 +745,8 @@ app-layer:
     ftp:
       enabled: yes
       # memcap: 64mb
-    # RDP, disabled by default.
     rdp:
-      #enabled: no
+      #enabled: yes
     ssh:
       enabled: yes
     smtp:

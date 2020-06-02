@@ -156,9 +156,6 @@ static TmEcode JsonRdpLogThreadDeinit(ThreadVars *t, void *data)
 
 void JsonRdpLogRegister(void)
 {
-    if (ConfGetNode("app-layer.protocols.rdp") == NULL) {
-        return;
-    }
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule(
         LOGGER_JSON_RDP,
