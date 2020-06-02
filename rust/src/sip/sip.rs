@@ -20,7 +20,6 @@
 extern crate nom;
 
 use crate::applayer::{self, *};
-use crate::conf;
 use crate::core;
 use crate::core::{sc_detect_engine_state_free, AppProto, Flow, ALPROTO_UNKNOWN};
 use crate::log::*;
@@ -416,12 +415,6 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         get_tx_detect_flags: None,
         set_tx_detect_flags: None,
     };
-
-    /* For 5.0 we want this disabled by default, so check that it
-     * has been explicitly enabled. */
-    if !conf::conf_get_bool("app-layer.protocols.sip.enabled") {
-        return;
-    }
 
     let ip_proto_str = CString::new("udp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

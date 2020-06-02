@@ -265,7 +265,7 @@ outputs:
         - krb5
         - snmp
         - rfb
-        #- sip
+        - sip
         - dhcp:
             enabled: yes
             # When extended mode is on, all DHCP messages are logged
@@ -949,7 +949,6 @@ app-layer:
     dhcp:
       enabled: yes
 
-    # SIP, disabled by default.
     sip:
       #enabled: no
 
