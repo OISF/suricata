@@ -414,12 +414,6 @@ outputs:
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
 
-  # (deprecated) A line based information for dropped packets in IPS mode
-  - drop:
-      enabled: no
-      # further options documented at:
-      # https://suricata.readthedocs.io/en/suricata-5.0.0/configuration/suricata-yaml.html#drop-log-a-line-based-information-for-dropped-packets
-
   # Output module for storing files on disk. Files are stored in
   # directory names consisting of the first 2 characters of the
   # SHA256 of the file. Each file is given its SHA256 as a filename.
