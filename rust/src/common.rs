@@ -55,3 +55,20 @@ pub unsafe extern "C" fn rs_cstring_free(s: *mut c_char) {
     }
     drop(CString::from_raw(s));
 }
+
+/// Take ownership of `obj`, box it, and returns it's raw pointer value
+pub fn rust_to_c_boxed<T>(obj: T) -> *mut T {
+  Box::into_raw(Box::new(obj))
+}
+
+/// Free a Box'd value allocated by Rust (for ex. using `rust_to_c_boxed`)
+///
+/// # Safety
+///
+/// `ptr` must be a pointer allocated via the Box interface
+pub unsafe extern "C" fn rs_free_boxed<T>(ptr: *mut T) {
+    if ptr.is_null() {
+        return;
+    }
+    drop(Box::from_raw(ptr));
+}
