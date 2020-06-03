@@ -16,6 +16,7 @@
  */
 
 use crate::log::*;
+use crate::common::{rust_to_c_boxed, rs_free_boxed};
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::{digit1, multispace0, multispace1};
@@ -60,7 +61,7 @@ pub unsafe extern "C" fn rs_detect_asn1_parse(input: *const c_char) -> *mut Dete
                 };
             }
 
-            Box::into_raw(Box::new(data))
+            rust_to_c_boxed(data)
         }
         Err(e) => {
             SCLogError!("Malformed asn1 argument: {}", e.to_string());
@@ -76,10 +77,7 @@ pub unsafe extern "C" fn rs_detect_asn1_parse(input: *const c_char) -> *mut Dete
 /// ptr must be a valid object obtained using `rs_detect_asn1_parse`
 #[no_mangle]
 pub unsafe extern "C" fn rs_detect_asn1_free(ptr: *mut DetectAsn1Data) {
-    if ptr.is_null() {
-        return;
-    }
-    drop(Box::from_raw(ptr));
+    rs_free_boxed(ptr);
 }
 
 /// Struct to hold parsed asn1 keyword options

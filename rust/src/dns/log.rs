@@ -19,6 +19,7 @@ use std;
 use std::string::String;
 use std::collections::HashMap;
 
+use crate::common::{rust_to_c_boxed};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::dns::dns::*;
 
@@ -719,7 +720,7 @@ pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
         if response.header.flags & 0x000f > 0 {
             if index == 0 {
                 if let Ok(Some(js)) = dns_log_json_failure_v1(response, index, flags) {
-                    return Box::into_raw(Box::new(js));
+                    return rust_to_c_boxed(js);
                 }
             }
             break;
@@ -730,7 +731,7 @@ pub extern "C" fn rs_dns_log_json_answer_v1(tx: &mut DNSTransaction,
         let answer = &response.answers[index];
         if dns_log_rrtype_enabled(answer.rrtype, flags) {
             if let Ok(js) = dns_log_json_answer_v1(&response.header, answer) {
-                return Box::into_raw(Box::new(js));
+                return rust_to_c_boxed(js);
             }
             break;
         }
@@ -750,7 +751,7 @@ pub extern "C" fn rs_dns_log_json_authority_v1(tx: &mut DNSTransaction,
             let answer = &response.authorities[index];
             if dns_log_rrtype_enabled(answer.rrtype, flags) {
                 if let Ok(js) = dns_log_json_answer_v1(&response.header, answer) {
-                    return Box::into_raw(Box::new(js));
+                    return rust_to_c_boxed(js);
                 }
             }
         }

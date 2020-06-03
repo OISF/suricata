@@ -16,6 +16,7 @@
  */
 
 use der_parser::ber::{parse_ber_recursive, BerObject, BerObjectContent, BerTag};
+use crate::common::{rust_to_c_boxed, rs_free_boxed};
 use std::convert::TryFrom;
 
 mod parse_rules;
@@ -225,7 +226,7 @@ pub extern "C" fn rs_asn1_decode(
     let res = asn1_decode(slice, buffer_offset, ad);
 
     match res {
-        Ok(asn1) => Box::into_raw(Box::new(asn1)),
+        Ok(asn1) => rust_to_c_boxed(asn1),
         Err(_e) => std::ptr::null_mut(),
     }
 }
@@ -237,10 +238,7 @@ pub extern "C" fn rs_asn1_decode(
 /// ptr must be a valid object obtained using `rs_asn1_decode`
 #[no_mangle]
 pub unsafe extern "C" fn rs_asn1_free(ptr: *mut Asn1) {
-    if ptr.is_null() {
-        return;
-    }
-    drop(Box::from_raw(ptr));
+    rs_free_boxed(ptr);
 }
 
 /// This function implements the detection of the following options:
