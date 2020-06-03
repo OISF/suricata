@@ -17,7 +17,7 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-use crate::common::rust_string_to_c;
+use crate::common::{rust_to_c_boxed, rs_free_boxed, rust_string_to_c};
 use nom;
 use std;
 use std::os::raw::c_char;
@@ -56,7 +56,7 @@ pub unsafe extern "C" fn rs_x509_decode(
     let slice = std::slice::from_raw_parts(input, input_len as usize);
     let res = parse_x509_der(slice);
     match res {
-        Ok((_rem, cert)) => Box::into_raw(Box::new(X509(cert))),
+        Ok((_rem, cert)) => rust_to_c_boxed(X509(cert)),
         Err(e) => {
             let error = x509_parse_error_to_errcode(&e);
             *err_code = error as u32;
@@ -126,10 +126,7 @@ pub unsafe extern "C" fn rs_x509_get_validity(
 /// ptr must be a valid object obtained using `rs_x509_decode`
 #[no_mangle]
 pub unsafe extern "C" fn rs_x509_free(ptr: *mut X509) {
-    if ptr.is_null() {
-        return;
-    }
-    drop(Box::from_raw(ptr));
+    rs_free_boxed(ptr);
 }
 
 fn x509_parse_error_to_errcode(e: &nom::Err<X509Error>) -> X509DecodeError {
