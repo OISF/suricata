@@ -41,9 +41,9 @@ int ListKeywords(const char *keyword_info)
     exit(EXIT_SUCCESS);
 }
 
-int ListAppLayerProtocols()
+int ListAppLayerProtocols(const char *conf_filename)
 {
-    if (ConfYamlLoadFile(DEFAULT_CONF_FILE) != -1)
+    if (ConfYamlLoadFile(conf_filename) != -1)
         SCLogLoadConfig(0, 0);
     MpmTableSetup();
     SpmTableSetup();

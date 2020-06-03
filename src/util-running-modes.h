@@ -24,6 +24,6 @@
 #define __UTIL_RUNNING_MODES_H__
 
 int ListKeywords(const char *keyword_info);
-int ListAppLayerProtocols(void);
+int ListAppLayerProtocols(const char *conf_filename);
 
 #endif /* __UTIL_RUNNING_MODES_H__ */
