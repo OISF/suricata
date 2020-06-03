@@ -17,6 +17,7 @@
 
 #![allow(clippy::missing_safety_doc)]
 
+use crate::common::rust_to_c_boxed;
 use crate::json;
 use std::ffi::CStr;
 use std::os::raw::c_char;
@@ -571,20 +572,17 @@ fn string_from_bytes(input: &[u8]) -> String {
 
 #[no_mangle]
 pub extern "C" fn jb_new_object() -> *mut JsonBuilder {
-    let boxed = Box::new(JsonBuilder::new_object());
-    Box::into_raw(boxed)
+    rust_to_c_boxed(JsonBuilder::new_object())
 }
 
 #[no_mangle]
 pub extern "C" fn jb_new_array() -> *mut JsonBuilder {
-    let boxed = Box::new(JsonBuilder::new_array());
-    Box::into_raw(boxed)
+    rust_to_c_boxed(JsonBuilder::new_array())
 }
 
 #[no_mangle]
 pub extern "C" fn jb_clone(js: &mut JsonBuilder) -> *mut JsonBuilder {
-    let clone = Box::new(js.clone());
-    Box::into_raw(clone)
+    rust_to_c_boxed(js.clone())
 }
 
 #[no_mangle]
