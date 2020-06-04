@@ -1928,9 +1928,9 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             HtpRequestBodyHandleMultipart(hstate, tx_ud, d->tx, chunks_buffer, chunks_buffer_len);
 
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST) {
-            HtpRequestBodyHandlePOST(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
+            HtpRequestBodyHandlePOST(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_PUT) {
-            HtpRequestBodyHandlePUT(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
+            HtpRequestBodyHandlePUT(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
         }
 
     } else {
@@ -2027,7 +2027,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 
         HtpBodyAppendChunk(&hstate->cfg->response, &tx_ud->response_body, d->data, len);
 
-        HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
+        HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, len);
     } else {
         if (tx_ud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
