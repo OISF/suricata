@@ -122,7 +122,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     if (unlikely(js == NULL))
         return NULL;
 
-    JsonBuilderMark mark = { 0 };
+    JsonBuilderMark mark = { 0, 0, 0 };
     switch (p->flow->alproto) {
         case ALPROTO_HTTP:
             jb_open_object(js, "http");

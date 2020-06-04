@@ -473,7 +473,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         if (json_output_ctx->flags & LOG_JSON_APP_LAYER && p->flow != NULL) {
             const AppProto proto = FlowGetAppProtocol(p->flow);
-            JsonBuilderMark mark = { 0 };
+            JsonBuilderMark mark = { 0, 0, 0 };
             switch (proto) {
                 case ALPROTO_HTTP:
                     // TODO: Could result in an empty http object being logged.
