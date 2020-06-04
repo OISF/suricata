@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -146,15 +146,21 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             }
             break;
         case ALPROTO_NFS:
-            hjs = JsonNFSAddMetadataRPC(p->flow, ff->txid);
-            if (hjs) {
-                jb_set_jsont(js, "rpc", hjs);
-                json_decref(hjs);
+            /* rpc */
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "rpc");
+            if (EveNFSAddMetadataRPC(p->flow, ff->txid, js)) {
+                jb_close(js);
+            } else {
+                jb_restore_mark(js, &mark);
             }
-            hjs = JsonNFSAddMetadata(p->flow, ff->txid);
-            if (hjs) {
-                jb_set_jsont(js, "nfs", hjs);
-                json_decref(hjs);
+            /* nfs */
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "nfs");
+            if (EveNFSAddMetadata(p->flow, ff->txid, js)) {
+                jb_close(js);
+            } else {
+                jb_restore_mark(js, &mark);
             }
             break;
         case ALPROTO_SMB:
