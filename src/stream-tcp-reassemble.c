@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1119,37 +1119,46 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
             mydata = NULL;
             mydata_len = 0;
+            SCLogDebug("%"PRIu64" got %p/%u", p->pcap_cnt, mydata, mydata_len);
+            break;
         }
-        SCLogDebug("%"PRIu64" got %p/%u", p->pcap_cnt, mydata, mydata_len);
-        break;
-    }
 
-    //PrintRawDataFp(stdout, mydata, mydata_len);
+        SCLogDebug("stream %p data in buffer %p of len %u and offset %"PRIu64,
+                *stream, &(*stream)->sb, mydata_len, app_progress);
 
-    SCLogDebug("stream %p data in buffer %p of len %u and offset %"PRIu64,
-            *stream, &(*stream)->sb, mydata_len, app_progress);
-
-    /* get window of data that is acked */
-    mydata_len = AdjustToAcked(p, *stream, app_progress, mydata_len);
-
-    if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED) {
-        if (mydata_len < (*stream)->data_required) {
-            if (gap_ahead) {
-                (*stream)->app_progress_rel += mydata_len;
-                (*stream)->data_required -= mydata_len;
-                // TODO send incomplete data to app-layer with special flag
-                // indicating its all there is for this rec?
-            }
+        /* get window of data that is acked */
+        mydata_len = AdjustToAcked(p, *stream, app_progress, mydata_len);
+        if (mydata_len == 0)
             SCReturnInt(0);
-        }
-    }
-    (*stream)->data_required = 0;
 
-    /* update the app-layer */
-    (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-            (uint8_t *)mydata, mydata_len,
-            StreamGetAppLayerFlags(ssn, *stream, p));
-    AppLayerProfilingStore(ra_ctx->app_tctx, p);
+        if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED) {
+            if (mydata_len < (*stream)->data_required) {
+                if (gap_ahead) {
+                    SCLogDebug("GAP while expecting more data (expect %u, gap size %u)",
+                            (*stream)->data_required, mydata_len);
+                    (*stream)->app_progress_rel += mydata_len;
+                    (*stream)->data_required -= mydata_len;
+                    // TODO send incomplete data to app-layer with special flag
+                    // indicating its all there is for this rec?
+                } else {
+                    SCReturnInt(0);
+                }
+                app_progress = STREAM_APP_PROGRESS(*stream);
+                continue;
+            }
+        }
+        (*stream)->data_required = 0;
+
+        /* update the app-layer */
+        (void)AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                (uint8_t *)mydata, mydata_len,
+                StreamGetAppLayerFlags(ssn, *stream, p));
+        AppLayerProfilingStore(ra_ctx->app_tctx, p);
+        uint64_t new_app_progress = STREAM_APP_PROGRESS(*stream);
+        if (new_app_progress == app_progress)
+            break;
+        app_progress = new_app_progress;
+    }
 
     SCReturnInt(0);
 }
