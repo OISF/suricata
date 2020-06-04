@@ -511,15 +511,21 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     }
                     break;
                 case ALPROTO_NFS:
-                    hjs = JsonNFSAddMetadataRPC(p->flow, pa->tx_id);
-                    if (hjs) {
-                        jb_set_jsont(jb, "rpc", hjs);
-                        json_decref(hjs);
+                    /* rpc */
+                    jb_get_mark(jb, &mark);
+                    jb_open_object(jb, "rpc");
+                    if (EveNFSAddMetadataRPC(p->flow, pa->tx_id, jb)) {
+                        jb_close(jb);
+                    } else {
+                        jb_restore_mark(jb, &mark);
                     }
-                    hjs = JsonNFSAddMetadata(p->flow, pa->tx_id);
-                    if (hjs) {
-                        jb_set_jsont(jb, "nfs", hjs);
-                        json_decref(hjs);
+                    /* nfs */
+                    jb_get_mark(jb, &mark);
+                    jb_open_object(jb, "nfs");
+                    if (EveNFSAddMetadata(p->flow, pa->tx_id, jb)) {
+                        jb_close(jb);
+                    } else {
+                        jb_restore_mark(jb, &mark);
                     }
                     break;
                 case ALPROTO_SMB:
