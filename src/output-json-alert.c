@@ -557,6 +557,37 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
         }
 
+        /* including fileinfo data is configured by the metadata setting */
+        if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
+            FileContainer *ffc = AppLayerParserGetFiles(p->flow,
+                    p->flowflags & FLOW_PKT_TOSERVER ? STREAM_TOSERVER:STREAM_TOCLIENT);
+            if (ffc != NULL) {
+				File *file = ffc->head;
+				bool isopen = false;
+				while (file) {
+					if (pa->tx_id == file->txid) {
+						if (!isopen) {
+							isopen = true;
+							jb_open_array(jb, "fileinfo");
+						}
+						JsonBuilder *jfb = jb_new_object();
+						if (likely(jfb != NULL)) {
+							JsonFileInfoMulti(jfb, file, file->flags & FILE_STORED);
+							jb_close(jfb);
+							jb_append_object(jb, jfb);
+							jb_free(jfb);
+						} else {
+							break;
+						}
+					}
+					file = file->next;
+				}
+				if (isopen) {
+					jb_close(jb);
+				}
+			}
+        }
+
         if (p->flow) {
             EveAddAppProto(p->flow, jb);
             if (json_output_ctx->flags & LOG_JSON_FLOW) {
