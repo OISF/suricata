@@ -73,6 +73,7 @@ void CreateJSONFlowId(json_t *js, const Flow *f);
 void CreateEveFlowId(JsonBuilder *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
 void JsonFileInfo(JsonBuilder *js, const File *file, const bool stored);
+void JsonFileInfoMulti(JsonBuilder *js, const File *file, const bool stored);
 void EveTcpFlags(uint8_t flags, JsonBuilder *js);
 void JsonPacket(const Packet *p, json_t *js, unsigned long max_length);
 void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length);

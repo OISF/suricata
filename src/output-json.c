@@ -152,10 +152,12 @@ json_t *JsonAddStringN(const char *string, size_t size)
     return SCJsonString(tmpbuf);
 }
 
-void JsonFileInfo(JsonBuilder *js, const File *ff, const bool stored)
+static void JsonFileInfoInternal(JsonBuilder *js, const File *ff, const bool stored, const bool multi)
 {
-    /* Open the fileinfo object. */
-    jb_open_object(js, "fileinfo");
+    if (!multi) {
+        /* Open the fileinfo object. */
+        jb_open_object(js, "fileinfo");
+    }
 
     size_t filename_size = ff->name_len * 2 + 1;
     char filename_string[filename_size];
@@ -234,8 +236,20 @@ void JsonFileInfo(JsonBuilder *js, const File *ff, const bool stored)
     }
     jb_set_uint(js, "tx_id", ff->txid);
 
-    /* Close fileinfo object */
-    jb_close(js);
+    if (!multi) {
+        /* Close fileinfo object */
+        jb_close(js);
+    }
+}
+
+void JsonFileInfoMulti(JsonBuilder *js, const File *ff, const bool stored)
+{
+    JsonFileInfoInternal(js, ff, stored, true);
+}
+
+void JsonFileInfo(JsonBuilder *js, const File *ff, const bool stored)
+{
+    JsonFileInfoInternal(js, ff, stored, false);
 }
 
 static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
