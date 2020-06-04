@@ -174,7 +174,9 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
 
     jb_set_string(js, "app_proto", AppProtoToString(p->flow->alproto));
 
-    JsonFileInfo(js, ff, stored);
+    jb_open_object(js, "fileinfo");
+    EveFileInfo(js, ff, stored);
+    jb_close(js);
 
     /* xff header */
     if (have_xff_ip && xff_cfg->flags & XFF_EXTRADATA) {
