@@ -998,6 +998,38 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
     return false;
 }
 
+static inline uint32_t AdjustToAcked(const Packet *p, const TcpStream *stream,
+        const uint64_t app_progress, const uint32_t data_len)
+{
+    uint32_t adjusted = data_len;
+
+    /* get window of data that is acked */
+    if (StreamTcpInlineMode() == FALSE) {
+        if (p->flags & PKT_PSEUDO_STREAM_END) {
+            // fall through, we use all available data
+        } else {
+            uint64_t last_ack_abs = app_progress; /* absolute right edge of ack'd data */
+            if (STREAM_LASTACK_GT_BASESEQ(stream)) {
+                /* get window of data that is acked */
+                uint32_t delta = stream->last_ack - stream->base_seq;
+                DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
+                /* get max absolute offset */
+                last_ack_abs += delta;
+            }
+
+            /* see if the buffer contains unack'd data as well */
+            if (app_progress + data_len > last_ack_abs) {
+                uint32_t check = data_len;
+                adjusted = last_ack_abs - app_progress;
+                BUG_ON(adjusted > check);
+                SCLogDebug("data len adjusted to %u to make sure only ACK'd "
+                        "data is considered", adjusted);
+            }
+        }
+    }
+    return adjusted;
+}
+
 /** \internal
  *  \brief get stream buffer and update the app-layer
  *  \param stream pointer to pointer as app-layer can switch flow dir
@@ -1063,29 +1095,8 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             *stream, &(*stream)->sb, mydata_len, app_progress);
 
     /* get window of data that is acked */
-    if (StreamTcpInlineMode() == FALSE) {
-        if (p->flags & PKT_PSEUDO_STREAM_END) {
-            // fall through, we use all available data
-        } else {
-            uint64_t last_ack_abs = app_progress; /* absolute right edge of ack'd data */
-            if (STREAM_LASTACK_GT_BASESEQ(*stream)) {
-                /* get window of data that is acked */
-                uint32_t delta = (*stream)->last_ack - (*stream)->base_seq;
-                DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > (*stream)->window);
-                /* get max absolute offset */
-                last_ack_abs += delta;
-            }
+    mydata_len = AdjustToAcked(p, *stream, app_progress, mydata_len);
 
-            /* see if the buffer contains unack'd data as well */
-            if (app_progress + mydata_len > last_ack_abs) {
-                uint32_t check = mydata_len;
-                mydata_len = last_ack_abs - app_progress;
-                BUG_ON(mydata_len > check);
-                SCLogDebug("data len adjusted to %u to make sure only ACK'd "
-                        "data is considered", mydata_len);
-            }
-        }
-    }
     if ((p->flags & PKT_PSEUDO_STREAM_END) == 0 || ssn->state < TCP_CLOSED) {
         if (mydata_len < (*stream)->data_required) {
             SCLogDebug("mydata_len %u data_required %u", mydata_len, (*stream)->data_required);
