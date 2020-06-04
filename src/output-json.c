@@ -152,30 +152,27 @@ json_t *JsonAddStringN(const char *string, size_t size)
     return SCJsonString(tmpbuf);
 }
 
-void JsonFileInfo(JsonBuilder *js, const File *ff, const bool stored)
+void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
 {
-    /* Open the fileinfo object. */
-    jb_open_object(js, "fileinfo");
-
     size_t filename_size = ff->name_len * 2 + 1;
     char filename_string[filename_size];
     BytesToStringBuffer(ff->name, ff->name_len, filename_string, filename_size);
-    jb_set_string(js, "filename", filename_string);
+    jb_set_string(jb, "filename", filename_string);
 
-    jb_open_array(js, "sid");
+    jb_open_array(jb, "sid");
     for (uint32_t i = 0; ff->sid != NULL && i < ff->sid_cnt; i++) {
-        jb_append_uint(js, ff->sid[i]);
+        jb_append_uint(jb, ff->sid[i]);
     }
-    jb_close(js);
+    jb_close(jb);
 
 #ifdef HAVE_MAGIC
     if (ff->magic)
-        jb_set_string(js, "magic", (char *)ff->magic);
+        jb_set_string(jb, "magic", (char *)ff->magic);
 #endif
-    jb_set_bool(js, "gaps", ff->flags & FILE_HAS_GAPS);
+    jb_set_bool(jb, "gaps", ff->flags & FILE_HAS_GAPS);
     switch (ff->state) {
         case FILE_STATE_CLOSED:
-            jb_set_string(js, "state", "CLOSED");
+            jb_set_string(jb, "state", "CLOSED");
 #ifdef HAVE_NSS
             if (ff->flags & FILE_MD5) {
                 size_t x;
@@ -184,7 +181,7 @@ void JsonFileInfo(JsonBuilder *js, const File *ff, const bool stored)
                 for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
                     i += snprintf(&str[i], 255-i, "%02x", ff->md5[x]);
                 }
-                jb_set_string(js, "md5", str);
+                jb_set_string(jb, "md5", str);
             }
             if (ff->flags & FILE_SHA1) {
                 size_t x;
@@ -193,18 +190,18 @@ void JsonFileInfo(JsonBuilder *js, const File *ff, const bool stored)
                 for (i = 0, x = 0; x < sizeof(ff->sha1); x++) {
                     i += snprintf(&str[i], 255-i, "%02x", ff->sha1[x]);
                 }
-                jb_set_string(js, "sha1", str);
+                jb_set_string(jb, "sha1", str);
             }
 #endif
             break;
         case FILE_STATE_TRUNCATED:
-            jb_set_string(js, "state", "TRUNCATED");
+            jb_set_string(jb, "state", "TRUNCATED");
             break;
         case FILE_STATE_ERROR:
-            jb_set_string(js, "state", "ERROR");
+            jb_set_string(jb, "state", "ERROR");
             break;
         default:
-            jb_set_string(js, "state", "UNKNOWN");
+            jb_set_string(jb, "state", "UNKNOWN");
             break;
     }
 
@@ -216,26 +213,23 @@ void JsonFileInfo(JsonBuilder *js, const File *ff, const bool stored)
         for (i = 0, x = 0; x < sizeof(ff->sha256); x++) {
             i += snprintf(&str[i], 255-i, "%02x", ff->sha256[x]);
         }
-        jb_set_string(js, "sha256", str);
+        jb_set_string(jb, "sha256", str);
     }
 #endif
 
     if (stored) {
-        jb_set_bool(js, "stored", true);
-        jb_set_uint(js, "file_id", ff->file_store_id);
+        jb_set_bool(jb, "stored", true);
+        jb_set_uint(jb, "file_id", ff->file_store_id);
     } else {
-        jb_set_bool(js, "stored", false);
+        jb_set_bool(jb, "stored", false);
     }
 
-    jb_set_uint(js, "size", FileTrackedSize(ff));
+    jb_set_uint(jb, "size", FileTrackedSize(ff));
     if (ff->end > 0) {
-        jb_set_uint(js, "start", ff->start);
-        jb_set_uint(js, "end", ff->end);
+        jb_set_uint(jb, "start", ff->start);
+        jb_set_uint(jb, "end", ff->end);
     }
-    jb_set_uint(js, "tx_id", ff->txid);
-
-    /* Close fileinfo object */
-    jb_close(js);
+    jb_set_uint(jb, "tx_id", ff->txid);
 }
 
 static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
