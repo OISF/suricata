@@ -57,6 +57,7 @@ pub struct SIPTransaction {
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
     logged: applayer::LoggerFlags,
+    detect_flags: applayer::TxDetectFlags,
 }
 
 impl SIPState {
@@ -154,6 +155,7 @@ impl SIPTransaction {
             response_line: None,
             events: std::ptr::null_mut(),
             logged: applayer::LoggerFlags::new(),
+            detect_flags: applayer::TxDetectFlags::default(),
         }
     }
 }
@@ -377,6 +379,9 @@ pub extern "C" fn rs_sip_parse_response(
     state.parse_response(buf).into()
 }
 
+export_tx_detect_flags_set!(rs_sip_tx_detect_flags_set, SIPTransaction);
+export_tx_detect_flags_get!(rs_sip_tx_detect_flags_get, SIPTransaction);
+
 const PARSER_NAME: &'static [u8] = b"sip\0";
 
 #[no_mangle]
@@ -412,8 +417,8 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         set_tx_mpm_id: None,
         get_files: None,
         get_tx_iterator: None,
-        get_tx_detect_flags: None,
-        set_tx_detect_flags: None,
+        get_tx_detect_flags: Some(rs_sip_tx_detect_flags_get),
+        set_tx_detect_flags: Some(rs_sip_tx_detect_flags_set),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
