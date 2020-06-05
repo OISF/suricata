@@ -408,6 +408,7 @@ mod tests {
             0xff, 0xff, 0xff, 0xff, 0x68, 0x00, 0x00, 0x00, 0x0a, 0x00,
         ];
         let mut dcerpcudp_state = DCERPCUDPState::new();
+        assert_eq!(80, dcerpcudp_state.process_header(request));
         assert_eq!(
             0,
             dcerpcudp_state.handle_fragment_data(request, request.len() as u16)
