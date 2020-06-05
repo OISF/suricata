@@ -650,16 +650,14 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
 static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
-    int i;
     char timebuf[64];
-    json_t *js;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
     CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    for (i = 0; i < p->alerts.cnt; i++) {
+    for (int i = 0; i < p->alerts.cnt; i++) {
         MemBufferReset(aft->json_buffer);
 
         const PacketAlert *pa = &p->alerts.alerts[i];
@@ -674,7 +672,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
             action = "blocked";
         }
 
-        js = json_object();
+        json_t *js = json_object();
         if (js == NULL)
             return TM_ECODE_OK;
 
@@ -686,13 +684,6 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
 
         /* time & tx */
         json_object_set_new(js, "timestamp", json_string(timebuf));
-
-        /* tuple */
-        //json_object_set_new(js, "srcip", json_string(srcip));
-        //json_object_set_new(js, "sp", json_integer(p->sp));
-        //json_object_set_new(js, "dstip", json_string(dstip));
-        //json_object_set_new(js, "dp", json_integer(p->dp));
-        //json_object_set_new(js, "proto", json_integer(proto));
 
         json_object_set_new(ajs, "action", json_string(action));
         json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
