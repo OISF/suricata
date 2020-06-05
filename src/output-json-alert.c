@@ -650,6 +650,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
 static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
+    AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
@@ -665,44 +666,18 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
             continue;
         }
 
-        const char *action = "allowed";
-        if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
-            action = "blocked";
-        } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
-            action = "blocked";
-        }
-
-        json_t *js = json_object();
-        if (js == NULL)
-            return TM_ECODE_OK;
-
-        json_t *ajs = json_object();
-        if (ajs == NULL) {
-            json_decref(js);
+        JsonBuilder *jb = jb_new_object();
+        if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
 
-        /* time & tx */
-        json_object_set_new(js, "timestamp", json_string(timebuf));
+        /* just the timestamp, no tuple */
+        jb_set_string(jb, "timestamp", timebuf);
 
-        json_object_set_new(ajs, "action", json_string(action));
-        json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
-        json_object_set_new(ajs, "signature_id", json_integer(pa->s->id));
-        json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
-        json_object_set_new(ajs, "signature",
-                            json_string((pa->s->msg) ? pa->s->msg : ""));
-        json_object_set_new(ajs, "category",
-                            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
-        json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
+        AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, NULL);
 
-        if (p->tenant_id > 0)
-            json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
-
-        /* alert */
-        json_object_set_new(js, "alert", ajs);
-        OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
-        json_object_clear(js);
-        json_decref(js);
+        OutputJsonBuilderBuffer(jb, aft->file_ctx, &aft->json_buffer);
+        jb_free(jb);
     }
 
     return TM_ECODE_OK;
