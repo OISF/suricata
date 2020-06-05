@@ -100,8 +100,7 @@ static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     if (f->alproto == ALPROTO_DCERPC) {
-        // TODO check for NULL state
-        return rs_dcerpc_opnum_match(state, (void *)m);
+        return rs_dcerpc_opnum_match(txv, (void *)m);
     }
 
     if (rs_smb_tx_match_dce_opnum(txv, (void *)m) != 1)
