@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -466,6 +466,7 @@ typedef enum {
     LOGGER_JSON_RDP,
     LOGGER_JSON_DCERPC,
     LOGGER_JSON_HTTP2,
+    LOGGER_JSON_BITTORRENT_DHT,
 
     LOGGER_ALERT_DEBUG,
     LOGGER_ALERT_FAST,
