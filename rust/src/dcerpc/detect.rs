@@ -16,7 +16,8 @@
  */
 
 use super::dcerpc::{
-    DCERPCState, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, DCERPC_UUID_ENTRY_FLAG_FF,
+    DCERPCState, DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
+    DCERPC_UUID_ENTRY_FLAG_FF,
 };
 use crate::log::*;
 use std::ffi::CStr;
@@ -100,8 +101,10 @@ fn match_iface_version(version: u16, if_data: &DCEIfaceData) -> bool {
     }
 }
 
-fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
-    let mut ret = 1;
+fn match_backuuid(
+    tx: &mut DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
+) -> u8 {
+    let mut ret = 0;
     if let Some(ref bindack) = state.bindack {
         for uuidentry in bindack.accepted_uuid_list.iter() {
             ret = 1;
@@ -123,7 +126,7 @@ fn match_backuuid(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
                     break;
                 }
             }
-            let ctxid = state.get_req_ctxid().unwrap_or(0);
+            let ctxid = tx.get_req_ctxid();
             ret = ret & ((uuidentry.ctxid == ctxid) as u8);
             if ret == 0 {
                 SCLogDebug!("CTX IDs/UUIDs do not match");
@@ -243,16 +246,17 @@ fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_iface_match(state: &mut DCERPCState, if_data: &mut DCEIfaceData) -> u8 {
-    let first_req_seen = state.get_first_req_seen().unwrap_or(0);
+pub extern "C" fn rs_dcerpc_iface_match(
+    tx: &mut DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
+) -> u8 {
+    let first_req_seen = tx.get_first_req_seen();
     if first_req_seen == 0 {
         return 0;
     }
 
     match state.get_hdr_type() {
         Some(x) => match x {
-            DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE => {
-            }
+            DCERPC_TYPE_REQUEST | DCERPC_TYPE_RESPONSE => {}
             _ => {
                 return 0;
             }
@@ -262,7 +266,7 @@ pub extern "C" fn rs_dcerpc_iface_match(state: &mut DCERPCState, if_data: &mut D
         }
     };
 
-    return match_backuuid(state, if_data);
+    return match_backuuid(tx, state, if_data);
 }
 
 #[no_mangle]
@@ -292,10 +296,13 @@ pub unsafe extern "C" fn rs_dcerpc_iface_free(ptr: *mut c_void) {
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dcerpc_opnum_match(
-    state: &mut DCERPCState,
-    opnum_data: &mut DCEOpnumData,
+    tx: &mut DCERPCTransaction, opnum_data: &mut DCEOpnumData,
 ) -> u8 {
-    let opnum = state.get_req_opnum().unwrap_or(0);  // TODO is the default to 0 OK?
+    let first_req_seen = tx.get_first_req_seen();
+    if first_req_seen == 0 {
+        return 0;
+    }
+    let opnum = tx.get_req_opnum();
     for range in opnum_data.data.iter() {
         if range.range2 == DETECT_DCE_OPNUM_RANGE_UNINITIALIZED {
             if range.range1 == opnum as u32 {
