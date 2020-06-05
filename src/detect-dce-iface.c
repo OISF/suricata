@@ -126,7 +126,7 @@ static int DetectDceIfaceMatchRust(DetectEngineThreadCtx *det_ctx,
 
     if (f->alproto == ALPROTO_DCERPC) {
         // TODO check if state is NULL
-        return rs_dcerpc_iface_match(state, (void *)m);
+        return rs_dcerpc_iface_match(txv, state, (void *)m);
     }
 
     int ret = 0;
