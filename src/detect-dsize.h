@@ -28,6 +28,7 @@
 #define DETECTDSIZE_EQ 1
 #define DETECTDSIZE_GT 2
 #define DETECTDSIZE_RA 3
+#define DETECTDSIZE_NE 4
 
 typedef struct DetectDsizeData_ {
     uint16_t dsize;

@@ -289,7 +289,7 @@ overflows.
 
 Format::
 
-  dsize:<number>;
+  dsize:[<>!]number; || dsize:min<>max;
 
 Example of dsize in a rule:
 
