@@ -1613,6 +1613,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterSMTPParsers();
     rs_dns_udp_register_parser();
     rs_dns_tcp_register_parser();
+    rs_bittorrent_dht_udp_register_parser();
     RegisterModbusParsers();
     RegisterENIPUDPParsers();
     RegisterENIPTCPParsers();

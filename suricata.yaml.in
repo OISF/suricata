@@ -269,6 +269,7 @@ outputs:
         - ikev2
         - dcerpc
         - krb5
+        - bittorrent-dht
         - snmp
         - rfb
         - sip
@@ -723,6 +724,8 @@ app-layer:
       # enabled: no
       # max-msg-length: 1mb
     krb5:
+      enabled: yes
+    bittorrent-dht:
       enabled: yes
     snmp:
       enabled: yes

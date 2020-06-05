@@ -120,6 +120,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_HTTP2:
             proto_name = "http2";
             break;
+        case ALPROTO_BITTORRENT_DHT:
+            proto_name = "bittorrent-dht";
+            break;
         case ALPROTO_FAILED:
             proto_name = "failed";
             break;
@@ -167,6 +170,8 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"template-rust")==0) return ALPROTO_TEMPLATE_RUST;
     if (strcmp(proto_name,"rdp")==0) return ALPROTO_RDP;
     if (strcmp(proto_name,"http2")==0) return ALPROTO_HTTP2;
+    if (strcmp(proto_name, "bittorrent-dht") == 0)
+        return ALPROTO_BITTORRENT_DHT;
     if (strcmp(proto_name,"failed")==0) return ALPROTO_FAILED;
 
     return ALPROTO_UNKNOWN;

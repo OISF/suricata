@@ -396,6 +396,7 @@ output-json-mqtt.c output-json-mqtt.h \
 output-json-template.c output-json-template.h \
 output-json-template-rust.c output-json-template-rust.h \
 output-json-rdp.c output-json-rdp.h \
+output-json-bittorrent-dht.c output-json-bittorrent-dht.h \
 output-json-dcerpc.c output-json-dcerpc.h \
 output-json-metadata.c output-json-metadata.h \
 output-lua.c output-lua.h \

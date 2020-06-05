@@ -57,6 +57,7 @@ enum AppProtoEnum {
     ALPROTO_TEMPLATE_RUST,
     ALPROTO_RDP,
     ALPROTO_HTTP2,
+    ALPROTO_BITTORRENT_DHT,
 
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
