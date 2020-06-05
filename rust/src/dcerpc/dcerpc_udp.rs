@@ -20,12 +20,14 @@ use std::mem::transmute;
 use crate::applayer::AppLayerResult;
 use crate::core;
 use crate::dcerpc::dcerpc::{
-    DCERPCRequest, DCERPCResponse, DCERPCUuidEntry, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
-    PFC_FIRST_FRAG,
+    DCERPCTransaction, DCERPCUuidEntry, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFC_FIRST_FRAG,
 };
 use crate::dcerpc::parser;
 use crate::log::*;
+
+use byteorder::{LittleEndian, ReadBytesExt};
 use std::cmp;
+use std::io::Cursor;
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_UDP_HDR_LEN: i32 = 80;
@@ -55,9 +57,9 @@ pub struct DCERPCHdrUdp {
 
 #[derive(Debug)]
 pub struct DCERPCUDPState {
+    pub tx_id: u32,
     pub header: Option<DCERPCHdrUdp>,
-    pub request: Option<DCERPCRequest>,
-    pub response: Option<DCERPCResponse>,
+    pub transactions: Vec<DCERPCTransaction>,
     pub fraglenleft: u16,
     pub uuid_entry: Option<DCERPCUuidEntry>,
     pub uuid_list: Vec<DCERPCUuidEntry>,
@@ -67,9 +69,9 @@ pub struct DCERPCUDPState {
 impl DCERPCUDPState {
     pub fn new() -> DCERPCUDPState {
         return DCERPCUDPState {
+            tx_id: 0,
             header: None,
-            request: None,
-            response: None,
+            transactions: Vec::new(),
             fraglenleft: 0,
             uuid_entry: None,
             uuid_list: Vec::new(),
@@ -77,27 +79,38 @@ impl DCERPCUDPState {
         };
     }
 
-    fn new_request(&mut self) {
-        let request = DCERPCRequest::new();
-        self.request = Some(request);
+    fn create_tx(&mut self, serial_no: u16) -> DCERPCTransaction {
+        let mut tx = DCERPCTransaction::new();
+        let endianness = self.get_hdr_drep_0() & 0x10;
+        tx.id = self.tx_id;
+        tx.call_id = serial_no as u32;
+        tx.endianness = endianness;
+        self.tx_id += 1;
+        tx
     }
 
-    fn new_response(&mut self) {
-        let response = DCERPCResponse::new();
-        self.response = Some(response);
+
+    fn evaluate_serial_no(&mut self) -> u16 {
+        let mut serial_hi: u8 = 0;
+        let mut serial_lo: u8 = 0;
+        if let Some(ref hdr) = &self.header {
+            serial_hi = hdr.serial_hi;
+            serial_lo = hdr.serial_lo;
+        }
+        let mut serial_no = Cursor::new(vec![serial_hi, serial_lo]);
+        let serial_no = serial_no.read_u16::<LittleEndian>().unwrap();
+
+        serial_no
     }
-    fn create_new_query(&mut self, pkt_type: u8) {
-        match pkt_type {
-            DCERPC_TYPE_REQUEST => {
-                self.new_request();
-            }
-            DCERPC_TYPE_RESPONSE => {
-                self.new_response();
-            }
-            _ => {
-                SCLogDebug!("Unrecognized packet type");
+
+    fn find_tx(&mut self, serial_no: u16) -> Option<&mut DCERPCTransaction> {
+        for tx in &mut self.transactions {
+            let found = tx.call_id == (serial_no as u32);
+            if found {
+                return Some(tx);
             }
         }
+        None
     }
 
     fn get_hdr_pkt_type(&self) -> Option<u8> {
@@ -118,6 +131,14 @@ impl DCERPCUDPState {
         None
     }
 
+    fn get_hdr_drep_0(&self) -> u8 {
+        debug_validate_bug_on!(self.header.is_none());
+        if let Some(ref hdr) = &self.header {
+            return hdr.drep[0];
+        }
+        0
+    }
+
     pub fn get_hdr_fraglen(&self) -> Option<u16> {
         debug_validate_bug_on!(self.header.is_none());
         if let Some(ref hdr) = &self.header {
@@ -128,35 +149,47 @@ impl DCERPCUDPState {
     }
 
     pub fn handle_fragment_data(&mut self, input: &[u8], input_len: u16) -> u16 {
-        let mut retval: u16 = 0;
+        let retval: u16;
         let hdrflags1 = self.get_hdr_flags1().unwrap_or(0);
         let fraglenleft = self.fraglenleft;
+        let hdrtype = self.get_hdr_pkt_type().unwrap_or(0);
+        let serial_no = self.evaluate_serial_no();
+        let tx;
+        if let Some(transaction) = self.find_tx(serial_no) {
+            tx = transaction;
+        } else {
+            SCLogDebug!(
+                "No transaction found matching the serial number: {:?}",
+                serial_no
+            );
+            return 0;
+        }
 
         // Update the stub params based on the packet type
-        match self.get_hdr_pkt_type().unwrap_or(0) {
+        match hdrtype {
             DCERPC_TYPE_REQUEST => {
-                if let Some(ref mut req) = self.request {
-                    retval = evaluate_stub_params(
-                        input,
-                        input_len,
-                        hdrflags1,
-                        fraglenleft,
-                        &mut req.stub_data_buffer,
-                        &mut req.stub_data_buffer_len,
-                    );
-                }
+                retval = evaluate_stub_params(
+                    input,
+                    input_len,
+                    hdrflags1,
+                    fraglenleft,
+                    &mut tx.stub_data_buffer_ts,
+                    &mut tx.stub_data_buffer_len_ts,
+                );
+                tx.req_done = true;
+                tx.frag_cnt_ts += 1;
             }
             DCERPC_TYPE_RESPONSE => {
-                if let Some(ref mut resp) = self.response {
-                    retval = evaluate_stub_params(
-                        input,
-                        input_len,
-                        hdrflags1,
-                        fraglenleft,
-                        &mut resp.stub_data_buffer,
-                        &mut resp.stub_data_buffer_len,
-                    );
-                }
+                retval = evaluate_stub_params(
+                    input,
+                    input_len,
+                    hdrflags1,
+                    fraglenleft,
+                    &mut tx.stub_data_buffer_tc,
+                    &mut tx.stub_data_buffer_len_tc,
+                );
+                tx.resp_done = true;
+                tx.frag_cnt_tc += 1;
             }
             _ => {
                 SCLogDebug!("Unrecognized packet type");
@@ -208,10 +241,11 @@ impl DCERPCUDPState {
         }
 
         let mut input_left = input.len() as i32 - parsed;
-        let pkt_type = self.get_hdr_pkt_type().unwrap_or(0);
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
         self.fraglenleft = fraglen;
-        self.create_new_query(pkt_type);
+        let serial_no = self.evaluate_serial_no();
+        let tx = self.create_tx(serial_no);
+        self.transactions.push(tx);
         // Parse rest of the body
         while parsed >= DCERPC_UDP_HDR_LEN && parsed < fraglen as i32 && input_left > 0 {
             let retval = self.handle_fragment_data(&input[parsed as usize..], input_left as u16);
@@ -229,11 +263,7 @@ impl DCERPCUDPState {
 }
 
 fn evaluate_stub_params(
-    input: &[u8],
-    input_len: u16,
-    hdrflags: u8,
-    lenleft: u16,
-    stub_data_buffer: &mut Vec<u8>,
+    input: &[u8], input_len: u16, hdrflags: u8, lenleft: u16, stub_data_buffer: &mut Vec<u8>,
     stub_data_buffer_len: &mut u16,
 ) -> u16 {
     let stub_len: u16;
@@ -258,13 +288,8 @@ fn evaluate_stub_params(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_parse(
-    _flow: *mut core::Flow,
-    state: &mut DCERPCUDPState,
-    _pstate: *mut std::os::raw::c_void,
-    input: *const u8,
-    input_len: u32,
-    _data: *mut std::os::raw::c_void,
-    _flags: u8,
+    _flow: *mut core::Flow, state: &mut DCERPCUDPState, _pstate: *mut std::os::raw::c_void,
+    input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = build_slice!(input, input_len as usize);
@@ -287,8 +312,7 @@ pub unsafe extern "C" fn rs_dcerpc_udp_state_new() -> *mut std::os::raw::c_void 
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_state_transaction_free(
-    _state: *mut std::os::raw::c_void,
-    _tx_id: u64,
+    _state: *mut std::os::raw::c_void, _tx_id: u64,
 ) {
     // do nothing
 }
@@ -306,8 +330,7 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
-    vtx: *mut std::os::raw::c_void,
-    de_state: *mut core::DetectEngineState,
+    vtx: *mut std::os::raw::c_void, de_state: *mut core::DetectEngineState,
 ) -> u8 {
     let dce_state = cast_pointer!(vtx, DCERPCUDPState);
     dce_state.de_state = Some(de_state);
@@ -316,8 +339,7 @@ pub extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_get_tx(
-    state: *mut std::os::raw::c_void,
-    _tx_id: u64,
+    state: *mut std::os::raw::c_void, _tx_id: u64,
 ) -> *mut DCERPCUDPState {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
     dce_state
@@ -330,8 +352,7 @@ pub extern "C" fn rs_dcerpc_udp_get_tx_cnt(_state: *mut std::os::raw::c_void) ->
 
 #[no_mangle]
 pub extern "C" fn rs_dcerpc_udp_get_alstate_progress(
-    _tx: *mut std::os::raw::c_void,
-    _direction: u8,
+    _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> u8 {
     0
 }
@@ -505,8 +526,9 @@ mod tests {
             dcerpcudp_state.handle_input_data(request)
         );
         assert_eq!(0, dcerpcudp_state.fraglenleft);
-        if let Some(req) = dcerpcudp_state.request {
-            assert_eq!(1392, req.stub_data_buffer_len);
-        }
+        assert_eq!(
+            1392,
+            dcerpcudp_state.transactions[0].stub_data_buffer_len_ts
+        );
     }
 }

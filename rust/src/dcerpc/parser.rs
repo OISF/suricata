@@ -256,10 +256,6 @@ named_args!(pub parse_dcerpc_request(endianness: Endianness) <DCERPCRequest>,
                 ctxid: ctxid,
                 opnum: opnum,
                 first_request_seen: 1,
-                stub_data_buffer: Vec::new(),
-                stub_data_buffer_len: 0,
-                stub_data_buffer_reset: false,
-                cmd: 0,
             }
         )
     )
