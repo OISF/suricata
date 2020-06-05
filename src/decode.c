@@ -295,6 +295,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
+    p->livedev = parent->livedev;
 
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL)

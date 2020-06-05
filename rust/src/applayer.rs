@@ -25,7 +25,7 @@ use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
 
 #[repr(C)]
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Copy,Clone)]
 pub struct AppLayerResult {
     pub status: i32,
     pub consumed: u32,
@@ -61,6 +61,16 @@ impl AppLayerResult {
             consumed: consumed,
             needed: needed,
         };
+    }
+
+    pub fn is_ok(self) -> bool {
+        self.status == 0
+    }
+    pub fn is_incomplete(self) -> bool {
+        self.status == 1
+    }
+    pub fn is_err(self) -> bool {
+        self.status == -1
     }
 }
 

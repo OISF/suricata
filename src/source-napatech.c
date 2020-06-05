@@ -360,6 +360,37 @@ static int CompareIPv6Addr(uint8_t addr_a[16], uint8_t addr_b[16]) {
 }
 
 /**
+ * \brief  Initializes the FlowStreams used to program flow data.
+ *
+ * Opens a FlowStream on the adapter associated with the rx port.  This
+ * FlowStream is subsequently used to program the adapter with
+ * flows to bypass.
+ *
+ * \return the flow stream handle, NULL if failure.
+ */
+static NtFlowStream_t InitFlowStream(int adapter, int stream_id)
+{
+    int status;
+    NtFlowStream_t hFlowStream;
+
+    NtFlowAttr_t attr;
+    char flow_name[80];
+
+    NT_FlowOpenAttrInit(&attr);
+    NT_FlowOpenAttrSetAdapterNo(&attr, adapter);
+
+    snprintf(flow_name, sizeof(flow_name), "Flow_stream_%d", stream_id );
+    SCLogDebug("Opening flow programming stream:  %s", flow_name);
+    if ((status = NT_FlowOpen_Attr(&hFlowStream, flow_name, &attr)) != NT_SUCCESS) {
+        SCLogWarning(SC_WARN_COMPATIBILITY,
+                "Napatech bypass functionality not supported by the FPGA version on adapter %d - disabling support.",
+                adapter);
+        return NULL;
+    }
+    return hFlowStream;
+}
+
+/**
  * \brief Callback function to process Bypass events on Napatech Adapter.
  *
  * Callback function that sets up the Flow tables on the Napatech card
@@ -373,16 +404,10 @@ static int CompareIPv6Addr(uint8_t addr_a[16], uint8_t addr_b[16]) {
  */
 static int ProgramFlow(Packet *p, int is_inline)
 {
-    int status;
     NtFlow_t flow_match;
     memset(&flow_match, 0, sizeof(flow_match));
 
     NapatechPacketVars *ntpv = &(p->ntpv);
-
-    int adapter = NapatechGetAdapter(ntpv->dyn3->rxPort);
-
-    NtFlowStream_t *phFlowStream = NapatechGetFlowStreamPtr(adapter);
-
 
     /*
      * The hardware decoder will "color" the packets according to the protocols
@@ -428,12 +453,11 @@ static int ProgramFlow(Packet *p, int is_inline)
         case RTE_PTYPE_L3_IPV4:
         {
             pIPv4_hdr = (struct ipv4_hdr *) (packet + ntpv->dyn3->offset0);
-
             if (!is_span) {
                 v4Tuple.sa = pIPv4_hdr->src_addr;
                 v4Tuple.da = pIPv4_hdr->dst_addr;
             } else {
-                do_swap = (pIPv4_hdr->src_addr > pIPv4_hdr->dst_addr);
+                do_swap = (htonl(pIPv4_hdr->src_addr) > htonl(pIPv4_hdr->dst_addr));
                 if (!do_swap) {
                     /* already in order */
                     v4Tuple.sa = pIPv4_hdr->src_addr;
@@ -571,12 +595,11 @@ static int ProgramFlow(Packet *p, int is_inline)
         }
     }
 
-    status = NT_FlowWrite(*phFlowStream, &flow_match, -1);
-    if (status == NT_STATUS_TIMEOUT) {
-        SCLogInfo("NT_FlowWrite returned NT_STATUS_TIMEOUT");
-    } else if (status != NT_SUCCESS) {
-        SCLogError(SC_ERR_NAPATECH_OPEN_FAILED,"NT_FlowWrite failed!.");
-        exit(EXIT_FAILURE);
+    if (NT_FlowWrite(ntpv->flow_stream, &flow_match, -1) != NT_SUCCESS) {
+        if (!(suricata_ctl_flags & SURICATA_STOP)) {
+            SCLogError(SC_ERR_NAPATECH_OPEN_FAILED,"NT_FlowWrite failed!.");
+            exit(EXIT_FAILURE);
+        }
     }
 
     return 1;
@@ -781,6 +804,18 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     /* This just keeps the startup output more orderly. */
     usleep(200000 * ntv->stream_id);
 
+#ifdef NAPATECH_ENABLE_BYPASS
+    NtFlowStream_t flow_stream[MAX_ADAPTERS] = { 0 };
+
+    /* Get a FlowStream handle for each adapter so we can efficiently find the
+     * correct handle corresponding to the port on which a packet is received.
+     */
+    int adapter = 0;
+    for (adapter = 0; adapter < NapatechGetNumAdapters(); ++adapter) {
+        flow_stream[adapter] = InitFlowStream(adapter, ntv->stream_id);
+    }
+#endif
+
     if (ConfGetBool("napatech.auto-config", &is_autoconfig) == 0) {
         is_autoconfig = 0;
     }
@@ -820,7 +855,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
                 is_inline = 0;
             }
 
-            #ifdef NAPATECH_ENABLE_BYPASS
+#ifdef NAPATECH_ENABLE_BYPASS
             /* Initialize the port map before we setup traffic filters */
             for (int i = 0; i < MAX_PORTS; ++i) {
                 inline_port_map[i] = -1;
@@ -961,7 +996,10 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         p->ntpv.dyn3 = _NT_NET_GET_PKT_DESCR_PTR_DYN3(packet_buffer);
         p->BypassPacketsFlow = (NapatechIsBypassSupported() ? NapatechBypassCallback : NULL);
         NT_NET_SET_PKT_TXPORT(packet_buffer, inline_port_map[p->ntpv.dyn3->rxPort]);
+        p->ntpv.flow_stream = flow_stream[NapatechGetAdapter(p->ntpv.dyn3->rxPort)];
+
 #endif
+
         p->ReleasePacket = NapatechReleasePacket;
         p->ntpv.nt_packet_buf = packet_buffer;
         p->ntpv.stream_id = ntv->stream_id;
@@ -987,9 +1025,6 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     } // while
 
     if (closer) {
-#ifdef NAPATECH_ENABLE_BYPASS
-        NapatechCloseFlowStreams();
-#endif
         NapatechDeleteFilters();
     }
 

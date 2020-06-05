@@ -224,7 +224,12 @@ impl SSHState {
         if hdr.flags == SSHConnectionState::SshStateBannerWaitEol {
             match parser::ssh_parse_line(input) {
                 Ok((rem, _)) => {
-                    return self.parse_record(rem, resp, pstate);
+                    let mut r = self.parse_record(rem, resp, pstate);
+                    if r.is_incomplete() {
+                        //adds bytes consumed by banner to incomplete result
+                        r.consumed += (input.len() - rem.len()) as u32;
+                    }
+                    return r;
                 }
                 Err(nom::Err::Incomplete(_)) => {
                     return AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32);
@@ -257,7 +262,12 @@ impl SSHState {
                     );
                     self.set_event(SSHEvent::LongBanner);
                 }
-                return self.parse_record(rem, resp, pstate);
+                let mut r = self.parse_record(rem, resp, pstate);
+                if r.is_incomplete() {
+                    //adds bytes consumed by banner to incomplete result
+                    r.consumed += (input.len() - rem.len()) as u32;
+                }
+                return r;
             }
             Err(nom::Err::Incomplete(_)) => {
                 if input.len() < SSH_MAX_BANNER_LEN {

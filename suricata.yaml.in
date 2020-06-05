@@ -257,7 +257,7 @@ outputs:
 
         #- dnp3
         - ftp
-        #- rdp
+        - rdp
         - nfs
         - smb
         - tftp
@@ -265,7 +265,7 @@ outputs:
         - krb5
         - snmp
         - rfb
-        #- sip
+        - sip
         - dhcp:
             enabled: yes
             # When extended mode is on, all DHCP messages are logged
@@ -413,12 +413,6 @@ outputs:
       facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
-
-  # (deprecated) A line based information for dropped packets in IPS mode
-  - drop:
-      enabled: no
-      # further options documented at:
-      # https://suricata.readthedocs.io/en/suricata-5.0.0/configuration/suricata-yaml.html#drop-log-a-line-based-information-for-dropped-packets
 
   # Output module for storing files on disk. Files are stored in
   # directory names consisting of the first 2 characters of the
@@ -745,9 +739,8 @@ app-layer:
     ftp:
       enabled: yes
       # memcap: 64mb
-    # RDP, disabled by default.
     rdp:
-      #enabled: no
+      #enabled: yes
     ssh:
       enabled: yes
     smtp:
@@ -949,7 +942,6 @@ app-layer:
     dhcp:
       enabled: yes
 
-    # SIP, disabled by default.
     sip:
       #enabled: no
 

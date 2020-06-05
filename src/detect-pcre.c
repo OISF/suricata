@@ -855,7 +855,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     SCEnter();
     DetectPcreData *pd = NULL;
     SigMatch *sm = NULL;
-    int ret = -1;
     int parsed_sm_list = DETECT_SM_LIST_NOTSET;
     char capture_names[1024] = "";
     AppProto alproto = ALPROTO_UNKNOWN;
@@ -869,10 +868,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
         goto error;
 
 #ifdef PCRE_HAVE_JIT_EXEC
-    /*
-     * Deliberately silent on failures. Not having a context id means
-     * JIT will be bypassed
-     */
+    /* Deliberately silent on failures. Not having a context id means
+     * JIT will be bypassed */
     pd->thread_ctx_jit_stack_id = DetectRegisterThreadCtxFuncs(de_ctx, "pcre",
             DetectPcreThreadInit, (void *)pd,
             DetectPcreThreadFree, 1);
@@ -893,7 +890,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
         s->flags |= SIG_FLAG_APPLAYER;
         sm_list = s->init_data->list;
     } else {
-        switch(parsed_sm_list) {
+        switch (parsed_sm_list) {
             case DETECT_SM_LIST_NOTSET:
                 sm_list = DETECT_SM_LIST_PMATCH;
                 break;
@@ -905,7 +902,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
                             alproto != s->alproto) {
                         goto error;
                     }
-                    s->alproto = alproto;
+                    if (DetectSignatureSetAppProto(s, alproto) < 0)
+                        goto error;
                 }
                 sm_list = parsed_sm_list;
                 break;
@@ -922,8 +920,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     sm->ctx = (void *)pd;
     SigMatchAppendSMToList(s, sm, sm_list);
 
-    uint8_t x;
-    for (x = 0; x < pd->idx; x++) {
+    for (uint8_t x = 0; x < pd->idx; x++) {
         if (DetectFlowvarPostMatchSetup(de_ctx, s, pd->capids[x]) < 0)
             goto error_nofree;
     }
@@ -940,8 +937,9 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
                 "preceding match in the same buffer");
         goto error_nofree;
     /* null is allowed when we use a sticky buffer */
-    } else if (prev_pm == NULL)
+    } else if (prev_pm == NULL) {
         goto okay;
+    }
     if (prev_pm->type == DETECT_CONTENT) {
         DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
         cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
@@ -951,12 +949,11 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     }
 
  okay:
-    ret = 0;
-    SCReturnInt(ret);
+    SCReturnInt(0);
  error:
     DetectPcreFree(de_ctx, pd);
  error_nofree:
-    SCReturnInt(ret);
+    SCReturnInt(-1);
 }
 
 static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)

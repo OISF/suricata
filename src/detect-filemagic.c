@@ -164,38 +164,7 @@ void DetectFilemagicRegister(void)
  *  \retval -1 error
  *  \retval 0 ok
  */
-int FilemagicGlobalLookup(File *file)
-{
-    if (file == NULL || FileDataSize(file) == 0) {
-        SCReturnInt(-1);
-    }
-
-    const uint8_t *data = NULL;
-    uint32_t data_len = 0;
-    uint64_t offset = 0;
-
-    StreamingBufferGetData(file->sb,
-                           &data, &data_len, &offset);
-    if (offset == 0) {
-        if (FileDataSize(file) >= FILEMAGIC_MIN_SIZE) {
-            file->magic = MagicGlobalLookup(data, data_len);
-        } else if (file->state >= FILE_STATE_CLOSED) {
-            file->magic = MagicGlobalLookup(data, data_len);
-        }
-    }
-
-    SCReturnInt(0);
-}
-
-/**
- *  \brief run the magic check
- *
- *  \param file the file
- *
- *  \retval -1 error
- *  \retval 0 ok
- */
-static int FilemagicThreadLookup(magic_t *ctx, File *file)
+int FilemagicThreadLookup(magic_t *ctx, File *file)
 {
     if (ctx == NULL || file == NULL || FileDataSize(file) == 0) {
         SCReturnInt(-1);
@@ -340,43 +309,15 @@ error:
 
 static void *DetectFilemagicThreadInit(void *data /*@unused@*/)
 {
-    const char *filename = NULL;
-    FILE *fd = NULL;
-
     DetectFilemagicThreadData *t = SCCalloc(1, sizeof(DetectFilemagicThreadData));
     if (unlikely(t == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "couldn't alloc ctx memory");
         return NULL;
     }
 
-    t->ctx = magic_open(0);
-    if (t->ctx == NULL) {
-        SCLogError(SC_ERR_MAGIC_OPEN, "magic_open failed: %s", magic_error(t->ctx));
+    t->ctx = MagicInitContext();
+    if (t->ctx == NULL)
         goto error;
-    }
-
-    (void)ConfGet("magic-file", &filename);
-    if (filename != NULL) {
-        if (strlen(filename) == 0) {
-            /* set filename to NULL on *nix systems so magic_load uses system default path (see man libmagic) */
-            SCLogInfo("using system default magic-file");
-            filename = NULL;
-        }
-        else {
-            SCLogInfo("using magic-file %s", filename);
-
-            if ( (fd = fopen(filename, "r")) == NULL) {
-                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
-                goto error;
-            }
-            fclose(fd);
-        }
-    }
-
-    if (magic_load(t->ctx, filename) != 0) {
-        SCLogError(SC_ERR_MAGIC_LOAD, "magic_load failed: %s", magic_error(t->ctx));
-        goto error;
-    }
 
     return (void *)t;
 

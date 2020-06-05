@@ -349,11 +349,14 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     DEBUG_VALIDATE_BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_pf_id_cnt) < det_ctx->match_array_cnt);
 }
 
+/** \internal
+ *  \brief build non-prefilter list based on the rule group list we've set.
+ */
 static inline void
-DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMask mask, uint8_t alproto)
+DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx,
+        const SignatureMask mask, const uint8_t alproto)
 {
-    uint32_t x = 0;
-    for (x = 0; x < det_ctx->non_pf_store_cnt; x++) {
+    for (uint32_t x = 0; x < det_ctx->non_pf_store_cnt; x++) {
         /* only if the mask matches this rule can possibly match,
          * so build the non_mpm array only for match candidates */
         const SignatureMask rule_mask = det_ctx->non_pf_store_ptr[x].mask;

@@ -22,7 +22,6 @@
 use crate::core::{
     self, AppProto, DetectEngineState, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP,
 };
-use crate::conf;
 use nom;
 use crate::applayer::*;
 use crate::rdp::parser::*;
@@ -536,12 +535,6 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         get_tx_detect_flags: None,
         set_tx_detect_flags: None,
     };
-
-    /* For 5.0 we want this disabled by default, so check that it
-     * has been explicitly enabled. */
-    if !conf::conf_get_bool("app-layer.protocols.rdp.enabled") {
-        return;
-    }
 
     let ip_proto_str = std::ffi::CString::new("tcp").unwrap();
 

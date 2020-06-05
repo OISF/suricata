@@ -500,27 +500,6 @@ With this option it is possible to send all alert and event output to syslog.
        level: Info                #In this option you can set the level of output. The possible levels are:
                                   #Emergency, Alert, Critical, Error, Warning, Notice, Info and Debug.
 
-Drop.log, a line based information for dropped packets
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. note:: This output has been deprecated and will be removed by
-          June 2020.
-
-If Suricata works in IPS mode, it can drop packets based on
-rules. Packets that are being dropped are saved in the drop.log file,
-a Netfilter log format.
-
-::
-
-  - drop:
-       enabled: yes              #The option is enabled.
-       filename: drop.log        #The log-name of the file for dropped packets.
-       append: yes               #If this option is set to yes, the last filled
-                                 #drop.log-file will not be overwritten while
-                                 #restarting Suricata. If set to 'no' the last
-                                 #filled drop.log file will be overwritten.
-       filetype: regular         #regular, unis_stream, unix_dgram
-
 .. _suricata-yaml-file-store:
 
 File-store (File Extraction)

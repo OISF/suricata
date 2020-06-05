@@ -57,17 +57,17 @@ typedef struct LogRFBLogThread_ {
     MemBuffer          *buffer;
 } LogRFBLogThread;
 
-json_t *JsonRFBAddMetadata(const Flow *f, uint64_t tx_id)
+bool JsonRFBAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
 {
     RFBState *state = FlowGetAppState(f);
     if (state) {
         RFBTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_RFB, state, tx_id);
         if (tx) {
-            return rs_rfb_logger_log(state, tx);
+            return rs_rfb_logger_log(state, tx, js);
         }
     }
 
-    return NULL;
+    return false;
 }
 
 static int JsonRFBLogger(ThreadVars *tv, void *thread_data,
@@ -75,25 +75,23 @@ static int JsonRFBLogger(ThreadVars *tv, void *thread_data,
 {
     LogRFBLogThread *thread = thread_data;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "rfb");
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "rfb", NULL);
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    json_t *rfb_js = rs_rfb_logger_log(NULL, tx);
-    if (unlikely(rfb_js == NULL)) {
+    if (!rs_rfb_logger_log(NULL, tx, js)) {
         goto error;
     }
-    json_object_set_new(js, "rfb", rfb_js);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->rfblog_ctx->file_ctx, &thread->buffer);
-    json_decref(js);
+    OutputJsonBuilderBuffer(js, thread->rfblog_ctx->file_ctx, &thread->buffer);
+    jb_free(js);
 
     return TM_ECODE_OK;
 
 error:
-    json_decref(js);
+    jb_free(js);
     return TM_ECODE_FAILED;
 }
 

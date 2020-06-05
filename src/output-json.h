@@ -28,6 +28,7 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "output.h"
+#include "rust.h"
 
 #include "app-layer-htp-xff.h"
 
@@ -39,6 +40,23 @@ enum OutputJsonLogDirection {
     LOG_DIR_FLOW_TOCLIENT,
     LOG_DIR_FLOW_TOSERVER,
 };
+
+#define JSON_ADDR_LEN 46
+#define JSON_PROTO_LEN 16
+
+/* A struct to contain address info for rendering to JSON. */
+typedef struct JsonAddrInfo_ {
+    char src_ip[JSON_ADDR_LEN];
+    char dst_ip[JSON_ADDR_LEN];
+    Port sp;
+    Port dp;
+    char proto[JSON_PROTO_LEN];
+} JsonAddrInfo;
+
+extern const JsonAddrInfo json_addr_info_zero;
+
+void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir,
+        JsonAddrInfo *addr);
 
 /* Suggested output buffer size */
 #define JSON_OUTPUT_BUFFER_SIZE 65535
@@ -52,14 +70,25 @@ typedef struct OutputJSONMemBufferWrapper_ {
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
 void CreateJSONFlowId(json_t *js, const Flow *f);
+void CreateEveFlowId(JsonBuilder *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
+void EveTcpFlags(uint8_t flags, JsonBuilder *js);
 void JsonPacket(const Packet *p, json_t *js, unsigned long max_length);
+void EvePacket(const Packet *p, JsonBuilder *js, unsigned long max_length);
 void JsonFiveTuple(const Packet *, enum OutputJsonLogDirection, json_t *);
 json_t *CreateJSONHeader(const Packet *p,
-        enum OutputJsonLogDirection dir, const char *event_type);
+        enum OutputJsonLogDirection dir, const char *event_type,
+        JsonAddrInfo *addr);
+JsonBuilder *CreateEveHeader(const Packet *p,
+        enum OutputJsonLogDirection dir, const char *event_type,
+        JsonAddrInfo *addr);
 json_t *CreateJSONHeaderWithTxId(const Packet *p,
         enum OutputJsonLogDirection dir, const char *event_type, uint64_t tx_id);
+JsonBuilder *CreateEveHeaderWithTxId(const Packet *p,
+        enum OutputJsonLogDirection dir, const char *event_type, JsonAddrInfo *addr,
+        uint64_t tx_id);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
+int OutputJsonBuilderBuffer(JsonBuilder *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputInitResult OutputJsonInitCtx(ConfNode *);
 
 OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);
@@ -94,5 +123,7 @@ void SCJsonDecref(json_t *js);
 
 void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
         const Packet *p, const Flow *f, json_t *js);
+void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
+        const Packet *p, const Flow *f, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_H__ */

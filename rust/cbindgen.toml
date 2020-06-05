@@ -71,7 +71,11 @@ documentation_style = "doxy"
 # found but otherwise don't appear to be used by the public API.
 #
 # default: []
-include = ["AppLayerGetTxIterTuple"]
+include = [
+    "AppLayerGetTxIterTuple",
+    "SIPState",
+    "CMark",
+]
 
 # A list of items to not include in the generated bindings
 # default: []
@@ -94,7 +98,8 @@ exclude = [
     "SuricataContext",
     "SuricataFileContext",
     "TFTPState",
-    "TFTPTransaction"
+    "TFTPTransaction",
+    "free",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.

@@ -105,44 +105,39 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
 
         MemBufferReset(aft->json_buffer);
 
-        json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE);
+        JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL);
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        json_t *ajs = json_object();
-        if (unlikely(ajs == NULL)) {
-            json_decref(js);
-            return TM_ECODE_OK;
-        }
+        jb_open_object(js, ANOMALY_EVENT_TYPE);
 
         if (!is_ip_pkt) {
-            json_object_set_new(js, "timestamp", json_string(timebuf));
+            jb_set_string(js, "timestamp", timebuf);
         } else {
-            JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
-        }
-
-        if (aft->json_output_ctx->flags & LOG_JSON_PACKETHDR) {
-            JsonPacket(p, js, GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
+            EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
         }
 
         if (event_code < DECODE_EVENT_MAX) {
             const char *event = DEvents[event_code].event_name;
-            json_object_set_new(ajs, "type",
+            jb_set_string(js, "type",
                                 EVENT_IS_DECODER_PACKET_ERROR(event_code) ? 
-                                    json_string("decode") : json_string("stream"));
-            json_object_set_new(ajs, "event", json_string(event));
+                                    "decode" : "stream");
+            jb_set_string(js, "event", event);
         } else {
-            json_object_set_new(ajs, "type", json_string("unknown"));
-            json_object_set_new(ajs, "code", json_integer(event_code));
+            jb_set_string(js, "type", "unknown");
+            jb_set_uint(js, "code", event_code);
         }
 
-        /* anomaly */
-        json_object_set_new(js, ANOMALY_EVENT_TYPE, ajs);
-        OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
+        /* Close anomaly object. */
+        jb_close(js);
 
-        json_object_clear(js);
-        json_decref(js);
+        if (aft->json_output_ctx->flags & LOG_JSON_PACKETHDR) {
+            EvePacket(p, js, GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
+        }
+
+        OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->json_buffer);
+        jb_free(js);
     }
 
     return TM_ECODE_OK;
@@ -162,26 +157,22 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
     for (int i = decoder_events->event_last_logged; i < decoder_events->cnt; i++) {
         MemBufferReset(aft->json_buffer);
 
-        json_t *js;
+        JsonBuilder *js;
         if (tx_id != TX_ID_UNUSED) {
-            js = CreateJSONHeaderWithTxId(p, LOG_DIR_PACKET,
-                                          ANOMALY_EVENT_TYPE, tx_id);
+            js = CreateEveHeaderWithTxId(p, LOG_DIR_PACKET,
+                                          ANOMALY_EVENT_TYPE, NULL, tx_id);
         } else {
-            js = CreateJSONHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE);
+            js = CreateEveHeader(p, LOG_DIR_PACKET, ANOMALY_EVENT_TYPE, NULL);
         }
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
 
-        json_t *ajs = json_object();
-        if (unlikely(ajs == NULL)) {
-            json_decref(js);
-            return TM_ECODE_OK;
-        }
+        EveAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
 
-        JsonAddCommonOptions(&aft->json_output_ctx->cfg, p, p->flow, js);
+        jb_open_object(js, ANOMALY_EVENT_TYPE);
 
-        json_object_set_new(js, "app_proto", json_string(alprotoname));
+        jb_set_string(js, "app_proto", alprotoname);
 
         const char *event_name = NULL;
         uint8_t event_code = decoder_events->events[i];
@@ -194,21 +185,19 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
                                                event_code, &event_name, &event_type);
         }
         if (r == 0) {
-            json_object_set_new(ajs, "type", json_string("applayer"));
-            json_object_set_new(ajs, "event", json_string(event_name));
+            jb_set_string(js, "type", "applayer");
+            jb_set_string(js, "event", event_name);
         } else {
-            json_object_set_new(ajs, "type", json_string("unknown"));
-            json_object_set_new(ajs, "code", json_integer(event_code));
+            jb_set_string(js, "type", "unknown");
+            jb_set_uint(js, "code", event_code);
         }
 
-        json_object_set_new(ajs, "layer", json_string(layer));
+        jb_set_string(js, "layer", layer);
 
         /* anomaly */
-        json_object_set_new(js, ANOMALY_EVENT_TYPE, ajs);
-        OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
-
-        json_object_clear(js);
-        json_decref(js);
+        jb_close(js);
+        OutputJsonBuilderBuffer(js, aft->file_ctx, &aft->json_buffer);
+        jb_free(js);
 
         /* Current implementation assumes a single owner for this value */
         decoder_events->event_last_logged++;
