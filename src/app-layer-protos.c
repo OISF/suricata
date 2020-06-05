@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -132,6 +132,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_HTTP:
             proto_name = "http_any";
             break;
+        case ALPROTO_BITTORRENT_DHT:
+            proto_name = "bittorrent-dht";
+            break;
         case ALPROTO_FAILED:
             proto_name = "failed";
             break;
@@ -191,6 +194,8 @@ AppProto StringToAppProto(const char *proto_name)
     if (strcmp(proto_name,"template-rust")==0) return ALPROTO_TEMPLATE_RUST;
     if (strcmp(proto_name,"rdp")==0) return ALPROTO_RDP;
     if (strcmp(proto_name,"http2")==0) return ALPROTO_HTTP2;
+    if (strcmp(proto_name, "bittorrent-dht") == 0)
+        return ALPROTO_BITTORRENT_DHT;
     if (strcmp(proto_name,"failed")==0) return ALPROTO_FAILED;
 
     return ALPROTO_UNKNOWN;

@@ -388,6 +388,7 @@ noinst_HEADERS = \
 	output.h \
 	output-json-alert.h \
 	output-json-anomaly.h \
+	output-json-bittorrent-dht.h \
 	output-json-dcerpc.h \
 	output-json-dhcp.h \
 	output-json-dnp3.h \
@@ -983,6 +984,7 @@ libsuricata_c_a_SOURCES = \
 	output-flow.c \
 	output-json-alert.c \
 	output-json-anomaly.c \
+	output-json-bittorrent-dht.c \
 	output-json.c \
 	output-json-common.c \
 	output-json-dcerpc.c \

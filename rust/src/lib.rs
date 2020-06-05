@@ -133,6 +133,7 @@ pub mod mime;
 pub mod ssh;
 pub mod http2;
 pub mod quic;
+pub mod bittorrent_dht;
 pub mod plugin;
 pub mod util;
 pub mod ffi;

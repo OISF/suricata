@@ -280,6 +280,7 @@ outputs:
         - ike
         - dcerpc
         - krb5
+        - bittorrent-dht
         - snmp
         - rfb
         - sip
@@ -797,6 +798,8 @@ app-layer:
       # Maximum number of live MQTT transactions per flow
       # max-tx: 4096
     krb5:
+      enabled: yes
+    bittorrent-dht:
       enabled: yes
     snmp:
       enabled: yes

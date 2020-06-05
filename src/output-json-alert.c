@@ -274,6 +274,25 @@ static void AlertJsonRDP(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
     }
 }
 
+static void AlertJsonBitTorrentDHT(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
+{
+    void *bittorrent_dht_state = (void *)FlowGetAppState(f);
+    if (bittorrent_dht_state != NULL) {
+        void *tx =
+                AppLayerParserGetTx(f->proto, ALPROTO_BITTORRENT_DHT, bittorrent_dht_state, tx_id);
+        if (tx != NULL) {
+            JsonBuilderMark mark = { 0, 0, 0 };
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "bittorrent-dht");
+            if (rs_bittorrent_dht_logger_log(tx, js)) {
+                jb_close(js);
+            } else {
+                jb_restore_mark(js, &mark);
+            }
+        }
+    }
+}
+
 static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
                                   JsonBuilder *js, JsonAddrInfo *addr)
 {
@@ -573,6 +592,9 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             if (!JsonModbusAddMetadata(p->flow, tx_id, jb)) {
                 jb_restore_mark(jb, &mark);
             }
+            break;
+        case ALPROTO_BITTORRENT_DHT:
+            AlertJsonBitTorrentDHT(p->flow, tx_id, jb);
             break;
         default:
             break;
