@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1723,6 +1723,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterSMTPParsers();
     rs_dns_udp_register_parser();
     rs_dns_tcp_register_parser();
+    rs_bittorrent_dht_udp_register_parser();
     RegisterModbusParsers();
     RegisterENIPUDPParsers();
     RegisterENIPTCPParsers();
