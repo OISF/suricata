@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -87,6 +87,7 @@
 #include "output-json-metadata.h"
 #include "output-json-dcerpc.h"
 #include "output-json-frame.h"
+#include "output-json-bittorrent-dht.h"
 #include "output-filestore.h"
 
 typedef struct RootLogger_ {
@@ -1126,4 +1127,6 @@ void OutputRegisterLoggers(void)
     JsonDCERPCLogRegister();
     /* app layer frames */
     JsonFrameLogRegister();
+    /* BitTorrent DHT JSON logger */
+    JsonBitTorrentDHTLogRegister();
 }
