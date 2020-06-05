@@ -273,6 +273,7 @@ outputs:
         - ike
         - dcerpc
         - krb5
+        - bittorrent-dht
         - snmp
         - rfb
         - sip
@@ -717,6 +718,8 @@ app-layer:
       # subscribe-topic-match-limit: 100
       # unsubscribe-topic-match-limit: 100
     krb5:
+      enabled: yes
+    bittorrent-dht:
       enabled: yes
     snmp:
       enabled: yes
