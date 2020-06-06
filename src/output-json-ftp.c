@@ -63,12 +63,10 @@ static void JsonFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
 {
     /* Preallocate array objects to simplify failure case */
     JsonBuilder *js_resplist = NULL;
-    JsonBuilder *js_respcode_list = NULL;
     if (!TAILQ_EMPTY(&tx->response_list)) {
         js_resplist = jb_new_array();
-        js_respcode_list = jb_new_array();
 
-        if (unlikely(js_resplist == NULL || js_respcode_list == NULL)) {
+        if (unlikely(js_resplist == NULL)) {
             goto fail;
         }
     }
@@ -85,6 +83,7 @@ static void JsonFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
         int resp_code_cnt = 0;
         int resp_cnt = 0;
         FTPString *response;
+        bool is_cc_array_open = false;
         TAILQ_FOREACH(response, &tx->response_list, next) {
             /* handle multiple lines within the response, \r\n delimited */
             uint8_t *where = response->str;
@@ -96,7 +95,11 @@ static void JsonFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
                 if (pos >= 3)  {
                     /* Gather the completion code if present */
                     if (isdigit(where[0]) && isdigit(where[1]) && isdigit(where[2])) {
-                        jb_append_string_from_bytes(js_respcode_list, (const uint8_t *)where, 3);
+                        if (!is_cc_array_open) {
+                            jb_open_array(jb, "completion_code");
+                            is_cc_array_open = true;
+                        }
+                        jb_append_string_from_bytes(jb, (const uint8_t *)where, 3);
                         resp_code_cnt++;
                         offset = 4;
                     }
@@ -112,16 +115,14 @@ static void JsonFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
             }
         }
 
+        if (is_cc_array_open) {
+            jb_close(jb);
+        }
         if (resp_cnt) {
             jb_close(js_resplist);
             jb_set_object(jb, "reply", js_resplist);
         }
         jb_free(js_resplist);
-        if (resp_code_cnt) {
-            jb_close(js_respcode_list);
-            jb_set_object(jb, "completion_code", js_respcode_list);
-        }
-        jb_free(js_respcode_list);
     }
 
     if (tx->dyn_port) {
@@ -148,9 +149,6 @@ static void JsonFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
 fail:
     if (js_resplist) {
         jb_free(js_resplist);
-    }
-    if (js_respcode_list) {
-        jb_free(js_respcode_list);
     }
 }
 
