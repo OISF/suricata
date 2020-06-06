@@ -83,7 +83,6 @@ typedef struct JsonFileLogThread_ {
 JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
         const bool stored, uint8_t dir, HttpXFFCfg *xff_cfg)
 {
-    json_t *hjs = NULL;
     enum OutputJsonLogDirection fdir = LOG_DIR_FLOW;
 
     switch(dir) {
@@ -164,10 +163,12 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             }
             break;
         case ALPROTO_SMB:
-            hjs = JsonSMBAddMetadata(p->flow, ff->txid);
-            if (hjs) {
-                jb_set_jsont(js, "smb", hjs);
-                json_decref(hjs);
+            jb_get_mark(js, &mark);
+            jb_open_object(js, "smb");
+            if (EveSMBAddMetadata(p->flow, ff->txid, js)) {
+                jb_close(js);
+            } else {
+                jb_restore_mark(js, &mark);
             }
             break;
     }
