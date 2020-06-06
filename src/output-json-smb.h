@@ -25,6 +25,6 @@
 #define __OUTPUT_JSON_SMB_H__
 
 void JsonSMBLogRegister(void);
-json_t *JsonSMBAddMetadata(const Flow *f, uint64_t tx_id);
+bool EveSMBAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb);
 
 #endif /* __OUTPUT_JSON_SMB_H__ */

@@ -529,10 +529,12 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     }
                     break;
                 case ALPROTO_SMB:
-                    hjs = JsonSMBAddMetadata(p->flow, pa->tx_id);
-                    if (hjs) {
-                        jb_set_jsont(jb, "smb", hjs);
-                        json_decref(hjs);
+                    jb_get_mark(jb, &mark);
+                    jb_open_object(jb, "smb");
+                    if (EveSMBAddMetadata(p->flow, pa->tx_id, jb)) {
+                        jb_close(jb);
+                    } else {
+                        jb_restore_mark(jb, &mark);
                     }
                     break;
                 case ALPROTO_SIP:
