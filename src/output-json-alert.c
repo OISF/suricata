@@ -146,13 +146,15 @@ static void AlertJsonSsh(const Flow *f, JsonBuilder *js)
 {
     void *ssh_state = FlowGetAppState(f);
     if (ssh_state) {
+        JsonBuilderMark mark = { 0, 0, 0 };
         void *tx_ptr = rs_ssh_state_get_tx(ssh_state, 0);
-        json_t *tjs = rs_ssh_log_json(tx_ptr);
-        if (unlikely(tjs == NULL))
-            return;
-
-        jb_set_jsont(js, "ssh", tjs);
-        json_decref(tjs);
+        jb_get_mark(js, &mark);
+        jb_open_object(js, "ssh");
+        if (rs_ssh_log_json(tx_ptr, js)) {
+            jb_close(js);
+        } else {
+            jb_restore_mark(js, &mark);
+        }
     }
 
     return;

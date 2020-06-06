@@ -75,26 +75,24 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "ssh", NULL);
+    JsonBuilder *js = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, "ssh", NULL, tx_id);
     if (unlikely(js == NULL))
         return 0;
 
-    JsonAddCommonOptions(&ssh_ctx->cfg, p, f, js);
+    EveAddCommonOptions(&ssh_ctx->cfg, p, f, js);
 
     /* reset */
     MemBufferReset(aft->buffer);
 
-    json_t *tjs = rs_ssh_log_json(txptr);
-    if (unlikely(tjs == NULL)) {
-        free(js);
-        return 0;
+    jb_open_object(js, "ssh");
+    if (!rs_ssh_log_json(txptr, js)) {
+        goto end;
     }
-    json_object_set_new(js, "ssh", tjs);
+    jb_close(js);
+    OutputJsonBuilderBuffer(js, ssh_ctx->file_ctx, &aft->buffer);
 
-    OutputJSONBuffer(js, ssh_ctx->file_ctx, &aft->buffer);
-    json_object_clear(js);
-    json_decref(js);
-
+end:
+    jb_free(js);
     return 0;
 }
 
