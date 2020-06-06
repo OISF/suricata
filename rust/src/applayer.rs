@@ -297,6 +297,7 @@ pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u8 = 0b100;
 pub const APP_LAYER_PARSER_BYPASS_READY : u8 = 0b1000;
 
 pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = BIT_U32!(0);
+pub const APP_LAYER_PARSER_OPT_UNIDIR_TXS: u32 = BIT_U32!(1);
 
 pub type AppLayerGetTxIteratorFn = extern "C" fn (ipproto: u8,
                                                   alproto: AppProto,

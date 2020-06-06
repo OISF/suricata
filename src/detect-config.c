@@ -95,6 +95,16 @@ static void ConfigApplyTx(Flow *f,
         } else {
             SCLogDebug("no tx data");
         }
+
+        if (AppLayerParserGetOptionFlags(f->protomap, f->alproto) &
+                APP_LAYER_PARSER_OPT_UNIDIR_TXS) {
+            SCLogDebug("handle unidir tx");
+            AppLayerTxConfig req;
+            memset(&req, 0, sizeof(req));
+            req.log_flags = BIT_U8(config->type);
+            AppLayerParserApplyTxConfig(f->proto, f->alproto, f->alstate, tx,
+                    CONFIG_ACTION_SET, req);
+        }
     } else {
         SCLogDebug("no tx");
     }

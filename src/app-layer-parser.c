@@ -387,6 +387,12 @@ void AppLayerParserRegisterOptionFlags(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
+uint32_t AppLayerParserGetOptionFlags(uint8_t protomap, AppProto alproto)
+{
+    SCEnter();
+    SCReturnUInt(alp_ctx.ctxs[protomap][alproto].option_flags);
+}
+
 void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,
                            void *(*StateAlloc)(void),
                            void (*StateFree)(void *))

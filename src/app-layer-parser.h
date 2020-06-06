@@ -41,6 +41,7 @@
 
 /* Flags for AppLayerParserProtoCtx. */
 #define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U32(0)
+#define APP_LAYER_PARSER_OPT_UNIDIR_TXS         BIT_U32(1)
 
 #define APP_LAYER_PARSER_INT_STREAM_DEPTH_SET   BIT_U32(0)
 
@@ -192,6 +193,7 @@ void AppLayerParserRegisterApplyTxConfigFunc(uint8_t ipproto, AppProto alproto,
 
 /***** Get and transaction functions *****/
 
+uint32_t AppLayerParserGetOptionFlags(uint8_t protomap, AppProto alproto);
 AppLayerGetTxIteratorFunc AppLayerGetTxIterator(const uint8_t ipproto,
          const AppProto alproto);
 
