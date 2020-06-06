@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -55,7 +55,6 @@
 #include "util-debug.h"
 #include "util-memcmp.h"
 #include "util-memrchr.h"
-#include "util-byte.h"
 #include "util-mem.h"
 #include "util-misc.h"
 
@@ -1439,36 +1438,31 @@ uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
     return c == NULL ? len : c - buffer + 1;
 }
 
-json_t *JsonFTPDataAddMetadata(const Flow *f)
+void JsonFTPDataAddMetadata(const Flow *f, JsonBuilder *jb)
 {
     const FtpDataState *ftp_state = NULL;
     if (f->alstate == NULL)
-        return NULL;
+        return;
+
     ftp_state = (FtpDataState *)f->alstate;
-    json_t *ftpd = json_object();
-    if (ftpd == NULL)
-        return NULL;
+
     if (ftp_state->file_name) {
-        size_t size = ftp_state->file_len * 2 + 1;
-        char string[size];
-        BytesToStringBuffer(ftp_state->file_name, ftp_state->file_len, string, size);
-        json_object_set_new(ftpd, "filename", SCJsonString(string));
+        jb_set_string_from_bytes(jb, "filename", ftp_state->file_name, ftp_state->file_len);
     }
     switch (ftp_state->command) {
         case FTP_COMMAND_STOR:
-            json_object_set_new(ftpd, "command", json_string("STOR"));
+            JB_SET_STRING(jb, "command", "STOR");
             break;
         case FTP_COMMAND_RETR:
-            json_object_set_new(ftpd, "command", json_string("RETR"));
+            JB_SET_STRING(jb, "command", "RETR");
             break;
         default:
             break;
     }
-    return ftpd;
 }
 
 /**
- * \brief Free memory allocated for global SMTP parser state.
+ * \brief Free memory allocated for global FTP parser state.
  */
 void FTPParserCleanup(void)
 {
