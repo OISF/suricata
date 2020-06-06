@@ -989,6 +989,8 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+        AppLayerParserRegisterOptionFlags(IPPROTO_UDP as u8, ALPROTO_DNS,
+            crate::applayer::APP_LAYER_PARSER_OPT_UNIDIR_TXS);
     }
 }
 
@@ -1034,6 +1036,8 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         }
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP as u8, ALPROTO_DNS,
             crate::applayer::APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP as u8, ALPROTO_DNS,
+            crate::applayer::APP_LAYER_PARSER_OPT_UNIDIR_TXS);
     }
 }
 
