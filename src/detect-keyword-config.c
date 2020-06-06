@@ -90,13 +90,22 @@ static void ConfigApplyTx(Flow *f,
     if (tx) {
         AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, tx);
         if (txd) {
-            SCLogNotice("tx %p txd %p: log_flags %x", tx, txd, txd->config.log_flags);
+            SCLogNotice("WIP/CONFIG: tx %p txd %p: log_flags %x", tx, txd, txd->config.log_flags);
             txd->config.log_flags |= BIT_U8(config->type);
         } else {
-            SCLogNotice("no tx data");
+            SCLogDebug("no tx data");
+        }
+
+        if (AppLayerParserGetOptionFlags(f->protomap, f->alproto) &
+                APP_LAYER_PARSER_OPT_UNIDIR_TXS) {
+            SCLogNotice("WIP/CONFIG: handle unidir tx here");
+            AppLayerTxConfig req;
+            memset(&req, 0, sizeof(req));
+            req.log_flags = BIT_U8(config->type);
+            AppLayerParserApplyTxConfig(f->proto, f->alproto, f->alstate, tx, 1, req);
         }
     } else {
-        SCLogNotice("no tx");
+        SCLogDebug("no tx");
     }
 }
 
