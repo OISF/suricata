@@ -16,49 +16,40 @@
  */
 
 use super::ssh::SSHTransaction;
-use crate::json::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 
-fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
+fn log_ssh(tx: &SSHTransaction) -> Result<Option<JsonBuilder>, JsonError> {
     if tx.cli_hdr.protover.len() == 0 && tx.srv_hdr.protover.len() == 0 {
-        return None;
+        return Ok(None);
     }
-    let js = Json::object();
+    let mut js = JsonBuilder::new_object();
     if tx.cli_hdr.protover.len() > 0 {
-        let cjs = Json::object();
-        cjs.set_string_from_bytes(
-            "proto_version",
-            &tx.cli_hdr.protover,
-        );
+        let mut cjs = JsonBuilder::new_object();
+        cjs.set_string_from_bytes("proto_version", &tx.cli_hdr.protover)?;
         if tx.cli_hdr.swver.len() > 0 {
-            cjs.set_string_from_bytes(
-                "software_version",
-                &tx.cli_hdr.swver,
-            );
+            cjs.set_string_from_bytes("software_version", &tx.cli_hdr.swver)?;
         }
-        js.set("client", cjs);
+        cjs.close()?;
+        js.set_object("client", &cjs)?;
     }
     if tx.srv_hdr.protover.len() > 0 {
-        let sjs = Json::object();
-        sjs.set_string_from_bytes(
-            "proto_version",
-            &tx.srv_hdr.protover,
-        );
+        let mut sjs = JsonBuilder::new_object();
+        sjs.set_string_from_bytes("proto_version", &tx.srv_hdr.protover)?;
         if tx.srv_hdr.swver.len() > 0 {
-            sjs.set_string_from_bytes(
-                "software_version",
-                &tx.srv_hdr.swver,
-            );
+            sjs.set_string_from_bytes("software_version", &tx.srv_hdr.swver)?;
         }
-        js.set("server", sjs);
+        sjs.close()?;
+        js.set_object("server", &sjs)?;
     }
-    return Some(js);
+    js.close()?;
+    return Ok(Some(js));
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_log_json(tx: *mut std::os::raw::c_void) -> *mut JsonT {
+pub extern "C" fn rs_ssh_log_json(tx: *mut std::os::raw::c_void) -> *mut JsonBuilder {
     let tx = cast_pointer!(tx, SSHTransaction);
-    match log_ssh(tx) {
-        Some(js) => js.unwrap(),
-        None => std::ptr::null_mut(),
+    if let Ok(Some(js)) = log_ssh(tx) {
+        return Box::into_raw(Box::new(js));
     }
+    return std::ptr::null_mut();
 }
