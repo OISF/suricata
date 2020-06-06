@@ -16,49 +16,33 @@
  */
 
 use super::ssh::SSHTransaction;
-use crate::json::*;
+use crate::jsonbuilder::{JsonBuilder, JsonError};
 
-fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
+fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     if tx.cli_hdr.protover.len() == 0 && tx.srv_hdr.protover.len() == 0 {
-        return None;
+        return Err(JsonError::InvalidState);
     }
-    let js = Json::object();
     if tx.cli_hdr.protover.len() > 0 {
-        let cjs = Json::object();
-        cjs.set_string_from_bytes(
-            "proto_version",
-            &tx.cli_hdr.protover,
-        );
+        js.open_object("client")?;
+        js.set_string_from_bytes("proto_version", &tx.cli_hdr.protover)?;
         if tx.cli_hdr.swver.len() > 0 {
-            cjs.set_string_from_bytes(
-                "software_version",
-                &tx.cli_hdr.swver,
-            );
+            js.set_string_from_bytes("software_version", &tx.cli_hdr.swver)?;
         }
-        js.set("client", cjs);
+        js.close()?;
     }
     if tx.srv_hdr.protover.len() > 0 {
-        let sjs = Json::object();
-        sjs.set_string_from_bytes(
-            "proto_version",
-            &tx.srv_hdr.protover,
-        );
+        js.open_object("server")?;
+        js.set_string_from_bytes("proto_version", &tx.srv_hdr.protover)?;
         if tx.srv_hdr.swver.len() > 0 {
-            sjs.set_string_from_bytes(
-                "software_version",
-                &tx.srv_hdr.swver,
-            );
+            js.set_string_from_bytes("software_version", &tx.srv_hdr.swver)?;
         }
-        js.set("server", sjs);
+        js.close()?;
     }
-    return Some(js);
+    return Ok(());
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_log_json(tx: *mut std::os::raw::c_void) -> *mut JsonT {
+pub extern "C" fn rs_ssh_log_json(tx: *mut std::os::raw::c_void, js: &mut JsonBuilder) -> bool {
     let tx = cast_pointer!(tx, SSHTransaction);
-    match log_ssh(tx) {
-        Some(js) => js.unwrap(),
-        None => std::ptr::null_mut(),
-    }
+    return log_ssh(tx, js).is_ok();
 }
