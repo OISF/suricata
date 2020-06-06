@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,8 @@
 
 #ifndef __APP_LAYER_FTP_H__
 #define __APP_LAYER_FTP_H__
+
+#include "rust.h"
 
 enum {
     FTP_STATE_IN_PROGRESS,
@@ -221,7 +223,7 @@ uint64_t FTPMemuseGlobalCounter(void);
 uint64_t FTPMemcapGlobalCounter(void);
 
 uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len);
-json_t *JsonFTPDataAddMetadata(const Flow *f);
+void JsonFTPDataAddMetadata(const Flow *f, JsonBuilder *jb);
 
 #endif /* __APP_LAYER_FTP_H__ */
 
