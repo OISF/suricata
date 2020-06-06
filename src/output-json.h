@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -119,7 +119,6 @@ typedef struct OutputJsonThreadCtx_ {
 
 json_t *SCJsonBool(int val);
 json_t *SCJsonString(const char *val);
-json_t *JsonAddStringN(const char *string, size_t size);
 void SCJsonDecref(json_t *js);
 
 void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
