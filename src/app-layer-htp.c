@@ -1860,14 +1860,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (tx_ud == NULL) {
-        tx_ud = HTPMalloc(sizeof(HtpTxUserData));
-        if (unlikely(tx_ud == NULL)) {
-            SCReturnInt(HTP_OK);
-        }
-        memset(tx_ud, 0, sizeof(HtpTxUserData));
-
-        /* Set the user data for handling body chunks on this transaction */
-        htp_tx_set_user_data(d->tx, tx_ud);
+        SCReturnInt(HTP_OK);
     }
     if (!tx_ud->response_body_init) {
         tx_ud->response_body_init = 1;
@@ -1996,14 +1989,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (tx_ud == NULL) {
-        tx_ud = HTPMalloc(sizeof(HtpTxUserData));
-        if (unlikely(tx_ud == NULL)) {
-            SCReturnInt(HTP_OK);
-        }
-        memset(tx_ud, 0, sizeof(HtpTxUserData));
-
-        /* Set the user data for handling body chunks on this transaction */
-        htp_tx_set_user_data(d->tx, tx_ud);
+        SCReturnInt(HTP_OK);
     }
     if (!tx_ud->request_body_init) {
         tx_ud->request_body_init = 1;
@@ -2136,6 +2122,15 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
     if (hstate->cfg)
         StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
                 hstate->cfg->request.inspect_min_size);
+
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (tx_ud == NULL) {
+        tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
+        if (unlikely(tx_ud == NULL)) {
+            SCReturnInt(HTP_OK);
+        }
+        htp_tx_set_user_data(tx, tx_ud);
+    }
     SCReturnInt(HTP_OK);
 }
 
@@ -2153,6 +2148,15 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
     if (hstate->cfg)
         StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT,
                 hstate->cfg->response.inspect_min_size);
+
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (tx_ud == NULL) {
+        tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
+        if (unlikely(tx_ud == NULL)) {
+            SCReturnInt(HTP_OK);
+        }
+        htp_tx_set_user_data(tx, tx_ud);
+    }
     SCReturnInt(HTP_OK);
 }
 
@@ -2296,12 +2300,8 @@ static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
     // shorter string means that uri was encoded
     if (res == HTP_OK && prevlen > bstr_len(part)) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-        if (likely(htud == NULL)) {
-            htud = HTPCalloc(1, sizeof(*htud));
-            if (unlikely(htud == NULL))
-                return HTP_OK;
-            htp_tx_set_user_data(tx, htud);
-        }
+        if (htud == NULL)
+            return HTP_OK;
         HtpState *s = htp_connp_get_user_data(tx->connp);
         if (s == NULL)
             return HTP_OK;
@@ -2336,20 +2336,12 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
     if (tx_ud == NULL) {
-        tx_ud = HTPMalloc(sizeof(*tx_ud));
-        if (unlikely(tx_ud == NULL))
-            return HTP_OK;
-        memset(tx_ud, 0, sizeof(*tx_ud));
-        htp_tx_set_user_data(tx_data->tx, tx_ud);
+        return HTP_OK;
     }
     ptmp = HTPRealloc(tx_ud->request_headers_raw,
                      tx_ud->request_headers_raw_len,
                      tx_ud->request_headers_raw_len + tx_data->len);
     if (ptmp == NULL) {
-        /* error: we're freeing the entire user data */
-        HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
-        HtpTxUserDataFree(hstate, tx_ud);
-        htp_tx_set_user_data(tx_data->tx, NULL);
         return HTP_OK;
     }
     tx_ud->request_headers_raw = ptmp;
@@ -2373,20 +2365,12 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
     if (tx_ud == NULL) {
-        tx_ud = HTPMalloc(sizeof(*tx_ud));
-        if (unlikely(tx_ud == NULL))
-            return HTP_OK;
-        memset(tx_ud, 0, sizeof(*tx_ud));
-        htp_tx_set_user_data(tx_data->tx, tx_ud);
+        return HTP_OK;
     }
     ptmp = HTPRealloc(tx_ud->response_headers_raw,
                      tx_ud->response_headers_raw_len,
                      tx_ud->response_headers_raw_len + tx_data->len);
     if (ptmp == NULL) {
-        /* error: we're freeing the entire user data */
-        HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
-        HtpTxUserDataFree(hstate, tx_ud);
-        htp_tx_set_user_data(tx_data->tx, NULL);
         return HTP_OK;
     }
     tx_ud->response_headers_raw = ptmp;
@@ -3083,11 +3067,7 @@ static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
     htp_tx_t *tx = (htp_tx_t *)vtx;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
-        tx_ud = HTPMalloc(sizeof(*tx_ud));
-        if (unlikely(tx_ud == NULL))
-            return -ENOMEM;
-        memset(tx_ud, 0, sizeof(*tx_ud));
-        htp_tx_set_user_data(tx, tx_ud);
+        return -ENOMEM;
     }
     tx_ud->de_state = s;
     return 0;
