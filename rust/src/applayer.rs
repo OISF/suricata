@@ -234,6 +234,12 @@ pub struct RustParser {
     pub get_tx_detect_flags: Option<GetTxDetectFlagsFn>,
 
     pub get_tx_data: Option<GetTxDataFn>,
+
+    // Function to apply config to a TX. Optional. Normal (bidirectional)
+    // transactions don't need to set this. It is meant for cases where
+    // the requests and responses are not sharing tx. It is then up to
+    // the implementation to make sure the config is applied correctly.
+    pub apply_tx_config: Option<ApplyTxConfigFn>,
 }
 
 /// Create a slice, given a buffer and a length
@@ -286,6 +292,7 @@ pub type GetTxIteratorFn    = extern "C" fn (ipproto: u8, alproto: AppProto,
 pub type GetTxDetectFlagsFn = unsafe extern "C" fn(*mut c_void, u8) -> u64;
 pub type SetTxDetectFlagsFn = unsafe extern "C" fn(*mut c_void, u8, u64);
 pub type GetTxDataFn = unsafe extern "C" fn(*mut c_void) -> *mut AppLayerTxData;
+pub type ApplyTxConfigFn = unsafe extern "C" fn (*mut c_void, *mut c_void, c_int, AppLayerTxConfig);
 
 // Defined in app-layer-register.h
 extern {

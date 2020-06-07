@@ -533,6 +533,7 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         get_tx_detect_flags: None,
         set_tx_detect_flags: None,
         get_tx_data: None,
+        apply_tx_config: None,
     };
 
     let ip_proto_str = std::ffi::CString::new("tcp").unwrap();
