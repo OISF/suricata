@@ -97,8 +97,7 @@ pub struct SNMPTransaction<'a> {
     /// The events associated with this transaction
     events: *mut core::AppLayerDecoderEvents,
 
-    logged: applayer::LoggerFlags,
-    detect_flags: applayer::TxDetectFlags,
+    tx_data: applayer::AppLayerTxData,
 }
 
 
@@ -276,8 +275,7 @@ impl<'a> SNMPTransaction<'a> {
             id: id,
             de_state: None,
             events: std::ptr::null_mut(),
-            logged: applayer::LoggerFlags::new(),
-            detect_flags: applayer::TxDetectFlags::default(),
+            tx_data: applayer::AppLayerTxData::new(),
         }
     }
 
@@ -385,29 +383,6 @@ pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
 {
     1
 }
-
-
-
-
-
-#[no_mangle]
-pub extern "C" fn rs_snmp_tx_set_logged(_state: *mut std::os::raw::c_void,
-                                       tx: *mut std::os::raw::c_void,
-                                       logged: u32)
-{
-    let tx = cast_pointer!(tx,SNMPTransaction);
-    tx.logged.set(logged);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_snmp_tx_get_logged(_state: *mut std::os::raw::c_void,
-                                       tx: *mut std::os::raw::c_void)
-                                       -> u32
-{
-    let tx = cast_pointer!(tx,SNMPTransaction);
-    return tx.logged.get();
-}
-
 
 #[no_mangle]
 pub extern "C" fn rs_snmp_state_set_tx_detect_state(
@@ -576,8 +551,7 @@ pub extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
     }
 }
 
-export_tx_detect_flags_set!(rs_snmp_set_tx_detect_flags, SNMPTransaction);
-export_tx_detect_flags_get!(rs_snmp_get_tx_detect_flags, SNMPTransaction);
+export_tx_data_get!(rs_snmp_get_tx_data, SNMPTransaction);
 
 const PARSER_NAME : &'static [u8] = b"snmp\0";
 
@@ -601,8 +575,8 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         get_tx             : rs_snmp_state_get_tx,
         tx_get_comp_st     : rs_snmp_state_progress_completion_status,
         tx_get_progress    : rs_snmp_tx_get_alstate_progress,
-        get_tx_logged      : Some(rs_snmp_tx_get_logged),
-        set_tx_logged      : Some(rs_snmp_tx_set_logged),
+        get_tx_logged      : None,
+        set_tx_logged      : None,
         get_de_state       : rs_snmp_state_get_tx_detect_state,
         set_de_state       : rs_snmp_state_set_tx_detect_state,
         get_events         : Some(rs_snmp_state_get_events),
@@ -612,9 +586,9 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         localstorage_free  : None,
         get_files          : None,
         get_tx_iterator    : None,
-        get_tx_detect_flags: Some(rs_snmp_get_tx_detect_flags),
-        set_tx_detect_flags: Some(rs_snmp_set_tx_detect_flags),
-        get_tx_data        : None,
+        get_tx_detect_flags: None,
+        set_tx_detect_flags: None,
+        get_tx_data        : Some(rs_snmp_get_tx_data),
         apply_tx_config    : None,
     };
     let ip_proto_str = CString::new("udp").unwrap();
