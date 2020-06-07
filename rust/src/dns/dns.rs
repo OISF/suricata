@@ -995,6 +995,14 @@ pub extern "C" fn rs_dns_probe_tcp(
 }
 
 #[no_mangle]
+pub extern "C" fn rs_dns_apply_tx_config(
+    _state: *mut std::os::raw::c_void, _tx: *mut std::os::raw::c_void,
+    mode: std::os::raw::c_int, config: AppLayerTxConfig
+) {
+    SCLogNotice!("DNS apply TX config: mode {} config {:?}", mode as i32, config);
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_dns_init(proto: AppProto) {
     ALPROTO_DNS = proto;
 }
@@ -1033,7 +1041,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: Some(rs_dns_state_get_tx_data),
-        apply_tx_config: None,
+        apply_tx_config: Some(rs_dns_apply_tx_config),
     };
 
     let ip_proto_str = CString::new("udp").unwrap();
@@ -1082,7 +1090,7 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
         get_tx_data: Some(rs_dns_state_get_tx_data),
-        apply_tx_config: None,
+        apply_tx_config: Some(rs_dns_apply_tx_config),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
