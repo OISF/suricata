@@ -980,7 +980,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
         set_tx_detect_flags: None,
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
-        get_tx_data: Some(rs_dns_state_get_tx_data),
+        get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: None,
     };
 
@@ -1025,7 +1025,7 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
         set_tx_detect_flags: None,
         get_de_state: rs_dns_state_get_tx_detect_state,
         set_de_state: rs_dns_state_set_tx_detect_state,
-        get_tx_data: Some(rs_dns_state_get_tx_data),
+        get_tx_data: rs_dns_state_get_tx_data,
         apply_tx_config: None,
     };
 

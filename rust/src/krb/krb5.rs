@@ -658,7 +658,7 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_tx_iterator    : None,
         get_tx_detect_flags: None,
         set_tx_detect_flags: None,
-        get_tx_data        : Some(rs_krb5_get_tx_data),
+        get_tx_data        : rs_krb5_get_tx_data,
         apply_tx_config    : None,
     };
     // register UDP parser
