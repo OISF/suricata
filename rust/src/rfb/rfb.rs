@@ -689,8 +689,6 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         get_tx: rs_rfb_state_get_tx,
         tx_get_comp_st: rs_rfb_state_progress_completion_status,
         tx_get_progress: rs_rfb_tx_get_alstate_progress,
-        get_tx_logged: None,
-        set_tx_logged: None,
         get_de_state: rs_rfb_tx_get_detect_state,
         set_de_state: rs_rfb_tx_set_detect_state,
         get_events: Some(rs_rfb_state_get_events),

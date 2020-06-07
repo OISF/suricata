@@ -382,8 +382,6 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         get_tx: rs_sip_state_get_tx,
         tx_get_comp_st: rs_sip_state_progress_completion_status,
         tx_get_progress: rs_sip_tx_get_alstate_progress,
-        get_tx_logged: None,
-        set_tx_logged: None,
         get_de_state: rs_sip_state_get_tx_detect_state,
         set_de_state: rs_sip_state_set_tx_detect_state,
         get_events: Some(rs_sip_state_get_events),
