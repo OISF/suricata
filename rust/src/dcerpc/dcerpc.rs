@@ -17,7 +17,7 @@
 
 use std::mem::transmute;
 
-use crate::applayer::AppLayerResult;
+use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core;
 use crate::dcerpc::parser;
 use crate::log::*;
@@ -248,9 +248,8 @@ pub struct DCERPCState {
     pub query_completed: bool,
     pub data_needed_for_dir: u8,
     pub prev_dir: u8,
-    pub detect_flags_ts: u64,
-    pub detect_flags_tc: u64,
     pub de_state: Option<*mut core::DetectEngineState>,
+    pub tx_data: AppLayerTxData,
 }
 
 impl DCERPCState {
@@ -270,9 +269,8 @@ impl DCERPCState {
             query_completed: false,
             data_needed_for_dir: core::STREAM_TOSERVER,
             prev_dir: core::STREAM_TOSERVER,
-            detect_flags_ts: 0,
-            detect_flags_tc: 0,
             de_state: None,
+            tx_data: AppLayerTxData::new(),
         };
     }
 
@@ -937,26 +935,12 @@ pub extern "C" fn rs_dcerpc_get_alstate_progress_completion_status(_direction: u
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_get_tx_detect_flags(vtx: *mut std::os::raw::c_void, dir: u8) -> u64 {
-    let state = cast_pointer!(vtx, DCERPCState);
-    if dir & core::STREAM_TOSERVER != 0 {
-        return state.detect_flags_ts;
-    }
-    state.detect_flags_tc
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dcerpc_set_tx_detect_flags(
-    vtx: *mut std::os::raw::c_void,
-    dir: u8,
-    flags: u64,
-) {
-    let state = cast_pointer!(vtx, DCERPCState);
-    if dir & core::STREAM_TOSERVER != 0 {
-        state.detect_flags_ts = flags;
-    } else {
-        state.detect_flags_tc = flags;
-    }
+pub extern "C" fn rs_dcerpc_get_tx_data(
+    tx: *mut std::os::raw::c_void)
+    -> *mut AppLayerTxData
+{
+    let tx = cast_pointer!(tx, DCERPCState);
+    return &mut tx.tx_data;
 }
 
 #[no_mangle]
