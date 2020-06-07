@@ -276,22 +276,6 @@ static uint64_t SSLGetTxCnt(void *state)
     return 1;
 }
 
-static void SSLSetTxLogged(void *state, void *tx, LoggerId logged)
-{
-    SSLState *ssl_state = (SSLState *)state;
-    if (ssl_state)
-        ssl_state->logged = logged;
-}
-
-static LoggerId SSLGetTxLogged(void *state, void *tx)
-{
-    SSLState *ssl_state = (SSLState *)state;
-    if (ssl_state)
-        return (ssl_state->logged);
-
-    return 0;
-}
-
 static int SSLGetAlstateProgressCompletionStatus(uint8_t direction)
 {
     return TLS_STATE_FINISHED;
@@ -323,24 +307,10 @@ static int SSLGetAlstateProgress(void *tx, uint8_t direction)
     return TLS_STATE_IN_PROGRESS;
 }
 
-static uint64_t SSLGetTxDetectFlags(void *vtx, uint8_t dir)
+static AppLayerTxData *SSLGetTxData(void *vtx)
 {
     SSLState *ssl_state = (SSLState *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        return ssl_state->detect_flags_ts;
-    } else {
-        return ssl_state->detect_flags_tc;
-    }
-}
-
-static void SSLSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
-{
-    SSLState *ssl_state = (SSLState *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        ssl_state->detect_flags_ts = flags;
-    } else {
-        ssl_state->detect_flags_tc = flags;
-    }
+    return &ssl_state->tx_data;
 }
 
 void SSLVersionToString(uint16_t version, char *buffer)
@@ -3005,14 +2975,11 @@ void RegisterSSLParsers(void)
                                                SSLGetTxDetectState, SSLSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TLS, SSLGetTx);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxData);
 
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxCnt);
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetAlstateProgress);
-
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxLogged, SSLSetTxLogged);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_TLS,
-                SSLGetTxDetectFlags, SSLSetTxDetectFlags);
 
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TLS,
                                                                SSLGetAlstateProgressCompletionStatus);
