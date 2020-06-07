@@ -91,9 +91,9 @@ impl DHCPEvent {
 pub struct DHCPTransaction {
     tx_id: u64,
     pub message: DHCPMessage,
-    logged: applayer::LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
+    tx_data: applayer::AppLayerTxData,
 }
 
 impl DHCPTransaction {
@@ -101,9 +101,9 @@ impl DHCPTransaction {
         DHCPTransaction {
             tx_id: id,
             message: message,
-            logged: applayer::LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
+            tx_data: applayer::AppLayerTxData::new(),
         }
     }
 
@@ -322,20 +322,6 @@ pub extern "C" fn rs_dhcp_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dhcp_tx_get_logged(_state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void) -> u32 {
-    let tx = cast_pointer!(tx, DHCPTransaction);
-    return tx.logged.get();
-}
-
-#[no_mangle]
-pub extern "C" fn rs_dhcp_tx_set_logged(_state: *mut std::os::raw::c_void,
-                                        tx: *mut std::os::raw::c_void,
-                                        logged: u32) {
-    let tx = cast_pointer!(tx, DHCPTransaction);
-    tx.logged.set(logged);
-}
-
-#[no_mangle]
 pub extern "C" fn rs_dhcp_state_get_event_info_by_id(event_id: std::os::raw::c_int,
                                                      event_name: *mut *const std::os::raw::c_char,
                                                      event_type: *mut core::AppLayerEventType)
@@ -415,6 +401,8 @@ pub extern "C" fn rs_dhcp_state_get_tx_iterator(
     }
 }
 
+export_tx_data_get!(rs_dhcp_get_tx_data, DHCPTransaction);
+
 const PARSER_NAME: &'static [u8] = b"dhcp\0";
 
 #[no_mangle]
@@ -438,8 +426,8 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         get_tx             : rs_dhcp_state_get_tx,
         tx_get_comp_st     : rs_dhcp_state_progress_completion_status,
         tx_get_progress    : rs_dhcp_tx_get_alstate_progress,
-        get_tx_logged      : Some(rs_dhcp_tx_get_logged),
-        set_tx_logged      : Some(rs_dhcp_tx_set_logged),
+        get_tx_logged      : None,
+        set_tx_logged      : None,
         get_de_state       : rs_dhcp_tx_get_detect_state,
         set_de_state       : rs_dhcp_tx_set_detect_state,
         get_events         : Some(rs_dhcp_state_get_events),
@@ -451,7 +439,7 @@ pub unsafe extern "C" fn rs_dhcp_register_parser() {
         get_tx_iterator    : Some(rs_dhcp_state_get_tx_iterator),
         set_tx_detect_flags: None,
         get_tx_detect_flags: None,
-        get_tx_data        : None,
+        get_tx_data        : Some(rs_dhcp_get_tx_data),
         apply_tx_config    : None,
     };
 
