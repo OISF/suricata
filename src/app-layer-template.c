@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -400,18 +400,6 @@ static void *TemplateGetTx(void *statev, uint64_t tx_id)
     return NULL;
 }
 
-static void TemplateSetTxLogged(void *state, void *vtx, LoggerId logged)
-{
-    TemplateTransaction *tx = (TemplateTransaction *)vtx;
-    tx->logged = logged;
-}
-
-static LoggerId TemplateGetTxLogged(void *state, void *vtx)
-{
-    const TemplateTransaction *tx = (TemplateTransaction *)vtx;
-    return tx->logged;
-}
-
 /**
  * \brief Called by the application layer.
  *
@@ -451,6 +439,15 @@ static int TemplateGetStateProgress(void *txv, uint8_t direction)
     }
 
     return 0;
+}
+
+/**
+ * \brief retrieve the tx data used for logging, config, detection
+ */
+static AppLayerTxData *TemplateGetTxData(void *vtx)
+{
+    TemplateTransaction *tx = vtx;
+    return &tx->tx_data;
 }
 
 /**
@@ -543,9 +540,6 @@ void RegisterTemplateParsers(void)
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateStateTxFree);
 
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_TEMPLATE,
-            TemplateGetTxLogged, TemplateSetTxLogged);
-
         /* Register a function to return the current transaction count. */
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateGetTxCnt);
@@ -557,6 +551,8 @@ void RegisterTemplateParsers(void)
             ALPROTO_TEMPLATE, TemplateGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateGetTx);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
+            TemplateGetTxData);
 
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_TEMPLATE,
