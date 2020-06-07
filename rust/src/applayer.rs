@@ -199,11 +199,6 @@ pub struct RustParser {
     /// Function returning the current transaction progress
     pub tx_get_progress:    StateGetProgressFn,
 
-    /// Logged transaction getter function
-    pub get_tx_logged:      Option<GetTxLoggedFn>,
-    /// Logged transaction setter function
-    pub set_tx_logged:      Option<SetTxLoggedFn>,
-
     /// Function called to get a detection state
     pub get_de_state:       GetDetectStateFn,
     /// Function called to set a detection state
@@ -278,8 +273,6 @@ pub type SetDetectStateFn   = extern "C" fn (*mut c_void, &mut DetectEngineState
 pub type GetEventInfoFn     = extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
 pub type GetEventInfoByIdFn = extern "C" fn (c_int, *mut *const c_char, *mut AppLayerEventType) -> i8;
 pub type GetEventsFn        = extern "C" fn (*mut c_void) -> *mut AppLayerDecoderEvents;
-pub type GetTxLoggedFn      = extern "C" fn (*mut c_void, *mut c_void) -> u32;
-pub type SetTxLoggedFn      = extern "C" fn (*mut c_void, *mut c_void, u32);
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;
 pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
 pub type GetFilesFn         = extern "C" fn (*mut c_void, u8) -> *mut FileContainer;
