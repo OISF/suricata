@@ -126,6 +126,7 @@ typedef struct AppLayerParserProtoCtx_
     uint64_t (*GetTxDetectFlags)(void *tx, uint8_t dir);
     void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t);
     AppLayerTxData *(*GetTxData)(void *tx);
+    bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
 
     void (*SetStreamDepthFlag)(void *tx, uint8_t flags);
 
@@ -601,6 +602,16 @@ void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
     SCEnter();
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxData = GetTxData;
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterApplyTxConfigFunc(uint8_t ipproto, AppProto alproto,
+        bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].ApplyTxConfig = ApplyTxConfig;
 
     SCReturn;
 }
@@ -1217,6 +1228,16 @@ AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void 
         SCReturnPtr(d, "AppLayerTxData");
     }
     SCReturnPtr(NULL, "AppLayerTxData");
+}
+
+void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
+        void *state, void *tx, enum ConfigAction mode, AppLayerTxConfig config)
+{
+    SCEnter();
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].ApplyTxConfig) {
+        alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].ApplyTxConfig(state, tx, mode, config);
+    }
+    SCReturn;
 }
 
 /***** General *****/

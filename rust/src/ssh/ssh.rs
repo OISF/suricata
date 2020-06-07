@@ -582,6 +582,7 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         get_tx_detect_flags: Some(rs_ssh_get_tx_detect_flags),
         set_tx_detect_flags: Some(rs_ssh_set_tx_detect_flags),
         get_tx_data: None,
+        apply_tx_config: None,
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
