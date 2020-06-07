@@ -1551,16 +1551,10 @@ static int DNP3SetTxDetectState(void *vtx, DetectEngineState *s)
     return 0;
 }
 
-static void DNP3SetTxLogged(void *alstate, void *vtx, LoggerId logged)
+static AppLayerTxData *DNP3GetTxData(void *vtx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    tx->logged = logged;
-}
-
-static LoggerId DNP3GetTxLogged(void *alstate, void *vtx)
-{
-    DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    return tx->logged;
+    return &tx->tx_data;
 }
 
 /**
@@ -1579,27 +1573,6 @@ int DNP3PrefixIsSize(uint8_t prefix_code)
         default:
             return 0;
     }
-}
-
-static uint64_t DNP3GetTxDetectFlags(void *vtx, uint8_t dir)
-{
-    DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        return tx->detect_flags_ts;
-    } else {
-        return tx->detect_flags_tc;
-    }
-}
-
-static void DNP3SetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags)
-{
-    DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        tx->detect_flags_ts = detect_flags;
-    } else {
-        tx->detect_flags_tc = detect_flags;
-    }
-    return;
 }
 
 /**
@@ -1650,8 +1623,6 @@ void RegisterDNP3Parsers(void)
             DNP3GetEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxDetectState, DNP3SetTxDetectState);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_DNP3,
-            DNP3GetTxDetectFlags, DNP3SetTxDetectFlags);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_DNP3, DNP3GetTxCnt);
@@ -1668,8 +1639,8 @@ void RegisterDNP3Parsers(void)
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3StateGetEventInfoById);
 
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_DNP3,
-            DNP3GetTxLogged, DNP3SetTxLogged);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_DNP3,
+            DNP3GetTxData);
     }
     else {
         SCLogConfig("Parser disabled for protocol %s. "

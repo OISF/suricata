@@ -21,6 +21,7 @@
 #include "detect-engine-state.h"
 #include "util-hashlist.h"
 #include "util-byte.h"
+#include "rust.h"
 
 /**
  * The maximum size of a DNP3 link PDU.
@@ -207,12 +208,9 @@ typedef TAILQ_HEAD(DNP3ObjectList_, DNP3Object_) DNP3ObjectList;
  * \brief DNP3 transaction.
  */
 typedef struct DNP3Transaction_ {
-    /** detection engine flags */
-    uint64_t detect_flags_ts;
-    uint64_t detect_flags_tc;
+    AppLayerTxData         tx_data;
 
     uint64_t tx_num; /**< Internal transaction ID. */
-    uint32_t logged; /**< Flags indicating which loggers have logged this tx. */
 
     struct DNP3State_ *dnp3;
 
