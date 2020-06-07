@@ -74,6 +74,19 @@ impl AppLayerTxData {
     }
 }
 
+#[macro_export]
+macro_rules!export_tx_data_get {
+    ($name:ident, $type:ty) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void)
+            -> *mut crate::applayer::AppLayerTxData
+        {
+            let tx = &mut *(tx as *mut $type);
+            &mut tx.tx_data
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug,PartialEq,Copy,Clone)]
 pub struct AppLayerResult {
