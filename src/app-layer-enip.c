@@ -88,24 +88,10 @@ static int ENIPSetTxDetectState(void *vtx, DetectEngineState *s)
     return 0;
 }
 
-static uint64_t ENIPGetTxDetectFlags(void *vtx, uint8_t dir)
+static AppLayerTxData *ENIPGetTxData(void *vtx)
 {
     ENIPTransaction *tx = (ENIPTransaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        return tx->detect_flags_ts;
-    } else {
-        return tx->detect_flags_tc;
-    }
-}
-
-static void ENIPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
-{
-    ENIPTransaction *tx = (ENIPTransaction *)vtx;
-    if (dir &STREAM_TOSERVER) {
-        tx->detect_flags_ts = flags;
-    } else {
-        tx->detect_flags_tc = flags;
-    }
+    return &tx->tx_data;
 }
 
 static void *ENIPGetTx(void *alstate, uint64_t tx_id)
@@ -478,6 +464,7 @@ void RegisterENIPUDPParsers(void)
                 ENIPGetTxDetectState, ENIPSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTx);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxData);
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxCnt);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPStateTransactionFree);
 
@@ -489,8 +476,6 @@ void RegisterENIPUDPParsers(void)
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_UDP,
                 ALPROTO_ENIP, STREAM_TOSERVER | STREAM_TOCLIENT);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_UDP, ALPROTO_ENIP,
-                ENIPGetTxDetectFlags, ENIPSetTxDetectFlags);
 
     } else
     {
@@ -558,6 +543,7 @@ void RegisterENIPTCPParsers(void)
                 ENIPGetTxDetectState, ENIPSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTx);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxData);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxCnt);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPStateTransactionFree);
 
@@ -572,8 +558,6 @@ void RegisterENIPTCPParsers(void)
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_ENIP,
                 APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_ENIP,
-                ENIPGetTxDetectFlags, ENIPSetTxDetectFlags);
 
     } else
     {
