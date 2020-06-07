@@ -700,7 +700,7 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         get_tx_iterator: Some(rs_rfb_state_get_tx_iterator),
         get_tx_detect_flags: None,
         set_tx_detect_flags: None,
-        get_tx_data: Some(rs_rfb_get_tx_data),
+        get_tx_data: rs_rfb_get_tx_data,
         apply_tx_config: None,
     };
 

@@ -518,7 +518,7 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         get_tx_iterator: Some(rs_template_state_get_tx_iterator),
         get_tx_detect_flags: None,
         set_tx_detect_flags: None,
-        get_tx_data: Some(rs_template_get_tx_data),
+        get_tx_data: rs_template_get_tx_data,
         apply_tx_config: None,
     };
 

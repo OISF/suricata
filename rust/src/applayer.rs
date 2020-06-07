@@ -227,7 +227,7 @@ pub struct RustParser {
     // Function to get TX detect flags.
     pub get_tx_detect_flags: Option<GetTxDetectFlagsFn>,
 
-    pub get_tx_data: Option<GetTxDataFn>,
+    pub get_tx_data: GetTxDataFn,
 
     // Function to apply config to a TX. Optional. Normal (bidirectional)
     // transactions don't need to set this. It is meant for cases where
