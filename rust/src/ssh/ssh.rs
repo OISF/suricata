@@ -97,10 +97,9 @@ pub struct SSHTransaction {
     pub srv_hdr: SshHeader,
     pub cli_hdr: SshHeader,
 
-    logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
-    detect_flags: TxDetectFlags,
     events: *mut core::AppLayerDecoderEvents,
+    tx_data: AppLayerTxData,
 }
 
 impl SSHTransaction {
@@ -108,10 +107,9 @@ impl SSHTransaction {
         SSHTransaction {
             srv_hdr: SshHeader::new(),
             cli_hdr: SshHeader::new(),
-            logged: LoggerFlags::new(),
             de_state: None,
-            detect_flags: TxDetectFlags::default(),
             events: std::ptr::null_mut(),
+            tx_data: AppLayerTxData::new(),
         }
     }
 
@@ -364,8 +362,7 @@ impl SSHState {
 export_tx_get_detect_state!(rs_ssh_tx_get_detect_state, SSHTransaction);
 export_tx_set_detect_state!(rs_ssh_tx_set_detect_state, SSHTransaction);
 
-export_tx_detect_flags_set!(rs_ssh_set_tx_detect_flags, SSHTransaction);
-export_tx_detect_flags_get!(rs_ssh_get_tx_detect_flags, SSHTransaction);
+export_tx_data_get!(rs_ssh_get_tx_data, SSHTransaction);
 
 #[no_mangle]
 pub extern "C" fn rs_ssh_state_get_events(
@@ -528,22 +525,6 @@ pub extern "C" fn rs_ssh_tx_get_alstate_progress(
     return SSHConnectionState::SshStateInProgress as i32;
 }
 
-#[no_mangle]
-pub extern "C" fn rs_ssh_tx_get_logged(
-    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
-) -> u32 {
-    let tx = cast_pointer!(tx, SSHTransaction);
-    return tx.logged.get();
-}
-
-#[no_mangle]
-pub extern "C" fn rs_ssh_tx_set_logged(
-    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, logged: u32,
-) {
-    let tx = cast_pointer!(tx, SSHTransaction);
-    tx.logged.set(logged);
-}
-
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"ssh\0";
 
@@ -568,8 +549,8 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         get_tx: rs_ssh_state_get_tx,
         tx_get_comp_st: rs_ssh_state_progress_completion_status,
         tx_get_progress: rs_ssh_tx_get_alstate_progress,
-        get_tx_logged: Some(rs_ssh_tx_get_logged),
-        set_tx_logged: Some(rs_ssh_tx_set_logged),
+        get_tx_logged: None,
+        set_tx_logged: None,
         get_de_state: rs_ssh_tx_get_detect_state,
         set_de_state: rs_ssh_tx_set_detect_state,
         get_events: Some(rs_ssh_state_get_events),
@@ -579,9 +560,9 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         localstorage_free: None,
         get_files: None,
         get_tx_iterator: None,
-        get_tx_detect_flags: Some(rs_ssh_get_tx_detect_flags),
-        set_tx_detect_flags: Some(rs_ssh_set_tx_detect_flags),
-        get_tx_data: None,
+        get_tx_detect_flags: None,
+        set_tx_detect_flags: None,
+        get_tx_data: Some(rs_ssh_get_tx_data),
         apply_tx_config: None,
     };
 
