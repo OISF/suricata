@@ -142,6 +142,7 @@ void RegisterDCERPCUDPParsers(void)
                                                RustDCERPCUDPGetTxDetectState, RustDCERPCUDPSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_DCERPC, RustDCERPCUDPGetTx);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_DCERPC, rs_dcerpc_udp_get_tx_data);
 
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_DCERPC, RustDCERPCUDPGetTxCnt);
 
