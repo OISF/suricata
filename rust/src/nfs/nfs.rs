@@ -27,7 +27,7 @@ use nom;
 
 use crate::log::*;
 use crate::applayer;
-use crate::applayer::{LoggerFlags, AppLayerResult};
+use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core::*;
 use crate::filetracker::*;
 use crate::filecontainer::*;
@@ -179,12 +179,10 @@ pub struct NFSTransaction {
     /// attempt failed.
     pub type_data: Option<NFSTransactionTypeData>,
 
-    detect_flags_ts: u64,
-    detect_flags_tc: u64,
-
-    pub logged: LoggerFlags,
     pub de_state: Option<*mut DetectEngineState>,
     pub events: *mut AppLayerDecoderEvents,
+
+    pub tx_data: AppLayerTxData,
 }
 
 impl NFSTransaction {
@@ -209,11 +207,9 @@ impl NFSTransaction {
             file_tx_direction: 0,
             file_handle:Vec::new(),
             type_data: None,
-            detect_flags_ts: 0,
-            detect_flags_tc: 0,
-            logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
+            tx_data: AppLayerTxData::new(),
         }
     }
 
@@ -1572,19 +1568,12 @@ pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_set_logged(_state: &mut NFSState,
-                                       tx: &mut NFSTransaction,
-                                       logged: u32)
+pub extern "C" fn rs_nfs_get_tx_data(
+    tx: *mut std::os::raw::c_void)
+    -> *mut AppLayerTxData
 {
-    tx.logged.set(logged);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_nfs_tx_get_logged(_state: &mut NFSState,
-                                       tx: &mut NFSTransaction)
-                                       -> u32
-{
-    return tx.logged.get();
+    let tx = cast_pointer!(tx, NFSTransaction);
+    return &mut tx.tx_data;
 }
 
 #[no_mangle]
@@ -1609,32 +1598,6 @@ pub extern "C" fn rs_nfs_state_get_tx_detect_state(
             SCLogDebug!("{}: getting de_state: have none", tx.id);
             return std::ptr::null_mut();
         }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_nfs_tx_set_detect_flags(
-                                       tx: &mut NFSTransaction,
-                                       direction: u8,
-                                       flags: u64)
-{
-    if (direction & STREAM_TOSERVER) != 0 {
-        tx.detect_flags_ts = flags as u64;
-    } else {
-        tx.detect_flags_tc = flags as u64;
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_nfs_tx_get_detect_flags(
-                                       tx: &mut NFSTransaction,
-                                       direction: u8)
-                                       -> u64
-{
-    if (direction & STREAM_TOSERVER) != 0 {
-        return tx.detect_flags_ts as u64;
-    } else {
-        return tx.detect_flags_tc as u64;
     }
 }
 
