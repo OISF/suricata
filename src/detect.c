@@ -1238,7 +1238,7 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
     if (txd != NULL) {
         detect_flags = (flow_flags & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
     } else {
-        detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx_ptr, flow_flags);
+        detect_flags = 0;
     }
     if (detect_flags & APP_LAYER_TX_INSPECTED_FLAG) {
         SCLogDebug("%"PRIu64" tx already fully inspected for %s. Flags %016"PRIx64,
@@ -1278,9 +1278,6 @@ static inline void StoreDetectFlags(DetectTransaction *tx, const uint8_t flow_fl
         } else {
             txd->detect_flags_tc = detect_flags;
         }
-    } else {
-        AppLayerParserSetTxDetectFlags(ipproto, alproto, tx->tx_ptr,
-                flow_flags, detect_flags);
     }
 }
 

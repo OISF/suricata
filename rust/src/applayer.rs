@@ -18,7 +18,6 @@
 //! Parser registration functions and common interface
 
 use std;
-use crate::core::{STREAM_TOSERVER};
 use crate::core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
 use crate::filecontainer::FileContainer;
 use crate::applayer;
@@ -407,50 +406,4 @@ macro_rules!export_tx_set_detect_state {
             0
         }
     )
-}
-
-#[derive(Debug,Default)]
-pub struct TxDetectFlags {
-    ts: u64,
-    tc: u64,
-}
-
-impl TxDetectFlags {
-    pub fn set(&mut self, direction: u8, flags: u64) {
-        if direction & STREAM_TOSERVER != 0 {
-            self.ts = flags;
-        } else {
-            self.tc = flags;
-        }
-    }
-
-    pub fn get(&self, direction: u8) -> u64 {
-        if (direction & STREAM_TOSERVER) != 0 {
-            self.ts
-        } else {
-            self.tc
-        }
-    }
-}
-
-#[macro_export]
-macro_rules!export_tx_detect_flags_set {
-    ($name:ident, $type:ty) => {
-        #[no_mangle]
-        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void, direction: u8, flags: u64) {
-            let tx = &mut *(tx as *mut $type);
-            tx.detect_flags.set(direction, flags);
-        }
-    }
-}
-
-#[macro_export]
-macro_rules!export_tx_detect_flags_get {
-    ($name:ident, $type:ty) => {
-        #[no_mangle]
-        pub unsafe extern "C" fn $name(tx: *mut std::os::raw::c_void, direction: u8) -> u64 {
-            let tx = &mut *(tx as *mut $type);
-            return tx.detect_flags.get(direction);
-        }
-    }
 }
