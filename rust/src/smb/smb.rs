@@ -37,7 +37,7 @@ use nom;
 use crate::core::*;
 use crate::log::*;
 use crate::applayer;
-use crate::applayer::{LoggerFlags, AppLayerResult};
+use crate::applayer::{AppLayerResult, AppLayerTxData};
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;
@@ -561,12 +561,9 @@ pub struct SMBTransaction {
     /// Command specific data
     pub type_data: Option<SMBTransactionTypeData>,
 
-    /// detection engine flags for use by detection engine
-    detect_flags_ts: u64,
-    detect_flags_tc: u64,
-    pub logged: LoggerFlags,
     pub de_state: Option<*mut DetectEngineState>,
     pub events: *mut AppLayerDecoderEvents,
+    pub tx_data: AppLayerTxData,
 }
 
 impl SMBTransaction {
@@ -578,11 +575,9 @@ impl SMBTransaction {
             request_done: false,
             response_done: false,
             type_data: None,
-            detect_flags_ts: 0,
-            detect_flags_tc: 0,
-            logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
+            tx_data: AppLayerTxData::new(),
         }
     }
 
@@ -2071,45 +2066,12 @@ pub extern "C" fn rs_smb_tx_get_alstate_progress(tx: &mut SMBTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_set_logged(_state: &mut SMBState,
-                                       tx: &mut SMBTransaction,
-                                       bits: u32)
+pub extern "C" fn rs_smb_get_tx_data(
+    tx: *mut std::os::raw::c_void)
+    -> *mut AppLayerTxData
 {
-    tx.logged.set(bits);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_smb_tx_get_logged(_state: &mut SMBState,
-                                       tx: &mut SMBTransaction)
-                                       -> u32
-{
-    return tx.logged.get();
-}
-
-#[no_mangle]
-pub extern "C" fn rs_smb_tx_set_detect_flags(
-                                       tx: &mut SMBTransaction,
-                                       direction: u8,
-                                       flags: u64)
-{
-    if (direction & STREAM_TOSERVER) != 0 {
-        tx.detect_flags_ts = flags as u64;
-    } else {
-        tx.detect_flags_tc = flags as u64;
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_smb_tx_get_detect_flags(
-                                       tx: &mut SMBTransaction,
-                                       direction: u8)
-                                       -> u64
-{
-    if (direction & STREAM_TOSERVER) != 0 {
-        return tx.detect_flags_ts as u64;
-    } else {
-        return tx.detect_flags_tc as u64;
-    }
+    let tx = cast_pointer!(tx, SMBTransaction);
+    return &mut tx.tx_data;
 }
 
 #[no_mangle]
