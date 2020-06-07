@@ -189,6 +189,8 @@ void AppLayerParserRegisterSetStreamDepthFlag(uint8_t ipproto, AppProto alproto,
 
 void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
         AppLayerTxData *(*GetTxData)(void *tx));
+void AppLayerParserRegisterApplyTxConfigFunc(uint8_t ipproto, AppProto alproto,
+        bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig));
 
 /***** Get and transaction functions *****/
 
@@ -240,6 +242,8 @@ void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx,
 bool AppLayerParserSupportsTxDetectFlags(AppProto alproto);
 
 AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx);
+void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
+        void *state, void *tx, int mode, AppLayerTxConfig);
 
 /***** General *****/
 
