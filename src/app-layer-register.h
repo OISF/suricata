@@ -66,9 +66,6 @@ typedef struct AppLayerParser {
             const AppProto alproto, void *alstate, uint64_t min_tx_id,
             uint64_t max_tx_id, AppLayerGetTxIterState *istate);
 
-    void (*SetTxDetectFlags)(void *, uint8_t, uint64_t);
-    uint64_t (*GetTxDetectFlags)(void *, uint8_t);
-
     AppLayerTxData *(*GetTxData)(void *tx);
     bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
 } AppLayerParser;
