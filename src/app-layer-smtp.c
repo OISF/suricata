@@ -1713,18 +1713,6 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
 
 }
 
-static void SMTPStateSetTxLogged(void *state, void *vtx, LoggerId logged)
-{
-    SMTPTransaction *tx = vtx;
-    tx->logged = logged;
-}
-
-static LoggerId SMTPStateGetTxLogged(void *state, void *vtx)
-{
-    SMTPTransaction *tx = vtx;
-    return tx->logged;
-}
-
 static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction) {
     return 1;
 }
@@ -1780,24 +1768,10 @@ static int SMTPSetTxDetectState(void *vtx, DetectEngineState *s)
     return 0;
 }
 
-static uint64_t SMTPGetTxDetectFlags(void *vtx, uint8_t dir)
+static AppLayerTxData *SMTPGetTxData(void *vtx)
 {
     SMTPTransaction *tx = (SMTPTransaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        return tx->detect_flags_ts;
-    } else {
-        return tx->detect_flags_tc;
-    }
-}
-
-static void SMTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
-{
-    SMTPTransaction *tx = (SMTPTransaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        tx->detect_flags_ts = flags;
-    } else {
-        tx->detect_flags_tc = flags;
-    }
+    return &tx->tx_data;
 }
 
 /**
@@ -1830,9 +1804,6 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP,
                                                SMTPGetTxDetectState, SMTPSetTxDetectState);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SMTP,
-                                               SMTPGetTxDetectFlags, SMTPSetTxDetectFlags);
-
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);
@@ -1842,8 +1813,7 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxLogged,
-                                          SMTPStateSetTxLogged);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetTxData);
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SMTP,
                                                                SMTPStateGetAlstateProgressCompletionStatus);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTruncate);
