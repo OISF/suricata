@@ -223,7 +223,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 goto next_tx;
         }
 
-        LoggerId tx_logged = txd ? txd->logged.flags : AppLayerParserGetTxLogged(f, alstate, tx);
+        LoggerId tx_logged = txd ? txd->logged.flags : 0;
         const LoggerId tx_logged_old = tx_logged;
         SCLogDebug("logger: expect %08x, have %08x", logger_expectation, tx_logged);
         if (tx_logged == logger_expectation) {
@@ -297,9 +297,6 @@ next_logger:
                 tx_logged, tx_logged_old);
             if (txd != NULL) {
                 txd->logged.flags |= tx_logged;
-            } else {
-                AppLayerParserSetTxLogged(p->proto, alproto, alstate, tx,
-                        tx_logged);
             }
         }
 

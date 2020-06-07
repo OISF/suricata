@@ -117,9 +117,6 @@ typedef struct AppLayerParserProtoCtx_
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);
 
-    LoggerId (*StateGetTxLogged)(void *alstate, void *tx);
-    void (*StateSetTxLogged)(void *alstate, void *tx, LoggerId logger);
-
     DetectEngineState *(*GetTxDetectState)(void *tx);
     int (*SetTxDetectState)(void *tx, DetectEngineState *);
 
@@ -442,21 +439,6 @@ void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterLoggerFuncs(uint8_t ipproto, AppProto alproto,
-                           LoggerId (*StateGetTxLogged)(void *, void *),
-                           void (*StateSetTxLogged)(void *, void *, LoggerId))
-{
-    SCEnter();
-
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetTxLogged =
-        StateGetTxLogged;
-
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateSetTxLogged =
-        StateSetTxLogged;
-
-    SCReturn;
-}
-
 void AppLayerParserRegisterLoggerBits(uint8_t ipproto, AppProto alproto, LoggerId bits)
 {
     SCEnter();
@@ -701,34 +683,6 @@ AppLayerGetTxIteratorFunc AppLayerGetTxIterator(const uint8_t ipproto,
     return Func ? Func : AppLayerDefaultGetTxIterator;
 }
 
-void AppLayerParserSetTxLogged(uint8_t ipproto, AppProto alproto,
-                               void *alstate, void *tx, LoggerId logger)
-{
-    SCEnter();
-
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-            StateSetTxLogged != NULL) {
-        alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-                StateSetTxLogged(alstate, tx, logger);
-    }
-
-    SCReturn;
-}
-
-LoggerId AppLayerParserGetTxLogged(const Flow *f,
-                              void *alstate, void *tx)
-{
-    SCEnter();
-
-    LoggerId r = 0;
-    if (alp_ctx.ctxs[f->protomap][f->alproto].StateGetTxLogged != NULL) {
-        r = alp_ctx.ctxs[f->protomap][f->alproto].
-            StateGetTxLogged(alstate, tx);
-    }
-
-    SCReturnUInt(r);
-}
-
 uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
@@ -787,9 +741,8 @@ static inline uint32_t GetTxLogged(const Flow *f, void *alstate, void *tx)
     AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, tx);
     if (txd) {
         return txd->logged.flags;
-    } else {
-        return AppLayerParserGetTxLogged(f, alstate, tx);
     }
+    return 0;
 }
 
 void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *pstate,
@@ -1549,7 +1502,6 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     printf("- GetTxDetectState %p SetTxDetectState %p\n", ctx->GetTxDetectState, ctx->SetTxDetectState);
     printf("Optional:\n");
     printf("- LocalStorageAlloc %p LocalStorageFree %p\n", ctx->LocalStorageAlloc, ctx->LocalStorageFree);
-    printf("- StateGetTxLogged %p StateSetTxLogged %p\n", ctx->StateGetTxLogged, ctx->StateSetTxLogged);
     printf("- StateGetEvents %p StateGetEventInfo %p StateGetEventInfoById %p\n", ctx->StateGetEvents, ctx->StateGetEventInfo,
             ctx->StateGetEventInfoById);
 }
@@ -1583,9 +1535,6 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
     }
     /* local storage is optional, but needs both set if used */
     if (!(BOTH_SET_OR_BOTH_UNSET(ctx->LocalStorageAlloc, ctx->LocalStorageFree))) {
-        goto bad;
-    }
-    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->StateGetTxLogged, ctx->StateSetTxLogged))) {
         goto bad;
     }
     if (!(BOTH_SET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {

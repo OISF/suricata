@@ -206,10 +206,6 @@ void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto a
 uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate);
 void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate, uint64_t tx_id);
 
-void AppLayerParserSetTxLogged(uint8_t ipproto, AppProto alproto, void *alstate,
-                               void *tx, LoggerId logged);
-LoggerId AppLayerParserGetTxLogged(const Flow *f, void *alstate, void *tx);
-
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction);
 void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *pstate,
                                 void *alstate, const uint8_t flags, bool tag_txs_as_inspected);
