@@ -57,6 +57,7 @@ pub struct RdpTransaction {
     pub item: RdpTransactionItem,
     // managed by macros `export_tx_get_detect_state!` and `export_tx_set_detect_state!`
     de_state: Option<*mut DetectEngineState>,
+    tx_data: AppLayerTxData,
 }
 
 impl RdpTransaction {
@@ -65,6 +66,7 @@ impl RdpTransaction {
             id,
             item,
             de_state: None,
+            tx_data: AppLayerTxData::new(),
         }
     }
 
@@ -493,6 +495,8 @@ pub extern "C" fn rs_rdp_parse_tc(
     }
 }
 
+export_tx_data_get!(rs_rdp_get_tx_data, RdpTransaction);
+
 //
 // registration
 //
@@ -530,7 +534,7 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         get_tx_iterator: None,
         get_tx_detect_flags: None,
         set_tx_detect_flags: None,
-        get_tx_data: None,
+        get_tx_data: Some(rs_rdp_get_tx_data),
         apply_tx_config: None,
     };
 
