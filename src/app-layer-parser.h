@@ -182,9 +182,6 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterGetStreamDepth(uint8_t ipproto,
                                           AppProto alproto,
                                           uint32_t (*GetStreamDepth)(void));
-void AppLayerParserRegisterDetectFlagsFuncs(uint8_t ipproto, AppProto alproto,
-        uint64_t(*GetTxDetectFlags)(void *tx, uint8_t dir),
-        void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t));
 void AppLayerParserRegisterSetStreamDepthFlag(uint8_t ipproto, AppProto alproto,
         void (*SetStreamDepthFlag)(void *tx, uint8_t flags));
 
@@ -234,8 +231,6 @@ int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alst
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
 int AppLayerParserSetTxDetectState(const Flow *f, void *tx, DetectEngineState *s);
 
-uint64_t AppLayerParserGetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx, uint8_t dir);
-void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx, uint8_t dir, uint64_t);
 bool AppLayerParserSupportsTxDetectFlags(AppProto alproto);
 
 AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx);

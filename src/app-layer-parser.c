@@ -120,8 +120,6 @@ typedef struct AppLayerParserProtoCtx_
     DetectEngineState *(*GetTxDetectState)(void *tx);
     int (*SetTxDetectState)(void *tx, DetectEngineState *);
 
-    uint64_t (*GetTxDetectFlags)(void *tx, uint8_t dir);
-    void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t);
     AppLayerTxData *(*GetTxData)(void *tx);
     bool (*ApplyTxConfig)(void *state, void *tx, int mode, AppLayerTxConfig);
 
@@ -566,18 +564,6 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterDetectFlagsFuncs(uint8_t ipproto, AppProto alproto,
-        uint64_t(*GetTxDetectFlags)(void *tx, uint8_t dir),
-        void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t))
-{
-    SCEnter();
-
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectFlags = GetTxDetectFlags;
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectFlags = SetTxDetectFlags;
-
-    SCReturn;
-}
-
 void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
         AppLayerTxData *(*GetTxData)(void *tx))
 {
@@ -717,7 +703,7 @@ static inline uint64_t GetTxDetectFlags(const uint8_t ipproto, const AppProto al
     if (txd != NULL) {
         detect_flags = (dir & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
     } else {
-        detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, dir);
+        detect_flags = 0;
     }
     return detect_flags;
 }
@@ -731,8 +717,6 @@ static inline void SetTxDetectFlags(const uint8_t ipproto, const AppProto alprot
         } else {
             txd->detect_flags_tc = detect_flags;
         }
-    } else {
-        AppLayerParserSetTxDetectFlags(ipproto, alproto, tx, dir, detect_flags);
     }
 }
 
@@ -895,7 +879,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     if (unlikely(p->StateTransactionFree == NULL))
         SCReturn;
 
-    const bool has_tx_detect_flags = (p->GetTxDetectFlags != NULL || p->GetTxData != NULL);
+    const bool has_tx_detect_flags = (p->GetTxData != NULL);
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
     void * const alstate = f->alstate;
@@ -1144,33 +1128,11 @@ bool AppLayerParserSupportsTxDetectFlags(AppProto alproto)
 {
     SCEnter();
     for (uint8_t p = 0; p < FLOW_PROTO_APPLAYER_MAX; p++) {
-        if (alp_ctx.ctxs[p][alproto].GetTxDetectFlags != NULL) {
-            SCReturnBool(true);
-        }
         if (alp_ctx.ctxs[p][alproto].GetTxData != NULL) {
             SCReturnBool(true);
         }
     }
     SCReturnBool(false);
-}
-
-uint64_t AppLayerParserGetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx, uint8_t dir)
-{
-    SCEnter();
-    uint64_t flags = 0;
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectFlags != NULL) {
-        flags = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectFlags(tx, dir);
-    }
-    SCReturnUInt(flags);
-}
-
-void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx, uint8_t dir, uint64_t flags)
-{
-    SCEnter();
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectFlags != NULL) {
-        alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectFlags(tx, dir, flags);
-    }
-    SCReturn;
 }
 
 AppLayerTxData *AppLayerParserGetTxData(uint8_t ipproto, AppProto alproto, void *tx)
@@ -1541,9 +1503,6 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
         goto bad;
     }
     if (!(BOTH_SET_OR_BOTH_UNSET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
-        goto bad;
-    }
-    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->GetTxDetectFlags, ctx->SetTxDetectFlags))) {
         goto bad;
     }
 
