@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -135,11 +135,6 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
         p->StateGetProgress);
     AppLayerParserRegisterGetTx(p->ip_proto, alproto,
         p->StateGetTx);
-
-    if (p->StateGetTxLogged && p->StateSetTxLogged) {
-        AppLayerParserRegisterLoggerFuncs(p->ip_proto, alproto,
-                p->StateGetTxLogged, p->StateSetTxLogged);
-    }
 
     /* What is this being registered for? */
     AppLayerParserRegisterDetectStateFuncs(p->ip_proto, alproto,
