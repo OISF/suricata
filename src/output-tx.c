@@ -207,14 +207,13 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             break;
         void * const tx = ires.tx_ptr;
         tx_id = ires.tx_id;
-        AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
 
-        if (txd) {
-            SCLogDebug("tx %p/%"PRIu64" txd %p: log_flags %x", tx, tx_id, txd, txd->config.log_flags);
-            if (txd->config.log_flags & BIT_U8(CONFIG_TYPE_TX)) {
-                SCLogDebug("SKIP tx %p/%"PRIu64, tx, tx_id);
-                goto next_tx;
-            }
+        AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+        if (txd == NULL) {
+            /* make sure this tx, which can't be properly logged is skipped */
+            logged = 1;
+            max_id = tx_id;
+            goto next_tx;
         }
 
         if (list[ALPROTO_UNKNOWN] != 0) {
@@ -223,7 +222,13 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 goto next_tx;
         }
 
-        LoggerId tx_logged = txd ? txd->logged.flags : 0;
+        SCLogDebug("tx %p/%"PRIu64" txd %p: log_flags %x", tx, tx_id, txd, txd->config.log_flags);
+        if (txd->config.log_flags & BIT_U8(CONFIG_TYPE_TX)) {
+            SCLogDebug("SKIP tx %p/%"PRIu64, tx, tx_id);
+            goto next_tx;
+        }
+
+        LoggerId tx_logged = txd->logged.flags;
         const LoggerId tx_logged_old = tx_logged;
         SCLogDebug("logger: expect %08x, have %08x", logger_expectation, tx_logged);
         if (tx_logged == logger_expectation) {
@@ -295,9 +300,8 @@ next_logger:
         if (tx_logged != tx_logged_old) {
             SCLogDebug("logger: storing %08x (was %08x)",
                 tx_logged, tx_logged_old);
-            if (txd != NULL) {
-                txd->logged.flags |= tx_logged;
-            }
+            DEBUG_VALIDATE_BUG_ON(txd == NULL);
+            txd->logged.flags |= tx_logged;
         }
 
         /* If all loggers logged set a flag and update the last tx_id

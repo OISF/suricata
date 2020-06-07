@@ -1235,7 +1235,7 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
 {
     uint64_t detect_flags;
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
-    if (txd != NULL) {
+    if (likely(txd != NULL)) {
         detect_flags = (flow_flags & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
     } else {
         detect_flags = 0;
@@ -1272,7 +1272,7 @@ static inline void StoreDetectFlags(DetectTransaction *tx, const uint8_t flow_fl
         const uint8_t ipproto, const AppProto alproto, const uint64_t detect_flags)
 {
     AppLayerTxData *txd = (AppLayerTxData *)tx->tx_data_ptr;
-    if (txd != NULL) {
+    if (likely(txd != NULL)) {
         if (flow_flags & STREAM_TOSERVER) {
             txd->detect_flags_ts = detect_flags;
         } else {
