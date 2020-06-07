@@ -1460,6 +1460,7 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     printf("- StateAlloc %p StateFree %p\n", ctx->StateAlloc, ctx->StateFree);
     printf("- StateGetTx %p StateGetTxCnt %p StateTransactionFree %p\n",
             ctx->StateGetTx, ctx->StateGetTxCnt, ctx->StateTransactionFree);
+    printf("- GetTxData %p\n", ctx->GetTxData);
     printf("- StateGetProgress %p StateGetProgressCompletionStatus %p\n", ctx->StateGetProgress, ctx_def->StateGetProgressCompletionStatus);
     printf("- GetTxDetectState %p SetTxDetectState %p\n", ctx->GetTxDetectState, ctx->SetTxDetectState);
     printf("Optional:\n");
@@ -1505,7 +1506,9 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
     if (!(BOTH_SET_OR_BOTH_UNSET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
         goto bad;
     }
-
+    if (ctx->GetTxData == NULL) {
+        goto bad;
+    }
     return;
 bad:
     ValidateParserProtoDump(alproto, ipproto);
