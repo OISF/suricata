@@ -25,6 +25,8 @@
 #ifndef __APP_LAYER_FTP_H__
 #define __APP_LAYER_FTP_H__
 
+#include "rust.h"
+
 enum {
     FTP_STATE_IN_PROGRESS,
     FTP_STATE_PORT_DONE,
@@ -133,11 +135,7 @@ typedef struct FTPTransaction_  {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;
 
-    uint64_t detect_flags_ts;
-    uint64_t detect_flags_tc;
-
-    /** indicates loggers done logging */
-    uint32_t logged;
+    AppLayerTxData tx_data;
 
     /* for the request */
     uint32_t request_length;
@@ -209,8 +207,7 @@ typedef struct FtpDataState_ {
     FtpRequestCommand command;
     uint8_t state;
     uint8_t direction;
-    uint64_t detect_flags_ts;
-    uint64_t detect_flags_tc;
+    AppLayerTxData tx_data;
 } FtpDataState;
 
 void RegisterFTPParsers(void);
