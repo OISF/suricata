@@ -262,36 +262,10 @@ static void *ModbusGetTx(void *alstate, uint64_t tx_id)
     return NULL;
 }
 
-static void ModbusSetTxLogged(void *alstate, void *vtx, LoggerId logged)
+static AppLayerTxData *ModbusGetTxData(void *vtx)
 {
     ModbusTransaction *tx = (ModbusTransaction *)vtx;
-    tx->logged = logged;
-}
-
-static LoggerId ModbusGetTxLogged(void *alstate, void *vtx)
-{
-    ModbusTransaction *tx = (ModbusTransaction *)vtx;
-    return tx->logged;
-}
-
-static void ModbusSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
-{
-    ModbusTransaction *tx = (ModbusTransaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        tx->detect_flags_ts = flags;
-    } else {
-        tx->detect_flags_tc = flags;
-    }
-}
-
-static uint64_t ModbusGetTxDetectFlags(void *vtx, uint8_t dir)
-{
-    ModbusTransaction *tx = (ModbusTransaction *)vtx;
-    if (dir & STREAM_TOSERVER) {
-        return tx->detect_flags_ts;
-    } else {
-        return tx->detect_flags_tc;
-    }
+    return &tx->tx_data;
 }
 
 static uint64_t ModbusGetTxCnt(void *alstate)
@@ -1550,9 +1524,8 @@ void RegisterModbusParsers(void)
                                                ModbusGetTxDetectState, ModbusSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetTx);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetTxData);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetTxCnt);
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetTxLogged,
-                                          ModbusSetTxLogged);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateTxFree);
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetAlstateProgress);
@@ -1563,8 +1536,6 @@ void RegisterModbusParsers(void)
         AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateGetEventInfoById);
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_MODBUS, STREAM_TOSERVER);
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_MODBUS,
-                ModbusGetTxDetectFlags, ModbusSetTxDetectFlags);
 
         AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_MODBUS, stream_depth);
     } else {
