@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2019 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,15 +23,15 @@ use std::str;
 use std;
 use std::mem::transmute;
 
-use crate::applayer::LoggerFlags;
+use crate::applayer::AppLayerTxData;
 
 #[derive(Debug)]
 pub struct TFTPTransaction {
     pub opcode : u8,
     pub filename : String,
     pub mode : String,
-    pub logged : LoggerFlags,
     id: u64,
+    tx_data: AppLayerTxData,
 }
 
 pub struct TFTPState {
@@ -60,8 +60,8 @@ impl TFTPTransaction {
             opcode : opcode,
             filename : filename,
             mode : mode.to_lowercase(),
-            logged : LoggerFlags::new(),
             id : 0,
+            tx_data: AppLayerTxData::new(),
         }
     }
     pub fn is_mode_ok(&self) -> bool {
@@ -97,20 +97,6 @@ pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
         Some(tx) => unsafe{std::mem::transmute(tx)},
         None     => std::ptr::null_mut(),
     }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_tftp_get_tx_logged(_state: &mut TFTPState,
-                                        tx: &mut TFTPTransaction)
-                                        -> u32 {
-    return tx.logged.get();
-}
-
-#[no_mangle]
-pub extern "C" fn rs_tftp_set_tx_logged(_state: &mut TFTPState,
-                                        tx: &mut TFTPTransaction,
-                                        logged: u32) {
-    tx.logged.set(logged);
 }
 
 #[no_mangle]
@@ -152,4 +138,13 @@ pub extern "C" fn rs_tftp_request(state: &mut TFTPState,
         },
         _ => 0
     }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_tftp_get_tx_data(
+    tx: *mut std::os::raw::c_void)
+    -> *mut AppLayerTxData
+{
+    let tx = cast_pointer!(tx, TFTPTransaction);
+    return &mut tx.tx_data;
 }

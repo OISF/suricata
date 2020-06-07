@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -141,16 +141,6 @@ static void *TFTPGetTx(void *state, uint64_t tx_id)
     return rs_tftp_get_tx(state, tx_id);
 }
 
-static void TFTPSetTxLogged(void *state, void *vtx, uint32_t logger)
-{
-    rs_tftp_set_tx_logged(state, vtx, logger);
-}
-
-static LoggerId TFTPGetTxLogged(void *state, void *vtx)
-{
-    return rs_tftp_get_tx_logged(state, vtx);
-}
-
 /**
  * \brief Called by the application layer.
  *
@@ -249,9 +239,6 @@ void RegisterTFTPParsers(void)
         AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_TFTP,
                                          TFTPStateTxFree);
 
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_UDP, ALPROTO_TFTP,
-                                          TFTPGetTxLogged, TFTPSetTxLogged);
-
         /* Register a function to return the current transaction count. */
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_TFTP,
                                        TFTPGetTxCnt);
@@ -274,6 +261,9 @@ void RegisterTFTPParsers(void)
                                            TFTPStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_TFTP,
                                             TFTPGetEvents);
+
+        AppLayerParserRegisterTxDataFunc(IPPROTO_UDP, ALPROTO_TFTP,
+                                         rs_tftp_get_tx_data);
     }
     else {
         SCLogDebug("TFTP protocol parsing disabled.");
