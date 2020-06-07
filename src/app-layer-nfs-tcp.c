@@ -208,16 +208,6 @@ static AppLayerGetTxIterTuple RustNFSTCPGetTxIterator(
     return rs_nfs_state_get_tx_iterator(alstate, min_tx_id, (uint64_t *)istate);
 }
 
-static void NFSTCPSetTxLogged(void *state, void *vtx, LoggerId logged)
-{
-    rs_nfs_tx_set_logged(state, vtx, logged);
-}
-
-static LoggerId NFSTCPGetTxLogged(void *state, void *vtx)
-{
-    return rs_nfs_tx_get_logged(state, vtx);
-}
-
 /**
  * \brief Called by the application layer.
  *
@@ -265,16 +255,6 @@ static int NFSTCPSetTxDetectState(void *vtx, DetectEngineState *s)
 static FileContainer *NFSTCPGetFiles(void *state, uint8_t direction)
 {
     return rs_nfs_getfiles(direction, state);
-}
-
-static void NFSTCPSetDetectFlags(void *tx, uint8_t dir, uint64_t flags)
-{
-    rs_nfs_tx_set_detect_flags(tx, dir, flags);
-}
-
-static uint64_t NFSTCPGetDetectFlags(void *tx, uint8_t dir)
-{
-    return rs_nfs_tx_get_detect_flags(tx, dir);
 }
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
@@ -353,9 +333,6 @@ void RegisterNFSTCPParsers(void)
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_NFS,
             NFSTCPStateTxFree);
 
-        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_NFS,
-            NFSTCPGetTxLogged, NFSTCPSetTxLogged);
-
         /* Register a function to return the current transaction count. */
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_NFS,
             NFSTCPGetTxCnt);
@@ -385,8 +362,8 @@ void RegisterNFSTCPParsers(void)
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_NFS,
                 NFSTCPGetEvents);
 
-        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_NFS,
-                                               NFSTCPGetDetectFlags, NFSTCPSetDetectFlags);
+        AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_NFS,
+                                         rs_nfs_get_tx_data);
 
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_NFS,
