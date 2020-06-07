@@ -17,7 +17,7 @@
 
 use std::mem::transmute;
 
-use crate::applayer::AppLayerResult;
+use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core;
 use crate::dcerpc::dcerpc::{
     DCERPCRequest, DCERPCResponse, DCERPCUuidEntry, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
@@ -62,6 +62,7 @@ pub struct DCERPCUDPState {
     pub uuid_entry: Option<DCERPCUuidEntry>,
     pub uuid_list: Vec<DCERPCUuidEntry>,
     pub de_state: Option<*mut core::DetectEngineState>,
+    pub tx_data: AppLayerTxData,
 }
 
 impl DCERPCUDPState {
@@ -74,6 +75,7 @@ impl DCERPCUDPState {
             uuid_entry: None,
             uuid_list: Vec::new(),
             de_state: None,
+            tx_data: AppLayerTxData::new(),
         };
     }
 
@@ -312,6 +314,15 @@ pub extern "C" fn rs_dcerpc_udp_set_tx_detect_state(
     let dce_state = cast_pointer!(vtx, DCERPCUDPState);
     dce_state.de_state = Some(de_state);
     0
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dcerpc_udp_get_tx_data(
+    tx: *mut std::os::raw::c_void)
+    -> *mut AppLayerTxData
+{
+    let tx = cast_pointer!(tx, DCERPCUDPState);
+    return &mut tx.tx_data;
 }
 
 #[no_mangle]
