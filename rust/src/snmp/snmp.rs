@@ -586,7 +586,7 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         get_tx_iterator    : None,
         get_tx_detect_flags: None,
         set_tx_detect_flags: None,
-        get_tx_data        : Some(rs_snmp_get_tx_data),
+        get_tx_data        : rs_snmp_get_tx_data,
         apply_tx_config    : None,
     };
     let ip_proto_str = CString::new("udp").unwrap();
