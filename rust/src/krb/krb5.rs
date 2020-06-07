@@ -89,8 +89,7 @@ pub struct KRB5Transaction {
     /// The events associated with this transaction
     events: *mut core::AppLayerDecoderEvents,
 
-    logged: applayer::LoggerFlags,
-    detect_flags: applayer::TxDetectFlags,
+    tx_data: applayer::AppLayerTxData,
 }
 
 pub fn to_hex_string(bytes: &[u8]) -> String {
@@ -241,8 +240,7 @@ impl KRB5Transaction {
             id: id,
             de_state: None,
             events: std::ptr::null_mut(),
-            logged: applayer::LoggerFlags::new(),
-            detect_flags: applayer::TxDetectFlags::default(),
+            tx_data: applayer::AppLayerTxData::new(),
         }
     }
 }
@@ -335,25 +333,6 @@ pub extern "C" fn rs_krb5_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
 {
     1
 }
-
-#[no_mangle]
-pub extern "C" fn rs_krb5_tx_set_logged(_state: *mut std::os::raw::c_void,
-                                       tx: *mut std::os::raw::c_void,
-                                       logged: u32)
-{
-    let tx = cast_pointer!(tx,KRB5Transaction);
-    tx.logged.set(logged);
-}
-
-#[no_mangle]
-pub extern "C" fn rs_krb5_tx_get_logged(_state: *mut std::os::raw::c_void,
-                                       tx: *mut std::os::raw::c_void)
-                                       -> u32
-{
-    let tx = cast_pointer!(tx,KRB5Transaction);
-    return tx.logged.get();
-}
-
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_state_set_tx_detect_state(
@@ -644,8 +623,7 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
     AppLayerResult::ok()
 }
 
-export_tx_detect_flags_set!(rs_krb5_tx_detect_flags_set, KRB5Transaction);
-export_tx_detect_flags_get!(rs_krb5_tx_detect_flags_get, KRB5Transaction);
+export_tx_data_get!(rs_krb5_get_tx_data, KRB5Transaction);
 
 const PARSER_NAME : &'static [u8] = b"krb5\0";
 
@@ -669,8 +647,8 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         get_tx             : rs_krb5_state_get_tx,
         tx_get_comp_st     : rs_krb5_state_progress_completion_status,
         tx_get_progress    : rs_krb5_tx_get_alstate_progress,
-        get_tx_logged      : Some(rs_krb5_tx_get_logged),
-        set_tx_logged      : Some(rs_krb5_tx_set_logged),
+        get_tx_logged      : None,
+        set_tx_logged      : None,
         get_de_state       : rs_krb5_state_get_tx_detect_state,
         set_de_state       : rs_krb5_state_set_tx_detect_state,
         get_events         : Some(rs_krb5_state_get_events),
@@ -680,9 +658,9 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         localstorage_free  : None,
         get_files          : None,
         get_tx_iterator    : None,
-        get_tx_detect_flags: Some(rs_krb5_tx_detect_flags_get),
-        set_tx_detect_flags: Some(rs_krb5_tx_detect_flags_set),
-        get_tx_data        : None,
+        get_tx_detect_flags: None,
+        set_tx_detect_flags: None,
+        get_tx_data        : Some(rs_krb5_get_tx_data),
         apply_tx_config    : None,
     };
     // register UDP parser
