@@ -391,8 +391,6 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         localstorage_free: None,
         get_files: None,
         get_tx_iterator: None,
-        get_tx_detect_flags: None,
-        set_tx_detect_flags: None,
         get_tx_data: rs_sip_get_tx_data,
         apply_tx_config: None,
     };
