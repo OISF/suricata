@@ -233,15 +233,10 @@ typedef struct SSLStateConnp_ {
 typedef struct SSLState_ {
     Flow *f;
 
+    AppLayerTxData tx_data;
+
     /* holds some state flags we need */
     uint32_t flags;
-
-    /* specifies which loggers are done logging */
-    uint32_t logged;
-
-    /* detect flags */
-    uint64_t detect_flags_ts;
-    uint64_t detect_flags_tc;
 
     /* there might be a better place to store this*/
     uint16_t hb_record_len;
