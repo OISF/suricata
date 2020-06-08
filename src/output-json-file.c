@@ -218,13 +218,13 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
 #endif
             break;
         case FILE_STATE_TRUNCATED:
-            jb_set_string(js, "state", "TRUNCATED");
+            JB_SET_STRING(js, "state", "TRUNCATED");
             break;
         case FILE_STATE_ERROR:
-            jb_set_string(js, "state", "ERROR");
+            JB_SET_STRING(js, "state", "ERROR");
             break;
         default:
-            jb_set_string(js, "state", "UNKNOWN");
+            JB_SET_STRING(js, "state", "UNKNOWN");
             break;
     }
 
