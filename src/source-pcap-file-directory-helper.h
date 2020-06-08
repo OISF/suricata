@@ -43,6 +43,8 @@ typedef struct PcapFileDirectoryVars_
     DIR *directory;
     PcapFileFileVars *current_file;
     bool should_loop;
+    uint8_t cur_dir_depth;
+    uint8_t max_dir_depth;
     time_t delay;
     time_t poll_interval;
 
