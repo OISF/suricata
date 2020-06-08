@@ -1008,7 +1008,7 @@ static inline uint32_t AdjustToAcked(const Packet *p, const TcpStream *stream,
         if (p->flags & PKT_PSEUDO_STREAM_END) {
             // fall through, we use all available data
         } else {
-            uint64_t last_ack_abs = app_progress; /* absolute right edge of ack'd data */
+            uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
             if (STREAM_LASTACK_GT_BASESEQ(stream)) {
                 /* get window of data that is acked */
                 uint32_t delta = stream->last_ack - stream->base_seq;
