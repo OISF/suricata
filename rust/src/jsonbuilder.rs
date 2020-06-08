@@ -405,6 +405,22 @@ impl JsonBuilder {
         Ok(self)
     }
 
+    pub fn set_formatted(&mut self, formatted: &str) -> Result<&mut Self, JsonError> {
+        match self.current_state() {
+            State::ObjectNth => {
+                self.buf.push(',');
+            }
+            State::ObjectFirst => {
+                self.set_state(State::ObjectNth);
+            }
+            _ => {
+                return Err(JsonError::InvalidState);
+            }
+        }
+        self.buf.push_str(formatted);
+        Ok(self)
+    }
+
     /// Set a key and a string value (from bytes) on an object.
     pub fn set_string_from_bytes(&mut self, key: &str, val: &[u8]) -> Result<&mut Self, JsonError> {
         match std::str::from_utf8(val) {
@@ -615,6 +631,14 @@ pub unsafe extern "C" fn jb_set_string_from_bytes(
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         let val = std::slice::from_raw_parts(bytes, len as usize);
         return js.set_string_from_bytes(key, val).is_ok();
+    }
+    return false;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn jb_set_formatted(js: &mut JsonBuilder, formatted: *const c_char) -> bool {
+    if let Ok(formatted) = CStr::from_ptr(formatted).to_str() {
+        return js.set_formatted(formatted).is_ok();
     }
     return false;
 }
@@ -975,6 +999,17 @@ mod test {
         assert_eq!(jb.buf, r#"{"foo":"bar""#);
         assert_eq!(jb.current_state(), State::ObjectNth);
         assert_eq!(jb.state.len(), 2);
+    }
+
+    #[test]
+    fn test_set_formatted() {
+        let mut jb = JsonBuilder::new_object();
+        jb.set_formatted("\"foo\":\"bar\"").unwrap();
+        assert_eq!(jb.buf, r#"{"foo":"bar""#);
+        jb.set_formatted("\"bar\":\"foo\"").unwrap();
+        assert_eq!(jb.buf, r#"{"foo":"bar","bar":"foo""#);
+        jb.close().unwrap();
+        assert_eq!(jb.buf, r#"{"foo":"bar","bar":"foo"}"#);
     }
 }
 
