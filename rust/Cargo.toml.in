@@ -27,7 +27,7 @@ memchr = "2.2"
 num = "0.2"
 num-derive = "0.2"
 num-traits = "0.2"
-widestring = "0.4"
+widestring = "<= 0.4.0"
 
 der-parser = "3.0"
 kerberos-parser = "0.4"
