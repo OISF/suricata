@@ -554,7 +554,7 @@ pub extern "C" fn jb_clone(js: &mut JsonBuilder) -> *mut JsonBuilder {
 
 #[no_mangle]
 pub unsafe extern "C" fn jb_free(js: &mut JsonBuilder) {
-    let _: Box<JsonBuilder> = std::mem::transmute(js);
+    let _ = Box::from_raw(js);
 }
 
 #[no_mangle]
