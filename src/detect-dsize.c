@@ -44,9 +44,9 @@
 #include "util-profiling.h"
 
 /**
- *  dsize:[<>]<0-65535>[<><0-65535>];
+ *  dsize:[<>!]<0-65535>[<><0-65535>];
  */
-#define PARSE_REGEX "^\\s*(<|>)?\\s*([0-9]{1,5})\\s*(?:(<>)\\s*([0-9]{1,5}))?\\s*$"
+#define PARSE_REGEX "^\\s*(<|>|!)?\\s*([0-9]{1,5})\\s*(?:(<>)\\s*([0-9]{1,5}))?\\s*$"
 static DetectParseRegex parse_regex;
 
 static int DetectDsizeMatch (DetectEngineThreadCtx *, Packet *,
@@ -82,6 +82,8 @@ DsizeMatch(const uint16_t psize, const uint8_t mode,
             const uint16_t dsize, const uint16_t dsize2)
 {
     if (mode == DETECTDSIZE_EQ && dsize == psize)
+        return 1;
+    else if (mode == DETECTDSIZE_NE && dsize != psize)
         return 1;
     else if (mode == DETECTDSIZE_LT && psize < dsize)
         return 1;
@@ -187,16 +189,7 @@ static DetectDsizeData *DetectDsizeParse (const char *rawstr)
         goto error;
     dd->dsize = 0;
     dd->dsize2 = 0;
-    dd->mode = DETECTDSIZE_EQ; // default
-
-    if (strlen(mode) > 0) {
-        if (mode[0] == '<')
-            dd->mode = DETECTDSIZE_LT;
-        else if (mode[0] == '>')
-            dd->mode = DETECTDSIZE_GT;
-        else
-            dd->mode = DETECTDSIZE_EQ;
-    }
+    dd->mode = 0;
 
     if (strcmp("<>", range) == 0) {
         if (strlen(mode) != 0) {
@@ -204,6 +197,17 @@ static DetectDsizeData *DetectDsizeParse (const char *rawstr)
             goto error;
         }
         dd->mode = DETECTDSIZE_RA;
+    } else if (strlen(mode) > 0) {
+        if (mode[0] == '<')
+            dd->mode = DETECTDSIZE_LT;
+        else if (mode[0] == '>')
+            dd->mode = DETECTDSIZE_GT;
+        else if (mode[0] == '!')
+            dd->mode = DETECTDSIZE_NE;
+        else
+            dd->mode = DETECTDSIZE_EQ;
+    } else {
+        dd->mode = DETECTDSIZE_EQ; // default
     }
 
     /** set the first dsize value */
@@ -384,6 +388,7 @@ int SigParseGetMaxDsize(const Signature *s)
         switch (dd->mode) {
             case DETECTDSIZE_LT:
             case DETECTDSIZE_EQ:
+            case DETECTDSIZE_NE:
                 return dd->dsize;
             case DETECTDSIZE_RA:
                 return dd->dsize2;
@@ -412,6 +417,7 @@ void SigParseSetDsizePair(Signature *s)
                 high = dd->dsize;
                 break;
             case DETECTDSIZE_EQ:
+            case DETECTDSIZE_NE:
                 low = dd->dsize;
                 high = dd->dsize;
                 break;
@@ -424,10 +430,11 @@ void SigParseSetDsizePair(Signature *s)
                 high = 65535;
                 break;
         }
+        s->dsize_mode = dd->mode;
         s->dsize_low = low;
         s->dsize_high = high;
 
-        SCLogDebug("low %u, high %u", low, high);
+        SCLogDebug("low %u, high %u, mode %u", low, high, dd->mode);
     }
 }
 
@@ -863,6 +870,89 @@ static int DsizeTestParse20 (void)
 }
 
 /**
+ * \test this is a test for a valid dsize value !1
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int DsizeTestParse21 (void)
+{
+    DetectDsizeData *dd = NULL;
+    dd = DetectDsizeParse("!1");
+    FAIL_IF_NULL(dd);
+    DetectDsizeFree(NULL, dd);
+    PASS;
+}
+
+/**
+ * \test this is a test for a valid dsize value ! 1
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int DsizeTestParse22 (void)
+{
+    DetectDsizeData *dd = NULL;
+    dd = DetectDsizeParse("! 1");
+    FAIL_IF_NULL(dd);
+    DetectDsizeFree(NULL, dd);
+    PASS;
+}
+
+/**
+ * \test this is a test for a invalid dsize value 1!
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int DsizeTestParse23 (void)
+{
+    DetectDsizeData *dd = NULL;
+    dd = DetectDsizeParse("1!");
+    if (dd) {
+        DetectDsizeFree(NULL, dd);
+        FAIL;
+    }
+    PASS;
+}
+
+/**
+ * \test this is a test for positive ! dsize matching
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int DsizeTestMatch01 (void)
+{
+    uint16_t psize = 1;
+    uint16_t dsizelow = 2;
+    uint16_t dsizehigh = 0;
+    int result = 0;
+
+    result = DsizeMatch(psize, DETECTDSIZE_NE, dsizelow, dsizehigh);
+
+    PASS_IF(result);
+}
+
+/**
+ * \test this is a test for negative ! dsize matching
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int DsizeTestMatch02 (void)
+{
+    uint16_t psize = 1;
+    uint16_t dsizelow = 1;
+    uint16_t dsizehigh = 0;
+    int result = 0;
+
+    result = !DsizeMatch(psize, DETECTDSIZE_NE, dsizelow, dsizehigh);
+
+    PASS_IF(result);
+}
+
+/**
  * \test DetectDsizeIcmpv6Test01 is a test for checking the working of
  *       dsize keyword by creating 2 rules and matching a crafted packet
  *       against them. Only the first one shall trigger.
@@ -982,6 +1072,11 @@ static void DsizeRegisterTests(void)
     UtRegisterTest("DsizeTestParse18", DsizeTestParse18);
     UtRegisterTest("DsizeTestParse19", DsizeTestParse19);
     UtRegisterTest("DsizeTestParse20", DsizeTestParse20);
+    UtRegisterTest("DsizeTestParse21", DsizeTestParse21);
+    UtRegisterTest("DsizeTestParse22", DsizeTestParse22);
+    UtRegisterTest("DsizeTestParse23", DsizeTestParse23);
+    UtRegisterTest("DsizeTestMatch01", DsizeTestMatch01);
+    UtRegisterTest("DsizeTestMatch02", DsizeTestMatch02);
 
     UtRegisterTest("DetectDsizeIcmpv6Test01", DetectDsizeIcmpv6Test01);
 #endif /* UNITTESTS */
