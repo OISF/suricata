@@ -292,11 +292,27 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
         }
+        pv->cur_dir_depth = 0;
+        intmax_t max_dir_depth = 0;
+        if (ConfGetInt("pcap-file.directory-depth", &max_dir_depth) == 1) {
+            if ((max_dir_depth < 0) || (max_dir_depth > UINT8_MAX)) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "Error, --pcap-file-directory-depth must be between "
+                                                    "%d and %d", 0, UINT8_MAX);
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        }
+        pv->max_dir_depth = (uint8_t)max_dir_depth;
 
         int should_loop = 0;
         pv->should_loop = false;
         if (ConfGetBool("pcap-file.continuous", &should_loop) == 1) {
             pv->should_loop = should_loop == 1;
+        }
+
+        if (pv->max_dir_depth != 0 && pv->should_loop == 1) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Error, --pcap-file-continuous can only be used with "
+                                                "--pcap-file-directory-depth=0");
+            SCReturnInt(TM_ECODE_FAILED);
         }
 
         pv->delay = 30;
