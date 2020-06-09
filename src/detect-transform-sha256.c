@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,7 +37,7 @@
 static int DetectTransformToSha256Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef HAVE_NSS
 static void DetectTransformToSha256RegisterTests(void);
-static void TransformToSha256(InspectionBuffer *buffer);
+static void TransformToSha256(InspectionBuffer *buffer, void *options);
 #endif
 
 void DetectTransformSha256Register(void)
@@ -78,11 +78,11 @@ static int DetectTransformToSha256Setup (DetectEngineCtx *de_ctx, Signature *s, 
 static int DetectTransformToSha256Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_SHA256);
+    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_SHA256, NULL);
     SCReturnInt(r);
 }
 
-static void TransformToSha256(InspectionBuffer *buffer)
+static void TransformToSha256(InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -112,7 +112,7 @@ static int DetectTransformToSha256Test01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformToSha256(&buffer);
+    TransformToSha256(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;

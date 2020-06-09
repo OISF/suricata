@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,7 +37,7 @@
 static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformStripWhitespaceRegisterTests(void);
 
-static void TransformStripWhitespace(InspectionBuffer *buffer);
+static void TransformStripWhitespace(InspectionBuffer *buffer, void *options);
 
 void DetectTransformStripWhitespaceRegister(void)
 {
@@ -68,11 +68,11 @@ void DetectTransformStripWhitespaceRegister(void)
 static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_STRIP_WHITESPACE);
+    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_STRIP_WHITESPACE, NULL);
     SCReturnInt(r);
 }
 
-static void TransformStripWhitespace(InspectionBuffer *buffer)
+static void TransformStripWhitespace(InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -124,7 +124,7 @@ static int DetectTransformStripWhitespaceTest01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformStripWhitespace(&buffer);
+    TransformStripWhitespace(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
@@ -143,7 +143,7 @@ static int DetectTransformStripWhitespaceTest02(void)
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformDoubleWhitespace(&buffer);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformStripWhitespace(&buffer);
+    TransformStripWhitespace(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;

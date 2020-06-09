@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2020 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,15 +18,13 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Jeff Lucovsky <jeff@lucovsky.org
  */
 
-#ifndef __OUTPUT_JSON_NFS_H__
-#define __OUTPUT_JSON_NFS_H__
+#ifndef __DETECT_TRANSFORM_PCREXFORM_H__
+#define __DETECT_TRANSFORM_PCREXFORM_H__
 
-void JsonNFSLogRegister(void);
+/* prototypes */
+void DetectTransformPcrexformRegister (void);
 
-bool EveNFSAddMetadataRPC(const Flow *f, uint64_t tx_id, JsonBuilder *jb);
-bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb);
-
-#endif /* __OUTPUT_JSON_NFS_H__ */
+#endif /* __DETECT_TRANSFORM_PCREXFORM_H__ */

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Implements the compress_whitespace tranform keyword
+ * Implements the compress_whitespace transform keyword
  */
 
 #include "suricata-common.h"
@@ -37,7 +37,7 @@
 static int DetectTransformCompressWhitespaceSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformCompressWhitespaceRegisterTests(void);
 
-static void TransformCompressWhitespace(InspectionBuffer *buffer);
+static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options);
 
 void DetectTransformCompressWhitespaceRegister(void)
 {
@@ -69,11 +69,11 @@ void DetectTransformCompressWhitespaceRegister(void)
 static int DetectTransformCompressWhitespaceSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_COMPRESS_WHITESPACE);
+    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_COMPRESS_WHITESPACE, NULL);
     SCReturnInt(r);
 }
 
-static void TransformCompressWhitespace(InspectionBuffer *buffer)
+static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
@@ -133,7 +133,7 @@ static int DetectTransformCompressWhitespaceTest01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformCompressWhitespace(&buffer);
+    TransformCompressWhitespace(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
@@ -152,7 +152,7 @@ static int DetectTransformCompressWhitespaceTest02(void)
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformDoubleWhitespace(&buffer);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformCompressWhitespace(&buffer);
+    TransformCompressWhitespace(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;

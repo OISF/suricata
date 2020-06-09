@@ -179,7 +179,7 @@ static int JsonEmailAddToJsonArray(const uint8_t *val, size_t len, void *data)
 static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
 {
     int f = 0;
-    JsonBuilderMark mark = { 0 };
+    JsonBuilderMark mark = { 0, 0, 0 };
     MimeDecField *field;
     MimeDecEntity *entity = tx->msg_tail;
     if (entity == NULL) {
@@ -234,7 +234,7 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
     SMTPState *smtp_state;
     MimeDecParseState *mime_state;
     MimeDecEntity *entity;
-    JsonBuilderMark mark = { 0 };
+    JsonBuilderMark mark = { 0, 0, 0 };
 
     /* check if we have SMTP state or not */
     AppProto proto = FlowGetAppProtocol(f);
@@ -365,7 +365,7 @@ TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *
 {
     OutputJsonEmailCtx *email_ctx = aft->emaillog_ctx;
     SMTPTransaction *tx = (SMTPTransaction *) vtx;
-    JsonBuilderMark mark = { 0 };
+    JsonBuilderMark mark = { 0, 0, 0 };
 
     jb_get_mark(js, &mark);
     jb_open_object(js, "email");

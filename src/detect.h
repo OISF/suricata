@@ -366,8 +366,13 @@ typedef struct InspectionBufferMultipleForList {
     uint32_t init:1;    /**< first time used this run. Used for clean logic */
 } InspectionBufferMultipleForList;
 
+typedef struct TransformData_ {
+    int transform;
+    void *options;
+} TransformData;
+
 typedef struct DetectEngineTransforms {
-    int transforms[DETECT_TRANSFORMS_MAX];
+    TransformData transforms[DETECT_TRANSFORMS_MAX];
     int cnt;
 } DetectEngineTransforms;
 
@@ -498,8 +503,7 @@ typedef struct SignatureInitData_ {
     int list;
     bool list_set;
 
-    int transforms[DETECT_TRANSFORMS_MAX];
-    int transform_cnt;
+    DetectEngineTransforms transforms;
 
     /** score to influence rule grouping. A higher value leads to a higher
      *  likelihood of a rulegroup with this sig ending up as a contained
@@ -1183,7 +1187,7 @@ typedef struct SigTableElmt_ {
         uint8_t flags, File *, const Signature *, const SigMatchCtx *);
 
     /** InspectionBuffer transformation callback */
-    void (*Transform)(InspectionBuffer *);
+    void (*Transform)(InspectionBuffer *, void *context);
 
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, const char *);

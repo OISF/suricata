@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -39,7 +39,7 @@
 static int DetectTransformDotPrefixSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformDotPrefixRegisterTests(void);
 
-static void TransformDotPrefix(InspectionBuffer *buffer);
+static void TransformDotPrefix(InspectionBuffer *buffer, void *options);
 
 void DetectTransformDotPrefixRegister(void)
 {
@@ -68,7 +68,7 @@ void DetectTransformDotPrefixRegister(void)
 static int DetectTransformDotPrefixSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
-    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_DOTPREFIX);
+    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_DOTPREFIX, NULL);
     SCReturnInt(r);
 }
 
@@ -102,7 +102,7 @@ static int DetectTransformDotPrefixSetup (DetectEngineCtx *de_ctx, Signature *s,
  * 4. something.google.co.uk --> match
  * 5. google.com --> no match
  */
-static void TransformDotPrefix(InspectionBuffer *buffer)
+static void TransformDotPrefix(InspectionBuffer *buffer, void *options)
 {
     const size_t input_len = buffer->inspect_len;
 
@@ -128,7 +128,7 @@ static int DetectTransformDotPrefixTest01(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformDotPrefix(&buffer);
+    TransformDotPrefix(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);
@@ -148,7 +148,7 @@ static int DetectTransformDotPrefixTest02(void)
     InspectionBufferInit(&buffer, input_len);
     InspectionBufferSetup(&buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformDotPrefix(&buffer);
+    TransformDotPrefix(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     FAIL_IF_NOT(buffer.inspect_len == result_len);
     FAIL_IF_NOT(strncmp(result, (const char *)buffer.inspect, result_len) == 0);

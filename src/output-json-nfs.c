@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2018 Open Information Security Foundation
+/* Copyright (C) 2015-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -48,30 +48,28 @@
 
 #include "rust.h"
 
-json_t *JsonNFSAddMetadataRPC(const Flow *f, uint64_t tx_id)
+bool EveNFSAddMetadataRPC(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
 {
     NFSState *state = FlowGetAppState(f);
     if (state) {
         NFSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_NFS, state, tx_id);
         if (tx) {
-            return rs_rpc_log_json_response(tx);
+            return rs_rpc_log_json_response(tx, jb);
         }
     }
-
-    return NULL;
+    return false;
 }
 
-json_t *JsonNFSAddMetadata(const Flow *f, uint64_t tx_id)
+bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
 {
     NFSState *state = FlowGetAppState(f);
     if (state) {
         NFSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_NFS, state, tx_id);
         if (tx) {
-            return rs_nfs_log_json_response(state, tx);
+            return rs_nfs_log_json_response(state, tx, jb);
         }
     }
-
-    return NULL;
+    return false;
 }
 
 static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
@@ -83,34 +81,24 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     if (rs_nfs_tx_logging_is_filtered(state, nfstx))
         return TM_ECODE_OK;
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "nfs", NULL);
-    if (unlikely(js == NULL)) {
-        return TM_ECODE_FAILED;
+    JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "nfs", NULL);
+    if (unlikely(jb == NULL)) {
+        return TM_ECODE_OK;
     }
+    EveAddCommonOptions(&thread->ctx->cfg, p, f, jb);
 
-    JsonAddCommonOptions(&thread->ctx->cfg, p, f, js);
+    jb_open_object(jb, "rpc");
+    rs_rpc_log_json_response(tx, jb);
+    jb_close(jb);
 
-    json_t *rpcjs = rs_rpc_log_json_response(tx);
-    if (unlikely(rpcjs == NULL)) {
-        goto error;
-    }
-    json_object_set_new(js, "rpc", rpcjs);
-
-    json_t *nfsjs = rs_nfs_log_json_response(state, tx);
-    if (unlikely(nfsjs == NULL)) {
-        goto error;
-    }
-    json_object_set_new(js, "nfs", nfsjs);
+    jb_open_object(jb, "nfs");
+    rs_nfs_log_json_response(state, tx, jb);
+    jb_close(jb);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->ctx->file_ctx, &thread->buffer);
-
-    json_decref(js);
+    OutputJsonBuilderBuffer(jb, thread->ctx->file_ctx, &thread->buffer);
+    jb_free(jb);
     return TM_ECODE_OK;
-
-error:
-    json_decref(js);
-    return TM_ECODE_FAILED;
 }
 
 static OutputInitResult NFSLogInitSub(ConfNode *conf,

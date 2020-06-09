@@ -67,6 +67,7 @@ static SCLogRedisContext *SCLogRedisContextAlloc(void)
     ctx->async   = NULL;
 #endif
     ctx->batch_count = 0;
+    ctx->last_push = 0;
     ctx->tried = 0;
 
     return ctx;
@@ -92,6 +93,7 @@ static SCLogRedisContext *SCLogRedisContextAsyncAlloc(void)
     ctx->ev_base = NULL;
     ctx->connected = 0;
     ctx->batch_count = 0;
+    ctx->last_push = 0;
     ctx->tried = 0;
 
     return ctx;
@@ -201,7 +203,11 @@ static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx)
         return -1;
     }
 
-    ctx->async = redisAsyncConnect(redis_server, redis_port);
+    if (strchr(redis_server, '/') == NULL) {
+        ctx->async = redisAsyncConnect(redis_server, redis_port);
+    } else {
+        ctx->async = redisAsyncConnectUnix(redis_server);
+    }
 
     if (ctx->ev_base != NULL) {
         event_base_free(ctx->ev_base);
@@ -295,7 +301,12 @@ static int SCConfLogReopenSyncRedis(LogFileCtx *log_ctx)
     if (ctx->sync != NULL)  {
         redisFree(ctx->sync);
     }
-    ctx->sync = redisConnect(redis_server, redis_port);
+
+    if (strchr(redis_server, '/') == NULL) {
+        ctx->sync = redisConnect(redis_server, redis_port);
+    } else {
+        ctx->sync = redisConnectUnix(redis_server);
+    }
     if (ctx->sync == NULL) {
         SCLogError(SC_ERR_SOCKET, "Error connecting to redis server.");
         ctx->tried = time(NULL);
@@ -338,11 +349,14 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
                 file_ctx->redis_setup.command,
                 file_ctx->redis_setup.key,
                 string);
-        if (ctx->batch_count == file_ctx->redis_setup.batch_size) {
+        time_t now = time(NULL);
+        if ((ctx->batch_count == file_ctx->redis_setup.batch_size) || (ctx->last_push < now)) {
             redisReply *reply;
             int i;
+            int batch_size = ctx->batch_count;
             ctx->batch_count = 0;
-            for (i = 0; i <= file_ctx->redis_setup.batch_size; i++) {
+            ctx->last_push = now;
+            for (i = 0; i <= batch_size; i++) {
                 if (redisGetReply(redis, (void **)&reply) == REDIS_OK) {
                     freeReplyObject(reply);
                     ret = 0;
@@ -360,6 +374,12 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
                             redis = ctx->sync;
                             if (redis) {
                                 SCLogInfo("Reconnected to redis server");
+                                redisAppendCommand(redis, "%s %s %s",
+                                        file_ctx->redis_setup.command,
+                                        file_ctx->redis_setup.key,
+                                        string);
+                                ctx->batch_count++;
+                                return 0;
                             } else {
                                 SCLogInfo("Unable to reconnect to redis server");
                                 return -1;

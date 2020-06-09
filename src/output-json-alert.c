@@ -473,7 +473,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         if (json_output_ctx->flags & LOG_JSON_APP_LAYER && p->flow != NULL) {
             const AppProto proto = FlowGetAppProtocol(p->flow);
-            JsonBuilderMark mark = { 0 };
+            JsonBuilderMark mark = { 0, 0, 0 };
             switch (proto) {
                 case ALPROTO_HTTP:
                     // TODO: Could result in an empty http object being logged.
@@ -511,15 +511,21 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     }
                     break;
                 case ALPROTO_NFS:
-                    hjs = JsonNFSAddMetadataRPC(p->flow, pa->tx_id);
-                    if (hjs) {
-                        jb_set_jsont(jb, "rpc", hjs);
-                        json_decref(hjs);
+                    /* rpc */
+                    jb_get_mark(jb, &mark);
+                    jb_open_object(jb, "rpc");
+                    if (EveNFSAddMetadataRPC(p->flow, pa->tx_id, jb)) {
+                        jb_close(jb);
+                    } else {
+                        jb_restore_mark(jb, &mark);
                     }
-                    hjs = JsonNFSAddMetadata(p->flow, pa->tx_id);
-                    if (hjs) {
-                        jb_set_jsont(jb, "nfs", hjs);
-                        json_decref(hjs);
+                    /* nfs */
+                    jb_get_mark(jb, &mark);
+                    jb_open_object(jb, "nfs");
+                    if (EveNFSAddMetadata(p->flow, pa->tx_id, jb)) {
+                        jb_close(jb);
+                    } else {
+                        jb_restore_mark(jb, &mark);
                     }
                     break;
                 case ALPROTO_SMB:
@@ -644,16 +650,15 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
 static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
-    int i;
+    AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
     char timebuf[64];
-    json_t *js;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
     CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    for (i = 0; i < p->alerts.cnt; i++) {
+    for (int i = 0; i < p->alerts.cnt; i++) {
         MemBufferReset(aft->json_buffer);
 
         const PacketAlert *pa = &p->alerts.alerts[i];
@@ -661,51 +666,18 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
             continue;
         }
 
-        const char *action = "allowed";
-        if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
-            action = "blocked";
-        } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
-            action = "blocked";
-        }
-
-        js = json_object();
-        if (js == NULL)
-            return TM_ECODE_OK;
-
-        json_t *ajs = json_object();
-        if (ajs == NULL) {
-            json_decref(js);
+        JsonBuilder *jb = jb_new_object();
+        if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
 
-        /* time & tx */
-        json_object_set_new(js, "timestamp", json_string(timebuf));
+        /* just the timestamp, no tuple */
+        jb_set_string(jb, "timestamp", timebuf);
 
-        /* tuple */
-        //json_object_set_new(js, "srcip", json_string(srcip));
-        //json_object_set_new(js, "sp", json_integer(p->sp));
-        //json_object_set_new(js, "dstip", json_string(dstip));
-        //json_object_set_new(js, "dp", json_integer(p->dp));
-        //json_object_set_new(js, "proto", json_integer(proto));
+        AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, NULL);
 
-        json_object_set_new(ajs, "action", json_string(action));
-        json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
-        json_object_set_new(ajs, "signature_id", json_integer(pa->s->id));
-        json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
-        json_object_set_new(ajs, "signature",
-                            json_string((pa->s->msg) ? pa->s->msg : ""));
-        json_object_set_new(ajs, "category",
-                            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
-        json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
-
-        if (p->tenant_id > 0)
-            json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
-
-        /* alert */
-        json_object_set_new(js, "alert", ajs);
-        OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
-        json_object_clear(js);
-        json_decref(js);
+        OutputJsonBuilderBuffer(jb, aft->file_ctx, &aft->json_buffer);
+        jb_free(jb);
     }
 
     return TM_ECODE_OK;
