@@ -53,6 +53,24 @@
 #include "util-byte.h"
 #include "util-memcmp.h"
 
+/* HASSH fingerprints are disabled by default */
+#define SSH_CONFIG_DEFAULT_HASSH 0
+
+/**
+ * \brief if not explicitly disabled in config, enable hassh support
+ *
+ * Implemented using atomic to allow rule reloads to do this at
+ * runtime.
+ */
+void SSHEnableHassh(void)
+{
+    rs_ssh_enable_hassh();
+}
+
+bool SSHHasshIsEnabled(void)
+{
+    return rs_ssh_hassh_is_enabled();
+}
 
 static int SSHRegisterPatternsForProtocolDetection(void)
 {
@@ -79,6 +97,23 @@ void RegisterSSHParsers(void)
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SSH, proto_name);
         if (SSHRegisterPatternsForProtocolDetection() < 0)
             return;
+
+        /* Check if we should generate Hassh fingerprints */
+        int enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
+        const char *strval = NULL;
+        if (ConfGetValue("app-layer.protocols.ssh.hassh", &strval) != 1) {
+            enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
+        } else if (strcmp(strval, "auto") == 0) {
+            enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
+        } else if (ConfValIsFalse(strval)) {
+            enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
+        } else if (ConfValIsTrue(strval)) {
+            enable_hassh = true;
+        }
+
+        if (RunmodeIsUnittests() || enable_hassh) {
+            SSHEnableHassh();
+        }
     }
 
     SCLogDebug("Registering Rust SSH parser.");
