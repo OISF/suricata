@@ -54,6 +54,12 @@
    continuously feed files to a directory and have them cleaned up when done. If
    this option is not set, pcap files will not be deleted after processing.
 
+.. option:: --pcap-file-directory-depth
+   Used with the -r option when the path provided is a directory.  This option
+   sets the maximum depth of the directory traversal (between 0 and 255).  
+   The default value is 0. Symlinks are ignored. 
+   This option cannot be combined with the --pcap-file-continuous.  
+
 .. option::  -i <interface>
 
    After the -i option you can enter the interface card you would like
