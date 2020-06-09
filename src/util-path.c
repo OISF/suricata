@@ -137,3 +137,54 @@ bool SCPathExists(const char *path)
     }
     return false;
 }
+
+/**
+ * \brief OS independent wrapper for directory check
+ *
+ * \param dir_entry object to check
+ *
+ * \retval True if the object is a regular directory, otherwise false.  This directory
+ *          and parent directory will return false.
+ */
+bool SCIsRegularDirectory(const struct dirent *const dir_entry)
+{
+#ifndef OS_WIN32
+    if ((dir_entry->d_type == DT_DIR) &&
+        (strcmp(dir_entry->d_name, ".") != 0) &&
+        (strcmp(dir_entry->d_name, "..") != 0)) {
+        return true;
+    }
+#endif
+    return false;
+}
+/**
+ * \brief OS independent to check for regular file
+ *
+ * \param dir_entry object to check
+ *
+ * \retval True if the object is a regular file.  Otherwise false.
+ */
+bool SCIsRegularFile(const struct dirent *const dir_entry)
+{
+#ifndef OS_WIN32
+    return dir_entry->d_type == DT_REG;
+#endif
+    return false;
+}
+
+/**
+ * \brief OS independent wrapper for realpath
+ *
+ * \param path the path to resolve
+ * \param resolved_path the resolved path; if null, a buffer will be allocated
+ *
+ * \retval the resolved_path; or a pointer to a new resolved_path buffer
+ */
+char *SCRealPath(const char *path, char *resolved_path)
+{
+#ifdef OS_WIN32
+    return _fullpath(resolved_path, path, PATH_MAX);
+#else
+    return realpath(path, resolved_path);
+#endif
+}

@@ -36,5 +36,8 @@ int PathIsRelative(const char *);
 int SCDefaultMkDir(const char *path);
 int SCCreateDirectoryTree(const char *path, const bool final);
 bool SCPathExists(const char *path);
+bool SCIsRegularDirectory(const struct dirent *const dir_entry);
+bool SCIsRegularFile(const struct dirent *const dir_entry);
+char *SCRealPath(const char *path, char *resolved_path);
 
 #endif /* __UTIL_PATH_H__ */
