@@ -34,6 +34,7 @@
 #include "app-layer-parser.h"
 
 #include "detect.h"
+#include "detect-dsize.h"
 #include "detect-engine.h"
 #include "detect-engine-profile.h"
 
@@ -764,13 +765,8 @@ static inline void DetectRulePacketRules(
             goto next;
         }
 
-        if (unlikely(sflags & SIG_FLAG_DSIZE)) {
-            if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
-                SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
-                        p->payload_len, s->dsize_low, s->dsize_high);
-                goto next;
-            }
-        }
+        if (SigDsizePrefilter(p, s, sflags))
+            goto next;
 
         /* if the sig has alproto and the session as well they should match */
         if (likely(sflags & SIG_FLAG_APPLAYER)) {

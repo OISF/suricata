@@ -532,26 +532,24 @@ static int SignatureCreateMask(Signature *s)
             case DETECT_DSIZE:
             {
                 DetectDsizeData *ds = (DetectDsizeData *)sm->ctx;
-                switch (ds->mode) {
-                    case DETECTDSIZE_LT:
-                        /* LT will include 0, so no payload.
-                         * if GT is used in the same rule the
-                         * flag will be set anyway. */
-                        break;
-                    case DETECTDSIZE_RA:
-                    case DETECTDSIZE_GT:
+                    /* LT will include 0, so no payload.
+                     * if GT is used in the same rule the
+                     * flag will be set anyway. */
+                if (ds->mode == DETECTDSIZE_RA ||
+                    ds->mode == DETECTDSIZE_GT ||
+                    ds->mode == DETECTDSIZE_NE) {
+
+                    s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
+                    SCLogDebug("sig requires payload");
+
+                } else if (ds->mode == DETECTDSIZE_EQ) {
+                    if (ds->dsize > 0) {
                         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
                         SCLogDebug("sig requires payload");
-                        break;
-                    case DETECTDSIZE_EQ:
-                        if (ds->dsize > 0) {
-                            s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
-                            SCLogDebug("sig requires payload");
-                        } else if (ds->dsize == 0) {
-                            s->mask |= SIG_MASK_REQUIRE_NO_PAYLOAD;
-                            SCLogDebug("sig requires no payload");
-                        }
-                        break;
+                    } else {
+                        s->mask |= SIG_MASK_REQUIRE_NO_PAYLOAD;
+                        SCLogDebug("sig requires no payload");
+                    }
                 }
                 break;
             }

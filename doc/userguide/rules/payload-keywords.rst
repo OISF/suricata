@@ -284,18 +284,20 @@ dsize
 
 With the dsize keyword, you can match on the size of the packet
 payload. You can use the keyword for example to look for abnormal
-sizes of payloads. This may be convenient in detecting buffer
-overflows.
+sizes of payloads which are equal to some n i.e. 'dsize:n' 
+not equal 'dsize:!n' less than 'dsize:<n' or greater than 'dsize:>n'
+This may be convenient in detecting buffer overflows.
 
 Format::
 
-  dsize:<number>;
+  dsize:[<>!]number; || dsize:min<>max;
 
 Example of dsize in a rule:
 
 .. container:: example-rule
 
     alert udp $EXTERNAL_NET any -> $HOME_NET 65535 (msg:"GPL DELETED EXPLOIT LANDesk Management Suite Alerting Service buffer overflow"; :example-rule-emphasis:`dsize:>268;` reference: bugtraq,23483; reference: cve,2007-1674; classtype: attempted-admin; sid:100000928; rev:1;)
+    alert tcp $EXTERNAL_NET any -> $HOME_NET 8081 (msg:"Example Negation"; :example-rule-emphasis:`dsize:!10;` sid:123; rev:1;)
 
 byte_test
 ---------
