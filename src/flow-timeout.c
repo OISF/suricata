@@ -109,6 +109,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     p->payload_len = 0;
 
     /* apply reversed flow logic after setting direction to the packet */
+    const int orig_direction = direction;
     direction ^= ((f->flags & FLOW_DIR_REVERSED) != 0);
 
     if (FLOW_IS_IPV4(f)) {
@@ -221,16 +222,20 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         p->tcph->th_sport = htons(f->sp);
         p->tcph->th_dport = htons(f->dp);
 
-        p->tcph->th_seq = htonl(ssn->client.next_seq);
-        p->tcph->th_ack = htonl(ssn->server.last_ack);
-
         /* to client */
     } else {
         p->tcph->th_sport = htons(f->dp);
         p->tcph->th_dport = htons(f->sp);
+    }
 
-        p->tcph->th_seq = htonl(ssn->server.next_seq);
-        p->tcph->th_ack = htonl(ssn->client.last_ack);
+    if (ssn != NULL) {
+        if (orig_direction == 0) {
+            p->tcph->th_seq = htonl(ssn->client.next_seq);
+            p->tcph->th_ack = htonl(ssn->server.last_ack);
+        } else {
+            p->tcph->th_seq = htonl(ssn->server.next_seq);
+            p->tcph->th_ack = htonl(ssn->client.last_ack);
+        }
     }
 
     if (FLOW_IS_IPV4(f)) {
