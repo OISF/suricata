@@ -614,7 +614,7 @@ static int DNP3BufferAdd(DNP3Buffer *buffer, const uint8_t *data, uint32_t len)
  */
 static void DNP3BufferTrim(DNP3Buffer *buffer)
 {
-    if (buffer->offset == buffer->len) {
+    if (buffer->offset >= buffer->len) {
         DNP3BufferReset(buffer);
     }
     else if (buffer->offset > 0) {
@@ -712,7 +712,7 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
                 }
                 object->start = buf[offset++];
                 object->stop = buf[offset++];
-                object->count = object->stop - object->start + 1;
+                object->count = object->stop >= object->start ? object->stop - object->start + 1 : 0;
                 break;
             }
             case 0x01:
@@ -728,7 +728,7 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
                 offset += sizeof(uint16_t);
                 object->stop = DNP3_SWAP16(*(uint16_t *)(buf + offset));
                 offset += sizeof(uint16_t);
-                object->count = object->stop - object->start + 1;
+                object->count = object->stop >= object->start ? object->stop - object->start + 1 : 0;
                 break;
             }
             case 0x02:
@@ -744,7 +744,7 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
                 offset += sizeof(uint32_t);
                 object->stop = DNP3_SWAP32(*(uint32_t *)(buf + offset));
                 offset += sizeof(uint32_t);
-                object->count = object->stop - object->start + 1;
+                object->count = object->stop >= object->start ? object->stop - object->start + 1 : 0;
                 break;
             }
             case 0x06:
@@ -840,6 +840,9 @@ static void DNP3HandleUserDataRequest(DNP3State *dnp3, const uint8_t *input,
 
     lh = (DNP3LinkHeader *)input;
 
+    if (input_len <= sizeof(DNP3LinkHeader))
+        return;
+
     if (!DNP3CheckUserDataCRCs(input + sizeof(DNP3LinkHeader),
             input_len - sizeof(DNP3LinkHeader))) {
         return;
@@ -919,6 +922,9 @@ static void DNP3HandleUserDataRequest(DNP3State *dnp3, const uint8_t *input,
             break;
     }
 
+    if (tx->request_buffer_len < sizeof(DNP3ApplicationHeader))
+        return;
+
     if (DNP3DecodeApplicationObjects(
             tx, tx->request_buffer + sizeof(DNP3ApplicationHeader),
                 tx->request_buffer_len - sizeof(DNP3ApplicationHeader),
@@ -939,6 +945,9 @@ static void DNP3HandleUserDataResponse(DNP3State *dnp3, const uint8_t *input,
 
     lh = (DNP3LinkHeader *)input;
     offset += sizeof(DNP3LinkHeader);
+
+    if (input_len < offset)
+        return;
 
     if (!DNP3CheckUserDataCRCs(input + offset, input_len - offset)) {
         return;
@@ -1022,6 +1031,10 @@ static void DNP3HandleUserDataResponse(DNP3State *dnp3, const uint8_t *input,
     tx->response_done = 1;
 
     offset = sizeof(DNP3ApplicationHeader) + sizeof(DNP3InternalInd);
+
+    if (tx->response_buffer_len < offset)
+        return;
+
     if (DNP3DecodeApplicationObjects(tx, tx->response_buffer + offset,
             tx->response_buffer_len - offset,
             &tx->response_objects)) {
@@ -1060,7 +1073,7 @@ static int DNP3HandleRequestLinkLayer(DNP3State *dnp3, const uint8_t *input,
         }
 
         uint32_t frame_len = DNP3CalculateLinkLength(header->len);
-        if (frame_len == 0) {
+        if (frame_len < sizeof(DNP3LinkHeader)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto error;
         }
@@ -1199,7 +1212,7 @@ static int DNP3HandleResponseLinkLayer(DNP3State *dnp3, const uint8_t *input,
 
         /* Calculate the number of bytes needed to for this frame. */
         uint32_t frame_len = DNP3CalculateLinkLength(header->len);
-        if (frame_len == 0) {
+        if (frame_len < sizeof(DNP3LinkHeader)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto error;
         }
@@ -1687,7 +1700,7 @@ static void DNP3FixCrc(uint8_t *data, uint32_t len)
 {
     uint32_t block_size;
 
-    while (len) {
+    while (len > DNP3_CRC_LEN) {
         if (len >= DNP3_BLOCK_SIZE + DNP3_CRC_LEN) {
             block_size = DNP3_BLOCK_SIZE;
         } else {
