@@ -38,6 +38,7 @@ static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *, Signature *, 
 static void DetectTransformStripWhitespaceRegisterTests(void);
 
 static void TransformStripWhitespace(InspectionBuffer *buffer, void *options);
+static bool TransformStripWhitespaceValidate(const char *string, void *options);
 
 void DetectTransformStripWhitespaceRegister(void)
 {
@@ -48,6 +49,8 @@ void DetectTransformStripWhitespaceRegister(void)
         "/rules/transforms.html#strip-whitespace";
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].Transform =
         TransformStripWhitespace;
+    sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].TransformValidate =
+        TransformStripWhitespaceValidate;
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].Setup =
         DetectTransformStripWhitespaceSetup;
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].RegisterTests =
@@ -70,6 +73,16 @@ static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *de_ctx, Signatu
     SCEnter();
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_STRIP_WHITESPACE, NULL);
     SCReturnInt(r);
+}
+
+static bool TransformStripWhitespaceValidate(const char *string, void *options)
+{
+    while (string && *string) {
+        if (isspace(*string++)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 static void TransformStripWhitespace(InspectionBuffer *buffer, void *options)
