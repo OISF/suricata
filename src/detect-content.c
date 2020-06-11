@@ -335,6 +335,17 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
     int sm_list = s->init_data->list;
     if (sm_list == DETECT_SM_LIST_NOTSET) {
         sm_list = DETECT_SM_LIST_PMATCH;
+    } else if (sm_list > DETECT_SM_LIST_MAX &&
+            0 == (cd->flags & DETECT_CONTENT_NEGATED)) {
+        /* Check transform compatibility */
+        const char *tstr;
+        if (!DetectBufferTypeValidateTransform(de_ctx, sm_list, cd->content,
+                    cd->content_len, &tstr)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "content string \"%s\" incompatible with %s transform",
+                    contentstr, tstr);
+            goto error;
+        }
     }
 
     sm = SigMatchAlloc();
