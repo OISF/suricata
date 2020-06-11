@@ -634,6 +634,9 @@ static void PrintUsage(const char *progname)
     printf("\t--windivert <filter>                 : run in inline WinDivert mode\n");
     printf("\t--windivert-forward <filter>         : run in inline WinDivert mode, as a gateway\n");
 #endif
+#ifdef HAVE_LIBNET11
+    printf("\t--reject-dev <dev>                   : send reject packets from this interface\n");
+#endif
     printf("\t--set name=value                     : set a configuration value\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -1230,6 +1233,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"windivert", required_argument, 0, 0},
         {"windivert-forward", required_argument, 0, 0},
 #endif
+#ifdef HAVE_LIBNET11
+        {"reject-dev", required_argument, 0, 0},
+#endif
         {"set", required_argument, 0, 0},
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
@@ -1524,6 +1530,15 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 SCLogError(SC_ERR_WINDIVERT_NOSUPPORT,"WinDivert not enabled. Make sure to pass --enable-windivert to configure when building.");
                 return TM_ECODE_FAILED;
 #endif /* WINDIVERT */
+            } else if(strcmp((long_opts[option_index]).name, "reject-dev") == 0) {
+#ifdef HAVE_LIBNET11
+                extern char *g_reject_dev;
+                g_reject_dev = optarg;
+#else
+                SCLogError(SC_ERR_LIBNET_NOT_ENABLED,
+                        "Libnet 1.1 support not enabled. Compile Suricata with libnet support.");
+                return TM_ECODE_FAILED;
+#endif
             }
             else if (strcmp((long_opts[option_index]).name, "set") == 0) {
                 if (optarg != NULL) {

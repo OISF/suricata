@@ -44,15 +44,22 @@ int RejectSendIPv4ICMP(ThreadVars *, Packet *, void *);
 int RejectSendIPv6TCP(ThreadVars *, Packet *, void *);
 int RejectSendIPv6ICMP(ThreadVars *, Packet *, void *);
 static TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data);
+static TmEcode RespondRejectThreadDeinit(ThreadVars *tv, void *data);
 
 void TmModuleRespondRejectRegister (void)
 {
     tmm_modules[TMM_RESPONDREJECT].name = "RespondReject";
     tmm_modules[TMM_RESPONDREJECT].ThreadInit = NULL;
     tmm_modules[TMM_RESPONDREJECT].Func = RespondRejectFunc;
-    tmm_modules[TMM_RESPONDREJECT].ThreadDeinit = NULL;
+    tmm_modules[TMM_RESPONDREJECT].ThreadDeinit = RespondRejectThreadDeinit;
     tmm_modules[TMM_RESPONDREJECT].RegisterTests = NULL;
     tmm_modules[TMM_RESPONDREJECT].cap_flags = 0; /* libnet is not compat with caps */
+}
+
+static TmEcode RespondRejectThreadDeinit(ThreadVars *tv, void *data)
+{
+    FreeCachedCtx();
+    return TM_ECODE_OK;
 }
 
 static TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data)

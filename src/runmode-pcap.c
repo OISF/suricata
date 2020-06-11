@@ -221,7 +221,6 @@ static void *ParsePcapConfig(const char *iface)
         aconf->snaplen = snaplen;
     }
 
-
     return aconf;
 }
 
