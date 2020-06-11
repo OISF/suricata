@@ -31,4 +31,6 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *, Packet *, void *,int);
 int RejectSendLibnet11L3IPv6TCP(ThreadVars *, Packet *, void *,int);
 int RejectSendLibnet11L3IPv6ICMP(ThreadVars *, Packet *, void *,int);
 
+void FreeCachedCtx(void);
+
 #endif /* __RESPOND_REJECT_LIBNET11_H__ */
