@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -80,7 +80,6 @@ typedef struct Libnet11Packet_ {
 
 int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
-
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
@@ -103,7 +102,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     }
 
     if (p->tcph == NULL)
-       return 1;
+        return 1;
 
     /* save payload len */
     lpacket.dsize = p->payload_len;
@@ -216,7 +215,6 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.id = 0;
     lpacket.flow = 0;
     lpacket.class = 0;
-
     lpacket.len = (IPV4_GET_HLEN(p) + p->payload_len);
 
     if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
@@ -292,7 +290,6 @@ cleanup:
 
 int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
-
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
@@ -427,8 +424,6 @@ int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.id = 0;
     lpacket.flow = 0;
     lpacket.class = 0;
-
-
     lpacket.len = IPV6_GET_PLEN(p) + IPV6_HEADER_LEN;
 
     if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {

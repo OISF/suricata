@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,4 +30,5 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *, Packet *, void *,int);
 
 int RejectSendLibnet11L3IPv6TCP(ThreadVars *, Packet *, void *,int);
 int RejectSendLibnet11L3IPv6ICMP(ThreadVars *, Packet *, void *,int);
+
 #endif /* __RESPOND_REJECT_LIBNET11_H__ */
