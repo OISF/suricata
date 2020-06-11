@@ -96,13 +96,14 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
         devname = p->livedev->dev;
         SCLogDebug("Will emit reject packet on dev %s", devname);
     }
+
+    if (p->tcph == NULL)
+        return 1;
+
     if ((c = libnet_init(LIBNET_RAW4, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
         return 1;
     }
-
-    if (p->tcph == NULL)
-        return 1;
 
     /* save payload len */
     lpacket.dsize = p->payload_len;
@@ -305,13 +306,14 @@ int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
     }
+
+    if (p->tcph == NULL)
+       return 1;
+
     if ((c = libnet_init(LIBNET_RAW6, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
         return 1;
     }
-
-    if (p->tcph == NULL)
-       return 1;
 
     /* save payload len */
     lpacket.dsize = p->payload_len;
