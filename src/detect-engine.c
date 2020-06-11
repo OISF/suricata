@@ -1161,6 +1161,49 @@ void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_l
     }
 }
 
+/** \brief Check content byte array compatibility with transforms
+ *
+ *  The "content" array is presented to the transforms so that each
+ *  transform may validate that it's compatible with the transform.
+ *
+ *  When a transform indicates the byte array is incompatible, none of the
+ *  subsequent transforms, if any, are invoked. This means the first positive
+ *  validation result terminates the loop.
+ *
+ *  \param de_ctx Detection engine context.
+ *  \param sm_list The SM list id.
+ *  \param content The byte array being validated
+ *  \param namestr returns the name of the transform that is incompatible with
+ *  content.
+ *
+ *  \retval true (false) If any of the transforms indicate the byte array is
+ *  (is not) compatible.
+ **/
+bool DetectBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_list,
+        const uint8_t *content, uint16_t content_len, const char **namestr)
+{
+    const DetectBufferType *dbt = DetectBufferTypeGetById(de_ctx, sm_list);
+    BUG_ON(dbt == NULL);
+
+    for (int i = 0; i < dbt->transforms.cnt; i++) {
+        const TransformData *t = &dbt->transforms.transforms[i];
+        if (!sigmatch_table[t->transform].TransformValidate)
+            continue;
+
+        if (sigmatch_table[t->transform].TransformValidate(content, content_len, t->options)) {
+            continue;
+        }
+
+        if (namestr) {
+            *namestr = sigmatch_table[t->transform].name;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
 void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms)
 {
