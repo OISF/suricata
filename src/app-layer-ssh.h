@@ -25,9 +25,6 @@
 #ifndef __APP_LAYER_SSH_H__
 #define __APP_LAYER_SSH_H__
 
-void SSHEnableHassh(void);
-bool SSHHasshIsEnabled(void);
-
 void RegisterSSHParsers(void);
 void SSHParserRegisterTests(void);
 

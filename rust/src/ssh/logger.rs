@@ -43,7 +43,7 @@ fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
         }
         if tx.cli_hdr.hassh_string.len() > 0 {
             cjs.set_string_from_bytes(
-                "hassh_string",
+                "hassh.string",
                 &tx.cli_hdr.hassh_string,
             );
         }
@@ -63,13 +63,13 @@ fn log_ssh(tx: &SSHTransaction) -> Option<Json> {
         }
         if tx.srv_hdr.hassh.len() > 0 {
             sjs.set_string_from_bytes(
-                "hasshServer",
+                "hassh",
                 &tx.srv_hdr.hassh,
             );
         }
         if tx.srv_hdr.hassh_string.len() > 0 {
             sjs.set_string_from_bytes(
-                "hasshServer_string",
+                "hassh.string",
                 &tx.srv_hdr.hassh_string,
             );
         }

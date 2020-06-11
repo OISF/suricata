@@ -56,22 +56,6 @@
 /* HASSH fingerprints are disabled by default */
 #define SSH_CONFIG_DEFAULT_HASSH 0
 
-/**
- * \brief if not explicitly disabled in config, enable hassh support
- *
- * Implemented using atomic to allow rule reloads to do this at
- * runtime.
- */
-void SSHEnableHassh(void)
-{
-    rs_ssh_enable_hassh();
-}
-
-bool SSHHasshIsEnabled(void)
-{
-    return rs_ssh_hassh_is_enabled();
-}
-
 static int SSHRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SSH,
@@ -112,7 +96,7 @@ void RegisterSSHParsers(void)
         }
 
         if (RunmodeIsUnittests() || enable_hassh) {
-            SSHEnableHassh();
+            rs_ssh_enable_hassh();
         }
     }
 

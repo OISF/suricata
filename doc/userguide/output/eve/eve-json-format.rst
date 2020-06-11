@@ -995,14 +995,14 @@ Example of SSH logging:
     "client": {
         "proto_version": "2.0",
         "software_version": "OpenSSH_6.7",
-        "ssh.hassh": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
-        "ssh.hassh.string": "curve25519-sha256,diffie-hellman-group14-sha256,diffie-hellman-group14-sha1,ext-info-c",
+        "hassh": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
+        "hassh.string": "curve25519-sha256,diffie-hellman-group14-sha256,diffie-hellman-group14-sha1,ext-info-c",
      },
     "server": {
         "proto_version": "2.0",
         "software_version": "OpenSSH_6.7",
-        "ssh.hassh.server": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
-        "ssh.hassh.server.string": "curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256",
+        "hassh": "ec7378c1a92f5a8dde7e8b7a1ddf33d1",
+        "hassh.string": "curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256",
      }
   }
 

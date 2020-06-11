@@ -144,6 +144,7 @@ impl SSHState {
             (&mut self.transaction.srv_hdr, &self.transaction.cli_hdr)
         };
         let il = input.len();
+        println!("record = {:x?}", input);
         //first skip record left bytes
         if hdr.record_left > 0 {
             //should we check for overflow ?
@@ -161,6 +162,7 @@ impl SSHState {
         while input.len() > 0 {
             match parser::ssh_parse_record(input) {
                 Ok((rem, head)) => {
+                    println!("head = {}", head);
                     SCLogDebug!("SSH valid record {}", head);
                     match head.msg_code {
                         parser::MessageCode::SshMsgKexinit if HASSH_ENABLED.load(Ordering::Relaxed) => {
@@ -236,6 +238,7 @@ impl SSHState {
         } else {
             &mut self.transaction.srv_hdr
         };
+        println!("banner = {:x?}", input);
         if hdr.flags == SSHConnectionState::SshStateBannerWaitEol {
             match parser::ssh_parse_line(input) {
                 Ok((rem, _)) => {
@@ -540,7 +543,6 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         get_tx_detect_flags: Some(rs_ssh_get_tx_detect_flags),
         set_tx_detect_flags: Some(rs_ssh_set_tx_detect_flags),
     };
-    
     let ip_proto_str = CString::new("tcp").unwrap();
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
