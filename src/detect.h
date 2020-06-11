@@ -1182,6 +1182,7 @@ typedef struct SigTableElmt_ {
 
     /** InspectionBuffer transformation callback */
     void (*Transform)(InspectionBuffer *);
+    bool (*TransformValidate)(const uint8_t *content, uint16_t content_len);
 
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, const char *);
