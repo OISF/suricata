@@ -115,12 +115,14 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
 
         if (event_code < DECODE_EVENT_MAX) {
             const char *event = DEvents[event_code].event_name;
-            jb_set_string(js, "type",
-                                EVENT_IS_DECODER_PACKET_ERROR(event_code) ?
-                                    "decode" : "stream");
+            if (EVENT_IS_DECODER_PACKET_ERROR(event_code)) {
+                JB_SET_STRING(js, "type", "decode");
+            } else {
+                JB_SET_STRING(js, "type", "stream");
+            }
             jb_set_string(js, "event", event);
         } else {
-            jb_set_string(js, "type", "unknown");
+            JB_SET_STRING(js, "type", "unknown");
             jb_set_uint(js, "code", event_code);
         }
 
@@ -180,10 +182,10 @@ static int AnomalyAppLayerDecoderEventJson(JsonAnomalyLogThread *aft,
                                                event_code, &event_name, &event_type);
         }
         if (r == 0) {
-            jb_set_string(js, "type", "applayer");
+            JB_SET_STRING(js, "type", "applayer");
             jb_set_string(js, "event", event_name);
         } else {
-            jb_set_string(js, "type", "unknown");
+            JB_SET_STRING(js, "type", "unknown");
             jb_set_uint(js, "code", event_code);
         }
 
