@@ -1533,7 +1533,12 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else if(strcmp((long_opts[option_index]).name, "reject-dev") == 0) {
 #ifdef HAVE_LIBNET11
                 extern char *g_reject_dev;
+                extern uint16_t g_reject_dev_mtu;
                 g_reject_dev = optarg;
+                int mtu = GetIfaceMTU(g_reject_dev);
+                if (mtu > 0) {
+                    g_reject_dev_mtu = (uint16_t)mtu;
+                }
 #else
                 SCLogError(SC_ERR_LIBNET_NOT_ENABLED,
                         "Libnet 1.1 support not enabled. Compile Suricata with libnet support.");

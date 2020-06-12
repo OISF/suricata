@@ -59,6 +59,7 @@
 
 /* Globally configured device to use for sending resets in IDS mode. */
 const char *g_reject_dev = NULL;
+uint16_t g_reject_dev_mtu = 0;
 
 /** set to true in main if we're setting caps. We need it here if we're using
   * reject rules as libnet 1.1 is not compatible with caps. */
@@ -193,10 +194,8 @@ static inline int BuildTCP(libnet_t *c, Libnet11Packet *lpacket)
 
 static inline int BuildIPv4(libnet_t *c, Libnet11Packet *lpacket, const uint8_t proto)
 {
-    const int len = LIBNET_IPV4_H + lpacket->len +
-        ((proto == IPPROTO_TCP) ? LIBNET_TCP_H : LIBNET_ICMPV4_H);
     if ((libnet_build_ipv4(
-                    len,                          /* entire packet length */
+                    lpacket->len,                 /* entire packet length */
                     0,                            /* tos */
                     lpacket->id,                  /* ID */
                     0,                            /* fragmentation flags and offset */
@@ -218,12 +217,10 @@ static inline int BuildIPv4(libnet_t *c, Libnet11Packet *lpacket, const uint8_t 
 
 static inline int BuildIPv6(libnet_t *c, Libnet11Packet *lpacket, const uint8_t proto)
 {
-    const int len = lpacket->len +
-        ((proto == IPPROTO_TCP) ? LIBNET_TCP_H : LIBNET_ICMPV6_H);
     if ((libnet_build_ipv6(
                     lpacket->class,               /* traffic class */
                     lpacket->flow,                /* Flow label */
-                    len,                          /* payload length */
+                    lpacket->len,                 /* payload length */
                     proto,                        /* next header */
                     lpacket->ttl,                 /* TTL */
                     lpacket->src6,                /* source address */
@@ -254,6 +251,7 @@ static inline void SetupEthernet(Packet *p, Libnet11Packet *lpacket, int dir)
             abort();
     }
 }
+
 static inline int BuildEthernet(libnet_t *c, Libnet11Packet *lpacket, uint16_t proto)
 {
     if ((libnet_build_ethernet(lpacket->dmac,lpacket->smac, proto , NULL, 0, c, 0)) < 0) {
@@ -281,7 +279,7 @@ int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     if (c == NULL)
         return 1;
 
-    /* save payload len */
+    lpacket.len = LIBNET_IPV4_H + LIBNET_TCP_H;
     lpacket.dsize = p->payload_len;
 
     switch (dir) {
@@ -332,7 +330,13 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.id = 0;
     lpacket.flow = 0;
     lpacket.class = 0;
-    lpacket.len = (IPV4_GET_HLEN(p) + p->payload_len);
+    const int iplen = IPV4_GET_IPLEN(p);
+    if (g_reject_dev_mtu >= ETHERNET_HEADER_LEN + LIBNET_IPV4_H + 8) {
+        lpacket.len = MIN(g_reject_dev_mtu - ETHERNET_HEADER_LEN, (LIBNET_IPV4_H + iplen));
+    } else {
+        lpacket.len = LIBNET_IPV4_H + MIN(8,iplen); // 8 bytes is the minimum we have to attach
+    }
+    lpacket.dsize = lpacket.len - (LIBNET_IPV4_H + LIBNET_ICMPV4_H);
 
     libnet_t *c = GetCtx(p, LIBNET_RAW4);
     if (c == NULL)
@@ -362,7 +366,7 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
                     ICMP_HOST_ANO,            /* code */
                     0,                        /* checksum */
                     (uint8_t *)p->ip4h,       /* payload */
-                    lpacket.len,              /* payload length */
+                    lpacket.dsize,            /* payload length */
                     c,                        /* libnet context */
                     0)) < 0)                  /* libnet ptag */
     {
@@ -408,7 +412,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     if (c == NULL)
         return 1;
 
-    /* save payload len */
+    lpacket.len = LIBNET_IPV6_H + LIBNET_TCP_H;
     lpacket.dsize = p->payload_len;
 
     switch (dir) {
@@ -459,7 +463,13 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.id = 0;
     lpacket.flow = 0;
     lpacket.class = 0;
-    lpacket.len = IPV6_GET_PLEN(p) + IPV6_HEADER_LEN;
+    const int iplen = IPV6_GET_PLEN(p);
+    if (g_reject_dev_mtu >= ETHERNET_HEADER_LEN + IPV6_HEADER_LEN + 8) {
+        lpacket.len = IPV6_HEADER_LEN + MIN(g_reject_dev_mtu - ETHERNET_HEADER_LEN, iplen);
+    } else {
+        lpacket.len = IPV6_HEADER_LEN + MIN(8, iplen);
+    }
+    lpacket.dsize = lpacket.len - LIBNET_ICMPV6_H;
 
     libnet_t *c = GetCtx(p, LIBNET_RAW6);
     if (c == NULL)
@@ -489,7 +499,7 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
                     ICMP6_DST_UNREACH_ADMIN,  /* code */
                     0,                        /* checksum */
                     (uint8_t *)p->ip6h,       /* payload */
-                    lpacket.len,              /* payload length */
+                    lpacket.dsize,            /* payload length */
                     c,                        /* libnet context */
                     0)) < 0)                  /* libnet ptag */
     {
@@ -497,7 +507,7 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
         goto cleanup;
     }
 
-    if (BuildIPv6(c, &lpacket, IPPROTO_ICMP) < 0)
+    if (BuildIPv6(c, &lpacket, IPPROTO_ICMPV6) < 0)
         goto cleanup;
 
     if (t_inject_mode == LIBNET_LINK) {
