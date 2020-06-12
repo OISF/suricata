@@ -63,6 +63,7 @@
 #include "util-lua-ja3.h"
 #include "util-lua-tls.h"
 #include "util-lua-ssh.h"
+#include "util-lua-hassh.h"
 #include "util-lua-smtp.h"
 
 #define MODULE_NAME "LuaLog"
@@ -637,6 +638,7 @@ static lua_State *LuaScriptSetup(const char *filename)
     LuaRegisterJa3Functions(luastate);
     LuaRegisterTlsFunctions(luastate);
     LuaRegisterSshFunctions(luastate);
+    LuaRegisterHasshFunctions(luastate);
     LuaRegisterSmtpFunctions(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
@@ -823,8 +825,8 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
         } else if (opts.alproto == ALPROTO_SSH) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_SSH;
-            om->tc_log_progress = SshStateBannerDone;
-            om->ts_log_progress = SshStateBannerDone;
+            om->tc_log_progress = SshStateFinished;
+            om->ts_log_progress = SshStateFinished;
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
         } else if (opts.alproto == ALPROTO_SMTP) {
             om->TxLogFunc = LuaTxLogger;
