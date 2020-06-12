@@ -2037,7 +2037,7 @@ Example:
 ::
 
   [10703] 26/11/2010 -- 11:41:15 - (detect.c:560) <Info> (SigLoadSignatures)
-  -- Engine-Analyis for fast_pattern printed to file - /var/log/suricata/rules_fast_pattern.txt
+  -- Engine-Analysis for fast_pattern printed to file - /var/log/suricata/rules_fast_pattern.txt
 
   == Sid: 1292 ==
   Fast pattern matcher: content
