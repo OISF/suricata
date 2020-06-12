@@ -228,13 +228,13 @@ void JsonSshLogRegister (void)
     OutputRegisterTxModuleWithProgress(LOGGER_JSON_SSH,
         "JsonSshLog", "ssh-json-log",
         OutputSshLogInit, ALPROTO_SSH, JsonSshLogger,
-        SshStateBannerDone, SshStateBannerDone,
+        SshStateFinished, SshStateFinished,
         JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_SSH,
         "eve-log", "JsonSshLog", "eve-log.ssh",
         OutputSshLogInitSub, ALPROTO_SSH, JsonSshLogger,
-        SshStateBannerDone, SshStateBannerDone,
+        SshStateFinished, SshStateFinished,
         JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
 }
