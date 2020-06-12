@@ -252,11 +252,11 @@ static void EveFlowLogJSON(JsonFlowLogThread *aft, JsonBuilder *jb, Flow *f)
         int flow_state = SC_ATOMIC_GET(f->flow_state);
         switch (flow_state) {
             case FLOW_STATE_LOCAL_BYPASSED:
-                jb_set_string(jb, "bypass", "local");
+                JB_SET_STRING(jb, "bypass", "local");
                 break;
 #ifdef CAPTURE_OFFLOAD
             case FLOW_STATE_CAPTURE_BYPASSED:
-                jb_set_string(jb, "bypass", "capture");
+                JB_SET_STRING(jb, "bypass", "capture");
                 break;
 #endif
             default:
