@@ -62,6 +62,10 @@ static TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data)
         return TM_ECODE_OK;
     }
 
+    if (IS_TUNNEL_PKT(p)) {
+        return TM_ECODE_OK;
+    }
+
     if (PKT_IS_IPV4(p)) {
         if (PKT_IS_TCP(p)) {
             (void)RejectSendIPv4TCP(tv, p, data);
