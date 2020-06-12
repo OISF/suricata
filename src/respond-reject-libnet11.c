@@ -263,7 +263,7 @@ static inline int BuildEthernet(libnet_t *c, Libnet11Packet *lpacket, uint16_t p
     return 0;
 }
 
-int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
     Libnet11Packet lpacket;
     int result;
@@ -322,7 +322,7 @@ cleanup:
     return 0;
 }
 
-int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
     Libnet11Packet lpacket;
     int result;
@@ -390,7 +390,7 @@ cleanup:
     return 0;
 }
 
-int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
     Libnet11Packet lpacket;
     int result;
@@ -449,7 +449,7 @@ cleanup:
 }
 
 #ifdef HAVE_LIBNET_ICMPV6_UNREACH
-int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
     Libnet11Packet lpacket;
     int result;
@@ -519,7 +519,7 @@ cleanup:
 
 #else /* HAVE_LIBNET_ICMPV6_UNREACH */
 
-int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet ICMPv6 based rejects are disabled."
                 "Usually this means that you don't have a patched libnet installed,"
@@ -531,7 +531,7 @@ int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
 #else
 
-int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -539,7 +539,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -547,7 +547,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -555,7 +555,7 @@ int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
