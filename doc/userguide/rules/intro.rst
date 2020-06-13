@@ -88,11 +88,16 @@ you can pick from. These are:
 * modbus (disabled by default)
 * dnp3 (disabled by default)
 * enip (disabled by default)
-* nfs (depends on rust availability)
-* ikev2 (depends on rust availability)
-* krb5 (depends on rust availability)
-* ntp (depends on rust availability)
-* dhcp (depends on rust availability)
+* nfs
+* ikev2
+* krb5
+* ntp
+* dhcp
+* rfb
+* rdp
+* snmp
+* tftp
+* sip
 
 The availability of these protocols depends on whether the protocol is enabled in the configuration file suricata.yaml.
 
