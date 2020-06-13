@@ -261,6 +261,22 @@ static inline int BuildEthernet(libnet_t *c, Libnet11Packet *lpacket, uint16_t p
     return 0;
 }
 
+static inline int BuildEthernetVLAN(libnet_t *c, Libnet11Packet *lpacket, uint16_t proto, uint16_t vlan_id)
+{
+    if (libnet_build_802_1q(
+                lpacket->dmac, lpacket->smac, ETHERTYPE_VLAN,
+                0x000, 0x000, vlan_id, proto,
+                NULL,                                   /* payload */
+                0,                                      /* payload size */
+                c,                                      /* libnet handle */
+                0) < 0)
+    {
+        SCLogError(SC_ERR_LIBNET_BUILD_FAILED,"libnet_build_802_1q %s", libnet_geterror(c));
+        return -1;
+    }
+    return 0;
+}
+
 int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
 {
     Libnet11Packet lpacket;
@@ -305,8 +321,14 @@ int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
 
     if (t_inject_mode == LIBNET_LINK) {
         SetupEthernet(p, &lpacket, dir);
-        if (BuildEthernet(c, &lpacket, ETHERNET_TYPE_IP) < 0)
-            goto cleanup;
+
+        if (p->vlan_idx == 1) {
+            if (BuildEthernetVLAN(c, &lpacket, ETHERNET_TYPE_IP, p->vlan_id[0]) < 0)
+                goto cleanup;
+        } else {
+            if (BuildEthernet(c, &lpacket, ETHERNET_TYPE_IP) < 0)
+                goto cleanup;
+        }
     }
 
     result = libnet_write(c);
@@ -379,8 +401,14 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
     if (t_inject_mode == LIBNET_LINK) {
         SetupEthernet(p, &lpacket, dir);
-        if (BuildEthernet(c, &lpacket, ETHERNET_TYPE_IP) < 0)
-            goto cleanup;
+
+        if (p->vlan_idx == 1) {
+            if (BuildEthernetVLAN(c, &lpacket, ETHERNET_TYPE_IP, p->vlan_id[0]) < 0)
+                goto cleanup;
+        } else {
+            if (BuildEthernet(c, &lpacket, ETHERNET_TYPE_IP) < 0)
+                goto cleanup;
+        }
     }
 
     result = libnet_write(c);
@@ -437,8 +465,13 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
 
     if (t_inject_mode == LIBNET_LINK) {
         SetupEthernet(p, &lpacket, dir);
-        if (BuildEthernet(c, &lpacket, ETHERNET_TYPE_IPV6) < 0)
-            goto cleanup;
+        if (p->vlan_idx == 1) {
+            if (BuildEthernetVLAN(c, &lpacket, ETHERNET_TYPE_IPV6, p->vlan_id[0]) < 0)
+                goto cleanup;
+        } else {
+            if (BuildEthernet(c, &lpacket, ETHERNET_TYPE_IPV6) < 0)
+                goto cleanup;
+        }
     }
 
     result = libnet_write(c);
@@ -512,8 +545,13 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
     if (t_inject_mode == LIBNET_LINK) {
         SetupEthernet(p, &lpacket, dir);
-        if (BuildEthernet(c, &lpacket, ETHERNET_TYPE_IPV6) < 0)
-            goto cleanup;
+        if (p->vlan_idx == 1) {
+            if (BuildEthernetVLAN(c, &lpacket, ETHERNET_TYPE_IPV6, p->vlan_id[0]) < 0)
+                goto cleanup;
+        } else {
+            if (BuildEthernet(c, &lpacket, ETHERNET_TYPE_IPV6) < 0)
+                goto cleanup;
+        }
     }
 
     result = libnet_write(c);
