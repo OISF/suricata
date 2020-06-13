@@ -203,6 +203,11 @@
    *filename* provided in the *unix-command* section of the
    configuration file.
 
+.. option:: --reject-dev=<device>
+
+   Use *device* to send out RST / ICMP error packets with
+   the *reject* keyword.
+
 .. Advanced input options.
 
 .. option:: --pcap-buffer-size=<size>
