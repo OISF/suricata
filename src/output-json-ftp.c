@@ -59,7 +59,7 @@ typedef struct LogFTPLogThread_ {
     MemBuffer          *buffer;
 } LogFTPLogThread;
 
-static void JsonFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
+static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
 {
     /* Preallocate array objects to simplify failure case */
     JsonBuilder *js_resplist = NULL;
@@ -175,9 +175,9 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
         EveAddCommonOptions(&ftp_ctx->cfg, p, f, jb);
         jb_open_object(jb, event_type);
         if (f->alproto == ALPROTO_FTPDATA) {
-            JsonFTPDataAddMetadata(f, jb);
+            EveFTPDataAddMetadata(f, jb);
         } else {
-            JsonFTPLogCommand(f, tx, jb);
+            EveFTPLogCommand(f, tx, jb);
         }
 
         if (!jb_close(jb)) {
