@@ -549,7 +549,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     break;
                 }
                 case ALPROTO_FTPDATA:
-                    JsonFTPDataAddMetadata(p->flow, jb);
+                    EveFTPDataAddMetadata(p->flow, jb);
                     break;
                 case ALPROTO_DNP3:
                     AlertJsonDnp3(p->flow, pa->tx_id, jb);

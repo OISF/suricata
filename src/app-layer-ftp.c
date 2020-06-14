@@ -1438,7 +1438,7 @@ uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
     return c == NULL ? len : c - buffer + 1;
 }
 
-void JsonFTPDataAddMetadata(const Flow *f, JsonBuilder *jb)
+void EveFTPDataAddMetadata(const Flow *f, JsonBuilder *jb)
 {
     const FtpDataState *ftp_state = NULL;
     if (f->alstate == NULL)
