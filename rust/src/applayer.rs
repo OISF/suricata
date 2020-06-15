@@ -52,7 +52,7 @@ impl AppLayerTxConfig {
 #[derive(Debug,PartialEq)]
 pub struct AppLayerTxData {
     /// config: log flags
-    config: AppLayerTxConfig,
+    pub config: AppLayerTxConfig,
 
     /// logger flags for tx logging api
     logged: LoggerFlags,
