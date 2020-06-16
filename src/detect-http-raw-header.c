@@ -186,7 +186,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             tx_ud->request_headers_raw : tx_ud->response_headers_raw;
         if (data == NULL)
             return NULL;
-        const uint8_t data_len = ts ?
+        const uint32_t data_len = ts ?
             tx_ud->request_headers_raw_len : tx_ud->response_headers_raw_len;
 
         InspectionBufferSetup(buffer, data, data_len);
