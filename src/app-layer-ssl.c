@@ -1548,6 +1548,9 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
             return -1;
         }
+        // Safety check against integer underflow
+        DEBUG_VALIDATE_BUG_ON(ssl_state->curr_connp->record_length + SSLV3_RECORD_HDR_LEN <
+                              ssl_state->curr_connp->bytes_processed);
         write_len = (ssl_state->curr_connp->record_length +
                 SSLV3_RECORD_HDR_LEN) - ssl_state->curr_connp->bytes_processed;
     } else {
@@ -2289,7 +2292,9 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) {
                 /* In TLSv1.3, ChangeCipherSpec is only used for middlebox
                    compability (rfc8446, appendix D.4). */
-                if ((ssl_state->client_connp.version > TLS_VERSION_12) &&
+                // Client hello flags is needed to have a valid version
+                if ((ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+                    (ssl_state->client_connp.version > TLS_VERSION_12) &&
                        ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0)) {
                     /* do nothing */
                 } else {
