@@ -559,7 +559,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state,
     FtpState *state = (FtpState *)ftp_state;
     void *ptmp;
 
-    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) {
         SCReturnStruct(APP_LAYER_OK);
     } else if (input == NULL || input_len == 0) {
         SCReturnStruct(APP_LAYER_ERROR);
@@ -1113,7 +1113,10 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         }
     }
 
-    if (input_len && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+    const bool eof_flag = flags & STREAM_TOSERVER ?
+        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) != 0 :
+        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) != 0;
+    if (input_len && eof_flag) {
         ret = FileCloseFile(ftpdata_state->files, (uint8_t *) NULL, 0, flags);
         ftpdata_state->state = FTPDATA_STATE_FINISHED;
     }

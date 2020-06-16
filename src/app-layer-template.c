@@ -246,7 +246,7 @@ static AppLayerResult TemplateParseRequest(Flow *f, void *statev,
     SCLogNotice("Parsing template request: len=%"PRIu32, input_len);
 
     if (input == NULL) {
-        if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) {
             /* This is a signal that the stream is done. Do any
              * cleanup if needed. Usually nothing is required here. */
             SCReturnStruct(APP_LAYER_OK);
@@ -322,7 +322,7 @@ static AppLayerResult TemplateParseResponse(Flow *f, void *statev, AppLayerParse
 
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
-        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)) {
         SCReturnStruct(APP_LAYER_OK);
     }
 

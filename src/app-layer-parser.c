@@ -1160,6 +1160,17 @@ void AppLayerParserApplyTxConfig(uint8_t ipproto, AppProto alproto,
 
 /***** General *****/
 
+static inline void SetEOFFlags(AppLayerParserState *pstate, const uint8_t flags)
+{
+    if ((flags & (STREAM_EOF|STREAM_TOSERVER)) == (STREAM_EOF|STREAM_TOSERVER)) {
+        SCLogDebug("setting APP_LAYER_PARSER_EOF_TS");
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF_TS);
+    } else if ((flags & (STREAM_EOF|STREAM_TOCLIENT)) == (STREAM_EOF|STREAM_TOCLIENT)) {
+        SCLogDebug("setting APP_LAYER_PARSER_EOF_TC");
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF_TC);
+    }
+}
+
 /** \retval int -1 in case of unrecoverable error. App-layer tracking stops for this flow.
  *  \retval int 0 ok: we did not update app_progress
  *  \retval int 1 ok: we updated app_progress */
@@ -1199,8 +1210,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
             goto error;
     }
 
-    if (flags & STREAM_EOF)
-        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF);
+    SetEOFFlags(pstate, flags);
 
     alstate = f->alstate;
     if (alstate == NULL) {
@@ -1333,7 +1343,7 @@ void AppLayerParserSetEOF(AppLayerParserState *pstate)
     if (pstate == NULL)
         goto end;
 
-    AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF);
+    AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF_TS|APP_LAYER_PARSER_EOF_TC);
 
  end:
     SCReturn;

@@ -2501,7 +2501,8 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
     ssl_state->f = f;
 
     if (input == NULL &&
-            AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+            ((direction == 0 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
+             (direction == 1 && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
         /* flag session as finished if APP_LAYER_PARSER_EOF is set */
         ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
         SCReturnStruct(APP_LAYER_OK);
@@ -2606,7 +2607,8 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLa
     }
 
     /* flag session as finished if APP_LAYER_PARSER_EOF is set */
-    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) &&
+        AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)) {
         SCLogDebug("SSL_AL_FLAG_STATE_FINISHED");
         ssl_state->flags |= SSL_AL_FLAG_STATE_FINISHED;
     }
