@@ -248,8 +248,6 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     memset(&p->ts, 0, sizeof(struct timeval));
     TimeGet(&p->ts);
 
-    AppLayerParserSetEOF(f->alparser);
-
     return p;
 
 error:

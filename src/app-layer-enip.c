@@ -327,7 +327,7 @@ static AppLayerResult ENIPParse(Flow *f, void *state, AppLayerParserState *pstat
     ENIPTransaction *tx;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate,
-            APP_LAYER_PARSER_EOF))
+            APP_LAYER_PARSER_EOF_TS|APP_LAYER_PARSER_EOF_TC))
     {
         SCReturnStruct(APP_LAYER_OK);
     } else if (input == NULL && input_len != 0) {

@@ -897,7 +897,7 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state,
     }
 
     /* if the TCP connection is closed, then close the HTTP connection */
-    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) &&
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) &&
         !(hstate->flags & HTP_FLAG_STATE_CLOSED_TS))
     {
         htp_connp_req_close(hstate->connp, &ts);
@@ -960,7 +960,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state,
     }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
-    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) &&
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) &&
         !(hstate->flags & HTP_FLAG_STATE_CLOSED_TC))
     {
         htp_connp_close(hstate->connp, &ts);

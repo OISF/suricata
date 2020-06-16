@@ -125,7 +125,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alnext - albuffer);
             free(isolatedBuffer);
             flags &= ~(STREAM_START);
-            if (f->alparser && AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF)) {
+            if (f->alparser &&
+                   (((flags & STREAM_TOSERVER) != 0 &&
+                     AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS)) ||
+                    ((flags & STREAM_TOCLIENT) != 0 &&
+                     AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC)))) {
                 //no final chunk
                 alsize = 0;
                 break;
