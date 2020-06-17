@@ -244,6 +244,9 @@ int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const char *s
     if (ret <= 0) {
         return ret;
     }
+    if (i64 > UINT32_MAX) {
+        return -1;
+    }
 
     *res = (uint32_t)i64;
 
@@ -264,6 +267,9 @@ int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *s
     if (ret <= 0) {
         return ret;
     }
+    if (i64 > UINT16_MAX) {
+        return -1;
+    }
 
     *res = (uint16_t)i64;
 
@@ -283,6 +289,9 @@ int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str
     int ret = ByteExtractString(&i64, base, len, str, false);
     if (ret <= 0) {
         return ret;
+    }
+    if (i64 > UINT8_MAX) {
+        return -1;
     }
 
     *res = (uint8_t)i64;
@@ -309,6 +318,9 @@ int StringParseUint32(uint32_t *res, int base, uint16_t len, const char *str)
     if (ret <= 0) {
         return ret;
     }
+    if (i64 > UINT32_MAX) {
+        return -1;
+    }
 
     *res = (uint32_t)i64;
 
@@ -329,6 +341,9 @@ int StringParseUint16(uint16_t *res, int base, uint16_t len, const char *str)
     if (ret <= 0) {
         return ret;
     }
+    if (i64 > UINT16_MAX) {
+        return -1;
+    }
 
     *res = (uint16_t)i64;
 
@@ -348,6 +363,9 @@ int StringParseUint8(uint8_t *res, int base, uint16_t len, const char *str)
     int ret = ByteExtractString(&i64, base, len, str, true);
     if (ret <= 0) {
         return ret;
+    }
+    if (i64 > UINT8_MAX) {
+        return -1;
     }
 
     *res = (uint8_t)i64;
@@ -389,6 +407,9 @@ int StringParseU32RangeCheck(uint32_t *res, int base, uint16_t len, const char *
     if (ret <= 0) {
         return ret;
     }
+    if (u64 > UINT32_MAX) {
+        return -1;
+    }
 
     *res = (uint32_t)u64;
 
@@ -414,6 +435,9 @@ int StringParseU16RangeCheck(uint16_t *res, int base, uint16_t len, const char *
     if (ret <= 0) {
         return ret;
     }
+    if (u64 > UINT16_MAX) {
+        return -1;
+    }
 
     *res = (uint16_t)u64;
 
@@ -438,6 +462,9 @@ int StringParseU8RangeCheck(uint8_t *res, int base, uint16_t len, const char *st
     int ret = ByteExtractString(&u64, base, len, str, true);
     if (ret <= 0) {
         return ret;
+    }
+    if (u64 > UINT8_MAX) {
+        return -1;
     }
 
     *res = (uint8_t)u64;
@@ -515,6 +542,9 @@ int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const char *str
     if (ret <= 0) {
         return ret;
     }
+    if (i64 < INT32_MIN || i64 > INT32_MAX) {
+        return -1;
+    }
 
     *res = (int32_t)i64;
 
@@ -536,6 +566,9 @@ int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const char *str
     if (ret <= 0) {
         return ret;
     }
+    if (i64 < INT16_MIN || i64 > INT16_MAX) {
+        return -1;
+    }
 
     *res = (int16_t)i64;
 
@@ -556,6 +589,9 @@ int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char *str)
     ret = ByteExtractStringSigned(&i64, base, len, str, false);
     if (ret <= 0) {
         return ret;
+    }
+    if (i64 < INT8_MIN || i64 > INT8_MAX) {
+        return -1;
     }
 
     *res = (int8_t)i64;
@@ -583,6 +619,9 @@ int StringParseInt32(int32_t *res, int base, uint16_t len, const char *str)
     if (ret <= 0) {
         return ret;
     }
+    if (i64 < INT32_MIN || i64 > INT32_MAX) {
+        return -1;
+    }
 
     *res = (int32_t)i64;
 
@@ -604,6 +643,9 @@ int StringParseInt16(int16_t *res, int base, uint16_t len, const char *str)
     if (ret <= 0) {
         return ret;
     }
+    if (i64 < INT16_MIN || i64 > INT16_MAX) {
+        return -1;
+    }
 
     *res = (int16_t)i64;
 
@@ -624,6 +666,9 @@ int StringParseInt8(int8_t *res, int base, uint16_t len, const char *str)
     ret = ByteExtractStringSigned(&i64, base, len, str, true);
     if (ret <= 0) {
         return ret;
+    }
+    if (i64 < INT8_MIN || i64 > INT8_MAX) {
+        return -1;
     }
 
     *res = (int8_t)i64;
@@ -666,6 +711,9 @@ int StringParseI32RangeCheck(int32_t *res, int base, uint16_t len, const char *s
     if (ret <= 0) {
         return ret;
     }
+    if (i64 < INT32_MIN || i64 > INT32_MAX) {
+        return -1;
+    }
 
     *res = (int32_t)i64;
 
@@ -692,6 +740,9 @@ int StringParseI16RangeCheck(int16_t *res, int base, uint16_t len, const char *s
     if (ret <= 0) {
         return ret;
     }
+    if (i64 < INT16_MIN || i64 > INT16_MAX) {
+        return -1;
+    }
 
     *res = (int16_t)i64;
 
@@ -717,6 +768,9 @@ int StringParseI8RangeCheck(int8_t *res, int base, uint16_t len, const char *str
     ret = ByteExtractStringSigned(&i64, base, len, str, true);
     if (ret <= 0) {
         return ret;
+    }
+    if (i64 < INT8_MIN || i64 > INT8_MAX) {
+        return -1;
     }
 
     *res = (int8_t)i64;
