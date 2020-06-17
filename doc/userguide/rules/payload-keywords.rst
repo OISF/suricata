@@ -439,7 +439,37 @@ The ``byte_extract`` keyword extracts ``<num of bytes>`` at a particular ``<offs
 
 Format::
 
-  byte_extract:<num of bytes>, <offset>, <var_name>, [, relative];
+  byte_extract:<num of bytes>, <offset>, <var_name>, [,relative] [,multiplier <mult-value>] \
+        [,<endian>] [, dce] [, string [, <num_type>] [, align <align-value];
+
+
++--------------------+--------------------------------------------------------------------------+
+| <num of bytes>     | The number of bytes selected from the packet to be extracted		|
++--------------------+--------------------------------------------------------------------------+
+| <offset>	     | Number of bytes into the payload						|
++--------------------+--------------------------------------------------------------------------+
+| <var_name>	     | The name of the variable in which to store the value			|
++--------------------+--------------------------------------------------------------------------+
+| [relative]	     | Offset relative to last content match					|
++--------------------+--------------------------------------------------------------------------+
+| multiplier <value> | multiply the extracted bytes by <mult-value> before storing      	|
++--------------------+--------------------------------------------------------------------------+
+| [endian]	     | Type of number being read:						|
+|		     | - big (Most significant byte at lowest address)				|
+|		     | - little (Most significant byte at the highest address)			|
++--------------------+--------------------------------------------------------------------------+
+| [string] <num>     | 										|
+|		     | - hex - Converted string represented in hex				|
+|		     | - dec - Converted string represented in decimal				|
+|		     | - oct - Converted string represented in octal				|
++--------------------+--------------------------------------------------------------------------+
+| [dce]		     | Allow the DCE module determine the byte order 				|
++--------------------+--------------------------------------------------------------------------+
+| align <align-value>| Round the extracted value up to the next 				|
+|                    | next <align-value> byte boundary post-multiplication (if any)            |
+|                    | ; <align-value> may be 2 or 4                                            |
++--------------------+--------------------------------------------------------------------------+
+
 
 ==============	==================================
  Keyword	Modifier 
