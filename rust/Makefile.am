@@ -1,7 +1,7 @@
 EXTRA_DIST =	src \
 		.cargo/config.in \
 		cbindgen.toml \
-		gen/rust-bindings.h
+		dist/rust-bindings.h
 
 if HAVE_CARGO_VENDOR
 EXTRA_DIST +=	vendor
@@ -28,10 +28,6 @@ RUST_TARGET = --target $(host_triplet)
 endif
 
 all-local:
-if HAVE_CBINDGEN
-	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
-		--quiet --output $(abs_top_builddir)/rust/gen/rust-bindings.h
-endif
 if HAVE_CYGPATH
 	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
@@ -45,11 +41,12 @@ else
 		$(CARGO) build $(RELEASE) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
+	$(MAKE) gen/rust-bindings.h
 
 clean-local:
 	rm -rf target
 if HAVE_CBINDGEN
-	rm -rf gen
+	rm -rf gen dist
 endif
 
 distclean-local:
@@ -70,11 +67,19 @@ else
 vendor:
 endif
 
-# Can only include the headers if we have Python to generate them.
 if HAVE_CBINDGEN
-gen/rust-bindings.h:
+gen/rust-bindings.h: $(RUST_SURICATA_LIB)
+	rm -f gen/rust-bindings.h
 	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
 		--quiet --output $(abs_top_builddir)/rust/gen/rust-bindings.h
 else
 gen/rust-bindings.h:
+endif
+
+if HAVE_CBINDGEN
+dist/rust-bindings.h:
+	cbindgen --config $(abs_top_srcdir)/rust/cbindgen.toml \
+		--quiet --output $(abs_top_builddir)/rust/dist/rust-bindings.h
+else
+dist/rust-bindings.h:
 endif

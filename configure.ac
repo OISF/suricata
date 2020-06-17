@@ -2502,7 +2502,7 @@ fi
     fi
 
     RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
-    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen"
+    CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen -I\${srcdir}/../rust/dist"
     AC_SUBST(RUST_SURICATA_LIB)
     AC_SUBST(RUST_LDADD)
     if test "x$CARGO_HOME" = "x"; then
@@ -2561,7 +2561,7 @@ fi
         have_cargo_vendor=$have_cargo_vendor_bin
     fi
 
-    AC_CHECK_FILES([$srcdir/rust/gen], [have_rust_headers="yes"])
+    AC_CHECK_FILES([$srcdir/rust/dist $srcdir/rust/gen], [have_rust_headers="yes"])
     AC_PATH_PROG(CBINDGEN, cbindgen, "no")
     if test "x$CBINDGEN" != "xno"; then
       cbindgen_version=$(cbindgen --version | cut -d' ' -f2-)
@@ -2579,6 +2579,8 @@ fi
         have_rust_headers="no"
       fi
     fi
+
+    AC_SUBST([CBINDGEN], [$CBINDGEN])
 
     # Require cbindgen if generated headers are not bundled.
     if test "x$have_rust_headers" != "xyes"; then
