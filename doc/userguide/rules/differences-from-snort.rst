@@ -550,7 +550,7 @@ Fast Pattern
 -  Using Hyperscan as the MPM matcher (``mpm-algo`` setting) for Suricata
    can greatly improve performance, especially when it comes to fast pattern
    matching.  Hyperscan will also take in to account depth and offset
-   when doing fast pattern matching, something the other algorithims and
+   when doing fast pattern matching, something the other algorithms and
    Snort do not do.
 
 -  :ref:`rules-keyword-fast_pattern`

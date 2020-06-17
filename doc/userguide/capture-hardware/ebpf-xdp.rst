@@ -229,7 +229,7 @@ With any logic implemented in the eBPF filter. The value returned by the functio
 tagged with the ``loadbalancer`` section is used with a modulo on the CPU count to know in
 which socket the packet has to be send.
 
-An implementation of a simple symetric IP pair hashing function is provided in the ``lb.bpf``
+An implementation of a simple symmetric IP pair hashing function is provided in the ``lb.bpf``
 file.
 
 Copy the resulting eBPF filter as needed ::

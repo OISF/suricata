@@ -175,7 +175,7 @@ HttpGetRequestBody and HttpGetResponseBody.
 Make normalized body data available to the script through
 HttpGetRequestBody and HttpGetResponseBody.
 
-There no guarantees that all of the body will be availble.
+There no guarantees that all of the body will be available.
 
 Example:
 
@@ -798,7 +798,7 @@ init function:
  end
 
 Here we define a `tls-cnt` Flowint that can now be used in output or in a
-signature via dedicted functions. The access to the Flow variable is done by
+signature via dedicated functions. The access to the Flow variable is done by
 index so in our case we need to use 0.
 
 ::

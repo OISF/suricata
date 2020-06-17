@@ -2,7 +2,7 @@ Lua usage in Suricata
 =====================
 
 Lua scripting can be used in two components of Suricata. The first is in
-output an the second one in rules in the detection engine.
+output and the second one in rules in the detection engine.
 
 Both features are using a list of functions to access to data extracted by
 Suricata. You can get the list of functions in the :ref:`lua-functions` page.

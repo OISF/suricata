@@ -21,7 +21,7 @@ this means passing the same ``--prefix``, ``--sysconfdir``,
 Configuration Updates
 ~~~~~~~~~~~~~~~~~~~~~
 
-New versions of Suricata will occationally include updated config files:
+New versions of Suricata will occasionally include updated config files:
 ``classification.config`` and ``reference.config``. Since the Suricata
 installation will not overwrite these if they exist, they should be manually
 updated. If there are no local modifications they can simply be overwritten
