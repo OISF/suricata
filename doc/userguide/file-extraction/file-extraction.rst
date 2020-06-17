@@ -98,7 +98,7 @@ stored file to be closed and ``<ID>`` is a unique ID for the runtime
 of the Suricata instance. These values should not be depended on, and
 are simply used to ensure uniqueness.
 
-These ``fileinfo`` records are idential to the ``fileinfo`` records
+These ``fileinfo`` records are identical to the ``fileinfo`` records
 logged to the ``eve`` output.
 
 See :ref:`suricata-yaml-file-store` for more information on

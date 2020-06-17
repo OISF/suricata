@@ -207,7 +207,7 @@ Inline IDS
 ----------
 
 The inline IDS is almost the same as the IPS setup above, but it will not
-enfore ``drop`` policies.
+enforce ``drop`` policies.
 
 ::
 

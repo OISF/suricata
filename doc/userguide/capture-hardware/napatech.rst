@@ -198,7 +198,7 @@ Example Configuration - Manual Configuration
 For Manual Configuration the Napatech streams are created by running NTPL
 commands prior to running Suricata.
 
-Note that this option is provided primarily for legacy configuations as previously
+Note that this option is provided primarily for legacy configurations as previously
 this was the only way to configure Napatech products. Newer capabilities such as
 flow-awareness and inline processing cannot be configured manually.
 
@@ -268,15 +268,15 @@ upstream and downstream traffic E.g.::
 Note that these "port-pairings" are also required for IDS configurations as the hardware
 needs to know on which port(s) two sides of the connection will arrive.
 
-For configuations relying on optical taps the two sides of the pairing will typically
+For configurations relying on optical taps the two sides of the pairing will typically
 be different ports. For SPAN port configurations where both upstream and downstream traffic
 are delivered to a single port both sides of the "port-pair" will reference the same port.
 
-For example tap configuations have a form similar to this::
+For example tap configurations have a form similar to this::
 
       ports[0-1,2-3]
 
-Whereas SPAN port configuations it would look similar to this::
+Whereas SPAN port configurations it would look similar to this::
 
       ports[0-0,1-1,2-2,3-3]
 
@@ -326,7 +326,7 @@ pass traffic matching a given signature. For example, given the rule::
 
     pass tcp any 443 <> any any (msg: "SURICATA Test rule";  bypass; sid:1000001; rev:2;)
 
-Suricata will evaluate the inital packet(s) of the flow and program the flow
+Suricata will evaluate the initial packet(s) of the flow and program the flow
 into the hardware. Subsequent packets from the flow will be automatically be
 shunted from one port to it's peer.
 
@@ -358,7 +358,7 @@ On flow-aware products the following counters are also available:
 - napa_dispatch_drop.pkts, napa_dispatch_drop.byte:
 
   The total number of packets/bytes that were dropped at the hardware as
-  a result of a Suricata "drop" bypass rule or other ajudication by
+  a result of a Suricata "drop" bypass rule or other adjudication by
   Suricata that the flow packets should be dropped. These packets are not
   delivered to the application.
 
@@ -371,7 +371,7 @@ On flow-aware products the following counters are also available:
 
 - napa_bypass.active_flows:
 
-  The number of flows actively programmed on the hardware to be forwared or dropped.
+  The number of flows actively programmed on the hardware to be forwarded or dropped.
 
 - napa_bypass.total_flows:
 

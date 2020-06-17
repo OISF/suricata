@@ -2171,7 +2171,7 @@ Finally, if ``encrypt-handling`` is set to ``full``, Suricata will process the
 flow as normal, without inspection limitations or bypass.
 
 The option has replaced the ``no-reassemble`` option. If ``no-reassemble`` is
-present, and ``encrypt-handling`` is not, ``false`` is intepreted as
+present, and ``encrypt-handling`` is not, ``false`` is interpreted as
 ``encrypt-handling: default`` and ``true`` is interpreted as
 ``encrypt-handling: bypass``.
 
