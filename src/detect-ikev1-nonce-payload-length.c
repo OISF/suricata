@@ -159,7 +159,7 @@ static int DetectIkev1NoncePayloadLengthMatch (DetectEngineThreadCtx *det_ctx,
 
     const DetectIkev1NoncePayloadLengthData *dd = (const DetectIkev1NoncePayloadLengthData *)ctx;
     uint32_t length;
-    if (!rs_ikev1_state_get_nonce_payload_length(state, dd->host_type, &length))
+    if (!rs_ikev1_state_get_nonce_payload_length(txv, &length))
         SCReturnInt(0);
     if (NoncePayloadLengthMatch(length, dd->mode, dd->length))
         SCReturnInt(1);

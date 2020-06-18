@@ -95,9 +95,7 @@ static InspectionBuffer *GetClientNonceData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        IKEV1State *state = FlowGetAppState(_f);
-
-        if (rs_ikev1_state_get_client_nonce(state, &b, &b_len) != 1)
+        if (rs_ikev1_state_get_nonce(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -118,9 +116,7 @@ static InspectionBuffer *GetServerNonceData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        IKEV1State *state = FlowGetAppState(_f);
-
-        if (rs_ikev1_state_get_server_nonce(state, &b, &b_len) != 1)
+        if (rs_ikev1_state_get_nonce(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;

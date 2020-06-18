@@ -159,7 +159,7 @@ static int DetectIkev1KeyExchangePayloadLengthMatch (DetectEngineThreadCtx *det_
 
     const DetectIkev1KeyExchangePayloadLengthData *dd = (const DetectIkev1KeyExchangePayloadLengthData *)ctx;
     uint32_t length;
-    if (!rs_ikev1_state_get_key_exchange_payload_length(state, dd->host_type, &length))
+    if (!rs_ikev1_state_get_key_exchange_payload_length(txv, &length))
         SCReturnInt(0);
     if (KeyExchangePayloadLengthMatch(length, dd->mode, dd->length))
         SCReturnInt(1);

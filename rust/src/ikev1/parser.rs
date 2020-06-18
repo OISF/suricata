@@ -17,24 +17,13 @@
 
 use nom::*;
 use core::fmt;
+use crate::log::*;
 use nom::number::streaming::{be_u16, be_u8, be_u32, be_u64};
 use std::collections::HashSet;
-
-pub fn to_hex(input: &[u8]) -> String {
-    static CHARS: &'static [u8] = b"0123456789abcdef";
-
-    let mut output = Vec::new();
-    for &byte in input {
-        output.push(CHARS[(byte >>  4) as usize]);
-        output.push(CHARS[(byte & 0xf) as usize]);
-    }
-    match std::str::from_utf8(output.as_slice()) {
-        Ok(_output) => return _output.to_string(),
-        Err(_) => return "".to_string()
-    }
-}
+use crate::common::to_hex;
 
 // Generic ISAKMP "Container" structs
+#[repr(u8)]
 #[derive(Copy, Clone)]
 pub enum ExchangeType {
     None = 0,
@@ -139,6 +128,7 @@ pub struct VendorPayload<'a> {
 
 // Attributes inside Transform
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum AttributeType {
     Unknown = 0,
     EncryptionAlgorithm = 1,
@@ -184,18 +174,19 @@ impl fmt::Display for AttributeType {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum AttributeValue {
     // https://www.iana.org/assignments/ipsec-registry/ipsec-registry.xhtml
     Unknown,
     // Encryption Algorithm
-    EaDesCbc,
-    EaIdeaCbc,
-    EaBlowfishCbc,
-    EaRc5R16B64Cbc,
-    EaTripleDesCbc,
-    EaCastCbc,
-    EaAesCbc,
-    EaCamelliaCbc,
+    EncDesCbc,
+    EncIdeaCbc,
+    EncBlowfishCbc,
+    EncRc5R16B64Cbc,
+    EncTripleDesCbc,
+    EncCastCbc,
+    EncAesCbc,
+    EncCamelliaCbc,
     // Hash Algorithm
     HashMd5,
     HashSha,
@@ -251,6 +242,7 @@ impl fmt::Display for AttributeValue {
         }
 }
 
+#[derive(Clone)]
 pub struct SaAttribute {
     pub attribute_format: u8,
     pub attribute_type: AttributeType,
@@ -295,12 +287,12 @@ pub fn parse_security_association(
         i,
         domain_of_interpretation: be_u32 >>
         situation: cond!(domain_of_interpretation == 1, take!(4)) >>
-        data: cond!(domain_of_interpretation == 1, take!(length - 8)) >>
+        data: cond!(domain_of_interpretation == 1 && length >= 8, take!(length - 8)) >>
         (
             SecurityAssociationPayload {
-                domain_of_interpretation: domain_of_interpretation,
-                situation: situation,
-                data: data
+                domain_of_interpretation,
+                situation,
+                data
             }
         )
     )
@@ -314,9 +306,7 @@ pub fn parse_key_exchange(
         i,
         key_exchange_data: take!(length) >>
         (
-            KeyExchangePayload {
-                key_exchange_data: key_exchange_data
-            }
+            KeyExchangePayload { key_exchange_data }
         )
     )
 }
@@ -332,7 +322,7 @@ pub fn parse_proposal(
         spi_size: be_u8 >>
         number_transforms: be_u8 >>
         spi: take!(spi_size) >>
-        data: take!((length - 4) - spi_size as u16) >>
+        payload_data: cond!((length as i16 - 4) - spi_size as i16 >= 0, take!((length - 4) - spi_size as u16)) >>
         (
             ProposalPayload {
                 proposal_number,
@@ -340,7 +330,7 @@ pub fn parse_proposal(
                 spi_size,
                 number_transforms,
                 spi,
-                data
+                data: if let Some(_data) = payload_data { _data } else { b"" }
             }
         )
     )
@@ -353,13 +343,14 @@ pub fn parse_transform(
     do_parse!(
         i,
         transform_number: be_u8 >>
-        transform_type: be_u8 >> be_u16 >>
-        sa_attributes: take!(length - 4) >>
+        transform_type: be_u8 >>
+        be_u16 >>
+        payload_data: cond!(length >= 4, take!(length - 4)) >>
         (
             TransformPayload {
                 transform_number,
                 transform_type,
-                sa_attributes
+                sa_attributes: if let Some(_data) = payload_data { _data } else { b"" }
             }
         )
     )
@@ -369,15 +360,108 @@ pub fn parse_vendor_id(
     i: &[u8],
     length: u16,
 ) -> IResult<&[u8], VendorPayload> {
-    do_parse!(
-        i,
-        vendor_id: take!(length) >>
-        (
-            VendorPayload {
-                vendor_id
-            }
-        )
-    )
+    map!(i, take!(length), |v| VendorPayload{vendor_id: v})
+}
+
+fn get_attribute_type(v: u16) -> AttributeType {
+    match v {
+        1 => AttributeType::EncryptionAlgorithm,
+        2 => AttributeType::HashAlgorithm,
+        3 => AttributeType::AuthenticationMethod,
+        4 => AttributeType::GroupDescription,
+        5 => AttributeType::GroupType,
+        6 => AttributeType::GroupPrime,
+        7 => AttributeType::GroupGeneratorOne,
+        8 => AttributeType::GroupGeneratorTwo,
+        9 => AttributeType::GroupCurveA,
+        10 => AttributeType::GroupCurveB,
+        11 => AttributeType::LifeType,
+        12 => AttributeType::LifeDuration,
+        13 => AttributeType::PRF,
+        14 => AttributeType::KeyLength,
+        15 => AttributeType::FieldSize,
+        16 => AttributeType::GroupOrder,
+        _ => AttributeType::Unknown
+    }
+}
+
+fn get_encryption_algorithm(v: u16) -> AttributeValue {
+    match v {
+        1 => AttributeValue::EncDesCbc,
+        2 => AttributeValue::EncIdeaCbc,
+        3 => AttributeValue::EncBlowfishCbc,
+        4 => AttributeValue::EncRc5R16B64Cbc,
+        5 => AttributeValue::EncTripleDesCbc,
+        6 => AttributeValue::EncCastCbc,
+        7 => AttributeValue::EncAesCbc,
+        8 => AttributeValue::EncCamelliaCbc,
+        _ => AttributeValue::Unknown
+    }
+}
+
+fn get_hash_algorithm(v: u16) -> AttributeValue {
+    match v {
+        1 => AttributeValue::HashMd5,
+        2 => AttributeValue::HashSha,
+        3 => AttributeValue::HashTiger,
+        4 => AttributeValue::HashSha2_256,
+        5 => AttributeValue::HashSha2_384,
+        6 => AttributeValue::HashSha2_512,
+        _ => AttributeValue::Unknown
+    }
+}
+
+fn get_authentication_method(v: u16) -> AttributeValue {
+    match v {
+        1 => AttributeValue::AuthPreSharedKey,
+        2 => AttributeValue::AuthDssSignatures,
+        3 => AttributeValue::AuthRsaSignatures,
+        4 => AttributeValue::AuthEncryptionWithRsa,
+        5 => AttributeValue::AuthRevisedEncryptionWithRsa,
+        6 => AttributeValue::AuthReserved,
+        7 => AttributeValue::AuthReserved,
+        8 => AttributeValue::AuthReserved,
+        9 => AttributeValue::AuthEcdsaSha256,
+        10 => AttributeValue::AuthEcdsaSha384,
+        11 => AttributeValue::AuthEcdsaSha512,
+        _ => AttributeValue::Unknown
+    }
+}
+
+fn get_group_description(v: u16) -> AttributeValue {
+    match v {
+        1 => AttributeValue::GroupDefault768BitModp,
+        2 => AttributeValue::GroupAlternate1024BitModpGroup,
+        3 => AttributeValue::GroupEc2nOnGp2p155,
+        4 => AttributeValue::GroupEc2nOnGp2p185,
+        5 => AttributeValue::GroupModp1536Bit,
+        6 => AttributeValue::GroupEc2nOverGf2p163,
+        7 => AttributeValue::GroupEc2nOverGf2p163,
+        8 => AttributeValue::GroupEc2nOverGf2p283,
+        9 => AttributeValue::GroupEc2nOverGf2p283,
+        10 => AttributeValue::GroupEc2nOverGf2p409,
+        11 => AttributeValue::GroupEc2nOverGf2p409,
+        12 => AttributeValue::GroupEc2nOverGf2p571,
+        13 => AttributeValue::GroupEc2nOverGf2p571,
+        14 => AttributeValue::GroupModp2048Bit,
+        15 => AttributeValue::GroupModp3072Bit,
+        16 => AttributeValue::GroupModp4096Bit,
+        17 => AttributeValue::GroupModp6144Bit,
+        18 => AttributeValue::GroupModp8192Bit,
+        19 => AttributeValue::GroupRandomEcp256,
+        20 => AttributeValue::GroupRandomEcp384,
+        21 => AttributeValue::GroupRandomEcp521,
+        22 => AttributeValue::GroupModp1024With160BitPrime,
+        23 => AttributeValue::GroupModp2048With224BitPrime,
+        24 => AttributeValue::GroupModp2048With256BitPrime,
+        25 => AttributeValue::GroupRandomEcp192,
+        26 => AttributeValue::GroupRandomEcp224,
+        27 => AttributeValue::GroupBrainpoolEcp224,
+        28 => AttributeValue::GroupBrainpoolEcp256,
+        29 => AttributeValue::GroupBrainpoolEcp384,
+        30 => AttributeValue::GroupBrainpoolEcp512,
+        _ => AttributeValue::Unknown
+    }
 }
 
 named! { pub parse_sa_attribute<&[u8], Vec<SaAttribute>>,
@@ -391,93 +475,12 @@ named! { pub parse_sa_attribute<&[u8], Vec<SaAttribute>>,
                 (
                     SaAttribute {
                         attribute_format: format.0,
-                        attribute_type: match format.1 {
-                            1 => AttributeType::EncryptionAlgorithm,
-                            2 => AttributeType::HashAlgorithm,
-                            3 => AttributeType::AuthenticationMethod,
-                            4 => AttributeType::GroupDescription,
-                            5 => AttributeType::GroupType,
-                            6 => AttributeType::GroupPrime,
-                            7 => AttributeType::GroupGeneratorOne,
-                            8 => AttributeType::GroupGeneratorTwo,
-                            9 => AttributeType::GroupCurveA,
-                            10 => AttributeType::GroupCurveB,
-                            11 => AttributeType::LifeType,
-                            12 => AttributeType::LifeDuration,
-                            13 => AttributeType::PRF,
-                            14 => AttributeType::KeyLength,
-                            15 => AttributeType::FieldSize,
-                            16 => AttributeType::GroupOrder,
-                            _ => AttributeType::Unknown
-                        },
+                        attribute_type: get_attribute_type(format.1),
                         attribute_value : match format.1 {
-                            1 => match attribute_length_or_value {
-                                1 => AttributeValue::EaDesCbc,
-                                2 => AttributeValue::EaIdeaCbc,
-                                3 => AttributeValue::EaBlowfishCbc,
-                                4 => AttributeValue::EaRc5R16B64Cbc,
-                                5 => AttributeValue::EaTripleDesCbc,
-                                6 => AttributeValue::EaCastCbc,
-                                7 => AttributeValue::EaAesCbc,
-                                8 => AttributeValue::EaCamelliaCbc,
-                                _ => AttributeValue::Unknown
-                            }
-                            2 => match attribute_length_or_value {
-                                1 => AttributeValue::HashMd5,
-                                2 => AttributeValue::HashSha,
-                                3 => AttributeValue::HashTiger,
-                                4 => AttributeValue::HashSha2_256,
-                                5 => AttributeValue::HashSha2_384,
-                                6 => AttributeValue::HashSha2_512,
-                                _ => AttributeValue::Unknown
-                            }
-                            3 => match attribute_length_or_value {
-                                1 => AttributeValue::AuthPreSharedKey,
-                                2 => AttributeValue::AuthDssSignatures,
-                                3 => AttributeValue::AuthRsaSignatures,
-                                4 => AttributeValue::AuthEncryptionWithRsa,
-                                5 => AttributeValue::AuthRevisedEncryptionWithRsa,
-                                6 => AttributeValue::AuthReserved,
-                                7 => AttributeValue::AuthReserved,
-                                8 => AttributeValue::AuthReserved,
-                                9 => AttributeValue::AuthEcdsaSha256,
-                                10 => AttributeValue::AuthEcdsaSha384,
-                                11 => AttributeValue::AuthEcdsaSha512,
-                                _ => AttributeValue::Unknown
-                            }
-                            4 => match attribute_length_or_value {
-                                1 => AttributeValue::GroupDefault768BitModp,
-                                2 => AttributeValue::GroupAlternate1024BitModpGroup,
-                                3 => AttributeValue::GroupEc2nOnGp2p155,
-                                4 => AttributeValue::GroupEc2nOnGp2p185,
-                                5 => AttributeValue::GroupModp1536Bit,
-                                6 => AttributeValue::GroupEc2nOverGf2p163,
-                                7 => AttributeValue::GroupEc2nOverGf2p163,
-                                8 => AttributeValue::GroupEc2nOverGf2p283,
-                                9 => AttributeValue::GroupEc2nOverGf2p283,
-                                10 => AttributeValue::GroupEc2nOverGf2p409,
-                                11 => AttributeValue::GroupEc2nOverGf2p409,
-                                12 => AttributeValue::GroupEc2nOverGf2p571,
-                                13 => AttributeValue::GroupEc2nOverGf2p571,
-                                14 => AttributeValue::GroupModp2048Bit,
-                                15 => AttributeValue::GroupModp3072Bit,
-                                16 => AttributeValue::GroupModp4096Bit,
-                                17 => AttributeValue::GroupModp6144Bit,
-                                18 => AttributeValue::GroupModp8192Bit,
-                                19 => AttributeValue::GroupRandomEcp256,
-                                20 => AttributeValue::GroupRandomEcp384,
-                                21 => AttributeValue::GroupRandomEcp521,
-                                22 => AttributeValue::GroupModp1024With160BitPrime,
-                                23 => AttributeValue::GroupModp2048With224BitPrime,
-                                24 => AttributeValue::GroupModp2048With256BitPrime,
-                                25 => AttributeValue::GroupRandomEcp192,
-                                26 => AttributeValue::GroupRandomEcp224,
-                                27 => AttributeValue::GroupBrainpoolEcp224,
-                                28 => AttributeValue::GroupBrainpoolEcp256,
-                                29 => AttributeValue::GroupBrainpoolEcp384,
-                                30 => AttributeValue::GroupBrainpoolEcp512,
-                                _ => AttributeValue::Unknown
-                            }
+                            1 => get_encryption_algorithm(attribute_length_or_value),
+                            2 => get_hash_algorithm(attribute_length_or_value),
+                            3 => get_authentication_method(attribute_length_or_value),
+                            4 => get_group_description(attribute_length_or_value),
                             11 => match attribute_length_or_value {
                                 1 => AttributeValue::LifeTypeSeconds,
                                 2 => AttributeValue::LifeTypeKilobytes,
@@ -518,17 +521,8 @@ pub fn parse_nonce(
     i: &[u8],
     length: u16,
 ) -> IResult<&[u8], NoncePayload> {
-    do_parse!(
-        i,
-        nonce_data: take!(length) >>
-        (
-            NoncePayload {
-                nonce_data: nonce_data
-            }
-        )
-    )
+    map!(i, take!(length), |v| NoncePayload{nonce_data: v})
 }
-
 
 named! { pub parse_ikev1_payload_list<&[u8], Vec<IsakmpPayload>>,
     many0!(
@@ -537,15 +531,15 @@ named! { pub parse_ikev1_payload_list<&[u8], Vec<IsakmpPayload>>,
                 next_payload: be_u8 >>
                 reserved: be_u8 >>
                 payload_length: be_u16 >>
-                data: take!(payload_length - 4) >>
+                payload_data: cond!(payload_length >= 4, take!(payload_length - 4)) >>
                 (
                     IsakmpPayload {
                         payload_header: IsakmpPayloadHeader {
-                            next_payload: next_payload,
-                            reserved: reserved,
-                            payload_length: payload_length
+                            next_payload,
+                            reserved,
+                            payload_length
                         },
-                        data: data
+                        data: if let Some(_data) = payload_data { _data } else { b"" }
                     }
                 )
             )
@@ -601,95 +595,18 @@ pub fn parse_payload<'a>(
     let element = num::FromPrimitive::from_u8(payload_type);
     match element {
         Some(IsakmpPayloadType::SecurityAssociation) => {
-            match parse_security_association(data, data_length) {
-                Ok((_rem, payload)) => {
-                    *domain_of_interpretation = Some(payload.domain_of_interpretation);
-                    if payload.domain_of_interpretation == 1 {
-                        // 1 is assigned to IPsec DOI
-                        transforms.clear(); // clear transforms on new SA
-                        key_exchange.clear();
-                        nonce.clear();
-                        vendor_ids.clear();
-
-                        let mut cur_payload_type = IsakmpPayloadType::Proposal as u8;
-                        if let Some(p_data) = payload.data {
-                            match parse_ikev1_payload_list(p_data) {
-                                Ok((_, payload_list)) => {
-                                    for isakmp_payload in payload_list {
-                                        if let Err(_) = parse_payload(
-                                            cur_payload_type,
-                                            isakmp_payload.data,
-                                            isakmp_payload.data.len() as u16,
-                                            domain_of_interpretation,
-                                            key_exchange,
-                                            nonce,
-                                            transforms,
-                                            vendor_ids,
-                                            payload_types
-                                        ) {
-                                            return Err(())
-                                        }
-                                        cur_payload_type = isakmp_payload.payload_header.next_payload;
-                                    }
-                                },
-                                Err(nom::Err::Incomplete(_)) => {
-                                    return Err(())
-                                }
-                                Err(_) => {
-                                    return Err(())
-                                }
-                            }
-                        }
-                    }
-                    Ok(())
-                },
-                Err(nom::Err::Incomplete(_)) => {
-                    Err(())
-                }
-                Err(_) => {
-                    Err(())
-                }
+            if let Err(_) = parse_security_association_payload(data, data_length, domain_of_interpretation, key_exchange, nonce, transforms, vendor_ids, payload_types) {
+                SCLogDebug!("Error parsing SecurityAssociation");
+                return Err(())
             }
+            Ok(())
         }
         Some(IsakmpPayloadType::Proposal) => {
-            match parse_proposal(data, data_length) {
-                Ok((_rem, payload)) => {
-                    let mut cur_payload_type = IsakmpPayloadType::Transform as u8;
-                    match parse_ikev1_payload_list(payload.data) {
-                        Ok((_, payload_list)) => {
-                            for isakmp_payload in payload_list {
-                                if let Err(_) = parse_payload(
-                                    cur_payload_type,
-                                    isakmp_payload.data,
-                                    isakmp_payload.data.len() as u16,
-                                    domain_of_interpretation,
-                                    key_exchange,
-                                    nonce,
-                                    transforms,
-                                    vendor_ids,
-                                    payload_types
-                                ){
-                                    return Err(())
-                                }
-                                cur_payload_type = isakmp_payload.payload_header.next_payload;
-                            }
-                            Ok(())
-                        },
-                        Err(nom::Err::Incomplete(_)) => {
-                            Err(())
-                        }
-                        Err(_) => {
-                            Err(())
-                        }
-                    }
-                },
-                Err(nom::Err::Incomplete(_)) => {
-                    Err(())
-                }
-                Err(_) => {
-                    Err(())
-                }
+            if let Err(_) = parse_proposal_payload(data, data_length, domain_of_interpretation, key_exchange, nonce, transforms, vendor_ids, payload_types) {
+                SCLogDebug!("Error parsing Proposal");
+                return Err(())
             }
+            Ok(())
         }
         Some(IsakmpPayloadType::Transform) => {
             if let Ok((_rem, payload)) = parse_transform(data, data_length) {
@@ -702,19 +619,14 @@ pub fn parse_payload<'a>(
         Some(IsakmpPayloadType::KeyExchange) => {
             let res = parse_key_exchange(data, data_length);
             if let Ok((_rem, payload)) = res {
-                if key_exchange.is_empty() {
-                    // key_exchange data should be empty, there should be only one...
-                    *key_exchange = to_hex(payload.key_exchange_data);
-                }
+                *key_exchange = to_hex(payload.key_exchange_data);
             }
             Ok(())
         }
         Some(IsakmpPayloadType::Nonce) => {
             let res = parse_nonce(data, data_length);
             if let Ok((_rem, payload)) = res {
-                if nonce.is_empty() {
-                    *nonce = to_hex(payload.nonce_data);
-                }
+                *nonce = to_hex(payload.nonce_data);
             }
             Ok(())
         }
@@ -727,6 +639,120 @@ pub fn parse_payload<'a>(
         }
         _ => {
             Ok(())
+        }
+    }
+}
+
+fn parse_proposal_payload<'a>(
+    data: &'a[u8],
+    data_length: u16,
+    domain_of_interpretation: &mut Option<u32>,
+    key_exchange: &mut String,
+    nonce: &mut String,
+    transforms: &mut Vec<Vec<SaAttribute>>,
+    vendor_ids: &mut HashSet<String>,
+    payload_types: &mut HashSet<u8>) -> Result<(), ()>
+{
+    match parse_proposal(data, data_length) {
+        Ok((_rem, payload)) => {
+            let mut cur_payload_type = IsakmpPayloadType::Transform as u8;
+            match parse_ikev1_payload_list(payload.data) {
+                Ok((_, payload_list)) => {
+                    for isakmp_payload in payload_list {
+                        if let Err(_) = parse_payload(
+                            cur_payload_type,
+                            isakmp_payload.data,
+                            isakmp_payload.data.len() as u16,
+                            domain_of_interpretation,
+                            key_exchange,
+                            nonce,
+                            transforms,
+                            vendor_ids,
+                            payload_types
+                        ) {
+                            SCLogDebug!("Error parsing transform payload");
+                            return Err(())
+                        }
+                        cur_payload_type = isakmp_payload.payload_header.next_payload;
+                    }
+                    Ok(())
+                },
+                Err(nom::Err::Incomplete(_)) => {
+                    SCLogDebug!("Incomplete data parsing payload list");
+                    Err(())
+                }
+                Err(_) => {
+                    SCLogDebug!("Error parsing payload list");
+                    Err(())
+                }
+            }
+        },
+        Err(nom::Err::Incomplete(_)) => {
+            SCLogDebug!("Incomplete data");
+            Err(())
+        }
+        Err(_) => {
+            Err(())
+        }
+    }
+}
+
+fn parse_security_association_payload<'a>(
+    data: &'a[u8],
+    data_length: u16,
+    domain_of_interpretation: &mut Option<u32>,
+    key_exchange: &mut String,
+    nonce: &mut String,
+    transforms: &mut Vec<Vec<SaAttribute>>,
+    vendor_ids: &mut HashSet<String>,
+    payload_types: &mut HashSet<u8>) -> Result<(), ()>
+{
+    match parse_security_association(data, data_length) {
+        Ok((_rem, payload)) => {
+            *domain_of_interpretation = Some(payload.domain_of_interpretation);
+            if payload.domain_of_interpretation == 1 {
+                // 1 is assigned to IPsec DOI
+                let mut cur_payload_type = IsakmpPayloadType::Proposal as u8;
+                if let Some(p_data) = payload.data {
+                    match parse_ikev1_payload_list(p_data) {
+                        Ok((_, payload_list)) => {
+                            for isakmp_payload in payload_list {
+                                if let Err(_) = parse_payload(
+                                    cur_payload_type,
+                                    isakmp_payload.data,
+                                    isakmp_payload.data.len() as u16,
+                                    domain_of_interpretation,
+                                    key_exchange,
+                                    nonce,
+                                    transforms,
+                                    vendor_ids,
+                                    payload_types
+                                ) {
+                                    SCLogDebug!("Error parsing proposal payload");
+                                    return Err(())
+                                }
+                                cur_payload_type = isakmp_payload.payload_header.next_payload;
+                            }
+                        },
+                        Err(nom::Err::Incomplete(_)) => {
+                            SCLogDebug!("Incomplete data parsing payload list");
+                            return Err(())
+                        }
+                        Err(_) => {
+                            SCLogDebug!("Error parsing payload list");
+                            return Err(())
+                        }
+                    }
+                }
+            }
+            Ok(())
+        },
+        Err(nom::Err::Incomplete(_)) => {
+            SCLogDebug!("Incomplete data");
+            Err(())
+        }
+        Err(_) => {
+            Err(())
         }
     }
 }

@@ -49,11 +49,11 @@ fn add_attributes(transform: &Vec<SaAttribute>, flags: u32, js: &mut JsonBuilder
 fn log_ikev1(state: &IKEV1State, tx: &IKEV1Transaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("ikev1")?;
 
-    if let Some(spi_initiator) = tx.spi_initiator {
-        js.set_string("spi_initiator", &format!("{:016x}", spi_initiator))?;
+    if let Some(spi_initiator) = &tx.spi_initiator {
+        js.set_string("spi_initiator", spi_initiator)?;
     }
-    if let Some(spi_responder) = tx.spi_responder {
-        js.set_string("spi_responder", &format!("{:016x}", spi_responder))?;
+    if let Some(spi_responder) = &tx.spi_responder {
+        js.set_string("spi_responder", spi_responder)?;
     }
 
     if let Some(maj_ver) = tx.maj_ver {

@@ -36,13 +36,18 @@ pub struct IKEV1Transaction {
     pub request: Option<String>,
     pub response: Option<String>,
 
-    pub spi_initiator: Option<u64>,
-    pub spi_responder: Option<u64>,
+    pub spi_initiator: Option<String>,
+    pub spi_responder: Option<String>,
     pub maj_ver: Option<u8>,
     pub min_ver: Option<u8>,
     pub exchange_type: Option<u8>,
     pub payload_types: Option<HashSet<u8>>,
     pub encrypted_payloads: bool,
+
+    pub key_exchange: String,
+    pub nonce: String,
+    pub transforms: Vec<Vec<SaAttribute>>,
+    pub vendor_ids: HashSet<String>,
 
     logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
@@ -64,6 +69,10 @@ impl IKEV1Transaction {
             exchange_type: None,
             payload_types: None,
             encrypted_payloads: false,
+            key_exchange: String::new(),
+            nonce: String::new(),
+            transforms: Vec::new(),
+            vendor_ids: HashSet::new(),
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
@@ -87,6 +96,7 @@ impl Drop for IKEV1Transaction {
     }
 }
 
+#[derive(Default)]
 pub struct IKEV1State {
     tx_id: u64,
     transactions: Vec<IKEV1Transaction>,
@@ -107,37 +117,12 @@ pub struct IKEV1State {
 }
 
 impl IKEV1State{
-    pub fn new() -> Self {
-        Self {
-            tx_id: 0,
-            transactions: Vec::new(),
-            domain_of_interpretation: None,
-            client_key_exchange: String::new(),
-            client_nonce: String::new(),
-            server_key_exchange: String::new(),
-            server_nonce: String::new(),
-            client_vendor_ids: HashSet::new(),
-            server_vendor_ids: HashSet::new(),
-            client_transforms: Vec::new(),
-            server_transforms: Vec::new()
-        }
-    }
-
     // Free a transaction by ID.
     fn free_tx(&mut self, tx_id: u64) {
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.tx_id == tx_id + 1 {
-                found = true;
-                index = i;
-                break;
-            }
-        }
-        if found {
-            self.transactions.remove(index);
+        let tx = self.transactions.iter().position(|ref tx| tx.tx_id == tx_id + 1);
+        debug_assert!(tx != None);
+        if let Some(idx) = tx {
+            let _ = self.transactions.remove(idx);
         }
     }
 
@@ -191,8 +176,16 @@ impl IKEV1State{
                 current = rem;
 
                 if isakmp_header.maj_ver != 1 {
+                    SCLogDebug!("Unsupported ISAKMP major_version");
                     return AppLayerResult::err();
                 }
+
+                let mut tx = self.new_tx();
+                tx.spi_initiator = Some(format!("{:016x}", isakmp_header.init_spi));
+                tx.spi_responder = Some(format!("{:016x}", isakmp_header.resp_spi));
+                tx.maj_ver = Some(isakmp_header.maj_ver);
+                tx.min_ver = Some(isakmp_header.min_ver);
+                tx.exchange_type = Some(isakmp_header.exch_type);
 
                 let mut cur_payload_type = isakmp_header.next_payload;
                 let mut payload_types: HashSet<u8> = HashSet::new();
@@ -210,10 +203,10 @@ impl IKEV1State{
                                     isakmp_payload.data,
                                     isakmp_payload.data.len() as u16,
                                     &mut self.domain_of_interpretation,
-                                    if direction == STREAM_TOSERVER { &mut self.client_key_exchange } else { &mut self.server_key_exchange },
-                                    if direction == STREAM_TOSERVER { &mut self.client_nonce } else { &mut self.server_nonce },
-                                    if direction == STREAM_TOSERVER { &mut self.client_transforms } else { &mut self.server_transforms },
-                                    if direction == STREAM_TOSERVER { &mut self.client_vendor_ids } else { &mut self.server_vendor_ids },
+                                    &mut tx.key_exchange,
+                                    &mut tx.nonce,
+                                    &mut tx.transforms,
+                                    &mut tx.vendor_ids,
                                     &mut payload_types
                                 ) {
                                     SCLogDebug!("Error while parsing IKEV1 payloads");
@@ -222,23 +215,58 @@ impl IKEV1State{
 
                                 cur_payload_type = isakmp_payload.payload_header.next_payload;
                             }
+
+                            if payload_types.contains(&(IsakmpPayloadType::SecurityAssociation as u8)) {
+                                // clear transforms on new SA
+                                if direction == STREAM_TOSERVER {
+                                    self.client_transforms.clear();
+                                    self.client_key_exchange.clear();
+                                    self.client_nonce.clear();
+                                    self.client_vendor_ids.clear();
+                                } else {
+                                    self.server_transforms.clear();
+                                    self.server_key_exchange.clear();
+                                    self.server_nonce.clear();
+                                    self.server_vendor_ids.clear();
+                                }
+                            }
+
+                            // add transaction values to state values
+                            if direction == STREAM_TOSERVER {
+                                self.client_key_exchange = tx.key_exchange.clone();
+                            } else {
+                                self.server_key_exchange = tx.key_exchange.clone();
+                            }
+
+                            if direction == STREAM_TOSERVER {
+                                self.client_nonce = tx.nonce.clone();
+                            } else {
+                                self.server_nonce = tx.nonce.clone();
+                            }
+
+                            if direction == STREAM_TOSERVER {
+                                self.client_transforms.extend(tx.transforms.iter().cloned());
+                            } else {
+                                self.server_transforms.extend(tx.transforms.iter().cloned());
+                            }
+
+                            if direction == STREAM_TOSERVER {
+                                self.client_vendor_ids.extend(tx.vendor_ids.iter().cloned());
+                            } else {
+                                self.server_vendor_ids.extend(tx.vendor_ids.iter().cloned());
+                            }
                         },
                         Err(nom::Err::Incomplete(_)) => {
                             SCLogDebug!("Insufficient data while parsing IKEV1");
                             return AppLayerResult::err();
                         }
                         Err(_) => {
+                            SCLogDebug!("Error while parsing payloads and adding to the state");
                             return AppLayerResult::err();
                         }
                     }
                 }
 
-                let mut tx = self.new_tx();
-                tx.spi_initiator = Some(isakmp_header.init_spi);
-                tx.spi_responder = Some(isakmp_header.resp_spi);
-                tx.maj_ver = Some(isakmp_header.maj_ver);
-                tx.min_ver = Some(isakmp_header.min_ver);
-                tx.exchange_type = Some(isakmp_header.exch_type);
                 tx.payload_types = Some(payload_types);
                 tx.encrypted_payloads = encrypted_payloads;
                 self.transactions.push(tx);
@@ -251,6 +279,7 @@ impl IKEV1State{
                 return AppLayerResult::err();
             }
             Err(_) => {
+                SCLogDebug!("Error while parsing IKEV1 packet");
                 return AppLayerResult::err();
             }
         }
@@ -272,14 +301,7 @@ impl IKEV1State{
             }
             *state = index as u64;
 
-            // return Some((tx, tx.tx_id - 1, (len - index) > 1)); <- original
-
-            // todo: ask oisf next 4 lines! only return last transaction in iterator? seems to return correct number of alerts
-            // detect.c: DetectRunTx (line 1283)
-            if index >= len - 1 {
-                return Some((tx, tx.tx_id - 1, (len - index) > 1));
-            }
-            index += 1;
+            return Some((tx, tx.tx_id - 1, (len - index) > 1));
         }
 
         return None;
@@ -335,7 +357,7 @@ pub extern "C" fn rs_ikev1_probing_parser(
 
 #[no_mangle]
 pub extern "C" fn rs_ikev1_state_new() -> *mut std::os::raw::c_void {
-    let state = IKEV1State::new();
+    let state = IKEV1State::default();
     let boxed = Box::new(state);
     return unsafe { transmute(boxed) };
 }
@@ -495,51 +517,6 @@ pub extern "C" fn rs_ikev1_state_get_tx_iterator(
             return applayer::AppLayerGetTxIterTuple::not_found();
         }
     }
-}
-
-/// Get the request buffer for a transaction from C.
-///
-/// No required for parsing, but an example function for retrieving a
-/// pointer to the request buffer from C for detection.
-#[no_mangle]
-pub extern "C" fn rs_ikev1_get_request_buffer(
-    tx: *mut std::os::raw::c_void,
-    buf: *mut *const u8,
-    len: *mut u32,
-) -> u8
-{
-    let tx = cast_pointer!(tx, IKEV1Transaction);
-    if let Some(ref request) = tx.request {
-        if request.len() > 0 {
-            unsafe {
-                *len = request.len() as u32;
-                *buf = request.as_ptr();
-            }
-            return 1;
-        }
-    }
-    return 0;
-}
-
-/// Get the response buffer for a transaction from C.
-#[no_mangle]
-pub extern "C" fn rs_ikev1_get_response_buffer(
-    tx: *mut std::os::raw::c_void,
-    buf: *mut *const u8,
-    len: *mut u32,
-) -> u8
-{
-    let tx = cast_pointer!(tx, IKEV1Transaction);
-    if let Some(ref response) = tx.response {
-        if response.len() > 0 {
-            unsafe {
-                *len = response.len() as u32;
-                *buf = response.as_ptr();
-            }
-            return 1;
-        }
-    }
-    return 0;
 }
 
 // Parser name as a C style string.
