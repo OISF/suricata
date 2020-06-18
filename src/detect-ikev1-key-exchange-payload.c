@@ -95,9 +95,7 @@ static InspectionBuffer *GetClientKeyExchangeData(DetectEngineThreadCtx *det_ctx
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        IKEV1State *state = FlowGetAppState(_f);
-
-        if (rs_ikev1_state_get_client_key_exchange(state, &b, &b_len) != 1)
+        if (rs_ikev1_state_get_key_exchange(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -118,9 +116,7 @@ static InspectionBuffer *GetServerKeyExchangeData(DetectEngineThreadCtx *det_ctx
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        IKEV1State *state = FlowGetAppState(_f);
-
-        if (rs_ikev1_state_get_server_key_exchange(state, &b, &b_len) != 1)
+        if (rs_ikev1_state_get_key_exchange(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;

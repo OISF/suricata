@@ -119,7 +119,7 @@ static int DetectIkev1ChosenSaMatch(DetectEngineThreadCtx *det_ctx,
     const DetectIkev1ChosenSaData *dd = (const DetectIkev1ChosenSaData *)ctx;
 
     uint32_t value;
-    if (!rs_ikev1_state_get_sa_attribute(state, dd->sa_type, &value))
+    if (!rs_ikev1_state_get_sa_attribute(txv, dd->sa_type, &value))
         SCReturnInt(0);
     if (value == dd->sa_value)
         SCReturnInt(1);

@@ -39,7 +39,7 @@ typedef struct {
 static DetectIkev1VendorData *DetectIkev1VendorParse (const char *);
 static int DetectIkev1VendorSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectIkev1VendorFree(DetectEngineCtx *, void *);
-static int g_ikev1_exch_type_buffer_id = 0;
+static int g_ikev1_vendor_buffer_id = 0;
 
 static int DetectEngineInspectIkev1VendorGeneric(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
@@ -67,7 +67,7 @@ void DetectIkev1VendorRegister (void)
             ALPROTO_IKEV1, SIG_FLAG_TOSERVER, 2,
             DetectEngineInspectIkev1VendorGeneric);
 
-    g_ikev1_exch_type_buffer_id = DetectBufferTypeGetByName("ikev1.vendor");
+    g_ikev1_vendor_buffer_id = DetectBufferTypeGetByName("ikev1.vendor");
 }
 
 static int DetectEngineInspectIkev1VendorGeneric(ThreadVars *tv,
@@ -103,7 +103,7 @@ static int DetectIkev1VendorMatch (DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     const DetectIkev1VendorData *dd = (const DetectIkev1VendorData *)ctx;
-    if (rs_ikev1_state_vendors_contain(state, dd->vendor) == 1)
+    if (rs_ikev1_state_vendors_contain(txv, dd->vendor) == 1)
         SCReturnInt(1);
     else
         SCReturnInt(0);
@@ -125,10 +125,6 @@ static DetectIkev1VendorData *DetectIkev1VendorParse (const char *rawstr)
         goto error;
 
     /* set the vendor we want to check for */
-    dd->vendor = SCCalloc(1, strlen(rawstr) + 1);
-    if (unlikely(dd->vendor == NULL))
-        goto error;
-
     dd->vendor = SCStrdup(rawstr);
     if (dd->vendor == NULL)
         goto error;
@@ -173,7 +169,7 @@ static int DetectIkev1VendorSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     sm->type = DETECT_AL_IKEV1_VENDOR;
     sm->ctx = (void *)dd;
 
-    SigMatchAppendSMToList(s, sm, g_ikev1_exch_type_buffer_id);
+    SigMatchAppendSMToList(s, sm, g_ikev1_vendor_buffer_id);
     return 0;
 
 error:
