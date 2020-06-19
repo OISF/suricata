@@ -1033,7 +1033,12 @@ static void DNP3HandleUserDataResponse(DNP3State *dnp3, const uint8_t *input,
     offset = sizeof(DNP3ApplicationHeader) + sizeof(DNP3InternalInd);
 
     if (tx->response_buffer_len < offset)
+    {
+        /* Malformed, set event and mark as done. */
+        DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_MALFORMED);
+        tx->response_complete = 1;
         return;
+    }
 
     if (DNP3DecodeApplicationObjects(tx, tx->response_buffer + offset,
             tx->response_buffer_len - offset,
@@ -2652,6 +2657,48 @@ static int DNP3ParserUnknownEventAlertTest(void)
     PASS;
 }
 
+/**
+ * \brief Test that an alert is raised on incorrect data.
+*/
+static int DNP3ParserIncorrectUserData(void)
+{
+    uint8_t packet_bytes[] = {
+        0x05, 0x64, 0x08, 0xc4, 0x03, 0x00, 0x04, 0x00,
+        0xbf, 0xe9, 0xc1, 0xc1, 0x82, 0xc5, 0xee
+    };
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Flow flow;
+    TcpSession ssn;
+    memset(&flow, 0, sizeof(flow));
+    memset(&ssn, 0, sizeof(ssn));
+    flow.protoctx = (void *)&ssn;
+    flow.proto = IPPROTO_TCP;
+    flow.alproto = ALPROTO_DNP3;
+    StreamTcpInitConfig(TRUE);
+
+    SCMutexLock(&flow.m);
+    int r = AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
+                                STREAM_TOCLIENT, packet_bytes, sizeof(packet_bytes));
+    SCMutexUnlock(&flow.m);
+
+    FAIL_IF(r != 0);
+
+    DNP3State* const state = flow.alstate;
+    FAIL_IF_NULL(state);
+    FAIL_IF_NULL(state->curr);
+
+    const AppLayerDecoderEvents* const events = DNP3GetEvents(state->curr);
+    FAIL_IF_NULL(events);
+    FAIL_IF_NOT(events->cnt > 0);
+    FAIL_IF_NOT(events->events[0] == DNP3_DECODER_EVENT_MALFORMED);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&flow);
+    PASS;
+}
+
 #endif
 
 void DNP3ParserRegisterTests(void)
@@ -2678,5 +2725,6 @@ void DNP3ParserRegisterTests(void)
     UtRegisterTest("DNP3ParserDecodeG70V3Test", DNP3ParserDecodeG70V3Test);
     UtRegisterTest("DNP3ParserUnknownEventAlertTest",
         DNP3ParserUnknownEventAlertTest);
+    UtRegisterTest("DNP3ParserIncorrectUserData", DNP3ParserIncorrectUserData);
 #endif
 }
