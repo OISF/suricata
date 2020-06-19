@@ -126,6 +126,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             free(isolatedBuffer);
             flags &= ~(STREAM_START);
             if (f->alparser && AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF)) {
+                //no final chunk
+                alsize = 0;
                 break;
             }
         }
@@ -137,6 +139,15 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         alnext = memmem(albuffer, alsize, separator, 4);
     }
     if (alsize > 0 ) {
+        if (flip) {
+            flags |= STREAM_TOCLIENT;
+            flags &= ~(STREAM_TOSERVER);
+            flip = 0;
+        } else {
+            flags |= STREAM_TOSERVER;
+            flags &= ~(STREAM_TOCLIENT);
+            flip = 1;
+        }
         flags |= STREAM_EOF;
         isolatedBuffer = malloc(alsize);
         if (isolatedBuffer == NULL) {
