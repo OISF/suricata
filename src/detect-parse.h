@@ -88,7 +88,7 @@ int WARN_UNUSED DetectSignatureSetAppProto(Signature *s, AppProto alproto);
 
 /* parse regex setup and free util funcs */
 
-void DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *parse_regex, int opts);
+bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *parse_regex, int opts);
 void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *parse_regex);
 void DetectParseRegexAddToFreeList(DetectParseRegex *parse_regex);
 void DetectParseFreeRegexes(void);

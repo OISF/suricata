@@ -35,6 +35,9 @@ typedef DetectParseRegex DetectTransformPcrexformData;
 static int DetectTransformPcrexformSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformPcrexformFree(DetectEngineCtx *, void *);
 static void DetectTransformPcrexform(InspectionBuffer *buffer, void *options);
+#ifdef UNITTESTS
+void DetectTransformPcrexformRegisterTests (void);
+#endif
 
 void DetectTransformPcrexformRegister(void)
 {
@@ -48,6 +51,9 @@ void DetectTransformPcrexformRegister(void)
         DetectTransformPcrexformFree;
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Setup =
         DetectTransformPcrexformSetup;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].RegisterTests = DetectTransformPcrexformRegisterTests;
+#endif
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].flags |= SIGMATCH_QUOTES_MANDATORY;
 }
 
@@ -78,7 +84,10 @@ static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s,
         SCReturnInt(-1);
     }
 
-    DetectSetupParseRegexes(regexstr, pxd);
+    if (!DetectSetupParseRegexesOpts(regexstr, pxd, 0)) {
+        SCFree(pxd);
+        SCReturnInt(-1);
+    }
 
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_PCREXFORM, pxd);
     if (r != 0) {
@@ -108,3 +117,7 @@ static void DetectTransformPcrexform(InspectionBuffer *buffer, void *options)
         }
     }
 }
+
+#ifdef UNITTESTS
+#include "tests/detect-transform-pcrexform.c"
+#endif

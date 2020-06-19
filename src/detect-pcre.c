@@ -154,8 +154,10 @@ void DetectPcreRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     /* setup the capture regex, as it needs PCRE_UNGREEDY we do it manually */
-    int opts = PCRE_UNGREEDY; /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
-    DetectSetupParseRegexesOpts(PARSE_CAPTURE_REGEX, &parse_capture_regex, opts);
+    /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
+    if (!DetectSetupParseRegexesOpts(PARSE_CAPTURE_REGEX, &parse_capture_regex, PCRE_UNGREEDY)) {
+        FatalError(SC_ERR_PCRE_COMPILE, "pcre compile and study failed");
+    }
 
 #ifdef PCRE_HAVE_JIT
     if (PageSupportsRWX() == 0) {

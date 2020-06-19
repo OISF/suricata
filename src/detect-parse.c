@@ -2431,32 +2431,35 @@ void DetectParseRegexAddToFreeList(DetectParseRegex *detect_parse)
     g_detect_parse_regex_list = r;
 }
 
-void DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect_parse, int opts)
+bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect_parse, int opts)
 {
     const char *eb;
     int eo;
 
     detect_parse->regex = pcre_compile(parse_str, opts, &eb, &eo, NULL);
     if (detect_parse->regex == NULL) {
-        FatalError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
                 "offset %" PRId32 ": %s", parse_str, eo, eb);
+        return false;
     }
 
     detect_parse->study = pcre_study(detect_parse->regex, 0 , &eb);
     if (eb != NULL) {
-        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+        return false;
     }
 
 
     DetectParseRegexAddToFreeList(detect_parse);
 
-    return;
+    return true;
 }
 
 void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_parse)
 {
-    DetectSetupParseRegexesOpts(parse_str, detect_parse, 0);
-    return;
+    if (!DetectSetupParseRegexesOpts(parse_str, detect_parse, 0)) {
+        FatalError(SC_ERR_PCRE_COMPILE, "pcre compile and study failed");
+    }
 }
 
 
