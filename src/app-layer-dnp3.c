@@ -175,6 +175,9 @@ static uint16_t DNP3ComputeCRC(const uint8_t *buf, uint32_t len)
  */
 static int DNP3CheckCRC(const uint8_t *block, uint32_t len)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    return 1;
+#endif
     uint32_t crc_offset;
     uint16_t crc;
 
