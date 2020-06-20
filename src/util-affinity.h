@@ -65,7 +65,7 @@ typedef struct ThreadsAffinityType_ {
     const char *name;
     uint8_t mode_flag;
     int prio;
-    int nb_threads;
+    uint32_t nb_threads;
     SCMutex taf_mutex;
     uint16_t lcpu; /* use by exclusive mode */
 
