@@ -549,9 +549,9 @@ static int DNP3IsUserData(const DNP3LinkHeader *header)
  *
  * \retval 1 if user data exists, otherwise 0.
  */
-static int DNP3HasUserData(const DNP3LinkHeader *header)
+static int DNP3HasUserData(const DNP3LinkHeader *header, uint8_t direction)
 {
-    if (DNP3_LINK_DIR(header->control)) {
+    if (direction == STREAM_TOSERVER) {
         return header->len >= DNP3_LINK_HDR_LEN + sizeof(DNP3TransportHeader) +
             sizeof(DNP3ApplicationHeader);
     }
@@ -1074,7 +1074,7 @@ static int DNP3HandleRequestLinkLayer(DNP3State *dnp3, const uint8_t *input,
 
         /* Make sure the header length is large enough for transport and
          * application headers. */
-        if (!DNP3HasUserData(header)) {
+        if (!DNP3HasUserData(header, STREAM_TOSERVER)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto next;
         }
@@ -1213,7 +1213,7 @@ static int DNP3HandleResponseLinkLayer(DNP3State *dnp3, const uint8_t *input,
 
         /* Make sure the header length is large enough for transport and
          * application headers. */
-        if (!DNP3HasUserData(header)) {
+        if (!DNP3HasUserData(header, STREAM_TOCLIENT)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto error;
         }
@@ -1254,6 +1254,7 @@ static int DNP3ParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
     const uint8_t flags)
 {
     SCEnter();
+
     DNP3State *dnp3 = (DNP3State *)state;
     DNP3Buffer *buffer = &dnp3->response_buffer;
     int processed;
