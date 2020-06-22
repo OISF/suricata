@@ -22,8 +22,10 @@ use crate::core::{self, AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use crate::log::*;
 use std::ffi::{CStr, CString};
 use std::mem::transmute;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 static mut ALPROTO_SSH: AppProto = ALPROTO_UNKNOWN;
+static HASSH_ENABLED: AtomicBool = AtomicBool::new(false);
 
 #[repr(u32)]
 pub enum SSHEvent {
@@ -54,23 +56,32 @@ pub enum SSHConnectionState {
 
 const SSH_MAX_BANNER_LEN: usize = 256;
 const SSH_RECORD_HEADER_LEN: usize = 6;
-//TODO complete enum and parse messages contents
-const SSH_MSG_NEWKEYS: u8 = 21;
+const SSH_RECORD_PADDING_LEN: usize = 4;
 
 pub struct SshHeader {
     record_left: u32,
+    record_left_msg: parser::MessageCode,
+
     flags: SSHConnectionState,
     pub protover: Vec<u8>,
     pub swver: Vec<u8>,
+
+    pub hassh: Vec<u8>,
+    pub hassh_string: Vec<u8>,
 }
 
 impl SshHeader {
     pub fn new() -> SshHeader {
         SshHeader {
             record_left: 0,
+            record_left_msg: parser::MessageCode::SshMsgUndefined(0),
+
             flags: SSHConnectionState::SshStateInProgress,
             protover: Vec::new(),
             swver: Vec::new(),
+
+            hassh: Vec::new(),
+            hassh_string: Vec::new(),
         }
     }
 }
@@ -146,8 +157,20 @@ impl SSHState {
                 hdr.record_left -= ilen;
                 return AppLayerResult::ok();
             } else {
-                let start = hdr.record_left as usize;
-                input = &input[start..];
+                match hdr.record_left_msg {
+                    // parse reassembled tcp segments
+                    parser::MessageCode::SshMsgKexinit if HASSH_ENABLED.load(Ordering::Relaxed) => {
+                        if let Ok((rem, key_exchange)) = parser::ssh_parse_key_exchange(&input) {
+                            key_exchange.generate_hassh(&mut hdr.hassh_string, &mut hdr.hassh, &resp);
+                            input = &rem[SSH_RECORD_PADDING_LEN..];
+                        }
+                        hdr.record_left_msg = parser::MessageCode::SshMsgUndefined(0);
+                    }
+                    _ => {
+                        let start = hdr.record_left as usize;
+                        input = &input[start..];
+                    }
+                }
                 hdr.record_left = 0;
             }
         }
@@ -156,20 +179,29 @@ impl SSHState {
             match parser::ssh_parse_record(input) {
                 Ok((rem, head)) => {
                     SCLogDebug!("SSH valid record {}", head);
-                    input = rem;
-                    if head.msg_code == SSH_MSG_NEWKEYS {
-                        hdr.flags = SSHConnectionState::SshStateFinished;
-                        if ohdr.flags >= SSHConnectionState::SshStateFinished {
-                            unsafe {
-                                AppLayerParserStateSetFlag(
-                                    pstate,
-                                    APP_LAYER_PARSER_NO_INSPECTION
-                                        | APP_LAYER_PARSER_NO_REASSEMBLY
-                                        | APP_LAYER_PARSER_BYPASS_READY,
-                                );
+                    match head.msg_code {
+                        parser::MessageCode::SshMsgKexinit if HASSH_ENABLED.load(Ordering::Relaxed) => {
+                        	if let Ok((_, key_exchange)) = parser::ssh_parse_key_exchange(&input[SSH_RECORD_HEADER_LEN..]) {
+                                key_exchange.generate_hassh(&mut hdr.hassh_string, &mut hdr.hassh, &resp);
                             }
                         }
+                        parser::MessageCode::SshMsgNewKeys => {
+                            hdr.flags = SSHConnectionState::SshStateFinished;
+                            if ohdr.flags >= SSHConnectionState::SshStateFinished {
+                                unsafe {
+                                    AppLayerParserStateSetFlag(
+                                        pstate,
+                                        APP_LAYER_PARSER_NO_INSPECTION
+                                        | APP_LAYER_PARSER_NO_REASSEMBLY
+                                        | APP_LAYER_PARSER_BYPASS_READY,
+                                    );
+                                }
+                            }
+                        }
+                        _ => {}
                     }
+                    
+                    input = rem;
                     //header and complete data (not returned)
                 }
                 Err(nom::Err::Incomplete(_)) => {
@@ -179,8 +211,16 @@ impl SSHState {
                             let remlen = rem.len() as u32;
                             hdr.record_left = head.pkt_len - 2 - remlen;
                             //header with rem as incomplete data
-                            if head.msg_code == SSH_MSG_NEWKEYS {
-                                hdr.flags = SSHConnectionState::SshStateFinished;
+                            match head.msg_code { 
+                                parser::MessageCode::SshMsgNewKeys => {
+                                    hdr.flags = SSHConnectionState::SshStateFinished;
+                                }
+                                parser::MessageCode::SshMsgKexinit if HASSH_ENABLED.load(Ordering::Relaxed) => {
+                                    // saving type of incomplete kex message
+                                    hdr.record_left_msg = parser::MessageCode::SshMsgKexinit;
+                                    return AppLayerResult::incomplete(SSH_RECORD_HEADER_LEN as u32, hdr.record_left as u32);
+                                }
+                                _ => {}
                             }
                             return AppLayerResult::ok();
                         }
@@ -523,7 +563,6 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         get_tx_detect_flags: Some(rs_ssh_get_tx_detect_flags),
         set_tx_detect_flags: Some(rs_ssh_set_tx_detect_flags),
     };
-
     let ip_proto_str = CString::new("tcp").unwrap();
 
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -536,4 +575,31 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
     } else {
         SCLogNotice!("Protocol detector and parser disabled for SSH.");
     }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_enable_hassh() {
+    HASSH_ENABLED.store(true, Ordering::Relaxed)
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_hassh_is_enabled() -> bool {
+    HASSH_ENABLED.load(Ordering::Relaxed)
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_tx_get_log_condition( tx: *mut std::os::raw::c_void) -> bool {
+    let tx = cast_pointer!(tx, SSHTransaction);
+    
+    if rs_ssh_hassh_is_enabled() {
+        if tx.cli_hdr.flags == SSHConnectionState::SshStateFinished && tx.srv_hdr.flags == SSHConnectionState::SshStateFinished {
+            return true; 
+        }
+    }
+    else {
+        if tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone && tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone {
+            return true;
+        }
+    }
+    return false;
 }
