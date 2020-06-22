@@ -225,16 +225,14 @@ static OutputInitResult OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ct
 void JsonSshLogRegister (void)
 {
     /* register as separate module */
-    OutputRegisterTxModuleWithProgress(LOGGER_JSON_SSH,
+    OutputRegisterTxModuleWithCondition(LOGGER_JSON_SSH,
         "JsonSshLog", "ssh-json-log",
         OutputSshLogInit, ALPROTO_SSH, JsonSshLogger,
-        SshStateBannerDone, SshStateBannerDone,
-        JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
+        SSHTxLogCondition, JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_SSH,
+    OutputRegisterTxSubModuleWithCondition(LOGGER_JSON_SSH,
         "eve-log", "JsonSshLog", "eve-log.ssh",
         OutputSshLogInitSub, ALPROTO_SSH, JsonSshLogger,
-        SshStateBannerDone, SshStateBannerDone,
-        JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
+        SSHTxLogCondition, JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
 }
