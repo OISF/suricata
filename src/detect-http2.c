@@ -94,6 +94,7 @@ static int DetectEngineInspectHttp2Header(
                                           const DetectEngineAppInspectionEngine *engine,
                                           const Signature *s,
                                           Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **sigerror);
 
 #ifdef UNITTESTS
 void DetectHTTP2RegisterTests (void);
@@ -197,7 +198,6 @@ void DetectHttp2Register(void)
                                          "HTTP2 header name");
     g_http2_header_name_buffer_id = DetectBufferTypeGetByName("http2_header_name");
 
-    //TODO check pattern is consistent with : escaping
     sigmatch_table[DETECT_HTTP2_HEADER].name = "http2.header";
     sigmatch_table[DETECT_HTTP2_HEADER].desc = "sticky buffer to match on one HTTP2 header name and value";
     sigmatch_table[DETECT_HTTP2_HEADER].url = "/rules/http2-keywords.html#header";
@@ -219,6 +219,7 @@ void DetectHttp2Register(void)
 
     DetectBufferTypeSetDescriptionByName("http2_header",
                                          "HTTP2 header name and value");
+    DetectBufferTypeRegisterValidateCallback("http2_header", DetectHttp2HeaderValidateCallback);
     g_http2_header_buffer_id = DetectBufferTypeGetByName("http2_header");
 
     DetectAppLayerInspectEngineRegister("http2",
@@ -814,7 +815,7 @@ static int PrefilterMpmHttp2HeaderRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistery *mpm_reg, int list_id)
 {
-    //TODO use PrefilterMpmListId elsewhere
+    //TODOask use PrefilterMpmListId elsewhere
     PrefilterMpmListId *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)
         return -1;
@@ -841,7 +842,7 @@ static int DetectEngineInspectHttp2Header(
     }
 
     while (1) {
-        //TODO use MpmListIdDataArgs elsewhere
+        //TODOask use MpmListIdDataArgs elsewhere
         struct MpmListIdDataArgs cbdata = { local_id, txv, };
         InspectionBuffer *buffer = GetHttp2HeaderData(det_ctx, flags,
                 transforms, f, &cbdata, engine->sm_list, false);
@@ -866,6 +867,49 @@ static int DetectEngineInspectHttp2Header(
     }
 
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+}
+
+static bool DetectHttp2HeaderValidateCallback(const Signature *s, const char **sigerror)
+{
+    const SigMatch *sm = s->init_data->smlists[g_http2_header_buffer_id];
+    for ( ; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+        const DetectContentData *cd = (DetectContentData *)sm->ctx;
+        bool escaped = false;
+        bool namevaluesep = false;
+        for (size_t i = 0; i < cd->content_len; ++i) {
+            if (escaped) {
+                if (cd->content[i] == ':') {
+                    if (namevaluesep) {
+                        *sigerror = "Invalid http2.header string : "
+                        "': ' is a special sequence for separation between name and value "
+                        " and thus can only be present once";
+                        SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
+                        return false;
+                    }
+                    namevaluesep = true;
+                } else if (cd->content[i] == ' ') {
+                    *sigerror = "Invalid http2.header string : "
+                                "':' is an escaping character for itself, "
+                                "or space for the separation between name and value";
+                    SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
+                    return false;
+                }
+                escaped = false;
+            } else if(cd->content[i] == ':') {
+                escaped = true;
+            }
+        }
+        if (escaped) {
+            *sigerror = "Invalid http2.header string : "
+            "':' is an escaping character for itself, "
+            "or space for the separation between name and value";
+            SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
+            return false;
+        }
+    }
+    return true;
 }
 
 #ifdef UNITTESTS
