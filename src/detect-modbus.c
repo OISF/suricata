@@ -51,6 +51,7 @@
 #include "detect-engine-modbus.h"
 
 #include "util-debug.h"
+#include "util-byte.h"
 
 #include "app-layer-modbus.h"
 
@@ -190,14 +191,21 @@ static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char
             if (unlikely(modbus->address == NULL))
                 goto error;
 
+            uint8_t idx;
             if (arg[0] == '>') {
-                modbus->address->min    = atoi((const char*) (arg+1));
+                idx = 1;
                 modbus->address->mode   = DETECT_MODBUS_GT;
             } else if (arg[0] == '<') {
-                modbus->address->min    = atoi((const char*) (arg+1));
+                idx = 1;
                 modbus->address->mode   = DETECT_MODBUS_LT;
             } else {
-                modbus->address->min    = atoi((const char*) arg);
+                idx = 0;
+            }
+            if (StringParseUint16(&modbus->address->min, 10, 0,
+                                  (const char *) (arg + idx)) < 0) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for min "
+                           "address: %s", (const char *)(arg + idx));
+                goto error;
             }
             SCLogDebug("and min/equal address %d", modbus->address->min);
 
@@ -209,7 +217,12 @@ static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char
                 }
 
                 if (*arg != '\0') {
-                    modbus->address->max    = atoi((const char*) (arg+2));
+                    if (StringParseUint16(&modbus->address->max, 10, 0,
+                                         (const char*) (arg + 2)) < 0) {
+                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for max "
+                                   "address: %s", (const char*)(arg + 2));
+                        goto error;
+                    }
                     modbus->address->mode   = DETECT_MODBUS_RA;
                     SCLogDebug("and max address %d", modbus->address->max);
                 }
@@ -235,14 +248,22 @@ static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char
                     if (unlikely(modbus->data == NULL))
                         goto error;
 
+
+                    uint8_t idx_mode;
                     if (arg[0] == '>') {
-                        modbus->data->min   = atoi((const char*) (arg+1));
+                        idx_mode = 1;
                         modbus->data->mode  = DETECT_MODBUS_GT;
                     } else if (arg[0] == '<') {
-                        modbus->data->min   = atoi((const char*) (arg+1));
+                        idx_mode = 1;
                         modbus->data->mode  = DETECT_MODBUS_LT;
                     } else {
-                        modbus->data->min   = atoi((const char*) arg);
+                        idx_mode = 0;
+                    }
+                    if (StringParseUint16(&modbus->data->min, 10, 0,
+                                          (const char*) (arg + idx_mode)) < 0) {
+                        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
+                                   "min data: %s", (const char*)(arg + idx_mode));
+                        goto error;
                     }
                     SCLogDebug("and min/equal value %d", modbus->data->min);
 
@@ -254,7 +275,13 @@ static DetectModbus *DetectModbusAccessParse(DetectEngineCtx *de_ctx, const char
                         }
 
                         if (*arg != '\0') {
-                            modbus->data->max   = atoi((const char*) (arg+2));
+                            if (StringParseUint16(&modbus->data->max,
+                                                  10, 0, (const char*) (arg + 2)) < 0) {
+                                SCLogError(SC_ERR_INVALID_VALUE,
+                                           "Invalid value for max data: %s",
+                                           (const char*)(arg + 2));
+                                goto error;
+                            }
                             modbus->data->mode  = DETECT_MODBUS_RA;
                             SCLogDebug("and max value %d", modbus->data->max);
                         }
@@ -306,7 +333,11 @@ static DetectModbus *DetectModbusFunctionParse(DetectEngineCtx *de_ctx, const ch
         goto error;
 
     if (isdigit((unsigned char)ptr[0])) {
-        modbus->function = atoi((const char*) ptr);
+        if (StringParseUint8(&modbus->function, 10, 0, (const char *)ptr) < 0) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
+                       "modbus function: %s", (const char *)ptr);
+            goto error;
+        }
         /* Function code 0 is managed by decoder_event INVALID_FUNCTION_CODE */
         if (modbus->function == MODBUS_FUNC_NONE) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,
@@ -329,7 +360,12 @@ static DetectModbus *DetectModbusFunctionParse(DetectEngineCtx *de_ctx, const ch
             if (modbus->subfunction == NULL)
                 goto error;
 
-            *(modbus->subfunction) = atoi((const char*) arg);
+            if (StringParseUint16(&(*modbus->subfunction), 10, 0, (const char *)arg) < 0) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
+                           "modbus subfunction: %s", (const char*)arg);
+                goto error;
+            }
+
             SCLogDebug("and subfunction %d", *(modbus->subfunction));
         }
     } else {
@@ -421,14 +457,20 @@ static DetectModbus *DetectModbusUnitIdParse(DetectEngineCtx *de_ctx, const char
     if (unlikely(modbus->unit_id == NULL))
         goto error;
 
+    uint8_t idx;
     if (arg[0] == '>') {
-        modbus->unit_id->min   = atoi((const char*) (arg+1));
+        idx = 1;
         modbus->unit_id->mode  = DETECT_MODBUS_GT;
     } else if (arg[0] == '<') {
-        modbus->unit_id->min   = atoi((const char*) (arg+1));
+        idx = 1;
         modbus->unit_id->mode  = DETECT_MODBUS_LT;
     } else {
-        modbus->unit_id->min   = atoi((const char*) arg);
+        idx = 0;
+    }
+    if (StringParseUint16(&modbus->unit_id->min, 10, 0, (const char *) (arg + idx)) < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
+                   "modbus min unit id: %s", (const char*)(arg + idx));
+        goto error;
     }
     SCLogDebug("and min/equal unit id %d", modbus->unit_id->min);
 
@@ -440,7 +482,11 @@ static DetectModbus *DetectModbusUnitIdParse(DetectEngineCtx *de_ctx, const char
         }
 
         if (*arg != '\0') {
-            modbus->unit_id->max   = atoi((const char*) (arg+2));
+            if (StringParseUint16(&modbus->unit_id->max, 10, 0, (const char *) (arg + 2)) < 0) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Invalid value for "
+                           "modbus max unit id: %s", (const char*)(arg + 2));
+                goto error;
+            }
             modbus->unit_id->mode  = DETECT_MODBUS_RA;
             SCLogDebug("and max unit id %d", modbus->unit_id->max);
         }
