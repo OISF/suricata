@@ -2648,6 +2648,37 @@ static int DNP3ParserUnknownEventAlertTest(void)
     PASS;
 }
 
+/**
+* \brief Test that an alert is raised on incorrect data.
+*/
+static int DNP3ParserIncorrectUserData(void)
+{
+    uint8_t packet_bytes[] = {
+        0x05, 0x64, 0x08, 0xc4, 0x03, 0x00, 0x04, 0x00,
+        0xbf, 0xe9, 0xc1, 0xc1, 0x82, 0xc5, 0xee
+    };
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Flow flow;
+    TcpSession ssn;
+    memset(&flow, 0, sizeof(flow));
+    memset(&ssn, 0, sizeof(ssn));
+    flow.protoctx = (void *)&ssn;
+    flow.proto = IPPROTO_TCP;
+    flow.alproto = ALPROTO_DNP3;
+    StreamTcpInitConfig(TRUE);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
+                                STREAM_TOCLIENT, packet_bytes, sizeof(packet_bytes));
+
+    FAIL_IF(r == 0);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&flow);
+    PASS;
+}
+
 #endif
 
 void DNP3ParserRegisterTests(void)
@@ -2674,5 +2705,6 @@ void DNP3ParserRegisterTests(void)
     UtRegisterTest("DNP3ParserDecodeG70V3Test", DNP3ParserDecodeG70V3Test);
     UtRegisterTest("DNP3ParserUnknownEventAlertTest",
         DNP3ParserUnknownEventAlertTest);
+    UtRegisterTest("DNP3ParserIncorrectUserData", DNP3ParserIncorrectUserData);
 #endif
 }
