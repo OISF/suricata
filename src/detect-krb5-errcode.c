@@ -23,6 +23,7 @@
 
 #include "suricata-common.h"
 #include "util-unittest.h"
+#include "util-byte.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -156,8 +157,10 @@ static DetectKrb5ErrCodeData *DetectKrb5ErrCodeParse (const char *krb5str)
     krb5d = SCMalloc(sizeof (DetectKrb5ErrCodeData));
     if (unlikely(krb5d == NULL))
         goto error;
-    krb5d->err_code = (int32_t)atoi(arg1);
-
+    if (StringParseInt32(&krb5d->err_code, 10, 0,
+                         (const char *)arg1) < 0) {
+        goto error;
+    }
     return krb5d;
 
 error:
