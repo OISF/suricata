@@ -16,6 +16,7 @@
  */
 
 pub mod detect;
+pub mod files;
 pub mod http2;
 mod huffman;
 pub mod logger;

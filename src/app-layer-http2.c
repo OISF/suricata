@@ -49,6 +49,9 @@ static int HTTP2RegisterPatternsForProtocolDetection(void)
     return 0;
 }
 
+static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
+static SuricataFileContext sfc = { &sbcfg };
+
 void RegisterHTTP2Parsers(void)
 {
     const char *proto_name = "http2";
@@ -59,6 +62,7 @@ void RegisterHTTP2Parsers(void)
             return;
     }
 
+    rs_http2_init(&sfc);
     rs_http2_register_parser();
 
 #ifdef UNITTESTS

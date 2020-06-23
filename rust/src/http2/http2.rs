@@ -15,9 +15,15 @@
  * 02110-1301, USA.
  */
 
+use super::files::*;
 use super::parser;
 use crate::applayer::{self, *};
-use crate::core::{self, AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP};
+use crate::core::{
+    self, AppProto, Flow, SuricataFileContext, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP,
+    STREAM_TOCLIENT, STREAM_TOSERVER,
+};
+use crate::filecontainer::*;
+use crate::filetracker::*;
 use crate::log::*;
 use nom;
 use std;
@@ -27,6 +33,16 @@ use std::mem::transmute;
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 
 const HTTP2_DEFAULT_MAX_FRAME_SIZE: u32 = 16384;
+
+//TODOask why option ?
+pub static mut SURICATA_HTTP2_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
+
+#[no_mangle]
+pub extern "C" fn rs_http2_init(context: &'static mut SuricataFileContext) {
+    unsafe {
+        SURICATA_HTTP2_FILE_CONFIG = Some(context);
+    }
+}
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq)]
@@ -43,7 +59,6 @@ const HTTP2_FRAME_PRIORITY_LEN: usize = 1;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 
 pub enum HTTP2FrameTypeData {
-    //TODO4 DATA
     //Left undone PING
     PRIORITY(parser::HTTP2FramePriority),
     GOAWAY(parser::HTTP2FrameGoAway),
@@ -66,6 +81,7 @@ pub struct HTTP2Transaction {
     de_state: Option<*mut core::DetectEngineState>,
     detect_flags: TxDetectFlags,
     events: *mut core::AppLayerDecoderEvents,
+    ft: FileTransferTracker,
 }
 
 impl HTTP2Transaction {
@@ -78,6 +94,7 @@ impl HTTP2Transaction {
             de_state: None,
             detect_flags: TxDetectFlags::default(),
             events: std::ptr::null_mut(),
+            ft: FileTransferTracker::new(),
         }
     }
 
@@ -127,6 +144,7 @@ pub struct HTTP2State {
     dynamic_headers: Vec<parser::HTTP2FrameHeaderBlock>,
     transactions: Vec<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
+    pub files: HTTP2Files,
 }
 
 impl HTTP2State {
@@ -138,6 +156,7 @@ impl HTTP2State {
             dynamic_headers: Vec::with_capacity(255 - parser::HTTP2_STATIC_HEADERS_NUMBER),
             transactions: Vec::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
+            files: HTTP2Files::new(),
         }
     }
 
@@ -340,6 +359,34 @@ impl HTTP2State {
                                 Err(_) => {
                                     self.set_event(HTTP2Event::InvalidFrameData);
                                 }
+                            }
+                        }
+                        parser::HTTP2FrameType::DATA => {
+                            //we check for completeness first for code simplicity
+                            if rem.len() < hl {
+                                return AppLayerResult::incomplete(
+                                    (il - input.len()) as u32,
+                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                );
+                            }
+                            //TODOask use streaming buffer directly
+                            match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+                                Some(sfcm) => {
+                                    let xid: u32 = tx.tx_id as u32;
+                                    tx.ft.new_chunk(
+                                        sfcm,
+                                        &mut self.files.files_ts,
+                                        self.files.flags_ts,
+                                        b"",
+                                        rem,
+                                        0,
+                                        hl as u32,
+                                        0,
+                                        head.flags & parser::HTTP2_FLAG_HEADER_END_STREAM != 0,
+                                        &xid,
+                                    );
+                                }
+                                None => panic!("BUG"),
                             }
                         }
                         parser::HTTP2FrameType::CONTINUATION => {
@@ -563,7 +610,7 @@ pub extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 
 #[no_mangle]
 pub extern "C" fn rs_http2_parse_ts(
-    _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *const std::os::raw::c_void, _flags: u8,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
@@ -591,6 +638,8 @@ pub extern "C" fn rs_http2_parse_ts(
         }
     }
 
+    //TODOask use FILE_USE_DETECT ?
+    state.files.flags_ts = unsafe { FileFlowToFlags(flow, STREAM_TOSERVER) };
     return state.parse_ts(buf);
 }
 
@@ -737,6 +786,18 @@ pub extern "C" fn rs_http2_state_get_tx_iterator(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn rs_http2_getfiles(
+    state: *mut std::os::raw::c_void, direction: u8,
+) -> *mut FileContainer {
+    let state = cast_pointer!(state, HTTP2State);
+    if direction == STREAM_TOCLIENT {
+        &mut state.files.files_tc as *mut FileContainer
+    } else {
+        &mut state.files.files_ts as *mut FileContainer
+    }
+}
+
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"http2\0";
 
@@ -771,7 +832,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         get_eventinfo_byid: Some(rs_http2_state_get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
-        get_files: None,
+        get_files: Some(rs_http2_getfiles),
         get_tx_iterator: Some(rs_http2_state_get_tx_iterator),
         get_tx_detect_flags: Some(rs_http2_get_tx_detect_flags),
         set_tx_detect_flags: Some(rs_http2_set_tx_detect_flags),
