@@ -76,7 +76,7 @@ static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "http2");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_FLOW, "http2", NULL);
     if (unlikely(js == NULL))
         return 0;
 
