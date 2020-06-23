@@ -306,12 +306,18 @@ fn http2_frame_header_static(
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub enum HTTP2HeaderDecodeStatus {
     HTTP2HeaderDecodeSuccess = 0,
     HTTP2HeaderDecodeSizeUpdate = 1,
     HTTP2HeaderDecodeError = 0x80,
     HTTP2HeaderDecodeNotIndexed = 0x81,
+}
+
+impl fmt::Display for HTTP2HeaderDecodeStatus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Clone)]
@@ -524,9 +530,9 @@ pub fn http2_parse_frame_headers<'a>(
         match http2_parse_headers_block(i3, dyn_headers) {
             Ok((rem, b)) => {
                 blocks.push(b);
+                debug_validate_bug_on!(i3.len() == rem.len());
                 if i3.len() == rem.len() {
                     //infinite loop
-                    //TODOnext panic on fuzzing
                     return Err(Err::Error((input, ErrorKind::Eof)));
                 }
                 i3 = rem;
@@ -564,9 +570,9 @@ pub fn http2_parse_frame_push_promise<'a>(
         match http2_parse_headers_block(i3, dyn_headers) {
             Ok((rem, b)) => {
                 blocks.push(b);
+                debug_validate_bug_on!(i3.len() == rem.len());
                 if i3.len() == rem.len() {
                     //infinite loop
-                    //TODOnext panic on fuzzing
                     return Err(Err::Error((input, ErrorKind::Eof)));
                 }
                 i3 = rem;
@@ -601,9 +607,9 @@ pub fn http2_parse_frame_continuation<'a>(
         match http2_parse_headers_block(i3, dyn_headers) {
             Ok((rem, b)) => {
                 blocks.push(b);
+                debug_validate_bug_on!(i3.len() == rem.len());
                 if i3.len() == rem.len() {
                     //infinite loop
-                    //TODOnext panic on fuzzing
                     return Err(Err::Error((input, ErrorKind::Eof)));
                 }
                 i3 = rem;

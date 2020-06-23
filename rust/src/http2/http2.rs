@@ -122,6 +122,7 @@ pub enum HTTP2Event {
     InvalidFrameData,
     InvalidHeader,
     InvalidFrameLength,
+    ExtraHeaderData,
 }
 
 impl HTTP2Event {
@@ -132,6 +133,7 @@ impl HTTP2Event {
             2 => Some(HTTP2Event::InvalidFrameData),
             3 => Some(HTTP2Event::InvalidHeader),
             4 => Some(HTTP2Event::InvalidFrameLength),
+            5 => Some(HTTP2Event::ExtraHeaderData),
             _ => None,
         }
     }
@@ -436,7 +438,7 @@ impl HTTP2State {
                                     }
                                     if hrem.len() > 0 {
                                         SCLogNotice!("Remaining data for HTTP2 headers");
-                                        //TODOnext panic when fuzzing
+                                        self.set_event(HTTP2Event::ExtraHeaderData);
                                     }
                                     tx.type_data = Some(HTTP2FrameTypeData::HEADERS(hs));
                                 }
@@ -769,6 +771,7 @@ pub extern "C" fn rs_http2_state_get_event_info(
                 "invalid_frame_data" => HTTP2Event::InvalidFrameData as i32,
                 "invalid_header" => HTTP2Event::InvalidHeader as i32,
                 "invalid_frame_length" => HTTP2Event::InvalidFrameLength as i32,
+                "extra_header_data" => HTTP2Event::ExtraHeaderData as i32,
                 _ => -1, // unknown event
             }
         }
@@ -793,6 +796,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::InvalidFrameData => "invalid_frame_data\0",
             HTTP2Event::InvalidHeader => "invalid_header\0",
             HTTP2Event::InvalidFrameLength => "invalid_frame_length\0",
+            HTTP2Event::ExtraHeaderData => "extra_header_data\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;

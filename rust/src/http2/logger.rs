@@ -59,8 +59,9 @@ fn log_http2(tx: &HTTP2Transaction) -> Json {
                 if hd.blocks[i].error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess {
                     jss.set_string_from_bytes("name", &hd.blocks[i].name);
                     jss.set_string_from_bytes("value", &hd.blocks[i].value);
+                } else {
+                    jss.set_string("error", &hd.blocks[i].error.to_string());
                 }
-                //TODOnext else ?
                 headers.array_append(jss)
             }
             js.set("headers", headers);
