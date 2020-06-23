@@ -586,6 +586,35 @@ pub fn http2_parse_frame_push_promise<'a>(
     ));
 }
 
+#[derive(Clone)]
+pub struct HTTP2FrameContinuation {
+    pub blocks: Vec<HTTP2FrameHeaderBlock>,
+}
+
+pub fn http2_parse_frame_continuation<'a>(
+    input: &'a [u8], dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
+) -> IResult<&'a [u8], HTTP2FrameContinuation> {
+    let mut i3 = input;
+    let mut blocks = Vec::new();
+    while i3.len() > 0 {
+        match http2_parse_headers_block(i3, dyn_headers) {
+            Ok((rem, b)) => {
+                blocks.push(b);
+                if i3.len() == rem.len() {
+                    //infinite loop
+                    //TODOnext panic on fuzzing
+                    return Err(Err::Error((input, ErrorKind::Eof)));
+                }
+                i3 = rem;
+            }
+            Err(x) => {
+                return Err(x);
+            }
+        }
+    }
+    return Ok((i3, HTTP2FrameContinuation { blocks }));
+}
+
 #[repr(u16)]
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
 pub enum HTTP2SettingsId {
