@@ -168,8 +168,8 @@ impl SSHState {
                         hdr.record_left_msg = parser::MessageCode::SshMsgUndefined(0);
                     }
                     _ => {
-                let start = hdr.record_left as usize;
-                input = &input[start..];
+                        let start = hdr.record_left as usize;
+                        input = &input[start..];
                     }
                 }
                 hdr.record_left = 0;
@@ -187,18 +187,18 @@ impl SSHState {
                             }
                         }
                         parser::MessageCode::SshMsgNewKeys => {
-                        hdr.flags = SSHConnectionState::SshStateFinished;
-                        if ohdr.flags >= SSHConnectionState::SshStateFinished {
-                            unsafe {
-                                AppLayerParserStateSetFlag(
-                                    pstate,
-                                    APP_LAYER_PARSER_NO_INSPECTION
+                            hdr.flags = SSHConnectionState::SshStateFinished;
+                            if ohdr.flags >= SSHConnectionState::SshStateFinished {
+                                unsafe {
+                                    AppLayerParserStateSetFlag(
+                                        pstate,
+                                        APP_LAYER_PARSER_NO_INSPECTION
                                         | APP_LAYER_PARSER_NO_REASSEMBLY
                                         | APP_LAYER_PARSER_BYPASS_READY,
-                                );
+                                    );
+                                }
                             }
                         }
-                    }
                         _ => {}
                     }
                     
@@ -214,8 +214,8 @@ impl SSHState {
                             //header with rem as incomplete data
                             match head.msg_code { 
                                 parser::MessageCode::SshMsgNewKeys => {
-                                hdr.flags = SSHConnectionState::SshStateFinished;
-                            }
+                                    hdr.flags = SSHConnectionState::SshStateFinished;
+                                }
                                 parser::MessageCode::SshMsgKexinit if HASSH_ENABLED.load(Ordering::Relaxed) => {
                                     // check if buffer is bigger than maximum reassembled packet size
                                     if hdr.record_left < SSH_MAX_REASSEMBLED_RECORD_LEN as u32 {
@@ -595,4 +595,21 @@ pub extern "C" fn rs_ssh_enable_hassh() {
 #[no_mangle]
 pub extern "C" fn rs_ssh_hassh_is_enabled() -> bool {
     HASSH_ENABLED.load(Ordering::Relaxed)
+}
+
+#[no_mangle]
+pub extern "C" fn rs_ssh_tx_get_log_condition( tx: *mut std::os::raw::c_void) -> bool {
+    let tx = cast_pointer!(tx, SSHTransaction);
+    
+    if rs_ssh_hassh_is_enabled() {
+        if tx.cli_hdr.flags == SSHConnectionState::SshStateFinished && tx.srv_hdr.flags == SSHConnectionState::SshStateFinished {
+            return true; 
+        }
+    }
+    else {
+        if tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone && tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone {
+            return true;
+        }
+    }
+    return false;
 }
