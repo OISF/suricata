@@ -51,12 +51,13 @@
 #include "host.h"
 #include "util-profiling.h"
 #include "util-var.h"
+#include "util-byte.h"
 
 static int DetectPortCutNot(DetectPort *, DetectPort **);
 static int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *,
                          DetectPort **);
 DetectPort *PortParse(const char *str);
-int DetectPortIsValidRange(char *);
+static bool DetectPortIsValidRange(char *, uint16_t *);
 
 /**
  * \brief Alloc a DetectPort structure and update counters
@@ -1295,20 +1296,22 @@ DetectPort *PortParse(const char *str)
     }
 
     /* see if the address is an ipv4 or ipv6 address */
-    if ((port2 = strchr(port, ':')) != NULL)  {
+    if ((port2 = strchr(port, ':')) != NULL) {
         /* 80:81 range format */
         port2[0] = '\0';
         port2++;
 
-        if (DetectPortIsValidRange(port))
-            dp->port = atoi(port);
-        else
-            goto error;
+        if (strcmp(port, "") != 0) {
+            bool res = DetectPortIsValidRange(port, &dp->port);
+            if (!res)
+                goto error;
+        } else {
+            dp->port = 0;
+        }
 
         if (strcmp(port2, "") != 0) {
-            if (DetectPortIsValidRange(port2))
-                dp->port2 = atoi(port2);
-            else
+            bool res = DetectPortIsValidRange(port2, &dp->port2);
+            if (!res)
                 goto error;
         } else {
             dp->port2 = 65535;
@@ -1321,10 +1324,11 @@ DetectPort *PortParse(const char *str)
         if (strcasecmp(port,"any") == 0) {
             dp->port = 0;
             dp->port2 = 65535;
-        } else if(DetectPortIsValidRange(port)){
-            dp->port = dp->port2 = atoi(port);
         } else {
-            goto error;
+            bool res = DetectPortIsValidRange(port, &dp->port);
+            if (!res)
+                goto error;
+            dp->port2 = dp->port;
         }
     }
 
@@ -1342,18 +1346,16 @@ error:
  *
  * \param str Pointer to the port string
  *
- * \retval 1 if port is in the valid range
- * \retval 0 if invalid
+ *
+ * \retval true if port is in the valid range
+ * \retval false if invalid
  */
-int DetectPortIsValidRange(char *port)
+static bool DetectPortIsValidRange(char *port, uint16_t *port_val)
 {
-    char *end;
-    long r = strtol(port, &end, 10);
+    if (StringParseUint16(port_val, 10, 0, (const char *)port) < 0)
+        return false;
 
-    if(*end == 0 && r >= 0 && r <= 65535)
-        return 1;
-    else
-        return 0;
+    return true;
 }
 
 /********************** End parsing routines ********************/
