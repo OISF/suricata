@@ -43,7 +43,6 @@ const HTTP2_FRAME_PRIORITY_LEN: usize = 1;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 
 pub enum HTTP2FrameTypeData {
-    //TODO2.0 PUSH_PROMISE
     //TODO4 DATA
     //TODO2.1 CONTINUATION
     //Left undone PING
@@ -53,6 +52,7 @@ pub enum HTTP2FrameTypeData {
     SETTINGS(Vec<parser::HTTP2FrameSettings>),
     WINDOWUPDATE(parser::HTTP2FrameWindowUpdate),
     HEADERS(parser::HTTP2FrameHeaders),
+    PUSHPROMISE(parser::HTTP2FramePushPromise),
 }
 
 pub struct HTTP2Transaction {
@@ -312,6 +312,33 @@ impl HTTP2State {
                                     Err(_) => {
                                         self.set_event(HTTP2Event::InvalidFrameData);
                                     }
+                                }
+                            }
+                        }
+                        parser::HTTP2FrameType::PUSHPROMISE => {
+                            //we need to check for completeness first
+                            if rem.len() < hl {
+                                return AppLayerResult::incomplete(
+                                    (il - input.len()) as u32,
+                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                );
+                            }
+                            match parser::http2_parse_frame_push_promise(
+                                &rem[..hl],
+                                head.flags,
+                                &mut self.dynamic_headers,
+                            ) {
+                                Ok((_, hs)) => {
+                                    for i in 0..hs.blocks.len() {
+                                        if hs.blocks[i].error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
+                                            self.set_event(HTTP2Event::InvalidHeader);
+                                        }
+                                    }
+                                    //TODO6tx right transaction wih promised headers
+                                    tx.type_data = Some(HTTP2FrameTypeData::PUSHPROMISE(hs));
+                                }
+                                Err(_) => {
+                                    self.set_event(HTTP2Event::InvalidFrameData);
                                 }
                             }
                         }

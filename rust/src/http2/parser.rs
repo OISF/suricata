@@ -545,6 +545,47 @@ pub fn http2_parse_frame_headers<'a>(
     ));
 }
 
+#[derive(Clone)]
+pub struct HTTP2FramePushPromise {
+    pub padlength: Option<u8>,
+    pub reserved: u8,
+    pub stream_id: u32,
+    pub blocks: Vec<HTTP2FrameHeaderBlock>,
+}
+
+pub fn http2_parse_frame_push_promise<'a>(
+    input: &'a [u8], flags: u8, dyn_headers: &mut Vec<HTTP2FrameHeaderBlock>,
+) -> IResult<&'a [u8], HTTP2FramePushPromise> {
+    let (i2, padlength) = cond!(input, flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)?;
+    let (mut i3, stream_id) = bits!(i2, tuple!(take_bits!(1u8), take_bits!(31u32)))?;
+    let mut blocks = Vec::new();
+    while i3.len() > 0 {
+        match http2_parse_headers_block(i3, dyn_headers) {
+            Ok((rem, b)) => {
+                blocks.push(b);
+                if i3.len() == rem.len() {
+                    //infinite loop
+                    //TODOnext panic on fuzzing
+                    return Err(Err::Error((input, ErrorKind::Eof)));
+                }
+                i3 = rem;
+            }
+            Err(x) => {
+                return Err(x);
+            }
+        }
+    }
+    return Ok((
+        i3,
+        HTTP2FramePushPromise {
+            padlength,
+            reserved: stream_id.0,
+            stream_id: stream_id.1,
+            blocks,
+        },
+    ));
+}
+
 #[repr(u16)]
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Debug)]
 pub enum HTTP2SettingsId {
