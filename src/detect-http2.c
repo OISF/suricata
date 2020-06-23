@@ -180,7 +180,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_HEADERNAME].Setup = DetectHTTP2headerNameSetup;
     sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    //TODO tx_min_progress instead of 1
+    //TODO6tx_min_progress instead of 1
     DetectAppLayerMpmRegister2("http2_header_name", SIG_FLAG_TOCLIENT, 2,
                                PrefilterMpmHttp2HeaderNameRegister, NULL,
                                ALPROTO_HTTP2, 1);
@@ -681,7 +681,7 @@ static int PrefilterMpmHttp2HeaderNameRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistery *mpm_reg, int list_id)
 {
-    //TODO use PrefilterMpmListId elsewhere
+    //TODOask use PrefilterMpmListId elsewhere
     PrefilterMpmListId *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)
         return -1;
@@ -708,7 +708,7 @@ static int DetectEngineInspectHttp2HeaderName(
     }
 
     while (1) {
-        //TODO use MpmListIdDataArgs elsewhere
+        //TODOask use MpmListIdDataArgs elsewhere
         struct MpmListIdDataArgs cbdata = { local_id, txv, };
         InspectionBuffer *buffer = GetHttp2HNameData(det_ctx, flags,
                 transforms, f, &cbdata, engine->sm_list, false);

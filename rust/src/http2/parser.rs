@@ -70,7 +70,7 @@ impl std::str::FromStr for HTTP2FrameType {
 
 #[derive(PartialEq)]
 pub struct HTTP2FrameHeader {
-    //TODOnext detection on (GOAWAY) additional data = length
+    //TODOask detection on (GOAWAY) additional data = length
     pub length: u32,
     pub ftype: HTTP2FrameType,
     pub flags: u8,

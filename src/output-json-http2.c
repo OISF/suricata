@@ -53,7 +53,7 @@
 
 #define MODULE_NAME "LogHttp2Log"
 
-//TODOnext Cannot this be generic ? and most of the file as well
+//TODOask Cannot this be generic ? and most of the file as well
 typedef struct OutputHttp2Ctx_ {
     LogFileCtx *file_ctx;
     OutputJsonCommonSettings cfg;
