@@ -284,6 +284,7 @@ fn http2_frame_header_static(
             name: name.as_bytes().to_vec(),
             value: value.as_bytes().to_vec(),
             error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+            sizeupdate: 0,
         });
     } else {
         //use dynamic table
@@ -292,6 +293,7 @@ fn http2_frame_header_static(
                 name: Vec::new(),
                 value: Vec::new(),
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeNotIndexed,
+                sizeupdate: 0,
             });
         } else {
             let indyn = dyn_headers.len() - (n as usize - HTTP2_STATIC_HEADERS_NUMBER);
@@ -299,6 +301,7 @@ fn http2_frame_header_static(
                 name: dyn_headers[indyn].name.to_vec(),
                 value: dyn_headers[indyn].value.to_vec(),
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+                sizeupdate: 0,
             };
             return Some(headcopy);
         }
@@ -312,6 +315,7 @@ pub enum HTTP2HeaderDecodeStatus {
     HTTP2HeaderDecodeSizeUpdate = 1,
     HTTP2HeaderDecodeError = 0x80,
     HTTP2HeaderDecodeNotIndexed = 0x81,
+    HTTP2HeaderDecodeIntegerOverflow = 0x82,
 }
 
 impl fmt::Display for HTTP2HeaderDecodeStatus {
@@ -325,6 +329,7 @@ pub struct HTTP2FrameHeaderBlock {
     pub name: Vec<u8>,
     pub value: Vec<u8>,
     pub error: HTTP2HeaderDecodeStatus,
+    pub sizeupdate: u64,
 }
 
 fn http2_parse_headers_block_indexed<'a>(
@@ -383,7 +388,15 @@ fn http2_parse_headers_block_literal_common<'a>(
         }
     }?;
     let (i4, value) = http2_parse_headers_block_string(i3)?;
-    return Ok((i4, HTTP2FrameHeaderBlock { name, value, error }));
+    return Ok((
+        i4,
+        HTTP2FrameHeaderBlock {
+            name,
+            value,
+            error,
+            sizeupdate: 0,
+        },
+    ));
 }
 
 fn http2_parse_headers_block_literal_incindex<'a>(
@@ -406,12 +419,13 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 name: head.name.to_vec(),
                 value: head.value.to_vec(),
                 error: head.error,
+                sizeupdate: 0,
             };
             dyn_headers.push(headcopy);
             if dyn_headers.len() > 255 - HTTP2_STATIC_HEADERS_NUMBER {
                 dyn_headers.remove(0);
             }
-            //TODOnext? handle dynamic table size limit
+            //we do not limit the dynamic table size
             return Ok((r, head));
         }
         Err(e) => {
@@ -466,8 +480,25 @@ fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2F
     }
     let (i2, maxsize) = parser(input)?;
     if maxsize.1 == 31 {
-        let (i3, _maxsize2) = take_while!(i2, |ch| (ch & 0x80) != 0)?;
-        let (i4, _maxsize3) = take!(i3, 1)?;
+        let (i3, maxsize2) = take_while!(i2, |ch| (ch & 0x80) != 0)?;
+        let (i4, maxsize3) = be_u8(i3)?;
+        //9 is maximum size to encode a variable length u64
+        if maxsize2.len() > 9 {
+            return Ok((
+                i4,
+                HTTP2FrameHeaderBlock {
+                    name: Vec::new(),
+                    value: Vec::new(),
+                    error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow,
+                    sizeupdate: 0,
+                },
+            ));
+        }
+        let mut sizeupdate = 0 as u64;
+        for i in 0..maxsize2.len() {
+            sizeupdate += (maxsize2[i] as u64) << (7 * i);
+        }
+        sizeupdate += (maxsize3 as u64) << (7 * maxsize2.len());
         //TODOnext detect on Dynamic Table Size Update RFC6.3
         return Ok((
             i4,
@@ -475,6 +506,7 @@ fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2F
                 name: Vec::new(),
                 value: Vec::new(),
                 error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate,
+                sizeupdate: sizeupdate,
             },
         ));
     }
@@ -484,6 +516,7 @@ fn http2_parse_headers_block_dynamic_size(input: &[u8]) -> IResult<&[u8], HTTP2F
             name: Vec::new(),
             value: Vec::new(),
             error: HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate,
+            sizeupdate: maxsize.1 as u64,
         },
     ));
 }
@@ -738,6 +771,67 @@ named!(pub http2_parse_settingsctx<&str,DetectHTTP2settingsSigCtx>,
             |s: &str| HTTP2SettingsId::from_str(s).ok() ) >>
         value: opt!( complete!( detect_parse_u32 ) ) >>
         (DetectHTTP2settingsSigCtx{id, value})
+    )
+);
+
+//TODOask move somewhere else generic
+pub struct DetectU64Data {
+    pub value: u64,
+    pub valrange: u64,
+    pub mode: DetectUintMode,
+}
+
+named!(detect_parse_u64_start_equal<&str,DetectU64Data>,
+    do_parse!(
+        opt!( is_a!( " " ) ) >>
+        opt! (tag!("=") ) >>
+        opt!( is_a!( " " ) ) >>
+        value : map_opt!(digit1, |s: &str| s.parse::<u64>().ok()) >>
+        (DetectU64Data{value, valrange:0, mode:DetectUintMode::DetectUintModeEqual})
+    )
+);
+
+named!(detect_parse_u64_start_interval<&str,DetectU64Data>,
+    do_parse!(
+        opt!( is_a!( " " ) ) >>
+        value : map_opt!(digit1, |s: &str| s.parse::<u64>().ok()) >>
+        opt!( is_a!( " " ) ) >>
+        tag!("-") >>
+        opt!( is_a!( " " ) ) >>
+        valrange : map_opt!(digit1, |s: &str| s.parse::<u64>().ok()) >>
+        (DetectU64Data{value, valrange, mode:DetectUintMode::DetectUintModeRange})
+    )
+);
+
+named!(detect_parse_u64_start_lesser<&str,DetectU64Data>,
+    do_parse!(
+        opt!( is_a!( " " ) ) >>
+        tag!("<") >>
+        opt!( is_a!( " " ) ) >>
+        value : map_opt!(digit1, |s: &str| s.parse::<u64>().ok()) >>
+        (DetectU64Data{value, valrange:0, mode:DetectUintMode::DetectUintModeLt})
+    )
+);
+
+named!(detect_parse_u64_start_greater<&str,DetectU64Data>,
+    do_parse!(
+        opt!( is_a!( " " ) ) >>
+        tag!(">") >>
+        opt!( is_a!( " " ) ) >>
+        value : map_opt!(digit1, |s: &str| s.parse::<u64>().ok()) >>
+        (DetectU64Data{value, valrange:0, mode:DetectUintMode::DetectUintModeGt})
+    )
+);
+
+named!(pub detect_parse_u64<&str,DetectU64Data>,
+    do_parse!(
+        u64 : alt! (
+            detect_parse_u64_start_lesser |
+            detect_parse_u64_start_greater |
+            complete!( detect_parse_u64_start_interval ) |
+            detect_parse_u64_start_equal
+        ) >>
+        (u64)
     )
 );
 

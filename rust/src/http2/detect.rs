@@ -273,6 +273,89 @@ pub extern "C" fn rs_http2_detect_settingsctx_match(
 }
 
 #[no_mangle]
+pub extern "C" fn rs_detect_u64_parse(
+    str: *const std::os::raw::c_char,
+) -> *mut std::os::raw::c_void {
+    let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
+    if let Ok(s) = ft_name.to_str() {
+        if let Ok((_, ctx)) = parser::detect_parse_u64(s) {
+            let boxed = Box::new(ctx);
+            return unsafe { transmute(boxed) };
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
+    // Just unbox...
+    let _ctx: Box<parser::DetectU64Data> = unsafe { transmute(ctx) };
+}
+
+fn http2_detect_sizeupdate_match(
+    hd: &parser::HTTP2FrameHeaders, ctx: &parser::DetectU64Data,
+) -> std::os::raw::c_int {
+    for i in 0..hd.blocks.len() {
+        match ctx.mode {
+            parser::DetectUintMode::DetectUintModeEqual => {
+                if hd.blocks[i].sizeupdate == ctx.value
+                    && hd.blocks[i].error
+                        == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
+                {
+                    return 1;
+                }
+            }
+            parser::DetectUintMode::DetectUintModeLt => {
+                if hd.blocks[i].sizeupdate <= ctx.value
+                    && hd.blocks[i].error
+                        == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
+                {
+                    return 1;
+                }
+            }
+            parser::DetectUintMode::DetectUintModeGt => {
+                if hd.blocks[i].sizeupdate >= ctx.value
+                    && hd.blocks[i].error
+                        == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
+                {
+                    return 1;
+                }
+            }
+            parser::DetectUintMode::DetectUintModeRange => {
+                if hd.blocks[i].sizeupdate <= ctx.value
+                    && hd.blocks[i].sizeupdate >= ctx.valrange
+                    && hd.blocks[i].error
+                        == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
+                {
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_http2_detect_sizeupdatectx_match(
+    ctx: *const std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
+) -> std::os::raw::c_int {
+    let ctx = cast_pointer!(ctx, parser::DetectU64Data);
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    match direction {
+        STREAM_TOSERVER => match &tx.type_data {
+            Some(HTTP2FrameTypeData::HEADERS(hd)) => return http2_detect_sizeupdate_match(hd, ctx),
+            _ => {}
+        },
+        STREAM_TOCLIENT => match &tx.type_data {
+            Some(HTTP2FrameTypeData::HEADERS(hd)) => return http2_detect_sizeupdate_match(hd, ctx),
+            _ => {}
+        },
+        _ => {}
+    }
+    return 0;
+}
+
+#[no_mangle]
 pub extern "C" fn rs_http2_tx_get_header_name(
     tx: *mut std::os::raw::c_void, direction: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,

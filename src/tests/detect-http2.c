@@ -136,3 +136,26 @@ void DetectHTTP2settingsRegisterTests(void)
 {
     UtRegisterTest("DetectHTTP2settingsParseTest01", DetectHTTP2settingsParseTest01);
 }
+
+
+/**
+* \test signature with a valid http2.size_update value.
+*/
+
+static int DetectHTTP2sizeUpdateParseTest01 (void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+                                           "alert http2 any any -> any any (http2.size_update:>4096; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+void DetectHTTP2sizeUpdateRegisterTests(void)
+{
+    UtRegisterTest("DetectHTTP2sizeUpdateParseTest01", DetectHTTP2sizeUpdateParseTest01);
+}

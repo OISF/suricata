@@ -42,6 +42,7 @@ void DetectHTTP2errorCodeRegisterTests (void);
 void DetectHTTP2priorityRegisterTests (void);
 void DetectHTTP2windowRegisterTests (void);
 void DetectHTTP2settingsRegisterTests (void);
+void DetectHTTP2sizeUpdateRegisterTests (void);
 #endif
 
 /* prototypes */
@@ -68,6 +69,12 @@ static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
                                      const SigMatchCtx *ctx);
 static int DetectHTTP2windowSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectHTTP2windowFree (DetectEngineCtx *, void *);
+
+static int DetectHTTP2sizeUpdateMatch(DetectEngineThreadCtx *det_ctx,
+                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                                     const SigMatchCtx *ctx);
+static int DetectHTTP2sizeUpdateSetup (DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2sizeUpdateFree (DetectEngineCtx *, void *);
 
 static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
                                      Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
@@ -161,6 +168,17 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_WINDOW].Free = DetectHTTP2windowFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_WINDOW].RegisterTests = DetectHTTP2windowRegisterTests;
+#endif
+
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].name = "http2.size_update";
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].desc = "match on HTTP2 dynamic headers table size update";
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].url = "/rules/http2-keywords.html#sizeupdate";
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].Match = NULL;
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].AppLayerTxMatch = DetectHTTP2sizeUpdateMatch;
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].Setup = DetectHTTP2sizeUpdateSetup;
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].Free = DetectHTTP2sizeUpdateFree;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].RegisterTests = DetectHTTP2sizeUpdateRegisterTests;
 #endif
 
     sigmatch_table[DETECT_HTTP2_SETTINGS].name = "http2.settings";
@@ -481,7 +499,7 @@ void DetectHTTP2priorityFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 /**
- * \brief This function is used to match HTTP2 error code rule option on a transaction with those passed via http2.window:
+ * \brief This function is used to match HTTP2 window rule option on a transaction with those passed via http2.window:
  *
  * \retval 0 no match
  * \retval 1 match
@@ -542,6 +560,63 @@ static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 void DetectHTTP2windowFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCFree(ptr);
+}
+
+/**
+ * \brief This function is used to match HTTP2 size update rule option on a transaction with those passed via http2.size_update:
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+static int DetectHTTP2sizeUpdateMatch(DetectEngineThreadCtx *det_ctx,
+                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+                               const SigMatchCtx *ctx)
+
+{
+    return rs_http2_detect_sizeupdatectx_match(ctx, txv, flags);
+}
+
+/**
+ * \brief this function is used to attach the parsed http2.size_update data into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param str pointer to the user provided http2.size_update options
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectHTTP2sizeUpdateSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
+        return -1;
+
+    void *su = rs_detect_u64_parse(str);
+    if (su == NULL)
+        return -1;
+
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectHTTP2settingsFree(NULL, su);
+        return -1;
+    }
+
+    sm->type = DETECT_HTTP2_SIZEUPDATE;
+    sm->ctx = (SigMatchCtx *)su;
+
+    SigMatchAppendSMToList(s, sm, g_http2_match_buffer_id);
+
+    return 0;
+}
+
+/**
+ * \brief this function will free memory associated with uint32_t
+ *
+ * \param ptr pointer to DetectU8Data
+ */
+void DetectHTTP2sizeUpdateFree(DetectEngineCtx *de_ctx, void *ptr)
+{
+    rs_detect_u64_free(ptr);
 }
 
 /**
