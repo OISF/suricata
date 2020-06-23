@@ -378,8 +378,8 @@ impl HTTP2State {
                                         &mut self.files.files_ts,
                                         self.files.flags_ts,
                                         b"",
-                                        rem,
-                                        0,
+                                        &rem[..hl],
+                                        tx.ft.tracked, //offset = append
                                         hl as u32,
                                         0,
                                         head.flags & parser::HTTP2_FLAG_HEADER_END_STREAM != 0,
@@ -498,10 +498,45 @@ impl HTTP2State {
                 Ok((rem, head)) => {
                     let mut tx = self.new_tx();
                     tx.ftype = Some(head.ftype);
-                    self.transactions.push(tx);
 
                     //TODO6tx parse frame types as in request once transactions are well handled
                     let hl = head.length as usize;
+
+                    match head.ftype {
+                        parser::HTTP2FrameType::DATA => {
+                            //we check for completeness first for code simplicity
+                            if rem.len() < hl {
+                                return AppLayerResult::incomplete(
+                                    (il - input.len()) as u32,
+                                    (HTTP2_FRAME_HEADER_LEN + hl) as u32,
+                                );
+                            }
+                            //TODOask use streaming buffer directly
+                            match unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+                                Some(sfcm) => {
+                                    //TODO6tx test with right transaction
+                                    let xid: u32 = tx.tx_id as u32;
+                                    tx.ft.new_chunk(
+                                        sfcm,
+                                        &mut self.files.files_ts,
+                                        self.files.flags_ts,
+                                        b"",
+                                        &rem[..hl],
+                                        tx.ft.tracked, //offset = append
+                                        hl as u32,
+                                        0,
+                                        head.flags & parser::HTTP2_FLAG_HEADER_END_STREAM != 0,
+                                        &xid,
+                                    );
+                                }
+                                None => panic!("BUG"),
+                            }
+                        }
+                        //ignore ping case with opaque u64
+                        _ => {}
+                    }
+
+                    self.transactions.push(tx);
                     if rem.len() < hl {
                         let rl = rem.len() as u32;
                         self.response_frame_size = head.length - rl;
