@@ -503,7 +503,7 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             break;
         case ALPROTO_IKEV1:
             jb_get_mark(jb, &mark);
-            if (!JsonIKEV1AddMetadata(p->flow, pa->tx_id, jb)) {
+            if (!EveIKEV1AddMetadata(p->flow, tx_id, jb)) {
                 jb_restore_mark(jb, &mark);
             }
             break;

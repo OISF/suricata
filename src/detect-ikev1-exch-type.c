@@ -172,7 +172,6 @@ static int DetectIkev1ExchTypeMatch (DetectEngineThreadCtx *det_ctx,
 static DetectIkev1ExchTypeData *DetectIkev1ExchTypeParse (const char *rawstr)
 {
     DetectIkev1ExchTypeData *dd = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     char mode[2] = "";
@@ -187,14 +186,14 @@ static DetectIkev1ExchTypeData *DetectIkev1ExchTypeParse (const char *rawstr)
     res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, mode,
                               sizeof(mode));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
     res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, value1,
                               sizeof(value1));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 

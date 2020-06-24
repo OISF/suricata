@@ -132,8 +132,6 @@ static DetectIkev1VendorData *DetectIkev1VendorParse (const char *rawstr)
     return dd;
 
 error:
-    if (dd->vendor)
-        SCFree(dd->vendor);
     if (dd)
         SCFree(dd);
     return NULL;

@@ -178,7 +178,6 @@ static int DetectIkev1KeyExchangePayloadLengthMatch (DetectEngineThreadCtx *det_
 static DetectIkev1KeyExchangePayloadLengthData *DetectIkev1KeyExchangePayloadLengthParse (const char *rawstr)
 {
     DetectIkev1KeyExchangePayloadLengthData *dd = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     char host_type[10] = "";
@@ -187,28 +186,28 @@ static DetectIkev1KeyExchangePayloadLengthData *DetectIkev1KeyExchangePayloadLen
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre match for ikev1.key_exchange_payload_length failed, should be: <client|server>[=|<|>|<=|>=]<length>, but was: %s; error code %d", rawstr, ret);
         goto error;
     }
 
     res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, host_type,
                               sizeof(host_type));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
     res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, mode,
                               sizeof(mode));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
     res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, length,
                               sizeof(length));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
@@ -251,7 +250,7 @@ static DetectIkev1KeyExchangePayloadLengthData *DetectIkev1KeyExchangePayloadLen
 
     return dd;
 
-    error:
+error:
     if (dd)
         SCFree(dd);
     return NULL;

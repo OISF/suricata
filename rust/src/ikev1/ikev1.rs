@@ -52,7 +52,7 @@ pub struct IKEV1Transaction {
     logged: LoggerFlags,
     de_state: Option<*mut core::DetectEngineState>,
     events: *mut core::AppLayerDecoderEvents,
-    detect_flags: applayer::TxDetectFlags,
+    tx_data: applayer::AppLayerTxData,
 }
 
 impl IKEV1Transaction {
@@ -76,7 +76,7 @@ impl IKEV1Transaction {
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
-            detect_flags: applayer::TxDetectFlags::default(),
+            tx_data: applayer::AppLayerTxData::new()
         }
     }
 
@@ -522,8 +522,7 @@ pub extern "C" fn rs_ikev1_state_get_tx_iterator(
 // Parser name as a C style string.
 const PARSER_NAME: &'static [u8] = b"ikev1\0";
 
-export_tx_detect_flags_set!(rs_ikev1_set_tx_detect_flags, IKEV1Transaction);
-export_tx_detect_flags_get!(rs_ikev1_get_tx_detect_flags, IKEV1Transaction);
+export_tx_data_get!(rs_ikev1_get_tx_data, IKEV1Transaction);
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_ikev1_register_parser() {
@@ -545,8 +544,6 @@ pub unsafe extern "C" fn rs_ikev1_register_parser() {
         get_tx: rs_ikev1_state_get_tx,
         tx_get_comp_st: rs_ikev1_state_progress_completion_status,
         tx_get_progress: rs_ikev1_tx_get_alstate_progress,
-        get_tx_logged: Some(rs_ikev1_tx_get_logged),
-        set_tx_logged: Some(rs_ikev1_tx_set_logged),
         get_de_state: rs_ikev1_tx_get_detect_state,
         set_de_state: rs_ikev1_tx_set_detect_state,
         get_events: Some(rs_ikev1_state_get_events),
@@ -556,8 +553,9 @@ pub unsafe extern "C" fn rs_ikev1_register_parser() {
         localstorage_free: None,
         get_files: None,
         get_tx_iterator: Some(rs_ikev1_state_get_tx_iterator),
-        get_tx_detect_flags: Some(rs_ikev1_get_tx_detect_flags),
-        set_tx_detect_flags: Some(rs_ikev1_set_tx_detect_flags),
+        get_tx_data: rs_ikev1_get_tx_data,
+        apply_tx_config: None,
+        flags: 0
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

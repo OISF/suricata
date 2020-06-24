@@ -62,7 +62,7 @@ typedef struct LogIKEV1LogThread_ {
     MemBuffer          *buffer;
 } LogIKEV1LogThread;
 
-bool JsonIKEV1AddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
+bool EveIKEV1AddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
 {
     IKEV1State *state = FlowGetAppState(f);
     if (state) {

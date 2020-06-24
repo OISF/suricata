@@ -38,7 +38,10 @@
  */
 
 // support the basic attributes, which are parsed as integer and life_duration, if variable length is 4 it is stored as integer too
-#define PARSE_REGEX "^\\s*(encryption_algorithm|hash_algorithm|authentication_method|group_description|group_type|life_type|life_duration|prf|key_length|field_size)\\s*=\\s*([0-9]+)\\s*$"
+#define PARSE_REGEX "^\\s*(encryption_algorithm|hash_algorithm|authentication_method|group_description|\
+group_type|life_type|life_duration|prf|key_length|field_size)\
+\\s*=\\s*([0-9]+)\\s*$"
+
 static DetectParseRegex parse_regex;
 
 typedef struct {
@@ -73,8 +76,9 @@ void DetectIkev1ChosenSaRegister (void)
     sigmatch_table[DETECT_AL_IKEV1_CHOSEN_SA].AppLayerTxMatch = DetectIkev1ChosenSaMatch;
     sigmatch_table[DETECT_AL_IKEV1_CHOSEN_SA].Setup = DetectIkev1ChosenSaSetup;
     sigmatch_table[DETECT_AL_IKEV1_CHOSEN_SA].Free = DetectIkev1ChosenSaFree;
+#ifdef UNITTESTS
     sigmatch_table[DETECT_AL_IKEV1_CHOSEN_SA].RegisterTests = IKEV1ChosenSaRegisterTests;
-
+#endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     DetectAppLayerInspectEngineRegister("ikev1.chosen_sa_attribute",
@@ -143,7 +147,6 @@ static DetectIkev1ChosenSaData *DetectIkev1ChosenSaParse (const char *rawstr)
      * ikev1.chosen_sa_attribute:"hash_algorithm=8"
      */
     DetectIkev1ChosenSaData *dd = NULL;
-#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     char attribute[100];
@@ -151,21 +154,21 @@ static DetectIkev1ChosenSaData *DetectIkev1ChosenSaParse (const char *rawstr)
 
     ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 5) {
-        SCLogError(SC_ERR_PCRE_MATCH, "Parse error %s", rawstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre match for ikev1.chosen_sa_attribute failed, should be: <sa_attribute>=<type>, but was: %s; error code %d", rawstr, ret);
         goto error;
     }
 
     res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, attribute,
                               sizeof(attribute));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
     res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, value,
                               sizeof(value));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        SCLogError(SC_ERR_PCRE_COPY_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
@@ -187,8 +190,11 @@ static DetectIkev1ChosenSaData *DetectIkev1ChosenSaParse (const char *rawstr)
     return dd;
 
 error:
-    if (dd)
+    if (dd) {
+        if (dd->sa_type != NULL)
+            SCFree(dd->sa_type);
         SCFree(dd);
+    }
     return NULL;
 }
 

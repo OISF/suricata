@@ -26,6 +26,6 @@
 
 void JsonIKEV1LogRegister(void);
 
-bool JsonIKEV1AddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
+bool EveIKEV1AddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_IKEV1_H__ */

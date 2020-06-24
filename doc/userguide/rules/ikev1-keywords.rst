@@ -55,7 +55,7 @@ Examples::
 
 
 ikev1.exchtype
--------------------------
+--------------
 
 Match on the value of the Exchange Type.
 
