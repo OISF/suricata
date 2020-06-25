@@ -16,9 +16,8 @@
  */
 
 use std::mem::transmute;
-
-use crate::applayer::AppLayerResult;
 use crate::core;
+use crate::applayer::AppLayerResult;
 use crate::dcerpc::parser;
 use crate::log::*;
 use nom::error::ErrorKind;
@@ -301,6 +300,10 @@ pub struct DCERPCState {
     pub prev_dir: u8,
     pub prev_tx_call_id: u32,
     pub clear_bind_cache: bool,
+    pub skip_ts: u32,
+    pub skip_tc: u32,
+    pub ts_gap: bool,
+    pub tc_gap: bool,
 }
 
 impl DCERPCState {
@@ -321,6 +324,10 @@ impl DCERPCState {
             prev_dir: core::STREAM_TOSERVER,
             prev_tx_call_id: 0,
             clear_bind_cache: false,
+            skip_ts: 0,
+            skip_tc: 0,
+            ts_gap: false,
+            tc_gap: false,
         };
     }
 
@@ -412,9 +419,11 @@ impl DCERPCState {
         match direction {
             core::STREAM_TOSERVER => {
                 self.buffer_ts.clear();
+                self.ts_gap = false;
             }
             _ => {
                 self.buffer_tc.clear();
+                self.tc_gap = false;
             }
         }
         self.bytes_consumed = 0;
@@ -510,6 +519,35 @@ impl DCERPCState {
             self.clear_bind_cache = false;
         }
         self.prev_tx_call_id = call_id;
+    }
+
+    pub fn parse_data_gap(&mut self, direction: u8) -> AppLayerResult {
+        match direction {
+            core::STREAM_TOSERVER => {self.ts_gap = true;},
+            _ => {self.tc_gap = true;},
+        }
+        AppLayerResult::ok()
+    }
+
+    pub fn post_gap_housekeeping(&mut self, dir: u8) {
+        if self.ts_gap && dir == core::STREAM_TOSERVER {
+            for tx in &mut self.transactions {
+                if tx.id >= self.tx_id {
+                    SCLogDebug!("post_gap_housekeeping: done");
+                    break;
+                }
+                tx.req_done = true;
+            }
+        } else if self.tc_gap && dir == core::STREAM_TOCLIENT {
+            for tx in &mut self.transactions {
+                if tx.id >= self.tx_id {
+                    SCLogDebug!("post_gap_housekeeping: done");
+                    break;
+                }
+                tx.req_done = true;
+                tx.resp_done = true;
+            }
+        }
     }
 
     /// Makes a call to the nom parser for parsing DCERPC Header.
@@ -816,6 +854,12 @@ impl DCERPCState {
         let mut v: Vec<u8>;
         // Set any query's completion status to false in the beginning
         self.query_completed = false;
+
+        // Skip the record since this means that its in the middle of a known length record
+        if self.ts_gap || self.tc_gap {
+            AppLayerResult::ok();
+        }
+
         // Overwrite the dcerpc_state data in case of multiple complete queries in the
         // same direction
         if self.prev_dir == direction {
@@ -900,7 +944,7 @@ impl DCERPCState {
                         tx.resp_cmd = hdrtype;
                         self.transactions.push(tx);
                         self.transactions.last_mut().unwrap()
-                     };
+                    };
                     tx.resp_done = true;
                     tx.frag_cnt_tc = 1;
                     self.handle_bind_cache(current_call_id, false);
@@ -954,6 +998,7 @@ impl DCERPCState {
             self.clean_buffer(direction);
             self.reset_direction(direction);
         }
+        self.post_gap_housekeeping(direction);
         self.prev_dir = direction;
         return AppLayerResult::ok();
     }
@@ -982,22 +1027,18 @@ fn evaluate_stub_params(
 
 #[no_mangle]
 pub extern "C" fn rs_parse_dcerpc_request_gap(
-    state: &mut DCERPCState, _input_len: u32,
+    state: &mut DCERPCState,
+    _input_len: u32,
 ) -> AppLayerResult {
-    if state.handle_gap_ts() == 0 {
-        return AppLayerResult::ok();
-    }
-    AppLayerResult::err()
+    state.parse_data_gap(core::STREAM_TOSERVER)
 }
 
 #[no_mangle]
 pub extern "C" fn rs_parse_dcerpc_response_gap(
-    state: &mut DCERPCState, _input_len: u32,
+    state: &mut DCERPCState,
+    _input_len: u32,
 ) -> AppLayerResult {
-    if state.handle_gap_tc() == 0 {
-        return AppLayerResult::ok();
-    }
-    AppLayerResult::err()
+    state.parse_data_gap(core::STREAM_TOCLIENT)
 }
 
 #[no_mangle]
@@ -1005,6 +1046,10 @@ pub extern "C" fn rs_dcerpc_parse_request(
     _flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    /* START with MIDcore::STREAM set: record might be starting the middle. */
+    if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
+        state.ts_gap = true;
+    }
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = build_slice!(input, input_len as usize);
         return state.handle_input_data(buf, flags);
@@ -1017,6 +1062,10 @@ pub extern "C" fn rs_dcerpc_parse_response(
     _flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    /* START with MIDcore::STREAM set: record might be starting the middle. */
+    if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
+        state.tc_gap = true;
+    }
     if input_len > 0 {
         if input != std::ptr::null_mut() {
             let buf = build_slice!(input, input_len as usize);
