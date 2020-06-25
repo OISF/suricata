@@ -180,6 +180,8 @@ void RegisterDCERPCParsers(void)
 
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DCERPC,
                                                                DCERPCGetAlstateProgressCompletionStatus);
+        /* This parser accepts gaps. */
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_DCERPC, APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

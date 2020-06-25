@@ -22,7 +22,7 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 fn log_dcerpc_header(
     jsb: &mut JsonBuilder, state: &DCERPCState, tx: &DCERPCTransaction,
 ) -> Result<(), JsonError> {
-    if tx.req_done == true {
+    if tx.req_done == true && tx.req_lost == false {
         jsb.set_string("request", &dcerpc_type_string(tx.req_cmd))?;
         match tx.req_cmd {
             DCERPC_TYPE_REQUEST => {
@@ -55,7 +55,7 @@ fn log_dcerpc_header(
         jsb.set_string("request", "REQUEST_LOST")?;
     }
 
-    if tx.resp_done == true {
+    if tx.resp_done == true && tx.resp_lost == false {
         jsb.set_string("response", &dcerpc_type_string(tx.resp_cmd))?;
         match tx.resp_cmd {
             DCERPC_TYPE_RESPONSE => {

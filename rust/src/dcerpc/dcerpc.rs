@@ -16,13 +16,13 @@
  */
 
 use std::mem::transmute;
-
 use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core;
 use crate::dcerpc::parser;
 use crate::log::*;
 use nom::error::ErrorKind;
 use nom::number::Endianness;
+use nom;
 use std::cmp;
 
 // Constant DCERPC UDP Header length
@@ -149,6 +149,8 @@ pub struct DCERPCTransaction {
     pub stub_data_buffer_reset_tc: bool,
     pub req_done: bool,
     pub resp_done: bool,
+    pub req_lost: bool,
+    pub resp_lost: bool,
     pub req_cmd: u8,
     pub resp_cmd: u8,
     pub tx_data: AppLayerTxData,
@@ -174,6 +176,8 @@ impl DCERPCTransaction {
             stub_data_buffer_reset_tc: false,
             req_done: false,
             resp_done: false,
+            req_lost: false,
+            resp_lost: false,
             req_cmd: DCERPC_TYPE_REQUEST,
             resp_cmd: DCERPC_TYPE_RESPONSE,
             tx_data: AppLayerTxData::new(),
@@ -299,6 +303,10 @@ pub struct DCERPCState {
     pub prev_dir: u8,
     pub prev_tx_call_id: u32,
     pub clear_bind_cache: bool,
+    pub ts_gap: bool,
+    pub tc_gap: bool,
+    pub ts_ssn_gap: bool,
+    pub tc_ssn_gap: bool,
 }
 
 impl DCERPCState {
@@ -319,6 +327,10 @@ impl DCERPCState {
             prev_dir: core::STREAM_TOSERVER,
             prev_tx_call_id: 0,
             clear_bind_cache: false,
+            ts_gap: false,
+            tc_gap: false,
+            ts_ssn_gap: false,
+            tc_ssn_gap: false,
         };
     }
 
@@ -410,9 +422,11 @@ impl DCERPCState {
         match direction {
             core::STREAM_TOSERVER => {
                 self.buffer_ts.clear();
+                self.ts_gap = false;
             }
             _ => {
                 self.buffer_tc.clear();
+                self.tc_gap = false;
             }
         }
         self.bytes_consumed = 0;
@@ -508,6 +522,62 @@ impl DCERPCState {
             self.clear_bind_cache = false;
         }
         self.prev_tx_call_id = call_id;
+    }
+
+    pub fn parse_data_gap(&mut self, direction: u8) -> AppLayerResult {
+        match direction {
+            core::STREAM_TOSERVER => {
+                self.ts_gap = true;
+                self.ts_ssn_gap = true;
+            },
+            _ => {
+                self.tc_gap = true;
+                self.tc_ssn_gap = true;
+            },
+        }
+        AppLayerResult::ok()
+    }
+
+    pub fn post_gap_housekeeping(&mut self, dir: u8) {
+        SCLogDebug!("ts ssn gap: {:?}, tc ssn gap: {:?}, dir: {:?}", self.ts_ssn_gap, self.tc_ssn_gap, dir);
+        if self.ts_ssn_gap && dir == core::STREAM_TOSERVER {
+            for tx in &mut self.transactions {
+                if tx.id >= self.tx_id {
+                    SCLogDebug!("post_gap_housekeeping: done");
+                    break;
+                }
+                if tx.req_done == false {
+                    tx.req_lost = true;
+                }
+                tx.req_done = true;
+            }
+        } else if self.tc_ssn_gap && dir == core::STREAM_TOCLIENT {
+            for tx in &mut self.transactions {
+                if tx.id >= self.tx_id {
+                    SCLogDebug!("post_gap_housekeeping: done");
+                    break;
+                }
+                if tx.req_done == false {
+                    tx.req_lost = true;
+                }
+                if tx.resp_done == false {
+                    tx.resp_lost = true;
+                }
+                tx.req_done = true;
+                tx.resp_done = true;
+            }
+        }
+    }
+
+    pub fn search_dcerpc_record<'a>(&mut self, i: &'a[u8]) -> nom::IResult<&'a[u8], &'a[u8]> {
+        let mut d = i;
+        while d.len() >= 2 {
+            if d[0] == 0x05 && d[1] == 0x00 {
+                return Ok((&d[2..], d));
+            }
+            d = &d[1..];
+        }
+        Err(nom::Err::Incomplete(nom::Needed::Size(2 as usize - d.len())))
     }
 
     /// Makes a call to the nom parser for parsing DCERPC Header.
@@ -810,10 +880,49 @@ impl DCERPCState {
     pub fn handle_input_data(&mut self, input: &[u8], direction: u8) -> AppLayerResult {
         let mut parsed;
         let retval;
-        let input_len = input.len();
+        let mut cur_i = input;
+        let input_len = cur_i.len();
         let mut v: Vec<u8>;
         // Set any query's completion status to false in the beginning
         self.query_completed = false;
+
+        // Skip the record since this means that its in the middle of a known length record
+        if self.ts_gap || self.tc_gap {
+            SCLogDebug!("Trying to catch up after GAP (input {})", cur_i.len());
+            while cur_i.len() > 0 { // min record size
+                match self.search_dcerpc_record(cur_i) {
+                    Ok((_, pg)) => {
+                        SCLogDebug!("DCERPC record found");
+                        let offset = cur_i.len() - pg.len();
+                        if offset == 1 {
+                            cur_i = &cur_i[offset + 2..];
+                            continue; // see if we have another record in our data
+                        }
+                        match direction {
+                            core::STREAM_TOSERVER => {
+                                self.ts_gap = false;
+                                break;
+                            },
+                            _ => {
+                                self.tc_gap = false;
+                                break;
+                            }
+                        }
+                    },
+                    _ => {
+                        let mut consumed = cur_i.len();
+                        if consumed < 2 {
+                            consumed = 0;
+                        } else {
+                            consumed = consumed - 1;
+                        }
+                        SCLogDebug!("DCERPC record NOT found");
+                        return AppLayerResult::incomplete(consumed as u32, 2);
+                    },
+                }
+            }
+        }
+
         // Overwrite the dcerpc_state data in case of multiple complete queries in the
         // same direction
         if self.prev_dir == direction {
@@ -827,7 +936,7 @@ impl DCERPCState {
                     return AppLayerResult::err();
                 }
                 v = self.buffer_ts.split_off(0);
-                v.extend_from_slice(input);
+                v.extend_from_slice(cur_i);
                 v.as_slice()
             }
             _ => {
@@ -836,7 +945,7 @@ impl DCERPCState {
                     return AppLayerResult::err();
                 }
                 v = self.buffer_tc.split_off(0);
-                v.extend_from_slice(input);
+                v.extend_from_slice(cur_i);
                 v.as_slice()
             }
         };
@@ -934,7 +1043,7 @@ impl DCERPCState {
                     self.handle_bind_cache(current_call_id, true);
                 }
                 _ => {
-                    SCLogDebug!("Unrecognized packet type");
+                    SCLogDebug!("Unrecognized packet type: {:?}", x);
                     self.clean_buffer(direction);
                     return AppLayerResult::err();
                 }
@@ -950,6 +1059,7 @@ impl DCERPCState {
             self.clean_buffer(direction);
             self.reset_direction(direction);
         }
+        self.post_gap_housekeeping(direction);
         self.prev_dir = direction;
         return AppLayerResult::ok();
     }
@@ -978,22 +1088,18 @@ fn evaluate_stub_params(
 
 #[no_mangle]
 pub extern "C" fn rs_parse_dcerpc_request_gap(
-    state: &mut DCERPCState, _input_len: u32,
+    state: &mut DCERPCState,
+    _input_len: u32,
 ) -> AppLayerResult {
-    if state.handle_gap_ts() == 0 {
-        return AppLayerResult::ok();
-    }
-    AppLayerResult::err()
+    state.parse_data_gap(core::STREAM_TOSERVER)
 }
 
 #[no_mangle]
 pub extern "C" fn rs_parse_dcerpc_response_gap(
-    state: &mut DCERPCState, _input_len: u32,
+    state: &mut DCERPCState,
+    _input_len: u32,
 ) -> AppLayerResult {
-    if state.handle_gap_tc() == 0 {
-        return AppLayerResult::ok();
-    }
-    AppLayerResult::err()
+    state.parse_data_gap(core::STREAM_TOCLIENT)
 }
 
 #[no_mangle]
@@ -1001,6 +1107,11 @@ pub extern "C" fn rs_dcerpc_parse_request(
     _flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    SCLogDebug!("Handling request");
+    /* START with MIDSTREAM set: record might be starting the middle. */
+    if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
+        state.ts_gap = true;
+    }
     if input_len > 0 && input != std::ptr::null_mut() {
         let buf = build_slice!(input, input_len as usize);
         return state.handle_input_data(buf, flags);
@@ -1013,6 +1124,10 @@ pub extern "C" fn rs_dcerpc_parse_response(
     _flow: *mut core::Flow, state: &mut DCERPCState, _pstate: *mut std::os::raw::c_void,
     input: *const u8, input_len: u32, _data: *mut std::os::raw::c_void, flags: u8,
 ) -> AppLayerResult {
+    /* START with MIDSTREAM set: record might be starting the middle. */
+    if flags & (core::STREAM_START|core::STREAM_MIDSTREAM) == (core::STREAM_START|core::STREAM_MIDSTREAM) {
+        state.tc_gap = true;
+    }
     if input_len > 0 {
         if input != std::ptr::null_mut() {
             let buf = build_slice!(input, input_len as usize);
