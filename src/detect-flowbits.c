@@ -400,16 +400,20 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         struct FBAnalyze *array, uint32_t elements);
 #endif
 
-void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
+int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
 {
     const uint32_t max_fb_id = de_ctx->max_fb_id;
     if (max_fb_id == 0)
-        return;
+        return 0;
 
 #define MAX_SIDS 8
     uint32_t array_size = max_fb_id + 1;
-    struct FBAnalyze array[array_size];
-    memset(&array, 0, array_size * sizeof(struct FBAnalyze));
+    struct FBAnalyze *array = SCCalloc(array_size, sizeof(struct FBAnalyze));
+
+    if (array == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate flowbit analyze array");
+        return -1;
+    }
 
     SCLogDebug("fb analyzer array size: %"PRIu64,
             (uint64_t)(array_size * sizeof(struct FBAnalyze)));
@@ -633,6 +637,9 @@ end:
         SCFree(array[i].isnotset_sids);
         SCFree(array[i].toggle_sids);
     }
+    SCFree(array);
+
+    return 0;
 }
 
 #ifdef PROFILING

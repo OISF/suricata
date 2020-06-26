@@ -1418,7 +1418,9 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         SCLogConfig("building signature grouping structure, stage 1: "
                "preprocessing rules... complete");
     }
-    DetectFlowbitsAnalyze(de_ctx);
+
+    if(DetectFlowbitsAnalyze(de_ctx) != 0)
+        goto error;
 
     return 0;
 
