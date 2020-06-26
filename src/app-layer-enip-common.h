@@ -29,8 +29,6 @@
 #include "flow.h"
 #include "queue.h"
 
-#define MAX_ENIP_CMD    65535
-
 // EtherNet/IP commands
 #define NOP                0x0000
 #define LIST_SERVICES      0x0004
