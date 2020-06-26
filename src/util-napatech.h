@@ -41,7 +41,7 @@ typedef struct NapatechPacketVars_
 
 typedef struct NapatechStreamConfig_
 {
-    uint16_t stream_id;
+    uint8_t stream_id;
     bool is_active;
     bool initialized;
 } NapatechStreamConfig;
