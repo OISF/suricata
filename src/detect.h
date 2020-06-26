@@ -1493,7 +1493,7 @@ void DetectSignatureApplyActions(Packet *p, const Signature *s, const uint8_t);
 void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size);
 void RuleMatchCandidateTxArrayFree(DetectEngineThreadCtx *det_ctx);
 
-void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx);
+int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx);
 
 int DetectMetadataHashInit(DetectEngineCtx *de_ctx);
 void DetectMetadataHashFree(DetectEngineCtx *de_ctx);
