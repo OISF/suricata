@@ -52,7 +52,7 @@ pub extern "C" fn rs_http2_tx_get_frametype(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_parse_frametype(
+pub unsafe extern "C" fn rs_http2_parse_frametype(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
     let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
@@ -99,7 +99,7 @@ pub extern "C" fn rs_http2_tx_get_errorcode(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_parse_errorcode(
+pub unsafe extern "C" fn rs_http2_parse_errorcode(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
     let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
@@ -178,7 +178,7 @@ pub extern "C" fn rs_http2_tx_get_window(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_parse_settingsid(
+pub unsafe extern "C" fn rs_http2_parse_settingsid(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
     let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
@@ -191,7 +191,7 @@ pub extern "C" fn rs_http2_parse_settingsid(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_detect_settingsctx_parse(
+pub unsafe extern "C" fn rs_http2_detect_settingsctx_parse(
     str: *const std::os::raw::c_char,
 ) -> *mut std::os::raw::c_void {
     let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
@@ -205,7 +205,7 @@ pub extern "C" fn rs_http2_detect_settingsctx_parse(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_detect_settingsctx_free(ctx: *mut std::os::raw::c_void) {
+pub unsafe extern "C" fn rs_http2_detect_settingsctx_free(ctx: *mut std::os::raw::c_void) {
     // Just unbox...
     let _ctx: Box<parser::DetectHTTP2settingsSigCtx> = unsafe { transmute(ctx) };
 }
@@ -273,7 +273,7 @@ pub extern "C" fn rs_http2_detect_settingsctx_match(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_detect_u64_parse(
+pub unsafe extern "C" fn rs_detect_u64_parse(
     str: *const std::os::raw::c_char,
 ) -> *mut std::os::raw::c_void {
     let ft_name: &CStr = unsafe { CStr::from_ptr(str) };
@@ -287,7 +287,7 @@ pub extern "C" fn rs_detect_u64_parse(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
+pub unsafe extern "C" fn rs_detect_u64_free(ctx: *mut std::os::raw::c_void) {
     // Just unbox...
     let _ctx: Box<parser::DetectU64Data> = unsafe { transmute(ctx) };
 }
@@ -356,7 +356,7 @@ pub extern "C" fn rs_http2_detect_sizeupdatectx_match(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_header_name(
+pub unsafe extern "C" fn rs_http2_tx_get_header_name(
     tx: *mut std::os::raw::c_void, direction: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> u8 {
@@ -420,7 +420,7 @@ fn http2_escape_header(hd: &parser::HTTP2FrameHeaders, i: u32) -> Vec<u8> {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_http2_tx_get_header(
+pub unsafe extern "C" fn rs_http2_tx_get_header(
     tx: *mut std::os::raw::c_void, direction: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> u8 {
