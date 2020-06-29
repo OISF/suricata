@@ -78,6 +78,7 @@ static int JsonSMBLogger(ThreadVars *tv, void *thread_data,
     }
     json_object_set_new(js, "smb", smbjs);
 
+    JsonAddCommonOptions(&thread->ctx->cfg, p, f, js);
     MemBufferReset(thread->buffer);
     OutputJSONBuffer(js, thread->ctx->file_ctx, &thread->buffer);
 
