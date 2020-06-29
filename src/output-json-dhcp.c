@@ -51,6 +51,7 @@ typedef struct LogDHCPFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
     void       *rs_logger;
+    OutputJsonCommonSettings cfg;
 } LogDHCPFileCtx;
 
 typedef struct LogDHCPLogThread_ {
@@ -76,6 +77,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
     }
     json_object_set_new(js, "dhcp", dhcp_js);
 
+    JsonAddCommonOptions(&thread->dhcplog_ctx->cfg, p, f, js);
     MemBufferReset(thread->buffer);
     OutputJSONBuffer(js, thread->dhcplog_ctx->file_ctx, &thread->buffer);
     json_decref(js);
@@ -106,6 +108,7 @@ static OutputInitResult OutputDHCPLogInitSub(ConfNode *conf,
         return result;
     }
     dhcplog_ctx->file_ctx = ajt->file_ctx;
+    dhcplog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
