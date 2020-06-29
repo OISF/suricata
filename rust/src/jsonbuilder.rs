@@ -164,7 +164,10 @@ impl JsonBuilder {
                 self.pop_state();
                 Ok(self)
             }
-            _ => Err(JsonError::InvalidState),
+            State::None => {
+                debug_validate_fail!("invalid state");
+                Err(JsonError::InvalidState)
+            },
         }
     }
 
@@ -226,6 +229,7 @@ impl JsonBuilder {
                 self.buf.push_str(",\"");
             }
             _ => {
+                debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
@@ -247,6 +251,7 @@ impl JsonBuilder {
                 self.buf.push(',');
             }
             _ => {
+                debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
@@ -268,6 +273,7 @@ impl JsonBuilder {
                 self.buf.push(',');
             }
             _ => {
+                debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
@@ -292,7 +298,10 @@ impl JsonBuilder {
                 self.encode_string(val)?;
                 Ok(self)
             }
-            _ => Err(JsonError::InvalidState),
+            _ => {
+                debug_validate_fail!("invalid state");
+                Err(JsonError::InvalidState)
+            }
         }
     }
 
@@ -313,6 +322,7 @@ impl JsonBuilder {
                 self.buf.push(',');
             }
             _ => {
+                debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
@@ -329,6 +339,7 @@ impl JsonBuilder {
                 self.set_state(State::ObjectNth);
             }
             _ => {
+                debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
@@ -352,6 +363,7 @@ impl JsonBuilder {
                 self.buf.push(',');
             }
             _ => {
+                debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
@@ -365,7 +377,10 @@ impl JsonBuilder {
         match self.current_state() {
             State::ObjectNth => self.buf.push(','),
             State::ObjectFirst => self.set_state(State::ObjectNth),
-            _ => return Err(JsonError::InvalidState),
+            _ => {
+                debug_validate_fail!("invalid state");
+                return Err(JsonError::InvalidState);
+            }
         }
         self.buf.push('"');
         self.buf.push_str(key);
@@ -395,6 +410,7 @@ impl JsonBuilder {
                 self.set_state(State::ObjectNth);
             }
             _ => {
+                debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
@@ -414,6 +430,7 @@ impl JsonBuilder {
                 self.set_state(State::ObjectNth);
             }
             _ => {
+                debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
@@ -439,6 +456,7 @@ impl JsonBuilder {
                 self.set_state(State::ObjectNth);
             }
             _ => {
+                debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
@@ -458,6 +476,7 @@ impl JsonBuilder {
                 self.set_state(State::ObjectNth);
             }
             _ => {
+                debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
