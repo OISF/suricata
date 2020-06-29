@@ -46,6 +46,7 @@
 typedef struct LogRdpFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
+    OutputJsonCommonSettings cfg;
 } LogRdpFileCtx;
 
 typedef struct LogRdpLogThread_ {
@@ -70,6 +71,7 @@ static int JsonRdpLogger(ThreadVars *tv, void *thread_data,
     }
     json_object_set_new(js, "rdp", rdp_js);
 
+    JsonAddCommonOptions(&thread->rdplog_ctx->cfg, p, f, js);
     MemBufferReset(thread->buffer);
     OutputJSONBuffer(js, thread->rdplog_ctx->file_ctx, &thread->buffer);
     json_decref(js);
@@ -99,6 +101,7 @@ static OutputInitResult OutputRdpLogInitSub(ConfNode *conf,
         return result;
     }
     rdplog_ctx->file_ctx = ajt->file_ctx;
+    rdplog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
