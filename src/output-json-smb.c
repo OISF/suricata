@@ -75,6 +75,7 @@ static int JsonSMBLogger(ThreadVars *tv, void *thread_data,
     }
     jb_close(jb);
 
+    EveAddCommonOptions(&thread->ctx->cfg, p, f, jb);
     MemBufferReset(thread->buffer);
     OutputJsonBuilderBuffer(jb, thread->ctx->file_ctx, &thread->buffer);
 
