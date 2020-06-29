@@ -137,10 +137,7 @@ static int64_t sensor_id = -1; /* -1 = not defined */
 
 void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
 {
-    size_t filename_size = ff->name_len * 2 + 1;
-    char filename_string[filename_size];
-    BytesToStringBuffer(ff->name, ff->name_len, filename_string, filename_size);
-    jb_set_string(jb, "filename", filename_string);
+    jb_set_string_from_bytes(jb, "filename", ff->name, ff->name_len);
 
     jb_open_array(jb, "sid");
     for (uint32_t i = 0; ff->sid != NULL && i < ff->sid_cnt; i++) {
