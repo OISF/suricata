@@ -81,6 +81,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
         goto fail;
     }
 
+    EveAddCommonOptions(&thread->dhcplog_ctx->cfg, p, f, js);
     MemBufferReset(thread->buffer);
     OutputJsonBuilderBuffer(js, thread->dhcplog_ctx->file_ctx, &thread->buffer);
     jb_free(js);
