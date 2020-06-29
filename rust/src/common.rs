@@ -30,6 +30,23 @@ macro_rules! debug_validate_bug_on (
   };
 );
 
+#[cfg(not(feature = "debug-validate"))]
+#[macro_export]
+macro_rules! debug_validate_fail (
+  ($msg:expr) => {};
+);
+
+#[cfg(feature = "debug-validate")]
+#[macro_export]
+macro_rules! debug_validate_fail (
+  ($msg:expr) => {
+    // Wrap in a conditional to prevent unreachable code warning in caller.
+    if true {
+      panic!($msg);
+    }
+  };
+);
+
 /// Convert a String to C-compatible string
 ///
 /// This function will consume the provided data and use the underlying bytes to construct a new
