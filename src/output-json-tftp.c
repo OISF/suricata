@@ -58,6 +58,7 @@
 typedef struct LogTFTPFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
+    OutputJsonCommonSettings cfg;
 } LogTFTPFileCtx;
 
 typedef struct LogTFTPLogThread_ {
@@ -83,6 +84,7 @@ static int JsonTFTPLogger(ThreadVars *tv, void *thread_data,
 
     json_object_set_new(js, "tftp", tftpjs);
 
+    JsonAddCommonOptions(&thread->tftplog_ctx->cfg, p, f, js);
     MemBufferReset(thread->buffer);
     OutputJSONBuffer(js, thread->tftplog_ctx->file_ctx, &thread->buffer);
 
@@ -112,6 +114,7 @@ static OutputInitResult OutputTFTPLogInitSub(ConfNode *conf,
         return result;
     }
     tftplog_ctx->file_ctx = ajt->file_ctx;
+    tftplog_ctx->cfg = ajt->cfg;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
